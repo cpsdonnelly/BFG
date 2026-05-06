@@ -1,0 +1,8 @@
+# CATASTROPHIC DAMAGE TABLE
+# Rolled when a capital ship (or defense with 3+ hits) reaches 0 HP
+# Roll 2D6
+2d6,result_name,description
+2-6,Drifting Hulk,Ship becomes shattered hulk. Moves 4D6cm forward each movement phase. Place blast marker after each move.
+7-8,Burning Hulk,Like drifting hulk but at end of each movement phase roll again on this table (replacing result if 2-6).
+9-11,Plasma Drive Overload,Remove ship. Leave blast markers = half starting hits. Every ship within 3D6cm hit by lance shots at strength = half starting hits. All ordnance in blast radius destroyed.
+12,Warp Drive Implosion,Remove ship. Leave blast markers = starting hits. Every ship within 3D6cm hit by lance shots at strength = starting hits. All ordnance in blast radius destroyed.
