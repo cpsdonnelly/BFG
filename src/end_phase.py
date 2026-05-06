@@ -206,25 +206,41 @@ def remove_blast_markers(gs: GameState, dice: DiceRoller) -> List[str]:
 
 def remove_brace_orders(gs: GameState) -> List[str]:
     """
-    Remove Brace For Impact orders at end of turn.
-    Brace lasts until the end of the ship's next turn.
-    So only remove if it was set on a PREVIOUS turn (not this one).
+    End-of-turn brace cleanup.
+    - Expire Brace For Impact if set on a previous turn, restoring previous_order.
+    - Clear brace_failed_vs for ALL ships (failed attempts are per-turn, not persistent).
     """
     logs = []
     for s_dict in gs.ships:
+        ship = Ship.from_dict(s_dict)
+        needs_update = False
+
+        # Clear per-turn failed brace tracking (regardless of brace status)
+        if ship.brace_failed_vs:
+            ship.brace_failed_vs = []
+            needs_update = True
+
         if s_dict.get("special_order") == SpecialOrder.BRACE_FOR_IMPACT.value:
             brace_turn = s_dict.get("brace_set_on_turn", 0)
             if brace_turn < gs.turn_number:
                 # Set on a previous turn, time to expire
-                ship = Ship.from_dict(s_dict)
-                ship.special_order = SpecialOrder.NONE.value
+                prev = ship.previous_order or SpecialOrder.NONE.value
+                ship.special_order = prev
+                ship.previous_order = SpecialOrder.NONE.value
                 ship.brace_set_on_turn = 0
-                gs.update_ship(ship)
-                logs.append(f"{ship.name}: Brace For Impact expired")
+                needs_update = True
+                if prev != SpecialOrder.NONE.value:
+                    logs.append(
+                        f"{ship.name}: Brace For Impact expired, "
+                        f"restored to {prev}")
+                else:
+                    logs.append(f"{ship.name}: Brace For Impact expired")
             else:
                 # Set this turn, persists through next turn
-                ship = Ship.from_dict(s_dict)
                 logs.append(f"{ship.name}: Brace For Impact persists (set this turn)")
+
+        if needs_update:
+            gs.update_ship(ship)
     return logs
 
 

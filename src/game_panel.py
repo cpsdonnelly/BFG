@@ -1928,13 +1928,23 @@ class GamePanel:
 
             for tw in torp_weapons:
                 total_str = tw["strength"]
+                # Halve for crippled, then halve again for braced (cumulative)
+                halve_reasons = []
+                if ship.is_crippled:
+                    total_str = (total_str + 1) // 2
+                    halve_reasons.append("crippled")
+                if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                    total_str = (total_str + 1) // 2
+                    halve_reasons.append("braced")
+
                 is_guided = tw.get("torpedo_type") == "guided"
                 label = "Guided Missiles" if is_guided else "Torpedoes"
                 torp_speed = tw.get("torpedo_speed", 30)
+                halve_note = f" [{', '.join(halve_reasons)}]" if halve_reasons else ""
 
                 tk.Label(torp_frame,
                          text=f"{tw['name']}: Str {total_str}, Speed {torp_speed}cm"
-                              + (" [GUIDED]" if is_guided else ""),
+                              + (" [GUIDED]" if is_guided else "") + halve_note,
                          font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
 
                 # Heading control (within forward arc: ship heading +/- 45°)
@@ -1966,7 +1976,8 @@ class GamePanel:
                              text=f"Full salvo: Str {total_str} (splitting requires Str 7+)",
                              font=("Consolas", 8), fg="#888888").pack(side=tk.LEFT)
 
-                def _launch_torps(w=tw, hv=heading_var, sv=str_var):
+                def _launch_torps(w=tw, hv=heading_var, sv=str_var,
+                                   effective_str=total_str):
                     try:
                         heading = float(hv.get())
                         strength = int(sv.get())
@@ -1982,7 +1993,8 @@ class GamePanel:
                             f"({ship.heading-45:.0f}° to {ship.heading+45:.0f}°)")
                         return
 
-                    total = w["strength"]
+                    # Use the already-halved effective strength as the cap
+                    total = effective_str
                     # Enforce split rules
                     if total < 7:
                         strength = total  # can't split below Str 7
@@ -2058,13 +2070,25 @@ class GamePanel:
 
             # Combine all bays on this ship
             total_bays = sum(w["strength"] for w in bay_weapons)
+            # Halve for crippled, then halve again for braced (cumulative)
+            bay_halve_reasons = []
+            if ship.is_crippled:
+                total_bays = (total_bays + 1) // 2
+                bay_halve_reasons.append("crippled")
+            if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                total_bays = (total_bays + 1) // 2
+                bay_halve_reasons.append("braced")
+
             available_types = set()
             for w in bay_weapons:
                 for ct in w.get("craft_types", w.get("craft", [])):
                     available_types.add(ct)
 
+            bay_cap_label = f"Total launch capacity: {total_bays} squadrons"
+            if bay_halve_reasons:
+                bay_cap_label += f" [{', '.join(bay_halve_reasons)}]"
             tk.Label(bay_frame,
-                     text=f"Total launch capacity: {total_bays} squadrons",
+                     text=bay_cap_label,
                      font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
             tk.Label(bay_frame,
                      text=f"Available types: {', '.join(sorted(available_types))}",
