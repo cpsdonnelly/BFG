@@ -1,0 +1,221 @@
+# BATTLEFLEET GOTHIC: XR - RULES CHEAT SHEET
+# Compiled from BFG:XR v1.22.01 Rulebook
+
+## TURN SEQUENCE
+1. MOVEMENT PHASE (active player)
+   - Remove previous special orders (except Brace - removed at end of turn)
+   - Move ships one at a time: declare special orders (command check 2D6 <= Ld), then move
+   - If ANY command check fails, no further checks this turn
+   - Ships MUST move at least half speed (unless Burn Retros)
+   - Ships moving through blast markers: -5cm speed that phase (once, regardless of how many)
+
+2. SHOOTING PHASE (active player)
+   - Fire direct weapons (batteries, lances, nova cannon)
+   - Launch ordnance at END of shooting phase (placed on ship base)
+   - Ordnance does NOT move/attack until ordnance phase
+
+3. ORDNANCE PHASE (BOTH players)
+   - Active player moves all ordnance first, then opponent
+   - Ordnance interacts on contact (regardless of whose turn)
+   - Ordnance through blast markers: destroyed on D6=6
+
+4. END PHASE (BOTH players)
+   - Resolve boarding actions and teleport attacks (active player decides order)
+   - Damage control: each capital ship rolls 1D6 per remaining HP, each 6 repairs one crit
+     (ships touching blast markers: half dice, rounding up)
+   - Active player rolls D6, removes that many blast markers NOT touching any ship
+   - Remove Brace For Impact orders
+
+## SPECIAL ORDERS (Command check: 2D6 <= Ld)
+- Ld modifiers: Under Fire (blast markers touching) = -1 Ld; Enemy on special orders = +1 Ld
+
+### Movement Orders:
+- ALL AHEAD FULL: Speed +4D6cm, MUST move full distance, NO turns, half battery FP & lance str (round up)
+- BURN RETROS: No minimum move, can stay still, max half speed, half FP & lance str (round up)
+- COME TO NEW HEADING: Extra turn during move (must still move minimum before each turn), half FP & lance str (round up)
+
+### Combat Orders:
+- LOCK ON: Re-roll misses for lances and gunnery. No turns. Does NOT affect Nova Cannon.
+- RELOAD ORDNANCE: All ordnance reloaded. Can launch in subsequent shooting phase.
+- BRACE FOR IMPACT: Can be declared any time before combat rolls. 4+ save on each hit (not vs shields). Replaces current orders. Lasts until end of NEXT turn. Ship halves FP, lance str, ordnance str. Cannot use special orders next turn.
+  - Declared per attacker (once per attacker per turn)
+  - Does NOT protect vs boarding action damage
+  - Does NOT protect vs critical damage from unsaved hits
+
+## MOVEMENT RULES
+- Minimum move before turning: Battleship 15cm, Cruiser 10cm, Escort any point
+- Turn angles: 45° or 90° depending on ship profile
+- A ship that moved <5cm counts as DEFENSES on gunnery table
+- Ponderous ships (e.g. Custodian): cannot use Come to New Heading
+
+## SHOOTING - WEAPONS BATTERIES
+1. Total firepower of all batteries firing at same target
+2. Determine target orientation (Closing/Moving Away/Abeam) using bearing compass on TARGET
+3. Look up dice count on Gunnery Table (firepower vs target type+orientation)
+4. Apply column shifts: <15cm left, >30cm right, through blast markers right
+5. Roll dice: each >= target Armor = 1 hit
+6. For FP > 20: look up 20 and remainder separately, add dice together
+
+## SHOOTING - LANCES
+- Roll 1D6 per lance strength
+- Hit on 4+ regardless of armor
+- Can split fire with priority test (str 2+)
+- NOT affected by blast marker column shifts
+- Affected by Lock On (re-roll misses)
+
+## SHOOTING - NOVA CANNON
+- Range 30-150cm, Front arc, template 5cm diameter with 1.2cm center hole
+- Scatter: <45cm = 1D6, 45-60cm = 2D6, 60-150cm = 3D6
+- Hit on scatter die = stays in place; Miss = moves rolled distance in arrow direction
+- Any base touching template = 1 auto hit; base touching center hole = D6 hits (ignores armor)
+- NOT affected by Lock On or Reload Ordnance
+- Cannot fire on ANY other special orders
+- Ordnance touching template: destroyed
+- If no ships hit: place 1 blast marker at template center
+- Crippled ships cannot fire nova cannon
+
+## DAMAGE
+- Each hit past shields = 1 damage point
+- Roll D6 per hit taken (not shield hits): 6 = CRITICAL HIT → roll 2D6 on Critical Hits Table
+- Escorts/defenses <3 starting hits: crit = +1 damage instead
+- Capital ship at half hits or less = CRIPPLED:
+  - Halve lance str, ordnance str, gunnery FP, turrets, shields (round up)
+  - Reduce speed by 5cm
+  - Cannot fire nova cannon
+  - If also Braced: halve armaments AGAIN
+
+## SHIELDS
+- Each shield point blocks 1 hit; place blast marker per absorbed hit
+- Blast markers touching base reduce shields by 1 each (min 0)
+- Shields restore as ship moves away from blast markers
+- Shields DO NOT protect vs: boarding, ramming, torpedoes, attack craft, hit-and-run
+- Max blast markers around a base per turn: 3-5 small base, 5-8 large base
+
+## BLAST MARKERS
+- Placed for: each shield hit absorbed, destroyed escorts, missed nova cannon
+- Moving through: -5cm speed, shieldless ships take 1 dmg on D6=6
+- Shooting through: right column shift on gunnery table (NOT lances, NOT nova cannon)
+- Removal in end phase: active player rolls D6, removes that many not touching ships
+
+## TORPEDOES
+- Launch at end of shooting phase, move in ordnance phase
+- Standard Imperial torpedoes: dumb fire (straight line), 30cm speed, cannot turn
+- Tau missiles: guided (20-40cm speed, can turn 45° at start of move, but degrade: roll 1D6 per strength point each ordnance phase, each 1 reduces strength by 1)
+- When torpedo contacts a ship base: roll D6 per strength vs Armor. Each hit = 1 dmg. Ignores shields.
+- Torpedo strength reduced by 1 per hit inflicted, continues moving
+- Turrets defend: each 4+ on turret dice reduces salvo strength by 1
+- Detonated by: D6=6 through blast markers, direct fire hit, contact with another torpedo marker
+
+## ATTACK CRAFT
+- Launched from launch bays (1 squadron per bay)
+- Max markers in play = total launch bays remaining in fleet
+- Once launched, need Reload Ordnance to launch again
+- Ships with BOTH torps and launch bays: launching one type doesn't spend the other
+
+### Fighters:
+- vs ordnance: both markers removed (mutual destruction)
+- vs ships: no effect, stay in play
+- MUST intercept enemy attack craft and torpedoes on contact
+
+### Bombers:
+- vs fighters: bomber removed (fighters remain)
+- vs other ordnance: both avoided, stay in play  
+- vs ships: roll D6 attacks per bomber vs lowest Armor. Attacks reduced by 1 per turret (min 0). Remove bombers after attack.
+
+### Assault Boats:
+- vs fighters: assault boats removed
+- vs other ordnance: both avoided
+- vs ships: conduct hit-and-run raid per squadron. Remove after attack.
+
+### Waves:
+- Multiple squadrons combined into close (stacked) or loose (adjacent block) formation
+- Wave moves at slowest speed, treated as single marker for movement/blast markers
+- Turrets fire once vs whole wave; each success removes lead marker
+- Fighters at front suppress turrets for bombers behind them (each fighter = 1 bomber gets exactly 3 attacks instead of D6-turrets)
+
+### Resilient (e.g. Tau Mantas, 4+ save):
+- When intercepted by or intercepting ordnance: roll D6, on 4+ survive instead of being removed
+- Can only use save ONCE per phase
+- If save passed: must stop moving that phase
+- Does NOT work vs: blast markers, turrets, shooting, or after attacking a ship
+
+### Combat Air Patrol (CAP):
+- Fighters in base contact with friendly ship can go on CAP
+- Move with parent ship, intercept any ordnance attacking it
+- Cannot double-move (forfeit independent ordnance phase movement)
+
+## HIT-AND-RUN RAIDS
+- vs Capital Ships: roll D6 on Critical Hits table, apply result. Roll of 1 or less = no effect.
+- vs Escorts: D6 roll 4+ = 1 damage (no crit), modified by any bonuses
+
+## BOARDING ACTIONS (End Phase, Advanced Rules)
+- Attacker moves into base contact and declares boarding (cannot shoot/launch that turn)
+- Troop rating = remaining HP (defender adds turrets)
+- Higher troop rating side gets bonus (+1 if higher, +2 if double, +3 if triple, +4 if quadruple)
+- Both roll D6 + modifiers (enemy has blast markers +1, enemy on special orders +1, enemy crippled +2, troop bonus, crew damage bonus)
+- Loser takes damage = difference in scores (ignores shields, no Brace save)
+- Both sides check for critical based on result difference table
+- Ship at 0 HP from boarding = drifting hulk (no catastrophic damage roll)
+
+## TELEPORT ATTACKS (End Phase, Advanced Rules)
+- One attack per ship per end phase, vs enemy within 10cm
+- Target must have shields down (all depleted)
+- Cannot target ship with more remaining HP than attacker has
+- Escorts/defenses <3 starting hits cannot teleport
+- Cannot if crippled or on special orders (except Lock On or Reload Ordnance)
+- Resolved as hit-and-run raid
+
+## RAMMING (Advanced Rules)
+- Must be on All Ahead Full, declare target after passing AAF check
+- Leadership test to hit: 2D6 normally, 3D6 if target smaller type, 1D6 if target larger type
+- If hit: roll D6 per ramming ship's starting HP vs target Armor (facing struck). Ignores shields.
+- Target rolls back: full starting HP if front-to-front, half (round up) otherwise, vs rammer's front Armor
+
+## CELESTIAL PHENOMENA
+### Gas/Dust Clouds: Same effect as 1 blast marker (gunnery shift, -5cm speed, shieldless dmg on 6)
+### Asteroid Fields: Block LoS. Ships entering must pass Ld test or take D6 damage (shields work). Escorts re-roll failed test. Ships inside fire at max 10cm, half strength. No firing if crippled/braced inside.
+### Planets: Block LoS for direct fire. Torpedoes detonated on contact.
+  - Gravity Well: Small planet 10cm, Medium 15cm, Large 30cm from template edge
+  - High Orbit (in gravity well): Ship gets free turn toward planet center at start AND/OR end of move. No minimum distance needed. Works even on AAF/Lock On. Combines with CtNH.
+  - Ships in gravity well don't need to move (stationary = defenses on gunnery table)
+### Warp Rifts: Block LoS. Torpedoes detonated. Attack craft destroyed. Ships entering test Ld on 3D6: pass = reposition 2D6x10cm away; fail = lost in warp (D6 after game: 1=destroyed, 2-6=disengaged)
+### Solar Flares: Roll D6 at start of each turn: on 1, all ships suffer -1 Ld and right column shift on gunnery for that turn
+### Radiation Bursts: At start of game, roll D6: on 4+, radiation burst occurs. All ships with shields down take 1 damage. All ordnance destroyed on D6=4+.
+
+## TAU SPECIAL RULES
+- Tau missiles: guided (can turn 45° before moving, 20-40cm speed)
+- Tau missile degradation: each ordnance phase, roll 1D6 per strength point for salvos from PREVIOUS turns, each 1 reduces strength by 1
+- Mantas: resilient 4+ save, count as both fighters and bombers
+- Barracudas: fighters (speed 25cm)
+- Kor'vattra vessels: halve troop rating for boarding (round up), cannot teleport
+- Kor'or'vesh vessels: no penalty to troop rating, still cannot teleport
+- Deflector: works like armor but from the front (6+ deflector = 6+ prow armor equivalent)
+- Tracking systems (Custodian): turret range 20cm instead of normal 10cm(?)
+- Gravitic hooks: transport towed escorts, which deploy when ship enters battle
+- Towed escorts don't count for victory points purposes
+
+## IMPERIAL NAVY SPECIAL RULES  
+- Standard torpedoes: dumb fire, 30cm speed, no turning
+- Can purchase special torpedo types (seeking, melta, vortex) - one salvo per game each
+- Targeting Matrix (Mars upgrade): additional left column shift on weapons batteries
+- Lock On re-rolls apply to both lances and gunnery
+
+## BASE SIZES
+- Large base (60mm): ships with 3+ shields OR 10+ hits. Can get Tractor Fields (free, large base) on any capital ship.
+- Small base (32mm): all others
+- Large base = easier to hit with templates, easier to ram/board, but harder to hide
+
+## VICTORY POINTS
+- Destroyed ship = full points value
+- Disengaged ship = half points value
+- Crippled ship still on table = no VP until destroyed/disengaged
+- Towed escorts: check faction rules (Tau towed escorts may not count)
+
+## TAU TRACKING SYSTEMS (from Tau fleet book)
+- Certain Tau vessels have tracking systems
+- Any Tau vessel within range of a ship with tracking systems may:
+  1. Re-roll missed turret attacks
+  2. Ignore the >30cm right-column shift for gunnery weapons
+- Standard tracking system range: 10cm
+- Custodian class: enhanced tracking systems with 20cm range
+- Tracking systems work even when the equipped ship is on Brace For Impact

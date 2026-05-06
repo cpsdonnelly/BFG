@@ -1,0 +1,14 @@
+# SPECIAL ORDERS QUICK REFERENCE
+# All require Command Check: 2D6 <= Leadership value
+# Ld modifiers: touching blast markers = -1 Ld; enemy ships on special orders = +1 Ld
+# If any command check fails in a turn, no more checks that turn (except Brace)
+# Brace can always be attempted even after a failed check, but only once per attacker per turn
+
+order,speed,turns,shooting,ordnance,notes
+None,Full,Up to one,Full effect,Full effect,Default state
+All Ahead Full,Full + 4D6cm,None,Half FP/lance (round up),Full effect,Must move full distance. Can attempt ram.
+Burn Retros,0 to half,Up to one,Half FP/lance (round up),Full effect,No minimum move. Can remain stationary.
+Come to New Heading,Half to full,Up to two,Half FP/lance (round up),Full effect,Must still move minimum before each turn. Ponderous ships cannot use.
+Lock On,Half to full,None,Full + re-roll misses,Full effect,Re-rolls for lances AND gunnery. Does NOT affect Nova Cannon.
+Reload Ordnance,Half to full,Up to one,Full effect,Full + reloaded,All ordnance types reloaded simultaneously.
+Brace For Impact,Half to full,Up to one,Half FP/lance/ordnance (round up),Half strength,4+ save per hit (not shields). Replaces current orders. Lasts until end of NEXT turn. No special orders next turn.

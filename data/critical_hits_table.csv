@@ -1,0 +1,19 @@
+# CRITICAL HITS TABLE
+# For each hit on a ship (not shields), roll D6. On a 6 = critical hit.
+# Roll 2D6 on this table for the effect.
+# Escorts/defenses with <3 starting hits: crit = +1 damage instead of rolling.
+# If crit location cannot apply (e.g. no prow weapons), apply next highest result.
+# Multiple crits to same location must ALL be repaired before system works.
+# Effects are NOT cumulative unless stated.
+2d6,extra_damage,result_name,description,repairable
+2,0,Dorsal Armament Damaged,Dorsal armament may not fire until repaired,yes
+3,0,Starboard Armament Damaged,Starboard armament may not fire until repaired,yes
+4,0,Port Armament Damaged,Port armament may not fire until repaired,yes
+5,0,Prow Armament Damaged,Prow armament may not fire until repaired,yes
+6,1,Engine Room Damaged,Ship may not make any turns until repaired,yes
+7,0,Fire!,Each unrepaired fire inflicts 1 damage in end phase,yes
+8,1,Thrusters Damaged,Reduce speed by 10cm until repaired. Not cumulative but all must be repaired.,yes
+9,0,Bridge Smashed,Leadership reduced by 3. NOT repairable.,no
+10,0,Shields Collapse,Shield strength reduced to zero. NOT repairable.,no
+11,D3,Hull Breach,Huge gash causes carnage among crew.,no_extra_only
+12,D6,Bulkhead Collapse,Compartments crumple. Pray some of the ship holds together.,no_extra_only

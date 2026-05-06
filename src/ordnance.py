@@ -1,0 +1,352 @@
+"""BFG:XR Ordnance Phase - Torpedo and attack craft resolution"""
+import math
+from typing import List, Dict, Optional
+from .models import Ship, OrdnanceMarker, BlastMarker, OrdnanceType
+from .game_state import GameState
+from .dice import DiceRoller
+
+
+def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
+    """Move a single ordnance marker forward along its heading.
+    Tau guided missiles are player-controlled and should be moved via the dialog,
+    not auto-moved here. This function only handles non-guided ordnance."""
+    # Skip Tau missiles - they are player-controlled
+    if (marker.ordnance_type == OrdnanceType.TORPEDO_GUIDED.value
+            and marker.can_turn):
+        return  # player moves these via dialog
+
+    rad = math.radians(marker.heading)
+    marker.x += marker.speed * math.cos(rad)
+    marker.y += marker.speed * math.sin(rad)
+
+
+def degrade_tau_missiles(game_state: GameState, dice: DiceRoller,
+                         current_turn: int):
+    """
+    Tau missile degradation: for salvos from previous turns,
+    roll 1D6 per strength point. Each 1 reduces strength by 1.
+    """
+    to_remove = []
+    for i, o_dict in enumerate(game_state.ordnance):
+        marker = OrdnanceMarker.from_dict(o_dict)
+        if (marker.ordnance_type == OrdnanceType.TORPEDO_GUIDED.value
+                and marker.launched_turn < current_turn
+                and marker.strength > 0):
+            losses = 0
+            for _ in range(marker.strength):
+                roll = dice.roll_d6(1, "Tau missile degradation")[0]
+                if roll == 1:
+                    losses += 1
+            if losses > 0:
+                marker.strength = max(0, marker.strength - losses)
+                game_state.add_log(
+                    f"Tau missile salvo lost {losses} strength (now {marker.strength})")
+                game_state.ordnance[i] = marker.to_dict()
+            if marker.strength <= 0:
+                to_remove.append(marker.id)
+                game_state.add_log("Tau missile salvo burned out")
+    game_state.ordnance = [o for o in game_state.ordnance if o["id"] not in to_remove]
+
+
+def check_torpedo_contact(marker: OrdnanceMarker, ship: Ship) -> bool:
+    """Check if a torpedo marker contacts a ship's base."""
+    dist = math.sqrt((marker.x - ship.x)**2 + (marker.y - ship.y)**2)
+    return dist <= ship.base_radius + 1.0
+
+
+def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
+                           dice: DiceRoller, game_state: GameState) -> Dict:
+    """Resolve torpedo attack. Bypasses shields. Turrets defend first.
+    Turrets cannot fire if already used against attack craft this phase."""
+    result = {"hits": 0, "turret_kills": 0, "remaining_strength": marker.strength}
+
+    turrets = target.effective_turrets
+
+    # Check turret restriction: can't use vs torps if already used vs craft
+    turret_blocked = (target.turrets_used_vs == "craft")
+    if turret_blocked:
+        game_state.add_log(f"  {target.name} turrets already used vs attack craft this phase")
+        turrets = 0
+
+    if turrets > 0:
+        turret_rolls = dice.roll_d6(turrets, f"{target.name} turrets vs torpedoes (4+)")
+        turret_kills = sum(1 for d in turret_rolls if d >= 4)
+        result["turret_kills"] = turret_kills
+        result["remaining_strength"] = max(0, marker.strength - turret_kills)
+        game_state.add_log(f"{target.name} turrets destroy {turret_kills} torpedoes")
+        # Mark turrets as used vs torps
+        target.turrets_used_vs = "torp"
+        game_state.update_ship(target)
+
+    if result["remaining_strength"] <= 0:
+        return result
+
+    # Determine armor facing
+    target_arc = target.get_arc_for_bearing(target.bearing_to(marker.x, marker.y))
+    armor = target.armor_prow_value if target_arc.value == "front" else target.armor_side_value
+
+    attack_rolls = dice.roll_d6(
+        result["remaining_strength"],
+        f"Torpedoes vs {target.name} (need {armor}+)")
+    result["hits"] = sum(1 for d in attack_rolls if d >= armor)
+
+    if result["hits"] > 0:
+        game_state.add_log(
+            f"Torpedoes hit {target.name} for {result['hits']} damage (bypasses shields)")
+        from .combat import apply_damage
+        apply_damage(target, result["hits"], dice, game_state, ignores_shields=True)
+
+    return result
+
+
+def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
+                          dice: DiceRoller, game_state: GameState) -> Dict:
+    """Resolve bomber attack. D6 attacks per squadron vs lowest armor. Bypasses shields.
+    Turrets cannot fire if already used against torpedoes this phase."""
+    result = {"attacks": 0, "hits": 0, "turret_reduction": 0}
+
+    turret_reduction = target.effective_turrets
+
+    # Check turret restriction: can't use vs craft if already used vs torps
+    turret_blocked = (target.turrets_used_vs == "torp")
+    if turret_blocked:
+        game_state.add_log(f"  {target.name} turrets already used vs torpedoes this phase")
+        turret_reduction = 0
+    else:
+        # Mark turrets as used vs craft
+        target.turrets_used_vs = "craft"
+        game_state.update_ship(target)
+
+    attack_roll = dice.roll_d6(1, f"Bomber attacks on {target.name}")[0]
+    total_attacks = max(0, attack_roll - turret_reduction)
+    result["attacks"] = total_attacks
+    result["turret_reduction"] = turret_reduction
+
+    if total_attacks > 0:
+        armor = min(target.armor_prow_value, target.armor_side_value)
+        hit_rolls = dice.roll_d6(total_attacks, f"Bomber hits vs {target.name} ({armor}+)")
+        result["hits"] = sum(1 for d in hit_rolls if d >= armor)
+
+        if result["hits"] > 0:
+            from .combat import apply_damage
+            apply_damage(target, result["hits"], dice, game_state, ignores_shields=True)
+            game_state.add_log(f"Bombers hit {target.name} for {result['hits']} damage")
+
+    return result
+
+
+def resolve_fighter_intercept(fighter: OrdnanceMarker,
+                              target: OrdnanceMarker,
+                              dice: DiceRoller,
+                              game_state: GameState) -> Dict:
+    """
+    Resolve fighter vs ordnance contact. Fighters MUST intercept.
+
+    Fighter vs torpedo/missile: BOTH removed. Entire salvo destroyed regardless of strength.
+    Fighter vs attack craft: mutual destruction. Resilient saves apply.
+    Fighter vs fighter: mutual destruction. Resilient saves apply.
+    Fighter vs mine: both removed.
+
+    Returns {"fighter_removed": bool, "target_removed": bool}
+    """
+    result = {"fighter_removed": True, "target_removed": True}
+
+    is_torpedo = target.ordnance_type in (
+        OrdnanceType.TORPEDO_STANDARD.value,
+        OrdnanceType.TORPEDO_GUIDED.value,
+    )
+
+    if is_torpedo:
+        # One fighter marker destroys the ENTIRE torpedo salvo
+        # Both the fighter and the full salvo are removed
+        game_state.add_log(
+            f"Fighter intercepts {target.ordnance_type} "
+            f"Str {target.strength} - entire salvo destroyed!")
+
+        # Fighter resilient save
+        if fighter.resilient_save > 0 and not fighter.resilient_used:
+            save = dice.roll_d6(1,
+                f"Resilient save for fighter ({fighter.resilient_save}+)")[0]
+            if save >= fighter.resilient_save:
+                result["fighter_removed"] = False
+                fighter.resilient_used = True
+                game_state.add_log(f"  Fighter passes resilient save, survives!")
+
+    else:
+        # Fighter vs attack craft: mutual destruction
+        game_state.add_log(
+            f"Fighter intercepts {target.ordnance_type} - mutual destruction")
+
+        # Fighter resilient save
+        if fighter.resilient_save > 0 and not fighter.resilient_used:
+            save = dice.roll_d6(1,
+                f"Resilient save for fighter ({fighter.resilient_save}+)")[0]
+            if save >= fighter.resilient_save:
+                result["fighter_removed"] = False
+                fighter.resilient_used = True
+                game_state.add_log(f"  Fighter passes resilient save!")
+
+        # Target resilient save
+        if target.resilient_save > 0 and not target.resilient_used:
+            save = dice.roll_d6(1,
+                f"Resilient save for {target.ordnance_type} ({target.resilient_save}+)")[0]
+            if save >= target.resilient_save:
+                result["target_removed"] = False
+                target.resilient_used = True
+                game_state.add_log(
+                    f"  {target.ordnance_type} passes resilient save!")
+
+    return result
+
+
+def check_ordnance_contact(marker1: OrdnanceMarker,
+                           marker2: OrdnanceMarker) -> bool:
+    """Check if two ordnance markers are in contact."""
+    dist = math.sqrt((marker1.x - marker2.x)**2 + (marker1.y - marker2.y)**2)
+    return dist <= 2.5  # roughly base contact for ordnance markers
+
+
+def is_fighter_type(marker: OrdnanceMarker) -> bool:
+    """Check if an ordnance marker acts as a fighter (intercepts ordnance)."""
+    return marker.ordnance_type in (
+        OrdnanceType.FIGHTER.value,
+        OrdnanceType.BARRACUDA.value,
+        OrdnanceType.MANTA.value,  # Manta is multi-role: fighter + bomber
+    )
+
+
+def resolve_ordnance_interactions(game_state: GameState,
+                                   dice: DiceRoller) -> List[str]:
+    """
+    Resolve all ordnance-vs-ordnance interactions after movement.
+    Fighters intercept enemy ordnance they contact (compulsory).
+    Torpedo salvos that contact each other are both destroyed.
+    Returns log messages.
+    """
+    logs = []
+    to_remove = set()
+
+    ordnance = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance]
+
+    for i, m1 in enumerate(ordnance):
+        if m1.id in to_remove:
+            continue
+        for j, m2 in enumerate(ordnance):
+            if i >= j or m2.id in to_remove or m1.id in to_remove:
+                continue
+            if m1.owner_player == m2.owner_player:
+                continue  # friendly ordnance doesn't interact
+            if not check_ordnance_contact(m1, m2):
+                continue
+
+            # Fighter vs anything: compulsory intercept
+            m1_is_fighter = is_fighter_type(m1)
+            m2_is_fighter = is_fighter_type(m2)
+
+            if m1_is_fighter and not m2_is_fighter:
+                result = resolve_fighter_intercept(m1, m2, dice, game_state)
+                if result["fighter_removed"]:
+                    to_remove.add(m1.id)
+                if result["target_removed"]:
+                    to_remove.add(m2.id)
+
+            elif m2_is_fighter and not m1_is_fighter:
+                result = resolve_fighter_intercept(m2, m1, dice, game_state)
+                if result["fighter_removed"]:
+                    to_remove.add(m2.id)
+                if result["target_removed"]:
+                    to_remove.add(m1.id)
+
+            elif m1_is_fighter and m2_is_fighter:
+                # Fighter vs fighter: mutual destruction with resilient saves
+                result = resolve_fighter_intercept(m1, m2, dice, game_state)
+                if result["fighter_removed"]:
+                    to_remove.add(m1.id)
+                if result["target_removed"]:
+                    to_remove.add(m2.id)
+
+            else:
+                # Non-fighter vs non-fighter (e.g. torpedo vs torpedo)
+                # Both torpedo salvos are destroyed on contact
+                is_torp1 = "torpedo" in m1.ordnance_type
+                is_torp2 = "torpedo" in m2.ordnance_type
+                if is_torp1 and is_torp2:
+                    to_remove.add(m1.id)
+                    to_remove.add(m2.id)
+                    logs.append(
+                        f"Torpedo salvos collide and detonate!")
+
+    # Remove destroyed ordnance
+    if to_remove:
+        game_state.ordnance = [
+            o for o in game_state.ordnance
+            if o["id"] not in to_remove]
+        logs.append(f"  {len(to_remove)} ordnance markers removed")
+
+    return logs
+
+
+def check_ordnance_vs_blast(marker: OrdnanceMarker,
+                            blast_markers: List[BlastMarker],
+                            dice: DiceRoller) -> bool:
+    """Check if ordnance moving through blast markers is destroyed (D6=6). Returns True if destroyed."""
+    for bm in blast_markers:
+        dist = math.sqrt((marker.x - bm.x)**2 + (marker.y - bm.y)**2)
+        if dist < 2.0:
+            roll = dice.roll_d6(1, "Ordnance through blast marker (6=destroyed)")[0]
+            return roll == 6
+    return False
+
+
+def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState) -> OrdnanceMarker:
+    """Create a torpedo marker from a ship's launcher."""
+    torpedo_type = weapon.get("torpedo_type", "standard")
+    o_type = (OrdnanceType.TORPEDO_GUIDED.value if torpedo_type == "guided"
+              else OrdnanceType.TORPEDO_STANDARD.value)
+
+    marker = OrdnanceMarker(
+        id=f"torp_{ship.id}_{game_state.turn_number}",
+        ordnance_type=o_type, owner_player=ship.player,
+        launched_by=ship.id, x=ship.x, y=ship.y,
+        heading=ship.heading, strength=weapon["strength"],
+        speed=weapon.get("torpedo_speed", 30),
+        launched_turn=game_state.turn_number,
+        can_turn=(torpedo_type == "guided"),
+        turn_angle=45 if torpedo_type == "guided" else 0,
+    )
+    game_state.add_ordnance(marker)
+    ship.ordnance_loaded_torps = False
+    game_state.update_ship(ship)
+    game_state.add_log(f"{ship.name} launches torpedo salvo (Str {weapon['strength']})")
+    return marker
+
+
+def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
+                        count: int, game_state: GameState) -> List[OrdnanceMarker]:
+    """Create attack craft markers from launch bays."""
+    craft_stats = {
+        "manta": (OrdnanceType.MANTA.value, 20, 4),
+        "barracuda": (OrdnanceType.BARRACUDA.value, 25, 0),
+        "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
+        "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
+    }
+    o_type, speed, resilient = craft_stats.get(
+        craft_type, (OrdnanceType.FIGHTER.value, 30, 0))
+
+    markers = []
+    for i in range(count):
+        marker = OrdnanceMarker(
+            id=f"craft_{ship.id}_{craft_type}_{i}_{game_state.turn_number}",
+            ordnance_type=o_type, owner_player=ship.player,
+            launched_by=ship.id, x=ship.x, y=ship.y,
+            heading=ship.heading, speed=speed,
+            launched_turn=game_state.turn_number,
+            resilient_save=resilient,
+        )
+        markers.append(marker)
+        game_state.add_ordnance(marker)
+
+    ship.ordnance_loaded_craft = False
+    game_state.update_ship(ship)
+    game_state.add_log(f"{ship.name} launches {count}x {craft_type}")
+    return markers

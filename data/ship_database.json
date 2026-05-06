@@ -1,0 +1,1114 @@
+{
+  "factions": {
+    "imperial_navy_gothic": {
+      "name": "Imperial Navy - Gothic Sector",
+      "commanders": {
+        "vice_admiral": {
+          "name": "Vice Admiral",
+          "ld": 8,
+          "cost": 50,
+          "free_rerolls": 1
+        },
+        "fleet_admiral": {
+          "name": "Fleet Admiral",
+          "ld": 9,
+          "cost": 75,
+          "free_rerolls": 1
+        },
+        "solar_admiral": {
+          "name": "Solar Admiral",
+          "ld": 10,
+          "cost": 100,
+          "free_rerolls": 1
+        }
+      },
+      "reroll_costs": {
+        "1": 25,
+        "2": 50,
+        "3": 75
+      },
+      "secondary_commanders": {
+        "strategic_commander": {
+          "name": "Strategic Commander",
+          "ld_bonus": 1,
+          "max_ld": 9,
+          "cost": 30,
+          "reroll_cost": 15
+        }
+      },
+      "composition_rules": {
+        "admiral_required_at": 750,
+        "battleship_per_cruisers": 3,
+        "battlecruiser_per_cruisers": 2,
+        "escort_squad_size": [
+          2,
+          6
+        ]
+      },
+      "ships": {
+        "emperor": {
+          "name": "Emperor Class Battleship",
+          "type": "battleship",
+          "cost": 365,
+          "speed": 20,
+          "turns": 45,
+          "shields": 4,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 4,
+          "hits": 12,
+          "base": "large",
+          "weapons": [
+            {
+              "name": "Port Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Port Launch Bays",
+              "type": "launch_bay",
+              "str": 4,
+              "arcs": [],
+              "craft": [
+                "fury_fighter",
+                "starhawk_bomber"
+              ]
+            },
+            {
+              "name": "Starboard Launch Bays",
+              "type": "launch_bay",
+              "str": 4,
+              "arcs": [],
+              "craft": [
+                "fury_fighter",
+                "starhawk_bomber"
+              ]
+            },
+            {
+              "name": "Dorsal Lance Battery",
+              "type": "lance",
+              "range": 60,
+              "str": 2,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            },
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 6,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        },
+        "retribution": {
+          "name": "Retribution Class Battleship",
+          "type": "battleship",
+          "cost": 355,
+          "speed": 20,
+          "turns": 45,
+          "shields": 4,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 4,
+          "hits": 12,
+          "base": "large",
+          "weapons": [
+            {
+              "name": "Port Weapons Battery",
+              "type": "battery",
+              "range": 60,
+              "str": 6,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Weapons Battery",
+              "type": "battery",
+              "range": 60,
+              "str": 6,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Dorsal Lance Battery",
+              "type": "lance",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            },
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 6,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        },
+        "mars": {
+          "name": "Mars Class Battlecruiser",
+          "type": "cruiser",
+          "cost": 260,
+          "speed": 20,
+          "turns": 45,
+          "shields": 2,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 8,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Port Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Port Launch Bays",
+              "type": "launch_bay",
+              "str": 2,
+              "arcs": [],
+              "craft": [
+                "fury_fighter",
+                "starhawk_bomber"
+              ]
+            },
+            {
+              "name": "Starboard Launch Bays",
+              "type": "launch_bay",
+              "str": 2,
+              "arcs": [],
+              "craft": [
+                "fury_fighter",
+                "starhawk_bomber"
+              ]
+            },
+            {
+              "name": "Prow Nova Cannon",
+              "type": "nova_cannon",
+              "range": 150,
+              "str": 0,
+              "arcs": [
+                "front"
+              ]
+            },
+            {
+              "name": "Dorsal Lance Battery",
+              "type": "lance",
+              "range": 60,
+              "str": 2,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            }
+          ],
+          "upgrades": [
+            {
+              "name": "Targeting Matrix",
+              "cost": 15,
+              "effect": "targeting_matrix"
+            },
+            {
+              "name": "Extra Turrets",
+              "cost": 10,
+              "effect": "extra_turrets"
+            },
+            {
+              "name": "Special Attack Craft (Marauders)",
+              "cost": 40,
+              "effect": "marauder_bombers"
+            }
+          ]
+        },
+        "overlord": {
+          "name": "Overlord Class Battlecruiser",
+          "type": "cruiser",
+          "cost": 220,
+          "speed": 20,
+          "turns": 45,
+          "shields": 2,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 8,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Port Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Dorsal Lance Battery",
+              "type": "lance",
+              "range": 60,
+              "str": 4,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            },
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 6,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        },
+        "dictator": {
+          "name": "Dictator Class Cruiser",
+          "type": "cruiser",
+          "cost": 210,
+          "speed": 20,
+          "turns": 45,
+          "shields": 2,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 8,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Port Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Port Launch Bays",
+              "type": "launch_bay",
+              "str": 2,
+              "arcs": [],
+              "craft": [
+                "fury_fighter",
+                "starhawk_bomber"
+              ]
+            },
+            {
+              "name": "Starboard Launch Bays",
+              "type": "launch_bay",
+              "str": 2,
+              "arcs": [],
+              "craft": [
+                "fury_fighter",
+                "starhawk_bomber"
+              ]
+            },
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 6,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        },
+        "dominator": {
+          "name": "Dominator Class Cruiser",
+          "type": "cruiser",
+          "cost": 190,
+          "speed": 20,
+          "turns": 45,
+          "shields": 2,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 8,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Port Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Prow Nova Cannon",
+              "type": "nova_cannon",
+              "range": 150,
+              "str": 0,
+              "arcs": [
+                "front"
+              ]
+            }
+          ]
+        },
+        "gothic": {
+          "name": "Gothic Class Cruiser",
+          "type": "cruiser",
+          "cost": 180,
+          "speed": 20,
+          "turns": 45,
+          "shields": 2,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 8,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Port Lance Battery",
+              "type": "lance",
+              "range": 30,
+              "str": 2,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Lance Battery",
+              "type": "lance",
+              "range": 30,
+              "str": 2,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Dorsal Lance Battery",
+              "type": "lance",
+              "range": 60,
+              "str": 2,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            },
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 6,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        },
+        "lunar": {
+          "name": "Lunar Class Cruiser",
+          "type": "cruiser",
+          "cost": 180,
+          "speed": 20,
+          "turns": 45,
+          "shields": 2,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 8,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Port Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Port Lance Battery",
+              "type": "lance",
+              "range": 30,
+              "str": 2,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Lance Battery",
+              "type": "lance",
+              "range": 30,
+              "str": 2,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 6,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        },
+        "tyrant": {
+          "name": "Tyrant Class Cruiser",
+          "type": "cruiser",
+          "cost": 175,
+          "speed": 20,
+          "turns": 45,
+          "shields": 2,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 8,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Port Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "left"
+              ]
+            },
+            {
+              "name": "Starboard Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "right"
+              ]
+            },
+            {
+              "name": "Prow Weapons Battery",
+              "type": "battery",
+              "range": 60,
+              "str": 6,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            }
+          ]
+        },
+        "dauntless_lance": {
+          "name": "Dauntless Class Light Cruiser (Lance)",
+          "type": "cruiser",
+          "cost": 110,
+          "speed": 25,
+          "turns": 90,
+          "shields": 1,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 1,
+          "hits": 6,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Prow Lance",
+              "type": "lance",
+              "range": 30,
+              "str": 2,
+              "arcs": [
+                "front"
+              ]
+            },
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 2,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        },
+        "dauntless_torp": {
+          "name": "Dauntless Class Light Cruiser (Torpedo)",
+          "type": "cruiser",
+          "cost": 110,
+          "speed": 25,
+          "turns": 90,
+          "shields": 1,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 1,
+          "hits": 6,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Prow Weapons Battery",
+              "type": "battery",
+              "range": 30,
+              "str": 4,
+              "arcs": [
+                "front"
+              ]
+            },
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 4,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        },
+        "firestorm": {
+          "name": "Firestorm Class Frigate",
+          "type": "escort",
+          "cost": 35,
+          "speed": 30,
+          "turns": 90,
+          "shields": 1,
+          "armor_prow": "5+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 1,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Prow Lance",
+              "type": "lance",
+              "range": 30,
+              "str": 1,
+              "arcs": [
+                "front"
+              ]
+            },
+            {
+              "name": "Weapons Battery",
+              "type": "battery",
+              "range": 30,
+              "str": 2,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            }
+          ]
+        },
+        "sword": {
+          "name": "Sword Class Frigate",
+          "type": "escort",
+          "cost": 35,
+          "speed": 25,
+          "turns": 90,
+          "shields": 1,
+          "armor_prow": "5+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 1,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Weapons Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 3,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            }
+          ]
+        },
+        "cobra": {
+          "name": "Cobra Class Destroyer",
+          "type": "escort",
+          "cost": 30,
+          "speed": 30,
+          "turns": 90,
+          "shields": 1,
+          "armor_prow": "5+",
+          "armor_side": "5+",
+          "turrets": 1,
+          "hits": 1,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Prow Torpedoes",
+              "type": "torpedo",
+              "str": 2,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 30,
+              "torp_type": "standard"
+            }
+          ]
+        }
+      }
+    },
+    "tau_kororvesh": {
+      "name": "Tau Kor'or'vesh",
+      "commanders": {
+        "kor_el": {
+          "name": "Kor'el",
+          "ld": 8,
+          "cost": 50,
+          "free_rerolls": 1
+        },
+        "kor_o": {
+          "name": "Kor'O",
+          "ld": 9,
+          "cost": 70,
+          "free_rerolls": 1
+        },
+        "kor_o_mesme": {
+          "name": "Kor'O Vash'ya Y'eldi Mesme",
+          "ld": 9,
+          "cost": 110,
+          "free_rerolls": 2
+        }
+      },
+      "reroll_costs": {
+        "1": 25,
+        "2": 50
+      },
+      "composition_rules": {
+        "admiral_required_at": 750,
+        "custodian_per_tau_points": 750,
+        "escort_squad_size": [
+          2,
+          6
+        ]
+      },
+      "special_rules": [
+        "no_teleport",
+        "guided_missiles",
+        "tracking_systems"
+      ],
+      "ships": {
+        "custodian": {
+          "name": "Custodian Class Battleship",
+          "type": "battleship",
+          "cost": 330,
+          "speed": 20,
+          "turns": 45,
+          "shields": 3,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 4,
+          "hits": 10,
+          "base": "large",
+          "special_rules": [
+            "ponderous",
+            "deflector",
+            "tracking_systems_20"
+          ],
+          "weapons": [
+            {
+              "name": "Port Railgun Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "left",
+                "front"
+              ]
+            },
+            {
+              "name": "Starboard Railgun Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "right",
+                "front"
+              ]
+            },
+            {
+              "name": "Port Ion Cannon",
+              "type": "lance",
+              "range": 45,
+              "str": 1,
+              "arcs": [
+                "left",
+                "front"
+              ]
+            },
+            {
+              "name": "Starboard Ion Cannon",
+              "type": "lance",
+              "range": 45,
+              "str": 1,
+              "arcs": [
+                "right",
+                "front"
+              ]
+            },
+            {
+              "name": "Port Launch Bays",
+              "type": "launch_bay",
+              "str": 3,
+              "arcs": [],
+              "craft": [
+                "manta",
+                "barracuda"
+              ]
+            },
+            {
+              "name": "Starboard Launch Bays",
+              "type": "launch_bay",
+              "str": 3,
+              "arcs": [],
+              "craft": [
+                "manta",
+                "barracuda"
+              ]
+            },
+            {
+              "name": "Prow Gravitic Launcher",
+              "type": "gravitic_launcher",
+              "range": 40,
+              "str": 8,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 40,
+              "torp_type": "guided"
+            }
+          ],
+          "hooks": {
+            "warden": 3
+          }
+        },
+        "protector": {
+          "name": "Protector Class Cruiser",
+          "type": "cruiser",
+          "cost": 180,
+          "speed": 20,
+          "turns": 45,
+          "shields": 2,
+          "armor_prow": "6+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 8,
+          "base": "small",
+          "special_rules": [
+            "deflector"
+          ],
+          "weapons": [
+            {
+              "name": "Port Railgun Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "left",
+                "front"
+              ]
+            },
+            {
+              "name": "Starboard Railgun Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 6,
+              "arcs": [
+                "right",
+                "front"
+              ]
+            },
+            {
+              "name": "Port Gravitic Hook",
+              "type": "gravitic_hook",
+              "str": 0,
+              "arcs": []
+            },
+            {
+              "name": "Starboard Gravitic Hook",
+              "type": "gravitic_hook",
+              "str": 0,
+              "arcs": []
+            },
+            {
+              "name": "Port Launch Bays",
+              "type": "launch_bay",
+              "str": 2,
+              "arcs": [],
+              "craft": [
+                "manta",
+                "barracuda"
+              ]
+            },
+            {
+              "name": "Starboard Launch Bays",
+              "type": "launch_bay",
+              "str": 2,
+              "arcs": [],
+              "craft": [
+                "manta",
+                "barracuda"
+              ]
+            },
+            {
+              "name": "Prow Gravitic Launcher",
+              "type": "gravitic_launcher",
+              "range": 40,
+              "str": 6,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 40,
+              "torp_type": "guided"
+            }
+          ],
+          "hooks": {
+            "warden": 2,
+            "orca": 2
+          }
+        },
+        "emissary": {
+          "name": "Emissary Class Light Cruiser",
+          "type": "cruiser",
+          "cost": 110,
+          "speed": 20,
+          "turns": 90,
+          "shields": 1,
+          "armor_prow": "5+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 4,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Port Railgun Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "left",
+                "front"
+              ]
+            },
+            {
+              "name": "Starboard Railgun Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 4,
+              "arcs": [
+                "right",
+                "front"
+              ]
+            },
+            {
+              "name": "Port Gravitic Hook",
+              "type": "gravitic_hook",
+              "str": 0,
+              "arcs": []
+            },
+            {
+              "name": "Starboard Gravitic Hook",
+              "type": "gravitic_hook",
+              "str": 0,
+              "arcs": []
+            },
+            {
+              "name": "Prow Launch Bays",
+              "type": "launch_bay",
+              "str": 2,
+              "arcs": [],
+              "craft": [
+                "barracuda"
+              ]
+            }
+          ],
+          "upgrades": [
+            {
+              "name": "Deflector",
+              "cost": 10,
+              "effect": "deflector_shield"
+            },
+            {
+              "name": "Bor'kan Ion Cannons",
+              "cost": 0,
+              "effect": "replace_hooks_with_ions",
+              "replaces": "gravitic_hooks"
+            },
+            {
+              "name": "Sa'cea Gravitic Launcher",
+              "cost": 0,
+              "effect": "replace_bays_with_missiles",
+              "replaces": "launch_bays"
+            }
+          ],
+          "hooks": {
+            "warden": 2
+          }
+        },
+        "castellan": {
+          "name": "Castellan Class Escort",
+          "type": "escort",
+          "cost": 45,
+          "speed": 25,
+          "turns": 90,
+          "shields": 1,
+          "armor_prow": "5+",
+          "armor_side": "5+",
+          "turrets": 2,
+          "hits": 1,
+          "base": "small",
+          "weapons": [
+            {
+              "name": "Railgun Battery",
+              "type": "battery",
+              "range": 45,
+              "str": 2,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            },
+            {
+              "name": "Gravitic Launcher",
+              "type": "gravitic_launcher",
+              "range": 40,
+              "str": 2,
+              "arcs": [
+                "front"
+              ],
+              "torp_speed": 40,
+              "torp_type": "guided"
+            }
+          ]
+        },
+        "warden": {
+          "name": "Warden Class Gunship",
+          "type": "escort",
+          "cost": 30,
+          "speed": 25,
+          "turns": 90,
+          "shields": 1,
+          "armor_prow": "5+",
+          "armor_side": "5+",
+          "turrets": 1,
+          "hits": 1,
+          "base": "small",
+          "towed": true,
+          "weapons": [
+            {
+              "name": "Railgun Battery",
+              "type": "battery",
+              "range": 30,
+              "str": 2,
+              "arcs": [
+                "front"
+              ]
+            },
+            {
+              "name": "Ion Cannon",
+              "type": "lance",
+              "range": 30,
+              "str": 1,
+              "arcs": [
+                "left",
+                "front",
+                "right"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
