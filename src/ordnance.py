@@ -100,10 +100,19 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
 
 
 def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
-                          dice: DiceRoller, game_state: GameState) -> Dict:
-    """Resolve bomber attack. D6 attacks per squadron vs lowest armor. Bypasses shields.
-    Turrets cannot fire if already used against torpedoes this phase."""
-    result = {"attacks": 0, "hits": 0, "turret_reduction": 0}
+                          dice: DiceRoller, game_state: GameState,
+                          suppressed_by_fighter: bool = False,
+                          remastered_fighter_bonus: int = 0,
+                          remastered_bomber_cap: int = 1) -> Dict:
+    """
+    Resolve bomber attack. D6 attacks per squadron vs lowest armor. Bypasses shields.
+    Turrets cannot fire if already used against torpedoes this phase.
+
+    Turret suppression modes (Task 12):
+      XR (default): suppressed_by_fighter=True → exactly 3 attacks, turrets bypassed.
+      Remastered:   remastered_fighter_bonus added to D6 roll, capped at remastered_bomber_cap.
+    """
+    result = {"attacks": 0, "hits": 0, "turret_reduction": 0, "suppressed": False}
 
     turret_reduction = target.effective_turrets
 
@@ -112,15 +121,38 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
     if turret_blocked:
         game_state.add_log(f"  {target.name} turrets already used vs torpedoes this phase")
         turret_reduction = 0
-    else:
-        # Mark turrets as used vs craft
-        target.turrets_used_vs = "craft"
-        game_state.update_ship(target)
 
-    attack_roll = dice.roll_d6(1, f"Bomber attacks on {target.name}")[0]
-    total_attacks = max(0, attack_roll - turret_reduction)
+    if suppressed_by_fighter:
+        # XR mode: fighter suppression gives this bomber exactly 3 attacks, ignoring turrets
+        total_attacks = 3
+        result["suppressed"] = True
+        result["turret_reduction"] = 0
+        game_state.add_log(
+            f"  Fighter suppression: {marker.ordnance_type} gets 3 attacks "
+            f"(turrets bypassed)")
+    else:
+        if not turret_blocked:
+            # Mark turrets as used vs craft (only once per phase)
+            target.turrets_used_vs = "craft"
+            game_state.update_ship(target)
+
+        attack_roll = dice.roll_d6(1, f"Bomber attacks on {target.name}")[0]
+
+        if remastered_fighter_bonus > 0:
+            # Remastered mode: add fighter bonus, cap at total attacking bombers
+            raw = attack_roll + remastered_fighter_bonus
+            total_attacks = max(0, min(raw, remastered_bomber_cap) - turret_reduction)
+            game_state.add_log(
+                f"  Remastered suppression: roll {attack_roll} "
+                f"+{remastered_fighter_bonus} fighters "
+                f"(cap {remastered_bomber_cap}) - {turret_reduction} turrets "
+                f"= {total_attacks} attacks")
+        else:
+            total_attacks = max(0, attack_roll - turret_reduction)
+
+        result["turret_reduction"] = turret_reduction
+
     result["attacks"] = total_attacks
-    result["turret_reduction"] = turret_reduction
 
     if total_attacks > 0:
         armor = min(target.armor_prow_value, target.armor_side_value)
