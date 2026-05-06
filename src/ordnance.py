@@ -15,6 +15,10 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
             and marker.can_turn):
         return  # player moves these via dialog
 
+    # CAP fighters stay with their parent ship; position updated separately
+    if marker.cap_ship_id:
+        return
+
     rad = math.radians(marker.heading)
     marker.x += marker.speed * math.cos(rad)
     marker.y += marker.speed * math.sin(rad)
@@ -304,9 +308,13 @@ def resolve_ordnance_interactions(game_state: GameState,
     for i, m1 in enumerate(ordnance):
         if m1.id in to_remove:
             continue
+        if m1.cap_ship_id:
+            continue  # CAP fighters intercept via ship contact, not open-space interactions
         for j, m2 in enumerate(ordnance):
             if i >= j or m2.id in to_remove or m1.id in to_remove:
                 continue
+            if m2.cap_ship_id:
+                continue  # same for the other marker
             if m1.owner_player == m2.owner_player:
                 continue  # friendly ordnance doesn't interact
             if not check_ordnance_contact(m1, m2):

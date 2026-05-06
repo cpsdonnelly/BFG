@@ -1737,6 +1737,55 @@ class GamePanel:
         tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
 
+    def _update_cap_positions(self):
+        """Sync CAP fighters to their parent ship's current position."""
+        ship_pos = {s["id"]: (s["x"], s["y"]) for s in self.gs.ships}
+        for i, o_dict in enumerate(self.gs.ordnance):
+            cap_id = o_dict.get("cap_ship_id", "")
+            if cap_id and cap_id in ship_pos:
+                updated = dict(o_dict)
+                updated["x"] = ship_pos[cap_id][0]
+                updated["y"] = ship_pos[cap_id][1]
+                self.gs.ordnance[i] = updated
+
+    def _check_cap_intercept(self, marker: OrdnanceMarker, ship,
+                              to_remove_set: set) -> bool:
+        """
+        Resolve CAP fighter intercepts for incoming ordnance targeting ship.
+        Returns True if the marker was destroyed by CAP (skip the ship attack).
+        Removes destroyed CAP fighters from gs.ordnance immediately.
+        """
+        from .ordnance import resolve_fighter_intercept, is_fighter_type
+
+        cap_to_remove = []
+        for o_dict in list(self.gs.ordnance):
+            if marker.id in to_remove_set:
+                break
+            if o_dict.get("cap_ship_id", "") != ship.id:
+                continue
+            if o_dict.get("owner_player") != ship.player:
+                continue
+            cap_marker = OrdnanceMarker.from_dict(o_dict)
+            if not is_fighter_type(cap_marker):
+                continue
+
+            self._append_log(
+                f"  CAP fighter intercepts {marker.ordnance_type} "
+                f"threatening {ship.name}!")
+            result = resolve_fighter_intercept(
+                cap_marker, marker, self.dice, self.gs)
+            if result["fighter_removed"]:
+                cap_to_remove.append(cap_marker.id)
+            if result["target_removed"]:
+                to_remove_set.add(marker.id)
+
+        if cap_to_remove:
+            self.gs.ordnance = [
+                o for o in self.gs.ordnance
+                if o["id"] not in cap_to_remove]
+
+        return marker.id in to_remove_set
+
     def _check_destruction(self, ship: Ship):
         """Handle ship destruction - escorts become blast markers, capitals roll catastrophic."""
         ship = self.gs.get_ship_by_id(ship.id)
@@ -1758,6 +1807,9 @@ class GamePanel:
                                 resolve_ordnance_interactions)
 
         self._append_log("--- Ordnance Movement ---")
+
+        # Sync CAP fighters to their parent ships before movement
+        self._update_cap_positions()
 
         # Degrade Tau missiles from previous turns
         degrade_tau_missiles(self.gs, self.dice, self.gs.turn_number)
@@ -1832,6 +1884,10 @@ class GamePanel:
                     if not check_torpedo_contact(marker, s):
                         continue
 
+                    # CAP fighters intercept before the torpedo hits
+                    if self._check_cap_intercept(marker, s, to_remove_after):
+                        break
+
                     self._append_log(
                         f"  Torpedoes contact {s.name}"
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
@@ -1863,6 +1919,10 @@ class GamePanel:
                     dist = math.sqrt(
                         (marker.x - s.x)**2 + (marker.y - s.y)**2)
                     if dist <= s.base_radius + 1.5:
+                        # CAP fighters intercept before the bomber attacks
+                        if self._check_cap_intercept(marker, s, to_remove_after):
+                            break
+
                         self._append_log(
                             f"  {marker.ordnance_type} attacks {s.name}!")
 
@@ -2169,6 +2229,34 @@ class GamePanel:
             tk.Entry(craft_head_frame, textvariable=craft_heading_var, width=6,
                      font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
 
+            # CAP assignment: fighters only; protect a friendly ship
+            cap_frame = tk.Frame(bay_frame)
+            cap_frame.pack(fill=tk.X, padx=10, pady=2)
+            cap_var = tk.BooleanVar(value=False)
+            tk.Checkbutton(cap_frame, text="Assign fighters to CAP",
+                           variable=cap_var,
+                           font=("Consolas", 8)).pack(side=tk.LEFT)
+
+            own_ships_for_cap = [
+                Ship.from_dict(s) for s in self.gs.ships
+                if s["player"] == ship.player
+                and not Ship.from_dict(s).is_destroyed
+                and not s.get("is_disengaged", False)]
+            cap_ship_id_map = {s.name: s.id for s in own_ships_for_cap}
+            cap_ship_pos_map = {s.id: (s.x, s.y) for s in own_ships_for_cap}
+            cap_ship_names = [s.name for s in own_ships_for_cap]
+            cap_protect_var = tk.StringVar(value=ship.name)
+            if cap_ship_names:
+                tk.Label(cap_frame, text="  Protect:",
+                         font=("Consolas", 8)).pack(side=tk.LEFT)
+                cap_menu = tk.OptionMenu(cap_frame, cap_protect_var,
+                                         *cap_ship_names)
+                cap_menu.config(font=("Consolas", 8), width=14)
+                cap_menu.pack(side=tk.LEFT, padx=3)
+            tk.Label(cap_frame,
+                     text="(fighters only; bombers still free-roam)",
+                     font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+
             # Quick buttons
             quick_craft = tk.Frame(bay_frame)
             quick_craft.pack(fill=tk.X, padx=10, pady=2)
@@ -2236,19 +2324,32 @@ class GamePanel:
                     o_type, spd, resil = CRAFT_STATS.get(
                         ct, (OrdnanceType.FIGHTER.value, 30, 0))
 
+                    # CAP only applies to fighter-type craft
+                    fighter_types = (OrdnanceType.FIGHTER.value,
+                                     OrdnanceType.BARRACUDA.value,
+                                     OrdnanceType.MANTA.value)
+                    assign_cap = cap_var.get() and o_type in fighter_types
+                    protect_id = cap_ship_id_map.get(
+                        cap_protect_var.get(), ship.id) if assign_cap else ""
+                    protect_pos = cap_ship_pos_map.get(
+                        protect_id, (ship.x, ship.y)) if assign_cap else (ship.x, ship.y)
+
                     for i in range(count):
+                        px = protect_pos[0] + (i - count / 2) * 1.5
+                        py = protect_pos[1]
                         marker = OrdnanceMarker(
                             id=f"craft_{ship.id}_{ct}_{self.gs.turn_number}_{_rng.randint(0,9999)}",
                             ordnance_type=o_type,
                             owner_player=ship.player,
                             launched_by=ship.id,
-                            x=ship.x + (i - count/2) * 1.5,
-                            y=ship.y,
+                            x=px if assign_cap else ship.x + (i - count / 2) * 1.5,
+                            y=py if assign_cap else ship.y,
                             heading=heading,
                             strength=1,
                             speed=spd,
                             launched_turn=self.gs.turn_number,
                             resilient_save=resil,
+                            cap_ship_id=protect_id,
                         )
                         self.gs.add_ordnance(marker)
                         total_launched += 1
@@ -2268,9 +2369,15 @@ class GamePanel:
                     ship_fresh.ordnance_loaded_craft = False
                     self.gs.update_ship(ship_fresh)
 
-                self._append_log(
-                    f"{ship.name} launched {total_launched} attack craft "
-                    f"heading {heading:.0f}°")
+                if cap_var.get():
+                    protect_name = cap_protect_var.get()
+                    self._append_log(
+                        f"{ship.name} launched {total_launched} attack craft "
+                        f"on CAP for {protect_name}")
+                else:
+                    self._append_log(
+                        f"{ship.name} launched {total_launched} attack craft "
+                        f"heading {heading:.0f}°")
                 dialog.destroy()
                 self.board.redraw()
 
