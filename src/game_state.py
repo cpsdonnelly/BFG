@@ -41,6 +41,7 @@ class GameState:
     rule_ramming: bool = False
     rule_teleport: bool = False  # note: Tau cannot teleport regardless
     rule_hit_and_run: bool = False
+    rule_turret_suppression_remastered: bool = False  # False = XR mode, True = Remastered mode
 
     # Collections
     ships: List[Dict] = field(default_factory=list)
@@ -125,6 +126,7 @@ class GameState:
             "rule_ramming": self.rule_ramming,
             "rule_teleport": self.rule_teleport,
             "rule_hit_and_run": self.rule_hit_and_run,
+            "rule_turret_suppression_remastered": self.rule_turret_suppression_remastered,
             "timestamp": time.time(),
         }
 

@@ -234,7 +234,8 @@ def create_demo_tau_fleet(gs: GameState):
 def _apply_rules(gs, setup):
     """Apply optional rule settings from setup dict to GameState."""
     for key in ("rule_fighting_sunward", "rule_solar_flares", "rule_radiation_bursts",
-                 "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run"):
+                 "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
+                 "rule_turret_suppression_remastered"):
         if key in setup:
             setattr(gs, key, setup[key])
 
@@ -445,6 +446,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("ramming", "Ramming", False),
         ("teleport", "Teleport Attacks (not Tau)", False),
         ("hit_and_run", "Hit and Run Raids", False),
+        ("turret_suppression_remastered",
+         "Turret Suppression: Remastered mode (default: XR — fighters give 3 fixed attacks)", False),
     ]
     for key, label, default in rules_list:
         var = tk.BooleanVar(value=default)

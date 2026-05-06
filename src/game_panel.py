@@ -1864,8 +1864,48 @@ class GamePanel:
                     if dist <= s.base_radius + 1.5:
                         self._append_log(
                             f"  {marker.ordnance_type} attacks {s.name}!")
-                        result = resolve_bomber_attack(
-                            marker, s, self.dice, self.gs)
+
+                        # Count friendly fighters in contact with this target
+                        # (same player as bomber, within base contact range)
+                        contact_r = s.base_radius + 2.0
+                        suppressing_fighters = sum(
+                            1 for od in self.gs.ordnance
+                            if od.get("owner_player") == marker.owner_player
+                            and od.get("ordnance_type") in (
+                                OrdnanceType.FIGHTER.value,
+                                OrdnanceType.BARRACUDA.value,
+                                OrdnanceType.MANTA.value)
+                            and math.sqrt((od.get("x", 0) - s.x)**2
+                                          + (od.get("y", 0) - s.y)**2) <= contact_r)
+
+                        # Count all bombers from same player contacting this ship
+                        # (needed for Remastered cap)
+                        total_bombers_on_target = sum(
+                            1 for od in self.gs.ordnance
+                            if od.get("owner_player") == marker.owner_player
+                            and od.get("ordnance_type") in (
+                                OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
+                            and math.sqrt((od.get("x", 0) - s.x)**2
+                                          + (od.get("y", 0) - s.y)**2)
+                                <= s.base_radius + 1.5)
+
+                        if suppressing_fighters > 0:
+                            if self.gs.rule_turret_suppression_remastered:
+                                # Remastered: fighters add +1 to attack roll,
+                                # capped at total attacking bombers
+                                result = resolve_bomber_attack(
+                                    marker, s, self.dice, self.gs,
+                                    remastered_fighter_bonus=suppressing_fighters,
+                                    remastered_bomber_cap=total_bombers_on_target)
+                            else:
+                                # XR default: this bomber gets exactly 3 attacks
+                                result = resolve_bomber_attack(
+                                    marker, s, self.dice, self.gs,
+                                    suppressed_by_fighter=True)
+                        else:
+                            result = resolve_bomber_attack(
+                                marker, s, self.dice, self.gs)
+
                         if result["hits"] > 0:
                             self._check_destruction(s)
                         to_remove_after.add(marker.id)
