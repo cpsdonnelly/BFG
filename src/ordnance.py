@@ -48,6 +48,27 @@ def degrade_tau_missiles(game_state: GameState, dice: DiceRoller,
     game_state.ordnance = [o for o in game_state.ordnance if o["id"] not in to_remove]
 
 
+def get_massed_turret_bonus(ship: Ship, all_ships: List[Ship]) -> int:
+    """
+    Massed turrets: +1 per non-crippled friendly ship in base contact, max +3.
+    Crippled ships cannot contribute.
+    """
+    bonus = 0
+    for ally in all_ships:
+        if ally.id == ship.id:
+            continue
+        if ally.player != ship.player:
+            continue
+        if ally.is_destroyed or ally.is_disengaged or ally.is_crippled:
+            continue
+        dist = math.sqrt((ally.x - ship.x)**2 + (ally.y - ship.y)**2)
+        if dist <= ally.base_radius + ship.base_radius + 0.5:
+            bonus += 1
+            if bonus >= 3:
+                break
+    return bonus
+
+
 def check_torpedo_contact(marker: OrdnanceMarker, ship: Ship) -> bool:
     """Check if a torpedo marker contacts a ship's base."""
     dist = math.sqrt((marker.x - ship.x)**2 + (marker.y - ship.y)**2)
@@ -55,12 +76,22 @@ def check_torpedo_contact(marker: OrdnanceMarker, ship: Ship) -> bool:
 
 
 def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
-                           dice: DiceRoller, game_state: GameState) -> Dict:
+                           dice: DiceRoller, game_state: GameState,
+                           all_ships: List[Ship] = None) -> Dict:
     """Resolve torpedo attack. Bypasses shields. Turrets defend first.
     Turrets cannot fire if already used against attack craft this phase."""
     result = {"hits": 0, "turret_kills": 0, "remaining_strength": marker.strength}
 
     turrets = target.effective_turrets
+
+    # Massed turrets: +1 per non-crippled friendly ship in base contact (max +3)
+    if all_ships:
+        bonus = get_massed_turret_bonus(target, all_ships)
+        if bonus > 0:
+            turrets += bonus
+            game_state.add_log(
+                f"  {target.name} massed turrets: +{bonus} "
+                f"(total {turrets})")
 
     # Check turret restriction: can't use vs torps if already used vs craft
     turret_blocked = (target.turrets_used_vs == "craft")
@@ -103,7 +134,8 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
                           dice: DiceRoller, game_state: GameState,
                           suppressed_by_fighter: bool = False,
                           remastered_fighter_bonus: int = 0,
-                          remastered_bomber_cap: int = 1) -> Dict:
+                          remastered_bomber_cap: int = 1,
+                          all_ships: List[Ship] = None) -> Dict:
     """
     Resolve bomber attack. D6 attacks per squadron vs lowest armor. Bypasses shields.
     Turrets cannot fire if already used against torpedoes this phase.
@@ -115,6 +147,15 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
     result = {"attacks": 0, "hits": 0, "turret_reduction": 0, "suppressed": False}
 
     turret_reduction = target.effective_turrets
+
+    # Massed turrets: +1 per non-crippled friendly ship in base contact (max +3)
+    if all_ships:
+        bonus = get_massed_turret_bonus(target, all_ships)
+        if bonus > 0:
+            turret_reduction += bonus
+            game_state.add_log(
+                f"  {target.name} massed turrets: +{bonus} "
+                f"(total {turret_reduction})")
 
     # Check turret restriction: can't use vs craft if already used vs torps
     turret_blocked = (target.turrets_used_vs == "torp")

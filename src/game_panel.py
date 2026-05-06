@@ -1837,7 +1837,8 @@ class GamePanel:
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
                         + f"!")
                     result = resolve_torpedo_attack(
-                        marker, s, self.dice, self.gs)
+                        marker, s, self.dice, self.gs,
+                        all_ships=ships)
 
                     # Reduce salvo strength by hits inflicted, continue if strength remains
                     marker.strength -= result["hits"]
@@ -1896,15 +1897,18 @@ class GamePanel:
                                 result = resolve_bomber_attack(
                                     marker, s, self.dice, self.gs,
                                     remastered_fighter_bonus=suppressing_fighters,
-                                    remastered_bomber_cap=total_bombers_on_target)
+                                    remastered_bomber_cap=total_bombers_on_target,
+                                    all_ships=ships)
                             else:
                                 # XR default: this bomber gets exactly 3 attacks
                                 result = resolve_bomber_attack(
                                     marker, s, self.dice, self.gs,
-                                    suppressed_by_fighter=True)
+                                    suppressed_by_fighter=True,
+                                    all_ships=ships)
                         else:
                             result = resolve_bomber_attack(
-                                marker, s, self.dice, self.gs)
+                                marker, s, self.dice, self.gs,
+                                all_ships=ships)
 
                         if result["hits"] > 0:
                             self._check_destruction(s)
