@@ -1,6 +1,6 @@
 """BFG:XR Ordnance Phase - Torpedo and attack craft resolution"""
 import math
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, OrdnanceType
 from .game_state import GameState
 from .dice import DiceRoller
@@ -433,6 +433,50 @@ def check_ordnance_vs_blast(marker: OrdnanceMarker,
             roll = dice.roll_d6(1, "Ordnance through blast marker (6=destroyed)")[0]
             return roll == 6
     return False
+
+
+def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
+                                 phenomena,
+                                 dice: DiceRoller) -> Tuple[bool, str]:
+    """
+    Check if torpedo-type ordnance or mines are destroyed by terrain phenomena.
+    Only applies to ordnance types that behave like torpedoes.
+
+    - Asteroid fields, planets, warp rifts: auto-destroyed (blocks_torpedoes).
+    - Gas/dust clouds: D6=6 destroys.
+
+    Returns (destroyed: bool, reason: str).
+    """
+    torp_like = {
+        OrdnanceType.TORPEDO_STANDARD.value,
+        OrdnanceType.TORPEDO_GUIDED.value,
+        OrdnanceType.MINE_FIELD.value,
+    }
+    if marker.ordnance_type not in torp_like:
+        return False, ""
+
+    for p in phenomena:
+        # Contact check (use 1cm margin for marker size)
+        if "planet" in p.phenomenon_type and p.radius > 0:
+            dist = math.sqrt((marker.x - p.x)**2 + (marker.y - p.y)**2)
+            in_contact = dist <= p.radius + 1.0
+        else:
+            in_contact = (abs(marker.x - p.x) <= p.width / 2 + 1.0 and
+                          abs(marker.y - p.y) <= p.height / 2 + 1.0)
+
+        if not in_contact:
+            continue
+
+        ptype = p.phenomenon_type
+        if ptype in ("asteroid_field", "warp_rift") or "planet" in ptype:
+            return True, ptype
+
+        if ptype == "gas_dust_cloud":
+            roll = dice.roll_d6(1, "Ordnance through dust cloud (6=destroyed)")[0]
+            if roll == 6:
+                return True, "gas_dust_cloud"
+
+    return False, ""
 
 
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState) -> OrdnanceMarker:

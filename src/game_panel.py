@@ -1841,6 +1841,7 @@ class GamePanel:
                                 check_torpedo_contact, resolve_torpedo_attack,
                                 resolve_bomber_attack, resolve_mine_contact,
                                 check_ordnance_vs_blast,
+                                check_ordnance_vs_phenomena,
                                 resolve_ordnance_interactions)
 
         self._append_log("--- Ordnance Movement ---")
@@ -1866,6 +1867,7 @@ class GamePanel:
 
         ships = self.gs.get_ships()
         blast_markers = self.gs.get_blast_markers()
+        phenomena = self.gs.get_phenomena()
         to_remove = set()
 
         # 1. Move all ordnance
@@ -1889,6 +1891,16 @@ class GamePanel:
             if check_ordnance_vs_blast(marker, blast_markers, self.dice):
                 to_remove.add(marker.id)
                 self._append_log(f"  {marker.ordnance_type} destroyed by blast marker")
+                continue
+
+            # Terrain check: asteroid/planet/warp rift = auto-destroyed;
+            # gas/dust cloud = D6=6 destroys. Applies to torpedoes and mines.
+            destroyed, terrain_type = check_ordnance_vs_phenomena(
+                marker, phenomena, self.dice)
+            if destroyed:
+                to_remove.add(marker.id)
+                self._append_log(
+                    f"  {marker.ordnance_type} destroyed by {terrain_type}")
                 continue
 
             # Update position
