@@ -128,8 +128,15 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
         hull_dmg = max(0, dmg_roll - absorbed)
         if hull_dmg > 0:
             ship.hits_remaining = max(0, ship.hits_remaining - hull_dmg)
-            gs.update_ship(ship)
             gs.add_log(f"  {absorbed} absorbed by shields, {hull_dmg} hull damage")
+
+        # Speed reduction: ship is forced back 5cm along reverse heading
+        result["speed_reduction"] = 5
+        reverse_rad = math.radians((ship.heading + 180) % 360)
+        ship.x = max(0, min(gs.table_width, ship.x + 5 * math.cos(reverse_rad)))
+        ship.y = max(0, min(gs.table_height, ship.y + 5 * math.sin(reverse_rad)))
+        gs.add_log(f"  {ship.name} pushed back 5cm by asteroid impact")
+        gs.update_ship(ship)
     else:
         gs.add_log(
             f"  {ship.name} navigates asteroids successfully "

@@ -930,6 +930,20 @@ class GamePanel:
 
         lock_on = attacker.special_order == SpecialOrder.LOCK_ON.value
 
+        # Check asteroid field firing restrictions
+        from .terrain_effects import check_ship_terrain_contact
+        attacker_contacts = check_ship_terrain_contact(attacker, phenomena)
+        in_asteroid_field = any(c["type"] == "asteroid_field" for c in attacker_contacts)
+        if in_asteroid_field:
+            if attacker.is_crippled:
+                messagebox.showinfo("Cannot Fire",
+                    f"{attacker.name} is crippled — cannot fire from an asteroid field.")
+                return
+            if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                messagebox.showinfo("Cannot Fire",
+                    f"{attacker.name} is bracing — cannot fire from an asteroid field.")
+                return
+
         # Build list of available weapons (not ordnance, not crit-disabled, has remaining strength)
         available_weapons = []
         for i, weapon in enumerate(attacker.weapons):
@@ -993,10 +1007,17 @@ class GamePanel:
             else:
                 avail_str = full_str
 
+            # Asteroid field: half strength/firepower, max 10cm range, no column shifts
+            ast_range_cap = 10 if in_asteroid_field and wtype != "nova_cannon" else None
+            if in_asteroid_field and wtype in ("battery", "lance"):
+                avail_str = max(1, (avail_str + 1) // 2)
+
             if wtype == "battery":
-                desc = f"Battery FP{avail_str}/{full_str} {weapon['range_cm']}cm [{arcs}]"
+                ast_note = " [ASTEROID: half FP, 10cm, no shifts]" if in_asteroid_field else ""
+                desc = f"Battery FP{avail_str}/{full_str} {weapon['range_cm']}cm [{arcs}]{ast_note}"
             elif wtype == "lance":
-                desc = f"Lance Str{avail_str}/{full_str} {weapon['range_cm']}cm [{arcs}]"
+                ast_note = " [ASTEROID: half Str, 10cm]" if in_asteroid_field else ""
+                desc = f"Lance Str{avail_str}/{full_str} {weapon['range_cm']}cm [{arcs}]{ast_note}"
             elif wtype == "nova_cannon":
                 desc = f"Nova Cannon 30-150cm [front]"
                 avail_str = 1  # nova cannon is binary
@@ -1021,7 +1042,9 @@ class GamePanel:
                 dist = attacker.distance_to(e)
                 arc = attacker.get_target_arc(e.x, e.y)
                 in_arc = arc.value in weapon.get("arcs", []) or not weapon.get("arcs")
-                in_range = dist <= weapon.get("range_cm", 999)
+                effective_range = min(weapon.get("range_cm", 999),
+                                      ast_range_cap if ast_range_cap else 9999)
+                in_range = dist <= effective_range
                 los = check_los_clear(attacker, e, phenomena, blast_markers)
                 status = ""
                 if not los["clear"]:
@@ -1129,7 +1152,8 @@ class GamePanel:
                 if wtype == "battery":
                     sr = resolve_batteries(attacker, target, fire_weapon,
                                           self.dice, blast_markers, lock_on,
-                                          phenomena, self.gs.ships)
+                                          phenomena, self.gs.ships,
+                                          no_column_shifts=in_asteroid_field)
                     _log(f"  {sr.description}")
                     if sr.hits > 0:
                         all_damage.setdefault(target.id, []).append(
@@ -1893,8 +1917,9 @@ class GamePanel:
                 self._append_log(f"  {marker.ordnance_type} destroyed by blast marker")
                 continue
 
-            # Terrain check: asteroid/planet/warp rift = auto-destroyed;
-            # gas/dust cloud = D6=6 destroys. Applies to torpedoes and mines.
+            # Terrain check: applies to all ordnance types.
+            # Torpedoes/mines: asteroid/planet/warp rift = auto-destroyed; dust = D6=6.
+            # Attack craft: asteroid = D6=6; warp rift/planet = auto-destroyed.
             destroyed, terrain_type = check_ordnance_vs_phenomena(
                 marker, phenomena, self.dice)
             if destroyed:

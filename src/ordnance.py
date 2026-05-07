@@ -435,24 +435,38 @@ def check_ordnance_vs_blast(marker: OrdnanceMarker,
     return False
 
 
+_TORP_LIKE = {
+    OrdnanceType.TORPEDO_STANDARD.value,
+    OrdnanceType.TORPEDO_GUIDED.value,
+    OrdnanceType.MINE_FIELD.value,
+}
+
+_ATTACK_CRAFT = {
+    OrdnanceType.FIGHTER.value,
+    OrdnanceType.BOMBER.value,
+    OrdnanceType.ASSAULT_BOAT.value,
+    OrdnanceType.TORPEDO_BOMBER.value,
+    OrdnanceType.MANTA.value,
+    OrdnanceType.BARRACUDA.value,
+}
+
+
 def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
                                  phenomena,
                                  dice: DiceRoller) -> Tuple[bool, str]:
     """
-    Check if torpedo-type ordnance or mines are destroyed by terrain phenomena.
-    Only applies to ordnance types that behave like torpedoes.
+    Check if ordnance is destroyed by terrain phenomena.
 
-    - Asteroid fields, planets, warp rifts: auto-destroyed (blocks_torpedoes).
-    - Gas/dust clouds: D6=6 destroys.
+    Torpedoes/mines: asteroid fields, planets, warp rifts = auto-destroyed;
+                     gas/dust cloud = D6=6 destroys.
+    Attack craft:    asteroid field = D6=6 destroys; warp rift/planets = auto-destroyed;
+                     gas/dust cloud = no effect.
 
     Returns (destroyed: bool, reason: str).
     """
-    torp_like = {
-        OrdnanceType.TORPEDO_STANDARD.value,
-        OrdnanceType.TORPEDO_GUIDED.value,
-        OrdnanceType.MINE_FIELD.value,
-    }
-    if marker.ordnance_type not in torp_like:
+    is_torp = marker.ordnance_type in _TORP_LIKE
+    is_craft = marker.ordnance_type in _ATTACK_CRAFT
+    if not is_torp and not is_craft:
         return False, ""
 
     for p in phenomena:
@@ -468,13 +482,23 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
             continue
 
         ptype = p.phenomenon_type
-        if ptype in ("asteroid_field", "warp_rift") or "planet" in ptype:
-            return True, ptype
 
-        if ptype == "gas_dust_cloud":
-            roll = dice.roll_d6(1, "Ordnance through dust cloud (6=destroyed)")[0]
-            if roll == 6:
-                return True, "gas_dust_cloud"
+        if is_craft:
+            if ptype == "asteroid_field":
+                roll = dice.roll_d6(1, f"Attack craft in asteroid field (6=destroyed)")[0]
+                if roll == 6:
+                    return True, "asteroid_field"
+            elif ptype == "warp_rift" or "planet" in ptype:
+                return True, ptype
+            # Gas/dust clouds have no effect on attack craft
+        else:
+            # Torpedoes and mines
+            if ptype in ("asteroid_field", "warp_rift") or "planet" in ptype:
+                return True, ptype
+            if ptype == "gas_dust_cloud":
+                roll = dice.roll_d6(1, "Ordnance through dust cloud (6=destroyed)")[0]
+                if roll == 6:
+                    return True, "gas_dust_cloud"
 
     return False, ""
 

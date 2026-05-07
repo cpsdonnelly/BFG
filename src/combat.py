@@ -134,7 +134,8 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
                       dice: DiceRoller, blast_markers: List[BlastMarker],
                       lock_on: bool = False,
                       phenomena: list = None,
-                      all_ships: list = None) -> ShotResult:
+                      all_ships: list = None,
+                      no_column_shifts: bool = False) -> ShotResult:
     """Resolve a weapons battery attack."""
     result = ShotResult(weapon["name"], "battery")
     firepower = weapon["strength"]
@@ -172,7 +173,8 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
 
     # Get column and shifts
     column = get_gunnery_column(target_type, target_orientation)
-    shifts = get_column_shifts(attacker, target, blast_markers, phenomena, all_ships)
+    shifts = 0 if no_column_shifts else get_column_shifts(
+        attacker, target, blast_markers, phenomena, all_ships)
 
     # Look up dice count
     num_dice = lookup_gunnery_dice(firepower, column, shifts)

@@ -303,6 +303,12 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState):
         ptype = contact["type"]
         effects = contact["effects"]
         if ptype == "asteroid_field" and effects.get("navigation_test"):
+            # Hulks are automatically destroyed when entering asteroid fields
+            if ship.status in ("drifting_hulk", "burning_hulk"):
+                ship.status = "destroyed"
+                gs.update_ship(ship)
+                gs.add_log(f"{ship.name} HULK DESTROYED by asteroid field!")
+                return
             gs.add_log(f"{ship.name} enters asteroid field - navigation test required")
             # Navigation test will be resolved by the game panel
             ship.special_rules = list(set(ship.special_rules + ["in_asteroid_field"]))
