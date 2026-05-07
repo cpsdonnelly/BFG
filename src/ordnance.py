@@ -56,11 +56,10 @@ def degrade_tau_missiles(game_state: GameState, dice: DiceRoller,
         if (marker.ordnance_type == OrdnanceType.TORPEDO_GUIDED.value
                 and marker.launched_turn < current_turn
                 and marker.strength > 0):
-            losses = 0
-            for _ in range(marker.strength):
-                roll = dice.roll_d6(1, "Tau missile degradation")[0]
-                if roll == 1:
-                    losses += 1
+            rolls = dice.roll_d6(
+                marker.strength,
+                f"Tau missile Str {marker.strength} degradation (each 1 = lose 1 Str)")
+            losses = rolls.count(1)
             if losses > 0:
                 marker.strength = max(0, marker.strength - losses)
                 game_state.add_log(

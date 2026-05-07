@@ -158,10 +158,10 @@ class GamePanel:
         elif phase == "shooting":
             self.fire_btn.pack(pady=2)
             self.fire_ord_btn.pack(pady=2)
-            self.launch_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
         elif phase == "ordnance":
+            self.launch_btn.pack(pady=2)
             self.move_missile_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
