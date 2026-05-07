@@ -101,8 +101,8 @@ def create_demo_imperial_fleet(gs: GameState):
     )
     gs.add_ship(lunar2)
 
-    # Cobras (2x torpedo, 1x mine layer)
-    for i, name in enumerate(["INS Fervent", "INS Wrathful"]):
+    # Cobras
+    for i, name in enumerate(["INS Fervent", "INS Wrathful", "INS Pious"]):
         cobra = Ship(
             id=f"imp_cobra{i+1}", name=name,
             ship_class="Cobra Class Destroyer", faction="imperial_navy",
@@ -120,22 +120,29 @@ def create_demo_imperial_fleet(gs: GameState):
         )
         gs.add_ship(cobra)
 
-    # Viper Mine-layer Destroyer
-    viper = Ship(
-        id="imp_viper", name="INS Pious",
-        ship_class="Viper Class Mine-layer", faction="imperial_navy",
-        player=1, ship_type="escort", base_size="small",
-        x=105, y=15, heading=90,
-        speed=25, turn_angle=90, shields_max=1,
-        armor_prow="5+", armor_side="5+", turrets=1, hits_max=1,
+    # Dictator Class Cruiser — mine launcher replaces launch bays
+    dictator = Ship(
+        id="imp_dictator", name="INS Hammer of Fate",
+        ship_class="Dictator Class Cruiser", faction="imperial_navy",
+        player=1, ship_type="cruiser", base_size="small",
+        x=110, y=15, heading=90,
+        speed=20, turn_angle=45, shields_max=2,
+        armor_prow="6+", armor_side="5+", turrets=2, hits_max=8,
         leadership=7,
-        points_value=35,
+        points_value=220,
         weapons=[
-            {"name": "Prow Mine Launcher", "weapon_type": "mine_launcher",
-             "range_cm": 0, "strength": 4, "arcs": []},
+            {"name": "Port Weapons Battery", "weapon_type": "battery",
+             "range_cm": 45, "strength": 6, "arcs": ["left"]},
+            {"name": "Starboard Weapons Battery", "weapon_type": "battery",
+             "range_cm": 45, "strength": 6, "arcs": ["right"]},
+            {"name": "Prow Torpedoes", "weapon_type": "torpedo",
+             "range_cm": 0, "strength": 6, "arcs": ["front"],
+             "torpedo_speed": 30, "torpedo_type": "standard"},
+            {"name": "Mine Launcher", "weapon_type": "mine_launcher",
+             "range_cm": 0, "strength": 4, "arcs": [], "mine_speed": 15},
         ],
     )
-    gs.add_ship(viper)
+    gs.add_ship(dictator)
 
 
 def create_demo_tau_fleet(gs: GameState):

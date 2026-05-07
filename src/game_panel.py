@@ -1837,10 +1837,8 @@ class GamePanel:
             marker = OrdnanceMarker.from_dict(o_dict)
             move_ordnance(marker, self.gs)
 
-            # Static ordnance (mines, CAP fighters) never goes off-table
-            is_static = (marker.ordnance_type == OrdnanceType.MINE_FIELD.value
-                         or bool(marker.cap_ship_id))
-            if is_static:
+            # CAP fighters are co-located with their ship; skip off-table check
+            if marker.cap_ship_id:
                 self.gs.ordnance[i] = marker.to_dict()
                 continue
 
@@ -2051,7 +2049,7 @@ class GamePanel:
             wtype = w.get("weapon_type", "")
             if wtype in ("torpedo", "gravitic_launcher") and ship.ordnance_loaded_torps:
                 torp_weapons.append(w)
-            elif wtype == "mine_launcher" and ship.ordnance_loaded_torps:
+            elif wtype == "mine_launcher" and ship.ordnance_loaded_craft:
                 mine_weapons.append(w)
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
                 bay_weapons.append(w)
@@ -2217,7 +2215,7 @@ class GamePanel:
                 halve_note = f" [{', '.join(mine_halve_reasons)}]" if mine_halve_reasons else ""
                 tk.Label(mine_frame,
                          text=f"{mw['name']}: {mine_str} mines"
-                              + " (placed at ship position)" + halve_note,
+                              + " (homes on nearest enemy)" + halve_note,
                          font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
                 tk.Label(mine_frame,
                          text="Mines are static; detonate when a ship contacts them (D6/mine, 4+).",
@@ -2231,14 +2229,15 @@ class GamePanel:
                         owner_player=ship.player,
                         launched_by=ship.id,
                         x=ship.x, y=ship.y,
-                        heading=0, strength=effective_str, speed=0,
+                        heading=0, strength=effective_str,
+                        speed=w.get("mine_speed", 15),
                         launched_turn=self.gs.turn_number,
                     )
                     self.gs.add_ordnance(marker)
 
                     ship_fresh = self.gs.get_ship_by_id(ship.id)
                     if ship_fresh:
-                        ship_fresh.ordnance_loaded_torps = False
+                        ship_fresh.ordnance_loaded_craft = False
                         self.gs.update_ship(ship_fresh)
 
                     self._append_log(

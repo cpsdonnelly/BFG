@@ -19,8 +19,24 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
     if marker.cap_ship_id:
         return
 
-    # Mine fields are static — they never move
+    # Mine fields home on the nearest enemy ship automatically
     if marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
+        ships = game_state.get_ships()
+        enemies = [s for s in ships
+                   if s.player != marker.owner_player
+                   and not s.is_destroyed and not s.is_disengaged]
+        if not enemies:
+            return
+        nearest = min(enemies,
+                      key=lambda s: math.sqrt((s.x - marker.x)**2
+                                              + (s.y - marker.y)**2))
+        dx = nearest.x - marker.x
+        dy = nearest.y - marker.y
+        dist = math.sqrt(dx**2 + dy**2)
+        if dist > 0:
+            marker.x += marker.speed * dx / dist
+            marker.y += marker.speed * dy / dist
+            marker.heading = math.degrees(math.atan2(dy, dx)) % 360
         return
 
     rad = math.radians(marker.heading)
