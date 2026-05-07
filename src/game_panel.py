@@ -212,6 +212,9 @@ class GamePanel:
 
         self._append_log("=== END PHASE ===")
 
+        # 0. Teleport attacks (must resolve before damage control or blast removal)
+        self._resolve_teleport_attacks()
+
         # 1. Fire damage
         for s_dict in self.gs.ships:
             ship = Ship.from_dict(s_dict)
@@ -263,6 +266,89 @@ class GamePanel:
         self._log_lines(brace_logs)
 
         self.board.redraw()
+
+    def _resolve_teleport_attacks(self):
+        """Allow the active player to make teleport attacks during the end phase."""
+        from .hit_and_run import check_teleport_eligibility, resolve_teleport_attack
+        from .movement import do_command_check
+
+        active = self.gs.active_player
+        ships = self.gs.get_ships()
+        attackers = [s for s in ships
+                     if s.player == active
+                     and not s.is_destroyed and not s.is_disengaged
+                     and s.status not in ("drifting_hulk", "burning_hulk", "destroyed")]
+        enemies = [s for s in ships
+                   if s.player != active
+                   and not s.is_destroyed and not s.is_disengaged
+                   and s.status not in ("drifting_hulk", "burning_hulk", "destroyed")]
+
+        if not attackers or not enemies:
+            return
+
+        # Track which ships have already teleported this end phase
+        teleported = set()
+
+        # Offer each eligible attacker a teleport opportunity
+        for attacker in attackers:
+            eligible_targets = []
+            for target in enemies:
+                ok, reason = check_teleport_eligibility(attacker, target, self.gs)
+                if ok:
+                    eligible_targets.append(target)
+
+            if not eligible_targets or attacker.id in teleported:
+                continue
+
+            target_names = ", ".join(
+                f"{t.name} ({attacker.distance_to(t):.0f}cm)"
+                for t in eligible_targets)
+            want = messagebox.askyesno(
+                "Teleport Attack",
+                f"{attacker.name} can teleport against:\n{target_names}\n\n"
+                f"Attempt a teleport attack?")
+            if not want:
+                continue
+
+            # Pick target if multiple eligible
+            if len(eligible_targets) == 1:
+                target = eligible_targets[0]
+            else:
+                target = self._pick_ship_dialog(eligible_targets,
+                                                "Select teleport target")
+                if not target:
+                    continue
+
+            # Re-fetch both ships to get live state
+            attacker = self.gs.get_ship_by_id(attacker.id)
+            target = self.gs.get_ship_by_id(target.id)
+            if not attacker or not target:
+                continue
+
+            def _brace_fn(target_ship, msg):
+                want_b = messagebox.askyesno("Teleport Attack — Brace?", msg)
+                if not want_b:
+                    return False, False
+                check = do_command_check(target_ship, "brace_for_impact",
+                                         self.dice)
+                self._append_log(
+                    f"  {target_ship.name} brace: "
+                    f"{'PASSED' if check['passed'] else 'FAILED'} "
+                    f"(rolled {check['roll']} vs Ld {check['needed']})")
+                return True, check["passed"]
+
+            result = resolve_teleport_attack(
+                attacker, target, self.dice, self.gs, _brace_fn)
+            teleported.add(attacker.id)
+
+            n_crits = len(result["crits_applied"])
+            n_repelled = result["repelled"]
+            n_failed = result["failures"]
+            self._append_log(
+                f"  Teleport result: {n_crits} crit(s) applied, "
+                f"{n_repelled} repelled, {n_failed} failed")
+            self._check_destruction(target)
+            self.board.redraw()
 
     def _repair_choice_dialog(self, ship: Ship, repairable: List[str],
                                max_repairs: int) -> List[str]:
@@ -1957,6 +2043,7 @@ class GamePanel:
             is_torp = "torpedo" in marker.ordnance_type
             is_bomber = marker.ordnance_type in (
                 OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
+            is_assault_boat = marker.ordnance_type == OrdnanceType.ASSAULT_BOAT.value
 
             if is_torp:
                 # Torpedoes attack ANY ship they contact (friend or foe)
@@ -2079,6 +2166,55 @@ class GamePanel:
                             self._check_destruction(s)
                         to_remove_after.add(marker.id)
                         break  # one ship triggers the field
+
+            elif is_assault_boat:
+                # Assault boats trigger hit-and-run raids against enemy ships
+                from .hit_and_run import resolve_hit_and_run
+                for s in ships:
+                    if s.player == marker.owner_player:
+                        continue
+                    if s.is_destroyed or s.is_disengaged:
+                        continue
+                    if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
+                        continue
+                    dist = math.sqrt(
+                        (marker.x - s.x)**2 + (marker.y - s.y)**2)
+                    if dist > s.base_radius + 1.5:
+                        continue
+
+                    # CAP fighters intercept before the raid
+                    if self._check_cap_intercept(marker, s, to_remove_after):
+                        break
+
+                    self._append_log(
+                        f"  Assault boats contact {s.name} — hit-and-run raid!")
+
+                    def _brace_fn(target_ship, msg, _s=s):
+                        from .movement import do_command_check
+                        want = messagebox.askyesno("Hit-and-Run Raid — Brace?", msg)
+                        if not want:
+                            return False, False
+                        check = do_command_check(target_ship, "brace_for_impact",
+                                                 self.dice)
+                        passed = check["passed"]
+                        self._append_log(
+                            f"  {target_ship.name} brace check: "
+                            f"{'PASSED' if passed else 'FAILED'} "
+                            f"(rolled {check['roll']} vs Ld {check['needed']})")
+                        return True, passed
+
+                    result = resolve_hit_and_run(
+                        marker, s, self.dice, self.gs, _brace_fn)
+
+                    n_crits = len(result["crits_applied"])
+                    n_repelled = result["repelled"]
+                    n_failed = result["failures"]
+                    self._append_log(
+                        f"  Raid result: {n_crits} crit(s) applied, "
+                        f"{n_repelled} repelled, {n_failed} failed")
+                    self._check_destruction(s)
+                    to_remove_after.add(marker.id)
+                    break
 
         # Remove spent ordnance
         if to_remove_after:
