@@ -98,6 +98,16 @@ class BoardView:
         self.mouse_x = 0
         self.mouse_y = 0
 
+        # Drag-and-drop movement state
+        self.drag_ship_id: Optional[str] = None   # ship being dragged
+        self.drag_result = None                    # last MovementResult from path compute
+        self.drag_commands = []                    # last computed MoveCommand list
+        # Callbacks set by game_panel:
+        #   can_drag_ship_fn(ship) -> bool  : returns True if ship may move now
+        #   commit_drag_fn(ship, commands)  : called on valid release to execute move
+        self.can_drag_ship_fn = None
+        self.commit_drag_fn = None
+
         # Bindings
         self.canvas.bind("<Configure>", self._on_resize)
         self.canvas.bind("<Button-1>", self._on_click)
@@ -111,7 +121,7 @@ class BoardView:
         master.bind("d", lambda e: self._toggle_tool("ruler_ship"))
         master.bind("a", lambda e: self._toggle_tool("arc_view"))
         master.bind("c", lambda e: self._clear_rulers())
-        master.bind("Escape", lambda e: self._clear_tool())
+        master.bind("Escape", lambda e: self._cancel_drag_or_clear_tool())
 
         # Menu bar
         self._create_menu()
@@ -179,6 +189,17 @@ class BoardView:
         self.snap_target_id = None
         self.status_var.set("Ready")
         self.redraw()
+
+    def _cancel_drag_or_clear_tool(self):
+        """Escape: cancel an active ship drag first, then clear tool if no drag."""
+        if self.drag_ship_id:
+            self.drag_ship_id = None
+            self.drag_commands = []
+            self.drag_result = None
+            self.status_var.set("Drag cancelled")
+            self.redraw()
+        else:
+            self._clear_tool()
 
     def _clear_rulers(self):
         """Clear all persistent ruler lines from the board"""
@@ -321,14 +342,19 @@ class BoardView:
                 self.redraw()
             return
 
-        # Default: select ship
+        # Default: select ship; if ship is draggable start drag mode
         ship = self._find_ship_at(cx, cy)
         if ship:
             self.selected_ship_id = ship.id
             self._show_ship_info(ship)
+            if self.can_drag_ship_fn and self.can_drag_ship_fn(ship):
+                self.drag_ship_id = ship.id
+                self.status_var.set(
+                    f"Dragging {ship.name} — release to commit, Escape to cancel")
             self.redraw()
         else:
             self.selected_ship_id = None
+            self.drag_ship_id = None
             self._clear_info()
             self.redraw()
 
@@ -379,9 +405,65 @@ class BoardView:
                              (end[1] - self.ruler_start[1])**2)
             self._draw_ruler_line(self.ruler_start, end, dist, persistent=False)
             self.status_var.set(f"Ruler: {dist:.1f} cm")
+            return
+
+        if self.drag_ship_id:
+            cx, cy = self.screen_to_cm(event.x, event.y)
+            ship = self.gs.get_ship_by_id(self.drag_ship_id)
+            if not ship:
+                self.drag_ship_id = None
+                return
+            from .movement_ui import compute_drag_path
+            commands, result = compute_drag_path(
+                ship, cx, cy,
+                ship.special_order,
+                blast_markers=self.gs.get_blast_markers(),
+                table_width=self.gs.table_width,
+                table_height=self.gs.table_height)
+            self.drag_commands = commands
+            self.drag_result = result
+            self.redraw()
+            if result:
+                color = "#44FF44" if result.valid else "#FF4444"
+                # Draw path segments
+                for i in range(len(result.path) - 1):
+                    sx0, sy0 = self.cm_to_screen(*result.path[i])
+                    sx1, sy1 = self.cm_to_screen(*result.path[i + 1])
+                    self.canvas.create_line(sx0, sy0, sx1, sy1,
+                                            fill=color, width=2, dash=(4, 4))
+                # Ghost ship circle at end position
+                gx, gy = self.cm_to_screen(result.final_x, result.final_y)
+                r = self.cm_to_pixels(ship.base_radius)
+                self.canvas.create_oval(gx - r, gy - r, gx + r, gy + r,
+                                        outline=color, width=2, dash=(3, 3))
+                # Ghost heading arrow
+                head_rad = math.radians(result.final_heading)
+                ax = gx + r * 2 * math.cos(head_rad)
+                ay = gy - r * 2 * math.sin(head_rad)
+                self.canvas.create_line(gx, gy, ax, ay,
+                                        fill=color, width=2, arrow=tk.LAST)
+                dist_label = f"{result.total_distance:.1f}cm"
+                if not result.valid:
+                    dist_label += " ✗"
+                self.status_var.set(
+                    f"Drag {ship.name}: {dist_label} "
+                    f"→ ({result.final_x:.0f}, {result.final_y:.0f}) "
+                    f"hdg {result.final_heading:.0f}°"
+                    + ("  VALID — release to commit"
+                       if result.valid else
+                       f"  INVALID: {result.errors[0] if result.errors else ''}"))
 
     def _on_release(self, event):
-        pass
+        if self.drag_ship_id:
+            ship = self.gs.get_ship_by_id(self.drag_ship_id)
+            if (ship and self.drag_result and self.drag_result.valid
+                    and self.commit_drag_fn and self.drag_commands):
+                self.commit_drag_fn(ship, self.drag_commands)
+            self.drag_ship_id = None
+            self.drag_commands = []
+            self.drag_result = None
+            self.status_var.set("Ready")
+            self.redraw()
 
     def _set_arc_view(self, ship_id):
         self.show_arcs_ship_id = ship_id

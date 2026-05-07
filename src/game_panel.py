@@ -35,6 +35,7 @@ class GamePanel:
         self.dice.root = root
 
         self._build_ui()
+        self._wire_drag_callbacks()
 
     def _build_ui(self):
         """Build the game controls UI."""
@@ -178,6 +179,74 @@ class GamePanel:
     def _log_lines(self, lines):
         for line in lines:
             self._append_log(line)
+
+    def _wire_drag_callbacks(self):
+        """Connect board_view drag-and-drop hooks to game panel movement logic."""
+        from .movement import validate_movement, execute_movement
+
+        def can_drag(ship):
+            if self.gs.current_phase != "movement":
+                return False
+            if ship.player != self.gs.active_player:
+                return False
+            unmoved_ids = {s.id for s in self.tc.get_unmoved_ships()}
+            return ship.id in unmoved_ids
+
+        def commit_drag(ship, commands):
+            from .movement import validate_movement, execute_movement, resolve_aaf_speed
+            order = ship.special_order
+            aaf_bonus = 0
+            if order == "all_ahead_full":
+                aaf_bonus = resolve_aaf_speed(ship, self.dice)
+                self._append_log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
+            result = validate_movement(
+                ship, commands, order, aaf_bonus,
+                self.gs.get_blast_markers(),
+                self.gs.table_width, self.gs.table_height)
+            if not result.valid:
+                return  # path became invalid between preview and release — discard
+            execute_movement(ship, result, self.gs)
+            # Terrain navigation tests (same logic as dialog confirm)
+            updated = self.gs.get_ship_by_id(ship.id)
+            if updated and not updated.is_disengaged:
+                from .terrain_effects import (resolve_asteroid_navigation,
+                                               resolve_warp_rift_navigation,
+                                               resolve_gas_dust_contact)
+                if "in_asteroid_field" in (updated.special_rules or []):
+                    on_aaf = order == "all_ahead_full"
+                    nav = resolve_asteroid_navigation(updated, self.dice, self.gs, on_aaf)
+                    if not nav["passed"]:
+                        self._append_log(
+                            f"  {updated.name}: asteroid damage {nav['damage']} HP!")
+                        self._check_destruction(updated)
+                    updated = self.gs.get_ship_by_id(ship.id)
+                    if updated:
+                        updated.special_rules = [r for r in updated.special_rules
+                                                 if r != "in_asteroid_field"]
+                        self.gs.update_ship(updated)
+                if updated and "in_warp_rift" in (updated.special_rules or []):
+                    nav = resolve_warp_rift_navigation(updated, self.dice, self.gs)
+                    updated = self.gs.get_ship_by_id(ship.id)
+                    if updated:
+                        updated.special_rules = [r for r in updated.special_rules
+                                                 if r != "in_warp_rift"]
+                        self.gs.update_ship(updated)
+                if updated and "in_dust_cloud" in (updated.special_rules or []):
+                    resolve_gas_dust_contact(updated, self.dice, self.gs)
+                    updated = self.gs.get_ship_by_id(ship.id)
+                    if updated:
+                        updated.special_rules = [r for r in updated.special_rules
+                                                 if r != "in_dust_cloud"]
+                        self.gs.update_ship(updated)
+            self.tc.mark_ship_moved(ship.id)
+            self._append_log(
+                f"{ship.name}: drag-moved {result.total_distance:.1f}cm "
+                f"to ({result.final_x:.1f}, {result.final_y:.1f}) "
+                f"hdg {result.final_heading:.0f}°")
+            self.board.redraw()
+
+        self.board.can_drag_ship_fn = can_drag
+        self.board.commit_drag_fn = commit_drag
 
     # --- Game Flow ---
 

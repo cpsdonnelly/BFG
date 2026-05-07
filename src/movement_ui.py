@@ -1,80 +1,105 @@
-"""BFG:XR Movement UI — Drag-and-Drop and Scroll Wheel Movement Dialog
+"""BFG:XR Movement UI — Drag-and-Drop path computation.
 
-This module will replace the movement dialog currently embedded in game_panel.py.
-Extracting it here keeps game_panel.py manageable as the movement UI grows
-in complexity with drag-and-drop support.
-
-CURRENT STATE
--------------
-The existing movement dialog in game_panel.py works via typed numeric inputs:
-the player enters a distance and clicks Forward, or clicks Turn Left/Right
-by a set number of degrees. The path is previewed on the canvas as a line.
-
-PLANNED IMPROVEMENTS
---------------------
-
-SCROLL WHEEL TURNING
-  - While a ship is selected in the movement dialog, scrolling the mouse wheel
-    over the board canvas applies a turn in the scroll direction.
-  - Each scroll tick = one turn increment (likely 5° or the ship's full
-    turn_angle, TBD with user).
-  - The heading preview arrow on the board updates live.
-  - This is a binding added to the board canvas, not a separate widget.
-
-DRAG-AND-DROP MOVEMENT
-  - Click and hold on a ship token to start a drag.
-  - As the mouse moves, the path is computed in real time from the ship's
-    current position to the cursor, respecting:
-      - Minimum move-before-turn distance (10cm for cruisers, 15cm for battleships)
-      - Maximum turn angle per turn action
-      - Maximum turn count for the current special order
-      - Speed limits (min and max) for the current order
-  - The path is drawn on the canvas as it is dragged: straight segments in
-    green, turn arcs shown distinctly, violations highlighted in red.
-  - On mouse release, if the path is valid it is committed. If invalid,
-    the user is shown the errors and the drag is cancelled.
-  - The drag-computed path is converted into a List[MoveCommand] (the same
-    format validate_movement and execute_movement already use) so no changes
-    are needed to the movement validation logic itself.
-
-PATH COMPUTATION
-  - Computing a legal BFG movement path from a start point and end point is
-    non-trivial: the ship must move forward, can only turn at specific points,
-    and turn angle is capped. The drag system will likely use a simplified
-    heuristic:
-      1. Move forward the minimum required distance before the first turn.
-      2. Turn toward the target heading (capped at max turn angle).
-      3. Move forward to the destination.
-    More complex paths (double turns via Come to New Heading) may need a
-    secondary UI mode or a point-and-click waypoint system rather than
-    pure drag.
-
-CLASSES / FUNCTIONS PLANNED
-----------------------------
-
-MovementUIController
-  - Owns the movement dialog window and all its widgets.
-  - Replaces the anonymous _move_dialog closure in game_panel.py.
-  - Holds references to: the ship being moved, current command list,
-    the board canvas, the game state, and the dice roller.
-
-  Methods:
-    open(ship, special_order, aaf_bonus)
-      - Creates the dialog and wires up all bindings.
-    on_canvas_scroll(event)
-      - Handles mouse wheel events: applies turn increment to current heading.
-    on_drag_start(event)
-      - Records the click position and which ship was clicked.
-    on_drag_motion(event)
-      - Recomputes the candidate path from start to cursor.
-      - Redraws the path preview.
-    on_drag_release(event)
-      - Validates the final path.
-      - Commits or cancels.
-    _draw_path_preview(commands, valid)
-      - Draws the movement path on the board canvas.
-      - Green = valid segment, red = violation.
-    _confirm()
-      - Final commit: calls execute_movement and closes the dialog.
-      - Same logic as the current _confirm() closure in game_panel.py.
+This module provides compute_drag_path, which takes a ship's current state
+and a cursor position and returns the best legal movement path the ship can
+take in that direction. It is used by board_view.py during drag-and-drop to
+preview and commit ship movement.
 """
+
+import math
+from typing import List, Optional, Tuple
+from .models import Ship, BlastMarker, SpecialOrder
+from .movement import (MoveCommand, MovementResult, validate_movement,
+                       get_effective_speed, MIN_TURN_DISTANCE)
+
+
+def compute_drag_path(ship: Ship,
+                      target_x: float,
+                      target_y: float,
+                      special_order: str,
+                      aaf_bonus: int = 0,
+                      blast_markers: List[BlastMarker] = None,
+                      table_width: float = 120,
+                      table_height: float = 120) -> Tuple[List[MoveCommand], Optional[MovementResult]]:
+    """
+    Compute the best legal movement path from the ship toward (target_x, target_y).
+
+    Strategy:
+      1. Calculate bearing from ship to target and relative angle vs current heading.
+      2. If the target is roughly ahead (within turn_angle), move straight toward it.
+      3. Otherwise: move the minimum pre-turn distance forward, apply the turn
+         (capped at ship's max turn_angle), then move remaining distance forward.
+      4. Total distance is clamped to the ship's maximum speed.
+      5. The resulting command list is run through validate_movement — the caller
+         receives the result so it can colour the preview green or red.
+
+    Ships on AAF or Lock On cannot turn, so only straight movement is generated.
+    Burn Retros caps at half speed.
+    Escorts have no minimum pre-turn distance requirement.
+
+    Returns (commands, MovementResult). Returns ([], None) if target is trivially
+    close or the ship type cannot be determined.
+    """
+    blast_markers = blast_markers or []
+
+    dx = target_x - ship.x
+    dy = target_y - ship.y
+    dist_to_target = math.sqrt(dx * dx + dy * dy)
+
+    if dist_to_target < 0.5:
+        return [], None
+
+    bearing = math.degrees(math.atan2(dy, dx)) % 360
+    relative = (bearing - ship.heading + 360) % 360
+
+    # Determine turn direction and capped angle
+    if relative <= 180:
+        turn_dir = "turn_left"
+        turn_deg = min(relative, float(ship.turn_angle))
+    else:
+        turn_dir = "turn_right"
+        turn_deg = min(360.0 - relative, float(ship.turn_angle))
+
+    needs_turn = turn_deg > 1.0
+
+    # Speed limits for this order
+    _, max_spd = get_effective_speed(ship, special_order, aaf_bonus)
+    min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
+
+    # No turns allowed on AAF or Lock On
+    no_turns = special_order in (
+        SpecialOrder.ALL_AHEAD_FULL.value,
+        SpecialOrder.LOCK_ON.value,
+    )
+
+    # Clamp total movement to max speed
+    move_dist = min(dist_to_target, float(max_spd))
+    if move_dist < 0.5:
+        move_dist = max(float(max_spd), 1.0)
+
+    commands: List[MoveCommand] = []
+
+    if not needs_turn or no_turns:
+        # Straight ahead — AAF must use exact max speed
+        if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
+            commands.append(MoveCommand("forward", float(max_spd)))
+        else:
+            commands.append(MoveCommand("forward", move_dist))
+    else:
+        # Pre-turn straight segment (escorts: 0, others: min_turn_dist)
+        pre_turn = float(min_turn_dist)
+        # Don't pre-turn more than ~40% of total distance so there's room to move after
+        pre_turn = min(pre_turn, move_dist * 0.5)
+        post_turn = max(0.0, move_dist - pre_turn)
+
+        if pre_turn > 0.1:
+            commands.append(MoveCommand("forward", pre_turn))
+        commands.append(MoveCommand(turn_dir, turn_deg))
+        if post_turn > 0.1:
+            commands.append(MoveCommand("forward", post_turn))
+
+    result = validate_movement(
+        ship, commands, special_order, aaf_bonus,
+        blast_markers, table_width, table_height)
+
+    return commands, result
