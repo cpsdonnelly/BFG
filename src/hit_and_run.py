@@ -61,8 +61,8 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
     if attacker.special_order not in allowed_orders:
         return False, f"{attacker.name} is on {attacker.special_order}"
 
-    if attacker.faction == "tau_kor_vattra" or "tau" in attacker.faction.lower():
-        return False, f"Tau cannot perform teleport attacks"
+    if "tau" in attacker.faction.lower():
+        return False, "Tau cannot perform teleport attacks"
 
     # Escorts and defenses with fewer than 3 starting hits cannot teleport
     if attacker.ship_type in ("escort", "defense") and attacker.hits_max < 3:
