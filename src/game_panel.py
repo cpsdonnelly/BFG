@@ -938,6 +938,30 @@ class GamePanel:
                   command=dialog.destroy,
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
 
+        # Scroll wheel turning: scroll on the board canvas to add turn commands
+        # Each tick = 5° turn (or the ship's max angle if smaller)
+        _scroll_deg = min(5, ship.turn_angle)
+
+        def _on_scroll(event):
+            # Windows/macOS: event.delta (+/-120 per tick)
+            # Linux: Button-4 = scroll up, Button-5 = scroll down
+            if event.num == 4 or (hasattr(event, "delta") and event.delta > 0):
+                _add_cmd("turn_left", _scroll_deg)
+            elif event.num == 5 or (hasattr(event, "delta") and event.delta < 0):
+                _add_cmd("turn_right", _scroll_deg)
+
+        self.board.canvas.bind("<MouseWheel>", _on_scroll)
+        self.board.canvas.bind("<Button-4>", _on_scroll)
+        self.board.canvas.bind("<Button-5>", _on_scroll)
+
+        def _on_dialog_close():
+            self.board.canvas.unbind("<MouseWheel>")
+            self.board.canvas.unbind("<Button-4>")
+            self.board.canvas.unbind("<Button-5>")
+            dialog.destroy()
+
+        dialog.protocol("WM_DELETE_WINDOW", _on_dialog_close)
+
     def _undo_movement(self):
         """Undo a ship's movement."""
         moved_ids = self.tc.ships_moved
