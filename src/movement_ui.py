@@ -49,6 +49,8 @@ def compute_drag_path(ship: Ship,
     if dist_to_target < 0.5:
         return [], None
 
+    # If the cursor is very close (short drag), treat as "minimum move" intent:
+    # clamp to min_speed rather than returning nothing.
     bearing = math.degrees(math.atan2(dy, dx)) % 360
     relative = (bearing - ship.heading + 360) % 360
 
@@ -64,6 +66,12 @@ def compute_drag_path(ship: Ship,
 
     # Speed limits for this order
     _, max_spd = get_effective_speed(ship, special_order, aaf_bonus)
+    if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
+        _min_spd_hint = float(max_spd)
+    elif special_order == SpecialOrder.BURN_RETROS.value:
+        _min_spd_hint = 0.0
+    else:
+        _min_spd_hint = float(max(1, ship.effective_speed // 2))
     min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
 
     # No turns allowed on AAF or Lock On
@@ -72,8 +80,11 @@ def compute_drag_path(ship: Ship,
         SpecialOrder.LOCK_ON.value,
     )
 
-    # Clamp total movement to max speed
+    # Clamp total movement to valid range.
+    # Short drag (cursor very close): snap to minimum legal move rather than 0.
     move_dist = min(dist_to_target, float(max_spd))
+    if move_dist < _min_spd_hint:
+        move_dist = _min_spd_hint
     if move_dist < 0.5:
         move_dist = max(float(max_spd), 1.0)
 

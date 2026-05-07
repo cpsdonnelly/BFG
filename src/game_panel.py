@@ -254,19 +254,15 @@ class GamePanel:
 
     def _quick_min_move_selected(self):
         """
-        M key: move the currently selected ship its minimum legal distance
-        straight forward, without opening the movement dialog.
+        M key: open the movement dialog for the selected ship, pre-populated
+        with the minimum legal move straight forward. The player can then add
+        more commands before confirming.
 
-        - Normal/CtNH/LockOn/Reload: moves half speed (the minimum required).
-        - Burn Retros: moves half of effective speed (the BR maximum).
-        - All Ahead Full: rolls 4D6 and moves the exact required total.
-        - Invalid if not in movement phase, wrong player, already moved, or
-          the ship is on a special order that blocks straight movement.
+        - Normal/CtNH/LockOn/Reload: pre-fills half speed forward.
+        - Burn Retros: pre-fills half of effective speed forward.
+        - All Ahead Full: rolls 4D6, pre-fills exact required total.
         """
-        from .movement import MoveCommand, validate_movement, execute_movement, resolve_aaf_speed
-        from .terrain_effects import (resolve_asteroid_navigation,
-                                       resolve_warp_rift_navigation,
-                                       resolve_gas_dust_contact)
+        from .movement import MoveCommand, resolve_aaf_speed
 
         if self.gs.current_phase != "movement":
             return
@@ -300,56 +296,9 @@ class GamePanel:
         else:
             move_dist = float(max(1, base // 2))
 
-        commands = [MoveCommand("forward", move_dist)]
-        result = validate_movement(
-            ship, commands, order, aaf_bonus,
-            self.gs.get_blast_markers(),
-            self.gs.table_width, self.gs.table_height)
-
-        if not result.valid:
-            self.board.status_var.set(
-                f"M: {ship.name} min-move invalid — {result.errors[0]}")
-            return
-
-        execute_movement(ship, result, self.gs)
-
-        # Terrain navigation tests
-        updated = self.gs.get_ship_by_id(ship.id)
-        if updated and not updated.is_disengaged:
-            if "in_asteroid_field" in (updated.special_rules or []):
-                on_aaf = order == "all_ahead_full"
-                nav = resolve_asteroid_navigation(updated, self.dice, self.gs, on_aaf)
-                if not nav["passed"]:
-                    self._append_log(
-                        f"  {updated.name}: asteroid damage {nav['damage']} HP!")
-                    self._check_destruction(updated)
-                updated = self.gs.get_ship_by_id(ship.id)
-                if updated:
-                    updated.special_rules = [r for r in updated.special_rules
-                                             if r != "in_asteroid_field"]
-                    self.gs.update_ship(updated)
-            if updated and "in_warp_rift" in (updated.special_rules or []):
-                resolve_warp_rift_navigation(updated, self.dice, self.gs)
-                updated = self.gs.get_ship_by_id(ship.id)
-                if updated:
-                    updated.special_rules = [r for r in updated.special_rules
-                                             if r != "in_warp_rift"]
-                    self.gs.update_ship(updated)
-            if updated and "in_dust_cloud" in (updated.special_rules or []):
-                resolve_gas_dust_contact(updated, self.dice, self.gs)
-                updated = self.gs.get_ship_by_id(ship.id)
-                if updated:
-                    updated.special_rules = [r for r in updated.special_rules
-                                             if r != "in_dust_cloud"]
-                    self.gs.update_ship(updated)
-
-        self.tc.mark_ship_moved(ship.id)
-        self._append_log(
-            f"{ship.name}: min-move {move_dist:.0f}cm forward "
-            f"to ({result.final_x:.1f}, {result.final_y:.1f})")
-        self.board.status_var.set(
-            f"M: {ship.name} moved {move_dist:.0f}cm forward")
-        self.board.redraw()
+        self._move_ship_dialog(
+            preselected_ship=ship,
+            initial_commands=[MoveCommand("forward", move_dist)])
 
     # --- Game Flow ---
 
@@ -762,14 +711,21 @@ class GamePanel:
         tk.Button(dialog, text="Issue Order", command=confirm,
                   bg="#336633", fg="white", font=("Consolas", 10)).pack(pady=10)
 
-    def _move_ship_dialog(self):
-        """Dialog to move a ship with exact instructions."""
+    def _move_ship_dialog(self, preselected_ship=None, initial_commands=None):
+        """Dialog to move a ship with exact instructions.
+
+        preselected_ship: Ship — if given, skip the pick dialog and use this ship.
+        initial_commands: list of MoveCommand — pre-populate the command list.
+        """
         unmoved = self.tc.get_unmoved_ships()
         if not unmoved:
             messagebox.showinfo("No Ships", "All ships have moved")
             return
 
-        ship = self._pick_ship_dialog(unmoved, "Select ship to move")
+        if preselected_ship and preselected_ship.id in {s.id for s in unmoved}:
+            ship = preselected_ship
+        else:
+            ship = self._pick_ship_dialog(unmoved, "Select ship to move")
         if not ship:
             return
 
@@ -838,6 +794,15 @@ class GamePanel:
         remaining_label = tk.Label(meter_frame, textvariable=remaining_var,
                                     font=("Consolas", 10, "bold"), fg="#44CC44")
         remaining_label.pack()
+
+        # Turn stats line
+        from .movement import get_max_turns
+        _max_turns = get_max_turns(order, ship)
+        turn_stats_var = tk.StringVar(
+            value=f"Turns: 0/{_max_turns} used | Net: 0° | Remaining angle: {ship.turn_angle}°")
+        turn_stats_label = tk.Label(meter_frame, textvariable=turn_stats_var,
+                                     font=("Consolas", 9), fg="#AAAAFF")
+        turn_stats_label.pack()
 
         # Command list
         cmd_listbox = tk.Listbox(dialog, font=("Consolas", 9),
@@ -974,6 +939,9 @@ class GamePanel:
             cmd_listbox.delete(0, tk.END)
             remaining_var.set(f"Remaining: {max_speed:.0f}cm / {max_speed:.0f}cm")
             remaining_label.config(fg="#44CC44")
+            turn_stats_var.set(
+                f"Turns: 0/{_max_turns} used | Net: 0° | Remaining angle: {ship.turn_angle}°")
+            turn_stats_label.config(fg="#AAAAFF")
             preview_var.set("Add movement commands above")
             self.board.redraw()
 
@@ -991,6 +959,21 @@ class GamePanel:
                 remaining_label.config(fg="#CCAA00")
             else:
                 remaining_label.config(fg="#44CC44")
+
+            # Update turn stats: net heading change and counts
+            left_deg = sum(c.value for c in commands if c.action == "turn_left")
+            right_deg = sum(c.value for c in commands if c.action == "turn_right")
+            net_deg = left_deg - right_deg  # positive = net anticlockwise
+            turns_count = sum(1 for c in commands
+                              if c.action in ("turn_left", "turn_right"))
+            angle_remaining = max(0.0, ship.turn_angle - max(left_deg, right_deg))
+            net_str = f"+{net_deg:.0f}°" if net_deg > 0 else f"{net_deg:.0f}°"
+            turn_stats_var.set(
+                f"Turns: {turns_count}/{_max_turns} used | "
+                f"Net: {net_str} | "
+                f"Remaining angle: {angle_remaining:.0f}°")
+            turn_stats_label.config(
+                fg="#FF6644" if turns_count > _max_turns else "#AAAAFF")
 
             if result.valid:
                 preview_var.set(
@@ -1137,6 +1120,13 @@ class GamePanel:
         self.board.canvas.bind("<MouseWheel>", _on_scroll)
         self.board.canvas.bind("<Button-4>", _on_scroll)
         self.board.canvas.bind("<Button-5>", _on_scroll)
+
+        # Pre-populate commands if provided (after all helpers are defined)
+        if initial_commands:
+            for c in initial_commands:
+                commands.append(c)
+                cmd_listbox.insert(tk.END, str(c))
+            _validate()
 
         dialog.protocol("WM_DELETE_WINDOW", _on_dialog_close)
 
