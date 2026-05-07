@@ -157,33 +157,46 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
 def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
                          dice: DiceRoller, game_state: GameState) -> Dict:
     """
-    Resolve mine field detonation against a ship.
-    Roll D6 per mine in the field: each 4+ detonates and hits.
-    Each detonating mine then rolls vs lowest armor, bypasses shields.
-    Mine field is consumed (caller removes it) regardless of hits.
-    Affects any ship — including the layer's own ships.
+    Resolve a single mine detonating against a ship.
+
+    Turret defense: roll the ship's effective turrets.
+    - If ANY die scores 4+: mine attacks with 4D6 instead of 8D6.
+    - Otherwise: mine attacks with 8D6.
+    Mine damage CAN be blocked by shields (unlike torpedoes/bombers).
+    Turret restriction (torp/craft split) does not apply to mines.
     """
-    result = {"detonations": 0, "hits": 0}
+    result = {"hits": 0, "attack_dice": 8}
 
-    rolls = dice.roll_d6(
-        marker.strength,
-        f"Mine field ({marker.strength} mines) vs {ship.name} (4+ detonates)")
-    result["detonations"] = sum(1 for r in rolls if r >= 4)
-    game_state.add_log(
-        f"  Mine field: {result['detonations']}/{marker.strength} mines detonate!")
+    turrets = ship.effective_turrets
+    attack_dice = 8
 
-    if result["detonations"] > 0:
-        armor = min(ship.armor_prow_value, ship.armor_side_value)
-        hit_rolls = dice.roll_d6(
-            result["detonations"],
-            f"Mine hits vs {ship.name} ({armor}+)")
-        result["hits"] = sum(1 for r in hit_rolls if r >= armor)
-
-        if result["hits"] > 0:
-            from .combat import apply_damage
-            apply_damage(ship, result["hits"], dice, game_state, ignores_shields=True)
+    if turrets > 0:
+        turret_rolls = dice.roll_d6(
+            turrets, f"{ship.name} turrets vs mine (any 4+ reduces to 4D6)")
+        if any(r >= 4 for r in turret_rolls):
+            attack_dice = 4
             game_state.add_log(
-                f"  Mine field hits {ship.name} for {result['hits']} damage")
+                f"  Turrets reduce mine attack to 4D6")
+        else:
+            game_state.add_log(
+                f"  Turrets fail — mine attacks with 8D6")
+
+    result["attack_dice"] = attack_dice
+
+    # Bearing determines which armor face the mine hits
+    target_arc = ship.get_arc_for_bearing(ship.bearing_to(marker.x, marker.y))
+    armor = (ship.armor_prow_value if target_arc.value == "front"
+             else ship.armor_side_value)
+
+    attack_rolls = dice.roll_d6(attack_dice,
+                                 f"Mine vs {ship.name} ({armor}+)")
+    result["hits"] = sum(1 for r in attack_rolls if r >= armor)
+
+    if result["hits"] > 0:
+        from .combat import apply_damage
+        apply_damage(ship, result["hits"], dice, game_state, ignores_shields=False)
+        game_state.add_log(
+            f"  Mine: {result['hits']} hit(s) on {ship.name} (shields apply)")
 
     return result
 

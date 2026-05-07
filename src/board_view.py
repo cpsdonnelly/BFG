@@ -657,12 +657,14 @@ class BoardView:
                                          fill="white", font=("Consolas", 7, "bold"))
 
             elif otype == "mine_field":
-                # Mine field: circle of Xs, coloured by owner
-                r = self.cm_to_pixels(2.0)
-                self.canvas.create_oval(sx - r, sy - r, sx + r, sy + r,
-                                         fill="", outline="#AA6600", width=2,
-                                         dash=(4, 3))
-                self.canvas.create_text(sx, sy, text=f"M{o.strength}",
+                # Single mine: 20mm square marker (2cm side), dashed orange
+                hs = self.cm_to_pixels(1.0)
+                pts = self._rotate_polygon(
+                    [(-hs, -hs), (hs, -hs), (hs, hs), (-hs, hs)],
+                    0, sx, sy)
+                self.canvas.create_polygon(pts, fill="#331100", outline="#FF8800",
+                                            width=2, dash=(3, 2))
+                self.canvas.create_text(sx, sy, text="M",
                                          fill="#FF8800", font=("Consolas", 8, "bold"))
 
             else:

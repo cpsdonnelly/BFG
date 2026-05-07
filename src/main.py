@@ -139,7 +139,7 @@ def create_demo_imperial_fleet(gs: GameState):
              "range_cm": 0, "strength": 6, "arcs": ["front"],
              "torpedo_speed": 30, "torpedo_type": "standard"},
             {"name": "Mine Launcher", "weapon_type": "mine_launcher",
-             "range_cm": 0, "strength": 4, "arcs": [], "mine_speed": 15},
+             "range_cm": 0, "strength": 4, "arcs": [], "mine_speed": 10},
         ],
     )
     gs.add_ship(dictator)

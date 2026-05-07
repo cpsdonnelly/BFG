@@ -2026,9 +2026,9 @@ class GamePanel:
                         continue
                     dist = math.sqrt(
                         (marker.x - s.x)**2 + (marker.y - s.y)**2)
-                    if dist <= s.base_radius + 2.0:
+                    if dist <= s.base_radius + 1.5:
                         self._append_log(
-                            f"  Mine field contacts {s.name}"
+                            f"  Mine contacts {s.name}"
                             + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
                             + "!")
                         result = resolve_mine_contact(
@@ -2250,26 +2250,32 @@ class GamePanel:
 
                 halve_note = f" [{', '.join(mine_halve_reasons)}]" if mine_halve_reasons else ""
                 tk.Label(mine_frame,
-                         text=f"{mw['name']}: {mine_str} mines"
-                              + " (homes on nearest enemy)" + halve_note,
+                         text=f"{mw['name']}: {mine_str} mine launcher(s)"
+                              + " — 1 mine per launcher, 10cm/turn homing" + halve_note,
                          font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
                 tk.Label(mine_frame,
-                         text="Mines are static; detonate when a ship contacts them (D6/mine, 4+).",
+                         text="Each mine attacks with 8D6 vs armor (4D6 if turrets roll 4+). "
+                              "Shields apply.",
                          font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=5)
 
                 def _lay_mines(w=mw, effective_str=mine_str):
                     import random as _rng
-                    marker = OrdnanceMarker(
-                        id=f"mine_{ship.id}_{self.gs.turn_number}_{_rng.randint(0,9999)}",
-                        ordnance_type=OrdnanceType.MINE_FIELD.value,
-                        owner_player=ship.player,
-                        launched_by=ship.id,
-                        x=ship.x, y=ship.y,
-                        heading=0, strength=effective_str,
-                        speed=w.get("mine_speed", 15),
-                        launched_turn=self.gs.turn_number,
-                    )
-                    self.gs.add_ordnance(marker)
+                    spd = w.get("mine_speed", 10)
+                    for i in range(effective_str):
+                        # Each mine launcher fires one independent mine marker
+                        marker = OrdnanceMarker(
+                            id=f"mine_{ship.id}_{self.gs.turn_number}_{i}_{_rng.randint(0,9999)}",
+                            ordnance_type=OrdnanceType.MINE_FIELD.value,
+                            owner_player=ship.player,
+                            launched_by=ship.id,
+                            x=ship.x + (i - effective_str / 2) * 1.5,
+                            y=ship.y,
+                            heading=ship.heading,
+                            strength=1,
+                            speed=spd,
+                            launched_turn=self.gs.turn_number,
+                        )
+                        self.gs.add_ordnance(marker)
 
                     ship_fresh = self.gs.get_ship_by_id(ship.id)
                     if ship_fresh:
@@ -2277,7 +2283,7 @@ class GamePanel:
                         self.gs.update_ship(ship_fresh)
 
                     self._append_log(
-                        f"{ship.name} lays mine field ({effective_str} mines)")
+                        f"{ship.name} launches {effective_str} mine(s)")
                     dialog.destroy()
                     self.board.redraw()
 
