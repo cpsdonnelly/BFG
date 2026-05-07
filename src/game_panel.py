@@ -447,6 +447,10 @@ class GamePanel:
                 continue
 
             def _brace_fn(target_ship, msg):
+                if target_ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                    self._append_log(
+                        f"  {target_ship.name} already braced — saves apply automatically")
+                    return True, True
                 want_b = messagebox.askyesno("Teleport Attack — Brace?", msg)
                 if not want_b:
                     return False, False
@@ -456,6 +460,11 @@ class GamePanel:
                     f"  {target_ship.name} brace: "
                     f"{'PASSED' if check['passed'] else 'FAILED'} "
                     f"(rolled {check['roll']} vs Ld {check['needed']})")
+                if check["passed"]:
+                    target_ship.previous_order = target_ship.special_order
+                    target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+                    target_ship.brace_set_on_turn = self.gs.turn_number
+                    self.gs.update_ship(target_ship)
                 return True, check["passed"]
 
             result = resolve_teleport_attack(
@@ -2388,6 +2397,11 @@ class GamePanel:
 
                     def _brace_fn(target_ship, msg, _s=s):
                         from .movement import do_command_check
+                        if target_ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                            self._append_log(
+                                f"  {target_ship.name} already braced — "
+                                f"will roll to repel each raid")
+                            return True, True
                         want = messagebox.askyesno("Hit-and-Run Raid — Brace?", msg)
                         if not want:
                             return False, False
@@ -2398,6 +2412,11 @@ class GamePanel:
                             f"  {target_ship.name} brace check: "
                             f"{'PASSED' if passed else 'FAILED'} "
                             f"(rolled {check['roll']} vs Ld {check['needed']})")
+                        if passed:
+                            target_ship.previous_order = target_ship.special_order
+                            target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+                            target_ship.brace_set_on_turn = self.gs.turn_number
+                            self.gs.update_ship(target_ship)
                         return True, passed
 
                     result = resolve_hit_and_run(
