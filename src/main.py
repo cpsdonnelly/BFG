@@ -2,6 +2,7 @@
 import sys
 import os
 import tkinter as tk
+from tkinter import filedialog
 from typing import Optional
 
 # Add parent directory to path for imports
@@ -12,6 +13,7 @@ from src.game_state import GameState
 from src.board_view import BoardView
 from src.dice import DiceRoller
 from src.turn_controller import TurnController
+from src.fleet_loader import load_fleet_file, fleet_to_ships, get_available_fleets, get_fleet_info
 
 
 def create_demo_imperial_fleet(gs: GameState):
@@ -275,25 +277,27 @@ def main():
         return
 
     if setup["mode"] == "demo":
-        # Demo game with preset fleets and terrain
+        p1_info = get_fleet_info(setup["p1_fleet"])
+        p2_info = get_fleet_info(setup["p2_fleet"])
         gs = GameState(
-            game_name="imperial_vs_tau_demo",
+            game_name="fleet_battle",
             table_width=setup.get("width", 120),
             table_height=setup.get("height", 120),
-            player1_name="Imperial Navy",
-            player2_name="Tau Kor'or'vesh",
-            player1_faction="imperial_navy",
-            player2_faction="tau_kororvesh",
+            player1_name=p1_info["fleet_name"],
+            player2_name=p2_info["fleet_name"],
+            player1_faction=p1_info["faction"],
+            player2_faction=p2_info["faction"],
             player1_color="red",
             player2_color="blue",
-            points_limit=800,
+            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 800,
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=setup.get("sunward", "north"),
         )
-        # Apply optional rules
         _apply_rules(gs, setup)
-        create_demo_imperial_fleet(gs)
-        create_demo_tau_fleet(gs)
+        for ship in fleet_to_ships(load_fleet_file(setup["p1_fleet"]), 1):
+            gs.add_ship(ship)
+        for ship in fleet_to_ships(load_fleet_file(setup["p2_fleet"]), 2):
+            gs.add_ship(ship)
 
         if setup.get("terrain") == "random":
             from .map_maker import generate_random_map
@@ -316,18 +320,26 @@ def main():
         # else: blank board
 
     elif setup["mode"] == "blank":
+        p1_info = get_fleet_info(setup["p1_fleet"])
+        p2_info = get_fleet_info(setup["p2_fleet"])
         gs = GameState(
             game_name="custom_game",
             table_width=setup.get("width", 120),
             table_height=setup.get("height", 120),
-            player1_name=setup.get("p1_name", "Player 1"),
-            player2_name=setup.get("p2_name", "Player 2"),
+            player1_name=p1_info["fleet_name"],
+            player2_name=p2_info["fleet_name"],
+            player1_faction=p1_info["faction"],
+            player2_faction=p2_info["faction"],
+            player1_color="red",
+            player2_color="blue",
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=setup.get("sunward", "north"),
         )
         _apply_rules(gs, setup)
-        create_demo_imperial_fleet(gs)
-        create_demo_tau_fleet(gs)
+        for ship in fleet_to_ships(load_fleet_file(setup["p1_fleet"]), 1):
+            gs.add_ship(ship)
+        for ship in fleet_to_ships(load_fleet_file(setup["p2_fleet"]), 2):
+            gs.add_ship(ship)
 
     elif setup["mode"] == "editor":
         # Launch map editor first
@@ -346,23 +358,27 @@ def main():
         editor_root.destroy()
 
         # Create game with editor map
+        p1_info = get_fleet_info(setup["p1_fleet"])
+        p2_info = get_fleet_info(setup["p2_fleet"])
         gs = GameState(
             game_name="custom_game",
             table_width=map_settings["table_width"],
             table_height=map_settings["table_height"],
-            player1_name="Imperial Navy",
-            player2_name="Tau Kor'or'vesh",
-            player1_faction="imperial_navy",
-            player2_faction="tau_kororvesh",
+            player1_name=p1_info["fleet_name"],
+            player2_name=p2_info["fleet_name"],
+            player1_faction=p1_info["faction"],
+            player2_faction=p2_info["faction"],
             player1_color="red",
             player2_color="blue",
-            points_limit=800,
+            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 800,
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=map_settings["sunward_edge"],
         )
         _apply_rules(gs, setup)
-        create_demo_imperial_fleet(gs)
-        create_demo_tau_fleet(gs)
+        for ship in fleet_to_ships(load_fleet_file(setup["p1_fleet"]), 1):
+            gs.add_ship(ship)
+        for ship in fleet_to_ships(load_fleet_file(setup["p2_fleet"]), 2):
+            gs.add_ship(ship)
         for p in map_phenomena:
             gs.add_phenomenon(Phenomenon.from_dict(p))
 
@@ -372,8 +388,14 @@ def main():
             table_width=120, table_height=120,
             dice_mode="mixed",
         )
-        create_demo_imperial_fleet(gs)
-        create_demo_tau_fleet(gs)
+        p1_fleet = setup.get("p1_fleet")
+        p2_fleet = setup.get("p2_fleet")
+        if p1_fleet:
+            for ship in fleet_to_ships(load_fleet_file(p1_fleet), 1):
+                gs.add_ship(ship)
+        if p2_fleet:
+            for ship in fleet_to_ships(load_fleet_file(p2_fleet), 2):
+                gs.add_ship(ship)
 
     # Create turn controller and dice
     dice = DiceRoller(mode=gs.dice_mode)
@@ -399,7 +421,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
 
     dialog = tk.Toplevel(root)
     dialog.title("BFG:XR - Game Setup")
-    dialog.geometry("420x480")
+    dialog.geometry("540x680")
     dialog.protocol("WM_DELETE_WINDOW", lambda: (result.__setitem__(0, None), dialog.destroy()))
 
     tk.Label(dialog, text="BATTLEFLEET GOTHIC: XR",
@@ -456,6 +478,56 @@ def _show_setup_dialog(root) -> Optional[dict]:
         tk.Radiobutton(bz_frame, text=name, variable=bz_var,
                        value=str(i), font=("Consolas", 7)).pack(side=tk.LEFT)
 
+    # Fleet selection
+    fleets_frame = tk.Frame(dialog)
+    fleets_frame.pack(pady=5, padx=20, fill=tk.X)
+    tk.Label(fleets_frame, text="Fleet Lists:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
+
+    available_fleets = get_available_fleets("data/fleets")
+    fleet_labels = {p: get_fleet_info(p)["fleet_name"] for p in available_fleets}
+    fleet_display = [fleet_labels.get(p, os.path.basename(p)) for p in available_fleets]
+
+    _imp_default = next((p for p in available_fleets if "imperial" in os.path.basename(p).lower()),
+                        available_fleets[0] if available_fleets else "")
+    _tau_default = next((p for p in available_fleets if "tau" in os.path.basename(p).lower()),
+                        available_fleets[-1] if available_fleets else "")
+
+    p1_fleet_var = tk.StringVar(value=_imp_default)
+    p2_fleet_var = tk.StringVar(value=_tau_default)
+
+    def _make_fleet_row(parent, label_text, fleet_var):
+        row = tk.Frame(parent)
+        row.pack(fill=tk.X, pady=2)
+        tk.Label(row, text=label_text, font=("Consolas", 9), width=10, anchor=tk.W).pack(side=tk.LEFT)
+        if available_fleets:
+            opt = tk.OptionMenu(row, fleet_var, *available_fleets,
+                                command=lambda _: None)
+            opt.config(font=("Consolas", 8), width=28)
+            opt["menu"].config(font=("Consolas", 8))
+            # Update OptionMenu display to show fleet_name not path
+            for i, path in enumerate(available_fleets):
+                opt["menu"].entryconfig(i, label=fleet_labels.get(path, os.path.basename(path)))
+            opt.pack(side=tk.LEFT, padx=3)
+        else:
+            tk.Label(row, text="No fleet files found in data/fleets/",
+                     font=("Consolas", 8), fg="#cc4444").pack(side=tk.LEFT)
+
+        def _browse(fv=fleet_var):
+            path = filedialog.askopenfilename(
+                parent=dialog, title="Select Fleet File",
+                initialdir="data/fleets",
+                filetypes=[("Fleet JSON", "*.json"), ("All Files", "*")])
+            if path:
+                fv.set(path)
+        tk.Button(row, text="Browse...", font=("Consolas", 8),
+                  command=_browse).pack(side=tk.LEFT, padx=3)
+
+    _make_fleet_row(fleets_frame, "Player 1:", p1_fleet_var)
+    _make_fleet_row(fleets_frame, "Player 2:", p2_fleet_var)
+    tk.Label(fleets_frame,
+             text="Fleet files live in data/fleets/ — copy or create JSON files there to add fleets.",
+             font=("Consolas", 7), fg="#888888", wraplength=480, justify=tk.LEFT).pack(anchor=tk.W)
+
     # Optional rules
     rules_frame = tk.Frame(dialog)
     rules_frame.pack(pady=5, padx=20, fill=tk.X)
@@ -498,9 +570,11 @@ def _show_setup_dialog(root) -> Optional[dict]:
         rules["allow_movement_pass"] = allow_pass_var.get()
         return rules
 
+    def _get_fleets():
+        return {"p1_fleet": p1_fleet_var.get(), "p2_fleet": p2_fleet_var.get()}
+
     # Buttons
     def start_demo():
-        rules = _get_rules()
         result[0] = {
             "mode": "demo",
             "width": float(width_var.get()),
@@ -509,31 +583,32 @@ def _show_setup_dialog(root) -> Optional[dict]:
             "dice_mode": dice_var.get(),
             "terrain": terrain_var.get(),
             "battlezone": int(bz_var.get()),
-            **rules,
+            **_get_rules(),
+            **_get_fleets(),
         }
         dialog.destroy()
 
     def start_blank():
-        rules = _get_rules()
         result[0] = {
             "mode": "blank",
             "width": float(width_var.get()),
             "height": float(height_var.get()),
             "sunward": sunward_var.get(),
             "dice_mode": dice_var.get(),
-            **rules,
+            **_get_rules(),
+            **_get_fleets(),
         }
         dialog.destroy()
 
     def start_editor():
-        rules = _get_rules()
         result[0] = {
             "mode": "editor",
             "width": float(width_var.get()),
             "height": float(height_var.get()),
             "sunward": sunward_var.get(),
             "dice_mode": dice_var.get(),
-            **rules,
+            **_get_rules(),
+            **_get_fleets(),
         }
         dialog.destroy()
 

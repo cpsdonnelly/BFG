@@ -2996,7 +2996,7 @@ class GamePanel:
                               "Shields apply.",
                          font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=5)
 
-                def _lay_mines(w=mw, effective_str=min(mine_str, 4)):
+                def _lay_mines(w=mw, effective_str=mine_str):
                     import random as _rng
                     spd = w.get("mine_speed", 10)
                     for i in range(effective_str):
