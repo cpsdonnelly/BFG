@@ -848,6 +848,12 @@ class GamePanel:
                     self.board.canvas.create_line(
                         gx, gy, ax, ay, fill="#44FF44", width=2, arrow=tk.LAST)
 
+        def _on_dialog_close():
+            self.board.canvas.unbind("<MouseWheel>")
+            self.board.canvas.unbind("<Button-4>")
+            self.board.canvas.unbind("<Button-5>")
+            dialog.destroy()
+
         def _confirm():
             result = validate_movement(
                 ship, commands, order, aaf_bonus,
@@ -925,7 +931,7 @@ class GamePanel:
                     f"heading {result.final_heading:.0f}°"))
             self._append_log(
                 f"{ship.name}: moved {result.total_distance:.1f}cm")
-            dialog.destroy()
+            _on_dialog_close()
             self.board.redraw()
 
         # Confirm / Cancel
@@ -935,7 +941,7 @@ class GamePanel:
                   bg="#336633", fg="white",
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_row, text="Cancel",
-                  command=dialog.destroy,
+                  command=lambda: _on_dialog_close(),
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
 
         # Scroll wheel turning: scroll on the board canvas to add turn commands
@@ -953,12 +959,6 @@ class GamePanel:
         self.board.canvas.bind("<MouseWheel>", _on_scroll)
         self.board.canvas.bind("<Button-4>", _on_scroll)
         self.board.canvas.bind("<Button-5>", _on_scroll)
-
-        def _on_dialog_close():
-            self.board.canvas.unbind("<MouseWheel>")
-            self.board.canvas.unbind("<Button-4>")
-            self.board.canvas.unbind("<Button-5>")
-            dialog.destroy()
 
         dialog.protocol("WM_DELETE_WINDOW", _on_dialog_close)
 
