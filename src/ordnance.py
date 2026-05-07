@@ -142,30 +142,20 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
                           all_ships: List[Ship] = None) -> Dict:
     """
     Resolve bomber attack. D6 attacks per squadron vs lowest armor. Bypasses shields.
-    Turrets cannot fire if already used against torpedoes this phase.
 
-    Turret suppression modes (Task 12):
+    Per XR rules:
+    - Turret reduction uses base turrets ONLY; massed turret bonus does not apply.
+    - Turret reduction always applies, even if turrets fired at torpedoes this phase
+      (the restriction is one-way: craft→blocks torp, but torp does NOT block craft).
+
+    Turret suppression modes:
       XR (default): suppressed_by_fighter=True → exactly 3 attacks, turrets bypassed.
       Remastered:   remastered_fighter_bonus added to D6 roll, capped at remastered_bomber_cap.
     """
     result = {"attacks": 0, "hits": 0, "turret_reduction": 0, "suppressed": False}
 
+    # Base turrets only — massed turret bonus does NOT apply to bomber attack reduction
     turret_reduction = target.effective_turrets
-
-    # Massed turrets: +1 per non-crippled friendly ship in base contact (max +3)
-    if all_ships:
-        bonus = get_massed_turret_bonus(target, all_ships)
-        if bonus > 0:
-            turret_reduction += bonus
-            game_state.add_log(
-                f"  {target.name} massed turrets: +{bonus} "
-                f"(total {turret_reduction})")
-
-    # Check turret restriction: can't use vs craft if already used vs torps
-    turret_blocked = (target.turrets_used_vs == "torp")
-    if turret_blocked:
-        game_state.add_log(f"  {target.name} turrets already used vs torpedoes this phase")
-        turret_reduction = 0
 
     if suppressed_by_fighter:
         # XR mode: fighter suppression gives this bomber exactly 3 attacks, ignoring turrets
@@ -176,10 +166,9 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
             f"  Fighter suppression: {marker.ordnance_type} gets 3 attacks "
             f"(turrets bypassed)")
     else:
-        if not turret_blocked:
-            # Mark turrets as used vs craft (only once per phase)
-            target.turrets_used_vs = "craft"
-            game_state.update_ship(target)
+        # Mark turrets as used vs craft so torpedo defence knows
+        target.turrets_used_vs = "craft"
+        game_state.update_ship(target)
 
         attack_roll = dice.roll_d6(1, f"Bomber attacks on {target.name}")[0]
 
