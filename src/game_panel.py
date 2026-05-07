@@ -248,6 +248,109 @@ class GamePanel:
         self.board.can_drag_ship_fn = can_drag
         self.board.commit_drag_fn = commit_drag
 
+        # M key: auto minimum-move the selected ship without opening the dialog
+        self.root.bind("m", lambda e: self._quick_min_move_selected())
+        self.root.bind("M", lambda e: self._quick_min_move_selected())
+
+    def _quick_min_move_selected(self):
+        """
+        M key: move the currently selected ship its minimum legal distance
+        straight forward, without opening the movement dialog.
+
+        - Normal/CtNH/LockOn/Reload: moves half speed (the minimum required).
+        - Burn Retros: moves half of effective speed (the BR maximum).
+        - All Ahead Full: rolls 4D6 and moves the exact required total.
+        - Invalid if not in movement phase, wrong player, already moved, or
+          the ship is on a special order that blocks straight movement.
+        """
+        from .movement import MoveCommand, validate_movement, execute_movement, resolve_aaf_speed
+        from .terrain_effects import (resolve_asteroid_navigation,
+                                       resolve_warp_rift_navigation,
+                                       resolve_gas_dust_contact)
+
+        if self.gs.current_phase != "movement":
+            return
+
+        ship_id = self.board.selected_ship_id
+        if not ship_id:
+            self.board.status_var.set("M: no ship selected — click a ship first")
+            return
+
+        ship = self.gs.get_ship_by_id(ship_id)
+        if not ship:
+            return
+        if ship.player != self.gs.active_player:
+            self.board.status_var.set(f"M: {ship.name} belongs to the other player")
+            return
+        unmoved_ids = {s.id for s in self.tc.get_unmoved_ships()}
+        if ship.id not in unmoved_ids:
+            self.board.status_var.set(f"M: {ship.name} has already moved this turn")
+            return
+
+        order = ship.special_order
+        base = ship.effective_speed
+        aaf_bonus = 0
+
+        if order == "all_ahead_full":
+            aaf_bonus = resolve_aaf_speed(ship, self.dice)
+            self._append_log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
+            move_dist = float(base + aaf_bonus)
+        elif order == "burn_retros":
+            move_dist = float(base // 2)
+        else:
+            move_dist = float(max(1, base // 2))
+
+        commands = [MoveCommand("forward", move_dist)]
+        result = validate_movement(
+            ship, commands, order, aaf_bonus,
+            self.gs.get_blast_markers(),
+            self.gs.table_width, self.gs.table_height)
+
+        if not result.valid:
+            self.board.status_var.set(
+                f"M: {ship.name} min-move invalid — {result.errors[0]}")
+            return
+
+        execute_movement(ship, result, self.gs)
+
+        # Terrain navigation tests
+        updated = self.gs.get_ship_by_id(ship.id)
+        if updated and not updated.is_disengaged:
+            if "in_asteroid_field" in (updated.special_rules or []):
+                on_aaf = order == "all_ahead_full"
+                nav = resolve_asteroid_navigation(updated, self.dice, self.gs, on_aaf)
+                if not nav["passed"]:
+                    self._append_log(
+                        f"  {updated.name}: asteroid damage {nav['damage']} HP!")
+                    self._check_destruction(updated)
+                updated = self.gs.get_ship_by_id(ship.id)
+                if updated:
+                    updated.special_rules = [r for r in updated.special_rules
+                                             if r != "in_asteroid_field"]
+                    self.gs.update_ship(updated)
+            if updated and "in_warp_rift" in (updated.special_rules or []):
+                resolve_warp_rift_navigation(updated, self.dice, self.gs)
+                updated = self.gs.get_ship_by_id(ship.id)
+                if updated:
+                    updated.special_rules = [r for r in updated.special_rules
+                                             if r != "in_warp_rift"]
+                    self.gs.update_ship(updated)
+            if updated and "in_dust_cloud" in (updated.special_rules or []):
+                resolve_gas_dust_contact(updated, self.dice, self.gs)
+                updated = self.gs.get_ship_by_id(ship.id)
+                if updated:
+                    updated.special_rules = [r for r in updated.special_rules
+                                             if r != "in_dust_cloud"]
+                    self.gs.update_ship(updated)
+
+        self.tc.mark_ship_moved(ship.id)
+        self._append_log(
+            f"{ship.name}: min-move {move_dist:.0f}cm forward "
+            f"to ({result.final_x:.1f}, {result.final_y:.1f})")
+        self.board.status_var.set(
+            f"M: {ship.name} moved {move_dist:.0f}cm forward")
+        self.board.redraw()
+
     # --- Game Flow ---
 
     def _start_game(self):
