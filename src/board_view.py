@@ -10,7 +10,7 @@ from .game_state import GameState
 SHIP_RADII = {
     "battleship": 2.5,   # cm on table, will scale to screen
     "cruiser": 1.6,
-    "escort": 1.2,
+    "escort": 1.6,
     "defense": 1.6,
 }
 
@@ -414,7 +414,7 @@ class BoardView:
             if other.player == enemy_player and not other.is_destroyed:
                 dist = ship.distance_to(other)
                 arc = ship.get_target_arc(other.x, other.y)
-                label = f"→ {other.name}: {dist:.1f}cm ({arc.value})"
+                label = f"{dist:.1f}cm ({arc.value})"
                 self.ruler_lines.append(((ship.x, ship.y), (other.x, other.y), dist, label))
         self.redraw()
         self.status_var.set(f"Showing distances from {ship.name} to all enemies | C to clear")

@@ -733,6 +733,17 @@
               ],
               "torp_speed": 30,
               "torp_type": "standard"
+            },
+            {
+              "name": "Weapons Battery",
+              "type": "weapons_battery",
+              "str": 1,
+              "arcs": [
+                "front",
+                "left",
+                "right"
+              ],
+              "range": 30
             }
           ]
         }

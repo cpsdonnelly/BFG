@@ -423,6 +423,7 @@ class GamePanel:
                 f"M: {ship.name} moved {result.total_distance:.0f}cm")
 
         self._redraw_pending_turn_ghost()
+        self.board.canvas.focus_set()
         self.board.redraw()
 
     # --- Game Flow ---
@@ -435,6 +436,10 @@ class GamePanel:
         self._append_log(f"=== GAME START ===")
         self._append_log(f"Turn 1 - {self.gs.player1_name}")
         self._append_log(f"Movement Phase")
+        self._append_log(
+            "Keys: M=min-move selected  Space=min-move all  "
+            "BackSpace=undo all movement  Scroll=pending turn  Esc=cancel")
+        self.board.canvas.focus_set()
         self.board.redraw()
 
     def _min_move_all_ships(self):
@@ -481,6 +486,7 @@ class GamePanel:
             moved_count += 1
 
         self._append_log(f"Spacebar: min-moved {moved_count} ships")
+        self.board.canvas.focus_set()
         self.board.redraw()
 
     def _undo_all_movement(self):
@@ -491,6 +497,7 @@ class GamePanel:
             self._pending_turn.clear()
             self._append_log("Backspace: all movement undone")
             self.board.status_var.set("All movement undone")
+            self.board.canvas.focus_set()
             self.board.redraw()
 
     def _redraw_pending_turn_ghost(self):
@@ -848,6 +855,10 @@ class GamePanel:
         # Process start-of-movement-phase events
         if self.gs.current_phase == "movement":
             self._process_movement_phase_start()
+            self._append_log(
+                "Keys: M=min-move selected  Space=min-move all  "
+                "BackSpace=undo all  Scroll=pending turn  Esc=cancel")
+            self.board.canvas.focus_set()
 
         # Reset per-ordnance-phase missile movement flags
         if self.gs.current_phase == "ordnance":
@@ -863,9 +874,14 @@ class GamePanel:
 
     def _special_order_dialog(self):
         """Dialog to issue a special order to a ship."""
+        # Include ships that haven't yet been fully committed (M-key staged moves
+        # don't mark a ship as moved, so those ships still appear here).
         unmoved = self.tc.get_unmoved_ships()
         if not unmoved:
-            messagebox.showinfo("No Ships", "All ships have moved")
+            messagebox.showinfo(
+                "No Ships Available",
+                "All active ships have already moved.\n"
+                "Special orders must be issued before a ship moves.")
             return
 
         if self.tc.command_check_failed:
@@ -904,7 +920,7 @@ class GamePanel:
         tk.Label(dialog, text=f"Leadership: {ship.leadership}",
                  font=("Consolas", 9)).pack()
 
-        selected = tk.StringVar()
+        selected = tk.StringVar(value=orders[0][1])  # default to first option
 
         for name, value in orders:
             tk.Radiobutton(dialog, text=name, variable=selected, value=value,
@@ -2980,7 +2996,7 @@ class GamePanel:
                               "Shields apply.",
                          font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=5)
 
-                def _lay_mines(w=mw, effective_str=mine_str):
+                def _lay_mines(w=mw, effective_str=min(mine_str, 4)):
                     import random as _rng
                     spd = w.get("mine_speed", 10)
                     for i in range(effective_str):
@@ -3237,15 +3253,34 @@ class GamePanel:
                     o_type, spd, resil = CRAFT_STATS.get(
                         ct, (OrdnanceType.FIGHTER.value, 30, 0))
 
-                    # CAP only applies to fighter-type craft
+                    # CAP only applies to fighter-type craft; bombers cannot CAP
                     fighter_types = (OrdnanceType.FIGHTER.value,
                                      OrdnanceType.BARRACUDA.value,
                                      OrdnanceType.MANTA.value)
+                    if cap_var.get() and o_type not in fighter_types:
+                        messagebox.showerror(
+                            "Bombers Cannot CAP",
+                            f"Bombers cannot be assigned to Combat Air Patrol.\n"
+                            f"Only fighters may perform CAP.")
+                        return
                     assign_cap = cap_var.get() and o_type in fighter_types
                     protect_id = cap_ship_id_map.get(
                         cap_protect_var.get(), ship.id) if assign_cap else ""
                     protect_pos = cap_ship_pos_map.get(
                         protect_id, (ship.x, ship.y)) if assign_cap else (ship.x, ship.y)
+
+                    # CAP range check: fighter must be able to reach protected ship
+                    if assign_cap and protect_id:
+                        px_ship, py_ship = cap_ship_pos_map.get(protect_id, (ship.x, ship.y))
+                        cap_range = spd  # fighter's movement speed is its max range
+                        dist_to_protect = math.sqrt(
+                            (ship.x - px_ship)**2 + (ship.y - py_ship)**2)
+                        if dist_to_protect > cap_range:
+                            messagebox.showerror(
+                                "CAP Out of Range",
+                                f"Protected ship is {dist_to_protect:.1f}cm away.\n"
+                                f"Fighter speed is {cap_range:.0f}cm — cannot reach.")
+                            return
 
                     for i in range(count):
                         if total_launched >= current_remaining:

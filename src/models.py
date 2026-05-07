@@ -138,7 +138,9 @@ class Ship:
     leadership: int = 7
 
     # Current state
-    hits_remaining: int = 0
+    # None = uninitialized (post_init sets to hits_max). Stored as 0 for
+    # destroyed ships so from_dict never resets it back to hits_max.
+    hits_remaining: Optional[int] = None
     special_order: str = "none"
     moved_this_turn: bool = False
     has_fired: bool = False
@@ -196,7 +198,7 @@ class Ship:
     rerolls_remaining: int = 0
 
     def __post_init__(self):
-        if self.hits_remaining == 0:
+        if self.hits_remaining is None:
             self.hits_remaining = self.hits_max
 
     @property

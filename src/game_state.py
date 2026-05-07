@@ -128,6 +128,7 @@ class GameState:
             "rule_teleport": self.rule_teleport,
             "rule_hit_and_run": self.rule_hit_and_run,
             "rule_turret_suppression_remastered": self.rule_turret_suppression_remastered,
+            "allow_movement_pass": self.allow_movement_pass,
             "timestamp": time.time(),
         }
 

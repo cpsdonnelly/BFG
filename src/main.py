@@ -150,7 +150,7 @@ def create_demo_tau_fleet(gs: GameState):
 
     # Custodian Class Battleship (Flagship)
     custodian = Ship(
-        id="tau_custodian", name="Or'es El'leath",
+        id="tau_custodian", name="O'Shi'ur",
         ship_class="Custodian Class Battleship", faction="tau_kororvesh",
         player=2, ship_type="battleship", base_size="large",
         x=60, y=105, heading=270,
@@ -185,8 +185,8 @@ def create_demo_tau_fleet(gs: GameState):
 
     # Emissary Class Light Cruisers (Bor'kan refit + deflector)
     for i, (eid, name, ld) in enumerate([
-        ("tau_emissary1", "Kor'el Kais's Kir'shas'vre", 8),
-        ("tau_emissary2", "Kor'el Mont'yr's Kir'shas'vre", 6),
+        ("tau_emissary1", "Anukla'esavon", 8),
+        ("tau_emissary2", "Bork'sha", 6),
     ]):
         emissary = Ship(
             id=eid, name=name,
@@ -215,7 +215,7 @@ def create_demo_tau_fleet(gs: GameState):
         gs.add_ship(emissary)
 
     # Wardens (towed by Custodian)
-    for i, name in enumerate(["Kor'vre Shas", "Kor'vre Y'he", "Kor'vre Lar'shi"]):
+    for i, name in enumerate(["Kor'vre Kais", "Kor'vre Y'he", "Kor'vre Lar'shi"]):
         warden = Ship(
             id=f"tau_warden{i+1}", name=name,
             ship_class="Warden Class Gunship", faction="tau_kororvesh",
@@ -236,7 +236,7 @@ def create_demo_tau_fleet(gs: GameState):
 
     # Castellan
     castellan = Ship(
-        id="tau_castellan", name="Kor'vre Or'es",
+        id="tau_castellan", name="Anukla'esavon",
         ship_class="Castellan Class Escort", faction="tau_kororvesh",
         player=2, ship_type="escort", base_size="small",
         x=60, y=98, heading=270,
