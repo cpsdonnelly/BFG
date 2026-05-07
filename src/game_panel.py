@@ -199,6 +199,11 @@ class GamePanel:
             self._log_lines(hulk_logs)
             self.board.redraw()
 
+        # Reset per-turn ordnance flags
+        for i, o_dict in enumerate(self.gs.ordnance):
+            if o_dict.get("resilient_used"):
+                self.gs.ordnance[i] = {**o_dict, "resilient_used": False}
+
     def _resolve_end_phase_interactive(self):
         """Run end phase with interactive repair choices."""
         from .end_phase import (resolve_fire_damage, get_repair_info,

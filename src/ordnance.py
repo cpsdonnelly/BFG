@@ -413,12 +413,21 @@ def resolve_ordnance_interactions(game_state: GameState,
                     logs.append(
                         f"Torpedo salvos collide and detonate!")
 
-    # Remove destroyed ordnance
+    # Remove destroyed ordnance and persist state changes on survivors
+    # (resilient_used flag may have been set on markers that survived)
+    surviving = {m.id: m for m in ordnance if m.id not in to_remove}
     if to_remove:
         game_state.ordnance = [
-            o for o in game_state.ordnance
+            surviving[o["id"]].to_dict() if o["id"] in surviving else o
+            for o in game_state.ordnance
             if o["id"] not in to_remove]
         logs.append(f"  {len(to_remove)} ordnance markers removed")
+    elif any(m.resilient_used for m in ordnance):
+        # No removals but resilient_used flags changed — persist them
+        id_to_marker = {m.id: m for m in ordnance}
+        game_state.ordnance = [
+            id_to_marker[o["id"]].to_dict() if o["id"] in id_to_marker else o
+            for o in game_state.ordnance]
 
     return logs
 
