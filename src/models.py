@@ -338,6 +338,7 @@ class OrdnanceMarker:
     can_turn: bool = False
     turn_angle: int = 0
     special_rules: List[str] = field(default_factory=list)
+    moved_this_phase: bool = False  # Tau missiles: True once moved this ordnance phase
 
     def to_dict(self):
         return asdict(self)

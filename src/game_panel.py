@@ -635,6 +635,12 @@ class GamePanel:
         if self.gs.current_phase == "movement":
             self._process_movement_phase_start()
 
+        # Reset per-ordnance-phase missile movement flags
+        if self.gs.current_phase == "ordnance":
+            for i, o_dict in enumerate(self.gs.ordnance):
+                if o_dict.get("moved_this_phase"):
+                    self.gs.ordnance[i] = {**o_dict, "moved_this_phase": False}
+
         self._update_phase_display()
         self._append_log(f"--- {self.gs.current_phase.upper()} PHASE ---")
         self.board.redraw()
@@ -2343,12 +2349,17 @@ class GamePanel:
                         break
 
             elif marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
-                # Mine fields detonate against any ship in contact (friend or foe)
+                # Mine fields detonate against any ship in contact.
+                # Friendly fire is safe on the turn the mine was laid,
+                # but is a hazard from the following turn onward.
                 for s in ships:
                     if s.is_destroyed or s.is_disengaged:
                         continue
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
                         continue
+                    if (s.player == marker.owner_player
+                            and self.gs.turn_number == marker.launched_turn):
+                        continue  # safe on launch turn
                     dist = math.sqrt(
                         (marker.x - s.x)**2 + (marker.y - s.y)**2)
                     if dist <= s.base_radius + 1.5:
