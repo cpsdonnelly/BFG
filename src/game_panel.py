@@ -34,6 +34,10 @@ class GamePanel:
         # Make dice use our root for dialogs
         self.dice.root = root
 
+        # Transient UI state — not persisted
+        self._pending_turn: dict = {}     # ship_id → pending net turn degrees (+ = left)
+        self._board_scroll_fn = None      # stored board scroll handler for dialog handoff
+
         self._build_ui()
         self._wire_drag_callbacks()
 
@@ -248,9 +252,15 @@ class GamePanel:
         self.board.can_drag_ship_fn = can_drag
         self.board.commit_drag_fn = commit_drag
 
-        # M key: open movement dialog pre-populated with min-move for selected ship
+        # M key: execute min-move for selected ship (staged, no dialog)
         self.root.bind("m", lambda e: self._quick_min_move_selected())
         self.root.bind("M", lambda e: self._quick_min_move_selected())
+
+        # Spacebar: min-move ALL unmoved ships for active player
+        self.root.bind("<space>", lambda e: self._min_move_all_ships())
+
+        # Backspace: undo all movement this turn
+        self.root.bind("<BackSpace>", lambda e: self._undo_all_movement())
 
         # Ordnance launch drag callbacks
         def can_ord_drag(ship):
@@ -269,17 +279,48 @@ class GamePanel:
         self.board.can_ord_drag_fn = can_ord_drag
         self.board.commit_ord_drag_fn = commit_ord_drag
 
+        # Board-level scroll wheel: add pending turn to selected ship
+        def _on_board_scroll(event):
+            if self.gs.current_phase != "movement":
+                return
+            ship_id = self.board.selected_ship_id
+            if not ship_id:
+                return
+            ship = self.gs.get_ship_by_id(ship_id)
+            if not ship or ship.player != self.gs.active_player:
+                return
+            unmoved_ids = {s.id for s in self.tc.get_unmoved_ships()}
+            if ship_id not in unmoved_ids:
+                return
+            if event.num == 4 or (hasattr(event, "delta") and event.delta > 0):
+                delta = 5.0
+            elif event.num == 5 or (hasattr(event, "delta") and event.delta < 0):
+                delta = -5.0
+            else:
+                return
+            current = self._pending_turn.get(ship_id, 0.0)
+            new_val = max(-float(ship.turn_angle),
+                          min(float(ship.turn_angle), current + delta))
+            self._pending_turn[ship_id] = new_val
+            self.board.redraw()
+            self._redraw_pending_turn_ghost()
+
+        self.board.canvas.bind("<MouseWheel>", _on_board_scroll)
+        self.board.canvas.bind("<Button-4>", _on_board_scroll)
+        self.board.canvas.bind("<Button-5>", _on_board_scroll)
+        self._board_scroll_fn = _on_board_scroll
+
     def _quick_min_move_selected(self):
         """
-        M key: open the movement dialog for the selected ship, pre-populated
-        with the minimum legal move straight forward. The player can then add
-        more commands before confirming.
+        M key: execute the selected ship's minimum move immediately (no dialog),
+        including any pending scroll-wheel turn, and update staged movement tracking.
+        The ship is NOT marked fully moved — the player can continue giving orders.
 
-        - Normal/CtNH/LockOn/Reload: pre-fills half speed forward.
-        - Burn Retros: pre-fills half of effective speed forward.
-        - All Ahead Full: rolls 4D6, pre-fills exact required total.
+        If there is no remaining movement budget after the min-move (e.g. AAF),
+        the ship is marked fully moved automatically.
         """
-        from .movement import MoveCommand, resolve_aaf_speed
+        from .movement import (MoveCommand, validate_movement, execute_movement,
+                               resolve_aaf_speed)
 
         if self.gs.current_phase != "movement":
             return
@@ -313,9 +354,76 @@ class GamePanel:
         else:
             move_dist = float(max(1, base // 2))
 
-        self._move_ship_dialog(
-            preselected_ship=ship,
-            initial_commands=[MoveCommand("forward", move_dist)])
+        # Remaining budget after any prior staged movement
+        already_moved = ship.distance_moved_this_turn
+        remaining_budget = max(0.0, (base + aaf_bonus if order == "all_ahead_full"
+                                     else (base // 2 if order == "burn_retros"
+                                           else base)) - already_moved)
+        if remaining_budget < 0.5:
+            self.board.status_var.set(
+                f"M: {ship.name} has no remaining movement budget")
+            return
+        move_dist = min(move_dist, remaining_budget)
+
+        # Build commands: forward then any pending scroll-wheel turn
+        commands = [MoveCommand("forward", move_dist)]
+        pending_deg = self._pending_turn.pop(ship_id, 0.0)
+        if abs(pending_deg) > 0.1 and ship.turns_used_this_turn < 1:
+            action = "turn_left" if pending_deg > 0 else "turn_right"
+            commands.append(MoveCommand(action, abs(pending_deg)))
+
+        result = validate_movement(
+            ship, commands, order, aaf_bonus,
+            self.gs.get_blast_markers(),
+            self.gs.table_width, self.gs.table_height,
+            turns_already_used=ship.turns_used_this_turn)
+
+        if not result.valid:
+            # Try without the turn if the combined command fails
+            if len(commands) > 1:
+                commands = [MoveCommand("forward", move_dist)]
+                result = validate_movement(
+                    ship, commands, order, aaf_bonus,
+                    self.gs.get_blast_markers(),
+                    self.gs.table_width, self.gs.table_height,
+                    turns_already_used=ship.turns_used_this_turn)
+            if not result.valid:
+                self.board.status_var.set(
+                    f"M: {ship.name} invalid — {result.errors[0]}")
+                return
+
+        execute_movement(ship, result, self.gs)
+
+        # Update staged tracking fields on the now-moved ship
+        ship = self.gs.get_ship_by_id(ship_id)
+        if ship:
+            ship.distance_moved_this_turn += result.total_distance
+            ship.turns_used_this_turn += result.turns_used
+            left_deg = sum(c.value for c in commands if c.action == "turn_left")
+            right_deg = sum(c.value for c in commands if c.action == "turn_right")
+            ship.net_rotation_this_turn += (left_deg - right_deg)
+            self.gs.update_ship(ship)
+
+            # If no budget remains, mark fully moved
+            max_budget = (base + aaf_bonus if order == "all_ahead_full"
+                          else (base // 2 if order == "burn_retros" else base))
+            if ship.distance_moved_this_turn >= max_budget - 0.1:
+                self.tc.mark_ship_moved(ship_id)
+                self._append_log(
+                    f"{ship.name}: M-move complete {ship.distance_moved_this_turn:.0f}cm"
+                    + (f" ↶{left_deg:.0f}°" if left_deg > 0.1 else "")
+                    + (f" ↷{right_deg:.0f}°" if right_deg > 0.1 else ""))
+            else:
+                self._append_log(
+                    f"{ship.name}: min-move {result.total_distance:.0f}cm"
+                    + (f" ↶{left_deg:.0f}°" if left_deg > 0.1 else "")
+                    + (f" ↷{right_deg:.0f}°" if right_deg > 0.1 else "")
+                    + f" — {max_budget - ship.distance_moved_this_turn:.0f}cm remaining")
+            self.board.status_var.set(
+                f"M: {ship.name} moved {result.total_distance:.0f}cm")
+
+        self._redraw_pending_turn_ghost()
+        self.board.redraw()
 
     # --- Game Flow ---
 
@@ -329,6 +437,107 @@ class GamePanel:
         self._append_log(f"Movement Phase")
         self.board.redraw()
 
+    def _min_move_all_ships(self):
+        """Spacebar: execute minimum move for every unmoved ship of the active player."""
+        from .movement import MoveCommand, validate_movement, execute_movement, resolve_aaf_speed
+
+        if self.gs.current_phase != "movement":
+            return
+        unmoved = [s for s in self.tc.get_unmoved_ships()
+                   if s.player == self.gs.active_player]
+        if not unmoved:
+            return
+
+        moved_count = 0
+        for ship in unmoved:
+            order = ship.special_order
+            base = ship.effective_speed
+            aaf_bonus = 0
+            if order == "all_ahead_full":
+                aaf_bonus = resolve_aaf_speed(ship, self.dice)
+                move_dist = float(base + aaf_bonus)
+            elif order == "burn_retros":
+                move_dist = float(base // 2)
+            else:
+                move_dist = float(max(1, base // 2))
+
+            commands = [MoveCommand("forward", move_dist)]
+            result = validate_movement(
+                ship, commands, order, aaf_bonus,
+                self.gs.get_blast_markers(),
+                self.gs.table_width, self.gs.table_height)
+            if not result.valid:
+                self._append_log(
+                    f"  {ship.name}: min-move skipped — {result.errors[0]}")
+                continue
+
+            execute_movement(ship, result, self.gs)
+            self.tc.mark_ship_moved(ship.id)
+            # Update staged fields so dialog is consistent if opened later
+            updated = self.gs.get_ship_by_id(ship.id)
+            if updated:
+                updated.distance_moved_this_turn += result.total_distance
+                self.gs.update_ship(updated)
+            moved_count += 1
+
+        self._append_log(f"Spacebar: min-moved {moved_count} ships")
+        self.board.redraw()
+
+    def _undo_all_movement(self):
+        """Backspace: undo all ship movement this turn, restoring phase-start positions."""
+        if self.gs.current_phase != "movement":
+            return
+        if self.tc.undo_to_phase_start():
+            self._pending_turn.clear()
+            self._append_log("Backspace: all movement undone")
+            self.board.status_var.set("All movement undone")
+            self.board.redraw()
+
+    def _redraw_pending_turn_ghost(self):
+        """Draw a ghost on the board canvas showing pending scroll-wheel turn result."""
+        ship_id = self.board.selected_ship_id
+        if not ship_id:
+            return
+        pending = self._pending_turn.get(ship_id, 0.0)
+        ship = self.gs.get_ship_by_id(ship_id)
+        if not ship or abs(pending) < 0.1:
+            return
+
+        from .movement import get_effective_speed, SpecialOrder
+        order = ship.special_order
+        _, max_spd = get_effective_speed(ship, order)
+        remaining_budget = max(0.0, max_spd - ship.distance_moved_this_turn)
+        if order == "all_ahead_full":
+            move_dist = remaining_budget
+        elif order == "burn_retros":
+            move_dist = min(float(max_spd), remaining_budget)
+        else:
+            move_dist = min(float(max(1, ship.effective_speed // 2)), remaining_budget)
+
+        # Compute end position: forward then turn
+        import math as _math
+        hdg_rad = _math.radians(ship.heading)
+        mid_x = ship.x + move_dist * _math.cos(hdg_rad)
+        mid_y = ship.y + move_dist * _math.sin(hdg_rad)
+        final_heading = (ship.heading + pending) % 360
+        final_hdg_rad = _math.radians(final_heading)
+        arrow_len = self.board.cm_to_pixels(8)
+
+        sx0, sy0 = self.board.cm_to_screen(ship.x, ship.y)
+        sx1, sy1 = self.board.cm_to_screen(mid_x, mid_y)
+        ax = sx1 + arrow_len * _math.cos(final_hdg_rad)
+        ay = sy1 - arrow_len * _math.sin(final_hdg_rad)
+
+        self.board.canvas.create_line(
+            sx0, sy0, sx1, sy1, fill="#FFAA00", width=2, dash=(5, 3))
+        self.board.canvas.create_line(
+            sx1, sy1, ax, ay, fill="#FFAA00", width=2, arrow=tk.LAST)
+
+        dir_str = f"↶{pending:.0f}°" if pending > 0 else f"↷{abs(pending):.0f}°"
+        self.board.status_var.set(
+            f"{ship.name}: pending {dir_str} after {move_dist:.0f}cm | "
+            f"M to execute | Esc to clear")
+
     def _process_movement_phase_start(self):
         """Process things that happen at the start of each movement phase."""
         from .end_phase import resolve_hulk_drift
@@ -341,6 +550,21 @@ class GamePanel:
         for i, o_dict in enumerate(self.gs.ordnance):
             if o_dict.get("resilient_used"):
                 self.gs.ordnance[i] = {**o_dict, "resilient_used": False}
+
+        # Reset staged movement tracking on all ships
+        for s_dict in self.gs.ships:
+            if (s_dict.get("distance_moved_this_turn", 0) != 0
+                    or s_dict.get("turns_used_this_turn", 0) != 0
+                    or s_dict.get("net_rotation_this_turn", 0) != 0):
+                for i, sd in enumerate(self.gs.ships):
+                    if sd["id"] == s_dict["id"]:
+                        self.gs.ships[i]["distance_moved_this_turn"] = 0.0
+                        self.gs.ships[i]["turns_used_this_turn"] = 0
+                        self.gs.ships[i]["net_rotation_this_turn"] = 0.0
+                        break
+
+        # Clear any pending scroll-wheel turns
+        self._pending_turn.clear()
 
     def _resolve_end_phase_interactive(self):
         """Run end phase with interactive repair choices."""
@@ -552,21 +776,36 @@ class GamePanel:
     def _end_phase(self):
         phase = self.gs.current_phase
 
-        # Movement phase: BLOCK if ships haven't moved (with override option)
+        # Movement phase: enforce minimum move obligation
         if phase == "movement":
             unmoved = self.tc.get_unmoved_ships()
-            unmoved = [s for s in unmoved if not s.is_destroyed]
-            if unmoved:
-                names = "\n  ".join(s.name for s in unmoved[:8])
-                override = messagebox.askyesno(
-                    "Ships Haven't Moved",
-                    f"These ships haven't moved:\n  {names}\n\n"
-                    f"All ships should move before ending movement.\n"
-                    f"Use Burn Retros to remain stationary.\n\n"
-                    f"OVERRIDE and end phase anyway?",
-                    icon="warning")
-                if not override:
+            # Burn Retros ships are exempt (their minimum speed is 0)
+            unmoved_obligated = [
+                s for s in unmoved
+                if not s.is_destroyed
+                and s.special_order != SpecialOrder.BURN_RETROS.value
+            ]
+            if unmoved_obligated:
+                names = "\n  ".join(s.name for s in unmoved_obligated[:8])
+                if not self.gs.allow_movement_pass:
+                    # Strict mode: hard block, no override
+                    messagebox.showerror(
+                        "Ships Must Move",
+                        f"These ships have not moved:\n  {names}\n\n"
+                        f"All ships must move before ending the movement phase.\n"
+                        f"Use Burn Retros to remain stationary.")
                     return
+                else:
+                    # Permissive mode: warn but allow override
+                    override = messagebox.askyesno(
+                        "Ships Haven't Moved",
+                        f"These ships haven't moved:\n  {names}\n\n"
+                        f"All ships should move before ending movement.\n"
+                        f"Use Burn Retros to remain stationary.\n\n"
+                        f"OVERRIDE and end phase anyway?",
+                        icon="warning")
+                    if not override:
+                        return
 
         # Run ordnance phase movement if we're ending ordnance phase
         if phase == "ordnance":
@@ -775,18 +1014,31 @@ class GamePanel:
                 f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
 
         base_speed = ship.effective_speed
+        already_moved = ship.distance_moved_this_turn
         if order == SpecialOrder.ALL_AHEAD_FULL.value:
-            max_speed = base_speed + aaf_bonus
-            min_speed = max_speed  # must move exact
-            speed_text = f"Speed: {max_speed}cm (AAF: {base_speed}+{aaf_bonus}) MUST MOVE ALL"
+            full_budget = base_speed + aaf_bonus
+            max_speed = max(0.0, full_budget - already_moved)
+            min_speed = max_speed  # must move exact remaining
+            speed_text = (f"Speed: {max_speed:.0f}cm remaining "
+                          f"(AAF: {base_speed}+{aaf_bonus}, moved {already_moved:.0f}cm)")
         elif order == SpecialOrder.BURN_RETROS.value:
-            max_speed = base_speed // 2
+            max_speed = max(0.0, base_speed // 2 - already_moved)
             min_speed = 0
-            speed_text = f"Speed: 0-{max_speed}cm (Burn Retros)"
+            speed_text = f"Speed: 0-{max_speed:.0f}cm (Burn Retros, moved {already_moved:.0f}cm)"
         else:
-            max_speed = base_speed
-            min_speed = max(1, base_speed // 2)
-            speed_text = f"Speed: {min_speed}-{max_speed}cm"
+            max_speed = max(0.0, base_speed - already_moved)
+            raw_min = max(1, base_speed // 2)
+            min_speed = max(0.0, raw_min - already_moved)
+            speed_text = (f"Speed: {min_speed:.0f}-{max_speed:.0f}cm"
+                          + (f" (moved {already_moved:.0f}cm)" if already_moved > 0 else ""))
+
+        # Bail out early if no movement budget remains
+        if max_speed < 0.5 and order != SpecialOrder.BURN_RETROS.value:
+            messagebox.showinfo(
+                "No Budget",
+                f"{ship.name} has already moved {already_moved:.0f}cm — "
+                f"no remaining movement budget.")
+            return
 
         # Crit warnings
         crit_warnings = []
@@ -821,11 +1073,16 @@ class GamePanel:
                                     font=("Consolas", 10, "bold"), fg="#44CC44")
         remaining_label.pack()
 
-        # Turn stats line
+        # Turn stats line — account for turns/rotation already used via M key
         from .movement import get_max_turns
         _max_turns = get_max_turns(order, ship)
+        _turns_already = ship.turns_used_this_turn
+        _net_rot_already = ship.net_rotation_this_turn
+        _net_init_str = (f"+{_net_rot_already:.0f}°" if _net_rot_already >= 0
+                         else f"{_net_rot_already:.0f}°")
         turn_stats_var = tk.StringVar(
-            value=f"Turns: 0/{_max_turns} used | Net: 0° | Remaining angle: {ship.turn_angle}°")
+            value=(f"Turns: {_turns_already}/{_max_turns} used | "
+                   f"Net: {_net_init_str} | Remaining angle: {ship.turn_angle}°"))
         turn_stats_label = tk.Label(meter_frame, textvariable=turn_stats_var,
                                      font=("Consolas", 9), fg="#AAAAFF")
         turn_stats_label.pack()
@@ -966,7 +1223,8 @@ class GamePanel:
             remaining_var.set(f"Remaining: {max_speed:.0f}cm / {max_speed:.0f}cm")
             remaining_label.config(fg="#44CC44")
             turn_stats_var.set(
-                f"Turns: 0/{_max_turns} used | Net: 0° | Remaining angle: {ship.turn_angle}°")
+                f"Turns: {_turns_already}/{_max_turns} used | "
+                f"Net: {_net_init_str} | Remaining angle: {ship.turn_angle}°")
             turn_stats_label.config(fg="#AAAAFF")
             preview_var.set("Add movement commands above")
             self.board.redraw()
@@ -975,7 +1233,8 @@ class GamePanel:
             result = validate_movement(
                 ship, commands, order, aaf_bonus,
                 self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height)
+                self.gs.table_width, self.gs.table_height,
+                turns_already_used=_turns_already)
 
             # Update remaining distance
             used = result.total_distance
@@ -986,20 +1245,21 @@ class GamePanel:
             else:
                 remaining_label.config(fg="#44CC44")
 
-            # Update turn stats: net heading change and counts
+            # Update turn stats: net heading change and counts (cumulative with staged)
             left_deg = sum(c.value for c in commands if c.action == "turn_left")
             right_deg = sum(c.value for c in commands if c.action == "turn_right")
-            net_deg = left_deg - right_deg  # positive = net anticlockwise
-            turns_count = sum(1 for c in commands
-                              if c.action in ("turn_left", "turn_right"))
+            net_deg_dialog = left_deg - right_deg
+            net_deg_total = _net_rot_already + net_deg_dialog
+            turns_count_dialog = result.turns_used
+            turns_total = _turns_already + turns_count_dialog
             angle_remaining = max(0.0, ship.turn_angle - max(left_deg, right_deg))
-            net_str = f"+{net_deg:.0f}°" if net_deg > 0 else f"{net_deg:.0f}°"
+            net_str = f"+{net_deg_total:.0f}°" if net_deg_total > 0 else f"{net_deg_total:.0f}°"
             turn_stats_var.set(
-                f"Turns: {turns_count}/{_max_turns} used | "
+                f"Turns: {turns_total}/{_max_turns} used | "
                 f"Net: {net_str} | "
                 f"Remaining angle: {angle_remaining:.0f}°")
             turn_stats_label.config(
-                fg="#FF6644" if turns_count > _max_turns else "#AAAAFF")
+                fg="#FF6644" if turns_total > _max_turns else "#AAAAFF")
 
             if result.valid:
                 preview_var.set(
@@ -1039,13 +1299,18 @@ class GamePanel:
             self.board.canvas.unbind("<MouseWheel>")
             self.board.canvas.unbind("<Button-4>")
             self.board.canvas.unbind("<Button-5>")
+            if self._board_scroll_fn:
+                self.board.canvas.bind("<MouseWheel>", self._board_scroll_fn)
+                self.board.canvas.bind("<Button-4>", self._board_scroll_fn)
+                self.board.canvas.bind("<Button-5>", self._board_scroll_fn)
             dialog.destroy()
 
         def _confirm():
             result = validate_movement(
                 ship, commands, order, aaf_bonus,
                 self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height)
+                self.gs.table_width, self.gs.table_height,
+                turns_already_used=_turns_already)
             if not result.valid:
                 messagebox.showerror("Invalid Movement",
                                      "\n".join(result.errors))
@@ -1099,6 +1364,18 @@ class GamePanel:
                         updated_ship.special_rules = sr
                         self.gs.update_ship(updated_ship)
 
+            # Update staged movement tracking fields before marking fully moved
+            final_ship = self.gs.get_ship_by_id(ship.id)
+            if final_ship:
+                final_ship.distance_moved_this_turn = (
+                    already_moved + result.total_distance)
+                final_ship.turns_used_this_turn = (
+                    _turns_already + result.turns_used)
+                dialog_net = (
+                    sum(c.value for c in commands if c.action == "turn_left")
+                    - sum(c.value for c in commands if c.action == "turn_right"))
+                final_ship.net_rotation_this_turn = _net_rot_already + dialog_net
+                self.gs.update_ship(final_ship)
             self.tc.mark_ship_moved(ship.id)
             self.tc.record_action(
                 "move_ship", ship.id,

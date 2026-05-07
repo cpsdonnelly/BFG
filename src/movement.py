@@ -108,7 +108,8 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
 def validate_movement(ship: Ship, commands: List[MoveCommand],
                       special_order: str, aaf_bonus: int = 0,
                       blast_markers: List[BlastMarker] = None,
-                      table_width: float = 120, table_height: float = 120) -> MovementResult:
+                      table_width: float = 120, table_height: float = 120,
+                      turns_already_used: int = 0) -> MovementResult:
     """
     Validate a sequence of movement commands for a ship.
     Returns a MovementResult with path, errors, warnings.
@@ -140,7 +141,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     # Track state
     distance_moved = 0.0
     distance_since_last_turn = 0.0
-    turns_made = 0
+    turns_made = 0          # turns committed in this command sequence
     # Net signed rotation for current turn action (positive = anticlockwise/left)
     net_turn_degrees = 0.0
     in_a_turn = False
@@ -190,8 +191,8 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
             signed = turn_degrees if cmd.action == "turn_left" else -turn_degrees
 
             if not in_a_turn:
-                # Starting a new turn action
-                if turns_made >= max_turns:
+                # Starting a new turn action (account for turns used in prior staged moves)
+                if turns_made + turns_already_used >= max_turns:
                     if max_turns == 0:
                         # Determine why turns are blocked
                         has_engine_crit = any(
@@ -207,11 +208,13 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
                             reason = special_order
                         result.add_error(f"No turns allowed: {reason}")
                     else:
-                        result.add_error(f"Already used {turns_made}/{max_turns} turns")
+                        total_used = turns_made + turns_already_used
+                        result.add_error(
+                            f"Already used {total_used}/{max_turns} turns")
                     continue
 
-                # Check minimum distance before first turn
-                if turns_made == 0 and distance_since_last_turn < min_turn_dist:
+                # Check minimum distance before first turn (skip if already turned before)
+                if turns_made == 0 and turns_already_used == 0 and distance_since_last_turn < min_turn_dist:
                     result.add_error(
                         f"Must move {min_turn_dist}cm before turning "
                         f"(only moved {distance_since_last_turn:.1f}cm). "

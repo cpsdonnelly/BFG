@@ -259,7 +259,7 @@ def _apply_rules(gs, setup):
     """Apply optional rule settings from setup dict to GameState."""
     for key in ("rule_fighting_sunward", "rule_solar_flares", "rule_radiation_bursts",
                  "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
-                 "rule_turret_suppression_remastered"):
+                 "rule_turret_suppression_remastered", "allow_movement_pass"):
         if key in setup:
             setattr(gs, key, setup[key])
 
@@ -479,8 +479,24 @@ def _show_setup_dialog(root) -> Optional[dict]:
         tk.Checkbutton(rules_frame, text=label, variable=var,
                        font=("Consolas", 8)).pack(anchor=tk.W)
 
+    # Movement enforcement setting
+    movement_frame = tk.Frame(dialog)
+    movement_frame.pack(pady=5, padx=20, fill=tk.X)
+    tk.Label(movement_frame, text="Movement Enforcement:",
+             font=("Consolas", 9, "bold")).pack(anchor=tk.W)
+    allow_pass_var = tk.BooleanVar(value=False)
+    tk.Checkbutton(movement_frame,
+                   text="Allow movement pass (players may skip moving ships without penalty)",
+                   variable=allow_pass_var,
+                   font=("Consolas", 8)).pack(anchor=tk.W)
+    tk.Label(movement_frame,
+             text="Default OFF: ending the movement phase with unmoved ships is blocked.",
+             font=("Consolas", 7), fg="#888888").pack(anchor=tk.W)
+
     def _get_rules():
-        return {f"rule_{k}": v.get() for k, v in rule_vars.items()}
+        rules = {f"rule_{k}": v.get() for k, v in rule_vars.items()}
+        rules["allow_movement_pass"] = allow_pass_var.get()
+        return rules
 
     # Buttons
     def start_demo():

@@ -158,6 +158,11 @@ class Ship:
     turrets_used_vs: str = ""  # "craft" or "torp" - turrets can only fire at one type per phase
     brace_failed_vs: List[str] = field(default_factory=list)  # ship IDs that brace failed against
 
+    # Staged movement tracking (reset at movement phase start)
+    distance_moved_this_turn: float = 0.0   # cm already moved this phase
+    turns_used_this_turn: int = 0           # turns already consumed this phase
+    net_rotation_this_turn: float = 0.0     # net signed rotation (+ = anticlockwise)
+
     # Weapons fired tracking
     # Dict of {weapon_index: remaining_strength} for weapons partially or fully fired
     # If a weapon index is not in this dict, it hasn't been fired at all

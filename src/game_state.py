@@ -32,6 +32,7 @@ class GameState:
     # Settings
     dice_mode: str = "mixed"  # "manual", "auto", "mixed"
     points_limit: int = 800
+    allow_movement_pass: bool = False  # False = strict: must move all ships; True = can skip
 
     # Optional rules (each independently togglable)
     rule_fighting_sunward: bool = False
