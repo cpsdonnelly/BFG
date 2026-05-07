@@ -1737,6 +1737,35 @@ class GamePanel:
         tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
 
+    def _get_player_bay_capacity(self, player: int) -> int:
+        """Total launch bay strength across all non-destroyed, non-disengaged ships for player."""
+        total = 0
+        for s_dict in self.gs.ships:
+            if s_dict["player"] != player:
+                continue
+            ship = Ship.from_dict(s_dict)
+            if ship.is_destroyed or ship.is_disengaged:
+                continue
+            for w in ship.weapons:
+                if w.get("weapon_type") == "launch_bay":
+                    total += w.get("strength", 0)
+        return total
+
+    def _count_active_craft(self, player: int) -> int:
+        """Count attack craft markers currently on the board for player.
+        Mines are excluded — they behave like torpedoes, not attack craft."""
+        craft_types = {
+            OrdnanceType.FIGHTER.value,
+            OrdnanceType.BOMBER.value,
+            OrdnanceType.MANTA.value,
+            OrdnanceType.BARRACUDA.value,
+            OrdnanceType.ASSAULT_BOAT.value,
+            OrdnanceType.TORPEDO_BOMBER.value,
+        }
+        return sum(1 for o in self.gs.ordnance
+                   if o.get("owner_player") == player
+                   and o.get("ordnance_type") in craft_types)
+
     def _update_cap_positions(self):
         """Sync CAP fighters to their parent ship's current position."""
         ship_pos = {s["id"]: (s["x"], s["y"]) for s in self.gs.ships}
@@ -1754,8 +1783,15 @@ class GamePanel:
         Resolve CAP fighter intercepts for incoming ordnance targeting ship.
         Returns True if the marker was destroyed by CAP (skip the ship attack).
         Removes destroyed CAP fighters from gs.ordnance immediately.
+
+        CAP fighters never intercept friendly ordnance — only enemy torpedoes
+        and enemy mines.
         """
         from .ordnance import resolve_fighter_intercept, is_fighter_type
+
+        # Friendly ordnance is never intercepted by friendly CAP
+        if marker.owner_player == ship.player:
+            return False
 
         cap_to_remove = []
         for o_dict in list(self.gs.ordnance):
@@ -2252,9 +2288,29 @@ class GamePanel:
 
         # --- ATTACK CRAFT SECTION ---
         if bay_weapons:
+            # Fleet-wide cap check before building the UI
+            fleet_bay_cap = self._get_player_bay_capacity(ship.player)
+            active_craft = self._count_active_craft(ship.player)
+            fleet_remaining = max(0, fleet_bay_cap - active_craft)
+
             bay_frame = tk.LabelFrame(notebook_frame, text="Attack Craft",
                                        font=("Consolas", 9, "bold"))
             bay_frame.pack(fill=tk.X, pady=3)
+
+            # Fleet capacity status line
+            cap_color = "#FF4444" if fleet_remaining == 0 else (
+                "#FFAA00" if fleet_remaining < fleet_bay_cap // 2 else "#44AA44")
+            tk.Label(bay_frame,
+                     text=f"Fleet capacity: {fleet_bay_cap} bays total | "
+                          f"{active_craft} active | {fleet_remaining} slots free",
+                     font=("Consolas", 8), fg=cap_color).pack(anchor=tk.W, padx=5)
+
+            if fleet_remaining == 0:
+                tk.Label(bay_frame,
+                         text="All fleet launch bay slots are occupied. "
+                              "Attack craft must be destroyed or return before more can launch.",
+                         font=("Consolas", 7), fg="#FF4444",
+                         wraplength=460, justify=tk.LEFT).pack(anchor=tk.W, padx=5)
 
             # Combine all bays on this ship
             total_bays = sum(w["strength"] for w in bay_weapons)
@@ -2266,15 +2322,19 @@ class GamePanel:
             if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
                 total_bays = (total_bays + 1) // 2
                 bay_halve_reasons.append("braced")
+            # Cap by remaining fleet capacity
+            total_bays = min(total_bays, fleet_remaining)
 
             available_types = set()
             for w in bay_weapons:
                 for ct in w.get("craft_types", w.get("craft", [])):
                     available_types.add(ct)
 
-            bay_cap_label = f"Total launch capacity: {total_bays} squadrons"
+            bay_cap_label = f"This ship can launch: {total_bays} squadrons"
             if bay_halve_reasons:
                 bay_cap_label += f" [{', '.join(bay_halve_reasons)}]"
+            if fleet_remaining < sum(w["strength"] for w in bay_weapons):
+                bay_cap_label += f" (fleet cap limits to {total_bays})"
             tk.Label(bay_frame,
                      text=bay_cap_label,
                      font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
@@ -2388,6 +2448,18 @@ class GamePanel:
                     messagebox.showerror("Error", "Invalid heading")
                     return
 
+                # Re-check fleet cap at launch time (may have changed)
+                current_remaining = max(
+                    0, self._get_player_bay_capacity(ship.player)
+                       - self._count_active_craft(ship.player))
+                if current_remaining == 0:
+                    messagebox.showwarning(
+                        "Fleet At Capacity",
+                        "All fleet launch bay slots are occupied.\n"
+                        "Existing attack craft must be destroyed or complete "
+                        "their mission before more can be launched.")
+                    return
+
                 total_launched = 0
                 CRAFT_STATS = {
                     "manta": (OrdnanceType.MANTA.value, 20, 4),
@@ -2419,6 +2491,8 @@ class GamePanel:
                         protect_id, (ship.x, ship.y)) if assign_cap else (ship.x, ship.y)
 
                     for i in range(count):
+                        if total_launched >= current_remaining:
+                            break  # fleet cap reached mid-launch
                         px = protect_pos[0] + (i - count / 2) * 1.5
                         py = protect_pos[1]
                         marker = OrdnanceMarker(
