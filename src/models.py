@@ -40,6 +40,7 @@ class WeaponType(str, Enum):
     TORPEDO = "torpedo"
     LAUNCH_BAY = "launch_bay"
     GRAVITIC_LAUNCHER = "gravitic_launcher"
+    MINE_LAUNCHER = "mine_launcher"
 
 
 class Arc(str, Enum):
@@ -58,6 +59,7 @@ class OrdnanceType(str, Enum):
     TORPEDO_BOMBER = "torpedo_bomber"
     MANTA = "manta"           # Tau: resilient fighter+bomber
     BARRACUDA = "barracuda"   # Tau: fighter
+    MINE_FIELD = "mine_field" # Static hazard; detonates on ship contact
 
 
 class PhenomenonType(str, Enum):

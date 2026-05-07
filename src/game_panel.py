@@ -1803,7 +1803,8 @@ class GamePanel:
         ordnance-vs-ordnance interactions, then ship contacts."""
         from .ordnance import (move_ordnance, degrade_tau_missiles,
                                 check_torpedo_contact, resolve_torpedo_attack,
-                                resolve_bomber_attack, check_ordnance_vs_blast,
+                                resolve_bomber_attack, resolve_mine_contact,
+                                check_ordnance_vs_blast,
                                 resolve_ordnance_interactions)
 
         self._append_log("--- Ordnance Movement ---")
@@ -1835,6 +1836,13 @@ class GamePanel:
         for i, o_dict in enumerate(list(self.gs.ordnance)):
             marker = OrdnanceMarker.from_dict(o_dict)
             move_ordnance(marker, self.gs)
+
+            # Static ordnance (mines, CAP fighters) never goes off-table
+            is_static = (marker.ordnance_type == OrdnanceType.MINE_FIELD.value
+                         or bool(marker.cap_ship_id))
+            if is_static:
+                self.gs.ordnance[i] = marker.to_dict()
+                continue
 
             # Off table check
             if (marker.x < -5 or marker.x > self.gs.table_width + 5 or
@@ -1975,6 +1983,27 @@ class GamePanel:
                         to_remove_after.add(marker.id)
                         break
 
+            elif marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
+                # Mine fields detonate against any ship in contact (friend or foe)
+                for s in ships:
+                    if s.is_destroyed or s.is_disengaged:
+                        continue
+                    if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
+                        continue
+                    dist = math.sqrt(
+                        (marker.x - s.x)**2 + (marker.y - s.y)**2)
+                    if dist <= s.base_radius + 2.0:
+                        self._append_log(
+                            f"  Mine field contacts {s.name}"
+                            + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
+                            + "!")
+                        result = resolve_mine_contact(
+                            marker, s, self.dice, self.gs)
+                        if result["hits"] > 0:
+                            self._check_destruction(s)
+                        to_remove_after.add(marker.id)
+                        break  # one ship triggers the field
+
         # Remove spent ordnance
         if to_remove_after:
             self.gs.ordnance = [
@@ -2016,11 +2045,14 @@ class GamePanel:
 
         # Find launchable weapons
         torp_weapons = []
+        mine_weapons = []
         bay_weapons = []
         for w in ship.weapons:
             wtype = w.get("weapon_type", "")
             if wtype in ("torpedo", "gravitic_launcher") and ship.ordnance_loaded_torps:
                 torp_weapons.append(w)
+            elif wtype == "mine_launcher" and ship.ordnance_loaded_torps:
+                mine_weapons.append(w)
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
                 bay_weapons.append(w)
 
@@ -2164,6 +2196,59 @@ class GamePanel:
                 tk.Button(torp_frame, text=f"Launch {label}",
                           command=_launch_torps,
                           bg="#663333", fg="white",
+                          font=("Consolas", 9)).pack(pady=3)
+
+        # --- MINE LAUNCHER SECTION ---
+        if mine_weapons:
+            mine_frame = tk.LabelFrame(notebook_frame, text="Mine Launcher",
+                                        font=("Consolas", 9, "bold"))
+            mine_frame.pack(fill=tk.X, pady=3)
+
+            for mw in mine_weapons:
+                mine_str = mw["strength"]
+                mine_halve_reasons = []
+                if ship.is_crippled:
+                    mine_str = (mine_str + 1) // 2
+                    mine_halve_reasons.append("crippled")
+                if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                    mine_str = (mine_str + 1) // 2
+                    mine_halve_reasons.append("braced")
+
+                halve_note = f" [{', '.join(mine_halve_reasons)}]" if mine_halve_reasons else ""
+                tk.Label(mine_frame,
+                         text=f"{mw['name']}: {mine_str} mines"
+                              + " (placed at ship position)" + halve_note,
+                         font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
+                tk.Label(mine_frame,
+                         text="Mines are static; detonate when a ship contacts them (D6/mine, 4+).",
+                         font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=5)
+
+                def _lay_mines(w=mw, effective_str=mine_str):
+                    import random as _rng
+                    marker = OrdnanceMarker(
+                        id=f"mine_{ship.id}_{self.gs.turn_number}_{_rng.randint(0,9999)}",
+                        ordnance_type=OrdnanceType.MINE_FIELD.value,
+                        owner_player=ship.player,
+                        launched_by=ship.id,
+                        x=ship.x, y=ship.y,
+                        heading=0, strength=effective_str, speed=0,
+                        launched_turn=self.gs.turn_number,
+                    )
+                    self.gs.add_ordnance(marker)
+
+                    ship_fresh = self.gs.get_ship_by_id(ship.id)
+                    if ship_fresh:
+                        ship_fresh.ordnance_loaded_torps = False
+                        self.gs.update_ship(ship_fresh)
+
+                    self._append_log(
+                        f"{ship.name} lays mine field ({effective_str} mines)")
+                    dialog.destroy()
+                    self.board.redraw()
+
+                tk.Button(mine_frame, text="Lay Mine Field",
+                          command=_lay_mines,
+                          bg="#664400", fg="white",
                           font=("Consolas", 9)).pack(pady=3)
 
         # --- ATTACK CRAFT SECTION ---

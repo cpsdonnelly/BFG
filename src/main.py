@@ -101,8 +101,8 @@ def create_demo_imperial_fleet(gs: GameState):
     )
     gs.add_ship(lunar2)
 
-    # Cobras
-    for i, name in enumerate(["INS Fervent", "INS Wrathful", "INS Pious"]):
+    # Cobras (2x torpedo, 1x mine layer)
+    for i, name in enumerate(["INS Fervent", "INS Wrathful"]):
         cobra = Ship(
             id=f"imp_cobra{i+1}", name=name,
             ship_class="Cobra Class Destroyer", faction="imperial_navy",
@@ -119,6 +119,23 @@ def create_demo_imperial_fleet(gs: GameState):
             ],
         )
         gs.add_ship(cobra)
+
+    # Viper Mine-layer Destroyer
+    viper = Ship(
+        id="imp_viper", name="INS Pious",
+        ship_class="Viper Class Mine-layer", faction="imperial_navy",
+        player=1, ship_type="escort", base_size="small",
+        x=105, y=15, heading=90,
+        speed=25, turn_angle=90, shields_max=1,
+        armor_prow="5+", armor_side="5+", turrets=1, hits_max=1,
+        leadership=7,
+        points_value=35,
+        weapons=[
+            {"name": "Prow Mine Launcher", "weapon_type": "mine_launcher",
+             "range_cm": 0, "strength": 4, "arcs": []},
+        ],
+    )
+    gs.add_ship(viper)
 
 
 def create_demo_tau_fleet(gs: GameState):

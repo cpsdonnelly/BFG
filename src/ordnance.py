@@ -19,6 +19,10 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
     if marker.cap_ship_id:
         return
 
+    # Mine fields are static — they never move
+    if marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
+        return
+
     rad = math.radians(marker.heading)
     marker.x += marker.speed * math.cos(rad)
     marker.y += marker.speed * math.sin(rad)
@@ -130,6 +134,40 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
             f"Torpedoes hit {target.name} for {result['hits']} damage (bypasses shields)")
         from .combat import apply_damage
         apply_damage(target, result["hits"], dice, game_state, ignores_shields=True)
+
+    return result
+
+
+def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
+                         dice: DiceRoller, game_state: GameState) -> Dict:
+    """
+    Resolve mine field detonation against a ship.
+    Roll D6 per mine in the field: each 4+ detonates and hits.
+    Each detonating mine then rolls vs lowest armor, bypasses shields.
+    Mine field is consumed (caller removes it) regardless of hits.
+    Affects any ship — including the layer's own ships.
+    """
+    result = {"detonations": 0, "hits": 0}
+
+    rolls = dice.roll_d6(
+        marker.strength,
+        f"Mine field ({marker.strength} mines) vs {ship.name} (4+ detonates)")
+    result["detonations"] = sum(1 for r in rolls if r >= 4)
+    game_state.add_log(
+        f"  Mine field: {result['detonations']}/{marker.strength} mines detonate!")
+
+    if result["detonations"] > 0:
+        armor = min(ship.armor_prow_value, ship.armor_side_value)
+        hit_rolls = dice.roll_d6(
+            result["detonations"],
+            f"Mine hits vs {ship.name} ({armor}+)")
+        result["hits"] = sum(1 for r in hit_rolls if r >= armor)
+
+        if result["hits"] > 0:
+            from .combat import apply_damage
+            apply_damage(ship, result["hits"], dice, game_state, ignores_shields=True)
+            game_state.add_log(
+                f"  Mine field hits {ship.name} for {result['hits']} damage")
 
     return result
 

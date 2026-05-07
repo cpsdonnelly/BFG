@@ -656,6 +656,15 @@ class BoardView:
                 self.canvas.create_text(sx, sy, text="AB",
                                          fill="white", font=("Consolas", 7, "bold"))
 
+            elif otype == "mine_field":
+                # Mine field: circle of Xs, coloured by owner
+                r = self.cm_to_pixels(2.0)
+                self.canvas.create_oval(sx - r, sy - r, sx + r, sy + r,
+                                         fill="", outline="#AA6600", width=2,
+                                         dash=(4, 3))
+                self.canvas.create_text(sx, sy, text=f"M{o.strength}",
+                                         fill="#FF8800", font=("Consolas", 8, "bold"))
+
             else:
                 hs = self.cm_to_pixels(0.8)
                 self.canvas.create_rectangle(sx - hs, sy - hs, sx + hs, sy + hs,
