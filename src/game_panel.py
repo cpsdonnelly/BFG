@@ -248,9 +248,26 @@ class GamePanel:
         self.board.can_drag_ship_fn = can_drag
         self.board.commit_drag_fn = commit_drag
 
-        # M key: auto minimum-move the selected ship without opening the dialog
+        # M key: open movement dialog pre-populated with min-move for selected ship
         self.root.bind("m", lambda e: self._quick_min_move_selected())
         self.root.bind("M", lambda e: self._quick_min_move_selected())
+
+        # Ordnance launch drag callbacks
+        def can_ord_drag(ship):
+            if self.gs.current_phase != "ordnance":
+                return False
+            if ship.player != self.gs.active_player:
+                return False
+            if ship.is_destroyed or ship.is_disengaged:
+                return False
+            return ship.ordnance_loaded_torps or ship.ordnance_loaded_craft
+
+        def commit_ord_drag(ship, heading):
+            self._launch_ordnance_dialog(
+                preselected_ship=ship, preselected_heading=heading)
+
+        self.board.can_ord_drag_fn = can_ord_drag
+        self.board.commit_ord_drag_fn = commit_ord_drag
 
     def _quick_min_move_selected(self):
         """
@@ -2442,8 +2459,12 @@ class GamePanel:
             f"  Ordnance phase complete: {len(self.gs.ordnance)} markers remain")
         self.board.redraw()
 
-    def _launch_ordnance_dialog(self):
-        """Dialog to launch torpedoes or attack craft with heading and composition control."""
+    def _launch_ordnance_dialog(self, preselected_ship=None, preselected_heading=None):
+        """Dialog to launch torpedoes or attack craft with heading and composition control.
+
+        preselected_ship: Ship — skip the ship picker and use this ship directly.
+        preselected_heading: float — pre-populate all heading controls to this value.
+        """
         all_active = [Ship.from_dict(s) for s in self.gs.ships
                       if s["player"] == self.gs.active_player
                       and not Ship.from_dict(s).is_destroyed
@@ -2454,7 +2475,11 @@ class GamePanel:
             messagebox.showinfo("No Ordnance", "No ships with loaded ordnance")
             return
 
-        ship = self._pick_ship_dialog(launchers, "Select ship to launch from")
+        launcher_ids = {s.id for s in launchers}
+        if preselected_ship and preselected_ship.id in launcher_ids:
+            ship = preselected_ship
+        else:
+            ship = self._pick_ship_dialog(launchers, "Select ship to launch from")
         if not ship:
             return
 
@@ -2512,16 +2537,42 @@ class GamePanel:
                          font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
 
                 # Heading control (within forward arc: ship heading +/- 45°)
-                head_frame = tk.Frame(torp_frame)
-                head_frame.pack(fill=tk.X, padx=10, pady=2)
-                tk.Label(head_frame, text="Launch heading:",
+                _init_heading = preselected_heading if preselected_heading is not None \
+                    else ship.heading
+                heading_var = tk.StringVar(value=f"{_init_heading:.0f}")
+
+                arc_label_frame = tk.Frame(torp_frame)
+                arc_label_frame.pack(fill=tk.X, padx=10, pady=1)
+                tk.Label(arc_label_frame,
+                         text=f"Launch heading (forward arc: "
+                              f"{ship.heading-45:.0f}° to {ship.heading+45:.0f}°):",
                          font=("Consolas", 8)).pack(side=tk.LEFT)
-                heading_var = tk.StringVar(value=f"{ship.heading:.0f}")
-                tk.Entry(head_frame, textvariable=heading_var, width=6,
-                         font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
-                tk.Label(head_frame,
-                         text=f"(forward arc: {ship.heading-45:.0f}° to {ship.heading+45:.0f}°)",
-                         font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+
+                head_frame = tk.Frame(torp_frame)
+                head_frame.pack(fill=tk.X, padx=10, pady=1)
+
+                def _nudge_torp_heading(delta, hv=heading_var):
+                    try:
+                        current = float(hv.get())
+                    except ValueError:
+                        current = ship.heading
+                    diff = ((current + delta) - ship.heading + 180) % 360 - 180
+                    diff = max(-45.0, min(45.0, diff))
+                    hv.set(f"{(ship.heading + diff) % 360:.0f}")
+
+                for deg in [45, 30, 15, 5]:
+                    tk.Button(head_frame, text=f"↶{deg}°",
+                              command=lambda d=deg: _nudge_torp_heading(d),
+                              font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
+                tk.Entry(head_frame, textvariable=heading_var, width=5,
+                         font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+                for deg in [5, 15, 30, 45]:
+                    tk.Button(head_frame, text=f"↷{deg}°",
+                              command=lambda d=deg: _nudge_torp_heading(-d),
+                              font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
+                tk.Button(head_frame, text="Reset",
+                          command=lambda hv=heading_var: hv.set(f"{ship.heading:.0f}"),
+                          font=("Consolas", 7)).pack(side=tk.LEFT, padx=4)
 
                 # Split volley (only Str 7+ can split, into exactly two)
                 split_frame = tk.Frame(torp_frame)
@@ -2765,13 +2816,42 @@ class GamePanel:
                          font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
 
             # Heading control for craft
-            craft_head_frame = tk.Frame(bay_frame)
-            craft_head_frame.pack(fill=tk.X, padx=10, pady=2)
-            tk.Label(craft_head_frame, text="Launch heading:",
+            _craft_init_heading = preselected_heading if preselected_heading is not None \
+                else ship.heading
+            craft_heading_var = tk.StringVar(value=f"{_craft_init_heading:.0f}")
+
+            craft_arc_frame = tk.Frame(bay_frame)
+            craft_arc_frame.pack(fill=tk.X, padx=10, pady=1)
+            tk.Label(craft_arc_frame,
+                     text=f"Launch heading (forward arc: "
+                          f"{ship.heading-45:.0f}° to {ship.heading+45:.0f}°):",
                      font=("Consolas", 8)).pack(side=tk.LEFT)
-            craft_heading_var = tk.StringVar(value=f"{ship.heading:.0f}")
-            tk.Entry(craft_head_frame, textvariable=craft_heading_var, width=6,
-                     font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+
+            craft_head_frame = tk.Frame(bay_frame)
+            craft_head_frame.pack(fill=tk.X, padx=10, pady=1)
+
+            def _nudge_craft_heading(delta):
+                try:
+                    current = float(craft_heading_var.get())
+                except ValueError:
+                    current = ship.heading
+                diff = ((current + delta) - ship.heading + 180) % 360 - 180
+                diff = max(-45.0, min(45.0, diff))
+                craft_heading_var.set(f"{(ship.heading + diff) % 360:.0f}")
+
+            for deg in [45, 30, 15, 5]:
+                tk.Button(craft_head_frame, text=f"↶{deg}°",
+                          command=lambda d=deg: _nudge_craft_heading(d),
+                          font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
+            tk.Entry(craft_head_frame, textvariable=craft_heading_var, width=5,
+                     font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+            for deg in [5, 15, 30, 45]:
+                tk.Button(craft_head_frame, text=f"↷{deg}°",
+                          command=lambda d=deg: _nudge_craft_heading(-d),
+                          font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
+            tk.Button(craft_head_frame, text="Reset",
+                      command=lambda: craft_heading_var.set(f"{ship.heading:.0f}"),
+                      font=("Consolas", 7)).pack(side=tk.LEFT, padx=4)
 
             # CAP assignment: fighters only; protect a friendly ship
             cap_frame = tk.Frame(bay_frame)

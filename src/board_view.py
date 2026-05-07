@@ -108,6 +108,16 @@ class BoardView:
         self.can_drag_ship_fn = None
         self.commit_drag_fn = None
 
+        # Ordnance launch drag state
+        self.ord_drag_ship_id: Optional[str] = None  # ship being aimed
+        self.ord_drag_heading: float = 0.0            # current drag heading
+        self.ord_drag_in_arc: bool = False            # True if heading is in ±45° arc
+        # Callbacks set by game_panel:
+        #   can_ord_drag_fn(ship) -> bool
+        #   commit_ord_drag_fn(ship, heading)
+        self.can_ord_drag_fn = None
+        self.commit_ord_drag_fn = None
+
         # Bindings
         self.canvas.bind("<Configure>", self._on_resize)
         self.canvas.bind("<Button-1>", self._on_click)
@@ -191,12 +201,18 @@ class BoardView:
         self.redraw()
 
     def _cancel_drag_or_clear_tool(self):
-        """Escape: cancel an active ship drag first, then clear tool if no drag."""
+        """Escape: cancel active drag (movement or ordnance), then clear tool."""
         if self.drag_ship_id:
             self.drag_ship_id = None
             self.drag_commands = []
             self.drag_result = None
             self.status_var.set("Drag cancelled")
+            self.redraw()
+        elif self.ord_drag_ship_id:
+            self.ord_drag_ship_id = None
+            self.ord_drag_heading = 0.0
+            self.ord_drag_in_arc = False
+            self.status_var.set("Ordnance aim cancelled")
             self.redraw()
         else:
             self._clear_tool()
@@ -342,7 +358,7 @@ class BoardView:
                 self.redraw()
             return
 
-        # Default: select ship; if ship is draggable start drag mode
+        # Default: select ship; start movement drag or ordnance aim drag
         ship = self._find_ship_at(cx, cy)
         if ship:
             self.selected_ship_id = ship.id
@@ -351,10 +367,17 @@ class BoardView:
                 self.drag_ship_id = ship.id
                 self.status_var.set(
                     f"Dragging {ship.name} — release to commit, Escape to cancel")
+            elif self.can_ord_drag_fn and self.can_ord_drag_fn(ship):
+                self.ord_drag_ship_id = ship.id
+                self.ord_drag_heading = ship.heading
+                self.ord_drag_in_arc = True
+                self.status_var.set(
+                    f"Aim ordnance from {ship.name} — drag to set heading, Escape to cancel")
             self.redraw()
         else:
             self.selected_ship_id = None
             self.drag_ship_id = None
+            self.ord_drag_ship_id = None
             self._clear_info()
             self.redraw()
 
@@ -453,6 +476,70 @@ class BoardView:
                        if result.valid else
                        f"  INVALID: {result.errors[0] if result.errors else ''}"))
 
+        elif self.ord_drag_ship_id:
+            cx, cy = self.screen_to_cm(event.x, event.y)
+            ship = self.gs.get_ship_by_id(self.ord_drag_ship_id)
+            if not ship:
+                self.ord_drag_ship_id = None
+                return
+
+            dx = cx - ship.x
+            dy = cy - ship.y
+            drag_dist = math.sqrt(dx * dx + dy * dy)
+
+            if drag_dist > 0.5:
+                raw_bearing = math.degrees(math.atan2(dy, dx)) % 360
+                # Offset from ship heading, in (-180, 180]
+                diff = (raw_bearing - ship.heading + 180) % 360 - 180
+                in_arc = abs(diff) <= 45
+                # Snap range: ±45° to ±60° → clamp to ±45°
+                snap_zone = 45 < abs(diff) <= 60
+                if snap_zone:
+                    diff = 45.0 * (1 if diff > 0 else -1)
+                    in_arc = True
+                self.ord_drag_heading = (ship.heading + diff) % 360
+                self.ord_drag_in_arc = in_arc and not (abs(diff) > 60)
+            else:
+                self.ord_drag_heading = ship.heading
+                self.ord_drag_in_arc = True
+
+            self.redraw()
+            sx, sy = self.cm_to_screen(ship.x, ship.y)
+            arc_color = "#44FF44" if self.ord_drag_in_arc else "#FF4444"
+
+            # Draw ±45° launch arc cone
+            arc_r = self.cm_to_pixels(30)
+            ship_hdg = ship.heading
+            start_angle_screen = -(ship_hdg + 45)  # canvas angles are CCW from east
+            self.canvas.create_arc(
+                sx - arc_r, sy - arc_r, sx + arc_r, sy + arc_r,
+                start=start_angle_screen, extent=90,
+                fill="", outline="#888844", width=1, style=tk.ARC)
+            # Draw two arc boundary lines
+            for offset in (-45, 45):
+                edge_rad = math.radians(ship_hdg + offset)
+                ex = sx + arc_r * math.cos(edge_rad)
+                ey = sy - arc_r * math.sin(edge_rad)
+                self.canvas.create_line(sx, sy, ex, ey,
+                                        fill="#888844", width=1, dash=(3, 3))
+
+            # Draw heading arrow
+            hdg_rad = math.radians(self.ord_drag_heading)
+            arrow_len = self.cm_to_pixels(25)
+            ax = sx + arrow_len * math.cos(hdg_rad)
+            ay = sy - arrow_len * math.sin(hdg_rad)
+            self.canvas.create_line(sx, sy, ax, ay,
+                                    fill=arc_color, width=2, arrow=tk.LAST)
+
+            if self.ord_drag_in_arc:
+                self.status_var.set(
+                    f"Launch from {ship.name}: heading {self.ord_drag_heading:.0f}° "
+                    f"— VALID  (release to open launch dialog)")
+            else:
+                self.status_var.set(
+                    f"Launch from {ship.name}: heading {self.ord_drag_heading:.0f}° "
+                    f"— OUTSIDE ARC (>{60}° off bow — release cancels)")
+
     def _on_release(self, event):
         if self.drag_ship_id:
             ship = self.gs.get_ship_by_id(self.drag_ship_id)
@@ -463,6 +550,18 @@ class BoardView:
             self.drag_commands = []
             self.drag_result = None
             self.status_var.set("Ready")
+            self.redraw()
+
+        elif self.ord_drag_ship_id:
+            ship = self.gs.get_ship_by_id(self.ord_drag_ship_id)
+            if ship and self.ord_drag_in_arc and self.commit_ord_drag_fn:
+                self.commit_ord_drag_fn(ship, self.ord_drag_heading)
+            elif ship and not self.ord_drag_in_arc:
+                self.status_var.set(
+                    f"Launch cancelled — heading too far off arc")
+            self.ord_drag_ship_id = None
+            self.ord_drag_heading = 0.0
+            self.ord_drag_in_arc = False
             self.redraw()
 
     def _set_arc_view(self, ship_id):
