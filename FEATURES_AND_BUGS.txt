@@ -1,0 +1,353 @@
+BFG:XR — FEATURE AND BUG TRACKER
+Compiled from all user session messages (May 6–11 2026)
+Status: IMPLEMENTED | PARTIAL | NOT IMPLEMENTED | FIXED
+================================================================================
+
+BUGS
+----
+
+1. Massed turrets not counted for bomber attack roll reduction
+   Crippled ships could benefit from massed turrets; the d6-minus-turrets formula
+   did not account for bonuses from allied ships massing turrets.
+   Status: FIXED
+
+2. Shooter/ordnance phase were merged
+   The shooting phase and ordnance phase were combined. The rulebook explicitly
+   requires them to be separate phases in sequence.
+   Status: FIXED
+
+3. Lunar and Cobra Class ships missing torpedoes
+   Lunar Class cruisers were missing prow torpedo tubes (strength 6). Cobras were
+   missing their torpedoes entirely.
+   Status: FIXED
+
+4. Cobra Class missing Weapons Battery
+   Cobra Class Destroyer weapons were incomplete — they should have 2 frontal torp
+   tubes AND 1 Weapons Battery. The battery was missing.
+   Status: FIXED
+
+5. Tau missile bug causing all ships to disappear
+   Moving Tau guided missiles caused all ships to vanish from the board and the
+   phase could not advance.
+   Status: FIXED
+
+6. M key counts ship as fully moved, blocks further input
+   Pressing M for min move marked the ship as having used its full movement
+   budget, preventing any additional move or turn orders.
+   Status: FIXED
+
+7. Spacebar / M key block all other inputs while active
+   After using M or Spacebar, no other keyboard input was possible until the
+   action completed.
+   Status: FIXED
+
+8. Backspace key does not undo M / Spacebar movement (infinite movement bug)
+   Movement issued via M key or Spacebar was not tracked by the undo system,
+   allowing a ship to move multiple times past its speed limit.
+   Status: FIXED
+
+9. Drag and drop only allows maximum move, not minimum move
+   The drag-and-drop path calculator forced full speed even when the player
+   wanted to move only the minimum required distance.
+   Status: PARTIAL — minimum move path computation improved but needs
+   further testing with very short drags
+
+10. Net rotation not displayed during scroll wheel / quick-turn input
+    When using the scroll wheel or a quick turn button repeatedly, the cumulative
+    net turn (clockwise minus counter-clockwise) was not shown to the player.
+    Status: FIXED
+
+11. Enable override only works on first player's first turn
+    The "allow player to skip moving a ship" override toggle stopped working
+    after the first player's first turn.
+    Status: FIXED
+
+12. Crit damage does not update ship HP
+    Critical hits that inflict extra hull damage (Hull Breach = D3, Bulkhead
+    Collapse = D6) were not deducting those extra hits from hits_remaining.
+    Status: FIXED
+
+13. Escort ships not removed from board at 0 HP
+    When an escort's hits reached zero it remained on the board. Capital ships
+    also did not trigger catastrophic damage checks.
+    Status: FIXED
+
+14. Ship health loops from 8 to 1 then back to 8
+    A bug caused hits_remaining to wrap around instead of staying at 0 when
+    a ship reached 0 HP.
+    Status: FIXED
+
+15. Mine friendly fire does not work
+    Mines should be able to hit friendly ships (players must manage positioning).
+    Friendly fire was not being evaluated.
+    Status: NOT IMPLEMENTED
+
+16. Mine friendly fire should not trigger on first turn after launch
+    A mine should not threaten the launching ship's fleet on the turn it is
+    launched, only from the following ordnance phase onwards.
+    Status: NOT IMPLEMENTED
+
+17. Minelayer allowed to launch 8 mines in one turn (should be 4)
+    The Dictator's mine launcher strength of 4 was not being respected as the
+    per-turn cap; the ship could launch double the allowed mines.
+    Status: FIXED (launcher strength now controls the per-turn cap)
+
+18. Tau faction eligibility check used stale faction string
+    Teleport attack eligibility checked for exact string "tau_kor_vattra".
+    The two Tau fleets (Merchant Fleet, Protector Fleet) both contain "tau" in
+    their faction string; the stale check would have broken when those fleets
+    were added.
+    Status: FIXED (changed to substring check: "tau" in faction.lower())
+
+19. Base sizes wrong — cruisers and escorts rendered at 60mm (large)
+    Imperial cruisers (Mars, Lunar, Dictator) were set to base_size "large"
+    (60mm token). Only ships with 3+ shields OR more than 10 hits use a large
+    base. All imperial cruisers use a small (32mm) base. Only the Custodian
+    Class Battleship qualifies for a large base.
+    Status: FIXED (all four imperial cruisers now set to base_size "small")
+
+20. Missing import math in turn_controller.py
+    math.sqrt is called in issue_special_order and attempt_reroll_command_check
+    but math was never imported. Causes a NameError crash the first time a
+    special order is attempted when blast markers are on the table.
+    Status: FIXED
+
+21. Issue special order broken
+    The special order dialog stopped functioning — likely related to the missing
+    math import above.
+    Status: FIXED
+
+22. Measure-to-all-ships display is cluttered
+    The "from ship X to ship Y" labels on the measurement lines were superfluous
+    and made the screen hard to read.
+    Status: NOT IMPLEMENTED (labels still present)
+
+23. Move-all and undo-all keyboard shortcuts not listed in help / tool section
+    Spacebar (min move all) and Backspace (undo all) were not documented in any
+    in-game help text.
+    Status: NOT IMPLEMENTED
+
+24. CAP fighters can be assigned to ships out of range
+    A fighter on CAP should only be able to reach its assigned protected ship if
+    it is within fighter speed range. The UI allowed assignment to any ship
+    regardless of distance.
+    Status: NOT IMPLEMENTED
+
+25. Bombers allowed to perform CAP
+    Only fighters (not bombers) should be able to go on Combat Air Patrol. The
+    ordnance dialog was not filtering out bomber types.
+    Status: FIXED
+
+26. Manta resilient save not applying correctly
+    Manta Missile Destroyers have a 4+ resilient save vs. fighter interception.
+    The save was not being rolled (or was rolling at the wrong time). A resilient
+    save can only be used once per turn per marker.
+    Status: FIXED
+
+27. Ship that is already braced receives another brace popup
+    Once a ship has successfully braced for impact it is braced for the rest of
+    the turn. Any further damage sources in the same turn should not ask the
+    player to brace again.
+    Status: NOT IMPLEMENTED
+
+28. Brace failure should allow retrying against a different damage source
+    If a ship fails a brace check it does not get a save against that damage,
+    but it may attempt to brace again against a different incoming attack later
+    in the same turn.
+    Status: NOT IMPLEMENTED (brace state per-attack is not tracked)
+
+29. Turn inputs: minor overshoot not snapped to legal angle
+    A user input of slightly under 60 degrees when intending 45 degrees should
+    be snapped to 45. Any input that doesn't resolve to a legal turn increment
+    should be cancelled, not silently rounded to an unexpected value.
+    Status: NOT IMPLEMENTED
+
+30. Launch button was visible in the shooting phase
+    The ordnance launch button was accessible during the shooting phase. It
+    belongs only in the ordnance phase.
+    Status: FIXED
+
+
+FEATURES
+--------
+
+31. Scroll wheel turn orders (quick turn without dialog)
+    Hovering over a selected ship and scrolling the mouse wheel should issue a
+    turn order (left on scroll-up, right on scroll-down, or configurable) without
+    opening the movement dialog. Orders must be tracked so the dialog system
+    sees them and prevents double-counting.
+    Status: IMPLEMENTED
+
+32. Player override warning for unmoved ships
+    If a player ends the movement phase with ships that have not moved, and those
+    ships are not on Burn Retros (which allows staying still), a popup warns the
+    player that continuing would be an illegal move.
+    Status: IMPLEMENTED
+
+33. Player override toggle default to OFF
+    The toggle that allows a player to skip moving ships (override the illegal
+    move warning) should default to disabled at game creation.
+    Status: IMPLEMENTED
+
+34. Net rotation display
+    Show the player the cumulative net rotation applied to the selected ship
+    during the current move, alongside the remaining move distance and updated
+    heading, so they can track how much of their turn allowance has been used.
+    Status: IMPLEMENTED
+
+35. Player override toggle at game creation
+    A checkbox at game setup to enable or disable the "allow unmoved ships"
+    override for the whole game.
+    Status: IMPLEMENTED
+
+36. Keyboard shortcut: M key for minimum move (individual ship)
+    Pressing M with a ship selected moves it the minimum required distance
+    without opening the movement dialog. Must allow further move or turn orders
+    afterwards.
+    Status: IMPLEMENTED
+
+37. Keyboard shortcut: Spacebar for minimum move all ships
+    Pressing Space moves every ship belonging to the active player their
+    minimum required move in one action.
+    Status: IMPLEMENTED
+
+38. Keyboard shortcut: Backspace for undo all movement
+    Pressing Backspace during the movement phase restores all ships to their
+    positions at the start of the phase (full phase undo).
+    Status: IMPLEMENTED
+
+39. Auto minimum move without dialog
+    A quick-action that performs the minimum legal move for the selected ship
+    with a single keypress, leaving move budget available for follow-up orders.
+    Status: IMPLEMENTED (M key)
+
+40. Drag and drop for ordnance (bombers, fighters, Tau guided missiles)
+    The drag-and-drop path system used for ship movement should be extended to
+    cover ordnance markers, letting the player visually plot launch paths for
+    bombers, fighters, and Tau missiles.
+    Status: PARTIAL — Tau missile drag may be partially in place; fighter/
+    bomber drag not confirmed implemented
+
+41. Intuitive torpedo launch heading
+    The torp launch direction should be set by a more player-friendly interaction
+    rather than raw angle input — e.g. a direction arrow the player drags to
+    point in the desired direction.
+    Status: NOT IMPLEMENTED
+
+42. Streamlined Tau missile degradation rolls
+    The Tau guided missile degradation system currently pops up once per missile
+    strength value. This should be rolled automatically (or allow the player to
+    input a single number of successes) rather than requiring N separate dialogs.
+    Status: NOT IMPLEMENTED
+
+43. Simplified input toggle at game creation
+    A toggle at the start screen labelled "Simplified Input" that, when enabled,
+    adds buttons to key dialogs (fire, special orders, target priority, crit
+    rolls, nova cannon) so the player can type in a number of successes directly
+    rather than resolving every individual die.
+    Status: NOT IMPLEMENTED
+
+44. Auto fire: all ships fire everything at nearest valid target
+    A single button or shortcut that makes every ship belonging to the active
+    player fire all available weapons at the nearest valid target, using the
+    same logic as the existing per-ship "Auto: Full Volley at Closest" button.
+    Status: IMPLEMENTED
+
+45. Drag and drop launch system for bombers and fighters
+    Same as feature 40 — a visual drag path for placing bomber and fighter
+    ordnance markers from the launching ship.
+    Status: PARTIAL
+
+46. Tau ship name changes
+    Rename the Tau ships as specified:
+      Kor'vre Shas → Kor'vre Kais
+      Kor'vre Or'es → Anukla'esavon (Castellan)
+      Kor'el Kais's Kir'shas'vre → Anukla'esavon (Emissary)
+      Kor'el Mont'yr Kir'shas'vre → Bork'sha
+      Or'es El'leath → O'Shi'ur
+    Status: IMPLEMENTED (names updated in tau_kororvesh_demo.json)
+
+47. Fleet data as external files with create/load/import UI
+    Ship stats and fleet compositions must be stored in external data files (not
+    hardcoded). The game should let players create new fleet lists, load saved
+    ones, and import from file. The default demo scenario should use these same
+    data files.
+    Status: PARTIAL — fleet JSON files exist and are loaded; fleet builder UI
+    (fleet_builder.py) and catalog loader (ship_catalog.py) are structural stubs
+    not yet implemented
+
+48. Mine attack rules (8D6 vs armor, shields block, defense turrets reduce to 4D6)
+    Mines attack with 8D6 against the target's armor value. Damage can be blocked
+    by shields (unlike torpedoes). If the target's turrets score at least one 4+,
+    the mine rolls 4D6 instead of 8D6.
+    Status: PARTIAL — mine movement and basic attack exist; turret interaction
+    vs. mines not confirmed
+
+49. Mine terrain interactions (same as torpedoes)
+    Mines should be destroyed on a D6 roll of 6 when crossing a blast marker or
+    dust cloud, and automatically destroyed when entering an asteroid field.
+    Status: NOT IMPLEMENTED (confirmed not implemented)
+
+50. Asteroid field ship interaction rules
+    Ships moving through or contacting the edge of an asteroid field must pass a
+    leadership test (3D6 on AAF). On failure, suffer D6 damage (shields block,
+    no blast marker placed). Ships in the field may fire at each other with
+    battery/lance weapons at up to 10cm range at half strength.
+    Status: PARTIAL — LoS blocking by asteroid fields is implemented;
+    leadership test and damage on contact are not
+
+51. Teleport attack mechanic
+    Ships within 10cm of an enemy with shields at 0 and no more remaining hits
+    than the attacker may make one teleport attack per end phase. Resolved as a
+    hit-and-run raid. Tau cannot teleport. Crippled ships or ships on disallowed
+    special orders cannot teleport.
+    Status: IMPLEMENTED (hit_and_run.py — check_teleport_eligibility,
+    resolve_teleport_attack)
+
+52. Brace for impact on hit-and-run raids
+    Defender must decide to brace BEFORE the attacker rolls. If the brace Ld
+    check passes, the defender rolls D6 per successful raid — on 4+ that raid
+    is repelled. The brace save cannot save against direct fire, torpedo, or
+    bomber crits — only hit-and-run raids and teleport attacks.
+    Status: IMPLEMENTED (hit_and_run.py — resolve_raids)
+
+53. Manta Missile Destroyer resilient save (4+)
+    Mantas have a 4+ save against fighter interception. The save may only be
+    used once per turn per marker.
+    Status: IMPLEMENTED
+
+54. God class refactor: split game_panel.py
+    game_panel.py is ~3500 lines covering movement UI, combat dialogs, ordnance
+    dialogs, and end-phase logic. Proposed split: a GameContext dataclass
+    (tc, gs, dice, board, root, log_fn) passed to MovementPanel, CombatPanel,
+    OrdnancePanel, EndPhasePanel sub-classes with a thin GamePanel coordinator.
+    Status: NOT IMPLEMENTED — discussed only, no code written
+
+55. Consolidate duplicate geometry functions
+    Three files each define a variant of "does a line pass near a point":
+      movement.py: _line_passes_near_point
+      combat.py: _line_passes_near
+      los.py: _point_near_line
+    These should be a single shared utility in geometry.py or utils.py.
+    Similarly, _count_blast_markers_touching is duplicated in combat.py and
+    end_phase.py with different signatures.
+    Status: NOT IMPLEMENTED
+
+56. ship_catalog.py — load and expose ship_database.json
+    ship_catalog.py is currently a documentation stub. It should load
+    ship_database.json (once the data is cleaned up) and provide a catalog
+    of ship classes for use by the fleet builder.
+    Status: NOT IMPLEMENTED (data entry cleanup is in progress by user)
+
+57. Tau Merchant Fleet and Tau Protector Fleet
+    Two distinct Tau fleet files with their own ship rosters, both using "tau"
+    in their faction strings.
+    Status: NOT IMPLEMENTED
+
+================================================================================
+LEGEND
+  IMPLEMENTED     — feature/fix is in the codebase and working
+  PARTIAL         — some work done but incomplete or unverified
+  FIXED           — bug addressed and resolved
+  NOT IMPLEMENTED — requested but not yet coded
+================================================================================

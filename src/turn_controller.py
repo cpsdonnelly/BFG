@@ -1,5 +1,6 @@
 """BFG:XR Turn Controller - Game loop, snapshots, action recording"""
 import json
+import math
 import os
 import copy
 import time

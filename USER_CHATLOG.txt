@@ -1,0 +1,137 @@
+USER CHATLOG — from "I want an option for the scroll wheel to give turn orders" onwards
+Generated from session transcripts. Messages are direct user inputs only.
+================================================================================
+
+[2026-05-07T18:58:34Z | session bfae1edb]
+I want an option for the scroll wheel to give turn orders to the ship without opening the dialog. This is useful if I want to move the ship only the minimum move, and turn. The drag and drop system is more awkward to use for this scenario where I only want to move the minimum amount and turn. We need to keep track of the turn and move orders given using this system. Make sure it does not clash with the dialog system. I want the dialog system to know of these quick orders so there are no bugs.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T19:00:26Z | session bfae1edb]
+On the override feature, if a player ends their turn without moving their ships, and those ships are not on burn retros that alows them to stay in place, a pop up is given warning the player that they have ships whuch have not yet moved. This is as that would be an illegal move.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T19:04:08Z | session bfae1edb]
+default should be off.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T21:41:30Z | session be1c825f]
+When using the measure to all ships tool, the screen is cluttered. The text from ship X to ship Y is superfluous. The move all and undo all shortcuts are not given in the help or tool section. When using the M key or Spacebar key, other inputs are not possible.
+
+The backspace key does not undo movement from the M or Spacebar Keys. This allows for an infinite movement bug.
+
+It should not be possible to assign fighters to CAP to a ship that is out of range of the host ship. This means the fighter speed should be a cap on how far the fighter can travel.
+
+Bombers should not be allowed to perform CAP at all.
+
+There is a bug where the minelayer ship was allowed to launch 8 mines in a turn.
+
+It should only be able to launch 4.
+
+What crits a ship has suffered from needs to be displayed somewhere.
+Crit damage from does not update the ship HP.
+The enable override works on the first players first turn only.
+
+Escort ships are not removed from the board when they reach zero HP and larger ships do not suffer catastrophic damage.
+It seems that ship health goes from 8 to 1, then back to 8. This is a loop. What is the cause of this?
+
+The Cobra Class Escorts do not have accurate weapons stats. They should have 2 frontal torp tubes and 1 Weapons Battery. They are missing the latter.
+
+I want a toggle called simplified input option at the start screen that gives a button in the fire menu to input a number of successes for any shooting test. I also want that toggle to give buttons for inputing a number of successes for other test such as special orders, target priority, rolling to crit and nova cannon direct hit.
+
+The issue special order has broken.
+
+I want an auto all ships fire everything at the nearest target. We have an auto shoot at the nearest target in the dialog menu. This should be easy.
+
+I want the drag and drop type system for bombers, fighters, and tau torps.
+
+The escort ships should not be smaller than the cruiser sized ships.
+
+Excerpt from Battlefleet Gothic XR:
+************************
+A Note on Base Size: As many of the models for Battlefleet Gothic are hard to find, we have included some rules for how to base your ships. There are two base sizes, large (60mm diameter) and small (32mm diameter). These can be found online at Games Workshop's website or from other retailers. Any unit with either 3 or more shields or more than 10 hits must use a large base. All other vessels use the small base. However, any capital ship may purchase Tractor Fields for free, which upgrades it to use a large base. This makes it easier for the ship to ram and/or board, but also makes it a larger target for enemy ordnance, ramming, and boarding.
+************************
+Note that by these rules the only ship which meets the criteria to be on the larger 60mm base is the Custodian Class Battleship. All other ships have a base size that is the same.
+
+
+I also want some of Tau ship names shortened and or changed.
+The Current Tau ship names are:
+********************************************
+Warden Class Gunships:
+Kor'vre Shas
+Kor'vre Y'he
+Kor'vre Lar'shi
+
+Castellan Class Escort:
+Kor'vre Or'es
+
+Emissary Class Light Cruisers:
+Kor'el Kais's Kir'shas'vre
+Kor'el Mont'yr Kir'shas'vre
+
+Custodian Class Battleship:
+Or'es El'leath
+********************************************
+
+I want these ship names changed to:
+********************************************
+Warden Class Gunships:
+Kor'vre Kais
+Kor'vre Y'he
+Kor'vre Lar'shi
+
+Castellan Class Escort:
+Anukla'esavon
+
+Emissary Class Light Cruisers:
+Anukla'esavon
+Bork'sha
+
+Custodian Class Battleship:
+O'Shi'ur
+********************************************
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T22:21:53Z | session c0e8d9a4]
+The minelayer fix, and other ordnance checks need to check the fleet list data sheets in some way, which should be a seperate file, the fleets in the default scenario should be a default fleet list. There should be an option to create, load and import different fleet lists. Hardcoding it is impractical, since there are many ships with many different stats.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T22:48:46Z | session a823c9b7]
+Look over the project. We have rewritten alot of things. Tell me the full structure. Don't do any changes. Lets just check it. I want to check fok for dead, unused and or duplicate code. If there is any other bugs you spot or code you think should be rewritten, I want you to talk about it.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T22:52:29Z | session a823c9b7]
+You used grep alot instead of reading it holistically.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T22:54:32Z | session a823c9b7]
+Ship catalog has a role. When making fleets, we have to have a catalog of ships. Don't delete any of the structure files.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T22:57:29Z | session a823c9b7]
+the attacker faction string tau kor vattra can be changed to be just Tau. The Tau have 2 different fleet. The Merchant Fleet, and the Protector Fleet.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T23:01:42Z | session a823c9b7]
+How can we fix the God class problem, and the fire all and auto full volley issues? Talk me through the solutions you have in mind. The json file with ship data is also important, but it needs fixing up / cleaning. The fresh structural file that has a similar role is good for being a fresh start on that. I will try to handle the data entry on that.
+
+--------------------------------------------------------------------------------
+
+[2026-05-07T23:08:06Z | session f33dd274]
+Claude I think you also misread some of what I have said earlier. For example, the Battleship is supposed to be 60mm, and cruisers and escorts 32mm. You made them a different scale. I want you to nake a chatlog of all my messages since I messaged you "I want an option for the scroll wheel to give turn orders". Then I want you to make another text file that is a summary of all the features I have asked for, and bugs I have found. I want this in a list. Each instance on the list should say what the feature/bug was, then if it was implemented or not.
+
+--------------------------------------------------------------------------------
+
+[2026-05-11T14:04:05Z | session f1e99a94]
+continue with that previous task
+
+================================================================================
+END OF CHATLOG
