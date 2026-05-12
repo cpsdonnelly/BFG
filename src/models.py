@@ -1,8 +1,7 @@
 """BFG:XR Data Models - Ships, Ordnance, Terrain, Blast Markers"""
 import math
-import json
 from dataclasses import dataclass, field, asdict
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from enum import Enum
 
 
@@ -72,43 +71,6 @@ class PhenomenonType(str, Enum):
     WARP_RIFT = "warp_rift"
     RING = "ring"
 
-
-@dataclass
-class Weapon:
-    name: str
-    weapon_type: WeaponType
-    range_cm: float
-    strength: int        # firepower for batteries, strength for lances/torps, squadrons for bays
-    arcs: List[str]      # list of Arc values as strings
-    special_rules: List[str] = field(default_factory=list)
-    # For launch bays
-    craft_types: List[str] = field(default_factory=list)
-    craft_speed: float = 0
-    # For torpedoes/missiles
-    torpedo_speed: float = 0
-    torpedo_type: str = ""
-
-    def to_dict(self):
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d):
-        return cls(**d)
-
-
-@dataclass
-class CriticalDamage:
-    crit_type: str          # e.g. "dorsal_armament", "fire", "engine_room"
-    description: str
-    repairable: bool
-    turn_inflicted: int = 0
-
-    def to_dict(self):
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, d):
-        return cls(**d)
 
 
 @dataclass
@@ -190,7 +152,6 @@ class Ship:
 
     # Towed escorts (ship IDs in gravitic hooks)
     towed_escorts: List[str] = field(default_factory=list)
-    towed_deployed: bool = False
 
     # Admiral/commander
     is_flagship: bool = False

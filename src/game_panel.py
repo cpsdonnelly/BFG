@@ -2677,7 +2677,7 @@ class GamePanel:
                             + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
                             + "!")
                         result = resolve_mine_contact(
-                            marker, s, self.dice, self.gs)
+                            marker, s, self.dice, self.gs, ships)
                         if result["hits"] > 0:
                             self._check_destruction(s)
                         to_remove_after.add(marker.id)

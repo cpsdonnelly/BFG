@@ -154,11 +154,12 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
 
 
 def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
-                         dice: DiceRoller, game_state: GameState) -> Dict:
+                         dice: DiceRoller, game_state: GameState,
+                         all_ships: List[Ship] = None) -> Dict:
     """
     Resolve a single mine detonating against a ship.
 
-    Turret defense: roll the ship's effective turrets.
+    Turret defense: roll the ship's effective turrets (plus massed turret bonus).
     - If ANY die scores 4+: mine attacks with 4D6 instead of 8D6.
     - Otherwise: mine attacks with 8D6.
     Mine damage CAN be blocked by shields (unlike torpedoes/bombers).
@@ -167,6 +168,14 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     result = {"hits": 0, "attack_dice": 8}
 
     turrets = ship.effective_turrets
+
+    # Massed turrets: +1 per non-crippled friendly ship in base contact (max +3)
+    if all_ships:
+        bonus = get_massed_turret_bonus(ship, all_ships)
+        if bonus > 0:
+            turrets += bonus
+            game_state.add_log(
+                f"  {ship.name} massed turrets: +{bonus} (total {turrets})")
     attack_dice = 8
 
     if turrets > 0:

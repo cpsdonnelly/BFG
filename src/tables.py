@@ -80,10 +80,6 @@ def get_gunnery_column(target_type: str, target_aspect: str,
     return COL_CLOSING_CAPITAL  # fallback
 
 
-def get_target_column(target_type: str, target_aspect: str) -> int:
-    """Alias for get_gunnery_column for backward compatibility."""
-    return get_gunnery_column(target_type, target_aspect)
-
 
 def lookup_gunnery_dice(firepower: int, column: int, shifts: int = 0) -> int:
     """
@@ -152,10 +148,3 @@ def lookup_catastrophic(roll_2d6):
     return "drifting_hulk"
 
 
-# Leadership table (D6 roll at game start)
-LEADERSHIP_TABLE = {
-    1: 6,   # Untried
-    2: 7, 3: 7,  # Experienced
-    4: 8, 5: 8,  # Veteran
-    6: 9,   # Crack
-}

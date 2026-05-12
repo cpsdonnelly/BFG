@@ -6,10 +6,18 @@ Status: IMPLEMENTED | PARTIAL | NOT IMPLEMENTED | FIXED
 BUGS
 ----
 
-1. Massed turrets not counted for bomber attack roll reduction
-   Crippled ships could benefit from massed turrets; the d6-minus-turrets formula
-   did not account for bonuses from allied ships massing turrets.
+1. Mine interception does not receive massed turret bonus
+   resolve_mine_contact used ship.effective_turrets only. Mines are ordnance, so
+   the massed turret bonus (+1 per non-crippled friendly in base contact, max +3)
+   should apply to the turret roll that determines 8D6 vs 4D6 attack dice.
+   Torpedo resolution already called get_massed_turret_bonus(); mines did not.
    Status: FIXED
+
+   Rules confirmed correct (not bugs):
+   • D6-minus-turrets (bomber attack reduction) uses base turrets only; massed
+     turret bonus never applies. The code was already correct.
+   • Crippled ships cannot contribute their turrets to the massed bonus pool,
+     but they can receive the bonus from non-crippled allies.
 
 2. Shooter/ordnance phase were merged
    The shooting phase and ordnance phase were combined. The rulebook explicitly
