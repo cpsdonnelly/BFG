@@ -345,7 +345,7 @@ FEATURES
     These should be a single shared utility in geometry.py or utils.py.
     Similarly, _count_blast_markers_touching is duplicated in combat.py and
     end_phase.py with different signatures.
-    Status: NOT IMPLEMENTED
+    Status: IMPLEMENTED (geometry.py created; dead _line_passes_near in combat.py removed)
 
 56. ship_catalog.py — load and expose ship_database.json
     ship_catalog.py is currently a documentation stub. It should load
