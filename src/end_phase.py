@@ -4,6 +4,7 @@ from typing import List, Dict
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
+from .geometry import count_blast_markers_touching
 
 
 def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]:
@@ -380,12 +381,3 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
     return logs
 
 
-def _count_blast_markers_touching(ship: Ship,
-                                   blast_markers: List[BlastMarker]) -> int:
-    """Count blast markers touching a ship's base."""
-    count = 0
-    for bm in blast_markers:
-        dist = math.sqrt((bm.x - ship.x)**2 + (bm.y - ship.y)**2)
-        if dist <= ship.base_radius + 1.5:
-            count += 1
-    return count

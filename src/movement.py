@@ -4,6 +4,7 @@ from typing import List, Tuple, Optional, Dict
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
+from .geometry import line_passes_near
 
 
 # Minimum distance before turning by ship type
@@ -177,7 +178,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
                 new_y = max(0, min(table_height, new_y))
 
             for bm in blast_markers:
-                if _line_passes_near_point(cx, cy, new_x, new_y, bm.x, bm.y, 1.5):
+                if line_passes_near(cx, cy, new_x, new_y, bm.x, bm.y, 1.5):
                     crossed_any_blast = True
 
             distance_moved += cmd.value
@@ -358,15 +359,3 @@ def resolve_aaf_speed(ship: Ship, dice: DiceRoller) -> int:
     return sum(results)
 
 
-def _line_passes_near_point(x1, y1, x2, y2, px, py, threshold):
-    """Check if a line segment from (x1,y1) to (x2,y2) passes within threshold of point (px,py)."""
-    dx, dy = x2 - x1, y2 - y1
-    length_sq = dx * dx + dy * dy
-    if length_sq == 0:
-        return math.sqrt((px - x1)**2 + (py - y1)**2) <= threshold
-
-    t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
-    proj_x = x1 + t * dx
-    proj_y = y1 + t * dy
-    dist = math.sqrt((px - proj_x)**2 + (py - proj_y)**2)
-    return dist <= threshold

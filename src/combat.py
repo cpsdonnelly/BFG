@@ -6,6 +6,7 @@ from .game_state import GameState
 from .tables import (lookup_gunnery_dice, get_gunnery_column, CRITICAL_HITS,
                      lookup_catastrophic)
 from .dice import DiceRoller
+from .geometry import count_blast_markers_touching
 
 
 class ShotResult:
@@ -358,7 +359,7 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
     if not ignores_shields:
         # Count blast markers already touching ship to reduce available shields
-        existing_blasts = _count_blast_markers_touching(target, game_state)
+        existing_blasts = count_blast_markers_touching(target, game_state.get_blast_markers())
         max_shields = target.effective_shields
         available_shields = max(0, max_shields - existing_blasts)
 
@@ -500,15 +501,6 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     return summary
 
 
-def _count_blast_markers_touching(ship: Ship, game_state: GameState) -> int:
-    """Count blast markers in contact with a ship's base."""
-    count = 0
-    for bm_dict in game_state.blast_markers:
-        bm = BlastMarker.from_dict(bm_dict)
-        dist = math.sqrt((bm.x - ship.x)**2 + (bm.y - ship.y)**2)
-        if dist <= ship.base_radius + 1.5:
-            count += 1
-    return count
 
 
 def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) -> str:
@@ -643,13 +635,3 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
     return None  # cascaded off the top of the table
 
 
-def _line_passes_near(x1, y1, x2, y2, px, py, threshold):
-    """Check if line segment passes within threshold of a point."""
-    dx, dy = x2 - x1, y2 - y1
-    length_sq = dx * dx + dy * dy
-    if length_sq == 0:
-        return math.sqrt((px - x1)**2 + (py - y1)**2) <= threshold
-    t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
-    proj_x = x1 + t * dx
-    proj_y = y1 + t * dy
-    return math.sqrt((px - proj_x)**2 + (py - proj_y)**2) <= threshold
