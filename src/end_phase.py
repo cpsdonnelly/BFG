@@ -308,7 +308,8 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
         bm = BlastMarker(
             id=f"hulk_drift_{ship.id}_{random.randint(0,9999)}",
             x=ship.x, y=ship.y,
-            source="hulk_drift")
+            source="hulk_drift",
+            heading=random.uniform(0, 360))
         gs.add_blast_marker(bm)
 
         # Check if hulk drifted off table
@@ -359,7 +360,8 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
                     by = ship.y + 1.5 * math.sin(math.radians(angle))
                     gs.add_blast_marker(
                         BlastMarker(id=f"hulk_exp_{ship.id}_{bi}",
-                                    x=bx, y=by, source="explosion"))
+                                    x=bx, y=by, source="explosion",
+                                    heading=angle))
 
                 for s_dict in gs.ships:
                     other = Ship.from_dict(s_dict)

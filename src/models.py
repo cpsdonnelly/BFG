@@ -322,12 +322,15 @@ class BlastMarker:
     x: float
     y: float
     source: str = ""  # what caused it
+    heading: float = 0.0  # degrees; determines trefoil lobe orientation
 
     def to_dict(self):
         return asdict(self)
 
     @classmethod
     def from_dict(cls, d):
+        d = dict(d)
+        d.setdefault("heading", 0.0)
         return cls(**d)
 
 

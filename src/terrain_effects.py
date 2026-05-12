@@ -1,5 +1,6 @@
 """BFG:XR Terrain Effects - Asteroid fields, dust clouds, warp rifts, tabletop effects"""
 import math
+import random
 from typing import List, Dict, Optional, Tuple
 from .models import Ship, Phenomenon, BlastMarker, OrdnanceMarker
 from .game_state import GameState
@@ -270,7 +271,8 @@ class TabletopEffects:
                 id=f"flare_{s.id}",
                 x=s.x + s.base_radius * 0.5,
                 y=s.y,
-                source="solar_flare")
+                source="solar_flare",
+                heading=random.uniform(0, 360))
             gs.add_blast_marker(bm)
 
             # Ships without shields take damage

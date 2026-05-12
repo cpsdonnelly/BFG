@@ -491,7 +491,8 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
             bm = BlastMarker(
                 id=f"bm_{target.id}_t{game_state.turn_number}_{j}_{random.randint(0,9999)}",
                 x=bx, y=by,
-                source=turn_label
+                source=turn_label,
+                heading=(math.degrees(best_angle) + 180) % 360,
             )
             game_state.add_blast_marker(bm)
             existing_bms.append(bm)  # track for overlap checking
@@ -512,7 +513,8 @@ def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) ->
         game_state.update_ship(ship)
         game_state.add_log(f"{ship.name} destroyed - replaced with blast marker")
         bm = BlastMarker(id=f"wreck_{ship.id}", x=ship.x, y=ship.y,
-                          source="destroyed_escort")
+                          source="destroyed_escort",
+                          heading=random.uniform(0, 360))
         game_state.add_blast_marker(bm)
         return "escort_destroyed"
 
@@ -555,7 +557,8 @@ def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) ->
             by = ship.y + 1.5 * math.sin(math.radians(angle))
             game_state.add_blast_marker(
                 BlastMarker(id=f"explosion_{ship.id}_{i}", x=bx, y=by,
-                            source="explosion"))
+                            source="explosion",
+                            heading=angle))
 
         # Damage nearby ships
         for s_dict in game_state.ships:

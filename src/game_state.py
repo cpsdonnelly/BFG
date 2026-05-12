@@ -43,6 +43,7 @@ class GameState:
     rule_teleport: bool = False  # note: Tau cannot teleport regardless
     rule_hit_and_run: bool = False
     rule_turret_suppression_remastered: bool = False  # False = XR mode, True = Remastered mode
+    contact_margin_cm: float = 0.2  # wiggle room added to base contact distance checks
 
     # Collections
     ships: List[Dict] = field(default_factory=list)
@@ -129,6 +130,7 @@ class GameState:
             "rule_hit_and_run": self.rule_hit_and_run,
             "rule_turret_suppression_remastered": self.rule_turret_suppression_remastered,
             "allow_movement_pass": self.allow_movement_pass,
+            "contact_margin_cm": self.contact_margin_cm,
             "timestamp": time.time(),
         }
 

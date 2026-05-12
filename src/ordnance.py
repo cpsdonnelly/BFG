@@ -3,7 +3,8 @@ import math
 from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, OrdnanceType
 from .game_state import GameState
-from .geometry import BASE_CONTACT_MARGIN_CM
+from .geometry import (BASE_CONTACT_MARGIN_CM, circle_touches_torpedo,
+                        TORP_BODY_HALF_W_CM, ATTACK_CRAFT_HALF_SIDE_CM)
 from .dice import DiceRoller
 
 
@@ -95,8 +96,8 @@ def get_massed_turret_bonus(ship: Ship, all_ships: List[Ship]) -> int:
 
 def check_torpedo_contact(marker: OrdnanceMarker, ship: Ship) -> bool:
     """Check if a torpedo marker contacts a ship's base."""
-    dist = math.sqrt((marker.x - ship.x)**2 + (marker.y - ship.y)**2)
-    return dist <= ship.base_radius + 1.0
+    return circle_touches_torpedo(ship.x, ship.y, ship.base_radius,
+                                   marker.x, marker.y, marker.heading)
 
 
 def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
@@ -487,14 +488,16 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
     if not is_torp and not is_craft:
         return False, ""
 
+    # Approximate marker half-size for terrain contact (circular bounding radius)
+    marker_r = TORP_BODY_HALF_W_CM if is_torp else ATTACK_CRAFT_HALF_SIDE_CM
+
     for p in phenomena:
-        # Contact check (use 1cm margin for marker size)
         if "planet" in p.phenomenon_type and p.radius > 0:
             dist = math.sqrt((marker.x - p.x)**2 + (marker.y - p.y)**2)
-            in_contact = dist <= p.radius + 1.0
+            in_contact = dist <= p.radius + marker_r
         else:
-            in_contact = (abs(marker.x - p.x) <= p.width / 2 + 1.0 and
-                          abs(marker.y - p.y) <= p.height / 2 + 1.0)
+            in_contact = (abs(marker.x - p.x) <= p.width / 2 + marker_r and
+                          abs(marker.y - p.y) <= p.height / 2 + marker_r)
 
         if not in_contact:
             continue

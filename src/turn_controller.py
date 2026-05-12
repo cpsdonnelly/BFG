@@ -9,6 +9,7 @@ from typing import List, Dict, Optional
 from .game_state import GameState
 from .models import Ship, SpecialOrder
 from .dice import DiceRoller
+from .geometry import circle_touches_trefoil
 
 
 class ActionRecord:
@@ -316,7 +317,8 @@ class TurnController:
         # Determine Ld modifiers
         blast_markers = self.gs.get_blast_markers()
         in_blast = any(
-            math.sqrt((bm.x - ship.x)**2 + (bm.y - ship.y)**2) < ship.base_radius + 1.5
+            circle_touches_trefoil(ship.x, ship.y, ship.base_radius,
+                                   bm.x, bm.y, bm.heading)
             for bm in blast_markers
         )
         enemy_on_special = any(
@@ -425,7 +427,8 @@ class TurnController:
         # Recalculate modifiers
         blast_markers = self.gs.get_blast_markers()
         in_blast = any(
-            math.sqrt((bm.x - ship.x)**2 + (bm.y - ship.y)**2) < ship.base_radius + 1.5
+            circle_touches_trefoil(ship.x, ship.y, ship.base_radius,
+                                   bm.x, bm.y, bm.heading)
             for bm in blast_markers
         )
         enemy_on_special = any(

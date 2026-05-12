@@ -14,6 +14,8 @@ from .combat import (check_weapon_in_arc, check_weapon_in_range,
                      resolve_batteries, resolve_lances, resolve_nova_cannon,
                      apply_damage, check_los_clear)
 from .end_phase import resolve_end_phase
+from .geometry import (circle_touches_square, circle_touches_torpedo,
+                        ATTACK_CRAFT_HALF_SIDE_CM)
 
 
 class GamePanel:
@@ -2598,64 +2600,64 @@ class GamePanel:
                         continue
                     if s.is_destroyed or s.is_disengaged:
                         continue
-                    dist = math.sqrt(
-                        (marker.x - s.x)**2 + (marker.y - s.y)**2)
-                    if dist <= s.base_radius + 1.5:
-                        # CAP fighters intercept before the bomber attacks
-                        if self._check_cap_intercept(marker, s, to_remove_after):
-                            break
+                    if not circle_touches_square(s.x, s.y, s.base_radius,
+                                                 marker.x, marker.y,
+                                                 marker.heading):
+                        continue
+                    # CAP fighters intercept before the bomber attacks
+                    if self._check_cap_intercept(marker, s, to_remove_after):
+                        break
 
-                        self._append_log(
-                            f"  {marker.ordnance_type} attacks {s.name}!")
+                    self._append_log(
+                        f"  {marker.ordnance_type} attacks {s.name}!")
 
-                        # Count friendly fighters in contact with this target
-                        # (same player as bomber, within base contact range)
-                        contact_r = s.base_radius + 2.0
-                        suppressing_fighters = sum(
-                            1 for od in self.gs.ordnance
-                            if od.get("owner_player") == marker.owner_player
-                            and od.get("ordnance_type") in (
-                                OrdnanceType.FIGHTER.value,
-                                OrdnanceType.BARRACUDA.value,
-                                OrdnanceType.MANTA.value)
-                            and math.sqrt((od.get("x", 0) - s.x)**2
-                                          + (od.get("y", 0) - s.y)**2) <= contact_r)
+                    # Count friendly fighters whose square marker touches this ship
+                    suppressing_fighters = sum(
+                        1 for od in self.gs.ordnance
+                        if od.get("owner_player") == marker.owner_player
+                        and od.get("ordnance_type") in (
+                            OrdnanceType.FIGHTER.value,
+                            OrdnanceType.BARRACUDA.value,
+                            OrdnanceType.MANTA.value)
+                        and circle_touches_square(s.x, s.y, s.base_radius,
+                                                  od.get("x", 0), od.get("y", 0),
+                                                  od.get("heading", 0)))
 
-                        # Count all bombers from same player contacting this ship
-                        # (needed for Remastered cap)
-                        total_bombers_on_target = sum(
-                            1 for od in self.gs.ordnance
-                            if od.get("owner_player") == marker.owner_player
-                            and od.get("ordnance_type") in (
-                                OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
-                            and math.sqrt((od.get("x", 0) - s.x)**2
-                                          + (od.get("y", 0) - s.y)**2)
-                                <= s.base_radius + 1.5)
+                    # Count all bombers from same player contacting this ship
+                    # (needed for Remastered cap)
+                    total_bombers_on_target = sum(
+                        1 for od in self.gs.ordnance
+                        if od.get("owner_player") == marker.owner_player
+                        and od.get("ordnance_type") in (
+                            OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
+                        and circle_touches_square(s.x, s.y, s.base_radius,
+                                                  od.get("x", 0), od.get("y", 0),
+                                                  od.get("heading", 0)))
 
-                        if suppressing_fighters > 0:
-                            if self.gs.rule_turret_suppression_remastered:
-                                # Remastered: fighters add +1 to attack roll,
-                                # capped at total attacking bombers
-                                result = resolve_bomber_attack(
-                                    marker, s, self.dice, self.gs,
-                                    remastered_fighter_bonus=suppressing_fighters,
-                                    remastered_bomber_cap=total_bombers_on_target,
-                                    all_ships=ships)
-                            else:
-                                # XR default: this bomber gets exactly 3 attacks
-                                result = resolve_bomber_attack(
-                                    marker, s, self.dice, self.gs,
-                                    suppressed_by_fighter=True,
-                                    all_ships=ships)
-                        else:
+                    if suppressing_fighters > 0:
+                        if self.gs.rule_turret_suppression_remastered:
+                            # Remastered: fighters add +1 to attack roll,
+                            # capped at total attacking bombers
                             result = resolve_bomber_attack(
                                 marker, s, self.dice, self.gs,
+                                remastered_fighter_bonus=suppressing_fighters,
+                                remastered_bomber_cap=total_bombers_on_target,
                                 all_ships=ships)
+                        else:
+                            # XR default: this bomber gets exactly 3 attacks
+                            result = resolve_bomber_attack(
+                                marker, s, self.dice, self.gs,
+                                suppressed_by_fighter=True,
+                                all_ships=ships)
+                    else:
+                        result = resolve_bomber_attack(
+                            marker, s, self.dice, self.gs,
+                            all_ships=ships)
 
-                        if result["hits"] > 0:
-                            self._check_destruction(s)
-                        to_remove_after.add(marker.id)
-                        break
+                    if result["hits"] > 0:
+                        self._check_destruction(s)
+                    to_remove_after.add(marker.id)
+                    break
 
             elif marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
                 # Mine fields detonate against any ship in contact.
@@ -2669,19 +2671,20 @@ class GamePanel:
                     if (s.player == marker.owner_player
                             and self.gs.turn_number == marker.launched_turn):
                         continue  # safe on launch turn
-                    dist = math.sqrt(
-                        (marker.x - s.x)**2 + (marker.y - s.y)**2)
-                    if dist <= s.base_radius + 1.5:
-                        self._append_log(
-                            f"  Mine contacts {s.name}"
-                            + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
-                            + "!")
-                        result = resolve_mine_contact(
-                            marker, s, self.dice, self.gs, ships)
-                        if result["hits"] > 0:
-                            self._check_destruction(s)
-                        to_remove_after.add(marker.id)
-                        break  # one ship triggers the field
+                    if not circle_touches_square(s.x, s.y, s.base_radius,
+                                                 marker.x, marker.y,
+                                                 marker.heading):
+                        continue
+                    self._append_log(
+                        f"  Mine contacts {s.name}"
+                        + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
+                        + "!")
+                    result = resolve_mine_contact(
+                        marker, s, self.dice, self.gs, ships)
+                    if result["hits"] > 0:
+                        self._check_destruction(s)
+                    to_remove_after.add(marker.id)
+                    break  # one ship triggers the field
 
             elif is_assault_boat:
                 # Assault boats trigger hit-and-run raids against enemy ships
@@ -2693,9 +2696,9 @@ class GamePanel:
                         continue
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
                         continue
-                    dist = math.sqrt(
-                        (marker.x - s.x)**2 + (marker.y - s.y)**2)
-                    if dist > s.base_radius + 1.5:
+                    if not circle_touches_square(s.x, s.y, s.base_radius,
+                                                 marker.x, marker.y,
+                                                 marker.heading):
                         continue
 
                     # CAP fighters intercept before the raid
