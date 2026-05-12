@@ -88,12 +88,12 @@ BUGS
 15. Mine friendly fire does not work
     Mines should be able to hit friendly ships (players must manage positioning).
     Friendly fire was not being evaluated.
-    Status: NOT IMPLEMENTED
+    Status: FIXED (contact loop checks all ships; only launch-turn exemption applies)
 
 16. Mine friendly fire should not trigger on first turn after launch
     A mine should not threaten the launching ship's fleet on the turn it is
     launched, only from the following ordnance phase onwards.
-    Status: NOT IMPLEMENTED
+    Status: FIXED (launch-turn check: skip if s.player == owner and turn == launched_turn)
 
 17. Minelayer allowed to launch 8 mines in one turn (should be 4)
     The Dictator's mine launcher strength of 4 was not being respected as the
@@ -287,9 +287,15 @@ FEATURES
 48. Mine attack rules (8D6 vs armor, shields block, defense turrets reduce to 4D6)
     Mines attack with 8D6 against the target's armor value. Damage can be blocked
     by shields (unlike torpedoes). If the target's turrets score at least one 4+,
-    the mine rolls 4D6 instead of 8D6.
-    Status: PARTIAL — mine movement and basic attack exist; turret interaction
-    vs. mines not confirmed
+    the mine rolls 4D6 instead of 8D6. Massed turret bonus applies to the
+    interception roll.
+    Status: IMPLEMENTED (turret interaction + massed bonus fixed this session)
+
+58. Torpedo friendly fire
+    Torpedoes should be a hazard to all ships including the firing player's own
+    fleet. Any ship that crosses a torpedo salvo's path can be hit.
+    Status: IMPLEMENTED (contact loop checks all ships with no owner skip;
+    confirmed at game_panel.py:2547)
 
 49. Mine terrain interactions (same as torpedoes)
     Mines should be destroyed on a D6 roll of 6 when crossing a blast marker or
