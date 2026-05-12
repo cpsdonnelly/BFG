@@ -3,6 +3,7 @@ import math
 from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, OrdnanceType
 from .game_state import GameState
+from .geometry import BASE_CONTACT_MARGIN_CM
 from .dice import DiceRoller
 
 
@@ -85,7 +86,7 @@ def get_massed_turret_bonus(ship: Ship, all_ships: List[Ship]) -> int:
         if ally.is_destroyed or ally.is_disengaged or ally.is_crippled:
             continue
         dist = math.sqrt((ally.x - ship.x)**2 + (ally.y - ship.y)**2)
-        if dist <= ally.base_radius + ship.base_radius + 0.5:
+        if dist <= ally.base_radius + ship.base_radius + BASE_CONTACT_MARGIN_CM:
             bonus += 1
             if bonus >= 3:
                 break

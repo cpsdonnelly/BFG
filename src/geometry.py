@@ -4,10 +4,13 @@ from typing import List
 from .models import Ship, BlastMarker
 
 
-# Distance beyond a ship's base radius that counts as touching a blast marker,
-# torpedo, mine, or any other contact-checked marker. Standard BFG base-contact
-# tolerance.
-BASE_CONTACT_THRESHOLD_CM = 1.5
+# Physical radius of a blast marker token (30mm wide trefoil → 15mm = 1.5cm).
+# Used for ship-blast-marker contact and LoS obstruction checks.
+BLAST_MARKER_RADIUS_CM = 1.5
+
+# Extra margin added on top of the sum of two ship base radii to count as
+# "base contact". +1cm per the player-friendliness rule requested.
+BASE_CONTACT_MARGIN_CM = 1.0
 
 
 def line_passes_near(x1, y1, x2, y2, px, py, threshold) -> bool:
@@ -28,6 +31,6 @@ def count_blast_markers_touching(ship: Ship,
     count = 0
     for bm in blast_markers:
         dist = math.sqrt((bm.x - ship.x) ** 2 + (bm.y - ship.y) ** 2)
-        if dist <= ship.base_radius + BASE_CONTACT_THRESHOLD_CM:
+        if dist <= ship.base_radius + BLAST_MARKER_RADIUS_CM:
             count += 1
     return count

@@ -5,7 +5,7 @@ from typing import List, Dict
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
-from .geometry import count_blast_markers_touching, BASE_CONTACT_THRESHOLD_CM
+from .geometry import count_blast_markers_touching, BLAST_MARKER_RADIUS_CM
 
 
 def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]:
@@ -176,7 +176,7 @@ def remove_blast_markers(gs: GameState, dice: DiceRoller) -> List[str]:
             if s.is_destroyed:
                 continue
             dist = math.sqrt((bm.x - s.x)**2 + (bm.y - s.y)**2)
-            if dist <= s.base_radius + BASE_CONTACT_THRESHOLD_CM:
+            if dist <= s.base_radius + BLAST_MARKER_RADIUS_CM:
                 touching = True
                 break
         if not touching:
