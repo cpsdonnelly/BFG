@@ -2,7 +2,7 @@
 import math
 from typing import List, Tuple, Optional
 from .models import Ship, Phenomenon, BlastMarker
-from .geometry import line_passes_near
+from .geometry import line_passes_near, BASE_CONTACT_THRESHOLD_CM
 
 
 def check_los(x1: float, y1: float, x2: float, y2: float,
@@ -65,7 +65,7 @@ def check_los(x1: float, y1: float, x2: float, y2: float,
     # Check blast markers in line of fire (cause column shift for batteries)
     blast_crossed = False
     for bm in blast_markers:
-        if line_passes_near(x1, y1, x2, y2, bm.x, bm.y, 1.5):
+        if line_passes_near(x1, y1, x2, y2, bm.x, bm.y, BASE_CONTACT_THRESHOLD_CM):
             if not blast_crossed:
                 result["blast_markers_crossed"] += 1
                 result["column_shifts"] += 1

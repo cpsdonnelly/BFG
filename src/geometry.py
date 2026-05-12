@@ -4,6 +4,12 @@ from typing import List
 from .models import Ship, BlastMarker
 
 
+# Distance beyond a ship's base radius that counts as touching a blast marker,
+# torpedo, mine, or any other contact-checked marker. Standard BFG base-contact
+# tolerance.
+BASE_CONTACT_THRESHOLD_CM = 1.5
+
+
 def line_passes_near(x1, y1, x2, y2, px, py, threshold) -> bool:
     """Return True if the line segment (x1,y1)→(x2,y2) passes within threshold of (px,py)."""
     dx, dy = x2 - x1, y2 - y1
@@ -22,6 +28,6 @@ def count_blast_markers_touching(ship: Ship,
     count = 0
     for bm in blast_markers:
         dist = math.sqrt((bm.x - ship.x) ** 2 + (bm.y - ship.y) ** 2)
-        if dist <= ship.base_radius + 1.5:
+        if dist <= ship.base_radius + BASE_CONTACT_THRESHOLD_CM:
             count += 1
     return count

@@ -1,5 +1,6 @@
 """BFG:XR Combat System - Shooting phase resolution"""
 import math
+import random
 from typing import List, Dict, Tuple, Optional
 from .models import Ship, BlastMarker, Arc, SpecialOrder
 from .game_state import GameState
@@ -487,9 +488,8 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
             bx = target.x + offset * math.cos(best_angle)
             by = target.y + offset * math.sin(best_angle)
 
-            import random as _rng
             bm = BlastMarker(
-                id=f"bm_{target.id}_t{game_state.turn_number}_{j}_{_rng.randint(0,9999)}",
+                id=f"bm_{target.id}_t{game_state.turn_number}_{j}_{random.randint(0,9999)}",
                 x=bx, y=by,
                 source=turn_label
             )

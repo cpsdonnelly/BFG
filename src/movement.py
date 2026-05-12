@@ -4,7 +4,7 @@ from typing import List, Tuple, Optional, Dict
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
-from .geometry import line_passes_near
+from .geometry import line_passes_near, BASE_CONTACT_THRESHOLD_CM
 
 
 # Minimum distance before turning by ship type
@@ -178,7 +178,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
                 new_y = max(0, min(table_height, new_y))
 
             for bm in blast_markers:
-                if line_passes_near(cx, cy, new_x, new_y, bm.x, bm.y, 1.5):
+                if line_passes_near(cx, cy, new_x, new_y, bm.x, bm.y, BASE_CONTACT_THRESHOLD_CM):
                     crossed_any_blast = True
 
             distance_moved += cmd.value

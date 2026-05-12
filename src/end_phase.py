@@ -1,10 +1,11 @@
 """BFG:XR End Phase - Damage control, blast removal, fire damage"""
 import math
+import random
 from typing import List, Dict
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
-from .geometry import count_blast_markers_touching
+from .geometry import count_blast_markers_touching, BASE_CONTACT_THRESHOLD_CM
 
 
 def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]:
@@ -110,9 +111,6 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
                 logs.append(f"  Repaired: {best['description']}")
 
     gs.update_ship(ship)
-    # Return info for the game panel to offer repair choice dialog
-    logs.append(f"  _repair_sixes={sixes}")
-    logs.append(f"  _repair_options={[c['description'] for c in repairable_crits]}")
     return logs
 
 
@@ -178,7 +176,7 @@ def remove_blast_markers(gs: GameState, dice: DiceRoller) -> List[str]:
             if s.is_destroyed:
                 continue
             dist = math.sqrt((bm.x - s.x)**2 + (bm.y - s.y)**2)
-            if dist <= s.base_radius + 1.5:
+            if dist <= s.base_radius + BASE_CONTACT_THRESHOLD_CM:
                 touching = True
                 break
         if not touching:
@@ -307,9 +305,8 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
         logs.append(f"{ship.name} ({ship.status}) drifts {drift_dist}cm")
 
         # Place blast marker after move
-        import random as _rng
         bm = BlastMarker(
-            id=f"hulk_drift_{ship.id}_{_rng.randint(0,9999)}",
+            id=f"hulk_drift_{ship.id}_{random.randint(0,9999)}",
             x=ship.x, y=ship.y,
             source="hulk_drift")
         gs.add_blast_marker(bm)
