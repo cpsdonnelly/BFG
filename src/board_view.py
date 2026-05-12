@@ -309,18 +309,17 @@ class BoardView:
             else:
                 dist = math.sqrt((point[0] - self.ruler_start[0])**2 +
                                  (point[1] - self.ruler_start[1])**2)
-                # Build label
+                # Build status message (names useful in bar, not on canvas)
                 start_label = ""
                 if self.ruler_start_ship:
                     s = self.gs.get_ship_by_id(self.ruler_start_ship)
                     start_label = s.name if s else ""
                 end_label = snap_ship.name if snap_ship else ""
-                label = f"{dist:.1f}cm"
-                if start_label or end_label:
-                    label = f"{start_label or 'point'} → {end_label or 'point'}: {dist:.1f}cm"
-                # Store as persistent line
+                label = f"{dist:.1f}cm"  # canvas label: distance only
+                status_label = (f"{start_label or 'point'} → {end_label or 'point'}: {dist:.1f}cm"
+                                if (start_label or end_label) else label)
                 self.ruler_lines.append((self.ruler_start, point, dist, label))
-                self.status_var.set(f"Ruler: {label}")
+                self.status_var.set(f"Ruler: {status_label}")
                 self.ruler_start = None
                 self.ruler_start_ship = None
                 self.redraw()
@@ -343,9 +342,10 @@ class BoardView:
                 start_ship = self.gs.get_ship_by_id(self.ruler_start_ship)
                 start_name = start_ship.name if start_ship else "?"
                 end_name = snap_ship.name if snap_ship else "point"
-                label = f"{start_name} → {end_name}: {dist:.1f}cm"
-                self.ruler_lines.append((self.ruler_start, point, dist, label))
-                self.status_var.set(label)
+                status_label = f"{start_name} → {end_name}: {dist:.1f}cm"
+                canvas_label = f"{dist:.1f}cm"  # names stay in status bar only
+                self.ruler_lines.append((self.ruler_start, point, dist, canvas_label))
+                self.status_var.set(status_label)
                 self.ruler_start = None
                 self.ruler_start_ship = None
                 self.redraw()
@@ -1293,7 +1293,10 @@ class BoardView:
             "=== MOVEMENT SHORTCUTS ===\n\n"
             "M  -  Min-move selected ship straight forward\n"
             "      (half speed, or exact AAF distance)\n"
-            "      Click a ship first, then press M\n\n"
+            "      Click a ship first, then press M\n"
+            "Space    - Min-move ALL unmoved ships (active player)\n"
+            "Backspace - Undo ALL movement this turn\n"
+            "           (restores every ship to its phase-start position)\n\n"
             "=== MOUSE ===\n\n"
             "Left click        - Select ship / use tool\n"
             "Left drag (ship)  - Drag-and-drop movement preview\n"

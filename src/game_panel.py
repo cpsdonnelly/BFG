@@ -1224,6 +1224,10 @@ class GamePanel:
                 value = float(value)
             except ValueError:
                 return
+            if action in ("turn_left", "turn_right"):
+                if value <= 0:
+                    return
+                value = min(value, float(ship.turn_angle))
             cmd = MoveCommand(action, value)
             commands.append(cmd)
             cmd_listbox.insert(tk.END, str(cmd))

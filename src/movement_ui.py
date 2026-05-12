@@ -85,8 +85,6 @@ def compute_drag_path(ship: Ship,
     move_dist = min(dist_to_target, float(max_spd))
     if move_dist < _min_spd_hint:
         move_dist = _min_spd_hint
-    if move_dist < 0.5:
-        move_dist = max(float(max_spd), 1.0)
 
     commands: List[MoveCommand] = []
 
