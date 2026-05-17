@@ -294,7 +294,8 @@ class _OrdnanceMixin:
                                 resolve_bomber_attack, resolve_mine_contact,
                                 check_ordnance_vs_blast,
                                 check_ordnance_vs_phenomena,
-                                resolve_ordnance_interactions)
+                                resolve_ordnance_interactions,
+                                resolve_bomber_interception)
 
         self._append_log("--- Ordnance Movement ---")
 
@@ -370,8 +371,36 @@ class _OrdnanceMixin:
             self._append_log(log)
 
         # 3. Check ordnance contact with ships
-        # Torpedoes hit ALL ships (friendly fire!) unless launched through base contact
         to_remove_after = set()
+
+        # Phase 1: bomber wave interception — turrets (with massed bonus) fire once
+        # per ship at every incoming bomber wave before individual attacks resolve.
+        live_ordnance = [OrdnanceMarker.from_dict(o) for o in self.gs.ordnance]
+        for s in ships:
+            if s.is_destroyed or s.is_disengaged:
+                continue
+            # Collect enemy bomber markers currently contacting this ship
+            wave = [
+                m for m in live_ordnance
+                if m.ordnance_type in (OrdnanceType.BOMBER.value,
+                                       OrdnanceType.MANTA.value)
+                and m.owner_player != s.player
+                and m.id not in to_remove
+                and circle_touches_square(s.x, s.y, s.base_radius,
+                                          m.x, m.y, m.heading)
+            ]
+            if not wave:
+                continue
+            p1 = resolve_bomber_interception(
+                len(wave), s, ships, self.dice, self.gs)
+            for msg in p1["log"]:
+                self._append_log(msg)
+            for m in wave[:p1["killed"]]:
+                self._append_log(
+                    f"  Phase 1: {m.ordnance_type} [{m.id[:8]}] destroyed by interception")
+                to_remove_after.add(m.id)
+
+        # Per-marker ship contact resolution
         for o_dict in list(self.gs.ordnance):
             marker = OrdnanceMarker.from_dict(o_dict)
             if marker.id in to_remove_after:
