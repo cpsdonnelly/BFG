@@ -22,7 +22,6 @@ class DiceRoller:
         self.mode = mode
         self.root = root
         self.log: List[str] = []
-        self.simplified_input: bool = False
 
     def roll_d6(self, count: int = 1, description: str = "",
                 allow_reroll: bool = False) -> List[int]:
