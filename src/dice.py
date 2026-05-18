@@ -22,6 +22,7 @@ class DiceRoller:
         self.mode = mode
         self.root = root
         self.log: List[str] = []
+        self.simplified_input: bool = False
 
     def roll_d6(self, count: int = 1, description: str = "",
                 allow_reroll: bool = False) -> List[int]:
@@ -42,6 +43,8 @@ class DiceRoller:
 
     def roll_2d6(self, description: str = "") -> int:
         """Roll 2D6 and return the sum."""
+        if self.simplified_input and self.mode == "mixed" and self.root:
+            return self._mixed_2d6_input(description)
         results = self.roll_d6(2, description)
         return sum(results)
 
@@ -112,9 +115,10 @@ class DiceRoller:
         result_var = []
 
         try:
+            h = 230 if self.simplified_input else 180
             dialog = tk.Toplevel(self.root)
             dialog.title("Dice Roll")
-            dialog.geometry("420x180")
+            dialog.geometry(f"420x{h}")
             dialog.transient(self.root)
             # Don't use grab_set - it conflicts with other open dialogs
             dialog.focus_set()
@@ -149,7 +153,7 @@ class DiceRoller:
                 dialog.destroy()
 
             btn_frame = tk.Frame(dialog)
-            btn_frame.pack(pady=10)
+            btn_frame.pack(pady=5)
             tk.Button(btn_frame, text="Submit Manual", command=on_manual,
                       font=("Consolas", 10)).pack(side=tk.LEFT, padx=10)
             tk.Button(btn_frame, text="Auto-Roll (RNG)", command=on_auto,
@@ -157,6 +161,28 @@ class DiceRoller:
 
             entry.bind("<Return>", lambda e: on_manual())
             dialog.protocol("WM_DELETE_WINDOW", on_auto)
+
+            if self.simplified_input:
+                sep = tk.Frame(dialog, height=1, bg="#666666")
+                sep.pack(fill=tk.X, padx=10, pady=4)
+                succ_frame = tk.Frame(dialog)
+                succ_frame.pack(pady=4)
+                tk.Label(succ_frame, text=f"Successes (0–{count}):",
+                         font=("Consolas", 9)).pack(side=tk.LEFT)
+                succ_entry = tk.Entry(succ_frame, width=4, font=("Consolas", 11))
+                succ_entry.pack(side=tk.LEFT, padx=5)
+
+                def on_successes():
+                    try:
+                        n = max(0, min(int(succ_entry.get()), count))
+                        result_var.extend([6] * n + [1] * (count - n))
+                        dialog.destroy()
+                    except ValueError:
+                        succ_entry.delete(0, tk.END)
+
+                tk.Button(succ_frame, text="Use Successes", command=on_successes,
+                          font=("Consolas", 9), bg="#333366", fg="white").pack(side=tk.LEFT, padx=5)
+                succ_entry.bind("<Return>", lambda e: on_successes())
 
             self.root.wait_window(dialog)
         except Exception:
@@ -167,3 +193,58 @@ class DiceRoller:
         if not result_var:
             return [random.randint(1, 6) for _ in range(count)]
         return list(result_var)
+
+    def _mixed_2d6_input(self, description: str) -> int:
+        """Simplified 2D6 dialog showing a direct sum entry instead of individual dice."""
+        result_var = [None]
+
+        try:
+            dialog = tk.Toplevel(self.root)
+            dialog.title("2D6 Roll")
+            dialog.geometry("400x160")
+            dialog.transient(self.root)
+            dialog.focus_set()
+            dialog.lift()
+
+            tk.Label(dialog, text=description or "Roll 2D6",
+                     font=("Consolas", 10, "bold"), wraplength=380).pack(pady=5)
+
+            frame = tk.Frame(dialog)
+            frame.pack(pady=5)
+            tk.Label(frame, text="Sum (2–12):").pack(side=tk.LEFT)
+            entry = tk.Entry(frame, width=5, font=("Consolas", 11))
+            entry.pack(side=tk.LEFT, padx=5)
+            entry.focus_set()
+
+            def on_manual():
+                try:
+                    v = int(entry.get())
+                    if 2 <= v <= 12:
+                        result_var[0] = v
+                        dialog.destroy()
+                except ValueError:
+                    pass
+
+            def on_auto():
+                result_var[0] = random.randint(1, 6) + random.randint(1, 6)
+                dialog.destroy()
+
+            btn_frame = tk.Frame(dialog)
+            btn_frame.pack(pady=10)
+            tk.Button(btn_frame, text="Submit", command=on_manual,
+                      font=("Consolas", 10)).pack(side=tk.LEFT, padx=10)
+            tk.Button(btn_frame, text="Auto-Roll (RNG)", command=on_auto,
+                      font=("Consolas", 10), bg="#336633", fg="white").pack(side=tk.LEFT, padx=10)
+
+            entry.bind("<Return>", lambda e: on_manual())
+            dialog.protocol("WM_DELETE_WINDOW", on_auto)
+
+            self.root.wait_window(dialog)
+        except Exception:
+            pass
+
+        if result_var[0] is None:
+            result_var[0] = random.randint(1, 6) + random.randint(1, 6)
+        v = result_var[0]
+        self.log.append(f"{description or '2D6'}: [sum={v}]")
+        return v

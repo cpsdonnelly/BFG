@@ -23,7 +23,8 @@ def _apply_rules(gs, setup):
     """Apply optional rule settings from setup dict to GameState."""
     for key in ("rule_fighting_sunward", "rule_solar_flares", "rule_radiation_bursts",
                  "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
-                 "rule_turret_suppression_remastered", "allow_movement_pass"):
+                 "rule_turret_suppression_remastered", "allow_movement_pass",
+                 "simplified_input"):
         if key in setup:
             setattr(gs, key, setup[key])
 
@@ -327,9 +328,23 @@ def _show_setup_dialog(root) -> Optional[dict]:
              text="Default OFF: ending the movement phase with unmoved ships is blocked.",
              font=("Consolas", 7), fg="#888888").pack(anchor=tk.W)
 
+    # Simplified input
+    simplified_frame = tk.Frame(dialog)
+    simplified_frame.pack(pady=3, padx=20, fill=tk.X)
+    simplified_var = tk.BooleanVar(value=False)
+    tk.Checkbutton(simplified_frame,
+                   text="Simplified Input — dice dialogs offer a direct successes/sum entry",
+                   variable=simplified_var,
+                   font=("Consolas", 8)).pack(anchor=tk.W)
+    tk.Label(simplified_frame,
+             text="Useful when rolling physical dice: enter the number of hits directly "
+                  "instead of each die result. Leadership checks show a direct 2D6 sum entry.",
+             font=("Consolas", 7), fg="#888888", wraplength=480, justify=tk.LEFT).pack(anchor=tk.W)
+
     def _get_rules():
         rules = {f"rule_{k}": v.get() for k, v in rule_vars.items()}
         rules["allow_movement_pass"] = allow_pass_var.get()
+        rules["simplified_input"] = simplified_var.get()
         return rules
 
     def _get_fleets():

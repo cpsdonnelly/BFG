@@ -269,7 +269,15 @@ FEATURES
     adds buttons to key dialogs (fire, special orders, target priority, crit
     rolls, nova cannon) so the player can type in a number of successes directly
     rather than resolving every individual die.
-    Status: NOT IMPLEMENTED
+    Status: IMPLEMENTED
+    Where: GameState.simplified_input (game_state.py), wired via _apply_rules
+    (main.py) and game_panel.py into DiceRoller.simplified_input (dice.py).
+    — D6 pools (battery fire, lance fire, crit rolls, etc.): mixed dialog gains
+      a "Successes (0-N)" entry + "Use Successes" button that fabricates a list
+      of N sixes + (count-N) ones, passing any threshold downstream.
+    — 2D6 leadership checks: separate simplified dialog with "Sum (2-12)" entry
+      instead of per-die entry, so players enter their 2D6 result directly.
+    Checkbox on game setup screen with explanatory tooltip text.
 
 44. Auto fire: all ships fire everything at nearest valid target
     A single button or shortcut that makes every ship belonging to the active

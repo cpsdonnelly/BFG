@@ -41,6 +41,7 @@ class GamePanel(_MovementMixin, _CombatMixin, _OrdnanceMixin, _EndPhaseMixin):
 
         # Make dice use our root for dialogs
         self.dice.root = root
+        self.dice.simplified_input = self.gs.simplified_input
 
         # Transient UI state — not persisted
         self._pending_turn: dict = {}     # ship_id → pending net turn degrees (+ = left)
