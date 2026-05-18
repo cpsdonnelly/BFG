@@ -134,6 +134,12 @@ class GamePanel(_MovementMixin, _CombatMixin, _OrdnanceMixin, _EndPhaseMixin):
             command=self._show_victory_points,
             bg="#334455", fg="white", font=("Consolas", 9), width=25)
 
+        # Settings button — always visible
+        self.settings_btn = tk.Button(
+            self.parent, text="Settings", command=self._settings_dialog,
+            bg="#2a2a44", fg="#aaaacc", font=("Consolas", 8), width=25)
+        self.settings_btn.pack(pady=2, padx=5)
+
         # Log display
         tk.Frame(self.parent, bg="#333355", height=2).pack(fill=tk.X, padx=5, pady=3)
         tk.Label(self.parent, text="Game Log", bg="#1a1a2e", fg="#888888",
@@ -192,6 +198,112 @@ class GamePanel(_MovementMixin, _CombatMixin, _OrdnanceMixin, _EndPhaseMixin):
     def _log_lines(self, lines):
         for line in lines:
             self._append_log(line)
+
+    def _settings_dialog(self):
+        """In-game settings dialog — changes take effect immediately."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Game Settings")
+        dialog.geometry("480x520")
+        dialog.transient(self.root)
+        dialog.focus_set()
+        dialog.lift()
+
+        tk.Label(dialog, text="Game Settings",
+                 font=("Consolas", 12, "bold")).pack(pady=8)
+        tk.Label(dialog, text="Changes apply immediately — no need to restart.",
+                 font=("Consolas", 8), fg="#888888").pack()
+
+        # Dice mode
+        dice_frame = tk.LabelFrame(dialog, text="Dice Mode", font=("Consolas", 9, "bold"),
+                                   padx=8, pady=4)
+        dice_frame.pack(fill=tk.X, padx=15, pady=6)
+        dice_var = tk.StringVar(value=self.gs.dice_mode)
+        for label, val in [("Mixed (popup with manual/auto choice)", "mixed"),
+                            ("Auto (computer RNG, no prompts)", "auto"),
+                            ("Manual (always prompt for each die)", "manual")]:
+            tk.Radiobutton(dice_frame, text=label, variable=dice_var, value=val,
+                           font=("Consolas", 8)).pack(anchor=tk.W)
+        tk.Label(dice_frame,
+                 text="Mixed: each roll shows a popup — enter dice manually or click Auto-Roll.\n"
+                      "      Both per-die entry and number-of-successes shortcut are always available.",
+                 font=("Consolas", 7), fg="#888888", justify=tk.LEFT).pack(anchor=tk.W)
+
+        # Movement enforcement
+        move_frame = tk.LabelFrame(dialog, text="Movement", font=("Consolas", 9, "bold"),
+                                   padx=8, pady=4)
+        move_frame.pack(fill=tk.X, padx=15, pady=4)
+        pass_var = tk.BooleanVar(value=self.gs.allow_movement_pass)
+        tk.Checkbutton(move_frame,
+                       text="Allow movement pass (skip moving ships without penalty)",
+                       variable=pass_var, font=("Consolas", 8)).pack(anchor=tk.W)
+
+        # Optional rules
+        rules_frame = tk.LabelFrame(dialog, text="Optional Rules", font=("Consolas", 9, "bold"),
+                                    padx=8, pady=4)
+        rules_frame.pack(fill=tk.X, padx=15, pady=4)
+
+        rule_defs = [
+            ("rule_fighting_sunward",          "Fighting Sunward (double range shifts)"),
+            ("rule_solar_flares",              "Solar Flares"),
+            ("rule_radiation_bursts",          "Radiation Bursts"),
+            ("rule_boarding",                  "Boarding Actions"),
+            ("rule_ramming",                   "Ramming"),
+            ("rule_teleport",                  "Teleport Attacks (not Tau)"),
+            ("rule_hit_and_run",               "Hit and Run Raids"),
+            ("rule_turret_suppression_remastered",
+             "Turret Suppression: Remastered mode\n"
+             "  (default XR: fighters suppress to 3 fixed attacks)"),
+        ]
+        rule_vars = {}
+        for attr, label in rule_defs:
+            var = tk.BooleanVar(value=getattr(self.gs, attr))
+            rule_vars[attr] = var
+            tk.Checkbutton(rules_frame, text=label, variable=var,
+                           font=("Consolas", 8), justify=tk.LEFT).pack(anchor=tk.W)
+
+        # Contact margin (advanced)
+        adv_frame = tk.LabelFrame(dialog, text="Advanced", font=("Consolas", 9, "bold"),
+                                  padx=8, pady=4)
+        adv_frame.pack(fill=tk.X, padx=15, pady=4)
+        margin_row = tk.Frame(adv_frame)
+        margin_row.pack(fill=tk.X)
+        tk.Label(margin_row, text="Contact margin (cm):", font=("Consolas", 8)).pack(side=tk.LEFT)
+        margin_var = tk.StringVar(value=str(self.gs.contact_margin_cm))
+        tk.Entry(margin_row, textvariable=margin_var, width=6,
+                 font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+        tk.Label(margin_row, text="(wiggle room for contact distance checks)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+
+        def on_apply():
+            self.gs.dice_mode = dice_var.get()
+            self.dice.mode = dice_var.get()
+
+            self.gs.allow_movement_pass = pass_var.get()
+
+            for attr, var in rule_vars.items():
+                setattr(self.gs, attr, var.get())
+
+            try:
+                self.gs.contact_margin_cm = float(margin_var.get())
+            except ValueError:
+                pass
+
+            dialog.destroy()
+            self._append_log("[Settings] Updated game settings.")
+
+        def on_cancel():
+            dialog.destroy()
+
+        btn_frame = tk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        tk.Button(btn_frame, text="Apply", command=on_apply,
+                  bg="#336633", fg="white", font=("Consolas", 10, "bold"),
+                  width=12).pack(side=tk.LEFT, padx=8)
+        tk.Button(btn_frame, text="Cancel", command=on_cancel,
+                  font=("Consolas", 10), width=12).pack(side=tk.LEFT, padx=8)
+
+        dialog.bind("<Escape>", lambda e: on_cancel())
+        self.root.wait_window(dialog)
 
     def _start_game(self):
         self.tc.start_game()
