@@ -139,7 +139,9 @@ BUGS
     A fighter on CAP should only be able to reach its assigned protected ship if
     it is within fighter speed range. The UI allowed assignment to any ship
     regardless of distance.
-    Status: NOT IMPLEMENTED
+    Status: IMPLEMENTED — _launch_ordnance_dialog measures distance from the
+    launching ship to the protected ship and refuses the launch if it exceeds
+    the fighter's movement speed (its CAP range).
 
 25. Bombers allowed to perform CAP
     Only fighters (not bombers) should be able to go on Combat Air Patrol. The
@@ -305,15 +307,20 @@ FEATURES
 49. Mine terrain interactions (same as torpedoes)
     Mines should be destroyed on a D6 roll of 6 when crossing a blast marker or
     dust cloud, and automatically destroyed when entering an asteroid field.
-    Status: NOT IMPLEMENTED (confirmed not implemented)
+    Status: IMPLEMENTED — mines are part of _TORP_LIKE in check_ordnance_vs_
+    phenomena (asteroid/planet/warp rift auto-destroy; dust D6=6) and run
+    through check_ordnance_vs_blast like all ordnance (blast crossing D6=6).
 
 50. Asteroid field ship interaction rules
     Ships moving through or contacting the edge of an asteroid field must pass a
     leadership test (3D6 on AAF). On failure, suffer D6 damage (shields block,
     no blast marker placed). Ships in the field may fire at each other with
     battery/lance weapons at up to 10cm range at half strength.
-    Status: PARTIAL — LoS blocking by asteroid fields is implemented;
-    leadership test and damage on contact are not
+    Status: IMPLEMENTED — resolve_asteroid_navigation runs at the end of any
+    move that ends in an asteroid field (2D6 vs Ld, or 3D6 on AAF; escorts may
+    re-roll); on failure D6 damage with shields blocking and no blast marker.
+    The 10cm half-strength weapon restriction from within a field is enforced
+    in _combat_mixin (ast_range_cap and the ast_note halve-strength path).
 
 51. Teleport attack mechanic
     Ships within 10cm of an enemy with shields at 0 and no more remaining hits
@@ -362,6 +369,14 @@ FEATURES
     Two distinct Tau fleet files with their own ship rosters, both using "tau"
     in their faction strings.
     Status: NOT IMPLEMENTED
+
+59. CAP fighters did not intercept incoming mines
+    Torpedoes, bombers, and assault boats all triggered _check_cap_intercept
+    on ship contact; the mine-field contact branch went straight to detonation
+    so a friendly CAP fighter orbiting the target was bypassed by enemy mines.
+    Status: FIXED (mine contact branch in _ordnance_mixin now calls
+    _check_cap_intercept before resolve_mine_contact; resolve_fighter_intercept
+    already handles fighter-vs-mine via the mutual-destruction path)
 
 ================================================================================
 LEGEND

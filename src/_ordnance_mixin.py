@@ -525,6 +525,11 @@ class _OrdnanceMixin:
                                                  marker.x, marker.y,
                                                  marker.heading):
                         continue
+
+                    # CAP fighters intercept the mine before it detonates
+                    if self._check_cap_intercept(marker, s, to_remove_after):
+                        break
+
                     self._append_log(
                         f"  Mine contacts {s.name}"
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
