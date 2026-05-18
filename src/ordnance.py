@@ -261,8 +261,7 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
                           dice: DiceRoller, game_state: GameState,
                           suppressed_by_fighter: bool = False,
                           remastered_fighter_bonus: int = 0,
-                          remastered_bomber_cap: int = 1,
-                          all_ships: List[Ship] = None) -> Dict:
+                          remastered_bomber_cap: int = 1) -> Dict:
     """
     Resolve bomber attack. D6 attacks per squadron vs lowest armor. Bypasses shields.
 

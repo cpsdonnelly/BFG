@@ -494,18 +494,15 @@ class _OrdnanceMixin:
                             result = resolve_bomber_attack(
                                 marker, s, self.dice, self.gs,
                                 remastered_fighter_bonus=suppressing_fighters,
-                                remastered_bomber_cap=total_bombers_on_target,
-                                all_ships=ships)
+                                remastered_bomber_cap=total_bombers_on_target)
                         else:
                             # XR default: this bomber gets exactly 3 attacks
                             result = resolve_bomber_attack(
                                 marker, s, self.dice, self.gs,
-                                suppressed_by_fighter=True,
-                                all_ships=ships)
+                                suppressed_by_fighter=True)
                     else:
                         result = resolve_bomber_attack(
-                            marker, s, self.dice, self.gs,
-                            all_ships=ships)
+                            marker, s, self.dice, self.gs)
 
                     if result["hits"] > 0:
                         self._check_destruction(s)
