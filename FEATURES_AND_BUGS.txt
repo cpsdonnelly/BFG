@@ -240,20 +240,29 @@ FEATURES
     The drag-and-drop path system used for ship movement should be extended to
     cover ordnance markers, letting the player visually plot launch paths for
     bombers, fighters, and Tau missiles.
-    Status: PARTIAL — Tau missile drag may be partially in place; fighter/
-    bomber drag not confirmed implemented
+    Status: IMPLEMENTED — board_view ord_drag mechanism lets the player drag
+    from any ship carrying loaded ordnance; draws the ±45° launch arc cone,
+    snap zone, and a live heading arrow with valid/invalid color feedback.
+    Releasing inside the arc opens _launch_ordnance_dialog with the heading
+    pre-filled. Works uniformly for torpedoes, fighters, bombers, and Tau
+    missiles (any ordnance type the launch dialog supports).
 
 41. Intuitive torpedo launch heading
     The torp launch direction should be set by a more player-friendly interaction
     rather than raw angle input — e.g. a direction arrow the player drags to
     point in the desired direction.
-    Status: NOT IMPLEMENTED
+    Status: IMPLEMENTED — see #40; the drag-from-ship interaction draws a
+    direction arrow the player aims, and the resulting heading is passed to
+    the launch dialog. Raw angle input is no longer required.
 
 42. Streamlined Tau missile degradation rolls
     The Tau guided missile degradation system currently pops up once per missile
     strength value. This should be rolled automatically (or allow the player to
     input a single number of successes) rather than requiring N separate dialogs.
-    Status: NOT IMPLEMENTED
+    Status: IMPLEMENTED — degrade_tau_missiles in ordnance.py rolls all
+    strength dice in a single batch (dice.roll_d6(marker.strength, ...))
+    and counts the 1s. In manual / mixed dice modes the player enters all
+    results in one dialog rather than N separate prompts.
 
 43. Simplified input toggle at game creation
     A toggle at the start screen labelled "Simplified Input" that, when enabled,
@@ -271,7 +280,8 @@ FEATURES
 45. Drag and drop launch system for bombers and fighters
     Same as feature 40 — a visual drag path for placing bomber and fighter
     ordnance markers from the launching ship.
-    Status: PARTIAL
+    Status: IMPLEMENTED — covered by the same drag mechanism described in
+    #40 above; fighters and bombers use the same ord_drag path.
 
 46. Tau ship name changes
     Rename the Tau ships as specified:
