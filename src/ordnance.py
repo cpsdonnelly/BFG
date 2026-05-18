@@ -397,12 +397,20 @@ def check_ordnance_contact(marker1: OrdnanceMarker,
 
 
 def is_fighter_type(marker: OrdnanceMarker) -> bool:
-    """Check if an ordnance marker acts as a fighter (intercepts ordnance)."""
+    """Check if an ordnance marker acts as a fighter (intercepts ordnance).
+
+    Mantas are bombers (resilient), not fighters — they do not intercept.
+    """
     return marker.ordnance_type in (
         OrdnanceType.FIGHTER.value,
         OrdnanceType.BARRACUDA.value,
-        OrdnanceType.MANTA.value,  # Manta is multi-role: fighter + bomber
     )
+
+
+def _is_indiscriminate(marker: OrdnanceMarker) -> bool:
+    """Torpedoes and mines do not distinguish friend from foe."""
+    return ("torpedo" in marker.ordnance_type
+            or marker.ordnance_type == OrdnanceType.MINE_FIELD.value)
 
 
 def resolve_ordnance_interactions(game_state: GameState,
@@ -411,6 +419,8 @@ def resolve_ordnance_interactions(game_state: GameState,
     Resolve all ordnance-vs-ordnance interactions after movement.
     Fighters intercept enemy ordnance they contact (compulsory).
     Torpedo salvos that contact each other are both destroyed.
+    Torpedoes and mines are indiscriminate — they also detonate against
+    friendly ordnance on contact (with resilient saves where applicable).
     Returns log messages.
     """
     logs = []
@@ -428,8 +438,38 @@ def resolve_ordnance_interactions(game_state: GameState,
                 continue
             if m2.cap_ship_id:
                 continue  # same for the other marker
-            if m1.owner_player == m2.owner_player:
-                continue  # friendly ordnance doesn't interact
+
+            same_player = (m1.owner_player == m2.owner_player)
+            if same_player:
+                # Friendly: only torpedoes / mines cause friendly fire
+                if not (_is_indiscriminate(m1) or _is_indiscriminate(m2)):
+                    continue
+                if not check_ordnance_contact(m1, m2):
+                    continue
+                # Both destroyed; resilient save for non-indiscriminate side
+                rm1, rm2 = True, True
+                if _is_indiscriminate(m1) and not _is_indiscriminate(m2):
+                    if m2.resilient_save > 0 and not m2.resilient_used:
+                        save = dice.roll_d6(
+                            1, f"Resilient save vs friendly torp/mine ({m2.resilient_save}+)")[0]
+                        if save >= m2.resilient_save:
+                            rm2 = False
+                            m2.resilient_used = True
+                elif _is_indiscriminate(m2) and not _is_indiscriminate(m1):
+                    if m1.resilient_save > 0 and not m1.resilient_used:
+                        save = dice.roll_d6(
+                            1, f"Resilient save vs friendly torp/mine ({m1.resilient_save}+)")[0]
+                        if save >= m1.resilient_save:
+                            rm1 = False
+                            m1.resilient_used = True
+                logs.append(
+                    f"  Friendly fire: {m1.ordnance_type} vs {m2.ordnance_type}")
+                if rm1:
+                    to_remove.add(m1.id)
+                if rm2:
+                    to_remove.add(m2.id)
+                continue
+
             if not check_ordnance_contact(m1, m2):
                 continue
 
@@ -504,6 +544,7 @@ def check_ordnance_vs_blast(marker: OrdnanceMarker,
 _TORP_LIKE = {
     OrdnanceType.TORPEDO_STANDARD.value,
     OrdnanceType.TORPEDO_GUIDED.value,
+    OrdnanceType.TORPEDO_BOARDING_GUIDED.value,
     OrdnanceType.MINE_FIELD.value,
 }
 
@@ -516,6 +557,12 @@ _ATTACK_CRAFT = {
     OrdnanceType.BARRACUDA.value,
 }
 
+# Ordnance types that navigate around planets (no auto-destroy on planet contact).
+# Attack craft and guided boarding torps qualify; standard torps and mines do not.
+_PLANET_IMMUNE = _ATTACK_CRAFT | {
+    OrdnanceType.TORPEDO_BOARDING_GUIDED.value,
+}
+
 
 def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
                                  phenomena,
@@ -523,10 +570,18 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
     """
     Check if ordnance is destroyed by terrain phenomena.
 
-    Torpedoes/mines: asteroid fields, planets, warp rifts = auto-destroyed;
-                     gas/dust cloud = D6=6 destroys.
-    Attack craft:    asteroid field = D6=6 destroys; warp rift/planets = auto-destroyed;
-                     gas/dust cloud = no effect.
+    Standard torpedoes / mines:
+        asteroid fields, planets, warp rifts = auto-destroyed
+        gas/dust cloud = D6=6 destroys
+    Guided boarding torpedoes:
+        asteroid fields, warp rifts = auto-destroyed
+        planets = no effect (navigate around)
+        gas/dust cloud = D6=6 destroys
+    Attack craft (fighters, bombers, assault boats, Manta, Barracuda, torpedo bombers):
+        asteroid field = D6=6 destroys
+        warp rift = auto-destroyed
+        planets = no effect
+        gas/dust cloud = no effect
 
     Returns (destroyed: bool, reason: str).
     """
@@ -534,6 +589,8 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
     is_craft = marker.ordnance_type in _ATTACK_CRAFT
     if not is_torp and not is_craft:
         return False, ""
+
+    planet_immune = marker.ordnance_type in _PLANET_IMMUNE
 
     # Approximate marker half-size for terrain contact (circular bounding radius)
     marker_r = TORP_BODY_HALF_W_CM if is_torp else ATTACK_CRAFT_HALF_SIDE_CM
@@ -556,19 +613,50 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
                 roll = dice.roll_d6(1, f"Attack craft in asteroid field (6=destroyed)")[0]
                 if roll == 6:
                     return True, "asteroid_field"
-            elif ptype == "warp_rift" or "planet" in ptype:
+            elif ptype == "warp_rift":
                 return True, ptype
-            # Gas/dust clouds have no effect on attack craft
+            # Planets and gas/dust clouds have no effect on attack craft
         else:
             # Torpedoes and mines
-            if ptype in ("asteroid_field", "warp_rift") or "planet" in ptype:
+            if "planet" in ptype:
+                if not planet_immune:
+                    return True, ptype
+                # guided boarding torps navigate around planets
+            elif ptype in ("asteroid_field", "warp_rift"):
                 return True, ptype
-            if ptype == "gas_dust_cloud":
+            elif ptype == "gas_dust_cloud":
                 roll = dice.roll_d6(1, "Ordnance through dust cloud (6=destroyed)")[0]
                 if roll == 6:
                     return True, "gas_dust_cloud"
 
     return False, ""
+
+
+def compute_torpedo_launch_exempt(launcher: Ship,
+                                   game_state: GameState) -> List[str]:
+    """Return ship IDs immune to friendly fire from torpedoes launched by `launcher`.
+
+    Torpedoes do not distinguish friend from foe — but any friendly ship that
+    is in base contact with the launcher at the moment of launch is exempt
+    for the lifetime of those torpedoes. The launcher itself is also exempt
+    (the torp starts inside its own base).
+    """
+    from .geometry import BASE_CONTACT_MARGIN_CM
+    exempt = [launcher.id]
+    margin = getattr(game_state, "contact_margin_cm", BASE_CONTACT_MARGIN_CM)
+    for s_dict in game_state.ships:
+        if s_dict["id"] == launcher.id:
+            continue
+        if s_dict["player"] != launcher.player:
+            continue
+        other = Ship.from_dict(s_dict)
+        if other.is_destroyed or other.is_disengaged:
+            continue
+        dist = math.sqrt((other.x - launcher.x) ** 2
+                         + (other.y - launcher.y) ** 2)
+        if dist <= launcher.base_radius + other.base_radius + margin:
+            exempt.append(other.id)
+    return exempt
 
 
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState) -> OrdnanceMarker:
@@ -586,6 +674,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState) -> Ordnanc
         launched_turn=game_state.turn_number,
         can_turn=(torpedo_type == "guided"),
         turn_angle=45 if torpedo_type == "guided" else 0,
+        launch_exempt_ships=compute_torpedo_launch_exempt(ship, game_state),
     )
     game_state.add_ordnance(marker)
     ship.ordnance_loaded_torps = False

@@ -412,11 +412,15 @@ class _OrdnanceMixin:
             is_assault_boat = marker.ordnance_type == OrdnanceType.ASSAULT_BOAT.value
 
             if is_torp:
-                # Torpedoes attack ANY ship they contact (friend or foe)
+                # Torpedoes attack ANY ship they contact (friend or foe), except
+                # friendly ships that were in base contact with the launcher at
+                # launch (captured in marker.launch_exempt_ships).
                 for s in ships:
                     if s.is_destroyed or s.is_disengaged:
                         continue
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
+                        continue
+                    if s.id in (marker.launch_exempt_ships or []):
                         continue
                     if not check_torpedo_contact(marker, s):
                         continue
@@ -464,14 +468,14 @@ class _OrdnanceMixin:
                     self._append_log(
                         f"  {marker.ordnance_type} attacks {s.name}!")
 
-                    # Count friendly fighters whose square marker touches this ship
+                    # Count friendly fighters whose square marker touches this ship.
+                    # Mantas are bombers, not fighters — they do not suppress turrets.
                     suppressing_fighters = sum(
                         1 for od in self.gs.ordnance
                         if od.get("owner_player") == marker.owner_player
                         and od.get("ordnance_type") in (
                             OrdnanceType.FIGHTER.value,
-                            OrdnanceType.BARRACUDA.value,
-                            OrdnanceType.MANTA.value)
+                            OrdnanceType.BARRACUDA.value)
                         and circle_touches_square(s.x, s.y, s.base_radius,
                                                   od.get("x", 0), od.get("y", 0),
                                                   od.get("heading", 0)))
@@ -510,17 +514,16 @@ class _OrdnanceMixin:
                     break
 
             elif marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
-                # Mine fields detonate against any ship in contact.
-                # Friendly fire is safe on the turn the mine was laid,
-                # but is a hazard from the following turn onward.
+                # Mine fields detonate against any ship in contact (friend or foe).
+                # Only friendly ships that were in base contact with the launcher
+                # at launch are exempt (captured in marker.launch_exempt_ships).
                 for s in ships:
                     if s.is_destroyed or s.is_disengaged:
                         continue
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
                         continue
-                    if (s.player == marker.owner_player
-                            and self.gs.turn_number == marker.launched_turn):
-                        continue  # safe on launch turn
+                    if s.id in (marker.launch_exempt_ships or []):
+                        continue
                     if not circle_touches_square(s.x, s.y, s.base_radius,
                                                  marker.x, marker.y,
                                                  marker.heading):
@@ -773,6 +776,9 @@ class _OrdnanceMixin:
 
                     import random as _rng
 
+                    from .ordnance import compute_torpedo_launch_exempt
+                    exempt = compute_torpedo_launch_exempt(ship, self.gs)
+
                     # First (or only) salvo
                     marker = OrdnanceMarker(
                         id=f"torp_{ship.id}_{self.gs.turn_number}_{_rng.randint(0,9999)}",
@@ -786,6 +792,7 @@ class _OrdnanceMixin:
                         launched_turn=self.gs.turn_number,
                         can_turn=is_g,
                         turn_angle=45 if is_g else 0,
+                        launch_exempt_ships=list(exempt),
                     )
                     self.gs.add_ordnance(marker)
 
@@ -809,6 +816,7 @@ class _OrdnanceMixin:
                             launched_turn=self.gs.turn_number,
                             can_turn=is_g,
                             turn_angle=45 if is_g else 0,
+                            launch_exempt_ships=list(exempt),
                         )
                         self.gs.add_ordnance(marker2)
                         self._append_log(
@@ -856,7 +864,9 @@ class _OrdnanceMixin:
 
                 def _lay_mines(w=mw, effective_str=mine_str):
                     import random as _rng
+                    from .ordnance import compute_torpedo_launch_exempt
                     spd = w.get("mine_speed", 10)
+                    exempt = compute_torpedo_launch_exempt(ship, self.gs)
                     for i in range(effective_str):
                         # Each mine launcher fires one independent mine marker
                         marker = OrdnanceMarker(
@@ -870,6 +880,7 @@ class _OrdnanceMixin:
                             strength=1,
                             speed=spd,
                             launched_turn=self.gs.turn_number,
+                            launch_exempt_ships=list(exempt),
                         )
                         self.gs.add_ordnance(marker)
 
@@ -948,7 +959,7 @@ class _OrdnanceMixin:
             CRAFT_NAMES = {
                 "fury_fighter": "Fury Interceptors (fighters)",
                 "starhawk_bomber": "Starhawk Bombers",
-                "manta": "Manta (fighter+bomber, resilient)",
+                "manta": "Manta (resilient bomber)",
                 "barracuda": "Barracuda (fighters)",
             }
             composition_vars = {}
@@ -1111,10 +1122,9 @@ class _OrdnanceMixin:
                     o_type, spd, resil = CRAFT_STATS.get(
                         ct, (OrdnanceType.FIGHTER.value, 30, 0))
 
-                    # CAP only applies to fighter-type craft; bombers cannot CAP
+                    # CAP only applies to fighter-type craft; bombers (incl. Manta) cannot CAP
                     fighter_types = (OrdnanceType.FIGHTER.value,
-                                     OrdnanceType.BARRACUDA.value,
-                                     OrdnanceType.MANTA.value)
+                                     OrdnanceType.BARRACUDA.value)
                     if cap_var.get() and o_type not in fighter_types:
                         messagebox.showerror(
                             "Bombers Cannot CAP",

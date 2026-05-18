@@ -51,12 +51,13 @@ class Arc(str, Enum):
 
 class OrdnanceType(str, Enum):
     TORPEDO_STANDARD = "torpedo_standard"
-    TORPEDO_GUIDED = "torpedo_guided"     # Tau missiles
+    TORPEDO_GUIDED = "torpedo_guided"             # Tau missiles
+    TORPEDO_BOARDING_GUIDED = "torpedo_boarding_guided"  # boarding torp w/ guidance
     FIGHTER = "fighter"
     BOMBER = "bomber"
     ASSAULT_BOAT = "assault_boat"
     TORPEDO_BOMBER = "torpedo_bomber"
-    MANTA = "manta"           # Tau: resilient fighter+bomber
+    MANTA = "manta"           # Tau: resilient bomber (NOT a fighter)
     BARRACUDA = "barracuda"   # Tau: fighter
     MINE_FIELD = "mine_field" # Static hazard; detonates on ship contact
 
@@ -307,6 +308,10 @@ class OrdnanceMarker:
     turn_angle: int = 0
     special_rules: List[str] = field(default_factory=list)
     moved_this_phase: bool = False  # Tau missiles: True once moved this ordnance phase
+    # Friendly ships that were in base contact with the launcher when this
+    # marker was created.  These ships are immune to friendly fire from this
+    # marker (torpedoes only).  Captured once at launch and stays fixed.
+    launch_exempt_ships: List[str] = field(default_factory=list)
 
     def to_dict(self):
         return asdict(self)
