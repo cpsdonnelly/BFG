@@ -156,13 +156,18 @@ BUGS
     Once a ship has successfully braced for impact it is braced for the rest of
     the turn. Any further damage sources in the same turn should not ask the
     player to brace again.
-    Status: NOT IMPLEMENTED
+    Status: IMPLEMENTED — combat fire short-circuits the prompt when special_order
+    is already BRACE_FOR_IMPACT; ordnance damage (torpedoes/mines/bombers) now
+    propagates target.special_order to apply_damage so brace saves persist across
+    every damage source within the same turn.
 
 28. Brace failure should allow retrying against a different damage source
     If a ship fails a brace check it does not get a save against that damage,
     but it may attempt to brace again against a different incoming attack later
     in the same turn.
-    Status: NOT IMPLEMENTED (brace state per-attack is not tracked)
+    Status: IMPLEMENTED — Ship.brace_failed_vs tracks attacker IDs that have
+    failed; combat fire only prompts when attacker.id not in brace_failed_vs.
+    List is cleared each turn by the end-phase reset.
 
 29. Turn inputs: minor overshoot not snapped to legal angle
     A user input of slightly under 60 degrees when intending 45 degrees should

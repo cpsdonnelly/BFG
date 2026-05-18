@@ -1,7 +1,7 @@
 """BFG:XR Ordnance Phase - Torpedo and attack craft resolution"""
 import math
 from typing import List, Dict, Optional, Tuple
-from .models import Ship, OrdnanceMarker, BlastMarker, OrdnanceType
+from .models import Ship, OrdnanceMarker, BlastMarker, OrdnanceType, SpecialOrder
 from .game_state import GameState
 from .geometry import (BASE_CONTACT_MARGIN_CM, circle_touches_torpedo,
                         TORP_BODY_HALF_W_CM, ATTACK_CRAFT_HALF_SIDE_CM)
@@ -150,7 +150,9 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         game_state.add_log(
             f"Torpedoes hit {target.name} for {result['hits']} damage (bypasses shields)")
         from .combat import apply_damage
-        apply_damage(target, result["hits"], dice, game_state, ignores_shields=True)
+        braced = target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
+        apply_damage(target, result["hits"], dice, game_state,
+                     ignores_shields=True, target_braced=braced)
 
     return result
 
@@ -204,7 +206,9 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
 
     if result["hits"] > 0:
         from .combat import apply_damage
-        apply_damage(ship, result["hits"], dice, game_state, ignores_shields=False)
+        braced = ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
+        apply_damage(ship, result["hits"], dice, game_state,
+                     ignores_shields=False, target_braced=braced)
         game_state.add_log(
             f"  Mine: {result['hits']} hit(s) on {ship.name} (shields apply)")
 
@@ -314,7 +318,9 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
 
         if result["hits"] > 0:
             from .combat import apply_damage
-            apply_damage(target, result["hits"], dice, game_state, ignores_shields=True)
+            braced = target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
+            apply_damage(target, result["hits"], dice, game_state,
+                         ignores_shields=True, target_braced=braced)
             game_state.add_log(f"Bombers hit {target.name} for {result['hits']} damage")
 
     return result
