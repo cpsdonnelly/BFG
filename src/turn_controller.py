@@ -482,7 +482,7 @@ class TurnController:
         for s_dict in self.gs.ships:
             if s_dict["player"] == self.gs.active_player:
                 s = Ship.from_dict(s_dict)
-                if not s.is_destroyed and s.id not in self.ships_fired:
+                if not s.is_destroyed and not s.is_disengaged and s.id not in self.ships_fired:
                     ships.append(s)
         return ships
 

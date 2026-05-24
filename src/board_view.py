@@ -1,4 +1,5 @@
 """BFG:XR Board Viewer - Tkinter Canvas GUI"""
+import os
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import math

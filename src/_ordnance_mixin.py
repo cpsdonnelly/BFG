@@ -420,7 +420,8 @@ class _OrdnanceMixin:
                         continue
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
                         continue
-                    if s.id in (marker.launch_exempt_ships or []):
+                    if (s.id in (marker.launch_exempt_ships or [])
+                            and marker.launched_turn == self.gs.turn_number):
                         continue
                     if not check_torpedo_contact(marker, s):
                         continue
@@ -522,7 +523,8 @@ class _OrdnanceMixin:
                         continue
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
                         continue
-                    if s.id in (marker.launch_exempt_ships or []):
+                    if (s.id in (marker.launch_exempt_ships or [])
+                            and marker.launched_turn == self.gs.turn_number):
                         continue
                     if not circle_touches_square(s.x, s.y, s.base_radius,
                                                  marker.x, marker.y,
