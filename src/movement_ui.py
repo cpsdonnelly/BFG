@@ -64,14 +64,17 @@ def compute_drag_path(ship: Ship,
 
     needs_turn = turn_deg > 1.0
 
-    # Speed limits for this order
+    # Speed limits for this order — use remaining budget, not full budget
     _, max_spd = get_effective_speed(ship, special_order, aaf_bonus)
+    already_moved = ship.distance_moved_this_turn
+    remaining_spd = max(0.0, float(max_spd) - already_moved)
+    base_min = float(max(1, ship.effective_speed // 2))
     if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
-        _min_spd_hint = float(max_spd)
+        _min_spd_hint = remaining_spd  # must use all remaining
     elif special_order == SpecialOrder.BURN_RETROS.value:
         _min_spd_hint = 0.0
     else:
-        _min_spd_hint = float(max(1, ship.effective_speed // 2))
+        _min_spd_hint = max(0.0, base_min - already_moved)
     min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
 
     # No turns allowed on AAF or Lock On
@@ -80,18 +83,18 @@ def compute_drag_path(ship: Ship,
         SpecialOrder.LOCK_ON.value,
     )
 
-    # Clamp total movement to valid range.
+    # Clamp total movement to remaining budget.
     # Short drag (cursor very close): snap to minimum legal move rather than 0.
-    move_dist = min(dist_to_target, float(max_spd))
+    move_dist = min(dist_to_target, remaining_spd)
     if move_dist < _min_spd_hint:
         move_dist = _min_spd_hint
 
     commands: List[MoveCommand] = []
 
     if not needs_turn or no_turns:
-        # Straight ahead — AAF must use exact max speed
+        # Straight ahead — AAF must use exact remaining speed
         if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
-            commands.append(MoveCommand("forward", float(max_spd)))
+            commands.append(MoveCommand("forward", remaining_spd))
         else:
             commands.append(MoveCommand("forward", move_dist))
     else:
@@ -109,6 +112,7 @@ def compute_drag_path(ship: Ship,
 
     result = validate_movement(
         ship, commands, special_order, aaf_bonus,
-        blast_markers, table_width, table_height)
+        blast_markers, table_width, table_height,
+        turns_already_used=ship.turns_used_this_turn)
 
     return commands, result

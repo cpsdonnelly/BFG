@@ -43,7 +43,8 @@ class _MovementMixin:
             result = validate_movement(
                 ship, commands, order, aaf_bonus,
                 self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height)
+                self.gs.table_width, self.gs.table_height,
+                turns_already_used=ship.turns_used_this_turn)
             if not result.valid:
                 return  # path became invalid between preview and release — discard
             execute_movement(ship, result, self.gs)
@@ -79,11 +80,36 @@ class _MovementMixin:
                         updated.special_rules = [r for r in updated.special_rules
                                                  if r != "in_dust_cloud"]
                         self.gs.update_ship(updated)
-            self.tc.mark_ship_moved(ship.id)
-            self._append_log(
-                f"{ship.name}: drag-moved {result.total_distance:.1f}cm "
-                f"to ({result.final_x:.1f}, {result.final_y:.1f}) "
-                f"hdg {result.final_heading:.0f}°")
+
+            # Update staged tracking fields
+            final_ship = self.gs.get_ship_by_id(ship.id)
+            if final_ship:
+                final_ship.distance_moved_this_turn += result.total_distance
+                final_ship.turns_used_this_turn += result.turns_used
+                left_deg = sum(c.value for c in commands if c.action == "turn_left")
+                right_deg = sum(c.value for c in commands if c.action == "turn_right")
+                final_ship.net_rotation_this_turn += (left_deg - right_deg)
+                self.gs.update_ship(final_ship)
+
+                # Lock the ship only when its movement budget is exhausted
+                base_speed = final_ship.effective_speed
+                max_budget = (base_speed + aaf_bonus
+                              if order == "all_ahead_full"
+                              else (base_speed // 2
+                                    if order == "burn_retros"
+                                    else base_speed))
+                remaining = max_budget - final_ship.distance_moved_this_turn
+                if remaining <= 0.1:
+                    self.tc.mark_ship_moved(ship.id)
+                    self._append_log(
+                        f"{ship.name}: drag-moved {result.total_distance:.1f}cm "
+                        f"to ({result.final_x:.1f}, {result.final_y:.1f}) "
+                        f"hdg {result.final_heading:.0f}°")
+                else:
+                    self._append_log(
+                        f"{ship.name}: drag-moved {result.total_distance:.1f}cm "
+                        f"to ({result.final_x:.1f}, {result.final_y:.1f}) "
+                        f"hdg {result.final_heading:.0f}° — {remaining:.1f}cm remaining")
             self.board.redraw()
 
         self.board.can_drag_ship_fn = can_drag
