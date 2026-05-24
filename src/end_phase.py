@@ -5,7 +5,8 @@ from typing import List, Dict
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
-from .geometry import count_blast_markers_touching, BLAST_MARKER_RADIUS_CM
+from .geometry import (count_blast_markers_touching, BLAST_MARKER_RADIUS_CM,
+                       EXPLOSION_BLAST_OFFSET_CM)
 
 
 def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]:
@@ -51,7 +52,7 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
     num_dice = ship.hits_remaining
 
     # Check if ship is touching blast markers (halves dice)
-    touching_blast = _count_blast_markers_touching(ship, gs.get_blast_markers())
+    touching_blast = count_blast_markers_touching(ship, gs.get_blast_markers())
     if touching_blast > 0:
         num_dice = (num_dice + 1) // 2
         logs.append(f"{ship.name}: damage control with {num_dice} dice "
@@ -127,7 +128,7 @@ def get_repair_info(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
         return {"sixes": 0, "repairable": [], "num_dice": 0}
 
     num_dice = ship.hits_remaining
-    touching_blast = _count_blast_markers_touching(ship, gs.get_blast_markers())
+    touching_blast = count_blast_markers_touching(ship, gs.get_blast_markers())
     if touching_blast > 0:
         num_dice = (num_dice + 1) // 2
 
@@ -356,8 +357,8 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
 
                 for bi in range(num_markers):
                     angle = (360 / max(1, num_markers)) * bi
-                    bx = ship.x + 1.5 * math.cos(math.radians(angle))
-                    by = ship.y + 1.5 * math.sin(math.radians(angle))
+                    bx = ship.x + EXPLOSION_BLAST_OFFSET_CM * math.cos(math.radians(angle))
+                    by = ship.y + EXPLOSION_BLAST_OFFSET_CM * math.sin(math.radians(angle))
                     gs.add_blast_marker(
                         BlastMarker(id=f"hulk_exp_{ship.id}_{bi}",
                                     x=bx, y=by, source="explosion",

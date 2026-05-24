@@ -5,6 +5,8 @@ from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
 from .geometry import line_passes_near, BLAST_MARKER_RADIUS_CM
+from .disengage import check_off_table, process_involuntary_disengage
+from .terrain_effects import check_ship_terrain_contact
 
 
 # Minimum distance before turning by ship type
@@ -288,7 +290,6 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState):
     ship.moved_this_turn = True
 
     # Check for off-table (involuntary disengage)
-    from .disengage import check_off_table, process_involuntary_disengage
     if check_off_table(ship, gs.table_width, gs.table_height):
         process_involuntary_disengage(ship, gs)
         return
@@ -300,7 +301,6 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState):
         gs.add_log(f"{ship.name} moved <5cm, counts as Defenses on gunnery table")
 
     # Check terrain interactions at final position
-    from .terrain_effects import check_ship_terrain_contact
     phenomena = gs.get_phenomena()
     contacts = check_ship_terrain_contact(ship, phenomena)
     for contact in contacts:

@@ -35,6 +35,17 @@ _TORP_FIN_THIRD_CM  = TORP_BODY_HALF_W_CM * 2 / 3   # 8.33 mm — one-third of b
 # Each squadron is a 20 mm square marker.
 ATTACK_CRAFT_HALF_SIDE_CM = 1.0   # half the 20 mm side
 
+# ── Explosion / catastrophic blast placement ──────────────────────────────────
+
+# Blast markers from an explosion are placed this far from the ship centre.
+EXPLOSION_BLAST_OFFSET_CM = 1.5
+
+# ── Nova cannon template geometry ────────────────────────────────────────────
+
+# 5 cm diameter template (2.5 cm outer radius); centre hole 1.2 cm diameter (0.6 cm radius).
+NOVA_CANNON_TEMPLATE_RADIUS_CM = 2.5
+NOVA_CANNON_CENTER_HOLE_RADIUS_CM = 0.6
+
 
 # ── Basic helpers ─────────────────────────────────────────────────────────────
 

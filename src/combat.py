@@ -7,7 +7,11 @@ from .game_state import GameState
 from .tables import (lookup_gunnery_dice, get_gunnery_column, CRITICAL_HITS,
                      lookup_catastrophic)
 from .dice import DiceRoller
-from .geometry import count_blast_markers_touching
+from .geometry import (count_blast_markers_touching,
+                       EXPLOSION_BLAST_OFFSET_CM,
+                       NOVA_CANNON_TEMPLATE_RADIUS_CM,
+                       NOVA_CANNON_CENTER_HOLE_RADIUS_CM)
+from .los import check_los_ships
 
 
 class ShotResult:
@@ -64,7 +68,6 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
                       phenomena: list = None,
                       all_ships: list = None) -> int:
     """Calculate gunnery column shifts for weapons batteries."""
-    from .los import check_los_ships
     dist = ship.distance_to(target_ship)
     shifts = 0
 
@@ -94,7 +97,6 @@ def check_los_clear(ship: Ship, target_ship: Ship,
                     phenomena: list = None,
                     blast_markers: list = None) -> dict:
     """Check if line of sight is clear between attacker and target."""
-    from .los import check_los_ships
     phenomena = phenomena or []
     blast_markers = blast_markers or []
     return check_los_ships(ship, target_ship, phenomena, blast_markers)
@@ -311,8 +313,8 @@ def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
     # Check what the template hits (5cm diameter circle, 1.2cm center hole)
     template_x = result["template_x"]
     template_y = result["template_y"]
-    template_radius = 2.5  # outer radius
-    center_radius = 0.6    # center hole radius
+    template_radius = NOVA_CANNON_TEMPLATE_RADIUS_CM
+    center_radius = NOVA_CANNON_CENTER_HOLE_RADIUS_CM
 
     any_ship_hit = False
     for s_dict in game_state.ships:
@@ -553,8 +555,8 @@ def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) ->
         # Place blast markers
         for i in range(num_markers):
             angle = (360 / num_markers) * i
-            bx = ship.x + 1.5 * math.cos(math.radians(angle))
-            by = ship.y + 1.5 * math.sin(math.radians(angle))
+            bx = ship.x + EXPLOSION_BLAST_OFFSET_CM * math.cos(math.radians(angle))
+            by = ship.y + EXPLOSION_BLAST_OFFSET_CM * math.sin(math.radians(angle))
             game_state.add_blast_marker(
                 BlastMarker(id=f"explosion_{ship.id}_{i}", x=bx, y=by,
                             source="explosion",
