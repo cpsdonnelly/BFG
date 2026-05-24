@@ -749,7 +749,16 @@ class _MovementMixin:
             if action in ("turn_left", "turn_right"):
                 if value <= 0:
                     return
-                value = min(value, float(ship.turn_angle))
+                max_turn = float(ship.turn_angle)
+                if value > max_turn:
+                    _SNAP_TOLERANCE = 15.0
+                    if value - max_turn <= _SNAP_TOLERANCE:
+                        value = max_turn
+                        preview_var.set(f"Snapped to max turn ({max_turn:.0f}°)")
+                    else:
+                        preview_var.set(
+                            f"Cancelled: {value:.0f}° exceeds max turn of {max_turn:.0f}°")
+                        return
             cmd = MoveCommand(action, value)
             commands.append(cmd)
             cmd_listbox.insert(tk.END, str(cmd))
