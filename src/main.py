@@ -14,6 +14,7 @@ from src.board_view import BoardView
 from src.dice import DiceRoller
 from src.turn_controller import TurnController
 from src.fleet_loader import load_fleet_file, fleet_to_ships, get_available_fleets, get_fleet_info
+from src.fleet_builder import FleetBuilderWindow
 
 
 
@@ -283,6 +284,13 @@ def _show_setup_dialog(root) -> Optional[dict]:
                 fv.set(path)
         tk.Button(row, text="Browse...", font=("Consolas", 8),
                   command=_browse).pack(side=tk.LEFT, padx=3)
+
+        def _open_builder(fv=fleet_var):
+            def on_save(_data, saved_path):
+                fv.set(saved_path)
+            FleetBuilderWindow.open(dialog, on_save=on_save)
+        tk.Button(row, text="Build...", font=("Consolas", 8),
+                  command=_open_builder).pack(side=tk.LEFT, padx=3)
 
     _make_fleet_row(fleets_frame, "Player 1:", p1_fleet_var)
     _make_fleet_row(fleets_frame, "Player 2:", p2_fleet_var)

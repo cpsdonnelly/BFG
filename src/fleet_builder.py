@@ -124,6 +124,248 @@ class _ShipEditDialog:
 
 
 # ---------------------------------------------------------------------------
+# Weapon entry sub-dialog (used by _ShipBuilderDialog)
+# ---------------------------------------------------------------------------
+
+class _WeaponEntryDialog:
+    """Small dialog for defining a single weapon on a homebrew ship."""
+
+    def __init__(self, root: tk.Tk, on_save: Callable):
+        dlg = tk.Toplevel(root)
+        dlg.title("Add Weapon")
+        dlg.geometry("420x310")
+        dlg.configure(bg=_BG)
+        dlg.transient(root)
+        dlg.grab_set()
+
+        tk.Label(dlg, text="ADD WEAPON", font=_FONT_BOLD, bg=_BG, fg=_ACCENT).pack(pady=8)
+
+        def _field(label, var, width=20):
+            f = tk.Frame(dlg, bg=_BG)
+            f.pack(fill=tk.X, padx=15, pady=2)
+            tk.Label(f, text=label, font=_FONT_BODY, bg=_BG, fg=_FG,
+                     width=14, anchor="w").pack(side=tk.LEFT)
+            tk.Entry(f, textvariable=var, font=_FONT_BODY, bg=_SEL_BG, fg=_FG,
+                     insertbackground=_FG, width=width).pack(side=tk.LEFT, padx=4)
+
+        name_var  = tk.StringVar(value="Weapons Battery")
+        type_var  = tk.StringVar(value="battery")
+        range_var = tk.StringVar(value="30")
+        str_var   = tk.StringVar(value="6")
+
+        _field("Name:", name_var, 22)
+
+        tf = tk.Frame(dlg, bg=_BG)
+        tf.pack(fill=tk.X, padx=15, pady=2)
+        tk.Label(tf, text="Type:", font=_FONT_BODY, bg=_BG, fg=_FG,
+                 width=14, anchor="w").pack(side=tk.LEFT)
+        ttk.Combobox(tf, textvariable=type_var,
+                     values=["battery", "lance", "torpedo", "nova_cannon",
+                             "launch_bay", "gravitic_launcher"],
+                     state="readonly", width=18).pack(side=tk.LEFT, padx=4)
+
+        _field("Range (cm):", range_var, 8)
+        _field("Strength:", str_var, 8)
+
+        tk.Label(dlg, text="Fire Arcs:", font=_FONT_BODY, bg=_BG, fg=_FG).pack(
+            anchor="w", padx=15, pady=(6, 2))
+        arc_frame = tk.Frame(dlg, bg=_BG)
+        arc_frame.pack(fill=tk.X, padx=15)
+        arc_vars: Dict[str, tk.BooleanVar] = {}
+        for arc in ["front", "left", "right", "rear"]:
+            v = tk.BooleanVar(value=(arc != "rear"))
+            arc_vars[arc] = v
+            tk.Checkbutton(arc_frame, text=arc.capitalize(), variable=v,
+                           font=_FONT_BODY, bg=_BG, fg=_FG,
+                           selectcolor=_SEL_BG,
+                           activebackground=_BG).pack(side=tk.LEFT, padx=4)
+
+        def _add():
+            try:
+                w = {
+                    "name":        name_var.get().strip() or "Weapon",
+                    "weapon_type": type_var.get(),
+                    "range_cm":    int(range_var.get() or 30),
+                    "strength":    int(str_var.get() or 1),
+                    "arcs":        [arc for arc, v in arc_vars.items() if v.get()],
+                }
+                on_save(w)
+                dlg.destroy()
+            except ValueError as exc:
+                messagebox.showerror("Invalid", str(exc), parent=dlg)
+
+        bf = tk.Frame(dlg, bg=_BG)
+        bf.pack(pady=10)
+        tk.Button(bf, text="Add", font=_FONT_BOLD,
+                  bg="#223322", fg=_FG, relief=tk.FLAT, padx=12,
+                  command=_add).pack(side=tk.LEFT, padx=4)
+        tk.Button(bf, text="Cancel", font=_FONT_BODY,
+                  bg="#221111", fg=_FG, relief=tk.FLAT, padx=12,
+                  command=dlg.destroy).pack(side=tk.LEFT, padx=4)
+
+        root.wait_window(dlg)
+
+
+# ---------------------------------------------------------------------------
+# Ship builder dialog (creates homebrew ship classes)
+# ---------------------------------------------------------------------------
+
+class _ShipBuilderDialog:
+    """Dialog for designing and saving a new homebrew ship class."""
+
+    def __init__(self, root: tk.Tk, on_save: Callable):
+        self._on_save = on_save
+        self._weapons: List[Dict] = []
+
+        self.dialog = tk.Toplevel(root)
+        self.dialog.title("New Homebrew Ship")
+        self.dialog.geometry("580x660")
+        self.dialog.configure(bg=_BG)
+        self.dialog.transient(root)
+        self.dialog.grab_set()
+
+        self._build_ui()
+        root.wait_window(self.dialog)
+
+    def _build_ui(self):
+        tk.Label(self.dialog, text="NEW HOMEBREW SHIP", font=_FONT_TITLE,
+                 bg=_BG, fg=_ACCENT).pack(pady=(10, 4))
+
+        # Scrollable body
+        canvas = tk.Canvas(self.dialog, bg=_BG, highlightthickness=0)
+        scroll = tk.Scrollbar(self.dialog, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scroll.set)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(fill=tk.BOTH, expand=True, padx=10)
+
+        inner = tk.Frame(canvas, bg=_BG)
+        win_id = canvas.create_window((0, 0), window=inner, anchor="nw")
+        inner.bind("<Configure>",
+                   lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>",
+                    lambda e: canvas.itemconfigure(win_id, width=e.width))
+
+        self._class_var   = tk.StringVar(value="Custom Prototype")
+        self._type_var    = tk.StringVar(value="cruiser")
+        self._size_var    = tk.StringVar(value="small")
+        self._speed_var   = tk.StringVar(value="20")
+        self._turn_var    = tk.StringVar(value="45")
+        self._shields_var = tk.StringVar(value="2")
+        self._ap_var      = tk.StringVar(value="6+")
+        self._as_var      = tk.StringVar(value="5+")
+        self._turrets_var = tk.StringVar(value="2")
+        self._hits_var    = tk.StringVar(value="8")
+        self._ld_var      = tk.StringVar(value="7")
+        self._pts_var_sb  = tk.StringVar(value="0")
+        self._rules_var   = tk.StringVar(value="")
+
+        def _field(label, var, width=12):
+            f = tk.Frame(inner, bg=_BG)
+            f.pack(fill=tk.X, pady=1, padx=5)
+            tk.Label(f, text=label, font=_FONT_BODY, bg=_BG, fg=_FG,
+                     width=18, anchor="w").pack(side=tk.LEFT)
+            tk.Entry(f, textvariable=var, font=_FONT_BODY, bg=_SEL_BG, fg=_FG,
+                     insertbackground=_FG, width=width).pack(side=tk.LEFT, padx=4)
+
+        def _combo_field(label, var, values):
+            f = tk.Frame(inner, bg=_BG)
+            f.pack(fill=tk.X, pady=1, padx=5)
+            tk.Label(f, text=label, font=_FONT_BODY, bg=_BG, fg=_FG,
+                     width=18, anchor="w").pack(side=tk.LEFT)
+            ttk.Combobox(f, textvariable=var, values=values,
+                         state="readonly", width=14).pack(side=tk.LEFT, padx=4)
+
+        _field("Ship Class Name:", self._class_var, 24)
+        _combo_field("Ship Type:", self._type_var,
+                     ["battleship", "cruiser", "escort", "defense"])
+        _combo_field("Base Size:", self._size_var, ["small", "large"])
+        _field("Speed (cm):",     self._speed_var)
+        _field("Turn Angle (°):", self._turn_var)
+        _field("Shields Max:",    self._shields_var)
+        _field("Armour Prow:",    self._ap_var)
+        _field("Armour Side:",    self._as_var)
+        _field("Turrets:",        self._turrets_var)
+        _field("Hits Max:",       self._hits_var)
+        _field("Leadership:",     self._ld_var)
+        _field("Points Cost:",    self._pts_var_sb)
+        _field("Special Rules:",  self._rules_var, 28)
+        tk.Label(inner, text="(comma-separated, e.g. ponderous,deflector)",
+                 font=("Consolas", 7), bg=_BG, fg="#888888").pack(
+            anchor="w", padx=23, pady=(0, 4))
+
+        tk.Label(inner, text="Weapons", font=_FONT_BOLD,
+                 bg=_BG, fg=_ACCENT).pack(anchor="w", padx=5, pady=(6, 2))
+
+        self._weapon_list = tk.Listbox(inner, font=_FONT_BODY, bg=_SEL_BG, fg=_FG,
+                                       selectbackground="#334466", height=5)
+        self._weapon_list.pack(fill=tk.X, padx=5)
+
+        wb = tk.Frame(inner, bg=_BG)
+        wb.pack(fill=tk.X, padx=5, pady=2)
+        tk.Button(wb, text="Add Weapon", font=_FONT_BODY, bg=_SEL_BG, fg=_FG,
+                  relief=tk.FLAT, padx=6,
+                  command=self._add_weapon).pack(side=tk.LEFT, padx=2)
+        tk.Button(wb, text="Remove", font=_FONT_BODY, bg="#221111", fg=_FG,
+                  relief=tk.FLAT, padx=6,
+                  command=self._remove_weapon).pack(side=tk.LEFT, padx=2)
+
+        bf = tk.Frame(inner, bg=_BG)
+        bf.pack(pady=10, padx=5, fill=tk.X)
+        tk.Button(bf, text="Save Homebrew Ship", font=_FONT_BOLD,
+                  bg="#223322", fg=_FG, relief=tk.FLAT, padx=12,
+                  command=self._save).pack(side=tk.LEFT, padx=6)
+        tk.Button(bf, text="Cancel", font=_FONT_BODY,
+                  bg="#221111", fg=_FG, relief=tk.FLAT, padx=12,
+                  command=self.dialog.destroy).pack(side=tk.LEFT, padx=6)
+
+    def _add_weapon(self):
+        _WeaponEntryDialog(self.dialog, on_save=self._on_weapon_added)
+
+    def _on_weapon_added(self, w: dict):
+        self._weapons.append(w)
+        arcs_str = ",".join(w.get("arcs", [])) or "all"
+        self._weapon_list.insert(
+            tk.END,
+            f"{w['name']}  [{w['weapon_type']}]  {w['range_cm']}cm  "
+            f"Str{w['strength']}  {arcs_str}")
+
+    def _remove_weapon(self):
+        sel = self._weapon_list.curselection()
+        if sel:
+            self._weapon_list.delete(sel[0])
+            self._weapons.pop(sel[0])
+
+    def _save(self):
+        try:
+            rules = [r.strip() for r in self._rules_var.get().split(",") if r.strip()]
+            entry = ShipClassEntry(
+                ship_class=self._class_var.get().strip() or "Custom Ship",
+                faction="homebrew",
+                ship_type=self._type_var.get(),
+                base_size=self._size_var.get(),
+                speed=int(self._speed_var.get() or 20),
+                turn_angle=int(self._turn_var.get() or 45),
+                shields_max=int(self._shields_var.get() or 2),
+                armor_prow=self._ap_var.get().strip() or "6+",
+                armor_side=self._as_var.get().strip() or "5+",
+                turrets=int(self._turrets_var.get() or 2),
+                hits_max=int(self._hits_var.get() or 8),
+                leadership=int(self._ld_var.get() or 7),
+                weapons=list(self._weapons),
+                special_rules=rules,
+                upgrades_available=[],
+                points_cost=int(self._pts_var_sb.get() or 0),
+            )
+        except ValueError as exc:
+            messagebox.showerror("Invalid Values",
+                                 f"Please check numeric fields:\n{exc}",
+                                 parent=self.dialog)
+            return
+        self._on_save(entry)
+        self.dialog.destroy()
+
+
+# ---------------------------------------------------------------------------
 # Fleet entry (in-memory row)
 # ---------------------------------------------------------------------------
 
@@ -209,6 +451,9 @@ class FleetBuilderWindow:
         self._faction_var = tk.StringVar(value="")
         factions = list_factions()
         faction_names = [faction_display_name(f) for f in factions]
+        # Append homebrew option
+        factions = factions + ["homebrew"]
+        faction_names = faction_names + ["Homebrew (Custom Ships)"]
         self._faction_ids = factions
         self._faction_combo = ttk.Combobox(bar, textvariable=self._faction_var,
                                            values=faction_names, state="readonly",
@@ -248,6 +493,9 @@ class FleetBuilderWindow:
         tk.Button(left, text="Add to Fleet ▶", font=_FONT_BODY,
                   bg="#223322", fg=_FG, relief=tk.FLAT, padx=8,
                   command=self._add_selected).pack(pady=4)
+        tk.Button(left, text="+ New Homebrew Ship", font=_FONT_BODY,
+                  bg="#332211", fg=_FG, relief=tk.FLAT, padx=8,
+                  command=self._new_homebrew_ship).pack(pady=2)
 
         # Right: fleet list
         right = tk.Frame(pane, bg=_BG)
@@ -300,15 +548,33 @@ class FleetBuilderWindow:
             self._refresh_fleet_list()
         self._faction = faction_id
         self._populate_catalog(faction_id)
-        self._status_var.set(f"Faction: {faction_display_name(faction_id)}")
+        label = "Homebrew" if faction_id == "homebrew" else faction_display_name(faction_id)
+        self._status_var.set(f"Faction: {label}")
 
     def _populate_catalog(self, faction: str):
         self._catalog_list.delete(0, tk.END)
-        self._catalog_entries = get_faction_ships(faction)
+        if faction == "homebrew":
+            from . import homebrew_catalog as _hb
+            self._catalog_entries = _hb.load_homebrew_catalog()
+        else:
+            self._catalog_entries = get_faction_ships(faction)
         for e in self._catalog_entries:
+            tag = "HB" if faction == "homebrew" else e.ship_type[:3].upper()
             self._catalog_list.insert(
                 tk.END,
-                f"[{e.ship_type[:3].upper()}] {e.ship_class}  {e.points_cost}pts")
+                f"[{tag}] {e.ship_class}  {e.points_cost}pts")
+
+    # ── Homebrew ship creation ────────────────────────────────────────────────
+
+    def _new_homebrew_ship(self):
+        def on_entry_saved(entry: ShipClassEntry):
+            from . import homebrew_catalog as _hb
+            _hb.save_homebrew_ship(entry)
+            if self._faction == "homebrew":
+                self._populate_catalog("homebrew")
+            self._status_var.set(f"Saved homebrew: {entry.ship_class}")
+
+        _ShipBuilderDialog(self.win, on_save=on_entry_saved)
 
     # ── Fleet manipulation ────────────────────────────────────────────────────
 
@@ -486,7 +752,7 @@ class FleetBuilderWindow:
 
         self._status_var.set(f"Saved to {os.path.basename(path)}")
         if self._on_save:
-            self._on_save(data)
+            self._on_save(data, path)
 
     def _load_fleet(self):
         path = filedialog.askopenfilename(
@@ -506,6 +772,8 @@ class FleetBuilderWindow:
             messagebox.showerror("Load Error", str(exc))
             return
 
+        from . import homebrew_catalog as _hb
+
         faction = data.get("faction", "")
         # Select faction in combo
         if faction in self._faction_ids:
@@ -520,12 +788,24 @@ class FleetBuilderWindow:
         self._pts_limit_var.set(str(data.get("points_limit", 1000)))
         self._fleet.clear()
 
+        official_classes: List[str] = []
+        unofficial_classes: List[str] = []
+        skipped_classes: List[str] = []
+
         for s in data.get("ships", []):
             sc = s.get("ship_class", "")
-            entry = get_ship_class(faction, sc)
-            if not entry:
-                self._status_var.set(f"Warning: unknown ship class '{sc}' — skipped.")
-                continue
+            official_entry = get_ship_class(faction, sc)
+
+            if official_entry:
+                official_classes.append(sc)
+                entry = official_entry
+            else:
+                unofficial_classes.append(sc)
+                entry = _hb.get_homebrew_ship(sc)
+                if not entry:
+                    skipped_classes.append(sc)
+                    continue
+
             row = _make_fleet_row(
                 entry,
                 custom_name=s.get("name", sc),
@@ -536,7 +816,27 @@ class FleetBuilderWindow:
             self._fleet.append(row)
 
         self._refresh_fleet_list()
-        self._status_var.set(f"Loaded {os.path.basename(path)}")
+
+        n_off = len(official_classes)
+        n_unoff = len(unofficial_classes)
+        summary = f"{n_off} official"
+        if n_unoff:
+            summary += f", {n_unoff} unofficial"
+        self._status_var.set(f"Loaded {os.path.basename(path)} — {summary}")
+
+        if unofficial_classes:
+            messagebox.showwarning(
+                "Unofficial Ships Detected",
+                "These ship classes are not in the official BFG catalog:\n" +
+                "\n".join(f"• {sc}" for sc in unofficial_classes) +
+                "\n\nVerify with your opponent before playing.",
+            )
+        if skipped_classes:
+            messagebox.showwarning(
+                "Unknown Ships Skipped",
+                "These ships could not be loaded (not in catalog or local homebrew):\n" +
+                "\n".join(f"• {sc}" for sc in skipped_classes),
+            )
 
     # ── Public factory ────────────────────────────────────────────────────────
 
@@ -553,15 +853,22 @@ class FleetBuilderWindow:
 def fleet_list_to_ships(fleet_data: dict, player: int) -> List[dict]:
     """
     Convert a saved fleet dict into Ship-compatible dicts ready for game state.
-    Ships without catalog entries (loaded directly from a hand-crafted fleet
-    JSON) are passed through as-is so hand-authored fleets still work.
+
+    Lookup order per ship:
+      1. Official catalog (ship_catalog.py)
+      2. Local homebrew catalog (data/homebrew/)
+      3. Raw fall-through (hand-crafted fleet files; stats taken as-is)
     """
+    from . import homebrew_catalog as _hb
+
     faction = fleet_data.get("faction", "")
     result: List[dict] = []
 
     for i, raw in enumerate(fleet_data.get("ships", [])):
         sc = raw.get("ship_class", "")
         entry = get_ship_class(faction, sc) if faction else None
+        if not entry:
+            entry = _hb.get_homebrew_ship(sc)
 
         if entry:
             ship_dict = entry.to_ship_dict(
