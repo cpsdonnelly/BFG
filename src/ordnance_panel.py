@@ -433,8 +433,10 @@ class OrdnancePanel:
                         marker, s, self.ctx.dice, self.ctx.gs,
                         all_ships=ships)
 
-                    # Reduce salvo strength by hits inflicted, continue if strength remains
-                    marker.strength -= result["hits"]
+                    # remaining_strength = initial − turret_kills − hits;
+                    # torps destroyed by turrets and torps that struck the target
+                    # are both spent — only misses pass through.
+                    marker.strength = result["remaining_strength"]
                     if result["hits"] > 0:
                         self.ctx.check_destruction(s)
                     if marker.strength <= 0:

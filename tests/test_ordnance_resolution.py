@@ -85,6 +85,36 @@ def test_torpedo_miss_does_not_remove_marker():
     assert any(o["id"] == "persist_torp" for o in gs.ordnance)
 
 
+def test_guided_missile_pass_through_remaining_strength():
+    # Tau guided missiles follow the same pass-through logic as standard torps.
+    target = _torp_target(turrets=1, armor_side="5+", hits_max=8)
+    gs = make_gs([target])
+    marker = make_marker(ordnance_type="torpedo_guided", strength=4,
+                         x=5, y=0, heading=180)
+    # Turret[1]=4 → 1 kill; attack[3]=[5,5,1] → 2 hits; remaining = 4-1-2 = 1
+    # crit_checks for 2 hits: [1,1]
+    dice = DiceStub([4, 5, 5, 1, 1, 1])
+    r = resolve_torpedo_attack(marker, target, dice, gs)
+    assert r["turret_kills"] == 1
+    assert r["hits"] == 2
+    assert r["remaining_strength"] == 1
+
+
+def test_turret_kills_reduce_pass_through_strength():
+    # Turret kills remove torps from the salvo; they must not carry over.
+    # Str 3, 2 turrets both hit → 2 kills, 1 attacker, roll misses → remaining = 0 kills + 0 hits… wait
+    # Str 4, 2 turrets both hit → 2 kills; 2 attackers roll 1,1 (all miss) → remaining = 4-2-0 = 2
+    target = _torp_target(turrets=2, armor_side="5+", hits_max=8)
+    gs = make_gs([target])
+    marker = make_marker(strength=4, x=5, y=0, heading=180)
+    # turret[2]=[4,4] → 2 kills; attack[2]=[1,1] → 0 hits; remaining = 2
+    dice = DiceStub([4, 4, 1, 1])
+    r = resolve_torpedo_attack(marker, target, dice, gs)
+    assert r["turret_kills"] == 2
+    assert r["hits"] == 0
+    assert r["remaining_strength"] == 2
+
+
 def test_torpedo_turret_blocked_by_craft_use():
     target = _torp_target(turrets=2, turrets_used_vs="craft", armor_side="6+")
     gs = make_gs([target])
