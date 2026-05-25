@@ -1,36 +1,36 @@
-"""BFG:XR — extracted panel mixin (see game_panel.py for context)."""
+"""BFG:XR — MovementPanel: ship movement UI and drag-drop callbacks."""
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import math
 from typing import Optional, Callable, List
 
-from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
+from .models import Ship, SpecialOrder
 from .game_state import GameState
 from .turn_controller import TurnController
 from .dice import DiceRoller
 from .movement import (MoveCommand, validate_movement, execute_movement,
                        resolve_aaf_speed, MIN_TURN_DISTANCE)
-from .combat import (check_weapon_in_arc, check_weapon_in_range,
-                     resolve_batteries, resolve_lances, resolve_nova_cannon,
-                     apply_damage, check_los_clear)
-from .end_phase import resolve_end_phase
-from .geometry import (circle_touches_square, circle_touches_torpedo,
-                        ATTACK_CRAFT_HALF_SIDE_CM)
+from .game_context import GameContext
 
 
-class _MovementMixin:
-    """Mixin — methods injected into GamePanel."""
+class MovementPanel:
+    """Handles all ship movement UI: drag-drop, dialog, M-key, scroll-wheel."""
 
-    def _wire_drag_callbacks(self):
+    def __init__(self, ctx: GameContext):
+        self.ctx = ctx
+        self._pending_turn: dict = {}
+        self._board_scroll_fn = None
+
+    def wire_drag_callbacks(self):
         """Connect board_view drag-and-drop hooks to game panel movement logic."""
         from .movement import validate_movement, execute_movement
 
         def can_drag(ship):
-            if self.gs.current_phase != "movement":
+            if self.ctx.gs.current_phase != "movement":
                 return False
-            if ship.player != self.gs.active_player:
+            if ship.player != self.ctx.gs.active_player:
                 return False
-            unmoved_ids = {s.id for s in self.tc.get_unmoved_ships()}
+            unmoved_ids = {s.id for s in self.ctx.tc.get_unmoved_ships()}
             return ship.id in unmoved_ids
 
         def commit_drag(ship, commands):
@@ -38,58 +38,58 @@ class _MovementMixin:
             order = ship.special_order
             aaf_bonus = 0
             if order == "all_ahead_full":
-                aaf_bonus = resolve_aaf_speed(ship, self.dice)
-                self._append_log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
+                aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
+                self.ctx.log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
             result = validate_movement(
                 ship, commands, order, aaf_bonus,
-                self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height,
+                self.ctx.gs.get_blast_markers(),
+                self.ctx.gs.table_width, self.ctx.gs.table_height,
                 turns_already_used=ship.turns_used_this_turn)
             if not result.valid:
                 return  # path became invalid between preview and release — discard
-            execute_movement(ship, result, self.gs)
+            execute_movement(ship, result, self.ctx.gs)
             # Terrain navigation tests (same logic as dialog confirm)
-            updated = self.gs.get_ship_by_id(ship.id)
+            updated = self.ctx.gs.get_ship_by_id(ship.id)
             if updated and not updated.is_disengaged:
                 from .terrain_effects import (resolve_asteroid_navigation,
                                                resolve_warp_rift_navigation,
                                                resolve_gas_dust_contact)
                 if "in_asteroid_field" in (updated.special_rules or []):
                     on_aaf = order == "all_ahead_full"
-                    nav = resolve_asteroid_navigation(updated, self.dice, self.gs, on_aaf)
+                    nav = resolve_asteroid_navigation(updated, self.ctx.dice, self.ctx.gs, on_aaf)
                     if not nav["passed"]:
-                        self._append_log(
+                        self.ctx.log(
                             f"  {updated.name}: asteroid damage {nav['damage']} HP!")
-                        self._check_destruction(updated)
-                    updated = self.gs.get_ship_by_id(ship.id)
+                        self.ctx.check_destruction(updated)
+                    updated = self.ctx.gs.get_ship_by_id(ship.id)
                     if updated:
                         updated.special_rules = [r for r in updated.special_rules
                                                  if r != "in_asteroid_field"]
-                        self.gs.update_ship(updated)
+                        self.ctx.gs.update_ship(updated)
                 if updated and "in_warp_rift" in (updated.special_rules or []):
-                    nav = resolve_warp_rift_navigation(updated, self.dice, self.gs)
-                    updated = self.gs.get_ship_by_id(ship.id)
+                    nav = resolve_warp_rift_navigation(updated, self.ctx.dice, self.ctx.gs)
+                    updated = self.ctx.gs.get_ship_by_id(ship.id)
                     if updated:
                         updated.special_rules = [r for r in updated.special_rules
                                                  if r != "in_warp_rift"]
-                        self.gs.update_ship(updated)
+                        self.ctx.gs.update_ship(updated)
                 if updated and "in_dust_cloud" in (updated.special_rules or []):
-                    resolve_gas_dust_contact(updated, self.dice, self.gs)
-                    updated = self.gs.get_ship_by_id(ship.id)
+                    resolve_gas_dust_contact(updated, self.ctx.dice, self.ctx.gs)
+                    updated = self.ctx.gs.get_ship_by_id(ship.id)
                     if updated:
                         updated.special_rules = [r for r in updated.special_rules
                                                  if r != "in_dust_cloud"]
-                        self.gs.update_ship(updated)
+                        self.ctx.gs.update_ship(updated)
 
             # Update staged tracking fields
-            final_ship = self.gs.get_ship_by_id(ship.id)
+            final_ship = self.ctx.gs.get_ship_by_id(ship.id)
             if final_ship:
                 final_ship.distance_moved_this_turn += result.total_distance
                 final_ship.turns_used_this_turn += result.turns_used
                 left_deg = sum(c.value for c in commands if c.action == "turn_left")
                 right_deg = sum(c.value for c in commands if c.action == "turn_right")
                 final_ship.net_rotation_this_turn += (left_deg - right_deg)
-                self.gs.update_ship(final_ship)
+                self.ctx.gs.update_ship(final_ship)
 
                 # Lock the ship only when its movement budget is exhausted
                 base_speed = final_ship.effective_speed
@@ -100,59 +100,59 @@ class _MovementMixin:
                                     else base_speed))
                 remaining = max_budget - final_ship.distance_moved_this_turn
                 if remaining <= 0.1:
-                    self.tc.mark_ship_moved(ship.id)
-                    self._append_log(
+                    self.ctx.tc.mark_ship_moved(ship.id)
+                    self.ctx.log(
                         f"{ship.name}: drag-moved {result.total_distance:.1f}cm "
                         f"to ({result.final_x:.1f}, {result.final_y:.1f}) "
                         f"hdg {result.final_heading:.0f}°")
                 else:
-                    self._append_log(
+                    self.ctx.log(
                         f"{ship.name}: drag-moved {result.total_distance:.1f}cm "
                         f"to ({result.final_x:.1f}, {result.final_y:.1f}) "
                         f"hdg {result.final_heading:.0f}° — {remaining:.1f}cm remaining")
-            self.board.redraw()
+            self.ctx.board.redraw()
 
-        self.board.can_drag_ship_fn = can_drag
-        self.board.commit_drag_fn = commit_drag
+        self.ctx.board.can_drag_ship_fn = can_drag
+        self.ctx.board.commit_drag_fn = commit_drag
 
         # M key: execute min-move for selected ship (staged, no dialog)
-        self.root.bind("m", lambda e: self._quick_min_move_selected())
-        self.root.bind("M", lambda e: self._quick_min_move_selected())
+        self.ctx.root.bind("m", lambda e: self._quick_min_move_selected())
+        self.ctx.root.bind("M", lambda e: self._quick_min_move_selected())
 
         # Spacebar: min-move ALL unmoved ships for active player
-        self.root.bind("<space>", lambda e: self._min_move_all_ships())
+        self.ctx.root.bind("<space>", lambda e: self._min_move_all_ships())
 
         # Backspace: undo all movement this turn
-        self.root.bind("<BackSpace>", lambda e: self._undo_all_movement())
+        self.ctx.root.bind("<BackSpace>", lambda e: self._undo_all_movement())
 
         # Ordnance launch drag callbacks
         def can_ord_drag(ship):
-            if self.gs.current_phase != "ordnance":
+            if self.ctx.gs.current_phase != "ordnance":
                 return False
-            if ship.player != self.gs.active_player:
+            if ship.player != self.ctx.gs.active_player:
                 return False
             if ship.is_destroyed or ship.is_disengaged:
                 return False
             return ship.ordnance_loaded_torps or ship.ordnance_loaded_craft
 
         def commit_ord_drag(ship, heading):
-            self._launch_ordnance_dialog(
+            self.ctx.ordnance._launch_ordnance_dialog(
                 preselected_ship=ship, preselected_heading=heading)
 
-        self.board.can_ord_drag_fn = can_ord_drag
-        self.board.commit_ord_drag_fn = commit_ord_drag
+        self.ctx.board.can_ord_drag_fn = can_ord_drag
+        self.ctx.board.commit_ord_drag_fn = commit_ord_drag
 
         # Board-level scroll wheel: add pending turn to selected ship
         def _on_board_scroll(event):
-            if self.gs.current_phase != "movement":
+            if self.ctx.gs.current_phase != "movement":
                 return
-            ship_id = self.board.selected_ship_id
+            ship_id = self.ctx.board.selected_ship_id
             if not ship_id:
                 return
-            ship = self.gs.get_ship_by_id(ship_id)
-            if not ship or ship.player != self.gs.active_player:
+            ship = self.ctx.gs.get_ship_by_id(ship_id)
+            if not ship or ship.player != self.ctx.gs.active_player:
                 return
-            unmoved_ids = {s.id for s in self.tc.get_unmoved_ships()}
+            unmoved_ids = {s.id for s in self.ctx.tc.get_unmoved_ships()}
             if ship_id not in unmoved_ids:
                 return
             if event.num == 4 or (hasattr(event, "delta") and event.delta > 0):
@@ -165,12 +165,12 @@ class _MovementMixin:
             new_val = max(-float(ship.turn_angle),
                           min(float(ship.turn_angle), current + delta))
             self._pending_turn[ship_id] = new_val
-            self.board.redraw()
+            self.ctx.board.redraw()
             self._redraw_pending_turn_ghost()
 
-        self.board.canvas.bind("<MouseWheel>", _on_board_scroll)
-        self.board.canvas.bind("<Button-4>", _on_board_scroll)
-        self.board.canvas.bind("<Button-5>", _on_board_scroll)
+        self.ctx.board.canvas.bind("<MouseWheel>", _on_board_scroll)
+        self.ctx.board.canvas.bind("<Button-4>", _on_board_scroll)
+        self.ctx.board.canvas.bind("<Button-5>", _on_board_scroll)
         self._board_scroll_fn = _on_board_scroll
 
     def _quick_min_move_selected(self):
@@ -185,23 +185,23 @@ class _MovementMixin:
         from .movement import (MoveCommand, validate_movement, execute_movement,
                                resolve_aaf_speed)
 
-        if self.gs.current_phase != "movement":
+        if self.ctx.gs.current_phase != "movement":
             return
 
-        ship_id = self.board.selected_ship_id
+        ship_id = self.ctx.board.selected_ship_id
         if not ship_id:
-            self.board.status_var.set("M: no ship selected — click a ship first")
+            self.ctx.board.status_var.set("M: no ship selected — click a ship first")
             return
 
-        ship = self.gs.get_ship_by_id(ship_id)
+        ship = self.ctx.gs.get_ship_by_id(ship_id)
         if not ship:
             return
-        if ship.player != self.gs.active_player:
-            self.board.status_var.set(f"M: {ship.name} belongs to the other player")
+        if ship.player != self.ctx.gs.active_player:
+            self.ctx.board.status_var.set(f"M: {ship.name} belongs to the other player")
             return
-        unmoved_ids = {s.id for s in self.tc.get_unmoved_ships()}
+        unmoved_ids = {s.id for s in self.ctx.tc.get_unmoved_ships()}
         if ship.id not in unmoved_ids:
-            self.board.status_var.set(f"M: {ship.name} has already moved this turn")
+            self.ctx.board.status_var.set(f"M: {ship.name} has already moved this turn")
             return
 
         order = ship.special_order
@@ -209,8 +209,8 @@ class _MovementMixin:
         aaf_bonus = 0
 
         if order == "all_ahead_full":
-            aaf_bonus = resolve_aaf_speed(ship, self.dice)
-            self._append_log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
+            aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
+            self.ctx.log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
             move_dist = float(base + aaf_bonus)
         elif order == "burn_retros":
             move_dist = float(base // 2)
@@ -223,7 +223,7 @@ class _MovementMixin:
                                      else (base // 2 if order == "burn_retros"
                                            else base)) - already_moved)
         if remaining_budget < 0.5:
-            self.board.status_var.set(
+            self.ctx.board.status_var.set(
                 f"M: {ship.name} has no remaining movement budget")
             return
         move_dist = min(move_dist, remaining_budget)
@@ -237,8 +237,8 @@ class _MovementMixin:
 
         result = validate_movement(
             ship, commands, order, aaf_bonus,
-            self.gs.get_blast_markers(),
-            self.gs.table_width, self.gs.table_height,
+            self.ctx.gs.get_blast_markers(),
+            self.ctx.gs.table_width, self.ctx.gs.table_height,
             turns_already_used=ship.turns_used_this_turn)
 
         if not result.valid:
@@ -247,47 +247,47 @@ class _MovementMixin:
                 commands = [MoveCommand("forward", move_dist)]
                 result = validate_movement(
                     ship, commands, order, aaf_bonus,
-                    self.gs.get_blast_markers(),
-                    self.gs.table_width, self.gs.table_height,
+                    self.ctx.gs.get_blast_markers(),
+                    self.ctx.gs.table_width, self.ctx.gs.table_height,
                     turns_already_used=ship.turns_used_this_turn)
             if not result.valid:
-                self.board.status_var.set(
+                self.ctx.board.status_var.set(
                     f"M: {ship.name} invalid — {result.errors[0]}")
                 return
 
-        execute_movement(ship, result, self.gs)
+        execute_movement(ship, result, self.ctx.gs)
 
         # Update staged tracking fields on the now-moved ship
-        ship = self.gs.get_ship_by_id(ship_id)
+        ship = self.ctx.gs.get_ship_by_id(ship_id)
         if ship:
             ship.distance_moved_this_turn += result.total_distance
             ship.turns_used_this_turn += result.turns_used
             left_deg = sum(c.value for c in commands if c.action == "turn_left")
             right_deg = sum(c.value for c in commands if c.action == "turn_right")
             ship.net_rotation_this_turn += (left_deg - right_deg)
-            self.gs.update_ship(ship)
+            self.ctx.gs.update_ship(ship)
 
             # If no budget remains, mark fully moved
             max_budget = (base + aaf_bonus if order == "all_ahead_full"
                           else (base // 2 if order == "burn_retros" else base))
             if ship.distance_moved_this_turn >= max_budget - 0.1:
-                self.tc.mark_ship_moved(ship_id)
-                self._append_log(
+                self.ctx.tc.mark_ship_moved(ship_id)
+                self.ctx.log(
                     f"{ship.name}: M-move complete {ship.distance_moved_this_turn:.0f}cm"
                     + (f" ↶{left_deg:.0f}°" if left_deg > 0.1 else "")
                     + (f" ↷{right_deg:.0f}°" if right_deg > 0.1 else ""))
             else:
-                self._append_log(
+                self.ctx.log(
                     f"{ship.name}: min-move {result.total_distance:.0f}cm"
                     + (f" ↶{left_deg:.0f}°" if left_deg > 0.1 else "")
                     + (f" ↷{right_deg:.0f}°" if right_deg > 0.1 else "")
                     + f" — {max_budget - ship.distance_moved_this_turn:.0f}cm remaining")
-            self.board.status_var.set(
+            self.ctx.board.status_var.set(
                 f"M: {ship.name} moved {result.total_distance:.0f}cm")
 
         self._redraw_pending_turn_ghost()
-        self.board.canvas.focus_set()
-        self.board.redraw()
+        self.ctx.board.canvas.focus_set()
+        self.ctx.board.redraw()
 
     # --- Game Flow ---
 
@@ -295,10 +295,10 @@ class _MovementMixin:
         """Spacebar: execute minimum move for every unmoved ship of the active player."""
         from .movement import MoveCommand, validate_movement, execute_movement, resolve_aaf_speed
 
-        if self.gs.current_phase != "movement":
+        if self.ctx.gs.current_phase != "movement":
             return
-        unmoved = [s for s in self.tc.get_unmoved_ships()
-                   if s.player == self.gs.active_player]
+        unmoved = [s for s in self.ctx.tc.get_unmoved_ships()
+                   if s.player == self.ctx.gs.active_player]
         if not unmoved:
             return
 
@@ -308,7 +308,7 @@ class _MovementMixin:
             base = ship.effective_speed
             aaf_bonus = 0
             if order == "all_ahead_full":
-                aaf_bonus = resolve_aaf_speed(ship, self.dice)
+                aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
                 move_dist = float(base + aaf_bonus)
             elif order == "burn_retros":
                 move_dist = float(base // 2)
@@ -318,44 +318,44 @@ class _MovementMixin:
             commands = [MoveCommand("forward", move_dist)]
             result = validate_movement(
                 ship, commands, order, aaf_bonus,
-                self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height)
+                self.ctx.gs.get_blast_markers(),
+                self.ctx.gs.table_width, self.ctx.gs.table_height)
             if not result.valid:
-                self._append_log(
+                self.ctx.log(
                     f"  {ship.name}: min-move skipped — {result.errors[0]}")
                 continue
 
-            execute_movement(ship, result, self.gs)
-            self.tc.mark_ship_moved(ship.id)
+            execute_movement(ship, result, self.ctx.gs)
+            self.ctx.tc.mark_ship_moved(ship.id)
             # Update staged fields so dialog is consistent if opened later
-            updated = self.gs.get_ship_by_id(ship.id)
+            updated = self.ctx.gs.get_ship_by_id(ship.id)
             if updated:
                 updated.distance_moved_this_turn += result.total_distance
-                self.gs.update_ship(updated)
+                self.ctx.gs.update_ship(updated)
             moved_count += 1
 
-        self._append_log(f"Spacebar: min-moved {moved_count} ships")
-        self.board.canvas.focus_set()
-        self.board.redraw()
+        self.ctx.log(f"Spacebar: min-moved {moved_count} ships")
+        self.ctx.board.canvas.focus_set()
+        self.ctx.board.redraw()
 
     def _undo_all_movement(self):
         """Backspace: undo all ship movement this turn, restoring phase-start positions."""
-        if self.gs.current_phase != "movement":
+        if self.ctx.gs.current_phase != "movement":
             return
-        if self.tc.undo_to_phase_start():
+        if self.ctx.tc.undo_to_phase_start():
             self._pending_turn.clear()
-            self._append_log("Backspace: all movement undone")
-            self.board.status_var.set("All movement undone")
-            self.board.canvas.focus_set()
-            self.board.redraw()
+            self.ctx.log("Backspace: all movement undone")
+            self.ctx.board.status_var.set("All movement undone")
+            self.ctx.board.canvas.focus_set()
+            self.ctx.board.redraw()
 
     def _redraw_pending_turn_ghost(self):
         """Draw a ghost on the board canvas showing pending scroll-wheel turn result."""
-        ship_id = self.board.selected_ship_id
+        ship_id = self.ctx.board.selected_ship_id
         if not ship_id:
             return
         pending = self._pending_turn.get(ship_id, 0.0)
-        ship = self.gs.get_ship_by_id(ship_id)
+        ship = self.ctx.gs.get_ship_by_id(ship_id)
         if not ship or abs(pending) < 0.1:
             return
 
@@ -377,46 +377,46 @@ class _MovementMixin:
         mid_y = ship.y + move_dist * _math.sin(hdg_rad)
         final_heading = (ship.heading + pending) % 360
         final_hdg_rad = _math.radians(final_heading)
-        arrow_len = self.board.cm_to_pixels(8)
+        arrow_len = self.ctx.board.cm_to_pixels(8)
 
-        sx0, sy0 = self.board.cm_to_screen(ship.x, ship.y)
-        sx1, sy1 = self.board.cm_to_screen(mid_x, mid_y)
+        sx0, sy0 = self.ctx.board.cm_to_screen(ship.x, ship.y)
+        sx1, sy1 = self.ctx.board.cm_to_screen(mid_x, mid_y)
         ax = sx1 + arrow_len * _math.cos(final_hdg_rad)
         ay = sy1 - arrow_len * _math.sin(final_hdg_rad)
 
-        self.board.canvas.create_line(
+        self.ctx.board.canvas.create_line(
             sx0, sy0, sx1, sy1, fill="#FFAA00", width=2, dash=(5, 3))
-        self.board.canvas.create_line(
+        self.ctx.board.canvas.create_line(
             sx1, sy1, ax, ay, fill="#FFAA00", width=2, arrow=tk.LAST)
 
         dir_str = f"↶{pending:.0f}°" if pending > 0 else f"↷{abs(pending):.0f}°"
-        self.board.status_var.set(
+        self.ctx.board.status_var.set(
             f"{ship.name}: pending {dir_str} after {move_dist:.0f}cm | "
             f"M to execute | Esc to clear")
 
     def _process_movement_phase_start(self):
         """Process things that happen at the start of each movement phase."""
         from .end_phase import resolve_hulk_drift
-        hulk_logs = resolve_hulk_drift(self.gs, self.dice)
+        hulk_logs = resolve_hulk_drift(self.ctx.gs, self.ctx.dice)
         if hulk_logs:
-            self._log_lines(hulk_logs)
-            self.board.redraw()
+            self.ctx.log_lines(hulk_logs)
+            self.ctx.board.redraw()
 
         # Reset per-turn ordnance flags
-        for i, o_dict in enumerate(self.gs.ordnance):
+        for i, o_dict in enumerate(self.ctx.gs.ordnance):
             if o_dict.get("resilient_used"):
-                self.gs.ordnance[i] = {**o_dict, "resilient_used": False}
+                self.ctx.gs.ordnance[i] = {**o_dict, "resilient_used": False}
 
         # Reset staged movement tracking on all ships
-        for s_dict in self.gs.ships:
+        for s_dict in self.ctx.gs.ships:
             if (s_dict.get("distance_moved_this_turn", 0) != 0
                     or s_dict.get("turns_used_this_turn", 0) != 0
                     or s_dict.get("net_rotation_this_turn", 0) != 0):
-                for i, sd in enumerate(self.gs.ships):
+                for i, sd in enumerate(self.ctx.gs.ships):
                     if sd["id"] == s_dict["id"]:
-                        self.gs.ships[i]["distance_moved_this_turn"] = 0.0
-                        self.gs.ships[i]["turns_used_this_turn"] = 0
-                        self.gs.ships[i]["net_rotation_this_turn"] = 0.0
+                        self.ctx.gs.ships[i]["distance_moved_this_turn"] = 0.0
+                        self.ctx.gs.ships[i]["turns_used_this_turn"] = 0
+                        self.ctx.gs.ships[i]["net_rotation_this_turn"] = 0.0
                         break
 
         # Clear any pending scroll-wheel turns
@@ -426,7 +426,7 @@ class _MovementMixin:
         """Dialog to issue a special order to a ship."""
         # Include ships that haven't yet been fully committed (M-key staged moves
         # don't mark a ship as moved, so those ships still appear here).
-        unmoved = self.tc.get_unmoved_ships()
+        unmoved = self.ctx.tc.get_unmoved_ships()
         if not unmoved:
             messagebox.showinfo(
                 "No Ships Available",
@@ -434,14 +434,14 @@ class _MovementMixin:
                 "Special orders must be issued before a ship moves.")
             return
 
-        if self.tc.command_check_failed:
+        if self.ctx.tc.command_check_failed:
             messagebox.showinfo("Command Failed",
                 "A command check already failed this turn.\n"
                 "No more special orders can be issued (except Brace).")
             return
 
         # Pick ship
-        ship = self._pick_ship_dialog(unmoved, "Select ship for special order")
+        ship = self.ctx.pick_ship(unmoved, "Select ship for special order")
         if not ship:
             return
 
@@ -459,10 +459,10 @@ class _MovementMixin:
             orders = [(n, v) for n, v in orders
                       if v != SpecialOrder.COME_TO_NEW_HEADING.value]
 
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.ctx.root)
         dialog.title(f"Special Order - {ship.name}")
         dialog.geometry("300x300")
-        dialog.transient(self.root)
+        dialog.transient(self.ctx.root)
         # dialog.grab_set()  # removed: conflicts with dice popups
 
         tk.Label(dialog, text=f"Order for {ship.name}",
@@ -481,17 +481,17 @@ class _MovementMixin:
             if not order:
                 return
             dialog.destroy()
-            result = self.tc.issue_special_order(ship, order)
+            result = self.ctx.tc.issue_special_order(ship, order)
             roll_info = f" (rolled {result.get('roll', '?')} vs Ld {result.get('needed', '?')})"
             if result["success"]:
-                self._append_log(
+                self.ctx.log(
                     f"{ship.name}: {order} PASSED{roll_info}")
                 messagebox.showinfo("Order Passed",
                     f"{ship.name}: {order} PASSED\n"
                     f"Rolled {result.get('roll')} vs Leadership {result.get('needed')}")
             else:
                 # Check if fleet commander re-roll is available
-                rerolls = self.tc.get_fleet_rerolls(ship.player)
+                rerolls = self.ctx.tc.get_fleet_rerolls(ship.player)
                 if rerolls > 0:
                     use_reroll = messagebox.askyesno(
                         "Order Failed - Re-roll Available",
@@ -500,12 +500,12 @@ class _MovementMixin:
                         f"Fleet commander has {rerolls} re-roll(s) remaining.\n"
                         f"Use a re-roll? (Cannot be undone)")
                     if use_reroll:
-                        reroll_result = self.tc.attempt_reroll_command_check(
+                        reroll_result = self.ctx.tc.attempt_reroll_command_check(
                             ship, order)
                         rr_info = (f" (RE-ROLL: rolled {reroll_result.get('roll', '?')} "
                                    f"vs Ld {reroll_result.get('needed', '?')})")
                         if reroll_result["success"]:
-                            self._append_log(
+                            self.ctx.log(
                                 f"{ship.name}: {order} RE-ROLL PASSED{rr_info}")
                             messagebox.showinfo("Re-roll Passed!",
                                 f"{ship.name}: {order} RE-ROLL PASSED\n"
@@ -513,7 +513,7 @@ class _MovementMixin:
                                 f"Leadership {reroll_result.get('needed')}")
                         else:
                             msg = reroll_result.get("error", f"{order} RE-ROLL FAILED")
-                            self._append_log(f"{ship.name}: {msg}")
+                            self.ctx.log(f"{ship.name}: {msg}")
                             messagebox.showwarning("Re-roll Failed",
                                 f"{ship.name}: {order} RE-ROLL ALSO FAILED\n"
                                 f"Rolled {reroll_result.get('roll')} vs "
@@ -521,19 +521,19 @@ class _MovementMixin:
                                 f"No more special orders this turn!")
                     else:
                         msg = result.get("error", f"{order} FAILED")
-                        self._append_log(f"{ship.name}: {msg}")
+                        self.ctx.log(f"{ship.name}: {msg}")
                 else:
                     msg = result.get("error", f"{order} FAILED")
-                    self._append_log(f"{ship.name}: {msg}")
+                    self.ctx.log(f"{ship.name}: {msg}")
                     messagebox.showwarning("Order Failed",
                         f"{ship.name}: {order} FAILED\n"
                         f"Rolled {result.get('roll')} vs Leadership {result.get('needed')}\n"
                         f"No fleet re-rolls available.\n"
                         f"No more special orders this turn!")
-            self.board.redraw()
+            self.ctx.board.redraw()
 
         # Show re-roll count
-        rerolls = self.tc.get_fleet_rerolls(ship.player)
+        rerolls = self.ctx.tc.get_fleet_rerolls(ship.player)
         reroll_text = f"Fleet re-rolls available: {rerolls}" if rerolls > 0 else ""
         if reroll_text:
             tk.Label(dialog, text=reroll_text, font=("Consolas", 8),
@@ -548,7 +548,7 @@ class _MovementMixin:
         preselected_ship: Ship — if given, skip the pick dialog and use this ship.
         initial_commands: list of MoveCommand — pre-populate the command list.
         """
-        unmoved = self.tc.get_unmoved_ships()
+        unmoved = self.ctx.tc.get_unmoved_ships()
         if not unmoved:
             messagebox.showinfo("No Ships", "All ships have moved")
             return
@@ -556,15 +556,15 @@ class _MovementMixin:
         if preselected_ship and preselected_ship.id in {s.id for s in unmoved}:
             ship = preselected_ship
         else:
-            ship = self._pick_ship_dialog(unmoved, "Select ship to move")
+            ship = self.ctx.pick_ship(unmoved, "Select ship to move")
         if not ship:
             return
 
         # Movement command dialog
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.ctx.root)
         dialog.title(f"Move {ship.name}")
         dialog.geometry("500x580")
-        dialog.transient(self.root)
+        dialog.transient(self.ctx.root)
         # dialog.grab_set()  # removed: conflicts with dice popups
 
         tk.Label(dialog, text=f"Move: {ship.name}",
@@ -575,8 +575,8 @@ class _MovementMixin:
         min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
         aaf_bonus = 0
         if order == SpecialOrder.ALL_AHEAD_FULL.value:
-            aaf_bonus = resolve_aaf_speed(ship, self.dice)
-            self._append_log(
+            aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
+            self.ctx.log(
                 f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
 
         base_speed = ship.effective_speed
@@ -806,13 +806,13 @@ class _MovementMixin:
                 f"Net: {_net_init_str} | Remaining angle: {ship.turn_angle}°")
             turn_stats_label.config(fg="#AAAAFF")
             preview_var.set("Add movement commands above")
-            self.board.redraw()
+            self.ctx.board.redraw()
 
         def _validate():
             result = validate_movement(
                 ship, commands, order, aaf_bonus,
-                self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height,
+                self.ctx.gs.get_blast_markers(),
+                self.ctx.gs.table_width, self.ctx.gs.table_height,
                 turns_already_used=_turns_already)
 
             # Update remaining distance
@@ -851,53 +851,53 @@ class _MovementMixin:
                 preview_var.set("ERRORS: " + "; ".join(result.errors))
 
             # Draw preview path on board
-            self.board.redraw()
+            self.ctx.board.redraw()
             if result.path:
                 for i in range(len(result.path) - 1):
-                    sx0, sy0 = self.board.cm_to_screen(*result.path[i])
-                    sx1, sy1 = self.board.cm_to_screen(*result.path[i+1])
+                    sx0, sy0 = self.ctx.board.cm_to_screen(*result.path[i])
+                    sx1, sy1 = self.ctx.board.cm_to_screen(*result.path[i+1])
                     color = "#44FF44" if result.valid else "#FF4444"
-                    self.board.canvas.create_line(
+                    self.ctx.board.canvas.create_line(
                         sx0, sy0, sx1, sy1,
                         fill=color, width=2, dash=(4, 4))
                 if result.valid:
-                    gx, gy = self.board.cm_to_screen(
+                    gx, gy = self.ctx.board.cm_to_screen(
                         result.final_x, result.final_y)
-                    r = self.board.cm_to_pixels(1.2)
-                    self.board.canvas.create_oval(
+                    r = self.ctx.board.cm_to_pixels(1.2)
+                    self.ctx.board.canvas.create_oval(
                         gx-r, gy-r, gx+r, gy+r,
                         outline="#44FF44", width=2, dash=(3, 3))
                     # Ghost heading arrow
                     head_rad = math.radians(result.final_heading)
                     ax = gx + r * 2 * math.cos(head_rad)
                     ay = gy - r * 2 * math.sin(head_rad)
-                    self.board.canvas.create_line(
+                    self.ctx.board.canvas.create_line(
                         gx, gy, ax, ay, fill="#44FF44", width=2, arrow=tk.LAST)
 
         def _on_dialog_close():
-            self.board.canvas.unbind("<MouseWheel>")
-            self.board.canvas.unbind("<Button-4>")
-            self.board.canvas.unbind("<Button-5>")
+            self.ctx.board.canvas.unbind("<MouseWheel>")
+            self.ctx.board.canvas.unbind("<Button-4>")
+            self.ctx.board.canvas.unbind("<Button-5>")
             if self._board_scroll_fn:
-                self.board.canvas.bind("<MouseWheel>", self._board_scroll_fn)
-                self.board.canvas.bind("<Button-4>", self._board_scroll_fn)
-                self.board.canvas.bind("<Button-5>", self._board_scroll_fn)
+                self.ctx.board.canvas.bind("<MouseWheel>", self._board_scroll_fn)
+                self.ctx.board.canvas.bind("<Button-4>", self._board_scroll_fn)
+                self.ctx.board.canvas.bind("<Button-5>", self._board_scroll_fn)
             dialog.destroy()
 
         def _confirm():
             result = validate_movement(
                 ship, commands, order, aaf_bonus,
-                self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height,
+                self.ctx.gs.get_blast_markers(),
+                self.ctx.gs.table_width, self.ctx.gs.table_height,
                 turns_already_used=_turns_already)
             if not result.valid:
                 messagebox.showerror("Invalid Movement",
                                      "\n".join(result.errors))
                 return
-            execute_movement(ship, result, self.gs)
+            execute_movement(ship, result, self.ctx.gs)
 
             # Check for terrain navigation tests
-            updated_ship = self.gs.get_ship_by_id(ship.id)
+            updated_ship = self.ctx.gs.get_ship_by_id(ship.id)
             if updated_ship and not updated_ship.is_disengaged:
                 from .terrain_effects import (resolve_asteroid_navigation,
                                                resolve_warp_rift_navigation,
@@ -905,46 +905,46 @@ class _MovementMixin:
                 if "in_asteroid_field" in (updated_ship.special_rules or []):
                     on_aaf = order == SpecialOrder.ALL_AHEAD_FULL.value
                     nav = resolve_asteroid_navigation(
-                        updated_ship, self.dice, self.gs, on_aaf)
+                        updated_ship, self.ctx.dice, self.ctx.gs, on_aaf)
                     if not nav["passed"]:
-                        self._append_log(
+                        self.ctx.log(
                             f"  {updated_ship.name}: asteroid damage {nav['damage']} HP!")
-                        self._check_destruction(updated_ship)
+                        self.ctx.check_destruction(updated_ship)
                     # Remove flag
-                    updated_ship = self.gs.get_ship_by_id(ship.id)
+                    updated_ship = self.ctx.gs.get_ship_by_id(ship.id)
                     if updated_ship:
                         sr = [r for r in updated_ship.special_rules
                               if r != "in_asteroid_field"]
                         updated_ship.special_rules = sr
-                        self.gs.update_ship(updated_ship)
+                        self.ctx.gs.update_ship(updated_ship)
 
                 if "in_warp_rift" in (updated_ship.special_rules or []):
                     nav = resolve_warp_rift_navigation(
-                        updated_ship, self.dice, self.gs)
+                        updated_ship, self.ctx.dice, self.ctx.gs)
                     if not nav["passed"]:
-                        self._append_log(f"  {updated_ship.name}: LOST IN THE WARP!")
+                        self.ctx.log(f"  {updated_ship.name}: LOST IN THE WARP!")
                     else:
                         pos = nav.get("new_position", (0, 0))
-                        self._append_log(
+                        self.ctx.log(
                             f"  {updated_ship.name}: emerged at ({pos[0]:.0f}, {pos[1]:.0f})")
-                    updated_ship = self.gs.get_ship_by_id(ship.id)
+                    updated_ship = self.ctx.gs.get_ship_by_id(ship.id)
                     if updated_ship:
                         sr = [r for r in updated_ship.special_rules
                               if r != "in_warp_rift"]
                         updated_ship.special_rules = sr
-                        self.gs.update_ship(updated_ship)
+                        self.ctx.gs.update_ship(updated_ship)
 
                 if "in_dust_cloud" in (updated_ship.special_rules or []):
-                    resolve_gas_dust_contact(updated_ship, self.dice, self.gs)
-                    updated_ship = self.gs.get_ship_by_id(ship.id)
+                    resolve_gas_dust_contact(updated_ship, self.ctx.dice, self.ctx.gs)
+                    updated_ship = self.ctx.gs.get_ship_by_id(ship.id)
                     if updated_ship:
                         sr = [r for r in updated_ship.special_rules
                               if r != "in_dust_cloud"]
                         updated_ship.special_rules = sr
-                        self.gs.update_ship(updated_ship)
+                        self.ctx.gs.update_ship(updated_ship)
 
             # Update staged movement tracking fields before marking fully moved
-            final_ship = self.gs.get_ship_by_id(ship.id)
+            final_ship = self.ctx.gs.get_ship_by_id(ship.id)
             if final_ship:
                 final_ship.distance_moved_this_turn = (
                     already_moved + result.total_distance)
@@ -954,9 +954,9 @@ class _MovementMixin:
                     sum(c.value for c in commands if c.action == "turn_left")
                     - sum(c.value for c in commands if c.action == "turn_right"))
                 final_ship.net_rotation_this_turn = _net_rot_already + dialog_net
-                self.gs.update_ship(final_ship)
-            self.tc.mark_ship_moved(ship.id)
-            self.tc.record_action(
+                self.ctx.gs.update_ship(final_ship)
+            self.ctx.tc.mark_ship_moved(ship.id)
+            self.ctx.tc.record_action(
                 "move_ship", ship.id,
                 details={
                     "commands": [{"action": c.action, "value": c.value}
@@ -972,10 +972,10 @@ class _MovementMixin:
                     f"{ship.name} moved {result.total_distance:.1f}cm "
                     f"to ({result.final_x:.1f}, {result.final_y:.1f}) "
                     f"heading {result.final_heading:.0f}°"))
-            self._append_log(
+            self.ctx.log(
                 f"{ship.name}: moved {result.total_distance:.1f}cm")
             _on_dialog_close()
-            self.board.redraw()
+            self.ctx.board.redraw()
 
         # Confirm / Cancel
         btn_row = tk.Frame(dialog)
@@ -999,9 +999,9 @@ class _MovementMixin:
             elif event.num == 5 or (hasattr(event, "delta") and event.delta < 0):
                 _add_cmd("turn_right", _scroll_deg)
 
-        self.board.canvas.bind("<MouseWheel>", _on_scroll)
-        self.board.canvas.bind("<Button-4>", _on_scroll)
-        self.board.canvas.bind("<Button-5>", _on_scroll)
+        self.ctx.board.canvas.bind("<MouseWheel>", _on_scroll)
+        self.ctx.board.canvas.bind("<Button-4>", _on_scroll)
+        self.ctx.board.canvas.bind("<Button-5>", _on_scroll)
 
         # Pre-populate commands if provided (after all helpers are defined)
         if initial_commands:
@@ -1014,21 +1014,20 @@ class _MovementMixin:
 
     def _undo_movement(self):
         """Undo a ship's movement."""
-        moved_ids = self.tc.ships_moved
+        moved_ids = self.ctx.tc.ships_moved
         if not moved_ids:
             messagebox.showinfo("Nothing to undo", "No ships have moved yet")
             return
 
         # Pick which to undo
-        moved_ships = [Ship.from_dict(s) for s in self.gs.ships
+        moved_ships = [Ship.from_dict(s) for s in self.ctx.gs.ships
                        if s["id"] in moved_ids]
-        ship = self._pick_ship_dialog(moved_ships, "Select ship to undo movement")
+        ship = self.ctx.pick_ship(moved_ships, "Select ship to undo movement")
         if not ship:
             return
 
-        if self.tc.undo_ship_movement(ship.id):
-            self._append_log(f"Undid movement for {ship.name}")
-            self.board.redraw()
+        if self.ctx.tc.undo_ship_movement(ship.id):
+            self.ctx.log(f"Undid movement for {ship.name}")
+            self.ctx.board.redraw()
 
     # --- Shooting ---
-

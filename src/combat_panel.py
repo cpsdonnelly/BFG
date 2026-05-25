@@ -1,31 +1,27 @@
-"""BFG:XR — extracted panel mixin (see game_panel.py for context)."""
+"""BFG:XR — CombatPanel: shooting phase UI, weapon targeting, damage resolution."""
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import math
 from typing import Optional, Callable, List
 
 from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
-from .game_state import GameState
-from .turn_controller import TurnController
-from .dice import DiceRoller
-from .movement import (MoveCommand, validate_movement, execute_movement,
-                       resolve_aaf_speed, MIN_TURN_DISTANCE)
 from .combat import (check_weapon_in_arc, check_weapon_in_range,
                      resolve_batteries, resolve_lances, resolve_nova_cannon,
                      apply_damage, check_los_clear)
-from .end_phase import resolve_end_phase
-from .geometry import (circle_touches_square, circle_touches_torpedo,
-                        ATTACK_CRAFT_HALF_SIDE_CM)
+from .game_context import GameContext
 
 
-class _CombatMixin:
-    """Mixin — methods injected into GamePanel."""
+class CombatPanel:
+    """Handles all shooting phase UI: fire dialog, ordnance targeting."""
+
+    def __init__(self, ctx: GameContext):
+        self.ctx = ctx
 
     def _fire_dialog(self):
         """Dialog to fire a ship's weapons - pick weapons, pick targets, split fire."""
         # Get ships that have unfired weapons (check per-weapon, not just has_fired)
-        active_ships = [Ship.from_dict(s) for s in self.gs.ships
-                        if s["player"] == self.gs.active_player
+        active_ships = [Ship.from_dict(s) for s in self.ctx.gs.ships
+                        if s["player"] == self.ctx.gs.active_player
                         and not Ship.from_dict(s).is_destroyed
                         and not s.get("is_disengaged", False)
                         and not s.get("disengage_failed_this_turn", False)]
@@ -55,13 +51,13 @@ class _CombatMixin:
             messagebox.showinfo("No Ships", "All ships have fired all weapons")
             return
 
-        attacker = self._pick_ship_dialog(ships_with_weapons, "Select ship to fire")
+        attacker = self.ctx.pick_ship(ships_with_weapons, "Select ship to fire")
         if not attacker:
             return
 
         # Get enemies (only living, not disengaged)
         enemy_player = 2 if attacker.player == 1 else 1
-        enemies = [Ship.from_dict(s) for s in self.gs.ships
+        enemies = [Ship.from_dict(s) for s in self.ctx.gs.ships
                    if s["player"] == enemy_player
                    and not Ship.from_dict(s).is_destroyed
                    and not s.get("is_disengaged", False)]
@@ -71,8 +67,8 @@ class _CombatMixin:
 
         # Sort enemies by distance, but only consider visible ones for "closest"
         enemies.sort(key=lambda e: attacker.distance_to(e))
-        phenomena = self.gs.get_phenomena()
-        blast_markers = self.gs.get_blast_markers()
+        phenomena = self.ctx.gs.get_phenomena()
+        blast_markers = self.ctx.gs.get_blast_markers()
 
         # Find closest VISIBLE enemy (for target priority)
         closest_visible = None
@@ -120,10 +116,10 @@ class _CombatMixin:
             return
 
         # Weapon selection dialog
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.ctx.root)
         dialog.title(f"Fire Weapons - {attacker.name}")
         dialog.geometry("550x600")
-        dialog.transient(self.root)
+        dialog.transient(self.ctx.root)
         # dialog.grab_set()  # removed: conflicts with dice popups
 
         tk.Label(dialog, text=f"Fire: {attacker.name}",
@@ -191,7 +187,7 @@ class _CombatMixin:
 
             # Target dropdown - show name + distance + arc + LoS
             target_options = []
-            phenomena = self.gs.get_phenomena()
+            phenomena = self.ctx.gs.get_phenomena()
             for e in enemies:
                 dist = attacker.distance_to(e)
                 arc = attacker.get_target_arc(e.x, e.y)
@@ -275,14 +271,14 @@ class _CombatMixin:
                     cv_in_arc = cv_arc.value in weapon.get("arcs", []) or not weapon.get("arcs")
                     cv_in_range = attacker.distance_to(closest_visible) <= weapon.get("range_cm", 999)
                     cv_los = check_los_clear(attacker, closest_visible,
-                                            self.gs.get_phenomena(), blast_markers)
+                                            self.ctx.gs.get_phenomena(), blast_markers)
                     if cv_in_arc and cv_in_range and cv_los["clear"]:
                         needs_priority_check = True
 
                 if needs_priority_check:
                     from .movement import do_command_check
                     check = do_command_check(attacker, "target_priority",
-                                             self.dice)
+                                             self.ctx.dice)
                     if not check["passed"]:
                         _log(f"  {weapon['name']}: Target priority FAILED "
                              f"(rolled {check['roll']} vs Ld {check['needed']}). "
@@ -297,7 +293,7 @@ class _CombatMixin:
                 weapon_actually_fired = True
 
                 wtype = weapon.get("weapon_type", "")
-                phenomena = self.gs.get_phenomena()
+                phenomena = self.ctx.gs.get_phenomena()
 
                 # Create weapon dict with the specific strength to fire
                 fire_weapon = dict(weapon)
@@ -305,8 +301,8 @@ class _CombatMixin:
 
                 if wtype == "battery":
                     sr = resolve_batteries(attacker, target, fire_weapon,
-                                          self.dice, blast_markers, lock_on,
-                                          phenomena, self.gs.ships,
+                                          self.ctx.dice, blast_markers, lock_on,
+                                          phenomena, self.ctx.gs.ships,
                                           no_column_shifts=in_asteroid_field)
                     _log(f"  {sr.description}")
                     if sr.hits > 0:
@@ -315,7 +311,7 @@ class _CombatMixin:
 
                 elif wtype == "lance":
                     sr = resolve_lances(attacker, target, fire_weapon,
-                                       self.dice, lock_on)
+                                       self.ctx.dice, lock_on)
                     _log(f"  {sr.description}")
                     if sr.hits > 0:
                         all_damage.setdefault(target.id, []).append(
@@ -330,7 +326,7 @@ class _CombatMixin:
                         weapon_actually_fired = False
                     else:
                         nc = resolve_nova_cannon(attacker, target.x, target.y,
-                                               self.dice, self.gs)
+                                               self.ctx.dice, self.ctx.gs)
                         if "error" in nc:
                             _log(f"  Nova Cannon: {nc['error']}")
                             weapon_actually_fired = False
@@ -344,20 +340,20 @@ class _CombatMixin:
                                 _log(f"  Nova Cannon: HIT! Template at ({tx:.0f}, {ty:.0f})")
 
                             # Draw template on board
-                            self.board.draw_nova_template(tx, ty,
+                            self.ctx.board.draw_nova_template(tx, ty,
                                                           hit=bool(nc.get("ship_hits")))
 
                             # Apply hits
                             if nc.get("ship_hits"):
                                 for sid, hd in nc["ship_hits"].items():
-                                    hit_ship = self.gs.get_ship_by_id(sid)
+                                    hit_ship = self.ctx.gs.get_ship_by_id(sid)
                                     if hit_ship:
                                         _log(f"  Nova Cannon hits {hit_ship.name}: "
                                              f"{hd['hits']} hits (ignores armor)")
                                         apply_damage(hit_ship, hd["hits"],
-                                                   self.dice, self.gs,
+                                                   self.ctx.dice, self.ctx.gs,
                                                    ignores_shields=True)
-                                        self._check_destruction(hit_ship)
+                                        self.ctx.check_destruction(hit_ship)
                             else:
                                 _log(f"  Nova Cannon: no ships hit")
 
@@ -369,7 +365,7 @@ class _CombatMixin:
                                     id=f"nova_miss_{_rng.randint(0,9999)}",
                                     x=bx, y=by,
                                     source="nova_cannon_miss")
-                                self.gs.add_blast_marker(bm)
+                                self.ctx.gs.add_blast_marker(bm)
                                 _log(f"  Blast marker placed at ({bx:.0f}, {by:.0f})")
 
                 # Only track as fired if the weapon actually resolved
@@ -380,7 +376,7 @@ class _CombatMixin:
             for target_id, hit_list in all_damage.items():
                 total = sum(h for h, _, _ in hit_list)
                 target = hit_list[0][2]  # get target ship from first entry
-                target = self.gs.get_ship_by_id(target_id)  # re-fetch
+                target = self.ctx.gs.get_ship_by_id(target_id)  # re-fetch
                 if not target or target.is_destroyed:
                     continue
 
@@ -404,15 +400,15 @@ class _CombatMixin:
                         # Command check for brace
                         from .movement import do_command_check
                         check = do_command_check(target, "brace_for_impact",
-                                                 self.dice)
+                                                 self.ctx.dice)
                         if check["passed"]:
                             brace = True
                             # Save previous order before replacing
                             if target.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
                                 target.previous_order = target.special_order
                             target.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                            target.brace_set_on_turn = self.gs.turn_number
-                            self.gs.update_ship(target)
+                            target.brace_set_on_turn = self.ctx.gs.turn_number
+                            self.ctx.gs.update_ship(target)
                             _log(f"     Brace PASSED (rolled {check['roll']} "
                                  f"vs Ld {check['needed']})")
                         else:
@@ -420,13 +416,13 @@ class _CombatMixin:
                             failed_list = target.brace_failed_vs or []
                             failed_list.append(attacker.id)
                             target.brace_failed_vs = failed_list
-                            self.gs.update_ship(target)
+                            self.ctx.gs.update_ship(target)
                             _log(f"     Brace FAILED (rolled {check['roll']} "
                                  f"vs Ld {check['needed']})")
                 else:
                     _log(f"     (already failed brace vs {attacker.name})")
 
-                dmg = apply_damage(target, total, self.dice, self.gs,
+                dmg = apply_damage(target, total, self.ctx.dice, self.ctx.gs,
                                   target_braced=brace)
                 _log(f"     Shields: {dmg['shield_hits']}, "
                      f"Hull: {dmg['hull_hits']}, "
@@ -438,10 +434,10 @@ class _CombatMixin:
                     _log(f"     {target.name} is CRIPPLED!")
                 if dmg["destroyed"]:
                     _log(f"     {target.name} DESTROYED!")
-                    self._check_destruction(target)
+                    self.ctx.check_destruction(target)
 
             # Record which weapons were fired and track remaining strength
-            attacker_fresh = self.gs.get_ship_by_id(attacker.id)
+            attacker_fresh = self.ctx.gs.get_ship_by_id(attacker.id)
             if attacker_fresh:
                 wr = attacker_fresh.weapons_remaining or {}
                 wfi = attacker_fresh.weapons_fired_indices or []
@@ -472,9 +468,9 @@ class _CombatMixin:
                         all_done = False
                         break
                 attacker_fresh.has_fired = all_done
-                self.gs.update_ship(attacker_fresh)
+                self.ctx.gs.update_ship(attacker_fresh)
 
-            self._append_log(
+            self.ctx.log(
                 f"{attacker.name} fired {len(fired_weapon_indices)} weapon(s)")
 
             # Warn if unfired weapons remain
@@ -496,12 +492,12 @@ class _CombatMixin:
                     else:
                         remaining_weapons.append(w["name"])
                 if remaining_weapons:
-                    self._append_log(
+                    self.ctx.log(
                         f"  WARNING: {attacker.name} still has unfired: "
                         + ", ".join(remaining_weapons))
 
             dialog.destroy()
-            self.board.redraw()
+            self.ctx.board.redraw()
 
         def _auto_full_volley():
             """Set all weapons to fire at closest valid target."""
@@ -536,16 +532,16 @@ class _CombatMixin:
         """Fire weapons at ordnance. 6+ to hit, one hit removes entire wave/salvo.
         Batteries use Ordnance column on gunnery table. Lances roll strength dice.
         Ordnance-only target priority (other ordnance = nearest, not ships)."""
-        enemy_player = 2 if self.gs.active_player == 1 else 1
-        enemy_ordnance = [OrdnanceMarker.from_dict(o) for o in self.gs.ordnance
+        enemy_player = 2 if self.ctx.gs.active_player == 1 else 1
+        enemy_ordnance = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance
                           if o["owner_player"] == enemy_player]
         if not enemy_ordnance:
             messagebox.showinfo("No Targets", "No enemy ordnance on the board")
             return
 
         # Get ships with unfired direct-fire weapons (batteries OR lances)
-        active_ships = [Ship.from_dict(s) for s in self.gs.ships
-                        if s["player"] == self.gs.active_player
+        active_ships = [Ship.from_dict(s) for s in self.ctx.gs.ships
+                        if s["player"] == self.ctx.gs.active_player
                         and not Ship.from_dict(s).is_destroyed
                         and not s.get("is_disengaged", False)]
         ships_with_weapons = []
@@ -568,15 +564,15 @@ class _CombatMixin:
                 "No ships with available battery or lance weapons")
             return
 
-        attacker = self._pick_ship_dialog(ships_with_weapons,
+        attacker = self.ctx.pick_ship(ships_with_weapons,
                                            "Select ship to fire at ordnance")
         if not attacker:
             return
 
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.ctx.root)
         dialog.title(f"Fire at Ordnance - {attacker.name}")
         dialog.geometry("500x500")
-        dialog.transient(self.root)
+        dialog.transient(self.ctx.root)
 
         tk.Label(dialog, text=f"Fire {attacker.name} at ordnance",
                  font=("Consolas", 11, "bold")).pack(pady=3)
@@ -654,9 +650,9 @@ class _CombatMixin:
             closest_ord = enemy_ordnance[0]  # already sorted by distance
             if target_ord.id != closest_ord.id:
                 from .movement import do_command_check
-                check = do_command_check(attacker, "target_priority", self.dice)
+                check = do_command_check(attacker, "target_priority", self.ctx.dice)
                 if not check["passed"]:
-                    self._append_log(
+                    self.ctx.log(
                         f"  Target priority FAILED (rolled {check['roll']} vs Ld {check['needed']}). "
                         f"Must fire at closest ordnance.")
                     target_ord = closest_ord
@@ -676,33 +672,33 @@ class _CombatMixin:
                 from .los import check_los
                 los = check_los(attacker.x, attacker.y,
                                 target_ord.x, target_ord.y,
-                                self.gs.get_phenomena(),
-                                self.gs.get_blast_markers())
+                                self.ctx.gs.get_phenomena(),
+                                self.ctx.gs.get_blast_markers())
                 shifts += los.get("column_shifts", 0)
                 # Targeting matrix
                 if "targeting_matrix" in attacker.special_rules:
                     shifts -= 1
 
                 dice_count = lookup_gunnery_dice(avail, COL_ABEAM_ESCORT, shifts)
-                self._append_log(
+                self.ctx.log(
                     f"  {weapon['name']} FP{avail} vs ordnance: "
                     f"{dice_count} dice (col Ordnance, {shifts:+d} shifts)")
             elif wtype == "lance":
                 # Lances roll their strength in dice
                 dice_count = avail
-                self._append_log(
+                self.ctx.log(
                     f"  {weapon['name']} Str{avail} vs ordnance: "
                     f"{dice_count} dice")
             else:
                 dice_count = 0
 
             if dice_count <= 0:
-                self._append_log(f"  No dice to roll")
+                self.ctx.log(f"  No dice to roll")
                 dialog.destroy()
                 return
 
             # Roll: 6+ to hit ordnance
-            rolls = self.dice.roll_d6(dice_count,
+            rolls = self.ctx.dice.roll_d6(dice_count,
                 f"{weapon['name']} vs {target_ord.ordnance_type} (6+ to hit)")
             hits = sum(1 for r in rolls if r >= 6)
 
@@ -711,22 +707,22 @@ class _CombatMixin:
             attacker.weapons_remaining = wr
             if w_idx not in attacker.weapons_fired_indices:
                 attacker.weapons_fired_indices.append(w_idx)
-            self.gs.update_ship(attacker)
+            self.ctx.gs.update_ship(attacker)
 
             if hits > 0:
                 # ONE HIT KILLS ENTIRE WAVE/SALVO
-                self.gs.ordnance = [
-                    o for o in self.gs.ordnance
+                self.ctx.gs.ordnance = [
+                    o for o in self.ctx.gs.ordnance
                     if o["id"] != target_ord.id]
-                self._append_log(
+                self.ctx.log(
                     f"  HIT! {target_ord.ordnance_type} Str{target_ord.strength} "
                     f"destroyed! (rolled {hits} hit(s) on 6+)")
             else:
-                self._append_log(
+                self.ctx.log(
                     f"  MISS! No 6s rolled ({dice_count} dice)")
 
             dialog.destroy()
-            self.board.redraw()
+            self.ctx.board.redraw()
 
         btn_frame = tk.Frame(dialog)
         btn_frame.pack(pady=10)

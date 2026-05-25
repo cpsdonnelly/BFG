@@ -1,32 +1,25 @@
-"""BFG:XR — extracted panel mixin (see game_panel.py for context)."""
+"""BFG:XR — OrdnancePanel: ordnance launch, movement, and contact resolution."""
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import math
 from typing import Optional, Callable, List
 
 from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
-from .game_state import GameState
-from .turn_controller import TurnController
-from .dice import DiceRoller
-from .movement import (MoveCommand, validate_movement, execute_movement,
-                       resolve_aaf_speed, MIN_TURN_DISTANCE)
-from .combat import (check_weapon_in_arc, check_weapon_in_range,
-                     resolve_batteries, resolve_lances, resolve_nova_cannon,
-                     apply_damage, check_los_clear)
-from .end_phase import resolve_end_phase
-from .geometry import (circle_touches_square, circle_touches_torpedo,
-                        ATTACK_CRAFT_HALF_SIDE_CM)
+from .game_context import GameContext
 
 
-class _OrdnanceMixin:
-    """Mixin — methods injected into GamePanel."""
+class OrdnancePanel:
+    """Handles ordnance phase UI: launch dialogs, movement, mine/torp/bomber contact."""
+
+    def __init__(self, ctx: GameContext):
+        self.ctx = ctx
 
     def _move_tau_missiles_dialog(self):
         """Player-controlled Tau missile movement. Reuses ship movement concepts:
         choose speed (20-40cm), optional 45° turn at start, quick buttons."""
-        tau_missiles = [OrdnanceMarker.from_dict(o) for o in self.gs.ordnance
+        tau_missiles = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance
                         if o["ordnance_type"] == OrdnanceType.TORPEDO_GUIDED.value
-                        and o["owner_player"] == self.gs.active_player
+                        and o["owner_player"] == self.ctx.gs.active_player
                         and not o.get("moved_this_phase", False)]
         if not tau_missiles:
             messagebox.showinfo("No Missiles",
@@ -37,10 +30,10 @@ class _OrdnanceMixin:
         if len(tau_missiles) == 1:
             missile = tau_missiles[0]
         else:
-            dialog = tk.Toplevel(self.root)
+            dialog = tk.Toplevel(self.ctx.root)
             dialog.title("Select Missile Salvo")
             dialog.geometry("350x300")
-            dialog.transient(self.root)
+            dialog.transient(self.ctx.root)
             listbox = tk.Listbox(dialog, font=("Consolas", 9), height=8)
             listbox.pack(fill=tk.X, padx=10, pady=10)
             for m in tau_missiles:
@@ -54,21 +47,21 @@ class _OrdnanceMixin:
                 dialog.destroy()
             tk.Button(dialog, text="Select", command=_sel,
                       font=("Consolas", 10)).pack(pady=5)
-            self.root.wait_window(dialog)
+            self.ctx.root.wait_window(dialog)
             missile = selected[0]
             if not missile:
                 return
 
         # Movement dialog (similar to ship movement)
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.ctx.root)
         dialog.title(f"Move Tau Missiles (Str {missile.strength})")
         dialog.geometry("480x450")
-        dialog.transient(self.root)
+        dialog.transient(self.ctx.root)
 
         tk.Label(dialog, text=f"Tau Missile Salvo Str {missile.strength}",
                  font=("Consolas", 11, "bold")).pack(pady=3)
 
-        can_turn = missile.launched_turn < self.gs.turn_number  # can't turn on launch turn
+        can_turn = missile.launched_turn < self.ctx.gs.turn_number  # can't turn on launch turn
         turn_note = "Can turn 45° at start" if can_turn else "Cannot turn (launched this turn)"
 
         info_text = (
@@ -151,10 +144,10 @@ class _OrdnanceMixin:
                 f"Heading {new_heading:.0f}° -> ({end_x:.0f}, {end_y:.0f}), {spd:.0f}cm")
 
             # Draw preview on board
-            self.board.redraw()
-            sx0, sy0 = self.board.cm_to_screen(missile.x, missile.y)
-            sx1, sy1 = self.board.cm_to_screen(end_x, end_y)
-            self.board.canvas.create_line(sx0, sy0, sx1, sy1,
+            self.ctx.board.redraw()
+            sx0, sy0 = self.ctx.board.cm_to_screen(missile.x, missile.y)
+            sx1, sy1 = self.ctx.board.cm_to_screen(end_x, end_y)
+            self.ctx.board.canvas.create_line(sx0, sy0, sx1, sy1,
                                           fill="#44FF44", width=2, dash=(4, 4))
 
         speed_var.trace_add("write", lambda *a: _update_preview())
@@ -178,19 +171,19 @@ class _OrdnanceMixin:
             missile.y += spd * math.sin(rad)
 
             # Update in game state
-            for j, o_dict in enumerate(self.gs.ordnance):
+            for j, o_dict in enumerate(self.ctx.gs.ordnance):
                 if o_dict["id"] == missile.id:
                     updated = missile.to_dict()
                     updated["moved_this_phase"] = True
-                    self.gs.ordnance[j] = updated
+                    self.ctx.gs.ordnance[j] = updated
                     break
 
             turn_desc = f", turned {turn_applied[0]:+.0f}°" if turn_applied[0] != 0 else ""
-            self._append_log(
+            self.ctx.log(
                 f"Tau missiles Str {missile.strength} moved {spd:.0f}cm"
                 f"{turn_desc} to ({missile.x:.0f}, {missile.y:.0f})")
             dialog.destroy()
-            self.board.redraw()
+            self.ctx.board.redraw()
 
         btn_frame = tk.Frame(dialog)
         btn_frame.pack(pady=10)
@@ -203,7 +196,7 @@ class _OrdnanceMixin:
     def _get_player_bay_capacity(self, player: int) -> int:
         """Total launch bay strength across all non-destroyed, non-disengaged ships for player."""
         total = 0
-        for s_dict in self.gs.ships:
+        for s_dict in self.ctx.gs.ships:
             if s_dict["player"] != player:
                 continue
             ship = Ship.from_dict(s_dict)
@@ -225,20 +218,20 @@ class _OrdnanceMixin:
             OrdnanceType.ASSAULT_BOAT.value,
             OrdnanceType.TORPEDO_BOMBER.value,
         }
-        return sum(1 for o in self.gs.ordnance
+        return sum(1 for o in self.ctx.gs.ordnance
                    if o.get("owner_player") == player
                    and o.get("ordnance_type") in craft_types)
 
     def _update_cap_positions(self):
         """Sync CAP fighters to their parent ship's current position."""
-        ship_pos = {s["id"]: (s["x"], s["y"]) for s in self.gs.ships}
-        for i, o_dict in enumerate(self.gs.ordnance):
+        ship_pos = {s["id"]: (s["x"], s["y"]) for s in self.ctx.gs.ships}
+        for i, o_dict in enumerate(self.ctx.gs.ordnance):
             cap_id = o_dict.get("cap_ship_id", "")
             if cap_id and cap_id in ship_pos:
                 updated = dict(o_dict)
                 updated["x"] = ship_pos[cap_id][0]
                 updated["y"] = ship_pos[cap_id][1]
-                self.gs.ordnance[i] = updated
+                self.ctx.gs.ordnance[i] = updated
 
     def _check_cap_intercept(self, marker: OrdnanceMarker, ship,
                               to_remove_set: set) -> bool:
@@ -257,7 +250,7 @@ class _OrdnanceMixin:
             return False
 
         cap_to_remove = []
-        for o_dict in list(self.gs.ordnance):
+        for o_dict in list(self.ctx.gs.ordnance):
             if marker.id in to_remove_set:
                 break
             if o_dict.get("cap_ship_id", "") != ship.id:
@@ -268,19 +261,19 @@ class _OrdnanceMixin:
             if not is_fighter_type(cap_marker):
                 continue
 
-            self._append_log(
+            self.ctx.log(
                 f"  CAP fighter intercepts {marker.ordnance_type} "
                 f"threatening {ship.name}!")
             result = resolve_fighter_intercept(
-                cap_marker, marker, self.dice, self.gs)
+                cap_marker, marker, self.ctx.dice, self.ctx.gs)
             if result["fighter_removed"]:
                 cap_to_remove.append(cap_marker.id)
             if result["target_removed"]:
                 to_remove_set.add(marker.id)
 
         if cap_to_remove:
-            self.gs.ordnance = [
-                o for o in self.gs.ordnance
+            self.ctx.gs.ordnance = [
+                o for o in self.ctx.gs.ordnance
                 if o["id"] not in cap_to_remove]
 
         return marker.id in to_remove_set
@@ -296,86 +289,88 @@ class _OrdnanceMixin:
                                 check_ordnance_vs_phenomena,
                                 resolve_ordnance_interactions,
                                 resolve_bomber_interception)
+        from .geometry import (circle_touches_square, circle_touches_torpedo,
+                                ATTACK_CRAFT_HALF_SIDE_CM)
 
-        self._append_log("--- Ordnance Movement ---")
+        self.ctx.log("--- Ordnance Movement ---")
 
         # Sync CAP fighters to their parent ships before movement
         self._update_cap_positions()
 
         # Degrade Tau missiles from previous turns
-        degrade_tau_missiles(self.gs, self.dice, self.gs.turn_number)
+        degrade_tau_missiles(self.ctx.gs, self.ctx.dice, self.ctx.gs.turn_number)
 
         # Check for unmoved Tau missiles - auto-move at minimum speed straight
-        for i, o_dict in enumerate(list(self.gs.ordnance)):
+        for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
             if (o_dict.get("ordnance_type") == OrdnanceType.TORPEDO_GUIDED.value
-                    and o_dict.get("owner_player") == self.gs.active_player
+                    and o_dict.get("owner_player") == self.ctx.gs.active_player
                     and not o_dict.get("moved_this_phase", False)):
                 marker = OrdnanceMarker.from_dict(o_dict)
                 rad = math.radians(marker.heading)
                 marker.x += 20 * math.cos(rad)  # minimum speed
                 marker.y += 20 * math.sin(rad)
-                self.gs.ordnance[i] = marker.to_dict()
-                self._append_log(
+                self.ctx.gs.ordnance[i] = marker.to_dict()
+                self.ctx.log(
                     f"  Tau missiles Str {marker.strength} auto-moved 20cm (minimum)")
 
-        ships = self.gs.get_ships()
-        blast_markers = self.gs.get_blast_markers()
-        phenomena = self.gs.get_phenomena()
+        ships = self.ctx.gs.get_ships()
+        blast_markers = self.ctx.gs.get_blast_markers()
+        phenomena = self.ctx.gs.get_phenomena()
         to_remove = set()
 
         # 1. Move all ordnance
-        for i, o_dict in enumerate(list(self.gs.ordnance)):
+        for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
             marker = OrdnanceMarker.from_dict(o_dict)
-            move_ordnance(marker, self.gs)
+            move_ordnance(marker, self.ctx.gs)
 
             # CAP fighters are co-located with their ship; skip off-table check
             if marker.cap_ship_id:
-                self.gs.ordnance[i] = marker.to_dict()
+                self.ctx.gs.ordnance[i] = marker.to_dict()
                 continue
 
             # Off table check
-            if (marker.x < -5 or marker.x > self.gs.table_width + 5 or
-                    marker.y < -5 or marker.y > self.gs.table_height + 5):
+            if (marker.x < -5 or marker.x > self.ctx.gs.table_width + 5 or
+                    marker.y < -5 or marker.y > self.ctx.gs.table_height + 5):
                 to_remove.add(marker.id)
-                self._append_log(f"  {marker.ordnance_type} left the table")
+                self.ctx.log(f"  {marker.ordnance_type} left the table")
                 continue
 
             # Blast marker destruction (D6=6)
-            if check_ordnance_vs_blast(marker, blast_markers, self.dice):
+            if check_ordnance_vs_blast(marker, blast_markers, self.ctx.dice):
                 to_remove.add(marker.id)
-                self._append_log(f"  {marker.ordnance_type} destroyed by blast marker")
+                self.ctx.log(f"  {marker.ordnance_type} destroyed by blast marker")
                 continue
 
             # Terrain check: applies to all ordnance types.
             # Torpedoes/mines: asteroid/planet/warp rift = auto-destroyed; dust = D6=6.
             # Attack craft: asteroid = D6=6; warp rift/planet = auto-destroyed.
             destroyed, terrain_type = check_ordnance_vs_phenomena(
-                marker, phenomena, self.dice)
+                marker, phenomena, self.ctx.dice)
             if destroyed:
                 to_remove.add(marker.id)
-                self._append_log(
+                self.ctx.log(
                     f"  {marker.ordnance_type} destroyed by {terrain_type}")
                 continue
 
             # Update position
-            self.gs.ordnance[i] = marker.to_dict()
+            self.ctx.gs.ordnance[i] = marker.to_dict()
 
         # Remove off-table and blast-destroyed ordnance
         if to_remove:
-            self.gs.ordnance = [
-                o for o in self.gs.ordnance if o["id"] not in to_remove]
+            self.ctx.gs.ordnance = [
+                o for o in self.ctx.gs.ordnance if o["id"] not in to_remove]
 
         # 2. Ordnance-vs-ordnance interactions (fighters intercept, torp collisions)
-        interaction_logs = resolve_ordnance_interactions(self.gs, self.dice)
+        interaction_logs = resolve_ordnance_interactions(self.ctx.gs, self.ctx.dice)
         for log in interaction_logs:
-            self._append_log(log)
+            self.ctx.log(log)
 
         # 3. Check ordnance contact with ships
         to_remove_after = set()
 
         # Phase 1: bomber wave interception — turrets (with massed bonus) fire once
         # per ship at every incoming bomber wave before individual attacks resolve.
-        live_ordnance = [OrdnanceMarker.from_dict(o) for o in self.gs.ordnance]
+        live_ordnance = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]
         for s in ships:
             if s.is_destroyed or s.is_disengaged:
                 continue
@@ -392,16 +387,16 @@ class _OrdnanceMixin:
             if not wave:
                 continue
             p1 = resolve_bomber_interception(
-                len(wave), s, ships, self.dice, self.gs)
+                len(wave), s, ships, self.ctx.dice, self.ctx.gs)
             for msg in p1["log"]:
-                self._append_log(msg)
+                self.ctx.log(msg)
             for m in wave[:p1["killed"]]:
-                self._append_log(
+                self.ctx.log(
                     f"  Phase 1: {m.ordnance_type} [{m.id[:8]}] destroyed by interception")
                 to_remove_after.add(m.id)
 
         # Per-marker ship contact resolution
-        for o_dict in list(self.gs.ordnance):
+        for o_dict in list(self.ctx.gs.ordnance):
             marker = OrdnanceMarker.from_dict(o_dict)
             if marker.id in to_remove_after:
                 continue
@@ -421,7 +416,7 @@ class _OrdnanceMixin:
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
                         continue
                     if (s.id in (marker.launch_exempt_ships or [])
-                            and marker.launched_turn == self.gs.turn_number):
+                            and marker.launched_turn == self.ctx.gs.turn_number):
                         continue
                     if not check_torpedo_contact(marker, s):
                         continue
@@ -430,25 +425,25 @@ class _OrdnanceMixin:
                     if self._check_cap_intercept(marker, s, to_remove_after):
                         break
 
-                    self._append_log(
+                    self.ctx.log(
                         f"  Torpedoes contact {s.name}"
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
                         + f"!")
                     result = resolve_torpedo_attack(
-                        marker, s, self.dice, self.gs,
+                        marker, s, self.ctx.dice, self.ctx.gs,
                         all_ships=ships)
 
                     # Reduce salvo strength by hits inflicted, continue if strength remains
                     marker.strength -= result["hits"]
                     if result["hits"] > 0:
-                        self._check_destruction(s)
+                        self.ctx.check_destruction(s)
                     if marker.strength <= 0:
                         to_remove_after.add(marker.id)
                         break
                     # Update marker for next ship in path
-                    for j, od in enumerate(self.gs.ordnance):
+                    for j, od in enumerate(self.ctx.gs.ordnance):
                         if od["id"] == marker.id:
-                            self.gs.ordnance[j] = marker.to_dict()
+                            self.ctx.gs.ordnance[j] = marker.to_dict()
                             break
 
             elif is_bomber:
@@ -466,13 +461,13 @@ class _OrdnanceMixin:
                     if self._check_cap_intercept(marker, s, to_remove_after):
                         break
 
-                    self._append_log(
+                    self.ctx.log(
                         f"  {marker.ordnance_type} attacks {s.name}!")
 
                     # Count friendly fighters whose square marker touches this ship.
                     # Mantas are bombers, not fighters — they do not suppress turrets.
                     suppressing_fighters = sum(
-                        1 for od in self.gs.ordnance
+                        1 for od in self.ctx.gs.ordnance
                         if od.get("owner_player") == marker.owner_player
                         and od.get("ordnance_type") in (
                             OrdnanceType.FIGHTER.value,
@@ -484,7 +479,7 @@ class _OrdnanceMixin:
                     # Count all bombers from same player contacting this ship
                     # (needed for Remastered cap)
                     total_bombers_on_target = sum(
-                        1 for od in self.gs.ordnance
+                        1 for od in self.ctx.gs.ordnance
                         if od.get("owner_player") == marker.owner_player
                         and od.get("ordnance_type") in (
                             OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
@@ -493,24 +488,24 @@ class _OrdnanceMixin:
                                                   od.get("heading", 0)))
 
                     if suppressing_fighters > 0:
-                        if self.gs.rule_turret_suppression_remastered:
+                        if self.ctx.gs.rule_turret_suppression_remastered:
                             # Remastered: fighters add +1 to attack roll,
                             # capped at total attacking bombers
                             result = resolve_bomber_attack(
-                                marker, s, self.dice, self.gs,
+                                marker, s, self.ctx.dice, self.ctx.gs,
                                 remastered_fighter_bonus=suppressing_fighters,
                                 remastered_bomber_cap=total_bombers_on_target)
                         else:
                             # XR default: this bomber gets exactly 3 attacks
                             result = resolve_bomber_attack(
-                                marker, s, self.dice, self.gs,
+                                marker, s, self.ctx.dice, self.ctx.gs,
                                 suppressed_by_fighter=True)
                     else:
                         result = resolve_bomber_attack(
-                            marker, s, self.dice, self.gs)
+                            marker, s, self.ctx.dice, self.ctx.gs)
 
                     if result["hits"] > 0:
-                        self._check_destruction(s)
+                        self.ctx.check_destruction(s)
                     to_remove_after.add(marker.id)
                     break
 
@@ -524,7 +519,7 @@ class _OrdnanceMixin:
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
                         continue
                     if (s.id in (marker.launch_exempt_ships or [])
-                            and marker.launched_turn == self.gs.turn_number):
+                            and marker.launched_turn == self.ctx.gs.turn_number):
                         continue
                     if not circle_touches_square(s.x, s.y, s.base_radius,
                                                  marker.x, marker.y,
@@ -535,14 +530,14 @@ class _OrdnanceMixin:
                     if self._check_cap_intercept(marker, s, to_remove_after):
                         break
 
-                    self._append_log(
+                    self.ctx.log(
                         f"  Mine contacts {s.name}"
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
                         + "!")
                     result = resolve_mine_contact(
-                        marker, s, self.dice, self.gs, ships)
+                        marker, s, self.ctx.dice, self.ctx.gs, ships)
                     if result["hits"] > 0:
-                        self._check_destruction(s)
+                        self.ctx.check_destruction(s)
                     to_remove_after.add(marker.id)
                     break  # one ship triggers the field
 
@@ -565,13 +560,13 @@ class _OrdnanceMixin:
                     if self._check_cap_intercept(marker, s, to_remove_after):
                         break
 
-                    self._append_log(
+                    self.ctx.log(
                         f"  Assault boats contact {s.name} — hit-and-run raid!")
 
                     def _brace_fn(target_ship, msg, _s=s):
                         from .movement import do_command_check
                         if target_ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
-                            self._append_log(
+                            self.ctx.log(
                                 f"  {target_ship.name} already braced — "
                                 f"will roll to repel each raid")
                             return True, True
@@ -579,41 +574,41 @@ class _OrdnanceMixin:
                         if not want:
                             return False, False
                         check = do_command_check(target_ship, "brace_for_impact",
-                                                 self.dice)
+                                                 self.ctx.dice)
                         passed = check["passed"]
-                        self._append_log(
+                        self.ctx.log(
                             f"  {target_ship.name} brace check: "
                             f"{'PASSED' if passed else 'FAILED'} "
                             f"(rolled {check['roll']} vs Ld {check['needed']})")
                         if passed:
                             target_ship.previous_order = target_ship.special_order
                             target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                            target_ship.brace_set_on_turn = self.gs.turn_number
-                            self.gs.update_ship(target_ship)
+                            target_ship.brace_set_on_turn = self.ctx.gs.turn_number
+                            self.ctx.gs.update_ship(target_ship)
                         return True, passed
 
                     result = resolve_hit_and_run(
-                        marker, s, self.dice, self.gs, _brace_fn)
+                        marker, s, self.ctx.dice, self.ctx.gs, _brace_fn)
 
                     n_crits = len(result["crits_applied"])
                     n_repelled = result["repelled"]
                     n_failed = result["failures"]
-                    self._append_log(
+                    self.ctx.log(
                         f"  Raid result: {n_crits} crit(s) applied, "
                         f"{n_repelled} repelled, {n_failed} failed")
-                    self._check_destruction(s)
+                    self.ctx.check_destruction(s)
                     to_remove_after.add(marker.id)
                     break
 
         # Remove spent ordnance
         if to_remove_after:
-            self.gs.ordnance = [
-                o for o in self.gs.ordnance
+            self.ctx.gs.ordnance = [
+                o for o in self.ctx.gs.ordnance
                 if o["id"] not in to_remove_after]
 
-        self._append_log(
-            f"  Ordnance phase complete: {len(self.gs.ordnance)} markers remain")
-        self.board.redraw()
+        self.ctx.log(
+            f"  Ordnance phase complete: {len(self.ctx.gs.ordnance)} markers remain")
+        self.ctx.board.redraw()
 
     def _launch_ordnance_dialog(self, preselected_ship=None, preselected_heading=None):
         """Dialog to launch torpedoes or attack craft with heading and composition control.
@@ -621,8 +616,8 @@ class _OrdnanceMixin:
         preselected_ship: Ship — skip the ship picker and use this ship directly.
         preselected_heading: float — pre-populate all heading controls to this value.
         """
-        all_active = [Ship.from_dict(s) for s in self.gs.ships
-                      if s["player"] == self.gs.active_player
+        all_active = [Ship.from_dict(s) for s in self.ctx.gs.ships
+                      if s["player"] == self.ctx.gs.active_player
                       and not Ship.from_dict(s).is_destroyed
                       and not s.get("is_disengaged", False)]
         launchers = [s for s in all_active
@@ -635,14 +630,14 @@ class _OrdnanceMixin:
         if preselected_ship and preselected_ship.id in launcher_ids:
             ship = preselected_ship
         else:
-            ship = self._pick_ship_dialog(launchers, "Select ship to launch from")
+            ship = self.ctx.pick_ship(launchers, "Select ship to launch from")
         if not ship:
             return
 
-        dialog = tk.Toplevel(self.root)
+        dialog = tk.Toplevel(self.ctx.root)
         dialog.title(f"Launch Ordnance - {ship.name}")
         dialog.geometry("500x550")
-        dialog.transient(self.root)
+        dialog.transient(self.ctx.root)
 
         tk.Label(dialog, text=f"Launch from {ship.name}",
                  font=("Consolas", 11, "bold")).pack(pady=3)
@@ -779,11 +774,11 @@ class _OrdnanceMixin:
                     import random as _rng
 
                     from .ordnance import compute_torpedo_launch_exempt
-                    exempt = compute_torpedo_launch_exempt(ship, self.gs)
+                    exempt = compute_torpedo_launch_exempt(ship, self.ctx.gs)
 
                     # First (or only) salvo
                     marker = OrdnanceMarker(
-                        id=f"torp_{ship.id}_{self.gs.turn_number}_{_rng.randint(0,9999)}",
+                        id=f"torp_{ship.id}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
                         ordnance_type=o_type,
                         owner_player=ship.player,
                         launched_by=ship.id,
@@ -791,15 +786,15 @@ class _OrdnanceMixin:
                         heading=heading,
                         strength=strength,
                         speed=w.get("torpedo_speed", 30),
-                        launched_turn=self.gs.turn_number,
+                        launched_turn=self.ctx.gs.turn_number,
                         can_turn=is_g,
                         turn_angle=45 if is_g else 0,
                         launch_exempt_ships=list(exempt),
                     )
-                    self.gs.add_ordnance(marker)
+                    self.ctx.gs.add_ordnance(marker)
 
                     name = "guided missiles" if is_g else "torpedoes"
-                    self._append_log(
+                    self.ctx.log(
                         f"{ship.name} launched {name} Str {strength} "
                         f"heading {heading:.0f}°")
 
@@ -807,7 +802,7 @@ class _OrdnanceMixin:
                     remainder = total - strength
                     if remainder > 0:
                         marker2 = OrdnanceMarker(
-                            id=f"torp_{ship.id}_{self.gs.turn_number}_{_rng.randint(0,9999)}_b",
+                            id=f"torp_{ship.id}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}_b",
                             ordnance_type=o_type,
                             owner_player=ship.player,
                             launched_by=ship.id,
@@ -815,23 +810,23 @@ class _OrdnanceMixin:
                             heading=heading,  # same heading for now
                             strength=remainder,
                             speed=w.get("torpedo_speed", 30),
-                            launched_turn=self.gs.turn_number,
+                            launched_turn=self.ctx.gs.turn_number,
                             can_turn=is_g,
                             turn_angle=45 if is_g else 0,
                             launch_exempt_ships=list(exempt),
                         )
-                        self.gs.add_ordnance(marker2)
-                        self._append_log(
+                        self.ctx.gs.add_ordnance(marker2)
+                        self.ctx.log(
                             f"  Split salvo: second volley Str {remainder} "
                             f"heading {heading:.0f}°")
 
-                    ship_fresh = self.gs.get_ship_by_id(ship.id)
+                    ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
                     if ship_fresh:
                         ship_fresh.ordnance_loaded_torps = False
-                        self.gs.update_ship(ship_fresh)
+                        self.ctx.gs.update_ship(ship_fresh)
 
                     dialog.destroy()
-                    self.board.redraw()
+                    self.ctx.board.redraw()
 
                 tk.Button(torp_frame, text=f"Launch {label}",
                           command=_launch_torps,
@@ -868,11 +863,11 @@ class _OrdnanceMixin:
                     import random as _rng
                     from .ordnance import compute_torpedo_launch_exempt
                     spd = w.get("mine_speed", 10)
-                    exempt = compute_torpedo_launch_exempt(ship, self.gs)
+                    exempt = compute_torpedo_launch_exempt(ship, self.ctx.gs)
                     for i in range(effective_str):
                         # Each mine launcher fires one independent mine marker
                         marker = OrdnanceMarker(
-                            id=f"mine_{ship.id}_{self.gs.turn_number}_{i}_{_rng.randint(0,9999)}",
+                            id=f"mine_{ship.id}_{self.ctx.gs.turn_number}_{i}_{_rng.randint(0,9999)}",
                             ordnance_type=OrdnanceType.MINE_FIELD.value,
                             owner_player=ship.player,
                             launched_by=ship.id,
@@ -881,20 +876,20 @@ class _OrdnanceMixin:
                             heading=ship.heading,
                             strength=1,
                             speed=spd,
-                            launched_turn=self.gs.turn_number,
+                            launched_turn=self.ctx.gs.turn_number,
                             launch_exempt_ships=list(exempt),
                         )
-                        self.gs.add_ordnance(marker)
+                        self.ctx.gs.add_ordnance(marker)
 
-                    ship_fresh = self.gs.get_ship_by_id(ship.id)
+                    ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
                     if ship_fresh:
                         ship_fresh.ordnance_loaded_craft = False
-                        self.gs.update_ship(ship_fresh)
+                        self.ctx.gs.update_ship(ship_fresh)
 
-                    self._append_log(
+                    self.ctx.log(
                         f"{ship.name} launches {effective_str} mine(s)")
                     dialog.destroy()
-                    self.board.redraw()
+                    self.ctx.board.redraw()
 
                 tk.Button(mine_frame, text="Lay Mine Field",
                           command=_lay_mines,
@@ -1026,7 +1021,7 @@ class _OrdnanceMixin:
                            font=("Consolas", 8)).pack(side=tk.LEFT)
 
             own_ships_for_cap = [
-                Ship.from_dict(s) for s in self.gs.ships
+                Ship.from_dict(s) for s in self.ctx.gs.ships
                 if s["player"] == ship.player
                 and not Ship.from_dict(s).is_destroyed
                 and not s.get("is_disengaged", False)]
@@ -1158,7 +1153,7 @@ class _OrdnanceMixin:
                         px = protect_pos[0] + (i - count / 2) * 1.5
                         py = protect_pos[1]
                         marker = OrdnanceMarker(
-                            id=f"craft_{ship.id}_{ct}_{self.gs.turn_number}_{_rng.randint(0,9999)}",
+                            id=f"craft_{ship.id}_{ct}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
                             ordnance_type=o_type,
                             owner_player=ship.player,
                             launched_by=ship.id,
@@ -1167,11 +1162,11 @@ class _OrdnanceMixin:
                             heading=heading,
                             strength=1,
                             speed=spd,
-                            launched_turn=self.gs.turn_number,
+                            launched_turn=self.ctx.gs.turn_number,
                             resilient_save=resil,
                             cap_ship_id=protect_id,
                         )
-                        self.gs.add_ordnance(marker)
+                        self.ctx.gs.add_ordnance(marker)
                         total_launched += 1
 
                 if total_launched == 0:
@@ -1184,22 +1179,22 @@ class _OrdnanceMixin:
                         f"Launched {total_launched} but only have {total_bays} bays. "
                         f"Excess will be placed anyway.")
 
-                ship_fresh = self.gs.get_ship_by_id(ship.id)
+                ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
                 if ship_fresh:
                     ship_fresh.ordnance_loaded_craft = False
-                    self.gs.update_ship(ship_fresh)
+                    self.ctx.gs.update_ship(ship_fresh)
 
                 if cap_var.get():
                     protect_name = cap_protect_var.get()
-                    self._append_log(
+                    self.ctx.log(
                         f"{ship.name} launched {total_launched} attack craft "
                         f"on CAP for {protect_name}")
                 else:
-                    self._append_log(
+                    self.ctx.log(
                         f"{ship.name} launched {total_launched} attack craft "
                         f"heading {heading:.0f}°")
                 dialog.destroy()
-                self.board.redraw()
+                self.ctx.board.redraw()
 
             tk.Button(bay_frame, text="Launch Attack Craft",
                       command=_launch_craft,
@@ -1211,4 +1206,3 @@ class _OrdnanceMixin:
                   font=("Consolas", 9)).pack(pady=5)
 
     # --- Disengagement ---
-
