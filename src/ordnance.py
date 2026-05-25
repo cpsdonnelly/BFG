@@ -146,9 +146,13 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         f"Torpedoes vs {target.name} (need {armor}+)")
     result["hits"] = sum(1 for d in attack_rolls if d >= armor)
 
+    # Torpedoes that scored hits are spent; the rest pass through and keep moving.
+    result["remaining_strength"] = max(0, result["remaining_strength"] - result["hits"])
+
     if result["hits"] > 0:
         game_state.add_log(
-            f"Torpedoes hit {target.name} for {result['hits']} damage (bypasses shields)")
+            f"Torpedoes hit {target.name} for {result['hits']} damage (bypasses shields); "
+            f"{result['remaining_strength']} torp(s) pass through")
         from .combat import apply_damage
         braced = target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
         apply_damage(target, result["hits"], dice, game_state,

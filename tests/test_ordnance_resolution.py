@@ -57,15 +57,31 @@ def test_torpedo_hits_bypass_shields():
     assert target.hits_remaining == 6
 
 
+def test_torpedo_partial_hit_remaining_strength():
+    # Strength 6, 2 turrets score 1 kill → 5 attack dice.
+    # Armour 5+; rolls [5,6,3,2,2] → 2 hits.
+    # Torps that hit are spent; 5 - 2 = 3 pass through.
+    target = _torp_target(turrets=2, armor_side="5+", hits_max=8)
+    gs = make_gs([target])
+    marker = make_marker(strength=6, x=5, y=0, heading=180)
+    # Dice: turret[2]=[4,1] → 1 kill; attack[5]=[5,6,3,2,2] → 2 hits; crit_checks[2]=[1,1]
+    dice = DiceStub([4, 1, 5, 6, 3, 2, 2, 1, 1])
+    r = resolve_torpedo_attack(marker, target, dice, gs)
+    assert r["turret_kills"] == 1
+    assert r["hits"] == 2
+    assert r["remaining_strength"] == 3
+
+
 def test_torpedo_miss_does_not_remove_marker():
     # Torpedoes that miss their target keep moving — they are NOT consumed.
     target = _torp_target(turrets=0, armor_side="6+")
     gs = make_gs([target])
     marker = make_marker(id="persist_torp", strength=3, x=5, y=0, heading=180)
     gs.add_ordnance(marker)
-    # All attack rolls fail vs 6+ armour
+    # All attack rolls fail vs 6+ armour → 0 hits, full strength passes through
     r = resolve_torpedo_attack(marker, target, DiceStub([1]), gs)
     assert r["hits"] == 0
+    assert r["remaining_strength"] == 3
     assert any(o["id"] == "persist_torp" for o in gs.ordnance)
 
 
