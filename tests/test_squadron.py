@@ -1,7 +1,8 @@
 """Tests for src/squadron.py and TurnController.issue_squadron_order."""
 import pytest
 from src.squadron import (get_squadrons, check_squadron_coherency,
-                           partition_by_coherency, COHERENCY_RANGE)
+                           partition_by_coherency, get_coherency_components,
+                           COHERENCY_RANGE)
 from src.turn_controller import TurnController
 from src.models import SpecialOrder
 
@@ -274,3 +275,114 @@ class TestSquadronOrderCoherencyEnforcement:
         result = tc.issue_squadron_order([s1, s2], SpecialOrder.LOCK_ON.value)
         assert result["success"] is False
         assert "coherency" in result["error"].lower()
+
+
+# ---------------------------------------------------------------------------
+# get_coherency_components  (connected-component chain rule)
+# ---------------------------------------------------------------------------
+
+class TestGetCoherencyComponents:
+    def test_single_ship_returns_one_group(self):
+        s = make_ship(id="s1", player=1, x=0.0, y=0.0)
+        groups, isolated = get_coherency_components([s])
+        assert len(groups) == 1
+        assert groups[0] == [s]
+        assert isolated == []
+
+    def test_empty_returns_empty(self):
+        groups, isolated = get_coherency_components([])
+        assert groups == []
+        assert isolated == []
+
+    def test_two_ships_in_range(self):
+        s1 = make_ship(id="s1", player=1, x=0.0, y=0.0)
+        s2 = make_ship(id="s2", player=1, x=10.0, y=0.0)
+        groups, isolated = get_coherency_components([s1, s2])
+        assert len(groups) == 1
+        assert {s.id for s in groups[0]} == {"s1", "s2"}
+        assert isolated == []
+
+    def test_two_ships_out_of_range(self):
+        s1 = make_ship(id="s1", player=1, x=0.0, y=0.0)
+        s2 = make_ship(id="s2", player=1, x=200.0, y=0.0)
+        groups, isolated = get_coherency_components([s1, s2])
+        assert groups == []
+        assert {s.id for s in isolated} == {"s1", "s2"}
+
+    def test_chain_of_four(self):
+        # 0, 10, 20, 30 cm — each 10 cm from the next; all connected via chain
+        s1 = make_ship(id="s1", player=1, x=0.0,  y=0.0)
+        s2 = make_ship(id="s2", player=1, x=10.0, y=0.0)
+        s3 = make_ship(id="s3", player=1, x=20.0, y=0.0)
+        s4 = make_ship(id="s4", player=1, x=30.0, y=0.0)
+        groups, isolated = get_coherency_components([s1, s2, s3, s4])
+        assert len(groups) == 1
+        assert {s.id for s in groups[0]} == {"s1", "s2", "s3", "s4"}
+        assert isolated == []
+
+    def test_broken_chain_two_groups(self):
+        # Positions: 0, 10, 26, 36 — gap between s2 (10) and s3 (26) is 16 cm > 15
+        s1 = make_ship(id="s1", player=1, x=0.0,  y=0.0, leadership=7)
+        s2 = make_ship(id="s2", player=1, x=10.0, y=0.0, leadership=6)
+        s3 = make_ship(id="s3", player=1, x=26.0, y=0.0, leadership=7)
+        s4 = make_ship(id="s4", player=1, x=36.0, y=0.0, leadership=6)
+        groups, isolated = get_coherency_components([s1, s2, s3, s4])
+        assert len(groups) == 2
+        # Both groups have size 2; sort is stable on size, tiebreak by max Ld
+        assert isolated == []
+        group_ids = [{s.id for s in g} for g in groups]
+        assert {"s1", "s2"} in group_ids
+        assert {"s3", "s4"} in group_ids
+
+    def test_isolated_plus_pair(self):
+        isolated_ship = make_ship(id="iso", player=1, x=200.0, y=0.0)
+        s1 = make_ship(id="s1", player=1, x=0.0,  y=0.0)
+        s2 = make_ship(id="s2", player=1, x=10.0, y=0.0)
+        groups, isolated = get_coherency_components([isolated_ship, s1, s2])
+        assert len(groups) == 1
+        assert {s.id for s in groups[0]} == {"s1", "s2"}
+        assert len(isolated) == 1
+        assert isolated[0].id == "iso"
+
+
+# ---------------------------------------------------------------------------
+# partition_by_coherency — chain/broken-chain cases
+# ---------------------------------------------------------------------------
+
+class TestPartitionByCoherencyChain:
+    def test_chain_of_four_all_in(self):
+        s1 = make_ship(id="s1", player=1, x=0.0,  y=0.0)
+        s2 = make_ship(id="s2", player=1, x=10.0, y=0.0)
+        s3 = make_ship(id="s3", player=1, x=20.0, y=0.0)
+        s4 = make_ship(id="s4", player=1, x=30.0, y=0.0)
+        in_coh, out_coh = partition_by_coherency([s1, s2, s3, s4])
+        assert {s.id for s in in_coh} == {"s1", "s2", "s3", "s4"}
+        assert out_coh == []
+
+    def test_broken_chain_larger_group_wins(self):
+        # 3-ship group at 0/10/20, 2-ship group at 100/110
+        s1 = make_ship(id="s1", player=1, x=0.0,   y=0.0)
+        s2 = make_ship(id="s2", player=1, x=10.0,  y=0.0)
+        s3 = make_ship(id="s3", player=1, x=20.0,  y=0.0)
+        s4 = make_ship(id="s4", player=1, x=100.0, y=0.0)
+        s5 = make_ship(id="s5", player=1, x=110.0, y=0.0)
+        in_coh, out_coh = partition_by_coherency([s1, s2, s3, s4, s5])
+        assert {s.id for s in in_coh} == {"s1", "s2", "s3"}
+        assert {s.id for s in out_coh} == {"s4", "s5"}
+
+    def test_broken_chain_dangling_ship_excluded(self):
+        # 0, 10, 26, 36 — two equal-size groups; each pair is in_coh / out_coh
+        s1 = make_ship(id="s1", player=1, x=0.0,  y=0.0)
+        s2 = make_ship(id="s2", player=1, x=10.0, y=0.0)
+        s3 = make_ship(id="s3", player=1, x=26.0, y=0.0)
+        s4 = make_ship(id="s4", player=1, x=36.0, y=0.0)
+        in_coh, out_coh = partition_by_coherency([s1, s2, s3, s4])
+        # Exactly one group in, one out (groups of equal size)
+        assert len(in_coh) == 2
+        assert len(out_coh) == 2
+        # The two groups must be the two pairs
+        in_ids  = {s.id for s in in_coh}
+        out_ids = {s.id for s in out_coh}
+        assert in_ids in ({"s1", "s2"}, {"s3", "s4"})
+        assert out_ids in ({"s1", "s2"}, {"s3", "s4"})
+        assert in_ids != out_ids

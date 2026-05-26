@@ -13,6 +13,56 @@ from .movement import (MoveCommand, validate_movement, execute_movement,
 from .game_context import GameContext
 
 
+def _pick_coherency_group(
+    root: tk.Tk, groups: List[List["Ship"]]
+) -> Optional[List["Ship"]]:
+    """Dialog for the player to choose which coherent sub-group issues the order.
+
+    Returns the selected group, or None if cancelled.
+    """
+    result: List = [None]
+
+    dlg = tk.Toplevel(root)
+    dlg.title("Select Coherent Group")
+    dlg.geometry("380x260")
+    dlg.transient(root)
+    dlg.grab_set()
+
+    tk.Label(
+        dlg,
+        text="Squadron coherency is broken.\nChoose which group issues the order:",
+        font=("Consolas", 9), justify=tk.LEFT,
+    ).pack(pady=(10, 4), padx=12, anchor=tk.W)
+
+    var = tk.IntVar(value=0)
+    for i, grp in enumerate(groups):
+        names = ", ".join(s.name for s in grp)
+        label = f"Group {i+1} ({len(grp)} ships): {names}"
+        if i == 0:
+            label += "  [default]"
+        tk.Radiobutton(
+            dlg, text=label, variable=var, value=i,
+            font=("Consolas", 8), wraplength=340,
+            justify=tk.LEFT, anchor=tk.W,
+        ).pack(anchor=tk.W, padx=16, pady=2)
+
+    def _ok():
+        result[0] = groups[var.get()]
+        dlg.destroy()
+
+    def _cancel():
+        dlg.destroy()
+
+    btn = tk.Frame(dlg)
+    btn.pack(pady=8)
+    tk.Button(btn, text="OK",     command=_ok,     width=10).pack(side=tk.LEFT, padx=6)
+    tk.Button(btn, text="Cancel", command=_cancel, width=10).pack(side=tk.LEFT, padx=6)
+    dlg.bind("<Return>", lambda e: _ok())
+    dlg.bind("<Escape>", lambda e: _cancel())
+    root.wait_window(dlg)
+    return result[0]
+
+
 class MovementPanel:
     """Handles all ship movement UI: drag-drop, dialog, M-key, scroll-wheel."""
 
@@ -580,8 +630,23 @@ class MovementPanel:
         # Squadron order option
         sq_order_var = tk.BooleanVar(value=False)
         if sq_members:
+            from .squadron import get_coherency_components
             all_sq_members = [ship] + sq_members
-            leader = max(all_sq_members, key=lambda s: s.leadership)
+            groups, isolated_sq = get_coherency_components(all_sq_members)
+
+            if not groups:
+                coh_text = "⚠ All ships isolated — squadron order not possible"
+            elif len(groups) == 1:
+                leader = max(groups[0], key=lambda s: s.leadership)
+                coh_text = (f"Leader: {leader.name}  •  Ld {leader.leadership}\n"
+                            f"Members: {', '.join(s.name for s in all_sq_members)}")
+            else:
+                sizes = " | ".join(f"{len(g)} ships" for g in groups)
+                coh_text = (f"⚠ Broken coherency — {len(groups)} groups ({sizes})\n"
+                            f"You will choose which group issues the order.")
+            if isolated_sq:
+                coh_text += f"\n  Isolated (excluded): {', '.join(s.name for s in isolated_sq)}"
+
             sq_frame = tk.LabelFrame(dialog, text="Squadron Order",
                                      font=("Consolas", 8, "bold"), padx=6, pady=4)
             sq_frame.pack(fill=tk.X, padx=10, pady=4)
@@ -593,8 +658,7 @@ class MovementPanel:
             ).pack(anchor=tk.W)
             tk.Label(
                 sq_frame,
-                text=(f"Leader: {leader.name}  •  Ld {leader.leadership}\n"
-                      f"Members: {', '.join(s.name for s in all_sq_members)}"),
+                text=coh_text,
                 font=("Consolas", 7), fg="#AAAAAA", justify=tk.LEFT,
             ).pack(anchor=tk.W)
 
@@ -649,7 +713,27 @@ class MovementPanel:
 
             if sq_order_var.get() and sq_members:
                 # --- Squadron order path ---
+                from .squadron import get_coherency_components
                 all_sq = [ship] + sq_members
+                groups, isolated_sq = get_coherency_components(all_sq)
+
+                for s in isolated_sq:
+                    self.ctx.log(
+                        f"  {s.name}: isolated from squadron — cannot join order")
+
+                if not groups:
+                    messagebox.showinfo("No Coherency",
+                        "No ships are in coherency — cannot issue a squadron order.")
+                    return
+
+                if len(groups) == 1:
+                    all_sq = groups[0]
+                else:
+                    chosen = _pick_coherency_group(self.ctx.root, groups)
+                    if chosen is None:
+                        return   # player cancelled
+                    all_sq = chosen
+
                 result = self.ctx.tc.issue_squadron_order(all_sq, order)
                 roll_info = (f" (rolled {result.get('roll', '?')} "
                              f"vs Ld {result.get('needed', '?')} "

@@ -19,22 +19,71 @@ def get_squadrons(gs: GameState, player: int) -> Dict[str, List[Ship]]:
     return result
 
 
-def partition_by_coherency(ships: List[Ship]) -> Tuple[List[Ship], List[Ship]]:
-    """Return (in_coherency, out_of_coherency) partitions.
+def get_coherency_components(
+    ships: List[Ship],
+) -> Tuple[List[List[Ship]], List[Ship]]:
+    """Return (coherent_groups, isolated_ships).
 
-    A ship is in coherency if it is within COHERENCY_RANGE of at least one
-    other member.  Single-ship lists are always fully in coherency.
+    coherent_groups: connected components of size >= 2, sorted largest-first.
+                     Ties in size are broken by highest max-leadership.
+    isolated_ships:  ships that are >COHERENCY_RANGE from every other member.
+    """
+    if len(ships) <= 1:
+        return ([list(ships)] if ships else []), []
+
+    n = len(ships)
+    parent = list(range(n))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(x: int, y: int) -> None:
+        px, py = find(x), find(y)
+        if px != py:
+            parent[px] = py
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            if ships[i].distance_to(ships[j]) <= COHERENCY_RANGE:
+                union(i, j)
+
+    comp: Dict[int, List[int]] = {}
+    for i in range(n):
+        comp.setdefault(find(i), []).append(i)
+
+    groups: List[List[Ship]] = []
+    isolated: List[Ship] = []
+    for indices in comp.values():
+        members = [ships[i] for i in indices]
+        if len(members) >= 2:
+            groups.append(members)
+        else:
+            isolated.extend(members)
+
+    groups.sort(key=lambda g: (len(g), max(s.leadership for s in g)), reverse=True)
+    return groups, isolated
+
+
+def partition_by_coherency(ships: List[Ship]) -> Tuple[List[Ship], List[Ship]]:
+    """Return (in_coherency, out_of_coherency) using chain-coherency connected components.
+
+    The primary (in_coherency) group is the largest connected component.
+    All other ships go to out_of_coherency.
     """
     if len(ships) <= 1:
         return list(ships), []
-    in_coh: List[Ship] = []
-    out_coh: List[Ship] = []
-    for s in ships:
-        near = any(
-            s2.id != s.id and s.distance_to(s2) <= COHERENCY_RANGE
-            for s2 in ships
-        )
-        (in_coh if near else out_coh).append(s)
+
+    groups, isolated = get_coherency_components(ships)
+    if not groups:
+        return [], list(ships)   # all isolated
+
+    primary = groups[0]          # largest (already sorted)
+    primary_ids = {s.id for s in primary}
+    in_coh  = [s for s in ships if     s.id in primary_ids]
+    out_coh = [s for s in ships if s.id not in primary_ids]
     return in_coh, out_coh
 
 
