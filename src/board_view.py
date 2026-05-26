@@ -1316,19 +1316,22 @@ class BoardView:
         messagebox.showinfo("Help - BFG:XR Simulator", help_text)
 
     def _save_game(self):
-        self.gs.save()
-        messagebox.showinfo("Saved", f"Game saved to saves/{self.gs.game_name}/")
+        from tkinter import filedialog
+        d = filedialog.askdirectory(title="Choose save folder")
+        if d:
+            self.gs.save(d)
+            messagebox.showinfo("Saved", f"Game saved to {d}")
 
     def _load_game(self):
-        dir_name = simpledialog.askstring("Load Game", "Enter save directory name:")
-        if dir_name:
+        from tkinter import filedialog
+        d = filedialog.askdirectory(title="Select save folder to load")
+        if d:
             try:
-                path = os.path.join("saves", dir_name)
-                self.gs = GameState.load(path)
+                self.gs = GameState.load(d)
                 self.redraw()
-                messagebox.showinfo("Loaded", f"Game loaded from {path}")
+                messagebox.showinfo("Loaded", f"Game loaded from {d}")
             except Exception as e:
-                messagebox.showerror("Error", str(e))
+                messagebox.showerror("Load Error", str(e))
 
     @staticmethod
     def _darken(hex_color, factor):

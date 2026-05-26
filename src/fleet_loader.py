@@ -1,4 +1,5 @@
 """Fleet list loader — reads fleet JSON files and instantiates Ship objects."""
+import datetime
 import json
 import os
 from typing import List, Dict, Optional
@@ -52,6 +53,43 @@ def fleet_to_ships(fleet_data: dict, player: int) -> List[Ship]:
         ships.append(Ship(**d))
 
     return ships
+
+
+def export_fleet_with_damage(ships: List["Ship"], player: int, filepath: str) -> None:
+    """Export a fleet JSON including current damage state for campaign/scenario use."""
+    fleet_ships = []
+    for s in ships:
+        if s.player != player or s.is_destroyed:
+            continue
+        entry: Dict = {
+            "ship_class": s.ship_class,
+            "name": s.name,
+            "faction": s.faction,
+            "is_flagship": s.is_flagship,
+            "admiral_type": s.admiral_type,
+            "rerolls_remaining": s.rerolls_remaining,
+            "squadron_id": s.squadron_id,
+            "spawn_x": s.x,
+            "spawn_y": s.y,
+            "spawn_heading": s.heading,
+            "points_value": s.points_value,
+            "upgrades": list(s.upgrades),
+            "weapons": list(s.weapons),
+            "special_rules": list(s.special_rules),
+            # Damage state
+            "hits_remaining": s.hits_remaining,
+            "critical_damage": list(s.critical_damage),
+            "ordnance_loaded_torps": s.ordnance_loaded_torps,
+            "ordnance_loaded_craft": s.ordnance_loaded_craft,
+        }
+        fleet_ships.append(entry)
+    data = {
+        "fleet_name": f"Campaign Fleet (Player {player})",
+        "exported": datetime.datetime.now().isoformat(timespec="seconds"),
+        "ships": fleet_ships,
+    }
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
 
 def find_unofficial_ships(fleet_data: dict) -> List[str]:

@@ -1,5 +1,8 @@
 """Tests for fleet_builder.fleet_list_to_ships — the tkinter-free converter."""
+import json
+import os
 import sys
+import tempfile
 import unittest.mock
 
 # Guard against headless environments: mock tkinter if not importable
@@ -10,6 +13,8 @@ except (ImportError, ModuleNotFoundError):
         sys.modules.setdefault(_mod, unittest.mock.MagicMock())
 
 from src.fleet_builder import fleet_list_to_ships  # noqa: E402 (after conditional mock)
+from src.fleet_loader import export_fleet_with_damage, fleet_to_ships
+from tests.conftest import make_ship
 
 
 # ── catalog path ─────────────────────────────────────────────────────────────
@@ -155,3 +160,84 @@ def test_multiple_ships_all_returned():
     names = [s["name"] for s in result]
     assert "Alpha" in names
     assert "Beta" in names
+
+
+# ── export_fleet_with_damage ──────────────────────────────────────────────────
+
+def test_export_fleet_with_damage_writes_json(tmp_path):
+    s = make_ship(id="s1", player=1, hits_remaining=4,
+                  ordnance_loaded_torps=False,
+                  critical_damage=[{"effect": "Drive Damaged"}])
+    fp = str(tmp_path / "campaign.json")
+    export_fleet_with_damage([s], player=1, filepath=fp)
+    assert os.path.exists(fp)
+    with open(fp) as f:
+        data = json.load(f)
+    assert "ships" in data
+    assert len(data["ships"]) == 1
+
+
+def test_export_fleet_with_damage_includes_damage_fields(tmp_path):
+    s = make_ship(id="s1", player=1, hits_remaining=4,
+                  ordnance_loaded_torps=False,
+                  critical_damage=[{"effect": "Drive Damaged"}])
+    fp = str(tmp_path / "campaign.json")
+    export_fleet_with_damage([s], player=1, filepath=fp)
+    with open(fp) as f:
+        entry = json.load(f)["ships"][0]
+    assert entry["hits_remaining"] == 4
+    assert entry["ordnance_loaded_torps"] is False
+    assert entry["critical_damage"] == [{"effect": "Drive Damaged"}]
+
+
+def test_export_fleet_with_damage_skips_destroyed(tmp_path):
+    alive = make_ship(id="s1", player=1, hits_remaining=5)
+    dead  = make_ship(id="s2", player=1, hits_remaining=0)
+    fp = str(tmp_path / "campaign.json")
+    export_fleet_with_damage([alive, dead], player=1, filepath=fp)
+    with open(fp) as f:
+        ships = json.load(f)["ships"]
+    assert len(ships) == 1
+    assert ships[0]["hits_remaining"] == 5
+
+
+def test_export_fleet_with_damage_skips_other_player(tmp_path):
+    s1 = make_ship(id="s1", player=1)
+    s2 = make_ship(id="s2", player=2)
+    fp = str(tmp_path / "campaign.json")
+    export_fleet_with_damage([s1, s2], player=1, filepath=fp)
+    with open(fp) as f:
+        ships = json.load(f)["ships"]
+    assert len(ships) == 1
+
+
+# ── damage field round-trip through fleet_to_ships ────────────────────────────
+
+_BASE_SHIP = {
+    "id": "test-1", "name": "Battered",
+    "ship_class": "Custom Ship", "faction": "imperial_navy_gothic",
+    "ship_type": "cruiser", "base_size": "large",
+    "hits_max": 8,
+}
+
+
+def test_fleet_to_ships_respects_hits_remaining():
+    fleet = {"ships": [{**_BASE_SHIP, "hits_remaining": 3}]}
+    ships = fleet_to_ships(fleet, player=1)
+    assert ships[0].hits_remaining == 3
+
+
+def test_fleet_to_ships_respects_critical_damage():
+    fleet = {"ships": [{**_BASE_SHIP,
+                        "critical_damage": [{"effect": "Drive Damaged"}]}]}
+    ships = fleet_to_ships(fleet, player=1)
+    assert ships[0].critical_damage == [{"effect": "Drive Damaged"}]
+
+
+def test_fleet_to_ships_respects_ordnance_flags():
+    fleet = {"ships": [{**_BASE_SHIP,
+                        "ordnance_loaded_torps": False,
+                        "ordnance_loaded_craft": False}]}
+    ships = fleet_to_ships(fleet, player=1)
+    assert ships[0].ordnance_loaded_torps is False
+    assert ships[0].ordnance_loaded_craft is False

@@ -169,6 +169,22 @@ class GamePanel:
             bg="#2a2a44", fg="#aaaacc", font=("Consolas", 8), width=25)
         self.settings_btn.pack(pady=2, padx=5)
 
+        # Save / Load / Export row — always visible
+        sl_frame = tk.Frame(self.parent, bg="#1a1a2e")
+        sl_frame.pack(pady=2, padx=5, fill=tk.X)
+        tk.Button(sl_frame, text="Save Game", command=self._save_game,
+                  bg="#2a3d2a", fg="#aaccaa", font=("Consolas", 8),
+                  width=10).pack(side=tk.LEFT, padx=1)
+        tk.Button(sl_frame, text="Load Game", command=self._load_game,
+                  bg="#2a2a3d", fg="#aaaacc", font=("Consolas", 8),
+                  width=10).pack(side=tk.LEFT, padx=1)
+        tk.Button(sl_frame, text="Export .bfg", command=self._export_match,
+                  bg="#28283a", fg="#9999bb", font=("Consolas", 8),
+                  width=10).pack(side=tk.LEFT, padx=1)
+        tk.Button(sl_frame, text="Export Map", command=self._export_map,
+                  bg="#283038", fg="#99aabb", font=("Consolas", 8),
+                  width=10).pack(side=tk.LEFT, padx=1)
+
         # Log display
         tk.Frame(self.parent, bg="#333355", height=2).pack(fill=tk.X, padx=5, pady=3)
         tk.Label(self.parent, text="Game Log", bg="#1a1a2e", fg="#888888",
@@ -223,7 +239,7 @@ class GamePanel:
         gs = self.ctx.gs
         dialog = tk.Toplevel(self.root)
         dialog.title("Game Settings")
-        dialog.geometry("480x520")
+        dialog.geometry("480x600")
         dialog.transient(self.root)
         dialog.focus_set()
         dialog.lift()
@@ -289,6 +305,18 @@ class GamePanel:
         tk.Label(margin_row, text="(wiggle room for contact distance checks)",
                  font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
 
+        camp_frame = tk.LabelFrame(dialog, text="Campaign / Scenario", font=("Consolas", 9, "bold"),
+                                   padx=8, pady=4)
+        camp_frame.pack(fill=tk.X, padx=15, pady=4)
+        tk.Label(camp_frame,
+                 text="Export the active player's fleet with current damage state\n"
+                      "for campaign continuation or scenario setup.",
+                 font=("Consolas", 7), fg="#888888", justify=tk.LEFT).pack(anchor=tk.W)
+        tk.Button(camp_frame, text="Export Fleet with Damage…",
+                  command=lambda: (dialog.destroy(), self._export_fleet_dialog()),
+                  bg="#2a2a44", fg="#aaaacc",
+                  font=("Consolas", 8)).pack(anchor=tk.W, pady=2)
+
         def on_apply():
             gs.dice_mode = dice_var.get()
             self.ctx.dice.mode = dice_var.get()
@@ -315,6 +343,68 @@ class GamePanel:
 
         dialog.bind("<Escape>", lambda e: on_cancel())
         self.root.wait_window(dialog)
+
+    # ── Save / Load / Export ─────────────────────────────────────────────────
+
+    def _save_game(self):
+        from tkinter import filedialog
+        d = filedialog.askdirectory(title="Choose save folder")
+        if d:
+            self.ctx.gs.save(d)
+            self.ctx.log(f"[Save] Game saved to {d}")
+
+    def _load_game(self):
+        from tkinter import filedialog
+        d = filedialog.askdirectory(title="Select save folder to load")
+        if d:
+            try:
+                self.ctx.gs.load(d)
+                self.ctx.board.redraw()
+                self._update_phase_display()
+                self.ctx.log(f"[Load] Game loaded from {d}")
+            except Exception as exc:
+                from tkinter import messagebox as _mb
+                _mb.showerror("Load Error", str(exc))
+
+    def _export_match(self):
+        from tkinter import filedialog
+        fp = filedialog.asksaveasfilename(
+            title="Export match archive",
+            defaultextension=".bfg",
+            filetypes=[("BFG match archive", "*.bfg"), ("All files", "*.*")])
+        if fp:
+            self.ctx.tc.export_match(fp)
+            self.ctx.log(f"[Export] Match exported to {fp}")
+
+    def _export_map(self):
+        from tkinter import filedialog
+        gs = self.ctx.gs
+        phenomena = getattr(gs, "phenomena", [])
+        width = getattr(gs, "table_width", 180)
+        height = getattr(gs, "table_height", 120)
+        sunward = getattr(gs, "sunward_edge", "bottom")
+        fp = filedialog.asksaveasfilename(
+            title="Export map JSON",
+            defaultextension=".json",
+            filetypes=[("Map JSON", "*.json"), ("All files", "*.*")])
+        if fp:
+            from .map_maker import save_map
+            save_map(phenomena, width, height, sunward, fp)
+            self.ctx.log(f"[Export] Map exported to {fp}")
+
+    def _export_fleet_dialog(self):
+        from tkinter import filedialog
+        from .fleet_loader import export_fleet_with_damage
+        gs = self.ctx.gs
+        player = gs.active_player
+        fp = filedialog.asksaveasfilename(
+            title=f"Export Player {player} fleet with damage",
+            defaultextension=".json",
+            filetypes=[("Fleet JSON", "*.json"), ("All files", "*.*")])
+        if fp:
+            ships = [Ship.from_dict(s) for s in gs.ships]
+            export_fleet_with_damage(ships, player, fp)
+            self.ctx.log(f"[Export] Player {player} fleet exported to {fp}")
 
     # ── Game flow ─────────────────────────────────────────────────────────────
 

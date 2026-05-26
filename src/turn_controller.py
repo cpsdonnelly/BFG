@@ -385,6 +385,17 @@ class TurnController:
             return {"success": False,
                     "error": "A command check already failed this turn."}
 
+        from .squadron import partition_by_coherency
+        in_coh, out_coh = partition_by_coherency(ships)
+        for s in out_coh:
+            self.gs.add_log(
+                f"  {s.name}: out of squadron coherency — must use individual order "
+                f"(own Ld {s.leadership})")
+        ships = in_coh
+        if not ships:
+            return {"success": False,
+                    "error": "No ships in squadron coherency — cannot issue a squadron order."}
+
         leader = max(ships, key=lambda s: s.leadership)
 
         if order == SpecialOrder.COME_TO_NEW_HEADING.value:

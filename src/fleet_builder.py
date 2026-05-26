@@ -36,13 +36,14 @@ _SEL_BG     = "#1a1a2e"
 class _ShipEditDialog:
     def __init__(self, root: tk.Tk, entry: ShipClassEntry,
                  current_name: str, current_upgrades: List[str],
-                 on_save: Callable):
+                 on_save: Callable, current_damage: Optional[dict] = None):
         self._on_save = on_save
         self._entry = entry
+        dmg = current_damage or {}
 
         self.dialog = tk.Toplevel(root)
         self.dialog.title(f"Edit — {entry.ship_class}")
-        self.dialog.geometry("480x520")
+        self.dialog.geometry("500x680")
         self.dialog.configure(bg=_BG)
         self.dialog.transient(root)
         self.dialog.grab_set()
@@ -67,7 +68,7 @@ class _ShipEditDialog:
                  bg=_BG, fg=_ACCENT).pack(anchor="w", padx=15, pady=(10, 2))
 
         upgrade_frame = tk.Frame(self.dialog, bg=_BG)
-        upgrade_frame.pack(fill=tk.BOTH, expand=True, padx=15)
+        upgrade_frame.pack(fill=tk.X, padx=15)
 
         self._upgrade_vars: Dict[str, tk.BooleanVar] = {}
         upgrades = get_upgrades_for_ship(entry)
@@ -77,23 +78,99 @@ class _ShipEditDialog:
         for u in upgrades:
             var = tk.BooleanVar(value=(u.name in current_upgrades))
             self._upgrade_vars[u.name] = var
-            row = tk.Frame(upgrade_frame, bg=_BG)
-            row.pack(fill=tk.X, pady=1)
-            tk.Checkbutton(row, variable=var, bg=_BG, fg=_FG,
+            urow = tk.Frame(upgrade_frame, bg=_BG)
+            urow.pack(fill=tk.X, pady=1)
+            tk.Checkbutton(urow, variable=var, bg=_BG, fg=_FG,
                            selectcolor=_SEL_BG,
                            activebackground=_BG,
                            command=self._refresh_total).pack(side=tk.LEFT)
-            tk.Label(row, text=f"{u.name}  (+{u.points_cost} pts)",
+            tk.Label(urow, text=f"{u.name}  (+{u.points_cost} pts)",
                      font=_FONT_BODY, bg=_BG, fg=_FG, anchor="w").pack(side=tk.LEFT)
-            tk.Label(row, text=u.description, font=("Consolas", 8),
-                     bg=_BG, fg="#888888", wraplength=340, justify="left",
+            tk.Label(urow, text=u.description, font=("Consolas", 8),
+                     bg=_BG, fg="#888888", wraplength=300, justify="left",
                      anchor="w").pack(side=tk.LEFT, padx=8)
 
         # Total cost display
         self._total_var = tk.StringVar()
         tk.Label(self.dialog, textvariable=self._total_var, font=_FONT_BOLD,
-                 bg=_BG, fg=_ACCENT).pack(pady=5)
+                 bg=_BG, fg=_ACCENT).pack(pady=(5, 2))
         self._refresh_total()
+
+        # ── Damage / Scenario State ──────────────────────────────────────────
+        dmg_lf = tk.LabelFrame(self.dialog, text="Damage / Scenario State",
+                                font=_FONT_BOLD, bg=_BG, fg=_ACCENT,
+                                padx=8, pady=4)
+        dmg_lf.pack(fill=tk.X, padx=15, pady=(6, 2))
+
+        hits_max = getattr(entry, "hits_max", 8)
+
+        # Hits remaining
+        hits_row = tk.Frame(dmg_lf, bg=_BG)
+        hits_row.pack(fill=tk.X, pady=2)
+        tk.Label(hits_row, text="Hits remaining:", font=_FONT_BODY,
+                 bg=_BG, fg=_FG, width=16, anchor="w").pack(side=tk.LEFT)
+        self._hits_var = tk.StringVar(
+            value=str(dmg.get("hits_remaining", hits_max)))
+        tk.Spinbox(hits_row, from_=0, to=hits_max,
+                   textvariable=self._hits_var,
+                   font=_FONT_BODY, bg=_SEL_BG, fg=_FG,
+                   buttonbackground=_SEL_BG, width=5).pack(side=tk.LEFT)
+        tk.Label(hits_row, text=f"/ {hits_max} max",
+                 font=_FONT_BODY, bg=_BG, fg="#888888").pack(side=tk.LEFT, padx=6)
+
+        # Ordnance loaded
+        ord_row = tk.Frame(dmg_lf, bg=_BG)
+        ord_row.pack(fill=tk.X, pady=2)
+        self._torps_var = tk.BooleanVar(value=dmg.get("ordnance_loaded_torps", True))
+        self._craft_var = tk.BooleanVar(value=dmg.get("ordnance_loaded_craft", True))
+        tk.Checkbutton(ord_row, text="Torpedoes loaded",
+                       variable=self._torps_var,
+                       bg=_BG, fg=_FG, selectcolor=_SEL_BG,
+                       activebackground=_BG,
+                       font=_FONT_BODY).pack(side=tk.LEFT)
+        tk.Checkbutton(ord_row, text="Attack craft loaded",
+                       variable=self._craft_var,
+                       bg=_BG, fg=_FG, selectcolor=_SEL_BG,
+                       activebackground=_BG,
+                       font=_FONT_BODY).pack(side=tk.LEFT, padx=10)
+
+        # Critical damage list
+        tk.Label(dmg_lf, text="Critical damage effects:",
+                 font=_FONT_BODY, bg=_BG, fg=_FG).pack(anchor="w", pady=(4, 1))
+
+        crit_frame = tk.Frame(dmg_lf, bg=_BG)
+        crit_frame.pack(fill=tk.X)
+
+        self._crit_listbox = tk.Listbox(
+            crit_frame, bg=_SEL_BG, fg=_FG,
+            font=("Consolas", 8), height=4, selectbackground="#334466",
+            selectforeground=_FG, relief=tk.FLAT, borderwidth=1)
+        self._crit_listbox.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        existing_crits = dmg.get("critical_damage", [])
+        for c in existing_crits:
+            label = c.get("effect", c) if isinstance(c, dict) else str(c)
+            self._crit_listbox.insert(tk.END, label)
+        self._crit_raw: List = list(existing_crits)
+
+        crit_btn_col = tk.Frame(crit_frame, bg=_BG)
+        crit_btn_col.pack(side=tk.LEFT, padx=4)
+        tk.Button(crit_btn_col, text="Remove", font=("Consolas", 8),
+                  bg="#331111", fg=_FG, relief=tk.FLAT,
+                  command=self._remove_crit).pack(pady=1)
+        tk.Button(crit_btn_col, text="Clear all", font=("Consolas", 8),
+                  bg="#221111", fg=_FG, relief=tk.FLAT,
+                  command=self._clear_crits).pack(pady=1)
+
+        add_row = tk.Frame(dmg_lf, bg=_BG)
+        add_row.pack(fill=tk.X, pady=(3, 0))
+        self._new_crit_var = tk.StringVar()
+        tk.Entry(add_row, textvariable=self._new_crit_var,
+                 font=("Consolas", 8), bg=_SEL_BG, fg=_FG,
+                 insertbackground=_FG, width=26).pack(side=tk.LEFT)
+        tk.Button(add_row, text="+ Add crit", font=("Consolas", 8),
+                  bg="#223322", fg=_FG, relief=tk.FLAT,
+                  command=self._add_crit).pack(side=tk.LEFT, padx=4)
 
         # Buttons
         btn_frame = tk.Frame(self.dialog, bg=_BG)
@@ -107,6 +184,24 @@ class _ShipEditDialog:
 
         root.wait_window(self.dialog)
 
+    def _remove_crit(self):
+        sel = self._crit_listbox.curselection()
+        if sel:
+            idx = sel[0]
+            self._crit_listbox.delete(idx)
+            self._crit_raw.pop(idx)
+
+    def _clear_crits(self):
+        self._crit_listbox.delete(0, tk.END)
+        self._crit_raw.clear()
+
+    def _add_crit(self):
+        text = self._new_crit_var.get().strip()
+        if text:
+            self._crit_listbox.insert(tk.END, text)
+            self._crit_raw.append({"effect": text})
+            self._new_crit_var.set("")
+
     def _refresh_total(self):
         chosen = [name for name, v in self._upgrade_vars.items() if v.get()]
         total = self._entry.points_cost
@@ -118,8 +213,22 @@ class _ShipEditDialog:
 
     def _save(self):
         chosen = [name for name, v in self._upgrade_vars.items() if v.get()]
+        hits_max = getattr(self._entry, "hits_max", 8)
+        try:
+            hits = int(self._hits_var.get())
+        except ValueError:
+            hits = hits_max
+        damage = {}
+        if hits != hits_max:
+            damage["hits_remaining"] = hits
+        if not self._torps_var.get():
+            damage["ordnance_loaded_torps"] = False
+        if not self._craft_var.get():
+            damage["ordnance_loaded_craft"] = False
+        if self._crit_raw:
+            damage["critical_damage"] = list(self._crit_raw)
         self._on_save(self._name_var.get().strip() or self._entry.ship_class,
-                      chosen)
+                      chosen, damage)
         self.dialog.destroy()
 
 
@@ -372,7 +481,8 @@ class _ShipBuilderDialog:
 def _make_fleet_row(entry: ShipClassEntry, custom_name: str = "",
                     upgrades: Optional[List[str]] = None,
                     is_flagship: bool = False,
-                    squadron_id: str = "") -> dict:
+                    squadron_id: str = "",
+                    damage: Optional[dict] = None) -> dict:
     upgrade_map = {u.name: u for u in get_upgrades_for_ship(entry)}
     upgrade_cost = sum(upgrade_map[u].points_cost
                        for u in (upgrades or []) if u in upgrade_map)
@@ -383,6 +493,7 @@ def _make_fleet_row(entry: ShipClassEntry, custom_name: str = "",
         "is_flagship": is_flagship,
         "squadron_id": squadron_id,
         "points":      entry.points_cost + upgrade_cost,
+        "damage":      damage or {},
     }
 
 
@@ -596,9 +707,10 @@ class FleetBuilderWindow:
         idx = sel[0]
         row = self._fleet[idx]
 
-        def _save(name, upgrades):
+        def _save(name, upgrades, damage):
             row["custom_name"] = name
             row["upgrades"] = upgrades
+            row["damage"] = damage
             upgrade_map = {u.name: u for u in get_upgrades_for_ship(row["entry"])}
             upgrade_cost = sum(upgrade_map[u].points_cost
                                for u in upgrades if u in upgrade_map)
@@ -606,7 +718,8 @@ class FleetBuilderWindow:
             self._refresh_fleet_list()
 
         _ShipEditDialog(self.win, row["entry"], row["custom_name"],
-                        row["upgrades"], on_save=_save)
+                        row["upgrades"], on_save=_save,
+                        current_damage=row.get("damage", {}))
 
     def _toggle_flagship(self):
         sel = self._fleet_list.curselection()
@@ -765,6 +878,16 @@ class FleetBuilderWindow:
             storable = {k: v for k, v in ship_dict.items()
                         if k not in ("id", "player", "x", "y", "heading")}
             storable["squadron_id"] = row.get("squadron_id", "")
+            # Write non-default damage state for campaign/scenario use
+            dmg = row.get("damage", {})
+            if "hits_remaining" in dmg:
+                storable["hits_remaining"] = dmg["hits_remaining"]
+            if dmg.get("ordnance_loaded_torps") is False:
+                storable["ordnance_loaded_torps"] = False
+            if dmg.get("ordnance_loaded_craft") is False:
+                storable["ordnance_loaded_craft"] = False
+            if dmg.get("critical_damage"):
+                storable["critical_damage"] = dmg["critical_damage"]
             data["ships"].append(storable)
 
         os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
@@ -827,12 +950,22 @@ class FleetBuilderWindow:
                     skipped_classes.append(sc)
                     continue
 
+            dmg: dict = {}
+            if "hits_remaining" in s:
+                dmg["hits_remaining"] = s["hits_remaining"]
+            if "ordnance_loaded_torps" in s and not s["ordnance_loaded_torps"]:
+                dmg["ordnance_loaded_torps"] = False
+            if "ordnance_loaded_craft" in s and not s["ordnance_loaded_craft"]:
+                dmg["ordnance_loaded_craft"] = False
+            if s.get("critical_damage"):
+                dmg["critical_damage"] = s["critical_damage"]
             row = _make_fleet_row(
                 entry,
                 custom_name=s.get("name", sc),
                 upgrades=s.get("upgrades", []),
                 is_flagship=s.get("is_flagship", False),
                 squadron_id=s.get("squadron_id", ""),
+                damage=dmg if dmg else None,
             )
             self._fleet.append(row)
 

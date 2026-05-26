@@ -1,5 +1,5 @@
 """BFG:XR — Squadron rules: coherency utilities."""
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from .models import Ship
 from .game_state import GameState
 
@@ -17,6 +17,25 @@ def get_squadrons(gs: GameState, player: int) -> Dict[str, List[Ship]]:
             continue
         result.setdefault(ship.squadron_id, []).append(ship)
     return result
+
+
+def partition_by_coherency(ships: List[Ship]) -> Tuple[List[Ship], List[Ship]]:
+    """Return (in_coherency, out_of_coherency) partitions.
+
+    A ship is in coherency if it is within COHERENCY_RANGE of at least one
+    other member.  Single-ship lists are always fully in coherency.
+    """
+    if len(ships) <= 1:
+        return list(ships), []
+    in_coh: List[Ship] = []
+    out_coh: List[Ship] = []
+    for s in ships:
+        near = any(
+            s2.id != s.id and s.distance_to(s2) <= COHERENCY_RANGE
+            for s2 in ships
+        )
+        (in_coh if near else out_coh).append(s)
+    return in_coh, out_coh
 
 
 def check_squadron_coherency(gs: GameState, player: int) -> List[str]:

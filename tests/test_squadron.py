@@ -1,6 +1,7 @@
 """Tests for src/squadron.py and TurnController.issue_squadron_order."""
 import pytest
-from src.squadron import get_squadrons, check_squadron_coherency, COHERENCY_RANGE
+from src.squadron import (get_squadrons, check_squadron_coherency,
+                           partition_by_coherency, COHERENCY_RANGE)
 from src.turn_controller import TurnController
 from src.models import SpecialOrder
 
@@ -187,3 +188,89 @@ class TestIssueSquadronOrder:
         result = tc.issue_squadron_order([s1, s2], SpecialOrder.LOCK_ON.value)
         assert result["success"] is False
         assert "already failed" in result["error"].lower()
+
+
+# ---------------------------------------------------------------------------
+# partition_by_coherency
+# ---------------------------------------------------------------------------
+
+class TestPartitionByCoherency:
+    def test_single_ship_always_in(self):
+        s = make_ship(id="s1", player=1, x=0.0, y=0.0)
+        in_coh, out_coh = partition_by_coherency([s])
+        assert in_coh == [s]
+        assert out_coh == []
+
+    def test_empty_list(self):
+        assert partition_by_coherency([]) == ([], [])
+
+    def test_both_in_range(self):
+        s1 = make_ship(id="s1", player=1, x=0.0, y=0.0)
+        s2 = make_ship(id="s2", player=1, x=10.0, y=0.0)
+        in_coh, out_coh = partition_by_coherency([s1, s2])
+        assert set(s.id for s in in_coh) == {"s1", "s2"}
+        assert out_coh == []
+
+    def test_exactly_at_coherency_range(self):
+        s1 = make_ship(id="s1", player=1, x=0.0, y=0.0)
+        s2 = make_ship(id="s2", player=1, x=COHERENCY_RANGE, y=0.0)
+        in_coh, out_coh = partition_by_coherency([s1, s2])
+        assert len(in_coh) == 2
+        assert out_coh == []
+
+    def test_one_out_of_range(self):
+        s1 = make_ship(id="s1", player=1, x=0.0, y=0.0)
+        s2 = make_ship(id="s2", player=1, x=5.0, y=0.0)
+        s3 = make_ship(id="s3", player=1, x=100.0, y=0.0)
+        in_coh, out_coh = partition_by_coherency([s1, s2, s3])
+        assert set(s.id for s in in_coh) == {"s1", "s2"}
+        assert [s.id for s in out_coh] == ["s3"]
+
+    def test_all_out_of_range(self):
+        s1 = make_ship(id="s1", player=1, x=0.0, y=0.0)
+        s2 = make_ship(id="s2", player=1, x=100.0, y=0.0)
+        in_coh, out_coh = partition_by_coherency([s1, s2])
+        # Neither is within 15 cm of the other
+        assert in_coh == []
+        assert set(s.id for s in out_coh) == {"s1", "s2"}
+
+
+# ---------------------------------------------------------------------------
+# Coherency enforcement inside issue_squadron_order
+# ---------------------------------------------------------------------------
+
+class TestSquadronOrderCoherencyEnforcement:
+    def test_out_of_coherency_ship_excluded(self):
+        # s3 is far away — should be excluded from the squadron order
+        s1 = make_ship(id="s1", name="Alpha", player=1, leadership=7, x=0.0, y=0.0)
+        s2 = make_ship(id="s2", name="Beta",  player=1, leadership=6, x=5.0, y=0.0)
+        s3 = make_ship(id="s3", name="Stray", player=1, leadership=8, x=200.0, y=0.0)
+        tc = _make_tc([s1, s2, s3], [4])
+        result = tc.issue_squadron_order(
+            [s1, s2, s3], SpecialOrder.LOCK_ON.value)
+        assert result["success"] is True
+        # s3 should NOT be in ships_affected
+        assert "Stray" not in result["ships_affected"]
+        assert "Alpha" in result["ships_affected"] or "Beta" in result["ships_affected"]
+        # s3 should NOT have the order
+        assert tc.gs.get_ship_by_id("s3").special_order == "none"
+
+    def test_out_of_coherency_ship_cannot_use_high_ld_leader(self):
+        # s1 has Ld 9 but is 200 cm away — in-coherency ships roll with s2 Ld 7
+        s1 = make_ship(id="s1", name="Leader", player=1, leadership=9, x=200.0, y=0.0)
+        s2 = make_ship(id="s2", name="Close",  player=1, leadership=7, x=0.0,   y=0.0)
+        s3 = make_ship(id="s3", name="Near",   player=1, leadership=6, x=5.0,   y=0.0)
+        tc = _make_tc([s1, s2, s3], [4])
+        result = tc.issue_squadron_order(
+            [s1, s2, s3], SpecialOrder.LOCK_ON.value)
+        assert result["success"] is True
+        # Leader used for the roll should be the highest-Ld in-coherency ship
+        assert result["leader"] == "Close"
+
+    def test_all_out_of_coherency_returns_failure(self):
+        s1 = make_ship(id="s1", player=1, leadership=7, x=0.0,   y=0.0)
+        s2 = make_ship(id="s2", player=1, leadership=6, x=200.0, y=0.0)
+        tc = _make_tc([s1, s2], [4])
+        result = tc.issue_squadron_order([s1, s2], SpecialOrder.LOCK_ON.value)
+        assert result["success"] is False
+        assert "coherency" in result["error"].lower()
