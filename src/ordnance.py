@@ -647,6 +647,32 @@ def compute_torpedo_launch_exempt(launcher: Ship,
     return [launcher.id]
 
 
+def reload_ship_ordnance(ship: Ship) -> List[str]:
+    """Reload a ship's ordnance (Reload Ordnance order effect).
+
+    Sets ordnance_loaded_torps True if the ship has torpedo / gravitic launcher
+    weapons; sets ordnance_loaded_craft True if it has launch bay weapons.
+    Returns log lines describing what was reloaded. Mutates `ship` in place;
+    the caller is responsible for persisting via gs.update_ship.
+    """
+    has_torps = any(w.get("weapon_type") in ("torpedo", "gravitic_launcher")
+                    for w in ship.weapons)
+    has_bays = any(w.get("weapon_type") == "launch_bay" for w in ship.weapons)
+    reloaded = []
+    if has_torps and not ship.ordnance_loaded_torps:
+        ship.ordnance_loaded_torps = True
+        reloaded.append("torpedoes")
+    if has_bays and not ship.ordnance_loaded_craft:
+        ship.ordnance_loaded_craft = True
+        reloaded.append("attack craft")
+    if reloaded:
+        return [f"{ship.name}: Reload Ordnance — reloaded {' & '.join(reloaded)}"]
+    if has_torps or has_bays:
+        return [f"{ship.name}: Reload Ordnance — ordnance already loaded"]
+    return []
+
+
+
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState) -> OrdnanceMarker:
     """Create a torpedo marker from a ship's launcher."""
     torpedo_type = weapon.get("torpedo_type", "standard")

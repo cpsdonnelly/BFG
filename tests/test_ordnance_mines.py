@@ -2,7 +2,7 @@
 from tests.conftest import make_ship, make_gs, make_marker, make_phenomenon, DiceStub
 from src.ordnance import (resolve_mine_contact, check_ordnance_vs_phenomena,
                           compute_torpedo_launch_exempt, launch_torpedoes,
-                          launch_attack_craft)
+                          launch_attack_craft, reload_ship_ordnance)
 from src.models import OrdnanceMarker
 
 
@@ -179,3 +179,68 @@ def test_launch_attack_craft_creates_markers():
     assert len(markers) == 2
     for m in markers:
         assert m.ordnance_type == "fighter"
+
+
+# ── reload_ship_ordnance ──────────────────────────────────────────────────────
+
+def test_reload_sets_torps_when_ship_has_torpedoes():
+    ship = make_ship(id="s", weapons=[{"name": "Torps", "weapon_type": "torpedo",
+                                        "strength": 6}])
+    ship.ordnance_loaded_torps = False
+    logs = reload_ship_ordnance(ship)
+    assert ship.ordnance_loaded_torps is True
+    assert any("torpedoes" in line for line in logs)
+
+
+def test_reload_sets_craft_when_ship_has_launch_bay():
+    ship = make_ship(id="s", weapons=[{"name": "Bay", "weapon_type": "launch_bay",
+                                       "strength": 2}])
+    ship.ordnance_loaded_craft = False
+    logs = reload_ship_ordnance(ship)
+    assert ship.ordnance_loaded_craft is True
+    assert any("attack craft" in line for line in logs)
+
+
+def test_reload_sets_both_when_ship_has_both():
+    ship = make_ship(id="s", weapons=[
+        {"name": "Torps", "weapon_type": "torpedo", "strength": 6},
+        {"name": "Bay", "weapon_type": "launch_bay", "strength": 2},
+    ])
+    ship.ordnance_loaded_torps = False
+    ship.ordnance_loaded_craft = False
+    logs = reload_ship_ordnance(ship)
+    assert ship.ordnance_loaded_torps is True
+    assert ship.ordnance_loaded_craft is True
+    assert any("torpedoes" in line and "attack craft" in line for line in logs)
+
+
+def test_reload_already_loaded_returns_already_loaded_log():
+    ship = make_ship(id="s", weapons=[{"name": "Torps", "weapon_type": "torpedo",
+                                       "strength": 6}])
+    # default ordnance_loaded_torps is True
+    logs = reload_ship_ordnance(ship)
+    assert ship.ordnance_loaded_torps is True
+    assert any("already loaded" in line for line in logs)
+
+
+def test_reload_ship_without_ordnance_weapons_returns_empty():
+    ship = make_ship(id="s", weapons=[{"name": "Battery", "weapon_type": "battery",
+                                       "strength": 4}])
+    ship.ordnance_loaded_torps = False
+    ship.ordnance_loaded_craft = False
+    logs = reload_ship_ordnance(ship)
+    assert logs == []
+    # Flags untouched (no ordnance weapons to reload)
+    assert ship.ordnance_loaded_torps is False
+    assert ship.ordnance_loaded_craft is False
+
+
+def test_reload_only_sets_types_the_ship_has():
+    # Torpedo-only ship: torps reload, craft flag left at its prior value
+    ship = make_ship(id="s", weapons=[{"name": "Torps", "weapon_type": "torpedo",
+                                       "strength": 6}])
+    ship.ordnance_loaded_torps = False
+    ship.ordnance_loaded_craft = False
+    reload_ship_ordnance(ship)
+    assert ship.ordnance_loaded_torps is True
+    assert ship.ordnance_loaded_craft is False  # no launch bay → unchanged

@@ -342,6 +342,10 @@ class TurnController:
 
         if passed:
             ship.special_order = order
+            if order == SpecialOrder.RELOAD_ORDNANCE.value:
+                from .ordnance import reload_ship_ordnance
+                for line in reload_ship_ordnance(ship):
+                    self.gs.add_log(line)
             self.gs.update_ship(ship)
             result["success"] = True
             self.gs.add_log(
@@ -414,6 +418,10 @@ class TurnController:
             for ship in ships:
                 if ship.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
                     ship.special_order = order
+                    if order == SpecialOrder.RELOAD_ORDNANCE.value:
+                        from .ordnance import reload_ship_ordnance
+                        for line in reload_ship_ordnance(ship):
+                            self.gs.add_log(line)
                     self.gs.update_ship(ship)
                     result["ships_affected"].append(ship.name)
                     self.gs.add_log(f"  {ship.name}: {order} (squadron order)")
