@@ -1,7 +1,7 @@
 """BFG:XR Board Viewer - Tkinter Canvas GUI"""
 import os
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 import math
 from typing import Optional, Tuple
 from .models import Ship, BlastMarker, OrdnanceMarker, Phenomenon, BaseSize, Arc

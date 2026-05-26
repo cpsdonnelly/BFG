@@ -78,12 +78,10 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
 
     if repair_choices is not None:
         # Player specified which crits to repair
-        repaired = 0
         for choice in repair_choices[:repairs_available]:
             for c in ship.critical_damage:
                 if c.get("description") == choice and c.get("repairable", False):
                     ship.critical_damage.remove(c)
-                    repaired += 1
                     logs.append(f"  Repaired: {c['description']}")
                     break
     else:
@@ -91,7 +89,6 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
         priority = ["fire", "engine_room", "thrusters_damaged",
                      "shields_collapse", "dorsal_armament", "port_armament",
                      "starboard_armament", "prow_armament", "bridge_smashed"]
-        repaired = 0
         for _ in range(repairs_available):
             best = None
             best_priority = 999
@@ -108,7 +105,6 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
                     best = c
             if best:
                 ship.critical_damage.remove(best)
-                repaired += 1
                 logs.append(f"  Repaired: {best['description']}")
 
     gs.update_ship(ship)
