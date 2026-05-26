@@ -614,6 +614,377 @@ class OrdnancePanel:
             f"  Ordnance phase complete: {len(self.ctx.gs.ordnance)} markers remain")
         self.ctx.board.redraw()
 
+    def _combine_ordnance_dialog(self):
+        """Pool torpedo or craft launches from ships in contiguous base contact.
+
+        All ships in the group contribute their weapon strength to a single marker.
+        All combining ships are set as launch_exempt_ships (friendly fire does not apply).
+        """
+        from .boarding import ships_in_base_contact
+
+        player = self.ctx.gs.active_player
+        all_active = [
+            Ship.from_dict(s) for s in self.ctx.gs.ships
+            if s["player"] == player
+            and not Ship.from_dict(s).is_destroyed
+            and not s.get("is_disengaged", False)
+            and not s.get("has_boarded", False)
+            and not s.get("is_grappled", False)
+        ]
+        # Keep only ships with loaded ordnance (torps or craft)
+        eligible = [s for s in all_active
+                    if s.ordnance_loaded_torps or s.ordnance_loaded_craft]
+        if not eligible:
+            messagebox.showinfo("No Ordnance", "No ships with loaded ordnance.")
+            return
+
+        # Build contiguous base-contact groups (BFS)
+        visited = set()
+        groups = []
+        id_to_ship = {s.id: s for s in eligible}
+        for start in eligible:
+            if start.id in visited:
+                continue
+            group = []
+            queue = [start]
+            while queue:
+                current = queue.pop()
+                if current.id in visited:
+                    continue
+                visited.add(current.id)
+                group.append(current)
+                for other in eligible:
+                    if other.id not in visited and ships_in_base_contact(current, other):
+                        queue.append(other)
+            if len(group) >= 2:
+                groups.append(group)
+
+        if not groups:
+            messagebox.showinfo(
+                "No Groups",
+                "No groups of 2+ ordnance-loaded ships are in base contact.\n"
+                "Use 'Launch Ordnance' for individual launches.")
+            return
+
+        # Group selection dialog
+        sel_dlg = tk.Toplevel(self.ctx.root)
+        sel_dlg.title("Combine Ordnance Launch")
+        sel_dlg.geometry("420x280")
+        sel_dlg.transient(self.ctx.root)
+        tk.Label(sel_dlg, text="Select group for combined launch:",
+                 font=("Consolas", 10, "bold")).pack(pady=6)
+
+        group_var = tk.IntVar(value=0)
+        for idx, grp in enumerate(groups):
+            names = ", ".join(s.name for s in grp)
+            can_torp = any(s.ordnance_loaded_torps for s in grp)
+            can_craft = any(s.ordnance_loaded_craft for s in grp)
+            types = " | ".join(filter(None, [
+                "Torps" if can_torp else None,
+                "Craft" if can_craft else None,
+            ]))
+            tk.Radiobutton(sel_dlg,
+                           text=f"Group {idx+1}: [{names}]  ({types})",
+                           variable=group_var, value=idx,
+                           font=("Consolas", 8), wraplength=380,
+                           justify=tk.LEFT).pack(anchor=tk.W, padx=10)
+
+        chosen_group_idx = tk.IntVar(value=-1)
+
+        def _pick_group():
+            chosen_group_idx.set(group_var.get())
+            sel_dlg.destroy()
+
+        tk.Button(sel_dlg, text="Select Group", command=_pick_group,
+                  bg="#663333", fg="white", font=("Consolas", 10)).pack(pady=8)
+        sel_dlg.wait_window()
+        if chosen_group_idx.get() < 0:
+            return
+
+        group = groups[chosen_group_idx.get()]
+        can_torp = any(s.ordnance_loaded_torps for s in group)
+        can_craft = any(s.ordnance_loaded_craft for s in group)
+
+        # Ordnance type selection
+        if can_torp and can_craft:
+            type_dlg = tk.Toplevel(self.ctx.root)
+            type_dlg.title("Ordnance Type")
+            type_dlg.geometry("320x150")
+            type_dlg.transient(self.ctx.root)
+            tk.Label(type_dlg, text="Launch torpedoes or attack craft?",
+                     font=("Consolas", 10, "bold")).pack(pady=8)
+            chosen_type = tk.StringVar(value="")
+            btn_row = tk.Frame(type_dlg)
+            btn_row.pack(pady=4)
+            tk.Button(btn_row, text="Torpedoes",
+                      command=lambda: (chosen_type.set("torp"), type_dlg.destroy()),
+                      bg="#663333", fg="white", font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+            tk.Button(btn_row, text="Attack Craft",
+                      command=lambda: (chosen_type.set("craft"), type_dlg.destroy()),
+                      bg="#336633", fg="white", font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+            type_dlg.wait_window()
+            if not chosen_type.get():
+                return
+            launch_torps = chosen_type.get() == "torp"
+        else:
+            launch_torps = can_torp
+
+        # Collect contributing ships and compute combined strength
+        contributors = [s for s in group
+                        if (launch_torps and s.ordnance_loaded_torps)
+                        or (not launch_torps and s.ordnance_loaded_craft)]
+        if not contributors:
+            messagebox.showinfo("No Contributors",
+                "No ships in the group have that ordnance type loaded.")
+            return
+
+        # Combined strength: sum all torpedo/bay weapon strengths
+        def _ship_strength(ship, torps):
+            total = 0
+            for w in ship.weapons:
+                wtype = w.get("weapon_type", "")
+                if torps and wtype in ("torpedo", "gravitic_launcher") and ship.ordnance_loaded_torps:
+                    s = w["strength"]
+                    if ship.is_crippled:
+                        s = (s + 1) // 2
+                    if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                        s = (s + 1) // 2
+                    total += s
+                elif not torps and wtype == "launch_bay" and ship.ordnance_loaded_craft:
+                    s = w["strength"]
+                    if ship.is_crippled:
+                        s = (s + 1) // 2
+                    if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                        s = (s + 1) // 2
+                    total += s
+            return total
+
+        combined_strength = sum(_ship_strength(s, launch_torps) for s in contributors)
+        if combined_strength <= 0:
+            messagebox.showinfo("No Strength", "Combined ordnance strength is 0.")
+            return
+
+        # Launch position: centroid of contributors
+        launch_x = sum(s.x for s in contributors) / len(contributors)
+        launch_y = sum(s.y for s in contributors) / len(contributors)
+        # Representative heading from first contributor
+        rep_heading = contributors[0].heading
+
+        exempt_ids = [s.id for s in contributors]
+
+        # Main launch dialog
+        dialog = tk.Toplevel(self.ctx.root)
+        ord_label = "Torpedoes" if launch_torps else "Attack Craft"
+        dialog.title(f"Combined {ord_label} Launch")
+        dialog.geometry("500x400")
+        dialog.transient(self.ctx.root)
+
+        names_str = ", ".join(s.name for s in contributors)
+        tk.Label(dialog,
+                 text=f"Combined {ord_label} Launch",
+                 font=("Consolas", 11, "bold")).pack(pady=4)
+        tk.Label(dialog,
+                 text=f"Ships: {names_str}\nCombined strength: {combined_strength}",
+                 font=("Consolas", 9)).pack()
+        tk.Label(dialog,
+                 text="All participating ships are exempt from friendly fire.",
+                 font=("Consolas", 8), fg="#AAAAAA").pack()
+
+        # Heading control
+        head_frame = tk.LabelFrame(dialog, text="Launch Heading",
+                                   font=("Consolas", 9))
+        head_frame.pack(fill=tk.X, padx=10, pady=5)
+        heading_var = tk.StringVar(value=f"{rep_heading:.0f}")
+        tk.Label(head_frame,
+                 text=f"Forward arc reference: {rep_heading:.0f}°  (±45° from {contributors[0].name})",
+                 font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
+
+        h_ctrl = tk.Frame(head_frame)
+        h_ctrl.pack(fill=tk.X, padx=5, pady=2)
+
+        def _nudge(delta):
+            try:
+                cur = float(heading_var.get())
+            except ValueError:
+                cur = rep_heading
+            diff = ((cur + delta) - rep_heading + 180) % 360 - 180
+            diff = max(-45.0, min(45.0, diff))
+            heading_var.set(f"{(rep_heading + diff) % 360:.0f}")
+
+        for deg in [45, 30, 15, 5]:
+            tk.Button(h_ctrl, text=f"↶{deg}°", command=lambda d=deg: _nudge(d),
+                      font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
+        tk.Entry(h_ctrl, textvariable=heading_var, width=5,
+                 font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+        for deg in [5, 15, 30, 45]:
+            tk.Button(h_ctrl, text=f"↷{deg}°", command=lambda d=deg: _nudge(-d),
+                      font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
+        tk.Button(h_ctrl, text="Reset",
+                  command=lambda: heading_var.set(f"{rep_heading:.0f}"),
+                  font=("Consolas", 7)).pack(side=tk.LEFT, padx=4)
+
+        # Craft composition (only for craft launches)
+        composition_vars = {}
+        if not launch_torps:
+            # Collect available craft types across contributors
+            available_types = set()
+            for s in contributors:
+                for w in s.weapons:
+                    if w.get("weapon_type") == "launch_bay":
+                        for ct in w.get("craft_types", w.get("craft", [])):
+                            available_types.add(ct)
+
+            fleet_bay_cap = self._get_player_bay_capacity(player)
+            active_craft = self._count_active_craft(player)
+            fleet_remaining = max(0, fleet_bay_cap - active_craft)
+
+            comp_frame = tk.LabelFrame(dialog, text="Craft Composition",
+                                       font=("Consolas", 9))
+            comp_frame.pack(fill=tk.X, padx=10, pady=3)
+            tk.Label(comp_frame,
+                     text=f"Fleet cap: {fleet_remaining} slots free  |  "
+                          f"Types: {', '.join(sorted(available_types))}",
+                     font=("Consolas", 8), fg="#AAAAAA").pack(anchor=tk.W, padx=5)
+            CRAFT_NAMES = {
+                "fury_fighter": "Fury Interceptors",
+                "starhawk_bomber": "Starhawk Bombers",
+                "manta": "Manta",
+                "barracuda": "Barracuda",
+            }
+            for ct in sorted(available_types):
+                row = tk.Frame(comp_frame)
+                row.pack(fill=tk.X)
+                tk.Label(row, text=f"{CRAFT_NAMES.get(ct, ct)}:",
+                         font=("Consolas", 8), width=22, anchor=tk.W).pack(side=tk.LEFT)
+                var = tk.StringVar(value="0")
+                composition_vars[ct] = var
+                tk.Entry(row, textvariable=var, width=3,
+                         font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+
+        def _launch():
+            try:
+                heading = float(heading_var.get())
+            except ValueError:
+                messagebox.showerror("Error", "Invalid heading.")
+                return
+
+            diff = (heading - rep_heading + 180) % 360 - 180
+            if abs(diff) > 45:
+                messagebox.showerror("Error",
+                    f"Heading {heading:.0f}° is outside ±45° of {rep_heading:.0f}°.")
+                return
+
+            import random as _rng
+
+            if launch_torps:
+                # Detect torpedo type from first contributor's weapon
+                torp_weapon = None
+                for s in contributors:
+                    for w in s.weapons:
+                        if w.get("weapon_type") in ("torpedo", "gravitic_launcher"):
+                            torp_weapon = w
+                            break
+                    if torp_weapon:
+                        break
+                is_guided = torp_weapon and torp_weapon.get("torpedo_type") == "guided"
+                o_type = (OrdnanceType.TORPEDO_GUIDED.value if is_guided
+                          else OrdnanceType.TORPEDO_STANDARD.value)
+                speed = torp_weapon.get("torpedo_speed", 30) if torp_weapon else 30
+
+                marker = OrdnanceMarker(
+                    id=f"combined_torp_{player}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
+                    ordnance_type=o_type,
+                    owner_player=player,
+                    launched_by=contributors[0].id,
+                    x=launch_x, y=launch_y,
+                    heading=heading,
+                    strength=combined_strength,
+                    speed=speed,
+                    launched_turn=self.ctx.gs.turn_number,
+                    can_turn=is_guided,
+                    turn_angle=45 if is_guided else 0,
+                    launch_exempt_ships=list(exempt_ids),
+                )
+                self.ctx.gs.add_ordnance(marker)
+                self.ctx.log(
+                    f"Combined torpedo launch: {names_str} — "
+                    f"Str {combined_strength} heading {heading:.0f}°")
+
+                # Mark torps expended
+                for s in contributors:
+                    fresh = self.ctx.gs.get_ship_by_id(s.id)
+                    if fresh:
+                        fresh.ordnance_loaded_torps = False
+                        self.ctx.gs.update_ship(fresh)
+
+            else:
+                # Craft launch
+                CRAFT_STATS = {
+                    "manta": (OrdnanceType.MANTA.value, 20, 4),
+                    "barracuda": (OrdnanceType.BARRACUDA.value, 25, 0),
+                    "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
+                    "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
+                }
+
+                current_remaining = max(
+                    0, self._get_player_bay_capacity(player)
+                       - self._count_active_craft(player))
+                total_launched = 0
+
+                for ct, var in composition_vars.items():
+                    try:
+                        count = int(var.get())
+                    except ValueError:
+                        continue
+                    if count <= 0:
+                        continue
+                    o_type, spd, resil = CRAFT_STATS.get(
+                        ct, (OrdnanceType.FIGHTER.value, 30, 0))
+                    for i in range(count):
+                        if total_launched >= current_remaining:
+                            break
+                        marker = OrdnanceMarker(
+                            id=f"combined_craft_{player}_{ct}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
+                            ordnance_type=o_type,
+                            owner_player=player,
+                            launched_by=contributors[0].id,
+                            x=launch_x + (i - count / 2) * 1.5,
+                            y=launch_y,
+                            heading=heading,
+                            strength=1,
+                            speed=spd,
+                            launched_turn=self.ctx.gs.turn_number,
+                            resilient_save=resil,
+                        )
+                        self.ctx.gs.add_ordnance(marker)
+                        total_launched += 1
+
+                if total_launched == 0:
+                    messagebox.showwarning("No Craft",
+                        "Set at least one craft type to a non-zero count.")
+                    return
+
+                self.ctx.log(
+                    f"Combined craft launch: {names_str} — "
+                    f"{total_launched} squadrons heading {heading:.0f}°")
+
+                for s in contributors:
+                    fresh = self.ctx.gs.get_ship_by_id(s.id)
+                    if fresh:
+                        fresh.ordnance_loaded_craft = False
+                        self.ctx.gs.update_ship(fresh)
+
+            dialog.destroy()
+            self.ctx.board.redraw()
+
+        btn_row = tk.Frame(dialog)
+        btn_row.pack(pady=8)
+        tk.Button(btn_row, text=f"Launch Combined {ord_label}!", command=_launch,
+                  bg="#663333", fg="white",
+                  font=("Consolas", 10, "bold")).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_row, text="Cancel", command=dialog.destroy,
+                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+
     def _launch_ordnance_dialog(self, preselected_ship=None, preselected_heading=None):
         """Dialog to launch torpedoes or attack craft with heading and composition control.
 

@@ -133,6 +133,11 @@ class GamePanel:
             command=self.ordnance._launch_ordnance_dialog,
             bg="#663333", fg="white", font=("Consolas", 9), width=25)
 
+        self.combine_ord_btn = tk.Button(
+            self.btn_frame, text="Combine Ordnance Launch",
+            command=self.ordnance._combine_ordnance_dialog,
+            bg="#664422", fg="white", font=("Consolas", 9), width=25)
+
         self.end_phase_btn = tk.Button(
             self.btn_frame, text="End Phase >>",
             command=self._end_phase,
@@ -180,8 +185,9 @@ class GamePanel:
 
         for w in (self.move_btn, self.move_squad_btn, self.order_btn, self.fire_btn,
                   self.combine_fire_btn, self.target_squad_btn, self.fire_ord_btn,
-                  self.launch_btn, self.end_phase_btn, self.undo_btn, self.start_btn,
-                  self.disengage_btn, self.move_missile_btn, self.vp_btn):
+                  self.launch_btn, self.combine_ord_btn, self.end_phase_btn,
+                  self.undo_btn, self.start_btn, self.disengage_btn,
+                  self.move_missile_btn, self.vp_btn):
             w.pack_forget()
 
         phase = gs.current_phase
@@ -202,6 +208,7 @@ class GamePanel:
             self.vp_btn.pack(pady=2)
         elif phase == "ordnance":
             self.launch_btn.pack(pady=2)
+            self.combine_ord_btn.pack(pady=2)
             self.move_missile_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
