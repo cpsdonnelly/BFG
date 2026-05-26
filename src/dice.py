@@ -23,8 +23,7 @@ class DiceRoller:
         self.root = root
         self.log: List[str] = []
 
-    def roll_d6(self, count: int = 1, description: str = "",
-                allow_reroll: bool = False) -> List[int]:
+    def roll_d6(self, count: int = 1, description: str = "") -> List[int]:
         """Roll count D6 dice. Returns list of results."""
         if count <= 0:
             return []

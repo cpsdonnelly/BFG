@@ -1272,7 +1272,6 @@ class MovementPanel:
             pick_dialog.title("Select Squadron")
             pick_dialog.geometry("340x200")
             pick_dialog.transient(self.ctx.root)
-            pick_dialog.grab_set()
             tk.Label(pick_dialog, text="Select Squadron to Move",
                      font=("Consolas", 10, "bold")).pack(pady=6)
             lb = tk.Listbox(pick_dialog, font=("Consolas", 9),
@@ -1432,8 +1431,7 @@ class MovementPanel:
                 order = s.special_order
                 base = s.effective_speed
                 already = s.distance_moved_this_turn
-                if order in (SpecialOrder.ALL_AHEAD_FULL.value,
-                             SpecialOrder.BURN_RETROS.value):
+                if order == SpecialOrder.BURN_RETROS.value:
                     mins.append(0.0)
                 else:
                     mins.append(max(0.0, max(1, base // 2) - already))

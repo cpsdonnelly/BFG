@@ -30,19 +30,6 @@ class ShotResult:
         self.hits_by_ship: Dict[str, int] = {}  # ship_id → hits for squadron fire
 
 
-class ShootingResult:
-    """Result of all weapons from one ship firing at one target."""
-    def __init__(self, attacker: str, target: str):
-        self.attacker_name = attacker
-        self.target_name = target
-        self.shots: List[ShotResult] = []
-        self.total_hull_damage = 0
-        self.total_shield_hits = 0
-        self.target_destroyed = False
-        self.target_crippled = False
-        self.blast_markers_placed = 0
-        self.log_lines: List[str] = []
-
 
 def check_weapon_in_arc(ship: Ship, weapon: Dict, target_x: float, target_y: float) -> bool:
     """Check if target is within the weapon's fire arc."""

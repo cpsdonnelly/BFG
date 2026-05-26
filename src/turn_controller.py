@@ -108,6 +108,7 @@ class TurnController:
         self.gs.ships = snapshot["ships"]
         self.gs.ordnance = snapshot["ordnance"]
         self.gs.blast_markers = snapshot["blast_markers"]
+        self.gs.phenomena = snapshot.get("phenomena", [])
         self.gs.turn_number = snapshot["turn"]
         self.gs.current_phase = snapshot["phase"]
         self.gs.active_player = snapshot["active_player"]

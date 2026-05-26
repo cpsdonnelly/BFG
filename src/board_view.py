@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog
 import math
 from typing import Optional, Tuple
-from .models import Ship, BlastMarker, OrdnanceMarker, Phenomenon, ShipType, BaseSize, Arc
+from .models import Ship, BlastMarker, OrdnanceMarker, Phenomenon, BaseSize, Arc
 from .game_state import GameState
 
 # Ship circle sizes in screen pixels (will be scaled)
