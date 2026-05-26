@@ -66,18 +66,42 @@ def test_turn_exceeds_max_angle_invalid():
     assert any("turn" in e.lower() or "90" in e for e in r.errors)
 
 
+def test_escort_turns_at_any_point():
+    # Escorts have min_turn_distance = 0, so they may turn before moving.
+    ship = make_ship(id="s", speed=20, ship_type="escort", turn_angle=45)
+    r = validate_movement(ship, [_left(45), _fwd(10)], SpecialOrder.NONE.value)
+    assert r.valid
+    assert r.turns_used == 1
+
+
 def test_cruiser_requires_min_distance_before_turn():
-    # Cruiser min_turn_distance = 10cm; turning without moving first → error
+    # Cruiser min_turn_distance = 10cm; turning after only 5cm → error
     ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
-    r = validate_movement(ship, [_left(45)], SpecialOrder.NONE.value)
+    r = validate_movement(ship, [_fwd(5), _left(45), _fwd(10)], SpecialOrder.NONE.value)
     assert not r.valid
-    assert any("must move" in e.lower() or "10" in e for e in r.errors)
+    assert any("must move" in e.lower() or "10cm" in e for e in r.errors)
 
 
 def test_cruiser_ok_after_min_distance():
     ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
     r = validate_movement(ship, [_fwd(10), _left(45)], SpecialOrder.NONE.value)
     assert r.valid
+
+
+def test_battleship_requires_15cm_before_turn():
+    ship = make_ship(id="s", speed=20, ship_type="battleship", turn_angle=45,
+                     base_size="large")
+    r = validate_movement(ship, [_fwd(10), _left(45), _fwd(5)], SpecialOrder.NONE.value)
+    assert not r.valid
+    assert any("15cm" in e or "must move" in e.lower() for e in r.errors)
+
+
+def test_battleship_ok_after_15cm():
+    ship = make_ship(id="s", speed=20, ship_type="battleship", turn_angle=45,
+                     base_size="large")
+    r = validate_movement(ship, [_fwd(15), _left(45), _fwd(5)], SpecialOrder.NONE.value)
+    assert r.valid
+    assert r.turns_used == 1
 
 
 def test_aaf_no_turns_allowed():
@@ -89,27 +113,77 @@ def test_aaf_no_turns_allowed():
                SpecialOrder.ALL_AHEAD_FULL.value in e.lower() for e in r.errors)
 
 
-def test_two_turns_with_ctnh():
+# ── one-turn limit and the "unused degrees" rule ──────────────────────────────
+
+def test_normal_order_only_one_turn():
+    # Cruiser moves 10cm, turns 30° CCW (using less than its 45° max), moves 10cm.
+    # It may NOT spend the leftover 15° as a second turn under a normal order.
     ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
-    r = validate_movement(
-        ship,
-        [_fwd(10), _left(45), _fwd(5)],
-        SpecialOrder.COME_TO_NEW_HEADING.value
-    )
-    # One turn used so far, should still be valid
+    r = validate_movement(ship, [_fwd(10), _left(30), _fwd(10), _left(15)],
+                          SpecialOrder.NONE.value)
+    assert not r.valid
+    assert any("used 1/1" in e or "turn" in e.lower() for e in r.errors)
+
+
+def test_consecutive_turns_no_forward_are_one_turn():
+    # turn 30 then turn 15 with no forward between = single 45° turn action.
+    ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
+    r = validate_movement(ship, [_fwd(10), _left(30), _left(15), _fwd(10)],
+                          SpecialOrder.NONE.value)
     assert r.valid
+    assert r.turns_used == 1
+    assert abs(r.final_heading - 45) < 0.1
 
 
-def test_third_turn_with_ctnh_invalid():
+def test_single_turn_action_cannot_exceed_turn_angle():
+    # 30 + 30 = 60° in one continuous turn exceeds the 45° max.
+    ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
+    r = validate_movement(ship, [_fwd(10), _left(30), _left(30), _fwd(10)],
+                          SpecialOrder.NONE.value)
+    assert not r.valid
+    assert any("exceeds maximum" in e for e in r.errors)
+
+
+def test_opposing_turns_cancel_no_turn_consumed():
+    ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
+    r = validate_movement(ship, [_fwd(10), _left(30), _right(30), _fwd(10)],
+                          SpecialOrder.NONE.value)
+    assert r.valid
+    assert r.turns_used == 0
+    assert abs(r.final_heading - 0) < 0.1
+
+
+# ── Come To New Heading: allows a second turn ─────────────────────────────────
+
+def test_ctnh_allows_second_turn_ccw():
+    # Cruiser: 10cm, turn 30° CCW, 10cm, then a second full 45° CCW turn.
+    ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
+    r = validate_movement(ship, [_fwd(10), _left(30), _fwd(10), _left(45)],
+                          SpecialOrder.COME_TO_NEW_HEADING.value)
+    assert r.valid
+    assert r.turns_used == 2
+    assert abs(r.final_heading - 75) < 0.1  # 30 + 45
+
+
+def test_ctnh_allows_second_turn_cw():
+    # Second turn may be the other direction.
+    ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
+    r = validate_movement(ship, [_fwd(10), _left(30), _fwd(10), _right(45)],
+                          SpecialOrder.COME_TO_NEW_HEADING.value)
+    assert r.valid
+    assert r.turns_used == 2
+    assert abs(r.final_heading - 345) < 0.1  # 30 - 45 = -15 → 345
+
+
+def test_ctnh_rejects_third_turn():
     ship = make_ship(id="s", speed=20, ship_type="cruiser", turn_angle=45)
     r = validate_movement(
         ship,
-        [_fwd(10), _left(45), _fwd(5), _right(45), _fwd(1)],
+        [_fwd(10), _left(45), _fwd(5), _right(45), _fwd(5), _left(10)],
         SpecialOrder.COME_TO_NEW_HEADING.value
     )
-    # 2 turns already used; movement is invalid trying to use a third if any
-    # Actually, CtNH = 2 max, so 2 turns used → still valid; verify turns_used
-    assert r.turns_used == 2
+    assert not r.valid
+    assert any("used 2/2" in e or "turn" in e.lower() for e in r.errors)
 
 
 # ── crossed blast markers ──────────────────────────────────────────────────────
