@@ -3,6 +3,7 @@ import pytest
 from src.boarding import (
     troop_rating, resolve_boarding, ships_in_base_contact,
     _apply_boarding_damage, _distribute_boarding_damage, _troop_advantage_bonus,
+    contiguous_contact_groups,
 )
 from src.tables import BOARDING_RESULTS
 
@@ -144,6 +145,72 @@ class TestShipsInBaseContact:
         a = make_ship(id="a", x=0.0, y=0.0)
         b = make_ship(id="b", x=50.0, y=0.0)
         assert not ships_in_base_contact(a, b)
+
+
+# ---------------------------------------------------------------------------
+# contiguous_contact_groups
+# ---------------------------------------------------------------------------
+
+class TestContiguousContactGroups:
+    def test_empty_input(self):
+        assert contiguous_contact_groups([]) == []
+
+    def test_single_ship_is_its_own_group(self):
+        a = make_ship(id="a", x=0.0, y=0.0)
+        groups = contiguous_contact_groups([a])
+        assert len(groups) == 1
+        assert [s.id for s in groups[0]] == ["a"]
+
+    def test_two_touching_ships_one_group(self):
+        a = make_ship(id="a", x=0.0, y=0.0)
+        b = make_ship(id="b", x=1.0, y=0.0)
+        groups = contiguous_contact_groups([a, b])
+        assert len(groups) == 1
+        assert {s.id for s in groups[0]} == {"a", "b"}
+
+    def test_two_far_ships_two_groups(self):
+        a = make_ship(id="a", x=0.0, y=0.0)
+        b = make_ship(id="b", x=50.0, y=0.0)
+        groups = contiguous_contact_groups([a, b])
+        assert len(groups) == 2
+
+    def test_chain_is_transitively_connected(self):
+        # Contact threshold for two small ships = 1.6 + 1.6 + 1.0 margin = 4.2cm.
+        # Space ships 4cm apart: a—b and b—c touch (4 ≤ 4.2) but a—c do NOT
+        # (8 > 4.2). The transitive closure must still link all three.
+        a = make_ship(id="a", x=0.0, y=0.0)
+        b = make_ship(id="b", x=4.0, y=0.0)
+        c = make_ship(id="c", x=8.0, y=0.0)
+        assert not ships_in_base_contact(a, c)  # premise: a,c not directly touching
+        groups = contiguous_contact_groups([a, b, c])
+        assert len(groups) == 1
+        assert {s.id for s in groups[0]} == {"a", "b", "c"}
+
+    def test_two_separate_clusters(self):
+        # Cluster 1: a,b touching near origin. Cluster 2: c,d touching far away.
+        a = make_ship(id="a", x=0.0, y=0.0)
+        b = make_ship(id="b", x=1.0, y=0.0)
+        c = make_ship(id="c", x=80.0, y=0.0)
+        d = make_ship(id="d", x=81.0, y=0.0)
+        groups = contiguous_contact_groups([a, b, c, d])
+        assert len(groups) == 2
+        clusters = sorted(({s.id for s in g} for g in groups), key=lambda x: sorted(x))
+        assert {"a", "b"} in clusters
+        assert {"c", "d"} in clusters
+
+    def test_order_preserved_within_group(self):
+        a = make_ship(id="a", x=0.0, y=0.0)
+        b = make_ship(id="b", x=4.0, y=0.0)
+        c = make_ship(id="c", x=8.0, y=0.0)
+        groups = contiguous_contact_groups([a, b, c])
+        assert [s.id for s in groups[0]] == ["a", "b", "c"]
+
+    def test_every_ship_appears_exactly_once(self):
+        ships = [make_ship(id=str(i), x=float(i) * 40, y=0.0) for i in range(5)]
+        groups = contiguous_contact_groups(ships)
+        all_ids = [s.id for g in groups for s in g]
+        assert sorted(all_ids) == sorted(s.id for s in ships)
+        assert len(all_ids) == len(set(all_ids))
 
 
 # ---------------------------------------------------------------------------

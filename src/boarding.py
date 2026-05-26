@@ -223,3 +223,31 @@ def ships_in_base_contact(ship_a: Ship, ship_b: Ship) -> bool:
     from .geometry import BASE_CONTACT_MARGIN_CM
     dist = ship_a.distance_to(ship_b)
     return dist <= ship_a.base_radius + ship_b.base_radius + BASE_CONTACT_MARGIN_CM
+
+
+def contiguous_contact_groups(ships: List[Ship]) -> List[List[Ship]]:
+    """Partition `ships` into connected components by base contact.
+
+    Two ships are connected if their bases touch; a group is the transitive
+    closure of that relation. Returns every component, including singletons.
+    Input order is preserved within each group.
+    """
+    visited = set()
+    groups: List[List[Ship]] = []
+    for start in ships:
+        if start.id in visited:
+            continue
+        group: List[Ship] = []
+        stack = [start]
+        while stack:
+            current = stack.pop()
+            if current.id in visited:
+                continue
+            visited.add(current.id)
+            group.append(current)
+            for other in ships:
+                if other.id not in visited and ships_in_base_contact(current, other):
+                    stack.append(other)
+        group.sort(key=lambda s: ships.index(s))
+        groups.append(group)
+    return groups

@@ -620,7 +620,7 @@ class OrdnancePanel:
         All ships in the group contribute their weapon strength to a single marker.
         All combining ships are set as launch_exempt_ships (friendly fire does not apply).
         """
-        from .boarding import ships_in_base_contact
+        from .boarding import contiguous_contact_groups
 
         player = self.ctx.gs.active_player
         all_active = [
@@ -638,26 +638,8 @@ class OrdnancePanel:
             messagebox.showinfo("No Ordnance", "No ships with loaded ordnance.")
             return
 
-        # Build contiguous base-contact groups (BFS)
-        visited = set()
-        groups = []
-        id_to_ship = {s.id: s for s in eligible}
-        for start in eligible:
-            if start.id in visited:
-                continue
-            group = []
-            queue = [start]
-            while queue:
-                current = queue.pop()
-                if current.id in visited:
-                    continue
-                visited.add(current.id)
-                group.append(current)
-                for other in eligible:
-                    if other.id not in visited and ships_in_base_contact(current, other):
-                        queue.append(other)
-            if len(group) >= 2:
-                groups.append(group)
+        # Contiguous base-contact groups of 2+ ships
+        groups = [g for g in contiguous_contact_groups(eligible) if len(g) >= 2]
 
         if not groups:
             messagebox.showinfo(
