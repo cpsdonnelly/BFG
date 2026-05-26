@@ -544,6 +544,8 @@ class OrdnancePanel:
                     break  # one ship triggers the field
 
             elif is_assault_boat:
+                if not self.ctx.gs.rule_hit_and_run:
+                    continue
                 # Assault boats trigger hit-and-run raids against enemy ships
                 from .hit_and_run import resolve_hit_and_run
                 for s in ships:
