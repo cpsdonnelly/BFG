@@ -746,11 +746,13 @@ class OrdnancePanel:
             messagebox.showinfo("No Strength", "Combined ordnance strength is 0.")
             return
 
-        # Launch position: centroid of contributors
-        launch_x = sum(s.x for s in contributors) / len(contributors)
-        launch_y = sum(s.y for s in contributors) / len(contributors)
-        # Representative heading from first contributor
+        # Launch position: ship furthest from target (rear-most along heading)
         rep_heading = contributors[0].heading
+        _heading_rad = math.radians(rep_heading)
+        launch_ship = min(contributors,
+                          key=lambda s: s.x * math.cos(_heading_rad) + s.y * math.sin(_heading_rad))
+        launch_x = launch_ship.x
+        launch_y = launch_ship.y
 
         exempt_ids = [s.id for s in contributors]
 
@@ -777,8 +779,9 @@ class OrdnancePanel:
                                    font=("Consolas", 9))
         head_frame.pack(fill=tk.X, padx=10, pady=5)
         heading_var = tk.StringVar(value=f"{rep_heading:.0f}")
+        arc_ships = ", ".join(s.name for s in contributors)
         tk.Label(head_frame,
-                 text=f"Forward arc reference: {rep_heading:.0f}°  (±45° from {contributors[0].name})",
+                 text=f"Heading must be within ±45° of every ship: {arc_ships}",
                  font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
 
         h_ctrl = tk.Frame(head_frame)
@@ -850,11 +853,13 @@ class OrdnancePanel:
                 messagebox.showerror("Error", "Invalid heading.")
                 return
 
-            diff = (heading - rep_heading + 180) % 360 - 180
-            if abs(diff) > 45:
-                messagebox.showerror("Error",
-                    f"Heading {heading:.0f}° is outside ±45° of {rep_heading:.0f}°.")
-                return
+            for _s in contributors:
+                diff = (heading - _s.heading + 180) % 360 - 180
+                if abs(diff) > 45:
+                    messagebox.showerror("Arc Error",
+                        f"Heading {heading:.0f}° is outside {_s.name}'s ±45° forward arc "
+                        f"(ship heading {_s.heading:.0f}°).")
+                    return
 
             import random as _rng
 
