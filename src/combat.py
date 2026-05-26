@@ -27,6 +27,7 @@ class ShotResult:
         self.critical_results: List[Dict] = []
         self.brace_saves = 0
         self.description = ""
+        self.hits_by_ship: Dict[str, int] = {}  # ship_id → hits for squadron fire
 
 
 class ShootingResult:
@@ -574,6 +575,89 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     return summary
 
 
+
+
+# Orientation difficulty (from attacker's perspective): lower = easier to target = better column
+# If attacker picks difficulty D, eligible ships are those with difficulty ≤ D
+ORIENTATION_DIFFICULTY = {"closing": 0, "moving_away": 1, "abeam": 2}
+
+
+def eligible_orientations(chosen: str) -> List[str]:
+    """Return all orientations an attacker can score hits on when targeting `chosen`."""
+    max_diff = ORIENTATION_DIFFICULTY.get(chosen, 2)
+    return [o for o, d in ORIENTATION_DIFFICULTY.items() if d <= max_diff]
+
+
+def resolve_batteries_vs_squadron(
+        attacker: Ship, weapon: Dict, target_type: str,
+        chosen_orientation: str, eligible_ships: List["Ship"],
+        dice: "DiceRoller", blast_markers: List,
+        lock_on: bool = False, phenomena: list = None,
+        all_ships: list = None, no_column_shifts: bool = False) -> "ShotResult":
+    """Fire a battery weapon at a group of squadron ships (hit-allocation rules).
+
+    chosen_orientation: the orientation the attacker declared ("closing", "moving_away",
+        or "abeam").  Only ships presenting that orientation or an easier one are eligible.
+    eligible_ships: filtered to range + arc + orientation, sorted nearest-first.
+
+    Dice are sorted lowest-first and allocated one-at-a-time:
+    each die hits the nearest ship whose armor ≤ that die value.
+    No damage is applied here — caller applies hits_by_ship via apply_damage.
+    """
+    result = ShotResult(weapon.get("name", "Battery"), "battery")
+    if not eligible_ships:
+        result.description = "no eligible targets"
+        return result
+
+    fp = effective_battery_firepower(attacker, weapon)
+    if fp <= 0:
+        result.description = "no firepower"
+        return result
+
+    column = get_gunnery_column(target_type, chosen_orientation)
+    if no_column_shifts:
+        shifts = 0
+    else:
+        shifts = get_column_shifts(attacker, eligible_ships[0], blast_markers,
+                                   phenomena, all_ships)
+    num_dice = lookup_gunnery_dice(fp, column, shifts)
+
+    raw_dice = dice.roll_d6(num_dice, f"Sqn fire {weapon['name']} FP{fp}")
+
+    def armor_for(ship: "Ship") -> int:
+        arc = ship.get_arc_for_bearing(ship.bearing_to(attacker.x, attacker.y))
+        return ship.armor_prow_value if arc == Arc.FRONT else ship.armor_side_value
+
+    armors = {s.id: armor_for(s) for s in eligible_ships}
+    min_armor = min(armors.values()) if armors else 7
+
+    if lock_on:
+        final_dice = [dice.roll_d6(1, "Lock On reroll")[0] if d < min_armor else d
+                      for d in raw_dice]
+        result.reroll_dice = [r for r, d in zip(final_dice, raw_dice) if r != d]
+    else:
+        final_dice = list(raw_dice)
+
+    result.dice_rolled = final_dice
+    sorted_dice = sorted(final_dice)
+
+    # Allocate hits to nearest eligible ship that can be wounded by each die
+    hits_by_ship: Dict[str, int] = {s.id: 0 for s in eligible_ships}
+    for die_val in sorted_dice:
+        for ship in eligible_ships:
+            if die_val >= armors[ship.id]:
+                hits_by_ship[ship.id] += 1
+                result.hits += 1
+                break  # die allocated; move to next die
+
+    result.hits_by_ship = {sid: h for sid, h in hits_by_ship.items() if h > 0}
+    names_hit = [s.name for s in eligible_ships if hits_by_ship.get(s.id, 0) > 0]
+    result.description = (
+        f"{attacker.name} fires {weapon['name']} FP{fp} at squadron "
+        f"[{chosen_orientation} col {column}]: {num_dice} dice → "
+        f"{result.hits} hits ({', '.join(names_hit) or 'no hits'})"
+    )
+    return result
 
 
 _RAM_SIZE_RANK = {"escort": 1, "cruiser": 2, "battleship": 3, "defense": 4}

@@ -118,6 +118,11 @@ class GamePanel:
             command=self.combat._combine_squadron_fire_dialog,
             bg="#663344", fg="white", font=("Consolas", 9), width=25)
 
+        self.target_squad_btn = tk.Button(
+            self.btn_frame, text="Fire at Enemy Squadron",
+            command=self.combat._squadron_target_dialog,
+            bg="#663355", fg="white", font=("Consolas", 9), width=25)
+
         self.fire_ord_btn = tk.Button(
             self.btn_frame, text="Fire at Ordnance",
             command=self.combat._fire_at_ordnance_dialog,
@@ -174,8 +179,8 @@ class GamePanel:
         self.player_label.config(text=f"Active: {pname}")
 
         for w in (self.move_btn, self.move_squad_btn, self.order_btn, self.fire_btn,
-                  self.combine_fire_btn, self.fire_ord_btn, self.launch_btn,
-                  self.end_phase_btn, self.undo_btn, self.start_btn,
+                  self.combine_fire_btn, self.target_squad_btn, self.fire_ord_btn,
+                  self.launch_btn, self.end_phase_btn, self.undo_btn, self.start_btn,
                   self.disengage_btn, self.move_missile_btn, self.vp_btn):
             w.pack_forget()
 
@@ -191,6 +196,7 @@ class GamePanel:
         elif phase == "shooting":
             self.fire_btn.pack(pady=2)
             self.combine_fire_btn.pack(pady=2)
+            self.target_squad_btn.pack(pady=2)
             self.fire_ord_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)

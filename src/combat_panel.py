@@ -7,7 +7,8 @@ from typing import Optional, Callable, List
 from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
 from .combat import (check_weapon_in_arc, check_weapon_in_range,
                      resolve_batteries, resolve_lances, resolve_nova_cannon,
-                     apply_damage, check_los_clear)
+                     apply_damage, check_los_clear,
+                     resolve_batteries_vs_squadron, eligible_orientations)
 from .game_context import GameContext
 
 
@@ -938,6 +939,259 @@ class CombatPanel:
         tk.Button(btn_row, text="Fire!", command=_confirm,
                   bg="#663333", fg="white",
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_row, text="Cancel", command=dialog.destroy,
+                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+
+    def _squadron_target_dialog(self):
+        """Fire a single ship's battery at an enemy squadron (hit-allocation mode)."""
+        from .squadron import get_squadrons
+
+        player = self.ctx.gs.active_player
+        enemy_player = 2 if player == 1 else 1
+
+        # Candidates: ships with unfired batteries, not boarded/grappled
+        def _has_unfired_batteries(ship):
+            wr = ship.weapons_remaining or {}
+            for i, w in enumerate(ship.weapons):
+                if w.get("weapon_type") != "battery":
+                    continue
+                if self._weapon_disabled_by_crit(ship, w):
+                    continue
+                if wr.get(str(i), w.get("strength", 0)) > 0:
+                    return True
+            return False
+
+        candidates = [
+            Ship.from_dict(s) for s in self.ctx.gs.ships
+            if s["player"] == player
+            and not Ship.from_dict(s).is_destroyed
+            and not s.get("is_disengaged", False)
+            and not s.get("disengage_failed_this_turn", False)
+            and not s.get("has_boarded", False)
+            and not s.get("is_grappled", False)
+            and _has_unfired_batteries(Ship.from_dict(s))
+        ]
+        if not candidates:
+            messagebox.showinfo("No Ships", "No ships have unfired battery weapons.")
+            return
+
+        attacker = self.ctx.pick_ship(candidates, "Select ship to fire at squadron")
+        if not attacker:
+            return
+
+        # Find enemy squadrons (2+ members)
+        all_enemy_squads = get_squadrons(self.ctx.gs, enemy_player)
+        enemy_squads = {sid: members for sid, members in all_enemy_squads.items()
+                        if len(members) >= 2}
+        if not enemy_squads:
+            messagebox.showinfo("No Squadrons",
+                "No enemy squadrons (2+ ships) on the board.\n"
+                "Use 'Fire Weapons' to target individual ships.")
+            return
+
+        # Pick squadron via dialog
+        squad_ids = list(enemy_squads.keys())
+        squad_labels = []
+        for sid in squad_ids:
+            members = enemy_squads[sid]
+            names = ", ".join(m.name for m in members)
+            squad_labels.append(f"{sid}: [{names}]")
+
+        sel_dlg = tk.Toplevel(self.ctx.root)
+        sel_dlg.title("Select Enemy Squadron")
+        sel_dlg.geometry("420x250")
+        sel_dlg.transient(self.ctx.root)
+        tk.Label(sel_dlg, text="Select enemy squadron to target:",
+                 font=("Consolas", 10, "bold")).pack(pady=6)
+        squad_var = tk.StringVar(value=squad_ids[0])
+        for sid, lbl in zip(squad_ids, squad_labels):
+            tk.Radiobutton(sel_dlg, text=lbl, variable=squad_var,
+                           value=sid, font=("Consolas", 8),
+                           wraplength=380, justify=tk.LEFT).pack(anchor=tk.W, padx=10)
+        chosen_squad_id = tk.StringVar()
+
+        def _pick_squad():
+            chosen_squad_id.set(squad_var.get())
+            sel_dlg.destroy()
+
+        tk.Button(sel_dlg, text="Select", command=_pick_squad,
+                  bg="#663333", fg="white", font=("Consolas", 10)).pack(pady=8)
+        sel_dlg.wait_window()
+        if not chosen_squad_id.get():
+            return
+
+        squad_members = enemy_squads[chosen_squad_id.get()]
+
+        # Compute orientation each member presents to attacker
+        orient_groups = {"closing": [], "moving_away": [], "abeam": []}
+        for m in squad_members:
+            o = attacker.get_target_orientation(m)
+            orient_groups[o].append(m)
+
+        blast_markers = self.ctx.gs.get_blast_markers()
+        phenomena = self.ctx.gs.get_phenomena()
+        lock_on = attacker.special_order == SpecialOrder.LOCK_ON.value
+
+        from .terrain_effects import check_ship_terrain_contact
+        attacker_contacts = check_ship_terrain_contact(attacker, phenomena)
+        in_asteroid_field = any(c["type"] == "asteroid_field" for c in attacker_contacts)
+
+        # Available batteries on attacker
+        avail_weapons = []
+        for i, w in enumerate(attacker.weapons):
+            if w.get("weapon_type") != "battery":
+                continue
+            if self._weapon_disabled_by_crit(attacker, w):
+                continue
+            wr = attacker.weapons_remaining or {}
+            avail = wr.get(str(i), w.get("strength", 0))
+            if in_asteroid_field:
+                avail = max(1, (avail + 1) // 2)
+            if avail <= 0:
+                continue
+            avail_weapons.append((i, w, avail))
+
+        if not avail_weapons:
+            messagebox.showinfo("No Weapons",
+                f"{attacker.name} has no available battery weapons.")
+            return
+
+        # Main targeting dialog
+        dialog = tk.Toplevel(self.ctx.root)
+        dialog.title(f"Fire at Squadron — {attacker.name}")
+        dialog.geometry("540x540")
+        dialog.transient(self.ctx.root)
+
+        tk.Label(dialog, text=f"{attacker.name} → Squadron {chosen_squad_id.get()}",
+                 font=("Consolas", 11, "bold")).pack(pady=4)
+        tk.Label(dialog,
+                 text="Pick orientation: determines which ships are eligible targets.\n"
+                      "Choosing 'abeam' allows hits on ALL members (closing / moving away / abeam).",
+                 font=("Consolas", 8), fg="#AAAAAA", wraplength=500).pack()
+
+        # Orientation selection
+        orient_frame = tk.LabelFrame(dialog, text="Target Orientation",
+                                     font=("Consolas", 9))
+        orient_frame.pack(fill=tk.X, padx=10, pady=4)
+        orient_var = tk.StringVar(value="closing")
+        for o in ("closing", "moving_away", "abeam"):
+            ships_in_o = orient_groups.get(o, [])
+            label = (f"{o.replace('_', ' ').title()}: "
+                     f"{', '.join(s.name for s in ships_in_o) or '(none)'}")
+            tk.Radiobutton(orient_frame, text=label, variable=orient_var,
+                           value=o, font=("Consolas", 8)).pack(anchor=tk.W, padx=6)
+
+        # Weapon selection
+        weapon_frame = tk.LabelFrame(dialog, text="Battery Weapon",
+                                     font=("Consolas", 9))
+        weapon_frame.pack(fill=tk.X, padx=10, pady=4)
+        weapon_idx_var = tk.StringVar(value=str(avail_weapons[0][0]))
+        for i, w, avail in avail_weapons:
+            arcs = "/".join(w.get("arcs", []))
+            ast_note = " [ASTEROID: half FP, 10cm]" if in_asteroid_field else ""
+            lbl = (f"{w['name']} FP{avail} {w['range_cm']}cm [{arcs}]{ast_note}")
+            tk.Radiobutton(weapon_frame, text=lbl, variable=weapon_idx_var,
+                           value=str(i), font=("Consolas", 8)).pack(anchor=tk.W, padx=6)
+
+        # Log
+        log_text = tk.Text(dialog, height=8, font=("Consolas", 8),
+                           bg="#0a0a1a", fg="#88CC88", state=tk.DISABLED)
+        log_text.pack(fill=tk.X, padx=10, pady=4)
+
+        def _log(msg):
+            log_text.config(state=tk.NORMAL)
+            log_text.insert(tk.END, msg + "\n")
+            log_text.see(tk.END)
+            log_text.config(state=tk.DISABLED)
+
+        def _fire():
+            chosen_orient = orient_var.get()
+            w_idx = int(weapon_idx_var.get())
+            weapon = attacker.weapons[w_idx]
+            wr = attacker.weapons_remaining or {}
+            full_avail = wr.get(str(w_idx), weapon.get("strength", 0))
+            avail = max(1, (full_avail + 1) // 2) if in_asteroid_field else full_avail
+
+            # Filter eligible members: orientation ≤ chosen AND in arc AND in range AND LoS
+            elig_orientations = eligible_orientations(chosen_orient)
+            eligible = []
+            for m in squad_members:
+                m_orient = attacker.get_target_orientation(m)
+                if m_orient not in elig_orientations:
+                    continue
+                if not check_weapon_in_arc(attacker, weapon, m.x, m.y):
+                    continue
+                eff_range = min(weapon.get("range_cm", 999),
+                                10 if in_asteroid_field else 9999)
+                if attacker.distance_to(m) > eff_range:
+                    continue
+                los = check_los_clear(attacker, m, phenomena, blast_markers)
+                if not los["clear"]:
+                    _log(f"  {m.name}: no LoS ({los['blocked_by']}) — skipped")
+                    continue
+                eligible.append(m)
+
+            if not eligible:
+                _log("  No eligible targets after filtering — check arc/range/LoS.")
+                return
+
+            # Sort nearest-first
+            eligible.sort(key=lambda s: attacker.distance_to(s))
+
+            # Determine target_type from first eligible member
+            target_type = eligible[0].ship_type
+
+            fire_weapon = dict(weapon, strength=avail)
+            sr = resolve_batteries_vs_squadron(
+                attacker, fire_weapon, target_type, chosen_orient, eligible,
+                self.ctx.dice, blast_markers, lock_on, phenomena,
+                self.ctx.gs.ships, no_column_shifts=in_asteroid_field)
+            _log(f"  {sr.description}")
+
+            # Apply hits ship by ship
+            for m in eligible:
+                h = sr.hits_by_ship.get(m.id, 0)
+                if h <= 0:
+                    continue
+                fresh = self.ctx.gs.get_ship_by_id(m.id)
+                if fresh and not fresh.is_destroyed:
+                    _log(f"  >> {fresh.name}: {h} hits")
+                    self._apply_hits_to_target(attacker, fresh, h, _log)
+
+            # Mark weapon fired
+            fresh_att = self.ctx.gs.get_ship_by_id(attacker.id)
+            if fresh_att:
+                wr2 = dict(fresh_att.weapons_remaining or {})
+                wfi = list(fresh_att.weapons_fired_indices or [])
+                wr2[str(w_idx)] = 0
+                if w_idx not in wfi:
+                    wfi.append(w_idx)
+                fresh_att.weapons_remaining = wr2
+                fresh_att.weapons_fired_indices = wfi
+                # Check if all direct-fire weapons spent
+                all_done = True
+                for i2, w2 in enumerate(fresh_att.weapons):
+                    if w2.get("weapon_type") in ("torpedo", "launch_bay", "gravitic_launcher"):
+                        continue
+                    if self._weapon_disabled_by_crit(fresh_att, w2):
+                        continue
+                    if wr2.get(str(i2), w2.get("strength", 0)) > 0:
+                        all_done = False
+                        break
+                fresh_att.has_fired = all_done
+                self.ctx.gs.update_ship(fresh_att)
+
+            self.ctx.log(
+                f"{attacker.name} fires at squadron {chosen_squad_id.get()}: "
+                f"{sr.hits} total hits")
+            dialog.destroy()
+            self.ctx.board.redraw()
+
+        btn_row = tk.Frame(dialog)
+        btn_row.pack(pady=6)
+        tk.Button(btn_row, text="Fire at Squadron!", command=_fire,
+                  bg="#663333", fg="white",
+                  font=("Consolas", 10, "bold")).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_row, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
 

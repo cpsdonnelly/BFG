@@ -640,27 +640,11 @@ def compute_torpedo_launch_exempt(launcher: Ship,
                                    game_state: GameState) -> List[str]:
     """Return ship IDs immune to friendly fire from torpedoes launched by `launcher`.
 
-    Torpedoes do not distinguish friend from foe — but any friendly ship that
-    is in base contact with the launcher at the moment of launch is exempt
-    for the lifetime of those torpedoes. The launcher itself is also exempt
-    (the torp starts inside its own base).
+    Only the launcher itself is exempt for individual launches.  For combined
+    squadron ordnance, the caller passes the full combining-group IDs directly
+    as launch_exempt_ships on the created OrdnanceMarker.
     """
-    from .geometry import BASE_CONTACT_MARGIN_CM
-    exempt = [launcher.id]
-    margin = getattr(game_state, "contact_margin_cm", BASE_CONTACT_MARGIN_CM)
-    for s_dict in game_state.ships:
-        if s_dict["id"] == launcher.id:
-            continue
-        if s_dict["player"] != launcher.player:
-            continue
-        other = Ship.from_dict(s_dict)
-        if other.is_destroyed or other.is_disengaged:
-            continue
-        dist = math.sqrt((other.x - launcher.x) ** 2
-                         + (other.y - launcher.y) ** 2)
-        if dist <= launcher.base_radius + other.base_radius + margin:
-            exempt.append(other.id)
-    return exempt
+    return [launcher.id]
 
 
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState) -> OrdnanceMarker:
