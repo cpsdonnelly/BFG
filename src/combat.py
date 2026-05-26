@@ -134,6 +134,22 @@ def _has_tracking_support(ship: Ship, all_ships: list = None) -> bool:
     return False
 
 
+def effective_battery_firepower(attacker: Ship, weapon: Dict) -> int:
+    """Return the effective firepower of a battery weapon after all modifiers."""
+    fp = weapon["strength"]
+    if attacker.is_crippled:
+        fp = (fp + 1) // 2
+    if attacker.special_order in (
+        SpecialOrder.ALL_AHEAD_FULL.value,
+        SpecialOrder.BURN_RETROS.value,
+        SpecialOrder.COME_TO_NEW_HEADING.value,
+    ):
+        fp = (fp + 1) // 2
+    if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+        fp = (fp + 1) // 2
+    return fp
+
+
 def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
                       dice: DiceRoller, blast_markers: List[BlastMarker],
                       lock_on: bool = False,
@@ -142,23 +158,7 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
                       no_column_shifts: bool = False) -> ShotResult:
     """Resolve a weapons battery attack."""
     result = ShotResult(weapon["name"], "battery")
-    firepower = weapon["strength"]
-
-    # Halve if crippled
-    if attacker.is_crippled:
-        firepower = (firepower + 1) // 2
-
-    # Halve if on certain special orders
-    if attacker.special_order in (
-        SpecialOrder.ALL_AHEAD_FULL.value,
-        SpecialOrder.BURN_RETROS.value,
-        SpecialOrder.COME_TO_NEW_HEADING.value,
-    ):
-        firepower = (firepower + 1) // 2
-
-    # Halve again if braced
-    if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
-        firepower = (firepower + 1) // 2
+    firepower = effective_battery_firepower(attacker, weapon)
 
     if firepower <= 0:
         result.description = f"{weapon['name']}: no firepower available"
@@ -214,6 +214,76 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
     col_desc = f"col {column}" + (f" shifted {shifts:+d}" if shifts else "")
     result.description = (
         f"{weapon['name']}: FP {firepower} vs {target_orientation} {target_type} "
+        f"({col_desc}) = {num_dice} dice vs {armor}+ = {result.hits} hits")
+
+    return result
+
+
+def resolve_combined_batteries(primary_attacker: Ship,
+                               contributions: List[Tuple[Ship, Dict]],
+                               target: Ship,
+                               dice: DiceRoller,
+                               blast_markers: List[BlastMarker],
+                               lock_on: bool = False,
+                               phenomena: list = None,
+                               all_ships: list = None,
+                               no_column_shifts: bool = False) -> ShotResult:
+    """Pool battery firepower from multiple squadron ships into one gunnery roll.
+
+    contributions: list of (attacker_ship, battery_weapon_dict) pairs all firing
+    at `target`.  Firepower is summed after per-ship modifiers; orientation, column
+    shifts, and armour facing are taken from `primary_attacker`.
+    """
+    contributors = [a.name for a, _ in contributions]
+    result = ShotResult(f"Squadron fire ({', '.join(contributors)})", "battery")
+
+    total_fp = sum(effective_battery_firepower(a, w) for a, w in contributions)
+    if total_fp <= 0:
+        result.description = "Combined squadron fire: no firepower available"
+        return result
+
+    if target.ship_type in ("battleship", "cruiser"):
+        target_type = "capital"
+    elif target.ship_type == "escort":
+        target_type = "escort"
+    else:
+        target_type = "defense"
+
+    target_orientation = primary_attacker.get_target_orientation(target)
+    column = get_gunnery_column(target_type, target_orientation)
+    shifts = (0 if no_column_shifts
+              else get_column_shifts(primary_attacker, target, blast_markers,
+                                     phenomena, all_ships))
+    num_dice = lookup_gunnery_dice(total_fp, column, shifts)
+
+    if num_dice <= 0:
+        result.description = (
+            f"Squadron batteries: pooled FP {total_fp}, 0 dice to roll")
+        return result
+
+    armor = target.armor_side_value
+    target_arc_from_attacker = target.get_arc_for_bearing(
+        target.bearing_to(primary_attacker.x, primary_attacker.y))
+    if target_arc_from_attacker == Arc.FRONT:
+        armor = target.armor_prow_value
+
+    result.dice_rolled = dice.roll_d6(
+        num_dice,
+        f"Squadron fire vs {target.name} "
+        f"(pooled FP {total_fp}, {target_orientation} {target_type}, need {armor}+)")
+    result.hits = sum(1 for d in result.dice_rolled if d >= armor)
+
+    if lock_on and result.hits < num_dice:
+        misses = [d for d in result.dice_rolled if d < armor]
+        if misses:
+            result.reroll_dice = dice.roll_d6(
+                len(misses), "Squadron Lock On rerolls")
+            result.hits += sum(1 for d in result.reroll_dice if d >= armor)
+
+    col_desc = f"col {column}" + (f" shifted {shifts:+d}" if shifts else "")
+    result.description = (
+        f"Squadron fire [{', '.join(contributors)}]: "
+        f"pooled FP {total_fp} vs {target_orientation} {target_type} "
         f"({col_desc}) = {num_dice} dice vs {armor}+ = {result.hits} hits")
 
     return result

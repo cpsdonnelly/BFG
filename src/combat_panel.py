@@ -375,66 +375,11 @@ class CombatPanel:
             # Now apply damage per target
             for target_id, hit_list in all_damage.items():
                 total = sum(h for h, _, _ in hit_list)
-                target = hit_list[0][2]  # get target ship from first entry
-                target = self.ctx.gs.get_ship_by_id(target_id)  # re-fetch
+                target = self.ctx.gs.get_ship_by_id(target_id)
                 if not target or target.is_destroyed:
                     continue
-
                 _log(f"  >> {target.name}: {total} total hits")
-
-                # Brace option (per attacker, requires Ld test)
-                brace = False
-                already_braced = (target.special_order ==
-                                  SpecialOrder.BRACE_FOR_IMPACT.value)
-
-                if already_braced:
-                    brace = True
-                    _log(f"     (already braced)")
-                elif attacker.id not in (target.brace_failed_vs or []):
-                    want_brace = messagebox.askyesno(
-                        "Brace For Impact?",
-                        f"{target.name} taking {total} hits from {attacker.name}.\n"
-                        f"Attempt Brace For Impact? (Ld test, then 4+ save per hull hit)\n"
-                        f"If failed: cannot brace against {attacker.name} again.")
-                    if want_brace:
-                        # Command check for brace
-                        from .movement import do_command_check
-                        check = do_command_check(target, "brace_for_impact",
-                                                 self.ctx.dice)
-                        if check["passed"]:
-                            brace = True
-                            # Save previous order before replacing
-                            if target.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
-                                target.previous_order = target.special_order
-                            target.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                            target.brace_set_on_turn = self.ctx.gs.turn_number
-                            self.ctx.gs.update_ship(target)
-                            _log(f"     Brace PASSED (rolled {check['roll']} "
-                                 f"vs Ld {check['needed']})")
-                        else:
-                            # Failed: can't brace against this attacker again
-                            failed_list = target.brace_failed_vs or []
-                            failed_list.append(attacker.id)
-                            target.brace_failed_vs = failed_list
-                            self.ctx.gs.update_ship(target)
-                            _log(f"     Brace FAILED (rolled {check['roll']} "
-                                 f"vs Ld {check['needed']})")
-                else:
-                    _log(f"     (already failed brace vs {attacker.name})")
-
-                dmg = apply_damage(target, total, self.ctx.dice, self.ctx.gs,
-                                  target_braced=brace)
-                _log(f"     Shields: {dmg['shield_hits']}, "
-                     f"Hull: {dmg['hull_hits']}, "
-                     f"Saves: {dmg['brace_saves']}")
-                if dmg.get("crits"):
-                    for crit in dmg["crits"]:
-                        _log(f"     CRITICAL: {crit}")
-                if dmg["crippled"]:
-                    _log(f"     {target.name} is CRIPPLED!")
-                if dmg["destroyed"]:
-                    _log(f"     {target.name} DESTROYED!")
-                    self.ctx.check_destruction(target)
+                self._apply_hits_to_target(attacker, target, total, _log)
 
             # Record which weapons were fired and track remaining strength
             attacker_fresh = self.ctx.gs.get_ship_by_id(attacker.id)
@@ -731,6 +676,266 @@ class CombatPanel:
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
+
+    def _apply_hits_to_target(self, attacker: Ship, target: Ship,
+                              total_hits: int, log_fn) -> None:
+        """Brace prompt, apply_damage, crits, and destruction check for one volley."""
+        brace = False
+        already_braced = (target.special_order ==
+                          SpecialOrder.BRACE_FOR_IMPACT.value)
+        if already_braced:
+            brace = True
+            log_fn(f"     (already braced)")
+        elif attacker.id not in (target.brace_failed_vs or []):
+            want_brace = messagebox.askyesno(
+                "Brace For Impact?",
+                f"{target.name} taking {total_hits} hits from {attacker.name}.\n"
+                f"Attempt Brace For Impact? (Ld test, then 4+ save per hull hit)\n"
+                f"If failed: cannot brace against {attacker.name} again.")
+            if want_brace:
+                from .movement import do_command_check
+                check = do_command_check(target, "brace_for_impact", self.ctx.dice)
+                if check["passed"]:
+                    brace = True
+                    if target.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
+                        target.previous_order = target.special_order
+                    target.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+                    target.brace_set_on_turn = self.ctx.gs.turn_number
+                    self.ctx.gs.update_ship(target)
+                    log_fn(f"     Brace PASSED (rolled {check['roll']} "
+                           f"vs Ld {check['needed']})")
+                else:
+                    failed_list = list(target.brace_failed_vs or [])
+                    failed_list.append(attacker.id)
+                    target.brace_failed_vs = failed_list
+                    self.ctx.gs.update_ship(target)
+                    log_fn(f"     Brace FAILED (rolled {check['roll']} "
+                           f"vs Ld {check['needed']})")
+        else:
+            log_fn(f"     (already failed brace vs {attacker.name})")
+
+        dmg = apply_damage(target, total_hits, self.ctx.dice, self.ctx.gs,
+                           target_braced=brace)
+        log_fn(f"     Shields: {dmg['shield_hits']}, "
+               f"Hull: {dmg['hull_hits']}, "
+               f"Saves: {dmg['brace_saves']}")
+        if dmg.get("crits"):
+            for crit in dmg["crits"]:
+                log_fn(f"     CRITICAL: {crit}")
+        if dmg["crippled"]:
+            log_fn(f"     {target.name} is CRIPPLED!")
+        if dmg["destroyed"]:
+            log_fn(f"     {target.name} DESTROYED!")
+            self.ctx.check_destruction(target)
+
+    def _combine_squadron_fire_dialog(self):
+        """Pool battery fire from multiple squadron ships into one gunnery roll."""
+        from .squadron import get_squadrons
+        from .combat import (resolve_combined_batteries, check_weapon_in_arc,
+                             check_weapon_in_range, check_los_clear,
+                             effective_battery_firepower)
+
+        player = self.ctx.gs.active_player
+
+        # Gather candidates: ships in a squadron with unfired batteries
+        def _has_unfired_batteries(ship):
+            wr = ship.weapons_remaining or {}
+            for i, w in enumerate(ship.weapons):
+                if w.get("weapon_type") != "battery":
+                    continue
+                if self._weapon_disabled_by_crit(ship, w):
+                    continue
+                if wr.get(str(i), w["strength"]) > 0:
+                    return True
+            return False
+
+        all_squads = get_squadrons(self.ctx.gs, player)
+        candidates = [
+            s for s in (Ship.from_dict(d) for d in self.ctx.gs.ships)
+            if s.player == player
+            and not s.is_destroyed
+            and not s.is_disengaged
+            and not s.disengage_failed_this_turn
+            and s.squadron_id in all_squads
+            and _has_unfired_batteries(s)
+        ]
+        if not candidates:
+            messagebox.showinfo(
+                "No Squadron",
+                "No ships in a squadron have unfired battery weapons.")
+            return
+
+        primary = self.ctx.pick_ship(candidates,
+                                     "Select squadron ship to coordinate fire")
+        if not primary:
+            return
+
+        # Squadron members that have unfired batteries
+        all_members = all_squads.get(primary.squadron_id, [])
+        squad_with_batteries = [s for s in all_members if _has_unfired_batteries(s)]
+        if len(squad_with_batteries) < 2:
+            messagebox.showinfo(
+                "Not Enough Ships",
+                "Need at least 2 squadron members with unfired battery weapons.")
+            return
+
+        # Pick a single target
+        enemy_player = 2 if player == 1 else 1
+        enemies = [Ship.from_dict(s) for s in self.ctx.gs.ships
+                   if s["player"] == enemy_player
+                   and not Ship.from_dict(s).is_destroyed
+                   and not s.get("is_disengaged")]
+        if not enemies:
+            messagebox.showinfo("No Targets", "No valid enemy targets.")
+            return
+        target = self.ctx.pick_ship(enemies, "Select target for combined fire")
+        if not target:
+            return
+
+        blast_markers = self.ctx.gs.get_blast_markers()
+        phenomena = self.ctx.gs.get_phenomena()
+        in_asteroid_field = "in_asteroid_field" in (primary.special_rules or [])
+        lock_on = primary.special_order == SpecialOrder.LOCK_ON.value
+
+        # Build the weapon-contribution list: batteries in arc + range + LoS
+        weapon_rows = []
+        for member in squad_with_batteries:
+            wr = member.weapons_remaining or {}
+            for i, w in enumerate(member.weapons):
+                if w.get("weapon_type") != "battery":
+                    continue
+                if self._weapon_disabled_by_crit(member, w):
+                    continue
+                avail = wr.get(str(i), w["strength"])
+                if avail <= 0:
+                    continue
+                if not check_weapon_in_arc(member, w, target.x, target.y):
+                    continue
+                if not check_weapon_in_range(member, w, target):
+                    continue
+                eff_fp = effective_battery_firepower(member,
+                                                     dict(w, strength=avail))
+                weapon_rows.append((member, i, w, avail, eff_fp))
+
+        if not weapon_rows:
+            messagebox.showinfo(
+                "No Eligible Weapons",
+                "No squadron battery weapons are in arc, range, and LoS of "
+                f"{target.name}.")
+            return
+
+        # Dialog: checkbox per weapon, pooled FP display
+        dialog = tk.Toplevel(self.ctx.root)
+        dialog.title(f"Combine Squadron Fire → {target.name}")
+        dialog.geometry("480x420")
+        dialog.transient(self.ctx.root)
+
+        tk.Label(dialog, text="Combine Squadron Battery Fire",
+                 font=("Consolas", 11, "bold")).pack(pady=4)
+        tk.Label(dialog, text=f"Target: {target.name}",
+                 font=("Consolas", 9)).pack()
+
+        chk_frame = tk.LabelFrame(dialog, text="Contributing weapons",
+                                  font=("Consolas", 9))
+        chk_frame.pack(fill=tk.X, padx=10, pady=4)
+
+        chk_vars: list = []
+        for member, w_idx, weapon, avail, eff_fp in weapon_rows:
+            var = tk.BooleanVar(value=True)
+            text = (f"{member.name} — {weapon['name']} "
+                    f"(avail {avail}, eff FP {eff_fp})")
+            tk.Checkbutton(chk_frame, text=text, variable=var,
+                           font=("Consolas", 8)).pack(anchor=tk.W, padx=4)
+            chk_vars.append(var)
+
+        pooled_var = tk.StringVar()
+        pooled_lbl = tk.Label(dialog, textvariable=pooled_var,
+                              font=("Consolas", 10, "bold"), fg="#FFAA00")
+        pooled_lbl.pack(pady=2)
+
+        def _update_pooled(*_):
+            total = sum(
+                row[4] for row, var in zip(weapon_rows, chk_vars) if var.get()
+            )
+            pooled_var.set(f"Pooled effective firepower: {total}")
+
+        for var in chk_vars:
+            var.trace_add("write", _update_pooled)
+        _update_pooled()
+
+        log_lines: list = []
+
+        def _log(msg):
+            log_lines.append(msg)
+            self.ctx.log(msg)
+
+        def _confirm():
+            selected = [(row[0], dict(row[2], strength=row[3]))
+                        for row, var in zip(weapon_rows, chk_vars) if var.get()]
+            if not selected:
+                messagebox.showwarning("Nothing Selected",
+                                       "Select at least one weapon.")
+                return
+
+            sr = resolve_combined_batteries(
+                primary, selected, target,
+                self.ctx.dice, blast_markers, lock_on,
+                phenomena, self.ctx.gs.ships,
+                no_column_shifts=in_asteroid_field)
+            _log(f"  {sr.description}")
+
+            if sr.hits > 0:
+                fresh_target = self.ctx.gs.get_ship_by_id(target.id)
+                if fresh_target and not fresh_target.is_destroyed:
+                    _log(f"  >> {fresh_target.name}: {sr.hits} hits")
+                    self._apply_hits_to_target(primary, fresh_target, sr.hits, _log)
+
+            # Mark each contributing weapon as fired
+            used_by_ship: dict = {}
+            for row_idx, (member, w_idx, _w, avail, _) in enumerate(weapon_rows):
+                if not chk_vars[row_idx].get():
+                    continue
+                used_by_ship.setdefault(member.id, []).append((w_idx, avail))
+
+            for ship_id, fired_list in used_by_ship.items():
+                fresh = self.ctx.gs.get_ship_by_id(ship_id)
+                if not fresh:
+                    continue
+                wr = dict(fresh.weapons_remaining or {})
+                wfi = list(fresh.weapons_fired_indices or [])
+                for w_idx, fire_str in fired_list:
+                    wr[str(w_idx)] = 0
+                    if w_idx not in wfi:
+                        wfi.append(w_idx)
+                fresh.weapons_remaining = wr
+                fresh.weapons_fired_indices = wfi
+                # Check if all direct-fire weapons are spent
+                all_done = True
+                for i, w in enumerate(fresh.weapons):
+                    if w.get("weapon_type") in (
+                            "torpedo", "launch_bay", "gravitic_launcher"):
+                        continue
+                    if self._weapon_disabled_by_crit(fresh, w):
+                        continue
+                    if wr.get(str(i), w["strength"]) > 0:
+                        all_done = False
+                        break
+                fresh.has_fired = all_done
+                self.ctx.gs.update_ship(fresh)
+
+            self.ctx.log(
+                f"Squadron combined fire: {len(selected)} weapons vs "
+                f"{target.name} — {sr.hits} hits")
+            dialog.destroy()
+            self.ctx.board.redraw()
+
+        btn_row = tk.Frame(dialog)
+        btn_row.pack(pady=6)
+        tk.Button(btn_row, text="Fire!", command=_confirm,
+                  bg="#663333", fg="white",
+                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_row, text="Cancel", command=dialog.destroy,
+                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
 
     def _weapon_disabled_by_crit(self, ship: Ship, weapon: dict) -> bool:
         """Check if a weapon is disabled by critical damage."""
