@@ -14,6 +14,90 @@ class EndPhasePanel:
     def __init__(self, ctx: GameContext):
         self.ctx = ctx
 
+    def _resolve_boarding_actions(self):
+        """Resolve boarding actions in the attacker's end phase."""
+        if not self.ctx.gs.rule_boarding:
+            return
+        from .boarding import resolve_boarding, ships_in_base_contact
+        from .movement import do_command_check
+
+        active = self.ctx.gs.active_player
+        ships = self.ctx.gs.get_ships()
+
+        # Find active-player ships that declared boarding this turn
+        boarders = [s for s in ships
+                    if s.player == active and s.boarding_target_id
+                    and not s.is_destroyed and not s.is_disengaged
+                    and s.status not in ("drifting_hulk", "burning_hulk", "destroyed")]
+        # Also find grappled ships still in contact with their opponent
+        grappled = [s for s in ships
+                    if s.player == active and s.is_grappled and s.grappled_with_id
+                    and not s.is_destroyed
+                    and s.status not in ("drifting_hulk", "burning_hulk", "destroyed")]
+
+        # Group fresh boarders by target
+        by_target: dict = {}
+        for ship in boarders:
+            target = self.ctx.gs.get_ship_by_id(ship.boarding_target_id)
+            if not target or target.is_destroyed:
+                continue
+            if not ships_in_base_contact(ship, target):
+                self.ctx.log(f"  {ship.name} boarding target {target.name} no longer in contact")
+                continue
+            by_target.setdefault(ship.boarding_target_id, []).append(ship)
+
+        # Also process ongoing grapples
+        for ship in grappled:
+            peer = self.ctx.gs.get_ship_by_id(ship.grappled_with_id)
+            if not peer or peer.is_destroyed:
+                ship.is_grappled = False
+                ship.grappled_with_id = None
+                self.ctx.gs.update_ship(ship)
+                continue
+            if ship.boarding_target_id == peer.id:
+                by_target.setdefault(peer.id, [ship])
+            elif peer.id not in by_target:
+                by_target.setdefault(peer.id, [ship])
+
+        for target_id, attackers in by_target.items():
+            target = self.ctx.gs.get_ship_by_id(target_id)
+            if not target:
+                continue
+            attackers = [self.ctx.gs.get_ship_by_id(a.id) for a in attackers
+                         if self.ctx.gs.get_ship_by_id(a.id)]
+
+            self.ctx.log(
+                f"  BOARDING: {'+'.join(a.name for a in attackers)} vs {target.name}")
+
+            result = resolve_boarding(attackers, target, self.ctx.dice, self.ctx.gs)
+
+            if result["grapple"]:
+                # Mutual grapple — link ships together
+                for attacker in attackers:
+                    attacker.is_grappled = True
+                    attacker.grappled_with_id = target.id
+                    attacker.boarding_target_id = target.id
+                    self.ctx.gs.update_ship(attacker)
+                target.is_grappled = True
+                target.grappled_with_id = attackers[0].id if attackers else None
+                self.ctx.gs.update_ship(target)
+            else:
+                # Clear grapple/boarding state on all involved ships
+                for attacker in attackers:
+                    attacker.is_grappled = False
+                    attacker.grappled_with_id = None
+                    attacker.boarding_target_id = None
+                    self.ctx.gs.update_ship(attacker)
+                target.is_grappled = False
+                target.grappled_with_id = None
+                self.ctx.gs.update_ship(target)
+
+            # Check destruction
+            for attacker in attackers:
+                self.ctx.check_destruction(attacker)
+            self.ctx.check_destruction(target)
+            self.ctx.board.redraw()
+
     def _resolve_teleport_attacks(self):
         """Allow the active player to make teleport attacks during the end phase."""
         if not self.ctx.gs.rule_teleport:

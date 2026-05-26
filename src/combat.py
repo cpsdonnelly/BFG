@@ -576,6 +576,78 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
 
 
+_RAM_SIZE_RANK = {"escort": 1, "cruiser": 2, "battleship": 3, "defense": 4}
+
+
+def ram_ld_dice(rammer_type: str, target_type: str) -> int:
+    """Return number of d6 to roll for the ramming leadership test.
+
+    Target larger → 1D6 (easier); same size → 2D6; target smaller → 3D6 (harder).
+    Defences count as the largest type (most immobile).
+    """
+    r = _RAM_SIZE_RANK.get(rammer_type, 2)
+    t = _RAM_SIZE_RANK.get(target_type, 2)
+    if t > r:
+        return 1
+    if t < r:
+        return 3
+    return 2
+
+
+def resolve_ram(rammer: Ship, target: Ship, dice: DiceRoller,
+                game_state: GameState) -> Dict:
+    """Resolve ramming damage for both ships.
+
+    Damage ignores shields on both sides.  The caller is responsible for calling
+    check_destruction / resolve_catastrophic after this returns.
+    Returns a summary dict with rolls and hits for both ships.
+    """
+    # Determine which armor face of the target the rammer struck
+    target_bearing_to_rammer = target.bearing_to(rammer.x, rammer.y)
+    target_arc = target.get_arc_for_bearing(target_bearing_to_rammer)
+    target_armor = (target.armor_prow_value
+                    if target_arc == Arc.FRONT else target.armor_side_value)
+    target_facing = "prow" if target_arc == Arc.FRONT else "side"
+
+    # Front-to-front: rammer is in target's front arc AND target is in rammer's front
+    rammer_bearing_to_target = rammer.bearing_to(target.x, target.y)
+    rammer_arc = rammer.get_arc_for_bearing(rammer_bearing_to_target)
+    front_to_front = (target_arc == Arc.FRONT and rammer_arc == Arc.FRONT)
+
+    # --- Damage to target ---
+    n_target_dice = rammer.hits_max
+    target_rolls = dice.roll_d6(n_target_dice, f"Ram: {rammer.name} hits {target.name}")
+    target_raw_hits = sum(1 for r in target_rolls if r >= target_armor)
+    if target_raw_hits > 0:
+        apply_damage(target, target_raw_hits, dice, game_state, ignores_shields=True)
+
+    # --- Counter-damage to rammer ---
+    if front_to_front or target.ship_type == "defense":
+        n_rammer_dice = target.hits_max
+    else:
+        n_rammer_dice = (target.hits_max + 1) // 2
+    rammer_armor = rammer.armor_prow_value
+    rammer_rolls = dice.roll_d6(n_rammer_dice, f"Ram counter: {target.name} hits {rammer.name}")
+    rammer_raw_hits = sum(1 for r in rammer_rolls if r >= rammer_armor)
+    if rammer_raw_hits > 0:
+        apply_damage(rammer, rammer_raw_hits, dice, game_state, ignores_shields=True)
+
+    game_state.add_log(
+        f"  RAM: {rammer.name} ({n_target_dice}d6 vs {target_armor}+) → "
+        f"{target_raw_hits} hits on {target.name} [{target_facing}]; "
+        f"{target.name} counter ({n_rammer_dice}d6 vs {rammer_armor}+) → "
+        f"{rammer_raw_hits} hits on {rammer.name}")
+
+    return {
+        "target_facing": target_facing,
+        "front_to_front": front_to_front,
+        "target_rolls": target_rolls,
+        "target_hits": target_raw_hits,
+        "rammer_rolls": rammer_rolls,
+        "rammer_hits": rammer_raw_hits,
+    }
+
+
 def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) -> str:
     """Roll on catastrophic damage table for a destroyed capital ship."""
     if ship.ship_type == "escort":

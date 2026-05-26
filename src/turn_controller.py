@@ -277,6 +277,10 @@ class TurnController:
                 self.gs.ships[i]["weapons_remaining"] = {}
                 self.gs.ships[i]["turrets_used_vs"] = ""
                 self.gs.ships[i]["brace_failed_vs"] = []
+                # Clear per-turn boarding flags (grapple state persists across turns)
+                self.gs.ships[i]["has_boarded"] = False
+                if not self.gs.ships[i].get("is_grappled", False):
+                    self.gs.ships[i]["boarding_target_id"] = None
 
     def _player_name(self) -> str:
         if self.gs.active_player == 1:

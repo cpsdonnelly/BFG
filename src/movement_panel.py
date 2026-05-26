@@ -203,12 +203,41 @@ class MovementPanel:
         if ship.id not in unmoved_ids:
             self.ctx.board.status_var.set(f"M: {ship.name} has already moved this turn")
             return
+        if ship.is_grappled:
+            self.ctx.board.status_var.set(f"M: {ship.name} is locked in boarding combat")
+            return
 
         order = ship.special_order
         base = ship.effective_speed
         aaf_bonus = 0
 
         if order == "all_ahead_full":
+            # Offer ramming declaration before the speed roll
+            if self.ctx.gs.rule_ramming and ship.ramming_target_id is None:
+                enemies = [s for s in self.ctx.gs.get_ships()
+                           if s.player != ship.player
+                           and not s.is_destroyed and not s.is_disengaged
+                           and s.status not in ("drifting_hulk", "burning_hulk", "destroyed")]
+                if enemies and messagebox.askyesno(
+                        "Declare Ramming Target",
+                        f"{ship.name} is on All Ahead Full.\n"
+                        f"Declare a ramming target before the speed roll?"):
+                    ram_target = self.ctx.pick_ship(enemies, "Select Ramming Target")
+                    if ram_target:
+                        from .combat import ram_ld_dice
+                        n_dice = ram_ld_dice(ship.ship_type, ram_target.ship_type)
+                        rolls = self.ctx.dice.roll_d6(n_dice, "ram command check")
+                        total = sum(rolls)
+                        if total <= ship.leadership:
+                            ship.ramming_target_id = ram_target.id
+                            self.ctx.gs.update_ship(ship)
+                            self.ctx.log(
+                                f"{ship.name} declares ram on {ram_target.name}! "
+                                f"Ld check {n_dice}D6={total} ≤ {ship.leadership} PASSED")
+                        else:
+                            self.ctx.log(
+                                f"{ship.name} ram attempt failed — "
+                                f"{n_dice}D6={total} > {ship.leadership} Ld")
             aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
             self.ctx.log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
             move_dist = float(base + aaf_bonus)
@@ -255,7 +284,57 @@ class MovementPanel:
                     f"M: {ship.name} invalid — {result.errors[0]}")
                 return
 
+        start_x, start_y = ship.x, ship.y
         execute_movement(ship, result, self.ctx.gs)
+
+        # Resolve ramming if a target was declared
+        if ship.ramming_target_id:
+            from .geometry import line_passes_near
+            from .combat import resolve_ram
+            ram_target = self.ctx.gs.get_ship_by_id(ship.ramming_target_id)
+            ship = self.ctx.gs.get_ship_by_id(ship_id)
+            if ram_target and ship:
+                threshold = ship.base_radius + ram_target.base_radius
+                if line_passes_near(start_x, start_y, ship.x, ship.y,
+                                    ram_target.x, ram_target.y, threshold):
+                    self.ctx.log(f"  {ship.name} rams {ram_target.name}!")
+                    resolve_ram(ship, ram_target, self.ctx.dice, self.ctx.gs)
+                    self.ctx.check_destruction(ram_target)
+                    self.ctx.check_destruction(ship)
+                    self.ctx.board.redraw()
+                else:
+                    self.ctx.log(f"  {ship.name} missed the ram — {ram_target.name} not contacted")
+            ship = self.ctx.gs.get_ship_by_id(ship_id) or ship
+            ship.ramming_target_id = None
+            self.ctx.gs.update_ship(ship)
+
+        # Offer boarding declaration if rule is on and ship is in base contact with enemy
+        if self.ctx.gs.rule_boarding:
+            ship = self.ctx.gs.get_ship_by_id(ship_id)
+            if ship and not ship.has_boarded and not ship.is_grappled:
+                from .boarding import ships_in_base_contact
+                enemies = [s for s in self.ctx.gs.get_ships()
+                           if s.player != ship.player
+                           and not s.is_destroyed and not s.is_disengaged
+                           and s.status not in ("drifting_hulk", "burning_hulk", "destroyed")]
+                contacted = [e for e in enemies if ships_in_base_contact(ship, e)]
+                if contacted:
+                    target_names = ", ".join(e.name for e in contacted)
+                    if messagebox.askyesno(
+                            "Declare Boarding Action",
+                            f"{ship.name} is in base contact with {target_names}.\n"
+                            f"Declare a boarding action?\n"
+                            f"(Ship cannot fire weapons or launch ordnance this turn)"):
+                        board_target = (contacted[0] if len(contacted) == 1
+                                        else self.ctx.pick_ship(contacted,
+                                                                 "Select boarding target"))
+                        if board_target:
+                            ship.boarding_target_id = board_target.id
+                            ship.has_boarded = True
+                            self.ctx.gs.update_ship(ship)
+                            self.ctx.log(
+                                f"{ship.name} declares boarding action against "
+                                f"{board_target.name}!")
 
         # Update staged tracking fields on the now-moved ship
         ship = self.ctx.gs.get_ship_by_id(ship_id)

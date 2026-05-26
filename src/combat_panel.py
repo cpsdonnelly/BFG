@@ -24,7 +24,9 @@ class CombatPanel:
                         if s["player"] == self.ctx.gs.active_player
                         and not Ship.from_dict(s).is_destroyed
                         and not s.get("is_disengaged", False)
-                        and not s.get("disengage_failed_this_turn", False)]
+                        and not s.get("disengage_failed_this_turn", False)
+                        and not s.get("has_boarded", False)
+                        and not s.get("is_grappled", False)]
 
         ships_with_weapons = []
         for s in active_ships:
@@ -756,6 +758,8 @@ class CombatPanel:
             and not s.is_destroyed
             and not s.is_disengaged
             and not s.disengage_failed_this_turn
+            and not s.has_boarded
+            and not s.is_grappled
             and s.squadron_id in all_squads
             and _has_unfired_batteries(s)
         ]

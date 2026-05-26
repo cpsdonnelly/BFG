@@ -131,6 +131,19 @@ CRITICAL_HITS = {
     12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
 }
 
+# Boarding Action Results Table
+# diff: score difference between winner and loser
+# winner_crit: minimum 1D6 roll for winner to suffer a crit (None = no crit check)
+# loser_crit: minimum 1D6 roll for loser to suffer a crit (0 = auto-crit)
+BOARDING_RESULTS = {
+    1: {"winner_crit": 5, "loser_crit": 5},
+    2: {"winner_crit": 5, "loser_crit": 4},
+    3: {"winner_crit": 6, "loser_crit": 3},
+    4: {"winner_crit": 6, "loser_crit": 2},
+    5: {"winner_crit": None, "loser_crit": 0},  # None=no check, 0=auto
+}
+
+
 # Catastrophic Damage Table (2D6)
 CATASTROPHIC_DAMAGE = {
     (2, 6):  "drifting_hulk",

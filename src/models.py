@@ -154,6 +154,15 @@ class Ship:
     # Towed escorts (ship IDs in gravitic hooks)
     towed_escorts: List[str] = field(default_factory=list)
 
+    # Ramming (set when ramming intent declared on AAF)
+    ramming_target_id: Optional[str] = None
+
+    # Boarding actions
+    boarding_target_id: Optional[str] = None  # declared during movement
+    has_boarded: bool = False                  # blocks fire and ordnance same turn
+    is_grappled: bool = False                  # draw — ship cannot move/fire/ordnance
+    grappled_with_id: Optional[str] = None    # peer ship in the grapple
+
     # Admiral/commander
     is_flagship: bool = False
     admiral_type: str = ""  # e.g. "vice_admiral", "kor_o"

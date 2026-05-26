@@ -344,7 +344,10 @@ class GamePanel:
 
         self.ctx.log("=== END PHASE ===")
 
-        # 0. Teleport attacks
+        # 0a. Boarding actions (before teleport, before damage control)
+        self.end_phase._resolve_boarding_actions()
+
+        # 0b. Teleport attacks
         self.end_phase._resolve_teleport_attacks()
 
         # 1. Fire damage
