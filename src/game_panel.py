@@ -294,6 +294,20 @@ class GamePanel:
     # ── Game flow ─────────────────────────────────────────────────────────────
 
     def _start_game(self):
+        """Launch the deployment phase, then begin Turn 1 Movement."""
+        self.start_btn.config(state=tk.DISABLED)
+        from .deployment_panel import DeploymentPanel
+        DeploymentPanel(
+            parent_frame=self.parent,
+            board_view=self.ctx.board,
+            gs=self.ctx.gs,
+            root=self.root,
+            on_complete=self._begin_turn1,
+            mode="sequential",
+        )
+
+    def _begin_turn1(self):
+        """Called by DeploymentPanel when all ships are placed."""
         tc = self.ctx.tc
         gs = self.ctx.gs
         tc.start_game()
