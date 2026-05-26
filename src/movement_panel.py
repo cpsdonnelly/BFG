@@ -1166,6 +1166,40 @@ class MovementPanel:
                     f"heading {result.final_heading:.0f}°"))
             self.ctx.log(
                 f"{ship.name}: moved {result.total_distance:.1f}cm")
+
+            # Offer boarding declaration if rule is on and ship ended in base contact
+            if self.ctx.gs.rule_boarding:
+                moved_ship = self.ctx.gs.get_ship_by_id(ship.id)
+                if moved_ship and not moved_ship.has_boarded and not moved_ship.is_grappled:
+                    from .boarding import ships_in_base_contact
+                    enemies = [s for s in self.ctx.gs.get_ships()
+                               if s.player != moved_ship.player
+                               and not s.is_destroyed and not s.is_disengaged
+                               and s.status not in (
+                                   "drifting_hulk", "burning_hulk", "destroyed")]
+                    contacted = [e for e in enemies
+                                 if ships_in_base_contact(moved_ship, e)]
+                    if contacted:
+                        target_names = ", ".join(e.name for e in contacted)
+                        if messagebox.askyesno(
+                                "Declare Boarding Action",
+                                f"{moved_ship.name} is in base contact with "
+                                f"{target_names}.\n"
+                                f"Declare a boarding action?\n"
+                                f"(Ship cannot fire weapons or launch ordnance "
+                                f"this turn)"):
+                            board_target = (
+                                contacted[0] if len(contacted) == 1
+                                else self.ctx.pick_ship(contacted,
+                                                        "Select boarding target"))
+                            if board_target:
+                                moved_ship.boarding_target_id = board_target.id
+                                moved_ship.has_boarded = True
+                                self.ctx.gs.update_ship(moved_ship)
+                                self.ctx.log(
+                                    f"{moved_ship.name} declares boarding action "
+                                    f"against {board_target.name}!")
+
             _on_dialog_close()
             self.ctx.board.redraw()
 
