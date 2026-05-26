@@ -364,6 +364,82 @@ class TurnController:
 
         return result
 
+    def issue_squadron_order(self, ships: List[Ship], order: str) -> Dict:
+        """
+        Roll once (using the highest-Ld ship) to issue the same special order
+        to every ship in a squadron.  Returns same result shape as issue_special_order,
+        plus 'leader' and 'ships_affected' keys.
+        """
+        from .movement import do_command_check
+
+        if self.command_check_failed:
+            return {"success": False,
+                    "error": "A command check already failed this turn."}
+
+        leader = max(ships, key=lambda s: s.leadership)
+
+        if order == SpecialOrder.COME_TO_NEW_HEADING.value:
+            ponderous = [s for s in ships if "ponderous" in s.special_rules]
+            if ponderous:
+                return {"success": False,
+                        "error": ("Ponderous ships cannot use Come to New Heading: "
+                                  + ", ".join(s.name for s in ponderous))}
+
+        blast_markers = self.gs.get_blast_markers()
+        in_blast = any(
+            circle_touches_trefoil(leader.x, leader.y, leader.base_radius,
+                                   bm.x, bm.y, bm.heading)
+            for bm in blast_markers
+        )
+        enemy_on_special = any(
+            s.get("special_order", "none") != "none"
+            for s in self.gs.ships
+            if s["player"] != leader.player and not Ship.from_dict(s).is_destroyed
+        )
+
+        check = do_command_check(leader, order, self.dice, enemy_on_special, in_blast)
+        passed = check["passed"]
+        roll_val = check["roll"]
+        needed = check["needed"]
+
+        result: Dict = {"success": passed, "leader": leader.name,
+                        "roll": roll_val, "needed": needed,
+                        "order": order, "ships_affected": []}
+
+        if passed:
+            for ship in ships:
+                if ship.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
+                    ship.special_order = order
+                    self.gs.update_ship(ship)
+                    result["ships_affected"].append(ship.name)
+                    self.gs.add_log(f"  {ship.name}: {order} (squadron order)")
+            self.gs.add_log(
+                f"Squadron {order} PASSED via {leader.name} "
+                f"(rolled {roll_val} vs Ld {needed})")
+            self.record_action(
+                "squadron_order", leader.id,
+                details={"order": order, "passed": True,
+                         "roll": roll_val, "needed": needed,
+                         "ships": [s.name for s in ships]},
+                description=(f"Squadron {order} PASSED via {leader.name} "
+                             f"(rolled {roll_val} vs Ld {needed})"))
+        else:
+            self.command_check_failed = True
+            result["error"] = (f"Squadron order FAILED via {leader.name} "
+                               f"(rolled {roll_val} vs Ld {needed}). "
+                               f"No more orders this turn.")
+            self.gs.add_log(
+                f"Squadron {order} FAILED via {leader.name} "
+                f"(rolled {roll_val} vs Ld {needed})")
+            self.record_action(
+                "squadron_order", leader.id,
+                details={"order": order, "passed": False,
+                         "roll": roll_val, "needed": needed},
+                description=(f"Squadron {order} FAILED via {leader.name} "
+                             f"(rolled {roll_val} vs Ld {needed})"))
+
+        return result
+
     # --- Fleet Commander Re-rolls ---
 
     def get_flagship(self, player: int) -> Optional[Ship]:

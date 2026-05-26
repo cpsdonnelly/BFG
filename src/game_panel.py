@@ -98,6 +98,11 @@ class GamePanel:
             command=self.movement._move_ship_dialog,
             bg="#333366", fg="white", font=("Consolas", 9), width=25)
 
+        self.move_squad_btn = tk.Button(
+            self.btn_frame, text="Move Squadron",
+            command=self.movement._move_squadron_dialog,
+            bg="#334466", fg="white", font=("Consolas", 9), width=25)
+
         self.order_btn = tk.Button(
             self.btn_frame, text="Issue Special Order",
             command=self.movement._special_order_dialog,
@@ -163,7 +168,7 @@ class GamePanel:
         pname = gs.player1_name if gs.active_player == 1 else gs.player2_name
         self.player_label.config(text=f"Active: {pname}")
 
-        for w in (self.move_btn, self.order_btn, self.fire_btn,
+        for w in (self.move_btn, self.move_squad_btn, self.order_btn, self.fire_btn,
                   self.fire_ord_btn, self.launch_btn, self.end_phase_btn,
                   self.undo_btn, self.start_btn, self.disengage_btn,
                   self.move_missile_btn, self.vp_btn):
@@ -173,6 +178,7 @@ class GamePanel:
         if phase == "movement":
             self.order_btn.pack(pady=2)
             self.move_btn.pack(pady=2)
+            self.move_squad_btn.pack(pady=2)
             self.disengage_btn.pack(pady=2)
             self.undo_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)

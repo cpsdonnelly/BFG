@@ -677,18 +677,39 @@ class FleetBuilderWindow:
         if flagship_count > 1:
             errors.append("Fleet has more than one flagship.")
 
-        # Check escort squadrons: each squadron_id group must be 2–6 escorts of same class
+        # Check squadrons by ship type
         squadrons: Dict[str, List[dict]] = {}
         for r in self._fleet:
             sid = r.get("squadron_id", "")
             if sid:
                 squadrons.setdefault(sid, []).append(r)
         for sid, members in squadrons.items():
-            if len(members) < 2 or len(members) > 6:
-                errors.append(f"Squadron {sid}: must have 2–6 ships (has {len(members)}).")
-            classes = {m["entry"].ship_class for m in members}
-            if len(classes) > 1:
-                errors.append(f"Squadron {sid}: ships must all be the same class.")
+            types = {m["entry"].ship_type for m in members}
+            if len(types) > 1:
+                errors.append(
+                    f"Squadron '{sid}': cannot mix ship types "
+                    f"({', '.join(sorted(types))}).")
+                continue
+            ship_type = next(iter(types))
+            count = len(members)
+            if ship_type == "escort":
+                if count < 2 or count > 6:
+                    errors.append(
+                        f"Squadron '{sid}': escort squadrons need 2–6 ships "
+                        f"(has {count}).")
+            elif ship_type == "cruiser":
+                if count < 2 or count > 4:
+                    errors.append(
+                        f"Squadron '{sid}': cruiser squadrons need 2–4 ships "
+                        f"(has {count}).")
+            elif ship_type == "battleship":
+                if count < 2 or count > 3:
+                    errors.append(
+                        f"Squadron '{sid}': battleship squadrons need 2–3 ships "
+                        f"(has {count}).")
+            elif ship_type == "defense":
+                errors.append(
+                    f"Squadron '{sid}': defense platforms cannot form squadrons.")
 
         return len(errors) == 0, errors
 
