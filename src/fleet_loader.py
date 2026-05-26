@@ -54,6 +54,18 @@ def fleet_to_ships(fleet_data: dict, player: int) -> List[Ship]:
     return ships
 
 
+def find_unofficial_ships(fleet_data: dict) -> List[str]:
+    """Return ship_class names in fleet_data that are not in the official or homebrew catalog."""
+    from .ship_catalog import get_ship_class
+    from .homebrew_catalog import get_homebrew_ship
+    unofficial: List[str] = []
+    for raw in fleet_data.get("ships", []):
+        sc = raw.get("ship_class", "")
+        if sc and not get_ship_class(sc) and not get_homebrew_ship(sc):
+            unofficial.append(sc)
+    return unofficial
+
+
 def get_available_fleets(fleets_dir: str = "data/fleets") -> List[str]:
     """Return sorted list of absolute paths to all .json fleet files in fleets_dir."""
     if not os.path.isdir(fleets_dir):

@@ -13,7 +13,9 @@ from src.game_state import GameState
 from src.board_view import BoardView
 from src.dice import DiceRoller
 from src.turn_controller import TurnController
-from src.fleet_loader import load_fleet_file, fleet_to_ships, get_available_fleets, get_fleet_info
+from src.fleet_loader import (load_fleet_file, fleet_to_ships,
+                               get_available_fleets, get_fleet_info,
+                               find_unofficial_ships)
 from src.fleet_builder import FleetBuilderWindow
 
 
@@ -27,6 +29,23 @@ def _apply_rules(gs, setup):
                  "rule_turret_suppression_remastered", "allow_movement_pass"):
         if key in setup:
             setattr(gs, key, setup[key])
+
+
+def _load_fleet_checked(path: str, player: int, root):
+    """Load fleet and warn via messagebox if any ship classes are not in the catalog."""
+    from tkinter import messagebox
+    fleet_data = load_fleet_file(path)
+    unofficial = find_unofficial_ships(fleet_data)
+    if unofficial:
+        messagebox.showwarning(
+            "Unofficial Ships Detected",
+            f"The following ship class(es) in player {player}'s fleet are not in "
+            f"the official catalog or homebrew catalog:\n\n"
+            + "\n".join(f"  • {sc}" for sc in unofficial)
+            + "\n\nThey will be loaded with default stats.",
+            parent=root,
+        )
+    return fleet_to_ships(fleet_data, player)
 
 
 def main():
@@ -57,9 +76,9 @@ def main():
             sunward_edge=setup.get("sunward", "north"),
         )
         _apply_rules(gs, setup)
-        for ship in fleet_to_ships(load_fleet_file(setup["p1_fleet"]), 1):
+        for ship in _load_fleet_checked(setup["p1_fleet"], 1, root):
             gs.add_ship(ship)
-        for ship in fleet_to_ships(load_fleet_file(setup["p2_fleet"]), 2):
+        for ship in _load_fleet_checked(setup["p2_fleet"], 2, root):
             gs.add_ship(ship)
 
         if setup.get("terrain") == "random":
@@ -99,9 +118,9 @@ def main():
             sunward_edge=setup.get("sunward", "north"),
         )
         _apply_rules(gs, setup)
-        for ship in fleet_to_ships(load_fleet_file(setup["p1_fleet"]), 1):
+        for ship in _load_fleet_checked(setup["p1_fleet"], 1, root):
             gs.add_ship(ship)
-        for ship in fleet_to_ships(load_fleet_file(setup["p2_fleet"]), 2):
+        for ship in _load_fleet_checked(setup["p2_fleet"], 2, root):
             gs.add_ship(ship)
 
     elif setup["mode"] == "editor":
@@ -138,9 +157,9 @@ def main():
             sunward_edge=map_settings["sunward_edge"],
         )
         _apply_rules(gs, setup)
-        for ship in fleet_to_ships(load_fleet_file(setup["p1_fleet"]), 1):
+        for ship in _load_fleet_checked(setup["p1_fleet"], 1, root):
             gs.add_ship(ship)
-        for ship in fleet_to_ships(load_fleet_file(setup["p2_fleet"]), 2):
+        for ship in _load_fleet_checked(setup["p2_fleet"], 2, root):
             gs.add_ship(ship)
         for p in map_phenomena:
             gs.add_phenomenon(Phenomenon.from_dict(p))
@@ -154,10 +173,10 @@ def main():
         p1_fleet = setup.get("p1_fleet")
         p2_fleet = setup.get("p2_fleet")
         if p1_fleet:
-            for ship in fleet_to_ships(load_fleet_file(p1_fleet), 1):
+            for ship in _load_fleet_checked(p1_fleet, 1, root):
                 gs.add_ship(ship)
         if p2_fleet:
-            for ship in fleet_to_ships(load_fleet_file(p2_fleet), 2):
+            for ship in _load_fleet_checked(p2_fleet, 2, root):
                 gs.add_ship(ship)
 
     # Create turn controller and dice

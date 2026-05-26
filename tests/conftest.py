@@ -1,6 +1,6 @@
 """Shared fixtures and helpers for BFG:XR tests."""
 import pytest
-from src.models import Ship, OrdnanceMarker
+from src.models import Ship, OrdnanceMarker, Phenomenon, BlastMarker
 from src.game_state import GameState
 
 
@@ -90,6 +90,21 @@ def make_marker(**overrides) -> OrdnanceMarker:
     )
     base.update(overrides)
     return OrdnanceMarker(**base)
+
+
+def make_phenomenon(phenomenon_type: str = "planet_small", x: float = 100.0,
+                    y: float = 0.0, **kwargs) -> Phenomenon:
+    """Build a minimal Phenomenon for testing."""
+    base = dict(id="p1", phenomenon_type=phenomenon_type,
+                x=x, y=y, width=20.0, height=20.0, radius=15.0, rotation=0.0)
+    base.update(kwargs)
+    return Phenomenon(**base)
+
+
+def make_blast(x: float = 0.0, y: float = 0.0, heading: float = 0.0,
+               bid: str = "bm1") -> BlastMarker:
+    """Build a minimal BlastMarker for testing."""
+    return BlastMarker(id=bid, x=x, y=y, source="test", heading=heading)
 
 
 @pytest.fixture
