@@ -91,6 +91,7 @@ class BoardView:
         self.selected_ship_id = None
         self.show_arcs_ship_id = None
         self.snap_target_id = None    # ship we'd snap to on click
+        self._info_cache = None       # (ship_id, rendered_text) last shown in info panel
 
         # Persistent ruler lines (stay on screen until cleared)
         self.ruler_lines = []  # list of ((x1,y1), (x2,y2), dist, label)
@@ -1140,9 +1141,6 @@ class BoardView:
                                              fill="#888888", font=("Consolas", 7))
 
     def _show_ship_info(self, s: Ship):
-        self.info_text.config(state=tk.NORMAL)
-        self.info_text.delete("1.0", tk.END)
-
         lines = []
         lines.append(f"=== {s.name} ===")
         lines.append(f"Class: {s.ship_class}")
@@ -1263,10 +1261,19 @@ class BoardView:
             for sr in s.special_rules:
                 lines.append(f"  {sr}")
 
-        self.info_text.insert("1.0", "\n".join(lines))
+        text = "\n".join(lines)
+        # Skip the widget rewrite when nothing changed — avoids flicker/scroll
+        # reset when redraw() fires repeatedly (e.g. during a ship drag).
+        if self._info_cache == (s.id, text):
+            return
+        self._info_cache = (s.id, text)
+        self.info_text.config(state=tk.NORMAL)
+        self.info_text.delete("1.0", tk.END)
+        self.info_text.insert("1.0", text)
         self.info_text.config(state=tk.DISABLED)
 
     def _clear_info(self):
+        self._info_cache = None
         self.info_text.config(state=tk.NORMAL)
         self.info_text.delete("1.0", tk.END)
         self.info_text.insert("1.0", "Click a ship to inspect")
