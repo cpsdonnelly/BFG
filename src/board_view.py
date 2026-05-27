@@ -593,6 +593,11 @@ class BoardView:
         self._draw_snap_indicator()
         if self.show_arcs_ship_id:
             self._draw_arc_overlay(self.show_arcs_ship_id)
+        # Keep the info panel in sync with current ship state (e.g. new crits)
+        if self.selected_ship_id:
+            sel = self.gs.get_ship_by_id(self.selected_ship_id)
+            if sel:
+                self._show_ship_info(sel)
 
     def _draw_persistent_rulers(self):
         """Draw all stored ruler lines"""
