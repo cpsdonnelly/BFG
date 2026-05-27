@@ -82,6 +82,27 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
     return True, ""
 
 
+# Hit-and-run roll modifiers, keyed by special rule. Attacker bonuses are added
+# to the raid result; defender penalties are subtracted from the attacker's roll.
+_RAID_ATTACK_BONUS = {
+    "space_marine_crew": 1,  # Space Marine boarders / ordnance: +1 to raid results
+}
+_RAID_DEFENSE_PENALTY = {
+    "space_marine_crew": 1,  # raids against a Space Marine ship: -1 to the roll
+}
+
+
+def _raid_roll_modifier(attacker_rules: List[str], target: Ship) -> int:
+    """Net modifier applied to each hit-and-run / teleport raid roll.
+
+    Attacker special rules add to the result; the target's special rules subtract
+    from it. Defaults to 0 when no relevant rules are present.
+    """
+    bonus = sum(_RAID_ATTACK_BONUS.get(r, 0) for r in attacker_rules)
+    penalty = sum(_RAID_DEFENSE_PENALTY.get(r, 0) for r in target.special_rules)
+    return bonus - penalty
+
+
 def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
                      dice: DiceRoller) -> Optional[Dict]:
     """
@@ -125,7 +146,8 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
 
 def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
                   dice: DiceRoller, gs: GameState,
-                  source_name: str = "Assault boat") -> Dict:
+                  source_name: str = "Assault boat",
+                  attacker_rules: Optional[List[str]] = None) -> Dict:
     """
     Core raid resolution shared by hit-and-run raids and teleport attacks.
 
@@ -133,11 +155,13 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
     target: the defending ship
     brace_passed: True if the defender successfully passed a Brace For Impact Ld check
     source_name: label for log messages
+    attacker_rules: special rules of the attacking ship / ordnance, used to apply
+      crew-quality raid modifiers (e.g. Space Marines +1, or -1 vs a Space Marine ship)
 
     Returns a summary dict:
       {
-        "raid_rolls": List[int],     # all 1D6 rolls made
-        "failures": int,             # rolls of 1
+        "raid_rolls": List[int],     # all natural 1D6 rolls made
+        "failures": int,             # raids that failed (effective result <= 1)
         "repelled": int,             # raids repelled by brace (4+ saves)
         "crits_applied": List[dict], # crit entries that were applied
       }
@@ -149,16 +173,24 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         "crits_applied": [],
     }
 
+    mod = _raid_roll_modifier(attacker_rules or [], target)
+    if mod:
+        gs.add_log(f"  Raid modifier: {mod:+d} to each result (crew quality)")
+
     for i in range(num_raids):
         roll = dice.roll_d6(1, f"{source_name} raid {i+1}/{num_raids} on {target.name}")[0]
         summary["raid_rolls"].append(roll)
+        effective = roll + mod
 
-        if roll == 1:
+        if effective <= 1:
             summary["failures"] += 1
-            gs.add_log(f"  Raid {i+1}: rolled 1 — FAILURE, no effect")
+            gs.add_log(f"  Raid {i+1}: rolled {roll}"
+                       + (f" ({effective} after modifier)" if mod else "")
+                       + " — FAILURE, no effect")
             continue
 
-        gs.add_log(f"  Raid {i+1}: rolled {roll}")
+        gs.add_log(f"  Raid {i+1}: rolled {roll}"
+                   + (f" ({effective} after modifier)" if mod else ""))
 
         # Defender brace repel attempt (4+)
         if brace_passed:
@@ -170,8 +202,8 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
             else:
                 gs.add_log(f"  Raid {i+1}: repel failed (rolled {repel_roll})")
 
-        # Apply the crit using the same roll value
-        crit = _apply_raid_crit(roll, target, gs, dice)
+        # Apply the crit using the modified result, clamped to the table range (2-6)
+        crit = _apply_raid_crit(max(2, min(6, effective)), target, gs, dice)
         if crit:
             summary["crits_applied"].append(crit)
 
@@ -208,7 +240,8 @@ def resolve_hit_and_run(marker: OrdnanceMarker, target: Ship,
             gs.add_log(f"  {target.name} brace FAILED — no repel rolls")
 
     summary = resolve_raids(num_raids, target, brace_passed, dice, gs,
-                            source_name=marker.ordnance_type)
+                            source_name=marker.ordnance_type,
+                            attacker_rules=marker.special_rules)
     summary["brace_wanted"] = wanted_brace
     summary["brace_passed"] = brace_passed
     return summary
@@ -239,7 +272,8 @@ def resolve_teleport_attack(attacker: Ship, target: Ship,
             gs.add_log(f"  {target.name} brace FAILED — no repel rolls")
 
     summary = resolve_raids(1, target, brace_passed, dice, gs,
-                            source_name=f"{attacker.name} teleporters")
+                            source_name=f"{attacker.name} teleporters",
+                            attacker_rules=attacker.special_rules)
     summary["brace_wanted"] = wanted_brace
     summary["brace_passed"] = brace_passed
     return summary

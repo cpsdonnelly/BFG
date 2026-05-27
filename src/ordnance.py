@@ -719,6 +719,7 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
             heading=ship.heading, speed=speed,
             launched_turn=game_state.turn_number,
             resilient_save=resilient,
+            special_rules=list(ship.special_rules),
         )
         markers.append(marker)
         game_state.add_ordnance(marker)

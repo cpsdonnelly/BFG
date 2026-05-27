@@ -6,6 +6,7 @@ from src.hit_and_run import (
     resolve_hit_and_run,
     resolve_teleport_attack,
     _apply_raid_crit,
+    _raid_roll_modifier,
 )
 from src.models import OrdnanceMarker
 
@@ -191,6 +192,58 @@ class TestResolveRaids:
         resolve_raids(1, target, False, dice, gs, source_name="MyBoats")
         # A failure log line should have been written for the roll of 1
         assert any("FAILURE" in entry for entry in gs.log)
+
+
+class TestRaidRollModifier:
+    def test_no_rules_is_zero(self):
+        target = make_ship(id="t", player=2, special_rules=[])
+        assert _raid_roll_modifier([], target) == 0
+
+    def test_space_marine_attacker_plus_one(self):
+        target = make_ship(id="t", player=2, special_rules=[])
+        assert _raid_roll_modifier(["space_marine_crew"], target) == 1
+
+    def test_space_marine_target_minus_one(self):
+        target = make_ship(id="t", player=2, special_rules=["space_marine_crew"])
+        assert _raid_roll_modifier([], target) == -1
+
+    def test_marine_vs_marine_cancels(self):
+        target = make_ship(id="t", player=2, special_rules=["space_marine_crew"])
+        assert _raid_roll_modifier(["space_marine_crew"], target) == 0
+
+
+class TestRaidModifierInResolution:
+    def _gs(self, target):
+        return make_gs([target])
+
+    def test_marine_attacker_turns_natural_one_into_a_hit(self):
+        # Natural 1 normally fails; +1 marine bonus makes effective 2 → a crit applies.
+        target = make_ship(id="t", player=2, hits_max=8, special_rules=[])
+        gs = self._gs(target)
+        dice = DiceStub([1])
+        summary = resolve_raids(1, target, False, dice, gs,
+                                attacker_rules=["space_marine_crew"])
+        assert summary["failures"] == 0
+        assert len(summary["crits_applied"]) == 1
+
+    def test_marine_defender_turns_natural_two_into_failure(self):
+        # Natural 2 normally hits; -1 vs marine target makes effective 1 → failure.
+        target = make_ship(id="t", player=2, hits_max=8,
+                           special_rules=["space_marine_crew"])
+        gs = self._gs(target)
+        dice = DiceStub([2])
+        summary = resolve_raids(1, target, False, dice, gs, attacker_rules=[])
+        assert summary["failures"] == 1
+        assert summary["crits_applied"] == []
+
+    def test_modified_roll_clamped_to_table_max(self):
+        # Natural 6 + 1 = 7, clamped to 6 → still a valid crit, no crash.
+        target = make_ship(id="t", player=2, hits_max=8, special_rules=[])
+        gs = self._gs(target)
+        dice = DiceStub([6])
+        summary = resolve_raids(1, target, False, dice, gs,
+                                attacker_rules=["space_marine_crew"])
+        assert len(summary["crits_applied"]) == 1
 
 
 # ---------------------------------------------------------------------------

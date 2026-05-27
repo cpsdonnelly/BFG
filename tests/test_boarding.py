@@ -3,7 +3,7 @@ import pytest
 from src.boarding import (
     troop_rating, resolve_boarding, ships_in_base_contact,
     _apply_boarding_damage, _distribute_boarding_damage, _troop_advantage_bonus,
-    contiguous_contact_groups,
+    contiguous_contact_groups, _crew_damage_bonus,
 )
 from src.tables import BOARDING_RESULTS
 
@@ -297,3 +297,30 @@ class TestResolveBoarding:
         result = resolve_boarding([attacker], target, dice, gs)
         # attacker: 3+2(crippled mod)=5; defender: 3+0=3 → attacker wins
         assert result["winner"] == "attacker"
+
+
+class TestCrewDamageBonus:
+    def test_default_no_special_rules_is_zero(self):
+        s = make_ship(special_rules=[])
+        assert _crew_damage_bonus(s) == 0
+
+    def test_unrelated_special_rule_is_zero(self):
+        s = make_ship(special_rules=["targeting_matrix"])
+        assert _crew_damage_bonus(s) == 0
+
+    def test_space_marine_crew_gets_plus_two(self):
+        s = make_ship(special_rules=["space_marine_crew"])
+        assert _crew_damage_bonus(s) == 2
+
+    def test_space_marine_bonus_applied_in_boarding(self):
+        # Equal troop ratings and equal rolls; only the +2 marine crew bonus differs.
+        attacker = make_ship(id="a", name="Marine", hits_remaining=8, hits_max=8,
+                             turrets=2, player=1, special_rules=["space_marine_crew"])
+        target = make_ship(id="t", name="Target", hits_remaining=8, hits_max=8,
+                           turrets=2, player=2)
+        gs = make_gs([attacker, target])
+        dice = DiceStub([3, 3] + [1] * 20)  # tie roll
+        result = resolve_boarding([attacker], target, dice, gs)
+        # attacker: 3 + 2(crew) = 5; defender: 3 → attacker wins by 2
+        assert result["winner"] == "attacker"
+        assert result["damage"] == 2

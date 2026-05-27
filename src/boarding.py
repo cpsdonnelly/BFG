@@ -46,9 +46,20 @@ def _troop_advantage_bonus(attacker_rating: int, defender_rating: int) -> int:
     return 0
 
 
+# Crew-quality bonuses added to a ship's boarding roll, keyed by special rule.
+# Unless a ship carries one of these rules, its bonus is 0.
+_CREW_DAMAGE_BONUSES = {
+    "space_marine_crew": 2,  # Space Marines: +2 crew damage in boarding actions
+}
+
+
 def _crew_damage_bonus(ship: Ship) -> int:
-    """Faction-specific boarding bonus. Extend per-faction rules here."""
-    return 0
+    """Crew-quality bonus added to a ship's boarding roll.
+
+    Defaults to 0. Keyed off ``ship.special_rules`` so factions/upgrades can
+    grant varying bonuses (e.g. Space Marine crews add +2).
+    """
+    return sum(_CREW_DAMAGE_BONUSES.get(rule, 0) for rule in ship.special_rules)
 
 
 def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
