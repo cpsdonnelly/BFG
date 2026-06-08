@@ -33,6 +33,8 @@ class GameState:
     dice_mode: str = "mixed"  # "manual", "auto", "mixed"
     points_limit: int = 800
     allow_movement_pass: bool = False  # False = strict: must move all ships; True = can skip
+    ai_player: Optional[int] = None    # player number controlled by AI (None = hotseat)
+    ai_difficulty: str = "normal"      # "easy" | "normal" | "hard"
 
     # Turn limit and scenario settings
     turn_limit: Optional[int] = None           # None = unlimited turns
@@ -141,6 +143,8 @@ class GameState:
             "rule_hit_and_run": self.rule_hit_and_run,
             "rule_turret_suppression_remastered": self.rule_turret_suppression_remastered,
             "allow_movement_pass": self.allow_movement_pass,
+            "ai_player": self.ai_player,
+            "ai_difficulty": self.ai_difficulty,
             "contact_margin_cm": self.contact_margin_cm,
             "turn_limit": self.turn_limit,
             "ftl_available_turn": self.ftl_available_turn,

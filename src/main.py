@@ -28,7 +28,8 @@ def _apply_rules(gs, setup):
                  "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
                  "rule_turret_suppression_remastered", "allow_movement_pass",
                  "turn_limit", "ftl_available_turn", "scenario_mode",
-                 "scenario_attacker", "artefact_submode"):
+                 "scenario_attacker", "artefact_submode",
+                 "ai_player", "ai_difficulty"):
         if key in setup:
             setattr(gs, key, setup[key])
     # Place artefact token at board centre for race mode
@@ -424,6 +425,28 @@ def _show_setup_dialog(root) -> Optional[dict]:
     tk.Radiobutton(att_row, text="Player 2", variable=scenario_attacker_var,
                    value="2", font=("Consolas", 7)).pack(side=tk.LEFT)
 
+    # AI opponent
+    ai_frame = tk.LabelFrame(dialog, text="AI Opponent", font=("Consolas", 9, "bold"),
+                              padx=8, pady=4)
+    ai_frame.pack(fill=tk.X, padx=20, pady=4)
+    ai_enabled_var = tk.BooleanVar(value=False)
+    tk.Checkbutton(ai_frame, text="Enable AI opponent (controls Player 2)",
+                   variable=ai_enabled_var,
+                   font=("Consolas", 8)).pack(anchor=tk.W)
+    diff_row = tk.Frame(ai_frame)
+    diff_row.pack(anchor=tk.W, padx=10)
+    tk.Label(diff_row, text="Difficulty:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    ai_diff_var = tk.StringVar(value="normal")
+    for lbl, val in [("Easy", "easy"), ("Normal", "normal"), ("Hard", "hard")]:
+        tk.Radiobutton(diff_row, text=lbl, variable=ai_diff_var, value=val,
+                       font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+    tk.Label(ai_frame,
+             text="Easy: random targets, no orders  "
+                  "Normal: weakest target, situational orders  "
+                  "Hard: focus-fire crippled ships",
+             font=("Consolas", 7), fg="#888888", justify=tk.LEFT,
+             wraplength=440).pack(anchor=tk.W)
+
     def _get_rules():
         rules = {f"rule_{k}": v.get() for k, v in rule_vars.items()}
         rules["allow_movement_pass"] = allow_pass_var.get()
@@ -439,6 +462,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
                 and rules["artefact_submode"] == "carrier_escape"
                 and rules["ftl_available_turn"] is None):
             rules["ftl_available_turn"] = 3
+        rules["ai_player"] = 2 if ai_enabled_var.get() else None
+        rules["ai_difficulty"] = ai_diff_var.get()
         return rules
 
     def _get_fleets():

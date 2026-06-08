@@ -437,6 +437,9 @@ class GamePanel:
             "BackSpace=undo all movement  Scroll=pending turn  Esc=cancel")
         self.ctx.board.canvas.focus_set()
         self.ctx.board.redraw()
+        # If Player 1 is AI, start automation immediately
+        if gs.ai_player is not None and gs.active_player == gs.ai_player:
+            self.root.after(500, self._run_ai_phase)
 
     def _resolve_end_phase_interactive(self):
         """Run end phase with interactive repair choices."""
@@ -592,6 +595,87 @@ class GamePanel:
 
         self._update_phase_display()
         self.ctx.log(f"--- {gs.current_phase.upper()} PHASE ---")
+        self.ctx.board.redraw()
+
+        # AI automation: if the active player is AI, run the phase automatically
+        if (gs.ai_player is not None and gs.active_player == gs.ai_player
+                and gs.current_phase != "setup"):
+            self.root.after(400, self._run_ai_phase)
+
+    # ── AI phase automation ───────────────────────────────────────────────────
+
+    def _run_ai_phase(self):
+        from .ai_player import AIPlayer
+        gs = self.ctx.gs
+        tc = self.ctx.tc
+        phase = gs.current_phase
+
+        old_mode = gs.dice_mode
+        gs.dice_mode = "auto"
+        try:
+            ai = AIPlayer(gs.ai_player, tc, gs, self.ctx.dice, gs.ai_difficulty)
+            if phase == "movement":
+                ai.run_movement_phase()
+            elif phase == "shooting":
+                ai.run_shooting_phase()
+            elif phase == "ordnance":
+                ai.run_ordnance_phase()
+            elif phase == "end":
+                self._resolve_end_phase_auto(ai)
+        finally:
+            gs.dice_mode = old_mode
+
+        self.ctx.board.redraw()
+        self.ctx.log(f"[AI] {phase} phase complete")
+        self.root.after(300, self._end_phase)
+
+    def _resolve_end_phase_auto(self, ai):
+        """End phase for the AI player — same logic as interactive but auto-repairs."""
+        from .end_phase import (resolve_fire_damage, get_repair_info,
+                                apply_repair_choices, remove_blast_markers,
+                                remove_brace_orders)
+        from .ai_player import AIPlayer
+        gs = self.ctx.gs
+
+        self.ctx.log("=== END PHASE (AI) ===")
+
+        self.end_phase._resolve_boarding_actions()
+        self.end_phase._resolve_teleport_attacks()
+
+        for s_dict in list(gs.ships):
+            ship = Ship.from_dict(s_dict)
+            if ship.is_destroyed or ship.is_disengaged:
+                continue
+            if ship.status in ("drifting_hulk", "burning_hulk"):
+                continue
+            fire_logs = resolve_fire_damage(ship, self.ctx.dice, gs)
+            self.ctx.log_lines(fire_logs)
+            if ship.hits_remaining <= 0:
+                self.ctx.check_destruction(ship)
+
+        for s_dict in list(gs.ships):
+            ship = Ship.from_dict(s_dict)
+            if ship.is_destroyed or ship.is_disengaged:
+                continue
+            if ship.status in ("drifting_hulk", "burning_hulk"):
+                continue
+            info = get_repair_info(ship, self.ctx.dice, gs)
+            if info["sixes"] > 0 and info["repairable"]:
+                repairs_available = min(info["sixes"], len(info["repairable"]))
+                if ship.player == gs.ai_player:
+                    choices = AIPlayer.auto_repair_choices(
+                        info["repairable"], repairs_available)
+                else:
+                    choices = self.end_phase._repair_choice_dialog(
+                        ship, info["repairable"], repairs_available)
+                if choices:
+                    repair_logs = apply_repair_choices(ship, choices, gs)
+                    self.ctx.log_lines(repair_logs)
+
+        bm_logs = remove_blast_markers(gs, self.ctx.dice)
+        self.ctx.log_lines(bm_logs)
+        brace_logs = remove_brace_orders(gs)
+        self.ctx.log_lines(brace_logs)
         self.ctx.board.redraw()
 
     # ── Disengagement ─────────────────────────────────────────────────────────
