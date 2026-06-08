@@ -36,7 +36,7 @@ class CombatPanel:
             has_unfired = False
             for i, w in enumerate(ship.weapons):
                 wtype = w.get("weapon_type", "")
-                if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
+                if wtype in ("torpedo", "launch_bay"):
                     continue
                 if not self._weapon_disabled_by_crit(ship, w):
                     idx_key = str(i)
@@ -101,7 +101,7 @@ class CombatPanel:
         available_weapons = []
         for i, weapon in enumerate(attacker.weapons):
             wtype = weapon.get("weapon_type", "")
-            if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
+            if wtype in ("torpedo", "launch_bay"):
                 continue
             if self._weapon_disabled_by_crit(attacker, weapon):
                 continue
@@ -403,7 +403,7 @@ class CombatPanel:
                 all_done = True
                 for i, w in enumerate(attacker_fresh.weapons):
                     wtype = w.get("weapon_type", "")
-                    if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
+                    if wtype in ("torpedo", "launch_bay"):
                         continue
                     if self._weapon_disabled_by_crit(attacker_fresh, w):
                         continue
@@ -427,7 +427,7 @@ class CombatPanel:
                 wr2 = attacker_fresh.weapons_remaining or {}
                 for i, w in enumerate(attacker_fresh.weapons):
                     wtype = w.get("weapon_type", "")
-                    if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
+                    if wtype in ("torpedo", "launch_bay"):
                         continue
                     if self._weapon_disabled_by_crit(attacker_fresh, w):
                         continue
@@ -917,8 +917,7 @@ class CombatPanel:
                 # Check if all direct-fire weapons are spent
                 all_done = True
                 for i, w in enumerate(fresh.weapons):
-                    if w.get("weapon_type") in (
-                            "torpedo", "launch_bay", "gravitic_launcher"):
+                    if w.get("weapon_type") in ("torpedo", "launch_bay"):
                         continue
                     if self._weapon_disabled_by_crit(fresh, w):
                         continue
@@ -1171,7 +1170,7 @@ class CombatPanel:
                 # Check if all direct-fire weapons spent
                 all_done = True
                 for i2, w2 in enumerate(fresh_att.weapons):
-                    if w2.get("weapon_type") in ("torpedo", "launch_bay", "gravitic_launcher"):
+                    if w2.get("weapon_type") in ("torpedo", "launch_bay"):
                         continue
                     if self._weapon_disabled_by_crit(fresh_att, w2):
                         continue

@@ -38,7 +38,6 @@ class WeaponType(str, Enum):
     NOVA_CANNON = "nova_cannon"
     TORPEDO = "torpedo"
     LAUNCH_BAY = "launch_bay"
-    GRAVITIC_LAUNCHER = "gravitic_launcher"
     MINE_LAUNCHER = "mine_launcher"
 
 

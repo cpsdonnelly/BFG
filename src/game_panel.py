@@ -547,7 +547,7 @@ class GamePanel:
                 unfired = []
                 for i, w in enumerate(s.weapons):
                     wtype = w.get("weapon_type", "")
-                    if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
+                    if wtype in ("torpedo", "launch_bay"):
                         continue
                     if self.combat._weapon_disabled_by_crit(s, w):
                         continue

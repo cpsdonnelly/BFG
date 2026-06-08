@@ -725,7 +725,7 @@ class OrdnancePanel:
             total = 0
             for w in ship.weapons:
                 wtype = w.get("weapon_type", "")
-                if torps and wtype in ("torpedo", "gravitic_launcher") and ship.ordnance_loaded_torps:
+                if torps and wtype == "torpedo" and ship.ordnance_loaded_torps:
                     s = w["strength"]
                     if ship.is_crippled:
                         s = (s + 1) // 2
@@ -868,7 +868,7 @@ class OrdnancePanel:
                 torp_weapon = None
                 for s in contributors:
                     for w in s.weapons:
-                        if w.get("weapon_type") in ("torpedo", "gravitic_launcher"):
+                        if w.get("weapon_type") == "torpedo":
                             torp_weapon = w
                             break
                     if torp_weapon:
@@ -1017,7 +1017,7 @@ class OrdnancePanel:
         bay_weapons = []
         for w in ship.weapons:
             wtype = w.get("weapon_type", "")
-            if wtype in ("torpedo", "gravitic_launcher") and ship.ordnance_loaded_torps:
+            if wtype == "torpedo" and ship.ordnance_loaded_torps:
                 torp_weapons.append(w)
             elif wtype == "mine_launcher" and ship.ordnance_loaded_craft:
                 mine_weapons.append(w)

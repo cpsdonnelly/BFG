@@ -270,7 +270,7 @@ class _WeaponEntryDialog:
                  width=14, anchor="w").pack(side=tk.LEFT)
         ttk.Combobox(tf, textvariable=type_var,
                      values=["battery", "lance", "torpedo", "nova_cannon",
-                             "launch_bay", "gravitic_launcher"],
+                             "launch_bay"],
                      state="readonly", width=18).pack(side=tk.LEFT, padx=4)
 
         _field("Range (cm):", range_var, 8)

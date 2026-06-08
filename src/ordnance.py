@@ -651,13 +651,12 @@ def compute_torpedo_launch_exempt(launcher: Ship,
 def reload_ship_ordnance(ship: Ship) -> List[str]:
     """Reload a ship's ordnance (Reload Ordnance order effect).
 
-    Sets ordnance_loaded_torps True if the ship has torpedo / gravitic launcher
-    weapons; sets ordnance_loaded_craft True if it has launch bay weapons.
+    Sets ordnance_loaded_torps True if the ship has torpedo weapons;
+    sets ordnance_loaded_craft True if it has launch bay weapons.
     Returns log lines describing what was reloaded. Mutates `ship` in place;
     the caller is responsible for persisting via gs.update_ship.
     """
-    has_torps = any(w.get("weapon_type") in ("torpedo", "gravitic_launcher")
-                    for w in ship.weapons)
+    has_torps = any(w.get("weapon_type") == "torpedo" for w in ship.weapons)
     has_bays = any(w.get("weapon_type") == "launch_bay" for w in ship.weapons)
     reloaded = []
     if has_torps and not ship.ordnance_loaded_torps:

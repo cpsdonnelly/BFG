@@ -1226,7 +1226,7 @@ class BoardView:
             elif wtype == "launch_bay":
                 types = "/".join(w.get("craft_types", []))
                 lines.append(f"  {w['name']}: {w['strength']} sqn ({types}) [{arcs}]")
-            elif wtype in ("torpedo", "gravitic_launcher"):
+            elif wtype == "torpedo":
                 lines.append(f"  {w['name']}: Str {w['strength']} {w.get('torpedo_speed', w.get('range_cm', 30))}cm [{arcs}]")
         lines.append(f"")
 
