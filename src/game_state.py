@@ -3,7 +3,7 @@ import json
 import os
 import time
 from dataclasses import dataclass, field, asdict
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, Phenomenon
 
 
@@ -33,6 +33,17 @@ class GameState:
     dice_mode: str = "mixed"  # "manual", "auto", "mixed"
     points_limit: int = 800
     allow_movement_pass: bool = False  # False = strict: must move all ships; True = can skip
+
+    # Turn limit and scenario settings
+    turn_limit: Optional[int] = None           # None = unlimited turns
+    ftl_available_turn: Optional[int] = None   # None = FTL always available
+    scenario_mode: str = "standard"            # standard | kill_admiral | destroy_ship | capture_artefact
+    scenario_attacker: int = 1                 # player who is "attacker" in asymmetric modes
+    objective_ship_id: Optional[str] = None    # target ship for destroy/protect modes
+    artefact_submode: str = "race"             # race | carrier_escape
+    artefact_token_pos: Optional[Tuple[float, float]] = None  # board pos when uncarried
+    artefact_carrier_id: Optional[str] = None  # ship currently holding artefact
+    artefact_owner: Optional[int] = None       # player who holds artefact
 
     # Optional rules (each independently togglable)
     rule_fighting_sunward: bool = False
@@ -131,6 +142,15 @@ class GameState:
             "rule_turret_suppression_remastered": self.rule_turret_suppression_remastered,
             "allow_movement_pass": self.allow_movement_pass,
             "contact_margin_cm": self.contact_margin_cm,
+            "turn_limit": self.turn_limit,
+            "ftl_available_turn": self.ftl_available_turn,
+            "scenario_mode": self.scenario_mode,
+            "scenario_attacker": self.scenario_attacker,
+            "objective_ship_id": self.objective_ship_id,
+            "artefact_submode": self.artefact_submode,
+            "artefact_token_pos": list(self.artefact_token_pos) if self.artefact_token_pos else None,
+            "artefact_carrier_id": self.artefact_carrier_id,
+            "artefact_owner": self.artefact_owner,
             "timestamp": time.time(),
         }
 
@@ -153,8 +173,13 @@ class GameState:
         with open(os.path.join(directory, "game_state.json")) as f:
             meta = json.load(f)
         for k, v in meta.items():
-            if k != "timestamp" and hasattr(gs, k):
-                setattr(gs, k, v)
+            if k == "timestamp":
+                continue
+            if not hasattr(gs, k):
+                continue
+            if k == "artefact_token_pos" and v is not None:
+                v = tuple(v)
+            setattr(gs, k, v)
 
         with open(os.path.join(directory, "ships.json")) as f:
             gs.ships = json.load(f)

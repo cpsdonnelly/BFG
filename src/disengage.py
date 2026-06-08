@@ -84,7 +84,27 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
     """
     Attempt voluntary disengagement at end of movement phase.
     Returns dict with success status and details.
+    In carrier_escape scenario, the escaping player cannot disengage until ftl_available_turn.
     """
+    if gs.ftl_available_turn and gs.turn_number < gs.ftl_available_turn:
+        if gs.scenario_mode == "capture_artefact" and gs.artefact_submode == "carrier_escape":
+            if ship.player == gs.scenario_attacker:
+                return {
+                    "success": False,
+                    "roll": 0,
+                    "needed": 0,
+                    "modifiers": [f"FTL not charged until turn {gs.ftl_available_turn}"],
+                    "blocked": True,
+                }
+        elif gs.scenario_mode != "capture_artefact":
+            return {
+                "success": False,
+                "roll": 0,
+                "needed": 0,
+                "modifiers": [f"FTL not charged until turn {gs.ftl_available_turn}"],
+                "blocked": True,
+            }
+
     ld_info = get_disengage_ld_modifiers(ship, gs)
     ld = ld_info["effective_ld"]
 

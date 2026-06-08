@@ -71,6 +71,21 @@ class EndPhasePanel:
 
             result = resolve_boarding(attackers, target, self.ctx.dice, self.ctx.gs)
 
+            # Artefact transfer on boarding win
+            gs = self.ctx.gs
+            if (gs.scenario_mode == "capture_artefact"
+                    and target.id == gs.artefact_carrier_id
+                    and result.get("winner") == "attacker"
+                    and attackers):
+                new_carrier = attackers[0]
+                gs.artefact_carrier_id = new_carrier.id
+                gs.artefact_owner = new_carrier.player
+                gs.add_log(f"[ARTEFACT] Artefact seized by {new_carrier.name}!")
+                from tkinter import messagebox
+                messagebox.showinfo("Artefact Seized!",
+                    f"{new_carrier.name} has seized the artefact!\n"
+                    f"{'Escape the board to win!' if new_carrier.player == gs.scenario_attacker else 'Defend it!'}")
+
             if result["grapple"]:
                 # Mutual grapple — link ships together
                 for attacker in attackers:

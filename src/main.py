@@ -26,9 +26,14 @@ def _apply_rules(gs, setup):
     """Apply optional rule settings from setup dict to GameState."""
     for key in ("rule_fighting_sunward", "rule_solar_flares", "rule_radiation_bursts",
                  "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
-                 "rule_turret_suppression_remastered", "allow_movement_pass"):
+                 "rule_turret_suppression_remastered", "allow_movement_pass",
+                 "turn_limit", "ftl_available_turn", "scenario_mode",
+                 "scenario_attacker", "artefact_submode"):
         if key in setup:
             setattr(gs, key, setup[key])
+    # Place artefact token at board centre for race mode
+    if setup.get("scenario_mode") == "capture_artefact" and setup.get("artefact_submode") == "race":
+        gs.artefact_token_pos = (gs.table_width / 2, gs.table_height / 2)
 
 
 def _load_fleet_checked(path: str, player: int, root):
@@ -354,9 +359,86 @@ def _show_setup_dialog(root) -> Optional[dict]:
              text="Default OFF: ending the movement phase with unmoved ships is blocked.",
              font=("Consolas", 7), fg="#888888").pack(anchor=tk.W)
 
+    # Turn limit and FTL charge
+    turn_frame = tk.Frame(dialog)
+    turn_frame.pack(pady=4, padx=20, fill=tk.X)
+    tk.Label(turn_frame, text="Game Options:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
+
+    tl_row = tk.Frame(turn_frame)
+    tl_row.pack(anchor=tk.W)
+    tk.Label(tl_row, text="Turn Limit:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    turn_limit_var = tk.StringVar(value="5")
+    tk.Entry(tl_row, textvariable=turn_limit_var, width=4,
+             font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+    tk.Label(tl_row, text="(blank = unlimited, default 5)",
+             font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+
+    ftl_row = tk.Frame(turn_frame)
+    ftl_row.pack(anchor=tk.W)
+    tk.Label(ftl_row, text="FTL Charge Turn:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    ftl_turn_var = tk.StringVar(value="")
+    tk.Entry(ftl_row, textvariable=ftl_turn_var, width=4,
+             font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+    tk.Label(ftl_row, text="(blank = FTL always available)",
+             font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+
+    # Scenario mode
+    scen_frame = tk.LabelFrame(dialog, text="Scenario Mode", font=("Consolas", 9, "bold"),
+                                padx=8, pady=4)
+    scen_frame.pack(fill=tk.X, padx=20, pady=4)
+    scenario_var = tk.StringVar(value="standard")
+
+    scenario_options = [
+        ("standard",          "Standard (all ships / turn limit)"),
+        ("kill_admiral",      "Kill the Admiral (destroy enemy flagship)"),
+        ("destroy_ship",      "Destroy / Protect a Ship"),
+        ("capture_artefact",  "Capture the Artefact"),
+    ]
+    for val, lbl in scenario_options:
+        tk.Radiobutton(scen_frame, text=lbl, variable=scenario_var, value=val,
+                       font=("Consolas", 8)).pack(anchor=tk.W)
+
+    tk.Label(scen_frame,
+             text="For Destroy/Protect and Capture modes, set objective ship ID in-game\n"
+                  "via the settings panel after starting.",
+             font=("Consolas", 7), fg="#888888", justify=tk.LEFT).pack(anchor=tk.W)
+
+    # Capture artefact sub-options
+    artefact_frame = tk.Frame(scen_frame)
+    artefact_frame.pack(anchor=tk.W, padx=10)
+    artefact_submode_var = tk.StringVar(value="race")
+    tk.Label(artefact_frame, text="Sub-mode:", font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(artefact_frame, text="Race (neutral token)",
+                   variable=artefact_submode_var, value="race",
+                   font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(artefact_frame, text="Carrier Escape",
+                   variable=artefact_submode_var, value="carrier_escape",
+                   font=("Consolas", 7)).pack(side=tk.LEFT)
+
+    scenario_attacker_var = tk.StringVar(value="1")
+    att_row = tk.Frame(scen_frame)
+    att_row.pack(anchor=tk.W, padx=10)
+    tk.Label(att_row, text="Attacker:", font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(att_row, text="Player 1", variable=scenario_attacker_var,
+                   value="1", font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(att_row, text="Player 2", variable=scenario_attacker_var,
+                   value="2", font=("Consolas", 7)).pack(side=tk.LEFT)
+
     def _get_rules():
         rules = {f"rule_{k}": v.get() for k, v in rule_vars.items()}
         rules["allow_movement_pass"] = allow_pass_var.get()
+        tl = turn_limit_var.get().strip()
+        rules["turn_limit"] = int(tl) if tl.isdigit() else None
+        ftl = ftl_turn_var.get().strip()
+        rules["ftl_available_turn"] = int(ftl) if ftl.isdigit() else None
+        rules["scenario_mode"] = scenario_var.get()
+        rules["scenario_attacker"] = int(scenario_attacker_var.get())
+        rules["artefact_submode"] = artefact_submode_var.get()
+        # In carrier_escape mode, enforce FTL charge of at least 3 if not set
+        if (rules["scenario_mode"] == "capture_artefact"
+                and rules["artefact_submode"] == "carrier_escape"
+                and rules["ftl_available_turn"] is None):
+            rules["ftl_available_turn"] = 3
         return rules
 
     def _get_fleets():

@@ -590,6 +590,7 @@ class BoardView:
         self._draw_blast_markers()
         self._draw_ordnance()
         self._draw_ships()
+        self._draw_artefact_marker()
         self._draw_persistent_rulers()
         self._draw_snap_indicator()
         if self.show_arcs_ship_id:
@@ -599,6 +600,40 @@ class BoardView:
             sel = self.gs.get_ship_by_id(self.selected_ship_id)
             if sel:
                 self._show_ship_info(sel)
+
+    def _draw_artefact_marker(self):
+        gs = self.gs
+        if gs.scenario_mode != "capture_artefact":
+            return
+
+        if gs.artefact_token_pos is not None:
+            # Uncarried token on board
+            tx, ty = gs.artefact_token_pos
+            sx, sy = self.cm_to_screen(tx, ty)
+            r = 8
+            pts = []
+            import math
+            for i in range(5):
+                angle = math.radians(i * 72 - 90)
+                pts.extend([sx + r * math.cos(angle), sy + r * math.sin(angle)])
+                angle2 = math.radians(i * 72 + 36 - 90)
+                pts.extend([sx + (r * 0.4) * math.cos(angle2), sy + (r * 0.4) * math.sin(angle2)])
+            self.canvas.create_polygon(pts, fill="#FFD700", outline="#FFFFFF", width=1)
+            self.canvas.create_text(sx, sy + r + 8, text="ARTEFACT",
+                                    fill="#FFD700", font=("Consolas", 7))
+        elif gs.artefact_carrier_id:
+            carrier = gs.get_ship_by_id(gs.artefact_carrier_id)
+            if carrier and not carrier.is_destroyed:
+                sx, sy = self.cm_to_screen(carrier.x, carrier.y)
+                r = 6
+                import math
+                pts = []
+                for i in range(5):
+                    angle = math.radians(i * 72 - 90)
+                    pts.extend([sx + r * math.cos(angle), sy + r * math.sin(angle)])
+                    angle2 = math.radians(i * 72 + 36 - 90)
+                    pts.extend([sx + (r * 0.4) * math.cos(angle2), sy + (r * 0.4) * math.sin(angle2)])
+                self.canvas.create_polygon(pts, fill="#FFD700", outline="#FFFFFF", width=1)
 
     def _draw_persistent_rulers(self):
         """Draw all stored ruler lines"""
@@ -1191,10 +1226,8 @@ class BoardView:
             elif wtype == "launch_bay":
                 types = "/".join(w.get("craft_types", []))
                 lines.append(f"  {w['name']}: {w['strength']} sqn ({types}) [{arcs}]")
-            elif wtype == "torpedo":
-                lines.append(f"  {w['name']}: Str {w['strength']} {w.get('torpedo_speed', 30)}cm [{arcs}]")
-            elif wtype == "gravitic_launcher":
-                lines.append(f"  {w['name']}: Str {w['strength']} {w['range_cm']}cm [{arcs}]")
+            elif wtype in ("torpedo", "gravitic_launcher"):
+                lines.append(f"  {w['name']}: Str {w['strength']} {w.get('torpedo_speed', w.get('range_cm', 30))}cm [{arcs}]")
         lines.append(f"")
 
         # Ordnance status
