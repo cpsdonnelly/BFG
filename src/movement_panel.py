@@ -1285,9 +1285,6 @@ class MovementPanel:
         from .squadron import get_squadrons
         from .movement import (validate_movement, execute_movement,
                                resolve_aaf_speed, MIN_TURN_DISTANCE)
-        from .terrain_effects import (resolve_asteroid_navigation,
-                                      resolve_warp_rift_navigation,
-                                      resolve_gas_dust_contact)
 
         if self.ctx.gs.current_phase != "movement":
             return
