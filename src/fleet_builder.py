@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import messagebox, filedialog, ttk
 from typing import List, Dict, Optional, Callable
 
+from . import homebrew_catalog as _hb
 from .ship_catalog import (
     ShipClassEntry, list_factions,
     get_faction_ships, get_ship_class, get_upgrades_for_ship,
@@ -665,7 +666,6 @@ class FleetBuilderWindow:
     def _populate_catalog(self, faction: str):
         self._catalog_list.delete(0, tk.END)
         if faction == "homebrew":
-            from . import homebrew_catalog as _hb
             self._catalog_entries = _hb.load_homebrew_catalog()
         else:
             self._catalog_entries = get_faction_ships(faction)
@@ -679,7 +679,6 @@ class FleetBuilderWindow:
 
     def _new_homebrew_ship(self):
         def on_entry_saved(entry: ShipClassEntry):
-            from . import homebrew_catalog as _hb
             _hb.save_homebrew_ship(entry)
             if self._faction == "homebrew":
                 self._populate_catalog("homebrew")
@@ -916,7 +915,6 @@ class FleetBuilderWindow:
             messagebox.showerror("Load Error", str(exc))
             return
 
-        from . import homebrew_catalog as _hb
 
         faction = data.get("faction", "")
         # Select faction in combo
@@ -1013,7 +1011,6 @@ def fleet_list_to_ships(fleet_data: dict, player: int) -> List[dict]:
       2. Local homebrew catalog (data/homebrew/)
       3. Raw fall-through (hand-crafted fleet files; stats taken as-is)
     """
-    from . import homebrew_catalog as _hb
 
     faction = fleet_data.get("faction", "")
     result: List[dict] = []
