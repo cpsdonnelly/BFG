@@ -49,6 +49,20 @@ def load_campaign(directory: str) -> CampaignState:
     return cs
 
 
+def open_or_create_campaign(campaign_dir: str, gs: GameState) -> CampaignState:
+    """Load the campaign in `campaign_dir`, or create one seeded from `gs`."""
+    if os.path.exists(os.path.join(campaign_dir, "campaign.json")):
+        return load_campaign(campaign_dir)
+    return CampaignState(
+        campaign_name=os.path.basename(campaign_dir),
+        player1_name=gs.player1_name,
+        player2_name=gs.player2_name,
+        player1_faction=gs.player1_faction,
+        player2_faction=gs.player2_faction,
+        points_limit=gs.points_limit,
+    )
+
+
 def post_battle_update(cs: CampaignState, gs: GameState,
                        battle_vp_p1: int, battle_vp_p2: int,
                        campaign_dir: str) -> CampaignState:

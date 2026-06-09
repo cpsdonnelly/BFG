@@ -631,24 +631,13 @@ class GamePanel:
     def _campaign_post_battle_dialog(self, vp_p1: int, vp_p2: int):
         """After a battle, let the player choose (or create) a campaign save."""
         from tkinter import filedialog
-        from .campaign import (CampaignState, load_campaign, post_battle_update)
+        from .campaign import open_or_create_campaign, post_battle_update
         gs = self.ctx.gs
         campaign_dir = filedialog.askdirectory(
             title="Select campaign folder (existing or new)")
         if not campaign_dir:
             return
-        campaign_file = os.path.join(campaign_dir, "campaign.json")
-        if os.path.exists(campaign_file):
-            cs = load_campaign(campaign_dir)
-        else:
-            cs = CampaignState(
-                campaign_name=os.path.basename(campaign_dir),
-                player1_name=gs.player1_name,
-                player2_name=gs.player2_name,
-                player1_faction=gs.player1_faction,
-                player2_faction=gs.player2_faction,
-                points_limit=gs.points_limit,
-            )
+        cs = open_or_create_campaign(campaign_dir, gs)
         cs = post_battle_update(cs, gs, vp_p1, vp_p2, campaign_dir)
         self.ctx.log(
             f"[Campaign] Battle {cs.battles_played} saved. "
@@ -1141,22 +1130,7 @@ class GamePanel:
         summary = format_vp_summary(vp, self.ctx.gs)
         messagebox.showinfo("Victory Points", summary)
 
-    # ── Game-end detection ────────────────────────────────────────────────────
-
-    def _ships_alive(self, player: int) -> bool:
-        return any(
-            s for s in self.ctx.gs.get_ships()
-            if s.player == player and not s.is_destroyed and not s.is_disengaged
-        )
-
-    def _vp_winner(self):
-        from .victory_points import calculate_victory_points
-        vp = calculate_victory_points(self.ctx.gs)
-        if vp["player1"] > vp["player2"]:
-            return 1
-        if vp["player2"] > vp["player1"]:
-            return 2
-        return None
+    # ── Game-end detection (rules live in scenario.py) ──────────────────────
 
     def _show_game_over_dialog(self, winner, reason: str = "", detail: str = ""):
         from .victory_points import calculate_victory_points, format_vp_summary
@@ -1209,88 +1183,31 @@ class GamePanel:
                   font=("Consolas", 9)).pack(pady=2)
 
     def _check_game_over(self) -> bool:
-        gs = self.ctx.gs
-
-        # Turn limit
-        if gs.turn_limit and gs.turn_number > gs.turn_limit:
-            winner = self._vp_winner()
-            self._show_game_over_dialog(winner, reason="turn_limit")
+        from .scenario import check_game_over
+        result = check_game_over(self.ctx.gs)
+        if result:
+            self._show_game_over_dialog(
+                result["winner"], reason=result["reason"],
+                detail=result["detail"])
             return True
-
-        # All ships gone
-        p1_alive = self._ships_alive(1)
-        p2_alive = self._ships_alive(2)
-        if not p1_alive:
-            self._show_game_over_dialog(2, reason="no_ships")
-            return True
-        if not p2_alive:
-            self._show_game_over_dialog(1, reason="no_ships")
-            return True
-
-        return self._check_scenario_end()
+        return False
 
     def _check_scenario_end(self) -> bool:
-        gs = self.ctx.gs
-
-        if gs.scenario_mode == "kill_admiral":
-            for ship in gs.get_ships():
-                if ship.is_flagship and ship.is_destroyed:
-                    self._show_game_over_dialog(
-                        winner=3 - ship.player,
-                        reason="admiral_killed",
-                        detail=ship.name)
-                    return True
-
-        elif gs.scenario_mode in ("destroy_ship", "protect_ship"):
-            if gs.objective_ship_id:
-                target = gs.get_ship_by_id(gs.objective_ship_id)
-                if target and target.is_destroyed:
-                    self._show_game_over_dialog(
-                        winner=gs.scenario_attacker,
-                        reason="objective_destroyed",
-                        detail=target.name)
-                    return True
-
-        elif gs.scenario_mode == "capture_artefact":
-            carrier_id = gs.artefact_carrier_id
-            if carrier_id:
-                carrier = gs.get_ship_by_id(carrier_id)
-                if carrier:
-                    if carrier.is_disengaged and gs.artefact_owner == gs.scenario_attacker:
-                        self._show_game_over_dialog(
-                            winner=gs.scenario_attacker,
-                            reason="artefact_escaped")
-                        return True
-                    if carrier.is_destroyed:
-                        self._show_game_over_dialog(
-                            winner=3 - gs.scenario_attacker,
-                            reason="artefact_lost")
-                        return True
-
+        from .scenario import check_scenario_end
+        result = check_scenario_end(self.ctx.gs)
+        if result:
+            self._show_game_over_dialog(
+                result["winner"], reason=result["reason"],
+                detail=result["detail"])
+            return True
         return False
 
     def _check_artefact_pickup(self):
         """After movement: check if any ship moved onto the uncarried artefact token."""
-        gs = self.ctx.gs
-        if gs.scenario_mode != "capture_artefact":
-            return
-        if gs.artefact_token_pos is None or gs.artefact_carrier_id is not None:
-            return
-
-        import math
-        tx, ty = gs.artefact_token_pos
-        for ship in gs.get_ships():
-            if ship.is_destroyed or ship.is_disengaged:
-                continue
-            if ship.player == gs.scenario_attacker:
-                dist = math.sqrt((ship.x - tx) ** 2 + (ship.y - ty) ** 2)
-                if dist <= 5.0:
-                    gs.artefact_carrier_id = ship.id
-                    gs.artefact_owner = ship.player
-                    gs.artefact_token_pos = None
-                    gs.add_log(f"[ARTEFACT] {ship.name} picks up the artefact!")
-                    self.ctx.board.redraw()
-                    messagebox.showinfo("Artefact Seized",
-                        f"{ship.name} has picked up the artefact!\n"
-                        f"Escape the board edge or warp out to win.")
-                    return
+        from .scenario import check_artefact_pickup
+        ship = check_artefact_pickup(self.ctx.gs)
+        if ship:
+            self.ctx.board.redraw()
+            messagebox.showinfo("Artefact Seized",
+                f"{ship.name} has picked up the artefact!\n"
+                f"Escape the board edge or warp out to win.")
