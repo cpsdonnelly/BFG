@@ -1,6 +1,5 @@
 """BFG:XR Victory Points - End-of-game scoring"""
-import math
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from .models import Ship
 from .game_state import GameState
 

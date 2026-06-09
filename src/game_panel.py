@@ -2,7 +2,6 @@
 import os
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import Optional
 
 from .models import Ship, SpecialOrder
 from .turn_controller import TurnController
@@ -632,8 +631,7 @@ class GamePanel:
     def _campaign_post_battle_dialog(self, vp_p1: int, vp_p2: int):
         """After a battle, let the player choose (or create) a campaign save."""
         from tkinter import filedialog
-        from .campaign import (CampaignState, save_campaign, load_campaign,
-                               post_battle_update)
+        from .campaign import (CampaignState, load_campaign, post_battle_update)
         gs = self.ctx.gs
         campaign_dir = filedialog.askdirectory(
             title="Select campaign folder (existing or new)")

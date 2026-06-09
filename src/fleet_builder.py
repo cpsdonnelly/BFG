@@ -7,9 +7,9 @@ from tkinter import messagebox, filedialog, ttk
 from typing import List, Dict, Optional, Callable
 
 from .ship_catalog import (
-    ShipClassEntry, UpgradeEntry,
-    list_factions, get_faction_ships, get_ship_class,
-    get_upgrades_for_ship, faction_display_name,
+    ShipClassEntry, list_factions,
+    get_faction_ships, get_ship_class, get_upgrades_for_ship,
+    faction_display_name,
 )
 
 

@@ -21,7 +21,7 @@ from __future__ import annotations
 import math
 import tkinter as tk
 from tkinter import messagebox
-from typing import List, Optional, Callable, Tuple, Dict
+from typing import List, Optional, Callable, Tuple
 
 from .models import Ship
 from .game_state import GameState

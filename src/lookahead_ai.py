@@ -6,18 +6,15 @@ phase methods from AIPlayer; only movement is replaced by minimax.
 """
 import math
 import time
-from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-from .models import Ship, SpecialOrder
+from .models import Ship
 from .game_state import GameState
 from .ai_player import AIPlayer
 from .movement import (
-    MoveCommand, validate_movement, execute_movement,
-    get_effective_speed, get_max_turns, MIN_TURN_DISTANCE,
+    MoveCommand, get_effective_speed, MIN_TURN_DISTANCE,
 )
-from .combat import check_weapon_in_arc, check_weapon_in_range
 
 
 # ── Lightweight simulation state ─────────────────────────────────────────────

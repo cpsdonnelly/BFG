@@ -1,6 +1,6 @@
 """BFG:XR Dice System - Manual input, auto RNG, or mixed"""
 import random
-from typing import List, Optional, Callable
+from typing import List
 
 try:
     import tkinter as tk

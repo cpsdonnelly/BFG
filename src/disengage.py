@@ -1,7 +1,7 @@
 """BFG:XR Disengagement - Voluntary and involuntary disengagement"""
 import math
-from typing import List, Dict
-from .models import Ship, BlastMarker, Phenomenon, OrdnanceMarker
+from typing import Dict
+from .models import Ship
 from .game_state import GameState
 from .dice import DiceRoller
 

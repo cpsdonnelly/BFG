@@ -1,10 +1,9 @@
 """BFG:XR — EndPhasePanel: teleport attacks and repair choice dialogs."""
 import tkinter as tk
-from tkinter import messagebox, simpledialog
-import math
-from typing import Optional, Callable, List
+from tkinter import messagebox
+from typing import List
 
-from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
+from .models import Ship, SpecialOrder
 from .game_context import GameContext
 
 
@@ -19,7 +18,6 @@ class EndPhasePanel:
         if not self.ctx.gs.rule_boarding:
             return
         from .boarding import resolve_boarding, ships_in_base_contact
-        from .movement import do_command_check
 
         active = self.ctx.gs.active_player
         ships = self.ctx.gs.get_ships()

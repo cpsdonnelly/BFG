@@ -2,7 +2,7 @@
 import datetime
 import json
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 from .models import Ship
 

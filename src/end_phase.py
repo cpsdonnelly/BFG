@@ -321,7 +321,7 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
 
         # Burning hulk: re-roll on catastrophic damage table
         if ship.status == "burning_hulk":
-            from .combat import apply_damage, resolve_catastrophic
+            from .combat import apply_damage
             from .tables import lookup_catastrophic
 
             roll = dice.roll_2d6(f"{ship.name} burning hulk re-roll")

@@ -1,8 +1,8 @@
 """BFG:XR Line of Sight - LoS checking through terrain and blast markers"""
 import math
-from typing import List, Tuple, Optional
+from typing import List
 from .models import Ship, Phenomenon, BlastMarker
-from .geometry import line_passes_near, line_touches_trefoil
+from .geometry import line_touches_trefoil
 
 
 def check_los(x1: float, y1: float, x2: float, y2: float,

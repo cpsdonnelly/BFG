@@ -2,8 +2,7 @@
 import json
 import os
 import time
-from dataclasses import dataclass, field, asdict
-from typing import Optional
+from dataclasses import dataclass, asdict
 
 from .game_state import GameState
 from .fleet_loader import export_fleet_with_damage

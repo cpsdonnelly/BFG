@@ -40,12 +40,10 @@ Eligibility:
   - Each ship may perform at most one teleport attack per end phase
 """
 
-import math
 from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker
 from .game_state import GameState
 from .dice import DiceRoller
-from .tables import CRITICAL_HITS
 
 
 def check_teleport_eligibility(attacker: Ship, target: Ship,

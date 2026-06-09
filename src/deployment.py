@@ -17,8 +17,8 @@ at a time, starting with Player 2 (loser of roll-off) by convention.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Tuple, Callable
+from dataclasses import dataclass
+from typing import List, Optional, Dict, Tuple
 
 from .models import Ship
 

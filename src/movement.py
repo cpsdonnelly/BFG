@@ -1,6 +1,6 @@
 """BFG:XR Movement Phase - Validation and Execution"""
 import math
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller

@@ -1,8 +1,8 @@
 """BFG:XR Terrain Effects - Asteroid fields, dust clouds, warp rifts, tabletop effects"""
 import math
 import random
-from typing import List, Dict, Optional, Tuple
-from .models import Ship, Phenomenon, BlastMarker, OrdnanceMarker
+from typing import List, Dict
+from .models import Ship, Phenomenon, BlastMarker
 from .game_state import GameState
 from .dice import DiceRoller
 

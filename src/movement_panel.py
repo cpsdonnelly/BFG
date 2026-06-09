@@ -1,13 +1,10 @@
 """BFG:XR — MovementPanel: ship movement UI and drag-drop callbacks."""
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 import math
-from typing import Optional, Callable, List
+from typing import Optional, List
 
 from .models import Ship, SpecialOrder
-from .game_state import GameState
-from .turn_controller import TurnController
-from .dice import DiceRoller
 from .movement import (MoveCommand, validate_movement, execute_movement,
                        resolve_aaf_speed, MIN_TURN_DISTANCE)
 from .game_context import GameContext
@@ -73,7 +70,6 @@ class MovementPanel:
 
     def wire_drag_callbacks(self):
         """Connect board_view drag-and-drop hooks to game panel movement logic."""
-        from .movement import validate_movement, execute_movement
 
         def can_drag(ship):
             if self.ctx.gs.current_phase != "movement":
@@ -488,7 +484,7 @@ class MovementPanel:
         if not ship or abs(pending) < 0.1:
             return
 
-        from .movement import get_effective_speed, SpecialOrder
+        from .movement import get_effective_speed
         order = ship.special_order
         _, max_spd = get_effective_speed(ship, order)
         remaining_budget = max(0.0, max_spd - ship.distance_moved_this_turn)

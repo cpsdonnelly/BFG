@@ -1,8 +1,7 @@
 """BFG:XR — OrdnancePanel: ordnance launch, movement, and contact resolution."""
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 import math
-from typing import Optional, Callable, List
 
 from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
 from .game_context import GameContext
@@ -289,8 +288,7 @@ class OrdnancePanel:
                                 check_ordnance_vs_phenomena,
                                 resolve_ordnance_interactions,
                                 resolve_bomber_interception)
-        from .geometry import (circle_touches_square, circle_touches_torpedo,
-                                ATTACK_CRAFT_HALF_SIDE_CM)
+        from .geometry import circle_touches_square
 
         self.ctx.log("--- Ordnance Movement ---")
 

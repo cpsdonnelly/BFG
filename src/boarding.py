@@ -12,7 +12,7 @@ disengage. Turrets are not added to the troop rating while grappled.
 Ships reduced to 0 damage by boarding become drifting hulks (no catastrophic roll).
 """
 
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 from .models import Ship
 from .game_state import GameState
 from .dice import DiceRoller

@@ -1,14 +1,13 @@
 """BFG:XR — CombatPanel: shooting phase UI, weapon targeting, damage resolution."""
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 import math
-from typing import Optional, Callable, List
 
-from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
-from .combat import (check_weapon_in_arc, check_weapon_in_range,
-                     resolve_batteries, resolve_lances, resolve_nova_cannon,
-                     apply_damage, check_los_clear,
-                     resolve_batteries_vs_squadron, eligible_orientations)
+from .models import Ship, SpecialOrder, OrdnanceMarker
+from .combat import (check_weapon_in_arc, resolve_batteries,
+                     resolve_lances, resolve_nova_cannon, apply_damage,
+                     check_los_clear, resolve_batteries_vs_squadron,
+                     eligible_orientations)
 from .game_context import GameContext
 
 
@@ -756,8 +755,7 @@ class CombatPanel:
         """Pool battery fire from multiple squadron ships into one gunnery roll."""
         from .squadron import get_squadrons
         from .combat import (resolve_combined_batteries, check_weapon_in_arc,
-                             check_weapon_in_range, check_los_clear,
-                             effective_battery_firepower)
+                             check_weapon_in_range, effective_battery_firepower)
 
         player = self.ctx.gs.active_player
 

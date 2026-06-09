@@ -7,7 +7,7 @@ import math
 import random
 from typing import List, Optional, Dict
 
-from .models import Ship, OrdnanceMarker, SpecialOrder, OrdnanceType
+from .models import Ship, OrdnanceMarker, SpecialOrder
 from .game_state import GameState
 from .turn_controller import TurnController
 from .dice import DiceRoller
