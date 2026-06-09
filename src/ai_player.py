@@ -126,22 +126,148 @@ class AIPlayer:
 
     def _plan_move_toward(self, ship: Ship, enemy: Ship,
                           order: str, aaf_bonus: int) -> List[MoveCommand]:
+        """Choose movement commands that maximise in-arc weapon coverage against enemy."""
+        from .movement import MIN_TURN_DISTANCE
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
-        max_t = get_max_turns(order, ship)
+        max_t  = get_max_turns(order, ship)
+        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        ta = ship.turn_angle
 
-        dx = enemy.x - ship.x
-        dy = enemy.y - ship.y
-        desired = math.degrees(math.atan2(dy, dx)) % 360
-        delta = (desired - ship.heading + 180) % 360 - 180
+        turn_candidates = [0.0]
+        if max_t > 0:
+            turn_candidates += [-ta, -ta * 0.5, ta * 0.5, ta]
 
-        cmds: List[MoveCommand] = []
-        if max_t > 0 and abs(delta) > 1:
-            amount = min(ship.turn_angle, abs(delta))
-            cmds.append(MoveCommand("turn_left" if delta < 0 else "turn_right", amount))
+        best_cmds: Optional[List[MoveCommand]] = None
+        best_score = -1.0
 
-        dist = max(min_spd, int(max_spd * 0.85))
-        cmds.append(MoveCommand("forward", dist))
-        return cmds
+        for turn_deg in turn_candidates:
+            for frac in (0.6, 0.8, 1.0):
+                dist = max(min_spd, int(max_spd * frac))
+                if dist < 1:
+                    continue
+                if abs(turn_deg) > 0.5 and min_td > 0 and dist <= min_td:
+                    continue  # not enough distance to turn
+                fx, fy, fh = self._simulate_final_pos(ship, turn_deg, dist)
+                score = (self._arc_score(ship, fx, fy, fh, enemy)
+                         - self._position_penalty(fx, fy))
+                if score > best_score:
+                    best_score = score
+                    cmds: List[MoveCommand] = []
+                    if abs(turn_deg) > 0.5:
+                        if min_td > 0:
+                            cmds.append(MoveCommand("forward", min_td))
+                        cmds.append(MoveCommand(
+                            "turn_left" if turn_deg > 0 else "turn_right",
+                            abs(turn_deg)))
+                        rem = dist - (min_td if 0 < min_td < dist else 0)
+                        if rem > 0:
+                            cmds.append(MoveCommand("forward", rem))
+                    else:
+                        cmds.append(MoveCommand("forward", dist))
+                    best_cmds = cmds
+
+        return best_cmds or [MoveCommand("forward", max(min_spd, max_spd // 2))]
+
+    def _simulate_final_pos(self, ship: Ship, turn_deg: float,
+                            total_dist: float):
+        """Return (x, y, heading) after applying turn_deg then moving total_dist."""
+        from .movement import MIN_TURN_DISTANCE
+        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        r = math.radians
+
+        if abs(turn_deg) < 0.5:
+            h = ship.heading
+            return (ship.x + total_dist * math.cos(r(h)),
+                    ship.y + total_dist * math.sin(r(h)), h)
+
+        if min_td > 0 and total_dist > min_td:
+            h0 = ship.heading
+            mx = ship.x + min_td * math.cos(r(h0))
+            my = ship.y + min_td * math.sin(r(h0))
+            h1 = (h0 + turn_deg) % 360
+            rem = total_dist - min_td
+            return (mx + rem * math.cos(r(h1)),
+                    my + rem * math.sin(r(h1)), h1)
+
+        h1 = (ship.heading + turn_deg) % 360
+        return (ship.x + total_dist * math.cos(r(h1)),
+                ship.y + total_dist * math.sin(r(h1)), h1)
+
+    def _arc_score(self, ship: Ship, final_x: float, final_y: float,
+                   final_heading: float, target: Ship) -> float:
+        """Score total in-arc weapon strength from a hypothetical end position."""
+        dx = target.x - final_x
+        dy = target.y - final_y
+        dist = math.sqrt(dx * dx + dy * dy)
+        bearing = math.degrees(math.atan2(dy, dx)) % 360
+        relative = (bearing - final_heading + 360) % 360
+
+        if relative <= 45 or relative > 315:
+            arc = "front"
+        elif relative <= 135:
+            arc = "left"
+        elif relative <= 225:
+            arc = "rear"
+        else:
+            arc = "right"
+
+        score = 0.0
+        for weapon in ship.weapons:
+            if weapon.get("weapon_type") not in ("battery", "lance", "nova_cannon"):
+                continue
+            arcs = weapon.get("arcs", [])
+            if arcs and arc not in arcs:
+                continue
+            strength = weapon.get("strength", 1)
+            w_range  = weapon.get("range_cm", 0)
+            if w_range == 0 or dist <= w_range:
+                score += strength
+            else:
+                score += strength * (w_range / dist) * 0.5  # closing bonus
+        return score
+
+    def _position_penalty(self, final_x: float, final_y: float) -> float:
+        """Penalty for landing in dangerous terrain or a torpedo's predicted path."""
+        gs = self.gs
+        penalty = 0.0
+
+        # Terrain hazards
+        for p in gs.get_phenomena():
+            ptype = p.phenomenon_type
+            dx = final_x - p.x
+            dy = final_y - p.y
+            buf = 5.0  # ship base radius buffer
+            in_rect = abs(dx) < p.width / 2 + buf and abs(dy) < p.height / 2 + buf
+
+            if "planet" in ptype and p.radius > 0:
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist < p.radius + buf:
+                    penalty += 60.0
+            elif ptype == "warp_rift":
+                if in_rect:
+                    penalty += 120.0  # very likely to be lost
+            elif ptype == "asteroid_field":
+                if in_rect:
+                    penalty += 30.0  # nav test + damage risk
+            elif ptype == "gas_dust_cloud":
+                if in_rect:
+                    penalty += 8.0   # speed/gunnery penalty
+
+        # Predicted torpedo positions
+        for o_dict in gs.ordnance:
+            marker = OrdnanceMarker.from_dict(o_dict)
+            if marker.owner_player == self.player:
+                continue
+            if "torpedo" not in marker.ordnance_type and "mine" not in marker.ordnance_type:
+                continue
+            rad = math.radians(marker.heading)
+            next_x = marker.x + marker.speed * math.cos(rad)
+            next_y = marker.y + marker.speed * math.sin(rad)
+            dist_to_torp = math.sqrt((final_x - next_x) ** 2 + (final_y - next_y) ** 2)
+            if dist_to_torp < 6.0:
+                penalty += marker.strength * 4.0
+
+        return penalty
 
     def _forward_commands(self, ship: Ship, order: str, aaf_bonus: int,
                           fraction: float = 1.0) -> List[MoveCommand]:
@@ -152,6 +278,20 @@ class AIPlayer:
     def _choose_special_order(self, ship: Ship) -> Optional[str]:
         """Pick the most tactically useful special order for this ship."""
         gs = self.gs
+
+        # Burn Retros if ship is about to enter dangerous terrain at full speed
+        _, max_spd = get_effective_speed(ship, "", 0)
+        rad = math.radians(ship.heading)
+        projected_x = ship.x + max_spd * math.cos(rad)
+        projected_y = ship.y + max_spd * math.sin(rad)
+        if self._position_penalty(projected_x, projected_y) >= 30.0:
+            return SpecialOrder.BURN_RETROS.value
+
+        # Brace if enemy ordnance is on an intercept course within 30cm
+        torp_positions = self._predict_torp_positions()
+        for (tx, ty, strength) in torp_positions:
+            if math.sqrt((ship.x - tx) ** 2 + (ship.y - ty) ** 2) < 30:
+                return SpecialOrder.BRACE_FOR_IMPACT.value
 
         # Brace if enemy ordnance within 30cm
         for o_dict in gs.ordnance:
@@ -301,7 +441,6 @@ class AIPlayer:
             gs.add_log(f"[AI]   {target.name} CRIPPLED")
         if dmg.get("destroyed"):
             gs.add_log(f"[AI]   {target.name} DESTROYED")
-            from .game_context import GameContext
         # destruction check is called by game_panel after each phase
 
     # ── Ordnance phase ───────────────────────────────────────────────────────
@@ -357,8 +496,9 @@ class AIPlayer:
             wtype = weapon.get("weapon_type", "")
 
             if wtype == "torpedo" and ship.ordnance_loaded_torps:
-                target = self._nearest_ship(ship, enemies)
-                if target and check_weapon_in_arc(ship, weapon, target.x, target.y):
+                # Pick target whose predicted next position is best covered
+                target = self._best_torp_target(ship, weapon, enemies)
+                if target:
                     launch_torpedoes(ship, weapon, gs)
                     ship = gs.get_ship_by_id(ship.id)
 
@@ -386,6 +526,61 @@ class AIPlayer:
     def auto_repair_choices(repairable: List[str], max_repairs: int) -> List[str]:
         """Pick the first N repairable crits (list is already priority-ordered)."""
         return repairable[:max_repairs]
+
+    # ── Position / ordnance prediction ──────────────────────────────────────
+
+    def _predict_torp_positions(self):
+        """
+        Return list of (x, y, strength) for each enemy torpedo/mine
+        at its predicted next-turn position.
+        """
+        gs = self.gs
+        results = []
+        for o_dict in gs.ordnance:
+            marker = OrdnanceMarker.from_dict(o_dict)
+            if marker.owner_player == self.player:
+                continue
+            if "torpedo" not in marker.ordnance_type and "mine" not in marker.ordnance_type:
+                continue
+            rad = math.radians(marker.heading)
+            nx = marker.x + marker.speed * math.cos(rad)
+            ny = marker.y + marker.speed * math.sin(rad)
+            results.append((nx, ny, marker.strength))
+        return results
+
+    def _predict_ship_pos(self, ship: Ship):
+        """Rough prediction of where a ship will be next turn (straight ahead, full speed)."""
+        rad = math.radians(ship.heading)
+        return (ship.x + ship.effective_speed * math.cos(rad),
+                ship.y + ship.effective_speed * math.sin(rad))
+
+    def _best_torp_target(self, ship: Ship, weapon: Dict,
+                          enemies: List[Ship]) -> Optional[Ship]:
+        """
+        Pick the enemy that the torpedo is most likely to hit.
+        Checks both current position and predicted position; prefers targets
+        whose predicted position is still in arc and within torpedo range.
+        """
+        torp_range = weapon.get("torpedo_speed", 30) * 3  # rough 3-turn intercept range
+        candidates = []
+        for e in enemies:
+            # Check current position in arc
+            current_in_arc = check_weapon_in_arc(ship, weapon, e.x, e.y)
+            # Check predicted position in arc
+            px, py = self._predict_ship_pos(e)
+            predicted_in_arc = check_weapon_in_arc(ship, weapon, px, py)
+            if not (current_in_arc or predicted_in_arc):
+                continue
+            # Prefer targets within intercept range
+            dist = math.sqrt((ship.x - e.x) ** 2 + (ship.y - e.y) ** 2)
+            if dist <= torp_range:
+                candidates.append(e)
+        if candidates:
+            return self._nearest_ship(ship, candidates)
+        # Fallback: nearest enemy in current arc
+        in_arc = [e for e in enemies
+                  if check_weapon_in_arc(ship, weapon, e.x, e.y)]
+        return self._nearest_ship(ship, in_arc) if in_arc else None
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 
