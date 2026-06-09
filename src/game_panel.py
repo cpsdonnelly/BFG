@@ -954,6 +954,7 @@ class GamePanel:
     # ── AI phase automation ───────────────────────────────────────────────────
 
     def _run_ai_phase(self):
+        import threading
         from .ai_player import AIPlayer
         gs = self.ctx.gs
         tc = self.ctx.tc
@@ -964,12 +965,31 @@ class GamePanel:
 
         old_mode = gs.dice_mode
         gs.dice_mode = "auto"
+
+        if gs.ai_difficulty == "expert":
+            from .lookahead_ai import LookaheadAI
+            ai = LookaheadAI(ai_player_num, tc, gs, self.ctx.dice, gs.ai_difficulty)
+        else:
+            ai = AIPlayer(ai_player_num, tc, gs, self.ctx.dice, gs.ai_difficulty)
+
+        # Expert movement is slow (minimax depth-5); run off-thread so UI stays live
+        if gs.ai_difficulty == "expert" and phase == "movement":
+            self.phase_label.config(text="AI Thinking…")
+
+            def _do_movement():
+                ai.run_movement_phase()
+                self.root.after(0, _on_done)
+
+            def _on_done():
+                gs.dice_mode = old_mode
+                self.ctx.board.redraw()
+                self.ctx.log("[AI] movement phase complete")
+                self.root.after(300, self._end_phase)
+
+            threading.Thread(target=_do_movement, daemon=True).start()
+            return
+
         try:
-            if gs.ai_difficulty == "expert":
-                from .lookahead_ai import LookaheadAI
-                ai = LookaheadAI(ai_player_num, tc, gs, self.ctx.dice, gs.ai_difficulty)
-            else:
-                ai = AIPlayer(ai_player_num, tc, gs, self.ctx.dice, gs.ai_difficulty)
             if phase == "movement":
                 ai.run_movement_phase()
             elif phase == "shooting":
