@@ -574,6 +574,24 @@ class OrdnancePanel:
                                 f"  {target_ship.name} already braced — "
                                 f"will roll to repel each raid")
                             return True, True
+                        if self.ctx.gs.ai_player == target_ship.player:
+                            should = (marker.strength > 2 or
+                                      (marker.strength <= 2 and
+                                       target_ship.hits_remaining < 6))
+                            if not should:
+                                return False, False
+                            check = do_command_check(target_ship, "brace_for_impact",
+                                                     self.ctx.dice)
+                            if check["passed"]:
+                                target_ship.previous_order = target_ship.special_order
+                                target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+                                target_ship.brace_set_on_turn = self.ctx.gs.turn_number
+                                self.ctx.gs.update_ship(target_ship)
+                            self.ctx.log(
+                                f"  [AI] {target_ship.name} brace: "
+                                f"{'PASSED' if check['passed'] else 'FAILED'} "
+                                f"(rolled {check['roll']} vs Ld {check['needed']})")
+                            return True, check["passed"]
                         want = messagebox.askyesno("Hit-and-Run Raid — Brace?", msg)
                         if not want:
                             return False, False

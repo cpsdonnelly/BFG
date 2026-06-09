@@ -689,6 +689,27 @@ class CombatPanel:
         if already_braced:
             brace = True
             log_fn(f"     (already braced)")
+        elif self.ctx.gs.ai_player == target.player:
+            from .ai_player import ai_should_brace
+            from .movement import do_command_check
+            if ai_should_brace(self.ctx.gs, target, total_hits, attacker):
+                check = do_command_check(target, "brace_for_impact", self.ctx.dice)
+                if check["passed"]:
+                    brace = True
+                    if target.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
+                        target.previous_order = target.special_order
+                    target.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+                    target.brace_set_on_turn = self.ctx.gs.turn_number
+                    self.ctx.gs.update_ship(target)
+                    log_fn(f"     [AI] Brace PASSED (rolled {check['roll']} "
+                           f"vs Ld {check['needed']})")
+                else:
+                    failed_list = list(target.brace_failed_vs or [])
+                    failed_list.append(attacker.id)
+                    target.brace_failed_vs = failed_list
+                    self.ctx.gs.update_ship(target)
+                    log_fn(f"     [AI] Brace FAILED (rolled {check['roll']} "
+                           f"vs Ld {check['needed']})")
         elif attacker.id not in (target.brace_failed_vs or []):
             want_brace = messagebox.askyesno(
                 "Brace For Impact?",

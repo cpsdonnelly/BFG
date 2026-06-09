@@ -178,6 +178,22 @@ class EndPhasePanel:
                     self.ctx.log(
                         f"  {target_ship.name} already braced — saves apply automatically")
                     return True, True
+                if self.ctx.gs.ai_player == target_ship.player:
+                    # Teleport = single raid: only brace if low on hull
+                    if target_ship.hits_remaining < 6:
+                        check = do_command_check(target_ship, "brace_for_impact",
+                                                 self.ctx.dice)
+                        if check["passed"]:
+                            target_ship.previous_order = target_ship.special_order
+                            target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+                            target_ship.brace_set_on_turn = self.ctx.gs.turn_number
+                            self.ctx.gs.update_ship(target_ship)
+                        self.ctx.log(
+                            f"  [AI] {target_ship.name} brace: "
+                            f"{'PASSED' if check['passed'] else 'FAILED'} "
+                            f"(rolled {check['roll']} vs Ld {check['needed']})")
+                        return True, check["passed"]
+                    return False, False
                 want_b = messagebox.askyesno("Teleport Attack — Brace?", msg)
                 if not want_b:
                     return False, False

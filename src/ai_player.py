@@ -22,6 +22,59 @@ from .combat import (
 from .ordnance import launch_torpedoes, launch_attack_craft, move_ordnance
 
 
+def ai_should_brace(gs: GameState, target: Ship,
+                    incoming_hits: int, attacker: Ship = None) -> bool:
+    """
+    Decide whether an AI-controlled ship should attempt Brace For Impact.
+
+    incoming_hits: already-rolled hits (post-armor) from the current volley.
+    Brace if expected total hull damage (current volley + follow-on fire
+    from other unfired enemies in arc/range/LoS) >= hits_remaining / 4.
+    """
+    shields = target.shields_remaining
+    current_hull = max(0, incoming_hits - shields)
+    shields_left = max(0, shields - incoming_hits)
+
+    future_hull = 0.0
+    phenomena = gs.get_phenomena()
+    blast_markers = gs.get_blast_markers()
+
+    for enemy in gs.get_ships():
+        if enemy.player == target.player:
+            continue
+        if enemy.is_destroyed or enemy.is_disengaged:
+            continue
+        # Include the current attacker (may have more weapons); skip others
+        # that have already fully fired this phase.
+        if enemy.has_fired and (attacker is None or enemy.id != attacker.id):
+            continue
+        for weapon in enemy.weapons:
+            wtype = weapon.get("weapon_type", "")
+            if wtype not in ("battery", "lance"):
+                continue
+            if not check_weapon_in_arc(enemy, weapon, target.x, target.y):
+                continue
+            if not check_weapon_in_range(enemy, weapon, target.x, target.y):
+                continue
+            los = check_los_clear(enemy, target, phenomena, blast_markers)
+            if not los.get("clear", True):
+                continue
+            strength = weapon.get("strength", 1)
+            arc = target.get_arc_for_bearing(enemy.bearing_to(target.x, target.y))
+            armor_str = target.armor_prow if arc.value == "front" else target.armor_side
+            try:
+                armor_num = int(armor_str.rstrip("+"))
+            except (ValueError, AttributeError):
+                armor_num = 5
+            hit_prob = max(0.0, (7 - armor_num) / 6.0)
+            expected = strength * hit_prob
+            net = max(0.0, expected - shields_left)
+            future_hull += net
+            shields_left = max(0.0, shields_left - expected)
+
+    return (current_hull + future_hull) >= target.hits_remaining / 4.0
+
+
 class AIPlayer:
     """
     Drives one player's movement, shooting, and ordnance phases
@@ -242,7 +295,7 @@ class AIPlayer:
             if "planet" in ptype and p.radius > 0:
                 dist = math.sqrt(dx * dx + dy * dy)
                 if dist < p.radius + buf:
-                    penalty += 60.0
+                    penalty += 5.0
             elif ptype == "warp_rift":
                 if in_rect:
                     penalty += 120.0  # very likely to be lost
@@ -286,20 +339,6 @@ class AIPlayer:
         projected_y = ship.y + max_spd * math.sin(rad)
         if self._position_penalty(projected_x, projected_y) >= 30.0:
             return SpecialOrder.BURN_RETROS.value
-
-        # Brace if enemy ordnance is on an intercept course within 30cm
-        torp_positions = self._predict_torp_positions()
-        for (tx, ty, strength) in torp_positions:
-            if math.sqrt((ship.x - tx) ** 2 + (ship.y - ty) ** 2) < 30:
-                return SpecialOrder.BRACE_FOR_IMPACT.value
-
-        # Brace if enemy ordnance within 30cm
-        for o_dict in gs.ordnance:
-            marker = OrdnanceMarker.from_dict(o_dict)
-            if marker.owner_player == self.player:
-                continue
-            if math.sqrt((ship.x - marker.x)**2 + (ship.y - marker.y)**2) < 30:
-                return SpecialOrder.BRACE_FOR_IMPACT.value
 
         # Lock On if an enemy is in a battery or lance arc+range
         enemies = self._live_enemies()
