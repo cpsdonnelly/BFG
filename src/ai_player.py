@@ -7,7 +7,8 @@ import math
 import random
 from typing import List, Optional, Dict
 
-from .models import Ship, OrdnanceMarker, SpecialOrder
+from .models import (Ship, OrdnanceMarker, SpecialOrder, parse_armor,
+                     signed_angle_diff)
 from .game_state import GameState
 from .turn_controller import TurnController
 from .dice import DiceRoller
@@ -19,7 +20,8 @@ from .combat import (
     check_weapon_in_arc, check_weapon_in_range, check_los_clear,
     resolve_batteries, resolve_lances, apply_damage,
 )
-from .ordnance import launch_torpedoes, launch_attack_craft, move_ordnance
+from .ordnance import (launch_torpedoes, launch_attack_craft, move_ordnance,
+                       TORPEDO_SPEED_DEFAULT)
 
 
 def ai_should_brace(gs: GameState, target: Ship,
@@ -62,10 +64,7 @@ def ai_should_brace(gs: GameState, target: Ship,
             strength = weapon.get("strength", 1)
             arc = target.get_arc_for_bearing(enemy.bearing_to(target.x, target.y))
             armor_str = target.armor_prow if arc.value == "front" else target.armor_side
-            try:
-                armor_num = int(armor_str.rstrip("+"))
-            except (ValueError, AttributeError):
-                armor_num = 5
+            armor_num = parse_armor(armor_str)
             hit_prob = max(0.0, (7 - armor_num) / 6.0)
             expected = strength * hit_prob
             net = max(0.0, expected - shields_left)
@@ -511,7 +510,7 @@ class AIPlayer:
             dx = target.x - marker.x
             dy = target.y - marker.y
             desired = math.degrees(math.atan2(dy, dx)) % 360
-            diff = (desired - marker.heading + 180) % 360 - 180
+            diff = signed_angle_diff(desired, marker.heading)
             max_t = getattr(marker, "turn_angle", 45)
             marker.heading = (marker.heading + max(-max_t, min(max_t, diff))) % 360
 
@@ -602,7 +601,7 @@ class AIPlayer:
         short range (time-to-impact → 0, so the aim point is the target's
         current position) and leads the target at long range.
         """
-        torp_speed = weapon.get("torpedo_speed", 30) or 30
+        torp_speed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
         tvx = target.effective_speed * math.cos(math.radians(target.heading))
         tvy = target.effective_speed * math.sin(math.radians(target.heading))
         aim_x, aim_y = target.x, target.y
@@ -612,7 +611,7 @@ class AIPlayer:
             aim_x = target.x + tvx * t
             aim_y = target.y + tvy * t
         desired = math.degrees(math.atan2(aim_y - ship.y, aim_x - ship.x)) % 360
-        diff = (desired - ship.heading + 180) % 360 - 180
+        diff = signed_angle_diff(desired, ship.heading)
         diff = max(-45.0, min(45.0, diff))
         return (ship.heading + diff) % 360
 
@@ -623,7 +622,7 @@ class AIPlayer:
         Checks both current position and predicted position; prefers targets
         whose predicted position is still in arc and within torpedo range.
         """
-        torp_range = weapon.get("torpedo_speed", 30) * 3  # rough 3-turn intercept range
+        torp_range = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) * 3  # rough 3-turn intercept range
         candidates = []
         for e in enemies:
             # Check current position in arc

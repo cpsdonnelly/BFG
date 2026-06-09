@@ -9,7 +9,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-from .models import Ship
+from .models import Ship, parse_armor, bearing_between, arc_name_for_bearing
 from .game_state import GameState
 from .ai_player import AIPlayer
 from .movement import (
@@ -74,18 +74,10 @@ class SimShip:
         )
 
     def bearing_to(self, tx: float, ty: float) -> float:
-        return math.degrees(math.atan2(ty - self.y, tx - self.x)) % 360
+        return bearing_between(self.x, self.y, tx, ty)
 
     def get_arc(self, tx: float, ty: float) -> str:
-        bearing = self.bearing_to(tx, ty)
-        relative = (bearing - self.heading + 360) % 360
-        if relative <= 45 or relative > 315:
-            return "front"
-        if relative <= 135:
-            return "left"
-        if relative <= 225:
-            return "rear"
-        return "right"
+        return arc_name_for_bearing(self.bearing_to(tx, ty), self.heading)
 
 
 @dataclass
@@ -119,13 +111,6 @@ class SimState:
 
 # ── Deterministic combat helpers ─────────────────────────────────────────────
 
-def _armor_num(armor_str: str) -> int:
-    try:
-        return int(armor_str.rstrip("+"))
-    except (ValueError, AttributeError):
-        return 5
-
-
 def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
                           target: SimShip) -> float:
     """Expected hull hits from one weapon (deterministic, no dice)."""
@@ -142,7 +127,7 @@ def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
         return 0.0
     strength = weapon.get("strength", 1)
     target_arc = target.get_arc(attacker.x, attacker.y)
-    armor = _armor_num(target.armor_prow if target_arc == "front" else target.armor_side)
+    armor = parse_armor(target.armor_prow if target_arc == "front" else target.armor_side)
     hit_prob = max(0.0, (7 - armor) / 6.0)
     return strength * hit_prob
 

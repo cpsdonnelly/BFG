@@ -72,6 +72,36 @@ class PhenomenonType(str, Enum):
     RING = "ring"
 
 
+def parse_armor(armor_str, default: int = 5) -> int:
+    """Parse an armor string like '5+' to its numeric value, with fallback."""
+    try:
+        return int(str(armor_str).rstrip("+"))
+    except (ValueError, AttributeError, TypeError):
+        return default
+
+
+def bearing_between(x1: float, y1: float, x2: float, y2: float) -> float:
+    """Bearing from (x1, y1) to (x2, y2) in degrees (0=east, 90=north)."""
+    return math.degrees(math.atan2(y2 - y1, x2 - x1)) % 360
+
+
+def signed_angle_diff(angle: float, reference: float) -> float:
+    """Signed difference angle - reference, normalized to [-180, 180)."""
+    return (angle - reference + 180) % 360 - 180
+
+
+def arc_name_for_bearing(bearing: float, heading: float) -> str:
+    """Which fire arc ('front'/'left'/'rear'/'right') a bearing falls in,
+    relative to a facing of `heading`. Front spans ±45°."""
+    relative = (bearing - heading + 360) % 360
+    if relative <= 45 or relative > 315:
+        return "front"
+    if relative <= 135:
+        return "left"  # port
+    if relative <= 225:
+        return "rear"
+    return "right"  # starboard
+
 
 @dataclass
 class Ship:
@@ -253,23 +283,11 @@ class Ship:
 
     def bearing_to(self, target_x, target_y):
         """Bearing from this ship to a point, in degrees (0=east, 90=north)"""
-        dx = target_x - self.x
-        dy = target_y - self.y
-        return math.degrees(math.atan2(dy, dx)) % 360
+        return bearing_between(self.x, self.y, target_x, target_y)
 
     def get_arc_for_bearing(self, bearing):
         """Given a bearing FROM this ship, determine which fire arc it's in"""
-        # Normalize relative to heading
-        relative = (bearing - self.heading + 360) % 360
-        # Front: -45 to 45 (i.e. 315-360 or 0-45)
-        if relative <= 45 or relative > 315:
-            return Arc.FRONT
-        elif 45 < relative <= 135:
-            return Arc.LEFT  # port
-        elif 135 < relative <= 225:
-            return Arc.REAR
-        else:
-            return Arc.RIGHT  # starboard
+        return Arc(arc_name_for_bearing(bearing, self.heading))
 
     def get_target_arc(self, target_x, target_y):
         """What arc of THIS ship is the target in?"""

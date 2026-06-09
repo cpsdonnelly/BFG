@@ -2,11 +2,16 @@
 import math
 import uuid as _uuid
 from typing import List, Dict, Optional, Tuple
-from .models import Ship, OrdnanceMarker, BlastMarker, OrdnanceType, SpecialOrder
+from .models import (Ship, OrdnanceMarker, BlastMarker, OrdnanceType,
+                     SpecialOrder, signed_angle_diff)
 from .game_state import GameState
 from .geometry import (BASE_CONTACT_MARGIN_CM, circle_touches_torpedo,
                         TORP_BODY_HALF_W_CM, ATTACK_CRAFT_HALF_SIDE_CM)
 from .dice import DiceRoller
+
+
+# Default torpedo marker speed (cm/turn) when the weapon entry has no override
+TORPEDO_SPEED_DEFAULT = 30
 
 
 def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
@@ -688,7 +693,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
     if heading is None:
         launch_heading = ship.heading
     else:
-        diff = (heading - ship.heading + 180) % 360 - 180
+        diff = signed_angle_diff(heading, ship.heading)
         diff = max(-45.0, min(45.0, diff))
         launch_heading = (ship.heading + diff) % 360
 
@@ -697,7 +702,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
         ordnance_type=o_type, owner_player=ship.player,
         launched_by=ship.id, x=ship.x, y=ship.y,
         heading=launch_heading, strength=weapon["strength"],
-        speed=weapon.get("torpedo_speed", 30),
+        speed=weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT),
         launched_turn=game_state.turn_number,
         can_turn=(torpedo_type == "guided"),
         turn_angle=45 if torpedo_type == "guided" else 0,

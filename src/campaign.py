@@ -75,14 +75,8 @@ def post_battle_update(cs: CampaignState, gs: GameState,
     battle_tag = f"battle_{cs.battles_played:02d}"
     p1_path = os.path.join(campaign_dir, f"p1_fleet_{battle_tag}.json")
     p2_path = os.path.join(campaign_dir, f"p2_fleet_{battle_tag}.json")
-    p1_ships = [s for s_dict in gs.ships
-                if s_dict["player"] == 1
-                for s in [__import__("src.models", fromlist=["Ship"]).Ship.from_dict(s_dict)]
-                if not s.is_destroyed]
-    p2_ships = [s for s_dict in gs.ships
-                if s_dict["player"] == 2
-                for s in [__import__("src.models", fromlist=["Ship"]).Ship.from_dict(s_dict)]
-                if not s.is_destroyed]
+    p1_ships = [s for s in gs.player_ships(1) if not s.is_destroyed]
+    p2_ships = [s for s in gs.player_ships(2) if not s.is_destroyed]
     export_fleet_with_damage(p1_ships, 1, p1_path)
     export_fleet_with_damage(p2_ships, 2, p2_path)
     cs.player1_fleet_file = p1_path

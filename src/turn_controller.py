@@ -467,9 +467,9 @@ class TurnController:
 
     def get_flagship(self, player: int) -> Optional[Ship]:
         """Get the flagship for a player."""
-        for s_dict in self.gs.ships:
-            if s_dict["player"] == player and s_dict.get("is_flagship", False):
-                return Ship.from_dict(s_dict)
+        for s in self.gs.player_ships(player):
+            if s.is_flagship:
+                return s
         return None
 
     def get_fleet_rerolls(self, player: int) -> int:
@@ -566,24 +566,15 @@ class TurnController:
 
     def get_unmoved_ships(self) -> List[Ship]:
         """Get ships belonging to active player that haven't moved yet."""
-        ships = []
-        for s_dict in self.gs.ships:
-            if s_dict["player"] == self.gs.active_player:
-                s = Ship.from_dict(s_dict)
+        return [s for s in self.gs.player_ships(self.gs.active_player)
                 if (not s.is_destroyed and not s.is_disengaged
-                        and s.id not in self.ships_moved):
-                    ships.append(s)
-        return ships
+                    and s.id not in self.ships_moved)]
 
     def get_unfired_ships(self) -> List[Ship]:
         """Get active player ships that haven't fired yet."""
-        ships = []
-        for s_dict in self.gs.ships:
-            if s_dict["player"] == self.gs.active_player:
-                s = Ship.from_dict(s_dict)
-                if not s.is_destroyed and not s.is_disengaged and s.id not in self.ships_fired:
-                    ships.append(s)
-        return ships
+        return [s for s in self.gs.player_ships(self.gs.active_player)
+                if (not s.is_destroyed and not s.is_disengaged
+                    and s.id not in self.ships_fired)]
 
     def mark_ship_moved(self, ship_id: str):
         self.ships_moved.append(ship_id)

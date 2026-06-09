@@ -3,7 +3,9 @@ import tkinter as tk
 from tkinter import messagebox
 import math
 
-from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
+from .models import (Ship, SpecialOrder, OrdnanceMarker, OrdnanceType,
+                     signed_angle_diff)
+from .ordnance import TORPEDO_SPEED_DEFAULT
 from .game_context import GameContext
 
 
@@ -195,10 +197,7 @@ class OrdnancePanel:
     def _get_player_bay_capacity(self, player: int) -> int:
         """Total launch bay strength across all non-destroyed, non-disengaged ships for player."""
         total = 0
-        for s_dict in self.ctx.gs.ships:
-            if s_dict["player"] != player:
-                continue
-            ship = Ship.from_dict(s_dict)
+        for ship in self.ctx.gs.player_ships(player):
             if ship.is_destroyed or ship.is_disengaged:
                 continue
             for w in ship.weapons:
@@ -566,7 +565,7 @@ class OrdnancePanel:
                         f"  Assault boats contact {s.name} — hit-and-run raid!")
 
                     def _brace_fn(target_ship, msg, _s=s):
-                        from .movement import do_command_check
+                        from .movement import attempt_brace
                         if target_ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
                             self.ctx.log(
                                 f"  {target_ship.name} already braced — "
@@ -578,13 +577,8 @@ class OrdnancePanel:
                                        target_ship.hits_remaining < 6))
                             if not should:
                                 return False, False
-                            check = do_command_check(target_ship, "brace_for_impact",
-                                                     self.ctx.dice)
-                            if check["passed"]:
-                                target_ship.previous_order = target_ship.special_order
-                                target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                                target_ship.brace_set_on_turn = self.ctx.gs.turn_number
-                                self.ctx.gs.update_ship(target_ship)
+                            check = attempt_brace(target_ship, self.ctx.gs,
+                                                  self.ctx.dice)
                             self.ctx.log(
                                 f"  [AI] {target_ship.name} brace: "
                                 f"{'PASSED' if check['passed'] else 'FAILED'} "
@@ -593,18 +587,13 @@ class OrdnancePanel:
                         want = messagebox.askyesno("Hit-and-Run Raid — Brace?", msg)
                         if not want:
                             return False, False
-                        check = do_command_check(target_ship, "brace_for_impact",
-                                                 self.ctx.dice)
+                        check = attempt_brace(target_ship, self.ctx.gs,
+                                              self.ctx.dice)
                         passed = check["passed"]
                         self.ctx.log(
                             f"  {target_ship.name} brace check: "
                             f"{'PASSED' if passed else 'FAILED'} "
                             f"(rolled {check['roll']} vs Ld {check['needed']})")
-                        if passed:
-                            target_ship.previous_order = target_ship.special_order
-                            target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                            target_ship.brace_set_on_turn = self.ctx.gs.turn_number
-                            self.ctx.gs.update_ship(target_ship)
                         return True, passed
 
                     result = resolve_hit_and_run(
@@ -808,7 +797,7 @@ class OrdnancePanel:
                 cur = float(heading_var.get())
             except ValueError:
                 cur = rep_heading
-            diff = ((cur + delta) - rep_heading + 180) % 360 - 180
+            diff = signed_angle_diff(cur + delta, rep_heading)
             diff = max(-45.0, min(45.0, diff))
             heading_var.set(f"{(rep_heading + diff) % 360:.0f}")
 
@@ -870,7 +859,7 @@ class OrdnancePanel:
                 return
 
             for _s in contributors:
-                diff = (heading - _s.heading + 180) % 360 - 180
+                diff = signed_angle_diff(heading, _s.heading)
                 if abs(diff) > 45:
                     messagebox.showerror("Arc Error",
                         f"Heading {heading:.0f}° is outside {_s.name}'s ±45° forward arc "
@@ -892,7 +881,8 @@ class OrdnancePanel:
                 is_guided = torp_weapon and torp_weapon.get("torpedo_type") == "guided"
                 o_type = (OrdnanceType.TORPEDO_GUIDED.value if is_guided
                           else OrdnanceType.TORPEDO_STANDARD.value)
-                speed = torp_weapon.get("torpedo_speed", 30) if torp_weapon else 30
+                speed = (torp_weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT)
+                         if torp_weapon else TORPEDO_SPEED_DEFAULT)
 
                 marker = OrdnanceMarker(
                     id=f"combined_torp_{player}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
@@ -1059,7 +1049,7 @@ class OrdnancePanel:
 
                 is_guided = tw.get("torpedo_type") == "guided"
                 label = "Guided Missiles" if is_guided else "Torpedoes"
-                torp_speed = tw.get("torpedo_speed", 30)
+                torp_speed = tw.get("torpedo_speed", TORPEDO_SPEED_DEFAULT)
                 halve_note = f" [{', '.join(halve_reasons)}]" if halve_reasons else ""
 
                 tk.Label(torp_frame,
@@ -1087,7 +1077,7 @@ class OrdnancePanel:
                         current = float(hv.get())
                     except ValueError:
                         current = ship.heading
-                    diff = ((current + delta) - ship.heading + 180) % 360 - 180
+                    diff = signed_angle_diff(current + delta, ship.heading)
                     diff = max(-45.0, min(45.0, diff))
                     hv.set(f"{(ship.heading + diff) % 360:.0f}")
 
@@ -1132,7 +1122,7 @@ class OrdnancePanel:
                         return
 
                     # Validate heading within forward arc (+/- 45°)
-                    diff = (heading - ship.heading + 180) % 360 - 180
+                    diff = signed_angle_diff(heading, ship.heading)
                     if abs(diff) > 45:
                         messagebox.showerror("Error",
                             f"Heading {heading:.0f}° is outside forward arc "
@@ -1165,7 +1155,7 @@ class OrdnancePanel:
                         x=ship.x, y=ship.y,
                         heading=heading,
                         strength=strength,
-                        speed=w.get("torpedo_speed", 30),
+                        speed=w.get("torpedo_speed", TORPEDO_SPEED_DEFAULT),
                         launched_turn=self.ctx.gs.turn_number,
                         can_turn=is_g,
                         turn_angle=45 if is_g else 0,
@@ -1189,7 +1179,7 @@ class OrdnancePanel:
                             x=ship.x, y=ship.y,
                             heading=heading,  # same heading for now
                             strength=remainder,
-                            speed=w.get("torpedo_speed", 30),
+                            speed=w.get("torpedo_speed", TORPEDO_SPEED_DEFAULT),
                             launched_turn=self.ctx.gs.turn_number,
                             can_turn=is_g,
                             turn_angle=45 if is_g else 0,
@@ -1374,7 +1364,7 @@ class OrdnancePanel:
                     current = float(craft_heading_var.get())
                 except ValueError:
                     current = ship.heading
-                diff = ((current + delta) - ship.heading + 180) % 360 - 180
+                diff = signed_angle_diff(current + delta, ship.heading)
                 diff = max(-45.0, min(45.0, diff))
                 craft_heading_var.set(f"{(ship.heading + diff) % 360:.0f}")
 

@@ -800,8 +800,7 @@ class GamePanel:
         self.end_phase._resolve_teleport_attacks()
 
         # 1. Fire damage
-        for s_dict in gs.ships:
-            ship = Ship.from_dict(s_dict)
+        for ship in gs.get_ships():
             if ship.is_destroyed or ship.is_disengaged:
                 continue
             if ship.status in ("drifting_hulk", "burning_hulk"):
@@ -812,8 +811,7 @@ class GamePanel:
                 self.ctx.check_destruction(ship)
 
         # 2. Damage control with player choice
-        for s_dict in list(gs.ships):
-            ship = Ship.from_dict(s_dict)
+        for ship in gs.get_ships():
             if ship.is_destroyed or ship.is_disengaged:
                 continue
             if ship.status in ("drifting_hulk", "burning_hulk"):
@@ -884,10 +882,7 @@ class GamePanel:
 
         if phase == "shooting":
             unfired_warnings = []
-            for s_dict in gs.ships:
-                if s_dict["player"] != gs.active_player:
-                    continue
-                s = Ship.from_dict(s_dict)
+            for s in gs.player_ships(gs.active_player):
                 if s.is_destroyed or s.is_disengaged:
                     continue
                 unfired = []
@@ -1016,8 +1011,7 @@ class GamePanel:
         self.end_phase._resolve_boarding_actions()
         self.end_phase._resolve_teleport_attacks()
 
-        for s_dict in list(gs.ships):
-            ship = Ship.from_dict(s_dict)
+        for ship in gs.get_ships():
             if ship.is_destroyed or ship.is_disengaged:
                 continue
             if ship.status in ("drifting_hulk", "burning_hulk"):
@@ -1027,8 +1021,7 @@ class GamePanel:
             if ship.hits_remaining <= 0:
                 self.ctx.check_destruction(ship)
 
-        for s_dict in list(gs.ships):
-            ship = Ship.from_dict(s_dict)
+        for ship in gs.get_ships():
             if ship.is_destroyed or ship.is_disengaged:
                 continue
             if ship.status in ("drifting_hulk", "burning_hulk"):

@@ -116,7 +116,7 @@ class EndPhasePanel:
         if not self.ctx.gs.rule_teleport:
             return
         from .hit_and_run import check_teleport_eligibility, resolve_teleport_attack
-        from .movement import do_command_check
+        from .movement import attempt_brace
 
         active = self.ctx.gs.active_player
         ships = self.ctx.gs.get_ships()
@@ -179,13 +179,8 @@ class EndPhasePanel:
                 if self.ctx.gs.ai_player == target_ship.player:
                     # Teleport = single raid: only brace if low on hull
                     if target_ship.hits_remaining < 6:
-                        check = do_command_check(target_ship, "brace_for_impact",
-                                                 self.ctx.dice)
-                        if check["passed"]:
-                            target_ship.previous_order = target_ship.special_order
-                            target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                            target_ship.brace_set_on_turn = self.ctx.gs.turn_number
-                            self.ctx.gs.update_ship(target_ship)
+                        check = attempt_brace(target_ship, self.ctx.gs,
+                                              self.ctx.dice)
                         self.ctx.log(
                             f"  [AI] {target_ship.name} brace: "
                             f"{'PASSED' if check['passed'] else 'FAILED'} "
@@ -195,17 +190,11 @@ class EndPhasePanel:
                 want_b = messagebox.askyesno("Teleport Attack — Brace?", msg)
                 if not want_b:
                     return False, False
-                check = do_command_check(target_ship, "brace_for_impact",
-                                         self.ctx.dice)
+                check = attempt_brace(target_ship, self.ctx.gs, self.ctx.dice)
                 self.ctx.log(
                     f"  {target_ship.name} brace: "
                     f"{'PASSED' if check['passed'] else 'FAILED'} "
                     f"(rolled {check['roll']} vs Ld {check['needed']})")
-                if check["passed"]:
-                    target_ship.previous_order = target_ship.special_order
-                    target_ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                    target_ship.brace_set_on_turn = self.ctx.gs.turn_number
-                    self.ctx.gs.update_ship(target_ship)
                 return True, check["passed"]
 
             result = resolve_teleport_attack(

@@ -61,6 +61,44 @@ def _pick_coherency_group(
 
 
 class MovementPanel:
+
+    def _resolve_post_move_terrain(self, ship_id: str, on_aaf: bool):
+        """Run asteroid/warp-rift/dust-cloud navigation tests flagged during
+        movement, log the results, and clear the flags from the ship."""
+        from .terrain_effects import (resolve_asteroid_navigation,
+                                      resolve_warp_rift_navigation,
+                                      resolve_gas_dust_contact)
+
+        def _clear_flag(flag):
+            u = self.ctx.gs.get_ship_by_id(ship_id)
+            if u:
+                u.special_rules = [r for r in u.special_rules if r != flag]
+                self.ctx.gs.update_ship(u)
+            return u
+
+        updated = self.ctx.gs.get_ship_by_id(ship_id)
+        if not updated or updated.is_disengaged:
+            return
+        if "in_asteroid_field" in (updated.special_rules or []):
+            nav = resolve_asteroid_navigation(
+                updated, self.ctx.dice, self.ctx.gs, on_aaf)
+            if not nav["passed"]:
+                self.ctx.log(
+                    f"  {updated.name}: asteroid damage {nav['damage']} HP!")
+                self.ctx.check_destruction(updated)
+            updated = _clear_flag("in_asteroid_field")
+        if updated and "in_warp_rift" in (updated.special_rules or []):
+            nav = resolve_warp_rift_navigation(updated, self.ctx.dice, self.ctx.gs)
+            if not nav["passed"]:
+                self.ctx.log(f"  {updated.name}: LOST IN THE WARP!")
+            else:
+                pos = nav.get("new_position", (0, 0))
+                self.ctx.log(
+                    f"  {updated.name}: emerged at ({pos[0]:.0f}, {pos[1]:.0f})")
+            updated = _clear_flag("in_warp_rift")
+        if updated and "in_dust_cloud" in (updated.special_rules or []):
+            resolve_gas_dust_contact(updated, self.ctx.dice, self.ctx.gs)
+            _clear_flag("in_dust_cloud")
     """Handles all ship movement UI: drag-drop, dialog, M-key, scroll-wheel."""
 
     def __init__(self, ctx: GameContext):
@@ -94,38 +132,7 @@ class MovementPanel:
             if not result.valid:
                 return  # path became invalid between preview and release — discard
             execute_movement(ship, result, self.ctx.gs)
-            # Terrain navigation tests (same logic as dialog confirm)
-            updated = self.ctx.gs.get_ship_by_id(ship.id)
-            if updated and not updated.is_disengaged:
-                from .terrain_effects import (resolve_asteroid_navigation,
-                                               resolve_warp_rift_navigation,
-                                               resolve_gas_dust_contact)
-                if "in_asteroid_field" in (updated.special_rules or []):
-                    on_aaf = order == "all_ahead_full"
-                    nav = resolve_asteroid_navigation(updated, self.ctx.dice, self.ctx.gs, on_aaf)
-                    if not nav["passed"]:
-                        self.ctx.log(
-                            f"  {updated.name}: asteroid damage {nav['damage']} HP!")
-                        self.ctx.check_destruction(updated)
-                    updated = self.ctx.gs.get_ship_by_id(ship.id)
-                    if updated:
-                        updated.special_rules = [r for r in updated.special_rules
-                                                 if r != "in_asteroid_field"]
-                        self.ctx.gs.update_ship(updated)
-                if updated and "in_warp_rift" in (updated.special_rules or []):
-                    nav = resolve_warp_rift_navigation(updated, self.ctx.dice, self.ctx.gs)
-                    updated = self.ctx.gs.get_ship_by_id(ship.id)
-                    if updated:
-                        updated.special_rules = [r for r in updated.special_rules
-                                                 if r != "in_warp_rift"]
-                        self.ctx.gs.update_ship(updated)
-                if updated and "in_dust_cloud" in (updated.special_rules or []):
-                    resolve_gas_dust_contact(updated, self.ctx.dice, self.ctx.gs)
-                    updated = self.ctx.gs.get_ship_by_id(ship.id)
-                    if updated:
-                        updated.special_rules = [r for r in updated.special_rules
-                                                 if r != "in_dust_cloud"]
-                        self.ctx.gs.update_ship(updated)
+            self._resolve_post_move_terrain(ship.id, order == "all_ahead_full")
 
             # Update staged tracking fields
             final_ship = self.ctx.gs.get_ship_by_id(ship.id)
@@ -1167,53 +1174,8 @@ class MovementPanel:
                                      "\n".join(result.errors))
                 return
             execute_movement(ship, result, self.ctx.gs)
-
-            # Check for terrain navigation tests
-            updated_ship = self.ctx.gs.get_ship_by_id(ship.id)
-            if updated_ship and not updated_ship.is_disengaged:
-                from .terrain_effects import (resolve_asteroid_navigation,
-                                               resolve_warp_rift_navigation,
-                                               resolve_gas_dust_contact)
-                if "in_asteroid_field" in (updated_ship.special_rules or []):
-                    on_aaf = order == SpecialOrder.ALL_AHEAD_FULL.value
-                    nav = resolve_asteroid_navigation(
-                        updated_ship, self.ctx.dice, self.ctx.gs, on_aaf)
-                    if not nav["passed"]:
-                        self.ctx.log(
-                            f"  {updated_ship.name}: asteroid damage {nav['damage']} HP!")
-                        self.ctx.check_destruction(updated_ship)
-                    # Remove flag
-                    updated_ship = self.ctx.gs.get_ship_by_id(ship.id)
-                    if updated_ship:
-                        sr = [r for r in updated_ship.special_rules
-                              if r != "in_asteroid_field"]
-                        updated_ship.special_rules = sr
-                        self.ctx.gs.update_ship(updated_ship)
-
-                if "in_warp_rift" in (updated_ship.special_rules or []):
-                    nav = resolve_warp_rift_navigation(
-                        updated_ship, self.ctx.dice, self.ctx.gs)
-                    if not nav["passed"]:
-                        self.ctx.log(f"  {updated_ship.name}: LOST IN THE WARP!")
-                    else:
-                        pos = nav.get("new_position", (0, 0))
-                        self.ctx.log(
-                            f"  {updated_ship.name}: emerged at ({pos[0]:.0f}, {pos[1]:.0f})")
-                    updated_ship = self.ctx.gs.get_ship_by_id(ship.id)
-                    if updated_ship:
-                        sr = [r for r in updated_ship.special_rules
-                              if r != "in_warp_rift"]
-                        updated_ship.special_rules = sr
-                        self.ctx.gs.update_ship(updated_ship)
-
-                if "in_dust_cloud" in (updated_ship.special_rules or []):
-                    resolve_gas_dust_contact(updated_ship, self.ctx.dice, self.ctx.gs)
-                    updated_ship = self.ctx.gs.get_ship_by_id(ship.id)
-                    if updated_ship:
-                        sr = [r for r in updated_ship.special_rules
-                              if r != "in_dust_cloud"]
-                        updated_ship.special_rules = sr
-                        self.ctx.gs.update_ship(updated_ship)
+            self._resolve_post_move_terrain(
+                ship.id, order == SpecialOrder.ALL_AHEAD_FULL.value)
 
             # Update staged movement tracking fields before marking fully moved
             final_ship = self.ctx.gs.get_ship_by_id(ship.id)
@@ -1708,41 +1670,8 @@ class MovementPanel:
                 execute_movement(s, res, self.ctx.gs)
 
                 # Terrain navigation tests
-                updated = self.ctx.gs.get_ship_by_id(s.id)
-                if updated and not updated.is_disengaged:
-                    if "in_asteroid_field" in (updated.special_rules or []):
-                        on_aaf = s.special_order == SpecialOrder.ALL_AHEAD_FULL.value
-                        nav = resolve_asteroid_navigation(
-                            updated, self.ctx.dice, self.ctx.gs, on_aaf)
-                        if not nav["passed"]:
-                            self.ctx.log(
-                                f"  {updated.name}: asteroid damage {nav['damage']} HP!")
-                            self.ctx.check_destruction(updated)
-                        updated = self.ctx.gs.get_ship_by_id(s.id)
-                        if updated:
-                            updated.special_rules = [
-                                r for r in updated.special_rules
-                                if r != "in_asteroid_field"]
-                            self.ctx.gs.update_ship(updated)
-                    if updated and "in_warp_rift" in (updated.special_rules or []):
-                        nav = resolve_warp_rift_navigation(
-                            updated, self.ctx.dice, self.ctx.gs)
-                        if not nav["passed"]:
-                            self.ctx.log(f"  {updated.name}: LOST IN THE WARP!")
-                        updated = self.ctx.gs.get_ship_by_id(s.id)
-                        if updated:
-                            updated.special_rules = [
-                                r for r in updated.special_rules
-                                if r != "in_warp_rift"]
-                            self.ctx.gs.update_ship(updated)
-                    if updated and "in_dust_cloud" in (updated.special_rules or []):
-                        resolve_gas_dust_contact(updated, self.ctx.dice, self.ctx.gs)
-                        updated = self.ctx.gs.get_ship_by_id(s.id)
-                        if updated:
-                            updated.special_rules = [
-                                r for r in updated.special_rules
-                                if r != "in_dust_cloud"]
-                            self.ctx.gs.update_ship(updated)
+                self._resolve_post_move_terrain(
+                    s.id, s.special_order == SpecialOrder.ALL_AHEAD_FULL.value)
 
                 # Update staged tracking
                 final = self.ctx.gs.get_ship_by_id(s.id)

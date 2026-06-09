@@ -690,16 +690,11 @@ class CombatPanel:
             log_fn(f"     (already braced)")
         elif self.ctx.gs.ai_player == target.player:
             from .ai_player import ai_should_brace
-            from .movement import do_command_check
+            from .movement import attempt_brace
             if ai_should_brace(self.ctx.gs, target, total_hits, attacker):
-                check = do_command_check(target, "brace_for_impact", self.ctx.dice)
+                check = attempt_brace(target, self.ctx.gs, self.ctx.dice)
                 if check["passed"]:
                     brace = True
-                    if target.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
-                        target.previous_order = target.special_order
-                    target.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                    target.brace_set_on_turn = self.ctx.gs.turn_number
-                    self.ctx.gs.update_ship(target)
                     log_fn(f"     [AI] Brace PASSED (rolled {check['roll']} "
                            f"vs Ld {check['needed']})")
                 else:
@@ -716,15 +711,10 @@ class CombatPanel:
                 f"Attempt Brace For Impact? (Ld test, then 4+ save per hull hit)\n"
                 f"If failed: cannot brace against {attacker.name} again.")
             if want_brace:
-                from .movement import do_command_check
-                check = do_command_check(target, "brace_for_impact", self.ctx.dice)
+                from .movement import attempt_brace
+                check = attempt_brace(target, self.ctx.gs, self.ctx.dice)
                 if check["passed"]:
                     brace = True
-                    if target.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
-                        target.previous_order = target.special_order
-                    target.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                    target.brace_set_on_turn = self.ctx.gs.turn_number
-                    self.ctx.gs.update_ship(target)
                     log_fn(f"     Brace PASSED (rolled {check['roll']} "
                            f"vs Ld {check['needed']})")
                 else:

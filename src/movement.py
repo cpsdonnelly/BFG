@@ -353,6 +353,22 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     return {"passed": passed, "roll": roll, "needed": ld, "mods": mods}
 
 
+def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
+    """
+    Roll a Brace For Impact command check and, on success, apply the order:
+    preserve the previous special order, set BFI, record the turn it was set,
+    and persist the ship. Returns the command-check result dict.
+    """
+    check = do_command_check(ship, "brace_for_impact", dice)
+    if check["passed"]:
+        if ship.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
+            ship.previous_order = ship.special_order
+        ship.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+        ship.brace_set_on_turn = gs.turn_number
+        gs.update_ship(ship)
+    return check
+
+
 def resolve_aaf_speed(ship: Ship, dice: DiceRoller) -> int:
     """Roll 4D6 for All Ahead Full bonus speed."""
     results = dice.roll_d6(4, f"{ship.name} All Ahead Full speed bonus")

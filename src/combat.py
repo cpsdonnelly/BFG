@@ -375,8 +375,7 @@ def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
     center_radius = NOVA_CANNON_CENTER_HOLE_RADIUS_CM
 
     any_ship_hit = False
-    for s_dict in game_state.ships:
-        s = Ship.from_dict(s_dict)
+    for s in game_state.get_ships():
         if s.is_destroyed:
             continue
         base_r = s.base_radius
@@ -776,8 +775,7 @@ def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) ->
                             heading=angle))
 
         # Damage nearby ships
-        for s_dict in game_state.ships:
-            other = Ship.from_dict(s_dict)
+        for other in game_state.get_ships():
             if other.id == ship.id or other.is_destroyed:
                 continue
             dist = ship.distance_to(other)

@@ -9,8 +9,7 @@ COHERENCY_RANGE = 15.0  # cm
 def get_squadrons(gs: GameState, player: int) -> Dict[str, List[Ship]]:
     """Return {squadron_id: [Ship …]} for active (non-destroyed, non-disengaged) ships."""
     result: Dict[str, List[Ship]] = {}
-    for s_dict in gs.ships:
-        ship = Ship.from_dict(s_dict)
+    for ship in gs.get_ships():
         if ship.player != player or ship.is_destroyed or ship.is_disengaged:
             continue
         if not ship.squadron_id:

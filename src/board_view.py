@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter import messagebox
 import math
 from typing import Optional, Tuple
-from .models import Ship, BlastMarker, OrdnanceMarker, Phenomenon
+from .models import (Ship, BlastMarker, OrdnanceMarker, Phenomenon,
+                     signed_angle_diff)
 from .game_state import GameState
 
 # Ship circle sizes in screen pixels (will be scaled)
@@ -279,8 +280,7 @@ class BoardView:
         """Find ship near a point for snapping (larger tolerance than selection)"""
         best = None
         best_dist = snap_radius_cm
-        for s_dict in self.gs.ships:
-            s = Ship.from_dict(s_dict)
+        for s in self.gs.get_ships():
             dist = math.sqrt((cx - s.x)**2 + (cy - s.y)**2)
             display_r = SHIP_RADII.get(s.ship_type, 1.6)
             if dist <= display_r + snap_radius_cm and dist < best_dist:
@@ -410,8 +410,7 @@ class BoardView:
     def _measure_to_all_enemies(self, ship: Ship):
         """Draw ruler lines from this ship to every enemy ship"""
         enemy_player = 2 if ship.player == 1 else 1
-        for s_dict in self.gs.ships:
-            other = Ship.from_dict(s_dict)
+        for other in self.gs.get_ships():
             if other.player == enemy_player and not other.is_destroyed:
                 dist = ship.distance_to(other)
                 arc = ship.get_target_arc(other.x, other.y)
@@ -491,7 +490,7 @@ class BoardView:
             if drag_dist > 0.5:
                 raw_bearing = math.degrees(math.atan2(dy, dx)) % 360
                 # Offset from ship heading, in (-180, 180]
-                diff = (raw_bearing - ship.heading + 180) % 360 - 180
+                diff = signed_angle_diff(raw_bearing, ship.heading)
                 in_arc = abs(diff) <= 45
                 # Snap range: ±45° to ±60° → clamp to ±45°
                 snap_zone = 45 < abs(diff) <= 60
@@ -571,8 +570,7 @@ class BoardView:
 
     def _find_ship_at(self, cx, cy) -> Optional[Ship]:
         """Find ship whose base contains the point (cx, cy)"""
-        for s_dict in self.gs.ships:
-            s = Ship.from_dict(s_dict)
+        for s in self.gs.get_ships():
             display_r = SHIP_RADII.get(s.ship_type, 1.6)
             dist = math.sqrt((cx - s.x)**2 + (cy - s.y)**2)
             if dist <= display_r + 0.5:  # small tolerance
@@ -992,8 +990,7 @@ class BoardView:
                                  fill=color, font=("Consolas", 7))
 
     def _draw_ships(self):
-        for s_dict in self.gs.ships:
-            s = Ship.from_dict(s_dict)
+        for s in self.gs.get_ships():
             # Don't draw disengaged or fully destroyed ships
             if s.is_disengaged or s.status == "disengaged":
                 continue
@@ -1316,15 +1313,13 @@ class BoardView:
         for p in [1, 2]:
             pname = self.gs.player1_name if p == 1 else self.gs.player2_name
             text += f"\n=== {pname} ===\n"
-            for s_dict in self.gs.ships:
-                if s_dict["player"] == p:
-                    s = Ship.from_dict(s_dict)
-                    status = ""
-                    if s.is_destroyed:
-                        status = " [DESTROYED]"
-                    elif s.is_crippled:
-                        status = " [CRIPPLED]"
-                    text += f"  {s.name} ({s.ship_class}) - HP {s.hits_remaining}/{s.hits_max}{status}\n"
+            for s in self.gs.player_ships(p):
+                status = ""
+                if s.is_destroyed:
+                    status = " [DESTROYED]"
+                elif s.is_crippled:
+                    status = " [CRIPPLED]"
+                text += f"  {s.name} ({s.ship_class}) - HP {s.hits_remaining}/{s.hits_max}{status}\n"
         messagebox.showinfo("Fleet Summary", text)
 
     def _show_help(self):

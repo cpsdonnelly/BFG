@@ -262,8 +262,7 @@ class TabletopEffects:
         logs = ["SOLAR FLARE!"]
 
         # Each ship gets a blast marker
-        for s_dict in gs.ships:
-            s = Ship.from_dict(s_dict)
+        for s in gs.get_ships():
             if s.is_destroyed or s.is_disengaged:
                 continue
 

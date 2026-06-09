@@ -207,8 +207,7 @@ def remove_brace_orders(gs: GameState) -> List[str]:
     - Clear brace_failed_vs for ALL ships (failed attempts are per-turn, not persistent).
     """
     logs = []
-    for s_dict in gs.ships:
-        ship = Ship.from_dict(s_dict)
+    for ship in gs.get_ships():
         needs_update = False
 
         # Clear per-turn failed brace tracking (regardless of brace status)
@@ -216,8 +215,8 @@ def remove_brace_orders(gs: GameState) -> List[str]:
             ship.brace_failed_vs = []
             needs_update = True
 
-        if s_dict.get("special_order") == SpecialOrder.BRACE_FOR_IMPACT.value:
-            brace_turn = s_dict.get("brace_set_on_turn", 0)
+        if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+            brace_turn = ship.brace_set_on_turn
             if brace_turn < gs.turn_number:
                 # Set on a previous turn, time to expire
                 prev = ship.previous_order or SpecialOrder.NONE.value
@@ -250,16 +249,14 @@ def resolve_end_phase(gs: GameState, dice: DiceRoller,
     all_logs.append("=== END PHASE ===")
 
     # 1. Fire damage (both players' ships)
-    for s_dict in gs.ships:
-        ship = Ship.from_dict(s_dict)
+    for ship in gs.get_ships():
         if ship.is_destroyed or ship.is_disengaged:
             continue
         fire_logs = resolve_fire_damage(ship, dice, gs)
         all_logs.extend(fire_logs)
 
     # 2. Damage control (both players' ships)
-    for s_dict in gs.ships:
-        ship = Ship.from_dict(s_dict)
+    for ship in gs.get_ships():
         if ship.is_destroyed or ship.is_disengaged:
             continue
         if ship.status in ("drifting_hulk", "burning_hulk"):
@@ -287,8 +284,7 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
     """
     logs = []
 
-    for s_dict in list(gs.ships):  # copy list since we may modify
-        ship = Ship.from_dict(s_dict)
+    for ship in gs.get_ships():  # snapshot; loop may modify gs.ships
         if ship.status not in ("drifting_hulk", "burning_hulk"):
             continue
 
@@ -360,8 +356,7 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
                                     x=bx, y=by, source="explosion",
                                     heading=angle))
 
-                for s_dict in gs.ships:
-                    other = Ship.from_dict(s_dict)
+                for other in gs.get_ships():
                     if other.id == ship.id or other.is_destroyed:
                         continue
                     dist = math.sqrt((ship.x - other.x)**2 + (ship.y - other.y)**2)
