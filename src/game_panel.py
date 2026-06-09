@@ -1,6 +1,7 @@
 """BFG:XR Game Controls Panel — thin coordinator using composition."""
+import os
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from typing import Optional
 
 from .models import Ship, SpecialOrder
@@ -184,6 +185,15 @@ class GamePanel:
         tk.Button(sl_frame, text="Export Map", command=self._export_map,
                   bg="#283038", fg="#99aabb", font=("Consolas", 8),
                   width=10).pack(side=tk.LEFT, padx=1)
+        # LAN multiplayer row
+        mp_frame = tk.Frame(self.parent, bg="#1a1a2e")
+        mp_frame.pack(pady=1, padx=5, fill=tk.X)
+        tk.Button(mp_frame, text="Host LAN Game", command=self._show_host_dialog,
+                  bg="#2a3344", fg="#99aacc", font=("Consolas", 8),
+                  width=14).pack(side=tk.LEFT, padx=1)
+        tk.Button(mp_frame, text="Join LAN Game", command=self._show_join_dialog,
+                  bg="#2a3344", fg="#99aacc", font=("Consolas", 8),
+                  width=14).pack(side=tk.LEFT, padx=1)
 
         # Log display
         tk.Frame(self.parent, bg="#333355", height=2).pack(fill=tk.X, padx=5, pady=3)
@@ -239,7 +249,7 @@ class GamePanel:
         gs = self.ctx.gs
         dialog = tk.Toplevel(self.root)
         dialog.title("Game Settings")
-        dialog.geometry("480x600")
+        dialog.geometry("520x780")
         dialog.transient(self.root)
         dialog.focus_set()
         dialog.lift()
@@ -308,14 +318,98 @@ class GamePanel:
         camp_frame = tk.LabelFrame(dialog, text="Campaign / Scenario", font=("Consolas", 9, "bold"),
                                    padx=8, pady=4)
         camp_frame.pack(fill=tk.X, padx=15, pady=4)
-        tk.Label(camp_frame,
-                 text="Export the active player's fleet with current damage state\n"
-                      "for campaign continuation or scenario setup.",
-                 font=("Consolas", 7), fg="#888888", justify=tk.LEFT).pack(anchor=tk.W)
+
+        # ── Scenario mode ────────────────────────────────────────────────────
+        locked = gs.turn_number > 1
+        mode_row = tk.Frame(camp_frame)
+        mode_row.pack(fill=tk.X, pady=2)
+        tk.Label(mode_row, text="Scenario:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        scen_modes = ["standard", "kill_admiral", "destroy_ship",
+                      "protect_ship", "capture_artefact"]
+        scen_var = tk.StringVar(value=gs.scenario_mode)
+        scen_cb = ttk.Combobox(mode_row, textvariable=scen_var, values=scen_modes,
+                                state="disabled" if locked else "readonly", width=22,
+                                font=("Consolas", 8))
+        scen_cb.pack(side=tk.LEFT)
+        if locked:
+            tk.Label(mode_row, text="(locked after turn 1)",
+                     font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── Objective ship ───────────────────────────────────────────────────
+        obj_row = tk.Frame(camp_frame)
+        obj_row.pack(fill=tk.X, pady=2)
+        tk.Label(obj_row, text="Objective ship:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        all_ships = gs.get_ships()
+        ship_names = [f"P{s.player} {s.name}" for s in all_ships]
+        ship_ids   = [s.id for s in all_ships]
+        cur_idx = ship_ids.index(gs.objective_ship_id) if gs.objective_ship_id in ship_ids else 0
+        obj_var = tk.StringVar(value=ship_names[cur_idx] if ship_names else "")
+        obj_cb  = ttk.Combobox(obj_row, textvariable=obj_var, values=ship_names,
+                                state="disabled" if locked else "readonly", width=24,
+                                font=("Consolas", 8))
+        obj_cb.pack(side=tk.LEFT)
+        tk.Label(obj_row, text="(destroy/protect/admiral)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── Artefact submode ─────────────────────────────────────────────────
+        art_row = tk.Frame(camp_frame)
+        art_row.pack(fill=tk.X, pady=2)
+        tk.Label(art_row, text="Artefact mode:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        art_var = tk.StringVar(value=gs.artefact_submode)
+        for lbl, val in [("Race", "race"), ("Carrier escape", "carrier_escape")]:
+            tk.Radiobutton(art_row, text=lbl, variable=art_var, value=val,
+                           font=("Consolas", 8),
+                           state=tk.DISABLED if locked else tk.NORMAL).pack(side=tk.LEFT)
+
+        # ── Artefact position (X, Y) ─────────────────────────────────────────
+        artpos_row = tk.Frame(camp_frame)
+        artpos_row.pack(fill=tk.X, pady=2)
+        tk.Label(artpos_row, text="Artefact pos:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        cur_ax = str(int(gs.artefact_token_pos[0])) if gs.artefact_token_pos else str(int(gs.table_width // 2))
+        cur_ay = str(int(gs.artefact_token_pos[1])) if gs.artefact_token_pos else str(int(gs.table_height // 2))
+        art_x_var = tk.StringVar(value=cur_ax)
+        art_y_var = tk.StringVar(value=cur_ay)
+        tk.Label(artpos_row, text="X:", font=("Consolas", 8)).pack(side=tk.LEFT)
+        tk.Entry(artpos_row, textvariable=art_x_var, width=5,
+                 font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
+        tk.Label(artpos_row, text="Y:", font=("Consolas", 8)).pack(side=tk.LEFT, padx=(4, 0))
+        tk.Entry(artpos_row, textvariable=art_y_var, width=5,
+                 font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
+        tk.Label(artpos_row, text="cm (when uncarried)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── Turn limit ───────────────────────────────────────────────────────
+        tl_row = tk.Frame(camp_frame)
+        tl_row.pack(fill=tk.X, pady=2)
+        tk.Label(tl_row, text="Turn limit:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        tl_var = tk.StringVar(value="" if gs.turn_limit is None else str(gs.turn_limit))
+        tk.Entry(tl_row, textvariable=tl_var, width=5,
+                 font=("Consolas", 8)).pack(side=tk.LEFT)
+        tk.Label(tl_row, text="(blank = unlimited)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── FTL available from turn ──────────────────────────────────────────
+        ftl_row = tk.Frame(camp_frame)
+        ftl_row.pack(fill=tk.X, pady=2)
+        tk.Label(ftl_row, text="FTL from turn:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        ftl_var = tk.StringVar(value="" if gs.ftl_available_turn is None
+                               else str(gs.ftl_available_turn))
+        tk.Entry(ftl_row, textvariable=ftl_var, width=5,
+                 font=("Consolas", 8)).pack(side=tk.LEFT)
+        tk.Label(ftl_row, text="(blank = always available)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── Export ───────────────────────────────────────────────────────────
         tk.Button(camp_frame, text="Export Fleet with Damage…",
                   command=lambda: (dialog.destroy(), self._export_fleet_dialog()),
                   bg="#2a2a44", fg="#aaaacc",
-                  font=("Consolas", 8)).pack(anchor=tk.W, pady=2)
+                  font=("Consolas", 8)).pack(anchor=tk.W, pady=4)
 
         def on_apply():
             gs.dice_mode = dice_var.get()
@@ -327,6 +421,27 @@ class GamePanel:
                 gs.contact_margin_cm = float(margin_var.get())
             except ValueError:
                 pass
+            # Scenario settings (only if not locked)
+            if not locked:
+                gs.scenario_mode = scen_var.get()
+                obj_sel = obj_var.get()
+                if obj_sel and obj_sel in ship_names:
+                    gs.objective_ship_id = ship_ids[ship_names.index(obj_sel)]
+                gs.artefact_submode = art_var.get()
+            # Artefact position always editable (carrier may drop it)
+            try:
+                ax = float(art_x_var.get())
+                ay = float(art_y_var.get())
+                if 0 <= ax <= gs.table_width and 0 <= ay <= gs.table_height:
+                    gs.artefact_token_pos = (ax, ay)
+            except ValueError:
+                pass
+            # Turn limit / FTL always adjustable
+            tl = tl_var.get().strip()
+            gs.turn_limit = int(tl) if tl.isdigit() else None
+            ftl = ftl_var.get().strip()
+            gs.ftl_available_turn = int(ftl) if ftl.isdigit() else None
+            self.ctx.board.redraw()
             dialog.destroy()
             self.ctx.log("[Settings] Updated game settings.")
 
@@ -392,6 +507,112 @@ class GamePanel:
             save_map(phenomena, width, height, sunward, fp)
             self.ctx.log(f"[Export] Map exported to {fp}")
 
+    # ── LAN multiplayer ───────────────────────────────────────────────────────
+
+    def _network_sync_phase(self):
+        """After each phase: active player sends state; passive player receives."""
+        net = self.ctx.network
+        if net is None:
+            return
+        gs = self.ctx.gs
+        local = self.ctx.local_player
+        try:
+            # The player who just finished their turn sends state
+            if local == gs.active_player:
+                net.send_state(gs)
+            else:
+                # Receive updated state from the active player
+                new_gs = net.recv_state()
+                # Preserve our reference but overwrite all mutable fields
+                for attr in ("ships", "ordnance", "blast_markers", "phenomena",
+                             "log", "turn_number", "current_phase", "active_player",
+                             "phase_step"):
+                    setattr(gs, attr, getattr(new_gs, attr))
+        except ConnectionError as e:
+            messagebox.showerror("Multiplayer Error",
+                                 f"Network error: {e}\nGame will continue locally.")
+            self.ctx.network = None
+
+    def _show_host_dialog(self):
+        """Show the 'host a game' dialog and wait for a client to connect."""
+        from .network import GameServer, DEFAULT_PORT
+        net = GameServer()
+        ip = net.start()
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Hosting Game")
+        dialog.geometry("360x180")
+        dialog.transient(self.root)
+        tk.Label(dialog, text="Waiting for opponent to connect…",
+                 font=("Consolas", 10, "bold")).pack(pady=12)
+        tk.Label(dialog, text=f"Your IP:  {ip}",
+                 font=("Consolas", 11)).pack()
+        tk.Label(dialog, text=f"Port:  {DEFAULT_PORT}",
+                 font=("Consolas", 11)).pack()
+        tk.Label(dialog, text="Share these with your opponent.",
+                 font=("Consolas", 8), fg="#888888").pack(pady=6)
+        cancel_var = [False]
+
+        def on_cancel():
+            cancel_var[0] = True
+            net.close()
+            dialog.destroy()
+
+        tk.Button(dialog, text="Cancel", command=on_cancel,
+                  font=("Consolas", 9)).pack(pady=6)
+
+        def poll():
+            if cancel_var[0]:
+                return
+            if net.connected:
+                dialog.destroy()
+                self.ctx.network = net
+                self.ctx.local_player = 1
+                # Send initial state to client
+                net.send_state(self.ctx.gs)
+                self.ctx.log("[Net] Opponent connected. You are Player 1.")
+            else:
+                self.root.after(500, poll)
+
+        poll()
+
+    def _show_join_dialog(self):
+        """Show the 'join a game' dialog and connect to a host."""
+        from .network import GameClient, DEFAULT_PORT
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Join Game")
+        dialog.geometry("320x160")
+        dialog.transient(self.root)
+        tk.Label(dialog, text="Join LAN Game",
+                 font=("Consolas", 10, "bold")).pack(pady=8)
+        row = tk.Frame(dialog)
+        row.pack()
+        tk.Label(row, text="Host IP:", font=("Consolas", 9)).pack(side=tk.LEFT)
+        ip_var = tk.StringVar()
+        tk.Entry(row, textvariable=ip_var, width=18,
+                 font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+
+        def on_connect():
+            host_ip = ip_var.get().strip()
+            if not host_ip:
+                return
+            try:
+                client = GameClient(host_ip, DEFAULT_PORT)
+                client.connect()
+                # Receive initial game state from host
+                new_gs = client.recv_state()
+                self.ctx.gs = new_gs
+                self.ctx.tc.gs = new_gs
+                self.ctx.network = client
+                self.ctx.local_player = 2
+                dialog.destroy()
+                self.ctx.board.redraw()
+                self.ctx.log(f"[Net] Connected to {host_ip}. You are Player 2.")
+            except Exception as e:
+                messagebox.showerror("Connection Failed", str(e))
+
+        tk.Button(dialog, text="Connect", command=on_connect,
+                  font=("Consolas", 9), bg="#2a4422", fg="#aaccaa").pack(pady=8)
+
     def _export_fleet_dialog(self):
         from tkinter import filedialog
         from .fleet_loader import export_fleet_with_damage
@@ -405,6 +626,128 @@ class GamePanel:
             ships = [Ship.from_dict(s) for s in gs.ships]
             export_fleet_with_damage(ships, player, fp)
             self.ctx.log(f"[Export] Player {player} fleet exported to {fp}")
+
+    # ── Campaign ─────────────────────────────────────────────────────────────
+
+    def _campaign_post_battle_dialog(self, vp_p1: int, vp_p2: int):
+        """After a battle, let the player choose (or create) a campaign save."""
+        from tkinter import filedialog
+        from .campaign import (CampaignState, save_campaign, load_campaign,
+                               post_battle_update)
+        gs = self.ctx.gs
+        campaign_dir = filedialog.askdirectory(
+            title="Select campaign folder (existing or new)")
+        if not campaign_dir:
+            return
+        campaign_file = os.path.join(campaign_dir, "campaign.json")
+        if os.path.exists(campaign_file):
+            cs = load_campaign(campaign_dir)
+        else:
+            cs = CampaignState(
+                campaign_name=os.path.basename(campaign_dir),
+                player1_name=gs.player1_name,
+                player2_name=gs.player2_name,
+                player1_faction=gs.player1_faction,
+                player2_faction=gs.player2_faction,
+                points_limit=gs.points_limit,
+            )
+        cs = post_battle_update(cs, gs, vp_p1, vp_p2, campaign_dir)
+        self.ctx.log(
+            f"[Campaign] Battle {cs.battles_played} saved. "
+            f"VP: {gs.player1_name} {cs.player1_total_vp} — "
+            f"{gs.player2_name} {cs.player2_total_vp}")
+        # Offer repair dialog for each player
+        for player, fleet_path, budget in [
+            (1, cs.player1_fleet_file, cs.repair_budget_p1),
+            (2, cs.player2_fleet_file, cs.repair_budget_p2),
+        ]:
+            if fleet_path and os.path.exists(fleet_path) and budget > 0:
+                self._campaign_repair_dialog(
+                    gs.player1_name if player == 1 else gs.player2_name,
+                    fleet_path, budget, campaign_dir, cs)
+
+    def _campaign_repair_dialog(self, player_name: str, fleet_path: str,
+                                 budget: int, campaign_dir: str, cs):
+        """Let a player spend their repair budget on crits and hull points."""
+        from .campaign import apply_repairs, save_campaign
+        import json as _json
+        with open(fleet_path) as f:
+            fleet_data = _json.load(f)
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"{player_name} — Repair ({budget} pts available)")
+        dialog.geometry("500x480")
+        dialog.transient(self.root)
+
+        tk.Label(dialog, text=f"{player_name} Repair Bay",
+                 font=("Consolas", 11, "bold")).pack(pady=6)
+        tk.Label(dialog, text=f"Budget: {budget} pts  |  Crit repair: 25 pts  |  Hull +1HP: 10 pts",
+                 font=("Consolas", 8), fg="#888888").pack()
+
+        orders_var: list = []
+        budget_var = tk.IntVar(value=budget)
+        budget_lbl = tk.Label(dialog, text=f"Remaining: {budget} pts",
+                              font=("Consolas", 9, "bold"))
+        budget_lbl.pack()
+
+        canvas = tk.Canvas(dialog, bg="#1a1a2e")
+        scroll = tk.Scrollbar(dialog, command=canvas.yview)
+        canvas.configure(yscrollcommand=scroll.set)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(fill=tk.BOTH, expand=True, padx=8)
+        inner = tk.Frame(canvas, bg="#1a1a2e")
+        canvas.create_window((0, 0), window=inner, anchor=tk.NW)
+        inner.bind("<Configure>", lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")))
+
+        def refresh_budget():
+            budget_lbl.config(text=f"Remaining: {budget_var.get()} pts")
+
+        for ship in fleet_data.get("ships", []):
+            sid = ship["id"]
+            name = ship.get("name", sid)
+            hits = ship.get("hits_remaining", 0)
+            hits_max = ship.get("hits_max", 8)
+            crits = ship.get("critical_damage", [])
+            frame = tk.LabelFrame(inner, text=f"{name}  HP {hits}/{hits_max}",
+                                  font=("Consolas", 8), padx=4, pady=2, bg="#1a1a2e",
+                                  fg="#aaaacc")
+            frame.pack(fill=tk.X, padx=4, pady=2)
+            # Hull repair button
+            if hits < hits_max // 2:
+                def _hull(s=sid, f=frame):
+                    cost = 10
+                    if budget_var.get() >= cost:
+                        orders_var.append({"ship_id": s, "action": "hull"})
+                        budget_var.set(budget_var.get() - cost)
+                        refresh_budget()
+                tk.Button(frame, text=f"+1 HP (10 pts)", command=_hull,
+                          font=("Consolas", 7), bg="#2a3a2a", fg="#aaccaa").pack(anchor=tk.W)
+            # Crit repair buttons
+            for idx, crit in enumerate(crits):
+                crit_name = crit.get("crit_type", "unknown") if isinstance(crit, dict) else str(crit)
+                def _crit(s=sid, i=idx):
+                    cost = 25
+                    if budget_var.get() >= cost:
+                        orders_var.append({"ship_id": s, "action": "crit", "crit_index": i})
+                        budget_var.set(budget_var.get() - cost)
+                        refresh_budget()
+                tk.Button(frame, text=f"Repair: {crit_name} (25 pts)", command=_crit,
+                          font=("Consolas", 7), bg="#3a2a2a", fg="#ccaaaa").pack(anchor=tk.W)
+
+        def on_apply():
+            remaining = apply_repairs(fleet_path, orders_var, budget)
+            if player_name == cs.player1_name:
+                cs.repair_budget_p1 = remaining
+            else:
+                cs.repair_budget_p2 = remaining
+            save_campaign(cs, campaign_dir)
+            self.ctx.log(f"[Campaign] {player_name}: repairs applied, {remaining} pts unused.")
+            dialog.destroy()
+
+        tk.Button(dialog, text="Apply Repairs", command=on_apply,
+                  bg="#2a4422", fg="#aaccaa",
+                  font=("Consolas", 9)).pack(pady=6)
 
     # ── Game flow ─────────────────────────────────────────────────────────────
 
@@ -437,8 +780,10 @@ class GamePanel:
             "BackSpace=undo all movement  Scroll=pending turn  Esc=cancel")
         self.ctx.board.canvas.focus_set()
         self.ctx.board.redraw()
-        # If Player 1 is AI, start automation immediately
-        if gs.ai_player is not None and gs.active_player == gs.ai_player:
+        # If Player 1 (or both players) is AI, start automation immediately
+        is_ai_turn = (gs.ai_spectator or
+                      (gs.ai_player is not None and gs.active_player == gs.ai_player))
+        if is_ai_turn:
             self.root.after(500, self._run_ai_phase)
 
     def _resolve_end_phase_interactive(self):
@@ -569,6 +914,9 @@ class GamePanel:
         tc.end_phase()
         tc.advance_phase()
 
+        # LAN multiplayer: sync state to peer after each phase
+        self._network_sync_phase()
+
         # Check for game-over conditions at the start of each new turn
         if gs.current_phase == "movement" and gs.turn_number > 1:
             if self._check_game_over():
@@ -597,9 +945,10 @@ class GamePanel:
         self.ctx.log(f"--- {gs.current_phase.upper()} PHASE ---")
         self.ctx.board.redraw()
 
-        # AI automation: if the active player is AI, run the phase automatically
-        if (gs.ai_player is not None and gs.active_player == gs.ai_player
-                and gs.current_phase != "setup"):
+        # AI automation: trigger if active player is AI-controlled
+        is_ai_turn = (gs.ai_spectator or
+                      (gs.ai_player is not None and gs.active_player == gs.ai_player))
+        if is_ai_turn and gs.current_phase != "setup":
             self.root.after(400, self._run_ai_phase)
 
     # ── AI phase automation ───────────────────────────────────────────────────
@@ -610,10 +959,17 @@ class GamePanel:
         tc = self.ctx.tc
         phase = gs.current_phase
 
+        # In spectator mode both players are AI; use active_player as the controller
+        ai_player_num = gs.active_player if gs.ai_spectator else gs.ai_player
+
         old_mode = gs.dice_mode
         gs.dice_mode = "auto"
         try:
-            ai = AIPlayer(gs.ai_player, tc, gs, self.ctx.dice, gs.ai_difficulty)
+            if gs.ai_difficulty == "expert":
+                from .lookahead_ai import LookaheadAI
+                ai = LookaheadAI(ai_player_num, tc, gs, self.ctx.dice, gs.ai_difficulty)
+            else:
+                ai = AIPlayer(ai_player_num, tc, gs, self.ctx.dice, gs.ai_difficulty)
             if phase == "movement":
                 ai.run_movement_phase()
             elif phase == "shooting":
@@ -819,8 +1175,27 @@ class GamePanel:
             "artefact_lost": "Artefact carrier destroyed — artefact lost!",
         }.get(reason, "")
 
-        messagebox.showinfo(title,
-            f"{headline}\n\n{reason_text}\n\n{vp_text}")
+        # Build the game-over dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title(title)
+        dialog.geometry("420x340")
+        dialog.transient(self.root)
+        dialog.focus_set()
+        tk.Label(dialog, text=headline,
+                 font=("Consolas", 13, "bold")).pack(pady=10)
+        if reason_text:
+            tk.Label(dialog, text=reason_text,
+                     font=("Consolas", 9), fg="#888888").pack()
+        tk.Label(dialog, text=vp_text, font=("Consolas", 9),
+                 justify=tk.LEFT).pack(padx=15, pady=6)
+        tk.Button(dialog, text="Save to Campaign…",
+                  command=lambda: (dialog.destroy(),
+                                   self._campaign_post_battle_dialog(
+                                       vp.get("p1_total", 0), vp.get("p2_total", 0))),
+                  bg="#2a3344", fg="#aabbcc",
+                  font=("Consolas", 9)).pack(pady=4)
+        tk.Button(dialog, text="Close", command=dialog.destroy,
+                  font=("Consolas", 9)).pack(pady=2)
 
     def _check_game_over(self) -> bool:
         gs = self.ctx.gs

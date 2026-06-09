@@ -27,6 +27,11 @@ class GameContext:
         self.movement: Optional["MovementPanel"] = None
         self.ordnance: Optional["OrdnancePanel"] = None
 
+        # LAN multiplayer transport (GameServer or GameClient, or None for local play)
+        self.network = None
+        # Local player number for multiplayer (1 or 2); None for local/AI play
+        self.local_player: Optional[int] = None
+
     # ── Logging ──────────────────────────────────────────────────────────────
 
     def log(self, text: str):
