@@ -673,17 +673,30 @@ def reload_ship_ordnance(ship: Ship) -> List[str]:
 
 
 
-def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState) -> OrdnanceMarker:
-    """Create a torpedo marker from a ship's launcher."""
+def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
+                     heading: Optional[float] = None) -> OrdnanceMarker:
+    """Create a torpedo marker from a ship's launcher.
+
+    `heading` lets the caller aim the salvo (e.g. an AI leading a target).
+    It is clamped to ±45° of the ship's heading — the same forward-arc
+    constraint the human launch dialog enforces. Defaults to ship heading.
+    """
     torpedo_type = weapon.get("torpedo_type", "standard")
     o_type = (OrdnanceType.TORPEDO_GUIDED.value if torpedo_type == "guided"
               else OrdnanceType.TORPEDO_STANDARD.value)
+
+    if heading is None:
+        launch_heading = ship.heading
+    else:
+        diff = (heading - ship.heading + 180) % 360 - 180
+        diff = max(-45.0, min(45.0, diff))
+        launch_heading = (ship.heading + diff) % 360
 
     marker = OrdnanceMarker(
         id=f"torp_{ship.id}_{game_state.turn_number}_{_uuid.uuid4().hex[:6]}",
         ordnance_type=o_type, owner_player=ship.player,
         launched_by=ship.id, x=ship.x, y=ship.y,
-        heading=ship.heading, strength=weapon["strength"],
+        heading=launch_heading, strength=weapon["strength"],
         speed=weapon.get("torpedo_speed", 30),
         launched_turn=game_state.turn_number,
         can_turn=(torpedo_type == "guided"),

@@ -499,7 +499,8 @@ class AIPlayer:
                 # Pick target whose predicted next position is best covered
                 target = self._best_torp_target(ship, weapon, enemies)
                 if target:
-                    launch_torpedoes(ship, weapon, gs)
+                    aim = self._torpedo_aim_heading(ship, weapon, target)
+                    launch_torpedoes(ship, weapon, gs, heading=aim)
                     ship = gs.get_ship_by_id(ship.id)
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
@@ -553,6 +554,28 @@ class AIPlayer:
         rad = math.radians(ship.heading)
         return (ship.x + ship.effective_speed * math.cos(rad),
                 ship.y + ship.effective_speed * math.sin(rad))
+
+    def _torpedo_aim_heading(self, ship: Ship, weapon: Dict,
+                             target: Ship) -> float:
+        """
+        Intercept heading for a straight-running torpedo, clamped to the
+        front arc. The iterative solve naturally yields direct fire at
+        short range (time-to-impact → 0, so the aim point is the target's
+        current position) and leads the target at long range.
+        """
+        torp_speed = weapon.get("torpedo_speed", 30) or 30
+        tvx = target.effective_speed * math.cos(math.radians(target.heading))
+        tvy = target.effective_speed * math.sin(math.radians(target.heading))
+        aim_x, aim_y = target.x, target.y
+        for _ in range(4):  # converge the intercept point
+            dist = math.hypot(aim_x - ship.x, aim_y - ship.y)
+            t = dist / torp_speed
+            aim_x = target.x + tvx * t
+            aim_y = target.y + tvy * t
+        desired = math.degrees(math.atan2(aim_y - ship.y, aim_x - ship.x)) % 360
+        diff = (desired - ship.heading + 180) % 360 - 180
+        diff = max(-45.0, min(45.0, diff))
+        return (ship.heading + diff) % 360
 
     def _best_torp_target(self, ship: Ship, weapon: Dict,
                           enemies: List[Ship]) -> Optional[Ship]:

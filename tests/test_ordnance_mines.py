@@ -169,6 +169,34 @@ def test_launch_guided_torpedo_creates_guided_marker():
     assert marker.can_turn is True
 
 
+def test_launch_torpedoes_default_heading_is_ship_heading():
+    ship = make_ship(id="s", x=50, y=50, heading=30, player=1)
+    gs = make_gs([ship])
+    weapon = {"strength": 6, "torpedo_type": "standard", "torpedo_speed": 30}
+    marker = launch_torpedoes(ship, weapon, gs)
+    assert marker.heading == 30
+
+
+def test_launch_torpedoes_aim_heading_within_arc_is_honored():
+    ship = make_ship(id="s", x=50, y=50, heading=0, player=1)
+    gs = make_gs([ship])
+    weapon = {"strength": 6, "torpedo_type": "standard", "torpedo_speed": 30}
+    marker = launch_torpedoes(ship, weapon, gs, heading=30)
+    assert marker.heading == 30
+
+
+def test_launch_torpedoes_aim_heading_clamped_to_forward_arc():
+    ship = make_ship(id="s", x=50, y=50, heading=0, player=1)
+    gs = make_gs([ship])
+    weapon = {"strength": 6, "torpedo_type": "standard", "torpedo_speed": 30}
+    # 90° is outside the ±45° forward arc → clamp to 45°
+    marker = launch_torpedoes(ship, weapon, gs, heading=90)
+    assert marker.heading == 45
+    # Likewise -90° (i.e. 270°) clamps to -45° (i.e. 315°)
+    marker2 = launch_torpedoes(ship, weapon, gs, heading=270)
+    assert marker2.heading == 315
+
+
 # ── launch_attack_craft ───────────────────────────────────────────────────────
 
 def test_launch_attack_craft_creates_markers():
