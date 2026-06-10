@@ -558,7 +558,7 @@ class BoardView:
                 self.commit_ord_drag_fn(ship, self.ord_drag_heading)
             elif ship and not self.ord_drag_in_arc:
                 self.status_var.set(
-                    f"Launch cancelled — heading too far off arc")
+                    "Launch cancelled — heading too far off arc")
             self.ord_drag_ship_id = None
             self.ord_drag_heading = 0.0
             self.ord_drag_in_arc = False
@@ -1176,7 +1176,7 @@ class BoardView:
         lines.append(f"Class: {s.ship_class}")
         lines.append(f"Type: {s.ship_type.upper()}")
         lines.append(f"Faction: {s.faction}")
-        lines.append(f"")
+        lines.append("")
         lines.append(f"HP: {s.hits_remaining}/{s.hits_max}" +
                      (" [CRIPPLED]" if s.is_crippled else "") +
                      (" [DESTROYED]" if s.is_destroyed else ""))
@@ -1198,14 +1198,14 @@ class BoardView:
         lines.append(f"Leadership: {s.leadership}")
         lines.append(f"Position: ({s.x:.1f}, {s.y:.1f})")
         lines.append(f"Heading: {s.heading:.0f}°")
-        lines.append(f"")
+        lines.append("")
 
         if s.special_order != "none":
             lines.append(f"Order: {s.special_order}")
         if s.is_flagship:
             lines.append(f"FLAGSHIP ({s.admiral_type})")
             lines.append(f"Re-rolls: {s.rerolls_remaining}")
-        lines.append(f"")
+        lines.append("")
 
         # Weapons
         lines.append("--- WEAPONS ---")
@@ -1223,13 +1223,13 @@ class BoardView:
                 lines.append(f"  {w['name']}: {w['strength']} sqn ({types}) [{arcs}]")
             elif wtype == "torpedo":
                 lines.append(f"  {w['name']}: Str {w['strength']} {w.get('torpedo_speed', w.get('range_cm', 30))}cm [{arcs}]")
-        lines.append(f"")
+        lines.append("")
 
         # Ordnance status
         lines.append("--- ORDNANCE ---")
         lines.append(f"  Torps/Missiles: {'LOADED' if s.ordnance_loaded_torps else 'EMPTY'}")
         lines.append(f"  Attack Craft: {'LOADED' if s.ordnance_loaded_craft else 'EMPTY'}")
-        lines.append(f"")
+        lines.append("")
 
         # Critical damage (grouped with effect descriptions)
         if s.critical_damage:
@@ -1281,7 +1281,7 @@ class BoardView:
                     line += f" → {effect}"
                 lines.append(line)
 
-            lines.append(f"")
+            lines.append("")
 
         # Special rules
         if s.special_rules:

@@ -245,7 +245,7 @@ class OrdnanceMovementMixin:
                     self.ctx.log(
                         f"  Torpedoes contact {s.name}"
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
-                        + f"!")
+                        + "!")
                     result = resolve_torpedo_attack(
                         marker, s, self.ctx.dice, self.ctx.gs,
                         all_ships=ships)

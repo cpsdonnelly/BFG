@@ -708,7 +708,7 @@ class GamePanel:
                         orders_var.append({"ship_id": s, "action": "hull"})
                         budget_var.set(budget_var.get() - cost)
                         refresh_budget()
-                tk.Button(frame, text=f"+1 HP (10 pts)", command=_hull,
+                tk.Button(frame, text="+1 HP (10 pts)", command=_hull,
                           font=("Consolas", 7), bg="#2a3a2a", fg="#aaccaa").pack(anchor=tk.W)
             # Crit repair buttons
             for idx, crit in enumerate(crits):

@@ -184,7 +184,7 @@ def format_vp_summary(vp_result: Dict, gs: GameState) -> str:
     for p in [1, 2]:
         pname = gs.player1_name if p == 1 else gs.player2_name
         data = vp_result[p]
-        lines.append(f"")
+        lines.append("")
         lines.append(f"--- {pname} ---")
         lines.append(f"  Enemies Destroyed:  {data['destroyed']} VP")
         lines.append(f"  Enemies Crippled:   {data['crippled']} VP")
@@ -192,7 +192,7 @@ def format_vp_summary(vp_result: Dict, gs: GameState) -> str:
         lines.append(f"  Holding the Field:  {data['holding_field']} VP")
         lines.append(f"  TOTAL:              {data['total']} VP")
         if data["details"]:
-            lines.append(f"  Breakdown:")
+            lines.append("  Breakdown:")
             for d in data["details"]:
                 lines.append(f"    {d}")
 

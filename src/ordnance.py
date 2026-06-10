@@ -198,10 +198,10 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
         if any(r >= 4 for r in turret_rolls):
             attack_dice = 4
             game_state.add_log(
-                f"  Turrets reduce mine attack to 4D6")
+                "  Turrets reduce mine attack to 4D6")
         else:
             game_state.add_log(
-                f"  Turrets fail — mine attacks with 8D6")
+                "  Turrets fail — mine attacks with 8D6")
 
     result["attack_dice"] = attack_dice
 
@@ -370,7 +370,7 @@ def resolve_fighter_intercept(fighter: OrdnanceMarker,
             if save >= fighter.resilient_save:
                 result["fighter_removed"] = False
                 fighter.resilient_used = True
-                game_state.add_log(f"  Fighter passes resilient save, survives!")
+                game_state.add_log("  Fighter passes resilient save, survives!")
 
     else:
         # Fighter vs attack craft: mutual destruction
@@ -384,7 +384,7 @@ def resolve_fighter_intercept(fighter: OrdnanceMarker,
             if save >= fighter.resilient_save:
                 result["fighter_removed"] = False
                 fighter.resilient_used = True
-                game_state.add_log(f"  Fighter passes resilient save!")
+                game_state.add_log("  Fighter passes resilient save!")
 
         # Target resilient save
         if target.resilient_save > 0 and not target.resilient_used:
@@ -518,7 +518,7 @@ def resolve_ordnance_interactions(game_state: GameState,
                     to_remove.add(m1.id)
                     to_remove.add(m2.id)
                     logs.append(
-                        f"Torpedo salvos collide and detonate!")
+                        "Torpedo salvos collide and detonate!")
 
     # Remove destroyed ordnance and persist state changes on survivors
     # (resilient_used flag may have been set on markers that survived)
@@ -620,7 +620,7 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
 
         if is_craft:
             if ptype == "asteroid_field":
-                roll = dice.roll_d6(1, f"Attack craft in asteroid field (6=destroyed)")[0]
+                roll = dice.roll_d6(1, "Attack craft in asteroid field (6=destroyed)")[0]
                 if roll == 6:
                     return True, "asteroid_field"
             elif ptype == "warp_rift":

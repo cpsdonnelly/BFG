@@ -463,9 +463,9 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
             else:
                 extra = crit_data["extra_damage"]
                 if extra == "D3":
-                    extra = dice.roll_d3(f"Hull Breach extra damage")
+                    extra = dice.roll_d3("Hull Breach extra damage")
                 elif extra == "D6":
-                    extra = sum(dice.roll_d6(1, f"Bulkhead Collapse extra damage"))
+                    extra = sum(dice.roll_d6(1, "Bulkhead Collapse extra damage"))
                 elif isinstance(extra, int) and extra > 0:
                     pass
 
@@ -819,7 +819,7 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
         if (crit_type == "prow_armament" and
                 "ablative_prow_armor" in ship.special_rules):
             game_state.add_log(
-                f"  Prow Armament crit ignored (Ablative Prow Armor)")
+                "  Prow Armament crit ignored (Ablative Prow Armor)")
             return None  # absorbed, not cascaded
 
         # Check if armament slot exists on this ship

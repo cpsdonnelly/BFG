@@ -67,7 +67,7 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
     sixes = sum(1 for r in rolls if r == 6)
 
     if sixes == 0:
-        logs.append(f"  No repairs (no 6s rolled)")
+        logs.append("  No repairs (no 6s rolled)")
         gs.update_ship(ship)
         return logs
 

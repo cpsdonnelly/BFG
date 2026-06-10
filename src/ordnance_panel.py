@@ -1070,8 +1070,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     if cap_var.get() and o_type not in fighter_types:
                         messagebox.showerror(
                             "Bombers Cannot CAP",
-                            f"Bombers cannot be assigned to Combat Air Patrol.\n"
-                            f"Only fighters may perform CAP.")
+                            "Bombers cannot be assigned to Combat Air Patrol.\n"
+                            "Only fighters may perform CAP.")
                         return
                     assign_cap = cap_var.get() and o_type in fighter_types
                     protect_id = cap_ship_id_map.get(
