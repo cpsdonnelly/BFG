@@ -198,7 +198,7 @@ def main():
     board.info_text.config(height=10)
 
     from .game_panel import GamePanel
-    game_panel = GamePanel(game_frame, tc, board, root)
+    GamePanel(game_frame, tc, board, root)  # registers its own Tk callbacks
 
     root.mainloop()
 
@@ -273,7 +273,6 @@ def _show_setup_dialog(root) -> Optional[dict]:
 
     available_fleets = get_available_fleets("data/fleets")
     fleet_labels = {p: get_fleet_info(p)["fleet_name"] for p in available_fleets}
-    fleet_display = [fleet_labels.get(p, os.path.basename(p)) for p in available_fleets]
 
     _imp_default = next((p for p in available_fleets if "imperial" in os.path.basename(p).lower()),
                         available_fleets[0] if available_fleets else "")

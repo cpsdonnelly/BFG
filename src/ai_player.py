@@ -329,8 +329,6 @@ class AIPlayer:
 
     def _choose_special_order(self, ship: Ship) -> Optional[str]:
         """Pick the most tactically useful special order for this ship."""
-        gs = self.gs
-
         # Burn Retros if ship is about to enter dangerous terrain at full speed
         _, max_spd = get_effective_speed(ship, "", 0)
         rad = math.radians(ship.heading)

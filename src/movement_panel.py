@@ -3,9 +3,9 @@ import tkinter as tk
 from tkinter import messagebox
 import math
 
-from .models import Ship, SpecialOrder
+from .models import Ship
 from .movement import (MoveCommand, validate_movement, execute_movement,
-                       resolve_aaf_speed, MIN_TURN_DISTANCE)
+                       resolve_aaf_speed)
 from .game_context import GameContext
 from .special_orders_ui import SpecialOrderMixin
 from .movement_dialog import MovementDialogMixin
@@ -69,7 +69,6 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             return ship.id in unmoved_ids
 
         def commit_drag(ship, commands):
-            from .movement import validate_movement, execute_movement, resolve_aaf_speed
             order = ship.special_order
             aaf_bonus = 0
             if order == "all_ahead_full":
@@ -186,9 +185,6 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         If there is no remaining movement budget after the min-move (e.g. AAF),
         the ship is marked fully moved automatically.
         """
-        from .movement import (MoveCommand, validate_movement, execute_movement,
-                               resolve_aaf_speed)
-
         if self.ctx.gs.current_phase != "movement":
             return
 
@@ -351,8 +347,6 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
 
     def _min_move_all_ships(self):
         """Spacebar: execute minimum move for every unmoved ship of the active player."""
-        from .movement import MoveCommand, validate_movement, execute_movement, resolve_aaf_speed
-
         if self.ctx.gs.current_phase != "movement":
             return
         unmoved = [s for s in self.ctx.tc.get_unmoved_ships()
@@ -429,18 +423,17 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             move_dist = min(float(max(1, ship.effective_speed // 2)), remaining_budget)
 
         # Compute end position: forward then turn
-        import math as _math
-        hdg_rad = _math.radians(ship.heading)
-        mid_x = ship.x + move_dist * _math.cos(hdg_rad)
-        mid_y = ship.y + move_dist * _math.sin(hdg_rad)
+        hdg_rad = math.radians(ship.heading)
+        mid_x = ship.x + move_dist * math.cos(hdg_rad)
+        mid_y = ship.y + move_dist * math.sin(hdg_rad)
         final_heading = (ship.heading + pending) % 360
-        final_hdg_rad = _math.radians(final_heading)
+        final_hdg_rad = math.radians(final_heading)
         arrow_len = self.ctx.board.cm_to_pixels(8)
 
         sx0, sy0 = self.ctx.board.cm_to_screen(ship.x, ship.y)
         sx1, sy1 = self.ctx.board.cm_to_screen(mid_x, mid_y)
-        ax = sx1 + arrow_len * _math.cos(final_hdg_rad)
-        ay = sy1 - arrow_len * _math.sin(final_hdg_rad)
+        ax = sx1 + arrow_len * math.cos(final_hdg_rad)
+        ay = sy1 - arrow_len * math.sin(final_hdg_rad)
 
         self.ctx.board.canvas.create_line(
             sx0, sy0, sx1, sy1, fill="#FFAA00", width=2, dash=(5, 3))

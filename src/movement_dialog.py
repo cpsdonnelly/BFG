@@ -150,7 +150,7 @@ class _MoveShipDialog:
                   command=self._quick_full_speed,
                   font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
         tk.Button(quick_frame, text="Auto: Remaining",
-                  command=self._quick_remaining,
+                  command=self._quick_full_speed,
                   font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
 
         # Add-command controls
@@ -231,12 +231,7 @@ class _MoveShipDialog:
             self._add_cmd("forward", needed)
 
     def _quick_full_speed(self):
-        current = sum(c.value for c in self.commands if c.action == "forward")
-        remaining = max(0, self.max_speed - current)
-        if remaining > 0:
-            self._add_cmd("forward", remaining)
-
-    def _quick_remaining(self):
+        """Add the remaining forward budget ("Auto: Full Speed" / "Auto: Remaining")."""
         current = sum(c.value for c in self.commands if c.action == "forward")
         remaining = max(0, self.max_speed - current)
         if remaining > 0:

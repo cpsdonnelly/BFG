@@ -1085,7 +1085,6 @@ class BoardView:
         range_px = self.cm_to_pixels(max_range)
 
         # Draw arc separator lines extended to max range
-        arc_colors = {"front": "#FFFF44", "left": "#44FF44", "right": "#44FF44", "rear": "#FF4444"}
         for angle_offset in [45, 135, 225, 315]:
             a = heading_rad + math.radians(angle_offset)
             x2 = sx + range_px * math.cos(a)

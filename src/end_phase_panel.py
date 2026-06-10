@@ -228,7 +228,6 @@ class EndPhasePanel:
         tk.Label(dialog, text=f"{ship.name}: Choose {max_repairs} crit(s) to repair",
                  font=("Consolas", 10, "bold")).pack(pady=5)
 
-        chosen = []
         check_vars = {}
         for crit_desc in repairable:
             var = tk.BooleanVar(value=False)

@@ -4,10 +4,8 @@ from tkinter import messagebox
 import math
 
 from .models import Ship, SpecialOrder, OrdnanceMarker
-from .combat import (check_weapon_in_arc, resolve_batteries,
-                     resolve_lances, resolve_nova_cannon, apply_damage,
-                     check_los_clear, resolve_batteries_vs_squadron,
-                     eligible_orientations)
+from .combat import (check_weapon_in_arc, apply_damage, check_los_clear,
+                     resolve_batteries_vs_squadron, eligible_orientations)
 from .game_context import GameContext
 from .combat_dialog import CombatDialogMixin
 
@@ -185,7 +183,7 @@ class CombatPanel(CombatDialogMixin):
                 dice_count = 0
 
             if dice_count <= 0:
-                self.ctx.log(f"  No dice to roll")
+                self.ctx.log("  No dice to roll")
                 dialog.destroy()
                 return
 
@@ -232,7 +230,7 @@ class CombatPanel(CombatDialogMixin):
                           SpecialOrder.BRACE_FOR_IMPACT.value)
         if already_braced:
             brace = True
-            log_fn(f"     (already braced)")
+            log_fn("     (already braced)")
         elif self.ctx.gs.ai_player == target.player:
             from .ai_player import ai_should_brace
             from .movement import attempt_brace
@@ -289,7 +287,7 @@ class CombatPanel(CombatDialogMixin):
     def _combine_squadron_fire_dialog(self):
         """Pool battery fire from multiple squadron ships into one gunnery roll."""
         from .squadron import get_squadrons
-        from .combat import (resolve_combined_batteries, check_weapon_in_arc,
+        from .combat import (resolve_combined_batteries,
                              check_weapon_in_range, effective_battery_firepower)
 
         player = self.ctx.gs.active_player

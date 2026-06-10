@@ -80,7 +80,6 @@ class OrdnancePanel(OrdnanceMovementMixin):
             turn_frame = tk.Frame(dialog)
             turn_frame.pack(padx=10, pady=3, fill=tk.X)
             tk.Label(turn_frame, text="Turn:", font=("Consolas", 9)).pack(side=tk.LEFT)
-            turn_var = tk.StringVar(value="0")
 
             for deg in [5, 15, 30, 45]:
                 tk.Button(turn_frame, text=f"↶{deg}°",
