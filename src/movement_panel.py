@@ -313,32 +313,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             self.ctx.gs.update_ship(ship)
 
         # Offer boarding declaration if rule is on and ship is in base contact with enemy
-        if self.ctx.gs.rule_boarding:
-            ship = self.ctx.gs.get_ship_by_id(ship_id)
-            if ship and not ship.has_boarded and not ship.is_grappled:
-                from .boarding import ships_in_base_contact
-                enemies = [s for s in self.ctx.gs.get_ships()
-                           if s.player != ship.player
-                           and not s.is_destroyed and not s.is_disengaged
-                           and s.status not in ("drifting_hulk", "burning_hulk", "destroyed")]
-                contacted = [e for e in enemies if ships_in_base_contact(ship, e)]
-                if contacted:
-                    target_names = ", ".join(e.name for e in contacted)
-                    if messagebox.askyesno(
-                            "Declare Boarding Action",
-                            f"{ship.name} is in base contact with {target_names}.\n"
-                            f"Declare a boarding action?\n"
-                            f"(Ship cannot fire weapons or launch ordnance this turn)"):
-                        board_target = (contacted[0] if len(contacted) == 1
-                                        else self.ctx.pick_ship(contacted,
-                                                                 "Select boarding target"))
-                        if board_target:
-                            ship.boarding_target_id = board_target.id
-                            ship.has_boarded = True
-                            self.ctx.gs.update_ship(ship)
-                            self.ctx.log(
-                                f"{ship.name} declares boarding action against "
-                                f"{board_target.name}!")
+        self._offer_boarding(ship_id)
 
         # Update staged tracking fields on the now-moved ship
         ship = self.ctx.gs.get_ship_by_id(ship_id)
