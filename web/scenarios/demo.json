@@ -1,0 +1,397 @@
+{
+  "game_name": "demo",
+  "player1_name": "Imperial Navy",
+  "player2_name": "Tau Kor'Or'Vesh",
+  "player1_faction": "imperial_navy",
+  "player2_faction": "tau_kororvesh",
+  "player1_color": "red",
+  "player2_color": "blue",
+  "table_width": 120.0,
+  "table_height": 120.0,
+  "sunward_edge": "north",
+  "points_limit": 750,
+  "scenario_mode": "standard",
+  "turn_limit": 6,
+  "ai_player": 2,
+  "ai_difficulty": "normal",
+  "rule_boarding": false,
+  "rule_ramming": false,
+  "rule_teleport": false,
+  "rule_hit_and_run": false,
+  "ships": [
+    {
+      "id": "99f614e1",
+      "name": "Gothic Class Cruiser",
+      "ship_class": "gothic",
+      "ship_type": "cruiser",
+      "faction": "imperial_navy",
+      "player": 1,
+      "x": 30.0,
+      "y": 40.0,
+      "heading": 0.0,
+      "speed": 20,
+      "effective_speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "shields_remaining": 2,
+      "effective_shields": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "turrets": 2,
+      "effective_turrets": 2,
+      "hits_max": 8,
+      "hits_remaining": 8,
+      "leadership": 7,
+      "base_radius": 1.6,
+      "special_order": "none",
+      "previous_order": "none",
+      "special_rules": [],
+      "weapons": [
+        {
+          "name": "Port Lance Battery",
+          "weapon_type": "lance",
+          "strength": 2,
+          "range_cm": 30,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Lance Battery",
+          "weapon_type": "lance",
+          "strength": 2,
+          "range_cm": 30,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Dorsal Lance Battery",
+          "weapon_type": "lance",
+          "strength": 2,
+          "range_cm": 60,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Torpedoes",
+          "weapon_type": "torpedo",
+          "strength": 6,
+          "range_cm": 0,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "critical_damage": [],
+      "is_flagship": false,
+      "rerolls_remaining": 0,
+      "status": "ok",
+      "is_crippled": false,
+      "is_destroyed": false,
+      "is_disengaged": false,
+      "is_grappled": false,
+      "moved_this_turn": false,
+      "has_fired": false,
+      "has_boarded": false,
+      "boarding_target_id": null,
+      "grappled_with_id": null,
+      "brace_set_on_turn": 0,
+      "brace_failed_vs": [],
+      "weapons_fired_indices": [],
+      "weapons_remaining": {},
+      "turrets_used_vs": "",
+      "disengage_failed_this_turn": false,
+      "distance_moved_this_turn": 0.0,
+      "turns_used_this_turn": 0,
+      "net_rotation_this_turn": 0.0
+    },
+    {
+      "id": "02c4dfa3",
+      "name": "Dominator Class Cruiser",
+      "ship_class": "dominator",
+      "ship_type": "cruiser",
+      "faction": "imperial_navy",
+      "player": 1,
+      "x": 30.0,
+      "y": 80.0,
+      "heading": 0.0,
+      "speed": 20,
+      "effective_speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "shields_remaining": 2,
+      "effective_shields": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "turrets": 2,
+      "effective_turrets": 2,
+      "hits_max": 8,
+      "hits_remaining": 8,
+      "leadership": 7,
+      "base_radius": 1.6,
+      "special_order": "none",
+      "previous_order": "none",
+      "special_rules": [],
+      "weapons": [
+        {
+          "name": "Port Weapons Battery",
+          "weapon_type": "battery",
+          "strength": 6,
+          "range_cm": 45,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Weapons Battery",
+          "weapon_type": "battery",
+          "strength": 6,
+          "range_cm": 45,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Nova Cannon",
+          "weapon_type": "nova_cannon",
+          "strength": 0,
+          "range_cm": 150,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "critical_damage": [],
+      "is_flagship": false,
+      "rerolls_remaining": 0,
+      "status": "ok",
+      "is_crippled": false,
+      "is_destroyed": false,
+      "is_disengaged": false,
+      "is_grappled": false,
+      "moved_this_turn": false,
+      "has_fired": false,
+      "has_boarded": false,
+      "boarding_target_id": null,
+      "grappled_with_id": null,
+      "brace_set_on_turn": 0,
+      "brace_failed_vs": [],
+      "weapons_fired_indices": [],
+      "weapons_remaining": {},
+      "turrets_used_vs": "",
+      "disengage_failed_this_turn": false,
+      "distance_moved_this_turn": 0.0,
+      "turns_used_this_turn": 0,
+      "net_rotation_this_turn": 0.0
+    },
+    {
+      "id": "0e64d1f6",
+      "name": "Protector Class Cruiser",
+      "ship_class": "protector",
+      "ship_type": "cruiser",
+      "faction": "tau_kororvesh",
+      "player": 2,
+      "x": 90.0,
+      "y": 40.0,
+      "heading": 180.0,
+      "speed": 20,
+      "effective_speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "shields_remaining": 2,
+      "effective_shields": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "turrets": 2,
+      "effective_turrets": 2,
+      "hits_max": 8,
+      "hits_remaining": 8,
+      "leadership": 7,
+      "base_radius": 1.6,
+      "special_order": "none",
+      "previous_order": "none",
+      "special_rules": [
+        "deflector"
+      ],
+      "weapons": [
+        {
+          "name": "Port Railgun Battery",
+          "weapon_type": "battery",
+          "strength": 6,
+          "range_cm": 45,
+          "arcs": [
+            "left",
+            "front"
+          ]
+        },
+        {
+          "name": "Starboard Railgun Battery",
+          "weapon_type": "battery",
+          "strength": 6,
+          "range_cm": 45,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Port Gravitic Hook",
+          "weapon_type": "gravitic_hook",
+          "strength": 0,
+          "range_cm": 0,
+          "arcs": []
+        },
+        {
+          "name": "Starboard Gravitic Hook",
+          "weapon_type": "gravitic_hook",
+          "strength": 0,
+          "range_cm": 0,
+          "arcs": []
+        },
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "strength": 2,
+          "range_cm": 0,
+          "arcs": []
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "strength": 2,
+          "range_cm": 0,
+          "arcs": []
+        },
+        {
+          "name": "Prow Gravitic Launcher",
+          "weapon_type": "gravitic_launcher",
+          "strength": 6,
+          "range_cm": 40,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "critical_damage": [],
+      "is_flagship": false,
+      "rerolls_remaining": 0,
+      "status": "ok",
+      "is_crippled": false,
+      "is_destroyed": false,
+      "is_disengaged": false,
+      "is_grappled": false,
+      "moved_this_turn": false,
+      "has_fired": false,
+      "has_boarded": false,
+      "boarding_target_id": null,
+      "grappled_with_id": null,
+      "brace_set_on_turn": 0,
+      "brace_failed_vs": [],
+      "weapons_fired_indices": [],
+      "weapons_remaining": {},
+      "turrets_used_vs": "",
+      "disengage_failed_this_turn": false,
+      "distance_moved_this_turn": 0.0,
+      "turns_used_this_turn": 0,
+      "net_rotation_this_turn": 0.0
+    },
+    {
+      "id": "1d737909",
+      "name": "Emissary Class Light Cruiser",
+      "ship_class": "emissary",
+      "ship_type": "cruiser",
+      "faction": "tau_kororvesh",
+      "player": 2,
+      "x": 90.0,
+      "y": 80.0,
+      "heading": 180.0,
+      "speed": 20,
+      "effective_speed": 20,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "shields_remaining": 1,
+      "effective_shields": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "turrets": 2,
+      "effective_turrets": 2,
+      "hits_max": 4,
+      "hits_remaining": 4,
+      "leadership": 7,
+      "base_radius": 1.6,
+      "special_order": "none",
+      "previous_order": "none",
+      "special_rules": [],
+      "weapons": [
+        {
+          "name": "Port Railgun Battery",
+          "weapon_type": "battery",
+          "strength": 4,
+          "range_cm": 45,
+          "arcs": [
+            "left",
+            "front"
+          ]
+        },
+        {
+          "name": "Starboard Railgun Battery",
+          "weapon_type": "battery",
+          "strength": 4,
+          "range_cm": 45,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Port Gravitic Hook",
+          "weapon_type": "gravitic_hook",
+          "strength": 0,
+          "range_cm": 0,
+          "arcs": []
+        },
+        {
+          "name": "Starboard Gravitic Hook",
+          "weapon_type": "gravitic_hook",
+          "strength": 0,
+          "range_cm": 0,
+          "arcs": []
+        },
+        {
+          "name": "Prow Launch Bays",
+          "weapon_type": "launch_bay",
+          "strength": 2,
+          "range_cm": 0,
+          "arcs": []
+        }
+      ],
+      "critical_damage": [],
+      "is_flagship": false,
+      "rerolls_remaining": 0,
+      "status": "ok",
+      "is_crippled": false,
+      "is_destroyed": false,
+      "is_disengaged": false,
+      "is_grappled": false,
+      "moved_this_turn": false,
+      "has_fired": false,
+      "has_boarded": false,
+      "boarding_target_id": null,
+      "grappled_with_id": null,
+      "brace_set_on_turn": 0,
+      "brace_failed_vs": [],
+      "weapons_fired_indices": [],
+      "weapons_remaining": {},
+      "turrets_used_vs": "",
+      "disengage_failed_this_turn": false,
+      "distance_moved_this_turn": 0.0,
+      "turns_used_this_turn": 0,
+      "net_rotation_this_turn": 0.0
+    }
+  ],
+  "phenomena": []
+}
