@@ -52,7 +52,6 @@ async function _fetchPyModules() {
         "py/src/movement_ui.py",
         "py/src/combat.py",
         "py/src/ordnance.py",
-        "py/src/ordnance_movement.py",
         "py/src/boarding.py",
         "py/src/hit_and_run.py",
         "py/src/disengage.py",
@@ -69,7 +68,6 @@ async function _fetchPyModules() {
         "py/src/homebrew_catalog.py",
         "py/src/fleet_loader.py",
         "py/src/campaign.py",
-        "py/src/network.py",
         // Web stubs
         "py/src/web_ui_stub.py",
         "py/src/web_game_context.py",
@@ -218,7 +216,7 @@ export function onMoveTarget(wx, wy) {
 // ── Log ───────────────────────────────────────────────────────────────────────
 
 function _appendLog(msg) {
-    const log = document.getElementById("game-log");
+    const log = document.getElementById("log-panel");
     if (!log) return;
     const line = document.createElement("div");
     line.className = "log-line";

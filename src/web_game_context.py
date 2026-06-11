@@ -28,7 +28,7 @@ from .end_phase import (
     resolve_end_phase, get_repair_info, apply_repair_choices,
     resolve_hulk_drift,
 )
-from .scenario import check_game_end
+from .scenario import check_game_over
 
 
 class WebGameContext:
@@ -340,8 +340,24 @@ class WebGameContext:
                 result = resolve_lances(attacker, target, weapon, self.dice,
                                         lock_on=lock_on)
             elif wtype == "nova_cannon":
-                result = resolve_nova_cannon(attacker, weapon, target.x, target.y,
-                                             self.dice, self.gs)
+                nc = resolve_nova_cannon(attacker, target.x, target.y,
+                                         self.dice, self.gs)
+                if "error" in nc:
+                    self.log(f"  {weapon['name']}: {nc['error']}")
+                    continue
+                self.log(f"  {weapon['name']}: template at "
+                         f"({nc['template_x']:.0f},{nc['template_y']:.0f})"
+                         + (f", scattered {nc['scatter_distance']}cm"
+                            if nc['scatter_distance'] else ", direct hit"))
+                for sid, hd in nc.get("ship_hits", {}).items():
+                    t = self.gs.get_ship_by_id(sid)
+                    if t:
+                        dmg = apply_damage(t, hd["hits"], self.dice, self.gs,
+                                           ignores_shields=True)
+                        self.log(f"  {t.name}: {hd['hits']} nova cannon hit(s), "
+                                 f"{dmg['hull_hits']} hull damage")
+                        self.check_destruction(t)
+                continue
             else:
                 continue
 
@@ -413,15 +429,19 @@ class WebGameContext:
 
     def _move_ordnance(self) -> None:
         from .ordnance import move_ordnance
-        logs = move_ordnance(self.gs, self.dice)
-        for line in logs:
-            self.log(line)
+        from .models import OrdnanceMarker
+        moved = 0
+        for i, o_dict in enumerate(self.gs.ordnance):
+            marker = OrdnanceMarker.from_dict(o_dict)
+            move_ordnance(marker, self.gs)
+            self.gs.ordnance[i] = marker.to_dict()
+            moved += 1
+        self.log(f"Moved {moved} ordnance marker(s)")
 
     def _launch_ordnance(self, data: dict) -> None:
         ship_id = data["ship_id"]
         weapon_index = data.get("weapon_index", 0)
-        heading = data.get("heading", 0.0)
-        strength = data.get("strength", 1)
+        heading = data.get("heading")
         ship = self.gs.get_ship_by_id(ship_id)
         if not ship:
             return
@@ -434,18 +454,17 @@ class WebGameContext:
 
         if wtype == "torpedo":
             from .ordnance import launch_torpedoes
-            logs = launch_torpedoes(ship, weapon, heading, strength, self.gs)
+            marker = launch_torpedoes(ship, weapon, self.gs, heading=heading)
+            self.log(f"{ship.name} launches torpedo salvo "
+                     f"(Str {marker.strength})")
         elif wtype == "launch_bay":
             from .ordnance import launch_attack_craft
-            craft_type = data.get("craft_type", "fighter")
-            logs = launch_attack_craft(ship, weapon, heading, strength,
-                                       craft_type, self.gs)
+            craft_type = data.get("craft_type", "fury_fighter")
+            count = data.get("count", weapon.get("strength", 1))
+            launch_attack_craft(ship, weapon, craft_type, count, self.gs)
+            self.log(f"{ship.name} launches {count}x {craft_type}")
         else:
             self.log(f"Cannot launch from weapon type '{wtype}'")
-            return
-
-        for line in logs:
-            self.log(line)
 
     # ── End phase ─────────────────────────────────────────────────────────────
 
@@ -479,10 +498,15 @@ class WebGameContext:
                         self.log(line)
 
         # Check victory
-        result = check_game_end(self.gs)
+        result = check_game_over(self.gs)
         if result:
-            self.log(f"=== GAME OVER: {result} ===")
-            js.postMessage(to_js({"type": "game_over", "result": result}))
+            winner = result.get("winner")
+            wname = (self.gs.player1_name if winner == 1
+                     else self.gs.player2_name if winner == 2 else "Draw")
+            summary = f"{wname} wins ({result.get('reason', '')})" \
+                if winner else f"Draw ({result.get('reason', '')})"
+            self.log(f"=== GAME OVER: {summary} ===")
+            js.postMessage(to_js({"type": "game_over", "result": summary}))
 
         self.board_redraw()
 
