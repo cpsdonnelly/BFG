@@ -3,7 +3,7 @@ import os
 import shutil
 
 SRC = os.path.join(os.path.dirname(__file__), "..", "src")
-DST = os.path.join(os.path.dirname(__file__), "..", "web", "py")
+DST = os.path.join(os.path.dirname(__file__), "..", "web", "py", "src")
 
 os.makedirs(DST, exist_ok=True)
 

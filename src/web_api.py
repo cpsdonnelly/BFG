@@ -6,7 +6,7 @@ All heavy game logic lives in WebGameContext; this module is just the boundary.
 import json
 import os
 
-import web_ui_stub as _ui
+from . import web_ui_stub as _ui
 
 _ctx = None
 
@@ -17,7 +17,7 @@ def init(sab_int32) -> None:
     os.makedirs("/saves/bfg_web", exist_ok=True)
 
     global _ctx
-    from web_game_context import WebGameContext
+    from .web_game_context import WebGameContext
     _ctx = WebGameContext()
 
 

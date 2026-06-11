@@ -10,7 +10,7 @@ from typing import Optional, List
 import js
 from pyodide.ffi import to_js
 
-import web_ui_stub as _ui
+from . import web_ui_stub as _ui
 
 from .models import Ship, SpecialOrder
 from .game_state import GameState

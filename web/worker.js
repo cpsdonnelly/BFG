@@ -36,7 +36,7 @@ self.onmessage = async (e) => {
 
     if (msg.type === "start_game") {
         const state = pyodide.runPython(
-            `from web_api import start_game; start_game(cfg_json)`,
+            `from src.web_api import start_game; start_game(cfg_json)`,
             { locals: { cfg_json: JSON.stringify(msg.config) } }
         );
         self.postMessage({ type: "state", data: JSON.parse(state) });
@@ -45,7 +45,7 @@ self.onmessage = async (e) => {
 
     if (msg.type === "action") {
         const state = pyodide.runPython(
-            `from web_api import perform_action; perform_action(act_json)`,
+            `from src.web_api import perform_action; perform_action(act_json)`,
             { locals: { act_json: JSON.stringify(msg.action) } }
         );
         self.postMessage({ type: "state", data: JSON.parse(state) });
@@ -75,12 +75,13 @@ async function _boot(modules) {
 
     self.postMessage({ type: "loading", msg: "Installing game modules…" });
 
-    // Write every Python source file into Pyodide's virtual filesystem
+    // Write every Python source file into Pyodide's virtual filesystem as a package
+    pyodide.FS.mkdir("/home/pyodide/src");
     for (const [name, src] of Object.entries(modules)) {
-        pyodide.FS.writeFile(`/home/pyodide/${name}`, src);
+        pyodide.FS.writeFile(`/home/pyodide/src/${name}`, src);
     }
 
-    // Point sys.path at the directory we just wrote to
+    // Point sys.path at /home/pyodide so `import src.web_api` resolves
     pyodide.runPython(`
 import sys, os
 sys.path.insert(0, "/home/pyodide")
@@ -92,7 +93,7 @@ os.makedirs("/saves/bfg_web", exist_ok=True)
 
     // Initialise web_api (sets up web_ui_stub._sab and creates WebGameContext)
     pyodide.runPython(`
-from web_api import init
+from src.web_api import init
 init(_sab_int32)
 `);
 
