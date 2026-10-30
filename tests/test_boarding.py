@@ -324,3 +324,44 @@ class TestCrewDamageBonus:
         # attacker: 3 + 2(crew) = 5; defender: 3 → attacker wins by 2
         assert result["winner"] == "attacker"
         assert result["damage"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Escorts in boarding actions: never hulks, crits are 1 damage
+# ---------------------------------------------------------------------------
+
+class TestBoardedEscorts:
+    def test_escort_boarded_to_zero_becomes_blast_marker(self):
+        attacker = make_ship(id="a", player=1, hits_max=8, turrets=2)
+        escort = make_ship(id="e", player=2, ship_type="escort", hits_max=1,
+                           turrets=1, x=5.0)
+        gs = make_gs([attacker, escort])
+        rolls = [4, 1]   # attacker 4+4 (troops 10 vs 2) beats 1: diff 7, Overwhelmed
+        dice = DiceStub(rolls)
+
+        resolve_boarding([attacker], escort, dice, gs)
+
+        assert dice._idx == len(rolls)   # no crit roll for an already-destroyed escort
+        e = gs.get_ship_by_id("e")
+        assert e.status == "destroyed"
+        assert [bm.id for bm in gs.get_blast_markers()] == ["wreck_e"]
+
+    def test_escort_can_win_and_still_be_destroyed_by_its_crit(self):
+        escort = make_ship(id="e", player=1, ship_type="escort", hits_max=1, turrets=1)
+        cruiser = make_ship(id="c", player=2, hits_max=8, hits_remaining=1, turrets=2, x=5.0)
+        gs = make_gs([escort, cruiser])
+        rolls = (
+            [6, 5]   # escort 6 +2 (cruiser crippled) = 8 vs 5 +1 (troops 3 vs 2) = 6: diff 2
+            + [5]    # winner crit check 5+: passes -> 1 damage to the escort
+            + [1]    # loser crit check 4+: fails
+        )
+        dice = DiceStub(rolls)
+
+        resolve_boarding([escort], cruiser, dice, gs)
+
+        assert dice._idx == len(rolls)
+        e = gs.get_ship_by_id("e")
+        assert e.status == "destroyed"
+        assert e.critical_damage == []
+        assert [bm.id for bm in gs.get_blast_markers()] == ["wreck_e"]
+        assert gs.get_ship_by_id("c").status == "drifting_hulk"   # capital ships still hulk

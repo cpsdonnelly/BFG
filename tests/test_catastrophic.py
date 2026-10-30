@@ -61,3 +61,23 @@ def test_explosion_kill_can_leave_a_hulk():
 
     assert dice._idx == len(rolls)
     assert gs.get_ship_by_id("victim").status == "drifting_hulk"
+
+
+def test_small_defense_becomes_blast_marker_without_rolling():
+    platform = make_ship(id="d", ship_type="defense", hits_max=2, hits_remaining=0)
+    gs = make_gs([platform])
+    dice = DiceStub([4])
+
+    assert resolve_catastrophic(platform, dice, gs) == "escort_destroyed"
+    assert dice._idx == 0
+    assert gs.get_ship_by_id("d").status == "destroyed"
+    assert [bm.id for bm in gs.get_blast_markers()] == ["wreck_d"]
+
+
+def test_defense_with_three_hits_rolls_catastrophic_like_a_capital_ship():
+    platform = make_ship(id="d", ship_type="defense", hits_max=3, hits_remaining=0)
+    gs = make_gs([platform])
+    dice = DiceStub([4])               # 2D6 = 4 -> drifting hulk
+
+    assert resolve_catastrophic(platform, dice, gs) == "drifting_hulk"
+    assert dice._idx == 1

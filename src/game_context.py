@@ -57,6 +57,8 @@ class GameContext:
         ship = self.gs.get_ship_by_id(ship.id)
         if not ship or ship.hits_remaining > 0:
             return
+        if ship.status != "active":
+            return  # already a hulk or removed (e.g. boarded to 0: no catastrophic roll)
         from .combat import resolve_catastrophic
         result = resolve_catastrophic(ship, self.dice, self.gs)
         self.log(f"  {ship.name}: {result}")

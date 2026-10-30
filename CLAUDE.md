@@ -28,11 +28,10 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - **Ship names:** the game's "Hero Class Cruiser" is the booklet's Hero Starship, and the
   "Messenger" is the booklet's Messenger Starship, an escort (the game wrongly lists it as a
   light cruiser).
-
-### Open questions for the owner
-
-- A ship reduced to 0 by boarding "becomes a drifting hulk" (s.24), but escorts reduced to 0
-  are replaced by a blast marker (s.26). Which applies to a boarded escort?
+- **Escorts never become hulks:** they are too small. An escort reduced to 0 by anything,
+  boarding included, is replaced by a blast marker (s.26). The "drifting hulk" result for
+  ships boarded to 0 (s.24) applies to capital ships.
+- **Victory points never double-count:** an escort squadron is scored once, as one unit.
 
 ## Running and testing
 

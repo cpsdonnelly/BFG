@@ -78,10 +78,25 @@ def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
 
 def _boarding_crit_check(ship: Ship, threshold: Optional[int],
                           dice: DiceRoller, gs: GameState) -> Optional[Dict]:
-    """Roll 1D6 for a boarding crit check. Return the applied crit or None."""
+    """Roll 1D6 for a boarding crit check. Return the applied crit or None.
+
+    Escorts take 1 point of damage instead of rolling on the crit table, so an
+    escort can win a boarding action and still be destroyed.
+    """
     from .hit_and_run import _apply_raid_crit
     if threshold is None:
         return None
+    if ship.ship_type == "escort":
+        if threshold:
+            roll = dice.roll_d6(1, f"Boarding crit check on {ship.name} (need {threshold}+)")[0]
+            gs.add_log(f"  {ship.name} crit check: rolled {roll} (need {threshold}+)")
+            if roll < threshold:
+                return None
+        if ship.is_destroyed:
+            return None
+        gs.add_log(f"  {ship.name}: boarding critical — 1 damage (escort)")
+        _apply_boarding_damage(ship, 1, gs)
+        return {"crit_type": "escort_damage", "description": "+1 damage (escort)"}
     if threshold == 0:
         # Auto-crit: use a fresh roll to determine which crit
         roll = dice.roll_d6(1, f"Auto boarding crit on {ship.name}")[0]
@@ -207,9 +222,14 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
 
 def _apply_boarding_damage(ship: Ship, damage: int, gs: GameState) -> None:
     """Apply boarding damage directly to hull — ignores shields and brace.
-    If ship reaches 0, marks as drifting_hulk (no catastrophic roll).
+    A ship reduced to 0 becomes a drifting hulk (no catastrophic roll); escorts
+    are too small to hulk and are replaced by a blast marker instead.
     """
+    from .combat import becomes_blast_marker, replace_with_blast_marker
     ship.hits_remaining = max(0, ship.hits_remaining - damage)
+    if ship.hits_remaining <= 0 and becomes_blast_marker(ship):
+        replace_with_blast_marker(ship, gs)
+        return
     if ship.hits_remaining <= 0:
         ship.status = "drifting_hulk"
         gs.add_log(f"  {ship.name} overwhelmed — drifting hulk (no explosion roll)")

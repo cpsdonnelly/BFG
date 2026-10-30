@@ -722,18 +722,30 @@ def resolve_ram(rammer: Ship, target: Ship, dice: DiceRoller,
     }
 
 
+def becomes_blast_marker(ship: Ship) -> bool:
+    """Escorts, and defenses with fewer than 3 starting hits, are replaced by a
+    blast marker at 0 hits; they never roll catastrophic damage or become hulks."""
+    return ship.ship_type == "escort" or (
+        ship.ship_type == "defense" and ship.hits_max < 3)
+
+
+def replace_with_blast_marker(ship: Ship, game_state: GameState) -> None:
+    """Remove a destroyed escort (or small defense) and leave a blast marker."""
+    ship.status = "destroyed"
+    ship.hits_remaining = 0
+    game_state.update_ship(ship)
+    game_state.add_log(f"{ship.name} destroyed - replaced with blast marker")
+    marker_id = f"wreck_{ship.id}"
+    if not any(bm["id"] == marker_id for bm in game_state.blast_markers):
+        game_state.add_blast_marker(BlastMarker(
+            id=marker_id, x=ship.x, y=ship.y, source="destroyed_escort",
+            heading=random.uniform(0, 360)))
+
+
 def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) -> str:
     """Roll on catastrophic damage table for a destroyed capital ship."""
-    if ship.ship_type == "escort":
-        # Escorts just become a blast marker and are removed
-        ship.status = "destroyed"
-        ship.hits_remaining = 0
-        game_state.update_ship(ship)
-        game_state.add_log(f"{ship.name} destroyed - replaced with blast marker")
-        bm = BlastMarker(id=f"wreck_{ship.id}", x=ship.x, y=ship.y,
-                          source="destroyed_escort",
-                          heading=random.uniform(0, 360))
-        game_state.add_blast_marker(bm)
+    if becomes_blast_marker(ship):
+        replace_with_blast_marker(ship, game_state)
         return "escort_destroyed"
 
     roll = dice.roll_2d6(f"Catastrophic Damage for {ship.name}")
