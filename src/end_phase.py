@@ -247,14 +247,7 @@ def resolve_end_phase(gs: GameState, dice: DiceRoller,
     all_logs = []
     all_logs.append("=== END PHASE ===")
 
-    # 1. Fire damage (both players' ships)
-    for ship in gs.get_ships():
-        if ship.is_destroyed or ship.is_disengaged:
-            continue
-        fire_logs = resolve_fire_damage(ship, dice, gs)
-        all_logs.extend(fire_logs)
-
-    # 2. Damage control (both players' ships)
+    # 1. Damage control (both players' ships)
     for ship in gs.get_ships():
         if ship.is_destroyed or ship.is_disengaged:
             continue
@@ -262,6 +255,13 @@ def resolve_end_phase(gs: GameState, dice: DiceRoller,
             continue  # hulks don't repair
         dc_logs = resolve_damage_control(ship, dice, gs)
         all_logs.extend(dc_logs)
+
+    # 2. Fires not extinguished by damage control each deal 1 damage
+    for ship in gs.get_ships():
+        if ship.is_destroyed or ship.is_disengaged:
+            continue
+        fire_logs = resolve_fire_damage(ship, dice, gs)
+        all_logs.extend(fire_logs)
 
     # 3. Remove blast markers (active player rolls)
     bm_logs = remove_blast_markers(gs, dice)

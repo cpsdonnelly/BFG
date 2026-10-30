@@ -826,9 +826,8 @@ class GamePanel:
 
     def _resolve_end_phase_interactive(self):
         """Run end phase with interactive repair choices."""
-        from .end_phase import (resolve_fire_damage, get_repair_info,
-                                 apply_repair_choices, remove_blast_markers,
-                                 remove_brace_orders)
+        from .end_phase import (get_repair_info, apply_repair_choices,
+                                remove_blast_markers, remove_brace_orders)
         gs = self.ctx.gs
 
         self.ctx.log("=== END PHASE ===")
@@ -839,18 +838,7 @@ class GamePanel:
         # 0b. Teleport attacks
         self.end_phase._resolve_teleport_attacks()
 
-        # 1. Fire damage
-        for ship in gs.get_ships():
-            if ship.is_destroyed or ship.is_disengaged:
-                continue
-            if ship.status in ("drifting_hulk", "burning_hulk"):
-                continue
-            fire_logs = resolve_fire_damage(ship, self.ctx.dice, gs)
-            self.ctx.log_lines(fire_logs)
-            if ship.hits_remaining <= 0:
-                self.ctx.check_destruction(ship)
-
-        # 2. Damage control with player choice
+        # 1. Damage control with player choice
         for ship in gs.get_ships():
             if ship.is_destroyed or ship.is_disengaged:
                 continue
@@ -874,6 +862,9 @@ class GamePanel:
                     self.ctx.log(f"  {ship.name}: no repairs applied")
             elif info["num_dice"] > 0:
                 self.ctx.log(f"{ship.name}: {info['num_dice']} dice, no 6s rolled")
+
+        # 2. Fires not extinguished by damage control each deal 1 damage
+        self._resolve_unextinguished_fires()
 
         # 3. Remove blast markers
         bm_logs = remove_blast_markers(gs, self.ctx.dice)
@@ -1093,9 +1084,8 @@ class GamePanel:
 
     def _resolve_end_phase_auto(self, ai):
         """End phase for the AI player — same logic as interactive but auto-repairs."""
-        from .end_phase import (resolve_fire_damage, get_repair_info,
-                                apply_repair_choices, remove_blast_markers,
-                                remove_brace_orders)
+        from .end_phase import (get_repair_info, apply_repair_choices,
+                                remove_blast_markers, remove_brace_orders)
         from .ai_player import AIPlayer
         gs = self.ctx.gs
 
@@ -1103,16 +1093,6 @@ class GamePanel:
 
         self.end_phase._resolve_boarding_actions()
         self.end_phase._resolve_teleport_attacks()
-
-        for ship in gs.get_ships():
-            if ship.is_destroyed or ship.is_disengaged:
-                continue
-            if ship.status in ("drifting_hulk", "burning_hulk"):
-                continue
-            fire_logs = resolve_fire_damage(ship, self.ctx.dice, gs)
-            self.ctx.log_lines(fire_logs)
-            if ship.hits_remaining <= 0:
-                self.ctx.check_destruction(ship)
 
         for ship in gs.get_ships():
             if ship.is_destroyed or ship.is_disengaged:
@@ -1132,11 +1112,25 @@ class GamePanel:
                     repair_logs = apply_repair_choices(ship, choices, gs)
                     self.ctx.log_lines(repair_logs)
 
+        self._resolve_unextinguished_fires()
+
         bm_logs = remove_blast_markers(gs, self.ctx.dice)
         self.ctx.log_lines(bm_logs)
         brace_logs = remove_brace_orders(gs)
         self.ctx.log_lines(brace_logs)
         self.ctx.board.redraw()
+
+    def _resolve_unextinguished_fires(self):
+        """After damage control: each fire still burning deals 1 damage."""
+        from .end_phase import resolve_fire_damage
+        for ship in self.ctx.gs.get_ships():
+            if ship.is_destroyed or ship.is_disengaged:
+                continue
+            if ship.status in ("drifting_hulk", "burning_hulk"):
+                continue
+            self.ctx.log_lines(resolve_fire_damage(ship, self.ctx.dice, self.ctx.gs))
+            if ship.hits_remaining <= 0:
+                self.ctx.check_destruction(ship)
 
     # ── Disengagement ─────────────────────────────────────────────────────────
 

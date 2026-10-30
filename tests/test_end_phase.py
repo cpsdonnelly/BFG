@@ -218,3 +218,33 @@ def test_burning_hulk_rerrolls_catastrophic():
     updated = gs.get_ship_by_id("s")
     # Roll 6 is < 7 → drifting_hulk range (2-6)
     assert updated.status == "drifting_hulk"
+
+
+# ── End phase order: damage control first, then unextinguished fires ─────────
+
+def _burning_ship():
+    return make_ship(id="s", hits_max=8,
+                     critical_damage=[{"crit_type": "fire", "description": "Fire!",
+                                       "repairable": True, "turn_inflicted": 1}])
+
+
+def test_fire_put_out_by_damage_control_deals_no_damage():
+    from src.end_phase import resolve_end_phase
+    gs = make_gs([_burning_ship()])
+    rolls = [6] + [1] * 7      # damage control: 8 dice (8 HP), one 6 repairs the fire
+    dice = DiceStub(rolls)
+    resolve_end_phase(gs, dice, active_player=1)
+    assert dice._idx == len(rolls)
+    s = gs.get_ship_by_id("s")
+    assert s.critical_damage == []
+    assert s.hits_remaining == 8
+
+
+def test_fire_left_burning_deals_damage_after_damage_control():
+    from src.end_phase import resolve_end_phase
+    gs = make_gs([_burning_ship()])
+    rolls = [1] * 8            # damage control: 8 dice at full HP, no 6s
+    dice = DiceStub(rolls)
+    resolve_end_phase(gs, dice, active_player=1)
+    assert dice._idx == len(rolls)
+    assert gs.get_ship_by_id("s").hits_remaining == 7
