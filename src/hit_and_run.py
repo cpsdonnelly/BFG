@@ -111,7 +111,8 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
     Roll of 1 = failure (should already be filtered before calling this).
     Rolls 2-6 look up directly on the critical damage table.
     Uses cascade rules (same as standard crits).
-    Returns the applied crit dict, or None if cascaded off the table or failed.
+    Returns the applied crit dict plus the extra damage it dealt, or None if
+    cascaded off the table or failed.
     """
     from .combat import _resolve_crit_cascade
     crit_data = _resolve_crit_cascade(roll, target, gs)
@@ -142,7 +143,7 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
         gs.add_log(f"  Raid: {crit_data['name']}")
 
     gs.update_ship(target)
-    return crit_entry
+    return {**crit_entry, "extra_damage": extra}
 
 
 def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,

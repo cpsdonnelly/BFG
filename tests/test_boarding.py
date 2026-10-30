@@ -258,12 +258,20 @@ class TestResolveBoarding:
         assert result["winner"] == "draw"
 
     def test_loser_reduced_to_zero_becomes_drifting_hulk(self):
-        attacker, target, gs = self._pair(d_hits=2)
-        # attacker rolls max, defender rolls 1 → attacker wins by large margin → target at 0
-        dice = DiceStub([6, 1] + [1] * 20)
-        result = resolve_boarding([attacker], target, dice, gs)
-        fresh_t = gs.get_ship_by_id("t")
-        assert fresh_t.status == "drifting_hulk"
+        attacker, _, _ = self._pair()
+        dorsal = {"name": "Dorsal Lances", "weapon_type": "lance", "strength": 2,
+                  "arcs": ["left", "front", "right"]}
+        target = make_ship(id="t", name="Target", hits_remaining=2, hits_max=2,
+                           turrets=2, player=2, weapons=[dorsal])
+        gs = make_gs([attacker, target])
+        rolls = [
+            6, 1,   # 6 +2 (troops 10 vs 4) beats 1: diff 7, Overwhelmed -> target to 0
+            2,      # loser's automatic crit: 2 = Dorsal Armament, no extra damage
+        ]
+        dice = DiceStub(rolls)
+        resolve_boarding([attacker], target, dice, gs)
+        assert dice._idx == len(rolls)
+        assert gs.get_ship_by_id("t").status == "drifting_hulk"
 
     def test_multi_ship_combined_troop_rating(self):
         # Two small attackers vs one target — combined troop rating should beat individual
@@ -407,3 +415,46 @@ class TestBoardingCatastrophicNuance:
         # It stays "active" so check_destruction rolls catastrophic damage.
         assert (t.hits_remaining, t.status) == (0, "active")
         assert [c["crit_type"] for c in t.critical_damage] == ["engine_room"]
+
+
+class TestBoardedHulkCritDamage:
+    """Owner ruling on s.24: a ship boarded to 0 is a hulk, but its boarding
+    crit is still rolled, and extra damage from that crit means a
+    catastrophic damage roll."""
+
+    def _setup(self):
+        attacker = make_ship(id="a", player=1, hits_max=8, turrets=2)
+        port = {"name": "Port Battery", "weapon_type": "battery", "strength": 6,
+                "arcs": ["left"]}
+        target = make_ship(id="t", player=2, hits_max=8, hits_remaining=1, turrets=0,
+                           x=5.0, weapons=[port])
+        return attacker, target, make_gs([attacker, target])
+
+    def test_crit_with_extra_damage_on_boarded_hulk_needs_catastrophic_roll(self):
+        attacker, target, gs = self._setup()
+        rolls = [
+            1, 5,   # attacker 1 +2 (crippled) +4 (troops 10 vs 1) = 7 vs 5: diff 2
+            1,      # winner crit check 5+: fails
+            4,      # loser crit check 4+: passes (target already boarded to 0)
+            6,      # raid-table crit 6: Engine Room Damaged, +1 damage
+        ]
+        dice = DiceStub(rolls)
+        resolve_boarding([attacker], target, dice, gs)
+        assert dice._idx == len(rolls)
+        t = gs.get_ship_by_id("t")
+        assert (t.hits_remaining, t.status) == (0, "active")   # catastrophic roll pending
+
+    def test_crit_without_extra_damage_leaves_boarded_ship_a_hulk(self):
+        attacker, target, gs = self._setup()
+        rolls = [
+            1, 5,   # diff 2, target boarded to 0
+            1,      # winner crit check fails
+            4,      # loser crit check passes
+            4,      # raid-table crit 4: Port Armament Damaged, no extra damage
+        ]
+        dice = DiceStub(rolls)
+        resolve_boarding([attacker], target, dice, gs)
+        assert dice._idx == len(rolls)
+        t = gs.get_ship_by_id("t")
+        assert t.status == "drifting_hulk"
+        assert [c["crit_type"] for c in t.critical_damage] == ["port_armament"]

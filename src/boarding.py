@@ -102,13 +102,28 @@ def _boarding_crit_check(ship: Ship, threshold: Optional[int],
         roll = dice.roll_d6(1, f"Auto boarding crit on {ship.name}")[0]
         # Clamp to 2 (minimum valid crit roll on the raid crit table)
         roll = max(2, roll)
-        return _apply_raid_crit(roll, ship, gs, dice)
+        return _crit_damage_reopens_hulk(ship, _apply_raid_crit(roll, ship, gs, dice), gs)
     roll = dice.roll_d6(1, f"Boarding crit check on {ship.name} (need {threshold}+)")[0]
     gs.add_log(f"  {ship.name} crit check: rolled {roll} (need {threshold}+)")
     if roll >= threshold:
         crit_roll = max(2, dice.roll_d6(1, f"Boarding crit type on {ship.name}")[0])
-        return _apply_raid_crit(crit_roll, ship, gs, dice)
+        return _crit_damage_reopens_hulk(ship, _apply_raid_crit(crit_roll, ship, gs, dice), gs)
     return None
+
+
+def _crit_damage_reopens_hulk(ship: Ship, crit: Optional[Dict],
+                              gs: GameState) -> Optional[Dict]:
+    """Owner ruling on s.24: a ship boarded to 0 is a drifting hulk with no
+    catastrophic roll, but the boarding crit is still rolled, and if that crit
+    deals extra damage the ship does roll on the Catastrophic Damage table.
+    Clearing the hulk status leaves it at 0 hits for check_destruction."""
+    if (crit and crit.get("extra_damage", 0) > 0
+            and ship.status == "drifting_hulk" and ship.hits_remaining <= 0):
+        ship.status = "active"
+        gs.update_ship(ship)
+        gs.add_log(f"  {ship.name}: boarding critical deals extra damage — "
+                   f"roll for catastrophic damage")
+    return crit
 
 
 def resolve_boarding(attackers: List[Ship], target: Ship,

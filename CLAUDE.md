@@ -32,6 +32,10 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   boarding included, is replaced by a blast marker (s.26). The "drifting hulk" result for
   ships boarded to 0 (s.24) applies to capital ships.
 - **Victory points never double-count:** an escort squadron is scored once, as one unit.
+- **Boarding and catastrophic damage (s.24):** a ship reduced to 0 by boarding damage becomes
+  a drifting hulk with no catastrophic roll, but its boarding crit is still rolled. If that crit
+  deals extra damage (Engine Room, Hull Breach, Bulkhead Collapse), the ship rolls on the
+  Catastrophic Damage table. A crit with no extra damage leaves it a hulk.
 
 ### Open questions for the owner
 
