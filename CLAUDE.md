@@ -11,13 +11,32 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   those generated files by hand; the `.docx` in `bfgxr/source/` is the master.
 - Never invent rules, stats or values. If the booklet doesn't cover something, say so and
   ask the owner.
-- The booklet is condensed and does **not** cover: boarding actions, the base teleport rules
-  (range, which ships may teleport), how many raids assault boats and boarding torpedoes
-  make, what boarding torpedoes do on contact, or ramming. Ask before implementing these.
+- Core rules sections most often needed: Ramming (8), Hit-and-Run Raids incl. teleport attacks
+  (23), Boarding Actions (24), Damage & Critical Hits (25), Catastrophic Damage (26),
+  Victory Points (30). Sections are numbered in `bfgxr/rules/00_core-rules.md`.
+
+### Owner rulings not (yet) in the booklet
+
+These come from the owner directly. Treat them as rules until the booklet covers them.
+
+- **Holding the field:** if a fleet holds the field, its player earns victory points equal to
+  50% of the total points value of each hulk on the table, friendly and enemy, in addition to
+  any VP for destroying those ships.
+- **Ship names:** the game's "Hero Class Cruiser" is the booklet's Hero Starship, and the
+  "Messenger" is the booklet's Messenger Starship, an escort (the game wrongly lists it as a
+  light cruiser).
+
+### Open questions for the owner
+
+- A ship reduced to 0 by boarding "becomes a drifting hulk" (s.24), but escorts reduced to 0
+  are replaced by a blast marker (s.26). Which applies to a boarded escort?
+- Disengaged ships: `victory_points.py` awards 10% (25% if crippled); s.30 doesn't mention
+  disengaged ships.
 - `data/rules_cheatsheet.txt` and `data/*.csv` (plus the copies in the repo root) are an
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - `src/ship_catalog.py` (hard-coded Imperial Navy and Tau ships) predates the booklet and
-  disagrees with it on many stats and weapons.
+  disagrees with it on many stats and weapons. The plan is to build the catalog for all 9
+  booklet factions from `bfgxr/data/ships.json`.
 
 ## Running and testing
 

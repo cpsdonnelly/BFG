@@ -176,7 +176,7 @@ Default Leadership 6. Never crippled; destroyed only. Follows normal ship rules 
 
 **Movement:** moves exactly 10cm straight each turn, never slowed by blast markers or damage. May turn up to 45° only at the end of the move and only every second phase. In a planet's or moon's gravity well it may make one 45° turn toward that body even if it already turned; it also creates its own gravity well 5cm out from its base, which ships and Roks can orbit (orbiting objects move with it until they break orbit).
 
-**Damage:** counts as a defense for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.151), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
+**Damage:** counts as a defense for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.153), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
 #### Ork Rok (Xenos p.72)
 

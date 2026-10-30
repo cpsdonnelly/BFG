@@ -6,7 +6,7 @@ In Battlefleet Gothic, the expertise of a captain and his (or her) crew is shown
 
 As mentioned earlier, in one-off games you roll a D6 to determine each ship's leadership value before the start of the game. Look up the result of the dice roll on the table below to see what Leadership value the ship has. Escorts roll once per squadron, with the whole squadron sharing the value rolled. Each capital ship rolls individually for leadership, even if it is part of a squadron.
 
-**Starting Leadership by faction:** see Appendix 4, p.152.
+**Starting Leadership by faction:** see Appendix 4, p.154.
 
 ### Leadership Modifiers
 
@@ -18,7 +18,7 @@ If a ship is reduced to leadership 1 or less, it cannot voluntarily attempt spec
 
 ### Faction-Specific Leadership Tables
 
-Some factions do not use the default Starting Leadership table; their fleet lists replace it. All of them are unified into one table in the Appendix: see Appendix 4, p.152. Factions not listed there use the Default column.
+Some factions do not use the default Starting Leadership table; their fleet lists replace it. All of them are unified into one table in the Appendix: see Appendix 4, p.154. Factions not listed there use the Default column.
 
 *Source: BFG:XR faction fleet lists / codex documents*
 
@@ -104,7 +104,7 @@ Enemy Contacts (+1Ld): A vessel gains a +1 bonus to its leadership value when at
 
 (These modifiers cannot increase a vessel's Ld value above 10 or below zero. The Under Fire and Enemy Contacts modifiers apply to command checks only, not to other leadership tests.)
 
-A summary of all six special orders is given in Appendix 6, p.154.
+A summary of all six special orders is given in Appendix 6, p.156.
 
 ## 5. Squadrons
 
@@ -182,7 +182,27 @@ If a ship is not equipped with shields, or its shields have been permanently dis
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Blast Markers", p.22*
 
-## 8. Direct Fire & Gunnery
+## 8. Ramming
+
+A ship on All Ahead Full special orders may try to ram a single enemy vessel as it moves. It can never ram more than one enemy in a single move.
+
+**Declaring:** declare the target after passing the command check for All Ahead Full, but before rolling for its speed bonus. Once declared, the ram cannot be abandoned or switched to another target, even if the ship ends its move in contact with several enemies or never reaches its target. Target priority does not apply: any enemy vessel may be nominated.
+
+**Check course:** when the ram is declared, the ship takes a Leadership test: on 3D6 if the target is a smaller type of ship than the rammer, on 1D6 if it is a larger type, otherwise on 2D6. If it fails, the ship misses and completes its move normally without ramming (still on All Ahead Full).
+
+**Movement:** the rammer still follows All Ahead Full: it cannot turn, and it must complete its full move if it survives the ram, even as a wrecked hulk. After resolving the ram it may still shoot, board, launch ordnance and so on, if it meets the usual requirements.
+
+**Damage to the target:** the ram succeeds if any part of the rammer's base touches any part of the target's base during its move. Roll 1D6 for each point of the rammer's starting damage capacity. Each die that equals or beats the target's Armour on the facing struck inflicts 1 point of damage.
+
+**Damage to the rammer:** if the ships meet front-to-front, or the target is a defence, the rammer rolls dice equal to the target's starting damage capacity; otherwise half that, rounding up. Each die that equals or beats the rammer's front Armour inflicts 1 point of damage.
+
+Shields do not deflect ramming damage on either side. Damage is resolved immediately on contact: if either ship explodes, resolve hits from the explosion before the rammer finishes its move, and if the rammed ship explodes, its blast markers slow the rammer. Once the ram is resolved, the rammer continues its move (unless it exploded).
+
+**Faction ramming rules:** Orks, *Hull Krusha* (one automatic hit on a successful ram; Xenos p.55) and the *Goffs* clan (always pass the Leadership test to ram; Xenos p.57). Space hulks count as defences for ramming (Chaos Space Hulk, Imperium p.44-45; Ork Space Hulk, Xenos p.69-70).
+
+*Source: BFG:XR Rulebook, "Movement Phase - All Ahead Full: Ramming Speed!", p.37*
+
+## 9. Direct Fire & Gunnery
 
 Direct firing uses a ship's macrobatteries, lances and nova cannon. In order to make direct fire attacks, the firing ship must have at least some weapons within range and fire arc of the enemy.
 
@@ -228,7 +248,7 @@ Ships must always move at least half of their speed unless they use the Burn Ret
 
 *Source: BFG:XR Rulebook (current), "The Shooting Phase - Direct Fire", p.16-18; minimum-movement / stationary rule from "Movement", p.13*
 
-## 9. Nova Cannon
+## 10. Nova Cannon
 
 A nova cannon is a massive weapon, normally mounted in the prow of a ship so that the recoil it generates can be compensated for by the vessel's engines. It fires a projectile at incredible velocity, using graviometric impellers to accelerate it to close to light speed. The projectile implodes at a preset distance after firing, unleashing a force more potent than a dozen plasma bombs.
 
@@ -246,7 +266,7 @@ Note that nova cannon are not affected in any way by Lock On and Reload Ordnance
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Nova Cannon", p.19*
 
-## 10. Torpedoes
+## 11. Torpedoes
 
 The term 'torpedo' has always been used to describe any long-range missile carried by a spaceship. A typical anti-ship torpedo is over 200 feet long and powered by a plasma reactor, which also acts as a sizable portion of its warhead, turning it into a devastating plasma bomb. The area of a ship given over to the torpedo tubes is a massive space criss-crossed by lifts, hoists and gantry cranes for moving the huge missiles from the armored magazine silos where they are stored to the launch tubes.
 
@@ -270,7 +290,7 @@ On the turn it is launched, a torpedo salvo cannot attack a target that is not a
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Types of Ordnance", p.27*
 
-## 11. Mines
+## 12. Mines
 
 Space-borne mines almost always follow similar designs, regardless of which race constructs them. Although little more than self-guided explosives, mines are quite dangerous to enemy warships, and pose a substantial threat in large numbers.
 
@@ -284,7 +304,7 @@ Mines follow all the regular rules for ordnance regarding moving through blast m
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Types of Ordnance", p.27*
 
-## 12. Fighters
+## 13. Fighters
 
 Fighters are small, fast and extremely agile. They are only armed with weapons suitable for destroying torpedoes, mines, and other attack craft. In combat, the fighter's job is to intercept enemy ordnance and protect the vulnerable bombers and assault craft on their way to and from their target.
 
@@ -296,7 +316,7 @@ Vs Ships. The puny fighters cannot hope to damage the much larger vessel, so the
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules", p.31*
 
-## 13. Bombers
+## 14. Bombers
 
 Bombers are slower, heavier craft with destructive anti-ship weapons. Though vulnerable to enemy fighters, bombers can be a serious threat to ships.
 
@@ -308,7 +328,7 @@ Vs Ships. The bombers make an attack run on the ship. Make D6 rolls to hit again
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules", p.31*
 
-## 14. Resilient Attack Craft
+## 15. Resilient Attack Craft
 
 Some attack craft are so large and heavily armored that interception by enemy fighters may not always guarantee victory. Likewise, some fighters have expanded fuel reserves and armaments, allowing them to operate away from their mother ship for extended periods of time. This is represented by a 'resilient' save noted in an attack craft's description.
 
@@ -332,7 +352,7 @@ Note that the resolution process is the same even if both squadrons are resilien
 
 *Source: BFG:XR Rulebook (current), "Advanced Rules - Ordnance Phase", p.39*
 
-## 15. Multi-Role Attack Craft
+## 16. Multi-Role Attack Craft
 
 Certain fleets throughout the 41st Millennium make use of attack craft that are not restricted to just one type of mission profile, instead employing versatile multi-role attack craft.
 
@@ -346,7 +366,7 @@ When attacking in a wave, all multi-role attack craft that can function as both 
 
 *Source: BFG:XR Rulebook (current), "Advanced Rules - Ordnance Phase", p.39*
 
-## 16. Waves of Attack Craft
+## 17. Waves of Attack Craft
 
 When a ship launches its attack craft, it may choose to combine any number of them into a wave, which will move and attack together. To show attack craft deployed as a wave, place the markers so they're in one of the two formations below:
 
@@ -358,7 +378,7 @@ The order of the markers (and which one is the lead marker) is important for res
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Waves of Attack Craft", p.32*
 
-## 17. Combat Air Patrol (CAP)
+## 18. Combat Air Patrol (CAP)
 
 Due to the danger posed by enemy bombers, assault boats, and torpedoes, fleets will often employ fighter escorts to supplement the turret defenses of their light and medium cruisers (although particularly important battleships will sometimes receive a few squadrons as well). This practice is called combat air patrol, or CAP.
 
@@ -396,7 +416,7 @@ Resilient bombers and assault boats that end their movement in base contact with
 
 *Source: BFG:XR Rulebook, "Advanced Rules - Ordnance Phase", p.40*
 
-## 18. Turret Suppression
+## 19. Turret Suppression
 
 Waves containing both fighters and bombers gain an additional bonus, as the fighters may temporarily neutralize enemy turrets before the bombers make their attack run. This is resolved as follows:
 
@@ -408,7 +428,7 @@ Multi-role squadrons that function as both fighters and bombers may either suppr
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Launching Waves of Attack Craft", p.32*
 
-## 19. Defense Turrets
+## 20. Defense Turrets
 
 Most warships mount numerous point-defense systems and automatic turrets for shooting down enemy ordnance during their final attack run. A ship's main armament is simply too huge and slow to track ordnance at such close ranges. However, turrets may be fired immediately whenever enemy ordnance touches the ship's base. This always takes effect before resolving any ordnance attacks. To fire turrets, roll a D6 for each point of the ship's Turrets value, and apply the relevant effect below:
 
@@ -424,13 +444,13 @@ Due to the greater difficulty tracking attack craft as opposed to torpedoes and/
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Defense Turrets", p.28*
 
-## 20. Massed Turrets
+## 21. Massed Turrets
 
 Ships in base contact with a vessel under attack by ordnance may 'mass' their turrets with it. For each ship contributing its turrets, add +1 to the turret strength of the defending ship (limit +3). Ships that mass turrets are subject to the same restrictions as the defending ship regarding attack craft and other ordnance. Ships that are crippled or have no turrets may not contribute to this bonus, but may benefit from allied ships' turrets normally. As ships move individually, it is not usually possible to mass turrets during a vessel's move unless it contacts ordnance while moving through an allied ship's base.
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Defense Turrets / Massed Turrets", p.28*
 
-## 21. Shooting at Ordnance
+## 22. Shooting at Ordnance
 
 Ordnance may be fired at in the shooting phase with direct fire weapons. Ordnance is subject to the normal rules for target priority, but remember that ships firing at ordnance only count other enemy ordnance markers for the purposes of determining the nearest enemy.
 
@@ -440,7 +460,82 @@ Note that gunnery weapons firing at ordnance use the 'Ordnance' column on the Gu
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Shooting at Ordnance", p.26*
 
-## 22. Damage & Critical Hits
+## 23. Hit-and-Run Raids
+
+A hit-and-run raid is a small boarding party sent to sabotage an enemy ship. Raids come from boarding torps (one raid per hit), assault boats (one raid per squadron that reaches the target) and teleport attacks.
+
+**Order of play:**
+
+> 1\. Boarding torps and assault boats must first survive the target's turrets.
+>
+> 2\. The target may Brace for Impact before the raids are rolled.
+>
+> 3\. Roll each raid (below).
+>
+> 4\. A braced target saves against each successful raid on a 4+.
+
+**Vs. capital ships** (and other targets that can suffer critical damage): roll a single D6, not 2D6, and immediately apply that result from the Critical Hits table (Appendix 5). A final result of 1 or less has no effect. Modifiers apply first, so a raid with a +1 bonus (e.g. Space Marines) always causes damage.
+
+**Vs. escorts and small targets** (that don't use the Critical Hits table): 1 point of damage on a 4+, applying modifiers as normal. This damage cannot cause a critical hit.
+
+**Bonuses:** any bonus to a ship's hit-and-run raids (faction, refit, upgrade or crew) also applies to ordnance it launches, unless stated otherwise.
+
+**Teleport attacks:** in its end phase, a ship may make one teleport attack against a single enemy ship within 10cm, resolved as a hit-and-run raid. The target's shields must be down, and it may not have more remaining hits than the attacker. Crippled ships, ships on special orders other than Lock On or Reload Ordnance, and escorts and defences with fewer than 3 starting hits cannot teleport. Teleport attacks are resolved before damage control and blast marker removal; if both players have teleport attacks or boarding actions to resolve, the player whose turn it is chooses the order.
+
+**Faction teleport rules:** Space Marines, *Teleport Assault* (Imperium p.134); Inquisition & Grey Knights, Ordo honour guards (Imperium p.100); Chaos, *Champions of the Dark Gods* and *Chaos Terminators* (Imperium p.20); Orks, *Soopa Tellyporta* (Xenos p.56); Ramilies Star Fort and Fortress-Monastery quadrants (Imperium p.87, p.146). Tau and Nicassar vessels cannot teleport (Xenos p.78, p.95).
+
+*Source: BFG:XR Rulebook, "Attack Craft Special Rules - Assault Boats", p.31; "Hit-and-Run Attacks", p.33; "Teleport Attacks", p.42*
+
+## 24. Boarding Actions
+
+**Moving in:** move the attacking vessel into base contact with the target and declare the boarding action. A ship that boards may not fire its weapons or launch ordnance in the same turn.
+
+**Troop rating:** equal to the ship's remaining damage points. The defending ship also adds its turrets (after any other modifiers, and not counting massed turrets). The side with the higher troop rating gains a bonus to its boarding roll; apply only the highest:
+
+| Your troop rating vs. the enemy's | Bonus |
+|---|---|
+| Higher | +1 |
+| Double or greater | +2 |
+| Triple or greater | +3 |
+| Quadruple or greater | +4 |
+
+**Crew damage bonus:** some factions add a crew damage bonus to their boarding roll (see below). Only the largest applicable bonus applies, unless stated otherwise.
+
+**Resolving:** all boarding actions are resolved in the attacking player's end phase, before damage control and blast marker removal. The target must still be in base contact; the attacker cannot board a different enemy in contact instead. Both players roll a D6 and add:
+
+- Enemy ship has blast markers in contact: +1
+
+- Enemy ship is on special orders: +1
+
+- Enemy ship is crippled: +2
+
+- Higher troop rating: +1 to +4
+
+- Crew damage bonus: varies
+
+**Results:** the higher total wins. The loser suffers damage equal to the difference in scores; shields do not absorb it and Brace for Impact does not save it. Boarding damage does not cause critical hits in the usual way. Instead, find the difference on the table below, then roll a D6 for each ship involved (winner and loser) against its requirement; on a success that ship suffers a critical hit, resolved as normal.
+
+| Difference | Result | Critical hit on (winner / loser) |
+|---|---|---|
+| 1 | Stalemate | 5+ / 5+ |
+| 2 | Heavy Fighting | 5+ / 4+ |
+| 3 | Driven Back | 6+ / 3+ |
+| 4 | Stormed | 6+ / 2+ |
+| 5+ | Overwhelmed | None / Auto |
+
+**Reduced to 0 by boarding:** do not roll for catastrophic damage; the ship becomes a drifting hulk. Excess damage still counts towards the result, and the critical hit roll is still made. A ship reduced to 0 by the critical damage itself rolls on the Catastrophic Damage table as normal. Ships that survive may move off normally in their next movement phase.
+
+**Drawn combats:** if the totals are equal, the ships grapple and fight again in each end phase (between the original participants) until one side is destroyed. While locked together they may not move, shoot, launch ordnance or disengage, and do not add turrets to their troop rating; otherwise they act normally (defending against ordnance, using special orders, making teleport attacks, etc.). Once the combat is resolved, surviving ships may move off in their next turn.
+
+**Several attackers:** several ships may combine to board one enemy, making a single roll and adding their troop ratings together. The defender gains each bonus that applies to any of the attackers (crippled, on special orders, etc.), even if the others do not qualify. If the attacking group loses, its owner divides the damage among the attacking ships, and the critical hit roll applies to each ship involved. Attackers may instead board separately, resolving each fight on its own.
+
+**Escorts:** escorts may board like any other ship. Critical hits against escorts always inflict 1 point of damage instead of rolling on the table, so an escort can win a boarding action and still be destroyed.
+
+**Faction boarding rules:** crew damage bonuses: Space Marines +2 (Imperium p.132), Chaos +1 (Imperium p.19), Orks +1 (Xenos p.54), Inquisition Battle Sister detachments (Imperium p.100). Troop rating: Chaos *Mark of Khorne* doubles it (Imperium p.19); an Ork *Warboss* doubles it (Xenos p.56) and *Goffs* add turrets when attacking (Xenos p.57); Tau Kor'vattra and Nicassar vessels halve it (Xenos p.78, p.95), and Nicassar never initiate boarding. Re-rolls: attackers re-roll against Adeptus Mechanicus ships (Imperium p.4); an *Inquisitorial retinue* forces the attacker to re-roll (Imperium p.99). Chaos Space Marine crews use the Space Marine rules (*Champions of the Dark Gods*, Imperium p.20). Ork *Grabbin' Klaws* (Xenos p.55). Individual ships and commanders with their own boarding rules (e.g. Lord Admiral Rath, Abaddon, the Slaverer, star forts) are covered in their entries.
+
+*Source: BFG:XR Rulebook, "End Phase - Boarding Actions", pp.41-42*
+
+## 25. Damage & Critical Hits
 
 ### Taking Hits
 
@@ -458,9 +553,9 @@ Roll a D6 for each hit scored on a ship (but not against its shields). On a roll
 
 **Critical Hits on Small Targets:** Escorts and defenses with less than 3 starting hits suffer one point of damage whenever they suffer a critical hit, instead of rolling on the table.
 
-**Critical Hits Table:** see Appendix 5, p.153.
+**Critical Hits Table:** see Appendix 5, p.155.
 
-## 23. Catastrophic Damage
+## 26. Catastrophic Damage
 
 A ship with no hits left is effectively out of action. There may still be some crew left alive, trapped in compartments that have yet to be breached, and there may still be power available in some sections of the ship, but the vessel can no longer fight. When a ship is reduced to zero damage, do the following based on their type:
 
@@ -470,9 +565,9 @@ A ship with no hits left is effectively out of action. There may still be some c
 
 **Defenses:** Any defenses with 3 or more hits are treated as capital ships and may explode as normal. All other defenses are replaced by a blast marker, like escorts.
 
-**Catastrophic Damage Table:** see Appendix 5, p.153.
+**Catastrophic Damage Table:** see Appendix 5, p.155.
 
-## 24. Crippled Ships
+## 27. Crippled Ships
 
 A ship which loses half its damage points (rounding up) is crippled.
 
@@ -482,7 +577,7 @@ For example, a standard Lunar class cruiser has 8 hits and is therefore crippled
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Damage / Crippled Ships", p.20*
 
-## 25. Damage Control & Blast Removal
+## 28. Damage Control & Blast Removal
 
 Both players can attempt to repair critical damage during the end phase. Repair crews will be working continuously of course, welding up hull breaches, re-routing power conduits, putting out fires and generally trying to keep the ship functioning.
 
@@ -496,7 +591,7 @@ In addition, the player must also roll a D6 for each stationary defense (if any)
 
 *Source: BFG:XR Rulebook, "The End Phase - Damage Control / Blast Marker Removal", p.35*
 
-## 26. Disengaging
+## 29. Disengaging
 
 Sometimes it is better to run away and live to fight another day. A ship may be crippled with no hope of defeating its attackers, or just outnumbered so heavily that its captain decides that it's hopeless to fight on. The classic approach to disengaging is to make a sudden course alteration and then cut all power so that the ship cannot be detected by its energy emissions. With luck the vessel will simply drift out of the immediate battle area and can set course for home once it is clear of the fighting. This strategy is far from guaranteed to succeed however, and may leave the ship vulnerable if it fails.
 
@@ -516,7 +611,7 @@ If the test is passed, the disengaging ship is removed from the tabletop and may
 
 *Source: BFG:XR Rulebook, "Advanced Rules - Disengaging from Combat", p.38*
 
-## 27. Victory Points
+## 30. Victory Points
 
 In many scenarios, the winner will be the player who scores the most victory points. Victory points are a measure of how much damage a fleet has inflicted on its enemy and are won by crippling and destroying enemy ships. Additional victory points can also be scored by achieving certain objectives, as detailed in the Victory Conditions section of the scenario, such as escaping an attack or attacking an enemy base. Victory points are earned as follows:
 
@@ -526,7 +621,7 @@ In many scenarios, the winner will be the player who scores the most victory poi
 
 *Source: BFG:XR Rulebook, "Scenarios - Victory Points", p.79*
 
-## 28. Terrain & Celestial Phenomena
+## 31. Terrain & Celestial Phenomena
 
 ### Planets
 
@@ -606,7 +701,7 @@ Gas and dust clouds represent areas of space with a notably greater density of (
 
 *Source: BFG:XR Rulebook, "Celestial Phenomena - Tabletop Features", p.52-54*
 
-## 29. Celestial: Sun, Solar Flares & Radiation
+## 32. Celestial: Sun, Solar Flares & Radiation
 
 ### Sunward Table Edge
 
@@ -632,7 +727,7 @@ As well as solar flares and often in conjunction with them, a sun will frequentl
 
 *Source: BFG:XR Rulebook, "Tabletop Features / Tabletop Effects" - Sunward p.52; Fighting Sunward, Solar Flares & Radiation Bursts p.55*
 
-## 30. Orbit & Atmosphere
+## 33. Orbit & Atmosphere
 
 ### High Orbit
 

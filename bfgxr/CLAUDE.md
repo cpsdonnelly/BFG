@@ -20,7 +20,8 @@ Rules. It is meant as the rules source for a digital play aid.
 
 ```
 rules/        one Markdown file per top-level section of the booklet
-  00_core-rules.md            the 30 core rules sections
+  00_core-rules.md            the 33 core rules sections, including Ramming (8),
+                              Hit-and-Run Raids with teleport attacks (23) and Boarding Actions (24)
   01_imperial-navy.md ... 09_tau-allies.md
                               faction rules, ship rosters, special rules, fleet lists
   10_scenarios.md             scenarios, with deployment maps
