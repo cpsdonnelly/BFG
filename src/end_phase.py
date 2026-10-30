@@ -5,8 +5,7 @@ from typing import List, Dict
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
-from .geometry import (count_blast_markers_touching, BLAST_MARKER_RADIUS_CM,
-                       EXPLOSION_BLAST_OFFSET_CM)
+from .geometry import count_blast_markers_touching, BLAST_MARKER_RADIUS_CM
 
 
 def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]:
@@ -317,7 +316,7 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
 
         # Burning hulk: re-roll on catastrophic damage table
         if ship.status == "burning_hulk":
-            from .combat import apply_damage
+            from .combat import resolve_explosion
             from .tables import lookup_catastrophic
 
             roll = dice.roll_2d6(f"{ship.name} burning hulk re-roll")
@@ -337,37 +336,7 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
                 logs.append(f"  {ship.name}: EXPLODES! (rolled {roll}: {cat_result})")
                 ship.status = "destroyed"
                 gs.update_ship(ship)
-
-                # Explosion effects
-                num_markers = ship.hits_max // 2 if cat_result == "plasma_drive_overload" else ship.hits_max
-                lance_str = num_markers
-
-                blast_radius_roll = dice.roll_d6(3, "Explosion blast radius")
-                blast_radius = sum(blast_radius_roll)
-                logs.append(f"  Explosion: {blast_radius}cm radius, "
-                           f"{lance_str} lance shots")
-
-                for bi in range(num_markers):
-                    angle = (360 / max(1, num_markers)) * bi
-                    bx = ship.x + EXPLOSION_BLAST_OFFSET_CM * math.cos(math.radians(angle))
-                    by = ship.y + EXPLOSION_BLAST_OFFSET_CM * math.sin(math.radians(angle))
-                    gs.add_blast_marker(
-                        BlastMarker(id=f"hulk_exp_{ship.id}_{bi}",
-                                    x=bx, y=by, source="explosion",
-                                    heading=angle))
-
-                for other in gs.get_ships():
-                    if other.id == ship.id or other.is_destroyed:
-                        continue
-                    dist = math.sqrt((ship.x - other.x)**2 + (ship.y - other.y)**2)
-                    if dist <= blast_radius:
-                        lance_dice = dice.roll_d6(
-                            lance_str,
-                            f"Explosion hits on {other.name} (4+)")
-                        hits = sum(1 for d in lance_dice if d >= 4)
-                        if hits > 0:
-                            apply_damage(other, hits, dice, gs)
-                            logs.append(f"  {other.name}: {hits} explosion hits")
+                logs.extend(resolve_explosion(ship, cat_result, dice, gs))
 
     return logs
 

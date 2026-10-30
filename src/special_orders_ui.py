@@ -270,8 +270,7 @@ class SpecialOrderMixin:
                                     fresh = self.ctx.gs.get_ship_by_id(m.id)
                                     if (fresh and fresh.special_order
                                             != _SO.BRACE_FOR_IMPACT.value):
-                                        fresh.special_order = order
-                                        self.ctx.gs.update_ship(fresh)
+                                        self.ctx.tc.apply_passed_order(fresh, order)
                                         affected2.append(fresh.name)
                                         self.ctx.gs.add_log(
                                             f"  {fresh.name}: {order} "

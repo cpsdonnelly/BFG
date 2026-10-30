@@ -451,7 +451,15 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
         # Critical hit check: D6 per hull hit, 6 = crit
         crit_roll = dice.roll_d6(1, f"Crit check for hit on {target.name}")
-        if crit_roll[0] == 6:
+        if crit_roll[0] == 6 and target.ship_type in ("escort", "defense") \
+                and target.hits_max < 3:
+            # Small escorts/defenses take +1 damage instead of a critical
+            target.hits_remaining -= 1
+            game_state.add_log(f"Critical on {target.name}: +1 damage")
+            if target.hits_remaining <= 0:
+                summary["destroyed"] = True
+                break
+        elif crit_roll[0] == 6:
             crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name}")
             crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
 
@@ -752,45 +760,67 @@ def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) ->
         ship.status = "destroyed"
         ship.hits_remaining = 0
         game_state.update_ship(ship)
-
-        # Explosion
-        num_markers = ship.hits_max // 2 if result == "plasma_drive_overload" else ship.hits_max
-        lance_str = ship.hits_max // 2 if result == "plasma_drive_overload" else ship.hits_max
-
-        blast_radius_roll = dice.roll_d6(3, "Explosion blast radius")
-        blast_radius = sum(blast_radius_roll)
-
-        game_state.add_log(
-            f"  EXPLOSION: {blast_radius}cm radius, "
-            f"{lance_str} lance shots, {num_markers} blast markers")
-
-        # Place blast markers
-        for i in range(num_markers):
-            angle = (360 / num_markers) * i
-            bx = ship.x + EXPLOSION_BLAST_OFFSET_CM * math.cos(math.radians(angle))
-            by = ship.y + EXPLOSION_BLAST_OFFSET_CM * math.sin(math.radians(angle))
-            game_state.add_blast_marker(
-                BlastMarker(id=f"explosion_{ship.id}_{i}", x=bx, y=by,
-                            source="explosion",
-                            heading=angle))
-
-        # Damage nearby ships
-        for other in game_state.get_ships():
-            if other.id == ship.id or other.is_destroyed:
-                continue
-            dist = ship.distance_to(other)
-            if dist <= blast_radius:
-                game_state.add_log(
-                    f"  {other.name} within blast radius ({dist:.1f}cm)")
-                lance_dice = dice.roll_d6(
-                    lance_str,
-                    f"Explosion lance hits on {other.name} (4+)")
-                explosion_hits = sum(1 for d in lance_dice if d >= 4)
-                if explosion_hits > 0:
-                    apply_damage(other, explosion_hits, dice, game_state,
-                                ignores_shields=False)
+        resolve_explosion(ship, result, dice, game_state)
 
     return result
+
+
+def resolve_explosion(ship: Ship, result: str, dice: DiceRoller,
+                      game_state: GameState) -> List[str]:
+    """Plasma drive overload or warp drive implosion centred on `ship`.
+
+    Places blast markers, destroys ordnance in the 3D6cm radius, and hits
+    every ship inside it with lance shots. A ship the blast destroys rolls
+    its own catastrophic damage, so explosions can chain. Returns the log
+    lines (also written to the game log).
+    """
+    lines: List[str] = []
+
+    def log(msg):
+        lines.append(msg)
+        game_state.add_log(msg)
+
+    strength = (ship.hits_max // 2 if result == "plasma_drive_overload"
+                else ship.hits_max)
+    blast_radius = sum(dice.roll_d6(3, "Explosion blast radius"))
+    log(f"  EXPLOSION: {blast_radius}cm radius, "
+        f"{strength} lance shots, {strength} blast markers")
+
+    for i in range(strength):
+        angle = (360 / strength) * i
+        game_state.add_blast_marker(BlastMarker(
+            id=f"explosion_{ship.id}_{i}",
+            x=ship.x + EXPLOSION_BLAST_OFFSET_CM * math.cos(math.radians(angle)),
+            y=ship.y + EXPLOSION_BLAST_OFFSET_CM * math.sin(math.radians(angle)),
+            source="explosion", heading=angle))
+
+    surviving = [o for o in game_state.ordnance
+                 if math.hypot(o["x"] - ship.x, o["y"] - ship.y) > blast_radius]
+    if len(surviving) < len(game_state.ordnance):
+        log(f"  {len(game_state.ordnance) - len(surviving)} ordnance marker(s) "
+            f"destroyed in the blast")
+        game_state.ordnance = surviving
+
+    for other_id in [s.id for s in game_state.get_ships()]:
+        # Re-read each ship: a chained explosion may already have hit it
+        other = game_state.get_ship_by_id(other_id)
+        if not other or other.id == ship.id or other.is_destroyed:
+            continue
+        dist = ship.distance_to(other)
+        if dist > blast_radius:
+            continue
+        lance_dice = dice.roll_d6(
+            strength, f"Explosion lance hits on {other.name} (4+)")
+        hits = sum(1 for d in lance_dice if d >= 4)
+        log(f"  {other.name} within blast radius ({dist:.1f}cm): {hits} hit(s)")
+        if hits:
+            apply_damage(other, hits, dice, game_state)
+            victim = game_state.get_ship_by_id(other.id)
+            if victim and victim.hits_remaining <= 0:
+                log(f"  {victim.name} is destroyed by the explosion!")
+                log(f"  {victim.name}: "
+                    f"{resolve_catastrophic(victim, dice, game_state)}")
+    return lines
 
 
 def _resolve_crit_cascade(roll_2d6: int, ship: Ship,

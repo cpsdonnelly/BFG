@@ -266,3 +266,25 @@ def test_capital_plasma_drive_overload():
     r = resolve_catastrophic(target, DiceStub([9, 3, 3, 3]), gs)
     assert r == "plasma_drive_overload"
     assert target.status == "destroyed"
+
+
+# ── Critical hits on small escorts ───────────────────────────────────────────
+
+def test_two_hit_escort_takes_extra_damage_instead_of_crit():
+    escort = make_ship(id="e", ship_type="escort", hits_max=2, shields_max=0)
+    gs = make_gs([escort])
+    # 1 hull hit leaves 1 HP; crit check 6 -> +1 damage instead of the crit table
+    r = apply_damage(escort, 1, DiceStub([6]), gs)
+    assert r["destroyed"] is True
+    assert escort.hits_remaining == 0
+    assert escort.critical_damage == []
+
+
+def test_three_hit_escort_still_rolls_on_crit_table():
+    escort = make_ship(id="e", ship_type="escort", hits_max=3, shields_max=0)
+    gs = make_gs([escort])
+    # crit check 6, then 2D6 = 7 -> Fire!
+    r = apply_damage(escort, 1, DiceStub([6, 7]), gs)
+    assert [c["crit_type"] for c in escort.critical_damage] == ["fire"]
+    assert len(r["crits"]) == 1
+    assert escort.hits_remaining == 2
