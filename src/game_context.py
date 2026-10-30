@@ -32,6 +32,10 @@ class GameContext:
         # Local player number for multiplayer (1 or 2); None for local/AI play
         self.local_player: Optional[int] = None
 
+        # Returns True while human game actions must be ignored (AI's turn,
+        # AI thinking, game over). Replaced by GamePanel.
+        self.actions_locked = lambda: False
+
     # ── Logging ──────────────────────────────────────────────────────────────
 
     def log(self, text: str):

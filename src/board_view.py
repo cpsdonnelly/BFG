@@ -109,7 +109,8 @@ class BoardView:
         #   commit_drag_fn(ship, commands)  : called on valid release to execute move
         self.can_drag_ship_fn = None
         self.commit_drag_fn = None
-        #   load_game_fn()                  : File > Load handler
+        #   save_game_fn() / load_game_fn() : File > Save / Load handlers
+        self.save_game_fn = None
         self.load_game_fn = None
 
         # Ordnance launch drag state
@@ -1356,6 +1357,9 @@ class BoardView:
         messagebox.showinfo("Help - BFG:XR Simulator", help_text)
 
     def _save_game(self):
+        if self.save_game_fn:
+            self.save_game_fn()
+            return
         from tkinter import filedialog
         d = filedialog.askdirectory(title="Choose save folder")
         if d:

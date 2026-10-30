@@ -61,7 +61,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         """Connect board_view drag-and-drop hooks to game panel movement logic."""
 
         def can_drag(ship):
-            if self.ctx.gs.current_phase != "movement":
+            if self.ctx.gs.current_phase != "movement" or self.ctx.actions_locked():
                 return False
             if ship.player != self.ctx.gs.active_player:
                 return False
@@ -130,7 +130,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
 
         # Ordnance launch drag callbacks
         def can_ord_drag(ship):
-            if self.ctx.gs.current_phase != "ordnance":
+            if self.ctx.gs.current_phase != "ordnance" or self.ctx.actions_locked():
                 return False
             if ship.player != self.ctx.gs.active_player:
                 return False
@@ -147,7 +147,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
 
         # Board-level scroll wheel: add pending turn to selected ship
         def _on_board_scroll(event):
-            if self.ctx.gs.current_phase != "movement":
+            if self.ctx.gs.current_phase != "movement" or self.ctx.actions_locked():
                 return
             ship_id = self.ctx.board.selected_ship_id
             if not ship_id:
@@ -185,7 +185,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         If there is no remaining movement budget after the min-move (e.g. AAF),
         the ship is marked fully moved automatically.
         """
-        if self.ctx.gs.current_phase != "movement":
+        if self.ctx.gs.current_phase != "movement" or self.ctx.actions_locked():
             return
 
         ship_id = self.ctx.board.selected_ship_id
@@ -347,7 +347,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
 
     def _min_move_all_ships(self):
         """Spacebar: execute minimum move for every unmoved ship of the active player."""
-        if self.ctx.gs.current_phase != "movement":
+        if self.ctx.gs.current_phase != "movement" or self.ctx.actions_locked():
             return
         unmoved = [s for s in self.ctx.tc.get_unmoved_ships()
                    if s.player == self.ctx.gs.active_player]
@@ -392,7 +392,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
 
     def _undo_all_movement(self):
         """Backspace: undo all ship movement this turn, restoring phase-start positions."""
-        if self.ctx.gs.current_phase != "movement":
+        if self.ctx.gs.current_phase != "movement" or self.ctx.actions_locked():
             return
         if self.ctx.tc.undo_to_phase_start():
             self._pending_turn.clear()

@@ -46,6 +46,11 @@ class GamePanel:
         self.ctx.movement = self.movement
         self.ctx.ordnance = self.ordnance
 
+        self._game_over = False
+        self._ai_thinking = False   # expert AI search running on a worker thread
+        self._ai_epoch = 0          # bumped on load so stale AI callbacks do nothing
+        self.ctx.actions_locked = self._actions_locked
+
         # Build the rest of the UI and wire drag callbacks
         self._build_ui()
         self.movement.wire_drag_callbacks()
@@ -175,6 +180,7 @@ class GamePanel:
         tk.Button(sl_frame, text="Save Game", command=self._save_game,
                   bg="#2a3d2a", fg="#aaccaa", font=("Consolas", 8),
                   width=10).pack(side=tk.LEFT, padx=1)
+        self.ctx.board.save_game_fn = self._save_game
         self.ctx.board.load_game_fn = self._load_game
         tk.Button(sl_frame, text="Load Game", command=self._load_game,
                   bg="#2a2a3d", fg="#aaaacc", font=("Consolas", 8),
@@ -242,10 +248,44 @@ class GamePanel:
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
 
+        state = tk.DISABLED if self._actions_locked() else tk.NORMAL
+        for w in (self.move_btn, self.move_squad_btn, self.order_btn, self.fire_btn,
+                  self.combine_fire_btn, self.target_squad_btn, self.fire_ord_btn,
+                  self.launch_btn, self.combine_ord_btn, self.end_phase_btn,
+                  self.undo_btn, self.disengage_btn, self.move_missile_btn):
+            w.config(state=state)
+
+        if self._game_over:
+            self.phase_label.config(text="GAME OVER")
+        elif self._ai_thinking:
+            self.phase_label.config(text="AI Thinking…")
+        elif self._is_ai_turn():
+            self.player_label.config(text=f"Active: {pname} (AI)")
+
+    def _is_ai_turn(self) -> bool:
+        gs = self.ctx.gs
+        if gs.current_phase == "setup":
+            return False
+        return gs.ai_spectator or (
+            gs.ai_player is not None and gs.active_player == gs.ai_player)
+
+    def _actions_locked(self) -> bool:
+        return self._game_over or self._ai_thinking or self._is_ai_turn()
+
+    def _busy_with_ai(self) -> bool:
+        """Tell the player to wait if the AI search is mid-flight."""
+        if self._ai_thinking:
+            messagebox.showinfo("AI Thinking",
+                                "The AI is still planning its move. Try again in a moment.")
+            return True
+        return False
+
     # ── Settings dialog ───────────────────────────────────────────────────────
 
     def _settings_dialog(self):
         """In-game settings dialog — changes take effect immediately."""
+        if self._busy_with_ai():
+            return
         gs = self.ctx.gs
         dialog = tk.Toplevel(self.root)
         dialog.title("Game Settings")
@@ -462,6 +502,8 @@ class GamePanel:
     # ── Save / Load / Export ─────────────────────────────────────────────────
 
     def _save_game(self):
+        if self._busy_with_ai():
+            return
         from tkinter import filedialog
         d = filedialog.askdirectory(title="Choose save folder")
         if d:
@@ -469,6 +511,8 @@ class GamePanel:
             self.ctx.log(f"[Save] Game saved to {d}")
 
     def _load_game(self):
+        if self._busy_with_ai():
+            return
         from tkinter import filedialog
         d = filedialog.askdirectory(title="Select save folder to load")
         if d:
@@ -477,12 +521,17 @@ class GamePanel:
                 self.ctx.gs.restore_from(GameState.load(d))
                 self.ctx.dice.mode = self.ctx.gs.dice_mode
                 self.ctx.tc.reset_after_load()
-                self.ctx.board.redraw()
-                self._update_phase_display()
-                self.ctx.log(f"[Load] Game loaded from {d}")
             except Exception as exc:
                 from tkinter import messagebox as _mb
                 _mb.showerror("Load Error", str(exc))
+                return
+            self._ai_epoch += 1
+            self._game_over = False
+            self.ctx.board.redraw()
+            self._update_phase_display()
+            self.ctx.log(f"[Load] Game loaded from {d}")
+            if self._is_ai_turn():
+                self._schedule_ai_phase(500)
 
     def _export_match(self):
         from tkinter import filedialog
@@ -772,10 +821,8 @@ class GamePanel:
         self.ctx.board.canvas.focus_set()
         self.ctx.board.redraw()
         # If Player 1 (or both players) is AI, start automation immediately
-        is_ai_turn = (gs.ai_spectator or
-                      (gs.ai_player is not None and gs.active_player == gs.ai_player))
-        if is_ai_turn:
-            self.root.after(500, self._run_ai_phase)
+        if self._is_ai_turn():
+            self._schedule_ai_phase(500)
 
     def _resolve_end_phase_interactive(self):
         """Run end phase with interactive repair choices."""
@@ -838,12 +885,19 @@ class GamePanel:
 
         self.ctx.board.redraw()
 
-    def _end_phase(self, end_already_resolved: bool = False):
+    def _end_phase(self, from_ai: bool = False):
+        """Advance to the next phase.
+
+        from_ai: the AI driver already resolved this phase, so skip the
+        prompts aimed at a human player and the interactive end phase.
+        """
+        if self._game_over:
+            return
         gs = self.ctx.gs
         tc = self.ctx.tc
         phase = gs.current_phase
 
-        if phase == "movement":
+        if phase == "movement" and not from_ai:
             unmoved = tc.get_unmoved_ships()
             unmoved_obligated = [
                 s for s in unmoved
@@ -873,7 +927,7 @@ class GamePanel:
         if phase == "ordnance":
             self.ordnance._resolve_ordnance_movement()
 
-        if phase == "shooting":
+        if phase == "shooting" and not from_ai:
             unfired_warnings = []
             for s in gs.player_ships(gs.active_player):
                 if s.is_destroyed or s.is_disengaged:
@@ -894,7 +948,7 @@ class GamePanel:
                 messagebox.showwarning("Unfired Weapons",
                     f"These weapons haven't fired:\n{msg}\n\nEnd shooting phase anyway?")
 
-        if phase == "end" and not end_already_resolved:
+        if phase == "end" and not from_ai:
             self._resolve_end_phase_interactive()
 
         tc.end_phase()
@@ -924,55 +978,83 @@ class GamePanel:
                     gs.ordnance[i] = {**o_dict, "moved_this_phase": False}
 
         # Check scenario conditions after shooting and ordnance resolve too
-        if phase in ("shooting", "ordnance", "end"):
-            self._check_scenario_end()
+        if phase in ("shooting", "ordnance", "end") and self._check_scenario_end():
+            self._update_phase_display()
+            self.ctx.board.redraw()
+            return
 
         self._update_phase_display()
         self.ctx.log(f"--- {gs.current_phase.upper()} PHASE ---")
         self.ctx.board.redraw()
 
-        # AI automation: trigger if active player is AI-controlled
-        is_ai_turn = (gs.ai_spectator or
-                      (gs.ai_player is not None and gs.active_player == gs.ai_player))
-        if is_ai_turn and gs.current_phase != "setup":
-            self.root.after(400, self._run_ai_phase)
+        if self._is_ai_turn():
+            self._schedule_ai_phase(400)
 
     # ── AI phase automation ───────────────────────────────────────────────────
 
-    def _run_ai_phase(self):
+    def _schedule_ai_phase(self, delay_ms: int):
+        epoch = self._ai_epoch
+        self.root.after(delay_ms, lambda: self._run_ai_phase(epoch))
+
+    def _ai_callback_stale(self, epoch: int) -> bool:
+        """True if a load or game over happened since this AI callback was queued."""
+        return epoch != self._ai_epoch or self._game_over
+
+    def _run_ai_phase(self, epoch: int):
         import threading
         from .ai_player import AIPlayer
+        if self._ai_callback_stale(epoch) or self._ai_thinking or not self._is_ai_turn():
+            return
         gs = self.ctx.gs
         tc = self.ctx.tc
+        dice = self.ctx.dice
         phase = gs.current_phase
 
         # In spectator mode both players are AI; use active_player as the controller
         ai_player_num = gs.active_player if gs.ai_spectator else gs.ai_player
 
-        old_mode = gs.dice_mode
-        gs.dice_mode = "auto"
+        # DiceRoller reads its own mode; gs.dice_mode is just the saved setting
+        old_modes = (gs.dice_mode, dice.mode)
+        gs.dice_mode = dice.mode = "auto"
+
+        def restore_dice():
+            gs.dice_mode, dice.mode = old_modes
 
         if gs.ai_difficulty == "expert":
             from .lookahead_ai import LookaheadAI
-            ai = LookaheadAI(ai_player_num, tc, gs, self.ctx.dice, gs.ai_difficulty)
+            ai = LookaheadAI(ai_player_num, tc, gs, dice, gs.ai_difficulty)
         else:
-            ai = AIPlayer(ai_player_num, tc, gs, self.ctx.dice, gs.ai_difficulty)
+            ai = AIPlayer(ai_player_num, tc, gs, dice, gs.ai_difficulty)
 
-        # Expert movement is slow (minimax depth-5); run off-thread so UI stays live
+        # Expert movement is slow (minimax depth-5); run off-thread so UI stays
+        # live. The worker never touches Tk: the main thread polls for it.
         if gs.ai_difficulty == "expert" and phase == "movement":
-            self.phase_label.config(text="AI Thinking…")
+            outcome = {}
 
             def _do_movement():
-                ai.run_movement_phase()
-                self.root.after(0, _on_done)
+                try:
+                    ai.run_movement_phase()
+                except Exception as exc:
+                    outcome["error"] = exc
 
-            def _on_done():
-                gs.dice_mode = old_mode
+            def _poll():
+                if worker.is_alive():
+                    self.root.after(100, _poll)
+                    return
+                restore_dice()
+                self._ai_thinking = False
+                if "error" in outcome:
+                    self._report_ai_error(phase, outcome["error"])
                 self.ctx.board.redraw()
                 self.ctx.log("[AI] movement phase complete")
-                self.root.after(300, self._end_phase)
+                self._update_phase_display()
+                self._finish_ai_phase(phase, epoch)
 
-            threading.Thread(target=_do_movement, daemon=True).start()
+            self._ai_thinking = True
+            self._update_phase_display()
+            worker = threading.Thread(target=_do_movement, daemon=True)
+            worker.start()
+            self.root.after(100, _poll)
             return
 
         try:
@@ -984,13 +1066,30 @@ class GamePanel:
                 ai.run_ordnance_phase()
             elif phase == "end":
                 self._resolve_end_phase_auto(ai)
+        except Exception as exc:
+            self._report_ai_error(phase, exc)
         finally:
-            gs.dice_mode = old_mode
+            restore_dice()
 
         self.ctx.board.redraw()
         self.ctx.log(f"[AI] {phase} phase complete")
-        self.root.after(300, lambda: self._end_phase(
-            end_already_resolved=(phase == "end")))
+        self._finish_ai_phase(phase, epoch)
+
+    def _finish_ai_phase(self, phase: str, epoch: int):
+        def advance():
+            if not self._ai_callback_stale(epoch):
+                self._end_phase(from_ai=True)
+        self.root.after(300, advance)
+
+    def _report_ai_error(self, phase: str, exc: Exception):
+        """An AI failure ends the AI's phase instead of freezing the game."""
+        import traceback
+        traceback.print_exception(type(exc), exc, exc.__traceback__)
+        self.ctx.log(f"[AI] Error during {phase} phase: {exc!r} — ending the AI's phase")
+        messagebox.showerror(
+            "AI Error",
+            f"The AI hit an error during the {phase} phase and will end its phase "
+            f"early so the game can continue.\n\n{exc!r}")
 
     def _resolve_end_phase_auto(self, ai):
         """End phase for the AI player — same logic as interactive but auto-repairs."""
@@ -1181,7 +1280,7 @@ class GamePanel:
         tk.Button(dialog, text="Save to Campaign…",
                   command=lambda: (dialog.destroy(),
                                    self._campaign_post_battle_dialog(
-                                       vp.get("p1_total", 0), vp.get("p2_total", 0))),
+                                       vp[1]["total"], vp[2]["total"])),
                   bg="#2a3344", fg="#aabbcc",
                   font=("Consolas", 9)).pack(pady=4)
         tk.Button(dialog, text="Close", command=dialog.destroy,
@@ -1189,23 +1288,20 @@ class GamePanel:
 
     def _check_game_over(self) -> bool:
         from .scenario import check_game_over
-        result = check_game_over(self.ctx.gs)
-        if result:
-            self._show_game_over_dialog(
-                result["winner"], reason=result["reason"],
-                detail=result["detail"])
-            return True
-        return False
+        return self._declare_game_over(check_game_over(self.ctx.gs))
 
     def _check_scenario_end(self) -> bool:
         from .scenario import check_scenario_end
-        result = check_scenario_end(self.ctx.gs)
-        if result:
-            self._show_game_over_dialog(
-                result["winner"], reason=result["reason"],
-                detail=result["detail"])
-            return True
-        return False
+        return self._declare_game_over(check_scenario_end(self.ctx.gs))
+
+    def _declare_game_over(self, result) -> bool:
+        if not result:
+            return False
+        self._game_over = True
+        self.ctx.log("=== GAME OVER ===")
+        self._show_game_over_dialog(
+            result["winner"], reason=result["reason"], detail=result["detail"])
+        return True
 
     def _check_artefact_pickup(self):
         """After movement: check if any ship moved onto the uncarried artefact token."""
