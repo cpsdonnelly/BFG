@@ -48,20 +48,20 @@ def test_mine_no_turrets_uses_8d6():
     assert r["hits"] == 8
 
 
-def test_mine_hits_apply_damage_with_shields():
-    # Mine damage is blocked by shields (unlike torps)
+def test_mine_hits_ignore_shields():
+    # Core rules s.12: mines ignore shields
     target = make_ship(id="t", x=0, y=0, heading=0, turrets=0,
                        armor_prow="5+", armor_side="5+",
-                       shields_max=2, hits_max=8)
+                       shields_max=2, hits_max=12)
     mine = make_marker(ordnance_type="mine_field", x=10, y=0)
     gs = make_gs([target])
-    # 8 attack rolls → 8 hits at 5+; then apply_damage consumes crit-check dice
-    dice = DiceStub([5, 5, 5, 5, 5, 5, 5, 5, 1])  # 8 hits, crit check 1
+    rolls = [5] * 8 + [1] * 8     # 8D6 all hit at 5+; 8 hull hits, 8 crit checks
+    dice = DiceStub(rolls)
     r = resolve_mine_contact(mine, target, dice, gs)
     assert r["hits"] == 8
-    # Hull hits = 8 - 2 shields = 6; ship should have taken damage
-    t_updated = gs.get_ship_by_id("t")
-    assert t_updated.hits_remaining < 8
+    assert dice._idx == len(rolls)
+    assert gs.get_ship_by_id("t").hits_remaining == 4    # all 8 to the hull
+    assert gs.get_blast_markers() == []                 # no shield impacts
 
 
 # ── check_ordnance_vs_phenomena ───────────────────────────────────────────────

@@ -272,8 +272,7 @@ class _FireDialog:
                                         f"  Nova Cannon hits {hit_ship.name}: "
                                         f"{hd['hits']} hits (ignores armor)")
                                     apply_damage(hit_ship, hd["hits"],
-                                                 self.ctx.dice, self.ctx.gs,
-                                                 ignores_shields=True)
+                                                 self.ctx.dice, self.ctx.gs)
                                     self.ctx.check_destruction(hit_ship)
                         else:
                             self._log("  Nova Cannon: no ships hit")

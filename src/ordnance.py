@@ -176,7 +176,8 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     Turret defense: roll the ship's effective turrets (plus massed turret bonus).
     - If ANY die scores 4+: mine attacks with 4D6 instead of 8D6.
     - Otherwise: mine attacks with 8D6.
-    Mine damage CAN be blocked by shields (unlike torpedoes/bombers).
+    Mine damage ignores shields (core rules s.12; some rulebook printings say
+    otherwise, which the booklet calls an error).
     Turret restriction (torp/craft split) does not apply to mines.
     """
     result = {"hits": 0, "attack_dice": 8}
@@ -218,9 +219,9 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
         from .combat import apply_damage
         braced = ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
         apply_damage(ship, result["hits"], dice, game_state,
-                     ignores_shields=False, target_braced=braced)
+                     ignores_shields=True, target_braced=braced)
         game_state.add_log(
-            f"  Mine: {result['hits']} hit(s) on {ship.name} (shields apply)")
+            f"  Mine: {result['hits']} hit(s) on {ship.name} (ignores shields)")
 
     return result
 

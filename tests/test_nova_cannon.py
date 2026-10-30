@@ -95,3 +95,24 @@ def test_lock_on_order_allowed():
     gs = make_gs([a])
     r = resolve_nova_cannon(a, 60, 0, DiceStub([1]), gs)
     assert "error" not in r
+
+
+def test_nova_cannon_hits_are_absorbed_by_shields(tmp_path):
+    # Core rules s.10: D6 hits "regardless of its Armor value" - shields still apply
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    firer = make_ship(id="n", player=1, x=0.0, y=0.0)
+    target = make_ship(id="t", player=2, x=40.0, y=0.0, shields_max=2, hits_max=8)
+    gs = make_gs([firer, target])
+    rolls = [
+        1,      # scatter die: hit, template stays on the target
+        3,      # centre hole: D6 = 3 hits
+        1,      # 2 absorbed by shields, 1 hull hit: crit check
+    ]
+    dice = DiceStub(rolls)
+    ai = AIPlayer(1, TurnController(gs, dice, save_dir=str(tmp_path)), gs, dice)
+
+    ai._fire_nova_cannon(gs.get_ship_by_id("n"), [gs.get_ship_by_id("t")])
+
+    assert dice._idx == len(rolls)
+    assert gs.get_ship_by_id("t").hits_remaining == 7

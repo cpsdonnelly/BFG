@@ -439,8 +439,7 @@ class AIPlayer:
         for sid, hd in nc.get("ship_hits", {}).items():
             t = gs.get_ship_by_id(sid)
             if t:
-                dmg = apply_damage(t, hd["hits"], self.dice, gs,
-                                   ignores_shields=True)
+                dmg = apply_damage(t, hd["hits"], self.dice, gs)
                 self._log_damage(t, dmg)
 
     def _pick_target(self, ship: Ship, weapon: Dict,
