@@ -106,44 +106,35 @@ def calculate_victory_points(gs: GameState) -> Dict:
 
 
 def _score_squadron(squadron: List[Ship], opponent: int, result: Dict):
-    """Score an escort squadron as a unit."""
+    """Score an escort squadron once, as a single unit.
+
+    A squadron earns exactly one result, never a mix: destroyed (every ship)
+    = full points; crippled (at least half its ships destroyed, rounding up)
+    = 25%; scattered (not crippled, every surviving ship disengaged) = 10%.
+    """
     total_pts = sum(s.points_value for s in squadron)
     total_ships = len(squadron)
     destroyed = sum(1 for s in squadron
-                    if s.status in ("destroyed",) or s.hits_remaining <= 0)
+                    if s.status == "destroyed" or s.hits_remaining <= 0)
     disengaged = sum(1 for s in squadron if s.is_disengaged)
+    name = squadron[0].ship_class
 
     if destroyed == total_ships:
-        # Entire squadron destroyed
         result[opponent]["destroyed"] += total_pts
         result[opponent]["details"].append(
-            f"Squadron destroyed ({squadron[0].ship_class}): +{total_pts} VP")
+            f"Squadron destroyed ({name}): +{total_pts} VP")
 
-    elif destroyed + disengaged == total_ships:
-        # All destroyed or disengaged
-        destroyed_pts = sum(s.points_value for s in squadron
-                           if s.status == "destroyed" or s.hits_remaining <= 0)
-        result[opponent]["destroyed"] += destroyed_pts
-        disengaged_pts = sum(max(1, s.points_value // 10)
-                            for s in squadron if s.is_disengaged)
-        result[opponent]["disengaged"] += disengaged_pts
+    elif destroyed >= (total_ships + 1) // 2:
+        vp = max(1, total_pts // 4)
+        result[opponent]["crippled"] += vp
         result[opponent]["details"].append(
-            f"Squadron scattered ({squadron[0].ship_class}): "
-            f"+{destroyed_pts} destroyed, +{disengaged_pts} disengaged")
+            f"Squadron crippled ({name}, {destroyed}/{total_ships} destroyed): +{vp} VP")
 
-    else:
-        # Partially destroyed: check if crippled (half or more destroyed)
-        cripple_threshold = (total_ships + 1) // 2  # round up
-        if destroyed >= cripple_threshold:
-            vp = max(1, total_pts // 4)
-            result[opponent]["crippled"] += vp
-            # Also count fully destroyed ships
-            destroyed_pts = sum(s.points_value for s in squadron
-                               if s.status == "destroyed" or s.hits_remaining <= 0)
-            result[opponent]["destroyed"] += destroyed_pts
-            result[opponent]["details"].append(
-                f"Squadron crippled ({squadron[0].ship_class}): "
-                f"+{destroyed_pts} destroyed, +{vp} crippled")
+    elif disengaged and destroyed + disengaged == total_ships:
+        vp = max(1, total_pts // 10)
+        result[opponent]["disengaged"] += vp
+        result[opponent]["details"].append(
+            f"Squadron scattered ({name}): +{vp} VP")
 
 
 def _holds_field(player: int, ships: List[Ship]) -> bool:

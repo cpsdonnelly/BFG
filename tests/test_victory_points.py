@@ -113,8 +113,48 @@ def test_half_squadron_destroyed_gives_crippled_vp():
                    squadron_id="sq1", hits_max=2, hits_remaining=2)
     gs = _make_game([e1, e2])
     vp = calculate_victory_points(gs)
-    # 1 destroyed out of 2 → threshold = 1 → crippled; also destroyed gets 100%
-    assert vp[2]["crippled"] > 0 or vp[2]["destroyed"] > 0
+    # 1 of 2 destroyed reaches the cripple threshold: 25% of the squadron, nothing else
+    assert vp[2]["crippled"] == 20
+    assert vp[2]["destroyed"] == 0
+    assert vp[2]["total"] == 20
+
+
+def _escort(id, **kw):
+    return make_ship(id=id, player=1, ship_type="escort", points_value=40,
+                     squadron_id="sq1", hits_max=2, **kw)
+
+
+def test_crippled_squadron_destroyed_escorts_not_counted_twice():
+    dead = dict(hits_remaining=0, status="destroyed")
+    gs = _make_game([_escort("e1", **dead), _escort("e2", **dead),
+                     _escort("e3"), _escort("e4")])
+    vp = calculate_victory_points(gs)
+    # 2 of 4 destroyed: crippled, 25% of 160 = 40, and no 80 for the dead escorts
+    assert (vp[2]["destroyed"], vp[2]["crippled"], vp[2]["total"]) == (0, 40, 40)
+
+
+def test_mostly_destroyed_squadron_that_ran_counts_as_crippled_not_scattered():
+    dead = dict(hits_remaining=0, status="destroyed")
+    gs = _make_game([_escort("e1", **dead), _escort("e2", **dead),
+                     _escort("e3", is_disengaged=True)])
+    vp = calculate_victory_points(gs)
+    # 2 of 3 destroyed (threshold 2): crippled 25% of 120 = 30, not 80 + 4
+    assert (vp[2]["destroyed"], vp[2]["crippled"], vp[2]["disengaged"]) == (0, 30, 0)
+
+
+def test_squadron_that_disengaged_with_light_losses_is_scattered():
+    gs = _make_game([_escort("e1", hits_remaining=0, status="destroyed"),
+                     _escort("e2", is_disengaged=True),
+                     _escort("e3", is_disengaged=True)])
+    vp = calculate_victory_points(gs)
+    # 1 of 3 destroyed (below threshold 2), the rest disengaged: 10% of 120 = 12
+    assert (vp[2]["destroyed"], vp[2]["crippled"], vp[2]["disengaged"]) == (0, 0, 12)
+
+
+def test_lightly_damaged_squadron_still_fighting_scores_nothing():
+    gs = _make_game([_escort("e1", hits_remaining=0, status="destroyed"),
+                     _escort("e2"), _escort("e3")])
+    assert calculate_victory_points(gs)[2]["total"] == 0
 
 
 # ── format_vp_summary ─────────────────────────────────────────────────────────
