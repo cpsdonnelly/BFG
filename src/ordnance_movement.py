@@ -185,17 +185,19 @@ class OrdnanceMovementMixin:
         # 3. Check ordnance contact with ships
         to_remove_after = set()
 
-        # Phase 1: bomber wave interception — turrets (with massed bonus) fire once
-        # per ship at every incoming bomber wave before individual attacks resolve.
+        # Phase 1: attack craft wave interception — turrets (with massed bonus) fire
+        # once per ship at every incoming wave of bombers and assault boats before
+        # any attack or hit-and-run raid resolves.
         live_ordnance = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]
         for s in ships:
             if s.is_destroyed or s.is_disengaged:
                 continue
-            # Collect enemy bomber markers currently contacting this ship
+            # Collect enemy attacking craft currently contacting this ship
             wave = [
                 m for m in live_ordnance
                 if m.ordnance_type in (OrdnanceType.BOMBER.value,
-                                       OrdnanceType.MANTA.value)
+                                       OrdnanceType.MANTA.value,
+                                       OrdnanceType.ASSAULT_BOAT.value)
                 and m.owner_player != s.player
                 and m.id not in to_remove
                 and circle_touches_square(s.x, s.y, s.base_radius,

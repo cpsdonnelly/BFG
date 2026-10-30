@@ -272,3 +272,13 @@ def test_reload_only_sets_types_the_ship_has():
     reload_ship_ordnance(ship)
     assert ship.ordnance_loaded_torps is True
     assert ship.ordnance_loaded_craft is False  # no launch bay → unchanged
+
+
+def test_launch_shark_assault_boats_creates_assault_boats():
+    # Imperial Navy: Shark assault boats (AB, 30cm)
+    ship = make_ship(id="s", x=50, y=50, heading=0, player=1)
+    gs = make_gs([ship])
+    weapon = {"name": "Port Launch Bays", "weapon_type": "launch_bay", "strength": 2}
+    markers = launch_attack_craft(ship, weapon, "shark_assault_boat", 2, gs)
+    assert [m.ordnance_type for m in markers] == ["assault_boat", "assault_boat"]
+    assert all(m.speed == 30 for m in markers)

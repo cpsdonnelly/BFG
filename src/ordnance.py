@@ -233,10 +233,10 @@ def resolve_bomber_interception(bomber_count: int,
                                  game_state: GameState) -> Dict:
     """
     Phase 1 turret interception: the target ship (plus massed turret bonus from
-    non-crippled allies in base contact) fires at an incoming bomber wave before
-    the bombers reach attack range.
+    non-crippled allies in base contact) fires at an incoming wave of attacking
+    craft (bombers and assault boats) before they attack (core rules s.20).
 
-    Each turret rolls D6; 4+ kills one bomber (capped at bomber_count).
+    Each turret rolls D6; 4+ kills one marker (capped at bomber_count).
     Massed turret bonus applies here (long-range interception).
     Sets turrets_used_vs='craft' on the target so torpedo defence is blocked.
 
@@ -251,14 +251,14 @@ def resolve_bomber_interception(bomber_count: int,
 
     rolls = dice.roll_d6(
         turrets,
-        f"Phase 1 interception: {target.name} vs {bomber_count} bomber(s) (4+)")
+        f"Phase 1 interception: {target.name} vs {bomber_count} attack craft (4+)")
     kills = min(sum(1 for r in rolls if r >= 4), bomber_count)
 
     bonus_str = f" +{bonus} massed" if bonus else ""
     log = [
         f"  Phase 1 interception vs {target.name}: "
         f"{turrets} turrets{bonus_str}, "
-        f"rolls {rolls} → {kills}/{bomber_count} bomber(s) killed"
+        f"rolls {rolls} → {kills}/{bomber_count} attack craft destroyed"
     ]
 
     # Mark turrets as used vs craft this phase (blocks torpedo defence)
@@ -724,6 +724,7 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
         "barracuda": (OrdnanceType.BARRACUDA.value, 25, 0),
         "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
         "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
+        "shark_assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
     }
     o_type, speed, resilient = craft_stats.get(
         craft_type, (OrdnanceType.FIGHTER.value, 30, 0))
