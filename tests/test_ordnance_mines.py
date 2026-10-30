@@ -282,3 +282,54 @@ def test_launch_shark_assault_boats_creates_assault_boats():
     markers = launch_attack_craft(ship, weapon, "shark_assault_boat", 2, gs)
     assert [m.ordnance_type for m in markers] == ["assault_boat", "assault_boat"]
     assert all(m.speed == 30 for m in markers)
+
+
+# ── Assault boats are not fighters: they never intercept other ordnance ─────
+
+def _overlapping(gs, *markers):
+    for m in markers:
+        gs.add_ordnance(m)
+    return gs
+
+
+def test_assault_boat_does_not_intercept_an_enemy_torpedo():
+    from src.ordnance import resolve_ordnance_interactions
+    gs = _overlapping(
+        make_gs([]),
+        make_marker(id="ab", ordnance_type="assault_boat", owner_player=1,
+                    x=50.0, y=50.0, strength=1, speed=30.0),
+        make_marker(id="torp", ordnance_type="torpedo_standard", owner_player=2,
+                    x=50.0, y=50.0),
+    )
+    dice = DiceStub([1])
+    resolve_ordnance_interactions(gs, dice)
+    assert sorted(o["id"] for o in gs.ordnance) == ["ab", "torp"]
+    assert dice._idx == 0
+
+
+def test_assault_boat_does_not_intercept_an_enemy_bomber():
+    from src.ordnance import resolve_ordnance_interactions
+    gs = _overlapping(
+        make_gs([]),
+        make_marker(id="ab", ordnance_type="assault_boat", owner_player=1,
+                    x=50.0, y=50.0, strength=1, speed=30.0),
+        make_marker(id="bmr", ordnance_type="bomber", owner_player=2,
+                    x=50.0, y=50.0, strength=1, speed=20.0),
+    )
+    dice = DiceStub([1])
+    resolve_ordnance_interactions(gs, dice)
+    assert sorted(o["id"] for o in gs.ordnance) == ["ab", "bmr"]
+    assert dice._idx == 0
+
+
+def test_fighter_still_intercepts_an_assault_boat():
+    from src.ordnance import resolve_ordnance_interactions
+    gs = _overlapping(
+        make_gs([]),
+        make_marker(id="ab", ordnance_type="assault_boat", owner_player=1,
+                    x=50.0, y=50.0, strength=1, speed=30.0),
+        make_marker(id="ftr", ordnance_type="fighter", owner_player=2,
+                    x=50.0, y=50.0, strength=1, speed=30.0),
+    )
+    resolve_ordnance_interactions(gs, DiceStub([1]))
+    assert "ab" not in [o["id"] for o in gs.ordnance]
