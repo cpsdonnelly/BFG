@@ -12,6 +12,7 @@ from .models import (Ship, OrdnanceMarker, SpecialOrder, parse_armor,
 from .game_state import GameState
 from .turn_controller import TurnController
 from .dice import DiceRoller
+from .geometry import count_blast_markers_touching
 from .movement import (
     MoveCommand, validate_movement, execute_movement,
     get_effective_speed, get_max_turns,
@@ -33,7 +34,8 @@ def ai_should_brace(gs: GameState, target: Ship,
     Brace if expected total hull damage (current volley + follow-on fire
     from other unfired enemies in arc/range/LoS) >= hits_remaining / 4.
     """
-    shields = target.shields_remaining
+    shields = max(0, target.effective_shields
+                  - count_blast_markers_touching(target, gs.get_blast_markers()))
     current_hull = max(0, incoming_hits - shields)
     shields_left = max(0, shields - incoming_hits)
 

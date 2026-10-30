@@ -175,6 +175,7 @@ class GamePanel:
         tk.Button(sl_frame, text="Save Game", command=self._save_game,
                   bg="#2a3d2a", fg="#aaccaa", font=("Consolas", 8),
                   width=10).pack(side=tk.LEFT, padx=1)
+        self.ctx.board.load_game_fn = self._load_game
         tk.Button(sl_frame, text="Load Game", command=self._load_game,
                   bg="#2a2a3d", fg="#aaaacc", font=("Consolas", 8),
                   width=10).pack(side=tk.LEFT, padx=1)
@@ -472,7 +473,10 @@ class GamePanel:
         d = filedialog.askdirectory(title="Select save folder to load")
         if d:
             try:
-                self.ctx.gs.load(d)
+                from .game_state import GameState
+                self.ctx.gs.restore_from(GameState.load(d))
+                self.ctx.dice.mode = self.ctx.gs.dice_mode
+                self.ctx.tc.reset_after_load()
                 self.ctx.board.redraw()
                 self._update_phase_display()
                 self.ctx.log(f"[Load] Game loaded from {d}")
@@ -834,7 +838,7 @@ class GamePanel:
 
         self.ctx.board.redraw()
 
-    def _end_phase(self):
+    def _end_phase(self, end_already_resolved: bool = False):
         gs = self.ctx.gs
         tc = self.ctx.tc
         phase = gs.current_phase
@@ -890,7 +894,7 @@ class GamePanel:
                 messagebox.showwarning("Unfired Weapons",
                     f"These weapons haven't fired:\n{msg}\n\nEnd shooting phase anyway?")
 
-        if phase == "end":
+        if phase == "end" and not end_already_resolved:
             self._resolve_end_phase_interactive()
 
         tc.end_phase()
@@ -985,7 +989,8 @@ class GamePanel:
 
         self.ctx.board.redraw()
         self.ctx.log(f"[AI] {phase} phase complete")
-        self.root.after(300, self._end_phase)
+        self.root.after(300, lambda: self._end_phase(
+            end_already_resolved=(phase == "end")))
 
     def _resolve_end_phase_auto(self, ai):
         """End phase for the AI player — same logic as interactive but auto-repairs."""

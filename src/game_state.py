@@ -2,7 +2,7 @@
 import json
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, Phenomenon
 
@@ -202,3 +202,12 @@ class GameState:
                 content = f.read().strip()
                 gs.log = content.split("\n") if content else []
         return gs
+
+    def restore_from(self, other: "GameState") -> None:
+        """Overwrite this state in place with another's.
+
+        The turn controller, board and panels all hold a reference to the
+        same GameState, so a load must mutate it rather than replace it.
+        """
+        for f in fields(self):
+            setattr(self, f.name, getattr(other, f.name))

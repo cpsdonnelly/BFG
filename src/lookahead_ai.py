@@ -68,7 +68,7 @@ class SimShip:
             turn_angle=ship.turn_angle, ship_type=ship.ship_type,
             points_value=ship.points_value,
             hits_remaining=ship.hits_remaining, hits_max=ship.hits_max,
-            shields_remaining=ship.shields_remaining, shields_max=ship.shields_max,
+            shields_remaining=ship.effective_shields, shields_max=ship.shields_max,
             armor_prow=ship.armor_prow, armor_side=ship.armor_side,
             weapons=ship.weapons,
         )

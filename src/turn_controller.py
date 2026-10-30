@@ -128,6 +128,14 @@ class TurnController:
             "blast_markers": copy.deepcopy(self.gs.blast_markers),
         }
 
+    def reset_after_load(self):
+        """Clear per-phase tracking after the game state was replaced by a load,
+        and re-anchor undo so it can't roll back into the pre-load game."""
+        self.ships_moved.clear()
+        self.ships_fired.clear()
+        self.command_check_failed = False
+        self._save_phase_start()
+
     def undo_to_phase_start(self) -> bool:
         """Undo all changes in current phase, restoring to phase start."""
         if self._phase_start_snapshot is None:

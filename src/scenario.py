@@ -23,9 +23,10 @@ def ships_alive(gs: GameState, player: int) -> bool:
 def vp_winner(gs: GameState) -> Optional[int]:
     """Player with the higher VP total, or None on a tie."""
     vp = calculate_victory_points(gs)
-    if vp["player1"] > vp["player2"]:
+    p1, p2 = vp[1]["total"], vp[2]["total"]
+    if p1 > p2:
         return 1
-    if vp["player2"] > vp["player1"]:
+    if p2 > p1:
         return 2
     return None
 

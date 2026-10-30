@@ -109,6 +109,8 @@ class BoardView:
         #   commit_drag_fn(ship, commands)  : called on valid release to execute move
         self.can_drag_ship_fn = None
         self.commit_drag_fn = None
+        #   load_game_fn()                  : File > Load handler
+        self.load_game_fn = None
 
         # Ordnance launch drag state
         self.ord_drag_ship_id: Optional[str] = None  # ship being aimed
@@ -1361,11 +1363,14 @@ class BoardView:
             messagebox.showinfo("Saved", f"Game saved to {d}")
 
     def _load_game(self):
+        if self.load_game_fn:
+            self.load_game_fn()
+            return
         from tkinter import filedialog
         d = filedialog.askdirectory(title="Select save folder to load")
         if d:
             try:
-                self.gs = GameState.load(d)
+                self.gs.restore_from(GameState.load(d))
                 self.redraw()
                 messagebox.showinfo("Loaded", f"Game loaded from {d}")
             except Exception as e:
