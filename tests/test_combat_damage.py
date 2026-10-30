@@ -288,3 +288,20 @@ def test_three_hit_escort_still_rolls_on_crit_table():
     assert [c["crit_type"] for c in escort.critical_damage] == ["fire"]
     assert len(r["crits"]) == 1
     assert escort.hits_remaining == 2
+
+
+# ── Gunnery table target type ────────────────────────────────────────────────
+
+def test_gunnery_target_type_for_every_ship_type():
+    from src.combat import gunnery_target_type
+    expected = {"battleship": "capital", "cruiser": "capital",
+                "escort": "escort", "defense": "defense"}
+    for ship_type, target_type in expected.items():
+        assert gunnery_target_type(make_ship(ship_type=ship_type)) == target_type
+
+
+def test_capital_squadron_abeam_uses_abeam_column():
+    from src.combat import gunnery_target_type
+    from src.tables import get_gunnery_column, COL_MOVING_AWAY_ESCORT
+    cruiser = make_ship(ship_type="cruiser")
+    assert get_gunnery_column(gunnery_target_type(cruiser), "abeam") == COL_MOVING_AWAY_ESCORT

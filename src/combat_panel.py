@@ -5,7 +5,8 @@ import math
 
 from .models import Ship, SpecialOrder, OrdnanceMarker
 from .combat import (check_weapon_in_arc, apply_damage, check_los_clear,
-                     resolve_batteries_vs_squadron, eligible_orientations)
+                     resolve_batteries_vs_squadron, eligible_orientations,
+                     gunnery_target_type)
 from .game_context import GameContext
 from .combat_dialog import CombatDialogMixin
 
@@ -689,8 +690,7 @@ class CombatPanel(CombatDialogMixin):
             # Sort nearest-first
             eligible.sort(key=lambda s: attacker.distance_to(s))
 
-            # Determine target_type from first eligible member
-            target_type = eligible[0].ship_type
+            target_type = gunnery_target_type(eligible[0])
 
             fire_weapon = dict(weapon, strength=avail)
             sr = resolve_batteries_vs_squadron(

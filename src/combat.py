@@ -138,6 +138,15 @@ def effective_battery_firepower(attacker: Ship, weapon: Dict) -> int:
     return fp
 
 
+def gunnery_target_type(ship: Ship) -> str:
+    """Gunnery table target type for a ship: capital, escort or defense."""
+    if ship.ship_type in ("battleship", "cruiser"):
+        return "capital"
+    if ship.ship_type == "escort":
+        return "escort"
+    return "defense"
+
+
 def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
                       dice: DiceRoller, blast_markers: List[BlastMarker],
                       lock_on: bool = False,
@@ -153,12 +162,7 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
         return result
 
     # Determine target type for gunnery table
-    if target.ship_type in ("battleship", "cruiser"):
-        target_type = "capital"
-    elif target.ship_type == "escort":
-        target_type = "escort"
-    else:
-        target_type = "defense"
+    target_type = gunnery_target_type(target)
 
     # Determine orientation
     target_orientation = attacker.get_target_orientation(target)
@@ -230,12 +234,7 @@ def resolve_combined_batteries(primary_attacker: Ship,
         result.description = "Combined squadron fire: no firepower available"
         return result
 
-    if target.ship_type in ("battleship", "cruiser"):
-        target_type = "capital"
-    elif target.ship_type == "escort":
-        target_type = "escort"
-    else:
-        target_type = "defense"
+    target_type = gunnery_target_type(target)
 
     target_orientation = primary_attacker.get_target_orientation(target)
     column = get_gunnery_column(target_type, target_orientation)
