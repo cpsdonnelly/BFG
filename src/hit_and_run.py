@@ -45,6 +45,7 @@ from .models import Ship, OrdnanceMarker
 from .game_state import GameState
 from .dice import DiceRoller
 from .geometry import current_shields
+from .combat import uses_crit_table
 
 
 def check_teleport_eligibility(attacker: Ship, target: Ship,
@@ -164,6 +165,7 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         "failures": int,             # raids that failed (effective result <= 1)
         "repelled": int,             # raids repelled by brace (4+ saves)
         "crits_applied": List[dict], # crit entries that were applied
+        "damage": int,               # damage to escorts/small targets (no crits)
       }
     """
     summary = {
@@ -171,6 +173,7 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         "failures": 0,
         "repelled": 0,
         "crits_applied": [],
+        "damage": 0,
     }
 
     mod = _raid_roll_modifier(attacker_rules or [], target)
@@ -192,6 +195,11 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         gs.add_log(f"  Raid {i+1}: rolled {roll}"
                    + (f" ({effective} after modifier)" if mod else ""))
 
+        if not uses_crit_table(target) and effective < 4:
+            summary["failures"] += 1
+            gs.add_log(f"  Raid {i+1}: no effect on {target.name} (needs 4+ vs small target)")
+            continue
+
         # Defender brace repel attempt (4+)
         if brace_passed:
             repel_roll = dice.roll_d6(1, f"{target.name} repel raid {i+1} (4+)")[0]
@@ -201,6 +209,14 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
                 continue
             else:
                 gs.add_log(f"  Raid {i+1}: repel failed (rolled {repel_roll})")
+
+        if not uses_crit_table(target):
+            # Escorts and small targets: 1 damage, never a critical hit
+            target.hits_remaining = max(0, target.hits_remaining - 1)
+            gs.update_ship(target)
+            summary["damage"] += 1
+            gs.add_log(f"  Raid {i+1}: 1 damage to {target.name}")
+            continue
 
         # Apply the crit using the modified result, clamped to the table range (2-6)
         crit = _apply_raid_crit(max(2, min(6, effective)), target, gs, dice)

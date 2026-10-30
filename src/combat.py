@@ -447,8 +447,7 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
         # Critical hit check: D6 per hull hit, 6 = crit
         crit_roll = dice.roll_d6(1, f"Crit check for hit on {target.name}")
-        if crit_roll[0] == 6 and target.ship_type in ("escort", "defense") \
-                and target.hits_max < 3:
+        if crit_roll[0] == 6 and not uses_crit_table(target):
             # Small escorts/defenses take +1 damage instead of a critical
             target.hits_remaining -= 1
             game_state.add_log(f"Critical on {target.name}: +1 damage")
@@ -720,6 +719,12 @@ def resolve_ram(rammer: Ship, target: Ship, dice: DiceRoller,
         "rammer_rolls": rammer_rolls,
         "rammer_hits": rammer_raw_hits,
     }
+
+
+def uses_crit_table(ship: Ship) -> bool:
+    """Escorts and defenses with fewer than 3 starting hits don't roll on the
+    Critical Hits table: a critical hit is 1 extra point of damage instead."""
+    return not (ship.ship_type in ("escort", "defense") and ship.hits_max < 3)
 
 
 def becomes_blast_marker(ship: Ship) -> bool:

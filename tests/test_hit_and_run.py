@@ -350,3 +350,55 @@ class TestResolveTeleportAttack:
         result = resolve_teleport_attack(attacker, target, dice, gs, _no_brace)
         assert result["failures"] == 1
         assert result["crits_applied"] == []
+
+
+# ---------------------------------------------------------------------------
+# Raids vs escorts and small targets (core rules s.23)
+# ---------------------------------------------------------------------------
+
+class TestRaidsVsSmallTargets:
+    def _escort(self, **kw):
+        base = dict(id="e", player=2, ship_type="escort", hits_max=2, shields_max=0)
+        base.update(kw)
+        return make_ship(**base)
+
+    def test_four_plus_does_one_damage_and_no_crit(self):
+        escort = self._escort()
+        gs = make_gs([escort])
+        dice = DiceStub([4])
+        s = resolve_raids(1, escort, False, dice, gs)
+        assert dice._idx == 1
+        assert s["damage"] == 1 and s["crits_applied"] == []
+        assert gs.get_ship_by_id("e").hits_remaining == 1
+        assert gs.get_ship_by_id("e").critical_damage == []
+
+    def test_three_does_nothing(self):
+        escort = self._escort()
+        gs = make_gs([escort])
+        s = resolve_raids(1, escort, False, DiceStub([3]), gs)
+        assert s["damage"] == 0 and s["failures"] == 1
+        assert gs.get_ship_by_id("e").hits_remaining == 2
+
+    def test_modifier_applies_before_the_four_plus(self):
+        escort = self._escort()
+        gs = make_gs([escort])
+        s = resolve_raids(1, escort, False, DiceStub([3]), gs,
+                          attacker_rules=["space_marine_crew"])
+        assert s["damage"] == 1
+
+    def test_braced_escort_saves_on_four_plus(self):
+        escort = self._escort()
+        gs = make_gs([escort])
+        dice = DiceStub([5, 4])          # raid succeeds, brace save 4+ repels it
+        s = resolve_raids(1, escort, True, dice, gs)
+        assert dice._idx == 2
+        assert s["repelled"] == 1 and s["damage"] == 0
+
+    def test_escort_with_three_or_more_hits_uses_crit_table(self):
+        big = self._escort(hits_max=4)  # e.g. Nicassar Rig
+        gs = make_gs([big])
+        s = resolve_raids(1, big, False, DiceStub([2]), gs)
+        assert s["damage"] == 0
+        # No weapons on the test ship, so result 2 (dorsal armament) cascades
+        # up the table past the armament slots to engine room
+        assert [c["crit_type"] for c in s["crits_applied"]] == ["engine_room"]
