@@ -365,3 +365,45 @@ class TestBoardedEscorts:
         assert e.critical_damage == []
         assert [bm.id for bm in gs.get_blast_markers()] == ["wreck_e"]
         assert gs.get_ship_by_id("c").status == "drifting_hulk"   # capital ships still hulk
+
+
+# ---------------------------------------------------------------------------
+# s.24: boarded to 0 = hulk, no catastrophic roll; killed by the crit = roll
+# ---------------------------------------------------------------------------
+
+class TestBoardingCatastrophicNuance:
+    def _ships(self, target_hits):
+        attacker = make_ship(id="a", player=1, hits_max=8, turrets=2)
+        target = make_ship(id="t", player=2, hits_max=8, hits_remaining=target_hits,
+                           turrets=0, x=5.0)
+        return attacker, target, make_gs([attacker, target])
+
+    def test_boarding_damage_to_zero_makes_a_hulk(self):
+        attacker, target, gs = self._ships(target_hits=1)
+        rolls = [
+            1, 6,   # attacker 1 +2 (crippled) +4 (troops 10 vs 1) = 7 vs 6: diff 1
+            1,      # winner crit check 5+: fails
+            1,      # loser crit check 5+: fails
+        ]
+        dice = DiceStub(rolls)
+        resolve_boarding([attacker], target, dice, gs)
+        assert dice._idx == len(rolls)
+        t = gs.get_ship_by_id("t")
+        assert (t.hits_remaining, t.status) == (0, "drifting_hulk")
+
+    def test_crit_after_boarding_that_kills_still_needs_catastrophic_roll(self):
+        attacker, target, gs = self._ships(target_hits=2)
+        rolls = [
+            1, 6,   # attacker 7 vs defender 6 (troops 10 vs 2: +4): diff 1, Stalemate
+            1,      # winner crit check 5+: fails
+            5,      # loser crit check 5+: passes
+            6,      # raid-table crit 6: Engine Room Damaged, +1 damage
+        ]
+        dice = DiceStub(rolls)
+        resolve_boarding([attacker], target, dice, gs)
+        assert dice._idx == len(rolls)
+        t = gs.get_ship_by_id("t")
+        # Boarding left it on 1 hit; the crit's extra damage took it to 0.
+        # It stays "active" so check_destruction rolls catastrophic damage.
+        assert (t.hits_remaining, t.status) == (0, "active")
+        assert [c["crit_type"] for c in t.critical_damage] == ["engine_room"]
