@@ -7,7 +7,7 @@ from .game_state import GameState
 from .tables import (lookup_gunnery_dice, get_gunnery_column, CRITICAL_HITS,
                      lookup_catastrophic)
 from .dice import DiceRoller
-from .geometry import (count_blast_markers_touching,
+from .geometry import (current_shields,
                        EXPLOSION_BLAST_OFFSET_CM,
                        NOVA_CANNON_TEMPLATE_RADIUS_CM,
                        NOVA_CANNON_CENTER_HOLE_RADIUS_CM)
@@ -418,11 +418,7 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     remaining_hits = hits
 
     if not ignores_shields:
-        # Count blast markers already touching ship to reduce available shields
-        existing_blasts = count_blast_markers_touching(target, game_state.get_blast_markers())
-        max_shields = target.effective_shields
-        available_shields = max(0, max_shields - existing_blasts)
-
+        available_shields = current_shields(target, game_state.get_blast_markers())
         shield_absorb = min(remaining_hits, available_shields)
         summary["shield_hits"] = shield_absorb
         summary["blast_markers_placed"] = shield_absorb

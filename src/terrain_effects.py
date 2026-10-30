@@ -5,6 +5,7 @@ from typing import List, Dict
 from .models import Ship, Phenomenon, BlastMarker
 from .game_state import GameState
 from .dice import DiceRoller
+from .geometry import current_shields
 
 
 def check_ship_terrain_contact(ship: Ship, phenomena: List[Phenomenon]) -> List[Dict]:
@@ -124,7 +125,7 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
             f"Takes {dmg_roll} asteroid damage")
 
         # Apply damage (shields absorb but no blast markers placed)
-        shields = ship.effective_shields
+        shields = current_shields(ship, gs.get_blast_markers())
         absorbed = min(dmg_roll, shields)
         hull_dmg = max(0, dmg_roll - absorbed)
         if hull_dmg > 0:
@@ -203,13 +204,8 @@ def resolve_gas_dust_contact(ship: Ship, dice: DiceRoller,
     """
     result = {"speed_penalty": 5, "damage": 0}
 
-    # If ship has no shields at all (permanently disabled, not just depleted)
-    has_shields = ship.shields_max > 0
-    shield_collapsed = any(
-        c.get("crit_type") == "shields_collapse"
-        for c in ship.critical_damage)
-
-    if not has_shields or shield_collapsed:
+    # Shieldless means no shields at all or collapsed, not merely knocked down
+    if ship.effective_shields == 0:
         roll = dice.roll_d6(1, f"{ship.name} dust cloud damage (no shields, 6=1 damage)")[0]
         if roll == 6:
             result["damage"] = 1
@@ -274,13 +270,8 @@ class TabletopEffects:
                 heading=random.uniform(0, 360))
             gs.add_blast_marker(bm)
 
-            # Ships without shields take damage
-            has_shields = s.shields_max > 0
-            shield_collapsed = any(
-                c.get("crit_type") == "shields_collapse"
-                for c in s.critical_damage)
-
-            if not has_shields or shield_collapsed:
+            # Ships without shields (none at all, or collapsed) take damage
+            if s.effective_shields == 0:
                 s.hits_remaining = max(0, s.hits_remaining - 1)
                 # Critical on 4+ instead of 6
                 crit_roll = dice.roll_d6(1, f"Solar flare crit check on {s.name} (4+)")[0]

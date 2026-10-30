@@ -35,7 +35,7 @@ Eligibility:
   - Attacker not an escort or defense with fewer than 3 starting hits
   - Attacker is not Tau faction
   - Target within 10cm
-  - Target shields currently at 0
+  - Target shields currently at 0 (collapsed, or knocked down by blast markers)
   - Target has no more remaining hits than attacker has remaining hits
   - Each ship may perform at most one teleport attack per end phase
 """
@@ -44,6 +44,7 @@ from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker
 from .game_state import GameState
 from .dice import DiceRoller
+from .geometry import current_shields
 
 
 def check_teleport_eligibility(attacker: Ship, target: Ship,
@@ -70,8 +71,9 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
     if dist > 10:
         return False, f"{target.name} is {dist:.1f}cm away (max 10cm)"
 
-    if target.effective_shields > 0:
-        return False, f"{target.name} has active shields"
+    shields = current_shields(target, gs.get_blast_markers())
+    if shields > 0:
+        return False, f"{target.name} has {shields} shield(s) still up"
 
     if target.hits_remaining > attacker.hits_remaining:
         return False, (f"{target.name} has {target.hits_remaining} hits remaining, "

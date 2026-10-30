@@ -270,3 +270,14 @@ def count_blast_markers_touching(ship: Ship,
                                    bm.x, bm.y, bm.heading):
             count += 1
     return count
+
+
+def current_shields(ship: Ship, blast_markers: List[BlastMarker]) -> int:
+    """Shield points a ship has right now.
+
+    Starts from Ship.effective_shields (0 after a Shields Collapse crit,
+    halved when crippled) and loses one per blast marker touching the base.
+    Every shield check should go through here.
+    """
+    return max(0, ship.effective_shields
+               - count_blast_markers_touching(ship, blast_markers))

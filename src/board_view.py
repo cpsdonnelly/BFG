@@ -6,6 +6,7 @@ from typing import Optional, Tuple
 from .models import (Ship, BlastMarker, OrdnanceMarker, Phenomenon,
                      signed_angle_diff)
 from .game_state import GameState
+from .geometry import count_blast_markers_touching, current_shields
 
 # Ship circle sizes in screen pixels (will be scaled)
 SHIP_RADII = {
@@ -1184,15 +1185,12 @@ class BoardView:
                      (" [CRIPPLED]" if s.is_crippled else "") +
                      (" [DESTROYED]" if s.is_destroyed else ""))
 
-        # Calculate actual shields (reduced by touching blast markers)
-        blast_touching = 0
-        for bm_dict in self.gs.blast_markers:
-            bm = BlastMarker.from_dict(bm_dict)
-            dist = math.sqrt((bm.x - s.x)**2 + (bm.y - s.y)**2)
-            if dist <= s.base_radius + 2.0:
-                blast_touching += 1
-        actual_shields = max(0, s.effective_shields - blast_touching)
-        lines.append(f"Shields: {actual_shields}/{s.shields_max}"
+        blast_markers = self.gs.get_blast_markers()
+        blast_touching = count_blast_markers_touching(s, blast_markers)
+        collapsed = any(c.get("crit_type") == "shields_collapse"
+                        for c in s.critical_damage)
+        lines.append(f"Shields: {current_shields(s, blast_markers)}/{s.shields_max}"
+                     + (" (SHIELDS COLLAPSED)" if collapsed else "")
                      + (f" ({blast_touching} blast markers)" if blast_touching > 0 else ""))
         lines.append(f"Speed: {s.effective_speed}cm")
         lines.append(f"Turn: {s.turn_angle}°")
