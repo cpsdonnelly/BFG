@@ -1,0 +1,20 @@
+Unified rules-and-roster companion: core rules, then the faction sections (rules, ships, fleet lists), then scenarios and the reference appendix.
+00_core-rules.md	Core Rules
+01_imperial-navy.md	Imperial Navy (Imperium p.63-88)
+02_adeptus-mechanicus.md	Adeptus Mechanicus (Imperium p.6-16)
+03_space-marines.md	Space Marines (Imperium p.135-147)
+04_inquisition-grey-knights.md	Inquisition & Grey Knights (Imperium p.102-107)
+05_rogue-traders.md	Rogue Traders (Imperium p.110-129)
+06_support-assets.md	Support Assets (Rulebook p.61-75)
+07_chaos.md	Chaos (Imperium p.23-53)
+08_orks.md	Orks (Xenos p.58-73)
+09_tau-allies.md	Tau & Allies (Xenos p.77-101)
+10_scenarios.md	Scenarios
+11_campaigns.md	Campaigns
+12_appendix-1-campaign-tables.md	Appendix 1 - Campaign Tables
+13_appendix-2-refits-and-crew-skills.md	Appendix 2 - Refits and Crew Skills
+14_appendix-3-special-damage-tables.md	Appendix 3 - Special Damage Tables
+15_appendix-4-leadership-tables.md	Appendix 4 - Leadership Tables
+16_appendix-5-default-damage-tables.md	Appendix 5 - Default Damage Tables
+17_appendix-6-special-orders.md	Appendix 6 - Special Orders
+18_appendix-7-gunnery-table.md	Appendix 7 - Gunnery Table

@@ -1,0 +1,458 @@
+faction,ship,group,kind,location,name,qualifier,range_min_cm,range_max_cm,stat,value,category,arcs,parsed,raw
+Imperial Navy,Emperor Battleship,,weapon,,Macrobatteries,,,60,FP,6,direct,L | R,True,"Macrobatteries 60cm FP6 (L), (R)"
+Imperial Navy,Emperor Battleship,,launch_bays,,Launch Bays,,,,S,port 4 + stbd 4,ordnance,,True,"Launch Bays port S4 + stbd S4 (ASF 30cm, BMR 20cm)"
+Imperial Navy,Emperor Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP5 (L/F/R)
+Imperial Navy,Emperor Battleship,,weapon,Prow,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Prow Macrobatteries 60cm FP5 (L/F/R)
+Imperial Navy,Apocalypse Battleship,,weapon,,Lances,,,60,FP,6,direct,L | R,True,"Lances 60cm FP6 (L), (R)"
+Imperial Navy,Apocalypse Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,9,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP9 (L/F/R)
+Imperial Navy,Apocalypse Battleship,,weapon,Prow,Nova Cannon,,30,150,Template,,direct,F,True,Prow Nova Cannon 30-150cm Template (F)
+Imperial Navy,Oberon Battleship,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm)"
+Imperial Navy,Oberon Battleship,,weapon,,Macrobatteries,,,60,FP,6,direct,L | R,True,"Macrobatteries 60cm FP6 (L), (R)"
+Imperial Navy,Oberon Battleship,,weapon,,Lances,,,60,FP,2,direct,L | R,True,"Lances 60cm FP2 (L), (R)"
+Imperial Navy,Oberon Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP5 (L/F/R)
+Imperial Navy,Oberon Battleship,,weapon,Prow,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Prow Macrobatteries 60cm FP5 (L/F/R)
+Imperial Navy,Retribution Battleship,,weapon,,Macrobatteries,,,45,FP,18,direct,L | R,True,"Macrobatteries 45cm FP18 (L), (R)"
+Imperial Navy,Retribution Battleship,,weapon,Dorsal,Lances,,,60,FP,3,direct,L/F/R,True,Dorsal Lances 60cm FP3 (L/F/R)
+Imperial Navy,Retribution Battleship,,weapon,Prow,Torps,,,30,S,9,ordnance,F,True,Prow Torps 30cm S9 (F)
+Imperial Navy,Victory Battleship,,weapon,,Lances,,,60,FP,4,direct,L | R,True,"Lances 60cm FP4 (L), (R)"
+Imperial Navy,Victory Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,9,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP9 (L/F/R)
+Imperial Navy,Victory Battleship,,weapon,Prow,Nova Cannon,,30,150,Template,,direct,F,True,Prow Nova Cannon 30-150cm Template (F)
+Imperial Navy,The Vae Victis (unique),,weapon,,Lances,,,45,FP,4,direct,L | R,True,"Lances 45cm FP4 (L), (R)"
+Imperial Navy,The Vae Victis (unique),,weapon,,Macrobatteries,,,60,FP,6,direct,L | R,True,"Macrobatteries 60cm FP6 (L), (R)"
+Imperial Navy,The Vae Victis (unique),,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Imperial Navy,Exorcist Grand Cruiser,,launch_bays,,Launch Bays,,,,S,port 3 + stbd 3,ordnance,,True,"Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm)"
+Imperial Navy,Exorcist Grand Cruiser,,weapon,,Macrobatteries,,,45,FP,8,direct,L | R,True,"Macrobatteries 45cm FP8 (L), (R)"
+Imperial Navy,Vengeance Grand Cruiser,,weapon,,Lances,,,45,FP,2,direct,L | R,True,"Lances 45cm FP2 (L), (R)"
+Imperial Navy,Vengeance Grand Cruiser,,weapon,,Macrobatteries,,,60,FP,10,direct,L | R,True,"Macrobatteries 60cm FP10 (L), (R)"
+Imperial Navy,Avenger Grand Cruiser,,weapon,,Macrobatteries,,,30,FP,20,direct,L | R,True,"Macrobatteries 30cm FP20 (L), (R)"
+Imperial Navy,Mars Battlecruiser,,weapon,,Macrobatteries,,,45,FP,6,direct,L | R,True,"Macrobatteries 45cm FP6 (L), (R)"
+Imperial Navy,Mars Battlecruiser,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm)"
+Imperial Navy,Mars Battlecruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Imperial Navy,Mars Battlecruiser,,weapon,Prow,Nova Cannon,,30,150,Template,,direct,F,True,Prow Nova Cannon 30-150cm Template (F)
+Imperial Navy,Dominion Battlecruiser,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm)"
+Imperial Navy,Dominion Battlecruiser,,weapon,,Lances,,,45,FP,2,direct,L | R,True,"Lances 45cm FP2 (L), (R)"
+Imperial Navy,Dominion Battlecruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Imperial Navy,Dominion Battlecruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Imperial Navy,Mercury Battlecruiser,,weapon,,Macrobatteries,,,60,FP,6,direct,L | R,True,"Macrobatteries 60cm FP6 (L), (R)"
+Imperial Navy,Mercury Battlecruiser,,weapon,,Macrobatteries,,,45,FP,4,direct,L | R,True,"Macrobatteries 45cm FP4 (L), (R)"
+Imperial Navy,Mercury Battlecruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Imperial Navy,Mercury Battlecruiser,,weapon,Prow,Nova Cannon,,30,150,Template,,direct,F,True,Prow Nova Cannon 30-150cm Template (F)
+Imperial Navy,Armageddon Battlecruiser,,weapon,,Macrobatteries,,,45,FP,6,direct,L | R,True,"Macrobatteries 45cm FP6 (L), (R)"
+Imperial Navy,Armageddon Battlecruiser,,weapon,,Lances,,,45,FP,2,direct,L | R,True,"Lances 45cm FP2 (L), (R)"
+Imperial Navy,Armageddon Battlecruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Imperial Navy,Armageddon Battlecruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Imperial Navy,Overlord Battlecruiser,,weapon,,Macrobatteries,,,60,FP,8,direct,L | R,True,"Macrobatteries 60cm FP8 (L), (R)"
+Imperial Navy,Overlord Battlecruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Imperial Navy,Overlord Battlecruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Imperial Navy,Cardinal Battlecruiser,,weapon,,Lances,,,45,FP,2,direct,L | R,True,"Lances 45cm FP2 (L), (R)"
+Imperial Navy,Cardinal Battlecruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Imperial Navy,Cardinal Battlecruiser,,weapon,Prow,Macrobatteries,,,60,FP,6,direct,L/F/R,True,Prow Macrobatteries 60cm FP6 (L/F/R)
+Imperial Navy,Dictator Cruiser,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm)"
+Imperial Navy,Dictator Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Imperial Navy,Dictator Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Imperial Navy,Dominator Cruiser,,weapon,,Macrobatteries,,,30,FP,12,direct,L | R,True,"Macrobatteries 30cm FP12 (L), (R)"
+Imperial Navy,Dominator Cruiser,,weapon,Prow,Nova Cannon,,30,150,Template,,direct,F,True,Prow Nova Cannon 30-150cm Template (F)
+Imperial Navy,Gothic Cruiser,,weapon,,Lances,,,30,FP,4,direct,L | R,True,"Lances 30cm FP4 (L), (R)"
+Imperial Navy,Gothic Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Imperial Navy,Lunar Cruiser,,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Imperial Navy,Lunar Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Imperial Navy,Lunar Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Imperial Navy,Tyrant Cruiser,,weapon,,Macrobatteries,,,45,FP,4,direct,L | R,True,"Macrobatteries 45cm FP4 (L), (R)"
+Imperial Navy,Tyrant Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Imperial Navy,Tyrant Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Imperial Navy,Dauntless Light Cruiser,,weapon,,Macrobatteries,,,30,FP,4,direct,L | R,True,"Macrobatteries 30cm FP4 (L), (R)"
+Imperial Navy,Dauntless Light Cruiser,,weapon,Prow,Lances,,,30,FP,3,direct,F,True,Prow Lances 30cm FP3 (F)
+Imperial Navy,Endeavour Light Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Imperial Navy,Endeavour Light Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Prow Macrobatteries 30cm FP2 (L/F/R)
+Imperial Navy,Endeavour Light Cruiser,,weapon,Prow,Torps,,,30,S,2,ordnance,F,True,Prow Torps 30cm S2 (F)
+Imperial Navy,Endurance Light Cruiser,,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Imperial Navy,Endurance Light Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Prow Macrobatteries 30cm FP2 (L/F/R)
+Imperial Navy,Endurance Light Cruiser,,weapon,Prow,Torps,,,30,S,2,ordnance,F,True,Prow Torps 30cm S2 (F)
+Imperial Navy,Defiant Light Cruiser,,launch_bays,,Launch Bays,,,,S,port 1 + stbd 1,ordnance,,True,"Launch Bays port S1 + stbd S1 (ASF 30cm, BMR 20cm)"
+Imperial Navy,Defiant Light Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Prow Macrobatteries 30cm FP2 (L/F/R)
+Imperial Navy,Defiant Light Cruiser,,weapon,Prow,Torps,,,30,S,2,ordnance,F,True,Prow Torps 30cm S2 (F)
+Imperial Navy,Siluria Light Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Imperial Navy,Siluria Light Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Prow Macrobatteries 30cm FP2 (L/F/R)
+Imperial Navy,Sword Frigate,,weapon,,Macrobatteries,,,30,FP,4,direct,L/F/R,True,Macrobatteries 30cm FP4 (L/F/R)
+Imperial Navy,Firestorm Frigate,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Imperial Navy,Firestorm Frigate,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Imperial Navy,Havoc Frigate,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Imperial Navy,Havoc Frigate,,weapon,,Macrobatteries,,,30,FP,2,direct,F,True,Macrobatteries 30cm FP2 (F)
+Imperial Navy,Falchion Frigate,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Imperial Navy,Falchion Frigate,,weapon,,Torps,,,30,S,1,ordnance,F,True,Torps 30cm S1 (F)
+Imperial Navy,Viper Destroyer,,weapon,,Torps,,,30,S,3,ordnance,F,True,Torps 30cm S3 (F)
+Imperial Navy,Cobra Destroyer,,weapon,,Macrobattery,,,30,FP,1,direct,L/F/R,True,Macrobattery 30cm FP1 (L/F/R)
+Imperial Navy,Cobra Destroyer,,weapon,,Torps,,,30,S,2,ordnance,F,True,Torps 30cm S2 (F)
+Imperial Navy,Ramilies Star Fort,Quadrant,weapon,,Macrobatteries,,,60,FP,12,direct,,True,Macrobatteries 60cm FP12
+Imperial Navy,Ramilies Star Fort,Quadrant,weapon,,Lances,,,60,FP,5,direct,,True,Lances 60cm FP5
+Imperial Navy,Ramilies Star Fort,Quadrant,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (ASF 30cm, BMR 20cm)"
+Imperial Navy,Ramilies Star Fort,Basilica,weapon,,Macrobatteries,,,45,FP,4,direct,All Round,True,Macrobatteries 45cm FP4 (All Round)
+Imperial Navy,Ramilies Star Fort,Basilica,weapon,,Torps,,,30,S,9,ordnance,All Round,True,Torps 30cm S9 (All Round)
+Adeptus Mechanicus,Ark Mechanicus Omnissiah's Victory (unique),,weapon,,Macrobatteries,,,60,FP,10,direct,L | R,True,"Macrobatteries 60cm FP10 (L), (R)"
+Adeptus Mechanicus,Ark Mechanicus Omnissiah's Victory (unique),,weapon,,Lances,,,60,FP,2,direct,L | R,True,"Lances 60cm FP2 (L), (R)"
+Adeptus Mechanicus,Ark Mechanicus Omnissiah's Victory (unique),,weapon,Dorsal,Lances,,,60,FP,3,direct,L/F/R,True,Dorsal Lances 60cm FP3 (L/F/R)
+Adeptus Mechanicus,Ark Mechanicus Omnissiah's Victory (unique),,weapon,Prow,Nova Cannon,,30,150,Template,,direct,F,True,Prow Nova Cannon 30-150cm Template (F)
+Adeptus Mechanicus,Mechanicus Emperor Battleship,,weapon,,Macrobatteries,,,60,FP,6,direct,L | R,True,"Macrobatteries 60cm FP6 (L), (R)"
+Adeptus Mechanicus,Mechanicus Emperor Battleship,,launch_bays,,Launch Bays,,,,S,port 4 + stbd 4,ordnance,,True,"Launch Bays port S4 + stbd S4 (ASF 30cm, BMR 20cm)"
+Adeptus Mechanicus,Mechanicus Emperor Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP5 (L/F/R)
+Adeptus Mechanicus,Mechanicus Emperor Battleship,,weapon,Prow,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Prow Macrobatteries 60cm FP5 (L/F/R)
+Adeptus Mechanicus,Mechanicus Retribution Battleship,,weapon,,Macrobatteries,,,45,FP,18,direct,L | R,True,"Macrobatteries 45cm FP18 (L), (R)"
+Adeptus Mechanicus,Mechanicus Retribution Battleship,,weapon,Dorsal,Lances,,,60,FP,3,direct,L/F/R,True,Dorsal Lances 60cm FP3 (L/F/R)
+Adeptus Mechanicus,Mechanicus Retribution Battleship,,weapon,Prow,Torps,,,30,S,9,ordnance,F,True,Prow Torps 30cm S9 (F)
+Adeptus Mechanicus,Mechanicus Oberon Battleship,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm)"
+Adeptus Mechanicus,Mechanicus Oberon Battleship,,weapon,,Macrobatteries,,,60,FP,6,direct,L | R,True,"Macrobatteries 60cm FP6 (L), (R)"
+Adeptus Mechanicus,Mechanicus Oberon Battleship,,weapon,,Lances,,,60,FP,2,direct,L | R,True,"Lances 60cm FP2 (L), (R)"
+Adeptus Mechanicus,Mechanicus Oberon Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP5 (L/F/R)
+Adeptus Mechanicus,Mechanicus Oberon Battleship,,weapon,Prow,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Prow Macrobatteries 60cm FP5 (L/F/R)
+Adeptus Mechanicus,Mechanicus Dictator Cruiser,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm)"
+Adeptus Mechanicus,Mechanicus Dictator Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Adeptus Mechanicus,Mechanicus Dictator Cruiser,,weapon,Dorsal,Lance,,,60,FP,1,direct,L/F/R,True,Dorsal Lance 60cm FP1 (L/F/R)
+Adeptus Mechanicus,Mechanicus Dictator Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Adeptus Mechanicus,Mechanicus Gothic Cruiser,,weapon,,Lances,,,30,FP,4,direct,L | R,True,"Lances 30cm FP4 (L), (R)"
+Adeptus Mechanicus,Mechanicus Gothic Cruiser,,weapon,Dorsal,Lance,,,60,FP,1,direct,L/F/R,True,Dorsal Lance 60cm FP1 (L/F/R)
+Adeptus Mechanicus,Mechanicus Gothic Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Adeptus Mechanicus,Mechanicus Tyrant Cruiser,,weapon,,Macrobatteries,,,45,FP,4,direct,L | R,True,"Macrobatteries 45cm FP4 (L), (R)"
+Adeptus Mechanicus,Mechanicus Tyrant Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Adeptus Mechanicus,Mechanicus Tyrant Cruiser,,weapon,Dorsal,Lance,,,60,FP,1,direct,L/F/R,True,Dorsal Lance 60cm FP1 (L/F/R)
+Adeptus Mechanicus,Mechanicus Tyrant Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Adeptus Mechanicus,Mechanicus Lunar Cruiser,,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Adeptus Mechanicus,Mechanicus Lunar Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Adeptus Mechanicus,Mechanicus Lunar Cruiser,,weapon,Dorsal,Lance,,,60,FP,1,direct,L/F/R,True,Dorsal Lance 60cm FP1 (L/F/R)
+Adeptus Mechanicus,Mechanicus Lunar Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Adeptus Mechanicus,Mechanicus Endeavour Light Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Adeptus Mechanicus,Mechanicus Endeavour Light Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Prow Macrobatteries 30cm FP2 (L/F/R)
+Adeptus Mechanicus,Mechanicus Endeavour Light Cruiser,,weapon,Prow,Torps,,,30,S,2,ordnance,F,True,Prow Torps 30cm S2 (F)
+Adeptus Mechanicus,Mechanicus Endurance Light Cruiser,,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Adeptus Mechanicus,Mechanicus Endurance Light Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Prow Macrobatteries 30cm FP2 (L/F/R)
+Adeptus Mechanicus,Mechanicus Endurance Light Cruiser,,weapon,Prow,Torps,,,30,S,2,ordnance,F,True,Prow Torps 30cm S2 (F)
+Adeptus Mechanicus,Mechanicus Defiant Light Cruiser,,launch_bays,,Launch Bays,,,,S,port 1 + stbd 1,ordnance,,True,"Launch Bays port S1 + stbd S1 (ASF 30cm, BMR 20cm)"
+Adeptus Mechanicus,Mechanicus Defiant Light Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Prow Macrobatteries 30cm FP2 (L/F/R)
+Adeptus Mechanicus,Mechanicus Defiant Light Cruiser,,weapon,Prow,Torps,,,30,S,2,ordnance,F,True,Prow Torps 30cm S2 (F)
+Adeptus Mechanicus,Mechanicus Nova Frigate,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Adeptus Mechanicus,Mechanicus Nova Frigate,,weapon,,Lance,,,30,FP,1,direct,L/F/R,True,Lance 30cm FP1 (L/F/R)
+Adeptus Mechanicus,Mechanicus Gladius Frigate,,weapon,,Macrobatteries,,,30,FP,4,direct,L/F/R,True,Macrobatteries 30cm FP4 (L/F/R)
+Adeptus Mechanicus,Mechanicus Hunter Destroyer,,weapon,,Macrobattery,,,30,FP,1,direct,L/F/R,True,Macrobattery 30cm FP1 (L/F/R)
+Adeptus Mechanicus,Mechanicus Hunter Destroyer,,weapon,,Torps,,,30,S,2,ordnance,F,True,Torps 30cm S2 (F)
+Adeptus Mechanicus,Mechanicus Firestorm Frigate,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Adeptus Mechanicus,Mechanicus Firestorm Frigate,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Adeptus Mechanicus,Mechanicus Sword Frigate,,weapon,,Macrobatteries,,,30,FP,4,direct,L/F/R,True,Macrobatteries 30cm FP4 (L/F/R)
+Adeptus Mechanicus,Mechanicus Falchion Frigate,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Adeptus Mechanicus,Mechanicus Falchion Frigate,,weapon,,Torps,,,30,S,1,ordnance,F,True,Torps 30cm S1 (F)
+Adeptus Mechanicus,Mechanicus Cobra Destroyer,,weapon,,Macrobattery,,,30,FP,1,direct,L/F/R,True,Macrobattery 30cm FP1 (L/F/R)
+Adeptus Mechanicus,Mechanicus Cobra Destroyer,,weapon,,Torps,,,30,S,2,ordnance,F,True,Torps 30cm S2 (F)
+Space Marines,Emperor Battle Barge,,weapon,,Bombardment Cannon,,,30,FP,4,direct,L | R,True,"Bombardment Cannon 30cm FP4 (L), (R)"
+Space Marines,Emperor Battle Barge,,launch_bays,,Launch Bays,,,,S,port 4 + stbd 4,ordnance,,True,Launch Bays port S4 + stbd S4 (AB 30cm)
+Space Marines,Emperor Battle Barge,,weapon,Dorsal,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP5 (L/F/R)
+Space Marines,Emperor Battle Barge,,weapon,Prow,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Prow Macrobatteries 60cm FP5 (L/F/R)
+Space Marines,Apocalypse Battle Barge,,weapon,,Bombardment Cannon,,,30,FP,12,direct,L | R,True,"Bombardment Cannon 30cm FP12 (L), (R)"
+Space Marines,Apocalypse Battle Barge,,weapon,Dorsal,Macrobatteries,,,60,FP,9,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP9 (L/F/R)
+Space Marines,Apocalypse Battle Barge,,weapon,Prow,Nova Cannon,,30,150,Template,,direct,F,True,Prow Nova Cannon 30-150cm Template (F)
+Space Marines,Oberon Battle Barge,,launch_bays,,Launch Bays,,,,S,port 1 + stbd 1 + prow 1,ordnance,,True,Launch Bays port S1 + stbd S1 + prow S1 (MR 20cm)
+Space Marines,Oberon Battle Barge,,weapon,,Macrobatteries,,,60,FP,6,direct,L | R,True,"Macrobatteries 60cm FP6 (L), (R)"
+Space Marines,Oberon Battle Barge,,weapon,,Lances,,,60,FP,2,direct,L | R,True,"Lances 60cm FP2 (L), (R)"
+Space Marines,Oberon Battle Barge,,weapon,Dorsal,Bombardment Cannon,,,30,FP,8,direct,L/F/R,True,Dorsal Bombardment Cannon 30cm FP8 (L/F/R)
+Space Marines,Desecrator Battle Barge,,weapon,,Bombardment Cannon,,,30,FP,8,direct,L | R,True,"Bombardment Cannon 30cm FP8 (L), (R)"
+Space Marines,Desecrator Battle Barge,,weapon,Dorsal,Macrobatteries,,,60,FP,9,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP9 (L/F/R)
+Space Marines,Desecrator Battle Barge,,weapon,Prow,Torps,standard or boarding,,30,S,9,ordnance,F,True,Prow Torps (standard or boarding) 30cm S9 (F)
+Space Marines,Desecrator Battle Barge,,launch_bays,,Launch Bays,,,,S,port 1 + stbd 1,ordnance,,True,Launch Bays port S1 + stbd S1 (MR 20cm)
+Space Marines,Retribution Battle Barge,,weapon,,Bombardment Cannon,,,30,FP,10,direct,L | R,True,"Bombardment Cannon 30cm FP10 (L), (R)"
+Space Marines,Retribution Battle Barge,,weapon,Dorsal,Lances,,,60,FP,3,direct,L/F/R,True,Dorsal Lances 60cm FP3 (L/F/R)
+Space Marines,Retribution Battle Barge,,weapon,Prow,Torps,standard or boarding,,30,S,9,ordnance,F,True,Prow Torps (standard or boarding) 30cm S9 (F)
+Space Marines,Relictor Battle Barge,,weapon,,Macrobatteries,,,30,FP,12,direct,L | R,True,"Macrobatteries 30cm FP12 (L), (R)"
+Space Marines,Relictor Battle Barge,,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Space Marines,Relictor Battle Barge,,weapon,Dorsal,Bombardment Cannon,,,30,FP,8,direct,L/F/R,True,Dorsal Bombardment Cannon 30cm FP8 (L/F/R)
+Space Marines,Relictor Battle Barge,,weapon,Prow,Torps,standard or boarding,,30,S,9,ordnance,F,True,Prow Torps (standard or boarding) 30cm S9 (F)
+Space Marines,Ultima Battle Barge,,weapon,,Bombardment Cannon,,,30,FP,8,direct,L | R,True,"Bombardment Cannon 30cm FP8 (L), (R)"
+Space Marines,Ultima Battle Barge,,weapon,Dorsal,Bombardment Cannon,,,30,FP,8,direct,L/F/R,True,Dorsal Bombardment Cannon 30cm FP8 (L/F/R)
+Space Marines,Ultima Battle Barge,,launch_bays,Prow,Launch Bays,,,,S,2,ordnance,,True,Prow Launch Bays S2 (MR 20cm)
+Space Marines,Ultima Battle Barge,,weapon,Prow,Torps,standard or boarding,,30,S,6,ordnance,F,True,Prow Torps (standard or boarding) 30cm S6 (F)
+Space Marines,Space Marine Battle Barge,,weapon,,Macrobatteries,,,45,FP,12,direct,L | R,True,"Macrobatteries 45cm FP12 (L), (R)"
+Space Marines,Space Marine Battle Barge,,weapon,Dorsal,Bombardment Cannon,,,30,FP,8,direct,L/F/R,True,Dorsal Bombardment Cannon 30cm FP8 (L/F/R)
+Space Marines,Space Marine Battle Barge,,launch_bays,Prow,Launch Bays,,,,S,3,ordnance,,True,Prow Launch Bays S3 (MR 20cm)
+Space Marines,Space Marine Battle Barge,,weapon,Prow,Torps,standard or boarding,,30,S,6,ordnance,F,True,Prow Torps (standard or boarding) 30cm S6 (F)
+Space Marines,Strike Cruiser,,weapon,,Macrobatteries,,,30,FP,4,direct,L | R,True,"Macrobatteries 30cm FP4 (L), (R)"
+Space Marines,Strike Cruiser,,weapon,Prow,Bombardment Cannon,,,30,FP,3,direct,L/F/R,True,Prow Bombardment Cannon 30cm FP3 (L/F/R)
+Space Marines,Strike Cruiser,,launch_bays,Prow,Launch Bays,,,,S,2,ordnance,,True,Prow Launch Bays S2 (MR 20cm)
+Space Marines,Vanguard Cruiser,,weapon,,Macrobatteries,,,30,FP,5,direct,L | R,True,"Macrobatteries 30cm FP5 (L), (R)"
+Space Marines,Vanguard Cruiser,,weapon,Prow,Torps,standard or boarding,,30,S,4,ordnance,F,True,Prow Torps (standard or boarding) 30cm S4 (F)
+Space Marines,Vanguard Cruiser,,launch_bays,Prow,Launch Bays,,,,S,1,ordnance,,True,Prow Launch Bays S1 (MR 20cm)
+Space Marines,Nova Frigate,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Space Marines,Nova Frigate,,weapon,,Lance,,,30,FP,1,direct,L/F/R,True,Lance 30cm FP1 (L/F/R)
+Space Marines,Gladius Frigate,,weapon,,Macrobatteries,,,30,FP,4,direct,L/F/R,True,Macrobatteries 30cm FP4 (L/F/R)
+Space Marines,Hunter Destroyer,,weapon,,Macrobattery,,,30,FP,1,direct,L/F/R,True,Macrobattery 30cm FP1 (L/F/R)
+Space Marines,Hunter Destroyer,,weapon,,Torps,standard/boarding,,30,S,2,ordnance,F,True,Torps (standard/boarding) 30cm S2 (F)
+Space Marines,Firestorm Rapid Strike Vessel,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Space Marines,Firestorm Rapid Strike Vessel,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Space Marines,Sword Rapid Strike Vessel,,weapon,,Macrobatteries,,,30,FP,4,direct,L/F/R,True,Macrobatteries 30cm FP4 (L/F/R)
+Space Marines,Falchion Rapid Strike Vessel,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Space Marines,Falchion Rapid Strike Vessel,,weapon,,Torps,,,30,S,1,ordnance,F,True,Torps 30cm S1 (F)
+Space Marines,Cobra Rapid Strike Vessel,,weapon,,Macrobattery,,,30,FP,1,direct,L/F/R,True,Macrobattery 30cm FP1 (L/F/R)
+Space Marines,Cobra Rapid Strike Vessel,,weapon,,Torps,,,30,S,2,ordnance,F,True,Torps 30cm S2 (F)
+Space Marines,Fortress-Monastery,Quadrant,weapon,,Macrobatteries,,,60,FP,18,direct,,True,Macrobatteries 60cm FP18 (per quadrant)
+Space Marines,Fortress-Monastery,Quadrant,weapon,,Lances,,,45,FP,3,direct,,True,Lances 45cm FP3 (per quadrant)
+Space Marines,Fortress-Monastery,Quadrant,launch_bays,,Launch Bays,,,,S,3,ordnance,,True,Launch Bays S3 (MR 20cm)
+Space Marines,Fortress-Monastery,Basilica,weapon,,Macrobatteries,,,60,FP,8,direct,All Round,True,Macrobatteries 60cm FP8 (All Round)
+Space Marines,Fortress-Monastery,Basilica,weapon,,Torps,standard or boarding,,30,S,9,ordnance,All Round,True,Torps (standard or boarding) 30cm S9 (All Round)
+Inquisition & Grey Knights,Black Ship,,weapon,,Macrobatteries,,,30,FP,10,direct,L | R,True,"Macrobatteries 30cm FP10 (L), (R)"
+Inquisition & Grey Knights,Black Ship,,weapon,Dorsal,Lances,,,30,FP,2,direct,L/F/R,True,Dorsal Lances 30cm FP2 (L/F/R)
+Inquisition & Grey Knights,Black Ship,,weapon,Prow,Macrobatteries,,,60,FP,5,direct,L/F/R,True,Prow Macrobatteries 60cm FP5 (L/F/R)
+Inquisition & Grey Knights,Grey Knights Battle Barge,,weapon,,Macrobatteries,,,45,FP,12,direct,L | R,True,"Macrobatteries 45cm FP12 (L), (R)"
+Inquisition & Grey Knights,Grey Knights Battle Barge,,weapon,Dorsal,Bombardment Cannon,,,30,FP,8,direct,L/F/R,True,Dorsal Bombardment Cannon 30cm FP8 (L/F/R)
+Inquisition & Grey Knights,Grey Knights Battle Barge,,weapon,Prow,Bombardment Cannon,,,30,FP,6,direct,F,True,Prow Bombardment Cannon 30cm FP6 (F)
+Inquisition & Grey Knights,Grey Knights Battle Barge,,launch_bays,Prow,Launch Bays,,,,S,2,ordnance,,True,Prow Launch Bays S2 (MR 20cm)
+Inquisition & Grey Knights,Inquisitorial Cruiser,,weapon,,Macrobatteries,,,60,FP,8,direct,L | R,True,"Macrobatteries 60cm FP8 (L), (R)"
+Inquisition & Grey Knights,Inquisitorial Cruiser,,weapon,Dorsal,Lances,,,45,FP,2,direct,L/F/R,True,Dorsal Lances 45cm FP2 (L/F/R)
+Inquisition & Grey Knights,Inquisitorial Cruiser,,launch_bays,Prow,Launch Bays,,,,S,2,ordnance,,True,Prow Launch Bays S2 (Gun-Cutters 20cm)
+Inquisition & Grey Knights,Grey Knights Strike Cruiser,,weapon,,Macrobatteries,,,30,FP,4,direct,L | R,True,"Macrobatteries 30cm FP4 (L), (R)"
+Inquisition & Grey Knights,Grey Knights Strike Cruiser,,weapon,Dorsal,Bombardment Cannon,,,30,FP,3,direct,L/F/R,True,Dorsal Bombardment Cannon 30cm FP3 (L/F/R)
+Inquisition & Grey Knights,Grey Knights Strike Cruiser,,weapon,Prow,Bombardment Cannon,,,30,FP,2,direct,F,True,Prow Bombardment Cannon 30cm FP2 (F)
+Inquisition & Grey Knights,Grey Knights Strike Cruiser,,launch_bays,Prow,Launch Bays,,,,S,1,ordnance,,True,Prow Launch Bays S1 (MR 20cm)
+Inquisition & Grey Knights,Inquisitorial Firestorm Frigate,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Inquisition & Grey Knights,Inquisitorial Firestorm Frigate,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Inquisition & Grey Knights,Inquisitorial Sword Frigate,,weapon,,Macrobatteries,,,30,FP,4,direct,L/F/R,True,Macrobatteries 30cm FP4 (L/F/R)
+Inquisition & Grey Knights,Inquisitorial Cobra Destroyer,,weapon,,Macrobattery,,,30,FP,1,direct,L/F/R,True,Macrobattery 30cm FP1 (L/F/R)
+Inquisition & Grey Knights,Inquisitorial Cobra Destroyer,,weapon,,Torps,,,30,S,2,ordnance,F,True,Torps 30cm S2 (F)
+Inquisition & Grey Knights,Grey Knights Nova Frigate,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Inquisition & Grey Knights,Grey Knights Nova Frigate,,weapon,,Lance,,,30,FP,1,direct,L/F/R,True,Lance 30cm FP1 (L/F/R)
+Inquisition & Grey Knights,Grey Knights Gladius Frigate,,weapon,,Macrobatteries,,,30,FP,4,direct,L/F/R,True,Macrobatteries 30cm FP4 (L/F/R)
+Inquisition & Grey Knights,Grey Knights Hunter Destroyer,,weapon,,Macrobattery,,,30,FP,1,direct,L/F/R,True,Macrobattery 30cm FP1 (L/F/R)
+Inquisition & Grey Knights,Grey Knights Hunter Destroyer,,weapon,,Torps,standard/boarding,,30,S,2,ordnance,F,True,Torps (standard/boarding) 30cm S2 (F)
+Rogue Traders,Universe Class Mass Conveyor,,weapon,,Macrobatteries,,,30,FP,10,direct,L | R,True,"Macrobatteries 30cm FP10 (L), (R)"
+Rogue Traders,Universe Class Mass Conveyor,,weapon,Dorsal,Macrobatteries,,,30,FP,5,direct,L/F/R,True,Dorsal Macrobatteries 30cm FP5 (L/F/R)
+Rogue Traders,Universe Class Mass Conveyor,,weapon,Prow,Macrobatteries,,,30,FP,5,direct,L/F/R,True,Prow Macrobatteries 30cm FP5 (L/F/R)
+Rogue Traders,Rogue Trader Carrack,,weapon,,Macrobatteries,,,15,FP,3,direct,L | R,True,"Macrobatteries 15cm FP3 (L), (R)"
+Rogue Traders,Rogue Trader Carrack,,weapon,Prow,Macrobatteries,,,15,FP,2,direct,L/F/R,True,Prow Macrobatteries 15cm FP2 (L/F/R)
+Rogue Traders,Rogue Trader Escort Carrier,,launch_bays,,Launch Bays,,,,S,port 1 + stbd 1,ordnance,,True,"Launch Bays port S1 + stbd S1 (ASF 30cm, BMR 20cm)"
+Rogue Traders,Rogue Trader Escort Carrier,,weapon,Dorsal,Macrobatteries,,,15,FP,2,direct,L/F/R,True,Dorsal Macrobatteries 15cm FP2 (L/F/R)
+Rogue Traders,Rogue Trader Convoy Monitor,,weapon,,Macrobatteries,,,30,FP,6,direct,L/F/R,True,Macrobatteries 30cm FP6 (L/F/R)
+Rogue Traders,Rogue Trader Convoy Monitor,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Rogue Traders,Rogue Trader Sloop,,weapon,,Macrobatteries,,,15,FP,3,direct,L/F/R,True,Macrobatteries 15cm FP3 (L/F/R)
+Rogue Traders,Rogue Trader Caravel,,weapon,,Macrobatteries,,,15,FP,2,direct,L/F/R,True,Macrobatteries 15cm FP2 (L/F/R)
+Rogue Traders,Fra'al Battlecruiser,,weapon,,Macrobatteries,,,45,FP,14,direct,L | R,True,"Macrobatteries 45cm FP14 (L), (R)"
+Rogue Traders,Fra'al Battlecruiser,,weapon,Dorsal,Lances,,,30,FP,3,direct,L/F/R,True,Dorsal Lances 30cm FP3 (L/F/R)
+Rogue Traders,Fra'al Battlecruiser,,weapon,Prow,Ether Cannon,,,60,FP,2,direct,F,True,Prow Ether Cannon 60cm FP2 (F)
+Rogue Traders,Stryxis Caravan Vessel,,weapon,,Ghost-Light Batteries,,,45,FP,10,direct,All Round,True,Ghost-Light Batteries 45cm FP10 (All Round)
+Rogue Traders,Stryxis Caravan Vessel,,weapon,,Ghost-Light Lances,,,30,FP,3,direct,All Round,True,Ghost-Light Lances 30cm FP3 (All Round)
+Rogue Traders,Xenos Cutter,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Rogue Traders,Xenos Cutter,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Support Assets,Space Station,,weapon,,Macrobatteries,,,60,FP,12,direct,All Round,True,Macrobatteries 60cm FP12 (All Round)
+Support Assets,Space Station,,weapon,,Lances,,,30,FP,3,direct,All Round,True,Lances 30cm FP3 (All Round)
+Support Assets,Space Station,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (ASF 30cm, BMR 20cm)"
+Support Assets,Orbital Dock,,weapon,,Macrobatteries,,,30,FP,4,direct,All Round,True,Macrobatteries 30cm FP4 (All Round)
+Support Assets,Orbital Dock,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (ASF 30cm, BMR 20cm)"
+Support Assets,Orbital Weapons Platform,,weapon,,Macrobatteries,,,60,FP,6,direct,All Round,True,Macrobatteries 60cm FP6 (All Round)
+Support Assets,Orbital Defense Laser Platform,,weapon,,Lance,,,60,FP,1,direct,All Round,True,Lance 60cm FP1 (All Round)
+Support Assets,Orbital Torpedo Launcher,,weapon,,Torps,,,30,S,6,ordnance,All Round,True,Torps 30cm S6 (All Round)
+Support Assets,Air Base,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (ASF 30cm, BMR 20cm)"
+Support Assets,Defense Laser Silo,,weapon,,Lances,,,60,FP,3,direct,F,True,Lances 60cm FP3 (F)
+Support Assets,Missile Silo,,weapon,,Torps,,,30,S,6,ordnance,F,True,Torps 30cm S6 (F)
+Support Assets,Defense Monitor,,weapon,,Macrobatteries,,,30,FP,8,direct,L/F/R,True,Macrobatteries 30cm FP8 (L/F/R)
+Support Assets,Defense Monitor,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Support Assets,System Escort,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Support Assets,Escort Carrier,,launch_bays,,Launch Bays,,,,S,port 1 + stbd 1,ordnance,,True,"Launch Bays port S1 + stbd S1 (ASF 30cm, BMR 20cm)"
+Support Assets,Escort Carrier,,weapon,Dorsal,Macrobatteries,,,15,FP,2,direct,L/F/R,True,Dorsal Macrobatteries 15cm FP2 (L/F/R)
+Support Assets,Q-Ship,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Support Assets,Q-Ship,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Support Assets,Heavy Transport,,weapon,,Macrobatteries,,,15,FP,3,direct,L | R,True,"Macrobatteries 15cm FP3 (L), (R)"
+Support Assets,Heavy Transport,,weapon,Dorsal,Macrobatteries,,,15,FP,2,direct,L/F/R,True,Dorsal Macrobatteries 15cm FP2 (L/F/R)
+Support Assets,Armed Freighter,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Support Assets,Conventional Transport,,weapon,,Macrobatteries,,,15,FP,2,direct,L/F/R,True,Macrobatteries 15cm FP2 (L/F/R)
+Support Assets,Blackstone Fortress,,weapon,,Macrobatteries,,,60,FP,20,direct,All Round,True,Macrobatteries 60cm FP20 (All Round)
+Support Assets,Blackstone Fortress,,weapon,,Lances,,,60,FP,4,direct,All Round,True,Lances 60cm FP4 (All Round)
+Support Assets,Blackstone Fortress,,launch_bays,,Launch Bays,,,,S,8,ordnance,,True,"Launch Bays S8 (ASF 30cm, BMR 20cm)"
+Support Assets,Activated Blackstone Fortress,,weapon,,Warp Cannons,,,90,FP,8,direct,All Round,True,Warp Cannons 90cm FP8 (All Round)
+Chaos,Despoiler Battleship,,weapon,,Macrobatteries,,,60,FP,10,direct,L | R,True,"Macrobatteries 60cm FP10 (L), (R)"
+Chaos,Despoiler Battleship,,weapon,Dorsal,Lances,,,60,FP,3,direct,L/F/R,True,Dorsal Lances 60cm FP3 (L/F/R)
+Chaos,Despoiler Battleship,,launch_bays,,Launch Bays,,,,S,prow 4 + port 2 + stbd 2,ordnance,,True,"Launch Bays prow S4 + port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Desecrator Battleship,,weapon,,Lances,,,45,FP,4,direct,L | R,True,"Lances 45cm FP4 (L), (R)"
+Chaos,Desecrator Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,9,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP9 (L/F/R)
+Chaos,Desecrator Battleship,,weapon,Prow,Torps,,,30,S,9,ordnance,F,True,Prow Torps 30cm S9 (F)
+Chaos,Desecrator Battleship,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Desolator Battleship,,weapon,,Lances,,,60,FP,4,direct,L | R,True,"Lances 60cm FP4 (L), (R)"
+Chaos,Desolator Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,6,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP6 (L/F/R)
+Chaos,Desolator Battleship,,weapon,Prow,Torps,,,30,S,9,ordnance,F,True,Prow Torps 30cm S9 (F)
+Chaos,Relictor Battleship,,weapon,,Macrobatteries,,,30,FP,12,direct,L | R,True,"Macrobatteries 30cm FP12 (L), (R)"
+Chaos,Relictor Battleship,,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Chaos,Relictor Battleship,,weapon,Dorsal,Macrobatteries,,,60,FP,9,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP9 (L/F/R)
+Chaos,Relictor Battleship,,weapon,Prow,Torps,,,30,S,9,ordnance,F,True,Prow Torps 30cm S9 (F)
+Chaos,Repulsive Grand Cruiser,,weapon,,Macrobatteries,,,45,FP,14,direct,L | R,True,"Macrobatteries 45cm FP14 (L), (R)"
+Chaos,Repulsive Grand Cruiser,,weapon,Dorsal,Lances,,,30,FP,3,direct,L/F/R,True,Dorsal Lances 30cm FP3 (L/F/R)
+Chaos,Repulsive Grand Cruiser,,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Chaos,Retaliator Grand Cruiser,,weapon,,Macrobatteries,,,45,FP,6,direct,L | R,True,"Macrobatteries 45cm FP6 (L), (R)"
+Chaos,Retaliator Grand Cruiser,,weapon,,Lances,,,45,FP,2,direct,L | R,True,"Lances 45cm FP2 (L), (R)"
+Chaos,Retaliator Grand Cruiser,,launch_bays,,Launch Bays,,,,S,port 3 + stbd 3,ordnance,,True,"Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Nephilim Grand Cruiser,,weapon,,Macrobatteries,,,60,FP,12,direct,L | R,True,"Macrobatteries 60cm FP12 (L), (R)"
+Chaos,Nephilim Grand Cruiser,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Executor Grand Cruiser,,weapon,,Lances,,,30,FP,4,direct,L | R,True,"Lances 30cm FP4 (L), (R)"
+Chaos,Executor Grand Cruiser,,weapon,,Lances,,,45,FP,2,direct,L | R,True,"Lances 45cm FP2 (L), (R)"
+Chaos,Styx Heavy Cruiser,,launch_bays,,Launch Bays,,,,S,port 3 + stbd 3,ordnance,,True,"Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Styx Heavy Cruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Chaos,Styx Heavy Cruiser,,weapon,Prow,Macrobatteries,,,60,FP,6,direct,L/F/R,True,Prow Macrobatteries 60cm FP6 (L/F/R)
+Chaos,Hecate Heavy Cruiser,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Hecate Heavy Cruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Chaos,Hecate Heavy Cruiser,,weapon,,Macrobatteries,,,45,FP,4,direct,L | R,True,"Macrobatteries 45cm FP4 (L), (R)"
+Chaos,Hecate Heavy Cruiser,,weapon,Prow,Macrobatteries,,,45,FP,6,direct,L/F/R,True,Prow Macrobatteries 45cm FP6 (L/F/R)
+Chaos,Hades Heavy Cruiser,,weapon,,Macrobatteries,,,45,FP,10,direct,L | R,True,"Macrobatteries 45cm FP10 (L), (R)"
+Chaos,Hades Heavy Cruiser,,weapon,Dorsal,Lances,,,60,FP,2,direct,L/F/R,True,Dorsal Lances 60cm FP2 (L/F/R)
+Chaos,Hades Heavy Cruiser,,weapon,Prow,Lances,,,60,FP,2,direct,F,True,Prow Lances 60cm FP2 (F)
+Chaos,Acheron Heavy Cruiser,,weapon,,Lances,,,60,FP,2,direct,L | R,True,"Lances 60cm FP2 (L), (R)"
+Chaos,Acheron Heavy Cruiser,,weapon,Dorsal,Lances,,,45,FP,2,direct,L/F/R,True,Dorsal Lances 45cm FP2 (L/F/R)
+Chaos,Acheron Heavy Cruiser,,weapon,Prow,Macrobatteries,,,45,FP,6,direct,L/F/R,True,Prow Macrobatteries 45cm FP6 (L/F/R)
+Chaos,Devastation Cruiser,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Devastation Cruiser,,weapon,,Lances,,,45,FP,2,direct,L | R,True,"Lances 45cm FP2 (L), (R)"
+Chaos,Devastation Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,6,direct,L/F/R,True,Prow Macrobatteries 30cm FP6 (L/F/R)
+Chaos,Carnage Cruiser,,weapon,,Macrobatteries,,,45,FP,6,direct,L | R,True,"Macrobatteries 45cm FP6 (L), (R)"
+Chaos,Carnage Cruiser,,weapon,,Macrobatteries,,,60,FP,4,direct,L | R,True,"Macrobatteries 60cm FP4 (L), (R)"
+Chaos,Carnage Cruiser,,weapon,Prow,Macrobatteries,,,60,FP,6,direct,L/F/R,True,Prow Macrobatteries 60cm FP6 (L/F/R)
+Chaos,Inferno Cruiser,,weapon,,Lances,,,45,FP,2,direct,L | R,True,"Lances 45cm FP2 (L), (R)"
+Chaos,Inferno Cruiser,,weapon,,Macrobatteries,,,45,FP,4,direct,L | R,True,"Macrobatteries 45cm FP4 (L), (R)"
+Chaos,Inferno Cruiser,,weapon,Prow,Macrobatteries,,,60,FP,6,direct,L/F/R,True,Prow Macrobatteries 60cm FP6 (L/F/R)
+Chaos,Murder Cruiser,,weapon,,Macrobatteries,,,45,FP,10,direct,L | R,True,"Macrobatteries 45cm FP10 (L), (R)"
+Chaos,Murder Cruiser,,weapon,Prow,Lances,,,60,FP,2,direct,F,True,Prow Lances 60cm FP2 (F)
+Chaos,Slaughter Cruiser,,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Chaos,Slaughter Cruiser,,weapon,,Macrobatteries,,,30,FP,8,direct,L | R,True,"Macrobatteries 30cm FP8 (L), (R)"
+Chaos,Slaughter Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,6,direct,L/F/R,True,Prow Macrobatteries 30cm FP6 (L/F/R)
+Chaos,Fanatic Light Cruiser,,weapon,,Macrobatteries,,,45,FP,6,direct,L | R,True,"Macrobatteries 45cm FP6 (L), (R)"
+Chaos,Fanatic Light Cruiser,,weapon,Prow,Lances,,,45,FP,2,direct,F,True,Prow Lances 45cm FP2 (F)
+Chaos,Schismatic Light Cruiser,,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Chaos,Schismatic Light Cruiser,,weapon,Prow,Torps,,,30,S,4,ordnance,L/F/R,True,Prow Torps 30cm S4 (L/F/R)
+Chaos,Heretic Light Cruiser,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Chaos,Heretic Light Cruiser,,weapon,Prow,Macrobatteries,,,30,FP,6,direct,L/F/R,True,Prow Macrobatteries 30cm FP6 (L/F/R)
+Chaos,Idolator Raider,,weapon,,Macrobatteries,,,45,FP,2,direct,L/F/R,True,Macrobatteries 45cm FP2 (L/F/R)
+Chaos,Idolator Raider,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Chaos,Infidel Raider,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
+Chaos,Infidel Raider,,weapon,,Torps,,,30,S,2,ordnance,F,True,Torps 30cm S2 (F)
+Chaos,Havoc Raider,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Chaos,Havoc Raider,,weapon,,Macrobatteries,,,30,FP,2,direct,F,True,Macrobatteries 30cm FP2 (F)
+Chaos,Iconoclast Destroyer,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
+Chaos,The Planet Killer,,weapon,,Macrobatteries,,,60,FP,6,direct,L | R,True,"Macrobatteries 60cm FP6 (L), (R)"
+Chaos,The Planet Killer,,weapon,Prow,Macrobatteries,,,60,FP,12,direct,L/F/R,True,Prow Macrobatteries 60cm FP12 (L/F/R)
+Chaos,The Planet Killer,,weapon,Prow,Torps,,,30,S,9,ordnance,L/F/R,True,Prow Torps 30cm S9 (L/F/R)
+Chaos,The Planet Killer,,weapon,Dorsal,Lances,,,60,FP,6,direct,L/F/R,True,Dorsal Lances 60cm FP6 (L/F/R)
+Chaos,The Planet Killer,,weapon,,Armageddon Gun,,,90,Special,,special,F,True,Armageddon Gun 90cm Special (F)
+Chaos,Chaos Space Hulk,,weapon,,Macrobatteries,,,45,FP,12,direct,F | L | R | Rear,True,"Macrobatteries 45cm FP12 per face (F), (L), (R), (Rear)"
+Chaos,Chaos Space Hulk,,weapon,,Torps,,,30,S,8,ordnance,F | L | R,True,"Torps 30cm S8 (F), (L), (R)"
+Chaos,Chaos Space Hulk,,weapon,Prow,Lances,,,30,FP,4,direct,F,True,Prow Lances 30cm FP4 (F)
+Chaos,Chaos Space Hulk,,weapon,Dorsal,Lances,,,60,FP,4,direct,All Round,True,Dorsal Lances 60cm FP4 (All Round)
+Chaos,Chaos Space Hulk,,launch_bays,,Launch Bays,,,,S,port 4 + stbd 4,ordnance,,True,"Launch Bays port S4 + stbd S4 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Scion of Prospero (Thousand Sons),,weapon,,Macrobatteries,,,45,FP,9,direct,L | R,True,"Macrobatteries 45cm FP9 (L), (R)"
+Chaos,Scion of Prospero (Thousand Sons),,weapon,Dorsal,Lances,,,45,FP,3,direct,L/F/R,True,Dorsal Lances 45cm FP3 (L/F/R)
+Chaos,Scion of Prospero (Thousand Sons),,weapon,Prow,Torps,,,30,S,9,ordnance,F,True,Prow Torps 30cm S9 (F)
+Chaos,Scion of Prospero (Thousand Sons),,launch_bays,,Launch Bays,,,,S,prow 3 + port 3 + stbd 3,ordnance,,True,"Launch Bays prow S3 + port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Wage of Sin (Emperor's Children),,weapon,,Lances,,,60,FP,3,direct,L | R,True,"Lances 60cm FP3 (L), (R)"
+Chaos,Wage of Sin (Emperor's Children),,weapon,Dorsal,Macrobatteries,,,60,FP,12,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP12 (L/F/R)
+Chaos,Wage of Sin (Emperor's Children),,weapon,Prow,Torps,,,30,S,6,ordnance,F,True,Prow Torps 30cm S6 (F)
+Chaos,Wage of Sin (Emperor's Children),,launch_bays,,Launch Bays,,,,S,port 3 + stbd 3,ordnance,,True,"Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Terminus Est (Death Guard),,weapon,,Hives of Nurgle,,,30,FP,14,direct,L | R,True,"Hives of Nurgle 30cm FP14 (L), (R)"
+Chaos,Terminus Est (Death Guard),,weapon,Dorsal,Lances,,,45,FP,4,direct,L/F/R,True,Dorsal Lances 45cm FP4 (L/F/R)
+Chaos,Terminus Est (Death Guard),,weapon,Prow,Lances,,,30,FP,3,direct,F,True,Prow Lances 30cm FP3 (F)
+Chaos,Terminus Est (Death Guard),,launch_bays,,Launch Bays,,,,S,prow 3 + port 2 + stbd 2,ordnance,,True,"Launch Bays prow S3 + port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm)"
+Chaos,Slaverer (World Eaters),,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lances 30cm FP2 (L), (R)"
+Chaos,Slaverer (World Eaters),,weapon,,Macrobatteries,,,30,FP,16,direct,L | R,True,"Macrobatteries 30cm FP16 (L), (R)"
+Chaos,Slaverer (World Eaters),,weapon,Dorsal,Macrobatteries,,,60,FP,8,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP8 (L/F/R)
+Chaos,Slaverer (World Eaters),,weapon,Prow,Torps,,,30,S,8,ordnance,F,True,Prow Torps 30cm S8 (F)
+Orks,Gorbag's Revenge (0-1),,weapon,Prow,Gunz,,,45,FP,D6+6,direct,F,True,Prow Gunz 45cm FP D6+6 (F)
+Orks,Gorbag's Revenge (0-1),,weapon,Prow,Torps,,,30,S,D6+4,ordnance,F,True,Prow Torps 30cm S D6+4 (F)
+Orks,Gorbag's Revenge (0-1),,weapon,,Heavy Gunz,,,30,FP,6(10),direct,L | R,True,"Heavy Gunz 30cm FP6(10) (L), (R)"
+Orks,Gorbag's Revenge (0-1),,weapon,,Gunz,,,30,FP,6,direct,L | R,True,"Gunz 30cm FP6 (L), (R)"
+Orks,Gorbag's Revenge (0-1),,launch_bays,,Launch Bays,,,,S,dorsal D3+1 + port 2 + stbd 2,ordnance,,True,"Launch Bays dorsal S D3+1 + port S2 + stbd S2 (MR 25cm, AB 30cm)"
+Orks,Slamblasta (0-1),,weapon,Prow,Gunz,,,45,FP,D6+6,direct,F,True,Prow Gunz 45cm FP D6+6 (F)
+Orks,Slamblasta (0-1),,weapon,Prow,Zzapp Gunz,,,45,FP,D3+3,direct,F,True,Prow Zzapp Gunz 45cm FP D3+3 (F)
+Orks,Slamblasta (0-1),,weapon,,Gunz,,,30,FP,10,direct,L | R,True,"Gunz 30cm FP10 (L), (R)"
+Orks,Slamblasta (0-1),,weapon,,Heavy Gunz,,,30,FP,6(10),direct,L | R,True,"Heavy Gunz 30cm FP6(10) (L), (R)"
+Orks,Slamblasta (0-1),,launch_bays,,Launch Bays,,,,S,D3+1,ordnance,,True,"Launch Bays S D3+1 (MR 25cm, AB 30cm)"
+Orks,Dethdeala (0-1),,weapon,Prow,Gunz,,,45,FP,D6+6,direct,F,True,Prow Gunz 45cm FP D6+6 (F)
+Orks,Dethdeala (0-1),,weapon,Prow,Killkannon,,,30,FP,6,direct,F,True,Prow Killkannon 30cm FP6 (F)
+Orks,Dethdeala (0-1),,weapon,,Gunz,,,30,FP,8,direct,L | R,True,"Gunz 30cm FP8 (L), (R)"
+Orks,Dethdeala (0-1),,weapon,,Heavy Gunz,,,30,FP,6(10),direct,L | R,True,"Heavy Gunz 30cm FP6(10) (L), (R)"
+Orks,Dethdeala (0-1),,launch_bays,,Launch Bays,,,,S,D3+1,ordnance,,True,"Launch Bays S D3+1 (MR 25cm, AB 30cm)"
+Orks,Kroolboy (0-1),,weapon,Prow,Gunz,,,45,FP,D6+6,direct,F,True,Prow Gunz 45cm FP D6+6 (F)
+Orks,Kroolboy (0-1),,weapon,Prow,Heavy Gunz,,,30,FP,6(10),direct,F,True,Prow Heavy Gunz 30cm FP6(10) (F)
+Orks,Kroolboy (0-1),,weapon,,Gunz,,,30,FP,8,direct,L | R,True,"Gunz 30cm FP8 (L), (R)"
+Orks,Kroolboy (0-1),,weapon,,Heavy Gunz,,,30,FP,6(10),direct,L | R,True,"Heavy Gunz 30cm FP6(10) (L), (R)"
+Orks,Kroolboy (0-1),,launch_bays,,Launch Bays,,,,S,D3+1,ordnance,,True,"Launch Bays S D3+1 (MR 25cm, AB 30cm)"
+Orks,Hammer Battlekroozer,,weapon,Prow,Gunz,,,45,FP,D6+6,direct,F,True,Prow Gunz 45cm FP D6+6 (F)
+Orks,Hammer Battlekroozer,,weapon,Prow,Kustom Kannon,,,30,FP,Special,direct,F,True,Prow Kustom Kannon 30cm FP Special (F)
+Orks,Hammer Battlekroozer,,weapon,,Gunz,,,30,FP,6,direct,L | R,True,"Gunz 30cm FP6 (L), (R)"
+Orks,Hammer Battlekroozer,,weapon,,Heavy Gunz,,,30,FP,6(10),direct,L | R,True,"Heavy Gunz 30cm FP6(10) (L), (R)"
+Orks,Hammer Battlekroozer,,launch_bays,,Launch Bays,,,,S,D3+1,ordnance,,True,"Launch Bays S D3+1 (MR 25cm, AB 30cm)"
+Orks,Terror Ship,,weapon,Prow,Gunz,,,45,FP,D6+4,direct,F,True,Prow Gunz 45cm FP D6+4 (F)
+Orks,Terror Ship,,weapon,Prow,Heavy Gunz,,,30,FP,6(10),direct,F,True,Prow Heavy Gunz 30cm FP6(10) (F)
+Orks,Terror Ship,,weapon,,Gunz,,,30,FP,6,direct,L | R,True,"Gunz 30cm FP6 (L), (R)"
+Orks,Terror Ship,,launch_bays,,Launch Bays,,,,S,port 2 + stbd 2,ordnance,,True,"Launch Bays port S2 + stbd S2 (MR 25cm, AB 30cm)"
+Orks,Kill Kroozer,,weapon,Prow,Gunz,,,45,FP,D6+6,direct,F,True,Prow Gunz 45cm FP D6+6 (F)
+Orks,Kill Kroozer,,weapon,Prow,Heavy Gunz,,,30,FP,6(10),direct,F,True,Prow Heavy Gunz 30cm FP6(10) (F)
+Orks,Kill Kroozer,,weapon,,Gunz,,,30,FP,6,direct,L | R,True,"Gunz 30cm FP6 (L), (R)"
+Orks,Kill Kroozer,,weapon,,Heavy Gunz,,,30,FP,4(6),direct,L | R,True,"Heavy Gunz 30cm FP4(6) (L), (R)"
+Orks,Basha Lite Kroozer,,weapon,Prow,Gunz,,,45,FP,D6+2,direct,F,True,Prow Gunz 45cm FP D6+2 (F)
+Orks,Basha Lite Kroozer,,weapon,Prow,Heavy Gunz,,,30,FP,4(6),direct,F,True,Prow Heavy Gunz 30cm FP4(6) (F)
+Orks,Basha Lite Kroozer,,weapon,,Gunz,,,30,FP,4,direct,L | R,True,"Gunz 30cm FP4 (L), (R)"
+Orks,Grunt Assault Ship,,weapon,,Gunz,,,30,FP,2,direct,F,True,Gunz 30cm FP2 (F)
+Orks,Ravager Attack Ship,,weapon,,Gunz,,,30,FP,2,direct,F,True,Gunz 30cm FP2 (F)
+Orks,Ravager Attack Ship,,weapon,,Torps,,,30,S,D6,ordnance,F,True,Torps 30cm S D6 (F)
+Orks,Onslaught Attack Ship,,weapon,,Gunz,,,30,FP,D6+1,direct,L/F/R,True,Gunz 30cm FP D6+1 (L/F/R)
+Orks,Savage Gunship,,weapon,,Heavy Gunz,,,30,FP,2(6),direct,F,True,Heavy Gunz 30cm FP2(6) (F)
+Orks,Brute Ramship,,weapon,,Gunz,,,30,FP,2,direct,F,True,Gunz 30cm FP2 (F)
+Orks,Ork Space Hulk,,weapon,,Gunz,,,45,FP,2D6+6,direct,F | L | R,True,"Gunz 45cm FP 2D6+6 (F), (L), (R)"
+Orks,Ork Space Hulk,,weapon,Prow,Heavy Gunz,,,30,FP,8(12),direct,F,True,Prow Heavy Gunz 30cm FP8(12) (F)
+Orks,Ork Space Hulk,,weapon,,Torps,,,30,S,2D6,ordnance,F | L | R,True,"Torps 30cm S 2D6 (F), (L), (R)"
+Orks,Ork Space Hulk,,weapon,Dorsal,Lances,,,60,FP,4,direct,All Round,True,Dorsal Lances 60cm FP4 (All Round)
+Orks,Ork Space Hulk,,launch_bays,,Launch Bays,,,,S,port D6+2 + stbd D6+2,ordnance,,True,"Launch Bays port S D6+2 + stbd S D6+2 (MR 25cm, AB 30cm)"
+Orks,Ork Rok,,weapon,,Gunz,,,45,FP,D6+6,direct,All Round,True,Gunz 45cm FP D6+6 (All Round)
+Orks,Ork Rok,,weapon,,Heavy Gunz,,,30,FP,2(6),direct,All Round,True,Heavy Gunz 30cm FP2(6) (All Round)
+Orks,Ork Rok,,weapon,,Torps,,,30,S,D6,ordnance,All Round,True,Torps 30cm S D6 (All Round)
+Tau & Allies,Explorer Starship,,weapon,Prow,Railguns,,,45,FP,6,direct,L/F/R,True,Prow Railguns 45cm FP6 (L/F/R)
+Tau & Allies,Explorer Starship,,launch_bays,,Launch Bays,,,,S,port 4 + stbd 4,ordnance,,True,"Launch Bays port S4 + stbd S4 (BMR 20cm, ASF 25cm)"
+Tau & Allies,Explorer Starship,,gravitic_hooks,Dorsal,Gravitic Hooks,,,,,3 Orcas,special,,True,Dorsal Gravitic Hooks (3 Orcas)
+Tau & Allies,Hero Starship,,weapon,,Ion Cannon,,,30,FP,1,direct,L/F | R/F,True,"Ion Cannon 30cm FP1 (L/F), (R/F)"
+Tau & Allies,Hero Starship,,weapon,Prow,Railguns,,,45,FP,4,direct,L/F/R,True,Prow Railguns 45cm FP4 (L/F/R)
+Tau & Allies,Hero Starship,,weapon,Prow,Gravitic Launcher,,20,40,S,6,ordnance,F,True,Prow Gravitic Launcher 20-40cm S6 (F)
+Tau & Allies,Hero Starship,,launch_bays,,Launch Bays,,,,S,port 1 + stbd 1,ordnance,,True,"Launch Bays port S1 + stbd S1 (BMR 20cm, ASF 25cm)"
+Tau & Allies,Merchant Starship,,weapon,,Railguns,,,45,FP,2,direct,L/F | R/F,True,"Railguns 45cm FP2 (L/F), (R/F)"
+Tau & Allies,Merchant Starship,,weapon,Prow,Railguns,,,45,FP,2,direct,L/F/R,True,Prow Railguns 45cm FP2 (L/F/R)
+Tau & Allies,Merchant Starship,,gravitic_hooks,,Gravitic Hooks,,,,,1 Orca each,special,,True,Gravitic Hooks port + stbd (1 Orca each)
+Tau & Allies,Defender Starship,,weapon,,Railguns,,,30,FP,5,direct,L/F/R,True,Railguns 30cm FP5 (L/F/R)
+Tau & Allies,Defender Starship,,weapon,,Gravitic Launcher,,20,40,S,1,ordnance,F,True,Gravitic Launcher 20-40cm S1 (F)
+Tau & Allies,Messenger Starship,,weapon,,Railgun,,,30,FP,1,direct,L/F/R,True,Railgun 30cm FP1 (L/F/R)
+Tau & Allies,Orca Gunship,,weapon,,Railguns,,,30,FP,2,direct,L/F/R,True,Railguns 30cm FP2 (L/F/R)
+Tau & Allies,Orca Gunship,,weapon,,Ion Cannon,,,30,FP,1,direct,F,True,Ion Cannon 30cm FP1 (F)
+Tau & Allies,Custodian Battleship,,weapon,,Railguns,,,45,FP,6,direct,L/F | R/F,True,"Railguns 45cm FP6 (L/F), (R/F)"
+Tau & Allies,Custodian Battleship,,weapon,,Ion Cannons,,,45,FP,1,direct,L/F | R/F,True,"Ion Cannons 45cm FP1 (L/F), (R/F)"
+Tau & Allies,Custodian Battleship,,weapon,Prow,Gravitic Launcher,,20,40,S,8,ordnance,F,True,Prow Gravitic Launcher 20-40cm S8 (F)
+Tau & Allies,Custodian Battleship,,launch_bays,,Launch Bays,,,,S,port 3 + stbd 3,ordnance,,True,"Launch Bays port S3 + stbd S3 (BMR 20cm, ASF 25cm)"
+Tau & Allies,Custodian Battleship,,gravitic_hooks,,Gravitic Hooks,,,,,3 Wardens,special,,True,Gravitic Hooks (3 Wardens)
+Tau & Allies,Protector Cruiser,,weapon,,Railguns,,,45,FP,2,direct,L/F | R/F,True,"Railguns 45cm FP2 (L/F), (R/F)"
+Tau & Allies,Protector Cruiser,,weapon,Prow,Railguns,,,45,FP,6,direct,F,True,Prow Railguns 45cm FP6 (F)
+Tau & Allies,Protector Cruiser,,weapon,,Ion Cannons,,,30,FP,1,direct,L/F | R/F,True,"Ion Cannons 30cm FP1 (L/F), (R/F)"
+Tau & Allies,Protector Cruiser,,launch_bays,Prow,Launch Bays,,,,S,1,ordnance,,True,"Prow Launch Bays S1 (BMR 20cm, ASF 25cm)"
+Tau & Allies,Protector Cruiser,,weapon,Prow,Gravitic Launcher,,20,40,S,5,ordnance,F,True,Prow Gravitic Launcher 20-40cm S5 (F)
+Tau & Allies,Emissary Light Cruiser,,weapon,,Railguns,,,45,FP,4,direct,L/F | R/F,True,"Railguns 45cm FP4 (L/F), (R/F)"
+Tau & Allies,Emissary Light Cruiser,,launch_bays,Prow,Launch Bays,,,,S,2,ordnance,,True,Prow Launch Bays S2 (ASF 25cm)
+Tau & Allies,Emissary Light Cruiser,,gravitic_hooks,,Gravitic Hooks,,,,,1 Warden each,special,,True,Gravitic Hooks port + stbd (1 Warden each)
+Tau & Allies,Castellan Escort,,weapon,,Railguns,,,45,FP,2,direct,L/F/R,True,Railguns 45cm FP2 (L/F/R)
+Tau & Allies,Castellan Escort,,weapon,,Gravitic Launcher,,20,40,S,2,ordnance,F,True,Gravitic Launcher 20-40cm S2 (F)
+Tau & Allies,Warden Gunship,,weapon,,Railguns,,,30,FP,2,direct,F,True,Railguns 30cm FP2 (F)
+Tau & Allies,Warden Gunship,,weapon,,Ion Cannon,,,30,FP,1,direct,L/F/R,True,Ion Cannon 30cm FP1 (L/F/R)
+Tau & Allies,Tau Orbital City,,weapon,,Railguns,,,45,FP,12,direct,All Round,True,Railguns 45cm FP12 (All Round)
+Tau & Allies,Tau Orbital City,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (BMR 20cm, ASF 25cm)"
+Tau & Allies,Tau Orbital City,,gravitic_hooks,,Gravitic Hooks,,,,,capacity 2,special,,True,Gravitic Hooks (capacity 2)
+Tau & Allies,Tau Security Orbital,,weapon,,Railguns,,,45,FP,4,direct,All Round,True,Railguns 45cm FP4 (All Round)
+Tau & Allies,Tau Security Orbital,,weapon,,Ion Cannon,,,30,FP,1,direct,All Round,True,Ion Cannon 30cm FP1 (All Round)
+Tau & Allies,Stronghold Commerce Vessel,,weapon,,Macrobatteries,,,30,FP,12,direct,L | R,True,"Macrobatteries 30cm FP12 (L), (R)"
+Tau & Allies,Stronghold Commerce Vessel,,weapon,,Lances,,,60,FP,3,direct,L | R,True,"Lances 60cm FP3 (L), (R)"
+Tau & Allies,Stronghold Commerce Vessel,,weapon,Prow,Macrobatteries,,,45,FP,14,direct,F,True,Prow Macrobatteries 45cm FP14 (F)
+Tau & Allies,Stronghold Commerce Vessel,,weapon,Prow,Cutting Beam,,,15,FP,1+,direct,F,True,Prow Cutting Beam 15cm FP1+ (F)
+Tau & Allies,Stronghold Commerce Vessel,,weapon,Dorsal,Torps,,,30,S,6,ordnance,All Round,True,Dorsal Torps 30cm S6 (All Round)
+Tau & Allies,Stronghold Commerce Vessel,,launch_bays,Dorsal,Launch Bays,,,,S,3,ordnance,,True,Dorsal Launch Bays S3 (BMR 20cm)
+Tau & Allies,Bastion Commerce Vessel,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Tau & Allies,Bastion Commerce Vessel,,weapon,,Lances,,,60,FP,2,direct,L | R,True,"Lances 60cm FP2 (L), (R)"
+Tau & Allies,Bastion Commerce Vessel,,weapon,Prow,Macrobatteries,,,45,FP,8,direct,F,True,Prow Macrobatteries 45cm FP8 (F)
+Tau & Allies,Bastion Commerce Vessel,,unparsed,,,,,,,,,,False,Dorsal Modular Launch Bays S2 or S4 Torps (All Round; ASF 30cm / BMR 20cm / AB 30cm / torps 30cm)
+Tau & Allies,Citadel Commerce Vessel,,weapon,,Macrobatteries,,,30,FP,6,direct,L | R,True,"Macrobatteries 30cm FP6 (L), (R)"
+Tau & Allies,Citadel Commerce Vessel,,weapon,Prow,Macrobatteries,,,45,FP,8,direct,F,True,Prow Macrobatteries 45cm FP8 (F)
+Tau & Allies,Citadel Commerce Vessel,,weapon,Prow,Cutting Beam,,,15,FP,1+,direct,F,True,Prow Cutting Beam 15cm FP1+ (F)
+Tau & Allies,Citadel Commerce Vessel,,weapon,Dorsal,Torps,,,30,S,4,ordnance,All Round,True,Dorsal Torps 30cm S4 (All Round)
+Tau & Allies,Nicassar Caravan,,weapon,,Railguns,,,30,FP,10,direct,All Round,True,Railguns 30cm FP10 (All Round)
+Tau & Allies,Nicassar Dhow,,weapon,,Railguns,,,30,FP,3,direct,L | R,True,"Railguns 30cm FP3 (L), (R)"
+Tau & Allies,Nicassar Rig,,gravitic_hooks,,Gravitic Hooks,,,,,4 Dhows,special,,True,Gravitic Hooks (4 Dhows)
+Tau & Allies,Kroot Warsphere,,weapon,,Macrobatteries,,,30,FP,12,direct,All Round,True,Macrobatteries 30cm FP12 (All Round)
