@@ -5,7 +5,7 @@ import math
 
 from .models import Ship
 from .movement import (MoveCommand, validate_movement, execute_movement,
-                       resolve_aaf_speed)
+                       resolve_aaf_speed, movement_budget)
 from .game_context import GameContext
 from .special_orders_ui import SpecialOrderMixin
 from .movement_dialog import MovementDialogMixin
@@ -78,10 +78,12 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 ship, commands, order, aaf_bonus,
                 self.ctx.gs.get_blast_markers(),
                 self.ctx.gs.table_width, self.ctx.gs.table_height,
-                turns_already_used=ship.turns_used_this_turn)
+                turns_already_used=ship.turns_used_this_turn,
+                distance_already_moved=ship.distance_moved_this_turn,
+                blast_already_crossed=ship.crossed_blast_this_turn)
             if not result.valid:
                 return  # path became invalid between preview and release — discard
-            execute_movement(ship, result, self.ctx.gs)
+            execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
             self._resolve_post_move_terrain(ship.id, order == "all_ahead_full")
 
             # Update staged tracking fields
@@ -95,13 +97,8 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 self.ctx.gs.update_ship(final_ship)
 
                 # Lock the ship only when its movement budget is exhausted
-                base_speed = final_ship.effective_speed
-                max_budget = (base_speed + aaf_bonus
-                              if order == "all_ahead_full"
-                              else (base_speed // 2
-                                    if order == "burn_retros"
-                                    else base_speed))
-                remaining = max_budget - final_ship.distance_moved_this_turn
+                _, remaining = movement_budget(final_ship, order, aaf_bonus,
+                                               self.ctx.gs.get_blast_markers())
                 if remaining <= 0.1:
                     self.ctx.tc.mark_ship_moved(ship.id)
                     self.ctx.log(
@@ -247,10 +244,8 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             move_dist = float(max(1, base // 2))
 
         # Remaining budget after any prior staged movement
-        already_moved = ship.distance_moved_this_turn
-        remaining_budget = max(0.0, (base + aaf_bonus if order == "all_ahead_full"
-                                     else (base // 2 if order == "burn_retros"
-                                           else base)) - already_moved)
+        _, remaining_budget = movement_budget(ship, order, aaf_bonus,
+                                              self.ctx.gs.get_blast_markers())
         if remaining_budget < 0.5:
             self.ctx.board.status_var.set(
                 f"M: {ship.name} has no remaining movement budget")
@@ -268,7 +263,9 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             ship, commands, order, aaf_bonus,
             self.ctx.gs.get_blast_markers(),
             self.ctx.gs.table_width, self.ctx.gs.table_height,
-            turns_already_used=ship.turns_used_this_turn)
+            turns_already_used=ship.turns_used_this_turn,
+            distance_already_moved=ship.distance_moved_this_turn,
+            blast_already_crossed=ship.crossed_blast_this_turn)
 
         if not result.valid:
             # Try without the turn if the combined command fails
@@ -278,14 +275,16 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                     ship, commands, order, aaf_bonus,
                     self.ctx.gs.get_blast_markers(),
                     self.ctx.gs.table_width, self.ctx.gs.table_height,
-                    turns_already_used=ship.turns_used_this_turn)
+                    turns_already_used=ship.turns_used_this_turn,
+                    distance_already_moved=ship.distance_moved_this_turn,
+                    blast_already_crossed=ship.crossed_blast_this_turn)
             if not result.valid:
                 self.ctx.board.status_var.set(
                     f"M: {ship.name} invalid — {result.errors[0]}")
                 return
 
         start_x, start_y = ship.x, ship.y
-        execute_movement(ship, result, self.ctx.gs)
+        execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
 
         # Resolve ramming if a target was declared
         if ship.ramming_target_id:
@@ -322,9 +321,9 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             self.ctx.gs.update_ship(ship)
 
             # If no budget remains, mark fully moved
-            max_budget = (base + aaf_bonus if order == "all_ahead_full"
-                          else (base // 2 if order == "burn_retros" else base))
-            if ship.distance_moved_this_turn >= max_budget - 0.1:
+            _, remaining_after = movement_budget(ship, order, aaf_bonus,
+                                                 self.ctx.gs.get_blast_markers())
+            if remaining_after <= 0.1:
                 self.ctx.tc.mark_ship_moved(ship_id)
                 self.ctx.log(
                     f"{ship.name}: M-move complete {ship.distance_moved_this_turn:.0f}cm"
@@ -335,7 +334,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                     f"{ship.name}: min-move {result.total_distance:.0f}cm"
                     + (f" ↶{left_deg:.0f}°" if left_deg > 0.1 else "")
                     + (f" ↷{right_deg:.0f}°" if right_deg > 0.1 else "")
-                    + f" — {max_budget - ship.distance_moved_this_turn:.0f}cm remaining")
+                    + f" — {remaining_after:.0f}cm remaining")
             self.ctx.board.status_var.set(
                 f"M: {ship.name} moved {result.total_distance:.0f}cm")
 
@@ -355,29 +354,34 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             return
 
         moved_count = 0
+        blast_markers = self.ctx.gs.get_blast_markers()
         for ship in unmoved:
             order = ship.special_order
             base = ship.effective_speed
             aaf_bonus = 0
             if order == "all_ahead_full":
                 aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
-                move_dist = float(base + aaf_bonus)
+            min_left, max_left = movement_budget(ship, order, aaf_bonus, blast_markers)
+            if order == "all_ahead_full":
+                move_dist = max_left
             elif order == "burn_retros":
-                move_dist = float(base // 2)
+                move_dist = min(float(base // 2), max_left)
             else:
-                move_dist = float(max(1, base // 2))
+                move_dist = min_left    # whatever is still needed to reach half speed
 
             commands = [MoveCommand("forward", move_dist)]
             result = validate_movement(
-                ship, commands, order, aaf_bonus,
-                self.ctx.gs.get_blast_markers(),
-                self.ctx.gs.table_width, self.ctx.gs.table_height)
+                ship, commands, order, aaf_bonus, blast_markers,
+                self.ctx.gs.table_width, self.ctx.gs.table_height,
+                turns_already_used=ship.turns_used_this_turn,
+                distance_already_moved=ship.distance_moved_this_turn,
+                blast_already_crossed=ship.crossed_blast_this_turn)
             if not result.valid:
                 self.ctx.log(
                     f"  {ship.name}: min-move skipped — {result.errors[0]}")
                 continue
 
-            execute_movement(ship, result, self.ctx.gs)
+            execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
             self.ctx.tc.mark_ship_moved(ship.id)
             # Update staged fields so dialog is consistent if opened later
             updated = self.ctx.gs.get_ship_by_id(ship.id)
@@ -411,14 +415,13 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         if not ship or abs(pending) < 0.1:
             return
 
-        from .movement import get_effective_speed
         order = ship.special_order
-        _, max_spd = get_effective_speed(ship, order)
-        remaining_budget = max(0.0, max_spd - ship.distance_moved_this_turn)
+        _, remaining_budget = movement_budget(
+            ship, order, blast_markers=self.ctx.gs.get_blast_markers())
         if order == "all_ahead_full":
             move_dist = remaining_budget
         elif order == "burn_retros":
-            move_dist = min(float(max_spd), remaining_budget)
+            move_dist = min(float(ship.effective_speed // 2), remaining_budget)
         else:
             move_dist = min(float(max(1, ship.effective_speed // 2)), remaining_budget)
 
@@ -462,12 +465,14 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         for s_dict in self.ctx.gs.ships:
             if (s_dict.get("distance_moved_this_turn", 0) != 0
                     or s_dict.get("turns_used_this_turn", 0) != 0
-                    or s_dict.get("net_rotation_this_turn", 0) != 0):
+                    or s_dict.get("net_rotation_this_turn", 0) != 0
+                    or s_dict.get("crossed_blast_this_turn", False)):
                 for i, sd in enumerate(self.ctx.gs.ships):
                     if sd["id"] == s_dict["id"]:
                         self.ctx.gs.ships[i]["distance_moved_this_turn"] = 0.0
                         self.ctx.gs.ships[i]["turns_used_this_turn"] = 0
                         self.ctx.gs.ships[i]["net_rotation_this_turn"] = 0.0
+                        self.ctx.gs.ships[i]["crossed_blast_this_turn"] = False
                         break
 
         # Squadron coherency check at movement phase start

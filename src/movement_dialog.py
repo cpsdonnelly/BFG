@@ -5,7 +5,8 @@ import math
 
 from .models import SpecialOrder
 from .movement import (MoveCommand, validate_movement, execute_movement,
-                       resolve_aaf_speed, MIN_TURN_DISTANCE, get_max_turns)
+                       resolve_aaf_speed, MIN_TURN_DISTANCE, get_max_turns,
+                       movement_budget)
 
 
 # ---------------------------------------------------------------------------
@@ -32,25 +33,25 @@ class _MoveShipDialog:
 
         base = ship.effective_speed
         already = ship.distance_moved_this_turn
+        self.min_speed, self.max_speed = movement_budget(
+            ship, self.order, self.aaf_bonus, self.ctx.gs.get_blast_markers())
+        slowed = " -5cm blast markers" if (
+            self.order not in (SpecialOrder.ALL_AHEAD_FULL.value,
+                               SpecialOrder.BURN_RETROS.value)
+            and movement_budget(ship, self.order)[1] > self.max_speed) else ""
         if self.order == SpecialOrder.ALL_AHEAD_FULL.value:
-            self.max_speed = max(0.0, base + self.aaf_bonus - already)
-            self.min_speed = self.max_speed
             self.speed_text = (
                 f"Speed: {self.max_speed:.0f}cm remaining "
                 f"(AAF: {base}+{self.aaf_bonus}, moved {already:.0f}cm)")
         elif self.order == SpecialOrder.BURN_RETROS.value:
-            self.max_speed = max(0.0, base // 2 - already)
-            self.min_speed = 0
             self.speed_text = (
                 f"Speed: 0-{self.max_speed:.0f}cm "
                 f"(Burn Retros, moved {already:.0f}cm)")
         else:
-            self.max_speed = max(0.0, base - already)
-            raw_min = max(1, base // 2)
-            self.min_speed = max(0.0, raw_min - already)
             self.speed_text = (
                 f"Speed: {self.min_speed:.0f}-{self.max_speed:.0f}cm"
-                + (f" (moved {already:.0f}cm)" if already > 0 else ""))
+                + (f" (moved {already:.0f}cm)" if already > 0 else "")
+                + slowed)
 
         self.already_moved = already
         self._max_turns = get_max_turns(self.order, ship)
@@ -288,7 +289,9 @@ class _MoveShipDialog:
             self.ship, self.commands, self.order, self.aaf_bonus,
             self.ctx.gs.get_blast_markers(),
             self.ctx.gs.table_width, self.ctx.gs.table_height,
-            turns_already_used=self._turns_already)
+            turns_already_used=self._turns_already,
+            distance_already_moved=self.already_moved,
+            blast_already_crossed=self.ship.crossed_blast_this_turn)
 
         used = result.total_distance
         remaining = max(0, self.max_speed - used)
@@ -345,11 +348,13 @@ class _MoveShipDialog:
             self.ship, self.commands, self.order, self.aaf_bonus,
             self.ctx.gs.get_blast_markers(),
             self.ctx.gs.table_width, self.ctx.gs.table_height,
-            turns_already_used=self._turns_already)
+            turns_already_used=self._turns_already,
+            distance_already_moved=self.already_moved,
+            blast_already_crossed=self.ship.crossed_blast_this_turn)
         if not result.valid:
             messagebox.showerror("Invalid Movement", "\n".join(result.errors))
             return
-        execute_movement(self.ship, result, self.ctx.gs)
+        execute_movement(self.ship, result, self.ctx.gs, self.ctx.dice)
         self.panel._resolve_post_move_terrain(
             self.ship.id, self.order == SpecialOrder.ALL_AHEAD_FULL.value)
 
@@ -544,34 +549,19 @@ class _MoveSquadronDialog:
         ships_in = self._included_ships()
         if not ships_in:
             return 0.0
-        speeds = []
-        for s in ships_in:
-            order = s.special_order
-            base = s.effective_speed
-            aaf = self.aaf_bonuses.get(s.id, 0)
-            already = s.distance_moved_this_turn
-            if order == SpecialOrder.ALL_AHEAD_FULL.value:
-                speeds.append(max(0.0, base + aaf - already))
-            elif order == SpecialOrder.BURN_RETROS.value:
-                speeds.append(max(0.0, base // 2 - already))
-            else:
-                speeds.append(max(0.0, base - already))
-        return min(speeds)
+        markers = self.ctx.gs.get_blast_markers()
+        return min(movement_budget(s, s.special_order, self.aaf_bonuses.get(s.id, 0),
+                                   markers)[1]
+                   for s in ships_in)
 
     def _agg_min(self):
         ships_in = self._included_ships()
         if not ships_in:
             return 0.0
-        mins = []
-        for s in ships_in:
-            order = s.special_order
-            base = s.effective_speed
-            already = s.distance_moved_this_turn
-            if order == SpecialOrder.BURN_RETROS.value:
-                mins.append(0.0)
-            else:
-                mins.append(max(0.0, max(1, base // 2) - already))
-        return max(mins)
+        markers = self.ctx.gs.get_blast_markers()
+        return max(movement_budget(s, s.special_order, self.aaf_bonuses.get(s.id, 0),
+                                   markers)[0]
+                   for s in ships_in)
 
     def _update_stats(self):
         ships_in = self._included_ships()
@@ -579,25 +569,8 @@ class _MoveSquadronDialog:
             self.stats_var.set("No ships selected.")
             self.remaining_var.set("")
             return
-        speeds, mins = [], []
-        for s in ships_in:
-            order = s.special_order
-            base = s.effective_speed
-            aaf = self.aaf_bonuses.get(s.id, 0)
-            already = s.distance_moved_this_turn
-            if order == SpecialOrder.ALL_AHEAD_FULL.value:
-                budget = max(0.0, base + aaf - already)
-                sp_min = budget
-            elif order == SpecialOrder.BURN_RETROS.value:
-                budget = max(0.0, base // 2 - already)
-                sp_min = 0.0
-            else:
-                budget = max(0.0, base - already)
-                sp_min = max(0.0, max(1, base // 2) - already)
-            speeds.append(budget)
-            mins.append(sp_min)
-        max_spd = min(speeds)
-        min_spd = max(mins)
+        min_spd = self._agg_min()
+        max_spd = self._agg_max()
         ta = min(s.turn_angle for s in ships_in)
         mtd = max(MIN_TURN_DISTANCE.get(s.ship_type, 0) for s in ships_in)
         orders_str = ", ".join(
@@ -684,7 +657,9 @@ class _MoveSquadronDialog:
                 s, self.commands, order, aaf,
                 self.ctx.gs.get_blast_markers(),
                 self.ctx.gs.table_width, self.ctx.gs.table_height,
-                turns_already_used=s.turns_used_this_turn)
+                turns_already_used=s.turns_used_this_turn,
+                distance_already_moved=s.distance_moved_this_turn,
+                blast_already_crossed=s.crossed_blast_this_turn)
             if first_result is None:
                 first_result = res
             if not res.valid:
@@ -726,7 +701,9 @@ class _MoveSquadronDialog:
                 s, self.commands, order, aaf,
                 self.ctx.gs.get_blast_markers(),
                 self.ctx.gs.table_width, self.ctx.gs.table_height,
-                turns_already_used=s.turns_used_this_turn)
+                turns_already_used=s.turns_used_this_turn,
+                distance_already_moved=s.distance_moved_this_turn,
+                blast_already_crossed=s.crossed_blast_this_turn)
             if not res.valid:
                 messagebox.showerror(
                     "Invalid Movement",
@@ -736,7 +713,7 @@ class _MoveSquadronDialog:
 
         for s in ships_in:
             res = results[s.id]
-            execute_movement(s, res, self.ctx.gs)
+            execute_movement(s, res, self.ctx.gs, self.ctx.dice)
             self.panel._resolve_post_move_terrain(
                 s.id, s.special_order == SpecialOrder.ALL_AHEAD_FULL.value)
             final = self.ctx.gs.get_ship_by_id(s.id)

@@ -10,7 +10,7 @@ import math
 from typing import List, Optional, Tuple
 from .models import Ship, BlastMarker, SpecialOrder
 from .movement import (MoveCommand, MovementResult, validate_movement,
-                       get_effective_speed, MIN_TURN_DISTANCE)
+                       movement_budget, MIN_TURN_DISTANCE)
 
 
 def compute_drag_path(ship: Ship,
@@ -65,9 +65,8 @@ def compute_drag_path(ship: Ship,
     needs_turn = turn_deg > 1.0
 
     # Speed limits for this order — use remaining budget, not full budget
-    _, max_spd = get_effective_speed(ship, special_order, aaf_bonus)
+    _, remaining_spd = movement_budget(ship, special_order, aaf_bonus, blast_markers)
     already_moved = ship.distance_moved_this_turn
-    remaining_spd = max(0.0, float(max_spd) - already_moved)
     base_min = float(max(1, ship.effective_speed // 2))
     if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
         _min_spd_hint = remaining_spd  # must use all remaining
@@ -113,6 +112,8 @@ def compute_drag_path(ship: Ship,
     result = validate_movement(
         ship, commands, special_order, aaf_bonus,
         blast_markers, table_width, table_height,
-        turns_already_used=ship.turns_used_this_turn)
+        turns_already_used=ship.turns_used_this_turn,
+        distance_already_moved=ship.distance_moved_this_turn,
+        blast_already_crossed=ship.crossed_blast_this_turn)
 
     return commands, result

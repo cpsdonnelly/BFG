@@ -167,6 +167,7 @@ class TurnController:
                         self.gs.ships[i]["distance_moved_this_turn"] = 0.0
                         self.gs.ships[i]["turns_used_this_turn"] = 0
                         self.gs.ships[i]["net_rotation_this_turn"] = 0.0
+                        self.gs.ships[i]["crossed_blast_this_turn"] = False
                         if ship_id in self.ships_moved:
                             self.ships_moved.remove(ship_id)
                         return True

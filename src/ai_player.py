@@ -157,7 +157,7 @@ class AIPlayer:
 
         r = validate_movement(ship, commands, **kwargs)
         if r.valid:
-            execute_movement(ship, r, gs)
+            execute_movement(ship, r, gs, self.dice)
             return True
 
         # Fallback: straight forward at half speed
@@ -165,14 +165,14 @@ class AIPlayer:
         dist = max(min_spd, max_spd // 2)
         r2 = validate_movement(ship, [MoveCommand("forward", dist)], **kwargs)
         if r2.valid:
-            execute_movement(ship, r2, gs)
+            execute_movement(ship, r2, gs, self.dice)
             return True
 
         # Last resort: minimum speed
         if min_spd > 0:
             r3 = validate_movement(ship, [MoveCommand("forward", min_spd)], **kwargs)
             if r3.valid:
-                execute_movement(ship, r3, gs)
+                execute_movement(ship, r3, gs, self.dice)
                 return True
 
         return False

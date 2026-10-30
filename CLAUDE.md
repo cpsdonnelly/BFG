@@ -33,6 +33,16 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   ships boarded to 0 (s.24) applies to capital ships.
 - **Victory points never double-count:** an escort squadron is scored once, as one unit.
 
+### Open questions for the owner
+
+- Blast markers (s.7) on **All Ahead Full**: does an AAF ship that crosses a marker before
+  its last 5cm lose 5cm, or is it only stopped when the contact is in its last 5cm? And on
+  **Burn Retros**, does the -5cm come off before or after halving speed? Both orders are
+  currently left without the -5cm.
+- **Firing at a squadron:** how are hits allocated among the target squadron's ships? The
+  code gives each hit to the nearest ship whose armour the die beats, and hits beyond what
+  kills that ship are lost.
+
 ## Running and testing
 
 - `python run.py` starts the desktop game (needs Tk; on Debian/Ubuntu `apt install python3-tk`).
