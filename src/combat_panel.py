@@ -234,7 +234,7 @@ class CombatPanel(CombatDialogMixin):
         if already_braced:
             brace = True
             log_fn("     (already braced)")
-        elif self.ctx.gs.ai_player == target.player:
+        elif self.ctx.is_ai_controlled(target.player):
             from .ai_player import ai_should_brace
             from .movement import attempt_brace
             if ai_should_brace(self.ctx.gs, target, total_hits, attacker):

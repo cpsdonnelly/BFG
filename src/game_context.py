@@ -36,6 +36,10 @@ class GameContext:
         # AI thinking, game over). Replaced by GamePanel.
         self.actions_locked = lambda: False
 
+    def is_ai_controlled(self, player: int) -> bool:
+        """True if the AI makes this player's decisions (AI-vs-AI included)."""
+        return self.gs.ai_spectator or self.gs.ai_player == player
+
     # ── Logging ──────────────────────────────────────────────────────────────
 
     def log(self, text: str):

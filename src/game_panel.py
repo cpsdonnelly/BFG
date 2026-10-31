@@ -1120,7 +1120,7 @@ class GamePanel:
             info = get_repair_info(ship, self.ctx.dice, gs)
             if info["sixes"] > 0 and info["repairable"]:
                 repairs_available = min(info["sixes"], len(info["repairable"]))
-                if ship.player == gs.ai_player:
+                if self.ctx.is_ai_controlled(ship.player):
                     choices = AIPlayer.auto_repair_choices(
                         info["repairable"], repairs_available)
                 else:

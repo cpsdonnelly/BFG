@@ -176,7 +176,7 @@ class EndPhasePanel:
                     self.ctx.log(
                         f"  {target_ship.name} already braced — saves apply automatically")
                     return True, True
-                if self.ctx.gs.ai_player == target_ship.player:
+                if self.ctx.is_ai_controlled(target_ship.player):
                     # Teleport = single raid: only brace if low on hull
                     if target_ship.hits_remaining < 6:
                         check = attempt_brace(target_ship, self.ctx.gs,

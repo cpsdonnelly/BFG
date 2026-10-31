@@ -393,7 +393,7 @@ class OrdnanceMovementMixin:
                                 f"  {target_ship.name} already braced — "
                                 f"will roll to repel each raid")
                             return True, True
-                        if self.ctx.gs.ai_player == target_ship.player:
+                        if self.ctx.is_ai_controlled(target_ship.player):
                             should = (marker.strength > 2 or
                                       (marker.strength <= 2 and
                                        target_ship.hits_remaining < 6))
