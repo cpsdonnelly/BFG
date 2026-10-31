@@ -142,7 +142,7 @@ def gunnery_target_type(ship: Ship) -> str:
     """Gunnery table target type for a ship: capital, escort or defense.
 
     A ship that moved less than 5cm in its last movement phase (for any
-    reason) counts as Defenses (core rules s.9, Minimum Movement).
+    reason) counts as Defenses (core rules s.7, Movement).
     """
     if ship.last_move_cm is not None and ship.last_move_cm < 5:
         return "defense"

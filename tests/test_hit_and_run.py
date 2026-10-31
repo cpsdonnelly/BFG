@@ -353,7 +353,7 @@ class TestResolveTeleportAttack:
 
 
 # ---------------------------------------------------------------------------
-# Raids vs escorts and small targets (core rules s.23)
+# Raids vs escorts and small targets (core rules s.24)
 # ---------------------------------------------------------------------------
 
 class TestRaidsVsSmallTargets:

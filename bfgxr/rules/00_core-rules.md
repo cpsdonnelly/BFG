@@ -194,7 +194,19 @@ Weapons have a limited field of fire depending on where they are mounted on the 
 
 *Source: BFG:XR Rulebook, "Bearing Compass" p.4; "Fire Arcs" (The Shooting Phase) p.16*
 
-## 7. Moving Through Blast Markers
+## 7. Movement
+
+**Moving ships:** move your ships one at a time, in any order; each moves up to its speed before you choose the next. Ships never move simultaneously, even in a squadron.
+
+**Move distance:** a ship moves up to its Speed (the Spd value on its profile). All Ahead Full increases this and Burn Retros reduces it (see Special Orders); damage and blast markers can also slow a ship.
+
+**Minimum move:** a ship must move at least half its speed unless it is on Burn Retros. If it can't (due to damage, blast markers and so forth), it moves the maximum distance it can instead. A ship that moves less than 5cm, for any reason, counts as Defenses on the Gunnery Table.
+
+**Turning:** ships move straight ahead and may make one turn during their move, unless special orders say otherwise. A turn can be up to the ship's Turn value (45° or 90°). Before turning, a ship must move straight ahead: a battleship 15cm, a cruiser 10cm; an escort can turn at any point in its move. Only forward movement made in the current movement phase counts toward this distance.
+
+*Source: BFG:XR Rulebook, "The Movement Phase - Basic Moves", p.13*
+
+## 8. Moving Through Blast Markers
 
 If a vessel moves through any blast markers, it reduces its speed that phase by 5cm, regardless of the number of markers actually moved through. A vessel is considered to be moving through blast markers even if it is moving away from markers it is in contact with at the beginning of the movement phase. If a ship cannot elect to slow down (such as those on All Ahead Full special orders), and comes into contact with a blast marker within the last 5cm of its movement, it must instead stop no farther than the point it comes into contact with the marker (and not before).
 
@@ -202,7 +214,7 @@ If a ship is not equipped with shields, or its shields have been permanently dis
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Blast Markers", p.22*
 
-## 8. Ramming
+## 9. Ramming
 
 A ship on All Ahead Full special orders may try to ram a single enemy vessel as it moves. It can never ram more than one enemy in a single move.
 
@@ -222,7 +234,7 @@ Shields do not deflect ramming damage on either side. Damage is resolved immedia
 
 *Source: BFG:XR Rulebook, "Movement Phase - All Ahead Full: Ramming Speed!", p.37*
 
-## 9. Direct Fire & Gunnery
+## 10. Direct Fire & Gunnery
 
 Direct firing uses a ship's macrobatteries, lances and nova cannon. In order to make direct fire attacks, the firing ship must have at least some weapons within range and fire arc of the enemy.
 
@@ -258,17 +270,15 @@ Which way the target is traveling is important for gunnery purposes as it is muc
 
 **Splitting Fire:** Ships that pass a target priority test may split the firepower of their gunnery weapons between multiple targets in a given fire arc. Naturally, a ship must have firepower of 2 or greater (after any modifiers, which must be applied before working out target orientation on the Gunnery table) in order to split fire this way.
 
-**Gunnery Table:** see p.155.
+**Gunnery Table:** see Appendix 7, p.158.
 
-### Minimum Movement & Stationary Ships
+### Stationary Targets
 
-Normally, a ship must move unless it uses the Burn Retros special order to remain stationary. A ship that does not move at least 5cm (for any reason) counts as Defenses against the Gunnery Table. See the Shooting rules for more details.
-
-Ships must always move at least half of their speed unless they use the Burn Retros special order. Ships who are unable to move half their speed (due to damage, blast markers, and so forth) must move the maximum possible distance instead.
+A ship that does not move at least 5cm, for any reason, counts as Defenses on the Gunnery Table (see section 7, Movement).
 
 *Source: BFG:XR Rulebook (current), "The Shooting Phase - Direct Fire", p.16-18; minimum-movement / stationary rule from "Movement", p.13*
 
-## 10. Nova Cannon
+## 11. Nova Cannon
 
 A nova cannon is a massive weapon, normally mounted in the prow of a ship so that the recoil it generates can be compensated for by the vessel's engines. It fires a projectile at incredible velocity, using graviometric impellers to accelerate it to close to light speed. The projectile implodes at a preset distance after firing, unleashing a force more potent than a dozen plasma bombs.
 
@@ -286,7 +296,7 @@ Note that nova cannon are not affected in any way by Lock On and Reload Ordnance
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Nova Cannon", p.19*
 
-## 11. Torpedoes
+## 12. Torpedoes
 
 The term 'torpedo' has always been used to describe any long-range missile carried by a spaceship. A typical anti-ship torpedo is over 200 feet long and powered by a plasma reactor, which also acts as a sizable portion of its warhead, turning it into a devastating plasma bomb. The area of a ship given over to the torpedo tubes is a massive space criss-crossed by lifts, hoists and gantry cranes for moving the huge missiles from the armored magazine silos where they are stored to the launch tubes.
 
@@ -310,7 +320,7 @@ On the turn it is launched, a torpedo salvo cannot attack a target that is not a
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Types of Ordnance", p.27*
 
-## 12. Mines
+## 13. Mines
 
 Space-borne mines almost always follow similar designs, regardless of which race constructs them. Although little more than self-guided explosives, mines are quite dangerous to enemy warships, and pose a substantial threat in large numbers.
 
@@ -324,7 +334,7 @@ Mines follow all the regular rules for ordnance regarding moving through blast m
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Types of Ordnance", p.27*
 
-## 13. Fighters
+## 14. Fighters
 
 Fighters are small, fast and extremely agile. They are only armed with weapons suitable for destroying torpedoes, mines, and other attack craft. In combat, the fighter's job is to intercept enemy ordnance and protect the vulnerable bombers and assault craft on their way to and from their target.
 
@@ -336,7 +346,7 @@ Vs Ships. The puny fighters cannot hope to damage the much larger vessel, so the
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules", p.31*
 
-## 14. Bombers
+## 15. Bombers
 
 Bombers are slower, heavier craft with destructive anti-ship weapons. Though vulnerable to enemy fighters, bombers can be a serious threat to ships.
 
@@ -348,7 +358,7 @@ Vs Ships. The bombers make an attack run on the ship. Make D6 rolls to hit again
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules", p.31*
 
-## 15. Resilient Attack Craft
+## 16. Resilient Attack Craft
 
 Some attack craft are so large and heavily armored that interception by enemy fighters may not always guarantee victory. Likewise, some fighters have expanded fuel reserves and armaments, allowing them to operate away from their mother ship for extended periods of time. This is represented by a 'resilient' save noted in an attack craft's description.
 
@@ -372,7 +382,7 @@ Note that the resolution process is the same even if both squadrons are resilien
 
 *Source: BFG:XR Rulebook (current), "Advanced Rules - Ordnance Phase", p.39*
 
-## 16. Multi-Role Attack Craft
+## 17. Multi-Role Attack Craft
 
 Certain fleets throughout the 41st Millennium make use of attack craft that are not restricted to just one type of mission profile, instead employing versatile multi-role attack craft.
 
@@ -386,7 +396,7 @@ When attacking in a wave, all multi-role attack craft that can function as both 
 
 *Source: BFG:XR Rulebook (current), "Advanced Rules - Ordnance Phase", p.39*
 
-## 17. Waves of Attack Craft
+## 18. Waves of Attack Craft
 
 When a ship launches its attack craft, it may choose to combine any number of them into a wave, which will move and attack together. To show attack craft deployed as a wave, place the markers so they're in one of the two formations below:
 
@@ -398,7 +408,7 @@ The order of the markers (and which one is the lead marker) is important for res
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Waves of Attack Craft", p.32*
 
-## 18. Combat Air Patrol (CAP)
+## 19. Combat Air Patrol (CAP)
 
 Due to the danger posed by enemy bombers, assault boats, and torpedoes, fleets will often employ fighter escorts to supplement the turret defenses of their light and medium cruisers (although particularly important battleships will sometimes receive a few squadrons as well). This practice is called combat air patrol, or CAP.
 
@@ -436,7 +446,7 @@ Resilient bombers and assault boats that end their movement in base contact with
 
 *Source: BFG:XR Rulebook, "Advanced Rules - Ordnance Phase", p.40*
 
-## 19. Turret Suppression
+## 20. Turret Suppression
 
 Waves containing both fighters and bombers gain an additional bonus, as the fighters may temporarily neutralize enemy turrets before the bombers make their attack run. This is resolved as follows:
 
@@ -448,7 +458,7 @@ Multi-role squadrons that function as both fighters and bombers may either suppr
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Launching Waves of Attack Craft", p.32*
 
-## 20. Defense Turrets
+## 21. Defense Turrets
 
 Most warships mount numerous point-defense systems and automatic turrets for shooting down enemy ordnance during their final attack run. A ship's main armament is simply too huge and slow to track ordnance at such close ranges. However, turrets may be fired immediately whenever enemy ordnance touches the ship's base. This always takes effect before resolving any ordnance attacks. To fire turrets, roll a D6 for each point of the ship's Turrets value, and apply the relevant effect below:
 
@@ -464,13 +474,13 @@ Due to the greater difficulty tracking attack craft as opposed to torpedoes and/
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Defense Turrets", p.28*
 
-## 21. Massed Turrets
+## 22. Massed Turrets
 
 Ships in base contact with a vessel under attack by ordnance may 'mass' their turrets with it. For each ship contributing its turrets, add +1 to the turret strength of the defending ship (limit +3). Ships that mass turrets are subject to the same restrictions as the defending ship regarding attack craft and other ordnance. Ships that are crippled or have no turrets may not contribute to this bonus, but may benefit from allied ships' turrets normally. As ships move individually, it is not usually possible to mass turrets during a vessel's move unless it contacts ordnance while moving through an allied ship's base.
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Defense Turrets / Massed Turrets", p.28*
 
-## 22. Shooting at Ordnance
+## 23. Shooting at Ordnance
 
 Ordnance may be fired at in the shooting phase with direct fire weapons. Ordnance is subject to the normal rules for target priority, but remember that ships firing at ordnance only count other enemy ordnance markers for the purposes of determining the nearest enemy.
 
@@ -480,7 +490,7 @@ Note that gunnery weapons firing at ordnance use the 'Ordnance' column on the Gu
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Shooting at Ordnance", p.26*
 
-## 23. Hit-and-Run Raids
+## 24. Hit-and-Run Raids
 
 A hit-and-run raid is a small boarding party sent to sabotage an enemy ship. Raids come from boarding torps (one raid per hit), assault boats (one raid per squadron that reaches the target) and teleport attacks.
 
@@ -506,7 +516,7 @@ A hit-and-run raid is a small boarding party sent to sabotage an enemy ship. Rai
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules - Assault Boats", p.31; "Hit-and-Run Attacks", p.33; "Teleport Attacks", p.42*
 
-## 24. Boarding Actions
+## 25. Boarding Actions
 
 **Moving in:** move the attacking vessel into base contact with the target and declare the boarding action. A ship that boards may not fire its weapons or launch ordnance in the same turn.
 
@@ -555,7 +565,7 @@ A hit-and-run raid is a small boarding party sent to sabotage an enemy ship. Rai
 
 *Source: BFG:XR Rulebook, "End Phase - Boarding Actions", pp.41-42*
 
-## 25. Damage & Critical Hits
+## 26. Damage & Critical Hits
 
 ### Taking Hits
 
@@ -575,7 +585,7 @@ Roll a D6 for each hit scored on a ship (but not against its shields). On a roll
 
 **Critical Hits Table:** see Appendix 5, p.156.
 
-## 26. Catastrophic Damage
+## 27. Catastrophic Damage
 
 A ship with no hits left is effectively out of action. There may still be some crew left alive, trapped in compartments that have yet to be breached, and there may still be power available in some sections of the ship, but the vessel can no longer fight. When a ship is reduced to zero damage, do the following based on their type:
 
@@ -587,7 +597,7 @@ A ship with no hits left is effectively out of action. There may still be some c
 
 **Catastrophic Damage Table:** see Appendix 5, p.156.
 
-## 27. Crippled Ships
+## 28. Crippled Ships
 
 A ship which loses half its damage points (rounding up) is crippled.
 
@@ -597,7 +607,7 @@ For example, a standard Lunar class cruiser has 8 hits and is therefore crippled
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Damage / Crippled Ships", p.20*
 
-## 28. Damage Control & Blast Removal
+## 29. Damage Control & Blast Removal
 
 Both players can attempt to repair critical damage during the end phase. Repair crews will be working continuously of course, welding up hull breaches, re-routing power conduits, putting out fires and generally trying to keep the ship functioning.
 
@@ -611,7 +621,7 @@ In addition, the player must also roll a D6 for each stationary defense (if any)
 
 *Source: BFG:XR Rulebook, "The End Phase - Damage Control / Blast Marker Removal", p.35*
 
-## 29. Disengaging
+## 30. Disengaging
 
 Sometimes it is better to run away and live to fight another day. A ship may be crippled with no hope of defeating its attackers, or just outnumbered so heavily that its captain decides that it's hopeless to fight on. The classic approach to disengaging is to make a sudden course alteration and then cut all power so that the ship cannot be detected by its energy emissions. With luck the vessel will simply drift out of the immediate battle area and can set course for home once it is clear of the fighting. This strategy is far from guaranteed to succeed however, and may leave the ship vulnerable if it fails.
 
@@ -631,7 +641,7 @@ If the test is passed, the disengaging ship is removed from the tabletop and may
 
 *Source: BFG:XR Rulebook, "Advanced Rules - Disengaging from Combat", p.38*
 
-## 30. Victory Points
+## 31. Victory Points
 
 In many scenarios, the winner will be the player who scores the most victory points. Victory points are a measure of how much damage a fleet has inflicted on its enemy and are won by crippling and destroying enemy ships. Additional victory points can also be scored by achieving certain objectives, as detailed in the Victory Conditions section of the scenario, such as escaping an attack or attacking an enemy base. Victory points are earned as follows:
 
@@ -645,7 +655,7 @@ In many scenarios, the winner will be the player who scores the most victory poi
 
 *Source: BFG:XR Rulebook, "Scenarios - Victory Points", p.79*
 
-## 31. Terrain & Celestial Phenomena
+## 32. Terrain & Celestial Phenomena
 
 ### Planets
 
@@ -725,7 +735,7 @@ Gas and dust clouds represent areas of space with a notably greater density of (
 
 *Source: BFG:XR Rulebook, "Celestial Phenomena - Tabletop Features", p.52-54*
 
-## 32. Celestial: Sun, Solar Flares & Radiation
+## 33. Celestial: Sun, Solar Flares & Radiation
 
 ### Sunward Table Edge
 
@@ -751,7 +761,7 @@ As well as solar flares and often in conjunction with them, a sun will frequentl
 
 *Source: BFG:XR Rulebook, "Tabletop Features / Tabletop Effects" - Sunward p.52; Fighting Sunward, Solar Flares & Radiation Bursts p.55*
 
-## 33. Orbit & Atmosphere
+## 34. Orbit & Atmosphere
 
 ### High Orbit
 

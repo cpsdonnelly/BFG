@@ -1,4 +1,4 @@
-"""Blast markers and staged movement (core rules s.7, s.9 Minimum Movement)."""
+"""Blast markers and staged movement (core rules s.8 and s.7 Movement)."""
 from src.models import BlastMarker
 from src.movement import (MoveCommand, validate_movement, execute_movement,
                           movement_budget)
@@ -122,7 +122,7 @@ def test_ship_with_shields_up_makes_no_test():
     assert dice._idx == 0 and s.hits_remaining == s.hits_max
 
 
-# ── Owner ruling on s.7: the -5cm applies at the point of first contact ──────
+# ── Owner ruling on s.8: the -5cm applies at the point of first contact ──────
 
 def _marker_touched_at(ship, d):
     """A marker that the ship's base first touches after moving d cm straight ahead."""
@@ -187,7 +187,7 @@ def test_crippled_burn_retros_blast_example():
                            blast_markers=[shield_hit_marker(ship)]) == (0, 5)
 
 
-# ── Under 5cm of movement counts as Defenses on the Gunnery table (s.9) ──────
+# ── Under 5cm of movement counts as Defenses on the Gunnery table (s.7) ──────
 
 def test_gunnery_target_type_uses_last_move():
     from src.combat import gunnery_target_type

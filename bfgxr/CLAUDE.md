@@ -20,8 +20,9 @@ Rules. It is meant as the rules source for a digital play aid.
 
 ```
 rules/        one Markdown file per top-level section of the booklet
-  00_core-rules.md            the 33 core rules sections, including Ramming (8),
-                              Hit-and-Run Raids with teleport attacks (23) and Boarding Actions (24)
+  00_core-rules.md            the 34 core rules sections, including Movement (7),
+                              Ramming (9), Hit-and-Run Raids with teleport attacks (24)
+                              and Boarding Actions (25)
   01_imperial-navy.md ... 09_tau-allies.md
                               faction rules, ship rosters, special rules, fleet lists
   10_scenarios.md             scenarios, with deployment maps
@@ -35,6 +36,7 @@ data/
   ships.csv                   one row per ship, raw cell text
   weapons.csv                 one row per weapon entry, flattened
   parse_report.md             what could not be parsed and is kept as raw text only
+CHANGES.md                    what changed in the rules since the first export
 source/                       copy of the .docx this export was built from
 tools/                        the export scripts
 ```

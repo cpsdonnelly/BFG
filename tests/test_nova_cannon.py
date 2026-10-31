@@ -98,7 +98,7 @@ def test_lock_on_order_allowed():
 
 
 def test_nova_cannon_hits_are_absorbed_by_shields(tmp_path):
-    # Core rules s.10: D6 hits "regardless of its Armor value" - shields still apply
+    # Core rules s.11: D6 hits "regardless of its Armor value" - shields still apply
     from src.ai_player import AIPlayer
     from src.turn_controller import TurnController
     firer = make_ship(id="n", player=1, x=0.0, y=0.0)

@@ -11,10 +11,11 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   those generated files by hand; the `.docx` in `bfgxr/source/` is the master.
 - Never invent rules, stats or values. If the booklet doesn't cover something, say so and
   ask the owner.
-- Core rules sections most often needed: Ramming (8), Hit-and-Run Raids incl. teleport attacks
-  (23), Boarding Actions (24), Damage & Critical Hits (25), Catastrophic Damage (26).
+- Core rules sections most often needed: Movement (7), Moving Through Blast Markers (8),
+  Ramming (9), Hit-and-Run Raids incl. teleport attacks (24), Boarding Actions (25), Damage &
+  Critical Hits (26), Catastrophic Damage (27). `bfgxr/CHANGES.md` lists what each export changed.
   Sections are numbered in `bfgxr/rules/00_core-rules.md`.
-- Victory points: core section 30 and the "Victory Points" part of `bfgxr/rules/10_scenarios.md`
+- Victory points: core section 31 and the "Victory Points" part of `bfgxr/rules/10_scenarios.md`
   give the same rules: Destroyed, Crippled, Scattered (disengaged) and Holding the Field.
 - Squadrons (s.5) include Maneuvering Squadrons and Shooting at Squadrons (target aspect, hit
   allocation nearest-first, critical damage applied before a ship counts as destroyed).
@@ -38,14 +39,14 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   "Messenger" is the booklet's Messenger Starship, an escort (the game wrongly lists it as a
   light cruiser).
 - **Escorts never become hulks:** they are too small. An escort reduced to 0 by anything,
-  boarding included, is replaced by a blast marker (s.26). The "drifting hulk" result for
-  ships boarded to 0 (s.24) applies to capital ships.
+  boarding included, is replaced by a blast marker (s.27). The "drifting hulk" result for
+  ships boarded to 0 (s.25) applies to capital ships.
 - **Victory points never double-count:** an escort squadron is scored once, as one unit.
-- **Boarding and catastrophic damage (s.24):** a ship reduced to 0 by boarding damage becomes
+- **Boarding and catastrophic damage (s.25):** a ship reduced to 0 by boarding damage becomes
   a drifting hulk with no catastrophic roll, but its boarding crit is still rolled. If that crit
   deals extra damage (Engine Room, Hull Breach, Bulkhead Collapse), the ship rolls on the
   Catastrophic Damage table. A crit with no extra damage leaves it a hulk.
-- **Blast markers and speed (s.7):** the 5cm reduction takes effect at the point the ship
+- **Blast markers and speed (s.8):** the 5cm reduction takes effect at the point the ship
   touches a blast marker. If that leaves it with no movement (0 or less), it stops where it
   first touches the marker; otherwise it may carry on with what remains. This applies to All
   Ahead Full too.

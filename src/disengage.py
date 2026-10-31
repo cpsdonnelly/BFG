@@ -43,7 +43,7 @@ def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = 
 
 
 def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState) -> Dict:
-    """One disengage test for an escort squadron (s.5, s.29).
+    """One disengage test for an escort squadron (s.5, s.30).
 
     Owner ruling: the Leadership modifiers are those of the best-placed member
     (the highest resulting Leadership). Pass: the whole squadron disengages.

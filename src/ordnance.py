@@ -176,7 +176,7 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     Turret defense: roll the ship's effective turrets (plus massed turret bonus).
     - If ANY die scores 4+: mine attacks with 4D6 instead of 8D6.
     - Otherwise: mine attacks with 8D6.
-    Mine damage ignores shields (core rules s.12; some rulebook printings say
+    Mine damage ignores shields (core rules s.13; some rulebook printings say
     otherwise, which the booklet calls an error).
     Turret restriction (torp/craft split) does not apply to mines.
     """
@@ -234,7 +234,7 @@ def resolve_bomber_interception(bomber_count: int,
     """
     Phase 1 turret interception: the target ship (plus massed turret bonus from
     non-crippled allies in base contact) fires at an incoming wave of attacking
-    craft (bombers and assault boats) before they attack (core rules s.20).
+    craft (bombers and assault boats) before they attack (core rules s.21).
 
     Each turret rolls D6; 4+ kills one marker (capped at bomber_count).
     Massed turret bonus applies here (long-range interception).

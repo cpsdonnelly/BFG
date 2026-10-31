@@ -376,7 +376,7 @@ class TestBoardedEscorts:
 
 
 # ---------------------------------------------------------------------------
-# s.24: boarded to 0 = hulk, no catastrophic roll; killed by the crit = roll
+# s.25: boarded to 0 = hulk, no catastrophic roll; killed by the crit = roll
 # ---------------------------------------------------------------------------
 
 class TestBoardingCatastrophicNuance:
@@ -418,7 +418,7 @@ class TestBoardingCatastrophicNuance:
 
 
 class TestBoardedHulkCritDamage:
-    """Owner ruling on s.24: a ship boarded to 0 is a hulk, but its boarding
+    """Owner ruling on s.25: a ship boarded to 0 is a hulk, but its boarding
     crit is still rolled, and extra damage from that crit means a
     catastrophic damage roll."""
 
