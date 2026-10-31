@@ -18,6 +18,79 @@ class OrdnancePanel(OrdnanceMovementMixin):
     def __init__(self, ctx: GameContext):
         self.ctx = ctx
 
+    def _craft_orders_dialog(self):
+        """Give attack craft squadrons a target: an enemy ship, an enemy ordnance
+        marker or a friendly ship to escort. Each time ordnance moves, a squadron
+        flies straight at its target up to its speed, turning freely (s.15);
+        without a target it carries straight on. Orders last until changed."""
+        from .ordnance import ATTACK_CRAFT_TYPES
+        gs = self.ctx.gs
+        players = [p for p in (1, 2) if not self.ctx.is_ai_controlled(p)]
+        craft = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
+                 if o["ordnance_type"] in ATTACK_CRAFT_TYPES
+                 and o["owner_player"] in players and not o.get("cap_ship_id")]
+        if not craft:
+            messagebox.showinfo("No Attack Craft", "You have no attack craft to order "
+                                "(squadrons on combat air patrol stay with their ship).")
+            return
+
+        def label_dist(x, y, m):
+            return math.hypot(x - m.x, y - m.y)
+
+        dialog = tk.Toplevel(self.ctx.root)
+        dialog.title("Attack Craft Orders")
+        dialog.transient(self.ctx.root)
+        tk.Label(dialog, text="Each squadron flies at its target, up to its speed, every "
+                              "time ordnance moves (s.15).",
+                 font=("Consolas", 8), fg="#AAAAAA").pack(padx=8, pady=4)
+        frame = tk.Frame(dialog)
+        frame.pack(fill=tk.BOTH, expand=True, padx=8)
+        rows = []
+        straight = "Straight ahead"
+        for m in craft:
+            options, ids = [straight], {straight: ""}
+            for sh in gs.get_ships():
+                if sh.is_destroyed or sh.is_disengaged:
+                    continue
+                d = label_dist(sh.x, sh.y, m)
+                reach = " (in reach)" if d <= m.speed else ""
+                text = (f"Attack {sh.name} {d:.1f}cm{reach}" if sh.player != m.owner_player
+                        else f"Escort {sh.name} {d:.1f}cm")
+                options.append(text)
+                ids[text] = sh.id
+            for o in gs.ordnance:
+                if o["owner_player"] == m.owner_player:
+                    continue
+                d = label_dist(o["x"], o["y"], m)
+                text = f"Intercept {o['ordnance_type']} [{o['id'][-4:]}] {d:.1f}cm"
+                options.append(text)
+                ids[text] = o["id"]
+            current = next((t for t, i in ids.items() if i and i == m.craft_target_id),
+                           straight)
+            var = tk.StringVar(value=current)
+            row = tk.Frame(frame)
+            row.pack(fill=tk.X, pady=1)
+            tk.Label(row, text=f"P{m.owner_player} {m.ordnance_type} ({m.x:.0f},{m.y:.0f}) "
+                               f"{m.speed:g}cm",
+                     font=("Consolas", 8), width=34, anchor=tk.W).pack(side=tk.LEFT)
+            tk.OptionMenu(row, var, *options).pack(side=tk.LEFT, fill=tk.X, expand=True)
+            rows.append((m, var, ids))
+
+        def _apply():
+            changed = 0
+            for m, var, ids in rows:
+                tid = ids.get(var.get(), "")
+                for i, o in enumerate(gs.ordnance):
+                    if o["id"] == m.id and o.get("craft_target_id", "") != tid:
+                        gs.ordnance[i] = {**o, "craft_target_id": tid}
+                        changed += 1
+            self.ctx.log(f"Attack craft orders: {changed} squadron(s) given new targets")
+            dialog.destroy()
+            self.ctx.board.redraw()
+
+        tk.Button(dialog, text="Apply", command=_apply, bg="#334466", fg="white",
+                  font=("Consolas", 9)).pack(pady=5)
+
     def _move_tau_missiles_dialog(self):
         """Player-controlled Tau missile movement. Reuses ship movement concepts:
         choose speed (20-40cm), optional 45° turn at start, quick buttons."""

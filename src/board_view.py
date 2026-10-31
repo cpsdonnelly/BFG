@@ -796,6 +796,17 @@ class BoardView:
                                      fill="#FFAA33", outline="")
 
     def _draw_ordnance(self):
+        # Attack craft orders: dashed line from each squadron to its target
+        from .ordnance import craft_target_point
+        for o_dict in self.gs.ordnance:
+            if not o_dict.get("craft_target_id"):
+                continue
+            pt = craft_target_point(OrdnanceMarker.from_dict(o_dict), self.gs)
+            if pt is None:
+                continue
+            x1, y1 = self.cm_to_screen(o_dict["x"], o_dict["y"])
+            x2, y2 = self.cm_to_screen(*pt)
+            self.canvas.create_line(x1, y1, x2, y2, fill="#7799BB", dash=(3, 3))
         for o_dict in self.gs.ordnance:
             o = OrdnanceMarker.from_dict(o_dict)
             sx, sy = self.cm_to_screen(o.x, o.y)

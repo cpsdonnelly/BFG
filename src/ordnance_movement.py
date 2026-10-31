@@ -243,6 +243,12 @@ class OrdnanceMovementMixin:
         # 1. Move all ordnance
         self._turn_boarding_torps(ships)
 
+        # AI attack craft pick their targets for this move (s.15)
+        from .ordnance import assign_ai_craft_targets
+        for player in (1, 2):
+            if self.ctx.is_ai_controlled(player):
+                assign_ai_craft_targets(self.ctx.gs, player)
+
         for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
             marker = OrdnanceMarker.from_dict(o_dict)
             move_ordnance(marker, self.ctx.gs)

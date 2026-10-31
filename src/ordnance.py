@@ -27,6 +27,14 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
     if marker.cap_ship_id:
         return
 
+    # Attack craft fly at their target, turning freely, up to their speed (s.15)
+    if marker.ordnance_type in ATTACK_CRAFT_TYPES and marker.craft_target_id:
+        point = craft_target_point(marker, game_state)
+        if point is not None:
+            move_craft_toward(marker, *point)
+            return
+        marker.craft_target_id = ""     # target gone: carry straight on
+
     # Mine fields home on the nearest enemy ship automatically
     if marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
         ships = game_state.get_ships()
@@ -50,6 +58,74 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
     rad = math.radians(marker.heading)
     marker.x += marker.speed * math.cos(rad)
     marker.y += marker.speed * math.sin(rad)
+
+
+def craft_target_point(marker: OrdnanceMarker,
+                       game_state: GameState) -> Optional[Tuple[float, float]]:
+    """Where an attack craft squadron's target is now: a ship still in play or
+    an ordnance marker still on the table. None if it's gone."""
+    tid = marker.craft_target_id
+    ship = game_state.get_ship_by_id(tid)
+    if ship is not None:
+        if ship.is_destroyed or ship.is_disengaged:
+            return None
+        return ship.x, ship.y
+    for o in game_state.ordnance:
+        if o["id"] == tid and o["id"] != marker.id:
+            return o["x"], o["y"]
+    return None
+
+
+def move_craft_toward(marker: OrdnanceMarker, tx: float, ty: float) -> float:
+    """Move straight at (tx, ty), up to the craft's speed, stopping there if it
+    is closer (s.15: attack craft may turn as often as desired). Returns the
+    distance moved."""
+    dx, dy = tx - marker.x, ty - marker.y
+    dist = math.hypot(dx, dy)
+    if dist < 1e-9:
+        return 0.0
+    step = min(marker.speed, dist)
+    marker.heading = math.degrees(math.atan2(dy, dx)) % 360
+    marker.x += dx / dist * step
+    marker.y += dy / dist * step
+    return step
+
+
+def ai_craft_target(marker: OrdnanceMarker, game_state: GameState) -> str:
+    """AI choice of target for one attack craft squadron: fighters intercept the
+    nearest enemy ordnance within two moves; craft that attack ships go for the
+    nearest enemy ship; anything else heads for the nearest enemy ship too."""
+    def dist(x, y):
+        return math.hypot(x - marker.x, y - marker.y)
+
+    enemy_ships = [s for s in game_state.get_ships()
+                   if s.player != marker.owner_player and not s.is_destroyed
+                   and not s.is_disengaged
+                   and s.status not in ("drifting_hulk", "burning_hulk")]
+    if "fighter" in craft_roles(marker.ordnance_type):
+        enemy_ord = [o for o in game_state.ordnance
+                     if o["owner_player"] != marker.owner_player
+                     and dist(o["x"], o["y"]) <= 2 * marker.speed]
+        if enemy_ord:
+            return min(enemy_ord, key=lambda o: dist(o["x"], o["y"]))["id"]
+    if enemy_ships:
+        return min(enemy_ships, key=lambda s: dist(s.x, s.y)).id
+    return ""
+
+
+def assign_ai_craft_targets(game_state: GameState, player: int) -> int:
+    """Give each of the player's attack craft (not on CAP) a target for this
+    ordnance phase. Returns how many were assigned."""
+    n = 0
+    for i, o in enumerate(game_state.ordnance):
+        if (o["owner_player"] != player or o["ordnance_type"] not in ATTACK_CRAFT_TYPES
+                or o.get("cap_ship_id")):
+            continue
+        m = OrdnanceMarker.from_dict(o)
+        m.craft_target_id = ai_craft_target(m, game_state)
+        game_state.ordnance[i] = m.to_dict()
+        n += 1
+    return n
 
 
 def degrade_tau_missiles(game_state: GameState, dice: DiceRoller,

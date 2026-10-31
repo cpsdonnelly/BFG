@@ -379,6 +379,9 @@ class OrdnanceMarker:
     # marker was created.  These ships are immune to friendly fire from this
     # marker (torpedoes only).  Captured once at launch and stays fixed.
     launch_exempt_ships: List[str] = field(default_factory=list)
+    # Attack craft: id of the ship or ordnance marker the squadron is flying at
+    # (s.15: craft turn freely and move in any direction). Empty = straight on.
+    craft_target_id: str = ""
 
     def to_dict(self):
         return asdict(self)

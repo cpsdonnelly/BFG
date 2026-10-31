@@ -79,12 +79,12 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   (the target may still brace before damage is rolled), ordnance just before launching.
   `combat.weapon_fire_pool` fixes a weapon's pool on its first shot of the turn.
 
-### Open questions for the owner
-
-- **Ork Fighta-Bommerz** are played as fighter + bomber. The booklet calls them "multi-role"
-  with D3+1 attacks and no turret suppression, but doesn't list their roles.
-- **Attack craft movement:** craft fly straight along their launch heading; nobody can steer
-  them yet (s.15 lets them turn freely up to their speed).
+- **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
+  turrets never reduce below 1, and no turret suppression.
+- **Attack craft orders (s.15):** each squadron keeps a target (`craft_target_id`: enemy ship,
+  enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
+  time ordnance moves; without one it carries straight on. Players set targets with "Attack
+  Craft Orders"; the AI re-targets its craft each ordnance phase.
 
 ## Running and testing
 
