@@ -25,3 +25,21 @@ def test_lookahead_sim_ship_uses_effective_shields():
     crippled = make_ship(shields_max=3, hits_max=8, hits_remaining=4)
     sim = SimShip.from_ship(crippled)
     assert sim.shields_remaining == crippled.effective_shields == 2
+
+
+def test_ship_destroyed_by_ai_fire_resolves_its_destruction(tmp_path):
+    # Nothing ran catastrophic damage after AI shooting: kills stayed "active" at 0
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    from tests.conftest import DiceStub
+    escort = make_ship(id="e", player=1, ship_type="escort", hits_max=1, shields_max=0)
+    cruiser = make_ship(id="c", player=1, hits_max=1, hits_remaining=1, shields_max=0, x=40.0)
+    gs = make_gs([escort, cruiser])
+    dice = DiceStub([4])                       # cruiser's catastrophic 2D6 = 4: drifting hulk
+    ai = AIPlayer(2, TurnController(gs, dice, save_dir=str(tmp_path)), gs, dice)
+    assert ai._apply_hits_to(gs.get_ship_by_id("e"), 1) == (0, True)
+    assert ai._apply_hits_to(gs.get_ship_by_id("c"), 1) == (0, True)
+    assert gs.get_ship_by_id("e").status == "destroyed"
+    assert any(bm.id == "wreck_e" for bm in gs.get_blast_markers())
+    assert gs.get_ship_by_id("c").status == "drifting_hulk"
+    assert dice._idx == 1

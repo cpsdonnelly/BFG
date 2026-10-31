@@ -200,3 +200,62 @@ class TestAllocateSquadronHits:
         # The 6 destroys the 6+ escort; both 4s then hit the 4+ escort behind it
         assert applied == {"n": 1, "f": 2}
         assert dice._idx == 1
+
+
+class TestTargetAspect:
+    """s.5 Target aspect, owner's example: two escorts under 15cm, one closing
+    and one abeam. FP4 at the closing aspect rolls 3 dice but can only hit the
+    closing escort; at the abeam aspect it rolls 1 die that can hit either."""
+
+    WEAPON = {"name": "Battery", "weapon_type": "battery", "strength": 4,
+              "range_cm": 30, "arcs": ["front", "left", "right"]}
+
+    def _setup(self):
+        from src.combat import squadron_group
+        att = make_ship(id="att", player=1, x=50.0, y=50.0, heading=0.0)
+        closing = make_ship(id="A", player=2, ship_type="escort", hits_max=1,
+                            shields_max=0, armor_prow="4+", armor_side="4+",
+                            x=57.0, y=50.0, heading=180.0, squadron_id="sq")
+        abeam = make_ship(id="B", player=2, ship_type="escort", hits_max=1,
+                          shields_max=0, armor_prow="4+", armor_side="4+",
+                          x=50.0, y=58.0, heading=0.0, squadron_id="sq")
+        gs = make_gs([att, closing, abeam])
+        assert att.get_target_orientation(closing) == "closing"
+        assert att.get_target_orientation(abeam) == "abeam"
+        return att, gs, squadron_group(closing, gs.get_ships())
+
+    def _fire(self, att, gs, group, target_id, rolls):
+        from src.combat import fire_at_squadron, apply_damage
+        dice = DiceStub(rolls)
+
+        def apply(m, n):
+            r = apply_damage(gs.get_ship_by_id(m.id), n, DiceStub([1]), gs)
+            return r["unused_hits"], r["destroyed"]
+        sr, applied = fire_at_squadron(att, self.WEAPON, gs.get_ship_by_id(target_id),
+                                       group, dice, apply)
+        assert dice._idx == len(rolls)
+        return sr, applied
+
+    def test_easiest_aspect_more_dice_but_only_closing_ships_can_be_hit(self):
+        att, gs, group = self._setup()
+        sr, applied = self._fire(att, gs, group, "A", [5, 5, 5])   # 3 dice, all hit 4+
+        assert len(sr.dice_rolled) == 3
+        assert applied == {"A": 1}                    # B is abeam: harder, can't be hit
+        assert gs.get_ship_by_id("B").hits_remaining == 1
+
+    def test_harder_aspect_fewer_dice_but_hits_can_go_to_easier_ships(self):
+        att, gs, group = self._setup()
+        sr, applied = self._fire(att, gs, group, "B", [5])         # 1 die
+        assert len(sr.dice_rolled) == 1
+        assert applied == {"A": 1}                    # nearest eligible: the closing escort
+
+
+def test_squadron_group_excludes_a_ship_out_of_coherency():
+    from src.combat import squadron_group
+    a = make_ship(id="a", player=2, ship_type="escort", x=0.0, squadron_id="sq")
+    b = make_ship(id="b", player=2, ship_type="escort", x=10.0, squadron_id="sq")
+    far = make_ship(id="far", player=2, ship_type="escort", x=60.0, squadron_id="sq")
+    ships = [a, b, far]
+    assert sorted(s.id for s in squadron_group(a, ships)) == ["a", "b"]
+    assert [s.id for s in squadron_group(far, ships)] == ["far"]
+    assert [s.id for s in squadron_group(make_ship(id="solo"), ships)] == ["solo"]

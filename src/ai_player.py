@@ -20,6 +20,7 @@ from .movement import (
 from .combat import (
     check_weapon_in_arc, check_weapon_in_range, check_los_clear,
     resolve_batteries, resolve_lances, apply_damage,
+    squadron_group, fire_at_squadron,
 )
 from .ordnance import (launch_torpedoes, launch_attack_craft, move_ordnance,
                        TORPEDO_SPEED_DEFAULT)
@@ -405,32 +406,54 @@ class AIPlayer:
                 self._fire_nova_cannon(ship, enemies)
                 continue
 
+            enemies = self._live_enemies()      # earlier weapons may have killed some
             target = self._pick_target(ship, weapon, enemies)
             if not target:
                 continue
 
-            braced = target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
+            # A ship in a squadron can't be picked out: fire at the squadron (s.5)
+            group = squadron_group(target, gs.get_ships())
+            if len(group) > 1 and wtype in ("battery", "lance"):
+                sr, applied = fire_at_squadron(
+                    ship, weapon, target, group, self.dice, self._apply_hits_to,
+                    lock_on, blast_markers, phenomena, all_ships)
+                gs.add_log(f"[AI] {ship.name} → squadron {target.squadron_id}: "
+                           f"{weapon['name']} {sr.hits} hit(s)")
+                continue
 
             if wtype == "battery":
                 sr = resolve_batteries(ship, target, weapon, self.dice,
                                        blast_markers, lock_on=lock_on,
                                        phenomena=phenomena, all_ships=all_ships)
-                gs.add_log(f"[AI] {ship.name} → {target.name}: "
-                           f"{weapon['name']} {sr.hits} hit(s)")
-                if sr.hits > 0:
-                    dmg = apply_damage(target, sr.hits, self.dice, gs,
-                                       target_braced=braced)
-                    self._log_damage(target, dmg)
-
             elif wtype == "lance":
                 sr = resolve_lances(ship, target, weapon, self.dice,
                                     lock_on=lock_on)
-                gs.add_log(f"[AI] {ship.name} → {target.name}: "
-                           f"{weapon['name']} {sr.hits} hit(s)")
-                if sr.hits > 0:
-                    dmg = apply_damage(target, sr.hits, self.dice, gs,
-                                       target_braced=braced)
-                    self._log_damage(target, dmg)
+            else:
+                continue
+            gs.add_log(f"[AI] {ship.name} → {target.name}: "
+                       f"{weapon['name']} {sr.hits} hit(s)")
+            if sr.hits > 0:
+                self._apply_hits_to(target, sr.hits)
+
+    def _apply_hits_to(self, target: Ship, hits: int):
+        """Apply hits from AI fire, then resolve the ship's destruction if it died.
+        Returns (unused hits, destroyed) for squadron hit allocation."""
+        t = self.gs.get_ship_by_id(target.id)
+        if not t or t.is_destroyed:
+            return hits, True
+        braced = t.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
+        dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced)
+        self._log_damage(t, dmg)
+        self._resolve_kill(t)
+        return dmg["unused_hits"], dmg["destroyed"]
+
+    def _resolve_kill(self, target: Ship):
+        """A ship the AI reduced to 0 rolls catastrophic damage (or becomes a
+        blast marker if it is an escort). Nothing else does this after AI fire."""
+        t = self.gs.get_ship_by_id(target.id)
+        if t and t.hits_remaining <= 0 and t.status == "active":
+            from .combat import resolve_catastrophic
+            resolve_catastrophic(t, self.dice, self.gs)
 
     def _fire_nova_cannon(self, ship: Ship, enemies: List[Ship]):
         from .combat import resolve_nova_cannon
@@ -452,6 +475,7 @@ class AIPlayer:
             if t:
                 dmg = apply_damage(t, hd["hits"], self.dice, gs)
                 self._log_damage(t, dmg)
+                self._resolve_kill(t)
 
     def _pick_target(self, ship: Ship, weapon: Dict,
                      enemies: List[Ship]) -> Optional[Ship]:
@@ -488,7 +512,6 @@ class AIPlayer:
             gs.add_log(f"[AI]   {target.name} CRIPPLED")
         if dmg.get("destroyed"):
             gs.add_log(f"[AI]   {target.name} DESTROYED")
-        # destruction check is called by game_panel after each phase
 
     # ── Ordnance phase ───────────────────────────────────────────────────────
 

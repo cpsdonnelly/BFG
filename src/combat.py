@@ -616,6 +616,83 @@ def allocate_squadron_hits(dice_values: List[int], ships: List[Ship],
     return applied
 
 
+def squadron_group(target: Ship, all_ships: List[Ship]) -> List[Ship]:
+    """The squadron a target belongs to, as fired upon (core rules s.5): the
+    living members chain-coherent with it. A ship not in a squadron, or one
+    that has broken formation, is just itself."""
+    if not target.squadron_id:
+        return [target]
+    members = [s for s in all_ships
+               if s.squadron_id == target.squadron_id and s.player == target.player
+               and not s.is_destroyed and not s.is_disengaged and s.status == "active"]
+    if len(members) <= 1:
+        return [target]
+    from .squadron import get_coherency_components
+    groups, _ = get_coherency_components(members)
+    for group in groups:
+        if any(m.id == target.id for m in group):
+            return group
+    return [target]
+
+
+def eligible_squadron_targets(attacker: Ship, weapon: Dict, group: List[Ship],
+                              orientation: Optional[str] = None,
+                              phenomena: list = None, blast_markers: list = None,
+                              range_cap: Optional[float] = None) -> List[Ship]:
+    """Members of a targeted squadron this weapon can hit, nearest first: in arc,
+    in range and line of sight, and (for gunnery) not presenting a harder aspect
+    than the one fired at."""
+    allowed = eligible_orientations(orientation) if orientation else None
+    max_range = weapon.get("range_cm", 999)
+    if range_cap is not None:
+        max_range = min(max_range, range_cap)
+    eligible = []
+    for m in group:
+        if allowed is not None and attacker.get_target_orientation(m) not in allowed:
+            continue
+        if not check_weapon_in_arc(attacker, weapon, m.x, m.y):
+            continue
+        if attacker.distance_to(m) > max_range:
+            continue
+        if not check_los_clear(attacker, m, phenomena or [], blast_markers or []).get("clear", True):
+            continue
+        eligible.append(m)
+    return sorted(eligible, key=attacker.distance_to)
+
+
+def fire_at_squadron(attacker: Ship, weapon: Dict, target: Ship, group: List[Ship],
+                     dice: DiceRoller, apply_hits, lock_on: bool = False,
+                     blast_markers: list = None, phenomena: list = None,
+                     all_ships: list = None, no_column_shifts: bool = False,
+                     range_cap: Optional[float] = None):
+    """Fire one battery or lance weapon at the squadron `target` belongs to.
+
+    A Leadership test can't pick out one ship in a squadron (s.5): picking a
+    member declares the squadron as the target and that ship's aspect as the
+    aspect fired at. Hits then go nearest-first via allocate_squadron_hits;
+    apply_hits(ship, n) -> (unused_hits, destroyed).
+    Returns (ShotResult, hits applied per ship id).
+    """
+    is_battery = weapon.get("weapon_type") == "battery"
+    orientation = attacker.get_target_orientation(target) if is_battery else None
+    eligible = eligible_squadron_targets(attacker, weapon, group, orientation,
+                                         phenomena, blast_markers, range_cap)
+    if not eligible:
+        eligible = [target]
+    if is_battery:
+        sr = resolve_batteries_vs_squadron(
+            attacker, weapon, gunnery_target_type(target), orientation, eligible,
+            dice, blast_markers or [], lock_on, phenomena, all_ships, no_column_shifts)
+        applied = allocate_squadron_hits(sr.dice_rolled, eligible,
+                                         lambda m: sr.armors[m.id], apply_hits)
+    else:
+        # Lances hit on 4+ whatever the armour, so every hit can go to any ship
+        sr = resolve_lances(attacker, eligible[0], weapon, dice, lock_on)
+        applied = allocate_squadron_hits([4] * sr.hits, eligible, lambda m: 4, apply_hits)
+    sr.hits = sum(applied.values())
+    return sr, applied
+
+
 def resolve_batteries_vs_squadron(
         attacker: Ship, weapon: Dict, target_type: str,
         chosen_orientation: str, eligible_ships: List["Ship"],
