@@ -41,8 +41,9 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   touches a blast marker. If that leaves it with no movement (0 or less), it stops where it
   first touches the marker; otherwise it may carry on with what remains. This applies to All
   Ahead Full too.
-- **Burn Retros and blast markers:** Burn Retros applies first (orders are issued before
-  movement): halve the speed, then take 5cm off for blast markers.
+- **Order of speed modifiers:** crippled (-5cm) first, then Burn Retros (halve), then blast
+  markers (-5cm). A speed-25 crippled ship on Burn Retros touching a blast marker:
+  (25 - 5) / 2 - 5 = 5cm.
 
 ## Running and testing
 
