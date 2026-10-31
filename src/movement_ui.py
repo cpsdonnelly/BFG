@@ -98,7 +98,10 @@ def compute_drag_path(ship: Ship,
             commands.append(MoveCommand("forward", move_dist))
     else:
         # Pre-turn straight segment (escorts: 0, others: min_turn_dist)
-        pre_turn = float(min_turn_dist)
+        # Forward movement earlier this phase counts (since its last turn)
+        carried = (ship.distance_since_last_turn if ship.turns_used_this_turn
+                   else already_moved)
+        pre_turn = max(0.0, float(min_turn_dist) - carried)
         # Don't pre-turn more than ~40% of total distance so there's room to move after
         pre_turn = min(pre_turn, move_dist * 0.5)
         post_turn = max(0.0, move_dist - pre_turn)

@@ -160,6 +160,7 @@ class Ship:
     turns_used_this_turn: int = 0           # turns already consumed this phase
     net_rotation_this_turn: float = 0.0     # net signed rotation (+ = anticlockwise)
     crossed_blast_this_turn: bool = False   # moved through blast markers this phase
+    distance_since_last_turn: float = 0.0   # forward movement since its last turn this phase
     # Distance moved in its own most recent movement phase; None until it has had
     # one. Under 5cm counts as Defenses on the Gunnery table.
     last_move_cm: Optional[float] = None

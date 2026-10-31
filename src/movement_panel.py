@@ -5,6 +5,7 @@ import math
 
 from .models import Ship
 from .movement import (MoveCommand, validate_movement, execute_movement,
+                       record_staged_move,
                        resolve_aaf_speed, movement_budget)
 from .game_context import GameContext
 from .special_orders_ui import SpecialOrderMixin
@@ -87,15 +88,8 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             self._resolve_post_move_terrain(ship.id, order == "all_ahead_full")
 
             # Update staged tracking fields
-            final_ship = self.ctx.gs.get_ship_by_id(ship.id)
+            final_ship = record_staged_move(self.ctx.gs, ship.id, result, commands)
             if final_ship:
-                final_ship.distance_moved_this_turn += result.total_distance
-                final_ship.turns_used_this_turn += result.turns_used
-                left_deg = sum(c.value for c in commands if c.action == "turn_left")
-                right_deg = sum(c.value for c in commands if c.action == "turn_right")
-                final_ship.net_rotation_this_turn += (left_deg - right_deg)
-                self.ctx.gs.update_ship(final_ship)
-
                 # Lock the ship only when its movement budget is exhausted
                 _, remaining = movement_budget(final_ship, order, aaf_bonus,
                                                self.ctx.gs.get_blast_markers())
@@ -175,7 +169,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
 
     def _retry_short_of_blast(self, ship, result, order, aaf_bonus):
         """If a straight move failed because blast markers shortened the ship's
-        move (owner ruling on s.7), retry it at the distance actually allowed."""
+        move (owner ruling on s.8), retry it at the distance actually allowed."""
         allowed = result.max_allowed - ship.distance_moved_this_turn
         if result.valid or not result.crossed_blast_markers or allowed <= 0.05:
             return result
@@ -329,14 +323,10 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         self._offer_boarding(ship_id)
 
         # Update staged tracking fields on the now-moved ship
-        ship = self.ctx.gs.get_ship_by_id(ship_id)
+        ship = record_staged_move(self.ctx.gs, ship_id, result, commands)
         if ship:
-            ship.distance_moved_this_turn += result.total_distance
-            ship.turns_used_this_turn += result.turns_used
             left_deg = sum(c.value for c in commands if c.action == "turn_left")
             right_deg = sum(c.value for c in commands if c.action == "turn_right")
-            ship.net_rotation_this_turn += (left_deg - right_deg)
-            self.ctx.gs.update_ship(ship)
 
             # If no budget remains, mark fully moved
             _, remaining_after = movement_budget(ship, order, aaf_bonus,
@@ -403,10 +393,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
             self.ctx.tc.mark_ship_moved(ship.id)
             # Update staged fields so dialog is consistent if opened later
-            updated = self.ctx.gs.get_ship_by_id(ship.id)
-            if updated:
-                updated.distance_moved_this_turn += result.total_distance
-                self.ctx.gs.update_ship(updated)
+            record_staged_move(self.ctx.gs, ship.id, result, commands)
             moved_count += 1
 
         self.ctx.log(f"Spacebar: min-moved {moved_count} ships")
@@ -485,13 +472,15 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             if (s_dict.get("distance_moved_this_turn", 0) != 0
                     or s_dict.get("turns_used_this_turn", 0) != 0
                     or s_dict.get("net_rotation_this_turn", 0) != 0
-                    or s_dict.get("crossed_blast_this_turn", False)):
+                    or s_dict.get("crossed_blast_this_turn", False)
+                    or s_dict.get("distance_since_last_turn", 0) != 0):
                 for i, sd in enumerate(self.ctx.gs.ships):
                     if sd["id"] == s_dict["id"]:
                         self.ctx.gs.ships[i]["distance_moved_this_turn"] = 0.0
                         self.ctx.gs.ships[i]["turns_used_this_turn"] = 0
                         self.ctx.gs.ships[i]["net_rotation_this_turn"] = 0.0
                         self.ctx.gs.ships[i]["crossed_blast_this_turn"] = False
+                        self.ctx.gs.ships[i]["distance_since_last_turn"] = 0.0
                         break
 
         # Squadron coherency check at movement phase start

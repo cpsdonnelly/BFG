@@ -2,7 +2,8 @@
 import math
 from tests.conftest import make_ship, make_gs, make_blast, DiceStub
 from src.movement import (validate_movement, execute_movement,
-                          do_command_check, resolve_aaf_speed, MoveCommand)
+                          do_command_check, resolve_aaf_speed, MoveCommand,
+                          record_staged_move)
 from src.models import SpecialOrder
 
 
@@ -261,3 +262,82 @@ def test_aaf_speed_sum_of_4d6():
     dice = DiceStub([3, 4, 5, 6])
     bonus = resolve_aaf_speed(ship, dice)
     assert bonus == 3 + 4 + 5 + 6
+
+
+# ── Minimum distance before EACH turn (s.7, Appendix: Come to New Heading) ────
+
+def test_ctnh_second_turn_needs_minimum_distance():
+    # Cruiser on CtNH: 10cm, turn, only 5cm, turn again -> invalid
+    ship = make_ship(id="s", speed=25, ship_type="cruiser", turn_angle=45)
+    r = validate_movement(ship, [_fwd(10), _left(45), _fwd(5), _left(45)],
+                          SpecialOrder.COME_TO_NEW_HEADING.value)
+    assert not r.valid
+    assert any("since its last turn" in e for e in r.errors)
+
+
+def test_ctnh_second_turn_after_minimum_distance_valid():
+    ship = make_ship(id="s", speed=25, ship_type="cruiser", turn_angle=45)
+    r = validate_movement(ship, [_fwd(10), _left(45), _fwd(10), _left(45)],
+                          SpecialOrder.COME_TO_NEW_HEADING.value)
+    assert r.valid
+    assert r.turns_used == 2
+
+
+def test_ctnh_battleship_needs_15cm_before_each_turn():
+    ship = make_ship(id="s", speed=20, ship_type="battleship", turn_angle=45)
+    bad = validate_movement(ship, [_fwd(15), _left(45), _fwd(5), _right(45)],
+                            SpecialOrder.COME_TO_NEW_HEADING.value)
+    assert not bad.valid
+
+
+def test_ctnh_escort_turns_at_any_point():
+    ship = make_ship(id="s", speed=25, ship_type="escort", turn_angle=90)
+    r = validate_movement(ship, [_left(90), _fwd(5), _left(90), _fwd(10)],
+                          SpecialOrder.COME_TO_NEW_HEADING.value)
+    assert r.valid
+
+
+def test_staged_ctnh_carries_distance_since_last_turn():
+    # Stage 1: 10cm, turn, 3cm.  Stage 2 may not turn again until 7cm more.
+    gs = make_gs()
+    ship = make_ship(id="s", speed=25, ship_type="cruiser", turn_angle=45,
+                     x=60.0, y=60.0,
+                     special_order=SpecialOrder.COME_TO_NEW_HEADING.value)
+    gs.add_ship(ship)
+    order = SpecialOrder.COME_TO_NEW_HEADING.value
+    cmds = [_fwd(10), _left(45), _fwd(3)]
+    r1 = validate_movement(ship, cmds, order)
+    assert r1.valid
+    execute_movement(ship, r1, gs)
+    record_staged_move(gs, "s", r1, cmds)
+    s = gs.get_ship_by_id("s")
+    assert s.distance_since_last_turn == 3
+    assert s.turns_used_this_turn == 1
+    assert s.net_rotation_this_turn == 45
+
+    def stage2(commands):
+        return validate_movement(
+            s, commands, order,
+            turns_already_used=s.turns_used_this_turn,
+            distance_already_moved=s.distance_moved_this_turn,
+            blast_already_crossed=s.crossed_blast_this_turn)
+
+    assert not stage2([_left(45)]).valid
+    assert not stage2([_fwd(6), _left(45)]).valid
+    assert stage2([_fwd(7), _left(45)]).valid
+
+
+def test_staged_first_turn_counts_earlier_forward_movement():
+    # Stage 1 went 10cm straight; stage 2 may turn straight away
+    gs = make_gs()
+    ship = make_ship(id="s", speed=20, ship_type="cruiser", x=60.0, y=60.0)
+    gs.add_ship(ship)
+    cmds = [_fwd(10)]
+    r1 = validate_movement(ship, cmds, SpecialOrder.NONE.value)
+    execute_movement(ship, r1, gs)
+    record_staged_move(gs, "s", r1, cmds)
+    s = gs.get_ship_by_id("s")
+    r2 = validate_movement(s, [_left(45), _fwd(5)], SpecialOrder.NONE.value,
+                           turns_already_used=s.turns_used_this_turn,
+                           distance_already_moved=s.distance_moved_this_turn)
+    assert r2.valid

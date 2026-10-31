@@ -14,7 +14,7 @@ from .turn_controller import TurnController
 from .dice import DiceRoller
 from .geometry import current_shields
 from .movement import (
-    MoveCommand, validate_movement, execute_movement,
+    MoveCommand, validate_movement, execute_movement, record_staged_move,
     get_effective_speed, get_max_turns,
 )
 from .combat import (
@@ -156,36 +156,36 @@ class AIPlayer:
             table_width=gs.table_width, table_height=gs.table_height,
         )
 
-        def execute(result) -> bool:
+        def execute(result, cmds) -> bool:
             execute_movement(ship, result, gs, self.dice)
-            moved = gs.get_ship_by_id(ship.id)
-            if moved:
-                moved.distance_moved_this_turn += result.total_distance
-                gs.update_ship(moved)
+            record_staged_move(gs, ship.id, result, cmds)
             return True
 
         r = validate_movement(ship, commands, **kwargs)
         if r.valid:
-            return execute(r)
+            return execute(r, commands)
 
         # Blast markers shortened the move: go straight ahead as far as allowed
         if r.crossed_blast_markers and r.max_allowed > 0:
-            rb = validate_movement(ship, [MoveCommand("forward", r.max_allowed)], **kwargs)
+            cb = [MoveCommand("forward", r.max_allowed)]
+            rb = validate_movement(ship, cb, **kwargs)
             if rb.valid:
-                return execute(rb)
+                return execute(rb, cb)
 
         # Fallback: straight forward at half speed
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
         dist = max(min_spd, max_spd / 2)
-        r2 = validate_movement(ship, [MoveCommand("forward", dist)], **kwargs)
+        c2 = [MoveCommand("forward", dist)]
+        r2 = validate_movement(ship, c2, **kwargs)
         if r2.valid:
-            return execute(r2)
+            return execute(r2, c2)
 
         # Last resort: minimum speed
         if min_spd > 0:
-            r3 = validate_movement(ship, [MoveCommand("forward", min_spd)], **kwargs)
+            c3 = [MoveCommand("forward", min_spd)]
+            r3 = validate_movement(ship, c3, **kwargs)
             if r3.valid:
-                return execute(r3)
+                return execute(r3, c3)
 
         return False
 

@@ -1,6 +1,6 @@
 """BFG:XR Movement Phase - Validation and Execution"""
 import math
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
@@ -52,6 +52,7 @@ class MovementResult:
         self.turns_used: int = 0
         self.crossed_blast_markers: bool = False
         self.max_allowed: float = 0     # phase distance limit after blast markers
+        self.distance_since_last_turn: float = 0   # forward movement since the last turn
         self.counts_as_defense: bool = False  # moved <5cm
 
     def add_error(self, msg):
@@ -105,7 +106,7 @@ def movement_budget(ship: Ship, special_order: str, aaf_bonus: int = 0,
 
     Accounts for staged movement already made, and for the -5cm blast marker
     penalty if the ship has moved through markers this phase or is touching
-    one now (core rules s.7).
+    one now (core rules s.8).
     """
     slowed = (ship.crossed_blast_this_turn
               or count_blast_markers_touching(ship, blast_markers or []) > 0)
@@ -135,14 +136,17 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
                       table_width: float = 120, table_height: float = 120,
                       turns_already_used: int = 0,
                       distance_already_moved: float = 0.0,
-                      blast_already_crossed: bool = False) -> MovementResult:
+                      blast_already_crossed: bool = False,
+                      distance_since_last_turn: Optional[float] = None) -> MovementResult:
     """
     Validate a sequence of movement commands for a ship.
     Returns a MovementResult with path, errors, warnings.
 
-    Staged moves: distance_already_moved, turns_already_used and
-    blast_already_crossed describe earlier stages this phase, so speed and
-    turning limits apply to the whole phase, not to each stage alone.
+    Staged moves: distance_already_moved, turns_already_used,
+    blast_already_crossed and distance_since_last_turn (forward movement since
+    the last turn made in an earlier stage; defaults to the ship's own
+    distance_since_last_turn) describe earlier stages this phase, so speed and
+    turning limits apply to the whole phase, not each stage alone.
     """
     result = MovementResult()
     blast_markers = blast_markers or []
@@ -153,7 +157,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     result.path.append((cx, cy))
 
     # Moving away from blast markers the ship touches counts as moving through
-    # them (core rules s.7)
+    # them (core rules s.8)
     starts_in_blast = count_blast_markers_touching(ship, blast_markers) > 0
     blast_contact_cm = BLAST_MARKER_RADIUS_CM + ship.base_radius
 
@@ -166,7 +170,11 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
 
     # Track state
     distance_moved = 0.0
-    distance_since_last_turn = distance_already_moved if turns_already_used == 0 else 0.0
+    # Forward movement this phase counts toward the distance before a turn (s.7)
+    if turns_already_used == 0:
+        distance_since_last_turn = distance_already_moved
+    elif distance_since_last_turn is None:
+        distance_since_last_turn = getattr(ship, "distance_since_last_turn", 0.0)
     turns_made = 0          # turns committed in this command sequence
     # Net signed rotation for current turn action (positive = anticlockwise/left)
     net_turn_degrees = 0.0
@@ -246,11 +254,13 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
                             f"Already used {total_used}/{max_turns} turns")
                     continue
 
-                # Check minimum distance before first turn (skip if already turned before)
-                if turns_made == 0 and turns_already_used == 0 and distance_since_last_turn < min_turn_dist:
+                # Minimum straight-ahead distance before every turn (s.7; Come to
+                # New Heading must still move the minimum before each turn)
+                if distance_since_last_turn < min_turn_dist:
+                    after = " since its last turn" if (turns_made or turns_already_used) else ""
                     result.add_error(
                         f"Must move {min_turn_dist}cm before turning "
-                        f"(only moved {distance_since_last_turn:.1f}cm). "
+                        f"(only moved {distance_since_last_turn:.1f}cm{after}). "
                         f"{ship.ship_type}s need {min_turn_dist}cm minimum.")
                     continue
 
@@ -275,7 +285,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
         elif abs(net_turn_degrees) > 0.1:
             turns_made += 1
 
-    # Speed limits for the whole phase. Blast markers (owner ruling on s.7): the
+    # Speed limits for the whole phase. Blast markers (owner ruling on s.8): the
     # 5cm reduction applies at the point of first contact; a ship with no
     # movement left by then stops where it touched the marker.
     min_spd, max_spd = get_effective_speed(ship, special_order, aaf_bonus,
@@ -300,6 +310,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     result.final_heading = heading
     result.turns_used = turns_made
     result.crossed_blast_markers = crossed_any_blast
+    result.distance_since_last_turn = 0.0 if in_a_turn else distance_since_last_turn
 
     # Check distance constraints
     blast_note = (f" (stops where it touched a blast marker at {max_spd:.1f}cm)"
@@ -332,6 +343,23 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
             result.add_warning("Moved <5cm: counts as Defenses on Gunnery table")
 
     return result
+
+
+def record_staged_move(gs: GameState, ship_id: str, result: MovementResult,
+                       commands: List[MoveCommand]) -> Optional[Ship]:
+    """After execute_movement: add this stage to the ship's per-phase movement
+    tracking (distance, turns, net rotation, distance since its last turn)."""
+    ship = gs.get_ship_by_id(ship_id)
+    if not ship:
+        return None
+    ship.distance_moved_this_turn += result.total_distance
+    ship.turns_used_this_turn += result.turns_used
+    left = sum(c.value for c in commands if c.action == "turn_left")
+    right = sum(c.value for c in commands if c.action == "turn_right")
+    ship.net_rotation_this_turn += left - right
+    ship.distance_since_last_turn = result.distance_since_last_turn
+    gs.update_ship(ship)
+    return ship
 
 
 def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
@@ -390,7 +418,7 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
 
 
 def _blast_marker_damage(ship: Ship, gs: GameState, dice: DiceRoller) -> bool:
-    """Core rules s.7: a ship with no shields, or permanently disabled ones,
+    """Core rules s.8: a ship with no shields, or permanently disabled ones,
     that moves through blast markers takes 1 damage on a D6 roll of 6 (once
     per move). Returns True if the ship was destroyed."""
     if ship.effective_shields > 0:

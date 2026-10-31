@@ -5,6 +5,7 @@ import math
 
 from .models import SpecialOrder
 from .movement import (MoveCommand, validate_movement, execute_movement,
+                       record_staged_move,
                        resolve_aaf_speed, MIN_TURN_DISTANCE, get_max_turns,
                        movement_budget)
 
@@ -236,6 +237,10 @@ class _MoveShipDialog:
                 dist_since_turn += c.value
             else:
                 break
+        else:
+            # No turn in this dialog yet: earlier stages this phase count too
+            dist_since_turn += (self.ship.distance_since_last_turn
+                                if self._turns_already else self.already_moved)
         needed = max(0, self.min_turn_dist - dist_since_turn)
         if needed > 0:
             self._add_cmd("forward", needed)
@@ -367,17 +372,7 @@ class _MoveShipDialog:
         self.panel._resolve_post_move_terrain(
             self.ship.id, self.order == SpecialOrder.ALL_AHEAD_FULL.value)
 
-        final_ship = self.ctx.gs.get_ship_by_id(self.ship.id)
-        if final_ship:
-            final_ship.distance_moved_this_turn = (
-                self.already_moved + result.total_distance)
-            final_ship.turns_used_this_turn = (
-                self._turns_already + result.turns_used)
-            dialog_net = (
-                sum(c.value for c in self.commands if c.action == "turn_left")
-                - sum(c.value for c in self.commands if c.action == "turn_right"))
-            final_ship.net_rotation_this_turn = self._net_rot_already + dialog_net
-            self.ctx.gs.update_ship(final_ship)
+        record_staged_move(self.ctx.gs, self.ship.id, result, self.commands)
         self.ctx.tc.mark_ship_moved(self.ship.id)
         self.ctx.tc.record_action(
             "move_ship", self.ship.id,
@@ -725,16 +720,7 @@ class _MoveSquadronDialog:
             execute_movement(s, res, self.ctx.gs, self.ctx.dice)
             self.panel._resolve_post_move_terrain(
                 s.id, s.special_order == SpecialOrder.ALL_AHEAD_FULL.value)
-            final = self.ctx.gs.get_ship_by_id(s.id)
-            if final:
-                final.distance_moved_this_turn += res.total_distance
-                final.turns_used_this_turn += res.turns_used
-                left_deg = sum(c.value for c in self.commands
-                               if c.action == "turn_left")
-                right_deg = sum(c.value for c in self.commands
-                                if c.action == "turn_right")
-                final.net_rotation_this_turn += (left_deg - right_deg)
-                self.ctx.gs.update_ship(final)
+            record_staged_move(self.ctx.gs, s.id, res, self.commands)
             self.ctx.tc.mark_ship_moved(s.id)
             self.ctx.log(
                 f"{s.name}: squadron-moved {res.total_distance:.1f}cm "
