@@ -81,6 +81,7 @@ def export_fleet_with_damage(ships: List["Ship"], player: int, filepath: str) ->
             "critical_damage": list(s.critical_damage),
             "ordnance_loaded_torps": s.ordnance_loaded_torps,
             "ordnance_loaded_craft": s.ordnance_loaded_craft,
+            "ordnance_loaded_mines": s.ordnance_loaded_mines,
         }
         fleet_ships.append(entry)
     data = {

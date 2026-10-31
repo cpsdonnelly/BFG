@@ -147,6 +147,9 @@ class Ship:
     has_fired: bool = False
     ordnance_loaded_torps: bool = True
     ordnance_loaded_craft: bool = True
+    # Mines reload separately from attack craft (s.12: launching one type of
+    # ordnance does not affect the other)
+    ordnance_loaded_mines: bool = True
     command_check_failed_this_turn: bool = False
 
     # Points and game status

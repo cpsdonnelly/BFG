@@ -1251,6 +1251,8 @@ class BoardView:
         lines.append("--- ORDNANCE ---")
         lines.append(f"  Torps/Missiles: {'LOADED' if s.ordnance_loaded_torps else 'EMPTY'}")
         lines.append(f"  Attack Craft: {'LOADED' if s.ordnance_loaded_craft else 'EMPTY'}")
+        if any(w.get("weapon_type") == "mine_launcher" for w in s.weapons):
+            lines.append(f"  Mines: {'LOADED' if s.ordnance_loaded_mines else 'EMPTY'}")
         lines.append("")
 
         # Critical damage (grouped with effect descriptions)

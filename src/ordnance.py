@@ -845,6 +845,7 @@ def reload_ship_ordnance(ship: Ship) -> List[str]:
     """
     has_torps = any(w.get("weapon_type") == "torpedo" for w in ship.weapons)
     has_bays = any(w.get("weapon_type") == "launch_bay" for w in ship.weapons)
+    has_mines = any(w.get("weapon_type") == "mine_launcher" for w in ship.weapons)
     reloaded = []
     if has_torps and not ship.ordnance_loaded_torps:
         ship.ordnance_loaded_torps = True
@@ -852,9 +853,12 @@ def reload_ship_ordnance(ship: Ship) -> List[str]:
     if has_bays and not ship.ordnance_loaded_craft:
         ship.ordnance_loaded_craft = True
         reloaded.append("attack craft")
+    if has_mines and not ship.ordnance_loaded_mines:
+        ship.ordnance_loaded_mines = True
+        reloaded.append("mines")
     if reloaded:
         return [f"{ship.name}: Reload Ordnance — reloaded {' & '.join(reloaded)}"]
-    if has_torps or has_bays:
+    if has_torps or has_bays or has_mines:
         return [f"{ship.name}: Reload Ordnance — ordnance already loaded"]
     return []
 

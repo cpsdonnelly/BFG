@@ -127,7 +127,8 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 return False
             if ship.is_destroyed or ship.is_disengaged:
                 return False
-            return ship.ordnance_loaded_torps or ship.ordnance_loaded_craft
+            return (ship.ordnance_loaded_torps or ship.ordnance_loaded_craft
+                    or ship.ordnance_loaded_mines)
 
         def commit_ord_drag(ship, heading):
             self.ctx.ordnance._launch_ordnance_dialog(

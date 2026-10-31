@@ -344,3 +344,15 @@ def test_generic_attack_craft_use_the_ships_booklet_speed():
     bombers = launch_attack_craft(ship, bay, "bomber", 1, gs)
     assert (fighters[0].ordnance_type, fighters[0].speed) == ("fighter", 30)
     assert (bombers[0].ordnance_type, bombers[0].speed) == ("bomber", 20)
+
+
+def test_mines_reload_separately_from_attack_craft():
+    # s.12: launching one type of ordnance does not affect the other
+    ship = make_ship(id="s", weapons=[
+        {"name": "Bay", "weapon_type": "launch_bay", "strength": 2},
+        {"name": "Mines", "weapon_type": "mine_launcher", "strength": 2},
+    ])
+    ship.ordnance_loaded_mines = False          # laid mines; craft still loaded
+    assert ship.ordnance_loaded_craft is True
+    logs = reload_ship_ordnance(ship)
+    assert ship.ordnance_loaded_mines is True and "mines" in logs[0]

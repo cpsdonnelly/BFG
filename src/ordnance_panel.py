@@ -694,7 +694,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                       and not s.get("has_boarded", False)
                       and not s.get("is_grappled", False)]
         launchers = [s for s in all_active
-                     if s.ordnance_loaded_torps or s.ordnance_loaded_craft]
+                     if s.ordnance_loaded_torps or s.ordnance_loaded_craft
+                     or s.ordnance_loaded_mines]
         if not launchers:
             messagebox.showinfo("No Ordnance", "No ships with loaded ordnance")
             return
@@ -728,7 +729,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
             wtype = w.get("weapon_type", "")
             if wtype == "torpedo" and ship.ordnance_loaded_torps:
                 torp_weapons.append(w)
-            elif wtype == "mine_launcher" and ship.ordnance_loaded_craft:
+            elif wtype == "mine_launcher" and ship.ordnance_loaded_mines:
                 mine_weapons.append(w)
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
                 bay_weapons.append(w)
@@ -1015,7 +1016,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
                     ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
                     if ship_fresh:
-                        ship_fresh.ordnance_loaded_craft = False
+                        ship_fresh.ordnance_loaded_mines = False
                         self.ctx.gs.update_ship(ship_fresh)
 
                     self.ctx.log(

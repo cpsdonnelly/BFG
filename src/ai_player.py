@@ -364,8 +364,10 @@ class AIPlayer:
         # Reload if ordnance spent
         has_torps = any(w.get("weapon_type") == "torpedo" for w in ship.weapons)
         has_bays  = any(w.get("weapon_type") == "launch_bay" for w in ship.weapons)
+        has_mines = any(w.get("weapon_type") == "mine_launcher" for w in ship.weapons)
         if ((has_torps and not ship.ordnance_loaded_torps) or
-                (has_bays and not ship.ordnance_loaded_craft)):
+                (has_bays and not ship.ordnance_loaded_craft) or
+                (has_mines and not ship.ordnance_loaded_mines)):
             return SpecialOrder.RELOAD_ORDNANCE.value
 
         return None
