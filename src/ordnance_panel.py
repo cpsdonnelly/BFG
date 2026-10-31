@@ -5,7 +5,8 @@ import math
 
 from .models import (Ship, SpecialOrder, OrdnanceMarker, OrdnanceType,
                      signed_angle_diff)
-from .ordnance import TORPEDO_SPEED_DEFAULT, torpedo_ordnance_type
+from .ordnance import (TORPEDO_SPEED_DEFAULT, torpedo_ordnance_type, craft_stats,
+                       torpedo_split_error)
 from .game_context import GameContext
 from .ordnance_movement import OrdnanceMovementMixin
 
@@ -510,12 +511,6 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
             else:
                 # Craft launch
-                CRAFT_STATS = {
-                    "manta": (OrdnanceType.MANTA.value, 20, 4),
-                    "barracuda": (OrdnanceType.BARRACUDA.value, 25, 0),
-                    "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
-                    "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
-                }
 
                 current_remaining = max(
                     0, self._get_player_bay_capacity(player)
@@ -529,8 +524,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         continue
                     if count <= 0:
                         continue
-                    o_type, spd, resil = CRAFT_STATS.get(
-                        ct, (OrdnanceType.FIGHTER.value, 30, 0))
+                    o_type, spd, resil = craft_stats(
+                        ct, [w for c in contributors for w in c.weapons
+                             if w.get("weapon_type") == "launch_bay"])
                     for i in range(count):
                         if total_launched >= current_remaining:
                             break
@@ -697,14 +693,20 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 split_frame = tk.Frame(torp_frame)
                 split_frame.pack(fill=tk.X, padx=10, pady=2)
                 str_var = tk.StringVar(value=str(total_str))
+                heading2_var = tk.StringVar(value=f"{_init_heading:.0f}")
                 if total_str >= 7:
-                    tk.Label(split_frame, text="Strength to launch:",
+                    tk.Label(split_frame, text="First salvo Str:",
                              font=("Consolas", 8)).pack(side=tk.LEFT)
                     tk.Entry(split_frame, textvariable=str_var, width=4,
                              font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
-                    tk.Label(split_frame,
-                             text=f"(Str {total_str}: can split into two salvos, min 1 each)",
-                             font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+                    tk.Label(split_frame, text="Second salvo heading:",
+                             font=("Consolas", 8)).pack(side=tk.LEFT, padx=(6, 0))
+                    tk.Entry(split_frame, textvariable=heading2_var, width=5,
+                             font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+                    tk.Label(torp_frame,
+                             text=f"Str {total_str}: may split into two salvos of at least 3, "
+                                  f"in different directions (s.13)",
+                             font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=10)
                 else:
                     tk.Label(split_frame,
                              text=f"Full salvo: Str {total_str} (splitting requires Str 7+)",
@@ -725,7 +727,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                                        ).pack(side=tk.LEFT, padx=2)
 
                 def _launch_torps(w=tw, hv=heading_var, sv=str_var,
-                                   effective_str=total_str, kv=kind_var):
+                                   effective_str=total_str, kv=kind_var,
+                                   hv2=heading2_var):
                     try:
                         heading = float(hv.get())
                         strength = int(sv.get())
@@ -743,11 +746,26 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
                     # Use the already-halved effective strength as the cap
                     total = effective_str
-                    # Enforce split rules
+                    # Enforce split rules (s.13)
                     if total < 7:
                         strength = total  # can't split below Str 7
                     else:
                         strength = max(1, min(strength, total))
+                    heading2 = None
+                    if strength < total:
+                        try:
+                            heading2 = float(hv2.get())
+                        except ValueError:
+                            heading2 = None
+                    err = torpedo_split_error(total, strength, heading, heading2)
+                    if err is None and heading2 is not None and abs(
+                            signed_angle_diff(heading2, ship.heading)) > 45:
+                        err = (f"Second salvo heading {heading2:.0f}° is outside the "
+                               f"forward arc ({ship.heading-45:.0f}° to "
+                               f"{ship.heading+45:.0f}°)")
+                    if err:
+                        messagebox.showerror("Torpedo Split", err)
+                        return
 
                     is_g = w.get("torpedo_type") == "guided"
                     o_type = torpedo_ordnance_type(w, kv.get() == "boarding")
@@ -791,7 +809,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                             owner_player=ship.player,
                             launched_by=ship.id,
                             x=ship.x, y=ship.y,
-                            heading=heading,  # same heading for now
+                            heading=heading2,
                             strength=remainder,
                             speed=w.get("torpedo_speed", TORPEDO_SPEED_DEFAULT),
                             launched_turn=self.ctx.gs.turn_number,
@@ -803,7 +821,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         self.ctx.gs.add_ordnance(marker2)
                         self.ctx.log(
                             f"  Split salvo: second volley Str {remainder} "
-                            f"heading {heading:.0f}°")
+                            f"heading {heading2:.0f}°")
 
                     ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
                     if ship_fresh:
@@ -1088,12 +1106,6 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     return
 
                 total_launched = 0
-                CRAFT_STATS = {
-                    "manta": (OrdnanceType.MANTA.value, 20, 4),
-                    "barracuda": (OrdnanceType.BARRACUDA.value, 25, 0),
-                    "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
-                    "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
-                }
 
                 import random as _rng
                 for ct, var in composition_vars.items():
@@ -1104,8 +1116,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     if count <= 0:
                         continue
 
-                    o_type, spd, resil = CRAFT_STATS.get(
-                        ct, (OrdnanceType.FIGHTER.value, 30, 0))
+                    o_type, spd, resil = craft_stats(ct, bay_weapons)
 
                     # CAP only applies to fighter-type craft; bombers (incl. Manta) cannot CAP
                     fighter_types = (OrdnanceType.FIGHTER.value,

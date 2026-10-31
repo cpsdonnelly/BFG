@@ -22,7 +22,7 @@ from .combat import (
     resolve_batteries, resolve_lances, apply_damage,
     squadron_group, fire_at_squadron,
 )
-from .ordnance import (launch_torpedoes, launch_attack_craft, move_ordnance,
+from .ordnance import (launch_torpedoes, launch_attack_craft,
                        TORPEDO_SPEED_DEFAULT)
 
 
@@ -518,7 +518,8 @@ class AIPlayer:
     def run_ordnance_phase(self):
         gs = self.gs
 
-        # Move existing ordnance owned by this player
+        # Steer this player's guided missiles. Everything else moves when the
+        # ordnance phase is resolved (OrdnanceMovementMixin).
         for o_dict in list(gs.ordnance):
             marker = OrdnanceMarker.from_dict(o_dict)
             if marker.owner_player != self.player or marker.moved_this_phase:
@@ -526,8 +527,6 @@ class AIPlayer:
             if marker.can_turn:
                 target = self._nearest_enemy_to(marker.x, marker.y)
                 self._steer_guided_missile(marker, target)
-            else:
-                move_ordnance(marker, gs)
 
         # Launch new ordnance
         for ship in gs.player_ships(self.player):

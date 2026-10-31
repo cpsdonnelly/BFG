@@ -117,6 +117,35 @@ def torpedo_valid_target(marker: OrdnanceMarker, ship: Ship) -> bool:
     return not (is_boarding_torpedo(marker) and ship.player == marker.owner_player)
 
 
+BOARDING_TORP_MAX_TURN = 45.0
+
+
+def boarding_torp_may_turn(marker: OrdnanceMarker, turn_number: int) -> bool:
+    """Boarding torpedoes are manned and may turn up to 45° before moving, but
+    not in the ordnance phase of the turn they were launched (s.13)."""
+    return is_boarding_torpedo(marker) and marker.launched_turn < turn_number
+
+
+def boarding_torp_suggested_turn(marker: OrdnanceMarker, ships: List[Ship]) -> float:
+    """Signed turn (+ = anticlockwise) pointing the salvo as close as 45° allows
+    at the nearest enemy ship that isn't a hulk; 0 if there is none."""
+    enemies = [s for s in ships if s.player != marker.owner_player
+               and not s.is_destroyed and not s.is_disengaged
+               and s.status not in ("drifting_hulk", "burning_hulk")]
+    if not enemies:
+        return 0.0
+    t = min(enemies, key=lambda s: math.hypot(s.x - marker.x, s.y - marker.y))
+    desired = math.degrees(math.atan2(t.y - marker.y, t.x - marker.x)) % 360
+    diff = signed_angle_diff(desired, marker.heading)
+    return max(-BOARDING_TORP_MAX_TURN, min(BOARDING_TORP_MAX_TURN, diff))
+
+
+def turn_boarding_torp(marker: OrdnanceMarker, degrees: float) -> None:
+    """Rotate the salvo about its centre (clamped to 45°) before it moves."""
+    degrees = max(-BOARDING_TORP_MAX_TURN, min(BOARDING_TORP_MAX_TURN, degrees))
+    marker.heading = (marker.heading + degrees) % 360
+
+
 def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
                            dice: DiceRoller, game_state: GameState,
                            all_ships: List[Ship] = None,
@@ -468,10 +497,26 @@ def is_fighter_type(marker: OrdnanceMarker) -> bool:
     )
 
 
-def _is_indiscriminate(marker: OrdnanceMarker) -> bool:
-    """Torpedoes and mines do not distinguish friend from foe."""
+def is_torpedo_salvo(marker: OrdnanceMarker) -> bool:
+    """A torpedo marker (any torpedo type); torpedo bombers are attack craft."""
     return ("torpedo" in marker.ordnance_type
-            or marker.ordnance_type == OrdnanceType.MINE_FIELD.value)
+            and marker.ordnance_type != OrdnanceType.TORPEDO_BOMBER.value)
+
+
+def friendly_ordnance_contact(m1: OrdnanceMarker, m2: OrdnanceMarker) -> Optional[str]:
+    """What happens when two markers of the same player touch:
+    "collide" (two torpedo salvos detonate, s.13), "intercept" (a fighter
+    intercepts torpedoes, friend or foe, s.16), or None (no interaction).
+    Bombers and assault boats avoid ordnance other than enemy fighters
+    (s.17, s.19); mines ignore all ordnance except enemy fighters (s.14);
+    boarding torpedoes ignore friendly attack craft (s.13)."""
+    t1, t2 = is_torpedo_salvo(m1), is_torpedo_salvo(m2)
+    if t1 and t2:
+        return "collide"
+    for f, t, t_is_torp in ((m1, m2, t2), (m2, m1, t1)):
+        if is_fighter_type(f) and t_is_torp and not is_boarding_torpedo(t):
+            return "intercept"
+    return None
 
 
 def resolve_ordnance_interactions(game_state: GameState,
@@ -480,8 +525,7 @@ def resolve_ordnance_interactions(game_state: GameState,
     Resolve all ordnance-vs-ordnance interactions after movement.
     Fighters intercept enemy ordnance they contact (compulsory).
     Torpedo salvos that contact each other are both destroyed.
-    Torpedoes and mines are indiscriminate — they also detonate against
-    friendly ordnance on contact (with resilient saves where applicable).
+    Between friendly markers see friendly_ordnance_contact.
     Returns log messages.
     """
     logs = []
@@ -502,27 +546,23 @@ def resolve_ordnance_interactions(game_state: GameState,
 
             same_player = (m1.owner_player == m2.owner_player)
             if same_player:
-                # Friendly: only torpedoes / mines cause friendly fire
-                if not (_is_indiscriminate(m1) or _is_indiscriminate(m2)):
+                kind = friendly_ordnance_contact(m1, m2)
+                if kind is None or not check_ordnance_contact(m1, m2):
                     continue
-                if not check_ordnance_contact(m1, m2):
-                    continue
-                # Both destroyed; resilient save for non-indiscriminate side
                 rm1, rm2 = True, True
-                if _is_indiscriminate(m1) and not _is_indiscriminate(m2):
-                    if m2.resilient_save > 0 and not m2.resilient_used:
+                if kind == "intercept":
+                    # A friendly fighter intercepts a torpedo salvo (s.16);
+                    # a resilient fighter may save
+                    fighter = m1 if is_fighter_type(m1) else m2
+                    if fighter.resilient_save > 0 and not fighter.resilient_used:
                         save = dice.roll_d6(
-                            1, f"Resilient save vs friendly torp/mine ({m2.resilient_save}+)")[0]
-                        if save >= m2.resilient_save:
-                            rm2 = False
-                            m2.resilient_used = True
-                elif _is_indiscriminate(m2) and not _is_indiscriminate(m1):
-                    if m1.resilient_save > 0 and not m1.resilient_used:
-                        save = dice.roll_d6(
-                            1, f"Resilient save vs friendly torp/mine ({m1.resilient_save}+)")[0]
-                        if save >= m1.resilient_save:
-                            rm1 = False
-                            m1.resilient_used = True
+                            1, f"Resilient save vs friendly torpedoes ({fighter.resilient_save}+)")[0]
+                        if save >= fighter.resilient_save:
+                            fighter.resilient_used = True
+                            if fighter is m1:
+                                rm1 = False
+                            else:
+                                rm2 = False
                 logs.append(
                     f"  Friendly fire: {m1.ordnance_type} vs {m2.ordnance_type}")
                 if rm1:
@@ -563,8 +603,8 @@ def resolve_ordnance_interactions(game_state: GameState,
             else:
                 # Non-fighter vs non-fighter (e.g. torpedo vs torpedo)
                 # Both torpedo salvos are destroyed on contact
-                is_torp1 = "torpedo" in m1.ordnance_type
-                is_torp2 = "torpedo" in m2.ordnance_type
+                is_torp1 = is_torpedo_salvo(m1)
+                is_torp2 = is_torpedo_salvo(m2)
                 if is_torp1 and is_torp2:
                     to_remove.add(m1.id)
                     to_remove.add(m2.id)
@@ -729,6 +769,24 @@ def reload_ship_ordnance(ship: Ship) -> List[str]:
 
 
 
+def torpedo_split_error(total: int, first: int, heading1: float,
+                        heading2: Optional[float]) -> Optional[str]:
+    """Splitting Torpedo Salvos (s.13): a single ship firing strength 7 or more
+    may split into two salvos going in different directions, neither with fewer
+    than three torpedoes. Returns an error message, or None if allowed.
+    first == total means no split."""
+    if first == total:
+        return None
+    if total < 7:
+        return f"Only salvos of strength 7 or more can be split (this is {total})."
+    if first < 3 or total - first < 3:
+        return (f"Each salvo needs at least 3 torpedoes "
+                f"(Str {first} + {total - first}).")
+    if heading2 is None or abs(signed_angle_diff(heading1, heading2)) < 0.5:
+        return "The two salvos must go in different directions."
+    return None
+
+
 def boarding_ok(weapon: Dict, boarding: bool) -> bool:
     """Boarding torpedoes only from launchers that carry them."""
     return bool(boarding and weapon.get("boarding_torpedoes")
@@ -783,24 +841,36 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
     return marker
 
 
+# Craft type -> (ordnance type, default speed, resilient save)
+CRAFT_STATS = {
+    "manta": (OrdnanceType.MANTA.value, 20, 4),
+    "barracuda": (OrdnanceType.BARRACUDA.value, 25, 0),
+    "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
+    "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
+    "shark_assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+    # Generic attack craft (factions whose rules don't name them)
+    "fighter": (OrdnanceType.FIGHTER.value, 30, 0),
+    "bomber": (OrdnanceType.BOMBER.value, 20, 0),
+    "assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+}
+
+
+def craft_stats(craft_type: str, bay_weapons: List[Dict]) -> Tuple[str, float, int]:
+    """(ordnance type, speed, resilient save) for a craft type. The carrier's
+    profile gives the speed of each craft it carries (booklet data)."""
+    o_type, speed, resilient = CRAFT_STATS.get(
+        craft_type, (OrdnanceType.FIGHTER.value, 30, 0))
+    for w in bay_weapons:
+        if craft_type in (w.get("craft_speeds") or {}):
+            speed = w["craft_speeds"][craft_type]
+            break
+    return o_type, speed, resilient
+
+
 def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
                         count: int, game_state: GameState) -> List[OrdnanceMarker]:
     """Create attack craft markers from launch bays."""
-    craft_stats = {
-        "manta": (OrdnanceType.MANTA.value, 20, 4),
-        "barracuda": (OrdnanceType.BARRACUDA.value, 25, 0),
-        "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
-        "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
-        "shark_assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
-        # Generic attack craft (factions whose rules don't name them)
-        "fighter": (OrdnanceType.FIGHTER.value, 30, 0),
-        "bomber": (OrdnanceType.BOMBER.value, 20, 0),
-        "assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
-    }
-    o_type, speed, resilient = craft_stats.get(
-        craft_type, (OrdnanceType.FIGHTER.value, 30, 0))
-    # The ship's profile gives the speed of each craft it carries (booklet data)
-    speed = weapon.get("craft_speeds", {}).get(craft_type, speed)
+    o_type, speed, resilient = craft_stats(craft_type, [weapon])
 
     markers = []
     for i in range(count):

@@ -68,6 +68,16 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - **Cruisers are cruisers:** grand cruisers, battlecruisers, heavy and light cruisers all move
   as cruisers (10cm before turning; battleships 15cm, escorts any point).
 
+### Open questions for the owner
+
+- **Torpedoes and hulks:** s.13 says torpedoes attack any ship they contact and boarding torps
+  "may ignore" hulks, but the booklet doesn't say what a torpedo hit on a hulk does. All
+  torpedoes currently pass over hulks.
+- **Splitting Heavy Gunz** between a target within 15cm and one further away isn't covered;
+  the Fire dialog fires Heavy Gunz whole.
+- **Dice-based values** (Gunz FP D6+6, launch bays D3+1): "rolled as printed", but when
+  (each shot, each turn, once per game)? Those ships stay unsupported until answered.
+
 ## Running and testing
 
 - `python run.py` starts the desktop game (needs Tk; on Debian/Ubuntu `apt install python3-tk`).

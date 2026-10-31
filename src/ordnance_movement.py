@@ -127,13 +127,46 @@ class OrdnanceMovementMixin:
             return True, check["passed"]
         return _brace_fn
 
+    def _turn_boarding_torps(self, ships):
+        """Before ordnance moves, each boarding salvo launched on an earlier turn
+        may turn up to 45° (s.13). The owner chooses; the AI points it at the
+        nearest enemy."""
+        from tkinter import simpledialog
+        from .ordnance import (boarding_torp_may_turn, boarding_torp_suggested_turn,
+                               turn_boarding_torp)
+        gs = self.ctx.gs
+        for i, o_dict in enumerate(list(gs.ordnance)):
+            marker = OrdnanceMarker.from_dict(o_dict)
+            if not boarding_torp_may_turn(marker, gs.turn_number):
+                continue
+            suggested = boarding_torp_suggested_turn(marker, ships)
+            if self.ctx.is_ai_controlled(marker.owner_player):
+                deg = suggested
+            else:
+                deg = simpledialog.askfloat(
+                    "Boarding Torpedoes",
+                    f"Player {marker.owner_player}: boarding torpedoes Str "
+                    f"{marker.strength} at ({marker.x:.0f}, {marker.y:.0f}), "
+                    f"heading {marker.heading:.0f}°.\n"
+                    f"Turn before moving: -45 (clockwise) to +45 (anticlockwise).\n"
+                    f"Suggested {suggested:+.0f}° points at the nearest enemy.",
+                    initialvalue=round(suggested), minvalue=-45, maxvalue=45,
+                    parent=self.ctx.root)
+                if deg is None:
+                    deg = 0.0
+            if abs(deg) >= 0.5:
+                turn_boarding_torp(marker, deg)
+                gs.ordnance[i] = marker.to_dict()
+                self.ctx.log(f"  Boarding torpedoes Str {marker.strength} turn "
+                             f"{deg:+.0f}° to heading {marker.heading:.0f}°")
+
     def _resolve_ordnance_movement(self):
         """Move all ordnance markers in the ordnance phase.
         Order: degrade Tau missiles, move all, blast checks,
         ordnance-vs-ordnance interactions, then ship contacts."""
         from .ordnance import (move_ordnance, degrade_tau_missiles,
                                 check_torpedo_contact, resolve_torpedo_attack,
-                                torpedo_valid_target,
+                                torpedo_valid_target, is_torpedo_salvo,
                                 resolve_bomber_attack, resolve_mine_contact,
                                 check_ordnance_vs_blast,
                                 check_ordnance_vs_phenomena,
@@ -168,6 +201,8 @@ class OrdnanceMovementMixin:
         to_remove = set()
 
         # 1. Move all ordnance
+        self._turn_boarding_torps(ships)
+
         for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
             marker = OrdnanceMarker.from_dict(o_dict)
             move_ordnance(marker, self.ctx.gs)
@@ -252,7 +287,7 @@ class OrdnanceMovementMixin:
             if marker.id in to_remove_after:
                 continue
 
-            is_torp = "torpedo" in marker.ordnance_type
+            is_torp = is_torpedo_salvo(marker)
             is_bomber = marker.ordnance_type in (
                 OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
             is_assault_boat = marker.ordnance_type == OrdnanceType.ASSAULT_BOAT.value
