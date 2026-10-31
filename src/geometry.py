@@ -1,6 +1,6 @@
 """BFG:XR Shared geometry utilities."""
 import math
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from .models import Ship, BlastMarker
 
 
@@ -281,3 +281,23 @@ def current_shields(ship: Ship, blast_markers: List[BlastMarker]) -> int:
     """
     return max(0, ship.effective_shields
                - count_blast_markers_touching(ship, blast_markers))
+
+
+def first_contact_along_segment(x1: float, y1: float, x2: float, y2: float,
+                                px: float, py: float, radius: float) -> Optional[float]:
+    """Distance along the segment (x1,y1)->(x2,y2) at which a point moving
+    along it first comes within `radius` of (px,py), or None if it never does.
+    0.0 if it starts within range."""
+    sx, sy = px - x1, py - y1
+    if sx * sx + sy * sy <= radius * radius:
+        return 0.0
+    length = math.hypot(x2 - x1, y2 - y1)
+    if length == 0:
+        return None
+    ux, uy = (x2 - x1) / length, (y2 - y1) / length
+    b = sx * ux + sy * uy
+    disc = b * b - (sx * sx + sy * sy - radius * radius)
+    if disc < 0:
+        return None
+    t = b - math.sqrt(disc)
+    return t if 0.0 <= t <= length else None

@@ -25,7 +25,7 @@ def test_touching_a_marker_at_the_start_slows_the_ship():
     assert validate_movement(ship, [fwd(15)], "none", blast_markers=markers).valid
     r = validate_movement(ship, [fwd(20)], "none", blast_markers=markers)
     assert not r.valid
-    assert any("Max speed is 15cm" in e for e in r.errors)
+    assert any("Max speed is 15.0cm" in e for e in r.errors)
 
 
 def test_crossing_a_marker_mid_move_slows_the_ship():
@@ -120,3 +120,56 @@ def test_ship_with_shields_up_makes_no_test():
     dice = DiceStub([6])
     s = _cross(ship, gs, dice)
     assert dice._idx == 0 and s.hits_remaining == s.hits_max
+
+
+# ── Owner ruling on s.7: the -5cm applies at the point of first contact ──────
+
+def _marker_touched_at(ship, d):
+    """A marker that the ship's base first touches after moving d cm straight ahead."""
+    from src.geometry import BLAST_MARKER_RADIUS_CM
+    return BlastMarker(id="bm", x=ship.x + d + BLAST_MARKER_RADIUS_CM + ship.base_radius,
+                       y=ship.y)
+
+
+def test_contact_early_leaves_movement_so_ship_continues_at_minus_five():
+    ship = make_ship(speed=20, y=50.0)
+    m = [_marker_touched_at(ship, 5.0)]
+    assert validate_movement(ship, [fwd(15)], "none", blast_markers=m).valid
+    assert not validate_movement(ship, [fwd(16)], "none", blast_markers=m).valid
+
+
+def test_contact_in_last_five_cm_stops_ship_at_the_marker():
+    ship = make_ship(speed=20, y=50.0)
+    m = [_marker_touched_at(ship, 17.0)]
+    assert validate_movement(ship, [fwd(17)], "none", blast_markers=m).valid
+    r = validate_movement(ship, [fwd(18)], "none", blast_markers=m)
+    assert not r.valid
+    assert any("stops where it touched a blast marker at 17.0cm" in e for e in r.errors)
+
+
+def test_all_ahead_full_contact_early_moves_exactly_five_less():
+    ship = make_ship(speed=20, y=50.0)
+    m = [_marker_touched_at(ship, 10.0)]
+    assert validate_movement(ship, [fwd(19)], "all_ahead_full", aaf_bonus=4,
+                             blast_markers=m).valid
+    assert not validate_movement(ship, [fwd(24)], "all_ahead_full", aaf_bonus=4,
+                                 blast_markers=m).valid
+
+
+def test_all_ahead_full_contact_in_last_five_cm_stops_exactly_there():
+    ship = make_ship(speed=20, y=50.0)
+    m = [_marker_touched_at(ship, 22.0)]     # full move 24: contact in its last 5cm
+    assert validate_movement(ship, [fwd(22)], "all_ahead_full", aaf_bonus=4,
+                             blast_markers=m).valid
+    assert not validate_movement(ship, [fwd(19)], "all_ahead_full", aaf_bonus=4,
+                                 blast_markers=m).valid
+
+
+def test_burn_retros_halves_then_loses_five():
+    ship = make_ship(speed=20, y=50.0)       # Burn Retros max 10
+    early = [_marker_touched_at(ship, 3.0)]
+    assert validate_movement(ship, [fwd(5)], "burn_retros", blast_markers=early).valid
+    assert not validate_movement(ship, [fwd(6)], "burn_retros", blast_markers=early).valid
+    late = [_marker_touched_at(ship, 8.0)]   # contact after 8cm of a 10cm move
+    assert validate_movement(ship, [fwd(8)], "burn_retros", blast_markers=late).valid
+    assert not validate_movement(ship, [fwd(9)], "burn_retros", blast_markers=late).valid

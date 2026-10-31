@@ -173,6 +173,20 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         self.ctx.board.canvas.bind("<Button-5>", _on_board_scroll)
         self._board_scroll_fn = _on_board_scroll
 
+    def _retry_short_of_blast(self, ship, result, order, aaf_bonus):
+        """If a straight move failed because blast markers shortened the ship's
+        move (owner ruling on s.7), retry it at the distance actually allowed."""
+        allowed = result.max_allowed - ship.distance_moved_this_turn
+        if result.valid or not result.crossed_blast_markers or allowed <= 0.05:
+            return result
+        return validate_movement(
+            ship, [MoveCommand("forward", allowed)], order, aaf_bonus,
+            self.ctx.gs.get_blast_markers(),
+            self.ctx.gs.table_width, self.ctx.gs.table_height,
+            turns_already_used=ship.turns_used_this_turn,
+            distance_already_moved=ship.distance_moved_this_turn,
+            blast_already_crossed=ship.crossed_blast_this_turn)
+
     def _quick_min_move_selected(self):
         """
         M key: execute the selected ship's minimum move immediately (no dialog),
@@ -279,6 +293,10 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                     distance_already_moved=ship.distance_moved_this_turn,
                     blast_already_crossed=ship.crossed_blast_this_turn)
             if not result.valid:
+                result = self._retry_short_of_blast(ship, result, order, aaf_bonus)
+                if result.valid:
+                    commands = [MoveCommand("forward", result.total_distance)]
+            if not result.valid:
                 self.ctx.board.status_var.set(
                     f"M: {ship.name} invalid — {result.errors[0]}")
                 return
@@ -376,6 +394,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 turns_already_used=ship.turns_used_this_turn,
                 distance_already_moved=ship.distance_moved_this_turn,
                 blast_already_crossed=ship.crossed_blast_this_turn)
+            result = self._retry_short_of_blast(ship, result, order, aaf_bonus)
             if not result.valid:
                 self.ctx.log(
                     f"  {ship.name}: min-move skipped — {result.errors[0]}")

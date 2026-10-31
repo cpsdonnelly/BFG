@@ -160,6 +160,13 @@ class AIPlayer:
             execute_movement(ship, r, gs, self.dice)
             return True
 
+        # Blast markers shortened the move: go straight ahead as far as allowed
+        if r.crossed_blast_markers and r.max_allowed > 0:
+            rb = validate_movement(ship, [MoveCommand("forward", r.max_allowed)], **kwargs)
+            if rb.valid:
+                execute_movement(ship, rb, gs, self.dice)
+                return True
+
         # Fallback: straight forward at half speed
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
         dist = max(min_spd, max_spd // 2)

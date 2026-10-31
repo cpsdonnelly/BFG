@@ -59,10 +59,16 @@ def test_blast_slowdown_reduces_max():
     assert lo <= hi
 
 
-def test_blast_slowdown_does_not_affect_aaf():
-    # AAF uses (base + bonus, base + bonus); blast_slowdown path isn't taken
+def test_blast_slowdown_applies_to_aaf():
+    # Owner ruling on s.7: AAF ships lose 5cm to blast markers too (must move exactly 19)
     lo, hi = _speed(SpecialOrder.ALL_AHEAD_FULL.value, aaf_bonus=4, blast=True)
-    assert lo == hi == 24
+    assert lo == hi == 19
+
+
+def test_burn_retros_halves_before_blast_penalty():
+    # Owner ruling: Burn Retros applies first, then -5cm: 20 -> 10 -> 5
+    lo, hi = _speed(SpecialOrder.BURN_RETROS.value, blast=True)
+    assert (lo, hi) == (0, 5)
 
 
 def test_crippled_ship_lower_effective_speed():
