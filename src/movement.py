@@ -362,6 +362,34 @@ def record_staged_move(gs: GameState, ship_id: str, result: MovementResult,
     return ship
 
 
+def ordnance_touched_along_path(ship: Ship, path: List[Tuple[float, float]],
+                                gs: GameState, step_cm: float = 0.5) -> List[str]:
+    """Ordnance markers the ship's base touches anywhere along its move, in the
+    order it reaches them (s.12: contact made by a ship moving into ordnance
+    during its own move counts). Fighters on combat air patrol are skipped."""
+    from .geometry import circle_touches_torpedo, circle_touches_square
+    if not path:
+        return []
+    points = [path[0]]
+    for (x1, y1), (x2, y2) in zip(path, path[1:]):
+        n = max(1, int(math.hypot(x2 - x1, y2 - y1) / step_cm))
+        points += [(x1 + (x2 - x1) * k / n, y1 + (y2 - y1) * k / n) for k in range(1, n + 1)]
+    touched = []
+    for o in gs.ordnance:
+        if o.get("cap_ship_id"):
+            continue
+        is_torp = ("torpedo" in o["ordnance_type"]
+                   and o["ordnance_type"] != "torpedo_bomber")
+        for i, (px, py) in enumerate(points):
+            hit = (circle_touches_torpedo(px, py, ship.base_radius, o["x"], o["y"], o["heading"])
+                   if is_torp else
+                   circle_touches_square(px, py, ship.base_radius, o["x"], o["y"], o["heading"]))
+            if hit:
+                touched.append((i, o["id"]))
+                break
+    return [mid for _, mid in sorted(touched)]
+
+
 def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
                      dice: DiceRoller = None):
     """Apply a validated movement result to the ship and game state.
@@ -369,6 +397,12 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
     dice: needed for the blast marker test a shieldless ship makes when it
     moves through markers; without it the test is skipped.
     """
+    # Ordnance the ship runs into on the way attacks it once the move is made
+    touched = ordnance_touched_along_path(ship, result.path, gs)
+    if touched:
+        ship.pending_ordnance_contacts = list(dict.fromkeys(
+            list(ship.pending_ordnance_contacts or []) + touched))
+
     ship.x = result.final_x
     ship.y = result.final_y
     ship.heading = result.final_heading

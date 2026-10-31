@@ -1057,6 +1057,9 @@ class GamePanel:
                 if worker.is_alive():
                     self.root.after(100, _poll)
                     return
+                if "error" not in outcome:
+                    # Main thread: ordnance the AI's ships ran into attacks them
+                    self.ordnance._resolve_moving_ship_contacts()
                 restore_dice()
                 self._ai_thinking = False
                 if "error" in outcome:
@@ -1076,6 +1079,8 @@ class GamePanel:
         try:
             if phase == "movement":
                 ai.run_movement_phase()
+                # Ordnance the AI's ships ran into attacks them (s.12)
+                self.ordnance._resolve_moving_ship_contacts()
             elif phase == "shooting":
                 ai.run_shooting_phase()
             elif phase == "ordnance":

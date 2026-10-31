@@ -28,6 +28,9 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 self.ctx.gs.update_ship(u)
             return u
 
+        # Ordnance the ship ran into during its move attacks it (s.12)
+        self.ctx.ordnance._resolve_moving_ship_contacts()
+
         updated = self.ctx.gs.get_ship_by_id(ship_id)
         if not updated or updated.is_disengaged:
             return
@@ -298,6 +301,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
 
         start_x, start_y = ship.x, ship.y
         execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
+        self.ctx.ordnance._resolve_moving_ship_contacts()
 
         # Resolve ramming if a target was declared
         if ship.ramming_target_id:
@@ -392,6 +396,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 continue
 
             execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
+            self.ctx.ordnance._resolve_moving_ship_contacts()
             self.ctx.tc.mark_ship_moved(ship.id)
             # Update staged fields so dialog is consistent if opened later
             record_staged_move(self.ctx.gs, ship.id, result, commands)

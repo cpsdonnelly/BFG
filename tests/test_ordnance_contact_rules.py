@@ -152,3 +152,28 @@ def test_salvo_attacks_a_ship_at_most_once_per_full_turn():
     assert not torpedo_may_attack(m, t, gs)          # opponent's turn: same full turn
     gs.turn_number = 7
     assert torpedo_may_attack(m, t, gs)
+
+
+# ── Ships moving into ordnance during their own move (s.12) ─────────────────
+from src.movement import ordnance_touched_along_path, validate_movement, execute_movement, MoveCommand
+
+
+def test_path_contacts_in_order_reached():
+    ship = make_ship(id="s", player=1, x=10.0, y=50.0, heading=0.0)
+    gs = make_gs([ship])
+    gs.add_ordnance(_m("far", OT.BOMBER.value, player=2, x=40.0, y=50.0))
+    gs.add_ordnance(_m("near", OT.TORPEDO_STANDARD.value, player=2, x=20.0, y=50.0,
+                       heading=180.0))
+    gs.add_ordnance(_m("off", OT.BOMBER.value, player=2, x=30.0, y=80.0))
+    gs.add_ordnance(_m("cap", OT.FIGHTER.value, player=2, x=30.0, y=50.0, cap_ship_id="x"))
+    path = [(10.0, 50.0), (45.0, 50.0)]
+    assert ordnance_touched_along_path(ship, path, gs) == ["near", "far"]
+
+
+def test_execute_movement_records_markers_passed_through():
+    ship = make_ship(id="s", player=1, x=10.0, y=50.0, heading=0.0, speed=20)
+    gs = make_gs([ship])
+    gs.add_ordnance(_m("b", OT.BOMBER.value, player=2, x=20.0, y=50.0))   # passed, not at end
+    r = validate_movement(ship, [MoveCommand("forward", 20)], "none")
+    execute_movement(ship, r, gs)
+    assert gs.get_ship_by_id("s").pending_ordnance_contacts == ["b"]
