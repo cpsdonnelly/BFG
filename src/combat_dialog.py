@@ -103,10 +103,13 @@ class _FireDialog:
             if self.in_asteroid_field and wtype in ("battery", "lance"):
                 avail_str = max(1, (avail_str + 1) // 2)
 
+            heavy = weapon.get("strength_close") is not None
             if wtype == "battery":
                 ast_note = (" [ASTEROID: half FP, 10cm, no shifts]"
                             if self.in_asteroid_field else "")
-                desc = (f"Battery FP{avail_str}/{full_str} "
+                close_note = (f" ({weapon['strength_close']} within 15cm)"
+                              if heavy else "")
+                desc = (f"Battery FP{avail_str}/{full_str}{close_note} "
                         f"{weapon['range_cm']}cm [{arcs}]{ast_note}")
             elif wtype == "lance":
                 ast_note = " [ASTEROID: half Str, 10cm]" if self.in_asteroid_field else ""
@@ -123,7 +126,9 @@ class _FireDialog:
                          side=tk.LEFT, fill=tk.X, expand=True)
 
             str_var = tk.StringVar(value=str(avail_str))
-            if wtype != "nova_cannon" and avail_str > 1:
+            # Heavy Gunz fire whole: the booklet doesn't cover splitting a
+            # weapon whose firepower depends on the target's range
+            if wtype != "nova_cannon" and avail_str > 1 and not heavy:
                 tk.Label(row, text="Fire:", font=("Consolas", 8)).pack(side=tk.LEFT)
                 tk.Entry(row, textvariable=str_var, width=3,
                          font=("Consolas", 9)).pack(side=tk.LEFT, padx=2)
@@ -295,6 +300,11 @@ class _FireDialog:
             wtype = weapon.get("weapon_type", "")
             phenomena = self.ctx.gs.get_phenomena()
             fire_weapon = {**weapon, "strength": fire_str}
+            if weapon.get("strength_close") is not None:
+                fire_weapon["strength"] = fire_str = avail_str
+                if self.in_asteroid_field:
+                    fire_weapon["strength_close"] = max(
+                        1, (weapon["strength_close"] + 1) // 2)
 
             # A ship in a squadron can't be picked out: picking it fires at
             # the squadron at that ship's aspect, hits nearest first (s.5)

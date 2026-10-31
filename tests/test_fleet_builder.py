@@ -73,7 +73,7 @@ def test_catalog_entry_summary_explains_unplayable_and_towed_ships():
     warden = catalog_entry_summary(get_ship_class("tau_kororvesh", "Warden Gunship"))
     assert "Towed ship" in warden and "Ld rolled at game start (Default table)" in warden
     ork = catalog_entry_summary(get_faction_ships("orks", include_unsupported=True)[0])
-    assert "Not playable yet:" in ork and "Gunz not modelled yet" in ork
+    assert "Not playable yet:" in ork and "variable firepower (D6+6)" in ork
 
 
 # ── fall-through path ─────────────────────────────────────────────────────────

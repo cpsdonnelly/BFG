@@ -121,12 +121,19 @@ def test_wrong_faction_or_unknown_name_returns_none():
 
 # ── Unsupported ships are listed with reasons ────────────────────────────────
 
-def test_ork_ships_listed_but_not_playable_with_reasons():
-    assert get_faction_ships("orks") == []
+def test_ork_ships_listed_with_reasons_when_not_playable():
+    # Gunz and Heavy Gunz are playable; dice-based firepower is not yet
+    assert sorted(e.ship_class for e in get_faction_ships("orks")) == [
+        "Brute Ramship", "Grunt Assault Ship", "Savage Gunship"]
     orks = get_faction_ships("orks", include_unsupported=True)
     assert len(orks) == 15
-    assert all(not e.playable and e.unsupported for e in orks)
-    assert any("Gunz not modelled yet" in r for e in orks for r in e.unsupported)
+    blocked = [e for e in orks if not e.playable]
+    assert len(blocked) == 12 and all(e.unsupported for e in blocked)
+    reasons = {r for e in orks for r in e.unsupported}
+    assert "Gunz not modelled yet" not in reasons
+    assert "Heavy Gunz not modelled yet" not in reasons
+    assert "Zzapp Gunz not modelled yet" in reasons        # crude lances, own rules
+    assert any("variable firepower (D6+6)" in r for e in orks for r in e.unsupported)
 
 
 def test_every_playable_ship_has_complete_stats():

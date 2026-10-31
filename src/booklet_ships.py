@@ -45,6 +45,9 @@ WEAPON_TYPES = {
     "Lances": "lance", "Lance": "lance",
     "Ion Cannons": "lance", "Ion Cannon": "lance",
     "Torps": "torpedo", "Gravitic Launcher": "torpedo",
+    # Ork faction rules: Gunz follow all the usual macrobattery rules; Heavy Gunz are
+    # macrobatteries with a second firepower used within 15cm, e.g. FP6(10)
+    "Gunz": "battery", "Heavy Gunz": "battery",
     "Nova Cannon": "nova_cannon",
 }
 
@@ -138,7 +141,13 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
     if w.get("per_face") or w.get("per_quadrant") or w.get("group"):
         problems.append("fortress weapons not modelled yet")
         return []
-    if wtype != "nova_cannon" and w.get("value_int") is None:
+    strength = w.get("value_int")
+    strength_close = None
+    if w["name"] == "Heavy Gunz":
+        m = re.fullmatch(r"(\d+)\((\d+)\)", (w.get("value") or "").replace(" ", ""))
+        if m:
+            strength, strength_close = int(m.group(1)), int(m.group(2))
+    if wtype != "nova_cannon" and strength is None:
         problems.append(f"variable firepower ({w['value']}) not modelled yet")
         return []
 
@@ -147,8 +156,10 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
     for m in mounts:
         arcs = [a for code in m["arcs"] for a in ARC_CODES.get(code, [])]
         d = {"name": _mount_name(w, m["arcs"], len(mounts)), "weapon_type": wtype,
-             "range_cm": w.get("range_max_cm") or 0, "strength": w.get("value_int") or 0,
+             "range_cm": w.get("range_max_cm") or 0, "strength": strength or 0,
              "arcs": arcs}
+        if strength_close is not None:
+            d["strength_close"] = strength_close   # firepower within 15cm
         if wtype == "nova_cannon":
             d.update(range_cm=w.get("range_max_cm") or 150,
                      min_range_cm=w.get("range_min_cm") or 30, strength=0)

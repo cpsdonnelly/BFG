@@ -122,9 +122,21 @@ def _has_tracking_support(ship: Ship, all_ships: list = None) -> bool:
     return False
 
 
-def effective_battery_firepower(attacker: Ship, weapon: Dict) -> int:
+def battery_base_firepower(attacker: Ship, weapon: Dict,
+                           target: Optional[Ship] = None) -> int:
+    """Printed firepower for this shot. Ork Heavy Gunz have two values: the
+    first at 15cm or more, the second (in brackets, "strength_close") within
+    15cm (Ork faction rules). Range is measured as for the gunnery range shift."""
+    close = weapon.get("strength_close")
+    if close is not None and target is not None and attacker.distance_to(target) < 15:
+        return close
+    return weapon["strength"]
+
+
+def effective_battery_firepower(attacker: Ship, weapon: Dict,
+                                target: Optional[Ship] = None) -> int:
     """Return the effective firepower of a battery weapon after all modifiers."""
-    fp = weapon["strength"]
+    fp = battery_base_firepower(attacker, weapon, target)
     if attacker.is_crippled:
         fp = (fp + 1) // 2
     if attacker.special_order in (
@@ -161,7 +173,7 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
                       no_column_shifts: bool = False) -> ShotResult:
     """Resolve a weapons battery attack."""
     result = ShotResult(weapon["name"], "battery")
-    firepower = effective_battery_firepower(attacker, weapon)
+    firepower = effective_battery_firepower(attacker, weapon, target)
 
     if firepower <= 0:
         result.description = f"{weapon['name']}: no firepower available"
@@ -235,7 +247,7 @@ def resolve_combined_batteries(primary_attacker: Ship,
     contributors = [a.name for a, _ in contributions]
     result = ShotResult(f"Squadron fire ({', '.join(contributors)})", "battery")
 
-    total_fp = sum(effective_battery_firepower(a, w) for a, w in contributions)
+    total_fp = sum(effective_battery_firepower(a, w, target) for a, w in contributions)
     if total_fp <= 0:
         result.description = "Combined squadron fire: no firepower available"
         return result
@@ -731,7 +743,7 @@ def resolve_batteries_vs_squadron(
         result.description = "no eligible targets"
         return result
 
-    fp = effective_battery_firepower(attacker, weapon)
+    fp = effective_battery_firepower(attacker, weapon, eligible_ships[0])
     if fp <= 0:
         result.description = "no firepower"
         return result
