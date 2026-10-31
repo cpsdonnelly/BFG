@@ -412,6 +412,7 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
         "shield_hits": 0, "hull_hits": 0, "brace_saves": 0,
         "crits": [], "destroyed": False, "crippled": False,
         "blast_markers_placed": 0,
+        "unused_hits": 0,   # hits left over because the ship was destroyed first
     }
 
     remaining_hits = hits
@@ -437,7 +438,9 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     summary["hull_hits"] = max(0, remaining_hits)
     was_crippled = target.is_crippled
 
+    hull_hits_applied = 0
     for i in range(summary["hull_hits"]):
+        hull_hits_applied += 1
         target.hits_remaining -= 1
 
         if target.hits_remaining <= 0:
@@ -492,6 +495,9 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
                 if crit_data["crit_type"] == "bridge_smashed":
                     target.leadership = max(1, target.leadership - 3)
+
+    if summary["destroyed"]:
+        summary["unused_hits"] = summary["hull_hits"] - hull_hits_applied
 
     if not was_crippled and target.is_crippled and not summary["destroyed"]:
         summary["crippled"] = True
@@ -576,6 +582,34 @@ def eligible_orientations(chosen: str) -> List[str]:
     return [o for o, d in ORIENTATION_DIFFICULTY.items() if d <= max_diff]
 
 
+def allocate_squadron_hits(dice_values: List[int], ships: List[Ship],
+                           armor_of, apply_hits) -> Dict[str, int]:
+    """Core rules s.5, Shooting at Squadrons: hits go to the nearest eligible
+    ship until it is destroyed (critical damage included), then the next
+    nearest takes the remaining hits, and so on.
+
+    ships: eligible squadron members, nearest first.
+    armor_of(ship): the armour a die must equal or beat to hit that ship.
+    apply_hits(ship, n): applies n hits and returns (unused_hits, destroyed).
+    A ship that survives keeps every hit; nothing passes beyond it.
+    Returns hits applied per ship id.
+    """
+    remaining = sorted(dice_values)
+    applied: Dict[str, int] = {}
+    for ship in ships:
+        usable = [d for d in remaining if d >= armor_of(ship)]
+        if not usable:
+            break
+        unused, destroyed = apply_hits(ship, len(usable))
+        consumed = len(usable) - unused
+        applied[ship.id] = consumed
+        for d in usable[:consumed]:
+            remaining.remove(d)
+        if not destroyed:
+            break
+    return applied
+
+
 def resolve_batteries_vs_squadron(
         attacker: Ship, weapon: Dict, target_type: str,
         chosen_orientation: str, eligible_ships: List["Ship"],
@@ -588,9 +622,9 @@ def resolve_batteries_vs_squadron(
         or "abeam").  Only ships presenting that orientation or an easier one are eligible.
     eligible_ships: filtered to range + arc + orientation, sorted nearest-first.
 
-    Dice are sorted lowest-first and allocated one-at-a-time:
-    each die hits the nearest ship whose armor ≤ that die value.
-    No damage is applied here — caller applies hits_by_ship via apply_damage.
+    Rolls the dice only. The caller allocates them with allocate_squadron_hits,
+    using result.armors, because overflow to the next ship depends on how the
+    damage (shields, brace saves, critical hits) resolves on each one.
     """
     result = ShotResult(weapon.get("name", "Battery"), "battery")
     if not eligible_ships:
@@ -627,23 +661,10 @@ def resolve_batteries_vs_squadron(
         final_dice = list(raw_dice)
 
     result.dice_rolled = final_dice
-    sorted_dice = sorted(final_dice)
-
-    # Allocate hits to nearest eligible ship that can be wounded by each die
-    hits_by_ship: Dict[str, int] = {s.id: 0 for s in eligible_ships}
-    for die_val in sorted_dice:
-        for ship in eligible_ships:
-            if die_val >= armors[ship.id]:
-                hits_by_ship[ship.id] += 1
-                result.hits += 1
-                break  # die allocated; move to next die
-
-    result.hits_by_ship = {sid: h for sid, h in hits_by_ship.items() if h > 0}
-    names_hit = [s.name for s in eligible_ships if hits_by_ship.get(s.id, 0) > 0]
+    result.armors = armors
     result.description = (
         f"{attacker.name} fires {weapon['name']} FP{fp} at squadron "
-        f"[{chosen_orientation} col {column}]: {num_dice} dice → "
-        f"{result.hits} hits ({', '.join(names_hit) or 'no hits'})"
+        f"[{chosen_orientation} col {column}]: {num_dice} dice {sorted(final_dice)}"
     )
     return result
 

@@ -2,11 +2,12 @@
 import tkinter as tk
 from tkinter import messagebox
 import math
+from typing import Tuple
 
 from .models import Ship, SpecialOrder, OrdnanceMarker
 from .combat import (check_weapon_in_arc, apply_damage, check_los_clear,
                      resolve_batteries_vs_squadron, eligible_orientations,
-                     gunnery_target_type)
+                     gunnery_target_type, allocate_squadron_hits)
 from .game_context import GameContext
 from .combat_dialog import CombatDialogMixin
 
@@ -224,8 +225,9 @@ class CombatPanel(CombatDialogMixin):
                   font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
 
     def _apply_hits_to_target(self, attacker: Ship, target: Ship,
-                              total_hits: int, log_fn) -> None:
-        """Brace prompt, apply_damage, crits, and destruction check for one volley."""
+                              total_hits: int, log_fn) -> Tuple[int, bool]:
+        """Brace prompt, apply_damage, crits, and destruction check for one volley.
+        Returns (hits left unused because the ship was destroyed, destroyed)."""
         brace = False
         already_braced = (target.special_order ==
                           SpecialOrder.BRACE_FOR_IMPACT.value)
@@ -284,6 +286,7 @@ class CombatPanel(CombatDialogMixin):
         if dmg["destroyed"]:
             log_fn(f"     {target.name} DESTROYED!")
             self.ctx.check_destruction(target)
+        return dmg["unused_hits"], dmg["destroyed"]
 
     def _combine_squadron_fire_dialog(self):
         """Pool battery fire from multiple squadron ships into one gunnery roll."""
@@ -699,15 +702,17 @@ class CombatPanel(CombatDialogMixin):
                 self.ctx.gs.ships, no_column_shifts=in_asteroid_field)
             _log(f"  {sr.description}")
 
-            # Apply hits ship by ship
-            for m in eligible:
-                h = sr.hits_by_ship.get(m.id, 0)
-                if h <= 0:
-                    continue
-                fresh = self.ctx.gs.get_ship_by_id(m.id)
-                if fresh and not fresh.is_destroyed:
-                    _log(f"  >> {fresh.name}: {h} hits")
-                    self._apply_hits_to_target(attacker, fresh, h, _log)
+            # Nearest eligible ship takes hits until destroyed, then the next (s.5)
+            def _apply_to(member, n):
+                fresh = self.ctx.gs.get_ship_by_id(member.id)
+                if not fresh or fresh.is_destroyed:
+                    return n, True      # already gone (e.g. a chained explosion)
+                _log(f"  >> {fresh.name}: {n} hits")
+                return self._apply_hits_to_target(attacker, fresh, n, _log)
+
+            applied = allocate_squadron_hits(
+                sr.dice_rolled, eligible, lambda m: sr.armors[m.id], _apply_to)
+            total_hits = sum(applied.values())
 
             # Mark weapon fired
             fresh_att = self.ctx.gs.get_ship_by_id(attacker.id)
@@ -734,7 +739,7 @@ class CombatPanel(CombatDialogMixin):
 
             self.ctx.log(
                 f"{attacker.name} fires at squadron {chosen_squad_id.get()}: "
-                f"{sr.hits} total hits")
+                f"{total_hits} total hits")
             dialog.destroy()
             self.ctx.board.redraw()
 

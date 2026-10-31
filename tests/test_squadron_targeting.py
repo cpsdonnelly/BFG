@@ -81,70 +81,15 @@ class TestResolveBatteriesVsSquadron:
         assert result.hits == 0
         assert result.hits_by_ship == {}
 
-    def test_hits_allocated_to_nearest_eligible(self):
-        # t1 nearest (armor 4+), t2 farther (armor 5+).
-        # FP6 capital abeam → col4 → 2+ dice at 20cm.  Supply 4 dice, all hit t1.
+    def test_rolls_dice_and_reports_armour_without_allocating(self):
         attacker, t1, t2, gs = self._pair(armor_a=4, armor_b=5)
         weapon = self._make_weapon(strength=6)
         dice = DiceStub([5, 5, 5, 5, 5, 5])
         result = resolve_batteries_vs_squadron(
-            attacker, weapon, "capital", "abeam", [t1, t2],
-            dice, [])
-        assert result.hits > 0
-        # Every hit goes to nearest ship (t1)
-        assert result.hits_by_ship.get(t1.id, 0) == result.hits
-        assert result.hits_by_ship.get(t2.id, 0) == 0
-
-    def test_die_skips_to_farther_ship_when_nearest_too_tough(self):
-        # t1 armor=6+ (can't be hit by die≤5), t2 armor=4+, t1 is nearest.
-        # Any die 4 or 5: t1 fails, t2 passes → hit goes to t2.
-        attacker = make_ship(id="att", x=0.0, y=0.0, heading=0, player=1)
-        t1 = make_ship(id="t1", name="Tough", x=20.0, y=0.0,
-                       armor_side="6+", player=2)
-        t2 = make_ship(id="t2", name="Weak", x=25.0, y=0.0,
-                       armor_side="4+", player=2)
-        # Pass a known single die via a tiny weapon; use capital target_type (col2 fallback)
-        # to get at least 1 die. FP3 capital closing → col2 → 2 dice at 20cm.
-        weapon = self._make_weapon(strength=3)
-        dice = DiceStub([4, 4, 4, 4])  # supply extra; code takes what it needs
-        result = resolve_batteries_vs_squadron(
-            attacker, weapon, "capital", "closing", [t1, t2],
-            dice, [])
-        # die=4 → t1 (armor 6) fails, t2 (armor 4) passes → hit on t2
-        assert result.hits_by_ship.get(t2.id, 0) > 0
-        assert result.hits_by_ship.get(t1.id, 0) == 0
-
-    def test_mixed_armor_lowest_die_hits_weaker_not_tougher(self):
-        # sorted dice [4, 6]: die=4 hits t1 (armor 4+) not t2 (armor 5+)
-        # confirms sorting + allocation works correctly
-        attacker, t1, t2, gs = self._pair(armor_a=4, armor_b=5)
-        weapon = self._make_weapon(strength=3)
-        # Provide die=4 then die=6; sorted order [4,6] so first die=4 goes to t1
-        dice = DiceStub([6, 4, 6, 6])
-        result = resolve_batteries_vs_squadron(
-            attacker, weapon, "capital", "closing", [t1, t2],
-            dice, [])
-        # At minimum die=4 should hit t1 (armor 4+) rather than t2 (armor 5+)
-        assert result.hits_by_ship.get(t1.id, 0) > 0
-
-    def test_hits_by_ship_populated_for_each_hit_ship(self):
-        attacker, t1, t2, gs = self._pair(armor_a=3, armor_b=3)
-        weapon = self._make_weapon(strength=6)
-        dice = DiceStub([6, 6, 6, 6, 6, 6])
-        result = resolve_batteries_vs_squadron(
-            attacker, weapon, "capital", "abeam", [t1, t2],
-            dice, [])
-        assert result.hits > 0
-        assert t1.id in result.hits_by_ship
-
-    def test_description_contains_attacker_and_hit_ship_name(self):
-        attacker, t1, t2, gs = self._pair(armor_a=4, armor_b=4)
-        weapon = self._make_weapon(strength=6)
-        dice = DiceStub([5, 5, 5, 5, 5, 5])
-        result = resolve_batteries_vs_squadron(
-            attacker, weapon, "capital", "abeam", [t1, t2],
-            dice, [])
-        assert "T1" in result.description or "T2" in result.description
+            attacker, weapon, "capital", "abeam", [t1, t2], dice, [])
+        assert result.dice_rolled and all(d == 5 for d in result.dice_rolled)
+        assert result.armors == {"t1": 4, "t2": 5}
+        assert "att" in result.description
 
     def test_zero_firepower_returns_no_firepower(self):
         attacker = make_ship(id="att", x=0.0, y=0.0, player=1)
@@ -187,3 +132,71 @@ class TestGunneryColumnSelection:
             attacker, weapon, "cruiser", "abeam", [t1], dice_abeam, [])
         # Closing (col2) uses more dice than abeam (col4) for same FP
         assert len(r_closing.dice_rolled) >= len(r_abeam.dice_rolled)
+
+
+
+class TestAllocateSquadronHits:
+    """Core rules s.5 Shooting at Squadrons: nearest eligible ship until it is
+    destroyed (critical damage included), then the next takes what is left."""
+
+    def _apply(self, gs, dice):
+        from src.combat import apply_damage
+
+        def apply(ship, n):
+            r = apply_damage(gs.get_ship_by_id(ship.id), n, dice, gs)
+            return r["unused_hits"], r["destroyed"]
+        return apply
+
+    def test_booklet_example_three_dauntless_take_thirteen_hits(self):
+        from src.combat import allocate_squadron_hits
+        ships = [make_ship(id=f"d{i}", player=2, hits_max=6, shields_max=1,
+                           x=20.0 * i, y=50.0) for i in range(1, 4)]
+        gs = make_gs(ships)
+        damage_rolls = (
+            [6, 8,      # D1 hit 1: crit check 6, crit 8 = Thrusters Damaged (+1)
+             6, 6,      # D1 hit 2: crit check 6, crit 6 = Engine Room Damaged (+1)
+             1]         # D1 hit 3: no crit; hit 4 destroys it -> 8 hits left
+            + [1] * 5   # D2: shield + 5 hull hits with crit checks; 6th hull hit destroys it
+        )
+        dice = DiceStub(damage_rolls)
+        applied = allocate_squadron_hits([5] * 13, ships, lambda s: 5,
+                                         self._apply(gs, dice))
+        assert dice._idx == len(damage_rolls)
+        assert applied == {"d1": 5, "d2": 7, "d3": 1}
+        assert [gs.get_ship_by_id(f"d{i}").hits_remaining for i in (1, 2, 3)] == [0, 0, 6]
+
+    def test_nearest_ship_that_survives_keeps_every_hit(self):
+        from src.combat import allocate_squadron_hits
+        near = make_ship(id="n", player=2, hits_max=8, shields_max=0, x=20.0)
+        far = make_ship(id="f", player=2, hits_max=8, shields_max=0, x=40.0)
+        gs = make_gs([near, far])
+        dice = DiceStub([1, 1])                  # two crit checks, no crits
+        applied = allocate_squadron_hits([5, 5], [near, far], lambda s: 4,
+                                         self._apply(gs, dice))
+        assert applied == {"n": 2}
+        assert gs.get_ship_by_id("f").hits_remaining == 8
+
+    def test_no_die_beats_nearest_armour_so_nothing_reaches_the_next_ship(self):
+        from src.combat import allocate_squadron_hits
+        near = make_ship(id="n", player=2, armor_side="6+", x=20.0)
+        far = make_ship(id="f", player=2, armor_side="4+", x=40.0)
+        gs = make_gs([near, far])
+        armour = {"n": 6, "f": 4}
+        applied = allocate_squadron_hits([4, 5], [near, far], lambda s: armour[s.id],
+                                         self._apply(gs, DiceStub([1])))
+        assert applied == {}
+
+    def test_dice_that_missed_a_destroyed_ship_can_hit_the_next(self):
+        from src.combat import allocate_squadron_hits
+        near = make_ship(id="n", player=2, ship_type="escort", hits_max=1,
+                         shields_max=0, x=20.0)
+        far = make_ship(id="f", player=2, ship_type="escort", hits_max=2,
+                        shields_max=0, x=40.0)
+        gs = make_gs([near, far])
+        armour = {"n": 6, "f": 4}
+        dice = DiceStub([1])                     # far: crit check on its first hit
+        applied = allocate_squadron_hits([6, 4, 4], [near, far],
+                                         lambda s: armour[s.id], self._apply(gs, dice))
+        # The 6 destroys the 6+ escort; both 4s then hit the 4+ escort behind it
+        assert applied == {"n": 1, "f": 2}
+        assert dice._idx == 1
