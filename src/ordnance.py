@@ -106,12 +106,24 @@ def check_torpedo_contact(marker: OrdnanceMarker, ship: Ship) -> bool:
                                    marker.x, marker.y, marker.heading)
 
 
+def is_boarding_torpedo(marker: OrdnanceMarker) -> bool:
+    return marker.ordnance_type == OrdnanceType.TORPEDO_BOARDING.value
+
+
 def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
                            dice: DiceRoller, game_state: GameState,
-                           all_ships: List[Ship] = None) -> Dict:
+                           all_ships: List[Ship] = None,
+                           brace_decision_fn=None) -> Dict:
     """Resolve torpedo attack. Bypasses shields. Turrets defend first.
-    Turrets cannot fire if already used against attack craft this phase."""
-    result = {"hits": 0, "turret_kills": 0, "remaining_strength": marker.strength}
+    Turrets cannot fire if already used against attack craft this phase.
+
+    Boarding torpedoes (core rules s.24): each hit is one hit-and-run raid
+    instead of a point of damage. The target may brace before the raids are
+    rolled: brace_decision_fn(target, msg, n_raids) -> (wanted, passed), as for
+    assault boats; a ship already on Brace for Impact saves each raid on 4+.
+    Without a callback an unbraced target does not brace."""
+    result = {"hits": 0, "turret_kills": 0, "remaining_strength": marker.strength,
+              "raids": None}
 
     turrets = target.effective_turrets
 
@@ -155,7 +167,13 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     # Torpedoes that scored hits are spent; the rest pass through and keep moving.
     result["remaining_strength"] = max(0, result["remaining_strength"] - result["hits"])
 
-    if result["hits"] > 0:
+    if result["hits"] > 0 and is_boarding_torpedo(marker):
+        game_state.add_log(
+            f"Boarding torpedoes hit {target.name}: {result['hits']} hit-and-run "
+            f"raid(s); {result['remaining_strength']} torp(s) pass through")
+        result["raids"] = _boarding_torpedo_raids(
+            marker, target, result["hits"], dice, game_state, brace_decision_fn)
+    elif result["hits"] > 0:
         game_state.add_log(
             f"Torpedoes hit {target.name} for {result['hits']} damage (bypasses shields); "
             f"{result['remaining_strength']} torp(s) pass through")
@@ -165,6 +183,31 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
                      ignores_shields=True, target_braced=braced)
 
     return result
+
+
+def _boarding_torpedo_raids(marker: OrdnanceMarker, target: Ship, n_raids: int,
+                            dice: DiceRoller, game_state: GameState,
+                            brace_decision_fn) -> Dict:
+    from .hit_and_run import resolve_raids
+    target = game_state.get_ship_by_id(target.id) or target
+    if target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+        wanted, passed = True, True
+        game_state.add_log(f"  {target.name} already braced — will roll to repel each raid")
+    elif brace_decision_fn is not None:
+        msg = (f"{target.name} is hit by {n_raids} boarding torpedo(es): "
+               f"{n_raids} hit-and-run raid(s)!\n"
+               f"Attempt Brace For Impact before the raids are rolled?\n"
+               f"(A passed brace lets you roll 4+ to repel each raid)")
+        wanted, passed = brace_decision_fn(target, msg, n_raids)
+        target = game_state.get_ship_by_id(target.id) or target
+    else:
+        wanted, passed = False, False
+    summary = resolve_raids(n_raids, target, passed, dice, game_state,
+                            source_name="Boarding torpedo",
+                            attacker_rules=marker.special_rules)
+    summary["brace_wanted"] = wanted
+    summary["brace_passed"] = passed
+    return summary
 
 
 def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
@@ -679,8 +722,23 @@ def reload_ship_ordnance(ship: Ship) -> List[str]:
 
 
 
+def boarding_ok(weapon: Dict, boarding: bool) -> bool:
+    """Boarding torpedoes only from launchers that carry them."""
+    return bool(boarding and weapon.get("boarding_torpedoes")
+                and weapon.get("torpedo_type", "standard") != "guided")
+
+
+def torpedo_ordnance_type(weapon: Dict, boarding: bool = False) -> str:
+    if weapon.get("torpedo_type") == "guided":
+        return OrdnanceType.TORPEDO_GUIDED.value
+    if boarding_ok(weapon, boarding):
+        return OrdnanceType.TORPEDO_BOARDING.value
+    return OrdnanceType.TORPEDO_STANDARD.value
+
+
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
-                     heading: Optional[float] = None) -> OrdnanceMarker:
+                     heading: Optional[float] = None,
+                     boarding: bool = False) -> OrdnanceMarker:
     """Create a torpedo marker from a ship's launcher.
 
     `heading` lets the caller aim the salvo (e.g. an AI leading a target).
@@ -688,8 +746,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
     constraint the human launch dialog enforces. Defaults to ship heading.
     """
     torpedo_type = weapon.get("torpedo_type", "standard")
-    o_type = (OrdnanceType.TORPEDO_GUIDED.value if torpedo_type == "guided"
-              else OrdnanceType.TORPEDO_STANDARD.value)
+    o_type = torpedo_ordnance_type(weapon, boarding)
 
     if heading is None:
         launch_heading = ship.heading
@@ -708,11 +765,14 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
         can_turn=(torpedo_type == "guided"),
         turn_angle=45 if torpedo_type == "guided" else 0,
         launch_exempt_ships=compute_torpedo_launch_exempt(ship, game_state),
+        # The launcher's raid bonuses go with its boarding torps (s.24)
+        special_rules=list(ship.special_rules),
     )
     game_state.add_ordnance(marker)
     ship.ordnance_loaded_torps = False
     game_state.update_ship(ship)
-    game_state.add_log(f"{ship.name} launches torpedo salvo (Str {weapon['strength']})")
+    kind = "boarding torpedo" if boarding_ok(weapon, boarding) else "torpedo"
+    game_state.add_log(f"{ship.name} launches {kind} salvo (Str {weapon['strength']})")
     return marker
 
 

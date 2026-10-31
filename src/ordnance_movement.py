@@ -96,6 +96,37 @@ class OrdnanceMovementMixin:
 
         return marker.id in to_remove_set
 
+    def _raid_brace_fn(self, default_raids: int = 1):
+        """Callback asking a raid target whether to Brace for Impact before
+        the raids are rolled (s.24). Returns fn(target, msg, n_raids=None)
+        -> (wanted, passed). The AI braces against more than two raids or
+        when it has fewer than 6 hits left."""
+        def _brace_fn(target_ship, msg, n_raids=None):
+            from .movement import attempt_brace
+            n = default_raids if n_raids is None else n_raids
+            if target_ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                self.ctx.log(f"  {target_ship.name} already braced — "
+                             f"will roll to repel each raid")
+                return True, True
+            if self.ctx.is_ai_controlled(target_ship.player):
+                if not (n > 2 or target_ship.hits_remaining < 6):
+                    return False, False
+                check = attempt_brace(target_ship, self.ctx.gs, self.ctx.dice)
+                self.ctx.log(
+                    f"  [AI] {target_ship.name} brace: "
+                    f"{'PASSED' if check['passed'] else 'FAILED'} "
+                    f"(rolled {check['roll']} vs Ld {check['needed']})")
+                return True, check["passed"]
+            if not messagebox.askyesno("Hit-and-Run Raid — Brace?", msg):
+                return False, False
+            check = attempt_brace(target_ship, self.ctx.gs, self.ctx.dice)
+            self.ctx.log(
+                f"  {target_ship.name} brace check: "
+                f"{'PASSED' if check['passed'] else 'FAILED'} "
+                f"(rolled {check['roll']} vs Ld {check['needed']})")
+            return True, check["passed"]
+        return _brace_fn
+
     def _resolve_ordnance_movement(self):
         """Move all ordnance markers in the ordnance phase.
         Order: degrade Tau missiles, move all, blast checks,
@@ -250,7 +281,14 @@ class OrdnanceMovementMixin:
                         + "!")
                     result = resolve_torpedo_attack(
                         marker, s, self.ctx.dice, self.ctx.gs,
-                        all_ships=ships)
+                        all_ships=ships,
+                        brace_decision_fn=self._raid_brace_fn())
+                    raids = result.get("raids")
+                    if raids:
+                        self.ctx.log(
+                            f"  Raid result: {len(raids['crits_applied'])} crit(s), "
+                            f"{raids['damage']} damage, {raids['repelled']} repelled, "
+                            f"{raids['failures']} failed")
 
                     # remaining_strength = initial − turret_kills − hits;
                     # torps destroyed by turrets and torps that struck the target
@@ -386,37 +424,7 @@ class OrdnanceMovementMixin:
                     self.ctx.log(
                         f"  Assault boats contact {s.name} — hit-and-run raid!")
 
-                    def _brace_fn(target_ship, msg, _s=s):
-                        from .movement import attempt_brace
-                        if target_ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
-                            self.ctx.log(
-                                f"  {target_ship.name} already braced — "
-                                f"will roll to repel each raid")
-                            return True, True
-                        if self.ctx.is_ai_controlled(target_ship.player):
-                            should = (marker.strength > 2 or
-                                      (marker.strength <= 2 and
-                                       target_ship.hits_remaining < 6))
-                            if not should:
-                                return False, False
-                            check = attempt_brace(target_ship, self.ctx.gs,
-                                                  self.ctx.dice)
-                            self.ctx.log(
-                                f"  [AI] {target_ship.name} brace: "
-                                f"{'PASSED' if check['passed'] else 'FAILED'} "
-                                f"(rolled {check['roll']} vs Ld {check['needed']})")
-                            return True, check["passed"]
-                        want = messagebox.askyesno("Hit-and-Run Raid — Brace?", msg)
-                        if not want:
-                            return False, False
-                        check = attempt_brace(target_ship, self.ctx.gs,
-                                              self.ctx.dice)
-                        passed = check["passed"]
-                        self.ctx.log(
-                            f"  {target_ship.name} brace check: "
-                            f"{'PASSED' if passed else 'FAILED'} "
-                            f"(rolled {check['roll']} vs Ld {check['needed']})")
-                        return True, passed
+                    _brace_fn = self._raid_brace_fn(marker.strength)
 
                     result = resolve_hit_and_run(
                         marker, s, self.ctx.dice, self.ctx.gs, _brace_fn)

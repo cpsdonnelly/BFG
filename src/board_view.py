@@ -829,7 +829,8 @@ class BoardView:
                 tip_screen = self._rotate_polygon(arrow_pts, heading_rad, sx, sy)
                 self.canvas.create_polygon(tip_screen, fill=fill, outline=outline, width=1)
                 # Strength label
-                self.canvas.create_text(sx, sy, text=f"T{o.strength}",
+                tag = "B" if otype == "torpedo_boarding" else "T"
+                self.canvas.create_text(sx, sy, text=f"{tag}{o.strength}",
                                          fill="white", font=("Consolas", 7, "bold"))
 
             elif otype in ("fighter", "barracuda"):
