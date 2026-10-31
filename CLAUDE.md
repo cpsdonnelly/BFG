@@ -60,11 +60,8 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   turn; otherwise the squadron acts normally.
 - **Movement is never rounded:** halving a speed gives an exact half (25cm -> 12.5cm), both
   for Burn Retros and for the half-speed minimum. Show distances as exact values too.
-
-### Open questions for the owner
-
-- **Grand cruisers, battlecruisers, heavy and light cruisers** are treated as cruisers (10cm
-  before turning; battleships 15cm). The booklet doesn't give turning distances per hull type.
+- **Cruisers are cruisers:** grand cruisers, battlecruisers, heavy and light cruisers all move
+  as cruisers (10cm before turning; battleships 15cm, escorts any point).
 
 ## Running and testing
 

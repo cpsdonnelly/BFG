@@ -341,3 +341,18 @@ def test_staged_first_turn_counts_earlier_forward_movement():
                            turns_already_used=s.turns_used_this_turn,
                            distance_already_moved=s.distance_moved_this_turn)
     assert r2.valid
+
+
+def test_every_cruiser_variant_turns_like_a_cruiser():
+    # Owner ruling: grand, battle-, heavy and light cruisers are cruisers
+    # (10cm before turning)
+    from src.booklet_ships import load_rows, _ship_type
+    from src.movement import MIN_TURN_DISTANCE
+    variants = [r for r in load_rows()
+                if any(k in r["name"].lower() for k in
+                       ("grand cruiser", "battlecruiser", "heavy cruiser",
+                        "light cruiser"))]
+    assert len(variants) >= 25
+    for r in variants:
+        assert _ship_type(r) == "cruiser", r["name"]
+        assert MIN_TURN_DISTANCE[_ship_type(r)] == 10
