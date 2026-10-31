@@ -227,6 +227,35 @@ def turn_boarding_torp(marker: OrdnanceMarker, degrees: float) -> None:
     marker.heading = (marker.heading + degrees) % 360
 
 
+def torpedo_in_launch_arc(marker: OrdnanceMarker, ship: Ship,
+                          game_state: GameState) -> bool:
+    """On the turn it is launched, a salvo cannot attack a target that is not
+    in its firing arc (s.13): the arc of the launcher's torpedo weapon, seen
+    from the launcher (which hasn't moved since it launched this turn)."""
+    if marker.launched_turn != game_state.turn_number:
+        return True
+    launcher = game_state.get_ship_by_id(marker.launched_by)
+    if launcher is None:
+        return True
+    arcs = next((w.get("arcs") for w in launcher.weapons
+                 if w.get("weapon_type") == "torpedo"), None) or ["front"]
+    return launcher.get_target_arc(ship.x, ship.y).value in arcs
+
+
+def torpedo_may_attack(marker: OrdnanceMarker, ship: Ship,
+                       game_state: GameState) -> bool:
+    """A torpedo salvo touching this ship attacks it (s.12, s.13) unless it is
+    not a valid target (torpedo_valid_target), it is outside the salvo's arc on
+    its launch turn, or the salvo already attacked it this full turn (one
+    player's turn and the other's: two turn numbers in this game)."""
+    if not torpedo_valid_target(marker, ship):
+        return False
+    if not torpedo_in_launch_arc(marker, ship, game_state):
+        return False
+    last = (marker.attacked_turns or {}).get(ship.id)
+    return last is None or game_state.turn_number - last >= 2
+
+
 def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
                            dice: DiceRoller, game_state: GameState,
                            all_ships: List[Ship] = None,

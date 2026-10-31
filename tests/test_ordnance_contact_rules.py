@@ -116,3 +116,39 @@ def test_turn_boarding_torp_clamps_to_45():
     m = _m("bt", OT.TORPEDO_BOARDING.value, heading=10.0)
     turn_boarding_torp(m, -90)
     assert m.heading == pytest.approx(325.0)
+
+
+# ── Torpedoes: once per full turn, launch-turn arc (s.13) ───────────────────
+from src.ordnance import torpedo_may_attack
+
+
+def _torp_gs(turn, launched_turn, target_xy=(80.0, 50.0)):
+    torps = {"name": "Prow Torps", "weapon_type": "torpedo", "strength": 6,
+             "arcs": ["front"]}
+    launcher = make_ship(id="L", player=1, x=50.0, y=50.0, heading=0.0, weapons=[torps])
+    target = make_ship(id="T", player=2, x=target_xy[0], y=target_xy[1])
+    gs = make_gs([launcher, target])
+    gs.turn_number = turn
+    m = _m("t", OT.TORPEDO_STANDARD.value, x=target_xy[0], y=target_xy[1],
+           launched_turn=launched_turn)
+    m.launched_by = "L"
+    return gs, m, gs.get_ship_by_id("T")
+
+
+def test_launch_turn_target_must_be_in_the_launch_arc():
+    gs, m, t = _torp_gs(turn=3, launched_turn=3, target_xy=(80.0, 50.0))   # ahead
+    assert torpedo_may_attack(m, t, gs)
+    gs, m, t = _torp_gs(turn=3, launched_turn=3, target_xy=(50.0, 80.0))   # abeam
+    assert not torpedo_may_attack(m, t, gs)
+    gs, m, t = _torp_gs(turn=4, launched_turn=3, target_xy=(50.0, 80.0))   # next turn
+    assert torpedo_may_attack(m, t, gs)
+
+
+def test_salvo_attacks_a_ship_at_most_once_per_full_turn():
+    gs, m, t = _torp_gs(turn=5, launched_turn=2)
+    m.attacked_turns = {"T": 5}
+    assert not torpedo_may_attack(m, t, gs)          # same player-turn
+    gs.turn_number = 6
+    assert not torpedo_may_attack(m, t, gs)          # opponent's turn: same full turn
+    gs.turn_number = 7
+    assert torpedo_may_attack(m, t, gs)

@@ -120,7 +120,7 @@ class OrdnanceMovementMixin:
             return True, check["passed"]
         return _brace_fn
 
-    def _turn_boarding_torps(self, ships):
+    def _turn_boarding_torps(self, ships, mover=None):
         """Before ordnance moves, each boarding salvo launched on an earlier turn
         may turn up to 45° (s.13). The owner chooses; the AI points it at the
         nearest enemy."""
@@ -130,6 +130,8 @@ class OrdnanceMovementMixin:
         gs = self.ctx.gs
         for i, o_dict in enumerate(list(gs.ordnance)):
             marker = OrdnanceMarker.from_dict(o_dict)
+            if mover is not None and marker.owner_player != mover:
+                continue
             if not boarding_torp_may_turn(marker, gs.turn_number):
                 continue
             suggested = boarding_torp_suggested_turn(marker, ships)
@@ -153,7 +155,7 @@ class OrdnanceMovementMixin:
                 self.ctx.log(f"  Boarding torpedoes Str {marker.strength} turn "
                              f"{deg:+.0f}° to heading {marker.heading:.0f}°")
 
-    def _choose_mr_attack_modes(self, ships, removed) -> dict:
+    def _choose_mr_attack_modes(self, ships, removed, mover=None) -> dict:
         """{marker id: "bomber" | "assault_boat"} for multi-role craft touching an
         enemy ship. Craft with only one attacking role use it; craft that can do
         both attack the same way as the rest of their wave on that ship (s.21):
@@ -165,6 +167,8 @@ class OrdnanceMovementMixin:
         for o in gs.ordnance:
             m = OrdnanceMarker.from_dict(o)
             if m.id in removed or m.ordnance_type not in MULTI_ROLE_TYPES:
+                continue
+            if mover is not None and m.owner_player != mover:
                 continue
             roles = craft_roles(m.ordnance_type)
             can_bomb = "bomber" in roles
@@ -206,7 +210,7 @@ class OrdnanceMovementMixin:
         ordnance-vs-ordnance interactions, then ship contacts."""
         from .ordnance import (move_ordnance, degrade_tau_missiles,
                                 check_torpedo_contact, resolve_torpedo_attack,
-                                torpedo_valid_target, is_torpedo_salvo,
+                                torpedo_may_attack, is_torpedo_salvo,
                                 resolve_bomber_attack, resolve_mine_contact,
                                 check_ordnance_vs_blast,
                                 check_ordnance_vs_phenomena,
@@ -235,303 +239,314 @@ class OrdnanceMovementMixin:
                 self.ctx.log(
                     f"  Tau missiles Str {marker.strength} auto-moved 20cm (minimum)")
 
-        ships = self.ctx.gs.get_ships()
-        blast_markers = self.ctx.gs.get_blast_markers()
-        phenomena = self.ctx.gs.get_phenomena()
-        to_remove = set()
-
-        # 1. Move all ordnance
-        self._turn_boarding_torps(ships)
-
         # AI attack craft pick their targets for this move (s.15)
         from .ordnance import assign_ai_craft_targets
         for player in (1, 2):
             if self.ctx.is_ai_controlled(player):
                 assign_ai_craft_targets(self.ctx.gs, player)
 
-        for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
-            marker = OrdnanceMarker.from_dict(o_dict)
-            move_ordnance(marker, self.ctx.gs)
+        # Both players move and attack with all their ordnance; the player whose
+        # turn it is moves all of theirs first (s.12)
+        active = self.ctx.gs.active_player
+        for mover in (active, 2 if active == 1 else 1):
+            ships = self.ctx.gs.get_ships()
+            blast_markers = self.ctx.gs.get_blast_markers()
+            phenomena = self.ctx.gs.get_phenomena()
+            to_remove = set()
 
-            # CAP fighters are co-located with their ship; skip off-table check
-            if marker.cap_ship_id:
-                self.ctx.gs.ordnance[i] = marker.to_dict()
-                continue
+            # 1. Move this player's ordnance
+            self._turn_boarding_torps(ships, mover)
 
-            # Off table check
-            if (marker.x < -5 or marker.x > self.ctx.gs.table_width + 5 or
-                    marker.y < -5 or marker.y > self.ctx.gs.table_height + 5):
-                to_remove.add(marker.id)
-                self.ctx.log(f"  {marker.ordnance_type} left the table")
-                continue
+            for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
+                marker = OrdnanceMarker.from_dict(o_dict)
+                if marker.owner_player != mover:
+                    continue
+                move_ordnance(marker, self.ctx.gs)
 
-            # Blast marker destruction (D6=6)
-            if check_ordnance_vs_blast(marker, blast_markers, self.ctx.dice):
-                to_remove.add(marker.id)
-                self.ctx.log(f"  {marker.ordnance_type} destroyed by blast marker")
-                continue
+                # CAP fighters are co-located with their ship; skip off-table check
+                if marker.cap_ship_id:
+                    self.ctx.gs.ordnance[i] = marker.to_dict()
+                    continue
 
-            # Terrain check: applies to all ordnance types.
-            # Torpedoes/mines: asteroid/planet/warp rift = auto-destroyed; dust = D6=6.
-            # Attack craft: asteroid = D6=6; warp rift/planet = auto-destroyed.
-            destroyed, terrain_type = check_ordnance_vs_phenomena(
-                marker, phenomena, self.ctx.dice)
-            if destroyed:
-                to_remove.add(marker.id)
-                self.ctx.log(
-                    f"  {marker.ordnance_type} destroyed by {terrain_type}")
-                continue
+                # Off table check
+                if (marker.x < -5 or marker.x > self.ctx.gs.table_width + 5 or
+                        marker.y < -5 or marker.y > self.ctx.gs.table_height + 5):
+                    to_remove.add(marker.id)
+                    self.ctx.log(f"  {marker.ordnance_type} left the table")
+                    continue
 
-            # Update position
-            self.ctx.gs.ordnance[i] = marker.to_dict()
+                # Blast marker destruction (D6=6)
+                if check_ordnance_vs_blast(marker, blast_markers, self.ctx.dice):
+                    to_remove.add(marker.id)
+                    self.ctx.log(f"  {marker.ordnance_type} destroyed by blast marker")
+                    continue
 
-        # Remove off-table and blast-destroyed ordnance
-        if to_remove:
-            self.ctx.gs.ordnance = [
-                o for o in self.ctx.gs.ordnance if o["id"] not in to_remove]
-
-        # 2. Ordnance-vs-ordnance interactions (fighters intercept, torp collisions)
-        interaction_logs = resolve_ordnance_interactions(self.ctx.gs, self.ctx.dice)
-        for log in interaction_logs:
-            self.ctx.log(log)
-
-        # 3. Check ordnance contact with ships
-        to_remove_after = set()
-
-        # Phase 1: attack craft wave interception — turrets (with massed bonus) fire
-        # once per ship at every incoming wave of bombers and assault boats before
-        # any attack or hit-and-run raid resolves.
-        live_ordnance = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]
-        for s in ships:
-            if s.is_destroyed or s.is_disengaged:
-                continue
-            # Collect enemy attacking craft currently contacting this ship
-            wave = [
-                m for m in live_ordnance
-                if attacks_ships(m.ordnance_type)
-                and m.owner_player != s.player
-                and m.id not in to_remove
-                and circle_touches_square(s.x, s.y, s.base_radius,
-                                          m.x, m.y, m.heading)
-            ]
-            if not wave:
-                continue
-            p1 = resolve_bomber_interception(
-                len(wave), s, ships, self.ctx.dice, self.ctx.gs)
-            for msg in p1["log"]:
-                self.ctx.log(msg)
-            for m in wave[:p1["killed"]]:
-                self.ctx.log(
-                    f"  Phase 1: {m.ordnance_type} [{m.id[:8]}] destroyed by interception")
-                to_remove_after.add(m.id)
-
-        # Multi-role craft that can attack as bombers or assault boats choose
-        # now, after the turrets have fired, one way per wave (s.21)
-        mr_modes = self._choose_mr_attack_modes(ships, to_remove_after)
-
-        # Per-marker ship contact resolution
-        for o_dict in list(self.ctx.gs.ordnance):
-            marker = OrdnanceMarker.from_dict(o_dict)
-            if marker.id in to_remove_after:
-                continue
-
-            is_torp = is_torpedo_salvo(marker)
-            is_bomber = (marker.ordnance_type in (
-                OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
-                or mr_modes.get(marker.id) == "bomber")
-            is_assault_boat = (marker.ordnance_type == OrdnanceType.ASSAULT_BOAT.value
-                               or mr_modes.get(marker.id) == "assault_boat")
-
-            if is_torp:
-                # Torpedoes attack ANY ship they contact (friend or foe), except
-                # friendly ships that were in base contact with the launcher at
-                # launch (captured in marker.launch_exempt_ships).
-                for s in ships:
-                    if s.is_destroyed or s.is_disengaged:
-                        continue
-                    if s.status == "destroyed":
-                        continue
-                    if (s.id in (marker.launch_exempt_ships or [])
-                            and marker.launched_turn == self.ctx.gs.turn_number):
-                        continue
-                    if not torpedo_valid_target(marker, s):
-                        continue   # boarding torps pass over friendly ships and hulks
-                    if not check_torpedo_contact(marker, s):
-                        continue
-
-                    # CAP fighters intercept before the torpedo hits
-                    if self._check_cap_intercept(marker, s, to_remove_after):
-                        break
-
+                # Terrain check: applies to all ordnance types.
+                # Torpedoes/mines: asteroid/planet/warp rift = auto-destroyed; dust = D6=6.
+                # Attack craft: asteroid = D6=6; warp rift/planet = auto-destroyed.
+                destroyed, terrain_type = check_ordnance_vs_phenomena(
+                    marker, phenomena, self.ctx.dice)
+                if destroyed:
+                    to_remove.add(marker.id)
                     self.ctx.log(
-                        f"  Torpedoes contact {s.name}"
-                        + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
-                        + "!")
-                    result = resolve_torpedo_attack(
-                        marker, s, self.ctx.dice, self.ctx.gs,
-                        all_ships=ships,
-                        brace_decision_fn=self._raid_brace_fn())
-                    raids = result.get("raids")
-                    if raids:
-                        self.ctx.log(
-                            f"  Raid result: {len(raids['crits_applied'])} crit(s), "
-                            f"{raids['damage']} damage, {raids['repelled']} repelled, "
-                            f"{raids['failures']} failed")
+                        f"  {marker.ordnance_type} destroyed by {terrain_type}")
+                    continue
 
-                    # remaining_strength = initial − turret_kills − hits;
-                    # torps destroyed by turrets and torps that struck the target
-                    # are both spent — only misses pass through.
-                    marker.strength = result["remaining_strength"]
-                    if result["hits"] > 0:
-                        self.ctx.check_destruction(s)
-                    if marker.strength <= 0:
-                        to_remove_after.add(marker.id)
-                        break
-                    # Update marker for next ship in path
-                    for j, od in enumerate(self.ctx.gs.ordnance):
-                        if od["id"] == marker.id:
-                            self.ctx.gs.ordnance[j] = marker.to_dict()
+                # Update position
+                self.ctx.gs.ordnance[i] = marker.to_dict()
+
+            # Remove off-table and blast-destroyed ordnance
+            if to_remove:
+                self.ctx.gs.ordnance = [
+                    o for o in self.ctx.gs.ordnance if o["id"] not in to_remove]
+
+            # 2. Ordnance-vs-ordnance interactions (fighters intercept, torp collisions)
+            interaction_logs = resolve_ordnance_interactions(self.ctx.gs, self.ctx.dice)
+            for log in interaction_logs:
+                self.ctx.log(log)
+
+            # 3. Check ordnance contact with ships
+            to_remove_after = set()
+
+            # Phase 1: attack craft wave interception — turrets (with massed bonus) fire
+            # once per ship at every incoming wave of bombers and assault boats before
+            # any attack or hit-and-run raid resolves.
+            live_ordnance = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]
+            for s in ships:
+                if s.is_destroyed or s.is_disengaged:
+                    continue
+                # Collect enemy attacking craft currently contacting this ship
+                wave = [
+                    m for m in live_ordnance
+                    if attacks_ships(m.ordnance_type)
+                    and m.owner_player == mover and m.owner_player != s.player
+                    and m.id not in to_remove
+                    and circle_touches_square(s.x, s.y, s.base_radius,
+                                              m.x, m.y, m.heading)
+                ]
+                if not wave:
+                    continue
+                p1 = resolve_bomber_interception(
+                    len(wave), s, ships, self.ctx.dice, self.ctx.gs)
+                for msg in p1["log"]:
+                    self.ctx.log(msg)
+                for m in wave[:p1["killed"]]:
+                    self.ctx.log(
+                        f"  Phase 1: {m.ordnance_type} [{m.id[:8]}] destroyed by interception")
+                    to_remove_after.add(m.id)
+
+            # Multi-role craft that can attack as bombers or assault boats choose
+            # now, after the turrets have fired, one way per wave (s.21)
+            mr_modes = self._choose_mr_attack_modes(ships, to_remove_after, mover)
+
+            # Per-marker ship contact resolution
+            for o_dict in list(self.ctx.gs.ordnance):
+                marker = OrdnanceMarker.from_dict(o_dict)
+                if marker.id in to_remove_after or marker.owner_player != mover:
+                    continue
+
+                is_torp = is_torpedo_salvo(marker)
+                is_bomber = (marker.ordnance_type in (
+                    OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
+                    or mr_modes.get(marker.id) == "bomber")
+                is_assault_boat = (marker.ordnance_type == OrdnanceType.ASSAULT_BOAT.value
+                                   or mr_modes.get(marker.id) == "assault_boat")
+
+                if is_torp:
+                    # Torpedoes attack ANY ship they contact (friend or foe), except
+                    # friendly ships that were in base contact with the launcher at
+                    # launch (captured in marker.launch_exempt_ships).
+                    # Ships in the order the salvo reaches them along its path
+                    _h = math.radians(marker.heading)
+                    for s in sorted(ships, key=lambda sh: (sh.x - marker.x) * math.cos(_h)
+                                    + (sh.y - marker.y) * math.sin(_h)):
+                        if s.is_destroyed or s.is_disengaged:
+                            continue
+                        if s.status == "destroyed":
+                            continue
+                        if (s.id in (marker.launch_exempt_ships or [])
+                                and marker.launched_turn == self.ctx.gs.turn_number):
+                            continue
+                        if not torpedo_may_attack(marker, s, self.ctx.gs):
+                            continue   # not a valid target, outside the launch arc, or already attacked
+                        if not check_torpedo_contact(marker, s):
+                            continue
+
+                        # CAP fighters intercept before the torpedo hits
+                        if self._check_cap_intercept(marker, s, to_remove_after):
                             break
 
-            elif is_bomber:
-                # Bombers attack enemy ships only
-                for s in ships:
-                    if s.player == marker.owner_player:
-                        continue
-                    if s.is_destroyed or s.is_disengaged:
-                        continue
-                    if not circle_touches_square(s.x, s.y, s.base_radius,
-                                                 marker.x, marker.y,
-                                                 marker.heading):
-                        continue
-                    # CAP fighters intercept before the bomber attacks
-                    if self._check_cap_intercept(marker, s, to_remove_after):
-                        break
+                        self.ctx.log(
+                            f"  Torpedoes contact {s.name}"
+                            + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
+                            + "!")
+                        result = resolve_torpedo_attack(
+                            marker, s, self.ctx.dice, self.ctx.gs,
+                            all_ships=ships,
+                            brace_decision_fn=self._raid_brace_fn())
+                        marker.attacked_turns = {**(marker.attacked_turns or {}),
+                                                 s.id: self.ctx.gs.turn_number}
+                        raids = result.get("raids")
+                        if raids:
+                            self.ctx.log(
+                                f"  Raid result: {len(raids['crits_applied'])} crit(s), "
+                                f"{raids['damage']} damage, {raids['repelled']} repelled, "
+                                f"{raids['failures']} failed")
 
-                    self.ctx.log(
-                        f"  {marker.ordnance_type} attacks {s.name}!")
+                        # remaining_strength = initial − turret_kills − hits;
+                        # torps destroyed by turrets and torps that struck the target
+                        # are both spent — only misses pass through.
+                        marker.strength = result["remaining_strength"]
+                        if result["hits"] > 0:
+                            self.ctx.check_destruction(s)
+                        if marker.strength <= 0:
+                            to_remove_after.add(marker.id)
+                            break
+                        # Update marker for next ship in path
+                        for j, od in enumerate(self.ctx.gs.ordnance):
+                            if od["id"] == marker.id:
+                                self.ctx.gs.ordnance[j] = marker.to_dict()
+                                break
 
-                    # Count friendly fighters whose square marker touches this ship.
-                    # Mantas are bombers, not fighters — they do not suppress turrets.
-                    suppressing_fighters = sum(
-                        1 for od in self.ctx.gs.ordnance
-                        if od.get("owner_player") == marker.owner_player
-                        and od.get("ordnance_type") in (
-                            OrdnanceType.FIGHTER.value,
-                            OrdnanceType.BARRACUDA.value)
-                        and circle_touches_square(s.x, s.y, s.base_radius,
-                                                  od.get("x", 0), od.get("y", 0),
-                                                  od.get("heading", 0)))
+                elif is_bomber:
+                    # Bombers attack enemy ships only
+                    for s in ships:
+                        if s.player == marker.owner_player:
+                            continue
+                        if s.is_destroyed or s.is_disengaged:
+                            continue
+                        if not circle_touches_square(s.x, s.y, s.base_radius,
+                                                     marker.x, marker.y,
+                                                     marker.heading):
+                            continue
+                        # CAP fighters intercept before the bomber attacks
+                        if self._check_cap_intercept(marker, s, to_remove_after):
+                            break
 
-                    # Count all bombers from same player contacting this ship
-                    # (needed for Remastered cap)
-                    total_bombers_on_target = sum(
-                        1 for od in self.ctx.gs.ordnance
-                        if od.get("owner_player") == marker.owner_player
-                        and od.get("ordnance_type") in (
-                            OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
-                        and circle_touches_square(s.x, s.y, s.base_radius,
-                                                  od.get("x", 0), od.get("y", 0),
-                                                  od.get("heading", 0)))
+                        self.ctx.log(
+                            f"  {marker.ordnance_type} attacks {s.name}!")
 
-                    if suppressing_fighters > 0:
-                        if self.ctx.gs.rule_turret_suppression_remastered:
-                            # Remastered: fighters add +1 to attack roll,
-                            # capped at total attacking bombers
-                            result = resolve_bomber_attack(
-                                marker, s, self.ctx.dice, self.ctx.gs,
-                                remastered_fighter_bonus=suppressing_fighters,
-                                remastered_bomber_cap=total_bombers_on_target)
+                        # Count friendly fighters whose square marker touches this ship.
+                        # Mantas are bombers, not fighters — they do not suppress turrets.
+                        suppressing_fighters = sum(
+                            1 for od in self.ctx.gs.ordnance
+                            if od.get("owner_player") == marker.owner_player
+                            and od.get("ordnance_type") in (
+                                OrdnanceType.FIGHTER.value,
+                                OrdnanceType.BARRACUDA.value)
+                            and circle_touches_square(s.x, s.y, s.base_radius,
+                                                      od.get("x", 0), od.get("y", 0),
+                                                      od.get("heading", 0)))
+
+                        # Count all bombers from same player contacting this ship
+                        # (needed for Remastered cap)
+                        total_bombers_on_target = sum(
+                            1 for od in self.ctx.gs.ordnance
+                            if od.get("owner_player") == marker.owner_player
+                            and od.get("ordnance_type") in (
+                                OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
+                            and circle_touches_square(s.x, s.y, s.base_radius,
+                                                      od.get("x", 0), od.get("y", 0),
+                                                      od.get("heading", 0)))
+
+                        if suppressing_fighters > 0:
+                            if self.ctx.gs.rule_turret_suppression_remastered:
+                                # Remastered: fighters add +1 to attack roll,
+                                # capped at total attacking bombers
+                                result = resolve_bomber_attack(
+                                    marker, s, self.ctx.dice, self.ctx.gs,
+                                    remastered_fighter_bonus=suppressing_fighters,
+                                    remastered_bomber_cap=total_bombers_on_target)
+                            else:
+                                # XR default: this bomber gets exactly 3 attacks
+                                result = resolve_bomber_attack(
+                                    marker, s, self.ctx.dice, self.ctx.gs,
+                                    suppressed_by_fighter=True)
                         else:
-                            # XR default: this bomber gets exactly 3 attacks
                             result = resolve_bomber_attack(
-                                marker, s, self.ctx.dice, self.ctx.gs,
-                                suppressed_by_fighter=True)
-                    else:
-                        result = resolve_bomber_attack(
-                            marker, s, self.ctx.dice, self.ctx.gs)
+                                marker, s, self.ctx.dice, self.ctx.gs)
 
-                    if result["hits"] > 0:
-                        self.ctx.check_destruction(s)
-                    to_remove_after.add(marker.id)
-                    break
-
-            elif marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
-                # Mine fields detonate against any ship in contact (friend or foe).
-                # Only friendly ships that were in base contact with the launcher
-                # at launch are exempt (captured in marker.launch_exempt_ships).
-                for s in ships:
-                    if s.is_destroyed or s.is_disengaged:
-                        continue
-                    if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
-                        continue
-                    if (s.id in (marker.launch_exempt_ships or [])
-                            and marker.launched_turn == self.ctx.gs.turn_number):
-                        continue
-                    if not circle_touches_square(s.x, s.y, s.base_radius,
-                                                 marker.x, marker.y,
-                                                 marker.heading):
-                        continue
-
-                    # CAP fighters intercept the mine before it detonates
-                    if self._check_cap_intercept(marker, s, to_remove_after):
+                        if result["hits"] > 0:
+                            self.ctx.check_destruction(s)
+                        to_remove_after.add(marker.id)
                         break
 
-                    self.ctx.log(
-                        f"  Mine contacts {s.name}"
-                        + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
-                        + "!")
-                    result = resolve_mine_contact(
-                        marker, s, self.ctx.dice, self.ctx.gs, ships)
-                    if result["hits"] > 0:
+                elif marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
+                    # Mine fields detonate against any ship in contact (friend or foe).
+                    # Only friendly ships that were in base contact with the launcher
+                    # at launch are exempt (captured in marker.launch_exempt_ships).
+                    for s in ships:
+                        if s.is_destroyed or s.is_disengaged:
+                            continue
+                        if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
+                            continue
+                        if (s.id in (marker.launch_exempt_ships or [])
+                                and marker.launched_turn == self.ctx.gs.turn_number):
+                            continue
+                        if not circle_touches_square(s.x, s.y, s.base_radius,
+                                                     marker.x, marker.y,
+                                                     marker.heading):
+                            continue
+
+                        # CAP fighters intercept the mine before it detonates
+                        if self._check_cap_intercept(marker, s, to_remove_after):
+                            break
+
+                        self.ctx.log(
+                            f"  Mine contacts {s.name}"
+                            + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
+                            + "!")
+                        result = resolve_mine_contact(
+                            marker, s, self.ctx.dice, self.ctx.gs, ships)
+                        if result["hits"] > 0:
+                            self.ctx.check_destruction(s)
+                        to_remove_after.add(marker.id)
+                        break  # one ship triggers the field
+
+                elif is_assault_boat:
+                    if not self.ctx.gs.rule_hit_and_run:
+                        continue
+                    # Assault boats trigger hit-and-run raids against enemy ships
+                    from .hit_and_run import resolve_hit_and_run
+                    for s in ships:
+                        if s.player == marker.owner_player:
+                            continue
+                        if s.is_destroyed or s.is_disengaged:
+                            continue
+                        if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
+                            continue
+                        if not circle_touches_square(s.x, s.y, s.base_radius,
+                                                     marker.x, marker.y,
+                                                     marker.heading):
+                            continue
+
+                        # CAP fighters intercept before the raid
+                        if self._check_cap_intercept(marker, s, to_remove_after):
+                            break
+
+                        self.ctx.log(
+                            f"  Assault boats contact {s.name} — hit-and-run raid!")
+
+                        _brace_fn = self._raid_brace_fn(marker.strength)
+
+                        result = resolve_hit_and_run(
+                            marker, s, self.ctx.dice, self.ctx.gs, _brace_fn)
+
+                        n_crits = len(result["crits_applied"])
+                        n_repelled = result["repelled"]
+                        n_failed = result["failures"]
+                        self.ctx.log(
+                            f"  Raid result: {n_crits} crit(s) applied, "
+                            f"{n_repelled} repelled, {n_failed} failed")
                         self.ctx.check_destruction(s)
-                    to_remove_after.add(marker.id)
-                    break  # one ship triggers the field
-
-            elif is_assault_boat:
-                if not self.ctx.gs.rule_hit_and_run:
-                    continue
-                # Assault boats trigger hit-and-run raids against enemy ships
-                from .hit_and_run import resolve_hit_and_run
-                for s in ships:
-                    if s.player == marker.owner_player:
-                        continue
-                    if s.is_destroyed or s.is_disengaged:
-                        continue
-                    if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
-                        continue
-                    if not circle_touches_square(s.x, s.y, s.base_radius,
-                                                 marker.x, marker.y,
-                                                 marker.heading):
-                        continue
-
-                    # CAP fighters intercept before the raid
-                    if self._check_cap_intercept(marker, s, to_remove_after):
+                        to_remove_after.add(marker.id)
                         break
 
-                    self.ctx.log(
-                        f"  Assault boats contact {s.name} — hit-and-run raid!")
-
-                    _brace_fn = self._raid_brace_fn(marker.strength)
-
-                    result = resolve_hit_and_run(
-                        marker, s, self.ctx.dice, self.ctx.gs, _brace_fn)
-
-                    n_crits = len(result["crits_applied"])
-                    n_repelled = result["repelled"]
-                    n_failed = result["failures"]
-                    self.ctx.log(
-                        f"  Raid result: {n_crits} crit(s) applied, "
-                        f"{n_repelled} repelled, {n_failed} failed")
-                    self.ctx.check_destruction(s)
-                    to_remove_after.add(marker.id)
-                    break
-
-        # Remove spent ordnance
-        if to_remove_after:
-            self.ctx.gs.ordnance = [
-                o for o in self.ctx.gs.ordnance
-                if o["id"] not in to_remove_after]
+            # Remove spent ordnance
+            if to_remove_after:
+                self.ctx.gs.ordnance = [
+                    o for o in self.ctx.gs.ordnance
+                    if o["id"] not in to_remove_after]
 
         self.ctx.log(
             f"  Ordnance phase complete: {len(self.ctx.gs.ordnance)} markers remain")

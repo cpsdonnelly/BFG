@@ -385,6 +385,9 @@ class OrdnanceMarker:
     # Attack craft: id of the ship or ordnance marker the squadron is flying at
     # (s.15: craft turn freely and move in any direction). Empty = straight on.
     craft_target_id: str = ""
+    # Torpedoes: {ship id: turn number} of each attack. A salvo may never
+    # attack the same ship more than once per full turn (s.13).
+    attacked_turns: Dict[str, int] = field(default_factory=dict)
 
     def to_dict(self):
         return asdict(self)
