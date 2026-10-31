@@ -253,9 +253,9 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             self.ctx.log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
             move_dist = float(base + aaf_bonus)
         elif order == "burn_retros":
-            move_dist = float(base // 2)
+            move_dist = base / 2
         else:
-            move_dist = float(max(1, base // 2))
+            move_dist = base / 2
 
         # Remaining budget after any prior staged movement
         _, remaining_budget = movement_budget(ship, order, aaf_bonus,
@@ -383,7 +383,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             if order == "all_ahead_full":
                 move_dist = max_left
             elif order == "burn_retros":
-                move_dist = min(float(base // 2), max_left)
+                move_dist = min(base / 2, max_left)
             else:
                 move_dist = min_left    # whatever is still needed to reach half speed
 
@@ -440,9 +440,9 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         if order == "all_ahead_full":
             move_dist = remaining_budget
         elif order == "burn_retros":
-            move_dist = min(float(ship.effective_speed // 2), remaining_budget)
+            move_dist = min(ship.effective_speed / 2, remaining_budget)
         else:
-            move_dist = min(float(max(1, ship.effective_speed // 2)), remaining_budget)
+            move_dist = min(ship.effective_speed / 2, remaining_budget)
 
         # Compute end position: forward then turn
         hdg_rad = math.radians(ship.heading)

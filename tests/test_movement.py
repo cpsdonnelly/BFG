@@ -75,7 +75,15 @@ def test_crippled_ship_lower_effective_speed():
     s = make_ship(speed=20, hits_max=8, hits_remaining=4)   # crippled → speed 15
     lo, hi = get_effective_speed(s, SpecialOrder.NONE.value)
     assert hi == 15
-    assert lo == max(1, 15 // 2)   # 7
+    assert lo == 7.5               # exact half: movement is never rounded
+
+
+def test_halving_speed_is_never_rounded():
+    # Owner ruling: no rounding up or down for movement
+    s = make_ship(speed=25)
+    assert get_effective_speed(s, SpecialOrder.NONE.value) == (12.5, 25)
+    assert get_effective_speed(s, SpecialOrder.BURN_RETROS.value) == (0, 12.5)
+    assert get_effective_speed(s, SpecialOrder.BURN_RETROS.value, blast_slowdown=True) == (0, 7.5)
 
 
 # ── get_max_turns ─────────────────────────────────────────────────────────────

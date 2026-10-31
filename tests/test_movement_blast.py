@@ -232,3 +232,12 @@ def test_ai_records_distance_it_moved(tmp_path):
     ai = AIPlayer(2, TurnController(gs, dice, save_dir=str(tmp_path)), gs, dice)
     assert ai._try_execute(gs.get_ship_by_id("s"), [fwd(15)], "none", 0)
     assert gs.get_ship_by_id("s").distance_moved_this_turn == 15.0
+
+
+def test_speed_25_ship_may_move_exactly_half_speed():
+    # 12.5cm satisfies the half-speed minimum; 12.4cm does not
+    ship = make_ship(speed=25, y=50.0)
+    assert validate_movement(ship, [fwd(12.5)], "none").valid
+    assert not validate_movement(ship, [fwd(12.4)], "none").valid
+    assert validate_movement(ship, [fwd(12.5)], "burn_retros").valid
+    assert not validate_movement(ship, [fwd(12.6)], "burn_retros").valid

@@ -67,7 +67,7 @@ def compute_drag_path(ship: Ship,
     # Speed limits for this order — use remaining budget, not full budget
     _, remaining_spd = movement_budget(ship, special_order, aaf_bonus, blast_markers)
     already_moved = ship.distance_moved_this_turn
-    base_min = float(max(1, ship.effective_speed // 2))
+    base_min = ship.effective_speed / 2
     if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
         _min_spd_hint = remaining_spd  # must use all remaining
     elif special_order == SpecialOrder.BURN_RETROS.value:

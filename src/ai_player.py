@@ -175,7 +175,7 @@ class AIPlayer:
 
         # Fallback: straight forward at half speed
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
-        dist = max(min_spd, max_spd // 2)
+        dist = max(min_spd, max_spd / 2)
         r2 = validate_movement(ship, [MoveCommand("forward", dist)], **kwargs)
         if r2.valid:
             return execute(r2)
@@ -230,7 +230,7 @@ class AIPlayer:
                         cmds.append(MoveCommand("forward", dist))
                     best_cmds = cmds
 
-        return best_cmds or [MoveCommand("forward", max(min_spd, max_spd // 2))]
+        return best_cmds or [MoveCommand("forward", max(min_spd, max_spd / 2))]
 
     def _simulate_final_pos(self, ship: Ship, turn_deg: float,
                             total_dist: float):

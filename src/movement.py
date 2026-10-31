@@ -63,7 +63,7 @@ class MovementResult:
 
 
 def get_effective_speed(ship: Ship, special_order: str, aaf_bonus: int = 0,
-                        blast_slowdown: bool = False) -> Tuple[int, int]:
+                        blast_slowdown: bool = False) -> Tuple[float, float]:
     """
     Returns (min_speed, max_speed) for this ship given its order.
     aaf_bonus: the 4D6 roll result for All Ahead Full.
@@ -82,14 +82,14 @@ def get_effective_speed(ship: Ship, special_order: str, aaf_bonus: int = 0,
     penalty = 5 if blast_slowdown else 0
 
     if effective_order == SpecialOrder.BURN_RETROS.value:
-        return (0, max(0, base // 2 - penalty))
+        return (0, max(0, base / 2 - penalty))
 
     if effective_order == SpecialOrder.ALL_AHEAD_FULL.value:
         total = max(0, base + aaf_bonus - penalty)
         return (total, total)
 
     # Normal, CtNH, Lock On, Reload, Brace (without AAF)
-    min_spd = max(1, base // 2)
+    min_spd = base / 2      # exact half: movement is never rounded
     max_spd = base
 
     if blast_slowdown:

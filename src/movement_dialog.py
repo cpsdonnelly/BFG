@@ -13,6 +13,15 @@ from .movement import (MoveCommand, validate_movement, execute_movement,
 # Private dialog controllers
 # ---------------------------------------------------------------------------
 
+
+def _num(x: float) -> str:
+    """A distance as exact as the rules make it: 12.5, 20 (never rounded to whole cm)."""
+    return f"{round(x, 1):g}"
+
+
+def _cm(x: float) -> str:
+    return f"{_num(x)}cm"
+
 class _MoveShipDialog:
     """Controller for the individual-ship movement dialog."""
 
@@ -41,16 +50,16 @@ class _MoveShipDialog:
             and movement_budget(ship, self.order)[1] > self.max_speed) else ""
         if self.order == SpecialOrder.ALL_AHEAD_FULL.value:
             self.speed_text = (
-                f"Speed: {self.max_speed:.0f}cm remaining "
-                f"(AAF: {base}+{self.aaf_bonus}, moved {already:.0f}cm)")
+                f"Speed: {_cm(self.max_speed)} remaining "
+                f"(AAF: {base}+{self.aaf_bonus}, moved {_cm(already)})")
         elif self.order == SpecialOrder.BURN_RETROS.value:
             self.speed_text = (
-                f"Speed: 0-{self.max_speed:.0f}cm "
-                f"(Burn Retros, moved {already:.0f}cm)")
+                f"Speed: 0-{_cm(self.max_speed)} "
+                f"(Burn Retros, moved {_cm(already)})")
         else:
             self.speed_text = (
-                f"Speed: {self.min_speed:.0f}-{self.max_speed:.0f}cm"
-                + (f" (moved {already:.0f}cm)" if already > 0 else "")
+                f"Speed: {_num(self.min_speed)}-{_cm(self.max_speed)}"
+                + (f" (moved {_cm(already)})" if already > 0 else "")
                 + slowed)
 
         self.already_moved = already
@@ -66,7 +75,7 @@ class _MoveShipDialog:
         if self.max_speed < 0.5 and self.order != SpecialOrder.BURN_RETROS.value:
             messagebox.showinfo(
                 "No Budget",
-                f"{self.ship.name} has already moved {self.already_moved:.0f}cm "
+                f"{self.ship.name} has already moved {_cm(self.already_moved)} "
                 f"— no remaining movement budget.")
             return
         self._build_ui()
@@ -117,7 +126,7 @@ class _MoveShipDialog:
         meter_frame = tk.Frame(dialog)
         meter_frame.pack(fill=tk.X, padx=10, pady=3)
         self.remaining_var = tk.StringVar(
-            value=f"Remaining: {self.max_speed:.0f}cm / {self.max_speed:.0f}cm")
+            value=f"Remaining: {_cm(self.max_speed)} / {_cm(self.max_speed)}")
         self.remaining_label = tk.Label(
             meter_frame, textvariable=self.remaining_var,
             font=("Consolas", 10, "bold"), fg="#44CC44")
@@ -140,7 +149,7 @@ class _MoveShipDialog:
         # Quick-move buttons
         quick_frame = tk.Frame(dialog)
         quick_frame.pack(padx=10, pady=3, fill=tk.X)
-        tk.Button(quick_frame, text=f"Auto: Min Move ({self.min_speed:.0f}cm)",
+        tk.Button(quick_frame, text=f"Auto: Min Move ({_cm(self.min_speed)})",
                   command=self._quick_min_move,
                   font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
         if self.min_turn_dist > 0 and ship.ship_type != "escort":
@@ -272,7 +281,7 @@ class _MoveShipDialog:
         self.commands.clear()
         self.cmd_listbox.delete(0, tk.END)
         self.remaining_var.set(
-            f"Remaining: {self.max_speed:.0f}cm / {self.max_speed:.0f}cm")
+            f"Remaining: {_cm(self.max_speed)} / {_cm(self.max_speed)}")
         self.remaining_label.config(fg="#44CC44")
         self.turn_stats_var.set(
             f"Turns: {self._turns_already}/{self._max_turns} used | "
@@ -296,7 +305,7 @@ class _MoveShipDialog:
         used = result.total_distance
         remaining = max(0, self.max_speed - used)
         self.remaining_var.set(
-            f"Remaining: {remaining:.1f}cm / {self.max_speed:.0f}cm "
+            f"Remaining: {remaining:.1f}cm / {_cm(self.max_speed)} "
             f"(used {used:.1f}cm)")
         self.remaining_label.config(fg="#CCAA00" if remaining < 0.5 else "#44CC44")
 
@@ -579,10 +588,10 @@ class _MoveSquadronDialog:
         ) or "none"
         self.stats_var.set(
             f"Ships: {', '.join(s.name for s in ships_in)}\n"
-            f"Speed range: {min_spd:.0f}–{max_spd:.0f}cm  "
+            f"Speed range: {_num(min_spd)}–{_cm(max_spd)}  "
             f"Turn: ≤{ta}°  Min-before-turn: {mtd}cm\n"
             f"Orders: {orders_str}")
-        self.remaining_var.set(f"Max budget: {max_spd:.0f}cm")
+        self.remaining_var.set(f"Max budget: {_cm(max_spd)}")
         self.remaining_lbl.config(fg="#44CC44")
 
     # --------------------------------------------------------- quick buttons -
