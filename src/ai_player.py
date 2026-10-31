@@ -155,32 +155,36 @@ class AIPlayer:
             table_width=gs.table_width, table_height=gs.table_height,
         )
 
+        def execute(result) -> bool:
+            execute_movement(ship, result, gs, self.dice)
+            moved = gs.get_ship_by_id(ship.id)
+            if moved:
+                moved.distance_moved_this_turn += result.total_distance
+                gs.update_ship(moved)
+            return True
+
         r = validate_movement(ship, commands, **kwargs)
         if r.valid:
-            execute_movement(ship, r, gs, self.dice)
-            return True
+            return execute(r)
 
         # Blast markers shortened the move: go straight ahead as far as allowed
         if r.crossed_blast_markers and r.max_allowed > 0:
             rb = validate_movement(ship, [MoveCommand("forward", r.max_allowed)], **kwargs)
             if rb.valid:
-                execute_movement(ship, rb, gs, self.dice)
-                return True
+                return execute(rb)
 
         # Fallback: straight forward at half speed
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
         dist = max(min_spd, max_spd // 2)
         r2 = validate_movement(ship, [MoveCommand("forward", dist)], **kwargs)
         if r2.valid:
-            execute_movement(ship, r2, gs, self.dice)
-            return True
+            return execute(r2)
 
         # Last resort: minimum speed
         if min_spd > 0:
             r3 = validate_movement(ship, [MoveCommand("forward", min_spd)], **kwargs)
             if r3.valid:
-                execute_movement(ship, r3, gs, self.dice)
-                return True
+                return execute(r3)
 
         return False
 

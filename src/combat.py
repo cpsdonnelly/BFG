@@ -139,7 +139,13 @@ def effective_battery_firepower(attacker: Ship, weapon: Dict) -> int:
 
 
 def gunnery_target_type(ship: Ship) -> str:
-    """Gunnery table target type for a ship: capital, escort or defense."""
+    """Gunnery table target type for a ship: capital, escort or defense.
+
+    A ship that moved less than 5cm in its last movement phase (for any
+    reason) counts as Defenses (core rules s.9, Minimum Movement).
+    """
+    if ship.last_move_cm is not None and ship.last_move_cm < 5:
+        return "defense"
     if ship.ship_type in ("battleship", "cruiser"):
         return "capital"
     if ship.ship_type == "escort":

@@ -173,3 +173,62 @@ def test_burn_retros_halves_then_loses_five():
     late = [_marker_touched_at(ship, 8.0)]   # contact after 8cm of a 10cm move
     assert validate_movement(ship, [fwd(8)], "burn_retros", blast_markers=late).valid
     assert not validate_movement(ship, [fwd(9)], "burn_retros", blast_markers=late).valid
+
+
+# ── Order of speed modifiers: crippled, then Burn Retros, then blast markers ─
+
+def test_crippled_burn_retros_blast_example():
+    # Owner example: speed 25, crippled, Burn Retros, touching a blast marker:
+    # (25 - 5) / 2 - 5 = 5cm
+    from src.movement import get_effective_speed
+    ship = make_ship(speed=25, hits_max=8, hits_remaining=4)       # crippled
+    assert get_effective_speed(ship, "burn_retros", blast_slowdown=True) == (0, 5)
+    assert movement_budget(ship, "burn_retros",
+                           blast_markers=[shield_hit_marker(ship)]) == (0, 5)
+
+
+# ── Under 5cm of movement counts as Defenses on the Gunnery table (s.9) ──────
+
+def test_gunnery_target_type_uses_last_move():
+    from src.combat import gunnery_target_type
+    assert gunnery_target_type(make_ship(last_move_cm=None)) == "capital"   # not moved yet
+    assert gunnery_target_type(make_ship(last_move_cm=4.9)) == "defense"
+    assert gunnery_target_type(make_ship(last_move_cm=0.0)) == "defense"   # Burn Retros, stayed put
+    assert gunnery_target_type(make_ship(last_move_cm=5.0)) == "capital"
+    assert gunnery_target_type(make_ship(ship_type="escort", last_move_cm=2.0)) == "defense"
+
+
+def test_battery_fire_at_stationary_ship_uses_defenses_column():
+    from src.combat import resolve_batteries
+    from src.tables import lookup_gunnery_dice, COL_DEFENSES
+    attacker = make_ship(id="a", player=1, x=0.0, y=50.0, heading=90.0)
+    target = make_ship(id="t", player=2, x=20.0, y=50.0, last_move_cm=3.0)
+    weapon = {"name": "Port Battery", "weapon_type": "battery", "strength": 6,
+              "range_cm": 30, "arcs": ["right"]}
+    r = resolve_batteries(attacker, target, weapon, DiceStub([1]), [])
+    assert len(r.dice_rolled) == lookup_gunnery_dice(6, COL_DEFENSES, 0)
+
+
+def test_end_of_movement_phase_records_last_move(tmp_path):
+    from src.turn_controller import TurnController
+    mover = make_ship(id="m", player=1, distance_moved_this_turn=12.0)
+    still = make_ship(id="s", player=1, distance_moved_this_turn=0.0)
+    enemy = make_ship(id="e", player=2, distance_moved_this_turn=0.0)
+    gs = make_gs([mover, still, enemy])
+    gs.current_phase = "movement"
+    gs.active_player = 1
+    TurnController(gs, DiceStub([1]), save_dir=str(tmp_path)).end_phase()
+    assert gs.get_ship_by_id("m").last_move_cm == 12.0
+    assert gs.get_ship_by_id("s").last_move_cm == 0.0
+    assert gs.get_ship_by_id("e").last_move_cm is None    # not its movement phase
+
+
+def test_ai_records_distance_it_moved(tmp_path):
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    ship = make_ship(id="s", player=2, x=20.0, y=50.0, speed=20)
+    gs = make_gs([ship])
+    dice = DiceStub([1])
+    ai = AIPlayer(2, TurnController(gs, dice, save_dir=str(tmp_path)), gs, dice)
+    assert ai._try_execute(gs.get_ship_by_id("s"), [fwd(15)], "none", 0)
+    assert gs.get_ship_by_id("s").distance_moved_this_turn == 15.0

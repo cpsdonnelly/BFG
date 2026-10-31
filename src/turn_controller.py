@@ -241,6 +241,12 @@ class TurnController:
     def end_phase(self):
         """End current phase and advance to next."""
         current = self.gs.current_phase
+        if current == "movement":
+            # Remember how far each of the moving player's ships went: a ship
+            # that moved under 5cm counts as Defenses when shot at
+            for s_dict in self.gs.ships:
+                if s_dict["player"] == self.gs.active_player:
+                    s_dict["last_move_cm"] = s_dict.get("distance_moved_this_turn", 0.0)
         label = f"t{self.gs.turn_number}_{current}_end"
         self.save_snapshot(label)
         self.save_actions_log()
