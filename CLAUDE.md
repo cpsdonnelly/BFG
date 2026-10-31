@@ -14,9 +14,10 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - Core rules sections most often needed: Ramming (8), Hit-and-Run Raids incl. teleport attacks
   (23), Boarding Actions (24), Damage & Critical Hits (25), Catastrophic Damage (26).
   Sections are numbered in `bfgxr/rules/00_core-rules.md`.
-- **Victory points appear twice.** Core section 30 has only Destroyed and Crippled. The full
-  rules are under "Victory Points" in `bfgxr/rules/10_scenarios.md` (Victory Conditions):
-  Destroyed, Crippled, Scattered (disengaged) and Holding the Field. Use the scenarios version.
+- Victory points: core section 30 and the "Victory Points" part of `bfgxr/rules/10_scenarios.md`
+  give the same rules: Destroyed, Crippled, Scattered (disengaged) and Holding the Field.
+- Squadrons (s.5) include Maneuvering Squadrons and Shooting at Squadrons (target aspect, hit
+  allocation nearest-first, critical damage applied before a ship counts as destroyed).
 - `data/rules_cheatsheet.txt` and `data/*.csv` (plus the copies in the repo root) are an
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - `src/ship_catalog.py` (hard-coded Imperial Navy and Tau ships) predates the booklet and
@@ -36,16 +37,12 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   a drifting hulk with no catastrophic roll, but its boarding crit is still rolled. If that crit
   deals extra damage (Engine Room, Hull Breach, Bulkhead Collapse), the ship rolls on the
   Catastrophic Damage table. A crit with no extra damage leaves it a hulk.
-
-### Open questions for the owner
-
-- Blast markers (s.7) on **All Ahead Full**: does an AAF ship that crosses a marker before
-  its last 5cm lose 5cm, or is it only stopped when the contact is in its last 5cm? And on
-  **Burn Retros**, does the -5cm come off before or after halving speed? Both orders are
-  currently left without the -5cm.
-- **Firing at a squadron:** how are hits allocated among the target squadron's ships? The
-  code gives each hit to the nearest ship whose armour the die beats, and hits beyond what
-  kills that ship are lost.
+- **Blast markers and speed (s.7):** the 5cm reduction takes effect at the point the ship
+  touches a blast marker. If that leaves it with no movement (0 or less), it stops where it
+  first touches the marker; otherwise it may carry on with what remains. This applies to All
+  Ahead Full too.
+- **Burn Retros and blast markers:** Burn Retros applies first (orders are issued before
+  movement): halve the speed, then take 5cm off for blast markers.
 
 ## Running and testing
 

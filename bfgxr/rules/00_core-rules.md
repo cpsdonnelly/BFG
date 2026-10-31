@@ -6,7 +6,7 @@ In Battlefleet Gothic, the expertise of a captain and his (or her) crew is shown
 
 As mentioned earlier, in one-off games you roll a D6 to determine each ship's leadership value before the start of the game. Look up the result of the dice roll on the table below to see what Leadership value the ship has. Escorts roll once per squadron, with the whole squadron sharing the value rolled. Each capital ship rolls individually for leadership, even if it is part of a squadron.
 
-**Starting Leadership by faction:** see Appendix 4, p.154.
+**Starting Leadership by faction:** see Appendix 4, p.155.
 
 ### Leadership Modifiers
 
@@ -18,7 +18,7 @@ If a ship is reduced to leadership 1 or less, it cannot voluntarily attempt spec
 
 ### Faction-Specific Leadership Tables
 
-Some factions do not use the default Starting Leadership table; their fleet lists replace it. All of them are unified into one table in the Appendix: see Appendix 4, p.154. Factions not listed there use the Default column.
+Some factions do not use the default Starting Leadership table; their fleet lists replace it. All of them are unified into one table in the Appendix: see Appendix 4, p.155. Factions not listed there use the Default column.
 
 *Source: BFG:XR faction fleet lists / codex documents*
 
@@ -104,7 +104,7 @@ Enemy Contacts (+1Ld): A vessel gains a +1 bonus to its leadership value when at
 
 (These modifiers cannot increase a vessel's Ld value above 10 or below zero. The Under Fire and Enemy Contacts modifiers apply to command checks only, not to other leadership tests.)
 
-A summary of all six special orders is given in Appendix 6, p.156.
+A summary of all six special orders is given in Appendix 6, p.157.
 
 ## 5. Squadrons
 
@@ -139,6 +139,26 @@ To remain part of a squadron, each member must be no more than 15cm away from an
 If a ship is forced to break formation, it no longer counts as part of the squadron until it moves back to within 15cm of another member. If a squadron breaks into multiple groups, simply designate one as the 'main body' of the squadron that the others must rejoin, and treat the rest as out of formation. Any ships out of formation must move to restore squadron coherency as soon as possible, and cannot benefit from the squadron's special orders until they have done so.
 
 *Source: BFG:XR Rulebook, "Advanced Rules - Squadrons", p.43*
+
+### Maneuvering Squadrons
+
+Individual ships in a squadron move freely using the standard movement rules, as long as they stay in formation at the end of their move. If any ship in an escort squadron moves off the table edge, the entire squadron must immediately, and in later turns, only attempt to disengage. Capital ships disengage individually as normal.
+
+### Shooting at Squadrons
+
+**Target aspect:** ships in a targeted squadron may present different aspects to the attacker (for example, some closing and some abeam). The attacker chooses which aspect to fire at, but cannot score hits on any ship that is harder to target than that category. Against two closing and two abeam ships, firing at them as closing targets can only hit the two closing ships.
+
+**Allocating hits:** hits go to the nearest eligible ship in the squadron until it is destroyed (including any critical damage), then the next nearest eligible ship takes the remaining hits, and so on. Ships out of the attacker's range or fire arc cannot be hit, and a Leadership test cannot be used to pick out an individual ship in a squadron.
+
+This does not apply to ordnance, which still attacks the first ship it contacts as normal. Likewise, boarding actions, teleport attacks and so forth may pick out individual targets as per their rules, and a nova cannon only damages ships actually under the template.
+
+**Critical damage before destruction:** a ship in a squadron that is fired on until destroyed must roll for and apply all its critical damage before it counts as destroyed, so a squadron cannot 'hide' extra damage on a wrecked ship. The easiest way is to roll for critical hits one damage point at a time, recording any extra damage as you go.
+
+For example, a squadron of three Dauntless light cruisers (6 hits and 1 shield total) is fired upon and takes a total of 13 hits. All critical damage rolls must be made for the first Dauntless before declaring it destroyed: if, while applying hits one at a time, it rolls Thrusters Damaged (+1 damage) and Engine Room Damaged (+1 damage) as it is destroyed, eight hits remain to be applied to the next closest Dauntless.
+
+This matters most for squadrons of ships that do not roll critical damage normally, such as escorts, small defences and other unique ships that take a point of damage when they suffer a critical hit.
+
+*Source: BFG:XR Rulebook, "Advanced Rules - Squadrons", p.44*
 
 **Forming Squadrons** (from "Assembling the Fleet - Building Your List", p.58)
 
@@ -553,7 +573,7 @@ Roll a D6 for each hit scored on a ship (but not against its shields). On a roll
 
 **Critical Hits on Small Targets:** Escorts and defenses with less than 3 starting hits suffer one point of damage whenever they suffer a critical hit, instead of rolling on the table.
 
-**Critical Hits Table:** see Appendix 5, p.155.
+**Critical Hits Table:** see Appendix 5, p.156.
 
 ## 26. Catastrophic Damage
 
@@ -565,7 +585,7 @@ A ship with no hits left is effectively out of action. There may still be some c
 
 **Defenses:** Any defenses with 3 or more hits are treated as capital ships and may explode as normal. All other defenses are replaced by a blast marker, like escorts.
 
-**Catastrophic Damage Table:** see Appendix 5, p.155.
+**Catastrophic Damage Table:** see Appendix 5, p.156.
 
 ## 27. Crippled Ships
 
@@ -618,6 +638,10 @@ In many scenarios, the winner will be the player who scores the most victory poi
 **Enemies Destroyed:** Each capital ship, escort squadron, and defense installation that is completely destroyed at the end of the game awards the opposing player a number of victory points equal to that unit/squadron's total points value, including the cost of any commanders or other upgrades on board. Note that capital ships and planetary defenses (even those that behave like escorts) are always calculated separately for victory point purposes, even if part of a squadron.
 
 **Enemies Crippled:** Each capital ship, escort squadron, and defense installation that is crippled at the end of the game awards the opposing player a number of victory points equal to 25% of that unit/squadron's total points value, including the cost of any commanders, upgrades (and so on) as normal. An escort squadron is considered to be crippled for this purpose if at least half its ships (rounding up) are destroyed. In a campaign game, units that start crippled must suffer at least one damage to count for this condition.
+
+**Enemies Scattered:** Each non-crippled capital ship, escort squadron, and defense installation that has disengaged before the end of the game awards the opposing player a number of victory points equal to 10% of that unit/squadron's total points value, including the cost of any commanders, upgrades (and so on) as normal.
+
+**Holding the Field:** At the end of the battle, the fleet that holds the field earns victory points for the number of hulks it captures. Your fleet holds the field at the end of the battle if there are no enemy vessels remaining (all have either disengaged or been destroyed) and your fleet has at least one operational ship on the table. If a fleet holds the field, the controlling player earns victory points equal to 50% of the total points value of each hulk on the table, both friendly and enemy. Note that this is in addition to any victory points awarded for actually destroying those ships.
 
 *Source: BFG:XR Rulebook, "Scenarios - Victory Points", p.79*
 

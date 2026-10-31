@@ -369,7 +369,7 @@ Appeals may normally only be made for refits and reinforcements. If you are allo
 
 **Refits.** A player who is granted a refit must choose one of his capital ships to undergo the refit, then roll a D6 to see what type of equipment system is upgraded. On a roll of 1 or 2 you receive a ship refit, on a roll of 3 or 4 an engine refit, and on a roll of 5 or 6 a weapon refit. If a ship already has every refit in the rolled category, roll again until you get a different category.
 
-The ship, engine, and weapon refit tables are in the Appendix (Appendix 2, p.147). Always use the table that matches your faction list's source book: Imperial Refits for the Imperium, Chaos, the Inquisition, Rogue Traders, the Adeptus Mechanicus and the Space Marines; Xenos Refits for the xenos fleets. For example, Chaos ships that earn a weapon refit roll on the Weapon Refit section of the Imperial Refits table.
+The ship, engine, and weapon refit tables are in the Appendix (Appendix 2, p.148). Always use the table that matches your faction list's source book: Imperial Refits for the Imperium, Chaos, the Inquisition, Rogue Traders, the Adeptus Mechanicus and the Space Marines; Xenos Refits for the xenos fleets. For example, Chaos ships that earn a weapon refit roll on the Weapon Refit section of the Imperial Refits table.
 
 If you roll a result that the ship already has, roll again until you get a refit the ship does not have. The points value of the ship is increased by 10% for each refit it has and you'll need to update your ship register appropriately.
 
@@ -433,7 +433,7 @@ You may use the following guidelines to construct campaigns around specific majo
 
 - Special Rules: Some of the sub-sectors for this campaign are especially small. To make things interesting, consider linking multiple sub-sector maps together to create a much larger overall map, one fitting the grand scale of Abaddon's 13th Black Crusade!
 
-The three faction appeal tables (Forces of Chaos, Power of the Waaagh!, Space Marine Support) are in the Appendix: see Appendix 1, p.145.
+The three faction appeal tables (Forces of Chaos, Power of the Waaagh!, Space Marine Support) are in the Appendix: see Appendix 1, p.146.
 
 ## Sub-Sector Maps
 
