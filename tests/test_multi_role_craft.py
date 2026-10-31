@@ -125,3 +125,29 @@ def test_explorer_rear_armour():
     from src.ship_catalog import find_ship_class
     e = find_ship_class("Explorer Starship")
     assert e.playable and (e.armor_prow, e.armor_side, e.armor_rear) == ("5+", "5+", "4+")
+
+
+# ── Recalling attack craft (s.12) ────────────────────────────────────────────
+from src.ordnance import fleet_craft_excess, recall_craft, ai_craft_to_recall
+
+
+def test_recall_frees_capacity_and_excess_after_losses():
+    ship = make_ship(id="o", player=1, weapons=[dict(BAYS[1])])      # 2 bays
+    gs = make_gs([ship])
+    launch_attack_craft(ship, BAYS[1], "fighta_bommer", 2, gs)
+    assert fleet_craft_slots(gs, 1) == 0 and fleet_craft_excess(gs, 1) == 0
+    ids = [o["id"] for o in gs.ordnance]
+    assert recall_craft(gs, 1, ids[:1]) == 1 and fleet_craft_slots(gs, 1) == 1
+    assert recall_craft(gs, 2, ids[1:]) == 0                         # not your craft
+    s = gs.get_ship_by_id("o")
+    s.status = "destroyed"
+    gs.update_ship(s)
+    assert fleet_craft_excess(gs, 1) == 1                            # bays lost
+
+
+def test_ai_recalls_oldest_and_keeps_cap():
+    gs = make_gs([])
+    gs.add_ordnance(_m("old", OT.BOMBER.value, launched_turn=1))
+    gs.add_ordnance(_m("new", OT.BOMBER.value, launched_turn=3))
+    gs.add_ordnance(_m("cap", OT.FIGHTER.value, launched_turn=0, cap_ship_id="x"))
+    assert ai_craft_to_recall(gs, 1, 2) == ["old", "new"]

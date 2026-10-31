@@ -18,6 +18,66 @@ class OrdnancePanel(OrdnanceMovementMixin):
     def __init__(self, ctx: GameContext):
         self.ctx = ctx
 
+    def _recall_craft_dialog(self, player: int, must_remove: int = 0) -> int:
+        """Pick friendly attack craft squadrons to remove from play, freeing
+        launch capacity (s.12). must_remove > 0 when the fleet has more craft in
+        play than launch bays left: that many have to go before launching.
+        Returns how many were recalled."""
+        from .ordnance import ATTACK_CRAFT_TYPES, recall_craft
+        gs = self.ctx.gs
+        own = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
+               if o.get("owner_player") == player
+               and o.get("ordnance_type") in ATTACK_CRAFT_TYPES]
+        if not own:
+            return 0
+        dialog = tk.Toplevel(self.ctx.root)
+        dialog.title("Recall Attack Craft")
+        dialog.transient(self.ctx.root)
+        msg = ("Your fleet has more attack craft in play than launch bays left: "
+               f"remove {must_remove} squadron(s) before launching (s.12)."
+               if must_remove else
+               "Remove squadrons from play to free launch capacity (s.12).")
+        tk.Label(dialog, text=msg, font=("Consolas", 8), wraplength=380,
+                 justify=tk.LEFT).pack(padx=8, pady=4)
+        picks = []
+        for m in own:
+            var = tk.BooleanVar(value=False)
+            cap = " [CAP]" if m.cap_ship_id else ""
+            tk.Checkbutton(dialog, text=f"{m.ordnance_type}{cap} at ({m.x:.0f},{m.y:.0f}), "
+                                        f"launched turn {m.launched_turn}",
+                           variable=var, font=("Consolas", 8)).pack(anchor=tk.W, padx=10)
+            picks.append((m, var))
+        result = [0]
+
+        def _recall():
+            ids = [m.id for m, v in picks if v.get()]
+            if len(ids) < must_remove:
+                messagebox.showerror("Recall", f"Pick at least {must_remove} squadron(s).",
+                                     parent=dialog)
+                return
+            result[0] = recall_craft(gs, player, ids)
+            if result[0]:
+                self.ctx.log(f"Player {player} recalled {result[0]} attack craft squadron(s)")
+            dialog.destroy()
+
+        tk.Button(dialog, text="Recall", command=_recall, bg="#553333", fg="white",
+                  font=("Consolas", 9)).pack(pady=4)
+        if not must_remove:
+            tk.Button(dialog, text="Cancel", command=dialog.destroy,
+                      font=("Consolas", 8)).pack(pady=2)
+        self.ctx.root.wait_window(dialog)
+        self.ctx.board.redraw()
+        return result[0]
+
+    def _excess_craft_removed(self, player: int) -> bool:
+        """Before a new squadron launches, craft beyond the fleet's remaining
+        bays must be removed (s.12). False if the player didn't remove them."""
+        from .ordnance import fleet_craft_excess
+        excess = fleet_craft_excess(self.ctx.gs, player)
+        if excess:
+            self._recall_craft_dialog(player, must_remove=excess)
+        return fleet_craft_excess(self.ctx.gs, player) == 0
+
     def _craft_orders_dialog(self):
         """Give attack craft squadrons a target: an enemy ship, an enemy ordnance
         marker or a friendly ship to escort. Each time ordnance moves, a squadron
@@ -606,8 +666,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         self.ctx.gs.update_ship(fresh)
 
             else:
-                # Craft launch
-
+                # Craft launch: excess craft must be removed first (s.12)
+                if not self._excess_craft_removed(player):
+                    return
                 current_remaining = max(
                     0, self._get_player_bay_capacity(player)
                        - self._count_active_craft(player))
@@ -1231,6 +1292,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 except ValueError:
                     messagebox.showerror("Error", "Invalid heading")
                     return
+                if not self._excess_craft_removed(ship.player):
+                    return
 
                 # Re-check fleet cap at launch time (may have changed)
                 current_remaining = max(
@@ -1345,6 +1408,14 @@ class OrdnancePanel(OrdnanceMovementMixin):
                       command=_launch_craft,
                       bg="#663333", fg="white",
                       font=("Consolas", 9)).pack(pady=3)
+
+            def _recall_then_reopen():
+                if self._recall_craft_dialog(ship.player):
+                    dialog.destroy()
+                    self._launch_ordnance_dialog(preselected_ship=self.ctx.gs.get_ship_by_id(ship.id))
+
+            tk.Button(bay_frame, text="Recall Squadrons…", command=_recall_then_reopen,
+                      font=("Consolas", 8)).pack(pady=1)
 
         # Cancel
         tk.Button(dialog, text="Cancel", command=dialog.destroy,

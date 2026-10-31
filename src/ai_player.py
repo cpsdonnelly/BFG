@@ -24,6 +24,7 @@ from .combat import (
 )
 from .ordnance import (launch_torpedoes, launch_attack_craft,
                        bay_launch_capacity, fleet_craft_slots,
+                       fleet_craft_excess, recall_craft, ai_craft_to_recall,
                        TORPEDO_SPEED_DEFAULT)
 
 
@@ -597,6 +598,10 @@ class AIPlayer:
                 else:
                     wanted = multi_role + ("starhawk_bomber", "manta", "bomber")
                 preferred = next((ct for ct in wanted if ct in craft_types), craft_types[0])
+                # Craft in play beyond the fleet's bays must go first (s.12)
+                excess = fleet_craft_excess(gs, self.player)
+                if excess:
+                    recall_craft(gs, self.player, ai_craft_to_recall(gs, self.player, excess))
                 count, roll_log = bay_launch_capacity(ship, bays, self.dice)
                 for line in roll_log:
                     gs.add_log(f"[AI] {line}")

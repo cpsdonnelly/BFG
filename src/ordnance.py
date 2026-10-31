@@ -1085,6 +1085,42 @@ def fleet_craft_slots(game_state: GameState, player: int) -> int:
     return max(0, bays - in_play)
 
 
+def fleet_craft_excess(game_state: GameState, player: int) -> int:
+    """Attack craft markers in play beyond the fleet's remaining launch bays
+    (after critical damage or lost ships). The owner must remove that many the
+    next time a new squadron is launched (s.12)."""
+    bays = sum(w.get("strength", 0)
+               for s in game_state.player_ships(player)
+               if not s.is_destroyed and not s.is_disengaged
+               for w in s.weapons if w.get("weapon_type") == "launch_bay")
+    in_play = sum(1 for o in game_state.ordnance
+                  if o.get("owner_player") == player
+                  and o.get("ordnance_type") in ATTACK_CRAFT_TYPES)
+    return max(0, in_play - bays)
+
+
+def recall_craft(game_state: GameState, player: int, marker_ids: List[str]) -> int:
+    """Remove the player's own attack craft squadrons from play (recalling them
+    frees launch capacity, s.12). Returns how many were removed."""
+    ids = set(marker_ids)
+    keep = [o for o in game_state.ordnance
+            if not (o["id"] in ids and o.get("owner_player") == player
+                    and o.get("ordnance_type") in ATTACK_CRAFT_TYPES)]
+    n = len(game_state.ordnance) - len(keep)
+    game_state.ordnance = keep
+    if n:
+        game_state.add_log(f"Player {player} recalls {n} attack craft squadron(s)")
+    return n
+
+
+def ai_craft_to_recall(game_state: GameState, player: int, n: int) -> List[str]:
+    """The AI recalls its oldest squadrons first, keeping combat air patrols."""
+    own = [o for o in game_state.ordnance
+           if o.get("owner_player") == player and o.get("ordnance_type") in ATTACK_CRAFT_TYPES]
+    own.sort(key=lambda o: (bool(o.get("cap_ship_id")), o.get("launched_turn", 0)))
+    return [o["id"] for o in own[:n]]
+
+
 def mr_attack_mode_ai(target: Ship) -> str:
     """AI choice for craft that can attack as bombers or assault boats (s.21):
     raid ships whose turrets would cut bomber attacks down."""
