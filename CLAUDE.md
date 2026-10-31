@@ -50,7 +50,9 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 ## Running and testing
 
 - `python run.py` starts the desktop game (needs Tk; on Debian/Ubuntu `apt install python3-tk`).
-- `pytest -q` runs the test suite; it does not need Tk.
+- `pytest -q` runs the test suite; it does not need Tk. It also never imports the Tkinter
+  files, so check they compile: `flake8 --select=E9,F src/` (plain `--select=F` misses
+  syntax errors).
 - The Tkinter panels can't be unit-tested here; drive the real `GamePanel` under `xvfb-run`
   with a Python that has tkinter when a change touches UI flow.
 

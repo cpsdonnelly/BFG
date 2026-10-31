@@ -259,3 +259,28 @@ def test_squadron_group_excludes_a_ship_out_of_coherency():
     assert sorted(s.id for s in squadron_group(a, ships)) == ["a", "b"]
     assert [s.id for s in squadron_group(far, ships)] == ["far"]
     assert [s.id for s in squadron_group(make_ship(id="solo"), ships)] == ["solo"]
+
+
+def test_squadron_fire_preview_lists_eligible_in_order_and_says_why_not():
+    from src.combat import squadron_fire_preview
+    weapon = {"name": "Battery", "weapon_type": "battery", "strength": 4,
+              "range_cm": 30, "arcs": ["front", "left", "right"]}
+    att = make_ship(id="att", player=1, x=50.0, y=50.0, heading=0.0)
+    closing = make_ship(id="A", player=2, ship_type="escort", x=57.0, y=50.0,
+                        heading=180.0, squadron_id="sq")
+    abeam = make_ship(id="B", player=2, ship_type="escort", x=50.0, y=58.0,
+                      heading=0.0, squadron_id="sq")
+    behind = make_ship(id="C", player=2, ship_type="escort", x=40.0, y=50.0,
+                       heading=0.0, squadron_id="sq")          # in the rear arc
+    group = [closing, abeam, behind]
+
+    at_closing = squadron_fire_preview(att, weapon, group, "closing")
+    assert [m.id for m in at_closing["eligible"]] == ["A"]
+    assert {m.id: r for m, r in at_closing["ineligible"]}["B"] == "abeam: harder than closing"
+
+    at_abeam = squadron_fire_preview(att, weapon, group, "abeam")
+    assert [m.id for m in at_abeam["eligible"]] == ["A", "B"]          # nearest first
+    assert [(m.id, r) for m, r in at_abeam["ineligible"]] == [("C", "out of arc")]
+
+    lances = squadron_fire_preview(att, dict(weapon, weapon_type="lance"), group)
+    assert [m.id for m in lances["eligible"]] == ["A", "B"]           # aspect ignored

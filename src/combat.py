@@ -635,29 +635,46 @@ def squadron_group(target: Ship, all_ships: List[Ship]) -> List[Ship]:
     return [target]
 
 
-def eligible_squadron_targets(attacker: Ship, weapon: Dict, group: List[Ship],
-                              orientation: Optional[str] = None,
-                              phenomena: list = None, blast_markers: list = None,
-                              range_cap: Optional[float] = None) -> List[Ship]:
-    """Members of a targeted squadron this weapon can hit, nearest first: in arc,
-    in range and line of sight, and (for gunnery) not presenting a harder aspect
-    than the one fired at."""
+def squadron_fire_preview(attacker: Ship, weapon: Dict, group: List[Ship],
+                          orientation: Optional[str] = None,
+                          phenomena: list = None, blast_markers: list = None,
+                          range_cap: Optional[float] = None) -> Dict:
+    """Which members of a targeted squadron this weapon can hit, and why not.
+
+    Returns {"eligible": [ships nearest first], "ineligible": [(ship, reason)]}.
+    A member is eligible if it is in arc, in range and line of sight, and (for
+    gunnery, when an orientation is given) not presenting a harder aspect than
+    the one fired at (core rules s.5).
+    """
     allowed = eligible_orientations(orientation) if orientation else None
     max_range = weapon.get("range_cm", 999)
     if range_cap is not None:
         max_range = min(max_range, range_cap)
-    eligible = []
-    for m in group:
-        if allowed is not None and attacker.get_target_orientation(m) not in allowed:
+    eligible, ineligible = [], []
+    for m in sorted(group, key=attacker.distance_to):
+        aspect = attacker.get_target_orientation(m)
+        if allowed is not None and aspect not in allowed:
+            reason = f"{aspect.replace('_', ' ')}: harder than {orientation.replace('_', ' ')}"
+        elif not check_weapon_in_arc(attacker, weapon, m.x, m.y):
+            reason = "out of arc"
+        elif attacker.distance_to(m) > max_range:
+            reason = "out of range"
+        elif not check_los_clear(attacker, m, phenomena or [], blast_markers or []).get("clear", True):
+            reason = "no line of sight"
+        else:
+            eligible.append(m)
             continue
-        if not check_weapon_in_arc(attacker, weapon, m.x, m.y):
-            continue
-        if attacker.distance_to(m) > max_range:
-            continue
-        if not check_los_clear(attacker, m, phenomena or [], blast_markers or []).get("clear", True):
-            continue
-        eligible.append(m)
-    return sorted(eligible, key=attacker.distance_to)
+        ineligible.append((m, reason))
+    return {"eligible": eligible, "ineligible": ineligible}
+
+
+def eligible_squadron_targets(attacker: Ship, weapon: Dict, group: List[Ship],
+                              orientation: Optional[str] = None,
+                              phenomena: list = None, blast_markers: list = None,
+                              range_cap: Optional[float] = None) -> List[Ship]:
+    """Members of a targeted squadron this weapon can hit, nearest first."""
+    return squadron_fire_preview(attacker, weapon, group, orientation, phenomena,
+                                 blast_markers, range_cap)["eligible"]
 
 
 def fire_at_squadron(attacker: Ship, weapon: Dict, target: Ship, group: List[Ship],

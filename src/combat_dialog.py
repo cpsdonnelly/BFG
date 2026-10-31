@@ -4,7 +4,35 @@ from tkinter import messagebox
 
 from .models import Ship, SpecialOrder
 from .combat import (resolve_batteries, resolve_lances, resolve_nova_cannon,
-                     apply_damage, check_los_clear)
+                     apply_damage, check_los_clear, squadron_group,
+                     squadron_fire_preview, fire_at_squadron)
+
+
+class _Tooltip:
+    """Small hover tooltip whose text is computed when it is shown."""
+
+    def __init__(self, widget, text_fn):
+        self.widget, self.text_fn, self.tip = widget, text_fn, None
+        widget.bind("<Enter>", self._show, add="+")
+        widget.bind("<Leave>", self._hide, add="+")
+
+    def _show(self, _event=None):
+        text = self.text_fn()
+        if not text or self.tip:
+            return
+        x = self.widget.winfo_rootx() + 10
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 2
+        self.tip = tk.Toplevel(self.widget)
+        self.tip.wm_overrideredirect(True)
+        self.tip.wm_geometry(f"+{x}+{y}")
+        tk.Label(self.tip, text=text, justify=tk.LEFT, bg="#FFFFE0", fg="#000000",
+                 relief=tk.SOLID, borderwidth=1, font=("Consolas", 8),
+                 padx=4, pady=2).pack()
+
+    def _hide(self, _event=None):
+        if self.tip:
+            self.tip.destroy()
+            self.tip = None
 
 
 # ---------------------------------------------------------------------------
@@ -117,13 +145,18 @@ class _FireDialog:
                 elif not in_range:
                     status = " [OUT OF RANGE]"
                 target_options.append(
-                    f"{e.name} ({dist:.0f}cm {arc.value}){status}")
+                    f"{e.name} ({dist:.0f}cm {arc.value})"
+                    f"{'' if status else self._squadron_note(weapon, e, ast_range_cap)}"
+                    f"{status}")
 
             self.target_options_per_weapon[w_idx] = list(target_options)
             target_var = tk.StringVar(value=target_options[0] if target_options else "")
             target_menu = tk.OptionMenu(row, target_var, *target_options)
             target_menu.config(font=("Consolas", 7), width=25)
             target_menu.pack(side=tk.RIGHT)
+            _Tooltip(target_menu,
+                     lambda w=weapon, v=target_var, c=ast_range_cap:
+                     self._squadron_tooltip(w, v.get(), c))
 
             self.weapon_assignments.append(
                 (w_idx, weapon, enabled, target_var, str_var, avail_str))
@@ -157,6 +190,51 @@ class _FireDialog:
         self.fire_log.config(state=tk.DISABLED)
 
     # ----------------------------------------------------------- fire logic --
+
+    # ------------------------------------------------------ squadron info --
+
+    def _squadron_preview(self, weapon, target, range_cap):
+        """(group, aspect, preview) if target is in a squadron, else None."""
+        if weapon.get("weapon_type") not in ("battery", "lance"):
+            return None
+        group = squadron_group(target, self.ctx.gs.get_ships())
+        if len(group) < 2:
+            return None
+        aspect = (self.attacker.get_target_orientation(target)
+                  if weapon.get("weapon_type") == "battery" else None)
+        preview = squadron_fire_preview(self.attacker, weapon, group, aspect,
+                                        self.ctx.gs.get_phenomena(),
+                                        self.blast_markers, range_cap)
+        return group, aspect, preview
+
+    def _squadron_note(self, weapon, target, range_cap):
+        info = self._squadron_preview(weapon, target, range_cap)
+        if not info:
+            return ""
+        group, aspect, preview = info
+        reach = f"hits can go to {len(preview['eligible'])}/{len(group)} squadron members"
+        return f" [{aspect.replace('_', ' ')}: {reach}]" if aspect else f" [{reach}]"
+
+    def _squadron_tooltip(self, weapon, target_str, range_cap):
+        target = self._resolve_target(weapon, target_str)
+        info = target and self._squadron_preview(weapon, target, range_cap)
+        if not info:
+            return ""
+        group, aspect, preview = info
+        if aspect:
+            lines = [f"{target.name} is in a squadron: you fire at its "
+                     f"{aspect.replace('_', ' ')} aspect.",
+                     "Easier aspects roll more dice; harder ones let hits reach more ships."]
+        else:
+            lines = [f"{target.name} is in a squadron. Lances ignore target aspect."]
+        lines.append("Hits go nearest first, each ship until destroyed:")
+        for i, m in enumerate(preview["eligible"], 1):
+            m_aspect = self.attacker.get_target_orientation(m).replace("_", " ")
+            lines.append(f"  {i}. {m.name} ({m_aspect}, "
+                         f"{self.attacker.distance_to(m):.0f}cm)")
+        for m, reason in preview["ineligible"]:
+            lines.append(f"  x  {m.name}: can't be hit ({reason})")
+        return "\n".join(lines)
 
     def _resolve_target(self, weapon, target_str):
         """Return (target_ship, fire_str, avail_str) from widget state, or None."""
@@ -217,6 +295,27 @@ class _FireDialog:
             wtype = weapon.get("weapon_type", "")
             phenomena = self.ctx.gs.get_phenomena()
             fire_weapon = {**weapon, "strength": fire_str}
+
+            # A ship in a squadron can't be picked out: picking it fires at
+            # the squadron at that ship's aspect, hits nearest first (s.5)
+            group = squadron_group(target, self.ctx.gs.get_ships())
+            if len(group) > 1 and wtype in ("battery", "lance"):
+                def _apply_to(member, n):
+                    fresh = self.ctx.gs.get_ship_by_id(member.id)
+                    if not fresh or fresh.is_destroyed:
+                        return n, True
+                    self._log(f"  >> {fresh.name}: {n} hits")
+                    return self.panel._apply_hits_to_target(
+                        self.attacker, fresh, n, self._log)
+
+                sr, _ = fire_at_squadron(
+                    self.attacker, fire_weapon, target, group, self.ctx.dice,
+                    _apply_to, self.lock_on, self.blast_markers, phenomena,
+                    self.ctx.gs.ships, no_column_shifts=self.in_asteroid_field,
+                    range_cap=10 if self.in_asteroid_field else None)
+                self._log(f"  {sr.description} — squadron takes {sr.hits} hit(s)")
+                fired_weapon_indices.append((w_idx, fire_str, avail_str))
+                continue
 
             if wtype == "battery":
                 sr = resolve_batteries(
