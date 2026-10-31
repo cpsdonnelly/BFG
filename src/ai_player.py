@@ -23,6 +23,7 @@ from .combat import (
     squadron_group, fire_at_squadron, weapon_fire_pool, shot_weapon,
 )
 from .ordnance import (launch_torpedoes, launch_attack_craft,
+                       bay_launch_capacity, fleet_craft_slots,
                        TORPEDO_SPEED_DEFAULT)
 
 
@@ -580,21 +581,28 @@ class AIPlayer:
                     ship = gs.get_ship_by_id(ship.id)
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
-                craft_types = weapon.get("craft_types", [])
+                # All of the ship's bays launch together: launching any craft
+                # means reloading before launching again (s.12)
+                bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+                craft_types = [ct for w in bays for ct in w.get("craft_types", [])]
                 if not craft_types:
                     continue
                 enemy_ord = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
                              if o["owner_player"] != self.player]
+                multi_role = ("thunderhawk", "fighta_bommer", "gun_cutter")
                 if enemy_ord and self.difficulty != "easy":
-                    preferred = next(
-                        (ct for ct in craft_types if ct in ("fury_fighter", "barracuda")),
-                        craft_types[0])
+                    wanted = multi_role + ("fury_fighter", "barracuda", "fighter")
                 else:
-                    preferred = next(
-                        (ct for ct in craft_types if ct in ("starhawk_bomber", "manta")),
-                        craft_types[0])
-                count = weapon.get("strength", 1)
-                launch_attack_craft(ship, weapon, preferred, count, gs)
+                    wanted = multi_role + ("starhawk_bomber", "manta", "bomber")
+                preferred = next((ct for ct in wanted if ct in craft_types), craft_types[0])
+                count, roll_log = bay_launch_capacity(ship, bays, self.dice)
+                for line in roll_log:
+                    gs.add_log(f"[AI] {line}")
+                count = min(count, fleet_craft_slots(gs, self.player))
+                if count > 0:
+                    launch_attack_craft(ship, next(w for w in bays if preferred in
+                                                   w.get("craft_types", [])),
+                                        preferred, count, gs)
                 ship = gs.get_ship_by_id(ship.id)
 
     # ── Auto repair (for end phase) ──────────────────────────────────────────

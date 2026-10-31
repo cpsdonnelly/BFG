@@ -872,13 +872,17 @@ class BoardView:
                 self.canvas.create_text(sx, sy, text="M",
                                          fill="white", font=("Consolas", 9, "bold"))
 
-            elif otype == "assault_boat":
+            elif otype in ("assault_boat", "thunderhawk", "gun_cutter", "fighta_bommer"):
+                # Assault boats and multi-role craft: 20mm square with a label
                 hs = self.cm_to_pixels(1.0)
                 pts = self._rotate_polygon(
                     [(-hs, -hs), (hs, -hs), (hs, hs), (-hs, hs)],
                     heading_rad, sx, sy)
-                self.canvas.create_polygon(pts, fill=fill, outline=outline, width=1)
-                self.canvas.create_text(sx, sy, text="AB",
+                self.canvas.create_polygon(pts, fill=fill, outline=outline,
+                                           width=1 if otype == "assault_boat" else 2)
+                label = {"assault_boat": "AB", "thunderhawk": "TH",
+                         "gun_cutter": "GC", "fighta_bommer": "FB"}[otype]
+                self.canvas.create_text(sx, sy, text=label,
                                          fill="white", font=("Consolas", 7, "bold"))
 
             elif otype == "mine_field":

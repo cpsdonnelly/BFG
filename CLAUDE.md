@@ -25,7 +25,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
   `src/booklet_ships.py`: all 9 factions, 174 ships. Ships using rules the engine can't play yet
-  (Zzapp Gunz, Bombardment Cannons, multi-role craft, special movement, random launch bays...) are
+  (Zzapp Gunz, Killkannons, Bombardment Cannons, special movement, fortress weapons...) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
   ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
 
@@ -73,9 +73,18 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - **Splitting Heavy Gunz** between a target within 15cm and one further away shares the worse
   (15cm+) firepower, like target aspects with squadrons: a worse value may be used against an
   easier target, never a better one against a harder target.
+- **"5+ / 4+R" armour** (Tau Explorer) is 5+ everywhere except the rear quadrant, 4+.
+  Three-value armour (Ork cruisers 6+/5+/4+) is front / abeam / rear (`Ship.armor_vs`).
 - **Random Ork firepower/strength is rolled when used:** direct fire when the weapon fires
   (the target may still brace before damage is rolled), ordnance just before launching.
   `combat.weapon_fire_pool` fixes a weapon's pool on its first shot of the turn.
+
+### Open questions for the owner
+
+- **Ork Fighta-Bommerz** are played as fighter + bomber. The booklet calls them "multi-role"
+  with D3+1 attacks and no turret suppression, but doesn't list their roles.
+- **Attack craft movement:** craft fly straight along their launch heading; nobody can steer
+  them yet (s.15 lets them turn freely up to their speed).
 
 ## Running and testing
 

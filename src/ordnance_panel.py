@@ -6,7 +6,8 @@ import math
 from .models import (Ship, SpecialOrder, OrdnanceMarker, OrdnanceType,
                      signed_angle_diff)
 from .ordnance import (TORPEDO_SPEED_DEFAULT, torpedo_ordnance_type, craft_stats,
-                       torpedo_split_error, torpedo_launch_strength)
+                       torpedo_split_error, torpedo_launch_strength,
+                       bay_launch_capacity, craft_roles)
 from .game_context import GameContext
 from .ordnance_movement import OrdnanceMovementMixin
 
@@ -438,6 +439,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "shark_assault_boat": "Shark Assault Boats",
                 "fighter": "Fighters", "bomber": "Bombers",
                 "assault_boat": "Assault Boats",
+                "thunderhawk": "Thunderhawks (fighter/bomber/assault, 4+ resilient)",
+                "gun_cutter": "Gun-Cutters (fighter/assault, 4+ resilient)",
+                "fighta_bommer": "Fighta-Bommerz (fighter/bomber, D3+1 attacks)",
             }
             for ct in sorted(available_types):
                 row = tk.Frame(comp_frame)
@@ -534,6 +538,19 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 current_remaining = max(
                     0, self._get_player_bay_capacity(player)
                        - self._count_active_craft(player))
+                # One squadron per bay of the contributing ships; random bay
+                # strengths are rolled now (s.15)
+                group_cap = 0
+                for c in contributors:
+                    if not c.ordnance_loaded_craft:
+                        continue
+                    cap, roll_log = bay_launch_capacity(
+                        c, [w for w in c.weapons if w.get("weapon_type") == "launch_bay"],
+                        self.ctx.dice)
+                    group_cap += cap
+                    for line in roll_log:
+                        self.ctx.log(line)
+                current_remaining = min(current_remaining, group_cap)
                 total_launched = 0
 
                 for ct, var in composition_vars.items():
@@ -982,7 +999,13 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 for ct in w.get("craft_types", w.get("craft", [])):
                     available_types.add(ct)
 
-            bay_cap_label = f"This ship can launch: {total_bays} squadrons"
+            dice_bays = [w for w in bay_weapons if w.get("strength_dice")]
+            if dice_bays:
+                bay_cap_label = (f"This ship can launch: up to {total_bays} squadrons "
+                                 f"({', '.join(w['strength_dice'] for w in dice_bays)} "
+                                 f"rolled at launch)")
+            else:
+                bay_cap_label = f"This ship can launch: {total_bays} squadrons"
             if bay_halve_reasons:
                 bay_cap_label += f" [{', '.join(bay_halve_reasons)}]"
             if fleet_remaining < sum(w["strength"] for w in bay_weapons):
@@ -1003,6 +1026,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "shark_assault_boat": "Shark Assault Boats",
                 "fighter": "Fighters", "bomber": "Bombers",
                 "assault_boat": "Assault Boats",
+                "thunderhawk": "Thunderhawks (fighter/bomber/assault, 4+ resilient)",
+                "gun_cutter": "Gun-Cutters (fighter/assault, 4+ resilient)",
+                "fighta_bommer": "Fighta-Bommerz (fighter/bomber, D3+1 attacks)",
             }
             composition_vars = {}
             comp_frame = tk.Frame(bay_frame)
@@ -1144,6 +1170,11 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         "their mission before more can be launched.")
                     return
 
+                # One squadron per bay; random bay strengths rolled now (s.15)
+                ship_cap, roll_log = bay_launch_capacity(ship, bay_weapons, self.ctx.dice)
+                for line in roll_log:
+                    self.ctx.log(line)
+                allowed = min(ship_cap, current_remaining)
                 total_launched = 0
 
                 import random as _rng
@@ -1157,16 +1188,16 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
                     o_type, spd, resil = craft_stats(ct, bay_weapons)
 
-                    # CAP only applies to fighter-type craft; bombers (incl. Manta) cannot CAP
-                    fighter_types = (OrdnanceType.FIGHTER.value,
-                                     OrdnanceType.BARRACUDA.value)
-                    if cap_var.get() and o_type not in fighter_types:
+                    # CAP only applies to craft that can act as fighters (incl.
+                    # multi-role craft, s.21); bombers (incl. Manta) cannot CAP
+                    can_cap = "fighter" in craft_roles(o_type)
+                    if cap_var.get() and not can_cap:
                         messagebox.showerror(
                             "Bombers Cannot CAP",
                             "Bombers cannot be assigned to Combat Air Patrol.\n"
                             "Only fighters may perform CAP.")
                         return
-                    assign_cap = cap_var.get() and o_type in fighter_types
+                    assign_cap = cap_var.get() and can_cap
                     protect_id = cap_ship_id_map.get(
                         cap_protect_var.get(), ship.id) if assign_cap else ""
                     protect_pos = cap_ship_pos_map.get(
@@ -1186,8 +1217,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                             return
 
                     for i in range(count):
-                        if total_launched >= current_remaining:
-                            break  # fleet cap reached mid-launch
+                        if total_launched >= allowed:
+                            break  # this ship's bays (or the fleet cap) used up
                         px = protect_pos[0] + (i - count / 2) * 1.5
                         py = protect_pos[1]
                         marker = OrdnanceMarker(
@@ -1212,10 +1243,12 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         "Set at least one craft type to a non-zero count")
                     return
 
-                if total_launched > total_bays:
-                    messagebox.showwarning("Over Capacity",
-                        f"Launched {total_launched} but only have {total_bays} bays. "
-                        f"Excess will be placed anyway.")
+                wanted = sum(int(v.get()) for v in composition_vars.values()
+                             if v.get().strip().isdigit())
+                if wanted > total_launched:
+                    self.ctx.log(f"  Only {total_launched} of {wanted} squadrons launched "
+                                 f"(this ship's bays: {ship_cap}, fleet slots: "
+                                 f"{current_remaining})")
 
                 ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
                 if ship_fresh:

@@ -28,17 +28,10 @@ class OrdnanceMovementMixin:
     def _count_active_craft(self, player: int) -> int:
         """Count attack craft markers currently on the board for player.
         Mines are excluded — they behave like torpedoes, not attack craft."""
-        craft_types = {
-            OrdnanceType.FIGHTER.value,
-            OrdnanceType.BOMBER.value,
-            OrdnanceType.MANTA.value,
-            OrdnanceType.BARRACUDA.value,
-            OrdnanceType.ASSAULT_BOAT.value,
-            OrdnanceType.TORPEDO_BOMBER.value,
-        }
+        from .ordnance import ATTACK_CRAFT_TYPES
         return sum(1 for o in self.ctx.gs.ordnance
                    if o.get("owner_player") == player
-                   and o.get("ordnance_type") in craft_types)
+                   and o.get("ordnance_type") in ATTACK_CRAFT_TYPES)
 
     def _update_cap_positions(self):
         """Sync CAP fighters to their parent ship's current position."""
@@ -160,6 +153,53 @@ class OrdnanceMovementMixin:
                 self.ctx.log(f"  Boarding torpedoes Str {marker.strength} turn "
                              f"{deg:+.0f}° to heading {marker.heading:.0f}°")
 
+    def _choose_mr_attack_modes(self, ships, removed) -> dict:
+        """{marker id: "bomber" | "assault_boat"} for multi-role craft touching an
+        enemy ship. Craft with only one attacking role use it; craft that can do
+        both attack the same way as the rest of their wave on that ship (s.21):
+        the owner chooses (the AI raids ships with 3+ turrets, else bombs)."""
+        from .geometry import circle_touches_square
+        from .ordnance import craft_roles, MULTI_ROLE_TYPES, mr_attack_mode_ai
+        gs = self.ctx.gs
+        modes, groups = {}, {}
+        for o in gs.ordnance:
+            m = OrdnanceMarker.from_dict(o)
+            if m.id in removed or m.ordnance_type not in MULTI_ROLE_TYPES:
+                continue
+            roles = craft_roles(m.ordnance_type)
+            can_bomb = "bomber" in roles
+            can_raid = "assault_boat" in roles and gs.rule_hit_and_run
+            if not (can_bomb or can_raid):
+                continue
+            target = next((s for s in ships
+                           if s.player != m.owner_player
+                           and not s.is_destroyed and not s.is_disengaged
+                           and s.status not in ("drifting_hulk", "burning_hulk")
+                           and circle_touches_square(s.x, s.y, s.base_radius,
+                                                     m.x, m.y, m.heading)), None)
+            if target is None:
+                continue
+            if can_bomb and can_raid:
+                groups.setdefault((target.id, m.owner_player), (target, []))[1].append(m)
+            else:
+                modes[m.id] = "bomber" if can_bomb else "assault_boat"
+        for (_sid, owner), (target, ms) in groups.items():
+            names = ms[0].ordnance_type.replace("_", " ").title()
+            if self.ctx.is_ai_controlled(owner):
+                mode = mr_attack_mode_ai(target)
+            else:
+                mode = "bomber" if messagebox.askyesno(
+                    "Multi-role Attack Craft",
+                    f"{len(ms)} {names} squadron(s) attack {target.name} "
+                    f"({target.effective_turrets} turrets).\n\n"
+                    f"Attack as BOMBERS? (No = as assault boats, hit-and-run raids)",
+                    parent=self.ctx.root) else "assault_boat"
+            self.ctx.log(f"  {len(ms)} {names} attack {target.name} as "
+                         f"{'bombers' if mode == 'bomber' else 'assault boats'}")
+            for m in ms:
+                modes[m.id] = mode
+        return modes
+
     def _resolve_ordnance_movement(self):
         """Move all ordnance markers in the ordnance phase.
         Order: degrade Tau missiles, move all, blast checks,
@@ -171,7 +211,7 @@ class OrdnanceMovementMixin:
                                 check_ordnance_vs_blast,
                                 check_ordnance_vs_phenomena,
                                 resolve_ordnance_interactions,
-                                resolve_bomber_interception)
+                                resolve_bomber_interception, attacks_ships)
         from .geometry import circle_touches_square
 
         self.ctx.log("--- Ordnance Movement ---")
@@ -262,9 +302,7 @@ class OrdnanceMovementMixin:
             # Collect enemy attacking craft currently contacting this ship
             wave = [
                 m for m in live_ordnance
-                if m.ordnance_type in (OrdnanceType.BOMBER.value,
-                                       OrdnanceType.MANTA.value,
-                                       OrdnanceType.ASSAULT_BOAT.value)
+                if attacks_ships(m.ordnance_type)
                 and m.owner_player != s.player
                 and m.id not in to_remove
                 and circle_touches_square(s.x, s.y, s.base_radius,
@@ -281,6 +319,10 @@ class OrdnanceMovementMixin:
                     f"  Phase 1: {m.ordnance_type} [{m.id[:8]}] destroyed by interception")
                 to_remove_after.add(m.id)
 
+        # Multi-role craft that can attack as bombers or assault boats choose
+        # now, after the turrets have fired, one way per wave (s.21)
+        mr_modes = self._choose_mr_attack_modes(ships, to_remove_after)
+
         # Per-marker ship contact resolution
         for o_dict in list(self.ctx.gs.ordnance):
             marker = OrdnanceMarker.from_dict(o_dict)
@@ -288,9 +330,11 @@ class OrdnanceMovementMixin:
                 continue
 
             is_torp = is_torpedo_salvo(marker)
-            is_bomber = marker.ordnance_type in (
+            is_bomber = (marker.ordnance_type in (
                 OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
-            is_assault_boat = marker.ordnance_type == OrdnanceType.ASSAULT_BOAT.value
+                or mr_modes.get(marker.id) == "bomber")
+            is_assault_boat = (marker.ordnance_type == OrdnanceType.ASSAULT_BOAT.value
+                               or mr_modes.get(marker.id) == "assault_boat")
 
             if is_torp:
                 # Torpedoes attack ANY ship they contact (friend or foe), except

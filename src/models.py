@@ -57,6 +57,10 @@ class OrdnanceType(str, Enum):
     BOMBER = "bomber"
     ASSAULT_BOAT = "assault_boat"
     TORPEDO_BOMBER = "torpedo_bomber"
+    # Multi-role attack craft (s.21); roles in ordnance.MR_ROLES
+    THUNDERHAWK = "thunderhawk"           # Space Marines / Grey Knights
+    GUN_CUTTER = "gun_cutter"             # Inquisition
+    FIGHTA_BOMMER = "fighta_bommer"       # Orks
     MANTA = "manta"           # Tau: resilient bomber (NOT a fighter)
     BARRACUDA = "barracuda"   # Tau: fighter
     MINE_FIELD = "mine_field" # Static hazard; detonates on ship contact

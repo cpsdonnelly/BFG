@@ -58,7 +58,11 @@ ARC_CODES = {"L": ["left"], "R": ["right"], "F": ["front"], "Rear": ["rear"],
 # rules name them (Imperial Navy: Fury, Starhawk, Shark; Tau: Barracuda, Manta).
 _IN_CRAFT = {"ASF": "fury_fighter", "BMR": "starhawk_bomber", "AB": "shark_assault_boat"}
 _TAU_CRAFT = {"ASF": "barracuda", "BMR": "manta"}
-GENERIC_CRAFT = {"ASF": "fighter", "BMR": "bomber", "AB": "assault_boat"}
+GENERIC_CRAFT = {"ASF": "fighter", "BMR": "bomber", "AB": "assault_boat",
+                 "Gun-Cutters": "gun_cutter"}
+# Multi-role craft (MR) by faction, as the faction rules name them
+MR_CRAFT = {"Space Marines": "thunderhawk", "Inquisition & Grey Knights": "thunderhawk",
+            "Orks": "fighta_bommer"}
 
 
 def _ship_type(row: dict) -> Optional[str]:
@@ -91,9 +95,14 @@ def _armour(row: dict) -> Optional[Tuple[str, str, str]]:
     a = row.get("armour")
     if a and a.get("front") is not None and a.get("other") is not None:
         return f"{a['front']}+", f"{a['other']}+", ""
-    m = re.fullmatch(r"(\d)\+\s*/\s*(\d)\+\s*/\s*(\d)\+", (row.get("armour_raw") or "").strip())
+    raw = (row.get("armour_raw") or "").strip()
+    m = re.fullmatch(r"(\d)\+\s*/\s*(\d)\+\s*/\s*(\d)\+", raw)
     if m:
         return f"{m.group(1)}+", f"{m.group(2)}+", f"{m.group(3)}+"
+    # Owner ruling: "5+ / 4+R" is 5+ everywhere except the rear quadrant (4+)
+    m = re.fullmatch(r"(\d)\+\s*/\s*(\d)\+R", raw)
+    if m:
+        return f"{m.group(1)}+", f"{m.group(1)}+", f"{m.group(2)}+"
     return None
 
 
@@ -128,15 +137,25 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
         for bay in w["bays"]:
             side = {"port": "Port", "stbd": "Starboard", "prow": "Prow",
                     "dorsal": "Dorsal"}.get(bay.get("side") or "", "")
+            strength_dice = None
             try:
                 strength = int(bay["strength"])
             except (TypeError, ValueError):
-                problems.append(f"launch bay strength {bay['strength']} not modelled yet")
-                continue
-            out.append({"name": f"{side} Launch Bays".strip(), "weapon_type": "launch_bay",
-                        "range_cm": 30, "strength": strength, "arcs": [],
-                        "craft_types": list(craft_types), "craft_speeds": dict(speeds),
-                        "craft_speed": max(speeds.values()) if speeds else 0})
+                from .combat import is_dice_value, dice_value_max
+                if not is_dice_value(str(bay["strength"])):
+                    problems.append(f"launch bay strength {bay['strength']} not modelled yet")
+                    continue
+                # Random strength: rolled just before launching (owner ruling);
+                # counts its maximum towards the fleet's attack craft limit (s.12)
+                strength_dice = str(bay["strength"]).replace(" ", "").upper()
+                strength = dice_value_max(strength_dice)
+            bay_d = {"name": f"{side} Launch Bays".strip(), "weapon_type": "launch_bay",
+                     "range_cm": 30, "strength": strength, "arcs": [],
+                     "craft_types": list(craft_types), "craft_speeds": dict(speeds),
+                     "craft_speed": max(speeds.values()) if speeds else 0}
+            if strength_dice:
+                bay_d["strength_dice"] = strength_dice
+            out.append(bay_d)
         return out
 
     wtype = WEAPON_TYPES.get(w["name"])
@@ -211,11 +230,13 @@ def convert_row(row: dict) -> dict:
         problems.append(f"no weapon profile ({row.get('armament_raw')})")
 
     if row["faction"] == "Imperial Navy":
-        craft_map = _IN_CRAFT
+        craft_map = dict(_IN_CRAFT)
     elif row["faction"] == "Tau & Allies" and "demiurg" not in (row.get("roster_group") or "").lower():
-        craft_map = _TAU_CRAFT
+        craft_map = dict(_TAU_CRAFT)
     else:
         craft_map = {}
+    if row["faction"] in MR_CRAFT:
+        craft_map["MR"] = MR_CRAFT[row["faction"]]
     weapons = [d for w in row["weapons"] for d in _convert_weapon(w, craft_map, problems)]
 
     notes = row.get("notes") or ""

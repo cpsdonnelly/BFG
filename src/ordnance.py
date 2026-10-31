@@ -373,7 +373,17 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
     # Base turrets only — massed turret bonus does NOT apply to bomber attack reduction
     turret_reduction = target.effective_turrets
 
-    if suppressed_by_fighter:
+    if marker.ordnance_type == OrdnanceType.FIGHTA_BOMMER.value:
+        # Ork rules: Fighta-Bommerz make only D3+1 attacks per squadron, and
+        # turrets cannot reduce them below 1 (Ork pilots always try to ram)
+        target.turrets_used_vs = "craft"
+        game_state.update_ship(target)
+        roll = dice.roll_d3(f"Fighta-Bommerz attacks on {target.name} (D3+1)")
+        total_attacks = max(1, roll + 1 - turret_reduction)
+        result["turret_reduction"] = turret_reduction
+        game_state.add_log(f"  Fighta-Bommerz: D3+1 = {roll + 1} - {turret_reduction} "
+                           f"turrets = {total_attacks} attack(s) (minimum 1)")
+    elif suppressed_by_fighter:
         # XR mode: fighter suppression gives this bomber exactly 3 attacks, ignoring turrets
         total_attacks = 3
         result["suppressed"] = True
@@ -495,10 +505,7 @@ def is_fighter_type(marker: OrdnanceMarker) -> bool:
 
     Mantas are bombers (resilient), not fighters — they do not intercept.
     """
-    return marker.ordnance_type in (
-        OrdnanceType.FIGHTER.value,
-        OrdnanceType.BARRACUDA.value,
-    )
+    return "fighter" in craft_roles(marker.ordnance_type)
 
 
 def is_torpedo_salvo(marker: OrdnanceMarker) -> bool:
@@ -648,6 +655,7 @@ def check_ordnance_vs_blast(marker: OrdnanceMarker,
 
 _TORP_LIKE = {
     OrdnanceType.TORPEDO_STANDARD.value,
+    OrdnanceType.TORPEDO_BOARDING.value,
     OrdnanceType.TORPEDO_GUIDED.value,
     OrdnanceType.TORPEDO_BOARDING_GUIDED.value,
     OrdnanceType.MINE_FIELD.value,
@@ -660,6 +668,9 @@ _ATTACK_CRAFT = {
     OrdnanceType.TORPEDO_BOMBER.value,
     OrdnanceType.MANTA.value,
     OrdnanceType.BARRACUDA.value,
+    OrdnanceType.THUNDERHAWK.value,
+    OrdnanceType.GUN_CUTTER.value,
+    OrdnanceType.FIGHTA_BOMMER.value,
 }
 
 # Ordnance types that navigate around planets (no auto-destroy on planet contact).
@@ -882,7 +893,39 @@ CRAFT_STATS = {
     "fighter": (OrdnanceType.FIGHTER.value, 30, 0),
     "bomber": (OrdnanceType.BOMBER.value, 20, 0),
     "assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+    # Multi-role craft (s.21)
+    "thunderhawk": (OrdnanceType.THUNDERHAWK.value, 20, 4),
+    "gun_cutter": (OrdnanceType.GUN_CUTTER.value, 20, 4),
+    "fighta_bommer": (OrdnanceType.FIGHTA_BOMMER.value, 25, 0),
 }
+
+# What each attack craft type can act as. Multi-role craft follow the rules of
+# every role they have (s.21): Thunderhawks fighter/bomber/assault boat (Space
+# Marine rules), Gun-Cutters fighter + assault boat (Inquisition rules),
+# Fighta-Bommerz fighter + bomber (Ork rules: "multi-role", D3+1 attacks).
+CRAFT_ROLES = {
+    OrdnanceType.FIGHTER.value: ("fighter",),
+    OrdnanceType.BARRACUDA.value: ("fighter",),
+    OrdnanceType.BOMBER.value: ("bomber",),
+    OrdnanceType.MANTA.value: ("bomber",),
+    OrdnanceType.ASSAULT_BOAT.value: ("assault_boat",),
+    OrdnanceType.THUNDERHAWK.value: ("fighter", "bomber", "assault_boat"),
+    OrdnanceType.GUN_CUTTER.value: ("fighter", "assault_boat"),
+    OrdnanceType.FIGHTA_BOMMER.value: ("fighter", "bomber"),
+}
+MULTI_ROLE_TYPES = {t for t, r in CRAFT_ROLES.items() if len(r) > 1}
+ATTACK_CRAFT_TYPES = set(CRAFT_ROLES) | {OrdnanceType.TORPEDO_BOMBER.value}
+
+
+def craft_roles(ordnance_type: str) -> Tuple[str, ...]:
+    return CRAFT_ROLES.get(ordnance_type, ())
+
+
+def attacks_ships(ordnance_type: str) -> bool:
+    """Attack craft that must attack enemy ships they contact: bombers and
+    assault boats, including multi-role craft with either role (s.21)."""
+    roles = craft_roles(ordnance_type)
+    return "bomber" in roles or "assault_boat" in roles
 
 
 def craft_stats(craft_type: str, bay_weapons: List[Dict]) -> Tuple[str, float, int]:
@@ -895,6 +938,48 @@ def craft_stats(craft_type: str, bay_weapons: List[Dict]) -> Tuple[str, float, i
             speed = w["craft_speeds"][craft_type]
             break
     return o_type, speed, resilient
+
+
+def bay_launch_capacity(ship: Ship, bay_weapons: List[Dict],
+                        dice: Optional[DiceRoller] = None) -> Tuple[int, List[str]]:
+    """Squadrons this ship may launch now: one per launch bay (s.15). Random bay
+    strengths (strength_dice, e.g. Ork D3+1) are rolled just before launching
+    (owner ruling); then halved (rounding up) if crippled, and again if braced
+    (s.12). Returns (capacity, log lines)."""
+    from .combat import roll_dice_value
+    total, log = 0, []
+    for w in bay_weapons:
+        if w.get("strength_dice") and dice is not None:
+            n = roll_dice_value(w["strength_dice"], dice, f"{ship.name} {w['name']}")
+            log.append(f"{ship.name} {w['name']}: rolled {w['strength_dice']} = {n}")
+            total += n
+        else:
+            total += w.get("strength", 0)
+    if ship.is_crippled:
+        total = (total + 1) // 2
+    if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+        total = (total + 1) // 2
+    return total, log
+
+
+def fleet_craft_slots(game_state: GameState, player: int) -> int:
+    """Attack craft markers the player may still put in play: launch bays
+    remaining in the fleet (random bays count their maximum) minus markers
+    already in play (s.12)."""
+    bays = sum(w.get("strength", 0)
+               for s in game_state.player_ships(player)
+               if not s.is_destroyed and not s.is_disengaged
+               for w in s.weapons if w.get("weapon_type") == "launch_bay")
+    in_play = sum(1 for o in game_state.ordnance
+                  if o.get("owner_player") == player
+                  and o.get("ordnance_type") in ATTACK_CRAFT_TYPES)
+    return max(0, bays - in_play)
+
+
+def mr_attack_mode_ai(target: Ship) -> str:
+    """AI choice for craft that can attack as bombers or assault boats (s.21):
+    raid ships whose turrets would cut bomber attacks down."""
+    return "assault_boat" if target.effective_turrets >= 3 else "bomber"
 
 
 def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
