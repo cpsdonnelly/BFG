@@ -454,72 +454,83 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
     # Apply hull damage
     summary["hull_hits"] = max(0, remaining_hits)
-    was_crippled = target.is_crippled
 
-    hull_hits_applied = 0
-    for i in range(summary["hull_hits"]):
-        hull_hits_applied += 1
-        target.hits_remaining -= 1
+    # Owner ruling: a hulk that takes at least one point of damage rolls on
+    # the Catastrophic Damage table again (no critical hits on a hulk)
+    if target.status in ("drifting_hulk", "burning_hulk"):
+        if summary["hull_hits"] > 0:
+            target.hits_remaining = 0
+            game_state.add_log(f"{target.name} (hulk) takes {summary['hull_hits']} "
+                               f"damage: rolls on the Catastrophic Damage table again")
+            summary["catastrophic"] = resolve_catastrophic(target, dice, game_state)
+            summary["destroyed"] = target.status == "destroyed"
+    else:
+        was_crippled = target.is_crippled
 
-        if target.hits_remaining <= 0:
-            summary["destroyed"] = True
-            break
-
-        # Critical hit check: D6 per hull hit, 6 = crit
-        crit_roll = dice.roll_d6(1, f"Crit check for hit on {target.name}")
-        if crit_roll[0] == 6 and not uses_crit_table(target):
-            # Small escorts/defenses take +1 damage instead of a critical
+        hull_hits_applied = 0
+        for i in range(summary["hull_hits"]):
+            hull_hits_applied += 1
             target.hits_remaining -= 1
-            game_state.add_log(f"Critical on {target.name}: +1 damage")
+
             if target.hits_remaining <= 0:
                 summary["destroyed"] = True
                 break
-        elif crit_roll[0] == 6:
-            crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name}")
-            crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
 
-            if crit_data is None:
-                # All results cascaded off the top of the table
-                game_state.add_log(
-                    f"Critical on {target.name}: rolled {crit_2d6}, "
-                    f"all results cascaded, no effect")
-            else:
-                extra = crit_data["extra_damage"]
-                if extra == "D3":
-                    extra = dice.roll_d3("Hull Breach extra damage")
-                elif extra == "D6":
-                    extra = sum(dice.roll_d6(1, "Bulkhead Collapse extra damage"))
-                elif isinstance(extra, int) and extra > 0:
-                    pass
+            # Critical hit check: D6 per hull hit, 6 = crit
+            crit_roll = dice.roll_d6(1, f"Crit check for hit on {target.name}")
+            if crit_roll[0] == 6 and not uses_crit_table(target):
+                # Small escorts/defenses take +1 damage instead of a critical
+                target.hits_remaining -= 1
+                game_state.add_log(f"Critical on {target.name}: +1 damage")
+                if target.hits_remaining <= 0:
+                    summary["destroyed"] = True
+                    break
+            elif crit_roll[0] == 6:
+                crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name}")
+                crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
 
-                crit_entry = {
-                    "crit_type": crit_data["crit_type"],
-                    "description": crit_data["name"],
-                    "repairable": crit_data["repairable"],
-                    "turn_inflicted": game_state.turn_number,
-                }
-                target.critical_damage.append(crit_entry)
-                summary["crits"].append(crit_data["name"])
+                if crit_data is None:
+                    # All results cascaded off the top of the table
+                    game_state.add_log(
+                        f"Critical on {target.name}: rolled {crit_2d6}, "
+                        f"all results cascaded, no effect")
+                else:
+                    extra = crit_data["extra_damage"]
+                    if extra == "D3":
+                        extra = dice.roll_d3("Hull Breach extra damage")
+                    elif extra == "D6":
+                        extra = sum(dice.roll_d6(1, "Bulkhead Collapse extra damage"))
+                    elif isinstance(extra, int) and extra > 0:
+                        pass
 
-                game_state.add_log(
-                    f"CRITICAL HIT on {target.name}: {crit_data['name']}")
+                    crit_entry = {
+                        "crit_type": crit_data["crit_type"],
+                        "description": crit_data["name"],
+                        "repairable": crit_data["repairable"],
+                        "turn_inflicted": game_state.turn_number,
+                    }
+                    target.critical_damage.append(crit_entry)
+                    summary["crits"].append(crit_data["name"])
 
-                if isinstance(extra, int) and extra > 0:
-                    target.hits_remaining = max(0, target.hits_remaining - extra)
-                    game_state.add_log(f"  Extra damage: {extra} HP")
-                    if target.hits_remaining <= 0:
-                        summary["destroyed"] = True
-                        break
+                    game_state.add_log(
+                        f"CRITICAL HIT on {target.name}: {crit_data['name']}")
 
-                if crit_data["crit_type"] == "bridge_smashed":
-                    target.leadership = max(1, target.leadership - 3)
+                    if isinstance(extra, int) and extra > 0:
+                        target.hits_remaining = max(0, target.hits_remaining - extra)
+                        game_state.add_log(f"  Extra damage: {extra} HP")
+                        if target.hits_remaining <= 0:
+                            summary["destroyed"] = True
+                            break
 
-    if summary["destroyed"]:
-        summary["unused_hits"] = summary["hull_hits"] - hull_hits_applied
+                    if crit_data["crit_type"] == "bridge_smashed":
+                        target.leadership = max(1, target.leadership - 3)
 
-    if not was_crippled and target.is_crippled and not summary["destroyed"]:
-        summary["crippled"] = True
-        game_state.add_log(f"{target.name} is now CRIPPLED")
+        if summary["destroyed"]:
+            summary["unused_hits"] = summary["hull_hits"] - hull_hits_applied
+
+        if not was_crippled and target.is_crippled and not summary["destroyed"]:
+            summary["crippled"] = True
+            game_state.add_log(f"{target.name} is now CRIPPLED")
 
     # Place blast markers for SHIELD hits only (not hull damage)
     # Rules: no overlapping, fan around ship, max 3-5 (small) or 5-8 (large) per turn
@@ -961,7 +972,8 @@ def resolve_explosion(ship: Ship, result: str, dice: DiceRoller,
         if hits:
             apply_damage(other, hits, dice, game_state)
             victim = game_state.get_ship_by_id(other.id)
-            if victim and victim.hits_remaining <= 0:
+            # A hulk already re-rolled inside apply_damage
+            if victim and victim.hits_remaining <= 0 and victim.status == "active":
                 log(f"  {victim.name} is destroyed by the explosion!")
                 log(f"  {victim.name}: "
                     f"{resolve_catastrophic(victim, dice, game_state)}")

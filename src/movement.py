@@ -429,7 +429,7 @@ def _blast_marker_damage(ship: Ship, gs: GameState, dice: DiceRoller) -> bool:
     from .combat import apply_damage, resolve_catastrophic
     gs.add_log(f"{ship.name} takes 1 damage moving through blast markers (no shields)")
     apply_damage(ship, 1, dice, gs, ignores_shields=True)
-    if ship.hits_remaining <= 0:
+    if ship.hits_remaining <= 0 and ship.status == "active":
         resolve_catastrophic(ship, dice, gs)
         return True
     return False

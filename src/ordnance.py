@@ -112,9 +112,14 @@ def is_boarding_torpedo(marker: OrdnanceMarker) -> bool:
 
 def torpedo_valid_target(marker: OrdnanceMarker, ship: Ship) -> bool:
     """Ordnance attacks the first valid target it contacts (s.12). Any ship is a
-    valid target for torpedoes (s.13: friend or foe), except that boarding
-    torpedoes always ignore friendly ships (s.13, Torpedo Types)."""
-    return not (is_boarding_torpedo(marker) and ship.player == marker.owner_player)
+    valid target for torpedoes (s.13: friend or foe), hulks included (a hulk
+    that takes damage rolls catastrophic damage again, owner ruling). Boarding
+    torpedoes always ignore friendly ships and may ignore hulks (s.13, Torpedo
+    Types); here they always pass over hulks, where a raid would do nothing."""
+    if not is_boarding_torpedo(marker):
+        return True
+    return (ship.player != marker.owner_player
+            and ship.status not in ("drifting_hulk", "burning_hulk"))
 
 
 BOARDING_TORP_MAX_TURN = 45.0
@@ -161,10 +166,12 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     result = {"hits": 0, "turret_kills": 0, "remaining_strength": marker.strength,
               "raids": None}
 
-    turrets = target.effective_turrets
+    # A hulk can no longer fight (s.31): no turret fire
+    is_hulk = target.status in ("drifting_hulk", "burning_hulk")
+    turrets = 0 if is_hulk else target.effective_turrets
 
     # Massed turrets: +1 per non-crippled friendly ship in base contact (max +3)
-    if all_ships:
+    if all_ships and not is_hulk:
         bonus = get_massed_turret_bonus(target, all_ships)
         if bonus > 0:
             turrets += bonus

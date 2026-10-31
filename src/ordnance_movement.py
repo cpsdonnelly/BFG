@@ -299,13 +299,13 @@ class OrdnanceMovementMixin:
                 for s in ships:
                     if s.is_destroyed or s.is_disengaged:
                         continue
-                    if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
+                    if s.status == "destroyed":
                         continue
                     if (s.id in (marker.launch_exempt_ships or [])
                             and marker.launched_turn == self.ctx.gs.turn_number):
                         continue
                     if not torpedo_valid_target(marker, s):
-                        continue   # boarding torps pass over friendly ships
+                        continue   # boarding torps pass over friendly ships and hulks
                     if not check_torpedo_contact(marker, s):
                         continue
 
