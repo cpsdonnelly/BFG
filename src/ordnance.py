@@ -725,9 +725,15 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
         "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
         "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
         "shark_assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+        # Generic attack craft (factions whose rules don't name them)
+        "fighter": (OrdnanceType.FIGHTER.value, 30, 0),
+        "bomber": (OrdnanceType.BOMBER.value, 20, 0),
+        "assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
     }
     o_type, speed, resilient = craft_stats.get(
         craft_type, (OrdnanceType.FIGHTER.value, 30, 0))
+    # The ship's profile gives the speed of each craft it carries (booklet data)
+    speed = weapon.get("craft_speeds", {}).get(craft_type, speed)
 
     markers = []
     for i in range(count):

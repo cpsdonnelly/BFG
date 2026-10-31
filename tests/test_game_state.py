@@ -53,3 +53,32 @@ def test_undo_after_load_does_not_return_to_pre_load_game(tmp_path):
     assert tc.command_check_failed is False
     tc.undo_to_phase_start()
     assert [s.id for s in gs.get_ships()] == ["saved_ship"]
+
+
+def test_starting_leadership_rolled_per_ship_and_once_per_escort_squadron():
+    from src.fleet_loader import roll_starting_leadership
+    gs = make_gs([
+        make_ship(id="c1", name="Cruiser", leadership=0, leadership_table="Default"),
+        make_ship(id="e1", name="Sword 1", ship_type="escort", leadership=0,
+                  leadership_table="Default", squadron_id="sq"),
+        make_ship(id="e2", name="Sword 2", ship_type="escort", leadership=0,
+                  leadership_table="Default", squadron_id="sq"),
+        make_ship(id="sm", name="Strike Cruiser", leadership=0, leadership_table="Astartes"),
+        make_ship(id="old", name="Old fleet ship", leadership=8),     # no table: kept
+    ])
+    dice = DiceStub([1, 6, 5])     # cruiser 1 -> 6; squadron 6 -> 9; Astartes 5 -> 10
+    roll_starting_leadership(gs, dice)
+    assert dice._idx == 3
+    ld = {s.id: s.leadership for s in gs.get_ships()}
+    assert ld == {"c1": 6, "e1": 9, "e2": 9, "sm": 10, "old": 8}
+
+
+def test_ai_ships_roll_leadership_with_the_ai_dice():
+    from src.fleet_loader import roll_starting_leadership
+    gs = make_gs([make_ship(id="h", player=1, leadership=0, leadership_table="Default"),
+                  make_ship(id="a", player=2, leadership=0, leadership_table="Default")])
+    gs.ai_player = 2
+    human, ai = DiceStub([2]), DiceStub([6])
+    roll_starting_leadership(gs, human, ai_dice=ai)
+    assert (human._idx, ai._idx) == (1, 1)
+    assert [s.leadership for s in gs.get_ships()] == [7, 9]

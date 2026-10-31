@@ -94,12 +94,12 @@ def export_fleet_with_damage(ships: List["Ship"], player: int, filepath: str) ->
 
 def find_unofficial_ships(fleet_data: dict) -> List[str]:
     """Return ship_class names in fleet_data that are not in the official or homebrew catalog."""
-    from .ship_catalog import get_ship_class
+    from .ship_catalog import find_ship_class
     from .homebrew_catalog import get_homebrew_ship
     unofficial: List[str] = []
     for raw in fleet_data.get("ships", []):
         sc = raw.get("ship_class", "")
-        if sc and not get_ship_class(sc) and not get_homebrew_ship(sc):
+        if sc and not find_ship_class(sc) and not get_homebrew_ship(sc):
             unofficial.append(sc)
     return unofficial
 
@@ -128,3 +128,39 @@ def get_fleet_info(path: str) -> Dict[str, str]:
         "description": data.get("description", ""),
         "total_points": str(data.get("total_points", "?")),
     }
+
+
+def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
+    """Core rules s.1 / Appendix 4: before the game, each booklet ship rolls a
+    D6 on its faction's Leadership column. Escorts roll once per squadron and
+    share the result; capital ships always roll individually. Ships without a
+    Leadership table (homebrew, older fleet files) keep their saved value.
+
+    ai_dice: roller for AI-controlled ships (so the human isn't asked to roll
+    for them in manual or mixed dice mode); defaults to `dice`.
+    """
+    from .booklet_ships import LEADERSHIP_TABLES
+    groups: Dict[tuple, List[int]] = {}
+    for i, s in enumerate(gs.ships):
+        if not s.get("leadership_table"):
+            continue
+        if s.get("ship_type") == "escort" and s.get("squadron_id"):
+            key = (s["player"], "squadron", s["squadron_id"])
+        else:
+            key = (s["player"], "ship", s["id"])
+        groups.setdefault(key, []).append(i)
+
+    logs = []
+    for (player, _, _), indices in groups.items():
+        first = gs.ships[indices[0]]
+        table = LEADERSHIP_TABLES.get(first["leadership_table"], LEADERSHIP_TABLES["Default"])
+        ai = gs.ai_spectator or gs.ai_player == player
+        roller = ai_dice if (ai and ai_dice is not None) else dice
+        names = ", ".join(gs.ships[i]["name"] for i in indices)
+        roll = roller.roll_d6(1, f"Starting Leadership for {names} "
+                                 f"({first['leadership_table']} table)")[0]
+        ld = table[roll - 1]
+        for i in indices:
+            gs.ships[i]["leadership"] = ld
+        logs.append(f"{names}: Leadership {ld} (rolled {roll})")
+    return logs

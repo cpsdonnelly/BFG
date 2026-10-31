@@ -1,269 +1,447 @@
 {
   "fleet_name": "Tau Kor'or'vesh Patrol Fleet",
   "faction": "tau_kororvesh",
-  "description": "Tau Kor'or'vesh patrol fleet for the Gothic sector — 800 points",
-  "total_points": 800,
+  "description": "Tau Kor'or'vesh patrol fleet for the Gothic sector \u2014 685 points (BFG:XR booklet stats)",
+  "total_points": 685,
   "ships": [
     {
+      "spawn_x": 60,
+      "spawn_y": 105,
+      "spawn_heading": 270,
       "id": "tau_custodian",
       "name": "O'Shi'ur",
-      "ship_class": "Custodian Class Battleship",
+      "ship_class": "Custodian Battleship",
       "faction": "tau_kororvesh",
       "ship_type": "battleship",
       "base_size": "large",
-      "spawn_x": 60, "spawn_y": 105, "spawn_heading": 270,
-      "speed": 20, "turn_angle": 45, "shields_max": 3,
-      "armor_prow": "6+", "armor_side": "5+", "turrets": 4, "hits_max": 10,
-      "leadership": 9, "is_flagship": true, "admiral_type": "Kor'O",
-      "rerolls_remaining": 2, "points_value": 425,
-      "towed_escorts": ["tau_warden1", "tau_warden2", "tau_warden3"],
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 3,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "turrets": 4,
+      "hits_max": 10,
+      "leadership": 0,
+      "leadership_table": "Default",
       "weapons": [
         {
-          "name": "Port Railgun Battery",
+          "name": "Port Railguns",
           "weapon_type": "battery",
-          "range_cm": 45, "strength": 6,
-          "arcs": ["left", "front"]
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "left",
+            "front"
+          ]
         },
         {
-          "name": "Starboard Railgun Battery",
+          "name": "Starboard Railguns",
           "weapon_type": "battery",
-          "range_cm": 45, "strength": 6,
-          "arcs": ["right", "front"]
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "right",
+            "front"
+          ]
         },
         {
-          "name": "Port Ion Cannon",
+          "name": "Port Ion Cannons",
           "weapon_type": "lance",
-          "range_cm": 45, "strength": 1,
-          "arcs": ["left", "front"]
+          "range_cm": 45,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front"
+          ]
         },
         {
-          "name": "Starboard Ion Cannon",
+          "name": "Starboard Ion Cannons",
           "weapon_type": "lance",
-          "range_cm": 45, "strength": 1,
-          "arcs": ["right", "front"]
+          "range_cm": 45,
+          "strength": 1,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Prow Gravitic Launcher",
+          "weapon_type": "torpedo",
+          "range_cm": 40,
+          "strength": 8,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "guided",
+          "torpedo_speed": 40,
+          "torpedo_speed_min": 20
         },
         {
           "name": "Port Launch Bays",
           "weapon_type": "launch_bay",
-          "range_cm": 25, "strength": 3,
+          "range_cm": 30,
+          "strength": 3,
           "arcs": [],
-          "craft_types": ["manta", "barracuda"],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
           "craft_speed": 25
         },
         {
           "name": "Starboard Launch Bays",
           "weapon_type": "launch_bay",
-          "range_cm": 25, "strength": 3,
+          "range_cm": 30,
+          "strength": 3,
           "arcs": [],
-          "craft_types": ["manta", "barracuda"],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
           "craft_speed": 25
-        },
-        {
-          "name": "Prow Gravitic Launcher",
-          "weapon_type": "gravitic_launcher",
-          "range_cm": 40, "strength": 8,
-          "arcs": ["front"],
-          "torpedo_speed": 40, "torpedo_type": "guided"
         }
       ],
-      "special_rules": ["ponderous", "deflector", "tracking_systems_20"]
+      "special_rules": [
+        "ponderous"
+      ],
+      "upgrades": [],
+      "points_value": 330,
+      "is_flagship": true,
+      "admiral_type": "Kor'O",
+      "rerolls_remaining": 2
     },
     {
+      "spawn_x": 45,
+      "spawn_y": 105,
+      "spawn_heading": 270,
       "id": "tau_emissary1",
       "name": "Anukla'esavon",
-      "ship_class": "Emissary Class Light Cruiser",
+      "ship_class": "Emissary Light Cruiser",
       "faction": "tau_kororvesh",
       "ship_type": "cruiser",
       "base_size": "small",
-      "spawn_x": 45, "spawn_y": 105, "spawn_heading": 270,
-      "speed": 20, "turn_angle": 90, "shields_max": 2,
-      "armor_prow": "5+", "armor_side": "5+", "turrets": 2, "hits_max": 4,
-      "leadership": 8, "points_value": 120,
+      "speed": 20,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "turrets": 2,
+      "hits_max": 4,
+      "leadership": 0,
+      "leadership_table": "Default",
       "weapons": [
         {
-          "name": "Port Railgun Battery",
+          "name": "Port Railguns",
           "weapon_type": "battery",
-          "range_cm": 45, "strength": 4,
-          "arcs": ["left", "front"]
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front"
+          ]
         },
         {
-          "name": "Starboard Railgun Battery",
+          "name": "Starboard Railguns",
           "weapon_type": "battery",
-          "range_cm": 45, "strength": 4,
-          "arcs": ["right", "front"]
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "right",
+            "front"
+          ]
         },
         {
-          "name": "Port Ion Cannon",
-          "weapon_type": "lance",
-          "range_cm": 30, "strength": 1,
-          "arcs": ["left", "front"]
-        },
-        {
-          "name": "Starboard Ion Cannon",
-          "weapon_type": "lance",
-          "range_cm": 30, "strength": 1,
-          "arcs": ["right", "front"]
-        },
-        {
-          "name": "Prow Gravitic Launcher",
-          "weapon_type": "gravitic_launcher",
-          "range_cm": 40, "strength": 3,
-          "arcs": ["front"],
-          "torpedo_speed": 40, "torpedo_type": "guided"
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "barracuda": 25
+          },
+          "craft_speed": 25
         }
       ],
-      "special_rules": ["deflector"]
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0
     },
     {
+      "spawn_x": 75,
+      "spawn_y": 105,
+      "spawn_heading": 270,
       "id": "tau_emissary2",
       "name": "Bork'sha",
-      "ship_class": "Emissary Class Light Cruiser",
+      "ship_class": "Emissary Light Cruiser",
       "faction": "tau_kororvesh",
       "ship_type": "cruiser",
       "base_size": "small",
-      "spawn_x": 75, "spawn_y": 105, "spawn_heading": 270,
-      "speed": 20, "turn_angle": 90, "shields_max": 2,
-      "armor_prow": "5+", "armor_side": "5+", "turrets": 2, "hits_max": 4,
-      "leadership": 6, "points_value": 120,
+      "speed": 20,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "turrets": 2,
+      "hits_max": 4,
+      "leadership": 0,
+      "leadership_table": "Default",
       "weapons": [
         {
-          "name": "Port Railgun Battery",
+          "name": "Port Railguns",
           "weapon_type": "battery",
-          "range_cm": 45, "strength": 4,
-          "arcs": ["left", "front"]
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front"
+          ]
         },
         {
-          "name": "Starboard Railgun Battery",
+          "name": "Starboard Railguns",
           "weapon_type": "battery",
-          "range_cm": 45, "strength": 4,
-          "arcs": ["right", "front"]
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "right",
+            "front"
+          ]
         },
         {
-          "name": "Port Ion Cannon",
-          "weapon_type": "lance",
-          "range_cm": 30, "strength": 1,
-          "arcs": ["left", "front"]
-        },
-        {
-          "name": "Starboard Ion Cannon",
-          "weapon_type": "lance",
-          "range_cm": 30, "strength": 1,
-          "arcs": ["right", "front"]
-        },
-        {
-          "name": "Prow Gravitic Launcher",
-          "weapon_type": "gravitic_launcher",
-          "range_cm": 40, "strength": 3,
-          "arcs": ["front"],
-          "torpedo_speed": 40, "torpedo_type": "guided"
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "barracuda": 25
+          },
+          "craft_speed": 25
         }
       ],
-      "special_rules": ["deflector"]
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0
     },
     {
+      "spawn_x": 55,
+      "spawn_y": 100,
+      "spawn_heading": 270,
       "id": "tau_warden1",
       "name": "Kor'vre Kais",
-      "ship_class": "Warden Class Gunship",
+      "ship_class": "Warden Gunship",
       "faction": "tau_kororvesh",
       "ship_type": "escort",
       "base_size": "small",
-      "spawn_x": 55, "spawn_y": 100, "spawn_heading": 270,
-      "speed": 25, "turn_angle": 90, "shields_max": 1,
-      "armor_prow": "5+", "armor_side": "5+", "turrets": 1, "hits_max": 1,
-      "leadership": 7, "points_value": 30,
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
       "weapons": [
         {
-          "name": "Railgun Battery",
+          "name": "Railguns",
           "weapon_type": "battery",
-          "range_cm": 30, "strength": 2,
-          "arcs": ["front"]
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ]
         },
         {
           "name": "Ion Cannon",
           "weapon_type": "lance",
-          "range_cm": 30, "strength": 1,
-          "arcs": ["left", "front", "right"]
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
         }
-      ]
+      ],
+      "special_rules": [
+        "towed"
+      ],
+      "upgrades": [],
+      "points_value": 30,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0
     },
     {
+      "spawn_x": 60,
+      "spawn_y": 100,
+      "spawn_heading": 270,
       "id": "tau_warden2",
       "name": "Kor'vre Y'he",
-      "ship_class": "Warden Class Gunship",
+      "ship_class": "Warden Gunship",
       "faction": "tau_kororvesh",
       "ship_type": "escort",
       "base_size": "small",
-      "spawn_x": 60, "spawn_y": 100, "spawn_heading": 270,
-      "speed": 25, "turn_angle": 90, "shields_max": 1,
-      "armor_prow": "5+", "armor_side": "5+", "turrets": 1, "hits_max": 1,
-      "leadership": 7, "points_value": 30,
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
       "weapons": [
         {
-          "name": "Railgun Battery",
+          "name": "Railguns",
           "weapon_type": "battery",
-          "range_cm": 30, "strength": 2,
-          "arcs": ["front"]
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ]
         },
         {
           "name": "Ion Cannon",
           "weapon_type": "lance",
-          "range_cm": 30, "strength": 1,
-          "arcs": ["left", "front", "right"]
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
         }
-      ]
+      ],
+      "special_rules": [
+        "towed"
+      ],
+      "upgrades": [],
+      "points_value": 30,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0
     },
     {
+      "spawn_x": 65,
+      "spawn_y": 100,
+      "spawn_heading": 270,
       "id": "tau_warden3",
       "name": "Kor'vre Lar'shi",
-      "ship_class": "Warden Class Gunship",
+      "ship_class": "Warden Gunship",
       "faction": "tau_kororvesh",
       "ship_type": "escort",
       "base_size": "small",
-      "spawn_x": 65, "spawn_y": 100, "spawn_heading": 270,
-      "speed": 25, "turn_angle": 90, "shields_max": 1,
-      "armor_prow": "5+", "armor_side": "5+", "turrets": 1, "hits_max": 1,
-      "leadership": 7, "points_value": 30,
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
       "weapons": [
         {
-          "name": "Railgun Battery",
+          "name": "Railguns",
           "weapon_type": "battery",
-          "range_cm": 30, "strength": 2,
-          "arcs": ["front"]
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ]
         },
         {
           "name": "Ion Cannon",
           "weapon_type": "lance",
-          "range_cm": 30, "strength": 1,
-          "arcs": ["left", "front", "right"]
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
         }
-      ]
+      ],
+      "special_rules": [
+        "towed"
+      ],
+      "upgrades": [],
+      "points_value": 30,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0
     },
     {
+      "spawn_x": 60,
+      "spawn_y": 98,
+      "spawn_heading": 270,
       "id": "tau_castellan",
       "name": "Anukla'esavon",
-      "ship_class": "Castellan Class Escort",
+      "ship_class": "Castellan Escort",
       "faction": "tau_kororvesh",
       "ship_type": "escort",
       "base_size": "small",
-      "spawn_x": 60, "spawn_y": 98, "spawn_heading": 270,
-      "speed": 25, "turn_angle": 90, "shields_max": 1,
-      "armor_prow": "5+", "armor_side": "5+", "turrets": 2, "hits_max": 1,
-      "leadership": 8, "points_value": 45,
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
       "weapons": [
         {
-          "name": "Railgun Battery",
+          "name": "Railguns",
           "weapon_type": "battery",
-          "range_cm": 45, "strength": 2,
-          "arcs": ["left", "front", "right"]
+          "range_cm": 45,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
         },
         {
           "name": "Gravitic Launcher",
-          "weapon_type": "gravitic_launcher",
-          "range_cm": 40, "strength": 2,
-          "arcs": ["front"],
-          "torpedo_speed": 40, "torpedo_type": "guided"
+          "weapon_type": "torpedo",
+          "range_cm": 40,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "guided",
+          "torpedo_speed": 40,
+          "torpedo_speed_min": 20
         }
-      ]
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 45,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0
     }
   ]
 }

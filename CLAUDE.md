@@ -20,12 +20,20 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   allocation nearest-first, critical damage applied before a ship counts as destroyed).
 - `data/rules_cheatsheet.txt` and `data/*.csv` (plus the copies in the repo root) are an
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
-- `src/ship_catalog.py` (hard-coded Imperial Navy and Tau ships) predates the booklet and
-  disagrees with it on many stats and weapons. The plan is to build the catalog for all 9
-  booklet factions from `bfgxr/data/ships.json`.
+- The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
+  `src/booklet_ships.py`: all 9 factions, 174 ships. Ships using rules the engine can't play yet
+  (Ork Gunz, Bombardment Cannons, multi-role craft, special movement, dice-based values...) are
+  listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
+  ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
 
 ### Owner rulings
 
+- **Leadership is rolled at game start** (Appendix 4, faction column; escort squadrons roll once
+  and share it). Booklet ships carry `leadership_table` and Ld 0 until then.
+- **Upgrades:** the old hand-written upgrades were removed. Booklet refits, options and fleet
+  commanders are prose in each ship's notes and get added one at a time.
+- **Towed ships** (Warden, Orca, Dhow) have no warp engines and need gravitic hooks in the fleet.
+  This matters only for fleet building; gravitic hooks have no effect in battle.
 - **Ship names:** the game's "Hero Class Cruiser" is the booklet's Hero Starship, and the
   "Messenger" is the booklet's Messenger Starship, an escort (the game wrongly lists it as a
   light cruiser).
@@ -51,6 +59,11 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   turn; otherwise the squadron acts normally.
 - **Movement is never rounded:** halving a speed gives an exact half (25cm -> 12.5cm), both
   for Burn Retros and for the half-speed minimum. Show distances as exact values too.
+
+### Open questions for the owner
+
+- **Grand cruisers, battlecruisers, heavy and light cruisers** are treated as cruisers (10cm
+  before turning; battleships 15cm). The booklet doesn't give turning distances per hull type.
 
 ## Running and testing
 

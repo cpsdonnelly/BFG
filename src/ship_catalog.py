@@ -1,4 +1,5 @@
-"""BFG:XR Ship Catalog — Static ship class definitions for the fleet builder."""
+"""BFG:XR Ship Catalog — ship classes for the fleet builder, built from the
+BFG:XR companion booklet (bfgxr/data/ships.json) by booklet_ships.py."""
 import uuid
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
@@ -46,6 +47,16 @@ class ShipClassEntry:
     special_rules: List[str] = field(default_factory=list)
     upgrades_available: List[UpgradeEntry] = field(default_factory=list)
     points_cost: int = 0   # base hull cost before upgrades
+    # Booklet ships: Leadership is rolled at game start on this Appendix 4 column
+    # (leadership == 0 until then). Empty for homebrew / fixed-Ld ships.
+    leadership_table: str = ""
+    notes: str = ""                 # booklet Notes cell: special rules, refits, options
+    source: str = ""                # sourcebook page reference
+    unsupported: List[str] = field(default_factory=list)   # why it can't be played yet
+
+    @property
+    def playable(self) -> bool:
+        return not self.unsupported
 
     def to_ship_dict(self, name: str, player: int, ship_id: Optional[str] = None,
                      upgrades: Optional[List[str]] = None,
@@ -78,6 +89,7 @@ class ShipClassEntry:
             "turrets": self.turrets,
             "hits_max": self.hits_max,
             "leadership": self.leadership,
+            "leadership_table": self.leadership_table,
             "weapons": [w.copy() for w in self.weapons],
             "special_rules": list(self.special_rules),
             "upgrades": list(upgrades or []),
@@ -106,547 +118,30 @@ class ShipClassEntry:
 
 
 # ---------------------------------------------------------------------------
-# Imperial Navy — upgrades
+# Catalog registry, built from the booklet
 # ---------------------------------------------------------------------------
 
-_IN_UPGRADES_CRUISER = [
-    UpgradeEntry(
-        name="Targeting Matrix",
-        description="+1 to hit on Lock On orders (re-roll misses once per weapon).",
-        points_cost=10,
-        effect={"add_special_rule": "targeting_matrix"},
-    ),
-    UpgradeEntry(
-        name="Extra Armour",
-        description="Side armour improved by one step (e.g. 5+ → 4+).",
-        points_cost=15,
-        effect={"stat_delta": {}},   # handled via special rule
-    ),
-    UpgradeEntry(
-        name="Prow Torpedoes (refit)",
-        description="Replace prow weapon with strength-6 torpedo salvo.",
-        points_cost=0,
-        effect={},
-        restrictions=["lunar_only"],
-    ),
-]
-
-_IN_UPGRADES_ESCORT = [
-    UpgradeEntry(
-        name="Reinforced Prow",
-        description="Prow armour 5+ → 4+ for this escort.",
-        points_cost=5,
-        effect={"add_special_rule": "reinforced_prow"},
-    ),
-]
-
-_IN_UPGRADES_FLAGSHIP = [
-    UpgradeEntry(
-        name="Rear Admiral",
-        description="Fleet commander: +1 Ld to self, 1 re-roll per game.",
-        points_cost=50,
-        effect={"add_special_rule": "admiral_rear"},
-        restrictions=["flagship_only"],
-    ),
-    UpgradeEntry(
-        name="Vice Admiral",
-        description="Fleet commander: +1 Ld to all IN ships within 15cm, 1 re-roll.",
-        points_cost=75,
-        effect={"add_special_rule": "admiral_vice"},
-        restrictions=["flagship_only"],
-    ),
-    UpgradeEntry(
-        name="Full Admiral",
-        description="Fleet commander: +2 Ld to all IN ships within 30cm, 2 re-rolls.",
-        points_cost=100,
-        effect={"add_special_rule": "admiral_full"},
-        restrictions=["flagship_only"],
-    ),
-]
+def _build_catalogs() -> Dict[str, List[ShipClassEntry]]:
+    from .booklet_ships import FACTIONS, convert_row, load_rows
+    catalogs: Dict[str, List[ShipClassEntry]] = {fid: [] for fid, _, _ in FACTIONS.values()}
+    for row in load_rows():
+        entry = ShipClassEntry(**convert_row(row))
+        catalogs.setdefault(entry.faction, []).append(entry)
+    return catalogs
 
 
-# ---------------------------------------------------------------------------
-# Imperial Navy — ship classes
-# ---------------------------------------------------------------------------
+_CATALOGS: Dict[str, List[ShipClassEntry]] = _build_catalogs()
 
-_IN = "imperial_navy_gothic"
-
-IMPERIAL_NAVY_CATALOG: List[ShipClassEntry] = [
-
-    # ── Battleships ──────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Emperor Class Battleship",
-        faction=_IN, ship_type="battleship", base_size="large",
-        speed=20, turn_angle=45,
-        shields_max=6, armor_prow="5+", armor_side="5+",
-        turrets=4, hits_max=12, leadership=8,
-        points_cost=365,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 60, "strength": 8,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 60, "strength": 8,  "arcs": ["right"]},
-            {"name": "Port Launch Bays",           "weapon_type": "launch_bay","range_cm": 30, "strength": 3,  "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber"], "craft_speed": 30},
-            {"name": "Starboard Launch Bays",      "weapon_type": "launch_bay","range_cm": 30, "strength": 3,  "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber"], "craft_speed": 30},
-            {"name": "Dorsal Lance Battery",       "weapon_type": "lance",     "range_cm": 60, "strength": 2,  "arcs": ["left", "front", "right"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Retribution Class Battleship",
-        faction=_IN, ship_type="battleship", base_size="large",
-        speed=15, turn_angle=45,
-        shields_max=4, armor_prow="5+", armor_side="6+",
-        turrets=4, hits_max=12, leadership=8,
-        points_cost=345,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 60, "strength": 10, "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 60, "strength": 10, "arcs": ["right"]},
-            {"name": "Prow Weapons Battery",       "weapon_type": "battery",   "range_cm": 30, "strength": 6,  "arcs": ["front"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Apocalypse Class Battleship",
-        faction=_IN, ship_type="battleship", base_size="large",
-        speed=20, turn_angle=45,
-        shields_max=4, armor_prow="6+", armor_side="5+",
-        turrets=4, hits_max=12, leadership=8,
-        points_cost=340,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 45, "strength": 8,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 45, "strength": 8,  "arcs": ["right"]},
-            {"name": "Port Nova Cannon",           "weapon_type": "nova_cannon","range_cm": 150,"strength": 0,  "arcs": ["front"]},
-            {"name": "Starboard Nova Cannon",      "weapon_type": "nova_cannon","range_cm": 150,"strength": 0,  "arcs": ["front"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    # ── Battlecruisers ────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Mars Class Battlecruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=8, leadership=8,
-        points_cost=220,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 45, "strength": 6,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 45, "strength": 6,  "arcs": ["right"]},
-            {"name": "Port Launch Bays",           "weapon_type": "launch_bay","range_cm": 30, "strength": 2,  "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber"], "craft_speed": 30},
-            {"name": "Starboard Launch Bays",      "weapon_type": "launch_bay","range_cm": 30, "strength": 2,  "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber"], "craft_speed": 30},
-            {"name": "Prow Nova Cannon",           "weapon_type": "nova_cannon","range_cm": 150,"strength": 0,  "arcs": ["front"]},
-            {"name": "Dorsal Lance Battery",       "weapon_type": "lance",     "range_cm": 60, "strength": 2,  "arcs": ["left", "front", "right"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Overlord Class Battlecruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=8, leadership=8,
-        points_cost=220,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 60, "strength": 6,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 60, "strength": 6,  "arcs": ["right"]},
-            {"name": "Dorsal Lance Battery",       "weapon_type": "lance",     "range_cm": 60, "strength": 4,  "arcs": ["left", "front", "right"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    # ── Cruisers ──────────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Lunar Class Cruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=8, leadership=7,
-        points_cost=180,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 45, "strength": 6,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 45, "strength": 6,  "arcs": ["right"]},
-            {"name": "Prow Torpedoes",             "weapon_type": "torpedo",   "range_cm": 30, "strength": 6,  "arcs": ["front"]},
-            {"name": "Dorsal Lance Battery",       "weapon_type": "lance",     "range_cm": 60, "strength": 2,  "arcs": ["left", "front", "right"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Gothic Class Cruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=8, leadership=7,
-        points_cost=180,
-        weapons=[
-            {"name": "Port Lance Battery",        "weapon_type": "lance",     "range_cm": 60, "strength": 2,  "arcs": ["left"]},
-            {"name": "Starboard Lance Battery",    "weapon_type": "lance",     "range_cm": 60, "strength": 2,  "arcs": ["right"]},
-            {"name": "Prow Torpedoes",             "weapon_type": "torpedo",   "range_cm": 30, "strength": 6,  "arcs": ["front"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Dictator Class Cruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="6+", armor_side="5+",
-        turrets=3, hits_max=8, leadership=7,
-        points_cost=220,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 45, "strength": 6,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 45, "strength": 6,  "arcs": ["right"]},
-            {"name": "Port Launch Bays",           "weapon_type": "launch_bay","range_cm": 30, "strength": 2,  "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber", "shark_assault_boat"], "craft_speed": 30},
-            {"name": "Starboard Launch Bays",      "weapon_type": "launch_bay","range_cm": 30, "strength": 2,  "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber", "shark_assault_boat"], "craft_speed": 30},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Tyrant Class Cruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=8, leadership=7,
-        points_cost=175,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 60, "strength": 8,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 60, "strength": 8,  "arcs": ["right"]},
-            {"name": "Prow Torpedoes",             "weapon_type": "torpedo",   "range_cm": 30, "strength": 4,  "arcs": ["front"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Dominator Class Cruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=8, leadership=7,
-        points_cost=190,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 45, "strength": 6,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 45, "strength": 6,  "arcs": ["right"]},
-            {"name": "Prow Nova Cannon",           "weapon_type": "nova_cannon","range_cm": 150,"strength": 0,  "arcs": ["front"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    # ── Light Cruisers ────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Endeavour Class Light Cruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=25, turn_angle=45,
-        shields_max=1, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=6, leadership=7,
-        points_cost=110,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 45, "strength": 4,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 45, "strength": 4,  "arcs": ["right"]},
-            {"name": "Prow Torpedoes",             "weapon_type": "torpedo",   "range_cm": 30, "strength": 3,  "arcs": ["front"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Endurance Class Light Cruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=25, turn_angle=45,
-        shields_max=1, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=6, leadership=7,
-        points_cost=115,
-        weapons=[
-            {"name": "Port Weapons Battery",      "weapon_type": "battery",   "range_cm": 45, "strength": 4,  "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery",  "weapon_type": "battery",   "range_cm": 45, "strength": 4,  "arcs": ["right"]},
-            {"name": "Port Launch Bays",           "weapon_type": "launch_bay","range_cm": 30, "strength": 1,  "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber"], "craft_speed": 30},
-            {"name": "Starboard Launch Bays",      "weapon_type": "launch_bay","range_cm": 30, "strength": 1,  "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber"], "craft_speed": 30},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Dauntless Class Light Cruiser",
-        faction=_IN, ship_type="cruiser", base_size="small",
-        speed=25, turn_angle=45,
-        shields_max=1, armor_prow="6+", armor_side="5+",
-        turrets=2, hits_max=6, leadership=7,
-        points_cost=110,
-        weapons=[
-            {"name": "Port Lance Battery",        "weapon_type": "lance",     "range_cm": 30, "strength": 1,  "arcs": ["left"]},
-            {"name": "Starboard Lance Battery",    "weapon_type": "lance",     "range_cm": 30, "strength": 1,  "arcs": ["right"]},
-            {"name": "Prow Torpedoes",             "weapon_type": "torpedo",   "range_cm": 30, "strength": 3,  "arcs": ["front"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_FLAGSHIP + _IN_UPGRADES_CRUISER,
-    ),
-
-    # ── Escorts ───────────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Sword Class Frigate",
-        faction=_IN, ship_type="escort", base_size="small",
-        speed=30, turn_angle=90,
-        shields_max=1, armor_prow="5+", armor_side="5+",
-        turrets=1, hits_max=1, leadership=7,
-        points_cost=40,
-        weapons=[
-            {"name": "Weapons Battery",           "weapon_type": "battery",   "range_cm": 30, "strength": 2,  "arcs": ["left", "front", "right"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_ESCORT,
-    ),
-
-    ShipClassEntry(
-        ship_class="Firestorm Class Frigate",
-        faction=_IN, ship_type="escort", base_size="small",
-        speed=30, turn_angle=90,
-        shields_max=1, armor_prow="5+", armor_side="5+",
-        turrets=1, hits_max=1, leadership=7,
-        points_cost=40,
-        weapons=[
-            {"name": "Prow Lance",                "weapon_type": "lance",     "range_cm": 30, "strength": 1,  "arcs": ["front"]},
-            {"name": "Weapons Battery",           "weapon_type": "battery",   "range_cm": 30, "strength": 1,  "arcs": ["left", "front", "right"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_ESCORT,
-    ),
-
-    ShipClassEntry(
-        ship_class="Cobra Class Destroyer",
-        faction=_IN, ship_type="escort", base_size="small",
-        speed=30, turn_angle=90,
-        shields_max=1, armor_prow="5+", armor_side="5+",
-        turrets=1, hits_max=1, leadership=7,
-        points_cost=30,
-        weapons=[
-            {"name": "Prow Torpedoes",            "weapon_type": "torpedo",   "range_cm": 30, "strength": 3,  "arcs": ["front"]},
-        ],
-        special_rules=[],
-        upgrades_available=_IN_UPGRADES_ESCORT,
-    ),
-]
-
-
-# ---------------------------------------------------------------------------
-# Tau Kor'or'vesh — upgrades
-# ---------------------------------------------------------------------------
-
-_TAU_UPGRADES_CRUISER = [
-    UpgradeEntry(
-        name="Kor'O Commander",
-        description="Tau fleet admiral: +1 Ld to all Tau ships within 20cm, 2 re-rolls.",
-        points_cost=100,
-        effect={"add_special_rule": "kor_o"},
-        restrictions=["flagship_only"],
-    ),
-    UpgradeEntry(
-        name="Kor'el Commander",
-        description="Tau squadron commander: +1 Ld to self, 1 re-roll per game.",
-        points_cost=50,
-        effect={"add_special_rule": "kor_el"},
-        restrictions=["flagship_only"],
-    ),
-    UpgradeEntry(
-        name="Tracking Systems +20cm",
-        description="All weapons gain +20cm range.",
-        points_cost=20,
-        effect={"add_special_rule": "tracking_systems_20"},
-    ),
-    UpgradeEntry(
-        name="Extra Deflector",
-        description="Improved deflector field; +1 shield save.",
-        points_cost=15,
-        effect={"stat_delta": {"shields_max": 1}},
-    ),
-]
-
-_TAU_UPGRADES_ESCORT = [
-    UpgradeEntry(
-        name="Gravitic Hook",
-        description="This escort can be towed by a capital ship at no movement cost.",
-        points_cost=5,
-        effect={"add_special_rule": "gravitic_hook"},
-    ),
-]
-
-
-# ---------------------------------------------------------------------------
-# Tau Kor'or'vesh — ship classes
-# ---------------------------------------------------------------------------
-
-_TAU = "tau_kororvesh"
-
-TAU_CATALOG: List[ShipClassEntry] = [
-
-    # ── Battleships ──────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Custodian Class Battleship",
-        faction=_TAU, ship_type="battleship", base_size="large",
-        speed=20, turn_angle=45,
-        shields_max=3, armor_prow="6+", armor_side="5+",
-        turrets=4, hits_max=10, leadership=9,
-        points_cost=425,
-        weapons=[
-            {"name": "Port Railgun Battery",      "weapon_type": "battery",        "range_cm": 45, "strength": 6, "arcs": ["left", "front"]},
-            {"name": "Starboard Railgun Battery",  "weapon_type": "battery",        "range_cm": 45, "strength": 6, "arcs": ["right", "front"]},
-            {"name": "Port Ion Cannon",            "weapon_type": "lance",          "range_cm": 45, "strength": 1, "arcs": ["left", "front"]},
-            {"name": "Starboard Ion Cannon",       "weapon_type": "lance",          "range_cm": 45, "strength": 1, "arcs": ["right", "front"]},
-            {"name": "Port Launch Bays",           "weapon_type": "launch_bay",     "range_cm": 25, "strength": 3, "arcs": [], "craft_types": ["manta", "barracuda"], "craft_speed": 25},
-            {"name": "Starboard Launch Bays",      "weapon_type": "launch_bay",     "range_cm": 25, "strength": 3, "arcs": [], "craft_types": ["manta", "barracuda"], "craft_speed": 25},
-            {"name": "Prow Gravitic Launcher",     "weapon_type": "torpedo",          "range_cm": 40,"strength": 8, "arcs": ["front"], "torpedo_speed": 40, "torpedo_type": "guided"},
-        ],
-        special_rules=["ponderous", "deflector", "tracking_systems_20"],
-        upgrades_available=_TAU_UPGRADES_CRUISER,
-    ),
-
-    # ── Cruisers ──────────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Hero Class Cruiser",
-        faction=_TAU, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="5+", armor_side="5+",
-        turrets=3, hits_max=8, leadership=8,
-        points_cost=275,
-        weapons=[
-            {"name": "Port Railgun Battery",      "weapon_type": "battery",        "range_cm": 45, "strength": 6, "arcs": ["left", "front"]},
-            {"name": "Starboard Railgun Battery",  "weapon_type": "battery",        "range_cm": 45, "strength": 6, "arcs": ["right", "front"]},
-            {"name": "Port Ion Cannon",            "weapon_type": "lance",          "range_cm": 45, "strength": 2, "arcs": ["left", "front"]},
-            {"name": "Starboard Ion Cannon",       "weapon_type": "lance",          "range_cm": 45, "strength": 2, "arcs": ["right", "front"]},
-            {"name": "Port Launch Bays",           "weapon_type": "launch_bay",     "range_cm": 25, "strength": 2, "arcs": [], "craft_types": ["manta", "barracuda"], "craft_speed": 25},
-            {"name": "Starboard Launch Bays",      "weapon_type": "launch_bay",     "range_cm": 25, "strength": 2, "arcs": [], "craft_types": ["manta", "barracuda"], "craft_speed": 25},
-        ],
-        special_rules=["deflector"],
-        upgrades_available=_TAU_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Protector Class Cruiser",
-        faction=_TAU, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=45,
-        shields_max=2, armor_prow="5+", armor_side="5+",
-        turrets=2, hits_max=6, leadership=7,
-        points_cost=195,
-        weapons=[
-            {"name": "Port Railgun Battery",      "weapon_type": "battery",        "range_cm": 45, "strength": 5, "arcs": ["left", "front"]},
-            {"name": "Starboard Railgun Battery",  "weapon_type": "battery",        "range_cm": 45, "strength": 5, "arcs": ["right", "front"]},
-            {"name": "Prow Gravitic Launcher",     "weapon_type": "torpedo",          "range_cm": 40,"strength": 6, "arcs": ["front"], "torpedo_speed": 40, "torpedo_type": "guided"},
-        ],
-        special_rules=["deflector"],
-        upgrades_available=_TAU_UPGRADES_CRUISER,
-    ),
-
-    # ── Light Cruisers ────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Emissary Class Light Cruiser",
-        faction=_TAU, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=90,
-        shields_max=2, armor_prow="5+", armor_side="5+",
-        turrets=2, hits_max=4, leadership=7,
-        points_cost=120,
-        weapons=[
-            {"name": "Port Railgun Battery",      "weapon_type": "battery",        "range_cm": 45, "strength": 4, "arcs": ["left", "front"]},
-            {"name": "Starboard Railgun Battery",  "weapon_type": "battery",        "range_cm": 45, "strength": 4, "arcs": ["right", "front"]},
-            {"name": "Port Ion Cannon",            "weapon_type": "lance",          "range_cm": 30, "strength": 1, "arcs": ["left", "front"]},
-            {"name": "Starboard Ion Cannon",       "weapon_type": "lance",          "range_cm": 30, "strength": 1, "arcs": ["right", "front"]},
-            {"name": "Prow Gravitic Launcher",     "weapon_type": "torpedo",          "range_cm": 40,"strength": 3, "arcs": ["front"], "torpedo_speed": 40, "torpedo_type": "guided"},
-        ],
-        special_rules=["deflector"],
-        upgrades_available=_TAU_UPGRADES_CRUISER,
-    ),
-
-    ShipClassEntry(
-        ship_class="Messenger Class Light Cruiser",
-        faction=_TAU, ship_type="cruiser", base_size="small",
-        speed=20, turn_angle=90,
-        shields_max=1, armor_prow="5+", armor_side="5+",
-        turrets=2, hits_max=4, leadership=7,
-        points_cost=85,
-        weapons=[
-            {"name": "Port Railgun Battery",      "weapon_type": "battery",        "range_cm": 30, "strength": 3, "arcs": ["left", "front"]},
-            {"name": "Starboard Railgun Battery",  "weapon_type": "battery",        "range_cm": 30, "strength": 3, "arcs": ["right", "front"]},
-            {"name": "Prow Gravitic Launcher",     "weapon_type": "torpedo",          "range_cm": 40,"strength": 3, "arcs": ["front"], "torpedo_speed": 40, "torpedo_type": "guided"},
-        ],
-        special_rules=["deflector"],
-        upgrades_available=_TAU_UPGRADES_CRUISER,
-    ),
-
-    # ── Escorts ───────────────────────────────────────────────────────────────
-
-    ShipClassEntry(
-        ship_class="Warden Class Gunship",
-        faction=_TAU, ship_type="escort", base_size="small",
-        speed=25, turn_angle=90,
-        shields_max=1, armor_prow="5+", armor_side="5+",
-        turrets=1, hits_max=1, leadership=7,
-        points_cost=30,
-        weapons=[
-            {"name": "Railgun Battery",           "weapon_type": "battery",        "range_cm": 30, "strength": 2, "arcs": ["front"]},
-            {"name": "Ion Cannon",                 "weapon_type": "lance",          "range_cm": 30, "strength": 1, "arcs": ["left", "front", "right"]},
-        ],
-        special_rules=[],
-        upgrades_available=_TAU_UPGRADES_ESCORT,
-    ),
-
-    ShipClassEntry(
-        ship_class="Castellan Class Escort",
-        faction=_TAU, ship_type="escort", base_size="small",
-        speed=25, turn_angle=90,
-        shields_max=1, armor_prow="5+", armor_side="5+",
-        turrets=2, hits_max=1, leadership=7,
-        points_cost=45,
-        weapons=[
-            {"name": "Railgun Battery",           "weapon_type": "battery",        "range_cm": 45, "strength": 2, "arcs": ["left", "front", "right"]},
-            {"name": "Gravitic Launcher",          "weapon_type": "torpedo",          "range_cm": 40,"strength": 2, "arcs": ["front"], "torpedo_speed": 40, "torpedo_type": "guided"},
-        ],
-        special_rules=[],
-        upgrades_available=_TAU_UPGRADES_ESCORT,
-    ),
-
-    ShipClassEntry(
-        ship_class="Orca Class Gunship",
-        faction=_TAU, ship_type="escort", base_size="small",
-        speed=30, turn_angle=90,
-        shields_max=1, armor_prow="5+", armor_side="5+",
-        turrets=1, hits_max=1, leadership=7,
-        points_cost=35,
-        weapons=[
-            {"name": "Railgun Battery",           "weapon_type": "battery",        "range_cm": 30, "strength": 1, "arcs": ["front"]},
-        ],
-        special_rules=["boarding_specialist"],
-        upgrades_available=_TAU_UPGRADES_ESCORT,
-    ),
-]
-
-
-# ---------------------------------------------------------------------------
-# Master catalog registry
-# ---------------------------------------------------------------------------
-
-_CATALOGS: Dict[str, List[ShipClassEntry]] = {
-    _IN:  IMPERIAL_NAVY_CATALOG,
-    _TAU: TAU_CATALOG,
+# Names used by the old hand-written catalog (and saved fleets) -> booklet names.
+# Other old names differ only by " Class " (e.g. "Gothic Class Cruiser").
+_ALIASES = {
+    "Hero Class Cruiser": "Hero Starship",
+    "Messenger Class Light Cruiser": "Messenger Starship",
 }
+
+
+def _canonical(ship_class: str) -> str:
+    return _ALIASES.get(ship_class, ship_class.replace(" Class ", " "))
 
 
 # ---------------------------------------------------------------------------
@@ -658,27 +153,40 @@ def list_factions() -> List[str]:
     return list(_CATALOGS.keys())
 
 
-def get_faction_ships(faction: str) -> List[ShipClassEntry]:
-    """Return all ship classes available to faction, or [] if unknown."""
-    return list(_CATALOGS.get(faction, []))
+def get_faction_ships(faction: str, include_unsupported: bool = False) -> List[ShipClassEntry]:
+    """Ship classes for a faction (playable only unless include_unsupported)."""
+    return [e for e in _CATALOGS.get(faction, []) if include_unsupported or e.playable]
 
 
 def get_ship_class(faction: str, ship_class: str) -> Optional[ShipClassEntry]:
-    """Look up a specific ship class by name within a faction."""
+    """Look up a ship class by name within a faction (old catalog names work too).
+    Returns unsupported classes as well; check entry.playable."""
+    wanted = {ship_class, _canonical(ship_class)}
     for entry in _CATALOGS.get(faction, []):
-        if entry.ship_class == ship_class:
+        if entry.ship_class in wanted:
+            return entry
+    return None
+
+
+def find_ship_class(ship_class: str) -> Optional[ShipClassEntry]:
+    """Look up a ship class by name in any faction."""
+    for faction in _CATALOGS:
+        entry = get_ship_class(faction, ship_class)
+        if entry:
             return entry
     return None
 
 
 def get_upgrades_for_ship(entry: ShipClassEntry) -> List[UpgradeEntry]:
-    """Return the list of upgrades available to a given ship class entry."""
+    """Upgrades available to a ship class. Booklet ships have none yet: their
+    refits and options are prose in entry.notes, to be added one at a time."""
     return list(entry.upgrades_available)
 
 
 def faction_display_name(faction: str) -> str:
     """Human-readable name for a faction identifier."""
-    return {
-        "imperial_navy_gothic": "Imperial Navy (Gothic)",
-        "tau_kororvesh":        "Tau Kor'or'vesh",
-    }.get(faction, faction.replace("_", " ").title())
+    from .booklet_ships import FACTIONS
+    for fid, display, _ in FACTIONS.values():
+        if fid == faction:
+            return display
+    return faction.replace("_", " ").title()

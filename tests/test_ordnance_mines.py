@@ -333,3 +333,14 @@ def test_fighter_still_intercepts_an_assault_boat():
     )
     resolve_ordnance_interactions(gs, DiceStub([1]))
     assert "ab" not in [o["id"] for o in gs.ordnance]
+
+
+def test_generic_attack_craft_use_the_ships_booklet_speed():
+    ship = make_ship(id="s", x=50, y=50, heading=0, player=1)
+    gs = make_gs([ship])
+    bay = {"name": "Port Launch Bays", "weapon_type": "launch_bay", "strength": 2,
+           "craft_types": ["fighter", "bomber"], "craft_speeds": {"fighter": 30, "bomber": 20}}
+    fighters = launch_attack_craft(ship, bay, "fighter", 1, gs)
+    bombers = launch_attack_craft(ship, bay, "bomber", 1, gs)
+    assert (fighters[0].ordnance_type, fighters[0].speed) == ("fighter", 30)
+    assert (bombers[0].ordnance_type, bombers[0].speed) == ("bomber", 20)

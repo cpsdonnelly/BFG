@@ -416,6 +416,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "manta": "Manta",
                 "barracuda": "Barracuda",
                 "shark_assault_boat": "Shark Assault Boats",
+                "fighter": "Fighters", "bomber": "Bombers",
+                "assault_boat": "Assault Boats",
             }
             for ct in sorted(available_types):
                 row = tk.Frame(comp_frame)
@@ -905,6 +907,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "manta": "Manta (resilient bomber)",
                 "barracuda": "Barracuda (fighters)",
                 "shark_assault_boat": "Shark Assault Boats",
+                "fighter": "Fighters", "bomber": "Bombers",
+                "assault_boat": "Assault Boats",
             }
             composition_vars = {}
             comp_frame = tk.Frame(bay_frame)

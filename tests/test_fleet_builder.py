@@ -47,18 +47,33 @@ def test_catalog_ship_player_set_correctly():
     assert result[0]["player"] == 2
 
 
-def test_catalog_ship_upgrades_applied():
+def test_catalog_ship_built_from_booklet_and_keeps_squadron():
+    # Old catalog names resolve to the booklet class; stats and points are the
+    # booklet's; removed upgrades are ignored; the fleet's squadron is kept.
     fleet = {
         "faction": "imperial_navy_gothic",
         "ships": [{
             "ship_class": "Lunar Class Cruiser",
             "name": "X",
             "upgrades": ["Targeting Matrix"],
+            "squadron_id": "sq1",
         }],
     }
     result = fleet_list_to_ships(fleet, player=1)
-    assert "targeting_matrix" in result[0]["special_rules"]
-    assert result[0]["points_value"] == 180 + 10
+    assert result[0]["ship_class"] == "Lunar Cruiser"
+    assert result[0]["points_value"] == 180
+    assert result[0]["leadership_table"] == "Default"
+    assert result[0]["squadron_id"] == "sq1"
+    assert "targeting_matrix" not in result[0]["special_rules"]
+
+
+def test_catalog_entry_summary_explains_unplayable_and_towed_ships():
+    from src.fleet_builder import catalog_entry_summary
+    from src.ship_catalog import get_ship_class, get_faction_ships
+    warden = catalog_entry_summary(get_ship_class("tau_kororvesh", "Warden Gunship"))
+    assert "Towed ship" in warden and "Ld rolled at game start (Default table)" in warden
+    ork = catalog_entry_summary(get_faction_ships("orks", include_unsupported=True)[0])
+    assert "Not playable yet:" in ork and "Gunz not modelled yet" in ork
 
 
 # ── fall-through path ─────────────────────────────────────────────────────────

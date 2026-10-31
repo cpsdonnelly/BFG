@@ -128,6 +128,7 @@ class Ship:
     turrets: int = 2
     hits_max: int = 8
     leadership: int = 7
+    leadership_table: str = ""   # Appendix 4 column if Ld is rolled at game start
 
     # Current state
     # None = uninitialized (post_init sets to hits_max). Stored as 0 for

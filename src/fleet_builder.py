@@ -600,7 +600,11 @@ class FleetBuilderWindow:
         self._catalog_scroll = tk.Scrollbar(left, command=self._catalog_list.yview)
         self._catalog_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self._catalog_list.config(yscrollcommand=self._catalog_scroll.set)
+        self._catalog_list.bind("<<ListboxSelect>>", lambda e: self._show_catalog_entry())
         self._catalog_entries: List[ShipClassEntry] = []
+        self._catalog_info = tk.Label(left, text="", font=_FONT_BODY, bg=_BG, fg=_FG,
+                                      justify=tk.LEFT, anchor="w", wraplength=300)
+        self._catalog_info.pack(fill=tk.X, pady=(2, 0))
 
         tk.Button(left, text="Add to Fleet ▶", font=_FONT_BODY,
                   bg="#223322", fg=_FG, relief=tk.FLAT, padx=8,
@@ -668,12 +672,23 @@ class FleetBuilderWindow:
         if faction == "homebrew":
             self._catalog_entries = _hb.load_homebrew_catalog()
         else:
-            self._catalog_entries = get_faction_ships(faction)
+            self._catalog_entries = get_faction_ships(faction, include_unsupported=True)
         for e in self._catalog_entries:
             tag = "HB" if faction == "homebrew" else e.ship_type[:3].upper()
+            suffix = "" if e.playable else "  (not playable yet)"
             self._catalog_list.insert(
                 tk.END,
-                f"[{tag}] {e.ship_class}  {e.points_cost}pts")
+                f"[{tag}] {e.ship_class}  {e.points_cost}pts{suffix}")
+            if not e.playable:
+                self._catalog_list.itemconfig(tk.END, fg="#777777",
+                                              selectforeground="#AAAAAA")
+        self._catalog_info.config(text="")
+
+    def _show_catalog_entry(self):
+        sel = self._catalog_list.curselection()
+        if not sel:
+            return
+        self._catalog_info.config(text=catalog_entry_summary(self._catalog_entries[sel[0]]))
 
     # ── Homebrew ship creation ────────────────────────────────────────────────
 
@@ -694,6 +709,10 @@ class FleetBuilderWindow:
             self._status_var.set("Select a ship class first.")
             return
         entry = self._catalog_entries[sel[0]]
+        if not entry.playable:
+            self._status_var.set(f"{entry.ship_class} can't be played yet: "
+                                 + "; ".join(entry.unsupported))
+            return
         row = _make_fleet_row(entry)
         self._fleet.append(row)
         self._refresh_fleet_list()
@@ -1002,6 +1021,21 @@ class FleetBuilderWindow:
 # fleet_list_to_ships: convert saved fleet data → list of Ship dicts for game
 # ---------------------------------------------------------------------------
 
+def catalog_entry_summary(entry: ShipClassEntry) -> str:
+    """One-glance description of a catalog ship for the fleet builder."""
+    ld = (f"Ld rolled at game start ({entry.leadership_table} table)"
+          if entry.leadership_table else f"Ld {entry.leadership}")
+    lines = [f"{entry.ship_class} — {entry.points_cost}pts, {entry.hits_max} hits, "
+             f"{entry.speed}cm, {entry.turn_angle}°, shields {entry.shields_max}, "
+             f"armour {entry.armor_prow}/{entry.armor_side}, turrets {entry.turrets}. {ld}."]
+    if "towed" in entry.special_rules:
+        lines.append("Towed ship: no warp engines of its own; needs gravitic hooks "
+                     "in the fleet (fleet building only, no effect in battle).")
+    if not entry.playable:
+        lines.append("Not playable yet: " + "; ".join(entry.unsupported) + ".")
+    return "\n".join(lines)
+
+
 def fleet_list_to_ships(fleet_data: dict, player: int) -> List[dict]:
     """
     Convert a saved fleet dict into Ship-compatible dicts ready for game state.
@@ -1018,6 +1052,8 @@ def fleet_list_to_ships(fleet_data: dict, player: int) -> List[dict]:
     for i, raw in enumerate(fleet_data.get("ships", [])):
         sc = raw.get("ship_class", "")
         entry = get_ship_class(faction, sc) if faction else None
+        if entry and not entry.playable:
+            entry = None          # not playable yet: keep the saved stats as-is
         if not entry:
             entry = _hb.get_homebrew_ship(sc)
 
@@ -1034,6 +1070,8 @@ def fleet_list_to_ships(fleet_data: dict, player: int) -> List[dict]:
                 spawn_y=raw.get("spawn_y", raw.get("y", 20.0)),
                 spawn_heading=raw.get("spawn_heading", raw.get("heading", 90.0)),
             )
+            if raw.get("squadron_id"):
+                ship_dict["squadron_id"] = raw["squadron_id"]
         else:
             # Fall through: use raw dict directly (hand-crafted fleet file)
             ship_dict = dict(raw)

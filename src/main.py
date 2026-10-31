@@ -13,7 +13,7 @@ from src.game_state import GameState
 from src.board_view import BoardView
 from src.dice import DiceRoller
 from src.turn_controller import TurnController
-from src.fleet_loader import (load_fleet_file, fleet_to_ships,
+from src.fleet_loader import (load_fleet_file, fleet_to_ships, roll_starting_leadership,
                                get_available_fleets, get_fleet_info,
                                find_unofficial_ships)
 from src.fleet_builder import FleetBuilderWindow
@@ -186,7 +186,9 @@ def main():
                 gs.add_ship(ship)
 
     # Create turn controller and dice
-    dice = DiceRoller(mode=gs.dice_mode)
+    dice = DiceRoller(mode=gs.dice_mode, root=root)
+    for line in roll_starting_leadership(gs, dice, ai_dice=DiceRoller(mode="auto")):
+        gs.add_log(line)
     tc = TurnController(gs, dice)
 
     # Show main window
