@@ -43,21 +43,21 @@ These six profiles share names and stats with Imperial Navy or Chaos battleships
 | Oberon Battle Barge *Battleship* | 470 | 12 | 60mm | 20cm | 45° | 4 | 6+ | 4 | Launch Bays port S1 + stbd S1 + prow S1 (MR 20cm); Macrobatteries 60cm FP6 (L), (R); Lances 60cm FP2 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R) | \- |
 | Desecrator Battle Barge *Battleship* | 465 | 12 | 60mm | 20cm | 45° | 4 | 6+ | 4 | Bombardment Cannon 30cm FP8 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Torps (standard or boarding) 30cm S9 (F); Launch Bays port S1 + stbd S1 (MR 20cm) | \- |
 | Retribution Battle Barge *Battleship* | 460 | 12 | 60mm | 20cm | 45° | 4 | 6+ | 4 | Bombardment Cannon 30cm FP10 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Prow Torps (standard or boarding) 30cm S9 (F) | \- |
-| Relictor Battle Barge *Battleship* | 430 | 12 | 60mm | 25cm | 45° | 4 | 6+ | 4 | Macrobatteries 30cm FP12 (L), (R); Lances 30cm FP2 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R); Prow Torps (standard or boarding) 30cm S9 (F) | +D6cm on All Ahead Full (improved engines) |
+| Relictor Battle Barge *Battleship* | 430 | 12 | 60mm | 25cm | 45° | 4 | 6+ | 4 | Macrobatteries 30cm FP12 (L), (R); Lances 30cm FP2 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R); Prow Torps (standard or boarding) 30cm S9 (F) | +D6cm on All Ahead Full |
 
 **Battle Barges**
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Ultima Battle Barge *Battleship* | 450 | 12 | 60mm | 20cm | 45° | 4 | 6+ | 4 | Bombardment Cannon 30cm FP8 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R); Prow Launch Bays S2 (MR 20cm); Prow Torps (standard or boarding) 30cm S6 (F) | Ponderous. May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts |
-| Space Marine Battle Barge *Battleship* | 425 | 12 | 60mm | 20cm | 45° | 4 | 6+ | 4 | Macrobatteries 45cm FP12 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R); Prow Launch Bays S3 (MR 20cm); Prow Torps (standard or boarding) 30cm S6 (F) | Ponderous. May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts |
+| Ultima Battle Barge *Battleship* | 450 | 12 | 60mm | 20cm | 45° | 4 | 6+ | 4 | Bombardment Cannon 30cm FP8 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R); Prow Launch Bays S2 (MR 20cm); Prow Torps (standard or boarding) 30cm S6 (F) | Ponderous (no Come to New Heading). May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts |
+| Space Marine Battle Barge *Battleship* | 425 | 12 | 60mm | 20cm | 45° | 4 | 6+ | 4 | Macrobatteries 45cm FP12 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R); Prow Launch Bays S3 (MR 20cm); Prow Torps (standard or boarding) 30cm S6 (F) | Ponderous (no Come to New Heading). May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts |
 
 **Cruisers**
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Strike Cruiser | 145 | 6 | 32mm | 25cm | 90° | 1 | 6+ | 2 | Macrobatteries 30cm FP4 (L), (R); Prow Bombardment Cannon 30cm FP3 (L/F/R); Prow Launch Bays S2 (MR 20cm) | Secondary Shield: any number may add +1 Shield for +15pts each. Strike Cruiser Variants (up to half the fleet's strike cruisers, round down; cost may be reduced by Tactical Flexibility, in booklet): swap prow launch bays for a Bombardment Cannon (30cm FP5 F) +10pts or torps (30cm S6 F) free, which can optionally fire boarding torps instead; the boarding torps option can be swapped for short-burn torps +5pts or barrage bombs +10pts; and/or swap both Macrobatteries for port+stbd launch bays (1 sqn each, MR 20cm) +20pts |
-| Vanguard Cruiser | 130 | 6 | 32mm | 25cm | 90° | 1 | 6+ | 3 | Macrobatteries 30cm FP5 (L), (R); Prow Torps (standard or boarding) 30cm S4 (F); Prow Launch Bays S1 (MR 20cm) | Improved Thrusters: +D6cm on All Ahead Full. Secondary Shield: any number may add +1 Shield for +15pts each. Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage bombs +5pts |
+| Vanguard Cruiser | 130 | 6 | 32mm | 25cm | 90° | 1 | 6+ | 3 | Macrobatteries 30cm FP5 (L), (R); Prow Torps (standard or boarding) 30cm S4 (F); Prow Launch Bays S1 (MR 20cm) | Improved Thrusters (+D6cm on All Ahead Full). Secondary Shield: any number may add +1 Shield for +15pts each. Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage bombs +5pts |
 
 **Escorts**
 
@@ -75,7 +75,7 @@ These six profiles share names and stats with Imperial Navy or Chaos battleships
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Fortress-Monastery *Defense* | 875 | 12 | 60mm | \- | \- | 4 | 6+ | 4 | Quadrant: Macrobatteries 60cm FP18 (per quadrant); Lances 45cm FP3 (per quadrant); Launch Bays S3 (MR 20cm). Basilica: Macrobatteries 60cm FP8 (All Round); Torps (standard or boarding) 30cm S9 (All Round) | High-orbit defense; may replace a planet (30cm high-orbit range) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules |
+| Fortress-Monastery *Defence* | 875 | 12 | 60mm | \- | \- | 4 | 6+ | 4 | Quadrant: Macrobatteries 60cm FP18 (per quadrant); Lances 45cm FP3 (per quadrant); Launch Bays S3 (MR 20cm). Basilica: Macrobatteries 60cm FP8 (All Round); Torps (standard or boarding) 30cm S9 (All Round) | High-orbit defence; may replace a planet (30cm high-orbit range) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules |
 
 ### Space Marine Ship Special Rules
 
@@ -99,7 +99,7 @@ May be any non-unique grand cruiser, battlecruiser, or heavy cruiser from an Imp
 
 #### Fortress-Monastery (Imperium p.145-147)
 
-Deployed as a high-orbit defense; follows the Fleet Support orbital-satellite rules except as modified here.
+Deployed as a high-orbit defence; follows the Fleet Support orbital-satellite rules except as modified here.
 
 **Leadership & orders:** fixed Ld 10. May use Reload Ordnance, Lock On, and Brace for Impact. May purchase up to 3 re-rolls at +25pts each, usable only by the fortress-monastery itself, unless the Master of the Fleet is aboard (then they add to his re-rolls and the whole fleet may use them). The Master of the Fleet may always be assigned here regardless of other requirements.
 
@@ -107,7 +107,7 @@ Deployed as a high-orbit defense; follows the Fleet Support orbital-satellite ru
 
 **Quadrants:** weapons, hits, and defences are split into four quadrants (front/back/left/right of the station). Attacks and ordnance hit the quadrant found by tracing a line from the firer to the station's centre (or the first quadrant an ordnance marker touches). Each quadrant has its own shields; blast markers go against the model's base and affect the quadrant taking fire plus the two adjacent quadrants (unremoved markers stay in place through a rotation). Each quadrant automatically counts as massing turrets with its two neighbours, plus any docked ships (subject to the normal +3 cap); crippled/destroyed quadrants don't contribute. Nova cannons and Armageddon guns only score the D6 "direct hit" against the quadrant under the center hole.
 
-**Damage:** all damage and criticals affect only the quadrant hit. A quadrant is crippled individually at 6 Damage Points remaining; at 0 hits it becomes an asteroid field for line-of-sight and movement purposes but stays part of the model. Damage control is rolled per quadrant. The whole fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll (see the Fortress-Monastery Catastrophic Damage table, p.153). Critical hits use the Fortress-Monastery Critical Hits table (p.153) instead of the normal table.
+**Damage:** all damage and criticals affect only the quadrant hit. A quadrant is crippled individually at 6 Damage Points remaining; at 0 hits it becomes an asteroid field for line-of-sight and movement purposes but stays part of the model. Damage control is rolled per quadrant. The whole fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll (see the Fortress-Monastery Catastrophic Damage table, p.155). Critical hits use the Fortress-Monastery Critical Hits table (p.155) instead of the normal table.
 
 **The Basilica:** the central weapons (Macrobatteries, Torps) cannot be targeted separately and are destroyed only when the whole station is; damage that would hit the Basilica (such as its own ordnance detonating from a critical) is instead distributed among the remaining quadrants. Basilica weapons act under every quadrant's special orders simultaneously (so they can be Locked On, Reloading, and Braced all at once); Brace for Impact still halves their firepower and strength as normal.
 

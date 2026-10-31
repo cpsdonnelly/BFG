@@ -51,7 +51,7 @@ class Arc(str, Enum):
 class OrdnanceType(str, Enum):
     TORPEDO_STANDARD = "torpedo_standard"
     TORPEDO_GUIDED = "torpedo_guided"             # Tau missiles
-    TORPEDO_BOARDING = "torpedo_boarding"         # one hit-and-run raid per hit (s.24)
+    TORPEDO_BOARDING = "torpedo_boarding"         # one hit-and-run raid per hit (s.28)
     TORPEDO_BOARDING_GUIDED = "torpedo_boarding_guided"  # boarding torp w/ guidance
     FIGHTER = "fighter"
     BOMBER = "bomber"

@@ -98,7 +98,7 @@ class OrdnanceMovementMixin:
 
     def _raid_brace_fn(self, default_raids: int = 1):
         """Callback asking a raid target whether to Brace for Impact before
-        the raids are rolled (s.24). Returns fn(target, msg, n_raids=None)
+        the raids are rolled (s.28). Returns fn(target, msg, n_raids=None)
         -> (wanted, passed). The AI braces against more than two raids or
         when it has fewer than 6 hits left."""
         def _brace_fn(target_ship, msg, n_raids=None):

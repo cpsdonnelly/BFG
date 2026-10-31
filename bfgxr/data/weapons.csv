@@ -241,13 +241,13 @@ Support Assets,Space Station,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"La
 Support Assets,Orbital Dock,,weapon,,Macrobatteries,,,30,FP,4,direct,All Round,True,Macrobatteries 30cm FP4 (All Round)
 Support Assets,Orbital Dock,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (ASF 30cm, BMR 20cm)"
 Support Assets,Orbital Weapons Platform,,weapon,,Macrobatteries,,,60,FP,6,direct,All Round,True,Macrobatteries 60cm FP6 (All Round)
-Support Assets,Orbital Defense Laser Platform,,weapon,,Lance,,,60,FP,1,direct,All Round,True,Lance 60cm FP1 (All Round)
+Support Assets,Orbital Defence Laser Platform,,weapon,,Lance,,,60,FP,1,direct,All Round,True,Lance 60cm FP1 (All Round)
 Support Assets,Orbital Torpedo Launcher,,weapon,,Torps,,,30,S,6,ordnance,All Round,True,Torps 30cm S6 (All Round)
 Support Assets,Air Base,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (ASF 30cm, BMR 20cm)"
-Support Assets,Defense Laser Silo,,weapon,,Lances,,,60,FP,3,direct,F,True,Lances 60cm FP3 (F)
+Support Assets,Defence Laser Silo,,weapon,,Lances,,,60,FP,3,direct,F,True,Lances 60cm FP3 (F)
 Support Assets,Missile Silo,,weapon,,Torps,,,30,S,6,ordnance,F,True,Torps 30cm S6 (F)
-Support Assets,Defense Monitor,,weapon,,Macrobatteries,,,30,FP,8,direct,L/F/R,True,Macrobatteries 30cm FP8 (L/F/R)
-Support Assets,Defense Monitor,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Support Assets,Defence Monitor,,weapon,,Macrobatteries,,,30,FP,8,direct,L/F/R,True,Macrobatteries 30cm FP8 (L/F/R)
+Support Assets,Defence Monitor,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
 Support Assets,System Escort,,weapon,,Macrobatteries,,,30,FP,3,direct,L/F/R,True,Macrobatteries 30cm FP3 (L/F/R)
 Support Assets,Escort Carrier,,launch_bays,,Launch Bays,,,,S,port 1 + stbd 1,ordnance,,True,"Launch Bays port S1 + stbd S1 (ASF 30cm, BMR 20cm)"
 Support Assets,Escort Carrier,,weapon,Dorsal,Macrobatteries,,,15,FP,2,direct,L/F/R,True,Dorsal Macrobatteries 15cm FP2 (L/F/R)

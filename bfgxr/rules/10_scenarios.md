@@ -6,7 +6,7 @@
 
 Although some space battles are straightforward affairs, with two fleets engaging each other simply to destroy the enemy, it is just as likely that the fleets will have a more specific objective to achieve, such as escorting a convoy or supporting a planetary assault. This section of Battlefleet Gothic provides the rules for fighting these different types of battle. There are a number of scenarios in this book, divided between simple training missions for beginners, small scale raids, larger, full-scale battles, and a selection of unique, climactic showdowns for the especially adventurous commander.
 
-*Flavour text (Port Maw):* Port Maw is the capital system of the Gothic Sector. The planet itself is the most productive hive world in the region, with a population of over 200 billion people. Orbiting above the world are three Naval stations, including Fleet Command for the whole of Battlefleet Gothic, and Nexus Station, the Gothic Sector's largest shipbuilding and repair station. Port Maw's orbital defenses outmatch even those of the Blackstone Fortresses, and the Chaos fleet wisely decided not to launch an all-out attack against this base. Instead, the naval base was blockaded continuously for seven years by Chaos ships. During this time, only a handful of vessels managed to slip into or out of the system and the need for food and supplies became great. After seven years, a brief break in the warpstorms around the sub-sector gave the battlecruiser Sword of Redemption and several other capital ships the opportunity to launch an effective attack, driving the Chaos blockade from the system and allowing the navy to make much-needed use of Port Maw's considerable shipyard facilities.
+*Flavour text (Port Maw):* Port Maw is the capital system of the Gothic Sector. The planet itself is the most productive hive world in the region, with a population of over 200 billion people. Orbiting above the world are three Naval stations, including Fleet Command for the whole of Battlefleet Gothic, and Nexus Station, the Gothic Sector's largest shipbuilding and repair station. Port Maw's orbital defences outmatch even those of the Blackstone Fortresses, and the Chaos fleet wisely decided not to launch an all-out attack against this base. Instead, the naval base was blockaded continuously for seven years by Chaos ships. During this time, only a handful of vessels managed to slip into or out of the system and the need for food and supplies became great. After seven years, a brief break in the warpstorms around the sub-sector gave the battlecruiser Sword of Redemption and several other capital ships the opportunity to launch an effective attack, driving the Chaos blockade from the system and allowing the navy to make much-needed use of Port Maw's considerable shipyard facilities.
 
 ## Choosing a Scenario
 
@@ -84,7 +84,7 @@ Each scenario is presented in the following format:
 
 **Title and Overview** describes the type of scenario being played, with a short explanation detailing the situation that faces the fleet commanders.
 
-**Forces** tells you how to pick your fleets, usually in conjunction with the fleet list documents that accompany this book. In some scenarios, one side may have random (or unequal) forces, as well as additional resources such as planetary defenses, transport ships, etc.
+**Forces** tells you how to pick your fleets, usually in conjunction with the fleet list documents that accompany this book. In some scenarios, one side may have random (or unequal) forces, as well as additional resources such as planetary defences, transport ships, etc.
 
 **Battlezone** explains what restrictions there are, if any, on choosing a battlezone, as well as any compulsory celestial phenomena that must be placed on the tabletop.
 
@@ -102,11 +102,11 @@ Each scenario is presented in the following format:
 
 In many scenarios, the winner will be the player who scores the most victory points. Victory points are a measure of how much damage a fleet has inflicted on its enemy and are won by crippling and destroying enemy ships. Additional victory points can also be scored by achieving certain objectives, as detailed in the Victory Conditions section of the scenario, such as escaping an attack or attacking an enemy base. Victory points are earned as follows:
 
-**Enemies Destroyed.** Each capital ship, escort squadron, and defense installation that is completely destroyed at the end of the game awards the opposing player a number of victory points equal to that unit/squadron's total points value, including the cost of any commanders or other upgrades on board. Note that capital ships and planetary defenses (even those that behave like escorts) are always calculated separately for victory point purposes, even if part of a squadron.
+**Enemies Destroyed.** Each capital ship, escort squadron, and defence installation that is completely destroyed at the end of the game awards the opposing player a number of victory points equal to that unit/squadron's total points value, including the cost of any commanders or other upgrades on board. Note that capital ships and planetary defences (even those that behave like escorts) are always calculated separately for victory point purposes, even if part of a squadron.
 
-**Enemies Crippled.** Each capital ship, escort squadron, and defense installation that is crippled at the end of the game awards the opposing player a number of victory points equal to 25% of that unit/squadron's total points value, including the cost of any commanders, upgrades (and so on) as normal. An escort squadron is considered to be crippled for this purpose if at least half its ships (rounding up) are destroyed. In a campaign game, units that start crippled must suffer at least one damage to count for this condition.
+**Enemies Crippled.** Each capital ship, escort squadron, and defence installation that is crippled at the end of the game awards the opposing player a number of victory points equal to 25% of that unit/squadron's total points value, including the cost of any commanders, upgrades (and so on) as normal. An escort squadron is considered to be crippled for this purpose if at least half its ships (rounding up) are destroyed. In a campaign game, units that start crippled must suffer at least one damage to count for this condition.
 
-**Enemies Scattered.** Each non-crippled capital ship, escort squadron, and defense installation that has disengaged before the end of the game awards the opposing player a number of victory points equal to 10% of that unit/squadron's total points value, including the cost of any commanders, upgrades (and so on) as normal.
+**Enemies Scattered.** Each non-crippled capital ship, escort squadron, and defence installation that has disengaged before the end of the game awards the opposing player a number of victory points equal to 10% of that unit/squadron's total points value, including the cost of any commanders, upgrades (and so on) as normal.
 
 **Holding the Field.** At the end of the battle, the fleet that holds the field earns victory points for the number of hulks it captures. Your fleet holds the field at the end of the battle if there are no enemy vessels remaining (all have either disengaged or been destroyed) and your fleet has at least one operational ship on the table. If a fleet holds the field, the controlling player earns victory points equal to 50% of the total points value of each hulk on the table, both friendly and enemy. Note that this is in addition to any victory points awarded for actually destroying those ships.
 
@@ -505,7 +505,7 @@ The Gauntlet variant scenario uses all the same rules as Scenario Three (Convoy)
 
 *Source: BFG:XR Rulebook, printed p.97.*
 
-Forces sector wide have been split up into smaller patrols and sent in to cripple or destroy as much of an enemy's rearguard as possible before they are destroyed themselves. The targeted hostile forces are experiencing radar malfunctions due to the presence of jammer mines scattered in their way. The time to strike is now. If the attacker can cause enough damage, then these rearguard fleets will be rendered temporarily ineffective, buying the systems ahead some time to organize their defenses. The odds are stacked against them, but stealth may just triumph over numerical superiority.
+Forces sector wide have been split up into smaller patrols and sent in to cripple or destroy as much of an enemy's rearguard as possible before they are destroyed themselves. The targeted hostile forces are experiencing radar malfunctions due to the presence of jammer mines scattered in their way. The time to strike is now. If the attacker can cause enough damage, then these rearguard fleets will be rendered temporarily ineffective, buying the systems ahead some time to organize their defences. The odds are stacked against them, but stealth may just triumph over numerical superiority.
 
 **Forces.** Agree on a points limit for the battle. The defender may spend up to this limit on their fleet, but must split at least 25% of its point value off as reinforcements. The attacker may only spend up to half the agreed points limit on their fleet.
 
@@ -561,11 +561,11 @@ Warp Storms have ravaged several sectors, making travel through them difficult a
 
 A massive influx of enemy reinforcements are making their way to the orbital docks of a strategically vital system. Although this regrouping effort cannot be stopped, it can be hindered. A raid on the shipyards and resupply stations around the planet could stall the enemy fleet's momentum if the attack goes well, as the infrastructure will need to be repaired by the foe before they can move on. A small fleet has been dispatched to strike at the vulnerable orbital satellites and cause as much havoc as possible before further hostile reinforcements arrive.
 
-**Forces.** The attacking player may spend up to 1500 points on their fleet, then must divide it into two forces with points values as equal as possible. The defender may only spend up to 750 points on their fleet, and cannot include any battleships. In exchange, the defender gains one fleet commander re-roll for free, along with 2 Space Stations, 1 Orbital Dock, 8 Orbital Mines, 1 Defense Monitor, and 2 System Escorts at no additional cost (source: rulebook p.65-67). The defender also chooses (separately from their fleet) eight of the following satellites in any mix desired: Orbital Weapons Platform, Orbital Defense Laser Platform, or Orbital Torpedo Launcher. These must be divided into two groups of four, referred to as the inner platforms and outer platforms respectively.
+**Forces.** The attacking player may spend up to 1500 points on their fleet, then must divide it into two forces with points values as equal as possible. The defender may only spend up to 750 points on their fleet, and cannot include any battleships. In exchange, the defender gains one fleet commander re-roll for free, along with 2 Space Stations, 1 Orbital Dock, 8 Orbital Mines, 1 Defence Monitor, and 2 System Escorts at no additional cost (source: rulebook p.65-67). The defender also chooses (separately from their fleet) eight of the following satellites in any mix desired: Orbital Weapons Platform, Orbital Defence Laser Platform, or Orbital Torpedo Launcher. These must be divided into two groups of four, referred to as the inner platforms and outer platforms respectively.
 
 **Battlezone.** Instead of using the normal battlezone rules, place a large planet in the center of the table. Both players (starting with the attacker) then place an asteroid field anywhere outside the planet's gravity well (30cm from the marker's edge).
 
-**Set-up.** The defending player starts by placing the orbital dock and two space stations anywhere within the planet's gravity well. Then, the defender places the outer platforms anywhere on the table (they do not need to be within a gravity well). The attacker then deploys one of their two forces within 10cm of a short table edge and deploys the other force within 10cm of the opposite table edge. The defender now places the inner platforms, system escorts, defense monitor, and orbital mines anywhere within the planet's gravity well. The remainder of the defender's forces are held in reserve and will arrive later.
+**Set-up.** The defending player starts by placing the orbital dock and two space stations anywhere within the planet's gravity well. Then, the defender places the outer platforms anywhere on the table (they do not need to be within a gravity well). The attacker then deploys one of their two forces within 10cm of a short table edge and deploys the other force within 10cm of the opposite table edge. The defender now places the inner platforms, system escorts, defence monitor, and orbital mines anywhere within the planet's gravity well. The remainder of the defender's forces are held in reserve and will arrive later.
 
 **First Turn.** The attacker rolls 2D6 and the defender rolls 1D6. The player with the highest result chooses whether to go first or second.
 
@@ -599,7 +599,7 @@ This next section presents six scenarios designed to represent more conventional
 
 Sometimes, an enemy poses a threat so grave and so immediate that there can be only one solution: the utter annihilation of a world, accomplished through an unparalleled act of destruction known in the Imperium as Exterminatus. In this scenario, the attacking fleet is escorting a group of Exterminators, ships capable of laying waste to entire planetary populations or even obliterating all life on a world in a matter of hours. The defenders must stop this Exterminator fleet at all costs, and will rush every ship in the vicinity to protect their threatened planet.
 
-**Forces.** Agree on a points limit for the battle. *Attacker:* may spend up to the agreed limit on their fleet. For every 1,000 points (or portion thereof), the attacking player may nominate one of their capital ships to be an Exterminator, granting that ship an Armageddon weapon (replacing the ship's prow armament, if any). Alternatively, the attacking fleet may include a single Activated Blackstone Fortress as its Exterminator instead of refitting any capital ships (subject to the normal cost and restrictions in the General Fleet Support List; source: rulebook p.75). *Defender:* may spend up to the agreed limit on their fleet, plus an additional D6×10 points on planetary defenses for every 500 points (or portion thereof) in their fleet. Keep in mind that the defender may also spend up to one third of their fleet's points on planetary defenses (source: rulebook p.65).
+**Forces.** Agree on a points limit for the battle. *Attacker:* may spend up to the agreed limit on their fleet. For every 1,000 points (or portion thereof), the attacking player may nominate one of their capital ships to be an Exterminator, granting that ship an Armageddon weapon (replacing the ship's prow armament, if any). Alternatively, the attacking fleet may include a single Activated Blackstone Fortress as its Exterminator instead of refitting any capital ships (subject to the normal cost and restrictions in the General Fleet Support List; source: rulebook p.75). *Defender:* may spend up to the agreed limit on their fleet, plus an additional D6×10 points on planetary defences for every 500 points (or portion thereof) in their fleet. Keep in mind that the defender may also spend up to one third of their fleet's points on planetary defences (source: rulebook p.65).
 
 **Battlezone.** The defender determines whether the battle is fought in the primary or inner biosphere. Place a planet (D6: 1 = small, 2-5 = medium, 6 = large) no more than 150cm from any short table edge, as shown below. Use any method on rulebook p.49 to place additional celestial phenomena.
 
@@ -674,7 +674,7 @@ A hostile fleet thought to have abandoned the sector is instead found raiding a 
 
 The attacking fleet has launched a preemptive strike against their foe, catching the enemy unawares while its vessels are still taking on stores in dock over a nearby planet. The attacker's aim is simple: decimate the vulnerable opposing fleet before it can deploy and regroup. With most of their ships powered down on standby, the defenders must try to muster a response as quickly as possible before they are destroyed piecemeal by the approaching force.
 
-**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. In addition, the defender may spend an extra D6×10 points on planetary defenses for every 500 points (or portion thereof) in their fleet.
+**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. In addition, the defender may spend an extra D6×10 points on planetary defences for every 500 points (or portion thereof) in their fleet.
 
 **Battlezone.** The attack takes place in the primary or inner biosphere (defender's choice). Set up a planet in the middle of the table. The planet's size depends on the size of the battle: up to 500pts = small, 501-1500pts = medium, 1501pts or more = large. Use any method on rulebook p.49 to place additional celestial phenomena as desired.
 
@@ -698,7 +698,7 @@ The attacking fleet has launched a preemptive strike against their foe, catching
 
 Although fleet engagements are vital to every war effort, the undeniable reality is that in the absence of an Exterminatus order, ground battles will ultimately determine who controls a system's resources and strategic position. To facilitate this, an attacking fleet will often be tasked with deploying troops onto the surface of a contested planet, either to spearhead an invasion or reinforce existing armies. Doing this will not be easy however; they must smash through enemy defenders and hold off any counterattack while the troop transports make their landing.
 
-**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. In addition, for every 500 points (or portion thereof) in the players' fleets, the attacker must take 2 transport capacity worth of convoy ships while the defender may spend an extra D6×10 points on planetary defenses.
+**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. In addition, for every 500 points (or portion thereof) in the players' fleets, the attacker must take 2 transport capacity worth of convoy ships while the defender may spend an extra D6×10 points on planetary defences.
 
 **Battlezone.** The defender determines whether the battle is fought in the primary or inner biosphere. Place a planet (D6: 1 = small, 2-5 = medium, 6 = large) no more than 150cm from any short table edge, as shown below. Use any method on rulebook p.49 to place additional celestial phenomena.
 
@@ -837,7 +837,7 @@ This section of the book features three special scenarios, each representing a s
 
 *Flavour text:* "We fight the long war, not through vain notions of duty and honour, but through a far purer purpose: hatred. At the height of our glory we were betrayed and cast out by our kin. Guilliman, Dorn, Sanguinius, these are names I curse. Horus, Perturabo, Angron, these are names I revere, names I would follow to the very end. It is this hatred that has sustained me through the long millennia. I tend it with bitterness. I nurture it with the deaths of my former brothers. For I know that when the end is upon us and Horus is returned, then the false emperor shall be cast down from his sepulchral Golden Throne, and we shall take our rightful place at the side of Horus, the true Emperor of Mankind.", Ferrous Ironclaw, Iron Warriors Warsmith, 2nd Grand Company
 
-## The Defense of Pelucidar
+## The Defence of Pelucidar
 
 *Source: BFG:XR Rulebook, printed p.111. Grand-finale scenario for the Third Armageddon War Campaign.*
 
@@ -849,7 +849,7 @@ The initial elements of Ghazghkull's fleet entered the Armageddon system on the 
 
 **Set-up.** The defending Imperial fleet deploys first. Each defending ship and squadron must be set-up at least 30cm from any table edge, at least 20cm from another ship or squadron, and all facing directly towards the same table edge. The Ork player does not have any ships at this point and thus does not deploy anything.
 
-![The Defense of Pelucidar](media/scenarios_the-defense-of-pelucidar.png)
+![The Defence of Pelucidar](media/scenarios_the-defence-of-pelucidar.png)
 
 *Deployment diagram*
 
@@ -928,7 +928,7 @@ In this scenario, a craftworld is the target of an attack in the same way a plan
 
 **Craftworld Iyanden:** For the purpose of game rules, a craftworld is a planet (and is represented by a planet marker of the appropriate size). This means they have their own gravity wells (as shown above), may use the low-orbit table, and so on. However, craftworlds never have moons or rings. Also note that while craftworlds are technically interstellar vessels, they move so remarkably slow that during a scenario the marker is treated as stationary in the same way as any other planet.
 
-Unlike planets however, craftworlds do not have independent defenses. Instead, certain areas of the vessel are constructed with built-in combat and support systems. These are represented by the Fortresses, the Forges, the Gates, and the Spear of Light. The rules for these are below, and may be used to represent the standard defense configuration of any craftworld. In the case of Iyanden, these use the names shown in the craftworld layout diagram below.
+Unlike planets however, craftworlds do not have independent defences. Instead, certain areas of the vessel are constructed with built-in combat and support systems. These are represented by the Fortresses, the Forges, the Gates, and the Spear of Light. The rules for these are below, and may be used to represent the standard defence configuration of any craftworld. In the case of Iyanden, these use the names shown in the craftworld layout diagram below.
 
 ![Craftworld Assault](media/scenarios_craftworld-assault.png)
 
@@ -1044,13 +1044,13 @@ The great ships of the Gothic Sector and beyond come together in a great clash a
 
 *Source: BFG:XR Rulebook, printed p.118.*
 
-Long range defense platforms have been set up at the edge of the system. These are the first line of defense against raiders and invasion forces alike. The attacking fleet must smash a hole in this blockade before it can move on to the interior of the system and wreak terrible havoc on the enemy's strategic positions. The defender will not make it easy, however; they have dispatched their own fleet in response to the threat.
+Long range defence platforms have been set up at the edge of the system. These are the first line of defence against raiders and invasion forces alike. The attacking fleet must smash a hole in this blockade before it can move on to the interior of the system and wreak terrible havoc on the enemy's strategic positions. The defender will not make it easy, however; they have dispatched their own fleet in response to the threat.
 
-**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. The defender must include one defense platform for every 200 points (or portion thereof) in their fleet, counting its cost against their points total as normal. Each defense platform is represented by an orbital weapons platform, orbital defense laser platform, or orbital torpedo launcher (source: rulebook p.65-66). They cannot be formed into squadrons.
+**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. The defender must include one defence platform for every 200 points (or portion thereof) in their fleet, counting its cost against their points total as normal. Each defence platform is represented by an orbital weapons platform, orbital defence laser platform, or orbital torpedo launcher (source: rulebook p.65-66). They cannot be formed into squadrons.
 
 **Battlezone.** The attack takes place in the outer reaches. Use the appropriate table on rulebook p.51 to place celestial phenomena.
 
-**Set-up.** The defender chooses one of the long table edges and sets up their fleet within 60cm of it. Defense platforms must be placed more than 30cm from any table edge, more than 15cm from each other, and not within any celestial phenomena. Note that they do not need to be placed within a planet's gravity well. The attacker then sets up his or her fleet within 15cm of the opposite long table edge.
+**Set-up.** The defender chooses one of the long table edges and sets up their fleet within 60cm of it. Defence platforms must be placed more than 30cm from any table edge, more than 15cm from each other, and not within any celestial phenomena. Note that they do not need to be placed within a planet's gravity well. The attacker then sets up his or her fleet within 15cm of the opposite long table edge.
 
 ![Line Breaker](media/scenarios_line-breaker.png)
 
@@ -1058,9 +1058,9 @@ Long range defense platforms have been set up at the edge of the system. These a
 
 **First Turn.** The attacker takes the first turn.
 
-**Game Length.** The game lasts until the attacker destroys all defense platforms and moves one capital ship off the defender's long table edge, or until one fleet disengages or is destroyed in its entirety.
+**Game Length.** The game lasts until the attacker destroys all defence platforms and moves one capital ship off the defender's long table edge, or until one fleet disengages or is destroyed in its entirety.
 
-**Victory Conditions.** The attacker must destroy all of the opposing defense platforms and move at least one of their capital ships off the defender's long table edge in order to win. Otherwise, victory is awarded to the defender.
+**Victory Conditions.** The attacker must destroy all of the opposing defence platforms and move at least one of their capital ships off the defender's long table edge in order to win. Otherwise, victory is awarded to the defender.
 
 *Flavour text:* "Beyond that opening are my enemies. Behind me are warriors who would happily turn their weapons on me if they thought they could get away with it. Do you really think I'm doing this to try and impress anyone? I know who I am, and I don't give a greenskin's fart what anyone thinks of me.", Honsou, Warsmith of the Iron Warriors
 
@@ -1120,7 +1120,7 @@ Transport ships are easy prey for fleets of hungry warships, yet are vital to th
 
 Space stations and orbital shipyards are the lifeblood of any space fleet. They are a place to repair, rearm, and refuel for the many warships of the Gothic sector and beyond. An attack on a space station will always be hard fought, but victory here will leave the enemy fleet in ruins and without a place to lick their wounds.
 
-**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. The defender must include a single space station, and may also include any number of orbital weapons platforms, defense laser platforms, and torpedo launchers. The costs of these are counted towards the defender's points total as normal (source: rulebook p.65-66).
+**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. The defender must include a single space station, and may also include any number of orbital weapons platforms, defence laser platforms, and torpedo launchers. The costs of these are counted towards the defender's points total as normal (source: rulebook p.65-66).
 
 **Battlezone.** The attack takes place in the primary biosphere. Use the appropriate table on rulebook p.51 to place celestial phenomena.
 
@@ -1190,11 +1190,11 @@ In the chaos of the warp there is little room for organized maneuvers. Fleets wh
 
 After months of drawn out fighting, a local uprising has created a gap in a strategically valuable planet's defensive perimeter. With conflict already raging below as rebels and loyalists battle for supremacy, the time has come for the attacking fleet to strike against its foes on the surface, bombarding their strongholds and deploying drop-troops to crush the defenders once and for all.
 
-**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. The defender may also spend up to an extra 20% of the agreed points limit on planetary defenses (not including low orbit defenses, as the low orbit table is not used in this scenario). The defender may also purchase planetary defenses with points allocated to their fleet, as described on rulebook p.65. The attacker must take 1 transport capacity worth of convoy ships for every 100 points (or portion thereof) in their fleet.
+**Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. The defender may also spend up to an extra 20% of the agreed points limit on planetary defences (not including low orbit defences, as the low orbit table is not used in this scenario). The defender may also purchase planetary defences with points allocated to their fleet, as described on rulebook p.65. The attacker must take 1 transport capacity worth of convoy ships for every 100 points (or portion thereof) in their fleet.
 
 **Battlezone.** The attack takes place in the primary biosphere. Start by placing a large planet centered between the long table edges with the far side of the marker exactly 45cm from one of the short table edges. Use the appropriate table on rulebook p.51 to place any remaining celestial phenomena (or have a neutral third party set up terrain ahead of time). Do not place any more planets.
 
-**Set-up.** The attacker deploys first, setting up their fleet within 30cm of the short table edge opposite the planet. The defender then sets up their fleet within 45cm of the other short table edge. Any planetary defenses included must be deployed within the planet's gravity well (rather than the defender's deployment zone) as normal.
+**Set-up.** The attacker deploys first, setting up their fleet within 30cm of the short table edge opposite the planet. The defender then sets up their fleet within 45cm of the other short table edge. Any planetary defences included must be deployed within the planet's gravity well (rather than the defender's deployment zone) as normal.
 
 ![Planet Strike](media/scenarios_planet-strike.png)
 

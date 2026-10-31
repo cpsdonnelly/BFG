@@ -40,9 +40,9 @@ Tau weapon and system terms follow the Tau faction rules: Railguns = macrobatter
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Explorer Starship *Battleship* | 230 | 12 | 60mm | 15cm | 45° | 1 | 5+ / 4+R | 5 | Prow Railguns 45cm FP6 (L/F/R); Launch Bays port S4 + stbd S4 (BMR 20cm, ASF 25cm); Dorsal Gravitic Hooks (3 Orcas) | Ponderous. Bor'kan Configuration: may halve launch-bay strength to add a prow Gravitic Launcher (20-40cm S8 F) free. Option: replace Mantas with Tiger Shark drone carriers +40pts. Armr 5+ front/abeam, 4+ rear |
+| Explorer Starship *Battleship* | 230 | 12 | 60mm | 15cm | 45° | 1 | 5+ / 4+R | 5 | Prow Railguns 45cm FP6 (L/F/R); Launch Bays port S4 + stbd S4 (BMR 20cm, ASF 25cm); Dorsal Gravitic Hooks (3 Orcas) | Ponderous (no Come to New Heading). Bor'kan Configuration: may halve launch-bay strength to add a prow Gravitic Launcher (20-40cm S8 F) free. Option: replace Mantas with Tiger Shark drone carriers +40pts. Armr 5+ front/abeam, 4+ rear |
 | Hero Starship *Cruiser* | 180 | 8 | 32mm | 20cm | 45° | 2 | 6+D / 5+ | 3 | Ion Cannon 30cm FP1 (L/F), (R/F); Prow Railguns 45cm FP4 (L/F/R); Prow Gravitic Launcher 20-40cm S6 (F); Launch Bays port S1 + stbd S1 (BMR 20cm, ASF 25cm) | Has a Deflector (no tracking systems). Options: swap ion cannons for port/stbd Railguns (45cm FP3, L/F and R/F) free; Mantas to Tiger Shark drone carriers +10pts |
-| Merchant Starship *Cruiser* | 105 | 6 | 32mm | 15cm | 45° | 1 | 5+ | 2 | Railguns 45cm FP2 (L/F), (R/F); Prow Railguns 45cm FP2 (L/F/R); Gravitic Hooks port + stbd (1 Orca each) | Ponderous. Options: +2 hits (advanced hull armour) +20pts; Dal'yth Configuration: replace port/stbd gravitic hooks with ion cannons (30cm S1, L/F and R/F) +10pts; transport capacity 2 free |
+| Merchant Starship *Cruiser* | 105 | 6 | 32mm | 15cm | 45° | 1 | 5+ | 2 | Railguns 45cm FP2 (L/F), (R/F); Prow Railguns 45cm FP2 (L/F/R); Gravitic Hooks port + stbd (1 Orca each) | Ponderous (no Come to New Heading). Options: +2 hits (advanced hull armour) +20pts; Dal'yth Configuration: replace port/stbd gravitic hooks with ion cannons (30cm S1, L/F and R/F) +10pts; transport capacity 2 free |
 | Defender Starship *Escort* | 50 | 2 | 32mm | 20cm | 45° | 1 | 5+ | 2 | Railguns 30cm FP5 (L/F/R); Gravitic Launcher 20-40cm S1 (F) | \- |
 | Messenger Starship *Escort* | 50 | 1 | 32mm | 25cm | 90° | 1 | 5+ | 2 | Railgun 30cm FP1 (L/F/R) | Has tracking systems (standard 10cm) |
 | Orca Gunship *towed escort* | 25 | 1 | 32mm | 20cm | 90° | 1 | 5+ | 1 | Railguns 30cm FP2 (L/F/R); Ion Cannon 30cm FP1 (F) | \- |
@@ -51,7 +51,7 @@ Tau weapon and system terms follow the Tau faction rules: Railguns = macrobatter
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Custodian Battleship | 330 | 10 | 60mm | 20cm | 45° | 3 | 6+D / 5+ | 4 | Railguns 45cm FP6 (L/F), (R/F); Ion Cannons 45cm FP1 (L/F), (R/F); Prow Gravitic Launcher 20-40cm S8 (F); Launch Bays port S3 + stbd S3 (BMR 20cm, ASF 25cm); Gravitic Hooks (3 Wardens) | Ponderous. Has a Deflector and tracking systems (20cm aura, double the usual 10cm). Option: replace Manta bombers with Tiger Shark drone carriers +30pts |
+| Custodian Battleship | 330 | 10 | 60mm | 20cm | 45° | 3 | 6+D / 5+ | 4 | Railguns 45cm FP6 (L/F), (R/F); Ion Cannons 45cm FP1 (L/F), (R/F); Prow Gravitic Launcher 20-40cm S8 (F); Launch Bays port S3 + stbd S3 (BMR 20cm, ASF 25cm); Gravitic Hooks (3 Wardens) | Ponderous (no Come to New Heading). Has a Deflector and tracking systems (20cm aura, double the usual 10cm). Option: replace Manta bombers with Tiger Shark drone carriers +30pts |
 | Protector Cruiser | 180 | 6 | 32mm | 20cm | 90° | 2 | 6+D / 5+ | 3 | Railguns 45cm FP2 (L/F), (R/F); Prow Railguns 45cm FP6 (F); Ion Cannons 30cm FP1 (L/F), (R/F); Prow Launch Bays S1 (BMR 20cm, ASF 25cm); Prow Gravitic Launcher 20-40cm S5 (F) | Has a Deflector (no tracking systems). Options: reduce prow Railguns to FP4 to extend ion cannon range to 45cm free; Mantas to Tiger Shark drone carriers +5pts |
 | Emissary Light Cruiser | 110 | 4 | 32mm | 20cm | 90° | 1 | 5+ | 2 | Railguns 45cm FP4 (L/F), (R/F); Prow Launch Bays S2 (ASF 25cm); Gravitic Hooks port + stbd (1 Warden each) | Bor'kan/Sa'cea Configurations (no extra cost): replace port/stbd gravitic hooks with ion cannons (30cm S1, L/F and R/F); and/or replace the prow launch bays with a prow Gravitic Launcher (20-40cm S3 F). May add a Deflector +10pts |
 | Castellan Escort | 45 | 1 | 32mm | 25cm | 90° | 1 | 5+ | 2 | Railguns 45cm FP2 (L/F/R); Gravitic Launcher 20-40cm S2 (F) | \- |
@@ -61,24 +61,24 @@ Tau weapon and system terms follow the Tau faction rules: Railguns = macrobatter
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Tau Orbital City *Defense* | 150 | 10 | 60mm | \- | \- | 3 | 5+ | 4 | Railguns 45cm FP12 (All Round); Launch Bays S4 (BMR 20cm, ASF 25cm); Gravitic Hooks (capacity 2) | Immobile. Planetary-defence choice. Tracking systems (20cm). Dedicated Escorts: its hooks may deploy escorts as system ships. Option: replace Mantas with Tiger Shark drone carriers +20pts |
-| Tau Security Orbital *Defense* | 50 | 4 | 32mm | \- | \- | 1 | 5+ | 4 | Railguns 45cm FP4 (All Round); Ion Cannon 30cm FP1 (All Round) | Immobile. Planetary-defence choice |
+| Tau Orbital City *Defence* | 150 | 10 | 60mm | \- | \- | 3 | 5+ | 4 | Railguns 45cm FP12 (All Round); Launch Bays S4 (BMR 20cm, ASF 25cm); Gravitic Hooks (capacity 2) | Immobile. Planetary-defence choice. Tracking systems (20cm). Dedicated Escorts: its hooks may deploy escorts as system ships. Option: replace Mantas with Tiger Shark drone carriers +20pts |
+| Tau Security Orbital *Defence* | 50 | 4 | 32mm | \- | \- | 1 | 5+ | 4 | Railguns 45cm FP4 (All Round); Ion Cannon 30cm FP1 (All Round) | Immobile. Planetary-defence choice |
 
-**Tau Civilian Orbitals** (planetary-defence choices). Each has exactly one Core Module plus up to four optional modules (defense, habitat, or manufacturing & research); any optional module may be taken more than once. The whole assembly is one model, and its cost is the core plus all attached modules.
+**Tau Civilian Orbitals** (planetary-defence choices). Each has exactly one Core Module plus up to four optional modules (defence, habitat, or manufacturing & research); any optional module may be taken more than once. The whole assembly is one model, and its cost is the core plus all attached modules.
 
-**Core Module** 20pts: Defense/4, 1 Shield, 5+, 2 Turrets (command, comms, energy, sensors).
+**Core Module** 20pts: Defence/4, 1 Shield, 5+, 2 Turrets (command, comms, energy, sensors).
 
-**Defense Module** (adds +1 Turret and one armament): Railguns +15pts; Ion Cannon +15pts; Launch Bay +10pts (1 squadron of Barracudas or Mantas; +5pts to swap Mantas for Tiger Sharks); Gravitic Hook +5pts (+1 Orca/Warden/Dhow fleet capacity).
+**Defence Module** (adds +1 Turret and one armament): Railguns +15pts; Ion Cannon +15pts; Launch Bay +10pts (1 squadron of Barracudas or Mantas; +5pts to swap Mantas for Tiger Sharks); Gravitic Hook +5pts (+1 Orca/Warden/Dhow fleet capacity).
 
 **Manufacturing & Research Module** 10pts: +1 Shield to the core (max 3), and grants tracking systems (+5cm range per module after the first, max 20cm).
 
 **Habitat Module** 5pts: +1 to the core module's starting hits per module (crew and living space, plus ablative armour or decoy sections).
 
-**Tau Waystations** are a civilian orbital of exactly one Core Module plus one Defense Module of choice. They may be fielded in any scenario where the Tau are the defender, even where planetary defenses would not normally be allowed (they still count against the fleet's points limit). They always count as having tracking systems at no extra cost. Otherwise they follow the civilian orbital rules above.
+**Tau Waystations** are a civilian orbital of exactly one Core Module plus one Defence Module of choice. They may be fielded in any scenario where the Tau are the defender, even where planetary defences would not normally be allowed (they still count against the fleet's points limit). They always count as having tracking systems at no extra cost. Otherwise they follow the civilian orbital rules above.
 
 **Allies: Demiurg**
 
-Demiurg commerce vessels share several traits: Ponderous; heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see **Demiurg VP** below). The **Cutting Beam** is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).
+Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see **Demiurg VP** below). The **Cutting Beam** is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -94,15 +94,15 @@ All Nicassar vessels never initiate boarding actions or teleport attacks, and al
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Nicassar Caravan *Defense* | 200 | 8 | 60mm | 10cm | Special | 4 | 5+ | 6 | Railguns 30cm FP10 (All Round) | Moves exactly 10cm in any direction each movement phase (caravan movement). When destroyed, replaced by blast markers centred on the point (no catastrophic damage roll) |
+| Nicassar Caravan *Defence* | 200 | 8 | 60mm | 10cm | Special | 4 | 5+ | 6 | Railguns 30cm FP10 (All Round) | Moves exactly 10cm in any direction each movement phase (caravan movement). When destroyed, replaced by blast markers centred on the point (no catastrophic damage roll) |
 | Nicassar Dhow *towed escort* | 45 | 1 | 32mm | 20cm | 180° | 2 | 5+ | 1 | Railguns 30cm FP3 (L), (R) | May not be squadroned with Tau escorts. Any Kor'vattra capital ship may reconfigure its gravitic hooks to tow Dhows for no cost change |
-| Nicassar Rig *Defense* | 20 | 4 | 32mm | \- | \- | 1 | 5+ | 6 | Gravitic Hooks (4 Dhows) | Immobile; no offensive weapons (6 turrets for point defence). For every Rig, the fleet must buy four Dhows (they ride in its hooks) |
+| Nicassar Rig *Defence* | 20 | 4 | 32mm | \- | \- | 1 | 5+ | 6 | Gravitic Hooks (4 Dhows) | Immobile; no offensive weapons (6 turrets for point defence). For every Rig, the fleet must buy four Dhows (they ride in its hooks) |
 
 **Allies: Kroot**
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Kroot Warsphere *Defense* | 145 | 10 | 32mm | 10cm | Special | 2 | 5+ | 3 | Macrobatteries 30cm FP12 (All Round) | Classed as a defense. Scalable: buy starting hits up to 16 at +10pts per hit (each added hit gives +1 battery firepower) or sell down to 6 at -10pts per hit; at 10+ hits may also add +1 Shield +15pts, +1 Turret +5pts, or extend battery range to 45cm +25pts (each once). Special movement and damage: see Kroot Ship Special Rules |
+| Kroot Warsphere *Defence* | 145 | 10 | 32mm | 10cm | Special | 2 | 5+ | 3 | Macrobatteries 30cm FP12 (All Round) | Classed as a defence. Scalable: buy starting hits up to 16 at +10pts per hit (each added hit gives +1 battery firepower) or sell down to 6 at -10pts per hit; at 10+ hits may also add +1 Shield +15pts, +1 Turret +5pts, or extend battery range to 45cm +25pts (each once). Special movement and damage: see Kroot Ship Special Rules |
 
 ### Tau Ship Special Rules
 
@@ -122,7 +122,7 @@ Any Tau Kor'or'vesh / Kor'vattra fleet may be led by O'Mesme (Ld9) for 110pts in
 
 #### Kroot Warsphere (Xenos p.98)
 
-Classed as a defense (for gunnery, ramming, and planetary-defence purposes). Its movement and damage rules are identical to the Ork Rok; both auto-pass All Ahead Full (the Rok via the Ork 'Ere We Go! rule, the Warsphere via its omni-directional thrusters):
+Classed as a defence (for gunnery, ramming, and planetary-defence purposes). Its movement and damage rules are identical to the Ork Rok; both auto-pass All Ahead Full (the Rok via the Ork 'Ere We Go! rule, the Warsphere via its omni-directional thrusters):
 
 **Landed:** a Warsphere in low orbit that contacts the planetary edge counts as landed (disengaged, not destroyed).
 
@@ -130,7 +130,7 @@ Classed as a defense (for gunnery, ramming, and planetary-defence purposes). Its
 
 **Movement:** moves exactly 10cm straight each turn; may not turn or use Burn Retros or Come to New Heading, but automatically passes command checks for All Ahead Full (omni-directional thrusters). On All Ahead Full it moves an extra 2D6cm in any direction at the end of its move; if that shifts it 10cm or more in a new direction, that becomes its heading (a normal ship's All Ahead Full only extends along its current heading). Crippled Warspheres and Warspheres in blast markers do not slow. In a planet's or moon's gravity well it may make free 45° turns and/or take a stationary or low orbit.
 
-**Damage:** each critical hit instead adds +1 damage (as for an escort or small defense). At 0 damage it breaks up with no Catastrophic Damage roll: replace it with four blast markers.
+**Damage:** each critical hit instead adds +1 damage (as for an escort or small defence). At 0 damage it breaks up with no Catastrophic Damage roll: replace it with four blast markers.
 
 **Fleet Composition (Tau Empire Fleet List)**
 

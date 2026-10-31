@@ -6,6 +6,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Emperor Battleship",
    "hull_type": null,
    "points": 365,
@@ -149,6 +155,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Apocalypse Battleship",
    "hull_type": null,
    "points": 365,
@@ -252,12 +264,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Underpowered lances: if it fires lances beyond 30cm during its turn, place a blast marker in contact with its rear arc"
+   "notes": "Ponderous (no Come to New Heading). Underpowered lances: if it fires lances beyond 30cm during its turn, place a blast marker in contact with its rear arc"
   },
   {
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Oberon Battleship",
    "hull_type": null,
    "points": 355,
@@ -424,12 +442,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Sensors +1 Ld at all times (max 10). Attack craft: AB 30cm +5pts, TB 20cm +80pts"
+   "notes": "Ponderous (no Come to New Heading). Sensors +1 Ld at all times (max 10). Attack craft: AB 30cm +5pts, TB 20cm +80pts"
   },
   {
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Retribution Battleship",
    "hull_type": null,
    "points": 355,
@@ -533,12 +557,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous"
+   "notes": "Ponderous (no Come to New Heading)"
   },
   {
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Victory Battleship",
    "hull_type": null,
    "points": 355,
@@ -642,12 +672,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Refit: swap prow nova cannon for prow torpedoes (30cm S9 F), -10pts"
+   "notes": "Ponderous (no Come to New Heading). Refit: swap prow nova cannon for prow torpedoes (30cm S9 F), -10pts"
   },
   {
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "The Vae Victis (unique)",
    "hull_type": "Battleship",
    "points": 330,
@@ -754,12 +790,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous"
+   "notes": "Ponderous (no Come to New Heading)"
   },
   {
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Grand Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Exorcist Grand Cruiser",
    "hull_type": null,
    "points": 260,
@@ -845,12 +887,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: AB 30cm +5pts, TB 20cm +60pts. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +1D6cm to All Ahead Full roll +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: AB 30cm +5pts, TB 20cm +60pts. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Grand Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Vengeance Grand Cruiser",
    "hull_type": null,
    "points": 230,
@@ -933,12 +981,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Grand Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Avenger Grand Cruiser",
    "hull_type": null,
    "points": 200,
@@ -992,12 +1046,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battlecruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mars Battlecruiser",
    "hull_type": null,
    "points": 260,
@@ -1139,6 +1199,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battlecruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Dominion Battlecruiser",
    "hull_type": null,
    "points": 260,
@@ -1280,6 +1346,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battlecruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mercury Battlecruiser",
    "hull_type": null,
    "points": 255,
@@ -1418,6 +1490,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battlecruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Armageddon Battlecruiser",
    "hull_type": null,
    "points": 235,
@@ -1556,6 +1634,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battlecruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Overlord Battlecruiser",
    "hull_type": null,
    "points": 220,
@@ -1665,6 +1749,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Battlecruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Cardinal Battlecruiser",
    "hull_type": null,
    "points": 200,
@@ -1776,6 +1866,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Dictator Cruiser",
    "hull_type": null,
    "points": 210,
@@ -1891,6 +1987,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Dominator Cruiser",
    "hull_type": null,
    "points": 190,
@@ -1974,6 +2076,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Gothic Cruiser",
    "hull_type": null,
    "points": 180,
@@ -2057,6 +2165,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Lunar Cruiser",
    "hull_type": null,
    "points": 180,
@@ -2169,6 +2283,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Tyrant Cruiser",
    "hull_type": null,
    "points": 175,
@@ -2281,6 +2401,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Dauntless Light Cruiser",
    "hull_type": null,
    "points": 110,
@@ -2364,6 +2490,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Endeavour Light Cruiser",
    "hull_type": null,
    "points": 110,
@@ -2473,6 +2605,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Endurance Light Cruiser",
    "hull_type": null,
    "points": 110,
@@ -2582,6 +2720,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Defiant Light Cruiser",
    "hull_type": null,
    "points": 110,
@@ -2694,6 +2838,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Siluria Light Cruiser",
    "hull_type": null,
    "points": 100,
@@ -2779,6 +2929,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Sword Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -2835,6 +2991,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Firestorm Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -2915,6 +3077,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Havoc Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -2995,6 +3163,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Falchion Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -3075,6 +3249,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Viper Destroyer",
    "hull_type": "Escort",
    "points": 35,
@@ -3129,6 +3309,12 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Cobra Destroyer",
    "hull_type": "Escort",
    "points": 30,
@@ -3209,8 +3395,14 @@
    "faction": "Imperial Navy",
    "source": "Imperium p.63-88",
    "roster_group": "Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Imperial Navy"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Ramilies Star Fort",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 875,
    "points_raw": "875",
    "hits": 12,
@@ -3350,6 +3542,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Ark Mechanicus Omnissiah's Victory (unique)",
    "hull_type": "Battleship",
    "points": 405,
@@ -3482,12 +3680,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Comes with Advanced Shields and Advanced Weapons (Mechanicus Gifts) free, already in profile; may take no further Gifts from any source. May gain refits during a campaign via the normal appeal process. Unique; if fielded in a campaign it must be the flagship"
+   "notes": "Ponderous (no Come to New Heading). Comes with Advanced Shields and Advanced Weapons (Mechanicus Gifts) free, already in profile; may take no further Gifts from any source. May gain refits during a campaign via the normal appeal process. Unique; if fielded in a campaign it must be the flagship"
   },
   {
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Emperor Battleship",
    "hull_type": null,
    "points": 390,
@@ -3631,6 +3835,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Retribution Battleship",
    "hull_type": null,
    "points": 380,
@@ -3734,12 +3944,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Mechanicus Refits: swap prow torpedoes for a prow nova cannon (30-150cm Template F) +10pts; if not taken, may instead take refitted torpedoes +30pts"
+   "notes": "Ponderous (no Come to New Heading). Mechanicus Refits: swap prow torpedoes for a prow nova cannon (30-150cm Template F) +10pts; if not taken, may instead take refitted torpedoes +30pts"
   },
   {
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Oberon Battleship",
    "hull_type": null,
    "points": 380,
@@ -3906,12 +4122,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Sensors +1 Ld at all times (max 10) instead of an armoured prow. Attack craft: TB 20cm +40pts"
+   "notes": "Ponderous (no Come to New Heading). Sensors +1 Ld at all times (max 10) instead of an armoured prow. Attack craft: TB 20cm +40pts"
   },
   {
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Dictator Cruiser",
    "hull_type": null,
    "points": 245,
@@ -4053,6 +4275,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Gothic Cruiser",
    "hull_type": null,
    "points": 215,
@@ -4162,6 +4390,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Tyrant Cruiser",
    "hull_type": null,
    "points": 215,
@@ -4300,6 +4534,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Lunar Cruiser",
    "hull_type": null,
    "points": 215,
@@ -4438,6 +4678,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Endeavour Light Cruiser",
    "hull_type": null,
    "points": 130,
@@ -4547,6 +4793,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Endurance Light Cruiser",
    "hull_type": null,
    "points": 130,
@@ -4656,6 +4908,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Mechanicus Defiant Light Cruiser",
    "hull_type": null,
    "points": 130,
@@ -4768,6 +5026,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": "exclusively Mechanicus",
+   "profile_from": "Space Marine Nova",
    "name": "Mechanicus Nova Frigate",
    "hull_type": "Escort",
    "points": 45,
@@ -4850,6 +5114,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": "exclusively Mechanicus",
+   "profile_from": "Space Marine Gladius",
    "name": "Mechanicus Gladius Frigate",
    "hull_type": "Escort",
    "points": 40,
@@ -4906,6 +5176,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": "exclusively Mechanicus",
+   "profile_from": "Space Marine Hunter",
    "name": "Mechanicus Hunter Destroyer",
    "hull_type": "Escort",
    "points": 40,
@@ -4986,6 +5262,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": "exclusively Mechanicus",
+   "profile_from": "Imperial Navy Firestorm",
    "name": "Mechanicus Firestorm Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -5066,6 +5348,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": "exclusively Mechanicus",
+   "profile_from": "Imperial Navy Sword",
    "name": "Mechanicus Sword Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -5122,6 +5410,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": "exclusively Mechanicus",
+   "profile_from": "Imperial Navy Falchion",
    "name": "Mechanicus Falchion Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -5202,6 +5496,12 @@
    "faction": "Adeptus Mechanicus",
    "source": "Imperium p.6-16",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Adeptus Mechanicus"
+   ],
+   "faction_rules_basis": "exclusively Mechanicus",
+   "profile_from": "Imperial Navy Cobra",
    "name": "Mechanicus Cobra Destroyer",
    "hull_type": "Escort",
    "points": 30,
@@ -5281,7 +5581,13 @@
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
-   "roster_group": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group": "Venerable Battle Barges",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Emperor Battle Barge",
    "hull_type": "Battleship",
    "points": 475,
@@ -5420,7 +5726,13 @@
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
-   "roster_group": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group": "Venerable Battle Barges",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Apocalypse Battle Barge",
    "hull_type": "Battleship",
    "points": 475,
@@ -5529,7 +5841,13 @@
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
-   "roster_group": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group": "Venerable Battle Barges",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Oberon Battle Barge",
    "hull_type": "Battleship",
    "points": 470,
@@ -5676,7 +5994,13 @@
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
-   "roster_group": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group": "Venerable Battle Barges",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Desecrator Battle Barge",
    "hull_type": "Battleship",
    "points": 465,
@@ -5813,7 +6137,13 @@
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
-   "roster_group": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group": "Venerable Battle Barges",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Retribution Battle Barge",
    "hull_type": "Battleship",
    "points": 460,
@@ -5922,7 +6252,13 @@
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
-   "roster_group": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group": "Venerable Battle Barges",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (in the booklet) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Relictor Battle Barge",
    "hull_type": "Battleship",
    "points": 430,
@@ -6055,12 +6391,18 @@
      "parsed": true
     }
    ],
-   "notes": "+D6cm on All Ahead Full (improved engines)"
+   "notes": "+D6cm on All Ahead Full"
   },
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Battle Barges",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Ultima Battle Barge",
    "hull_type": "Battleship",
    "points": 450,
@@ -6187,12 +6529,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts"
+   "notes": "Ponderous (no Come to New Heading). May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts"
   },
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Battle Barges",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Space Marine Battle Barge",
    "hull_type": "Battleship",
    "points": 425,
@@ -6319,12 +6667,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts"
+   "notes": "Ponderous (no Come to New Heading). May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts"
   },
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Strike Cruiser",
    "hull_type": null,
    "points": 145,
@@ -6433,6 +6787,12 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Vanguard Cruiser",
    "hull_type": null,
    "points": 130,
@@ -6533,12 +6893,18 @@
      "parsed": true
     }
    ],
-   "notes": "Improved Thrusters: +D6cm on All Ahead Full. Secondary Shield: any number may add +1 Shield for +15pts each. Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage bombs +5pts"
+   "notes": "Improved Thrusters (+D6cm on All Ahead Full). Secondary Shield: any number may add +1 Shield for +15pts each. Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage bombs +5pts"
   },
   {
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Nova Frigate",
    "hull_type": "Escort",
    "points": 45,
@@ -6621,6 +6987,12 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Gladius Frigate",
    "hull_type": "Escort",
    "points": 40,
@@ -6677,6 +7049,12 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Hunter Destroyer",
    "hull_type": "Escort",
    "points": 40,
@@ -6757,6 +7135,10 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [],
+   "faction_rules_basis": "no Space Marine rules apply",
+   "profile_from": "Imperial Navy",
    "name": "Firestorm Rapid Strike Vessel",
    "hull_type": "Escort",
    "points": 35,
@@ -6837,6 +7219,10 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [],
+   "faction_rules_basis": "no Space Marine rules apply",
+   "profile_from": "Imperial Navy",
    "name": "Sword Rapid Strike Vessel",
    "hull_type": "Escort",
    "points": 35,
@@ -6893,6 +7279,10 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [],
+   "faction_rules_basis": "no Space Marine rules apply",
+   "profile_from": "Imperial Navy",
    "name": "Falchion Rapid Strike Vessel",
    "hull_type": "Escort",
    "points": 35,
@@ -6973,6 +7363,10 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [],
+   "faction_rules_basis": "no Space Marine rules apply",
+   "profile_from": "Imperial Navy",
    "name": "Cobra Rapid Strike Vessel",
    "hull_type": "Escort",
    "points": 30,
@@ -7053,8 +7447,14 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Space Marines"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Fortress-Monastery",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 875,
    "points_raw": "875",
    "hits": 12,
@@ -7184,12 +7584,18 @@
      "parsed": true
     }
    ],
-   "notes": "High-orbit defense; may replace a planet (30cm high-orbit range) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules"
+   "notes": "High-orbit defence; may replace a planet (30cm high-orbit range) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules"
   },
   {
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Inquisition & Grey Knights"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Black Ship",
    "hull_type": "Battleship",
    "points": 300,
@@ -7295,12 +7701,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Always embarks a free Inquisitorial retinue. Convoy ship with modified stats (fixed Ld 9, +4D6cm on All Ahead Full, transport capacity 6). Full rules: see Inquisition Ship Special Rules"
+   "notes": "Ponderous (no Come to New Heading). Always embarks a free Inquisitorial retinue. Convoy ship with modified stats (fixed Ld 9, +4D6cm on All Ahead Full, transport capacity 6). Full rules: see Inquisition Ship Special Rules"
   },
   {
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Grey Knights"
+   ],
+   "faction_rules_basis": "Follows Grey Knights faction rules",
+   "profile_from": null,
    "name": "Grey Knights Battle Barge",
    "hull_type": "Battleship",
    "points": 430,
@@ -7427,12 +7839,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Follows Grey Knights faction rules (in booklet, Imperium p.99-101). Sigils of Quickening: +1D6cm extra Speed on All Ahead Full (on top of the normal bonus)"
+   "notes": "Ponderous (no Come to New Heading). Follows Grey Knights faction rules (in booklet, Imperium p.99-101). Sigils of Quickening: +1D6cm extra Speed on All Ahead Full (on top of the normal bonus)"
   },
   {
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Inquisition & Grey Knights"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Inquisitorial Cruiser",
    "hull_type": null,
    "points": 250,
@@ -7541,6 +7959,12 @@
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Grey Knights"
+   ],
+   "faction_rules_basis": "Follows Grey Knights faction rules",
+   "profile_from": null,
    "name": "Grey Knights Strike Cruiser",
    "hull_type": null,
    "points": 165,
@@ -7667,12 +8091,18 @@
      "parsed": true
     }
    ],
-   "notes": "Follows Grey Knights faction rules (in booklet, Imperium p.99-101). +1D6cm extra Speed on All Ahead Full. May re-roll arrival rolls for any scenario where it starts off-table, provided its squadron/division has no other ship type"
+   "notes": "Follows Grey Knights faction rules (in booklet, Imperium p.99-101). +D6cm on All Ahead Full. May re-roll arrival rolls for any scenario where it starts off-table, provided its squadron/division has no other ship type"
   },
   {
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Inquisition & Grey Knights"
+   ],
+   "faction_rules_basis": "an Inquisition vessel in all respects",
+   "profile_from": "Imperial Navy",
    "name": "Inquisitorial Firestorm Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -7753,6 +8183,12 @@
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Inquisition & Grey Knights"
+   ],
+   "faction_rules_basis": "an Inquisition vessel in all respects",
+   "profile_from": "Imperial Navy",
    "name": "Inquisitorial Sword Frigate",
    "hull_type": "Escort",
    "points": 35,
@@ -7809,6 +8245,12 @@
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Inquisition & Grey Knights"
+   ],
+   "faction_rules_basis": "an Inquisition vessel in all respects",
+   "profile_from": "Imperial Navy",
    "name": "Inquisitorial Cobra Destroyer",
    "hull_type": "Escort",
    "points": 30,
@@ -7889,6 +8331,12 @@
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Grey Knights"
+   ],
+   "faction_rules_basis": "Follows Grey Knights faction rules",
+   "profile_from": "Space Marine Nova",
    "name": "Grey Knights Nova Frigate",
    "hull_type": "Escort",
    "points": 45,
@@ -7971,6 +8419,12 @@
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Grey Knights"
+   ],
+   "faction_rules_basis": "Follows Grey Knights faction rules",
+   "profile_from": "Space Marine Gladius",
    "name": "Grey Knights Gladius Frigate",
    "hull_type": "Escort",
    "points": 40,
@@ -8027,6 +8481,12 @@
    "faction": "Inquisition & Grey Knights",
    "source": "Imperium p.102-107",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Grey Knights"
+   ],
+   "faction_rules_basis": "Follows Grey Knights faction rules",
+   "profile_from": "Space Marine Hunter",
    "name": "Grey Knights Hunter Destroyer",
    "hull_type": "Escort",
    "points": 40,
@@ -8107,6 +8567,12 @@
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Universe Class Mass Conveyor",
    "hull_type": "Battleship",
    "points": 200,
@@ -8218,6 +8684,12 @@
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Rogue Trader Carrack",
    "hull_type": "Cruiser",
    "points": 40,
@@ -8303,6 +8775,12 @@
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Rogue Trader Escort Carrier",
    "hull_type": null,
    "points": 60,
@@ -8391,6 +8869,12 @@
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Rogue Trader Convoy Monitor",
    "hull_type": "Escort",
    "points": 60,
@@ -8471,6 +8955,12 @@
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Rogue Trader Sloop",
    "hull_type": "Escort",
    "points": 20,
@@ -8527,6 +9017,12 @@
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Rogue Trader Caravel",
    "hull_type": "Escort",
    "points": 10,
@@ -8583,6 +9079,12 @@
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
    "roster_group": "Man O' War",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Rogue Trader Man O' War (base Brig)",
    "hull_type": "Cruiser",
    "points": 60,
@@ -8611,7 +9113,13 @@
   {
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
-   "roster_group": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "roster_group": "Special & Allied Ships",
+   "roster_group_notes": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Fra'al Battlecruiser",
    "hull_type": null,
    "points": 250,
@@ -8720,9 +9228,15 @@
   {
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
-   "roster_group": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "roster_group": "Special & Allied Ships",
+   "roster_group_notes": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Stryxis Caravan Vessel",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 80,
    "points_raw": "80",
    "hits": 8,
@@ -8793,12 +9307,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ghost-Light weapons work as normal macrobatteries and lances but can never inflict critical damage. Special movement and damage, as the Ork Rok / Kroot Warsphere: moves exactly 10cm straight (no turn, Burn Retros, or Come to New Heading); **auto-passes All Ahead Full** (*Remastered* p.197; omitted from XR p.123 in error); All Ahead Full adds 2D6cm in any direction (a shift of 10cm or more sets a new heading); never slows when crippled or in blast markers; free 45° turns and stationary or low orbit in a gravity well. Each critical hit instead adds +1 damage; at 0 hits it breaks up into four blast markers (no Catastrophic Damage roll)"
+   "notes": "Ghost-Light weapons work as normal macrobatteries and lances but can never inflict critical damage. Special movement and damage, as the Ork Rok / Kroot Warsphere: moves exactly 10cm straight (no turn, Burn Retros, or Come to New Heading); auto-passes All Ahead Full (Remastered p.197; not in the XR profile); All Ahead Full adds 2D6cm in any direction (a shift of 10cm or more sets a new heading); never slows when crippled or in blast markers; free 45° turns and stationary or low orbit in a gravity well. Each critical hit instead adds +1 damage; at 0 hits it breaks up into four blast markers (no Catastrophic Damage roll)"
   },
   {
    "faction": "Rogue Traders",
    "source": "Imperium p.110-129",
-   "roster_group": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "roster_group": "Special & Allied Ships",
+   "roster_group_notes": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Xenos Cutter",
    "hull_type": "Escort",
    "points": 35,
@@ -8879,8 +9399,14 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "High Orbit Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Space Station",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 150,
    "points_raw": "150",
    "hits": 8,
@@ -8984,8 +9510,14 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "High Orbit Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Orbital Dock",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 90,
    "points_raw": "90",
    "hits": 6,
@@ -9065,8 +9597,14 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "High Orbit Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Orbital Weapons Platform",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 30,
    "points_raw": "30",
    "hits": 2,
@@ -9119,7 +9657,13 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "High Orbit Defences",
-   "name": "Orbital Defense Laser Platform",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Orbital Defence Laser Platform",
    "hull_type": null,
    "points": 30,
    "points_raw": "30",
@@ -9173,8 +9717,14 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "High Orbit Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Orbital Torpedo Launcher",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 30,
    "points_raw": "30",
    "hits": 2,
@@ -9227,6 +9777,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "High Orbit Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Minefield",
    "hull_type": null,
    "points": 40,
@@ -9252,6 +9808,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "High Orbit Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Orbital Mine",
    "hull_type": null,
    "points": 5,
@@ -9277,6 +9839,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Low Orbit Defences (Ground Facilities)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Air Base",
    "hull_type": null,
    "points": 20,
@@ -9334,7 +9902,13 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Low Orbit Defences (Ground Facilities)",
-   "name": "Defense Laser Silo",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Defence Laser Silo",
    "hull_type": null,
    "points": 15,
    "points_raw": "15",
@@ -9388,6 +9962,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Low Orbit Defences (Ground Facilities)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Missile Silo",
    "hull_type": null,
    "points": 5,
@@ -9442,7 +10022,13 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "System Ships",
-   "name": "Defense Monitor",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Defence Monitor",
    "hull_type": "Escort",
    "points": 60,
    "points_raw": "60",
@@ -9522,6 +10108,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "System Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "System Escort",
    "hull_type": null,
    "points": 20,
@@ -9578,6 +10170,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "System Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Fire Ship",
    "hull_type": "Escort",
    "points": 10,
@@ -9607,6 +10205,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Escort Carrier",
    "hull_type": null,
    "points": 60,
@@ -9695,6 +10299,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Q-Ship",
    "hull_type": "Escort",
    "points": 60,
@@ -9775,6 +10385,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Heavy Transport",
    "hull_type": "Cruiser",
    "points": 40,
@@ -9860,6 +10476,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Fast Clipper",
    "hull_type": "Escort",
    "points": 20,
@@ -9889,6 +10511,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Armed Freighter",
    "hull_type": "Escort",
    "points": 10,
@@ -9945,6 +10573,12 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Convoy Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Conventional Transport",
    "hull_type": "Escort",
    "points": null,
@@ -10001,8 +10635,14 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Blackstone Fortress",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 400,
    "points_raw": "400",
    "hits": 16,
@@ -10106,8 +10746,14 @@
    "faction": "Support Assets",
    "source": "Rulebook p.61-75",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Support Assets"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Activated Blackstone Fortress",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 750,
    "points_raw": "750",
    "hits": 16,
@@ -10160,6 +10806,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Despoiler Battleship",
    "hull_type": null,
    "points": 390,
@@ -10280,12 +10932,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Refits: reduce prow launch bays by 2 for a prow torpedo salvo (30cm S9 F) +10pts; reduce dorsal lance range to 45cm for S4 +10pts. Attack craft: TB 20cm +80pts (not if Stormbird gunships taken)"
+   "notes": "Ponderous (no Come to New Heading). Refits: reduce prow launch bays by 2 for a prow torpedo salvo (30cm S9 F) +10pts; reduce dorsal lance range to 45cm for S4 +10pts. Attack craft: TB 20cm +80pts (not if Stormbird gunships taken)"
   },
   {
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Desecrator Battleship",
    "hull_type": null,
    "points": 365,
@@ -10425,12 +11083,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Attack craft: TB 20cm +40pts (not if Stormbird gunships taken)"
+   "notes": "Ponderous (no Come to New Heading). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken)"
   },
   {
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Desolator Battleship",
    "hull_type": null,
    "points": 300,
@@ -10534,12 +11198,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous"
+   "notes": "Ponderous (no Come to New Heading)"
   },
   {
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Relictor Battleship",
    "hull_type": null,
    "points": 300,
@@ -10672,12 +11342,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. +D6cm on All Ahead Full"
+   "notes": "Ponderous (no Come to New Heading). +D6cm on All Ahead Full"
   },
   {
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Grand Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Repulsive Grand Cruiser",
    "hull_type": null,
    "points": 230,
@@ -10787,6 +11463,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Grand Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Retaliator Grand Cruiser",
    "hull_type": null,
    "points": 275,
@@ -10905,12 +11587,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +60pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +D6cm AAF +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +60pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Grand Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Nephilim Grand Cruiser",
    "hull_type": null,
    "points": 250,
@@ -11000,12 +11688,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +D6cm AAF +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Grand Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Executor Grand Cruiser",
    "hull_type": null,
    "points": 210,
@@ -11088,12 +11782,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +D6cm AAF +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Heavy Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Styx Heavy Cruiser",
    "hull_type": null,
    "points": 260,
@@ -11212,6 +11912,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Heavy Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Hecate Heavy Cruiser",
    "hull_type": null,
    "points": 230,
@@ -11359,6 +12065,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Heavy Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Hades Heavy Cruiser",
    "hull_type": null,
    "points": 200,
@@ -11468,6 +12180,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Heavy Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Acheron Heavy Cruiser",
    "hull_type": null,
    "points": 190,
@@ -11579,6 +12297,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Devastation Cruiser",
    "hull_type": null,
    "points": 190,
@@ -11700,6 +12424,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Carnage Cruiser",
    "hull_type": null,
    "points": 180,
@@ -11814,6 +12544,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Inferno Cruiser",
    "hull_type": null,
    "points": 180,
@@ -11928,6 +12664,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Murder Cruiser",
    "hull_type": null,
    "points": 170,
@@ -12011,6 +12753,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Slaughter Cruiser",
    "hull_type": null,
    "points": 165,
@@ -12125,6 +12873,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Fanatic Light Cruiser",
    "hull_type": null,
    "points": 125,
@@ -12208,6 +12962,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Schismatic Light Cruiser",
    "hull_type": null,
    "points": 125,
@@ -12293,6 +13053,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Light Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Heretic Light Cruiser",
    "hull_type": null,
    "points": 120,
@@ -12378,6 +13144,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Raiders & Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Idolator Raider",
    "hull_type": "Escort",
    "points": 45,
@@ -12458,6 +13230,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Raiders & Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Infidel Raider",
    "hull_type": "Escort",
    "points": 40,
@@ -12538,6 +13316,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Raiders & Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Havoc Raider",
    "hull_type": "Escort",
    "points": 35,
@@ -12618,6 +13402,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Raiders & Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Iconoclast Destroyer",
    "hull_type": "Escort",
    "points": 25,
@@ -12674,6 +13464,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "The Planet Killer",
    "hull_type": "Battleship",
    "points": 505,
@@ -12829,14 +13625,20 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Unique. Scenario rules moved to Terrain & Scenarios (p.XX at assembly). Armageddon Gun and full ship rules: see Chaos Ship Special Rules"
+   "notes": "Ponderous (no Come to New Heading). Unique. Scenario variants, Armageddon Gun and full ship rules: see Chaos Ship Special Rules"
   },
   {
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Chaos Space Hulk",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 650,
    "points_raw": "650",
    "hits": 40,
@@ -13022,6 +13824,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Scion of Prospero (Thousand Sons)",
    "hull_type": "Battleship",
    "points": 450,
@@ -13172,6 +13980,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Wage of Sin (Emperor's Children)",
    "hull_type": "Battleship",
    "points": 420,
@@ -13317,6 +14131,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Terminus Est (Death Guard)",
    "hull_type": "Battleship",
    "points": null,
@@ -13467,6 +14287,12 @@
    "faction": "Chaos",
    "source": "Imperium p.23-53",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Chaos"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Slaverer (World Eaters)",
    "hull_type": "Battleship",
    "points": 400,
@@ -13599,12 +14425,18 @@
      "parsed": true
     }
    ],
-   "notes": "Unique; flagship only if most expensive. Free Mark of Khorne. +D6cm on All Ahead Full; always has CSM + Terminator crew, re-rolls boarding; Defiant Rage when crippled. Full rules: see Chaos Ship Special Rules"
+   "notes": "Unique; flagship only if most expensive. Free Mark of Khorne. Improved Thrusters (+D6cm on All Ahead Full); always has CSM + Terminator crew, re-rolls boarding; Defiant Rage when crippled. Full rules: see Chaos Ship Special Rules"
   },
   {
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Gorbag's Revenge (0-1)",
    "hull_type": "Battleship",
    "points": 315,
@@ -13772,12 +14604,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous; may swap its Ld with any cruiser that rolled higher. Free hull krusha. Options: launch bays to torpedo bombers +70pts; torps to looted torps +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
+   "notes": "Ponderous (no Come to New Heading); may swap its Ld with any cruiser that rolled higher. Free hull krusha. Options: launch bays to torpedo bombers +70pts; torps to looted torps +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
   },
   {
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Slamblasta (0-1)",
    "hull_type": "Battleship",
    "points": 295,
@@ -13935,12 +14773,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous; may swap its Ld with any cruiser that rolled higher. Free hull krusha. Options: launch bays to torpedo bombers +30pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
+   "notes": "Ponderous (no Come to New Heading); may swap its Ld with any cruiser that rolled higher. Free hull krusha. Options: launch bays to torpedo bombers +30pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
   },
   {
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Dethdeala (0-1)",
    "hull_type": "Battleship",
    "points": 285,
@@ -14098,12 +14942,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous; may swap its Ld with any cruiser that rolled higher. Free hull krusha and soopa boostas. Options: launch bays to torpedo bombers +30pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
+   "notes": "Ponderous (no Come to New Heading); may swap its Ld with any cruiser that rolled higher. Free hull krusha and soopa boostas. Options: launch bays to torpedo bombers +30pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
   },
   {
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Kroolboy (0-1)",
    "hull_type": "Battleship",
    "points": 265,
@@ -14261,12 +15111,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous; may swap its Ld with any cruiser that rolled higher. Free hull krusha and soopa boostas. Options: launch bays to torpedo bombers +30pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
+   "notes": "Ponderous (no Come to New Heading); may swap its Ld with any cruiser that rolled higher. Free hull krusha and soopa boostas. Options: launch bays to torpedo bombers +30pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
   },
   {
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Kroozers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Hammer Battlekroozer",
    "hull_type": null,
    "points": 225,
@@ -14424,12 +15280,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous; may swap Ld with any cruiser that rolled higher. Kustom Kannon fires as an FP6 killkannon or launches S D6+2 torps (one mode per turn). Free hull krusha. Options: launch bays to torpedo bombers +30pts; Soopa boostas +25pts; Kustom Kannon looted torps +20pts; launch bays to mine launchers (S D3+1) +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
+   "notes": "Ponderous (no Come to New Heading); may swap Ld with any cruiser that rolled higher. Kustom Kannon fires as an FP6 killkannon or launches S D6+2 torps (one mode per turn). Free hull krusha. Options: launch bays to torpedo bombers +30pts; Soopa boostas +25pts; Kustom Kannon looted torps +20pts; launch bays to mine launchers (S D3+1) +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
   },
   {
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Kroozers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Terror Ship",
    "hull_type": "Cruiser",
    "points": 175,
@@ -14565,6 +15427,12 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Kroozers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Kill Kroozer",
    "hull_type": null,
    "points": 155,
@@ -14697,6 +15565,12 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Kroozers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Basha Lite Kroozer",
    "hull_type": null,
    "points": 110,
@@ -14800,6 +15674,12 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Grunt Assault Ship",
    "hull_type": "Escort",
    "points": 35,
@@ -14854,6 +15734,12 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Ravager Attack Ship",
    "hull_type": "Escort",
    "points": 35,
@@ -14932,6 +15818,12 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Onslaught Attack Ship",
    "hull_type": "Escort",
    "points": 30,
@@ -14988,6 +15880,12 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Savage Gunship",
    "hull_type": "Escort",
    "points": 25,
@@ -15042,6 +15940,12 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Brute Ramship",
    "hull_type": "Escort",
    "points": 20,
@@ -15096,8 +16000,14 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Ork Space Hulk",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 610,
    "points_raw": "610",
    "hits": 40,
@@ -15274,8 +16184,14 @@
    "faction": "Orks",
    "source": "Xenos p.58-73",
    "roster_group": "Special Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Orks"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Ork Rok",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 80,
    "points_raw": "80",
    "hits": 8,
@@ -15376,6 +16292,12 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'vattra (Merchant Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Explorer Starship",
    "hull_type": "Battleship",
    "points": 230,
@@ -15466,12 +16388,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Bor'kan Configuration: may halve launch-bay strength to add a prow Gravitic Launcher (20-40cm S8 F) free. Option: replace Mantas with Tiger Shark drone carriers +40pts. Armr 5+ front/abeam, 4+ rear"
+   "notes": "Ponderous (no Come to New Heading). Bor'kan Configuration: may halve launch-bay strength to add a prow Gravitic Launcher (20-40cm S8 F) free. Option: replace Mantas with Tiger Shark drone carriers +40pts. Armr 5+ front/abeam, 4+ rear"
   },
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'vattra (Merchant Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Hero Starship",
    "hull_type": "Cruiser",
    "points": 180,
@@ -15615,6 +16543,12 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'vattra (Merchant Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Merchant Starship",
    "hull_type": "Cruiser",
    "points": 105,
@@ -15711,12 +16645,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Options: +2 hits (advanced hull armour) +20pts; Dal'yth Configuration: replace port/stbd gravitic hooks with ion cannons (30cm S1, L/F and R/F) +10pts; transport capacity 2 free"
+   "notes": "Ponderous (no Come to New Heading). Options: +2 hits (advanced hull armour) +20pts; Dal'yth Configuration: replace port/stbd gravitic hooks with ion cannons (30cm S1, L/F and R/F) +10pts; transport capacity 2 free"
   },
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'vattra (Merchant Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Defender Starship",
    "hull_type": "Escort",
    "points": 50,
@@ -15797,6 +16737,12 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'vattra (Merchant Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Messenger Starship",
    "hull_type": "Escort",
    "points": 50,
@@ -15853,6 +16799,12 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'vattra (Merchant Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Orca Gunship",
    "hull_type": "towed escort",
    "points": 25,
@@ -15933,6 +16885,12 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'or'vesh (Protector Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Custodian Battleship",
    "hull_type": null,
    "points": 330,
@@ -16087,12 +17045,18 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous. Has a Deflector and tracking systems (20cm aura, double the usual 10cm). Option: replace Manta bombers with Tiger Shark drone carriers +30pts"
+   "notes": "Ponderous (no Come to New Heading). Has a Deflector and tracking systems (20cm aura, double the usual 10cm). Option: replace Manta bombers with Tiger Shark drone carriers +30pts"
   },
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'or'vesh (Protector Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Protector Cruiser",
    "hull_type": null,
    "points": 180,
@@ -16260,6 +17224,12 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'or'vesh (Protector Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Emissary Light Cruiser",
    "hull_type": null,
    "points": 110,
@@ -16359,6 +17329,12 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'or'vesh (Protector Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Castellan Escort",
    "hull_type": null,
    "points": 45,
@@ -16439,6 +17415,12 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Kor'or'vesh (Protector Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Warden Gunship",
    "hull_type": "towed escort",
    "points": 30,
@@ -16519,8 +17501,14 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Orbital Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Tau Orbital City",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 150,
    "points_raw": "150",
    "hits": 10,
@@ -16612,8 +17600,14 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Orbital Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Tau Security Orbital",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 50,
    "points_raw": "50",
    "hits": 4,
@@ -16689,7 +17683,13 @@
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
-   "roster_group": "Demiurg commerce vessels share several traits: Ponderous; heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "roster_group": "Allies: Demiurg",
+   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Stronghold Commerce Vessel",
    "hull_type": "Battleship",
    "points": 350,
@@ -16872,7 +17872,13 @@
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
-   "roster_group": "Demiurg commerce vessels share several traits: Ponderous; heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "roster_group": "Allies: Demiurg",
+   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Bastion Commerce Vessel",
    "hull_type": "Cruiser",
    "points": 255,
@@ -16990,7 +17996,13 @@
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
-   "roster_group": "Demiurg commerce vessels share several traits: Ponderous; heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "roster_group": "Allies: Demiurg",
+   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Citadel Commerce Vessel",
    "hull_type": "Cruiser",
    "points": 185,
@@ -17121,9 +18133,15 @@
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
-   "roster_group": "All Nicassar vessels never initiate boarding actions or teleport attacks, and always halve their troop rating (round up) if boarded. Of the three, only the Dhow is a towed escort (towed by Tau gravitic hooks). The Caravan moves 10cm in any direction each phase because it is a caravan, not the Rok/Warsphere pattern.",
+   "roster_group": "Allies: Nicassar",
+   "roster_group_notes": "All Nicassar vessels never initiate boarding actions or teleport attacks, and always halve their troop rating (round up) if boarded. Of the three, only the Dhow is a towed escort (towed by Tau gravitic hooks). The Caravan moves 10cm in any direction each phase because it is a caravan, not the Rok/Warsphere pattern.",
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Nicassar Caravan",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 200,
    "points_raw": "200",
    "hits": 8,
@@ -17175,7 +18193,13 @@
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
-   "roster_group": "All Nicassar vessels never initiate boarding actions or teleport attacks, and always halve their troop rating (round up) if boarded. Of the three, only the Dhow is a towed escort (towed by Tau gravitic hooks). The Caravan moves 10cm in any direction each phase because it is a caravan, not the Rok/Warsphere pattern.",
+   "roster_group": "Allies: Nicassar",
+   "roster_group_notes": "All Nicassar vessels never initiate boarding actions or teleport attacks, and always halve their troop rating (round up) if boarded. Of the three, only the Dhow is a towed escort (towed by Tau gravitic hooks). The Caravan moves 10cm in any direction each phase because it is a caravan, not the Rok/Warsphere pattern.",
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Nicassar Dhow",
    "hull_type": "towed escort",
    "points": 45,
@@ -17234,9 +18258,15 @@
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
-   "roster_group": "All Nicassar vessels never initiate boarding actions or teleport attacks, and always halve their troop rating (round up) if boarded. Of the three, only the Dhow is a towed escort (towed by Tau gravitic hooks). The Caravan moves 10cm in any direction each phase because it is a caravan, not the Rok/Warsphere pattern.",
+   "roster_group": "Allies: Nicassar",
+   "roster_group_notes": "All Nicassar vessels never initiate boarding actions or teleport attacks, and always halve their troop rating (round up) if boarded. Of the three, only the Dhow is a towed escort (towed by Tau gravitic hooks). The Caravan moves 10cm in any direction each phase because it is a caravan, not the Rok/Warsphere pattern.",
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Nicassar Rig",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 20,
    "points_raw": "20",
    "hits": 4,
@@ -17277,8 +18307,14 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Allies: Kroot",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
    "name": "Kroot Warsphere",
-   "hull_type": "Defense",
+   "hull_type": "Defence",
    "points": 145,
    "points_raw": "145",
    "hits": 10,
@@ -17325,7 +18361,7 @@
      "parsed": true
     }
    ],
-   "notes": "Classed as a defense. Scalable: buy starting hits up to 16 at +10pts per hit (each added hit gives +1 battery firepower) or sell down to 6 at -10pts per hit; at 10+ hits may also add +1 Shield +15pts, +1 Turret +5pts, or extend battery range to 45cm +25pts (each once). Special movement and damage: see Kroot Ship Special Rules"
+   "notes": "Classed as a defence. Scalable: buy starting hits up to 16 at +10pts per hit (each added hit gives +1 battery firepower) or sell down to 6 at -10pts per hit; at 10+ hits may also add +1 Shield +15pts, +1 Turret +5pts, or extend battery range to 45cm +25pts (each once). Special movement and damage: see Kroot Ship Special Rules"
   }
  ]
 }

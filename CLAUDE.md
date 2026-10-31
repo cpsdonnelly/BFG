@@ -12,10 +12,12 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - Never invent rules, stats or values. If the booklet doesn't cover something, say so and
   ask the owner.
 - Core rules sections most often needed: Movement (7), Moving Through Blast Markers (8),
-  Ramming (9), Hit-and-Run Raids incl. teleport attacks (24), Boarding Actions (25), Damage &
-  Critical Hits (26), Catastrophic Damage (27). `bfgxr/CHANGES.md` lists what each export changed.
+  Ramming (9), Ordnance: Launching, Moving & Attacking (12), Torpedoes incl. torpedo types (13),
+  Attack Craft (15), Hit-and-Run Raids incl. teleport attacks (28), Boarding Actions (29),
+  Damage & Critical Hits (30), Catastrophic Damage (31). `bfgxr/CHANGES.md` lists what each
+  export changed (read it after every new export: it flags renamed fields and spelling changes).
   Sections are numbered in `bfgxr/rules/00_core-rules.md`.
-- Victory points: core section 31 and the "Victory Points" part of `bfgxr/rules/10_scenarios.md`
+- Victory points: core section 35 and the "Victory Points" part of `bfgxr/rules/10_scenarios.md`
   give the same rules: Destroyed, Crippled, Scattered (disengaged) and Holding the Field.
 - Squadrons (s.5) include Maneuvering Squadrons and Shooting at Squadrons (target aspect, hit
   allocation nearest-first, critical damage applied before a ship counts as destroyed).
@@ -39,10 +41,10 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   "Messenger" is the booklet's Messenger Starship, an escort (the game wrongly lists it as a
   light cruiser).
 - **Escorts never become hulks:** they are too small. An escort reduced to 0 by anything,
-  boarding included, is replaced by a blast marker (s.27). The "drifting hulk" result for
-  ships boarded to 0 (s.25) applies to capital ships.
+  boarding included, is replaced by a blast marker (s.31). The "drifting hulk" result for
+  ships boarded to 0 (s.29) applies to capital ships.
 - **Victory points never double-count:** an escort squadron is scored once, as one unit.
-- **Boarding and catastrophic damage (s.25):** a ship reduced to 0 by boarding damage becomes
+- **Boarding and catastrophic damage (s.29):** a ship reduced to 0 by boarding damage becomes
   a drifting hulk with no catastrophic roll, but its boarding crit is still rolled. If that crit
   deals extra damage (Engine Room, Hull Breach, Bulkhead Collapse), the ship rolls on the
   Catastrophic Damage table. A crit with no extra damage leaves it a hulk.
@@ -60,8 +62,9 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   turn; otherwise the squadron acts normally.
 - **Movement is never rounded:** halving a speed gives an exact half (25cm -> 12.5cm), both
   for Burn Retros and for the half-speed minimum. Show distances as exact values too.
-- **Ordnance attacks the first valid target it contacts.** Friendly ships are valid targets
-  for standard torpedoes (s.12) but not for boarding torpedoes, which pass over them.
+- **Ordnance attacks the first valid target it contacts** (now s.12). Friendly ships are
+  valid targets for standard torpedoes but not for boarding torpedoes (now in s.13's torpedo
+  types).
 - **Cruisers are cruisers:** grand cruisers, battlecruisers, heavy and light cruisers all move
   as cruisers (10cm before turning; battleships 15cm, escorts any point).
 

@@ -2,7 +2,7 @@
 
 *The number of dice to roll for a gunnery attack, by firepower and target aspect. Cross-reference the firing weapon's firepower (left column) with the target's type and aspect. Source: BFG:XR Rulebook, p.18.*
 
-| FIREPOWER | Capital-Closing | Capital-MovingAway/Escort-Closing | Capital-Abeam/Escort-MovingAway | Escort-Abeam/Defenses | Ordnance |
+| FIREPOWER | Capital-Closing | Capital-MovingAway/Escort-Closing | Capital-Abeam/Escort-MovingAway | Escort-Abeam/Defences | Ordnance |
 |---|---|---|---|---|---|
 | 1 | 1 | 1 | 1 | 0 | 0 |
 | 2 | 2 | 1 | 1 | 1 | 0 |

@@ -141,7 +141,9 @@ _ALIASES = {
 
 
 def _canonical(ship_class: str) -> str:
-    return _ALIASES.get(ship_class, ship_class.replace(" Class ", " "))
+    # The booklet spells "Defence" (British) since its second update
+    name = ship_class.replace("Defense", "Defence")
+    return _ALIASES.get(name, name.replace(" Class ", " "))
 
 
 # ---------------------------------------------------------------------------

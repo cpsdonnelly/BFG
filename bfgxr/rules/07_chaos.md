@@ -26,7 +26,7 @@
 
 **Chaos Space Marines** (taken by capital ships; uses the Space Marine faction rules):
 
-**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.155); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
+**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.157); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
 
 **Champions of the Dark Gods:** use the Space Marine boarding, hit-and-run, planetary-assault, and teleport-assault rules (battleships count as battle barges, other ships as strike cruisers; the honour guard uses Chaos Terminators). This replaces the normal Chaos crew bonus.
 
@@ -60,19 +60,19 @@
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Despoiler Battleship | 390 | 12 | 60mm | 20cm | 45° | 4 | 5+ | 4 | Macrobatteries 60cm FP10 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Launch Bays prow S4 + port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Ponderous. Refits: reduce prow launch bays by 2 for a prow torpedo salvo (30cm S9 F) +10pts; reduce dorsal lance range to 45cm for S4 +10pts. Attack craft: TB 20cm +80pts (not if Stormbird gunships taken) |
-| Desecrator Battleship | 365 | 12 | 60mm | 20cm | 45° | 4 | 5+ | 4 | Lances 45cm FP4 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Torps 30cm S9 (F); Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Ponderous. Attack craft: TB 20cm +40pts (not if Stormbird gunships taken) |
-| Desolator Battleship | 300 | 12 | 60mm | 25cm | 45° | 4 | 5+ | 4 | Lances 60cm FP4 (L), (R); Dorsal Macrobatteries 60cm FP6 (L/F/R); Prow Torps 30cm S9 (F) | Ponderous |
-| Relictor Battleship | 300 | 12 | 60mm | 25cm | 45° | 4 | 5+ | 4 | Macrobatteries 30cm FP12 (L), (R); Lances 30cm FP2 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Torps 30cm S9 (F) | Ponderous. +D6cm on All Ahead Full |
+| Despoiler Battleship | 390 | 12 | 60mm | 20cm | 45° | 4 | 5+ | 4 | Macrobatteries 60cm FP10 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Launch Bays prow S4 + port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Ponderous (no Come to New Heading). Refits: reduce prow launch bays by 2 for a prow torpedo salvo (30cm S9 F) +10pts; reduce dorsal lance range to 45cm for S4 +10pts. Attack craft: TB 20cm +80pts (not if Stormbird gunships taken) |
+| Desecrator Battleship | 365 | 12 | 60mm | 20cm | 45° | 4 | 5+ | 4 | Lances 45cm FP4 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Torps 30cm S9 (F); Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Ponderous (no Come to New Heading). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken) |
+| Desolator Battleship | 300 | 12 | 60mm | 25cm | 45° | 4 | 5+ | 4 | Lances 60cm FP4 (L), (R); Dorsal Macrobatteries 60cm FP6 (L/F/R); Prow Torps 30cm S9 (F) | Ponderous (no Come to New Heading) |
+| Relictor Battleship | 300 | 12 | 60mm | 25cm | 45° | 4 | 5+ | 4 | Macrobatteries 30cm FP12 (L), (R); Lances 30cm FP2 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Torps 30cm S9 (F) | Ponderous (no Come to New Heading). +D6cm on All Ahead Full |
 
 **Grand Cruisers**
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Repulsive Grand Cruiser | 230 | 10 | 32mm | 20cm | 45° | 2 | 5+ | 3 | Macrobatteries 45cm FP14 (L), (R); Dorsal Lances 30cm FP3 (L/F/R); Prow Torps 30cm S6 (F) | Refits: dorsal lances to 45cm +10pts; +1 shield +15pts (3rd shield needs large base) |
-| Retaliator Grand Cruiser | 275 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 45cm FP6 (L), (R); Lances 45cm FP2 (L), (R); Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +60pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +D6cm AAF +5pts |
-| Nephilim Grand Cruiser | 250 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 60cm FP12 (L), (R); Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +D6cm AAF +5pts |
-| Executor Grand Cruiser | 210 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Lances 30cm FP4 (L), (R); Lances 45cm FP2 (L), (R) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +D6cm AAF +5pts |
+| Retaliator Grand Cruiser | 275 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 45cm FP6 (L), (R); Lances 45cm FP2 (L), (R); Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +60pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
+| Nephilim Grand Cruiser | 250 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 60cm FP12 (L), (R); Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
+| Executor Grand Cruiser | 210 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Lances 30cm FP4 (L), (R); Lances 45cm FP2 (L), (R) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
 
 **Heavy Cruisers**
 
@@ -114,12 +114,12 @@
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| The Planet Killer *Battleship* | 505 | 14 | 60mm | 20cm | 45° | 4 | 5+ | 5 | Macrobatteries 60cm FP6 (L), (R); Prow Macrobatteries 60cm FP12 (L/F/R); Prow Torps 30cm S9 (L/F/R); Dorsal Lances 60cm FP6 (L/F/R); Armageddon Gun 90cm Special (F) | Ponderous. Unique. Scenario rules moved to Terrain & Scenarios (p.XX at assembly). Armageddon Gun and full ship rules: see Chaos Ship Special Rules |
-| Chaos Space Hulk *Defense* | 650 | 40 | 60mm | 10cm | Special | 3 | 4+ | 6 | Macrobatteries 45cm FP12 per face (F), (L), (R), (Rear); Torps 30cm S8 (F), (L), (R); Prow Lances 30cm FP4 (F); Dorsal Lances 60cm FP4 (All Round); Launch Bays port S4 + stbd S4 (ASF 30cm, BMR 20cm, AB 30cm) | -1 Ld; never crippled; moves 10cm straight only. Full rules: see Chaos Ship Special Rules |
+| The Planet Killer *Battleship* | 505 | 14 | 60mm | 20cm | 45° | 4 | 5+ | 5 | Macrobatteries 60cm FP6 (L), (R); Prow Macrobatteries 60cm FP12 (L/F/R); Prow Torps 30cm S9 (L/F/R); Dorsal Lances 60cm FP6 (L/F/R); Armageddon Gun 90cm Special (F) | Ponderous (no Come to New Heading). Unique. Scenario variants, Armageddon Gun and full ship rules: see Chaos Ship Special Rules |
+| Chaos Space Hulk *Defence* | 650 | 40 | 60mm | 10cm | Special | 3 | 4+ | 6 | Macrobatteries 45cm FP12 per face (F), (L), (R), (Rear); Torps 30cm S8 (F), (L), (R); Prow Lances 30cm FP4 (F); Dorsal Lances 60cm FP4 (All Round); Launch Bays port S4 + stbd S4 (ASF 30cm, BMR 20cm, AB 30cm) | -1 Ld; never crippled; moves 10cm straight only. Full rules: see Chaos Ship Special Rules |
 | Scion of Prospero (Thousand Sons) *Battleship* | 450 | 12 | 60mm | 20cm | 45° | 4 | 5+ | 4 | Macrobatteries 45cm FP9 (L), (R); Dorsal Lances 45cm FP3 (L/F/R); Prow Torps 30cm S9 (F); Launch Bays prow S3 + port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm) | Unique flagship. Free Mark of Tzeentch; free re-roll but any failed re-roll costs 1 hit (Vagaries of Fate). Vortex of Chaos; full rules: see Chaos Ship Special Rules. Attack craft: TB 20cm +90pts (not if Stormbird gunships taken) |
 | Wage of Sin (Emperor's Children) *Battleship* | 420 | 12 | 60mm | 20cm | 45° | 4 | 5+ | 4 | Lances 60cm FP3 (L), (R); Dorsal Macrobatteries 60cm FP12 (L/F/R); Prow Torps 30cm S6 (F); Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm) | Unique flagship. Free Mark of Slaanesh. Always has a Chaos Space Marine crew; full rules: see Chaos Ship Special Rules. Attack craft: TB 20cm +60pts (not if Stormbird gunships taken) |
 | Terminus Est (Death Guard) *Battleship* | 420\* | 13 | 60mm | 20cm | 45° | 4 | 5+ | 4 | Hives of Nurgle 30cm FP14 (L), (R); Dorsal Lances 45cm FP4 (L/F/R); Prow Lances 30cm FP3 (F); Launch Bays prow S3 + port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Unique flagship. Free Mark of Nurgle (in profile). Always has CSM + Terminator crew; full rules: see Chaos Ship Special Rules. Attack craft: TB 20cm +70pts (not if Stormbird gunships taken) |
-| Slaverer (World Eaters) *Battleship* | 400 | 12 | 60mm | 25cm | 45° | 4 | 5+ | 4 | Lances 30cm FP2 (L), (R); Macrobatteries 30cm FP16 (L), (R); Dorsal Macrobatteries 60cm FP8 (L/F/R); Prow Torps 30cm S8 (F) | Unique; flagship only if most expensive. Free Mark of Khorne. +D6cm on All Ahead Full; always has CSM + Terminator crew, re-rolls boarding; Defiant Rage when crippled. Full rules: see Chaos Ship Special Rules |
+| Slaverer (World Eaters) *Battleship* | 400 | 12 | 60mm | 25cm | 45° | 4 | 5+ | 4 | Lances 30cm FP2 (L), (R); Macrobatteries 30cm FP16 (L), (R); Dorsal Macrobatteries 60cm FP8 (L/F/R); Prow Torps 30cm S8 (F) | Unique; flagship only if most expensive. Free Mark of Khorne. Improved Thrusters (+D6cm on All Ahead Full); always has CSM + Terminator crew, re-rolls boarding; Defiant Rage when crippled. Full rules: see Chaos Ship Special Rules |
 
 *\**Terminus Est: some sources print 430pts; this booklet uses 420 throughout.
 
@@ -129,7 +129,15 @@
 
 #### The Planet Killer (Imperium p.24)
 
-Ponderous (no Come to New Heading). A one-of-a-kind vessel, usually the objective of a special scenario rather than a general-engagement ship. The scenario setups (Raiders, Surprise Attack, Convoy, Exterminatus) are in Planet Killer Scenarios, under Terrain & Scenarios.
+Ponderous (no Come to New Heading). A one-of-a-kind vessel, usually the objective of a special scenario rather than a general-engagement ship. Scenario variants (Imperium p.24):
+
+*Raiders*: the Chaos fleet defends the Planet Killer. Instead of the normal victory conditions, the attacker must cripple or destroy it.
+
+*Surprise Attack*: the defending Chaos fleet is stationed around the Planet Killer instead of orbiting a world. The defender pays no points for it, but it starts the battle on standby like the other defending vessels: it cannot move or shoot until active, though its turrets and shields work as normal. The attacker must cripple the Planet Killer to win.
+
+*Convoy*: the Planet Killer counts as eight transports. If it moves off the opposite table edge undamaged, the Chaos player wins. If it is crippled before it escapes, the attacker wins a marginal victory; if it is destroyed, a major victory.
+
+*Exterminatus*: a Chaos attacker may include the Planet Killer instead of modified exterminators, deducting its cost from the fleet's points limit as normal. It needs no refits and loses no weapons to count as an exterminator, but if the Armageddon Gun is permanently disabled (including when the Planet Killer is crippled), it can no longer act as an exterminator and the Chaos player loses automatically.
 
 *Armageddon Gun* (90cm, Front): fires only straight ahead along the ship's spine, and must be charged before firing. It cannot fire while crippled or while on All Ahead Full, Burn Retros, or Brace for Impact.
 
@@ -143,7 +151,7 @@ Ponderous (no Come to New Heading). A one-of-a-kind vessel, usually the objectiv
 
 A Chaos fleet of any size may include one, and it must be the flagship. It cannot be fielded alongside the Planet Killer, an activated Blackstone Fortress, or any other must-be-flagship ship (Terminus Est, Scion of Prospero, and so on), and it may not take Chaos Marks (other ships still can). It counts as one of the fleet's battleships, and a fleet with one may include at most two more battleships. No minimum-points or ship prerequisite; it may be taken alone or with only escorts (cruiser ratios for adding battleships alongside it are covered under fleet-building).
 
-**Leadership & orders:** -1 to starting Leadership, applied after all other modifiers (including an embarked Lord/Warmaster or Chaos Space Marines). May not use Burn Retros or Come to New Heading. May use All Ahead Full only to start a ram (no extra speed); as a defense it rolls 3D6 for the Ld check to ram a non-defense unit.
+**Leadership & orders:** -1 to starting Leadership, applied after all other modifiers (including an embarked Lord/Warmaster or Chaos Space Marines). May not use Burn Retros or Come to New Heading. May use All Ahead Full only to start a ram (no extra speed); as a defence it rolls 3D6 for the Ld check to ram a non-defence unit.
 
 **Ordnance:** doubles its launch-bay strength for the fleet's launch limit.
 
@@ -151,9 +159,9 @@ A Chaos fleet of any size may include one, and it must be the flagship. It canno
 
 **Gravity wells:** if it ends its move inside a planet's or moon's gravity well it may make one 45° turn toward that body, even if it already turned this phase. It also creates its own gravity well reaching 5cm from its base, affecting other ships like a planet's; ships may take a stationary orbit and move with the hulk until they break orbit.
 
-**Damage:** counts as a defense for gunnery and ramming, but is not a support or planetary-defence unit. Never crippled; it functions until completely destroyed.
+**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Never crippled; it functions until completely destroyed.
 
-**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.154), not the normal table; results cannot be repaired, and no characteristic drops below zero (apply as much of each penalty as possible).
+**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.156), not the normal table; results cannot be repaired, and no characteristic drops below zero (apply as much of each penalty as possible).
 
 **Catastrophic damage:** at 0 damage, roll on the Catastrophic Damage table: drifting and blazing hulk results are unchanged (including any required movement); a plasma drive overload tears it apart into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
@@ -195,7 +203,7 @@ Ponderous (no Come to New Heading). Unique: at most one per fleet. Unlike the ot
 
 **Berzerker Horde:** counts as having both a Chaos Space Marine crew and Chaos Terminators, and may re-roll its boarding action results (the second roll stands, even if worse).
 
-**Improved Thrusters:** +D6cm Speed on All Ahead Full.
+**Improved Thrusters: +D6cm on All Ahead Full**.
 
 **Defiant Rage:** if crippled by enemy shooting, take a 3D6 Ld test. On a pass it is crippled normally; on a fail it instead gains +5cm Speed, auto-passes all leadership tests to check course when ramming, and its armaments drop to 25% effectiveness (rather than being halved). This lasts until the ship or squadron that crippled it is destroyed, after which it is treated as a normal crippled ship.
 
@@ -275,4 +283,4 @@ The Pleasure Fleet of Slaanesh, Plague Fleet of Nurgle, Berzerker Fleet of Khorn
 
 **Berzerker Fleet of Khorne.** *The Berzerker Tide*: any Mark-of-Khorne ship boarding may inflict D3 extra critical hits (then no special orders until end of its next turn); any Mark-of-Khorne ship with a launch bay within 20cm of an enemy ship or ordnance may launch up to D3 extra attack-craft markers (then cannot launch next turn).
 
-**Infinite Fleet of Tzeentch.** *Warp Beasts* (+25, up to two Mark-of-Tzeentch ships, which may be daemonships): once per game, inflict an automatic D6 damage on one enemy within 15cm, ignoring shields and defenses (braceable). *Strands of Fortune* (+25) on a commander: spend once to turn one failed re-roll for its own ship or squadron into an automatic success.
+**Infinite Fleet of Tzeentch.** *Warp Beasts* (+25, up to two Mark-of-Tzeentch ships, which may be daemonships): once per game, inflict an automatic D6 damage on one enemy within 15cm, ignoring shields and defences (braceable). *Strands of Fortune* (+25) on a commander: spend once to turn one failed re-roll for its own ship or squadron into an automatic success.

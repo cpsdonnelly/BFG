@@ -840,7 +840,7 @@ class FleetBuilderWindow:
                         f"(has {count}).")
             elif ship_type == "defense":
                 errors.append(
-                    f"Squadron '{sid}': defense platforms cannot form squadrons.")
+                    f"Squadron '{sid}': defence platforms cannot form squadrons.")
 
         return len(errors) == 0, errors
 

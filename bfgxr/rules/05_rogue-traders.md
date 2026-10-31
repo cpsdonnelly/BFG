@@ -74,7 +74,7 @@ A Man O' War is assembled from the options below, paying both points and (where 
 
 - Ship of the Line 60pts, 6 Fortune: +6 Hits, -10cm Speed, becomes a Battleship, gains a Dorsal Weapon and a P/S Weapon Set, cannot use Come to New Heading.
 
-**Defenses.** Any of:
+**Defences.** Any of:
 
 - (0-2) +1 Turret 10pts.
 
@@ -127,7 +127,7 @@ Ships hired or captured through a Warrant of Trade. Points and Fortune costs, an
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Fra'al Battlecruiser | 250 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 45cm FP14 (L), (R); Dorsal Lances 30cm FP3 (L/F/R); Prow Ether Cannon 60cm FP2 (F) | Moves and turns as a battleship; no Come to New Heading. Must attempt to disengage each turn once crippled (+1Ld while doing so). Fra'al targeting matrix (free): treats all gunnery targets as closing and takes no right column-shift firing gunnery beyond 30cm; may take no further refits. Ether Cannon: treated as a lance; once per turn, after at least one hit and before damage, roll a D6, and if it beats the target's starting shield value, overload all its shields (place blast markers) then apply damage. Unique race: always allies of convenience |
-| Stryxis Caravan Vessel *Defense* | 80 | 8 | 32mm | 10cm | Special | 2 | 5+ | 2 | Ghost-Light Batteries 45cm FP10 (All Round); Ghost-Light Lances 30cm FP3 (All Round) | Ghost-Light weapons work as normal macrobatteries and lances but can never inflict critical damage. Special movement and damage, as the Ork Rok / Kroot Warsphere: moves exactly 10cm straight (no turn, Burn Retros, or Come to New Heading); \*\*auto-passes All Ahead Full\*\* (\*Remastered\* p.197; omitted from XR p.123 in error); All Ahead Full adds 2D6cm in any direction (a shift of 10cm or more sets a new heading); never slows when crippled or in blast markers; free 45° turns and stationary or low orbit in a gravity well. Each critical hit instead adds +1 damage; at 0 hits it breaks up into four blast markers (no Catastrophic Damage roll) |
+| Stryxis Caravan Vessel *Defence* | 80 | 8 | 32mm | 10cm | Special | 2 | 5+ | 2 | Ghost-Light Batteries 45cm FP10 (All Round); Ghost-Light Lances 30cm FP3 (All Round) | Ghost-Light weapons work as normal macrobatteries and lances but can never inflict critical damage. Special movement and damage, as the Ork Rok / Kroot Warsphere: moves exactly 10cm straight (no turn, Burn Retros, or Come to New Heading); auto-passes All Ahead Full (Remastered p.197; not in the XR profile); All Ahead Full adds 2D6cm in any direction (a shift of 10cm or more sets a new heading); never slows when crippled or in blast markers; free 45° turns and stationary or low orbit in a gravity well. Each critical hit instead adds +1 damage; at 0 hits it breaks up into four blast markers (no Catastrophic Damage roll) |
 | Xenos Cutter *Escort* | 35 | 1 | 32mm | 25cm | 90° | 1 | 5+ | 2 | Macrobatteries 30cm FP2 (L/F/R); Lance 30cm FP1 (F) | Config per squadron: buy one Xenos Refit costing 10pts or less (applied to all), or for +30pts the whole squadron becomes a Notable Xenos using one chosen minor-xenos profile (Imperium p.125), with no further changes. Torpedo variant: any generic cutter may swap its Lance for a Torpedo Salvo 30cm S2 (F) at no cost; the whole squadron must match |
 
 ## Fleet Composition (Fleet Detachment, Expedition & Pirate Lists)

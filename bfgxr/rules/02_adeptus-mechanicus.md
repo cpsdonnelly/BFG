@@ -42,7 +42,7 @@
 | D6 | Cost | Gift |
 |---|---|---|
 | 1 | Free | Emergency Energy Reserves. While crippled, reduce shields, turrets, and weapons by 25% instead of 50% (round down); Speed cannot drop below 15cm. |
-| 2 | 5pts | Fleet Defense Turrets. -2 Turrets, but +1 massed turret to all allied ships within 15cm including itself (limit +3 as normal). |
+| 2 | 5pts | Fleet Defence Turrets. -2 Turrets, but +1 massed turret to all allied ships within 15cm including itself (limit +3 as normal). |
 | 3 | 5pts | Advanced Engines. Gains the Auxiliary Power Relays and Secondary Reactors refits for free. |
 | 4 | 10pts | Advanced Shields. Gains the Overloaded Shield Capacitors refit for free, and imposes a right column-shift on gunnery against it while it has active shields. |
 | 5 | 10pts | Advanced Weapons. Gains the Targeting Matrix refit for free, and +1 to dorsal lance FP. |
@@ -76,10 +76,10 @@ Experimental Ship (D6 on each table):
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Ark Mechanicus Omnissiah's Victory (unique) *Battleship* | 405 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 5 | Macrobatteries 60cm FP10 (L), (R); Lances 60cm FP2 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Prow Nova Cannon 30-150cm Template (F) | Ponderous. Comes with Advanced Shields and Advanced Weapons (Mechanicus Gifts) free, already in profile; may take no further Gifts from any source. May gain refits during a campaign via the normal appeal process. Unique; if fielded in a campaign it must be the flagship |
+| Ark Mechanicus Omnissiah's Victory (unique) *Battleship* | 405 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 5 | Macrobatteries 60cm FP10 (L), (R); Lances 60cm FP2 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Prow Nova Cannon 30-150cm Template (F) | Ponderous (no Come to New Heading). Comes with Advanced Shields and Advanced Weapons (Mechanicus Gifts) free, already in profile; may take no further Gifts from any source. May gain refits during a campaign via the normal appeal process. Unique; if fielded in a campaign it must be the flagship |
 | Mechanicus Emperor Battleship | 390 | 12 | 60mm | 15cm | 45° | 4 | 5+ | 6 | Macrobatteries 60cm FP6 (L), (R); Launch Bays port S4 + stbd S4 (ASF 30cm, BMR 20cm); Dorsal Macrobatteries 60cm FP5 (L/F/R); Prow Macrobatteries 60cm FP5 (L/F/R) | Ponderous (no Come to New Heading). Sensors +1 Ld at all times (max 10) instead of an armoured prow. Attack craft: TB 20cm +80pts |
-| Mechanicus Retribution Battleship | 380 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 5 | Macrobatteries 45cm FP18 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Prow Torps 30cm S9 (F) | Ponderous. Mechanicus Refits: swap prow torpedoes for a prow nova cannon (30-150cm Template F) +10pts; if not taken, may instead take refitted torpedoes +30pts |
-| Mechanicus Oberon Battleship | 380 | 12 | 60mm | 15cm | 45° | 4 | 5+ | 6 | Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm); Macrobatteries 60cm FP6 (L), (R); Lances 60cm FP2 (L), (R); Dorsal Macrobatteries 60cm FP5 (L/F/R); Prow Macrobatteries 60cm FP5 (L/F/R) | Ponderous. Sensors +1 Ld at all times (max 10) instead of an armoured prow. Attack craft: TB 20cm +40pts |
+| Mechanicus Retribution Battleship | 380 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 5 | Macrobatteries 45cm FP18 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Prow Torps 30cm S9 (F) | Ponderous (no Come to New Heading). Mechanicus Refits: swap prow torpedoes for a prow nova cannon (30-150cm Template F) +10pts; if not taken, may instead take refitted torpedoes +30pts |
+| Mechanicus Oberon Battleship | 380 | 12 | 60mm | 15cm | 45° | 4 | 5+ | 6 | Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm); Macrobatteries 60cm FP6 (L), (R); Lances 60cm FP2 (L), (R); Dorsal Macrobatteries 60cm FP5 (L/F/R); Prow Macrobatteries 60cm FP5 (L/F/R) | Ponderous (no Come to New Heading). Sensors +1 Ld at all times (max 10) instead of an armoured prow. Attack craft: TB 20cm +40pts |
 
 **Cruisers**
 

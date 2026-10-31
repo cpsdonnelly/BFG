@@ -157,3 +157,9 @@ def test_to_ship_dict_carries_leadership_table_and_booklet_points():
 
 def test_booklet_ships_have_no_upgrades_yet():
     assert get_upgrades_for_ship(get_ship_class("imperial_navy_gothic", "Lunar Cruiser")) == []
+
+
+def test_old_defense_spelling_still_resolves():
+    from src.ship_catalog import find_ship_class
+    e = find_ship_class("Defense Monitor")
+    assert e is not None and e.ship_class == "Defence Monitor"

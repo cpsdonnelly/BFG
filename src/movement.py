@@ -340,7 +340,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
         if special_order != SpecialOrder.BURN_RETROS.value and phase_distance == 0:
             result.add_error("Ships must move unless on Burn Retros")
         elif phase_distance > 0:
-            result.add_warning("Moved <5cm: counts as Defenses on Gunnery table")
+            result.add_warning("Moved <5cm: counts as Defences on Gunnery table")
 
     return result
 
@@ -387,7 +387,7 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
             return
 
     if result.counts_as_defense:
-        gs.add_log(f"{ship.name} moved <5cm, counts as Defenses on gunnery table")
+        gs.add_log(f"{ship.name} moved <5cm, counts as Defences on gunnery table")
 
     # Check terrain interactions at final position
     phenomena = gs.get_phenomena()

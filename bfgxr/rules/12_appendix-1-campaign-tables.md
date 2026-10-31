@@ -54,4 +54,4 @@
 | 9 | Your flagship gains a Terminator Honor Guard and may conduct teleport attacks against targets with more remaining hits than itself. |
 | 10 | You may train one ship's crew after each game (mark it on your fleet registry). Trained ships may re-roll the dice in a boarding action. |
 | 11 | In your next game your opponent must reduce his points value by D6×30. |
-| 12 | In the next game where your opponent has planetary defenses, their value is reduced by D6×30 points. |
+| 12 | In the next game where your opponent has planetary defences, their value is reduced by D6×30 points. |

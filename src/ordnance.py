@@ -111,9 +111,9 @@ def is_boarding_torpedo(marker: OrdnanceMarker) -> bool:
 
 
 def torpedo_valid_target(marker: OrdnanceMarker, ship: Ship) -> bool:
-    """Ordnance attacks the first valid target it contacts. Any ship is a valid
-    target for torpedoes (s.12: friend or foe), except that friendly ships are
-    not valid targets for boarding torpedoes (owner ruling)."""
+    """Ordnance attacks the first valid target it contacts (s.12). Any ship is a
+    valid target for torpedoes (s.13: friend or foe), except that boarding
+    torpedoes always ignore friendly ships (s.13, Torpedo Types)."""
     return not (is_boarding_torpedo(marker) and ship.player == marker.owner_player)
 
 
@@ -124,7 +124,7 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     """Resolve torpedo attack. Bypasses shields. Turrets defend first.
     Turrets cannot fire if already used against attack craft this phase.
 
-    Boarding torpedoes (core rules s.24): each hit is one hit-and-run raid
+    Boarding torpedoes (core rules s.28): each hit is one hit-and-run raid
     instead of a point of damage. The target may brace before the raids are
     rolled: brace_decision_fn(target, msg, n_raids) -> (wanted, passed), as for
     assault boats; a ship already on Brace for Impact saves each raid on 4+.
@@ -226,7 +226,7 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     Turret defense: roll the ship's effective turrets (plus massed turret bonus).
     - If ANY die scores 4+: mine attacks with 4D6 instead of 8D6.
     - Otherwise: mine attacks with 8D6.
-    Mine damage ignores shields (core rules s.13; some rulebook printings say
+    Mine damage ignores shields (core rules s.14; some rulebook printings say
     otherwise, which the booklet calls an error).
     Turret restriction (torp/craft split) does not apply to mines.
     """
@@ -284,7 +284,7 @@ def resolve_bomber_interception(bomber_count: int,
     """
     Phase 1 turret interception: the target ship (plus massed turret bonus from
     non-crippled allies in base contact) fires at an incoming wave of attacking
-    craft (bombers and assault boats) before they attack (core rules s.21).
+    craft (bombers and assault boats) before they attack (core rules s.25).
 
     Each turret rolls D6; 4+ kills one marker (capped at bomber_count).
     Massed turret bonus applies here (long-range interception).
@@ -772,7 +772,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
         can_turn=(torpedo_type == "guided"),
         turn_angle=45 if torpedo_type == "guided" else 0,
         launch_exempt_ships=compute_torpedo_launch_exempt(ship, game_state),
-        # The launcher's raid bonuses go with its boarding torps (s.24)
+        # The launcher's raid bonuses go with its boarding torps (s.28)
         special_rules=list(ship.special_rules),
     )
     game_state.add_ordnance(marker)

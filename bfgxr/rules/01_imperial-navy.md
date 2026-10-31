@@ -9,19 +9,19 @@ Imperial Navy carriers launch Fury Fighters (ASF, 30cm) and Starhawk Bombers (BM
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Emperor Battleship | 365 | 12 | 60mm | 15cm | 45° | 4 | 5+ | 5 | Macrobatteries 60cm FP6 (L), (R); Launch Bays port S4 + stbd S4 (ASF 30cm, BMR 20cm); Dorsal Macrobatteries 60cm FP5 (L/F/R); Prow Macrobatteries 60cm FP5 (L/F/R) | Ponderous (no Come to New Heading). Sensors +1 Ld at all times (max 10). Attack craft: AB 30cm +5pts, TB 20cm +80pts |
-| Apocalypse Battleship | 365 | 12 | 60mm | 15cm | 45° | 4 | 6+P / 5+ | 4 | Lances 60cm FP6 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Nova Cannon 30-150cm Template (F) | Ponderous. Underpowered lances: if it fires lances beyond 30cm during its turn, place a blast marker in contact with its rear arc |
-| Oberon Battleship | 355 | 12 | 60mm | 15cm | 45° | 4 | 5+ | 5 | Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm); Macrobatteries 60cm FP6 (L), (R); Lances 60cm FP2 (L), (R); Dorsal Macrobatteries 60cm FP5 (L/F/R); Prow Macrobatteries 60cm FP5 (L/F/R) | Ponderous. Sensors +1 Ld at all times (max 10). Attack craft: AB 30cm +5pts, TB 20cm +80pts |
-| Retribution Battleship | 355 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 4 | Macrobatteries 45cm FP18 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Prow Torps 30cm S9 (F) | Ponderous |
-| Victory Battleship | 355 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 4 | Lances 60cm FP4 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Nova Cannon 30-150cm Template (F) | Ponderous. Refit: swap prow nova cannon for prow torpedoes (30cm S9 F), -10pts |
-| The Vae Victis (unique) *Battleship* | 330 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 5 | Lances 45cm FP4 (L), (R); Macrobatteries 60cm FP6 (L), (R); Prow Torps 30cm S6 (F) | Ponderous |
+| Apocalypse Battleship | 365 | 12 | 60mm | 15cm | 45° | 4 | 6+P / 5+ | 4 | Lances 60cm FP6 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Nova Cannon 30-150cm Template (F) | Ponderous (no Come to New Heading). Underpowered lances: if it fires lances beyond 30cm during its turn, place a blast marker in contact with its rear arc |
+| Oberon Battleship | 355 | 12 | 60mm | 15cm | 45° | 4 | 5+ | 5 | Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm); Macrobatteries 60cm FP6 (L), (R); Lances 60cm FP2 (L), (R); Dorsal Macrobatteries 60cm FP5 (L/F/R); Prow Macrobatteries 60cm FP5 (L/F/R) | Ponderous (no Come to New Heading). Sensors +1 Ld at all times (max 10). Attack craft: AB 30cm +5pts, TB 20cm +80pts |
+| Retribution Battleship | 355 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 4 | Macrobatteries 45cm FP18 (L), (R); Dorsal Lances 60cm FP3 (L/F/R); Prow Torps 30cm S9 (F) | Ponderous (no Come to New Heading) |
+| Victory Battleship | 355 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 4 | Lances 60cm FP4 (L), (R); Dorsal Macrobatteries 60cm FP9 (L/F/R); Prow Nova Cannon 30-150cm Template (F) | Ponderous (no Come to New Heading). Refit: swap prow nova cannon for prow torpedoes (30cm S9 F), -10pts |
+| The Vae Victis (unique) *Battleship* | 330 | 12 | 60mm | 20cm | 45° | 4 | 6+P / 5+ | 5 | Lances 45cm FP4 (L), (R); Macrobatteries 60cm FP6 (L), (R); Prow Torps 30cm S6 (F) | Ponderous (no Come to New Heading) |
 
 **Grand Cruisers**
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Exorcist Grand Cruiser | 260 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm); Macrobatteries 45cm FP8 (L), (R) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: AB 30cm +5pts, TB 20cm +60pts. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +1D6cm to All Ahead Full roll +5pts |
-| Vengeance Grand Cruiser | 230 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Lances 45cm FP2 (L), (R); Macrobatteries 60cm FP10 (L), (R) | Ablative Prow Armour. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +5pts |
-| Avenger Grand Cruiser | 200 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 30cm FP20 (L), (R) | Ablative Prow Armour. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters +5pts |
+| Exorcist Grand Cruiser | 260 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm); Macrobatteries 45cm FP8 (L), (R) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: AB 30cm +5pts, TB 20cm +60pts. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
+| Vengeance Grand Cruiser | 230 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Lances 45cm FP2 (L), (R); Macrobatteries 60cm FP10 (L), (R) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
+| Avenger Grand Cruiser | 200 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 30cm FP20 (L), (R) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
 
 **Battlecruisers**
 
@@ -69,7 +69,7 @@ Imperial Navy carriers launch Fury Fighters (ASF, 30cm) and Starhawk Bombers (BM
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Ramilies Star Fort *Defense* | 875 | 12 | 60mm | \- | \- | 4 | 6+ | 4 | Quadrant: Macrobatteries 60cm FP12; Lances 60cm FP5; Launch Bays S4 (ASF 30cm, BMR 20cm). Basilica: Macrobatteries 45cm FP4 (All Round); Torps 30cm S9 (All Round) | Star fort (may rotate). High-orbit defence; may replace a planet (30cm range). Cost always in the fleet list; fleet must be 2000+ pts. Full quadrant/basilica mechanics: see Imperial Navy Ship Special Rules |
+| Ramilies Star Fort *Defence* | 875 | 12 | 60mm | \- | \- | 4 | 6+ | 4 | Quadrant: Macrobatteries 60cm FP12; Lances 60cm FP5; Launch Bays S4 (ASF 30cm, BMR 20cm). Basilica: Macrobatteries 45cm FP4 (All Round); Torps 30cm S9 (All Round) | Star fort (may rotate). High-orbit defence; may replace a planet (30cm range). Cost always in the fleet list; fleet must be 2000+ pts. Full quadrant/basilica mechanics: see Imperial Navy Ship Special Rules |
 
 ### Imperial Navy Ship Special Rules
 
@@ -83,7 +83,7 @@ An immense orbital fortress; follows normal ship rules except as below.
 
 **Quadrants:** its weapons, hits, and defences are split into four quadrants. An attack hits the quadrant found by tracing a line from the firing ship's prow to the station's centre; ordnance hits the first quadrant its marker touches. Each quadrant has its own shields; blast markers go against the matching edge of the base and affect that quadrant plus the two adjacent, and in the end phase D6 are removed from the whole model. On a rotating fort, un-removed markers stay in place and affect whatever quadrants they touch after it turns.
 
-**Damage:** damage and criticals affect only the quadrant hit. A quadrant is crippled at 6 Damage Points and, once reduced to 0 hits, becomes an asteroid field (further hits do nothing). Damage control is per quadrant. The fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll. Nova cannons and Armageddon guns score their D6 direct hit only against the quadrant under the template's centre. Hit-and-run raids affect only their target quadrant. Critical hits use the Ramilies Star Fort Critical Hits table (p.153).
+**Damage:** damage and criticals affect only the quadrant hit. A quadrant is crippled at 6 Damage Points and, once reduced to 0 hits, becomes an asteroid field (further hits do nothing). Damage control is per quadrant. The fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll. Nova cannons and Armageddon guns score their D6 direct hit only against the quadrant under the template's centre. Hit-and-run raids affect only their target quadrant. Critical hits use the Ramilies Star Fort Critical Hits table (p.155).
 
 **The Basilica:** the central redoubt cannot be targeted separately and is destroyed only when the whole station reaches 0 hits. If it would take damage (such as its own ordnance exploding from a critical), that damage is distributed among the remaining quadrants.
 

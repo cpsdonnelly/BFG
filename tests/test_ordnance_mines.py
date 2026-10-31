@@ -49,7 +49,7 @@ def test_mine_no_turrets_uses_8d6():
 
 
 def test_mine_hits_ignore_shields():
-    # Core rules s.13: mines ignore shields
+    # Core rules s.14: mines ignore shields
     target = make_ship(id="t", x=0, y=0, heading=0, turrets=0,
                        armor_prow="5+", armor_side="5+",
                        shields_max=2, hits_max=12)

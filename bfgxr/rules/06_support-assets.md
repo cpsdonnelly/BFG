@@ -8,11 +8,11 @@ Fleet-support ships and planetary defences, available to add to fleets from any 
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Space Station *Defense* | 150 | 8 | 32mm | \- | \- | 2 | 6+ | 4 | Macrobatteries 60cm FP12 (All Round); Lances 30cm FP3 (All Round); Launch Bays S4 (ASF 30cm, BMR 20cm) | Immobile |
-| Orbital Dock *Defense* | 90 | 6 | 32mm | \- | \- | 2 | 6+ | 3 | Macrobatteries 30cm FP4 (All Round); Launch Bays S4 (ASF 30cm, BMR 20cm) | Immobile; construction/repair facilities for smaller vessels |
-| Orbital Weapons Platform *Defense* | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Macrobatteries 60cm FP6 (All Round) | Immobile |
-| Orbital Defense Laser Platform | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Lance 60cm FP1 (All Round) | Immobile. May +1 lance strength in exchange for -30cm range, no cost change |
-| Orbital Torpedo Launcher *Defense* | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Torps 30cm S6 (All Round) | Immobile |
+| Space Station *Defence* | 150 | 8 | 32mm | \- | \- | 2 | 6+ | 4 | Macrobatteries 60cm FP12 (All Round); Lances 30cm FP3 (All Round); Launch Bays S4 (ASF 30cm, BMR 20cm) | Immobile |
+| Orbital Dock *Defence* | 90 | 6 | 32mm | \- | \- | 2 | 6+ | 3 | Macrobatteries 30cm FP4 (All Round); Launch Bays S4 (ASF 30cm, BMR 20cm) | Immobile; construction/repair facilities for smaller vessels |
+| Orbital Weapons Platform *Defence* | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Macrobatteries 60cm FP6 (All Round) | Immobile |
+| Orbital Defence Laser Platform | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Lance 60cm FP1 (All Round) | Immobile. May +1 lance strength in exchange for -30cm range, no cost change |
+| Orbital Torpedo Launcher *Defence* | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Torps 30cm S6 (All Round) | Immobile |
 | Minefield | 40 |  | 32mm | \- | \- | \- | \- | \- | Area terrain-defence; no stat block. Rules: see Support Ship Special Rules |  |
 | Orbital Mine | 5 |  | 32mm | \- | \- | \- | \- | \- | Deployed mine; no stat block. Rules: see Support Ship Special Rules |  |
 
@@ -21,14 +21,14 @@ Fleet-support ships and planetary defences, available to add to fleets from any 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Air Base | 20 | 1 | 32mm | \- | \- | \- | 6+ | 2 | Launch Bays S4 (ASF 30cm, BMR 20cm) | Ground facility (low-orbit) |
-| Defense Laser Silo | 15 | 1 | 32mm | \- | \- | \- | 6+ | \- | Lances 60cm FP3 (F) | Ground facility (low-orbit) |
+| Defence Laser Silo | 15 | 1 | 32mm | \- | \- | \- | 6+ | \- | Lances 60cm FP3 (F) | Ground facility (low-orbit) |
 | Missile Silo | 5 | 1 | 32mm | \- | \- | \- | 6+ | \- | Torps 30cm S6 (F) | Ground facility (low-orbit) |
 
 **System Ships**
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Defense Monitor *Escort* | 60 | 2 | 32mm | 10cm | 45° | 2 | 6+ | 2 | Macrobatteries 30cm FP8 (L/F/R); Lance 30cm FP1 (F) | Hard-hitting, hard to manoeuvre |
+| Defence Monitor *Escort* | 60 | 2 | 32mm | 10cm | 45° | 2 | 6+ | 2 | Macrobatteries 30cm FP8 (L/F/R); Lance 30cm FP1 (F) | Hard-hitting, hard to manoeuvre |
 | System Escort | 20 | 1 | 32mm | 15cm | 45° | 1 | 5+ | 1 | Macrobatteries 30cm FP3 (L/F/R) | Short-range system ship |
 | Fire Ship *Escort* | 10 | 1 | 32mm | 15cm | 45° | 1 | 5+ | 1 | \- | May detonate (non-braced) during its move: D3 Fire criticals on all ships within 3D6cm, ignoring shields, removing ordnance in range; then destroyed (blast marker). -1 Ld extra on All Ahead Full. If destroyed by damage, on a D6 of 6 it detonates instead |
 
@@ -47,8 +47,8 @@ Fleet-support ships and planetary defences, available to add to fleets from any 
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Blackstone Fortress *Defense* | 400 | 16 | 60mm | \- | \- | 6 | 5+ | 6 | Macrobatteries 60cm FP20 (All Round); Lances 60cm FP4 (All Round); Launch Bays S8 (ASF 30cm, BMR 20cm) | Dormant, Imperial-controlled form. Cannot use the Activated rules. May be fielded as a defence for any race. Full rules: see Support Ship Special Rules |
-| Activated Blackstone Fortress *Defense* | 750 | 16 | 60mm | 10cm | Special | 6 | 6+ | 0 | Warp Cannons 90cm FP8 (All Round) | Ancient awakened form. Full rules: see Support Ship Special Rules |
+| Blackstone Fortress *Defence* | 400 | 16 | 60mm | \- | \- | 6 | 5+ | 6 | Macrobatteries 60cm FP20 (All Round); Lances 60cm FP4 (All Round); Launch Bays S8 (ASF 30cm, BMR 20cm) | Dormant, Imperial-controlled form. Cannot use the Activated rules. May be fielded as a defence for any race. Full rules: see Support Ship Special Rules |
+| Activated Blackstone Fortress *Defence* | 750 | 16 | 60mm | 10cm | Special | 6 | 6+ | 0 | Warp Cannons 90cm FP8 (All Round) | Ancient awakened form. Full rules: see Support Ship Special Rules |
 
 ### Support Ship Special Rules
 
@@ -62,7 +62,7 @@ The awakened alien form (a Talisman of Vaul), having shed its grafted-on Imperia
 
 **Orders & movement:** cannot use special orders but automatically passes any other Leadership test it must make. Moves up to 10cm in any direction each movement phase and does not need to turn.
 
-**No crew:** its boarding result is always 0 plus any applicable bonuses (for example a higher troop rating from onboard defenses).
+**No crew:** its boarding result is always 0 plus any applicable bonuses (for example a higher troop rating from onboard defences).
 
 **Warp Cannons:** treated as lance weapons that ignore the target's shields and strike the hull directly; they also ignore holofields, reactive hull saves, and any other special defences.
 

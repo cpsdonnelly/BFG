@@ -1,4 +1,4 @@
-"""Boarding torpedoes: one hit-and-run raid per hit (core rules s.24)."""
+"""Boarding torpedoes: one hit-and-run raid per hit (core rules s.28)."""
 import pytest
 from tests.conftest import make_ship, make_gs, DiceStub
 from src.models import OrdnanceMarker, OrdnanceType, SpecialOrder

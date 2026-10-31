@@ -369,7 +369,7 @@ Appeals may normally only be made for refits and reinforcements. If you are allo
 
 **Refits.** A player who is granted a refit must choose one of his capital ships to undergo the refit, then roll a D6 to see what type of equipment system is upgraded. On a roll of 1 or 2 you receive a ship refit, on a roll of 3 or 4 an engine refit, and on a roll of 5 or 6 a weapon refit. If a ship already has every refit in the rolled category, roll again until you get a different category.
 
-The ship, engine, and weapon refit tables are in the Appendix (Appendix 2, p.148). Always use the table that matches your faction list's source book: Imperial Refits for the Imperium, Chaos, the Inquisition, Rogue Traders, the Adeptus Mechanicus and the Space Marines; Xenos Refits for the xenos fleets. For example, Chaos ships that earn a weapon refit roll on the Weapon Refit section of the Imperial Refits table.
+The ship, engine, and weapon refit tables are in the Appendix (Appendix 2, p.150). Always use the table that matches your faction list's source book: Imperial Refits for the Imperium, Chaos, the Inquisition, Rogue Traders, the Adeptus Mechanicus and the Space Marines; Xenos Refits for the xenos fleets. For example, Chaos ships that earn a weapon refit roll on the Weapon Refit section of the Imperial Refits table.
 
 If you roll a result that the ship already has, roll again until you get a refit the ship does not have. The points value of the ship is increased by 10% for each refit it has and you'll need to update your ship register appropriately.
 
@@ -385,7 +385,7 @@ As noted in the introduction, players should set a deadline for the campaign. Wh
 
 ## Notable Campaigns
 
-*Source: BFG:XR Rulebook, printed p.135. This is the reference key for the many campaign-specific cross-references scattered through the scenarios above (Daemon Blockade, The Gauntlet, Parol's Bait, Chance Encounter's Third Armageddon War usage, Macharia's End, The Defense of Pelucidar, and others).*
+*Source: BFG:XR Rulebook, printed p.135. This is the reference key for the many campaign-specific cross-references scattered through the scenarios above (Daemon Blockade, The Gauntlet, Parol's Bait, Chance Encounter's Third Armageddon War usage, Macharia's End, The Defence of Pelucidar, and others).*
 
 You may use the following guidelines to construct campaigns around specific major events in the history of the 41st Millennium. The required scenarios do not need to be played consecutively, but should be resolved in the order they are listed.
 
@@ -401,7 +401,7 @@ You may use the following guidelines to construct campaigns around specific majo
 
 - Sub-Sector: Bhein Morr, the Cyclops Cluster, Gethsemane, Port Maw, the Quinrox Sound, Lysades, or Orar
 
-- Special Rules: Some systems include the presence of one of the Blackstone Fortresses (indicated in brackets). In these systems, a defender may include a Blackstone Fortress as a planetary defense (paying its cost as normal). In addition, all planets in the Port Maw system (not the sub-sector) double the points limit of their planetary defenses.
+- Special Rules: Some systems include the presence of one of the Blackstone Fortresses (indicated in brackets). In these systems, a defender may include a Blackstone Fortress as a planetary defence (paying its cost as normal). In addition, all planets in the Port Maw system (not the sub-sector) double the points limit of their planetary defences.
 
 **The Third Armageddon War**
 
@@ -411,7 +411,7 @@ You may use the following guidelines to construct campaigns around specific majo
 
 - Ork Appeals: Power of the Waaagh!
 
-- Required Scenarios: The Gauntlet, Parol's Bait, Defense of Pelucidar
+- Required Scenarios: The Gauntlet, Parol's Bait, Defence of Pelucidar
 
 - Sub-Sector: Armageddon, Desedna & Paleoth, Golgotha, Justicar, or Voss
 
@@ -433,7 +433,7 @@ You may use the following guidelines to construct campaigns around specific majo
 
 - Special Rules: Some of the sub-sectors for this campaign are especially small. To make things interesting, consider linking multiple sub-sector maps together to create a much larger overall map, one fitting the grand scale of Abaddon's 13th Black Crusade!
 
-The three faction appeal tables (Forces of Chaos, Power of the Waaagh!, Space Marine Support) are in the Appendix: see Appendix 1, p.146.
+The three faction appeal tables (Forces of Chaos, Power of the Waaagh!, Space Marine Support) are in the Appendix: see Appendix 1, p.148.
 
 ## Sub-Sector Maps
 
@@ -443,7 +443,7 @@ The three faction appeal tables (Forces of Chaos, Power of the Waaagh!, Space Ma
 
 **Warpspace Channels.** In theory it is possible to travel anywhere through warp space. However, the warp's shifting tides make it easier to travel from some systems to others, and short warp jumps are always more accurate than longer ones. This is particularly true when moving a large fleet, which may become spread out across several light years of space. For this reason, the systems on a sub-sector map are connected by a number of warpspace channels (also known as warp routes) to the other systems.
 
-**System Type.** Each system will be one of the following types: uninhabited, agri-world, mining world, hive world, penal colony, forge world or civilized world, as shown in the map key. Note that a system may actually contain more than one world, but the political power and the bulk of the resources will be concentrated on the type of world shown. The system type will influence how much ship damage it can repair and level of its orbital defenses.
+**System Type.** Each system will be one of the following types: uninhabited, agri-world, mining world, hive world, penal colony, forge world or civilized world, as shown in the map key. Note that a system may actually contain more than one world, but the political power and the bulk of the resources will be concentrated on the type of world shown. The system type will influence how much ship damage it can repair and level of its orbital defences.
 
 *Flavour text:* "Every planet, moon, and star in these cosmos belongs to the Emperor. Steal one if you dare."
 

@@ -36,15 +36,15 @@ The Inquisition fields two distinct sub-lists on these pages: **Inquisitorial** 
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Black Ship *Battleship* | 300 | 12 | 60mm | 20cm | 45° | 5 | 6+P / 5+ | 5 | Macrobatteries 30cm FP10 (L), (R); Dorsal Lances 30cm FP2 (L/F/R); Prow Macrobatteries 60cm FP5 (L/F/R) | Ponderous. Always embarks a free Inquisitorial retinue. Convoy ship with modified stats (fixed Ld 9, +4D6cm on All Ahead Full, transport capacity 6). Full rules: see Inquisition Ship Special Rules |
-| Grey Knights Battle Barge *Battleship* | 430 | 12 | 60mm | 25cm | 45° | 4 | 6+ | 4 | Macrobatteries 45cm FP12 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R); Prow Bombardment Cannon 30cm FP6 (F); Prow Launch Bays S2 (MR 20cm) | Ponderous. Follows Grey Knights faction rules (in booklet, Imperium p.99-101). Sigils of Quickening: +1D6cm extra Speed on All Ahead Full (on top of the normal bonus) |
+| Black Ship *Battleship* | 300 | 12 | 60mm | 20cm | 45° | 5 | 6+P / 5+ | 5 | Macrobatteries 30cm FP10 (L), (R); Dorsal Lances 30cm FP2 (L/F/R); Prow Macrobatteries 60cm FP5 (L/F/R) | Ponderous (no Come to New Heading). Always embarks a free Inquisitorial retinue. Convoy ship with modified stats (fixed Ld 9, +4D6cm on All Ahead Full, transport capacity 6). Full rules: see Inquisition Ship Special Rules |
+| Grey Knights Battle Barge *Battleship* | 430 | 12 | 60mm | 25cm | 45° | 4 | 6+ | 4 | Macrobatteries 45cm FP12 (L), (R); Dorsal Bombardment Cannon 30cm FP8 (L/F/R); Prow Bombardment Cannon 30cm FP6 (F); Prow Launch Bays S2 (MR 20cm) | Ponderous (no Come to New Heading). Follows Grey Knights faction rules (in booklet, Imperium p.99-101). Sigils of Quickening: +1D6cm extra Speed on All Ahead Full (on top of the normal bonus) |
 
 **Cruisers**
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Inquisitorial Cruiser | 250 | 8 | 32mm | 25cm | 45° | 2 | 6+ | 2 | Macrobatteries 60cm FP8 (L), (R); Dorsal Lances 45cm FP2 (L/F/R); Prow Launch Bays S2 (Gun-Cutters 20cm) | Special Refits, no change in cost: swap dorsal lance for a Bombardment Cannon (30cm FP6 L/F/R, see Space Marine bombardment cannon rules); and/or swap launch bays for a Torpedo Salvo (30cm S6 F, may fire standard or boarding torpedoes). With torpedoes, may serve as an Exterminator with no further refits, succeeding at 3+ instead of 4+ |
-| Grey Knights Strike Cruiser | 165 | 6 | 32mm | 30cm | 90° | 2 | 6+ | 2 | Macrobatteries 30cm FP4 (L), (R); Dorsal Bombardment Cannon 30cm FP3 (L/F/R); Prow Bombardment Cannon 30cm FP2 (F); Prow Launch Bays S1 (MR 20cm) | Follows Grey Knights faction rules (in booklet, Imperium p.99-101). +1D6cm extra Speed on All Ahead Full. May re-roll arrival rolls for any scenario where it starts off-table, provided its squadron/division has no other ship type |
+| Grey Knights Strike Cruiser | 165 | 6 | 32mm | 30cm | 90° | 2 | 6+ | 2 | Macrobatteries 30cm FP4 (L), (R); Dorsal Bombardment Cannon 30cm FP3 (L/F/R); Prow Bombardment Cannon 30cm FP2 (F); Prow Launch Bays S1 (MR 20cm) | Follows Grey Knights faction rules (in booklet, Imperium p.99-101). +D6cm on All Ahead Full. May re-roll arrival rolls for any scenario where it starts off-table, provided its squadron/division has no other ship type |
 
 **Escorts**
 

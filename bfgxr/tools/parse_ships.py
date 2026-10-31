@@ -149,15 +149,41 @@ def parse_armour(s):
     if m: return {'front': int(m.group(1)), 'front_note': None, 'other': int(m.group(1))}
     return None
 
+def is_label(t):
+    """A roster label is a short line such as 'Escorts' or "Kor'vattra (Merchant Fleet)", not a sentence."""
+    return len(t) <= 60 and not t.rstrip().endswith(('.', ':')) and not t.startswith(('Arcs:', 'Source:'))
+
+def faction_rules(faction, notes):
+    """Which faction-wide rules a ship follows, as stated in its Notes; default is its own faction's.
+    profile_from records a stated profile source (shared, reprinted or commandeered profile)."""
+    n = notes or ''
+    rules, basis = [faction], None
+    for pat, val in ((r'Follows Grey Knights faction rules', ['Grey Knights']),
+                     (r'exclusively Mechanicus', ['Adeptus Mechanicus']),
+                     (r'an Inquisition vessel in all respects', ['Inquisition & Grey Knights']),
+                     (r'no Space Marine rules apply', None)):
+        m = re.search(pat, n)
+        if m:
+            basis = m.group(0)
+            if val is not None: rules = val
+            elif faction == 'Space Marines': rules = []
+            break
+    m = re.search(r'(?:Shares a profile with|Identical to|Reprint of|Commandeered from) the ([^.;,]+?)(?: profile)?(?=[.;,]|$)', n)
+    return {'faction_rules': rules, 'faction_rules_basis': basis, 'profile_from': m.group(1) if m else None}
+
 def main(docx, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     blocks = load_blocks(docx)
-    faction = source = None; label = None; ships = []
+    faction = source = None; label = None; group_notes = []; ships = []
     for i, b in enumerate(blocks):
-        if b[0] == 'h' and b[1] == 1:
-            m = re.match(r'^(.*?)\s+((?:Imperium|Xenos|Rulebook) p\.[\d\-, ]+)$', b[2])
-            faction, source = (m.group(1), m.group(2)) if m else (b[2], None)
-        if b[0] == 'p': label = b[1]
+        if b[0] == 'h':
+            group_notes = []
+            if b[1] == 1:
+                m = re.match(r'^(.*?)\s+((?:Imperium|Xenos|Rulebook) p\.[\d\-, ]+)$', b[2])
+                faction, source = (m.group(1), m.group(2)) if m else (b[2], None)
+        if b[0] == 'p':
+            if is_label(b[1]): label, group_notes = b[1], []
+            elif label is not None: group_notes.append(b[1])
         if b[0] == 't' and b[1] and b[1][0] and [c[0] if c else '' for c in b[1][0]][:1] == ['Class'] \
                 and any(c and c[0] == 'Armament' for c in b[1][0]):
             hdr = [c[0] if c else '' for c in b[1][0]]
@@ -171,6 +197,8 @@ def main(docx, out_dir):
                 j = lambda k: ' '.join(cell.get(k, []))
                 ships.append({
                     'faction': faction, 'source': source, 'roster_group': label,
+                    'roster_group_notes': ' '.join(group_notes) or None,
+                    **faction_rules(faction, j('Notes')),
                     'name': name_paras[0] if name_paras else '',
                     'hull_type': name_paras[1] if len(name_paras) > 1 else None,
                     'points': to_int(j('Pts')), 'points_raw': j('Pts'),
@@ -184,13 +212,14 @@ def main(docx, out_dir):
                     'armament_raw': arm, 'weapons': weapons,
                     'notes': j('Notes') or None,
                 })
+            group_notes = []
     json.dump({'source_document': os.path.basename(docx), 'ship_count': len(ships), 'ships': ships},
               open(os.path.join(out_dir, 'ships.json'), 'w', encoding='utf-8'), indent=1, ensure_ascii=False)
-    flat = ['faction', 'roster_group', 'name', 'hull_type', 'points_raw', 'hits_raw', 'base', 'speed_raw',
+    flat = ['faction', 'roster_group', 'roster_group_notes', 'faction_rules', 'profile_from', 'name', 'hull_type', 'points_raw', 'hits_raw', 'base', 'speed_raw',
             'turn_raw', 'shields_raw', 'armour_raw', 'turrets_raw', 'armament_raw', 'notes']
     with open(os.path.join(out_dir, 'ships.csv'), 'w', newline='', encoding='utf-8') as f:
         wr = csv.writer(f); wr.writerow(flat)
-        for s in ships: wr.writerow([s[k] for k in flat])
+        for s in ships: wr.writerow(['; '.join(s[k]) if isinstance(s[k], list) else s[k] for k in flat])
     wcols = ['faction', 'ship', 'group', 'kind', 'location', 'name', 'qualifier', 'range_min_cm', 'range_max_cm',
              'stat', 'value', 'category', 'arcs', 'parsed', 'raw']
     with open(os.path.join(out_dir, 'weapons.csv'), 'w', newline='', encoding='utf-8') as f:

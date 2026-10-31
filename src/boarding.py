@@ -113,7 +113,7 @@ def _boarding_crit_check(ship: Ship, threshold: Optional[int],
 
 def _crit_damage_reopens_hulk(ship: Ship, crit: Optional[Dict],
                               gs: GameState) -> Optional[Dict]:
-    """Owner ruling on s.25: a ship boarded to 0 is a drifting hulk with no
+    """Owner ruling on s.29: a ship boarded to 0 is a drifting hulk with no
     catastrophic roll, but the boarding crit is still rolled, and if that crit
     deals extra damage the ship does roll on the Catastrophic Damage table.
     Clearing the hulk status leaves it at 0 hits for check_destruction."""

@@ -4,6 +4,10 @@ This folder is a machine-readable export of Ciarán's BFG:XR companion booklet
 (`BFGXR_XR_Companion.docx`), a condensed rules reference for Battlefleet Gothic: Extended
 Rules. It is meant as the rules source for a digital play aid.
 
+**If you have worked with an earlier copy of this folder, read `CHANGES.md` first.** It lists
+what changed in the rules and the data (newest update last), including renamed fields, new
+fields and spelling changes that can break existing code.
+
 ## Source of truth
 
 - **The .docx is the master.** Everything in `rules/` and `data/` is generated from it by
@@ -20,9 +24,10 @@ Rules. It is meant as the rules source for a digital play aid.
 
 ```
 rules/        one Markdown file per top-level section of the booklet
-  00_core-rules.md            the 34 core rules sections, including Movement (7),
-                              Ramming (9), Hit-and-Run Raids with teleport attacks (24)
-                              and Boarding Actions (25)
+  00_core-rules.md            the 38 core rules sections, including Movement (7),
+                              Ramming (9), Ordnance: Launching, Moving & Attacking (12),
+                              Attack Craft (15), Hit-and-Run Raids with teleport attacks
+                              (28) and Boarding Actions (29)
   01_imperial-navy.md ... 09_tau-allies.md
                               faction rules, ship rosters, special rules, fleet lists
   10_scenarios.md             scenarios, with deployment maps
@@ -36,7 +41,7 @@ data/
   ships.csv                   one row per ship, raw cell text
   weapons.csv                 one row per weapon entry, flattened
   parse_report.md             what could not be parsed and is kept as raw text only
-CHANGES.md                    what changed in the rules since the first export
+CHANGES.md                    what changed since the first export (two updates; read both)
 source/                       copy of the .docx this export was built from
 tools/                        the export scripts
 ```
@@ -52,6 +57,9 @@ One object per roster row (174 ships). Every parsed field keeps its original cel
 |---|---|
 | `faction`, `source` | faction section and its sourcebook page reference |
 | `roster_group` | the label above the table, e.g. "Battleships", "Escorts", "Kor'vattra (Merchant Fleet)" |
+| `roster_group_notes` | intro paragraph under that label, if any; it holds rules for the whole group (e.g. all Venerable Battle Barges are Ponderous). Null otherwise |
+| `faction_rules` | factions whose faction-wide rules apply to the ship: its own faction unless its Notes say otherwise (e.g. `["Grey Knights"]`; `[]` for Space Marine Rapid Strike Vessels). `faction_rules_basis` quotes the Notes phrase that set it |
+| `profile_from` | profile the ship shares or reprints, e.g. "Imperial Navy Firestorm", else null |
 | `name` | Class cell as printed |
 | `hull_type` | only set when the booklet prints the hull type on its own line (e.g. "Escort"); otherwise it is part of `name` |
 | `points`, `hits`, `shields`, `turrets` | integers, or null if the cell isn't a plain number (`-`, `Free`, `420*`) |
@@ -104,4 +112,10 @@ Conventions the booklet uses (standardised so this parse is mechanical):
 - Five ships have no weapon list (Armament says "Built to order", "Deployed mine", `-`, etc.).
   Their rules are in the faction text.
 - Refits, options and ship special rules live in `notes` and in each faction's
-  "Ship Special Rules" section in `rules/`. They are prose, not data.
+  "Ship Special Rules" section in `rules/`. They are prose, not data. Faction-wide rules (e.g.
+  Space Marines +1 to hit-and-run raids) are in each faction file's rules section and apply to
+  every ship whose `faction_rules` names that faction.
+- Recurring Notes rules use fixed wording, so they can be matched as text:
+  `Ponderous (no Come to New Heading)`, `Ablative Prow Armour (...)`,
+  `Improved Thrusters (+D6cm on All Ahead Full)` (or the same bonus unnamed,
+  `+D6cm on All Ahead Full`).

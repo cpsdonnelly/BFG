@@ -332,7 +332,7 @@ class _MoveShipDialog:
                 f"{result.turns_used} turns, "
                 f"end ({result.final_x:.1f}, {result.final_y:.1f}) "
                 f"hdg {result.final_heading:.0f}°"
-                + (" [DEFENSES]" if result.counts_as_defense else ""))
+                + (" [DEFENCES]" if result.counts_as_defense else ""))
         else:
             self.preview_var.set("ERRORS: " + "; ".join(result.errors))
 
