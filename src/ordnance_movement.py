@@ -133,6 +133,7 @@ class OrdnanceMovementMixin:
         ordnance-vs-ordnance interactions, then ship contacts."""
         from .ordnance import (move_ordnance, degrade_tau_missiles,
                                 check_torpedo_contact, resolve_torpedo_attack,
+                                torpedo_valid_target,
                                 resolve_bomber_attack, resolve_mine_contact,
                                 check_ordnance_vs_blast,
                                 check_ordnance_vs_phenomena,
@@ -268,6 +269,8 @@ class OrdnanceMovementMixin:
                     if (s.id in (marker.launch_exempt_ships or [])
                             and marker.launched_turn == self.ctx.gs.turn_number):
                         continue
+                    if not torpedo_valid_target(marker, s):
+                        continue   # boarding torps pass over friendly ships
                     if not check_torpedo_contact(marker, s):
                         continue
 

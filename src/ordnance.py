@@ -110,6 +110,13 @@ def is_boarding_torpedo(marker: OrdnanceMarker) -> bool:
     return marker.ordnance_type == OrdnanceType.TORPEDO_BOARDING.value
 
 
+def torpedo_valid_target(marker: OrdnanceMarker, ship: Ship) -> bool:
+    """Ordnance attacks the first valid target it contacts. Any ship is a valid
+    target for torpedoes (s.12: friend or foe), except that friendly ships are
+    not valid targets for boarding torpedoes (owner ruling)."""
+    return not (is_boarding_torpedo(marker) and ship.player == marker.owner_player)
+
+
 def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
                            dice: DiceRoller, game_state: GameState,
                            all_ships: List[Ship] = None,

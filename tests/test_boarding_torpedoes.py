@@ -149,3 +149,16 @@ def test_standard_torpedoes_still_do_damage():
     r = resolve_torpedo_attack(m, target, dice, gs)
     assert r["hits"] == 2 and r["raids"] is None
     assert gs.get_ship_by_id("t").hits_remaining <= 6
+
+
+def test_friendly_ships_are_not_valid_targets_for_boarding_torps():
+    from src.ordnance import torpedo_valid_target
+    friend = make_ship(id="f", player=1)
+    enemy = make_ship(id="e", player=2)
+    boarding = _marker()                     # owner_player=1
+    standard = _marker()
+    standard.ordnance_type = OrdnanceType.TORPEDO_STANDARD.value
+    assert not torpedo_valid_target(boarding, friend)
+    assert torpedo_valid_target(boarding, enemy)
+    assert torpedo_valid_target(standard, friend)   # standard torps: friend or foe
+    assert torpedo_valid_target(standard, enemy)

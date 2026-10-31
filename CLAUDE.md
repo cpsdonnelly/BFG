@@ -60,6 +60,8 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   turn; otherwise the squadron acts normally.
 - **Movement is never rounded:** halving a speed gives an exact half (25cm -> 12.5cm), both
   for Burn Retros and for the half-speed minimum. Show distances as exact values too.
+- **Ordnance attacks the first valid target it contacts.** Friendly ships are valid targets
+  for standard torpedoes (s.12) but not for boarding torpedoes, which pass over them.
 - **Cruisers are cruisers:** grand cruisers, battlecruisers, heavy and light cruisers all move
   as cruisers (10cm before turning; battleships 15cm, escorts any point).
 
