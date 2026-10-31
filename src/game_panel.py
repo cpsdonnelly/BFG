@@ -1,6 +1,7 @@
 """BFG:XR Game Controls Panel — thin coordinator using composition."""
 import os
 import tkinter as tk
+from contextlib import contextmanager, nullcontext
 from tkinter import messagebox, ttk
 
 from .models import Ship, SpecialOrder
@@ -268,6 +269,20 @@ class GamePanel:
             return False
         return gs.ai_spectator or (
             gs.ai_player is not None and gs.active_player == gs.ai_player)
+
+    @contextmanager
+    def _auto_dice(self):
+        """Roll automatically for the duration (rolls made on the AI's behalf)."""
+        gs, dice = self.ctx.gs, self.ctx.dice
+        old = (gs.dice_mode, dice.mode)
+        gs.dice_mode = dice.mode = "auto"
+        try:
+            yield
+        finally:
+            gs.dice_mode, dice.mode = old
+
+    def _auto_dice_if(self, condition: bool):
+        return self._auto_dice() if condition else nullcontext()
 
     def _actions_locked(self) -> bool:
         return self._game_over or self._ai_thinking or self._is_ai_turn()
@@ -810,7 +825,8 @@ class GamePanel:
         gs = self.ctx.gs
         tc.start_game()
         tc.begin_phase("movement")
-        self.movement._process_movement_phase_start()
+        with self._auto_dice_if(self._is_ai_turn()):
+            self.movement._process_movement_phase_start()
         self._update_phase_display()
         self.ctx.log("=== GAME START ===")
         self.ctx.log(f"Turn 1 - {gs.player1_name}")
@@ -916,7 +932,8 @@ class GamePanel:
                         return
 
         if phase == "ordnance":
-            self.ordnance._resolve_ordnance_movement()
+            with self._auto_dice_if(from_ai):
+                self.ordnance._resolve_ordnance_movement()
 
         if phase == "shooting" and not from_ai:
             unfired_warnings = []
@@ -956,7 +973,8 @@ class GamePanel:
                 return
 
         if gs.current_phase == "movement":
-            self.movement._process_movement_phase_start()
+            with self._auto_dice_if(self._is_ai_turn()):
+                self.movement._process_movement_phase_start()
             self._check_artefact_pickup()
             self.ctx.log(
                 "Keys: M=min-move selected  Space=min-move all  "
