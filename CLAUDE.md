@@ -44,6 +44,11 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - **Order of speed modifiers:** crippled (-5cm) first, then Burn Retros (halve), then blast
   markers (-5cm). A speed-25 crippled ship on Burn Retros touching a blast marker:
   (25 - 5) / 2 - 5 = 5cm.
+- **Escort squadron off the table (s.5):** when an escort in a squadron moves off the table,
+  the rest of the squadron takes a disengage test right away, and again at the end of each of
+  its later movement phases. One test for the whole squadron, using the Leadership modifiers of
+  its best-placed member (highest resulting Ld). A failed test has the normal effect for that
+  turn; otherwise the squadron acts normally.
 - **Movement is never rounded:** halving a speed gives an exact half (25cm -> 12.5cm), both
   for Burn Retros and for the half-speed minimum. Show distances as exact values too.
 

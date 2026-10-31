@@ -1,6 +1,6 @@
 """BFG:XR Disengagement - Voluntary and involuntary disengagement"""
 import math
-from typing import Dict
+from typing import Dict, List, Optional
 from .models import Ship
 from .game_state import GameState
 from .dice import DiceRoller
@@ -13,12 +13,98 @@ def check_off_table(ship: Ship, table_width: float, table_height: float) -> bool
             ship.y - r < 0 or ship.y + r > table_height)
 
 
-def process_involuntary_disengage(ship: Ship, gs: GameState):
-    """Handle a ship that has moved off the table edge."""
+def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = None):
+    """Handle a ship that has moved off the table edge.
+
+    Core rules s.5 (Maneuvering Squadrons): if it was an escort in a squadron,
+    the rest of the squadron must immediately, and in later turns, attempt to
+    disengage. The immediate test is taken right away (owner ruling); without
+    dice the squadron is only flagged and tests at the end of the phase.
+    """
     ship.is_disengaged = True
     ship.status = "disengaged"
     gs.update_ship(ship)
     gs.add_log(f"{ship.name} has moved off the table and DISENGAGED!")
+
+    if ship.ship_type != "escort" or not ship.squadron_id:
+        return
+    rest = [s for s in gs.get_ships()
+            if s.squadron_id == ship.squadron_id and s.player == ship.player
+            and s.id != ship.id and not s.is_destroyed and not s.is_disengaged]
+    if not rest:
+        return
+    for s in rest:
+        s.must_disengage = True
+        gs.update_ship(s)
+    gs.add_log(f"  Squadron {ship.squadron_id} lost {ship.name} off the table: "
+               f"the rest of the squadron must attempt to disengage")
+    if dice is not None:
+        squadron_disengage_test(rest, dice, gs)
+
+
+def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState) -> Dict:
+    """One disengage test for an escort squadron (s.5, s.29).
+
+    Owner ruling: the Leadership modifiers are those of the best-placed member
+    (the highest resulting Leadership). Pass: the whole squadron disengages.
+    Fail: none of it may fire, launch ordnance or use special orders (except
+    Brace) for the rest of the turn.
+    """
+    ships = [gs.get_ship_by_id(s.id) for s in ships]
+    ships = [s for s in ships if s and not s.is_destroyed and not s.is_disengaged]
+    if not ships:
+        return {"success": False, "roll": 0, "needed": 0, "modifiers": [], "ships": []}
+
+    blocked = _ftl_blocked(ships[0], gs)
+    if blocked:
+        return {"success": False, "roll": 0, "needed": 0, "modifiers": [blocked],
+                "blocked": True, "ships": [s.id for s in ships]}
+
+    best_ship, best = max(((s, get_disengage_ld_modifiers(s, gs)) for s in ships),
+                          key=lambda pair: pair[1]["effective_ld"])
+    ld = best["effective_ld"]
+    roll = dice.roll_2d6(
+        f"Squadron {best_ship.squadron_id} disengage check "
+        f"(need <= {ld}, from {best_ship.name}'s position)")
+    passed = roll <= ld
+
+    for s in ships:
+        s.must_disengage_tested_turn = gs.turn_number
+        if passed:
+            s.is_disengaged = True
+            s.status = "disengaged"
+        else:
+            s.disengage_failed_this_turn = True
+            s.has_fired = True
+        gs.update_ship(s)
+    names = ", ".join(s.name for s in ships)
+    gs.add_log(f"Squadron {best_ship.squadron_id} ({names}) disengage "
+               f"{'PASSED' if passed else 'FAILED'} (rolled {roll} vs Ld {ld})")
+    return {"success": passed, "roll": roll, "needed": ld,
+            "modifiers": best["modifiers"], "ships": [s.id for s in ships]}
+
+
+def forced_disengage_tests(gs: GameState, dice: DiceRoller, player: int) -> List[Dict]:
+    """End of a player's movement phase: each of their escort squadrons that
+    must disengage (s.5) takes its test, unless it already tested this turn."""
+    squadrons: Dict[str, List[Ship]] = {}
+    for s in gs.get_ships():
+        if (s.player == player and s.must_disengage and not s.is_destroyed
+                and not s.is_disengaged and s.must_disengage_tested_turn != gs.turn_number):
+            squadrons.setdefault(s.squadron_id, []).append(s)
+    return [squadron_disengage_test(members, dice, gs) for members in squadrons.values()]
+
+
+def _ftl_blocked(ship: Ship, gs: GameState) -> Optional[str]:
+    """Reason a ship can't disengage yet in an FTL-charging scenario, or None."""
+    if gs.ftl_available_turn and gs.turn_number < gs.ftl_available_turn:
+        reason = f"FTL not charged until turn {gs.ftl_available_turn}"
+        if gs.scenario_mode == "capture_artefact" and gs.artefact_submode == "carrier_escape":
+            if ship.player == gs.scenario_attacker:
+                return reason
+        elif gs.scenario_mode != "capture_artefact":
+            return reason
+    return None
 
 
 def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
@@ -86,24 +172,10 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
     Returns dict with success status and details.
     In carrier_escape scenario, the escaping player cannot disengage until ftl_available_turn.
     """
-    if gs.ftl_available_turn and gs.turn_number < gs.ftl_available_turn:
-        if gs.scenario_mode == "capture_artefact" and gs.artefact_submode == "carrier_escape":
-            if ship.player == gs.scenario_attacker:
-                return {
-                    "success": False,
-                    "roll": 0,
-                    "needed": 0,
-                    "modifiers": [f"FTL not charged until turn {gs.ftl_available_turn}"],
-                    "blocked": True,
-                }
-        elif gs.scenario_mode != "capture_artefact":
-            return {
-                "success": False,
-                "roll": 0,
-                "needed": 0,
-                "modifiers": [f"FTL not charged until turn {gs.ftl_available_turn}"],
-                "blocked": True,
-            }
+    blocked = _ftl_blocked(ship, gs)
+    if blocked:
+        return {"success": False, "roll": 0, "needed": 0,
+                "modifiers": [blocked], "blocked": True}
 
     ld_info = get_disengage_ld_modifiers(ship, gs)
     ld = ld_info["effective_ld"]

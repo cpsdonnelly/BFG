@@ -145,6 +145,8 @@ class Ship:
     is_disengaged: bool = False   # voluntarily left the battle
     status: str = "active"        # active, disengaged, destroyed, drifting_hulk, burning_hulk
     disengage_failed_this_turn: bool = False  # failed disengage = no fire/orders this turn
+    must_disengage: bool = False             # escort squadron that lost a ship off the table
+    must_disengage_tested_turn: int = 0      # turn of its last forced disengage test
     brace_set_on_turn: int = 0  # turn number when brace was applied (0 = not set)
     previous_order: str = "none"  # order that was active before bracing
 

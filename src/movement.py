@@ -348,7 +348,7 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
 
     # Check for off-table (involuntary disengage)
     if check_off_table(ship, gs.table_width, gs.table_height):
-        process_involuntary_disengage(ship, gs)
+        process_involuntary_disengage(ship, gs, dice)
         return
 
     if result.crossed_blast_markers:

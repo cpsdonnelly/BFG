@@ -247,6 +247,9 @@ class TurnController:
             for s_dict in self.gs.ships:
                 if s_dict["player"] == self.gs.active_player:
                     s_dict["last_move_cm"] = s_dict.get("distance_moved_this_turn", 0.0)
+            # Escort squadrons that lost a ship off the table keep trying to leave
+            from .disengage import forced_disengage_tests
+            forced_disengage_tests(self.gs, self.dice, self.gs.active_player)
         label = f"t{self.gs.turn_number}_{current}_end"
         self.save_snapshot(label)
         self.save_actions_log()
