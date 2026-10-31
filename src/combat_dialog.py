@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter import messagebox
 
 from .models import Ship, SpecialOrder
-from .combat import (resolve_batteries, resolve_lances, resolve_nova_cannon,
+from .combat import (weapon_fire_pool, shot_weapon,
+                     resolve_batteries, resolve_lances, resolve_nova_cannon,
                      apply_damage, check_los_clear, squadron_group,
                      squadron_fire_preview, fire_at_squadron)
 
@@ -55,6 +56,7 @@ class _FireDialog:
         self.available_weapons = available_weapons
         self.weapon_assignments = []
         self.target_options_per_weapon = {}
+        self._pool_modes = {}   # Heavy Gunz range mode fixed by this volley
 
     def run(self):
         self._build_ui()
@@ -104,16 +106,24 @@ class _FireDialog:
                 avail_str = max(1, (avail_str + 1) // 2)
 
             heavy = weapon.get("strength_close") is not None
+            rolled = weapon.get("strength_dice")
+            unfired = idx_key not in attacker.weapons_remaining
+            # Pool decided when fired: random values rolled, Heavy Gunz by range
+            pool_later = bool(heavy or rolled) and unfired
+            if pool_later and rolled:
+                fp_text = f"{rolled} (rolled when fired)"
+            elif pool_later:
+                fp_text = f"{full_str} ({weapon['strength_close']} within 15cm)"
+            else:
+                fp_text = f"{avail_str}/{full_str}"
             if wtype == "battery":
                 ast_note = (" [ASTEROID: half FP, 10cm, no shifts]"
                             if self.in_asteroid_field else "")
-                close_note = (f" ({weapon['strength_close']} within 15cm)"
-                              if heavy else "")
-                desc = (f"Battery FP{avail_str}/{full_str}{close_note} "
+                desc = (f"Battery FP{fp_text} "
                         f"{weapon['range_cm']}cm [{arcs}]{ast_note}")
             elif wtype == "lance":
                 ast_note = " [ASTEROID: half Str, 10cm]" if self.in_asteroid_field else ""
-                desc = (f"Lance Str{avail_str}/{full_str} "
+                desc = (f"Lance Str{fp_text} "
                         f"{weapon['range_cm']}cm [{arcs}]{ast_note}")
             elif wtype == "nova_cannon":
                 desc = "Nova Cannon 30-150cm [front]"
@@ -125,10 +135,9 @@ class _FireDialog:
                      font=("Consolas", 8), anchor=tk.W).pack(
                          side=tk.LEFT, fill=tk.X, expand=True)
 
-            str_var = tk.StringVar(value=str(avail_str))
-            # Heavy Gunz fire whole: the booklet doesn't cover splitting a
-            # weapon whose firepower depends on the target's range
-            if wtype != "nova_cannon" and avail_str > 1 and not heavy:
+            # "all" fires the whole pool; a number splits it (s.10 Splitting Fire)
+            str_var = tk.StringVar(value="all" if pool_later else str(avail_str))
+            if wtype != "nova_cannon" and (avail_str > 1 or pool_later):
                 tk.Label(row, text="Fire:", font=("Consolas", 8)).pack(side=tk.LEFT)
                 tk.Entry(row, textvariable=str_var, width=3,
                          font=("Consolas", 9)).pack(side=tk.LEFT, padx=2)
@@ -289,22 +298,33 @@ class _FireDialog:
                 self._log(f"  {weapon['name']}: skipped (no valid target)")
                 continue
 
-            try:
-                fire_str = max(1, min(int(str_var.get()), avail_str))
-            except (ValueError, TypeError):
-                fire_str = avail_str
-
             target = self._check_target_priority(weapon, target)
 
             weapon_actually_fired = True
             wtype = weapon.get("weapon_type", "")
             phenomena = self.ctx.gs.get_phenomena()
-            fire_weapon = {**weapon, "strength": fire_str}
-            if weapon.get("strength_close") is not None:
-                fire_weapon["strength"] = fire_str = avail_str
-                if self.in_asteroid_field:
-                    fire_weapon["strength_close"] = max(
-                        1, (weapon["strength_close"] + 1) // 2)
+            if wtype in ("battery", "lance"):
+                pool, mode, err = weapon_fire_pool(
+                    self.attacker, weapon, w_idx,
+                    self.attacker.distance_to(target), self.ctx.dice)
+                if err:
+                    self._log(f"  {err}")
+                    continue
+                if (weapon.get("strength_dice") or weapon.get("strength_close")
+                        is not None) and str(w_idx) not in self.attacker.weapons_remaining:
+                    if weapon.get("strength_dice"):
+                        self._log(f"  {weapon['name']}: rolled {weapon['strength_dice']} "
+                                  f"= {pool}")
+                    if self.in_asteroid_field:
+                        pool = max(1, (pool + 1) // 2)
+                    avail_str = pool
+                if mode:
+                    self._pool_modes[w_idx] = mode
+            try:
+                fire_str = max(1, min(int(str_var.get()), avail_str))
+            except (ValueError, TypeError):
+                fire_str = avail_str
+            fire_weapon = shot_weapon(weapon, fire_str)
 
             # A ship in a squadron can't be picked out: picking it fires at
             # the squadron at that ship's aspect, hits nearest first (s.5)
@@ -418,11 +438,15 @@ class _FireDialog:
         wr = attacker_fresh.weapons_remaining or {}
         wfi = attacker_fresh.weapons_fired_indices or []
 
+        modes = dict(attacker_fresh.weapon_pool_mode or {})
         for w_idx, fire_str, avail_str in fired_weapon_indices:
             new_remaining = avail_str - fire_str
             wr[str(w_idx)] = new_remaining
+            if w_idx in self._pool_modes:
+                modes[str(w_idx)] = self._pool_modes[w_idx]
             if new_remaining <= 0 and w_idx not in wfi:
                 wfi.append(w_idx)
+        attacker_fresh.weapon_pool_mode = modes
 
         attacker_fresh.weapons_remaining = wr
         attacker_fresh.weapons_fired_indices = wfi

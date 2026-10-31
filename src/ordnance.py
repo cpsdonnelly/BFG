@@ -794,6 +794,27 @@ def torpedo_split_error(total: int, first: int, heading1: float,
     return None
 
 
+def torpedo_launch_strength(ship: Ship, weapon: Dict,
+                            dice: Optional[DiceRoller] = None) -> Tuple[int, Optional[int]]:
+    """Strength of a salvo launched now: (strength, rolled). A random strength
+    (strength_dice, e.g. Ork Torps S D6) is rolled just before launching (owner
+    ruling); then it is halved (rounding up) if the ship is crippled, and again
+    if it is braced, as for any ordnance (s.12)."""
+    rolled = None
+    if weapon.get("strength_dice") and dice is not None:
+        from .combat import roll_dice_value
+        rolled = roll_dice_value(weapon["strength_dice"], dice,
+                                 f"{ship.name} {weapon['name']} strength")
+        strength = rolled
+    else:
+        strength = weapon["strength"]
+    if ship.is_crippled:
+        strength = (strength + 1) // 2
+    if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+        strength = (strength + 1) // 2
+    return strength, rolled
+
+
 def boarding_ok(weapon: Dict, boarding: bool) -> bool:
     """Boarding torpedoes only from launchers that carry them."""
     return bool(boarding and weapon.get("boarding_torpedoes")
@@ -810,7 +831,8 @@ def torpedo_ordnance_type(weapon: Dict, boarding: bool = False) -> str:
 
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
                      heading: Optional[float] = None,
-                     boarding: bool = False) -> OrdnanceMarker:
+                     boarding: bool = False,
+                     dice: Optional[DiceRoller] = None) -> OrdnanceMarker:
     """Create a torpedo marker from a ship's launcher.
 
     `heading` lets the caller aim the salvo (e.g. an AI leading a target).
@@ -819,6 +841,10 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
     """
     torpedo_type = weapon.get("torpedo_type", "standard")
     o_type = torpedo_ordnance_type(weapon, boarding)
+    strength, rolled = torpedo_launch_strength(ship, weapon, dice)
+    if rolled is not None:
+        game_state.add_log(f"{ship.name} {weapon['name']}: rolled "
+                           f"{weapon['strength_dice']} = {rolled}")
 
     if heading is None:
         launch_heading = ship.heading
@@ -831,7 +857,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
         id=f"torp_{ship.id}_{game_state.turn_number}_{_uuid.uuid4().hex[:6]}",
         ordnance_type=o_type, owner_player=ship.player,
         launched_by=ship.id, x=ship.x, y=ship.y,
-        heading=launch_heading, strength=weapon["strength"],
+        heading=launch_heading, strength=strength,
         speed=weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT),
         launched_turn=game_state.turn_number,
         can_turn=(torpedo_type == "guided"),
@@ -844,7 +870,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
     ship.ordnance_loaded_torps = False
     game_state.update_ship(ship)
     kind = "boarding torpedo" if boarding_ok(weapon, boarding) else "torpedo"
-    game_state.add_log(f"{ship.name} launches {kind} salvo (Str {weapon['strength']})")
+    game_state.add_log(f"{ship.name} launches {kind} salvo (Str {strength})")
     return marker
 
 

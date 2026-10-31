@@ -172,6 +172,8 @@ class Ship:
     # If remaining is 0, the weapon is fully spent
     weapons_fired_indices: List[int] = field(default_factory=list)
     weapons_remaining: Dict = field(default_factory=dict)  # {str(idx): remaining_str}
+    # Heavy Gunz split this turn: {str(idx): "close" | "long"} (combat.weapon_fire_pool)
+    weapon_pool_mode: Dict = field(default_factory=dict)
 
     # Weapons
     weapons: List[Dict] = field(default_factory=list)

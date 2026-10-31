@@ -1214,17 +1214,21 @@ class BoardView:
         for w in s.weapons:
             arcs = "/".join(w.get("arcs", []))
             wtype = w.get("weapon_type", "?")
+            # Random values show as dice; Heavy Gunz show their within-15cm value
+            val = w.get("strength_dice") or w["strength"]
+            if w.get("strength_close") is not None:
+                val = f"{val}({w['strength_close']})"
             if wtype == "battery":
-                lines.append(f"  {w['name']}: FP {w['strength']} {w['range_cm']}cm [{arcs}]")
+                lines.append(f"  {w['name']}: FP {val} {w['range_cm']}cm [{arcs}]")
             elif wtype == "lance":
-                lines.append(f"  {w['name']}: Str {w['strength']} {w['range_cm']}cm [{arcs}]")
+                lines.append(f"  {w['name']}: Str {val} {w['range_cm']}cm [{arcs}]")
             elif wtype == "nova_cannon":
                 lines.append(f"  {w['name']}: Nova 30-150cm [{arcs}]")
             elif wtype == "launch_bay":
                 types = "/".join(w.get("craft_types", []))
                 lines.append(f"  {w['name']}: {w['strength']} sqn ({types}) [{arcs}]")
             elif wtype == "torpedo":
-                lines.append(f"  {w['name']}: Str {w['strength']} {w.get('torpedo_speed', w.get('range_cm', 30))}cm [{arcs}]")
+                lines.append(f"  {w['name']}: Str {val} {w.get('torpedo_speed', w.get('range_cm', 30))}cm [{arcs}]")
         lines.append("")
 
         # Ordnance status

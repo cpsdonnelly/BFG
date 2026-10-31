@@ -437,7 +437,7 @@ class _ShipBuilderDialog:
         self._weapon_list.insert(
             tk.END,
             f"{w['name']}  [{w['weapon_type']}]  {w['range_cm']}cm  "
-            f"Str{w['strength']}  {arcs_str}")
+            f"Str{w.get('strength_dice') or w['strength']}  {arcs_str}")
 
     def _remove_weapon(self):
         sel = self._weapon_list.curselection()

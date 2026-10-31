@@ -25,7 +25,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
   `src/booklet_ships.py`: all 9 factions, 174 ships. Ships using rules the engine can't play yet
-  (Ork Gunz, Bombardment Cannons, multi-role craft, special movement, dice-based values...) are
+  (Zzapp Gunz, Bombardment Cannons, multi-role craft, special movement, random launch bays...) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
   ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
 
@@ -68,15 +68,14 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - **Cruisers are cruisers:** grand cruisers, battlecruisers, heavy and light cruisers all move
   as cruisers (10cm before turning; battleships 15cm, escorts any point).
 
-### Open questions for the owner
-
-- **Torpedoes and hulks:** s.13 says torpedoes attack any ship they contact and boarding torps
-  "may ignore" hulks, but the booklet doesn't say what a torpedo hit on a hulk does. All
-  torpedoes currently pass over hulks.
-- **Splitting Heavy Gunz** between a target within 15cm and one further away isn't covered;
-  the Fire dialog fires Heavy Gunz whole.
-- **Dice-based values** (Gunz FP D6+6, launch bays D3+1): "rolled as printed", but when
-  (each shot, each turn, once per game)? Those ships stay unsupported until answered.
+- **Damaging a hulk:** a hulk that takes at least one point of damage rolls on the
+  Catastrophic Damage table again. Standard torpedoes attack hulks (boarding torps pass over).
+- **Splitting Heavy Gunz** between a target within 15cm and one further away shares the worse
+  (15cm+) firepower, like target aspects with squadrons: a worse value may be used against an
+  easier target, never a better one against a harder target.
+- **Random Ork firepower/strength is rolled when used:** direct fire when the weapon fires
+  (the target may still brace before damage is rolled), ordnance just before launching.
+  `combat.weapon_fire_pool` fixes a weapon's pool on its first shot of the turn.
 
 ## Running and testing
 

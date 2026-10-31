@@ -6,7 +6,7 @@ import math
 from .models import (Ship, SpecialOrder, OrdnanceMarker, OrdnanceType,
                      signed_angle_diff)
 from .ordnance import (TORPEDO_SPEED_DEFAULT, torpedo_ordnance_type, craft_stats,
-                       torpedo_split_error)
+                       torpedo_split_error, torpedo_launch_strength)
 from .game_context import GameContext
 from .ordnance_movement import OrdnanceMovementMixin
 
@@ -349,7 +349,12 @@ class OrdnancePanel(OrdnanceMovementMixin):
                  text=f"Combined {ord_label} Launch",
                  font=("Consolas", 11, "bold")).pack(pady=4)
         tk.Label(dialog,
-                 text=f"Ships: {names_str}\nCombined strength: {combined_strength}",
+                 text=f"Ships: {names_str}\nCombined strength: "
+                      + (f"rolled at launch (about {combined_strength})"
+                         if launch_torps and any(
+                             w.get("strength_dice") for c in contributors for w in c.weapons
+                             if w.get("weapon_type") == "torpedo")
+                         else f"{combined_strength}"),
                  font=("Consolas", 9)).pack()
         tk.Label(dialog,
                  text="All participating ships are exempt from friendly fire.",
@@ -474,6 +479,20 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 is_guided = bool(torp_weapon) and torp_weapon.get("torpedo_type") == "guided"
                 o_type = (torpedo_ordnance_type(torp_weapon, kind_var.get() == "boarding")
                           if torp_weapon else OrdnanceType.TORPEDO_STANDARD.value)
+                # Random strengths (e.g. Ork Torps S D6) are rolled just before launching
+                if any(w.get("strength_dice") for c in contributors for w in c.weapons
+                       if w.get("weapon_type") == "torpedo"):
+                    launch_strength = 0
+                    for c in contributors:
+                        for w in c.weapons:
+                            if w.get("weapon_type") == "torpedo" and c.ordnance_loaded_torps:
+                                st, rolled = torpedo_launch_strength(c, w, self.ctx.dice)
+                                if rolled is not None:
+                                    self.ctx.log(f"  {c.name} {w['name']}: rolled "
+                                                 f"{w['strength_dice']} = {rolled}")
+                                launch_strength += st
+                else:
+                    launch_strength = combined_strength
                 # Raid bonuses carried only if every contributing ship has them
                 common_rules = set(contributors[0].special_rules)
                 for _c in contributors[1:]:
@@ -488,7 +507,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     launched_by=contributors[0].id,
                     x=launch_x, y=launch_y,
                     heading=heading,
-                    strength=combined_strength,
+                    strength=launch_strength,
                     speed=speed,
                     launched_turn=self.ctx.gs.turn_number,
                     can_turn=is_guided,
@@ -500,7 +519,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 self.ctx.log(
                     f"Combined {'boarding ' if o_type == OrdnanceType.TORPEDO_BOARDING.value else ''}"
                     f"torpedo launch: {names_str} — "
-                    f"Str {combined_strength} heading {heading:.0f}°")
+                    f"Str {launch_strength} heading {heading:.0f}°")
 
                 # Mark torps expended
                 for s in contributors:
@@ -646,8 +665,17 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 torp_speed = tw.get("torpedo_speed", TORPEDO_SPEED_DEFAULT)
                 halve_note = f" [{', '.join(halve_reasons)}]" if halve_reasons else ""
 
+                rolled_str = tw.get("strength_dice")
+                if rolled_str:
+                    # Owner ruling: random strength is rolled just before launching
+                    from .combat import dice_value_max
+                    max_str = dice_value_max(rolled_str)
+                    for _ in halve_reasons:
+                        max_str = (max_str + 1) // 2
                 tk.Label(torp_frame,
-                         text=f"{tw['name']}: Str {total_str}, Speed {torp_speed}cm"
+                         text=f"{tw['name']}: Str "
+                              f"{(rolled_str + ' (rolled at launch)') if rolled_str else total_str}, "
+                              f"Speed {torp_speed}cm"
                               + (" [GUIDED]" if is_guided else "") + halve_note,
                          font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
 
@@ -692,9 +720,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 # Split volley (only Str 7+ can split, into exactly two)
                 split_frame = tk.Frame(torp_frame)
                 split_frame.pack(fill=tk.X, padx=10, pady=2)
-                str_var = tk.StringVar(value=str(total_str))
+                str_var = tk.StringVar(value="all" if rolled_str else str(total_str))
                 heading2_var = tk.StringVar(value=f"{_init_heading:.0f}")
-                if total_str >= 7:
+                if (max_str if rolled_str else total_str) >= 7:
                     tk.Label(split_frame, text="First salvo Str:",
                              font=("Consolas", 8)).pack(side=tk.LEFT)
                     tk.Entry(split_frame, textvariable=str_var, width=4,
@@ -704,8 +732,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     tk.Entry(split_frame, textvariable=heading2_var, width=5,
                              font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
                     tk.Label(torp_frame,
-                             text=f"Str {total_str}: may split into two salvos of at least 3, "
-                                  f"in different directions (s.13)",
+                             text=f"Str {rolled_str or total_str}: Str 7+ may split into two "
+                                  f"salvos of at least 3, in different directions (s.13)",
                              font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=10)
                 else:
                     tk.Label(split_frame,
@@ -731,7 +759,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                                    hv2=heading2_var):
                     try:
                         heading = float(hv.get())
-                        strength = int(sv.get())
+                        s_text = sv.get().strip().lower()
+                        strength = None if s_text in ("", "all") else int(s_text)
                     except ValueError:
                         messagebox.showerror("Error", "Invalid heading or strength")
                         return
@@ -746,8 +775,14 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
                     # Use the already-halved effective strength as the cap
                     total = effective_str
+                    rolled_now = None
+                    if w.get("strength_dice"):
+                        total, rolled_now = torpedo_launch_strength(ship, w, self.ctx.dice)
+                        self.ctx.log(f"{ship.name} {w['name']}: rolled "
+                                     f"{w['strength_dice']} = {rolled_now}"
+                                     + (f", Str {total} after halving" if total != rolled_now else ""))
                     # Enforce split rules (s.13)
-                    if total < 7:
+                    if total < 7 or strength is None:
                         strength = total  # can't split below Str 7
                     else:
                         strength = max(1, min(strength, total))
@@ -763,6 +798,10 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         err = (f"Second salvo heading {heading2:.0f}° is outside the "
                                f"forward arc ({ship.heading-45:.0f}° to "
                                f"{ship.heading+45:.0f}°)")
+                    if err and rolled_now is not None:
+                        # Strength is already rolled: launch it as one salvo
+                        self.ctx.log(f"  Can't split as asked ({err}) — one salvo")
+                        strength, heading2, err = total, None, None
                     if err:
                         messagebox.showerror("Torpedo Split", err)
                         return

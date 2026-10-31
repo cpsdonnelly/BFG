@@ -294,6 +294,7 @@ class TurnController:
                 self.gs.ships[i]["disengage_failed_this_turn"] = False
                 self.gs.ships[i]["weapons_fired_indices"] = []
                 self.gs.ships[i]["weapons_remaining"] = {}
+                self.gs.ships[i]["weapon_pool_mode"] = {}
                 self.gs.ships[i]["turrets_used_vs"] = ""
                 self.gs.ships[i]["brace_failed_vs"] = []
                 # Clear per-turn boarding flags (grapple state persists across turns)

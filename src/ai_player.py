@@ -20,7 +20,7 @@ from .movement import (
 from .combat import (
     check_weapon_in_arc, check_weapon_in_range, check_los_clear,
     resolve_batteries, resolve_lances, apply_damage,
-    squadron_group, fire_at_squadron,
+    squadron_group, fire_at_squadron, weapon_fire_pool, shot_weapon,
 )
 from .ordnance import (launch_torpedoes, launch_attack_craft,
                        TORPEDO_SPEED_DEFAULT)
@@ -397,7 +397,7 @@ class AIPlayer:
         phenomena = gs.get_phenomena()
         all_ships = gs.get_ships()
 
-        for weapon in ship.weapons:
+        for w_idx, weapon in enumerate(ship.weapons):
             wtype = weapon.get("weapon_type", "")
             if wtype in ("torpedo", "launch_bay", "mine_launcher"):
                 continue
@@ -410,6 +410,15 @@ class AIPlayer:
             target = self._pick_target(ship, weapon, enemies)
             if not target:
                 continue
+
+            if wtype in ("battery", "lance"):
+                # Firepower fixed when fired: random values rolled, Heavy Gunz by range
+                pool, _mode, _err = weapon_fire_pool(
+                    ship, weapon, w_idx, ship.distance_to(target), self.dice)
+                if weapon.get("strength_dice"):
+                    gs.add_log(f"[AI] {ship.name} {weapon['name']}: rolled "
+                               f"{weapon['strength_dice']} = {pool}")
+                weapon = shot_weapon(weapon, pool)
 
             # A ship in a squadron can't be picked out: fire at the squadron (s.5)
             group = squadron_group(target, gs.get_ships())
@@ -569,7 +578,7 @@ class AIPlayer:
                 target = self._best_torp_target(ship, weapon, enemies)
                 if target:
                     aim = self._torpedo_aim_heading(ship, weapon, target)
-                    launch_torpedoes(ship, weapon, gs, heading=aim)
+                    launch_torpedoes(ship, weapon, gs, heading=aim, dice=self.dice)
                     ship = gs.get_ship_by_id(ship.id)
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:

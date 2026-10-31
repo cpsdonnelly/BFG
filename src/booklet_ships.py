@@ -147,6 +147,13 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
         m = re.fullmatch(r"(\d+)\((\d+)\)", (w.get("value") or "").replace(" ", ""))
         if m:
             strength, strength_close = int(m.group(1)), int(m.group(2))
+    strength_dice = None
+    if strength is None and wtype in ("battery", "lance", "torpedo"):
+        from .combat import is_dice_value, dice_value_average
+        if is_dice_value(w.get("value") or ""):
+            # Owner ruling: random Ork values are rolled when used
+            strength_dice = w["value"].replace(" ", "").upper()
+            strength = dice_value_average(strength_dice)
     if wtype != "nova_cannon" and strength is None:
         problems.append(f"variable firepower ({w['value']}) not modelled yet")
         return []
@@ -160,6 +167,8 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
              "arcs": arcs}
         if strength_close is not None:
             d["strength_close"] = strength_close   # firepower within 15cm
+        if strength_dice:
+            d["strength_dice"] = strength_dice     # rolled when used; strength = average
         if wtype == "nova_cannon":
             d.update(range_cm=w.get("range_max_cm") or 150,
                      min_range_cm=w.get("range_min_cm") or 30, strength=0)

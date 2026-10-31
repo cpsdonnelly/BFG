@@ -7,7 +7,8 @@ from typing import Tuple
 from .models import Ship, SpecialOrder, OrdnanceMarker
 from .combat import (check_weapon_in_arc, apply_damage, check_los_clear,
                      resolve_batteries_vs_squadron, eligible_orientations,
-                     gunnery_target_type, allocate_squadron_hits)
+                     gunnery_target_type, allocate_squadron_hits,
+                     weapon_fire_pool, shot_weapon)
 from .game_context import GameContext
 from .combat_dialog import CombatDialogMixin
 
@@ -148,6 +149,15 @@ class CombatPanel(CombatDialogMixin):
                         f"  Target priority FAILED (rolled {check['roll']} vs Ld {check['needed']}). "
                         f"Must fire at closest ordnance.")
                     target_ord = closest_ord
+                    dist = math.hypot(target_ord.x - attacker.x, target_ord.y - attacker.y)
+
+            # Firepower fixed when fired: random values rolled, Heavy Gunz by range
+            avail, _mode, err = weapon_fire_pool(attacker, weapon, w_idx, dist, self.ctx.dice)
+            if err:
+                messagebox.showerror("Heavy Gunz", err)
+                return
+            if weapon.get("strength_dice") and idx_key not in wr:
+                self.ctx.log(f"  {weapon['name']}: rolled {weapon['strength_dice']} = {avail}")
 
             # Determine dice count
             if wtype == "battery":
@@ -431,8 +441,20 @@ class CombatPanel(CombatDialogMixin):
             self.ctx.log(msg)
 
         def _confirm():
-            selected = [(row[0], dict(row[2], strength=row[3]))
-                        for row, var in zip(weapon_rows, chk_vars) if var.get()]
+            # Firepower fixed when fired: random values rolled, Heavy Gunz by range
+            selected = []
+            for row, var in zip(weapon_rows, chk_vars):
+                if not var.get():
+                    continue
+                member, w_idx, w = row[0], row[1], row[2]
+                pool, _mode, err = weapon_fire_pool(
+                    member, w, w_idx, member.distance_to(target), self.ctx.dice)
+                if err:
+                    _log(f"  {member.name}: {err}")
+                    continue
+                if w.get("strength_dice") and str(w_idx) not in (member.weapons_remaining or {}):
+                    _log(f"  {member.name} {w['name']}: rolled {w['strength_dice']} = {pool}")
+                selected.append((member, shot_weapon(w, pool)))
             if not selected:
                 messagebox.showwarning("Nothing Selected",
                                        "Select at least one weapon.")
@@ -665,7 +687,6 @@ class CombatPanel(CombatDialogMixin):
             weapon = attacker.weapons[w_idx]
             wr = attacker.weapons_remaining or {}
             full_avail = wr.get(str(w_idx), weapon.get("strength", 0))
-            avail = max(1, (full_avail + 1) // 2) if in_asteroid_field else full_avail
 
             # Filter eligible members: orientation ≤ chosen AND in arc AND in range AND LoS
             elig_orientations = eligible_orientations(chosen_orient)
@@ -695,7 +716,17 @@ class CombatPanel(CombatDialogMixin):
 
             target_type = gunnery_target_type(eligible[0])
 
-            fire_weapon = dict(weapon, strength=avail)
+            # Firepower fixed when fired: random values rolled, Heavy Gunz by
+            # range to the nearest eligible ship (as for the range shift)
+            full_avail, _mode, err = weapon_fire_pool(
+                attacker, weapon, w_idx, attacker.distance_to(eligible[0]), self.ctx.dice)
+            if err:
+                _log(f"  {err}")
+                return
+            if weapon.get("strength_dice") and str(w_idx) not in wr:
+                _log(f"  {weapon['name']}: rolled {weapon['strength_dice']} = {full_avail}")
+            avail = max(1, (full_avail + 1) // 2) if in_asteroid_field else full_avail
+            fire_weapon = shot_weapon(weapon, avail)
             sr = resolve_batteries_vs_squadron(
                 attacker, fire_weapon, target_type, chosen_orient, eligible,
                 self.ctx.dice, blast_markers, lock_on, phenomena,

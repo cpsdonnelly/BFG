@@ -1,6 +1,7 @@
 """BFG:XR Combat System - Shooting phase resolution"""
 import math
 import random
+import re
 from typing import List, Dict, Tuple, Optional
 from .models import Ship, BlastMarker, Arc, SpecialOrder
 from .game_state import GameState
@@ -120,6 +121,79 @@ def _has_tracking_support(ship: Ship, all_ships: list = None) -> bool:
                     if dist <= ts_range:
                         return True
     return False
+
+
+_DICE_EXPR = re.compile(r"^(\d*)D([36])([+-]\d+)?$")
+
+
+def is_dice_value(text: str) -> bool:
+    """A random value printed as dice, e.g. D6, D6+1, 2D6+6, D3+3."""
+    return bool(_DICE_EXPR.match((text or "").replace(" ", "").upper()))
+
+
+def dice_value_average(text: str) -> int:
+    """Rounded-down average of a dice value (for AI estimates and labels only)."""
+    n, sides, add = _DICE_EXPR.match(text.replace(" ", "").upper()).groups()
+    return int((int(n or 1) * (int(sides) + 1) / 2) + int(add or 0))
+
+
+def dice_value_max(text: str) -> int:
+    n, sides, add = _DICE_EXPR.match(text.replace(" ", "").upper()).groups()
+    return int(n or 1) * int(sides) + int(add or 0)
+
+
+def roll_dice_value(text: str, dice: DiceRoller, label: str = "") -> int:
+    """Roll a value printed as dice. Owner ruling: random Ork firepower and
+    strength are rolled when they are used."""
+    n, sides, add = _DICE_EXPR.match(text.replace(" ", "").upper()).groups()
+    n = int(n or 1)
+    if sides == "6":
+        total = sum(dice.roll_d6(n, f"{label} ({text})"))
+    else:
+        total = sum(dice.roll_d3(f"{label} ({text})") for _ in range(n))
+    return max(0, total + int(add or 0))
+
+
+def weapon_fire_pool(attacker: Ship, weapon: Dict, w_idx: int, target_dist: float,
+                     dice: DiceRoller) -> Tuple[int, Optional[str], Optional[str]]:
+    """Firepower/strength available to this weapon for a shot at a target
+    target_dist away: (pool, range_mode, error).
+
+    The first shot of the turn fixes the pool:
+      - random values (strength_dice, e.g. Gunz FP D6+1) are rolled now, when
+        the weapon is used (owner ruling);
+      - Heavy Gunz use their bracketed value within 15cm, else the first value.
+    Later shots (split fire) use what is left in attacker.weapons_remaining.
+    Owner ruling on splitting Heavy Gunz: fire shared between targets uses the
+    worse value, so once a shot used the within-15cm value ("close" mode) the
+    rest may only go at targets within 15cm. Fire at the further target first
+    to split at the 15cm+ value.
+    Returns a printed value before crippled/special-order halving."""
+    key = str(w_idx)
+    remaining = (attacker.weapons_remaining or {}).get(key)
+    mode = (attacker.weapon_pool_mode or {}).get(key)
+    close = weapon.get("strength_close")
+    if remaining is not None:
+        if close is not None and mode == "close" and target_dist >= 15:
+            return 0, mode, (f"{weapon['name']} already fired with their within-15cm "
+                             f"firepower; when splitting between near and far targets, "
+                             f"fire at the far target first (worse firepower is shared).")
+        return remaining, mode, None
+    if weapon.get("strength_dice"):
+        return roll_dice_value(weapon["strength_dice"], dice,
+                               f"{attacker.name} {weapon['name']}"), None, None
+    if close is not None:
+        if target_dist < 15:
+            return close, "close", None
+        return weapon["strength"], "long", None
+    return weapon["strength"], None, None
+
+
+def shot_weapon(weapon: Dict, strength: int) -> Dict:
+    """Weapon dict for one shot with its firepower already decided."""
+    d = {k: v for k, v in weapon.items() if k not in ("strength_close", "strength_dice")}
+    d["strength"] = strength
+    return d
 
 
 def battery_base_firepower(attacker: Ship, weapon: Dict,
