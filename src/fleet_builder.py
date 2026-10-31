@@ -1027,7 +1027,9 @@ def catalog_entry_summary(entry: ShipClassEntry) -> str:
           if entry.leadership_table else f"Ld {entry.leadership}")
     lines = [f"{entry.ship_class} — {entry.points_cost}pts, {entry.hits_max} hits, "
              f"{entry.speed}cm, {entry.turn_angle}°, shields {entry.shields_max}, "
-             f"armour {entry.armor_prow}/{entry.armor_side}, turrets {entry.turrets}. {ld}."]
+             f"armour {entry.armor_prow}/{entry.armor_side}"
+             f"{'/' + entry.armor_rear + ' (front/abeam/rear)' if entry.armor_rear else ''}, "
+             f"turrets {entry.turrets}. {ld}."]
     if "towed" in entry.special_rules:
         lines.append("Towed ship: no warp engines of its own; needs gravitic hooks "
                      "in the fleet (fleet building only, no effect in battle).")

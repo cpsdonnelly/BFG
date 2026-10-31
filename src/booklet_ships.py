@@ -85,11 +85,16 @@ def _ship_type(row: dict) -> Optional[str]:
     return None
 
 
-def _armour(row: dict) -> Optional[Tuple[str, str]]:
+def _armour(row: dict) -> Optional[Tuple[str, str, str]]:
+    """(prow, side, rear) armour; rear is "" unless the ship shows three values
+    (front / abeam / rear, e.g. Ork cruisers 6+/5+/4+)."""
     a = row.get("armour")
-    if not a or a.get("front") is None or a.get("other") is None:
-        return None
-    return f"{a['front']}+", f"{a['other']}+"
+    if a and a.get("front") is not None and a.get("other") is not None:
+        return f"{a['front']}+", f"{a['other']}+", ""
+    m = re.fullmatch(r"(\d)\+\s*/\s*(\d)\+\s*/\s*(\d)\+", (row.get("armour_raw") or "").strip())
+    if m:
+        return f"{m.group(1)}+", f"{m.group(2)}+", f"{m.group(3)}+"
+    return None
 
 
 def _mount_name(weapon: dict, arcs: List[str], n_mounts: int) -> str:
@@ -228,6 +233,7 @@ def convert_row(row: dict) -> dict:
         "shields_max": row.get("shields") or 0,
         "armor_prow": armour[0] if armour else "",
         "armor_side": armour[1] if armour else "",
+        "armor_rear": armour[2] if armour else "",
         "turrets": row.get("turrets") or 0,
         "hits_max": row.get("hits") or 0,
         "leadership": 0,                 # rolled at game start (Appendix 4)

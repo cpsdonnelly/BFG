@@ -1195,7 +1195,8 @@ class BoardView:
                      + (f" ({blast_touching} blast markers)" if blast_touching > 0 else ""))
         lines.append(f"Speed: {s.effective_speed}cm")
         lines.append(f"Turn: {s.turn_angle}°")
-        lines.append(f"Armor: {s.armor_prow} prow / {s.armor_side} side")
+        lines.append(f"Armor: {s.armor_prow} prow / {s.armor_side} "
+                     + (f"abeam / {s.armor_rear} rear" if s.armor_rear else "side"))
         lines.append(f"Turrets: {s.effective_turrets}")
         lines.append(f"Leadership: {s.leadership}")
         lines.append(f"Position: ({s.x:.1f}, {s.y:.1f})")

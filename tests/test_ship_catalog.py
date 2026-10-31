@@ -123,13 +123,14 @@ def test_wrong_faction_or_unknown_name_returns_none():
 
 def test_ork_ships_listed_with_reasons_when_not_playable():
     # Gunz, Heavy Gunz and random firepower/torpedo strength are playable
+    # ...and three Armour values (front/abeam/rear)
     assert sorted(e.ship_class for e in get_faction_ships("orks")) == [
-        "Brute Ramship", "Grunt Assault Ship", "Onslaught Attack Ship",
-        "Ravager Attack Ship", "Savage Gunship"]
+        "Basha Lite Kroozer", "Brute Ramship", "Grunt Assault Ship", "Kill Kroozer",
+        "Onslaught Attack Ship", "Ravager Attack Ship", "Savage Gunship"]
     orks = get_faction_ships("orks", include_unsupported=True)
     assert len(orks) == 15
     blocked = [e for e in orks if not e.playable]
-    assert len(blocked) == 10 and all(e.unsupported for e in blocked)
+    assert len(blocked) == 8 and all(e.unsupported for e in blocked)
     reasons = {r for e in orks for r in e.unsupported}
     assert "Gunz not modelled yet" not in reasons
     assert "Heavy Gunz not modelled yet" not in reasons

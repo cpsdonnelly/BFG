@@ -39,6 +39,7 @@ class SimShip:
     weapons: List[Dict] = field(default_factory=list)
     is_destroyed: bool = False
     is_disengaged: bool = False
+    armor_rear: str = ""        # third Armour value (front/abeam/rear), if any
 
     @property
     def is_crippled(self) -> bool:
@@ -58,6 +59,7 @@ class SimShip:
             armor_prow=self.armor_prow, armor_side=self.armor_side,
             weapons=self.weapons,   # shared; weapons don't change during search
             is_destroyed=self.is_destroyed, is_disengaged=self.is_disengaged,
+            armor_rear=self.armor_rear,
         )
 
     @classmethod
@@ -70,7 +72,7 @@ class SimShip:
             hits_remaining=ship.hits_remaining, hits_max=ship.hits_max,
             shields_remaining=ship.effective_shields, shields_max=ship.shields_max,
             armor_prow=ship.armor_prow, armor_side=ship.armor_side,
-            weapons=ship.weapons,
+            weapons=ship.weapons, armor_rear=ship.armor_rear,
         )
 
     def bearing_to(self, tx: float, ty: float) -> float:
@@ -127,7 +129,9 @@ def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
         return 0.0
     strength = weapon.get("strength", 1)
     target_arc = target.get_arc(attacker.x, attacker.y)
-    armor = parse_armor(target.armor_prow if target_arc == "front" else target.armor_side)
+    armor = parse_armor(target.armor_prow if target_arc == "front"
+                        else (target.armor_rear or target.armor_side) if target_arc == "rear"
+                        else target.armor_side)
     hit_prob = max(0.0, (7 - armor) / 6.0)
     return strength * hit_prob
 

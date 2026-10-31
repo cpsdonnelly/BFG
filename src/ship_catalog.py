@@ -53,6 +53,7 @@ class ShipClassEntry:
     notes: str = ""                 # booklet Notes cell: special rules, refits, options
     source: str = ""                # sourcebook page reference
     unsupported: List[str] = field(default_factory=list)   # why it can't be played yet
+    armor_rear: str = ""            # third Armour value (front/abeam/rear), if any
 
     @property
     def playable(self) -> bool:
@@ -86,6 +87,7 @@ class ShipClassEntry:
             "shields_max": self.shields_max,
             "armor_prow": self.armor_prow,
             "armor_side": self.armor_side,
+            "armor_rear": self.armor_rear,
             "turrets": self.turrets,
             "hits_max": self.hits_max,
             "leadership": self.leadership,

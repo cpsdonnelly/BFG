@@ -126,6 +126,9 @@ class Ship:
     shields_max: int = 2
     armor_prow: str = "6+"  # e.g. "6+", "5+"
     armor_side: str = "5+"
+    # Ships with three Armour values (e.g. Ork cruisers 6+/5+/4+): front /
+    # abeam / rear. Empty for the usual two values (rear uses armor_side).
+    armor_rear: str = ""
     turrets: int = 2
     hits_max: int = 8
     leadership: int = 7
@@ -231,6 +234,29 @@ class Ship:
     @property
     def armor_side_value(self):
         return int(self.armor_side.replace("+", ""))
+
+    @property
+    def armor_rear_value(self):
+        return int((self.armor_rear or self.armor_side).replace("+", ""))
+
+    def armor_for_arc(self, arc) -> int:
+        """Armour against an attack from this arc of the ship (s.6 bearing
+        compass): prow armour from the front quadrant, rear armour (if the
+        ship has three values) from the rear, side armour otherwise."""
+        a = getattr(arc, "value", arc)
+        if a == "front":
+            return self.armor_prow_value
+        if a == "rear":
+            return self.armor_rear_value
+        return self.armor_side_value
+
+    def armor_vs(self, x: float, y: float) -> int:
+        """Armour facing an attacker or marker at (x, y)."""
+        return self.armor_for_arc(self.get_arc_for_bearing(self.bearing_to(x, y)))
+
+    @property
+    def lowest_armor_value(self) -> int:
+        return min(self.armor_prow_value, self.armor_side_value, self.armor_rear_value)
 
     @property
     def effective_speed(self):

@@ -199,8 +199,7 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         return result
 
     # Determine armor facing
-    target_arc = target.get_arc_for_bearing(target.bearing_to(marker.x, marker.y))
-    armor = target.armor_prow_value if target_arc.value == "front" else target.armor_side_value
+    armor = target.armor_vs(marker.x, marker.y)
 
     attack_rolls = dice.roll_d6(
         result["remaining_strength"],
@@ -293,9 +292,7 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     result["attack_dice"] = attack_dice
 
     # Bearing determines which armor face the mine hits
-    target_arc = ship.get_arc_for_bearing(ship.bearing_to(marker.x, marker.y))
-    armor = (ship.armor_prow_value if target_arc.value == "front"
-             else ship.armor_side_value)
+    armor = ship.armor_vs(marker.x, marker.y)
 
     attack_rolls = dice.roll_d6(attack_dice,
                                  f"Mine vs {ship.name} ({armor}+)")
@@ -408,7 +405,7 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
     result["attacks"] = total_attacks
 
     if total_attacks > 0:
-        armor = min(target.armor_prow_value, target.armor_side_value)
+        armor = target.lowest_armor_value
         hit_rolls = dice.roll_d6(total_attacks, f"Bomber hits vs {target.name} ({armor}+)")
         result["hits"] = sum(1 for d in hit_rolls if d >= armor)
 

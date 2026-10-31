@@ -272,12 +272,7 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
         return result
 
     # Roll dice
-    armor = target.armor_side_value
-    # Check if hitting prow
-    target_arc_from_attacker = target.get_arc_for_bearing(
-        target.bearing_to(attacker.x, attacker.y))
-    if target_arc_from_attacker == Arc.FRONT:
-        armor = target.armor_prow_value
+    armor = target.armor_vs(attacker.x, attacker.y)
 
     result.dice_rolled = dice.roll_d6(
         num_dice,
@@ -340,11 +335,7 @@ def resolve_combined_batteries(primary_attacker: Ship,
             f"Squadron batteries: pooled FP {total_fp}, 0 dice to roll")
         return result
 
-    armor = target.armor_side_value
-    target_arc_from_attacker = target.get_arc_for_bearing(
-        target.bearing_to(primary_attacker.x, primary_attacker.y))
-    if target_arc_from_attacker == Arc.FRONT:
-        armor = target.armor_prow_value
+    armor = target.armor_vs(primary_attacker.x, primary_attacker.y)
 
     result.dice_rolled = dice.roll_d6(
         num_dice,
@@ -844,8 +835,7 @@ def resolve_batteries_vs_squadron(
     raw_dice = dice.roll_d6(num_dice, f"Sqn fire {weapon['name']} FP{fp}")
 
     def armor_for(ship: "Ship") -> int:
-        arc = ship.get_arc_for_bearing(ship.bearing_to(attacker.x, attacker.y))
-        return ship.armor_prow_value if arc == Arc.FRONT else ship.armor_side_value
+        return ship.armor_vs(attacker.x, attacker.y)
 
     armors = {s.id: armor_for(s) for s in eligible_ships}
     min_armor = min(armors.values()) if armors else 7
@@ -895,9 +885,9 @@ def resolve_ram(rammer: Ship, target: Ship, dice: DiceRoller,
     # Determine which armor face of the target the rammer struck
     target_bearing_to_rammer = target.bearing_to(rammer.x, rammer.y)
     target_arc = target.get_arc_for_bearing(target_bearing_to_rammer)
-    target_armor = (target.armor_prow_value
-                    if target_arc == Arc.FRONT else target.armor_side_value)
-    target_facing = "prow" if target_arc == Arc.FRONT else "side"
+    target_armor = target.armor_for_arc(target_arc)
+    target_facing = ("prow" if target_arc == Arc.FRONT
+                     else "rear" if target_arc == Arc.REAR and target.armor_rear else "side")
 
     # Front-to-front: rammer is in target's front arc AND target is in rammer's front
     rammer_bearing_to_target = rammer.bearing_to(target.x, target.y)

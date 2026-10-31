@@ -7,7 +7,7 @@ import math
 import random
 from typing import List, Optional, Dict
 
-from .models import (Ship, OrdnanceMarker, SpecialOrder, parse_armor,
+from .models import (Ship, OrdnanceMarker, SpecialOrder,
                      signed_angle_diff)
 from .game_state import GameState
 from .turn_controller import TurnController
@@ -64,9 +64,7 @@ def ai_should_brace(gs: GameState, target: Ship,
             if not los.get("clear", True):
                 continue
             strength = weapon.get("strength", 1)
-            arc = target.get_arc_for_bearing(enemy.bearing_to(target.x, target.y))
-            armor_str = target.armor_prow if arc.value == "front" else target.armor_side
-            armor_num = parse_armor(armor_str)
+            armor_num = target.armor_vs(enemy.x, enemy.y)
             hit_prob = max(0.0, (7 - armor_num) / 6.0)
             expected = strength * hit_prob
             net = max(0.0, expected - shields_left)
