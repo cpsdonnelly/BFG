@@ -235,11 +235,15 @@ def test_blast_markers_placed_for_shield_hits():
 # ── resolve_catastrophic ──────────────────────────────────────────────────────
 
 def test_escort_destroyed_no_dice():
+    # Escorts never roll on the Catastrophic Damage table: they become a blast marker
     target = make_ship(id="t", ship_type="escort", hits_max=2)
     gs = make_gs([target])
-    r = resolve_catastrophic(target, DiceStub([1]), gs)
+    dice = DiceStub([1])
+    r = resolve_catastrophic(target, dice, gs)
     assert r == "escort_destroyed"
-    assert target.status == "destroyed"
+    assert dice._idx == 0                       # no 2D6 roll
+    assert gs.get_ship_by_id("t").status == "destroyed"
+    assert [bm.id for bm in gs.get_blast_markers()] == ["wreck_t"]
 
 
 def test_capital_drifting_hulk():
