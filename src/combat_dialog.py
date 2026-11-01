@@ -418,7 +418,10 @@ class _FireDialog:
                                         f"  Nova Cannon hits {hit_ship.name}: "
                                         f"{hd['hits']} hits (ignores armor)")
                                     apply_damage(hit_ship, hd["hits"],
-                                                 self.ctx.dice, self.ctx.gs)
+                                                 self.ctx.dice, self.ctx.gs,
+                                                 target_braced=hit_ship.special_order
+                                                 == SpecialOrder.BRACE_FOR_IMPACT.value,
+                                                 attacker_key=self.attacker.id)
                                     self.ctx.check_destruction(hit_ship)
                         else:
                             self._log("  Nova Cannon: no ships hit")
@@ -460,7 +463,8 @@ class _FireDialog:
         by_target = {}
         for w_idx, weapon, *_ in self.weapon_assignments:
             t = self._volley_targets.get(w_idx)
-            if t is None or weapon.get("weapon_type") not in ("battery", "lance"):
+            if t is None or weapon.get("weapon_type") not in ("battery", "lance",
+                                                               "nova_cannon"):
                 continue
             by_target.setdefault(t.id, (t, []))[1].append(weapon)
         for t, weapons in by_target.values():
@@ -469,7 +473,9 @@ class _FireDialog:
             if key in asked:
                 continue
             asked.add(key)
-            expected = sum(expected_hits(self.attacker, w, t) for w in weapons)
+            # (a nova cannon: ask the target before the scatter roll, s.7)
+            expected = sum(expected_hits(self.attacker, w, t) if w.get("weapon_type") != "nova_cannon"
+                           else 1.0 for w in weapons)
             b = self.panel._brace_before_attack(
                 self.attacker.id, self.attacker.name, t, expected, self._log,
                 group=group, attacker=self.attacker)

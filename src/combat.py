@@ -535,6 +535,21 @@ def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
     return result
 
 
+def offer_brace(game_state: GameState, ship: Ship, attacker_key: str,
+                attacker_name: str, expected: float) -> bool:
+    """A ship about to take damage may Brace for Impact before the damage is
+    rolled (s.7). The game sets game_state.brace_hook (asks the player, or the
+    AI for its own ships); without it only a ship already braced counts.
+    Returns True if the ship is braced."""
+    fresh = game_state.get_ship_by_id(ship.id) or ship
+    if fresh.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+        return True
+    hook = getattr(game_state, "brace_hook", None)
+    if hook is None or fresh.status != "active" or fresh.is_destroyed:
+        return False
+    return bool(hook(fresh, attacker_key, attacker_name, expected))
+
+
 def expected_hits(attacker: Ship, weapon: Dict, target: Ship) -> float:
     """Rough number of hits a weapon will score on a target (for deciding
     whether to brace before the attack is rolled)."""
@@ -986,23 +1001,36 @@ def resolve_ram(rammer: Ship, target: Ship, dice: DiceRoller,
     rammer_arc = rammer.get_arc_for_bearing(rammer_bearing_to_target)
     front_to_front = (target_arc == Arc.FRONT and rammer_arc == Arc.FRONT)
 
-    # --- Damage to target ---
-    n_target_dice = rammer.hits_max
-    target_rolls = dice.roll_d6(n_target_dice, f"Ram: {rammer.name} hits {target.name}")
-    target_raw_hits = sum(1 for r in target_rolls if r >= target_armor)
-    if target_raw_hits > 0:
-        apply_damage(target, target_raw_hits, dice, game_state, ignores_shields=True)
-
-    # --- Counter-damage to rammer ---
     if front_to_front or target.ship_type == "defense":
         n_rammer_dice = target.hits_max
     else:
         n_rammer_dice = (target.hits_max + 1) // 2
     rammer_armor = rammer.armor_prow_value
+
+    # Both ships face damage: each may brace before the dice are rolled (s.7;
+    # the ram's Leadership test has already been passed)
+    target_braced = offer_brace(game_state, target, rammer.id, f"{rammer.name} (ram)",
+                                rammer.hits_max * max(0, 7 - target_armor) / 6)
+    rammer_braced = offer_brace(game_state, rammer, target.id, f"{target.name} (ram)",
+                                n_rammer_dice * max(0, 7 - rammer_armor) / 6)
+    target = game_state.get_ship_by_id(target.id) or target
+    rammer = game_state.get_ship_by_id(rammer.id) or rammer
+
+    # --- Damage to target ---
+    n_target_dice = rammer.hits_max
+    target_rolls = dice.roll_d6(n_target_dice, f"Ram: {rammer.name} hits {target.name}")
+    target_raw_hits = sum(1 for r in target_rolls if r >= target_armor)
+    if target_raw_hits > 0:
+        apply_damage(target, target_raw_hits, dice, game_state, ignores_shields=True,
+                     target_braced=target_braced, attacker_key=rammer.id)
+
+    # --- Counter-damage to rammer ---
     rammer_rolls = dice.roll_d6(n_rammer_dice, f"Ram counter: {target.name} hits {rammer.name}")
     rammer_raw_hits = sum(1 for r in rammer_rolls if r >= rammer_armor)
     if rammer_raw_hits > 0:
-        apply_damage(rammer, rammer_raw_hits, dice, game_state, ignores_shields=True)
+        rammer = game_state.get_ship_by_id(rammer.id) or rammer
+        apply_damage(rammer, rammer_raw_hits, dice, game_state, ignores_shields=True,
+                     target_braced=rammer_braced, attacker_key=target.id)
 
     game_state.add_log(
         f"  RAM: {rammer.name} ({n_target_dice}d6 vs {target_armor}+) → "
@@ -1121,12 +1149,18 @@ def resolve_explosion(ship: Ship, result: str, dice: DiceRoller,
         dist = ship.distance_to(other)
         if dist > blast_radius:
             continue
+        # The blast radius is known: ships caught in it may brace before the
+        # lance shots are rolled (s.7)
+        braced = offer_brace(game_state, other, ship.id, f"{ship.name} exploding",
+                             strength * 0.5)
+        other = game_state.get_ship_by_id(other.id) or other
         lance_dice = dice.roll_d6(
             strength, f"Explosion lance hits on {other.name} (4+)")
         hits = sum(1 for d in lance_dice if d >= 4)
         log(f"  {other.name} within blast radius ({dist:.1f}cm): {hits} hit(s)")
         if hits:
-            apply_damage(other, hits, dice, game_state)
+            apply_damage(other, hits, dice, game_state, target_braced=braced,
+                         attacker_key=ship.id)
             victim = game_state.get_ship_by_id(other.id)
             # A hulk already re-rolled inside apply_damage
             if victim and victim.hits_remaining <= 0 and victim.status == "active":

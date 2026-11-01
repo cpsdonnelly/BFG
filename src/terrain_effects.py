@@ -122,6 +122,16 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
             gs.add_log(f"  Re-roll passed ({roll2} vs Ld {ld})")
 
     if not passed:
+        # The Leadership test is failed: the ship may brace before the damage
+        # is rolled (s.7)
+        from .combat import offer_brace
+        braced = offer_brace(gs, ship, "asteroid_field", "an asteroid field", 3.5 / 2)
+        fresh = gs.get_ship_by_id(ship.id)
+        if fresh is not None:          # keep a new brace when this copy is saved
+            ship.special_order = fresh.special_order
+            ship.previous_order = fresh.previous_order
+            ship.brace_set_on_turn = fresh.brace_set_on_turn
+            ship.brace_failed_vs = fresh.brace_failed_vs
         # D6 damage, shields block normally, no blast markers from shields
         dmg_roll = dice.roll_d6(1, f"Asteroid damage on {ship.name}")[0]
         result["damage"] = dmg_roll
@@ -133,6 +143,11 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
         shields = current_shields(ship, gs.get_blast_markers())
         absorbed = min(dmg_roll, shields)
         hull_dmg = max(0, dmg_roll - absorbed)
+        if hull_dmg > 0 and braced:
+            saves = sum(1 for d in dice.roll_d6(hull_dmg, f"{ship.name} Brace saves (4+)")
+                        if d >= 4)
+            gs.add_log(f"  Brace saves: {saves} of {hull_dmg}")
+            hull_dmg -= saves
         if hull_dmg > 0:
             ship.hits_remaining = max(0, ship.hits_remaining - hull_dmg)
             gs.add_log(f"  {absorbed} absorbed by shields, {hull_dmg} hull damage")

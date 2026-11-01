@@ -546,6 +546,7 @@ class AIPlayer:
         dist = math.sqrt((target.x - ship.x)**2 + (target.y - ship.y)**2)
         if dist < 30 or dist > 150:
             return
+        self._offer_brace(ship, target)          # before the scatter roll (s.7)
         nc = resolve_nova_cannon(ship, target.x, target.y, self.dice, gs)
         if "error" in nc:
             return
@@ -553,7 +554,10 @@ class AIPlayer:
         for sid, hd in nc.get("ship_hits", {}).items():
             t = gs.get_ship_by_id(sid)
             if t:
-                dmg = apply_damage(t, hd["hits"], self.dice, gs)
+                dmg = apply_damage(t, hd["hits"], self.dice, gs,
+                                   target_braced=t.special_order
+                                   == SpecialOrder.BRACE_FOR_IMPACT.value,
+                                   attacker_key=ship.id)
                 self._log_damage(t, dmg)
                 self._resolve_kill(t)
 

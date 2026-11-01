@@ -47,6 +47,9 @@ class GamePanel:
         self.ctx.movement = self.movement
         self.ctx.ordnance = self.ordnance
         self.ctx.combat = self.combat
+        # Engine hook: ships about to take damage from ramming, explosions or
+        # asteroid fields may brace first (s.7)
+        tc.gs.brace_hook = self._brace_hook
 
         self._game_over = False
         self._ai_thinking = False   # expert AI search running on a worker thread
@@ -213,6 +216,17 @@ class GamePanel:
         tk.Label(self.parent, text="Game Log", bg="#1a1a2e", fg="#888888",
                  font=("Consolas", 9)).pack(padx=5)
         self.log_text.pack(padx=5, pady=3, fill=tk.BOTH, expand=True)
+
+    def _brace_hook(self, ship, attacker_key, attacker_name, expected):
+        """GameState.brace_hook: ask the ship's player (the AI decides for its
+        own ships). Only on the Tk main thread; elsewhere nothing is asked."""
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            return False
+        from .combat import squadron_group
+        return self.combat._brace_before_attack(
+            attacker_key, attacker_name, ship, expected,
+            group=squadron_group(ship, self.ctx.gs.get_ships()))
 
     def _update_phase_display(self):
         """Update the phase/turn indicators and show the correct buttons."""

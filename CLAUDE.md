@@ -96,8 +96,11 @@ crits), after checks that decide whether the attack happens (target priority).
 `CombatPanel._brace_before_attack` asks the target's player (the AI decides for its own ships
 with `ai_should_brace`) before the Fire dialog, the squadron dialogs, AI fire (`AIPlayer.brace_fn`)
 and torpedo / mine / bomber-wave attacks roll anything. A squadron tests once and braces
-together. Hit-and-run raids keep s.31's order (brace after turret fire). Nova cannon, ramming
-and explosions still use the ship's current orders only.
+together. Hit-and-run raids keep s.31's order (brace after turret fire). Nova cannon: the
+targeted ship is asked before the scatter roll. Engine-side attacks call
+`combat.offer_brace`, which uses `GameState.brace_hook` (set by GamePanel, main thread only):
+ramming (both ships, after the Leadership test), exploding ships (each ship in the blast,
+after the radius roll) and asteroid fields (after a failed navigation test).
 
 ### Faction rules in the catalog
 
