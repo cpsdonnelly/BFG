@@ -476,6 +476,10 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     Perform a command check for special orders.
     Returns dict with 'passed', 'roll', 'needed' (effective Ld).
     """
+    # Orks, 'Ere We Go!: automatically pass command checks for All Ahead Full
+    if order == SpecialOrder.ALL_AHEAD_FULL.value and "ere_we_go" in ship.special_rules:
+        return {"passed": True, "roll": 0, "needed": ship.leadership,
+                "mods": ["'Ere We Go! (automatic pass)"]}
     ld = ship.leadership
     mods = []
     if in_blast:
@@ -510,9 +514,20 @@ def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
     return check
 
 
+def aaf_bonus_dice(ship: Ship) -> int:
+    """D6s rolled for the All Ahead Full speed bonus: 4 normally (Appendix 6),
+    3 for Orks ('Ere We Go!), +1 for built-in Improved Thrusters and the like
+    ("+D6cm on All Ahead Full")."""
+    n = 3 if "ere_we_go" in ship.special_rules else 4
+    if "improved_thrusters" in ship.special_rules:
+        n += 1
+    return n
+
+
 def resolve_aaf_speed(ship: Ship, dice: DiceRoller) -> int:
-    """Roll 4D6 for All Ahead Full bonus speed."""
-    results = dice.roll_d6(4, f"{ship.name} All Ahead Full speed bonus")
+    """Roll the All Ahead Full bonus speed (aaf_bonus_dice D6s)."""
+    n = aaf_bonus_dice(ship)
+    results = dice.roll_d6(n, f"{ship.name} All Ahead Full speed bonus ({n}D6)")
     return sum(results)
 
 

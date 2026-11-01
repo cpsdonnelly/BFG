@@ -425,8 +425,10 @@ class AIPlayer:
             # A ship in a squadron can't be picked out: fire at the squadron (s.5)
             group = squadron_group(target, gs.get_ships())
             if len(group) > 1 and wtype in ("battery", "lance"):
+                crit_on = weapon.get("crit_on", 6)
                 sr, applied = fire_at_squadron(
-                    ship, weapon, target, group, self.dice, self._apply_hits_to,
+                    ship, weapon, target, group, self.dice,
+                    lambda m, n, _c=crit_on: self._apply_hits_to(m, n, _c),
                     lock_on, blast_markers, phenomena, all_ships)
                 gs.add_log(f"[AI] {ship.name} → squadron {target.squadron_id}: "
                            f"{weapon['name']} {sr.hits} hit(s)")
@@ -444,16 +446,17 @@ class AIPlayer:
             gs.add_log(f"[AI] {ship.name} → {target.name}: "
                        f"{weapon['name']} {sr.hits} hit(s)")
             if sr.hits > 0:
-                self._apply_hits_to(target, sr.hits)
+                self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6))
 
-    def _apply_hits_to(self, target: Ship, hits: int):
+    def _apply_hits_to(self, target: Ship, hits: int, crit_on: int = 6):
         """Apply hits from AI fire, then resolve the ship's destruction if it died.
         Returns (unused hits, destroyed) for squadron hit allocation."""
         t = self.gs.get_ship_by_id(target.id)
         if not t or t.is_destroyed:
             return hits, True
         braced = t.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
-        dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced)
+        dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced,
+                           crit_on=crit_on)
         self._log_damage(t, dmg)
         self._resolve_kill(t)
         return dmg["unused_hits"], dmg["destroyed"]

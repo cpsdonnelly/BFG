@@ -25,7 +25,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
   `src/booklet_ships.py`: all 9 factions, 174 ships. Ships using rules the engine can't play yet
-  (Zzapp Gunz, Killkannons, Bombardment Cannons, special movement, fortress weapons...) are
+  (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons...) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
   ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
 
@@ -85,6 +85,15 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
   Craft Orders"; the AI re-targets its craft each ordnance phase.
+
+### Faction rules in the catalog
+
+`booklet_ships.faction_special_rules` turns ships.json `faction_rules` into engine special rules:
+Space Marines and Grey Knights get `space_marine_crew` (boarding +2, raids +1, enemy raids -1)
+and `teleport_assault`; Grey Knights also `knights_of_titan` (re-roll a lost boarding action)
+and roll Ld on the Astartes table; Rapid Strike Vessels ("no Space Marine rules apply") roll on
+Default. Orks get `ere_we_go` (auto-pass All Ahead Full, +3D6cm). Built-in "+D6cm on All Ahead
+Full" is `improved_thrusters`; Venerable Battle Barges are `venerable` (VP 50% / 125%).
 
 ## Running and testing
 

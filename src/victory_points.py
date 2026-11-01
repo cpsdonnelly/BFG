@@ -45,15 +45,23 @@ def calculate_victory_points(gs: GameState) -> Dict:
                 _score_squadron(squadrons[s.squadron_id], opponent, result)
             continue
 
+        # Venerable Battle Barges (Space Marines): 50% of cost if crippled,
+        # 125% if destroyed, instead of the normal VP
+        venerable = "venerable" in s.special_rules
+        destroyed_vp = pts * 5 // 4 if venerable else pts
+        crippled_vp = pts // 2 if venerable else max(1, pts // 4)
+
         # Capital ships and solo escorts
         if s.status == "destroyed" or s.hits_remaining <= 0:
             # Destroyed: 100% points to opponent
+            pts = destroyed_vp
             result[opponent]["destroyed"] += pts
             result[opponent]["details"].append(
                 f"{s.name} destroyed: +{pts} VP")
 
         elif s.status in ("drifting_hulk", "burning_hulk"):
             # Hulk: treated as destroyed for VP
+            pts = destroyed_vp
             result[opponent]["destroyed"] += pts
             result[opponent]["details"].append(
                 f"{s.name} hulked: +{pts} VP")
@@ -67,14 +75,14 @@ def calculate_victory_points(gs: GameState) -> Dict:
 
         elif s.is_disengaged and s.is_crippled:
             # Crippled and disengaged: 25% (crippled value)
-            vp = max(1, pts // 4)
+            vp = crippled_vp
             result[opponent]["crippled"] += vp
             result[opponent]["details"].append(
                 f"{s.name} disengaged crippled: +{vp} VP")
 
         elif s.is_crippled:
             # Crippled on table: 25% points
-            vp = max(1, pts // 4)
+            vp = crippled_vp
             result[opponent]["crippled"] += vp
             result[opponent]["details"].append(
                 f"{s.name} crippled: +{vp} VP")

@@ -199,10 +199,11 @@ class CombatPanel(CombatDialogMixin):
                 dialog.destroy()
                 return
 
-            # Roll: 6+ to hit ordnance
+            # Roll: 6+ to hit ordnance (bombardment cannons: 4+, even vs ordnance)
+            need = weapon.get("hits_on") or 6
             rolls = self.ctx.dice.roll_d6(dice_count,
-                f"{weapon['name']} vs {target_ord.ordnance_type} (6+ to hit)")
-            hits = sum(1 for r in rolls if r >= 6)
+                f"{weapon['name']} vs {target_ord.ordnance_type} ({need}+ to hit)")
+            hits = sum(1 for r in rolls if r >= need)
 
             # Track weapon as used
             wr[idx_key] = 0
@@ -235,7 +236,8 @@ class CombatPanel(CombatDialogMixin):
                   font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
 
     def _apply_hits_to_target(self, attacker: Ship, target: Ship,
-                              total_hits: int, log_fn) -> Tuple[int, bool]:
+                              total_hits: int, log_fn,
+                              crit_on: int = 6) -> Tuple[int, bool]:
         """Brace prompt, apply_damage, crits, and destruction check for one volley.
         Returns (hits left unused because the ship was destroyed, destroyed)."""
         brace = False
@@ -284,7 +286,7 @@ class CombatPanel(CombatDialogMixin):
             log_fn(f"     (already failed brace vs {attacker.name})")
 
         dmg = apply_damage(target, total_hits, self.ctx.dice, self.ctx.gs,
-                           target_braced=brace)
+                           target_braced=brace, crit_on=crit_on)
         log_fn(f"     Shields: {dmg['shield_hits']}, "
                f"Hull: {dmg['hull_hits']}, "
                f"Saves: {dmg['brace_saves']}")
@@ -373,7 +375,9 @@ class CombatPanel(CombatDialogMixin):
         for member in squad_with_batteries:
             wr = member.weapons_remaining or {}
             for i, w in enumerate(member.weapons):
-                if w.get("weapon_type") != "battery":
+                # Bombardment cannons hit on 4+, not the target's armour: they
+                # can't share a gunnery roll with ordinary batteries
+                if w.get("weapon_type") != "battery" or w.get("hits_on"):
                     continue
                 if self._weapon_disabled_by_crit(member, w):
                     continue
@@ -739,7 +743,8 @@ class CombatPanel(CombatDialogMixin):
                 if not fresh or fresh.is_destroyed:
                     return n, True      # already gone (e.g. a chained explosion)
                 _log(f"  >> {fresh.name}: {n} hits")
-                return self._apply_hits_to_target(attacker, fresh, n, _log)
+                return self._apply_hits_to_target(attacker, fresh, n, _log,
+                                                  crit_on=weapon.get("crit_on", 6))
 
             applied = allocate_squadron_hits(
                 sr.dice_rolled, eligible, lambda m: sr.armors[m.id], _apply_to)

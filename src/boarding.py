@@ -163,6 +163,19 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
     a_total = a_roll + a_mod + a_troop_bonus + a_crew
     d_total = d_roll + d_mod + d_troop_bonus + d_crew
 
+    # Grey Knights, Knights of Titan: re-roll any boarding action involving a
+    # friendly Grey Knights ship; the second result stands. Re-rolled when the
+    # Grey Knights side would lose.
+    a_gk = any("knights_of_titan" in a.special_rules for a in attackers)
+    d_gk = "knights_of_titan" in target.special_rules
+    if (a_gk and a_total < d_total) or (d_gk and d_total < a_total):
+        gs.add_log(f"  Knights of Titan: {'attackers' if a_gk else target.name} "
+                   f"re-roll the boarding action ({a_total} vs {d_total})")
+        a_roll = dice.roll_d6(1, "boarding attacker re-roll")[0]
+        d_roll = dice.roll_d6(1, "boarding defender re-roll")[0]
+        a_total = a_roll + a_mod + a_troop_bonus + a_crew
+        d_total = d_roll + d_mod + d_troop_bonus + d_crew
+
     gs.add_log(
         f"  Boarding: {'+'.join(a.name for a in attackers)} vs {target.name}")
     gs.add_log(

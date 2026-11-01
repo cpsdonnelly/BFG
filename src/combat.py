@@ -271,8 +271,8 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
         result.description = f"{weapon['name']}: FP {firepower}, 0 dice to roll"
         return result
 
-    # Roll dice
-    armor = target.armor_vs(attacker.x, attacker.y)
+    # Roll dice (bombardment cannons / killkannons always hit on 4+)
+    armor = weapon.get("hits_on") or target.armor_vs(attacker.x, attacker.y)
 
     result.dice_rolled = dice.roll_d6(
         num_dice,
@@ -484,7 +484,8 @@ def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
 def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  game_state: GameState,
                  ignores_shields: bool = False,
-                 target_braced: bool = False) -> Dict:
+                 target_braced: bool = False,
+                 crit_on: int = 6) -> Dict:
     """
     Apply hits to a ship, handling shields, damage, crits.
     Shields are reduced by blast markers already touching the ship.
@@ -541,16 +542,19 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                 summary["destroyed"] = True
                 break
 
-            # Critical hit check: D6 per hull hit, 6 = crit
-            crit_roll = dice.roll_d6(1, f"Crit check for hit on {target.name}")
-            if crit_roll[0] == 6 and not uses_crit_table(target):
+            # Critical hit check: D6 per hull hit, 6 = crit (crit_on 4 for
+            # bombardment cannons and killkannons)
+            crit_roll = dice.roll_d6(1, f"Crit check for hit on {target.name}"
+                                     + (f" ({crit_on}+)" if crit_on != 6 else ""))
+            is_crit = crit_roll[0] >= crit_on
+            if is_crit and not uses_crit_table(target):
                 # Small escorts/defenses take +1 damage instead of a critical
                 target.hits_remaining -= 1
                 game_state.add_log(f"Critical on {target.name}: +1 damage")
                 if target.hits_remaining <= 0:
                     summary["destroyed"] = True
                     break
-            elif crit_roll[0] == 6:
+            elif is_crit:
                 crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name}")
                 crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
 
@@ -835,7 +839,7 @@ def resolve_batteries_vs_squadron(
     raw_dice = dice.roll_d6(num_dice, f"Sqn fire {weapon['name']} FP{fp}")
 
     def armor_for(ship: "Ship") -> int:
-        return ship.armor_vs(attacker.x, attacker.y)
+        return weapon.get("hits_on") or ship.armor_vs(attacker.x, attacker.y)
 
     armors = {s.id: armor_for(s) for s in eligible_ships}
     min_armor = min(armors.values()) if armors else 7

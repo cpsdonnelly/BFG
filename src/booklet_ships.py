@@ -48,7 +48,16 @@ WEAPON_TYPES = {
     # Ork faction rules: Gunz follow all the usual macrobattery rules; Heavy Gunz are
     # macrobatteries with a second firepower used within 15cm, e.g. FP6(10)
     "Gunz": "battery", "Heavy Gunz": "battery",
+    # Space Marine Bombardment Cannons and Ork Killkannons: fire as macrobatteries
+    # but always hit on 4+ regardless of Armour (even vs ordnance), and crits
+    # from them succeed on 4+ instead of 6 (WEAPON_RULES)
+    "Bombardment Cannon": "battery", "Killkannon": "battery",
     "Nova Cannon": "nova_cannon",
+}
+
+WEAPON_RULES = {
+    "Bombardment Cannon": {"hits_on": 4, "crit_on": 4},
+    "Killkannon": {"hits_on": 4, "crit_on": 4},
 }
 
 ARC_CODES = {"L": ["left"], "R": ["right"], "F": ["front"], "Rear": ["rear"],
@@ -189,6 +198,7 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
         d = {"name": _mount_name(w, m["arcs"], len(mounts)), "weapon_type": wtype,
              "range_cm": w.get("range_max_cm") or 0, "strength": strength or 0,
              "arcs": arcs}
+        d.update(WEAPON_RULES.get(w["name"], {}))
         if strength_close is not None:
             d["strength_close"] = strength_close   # firepower within 15cm
         if strength_dice:
@@ -206,6 +216,32 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
                 d["boarding_torpedoes"] = True
         out.append(d)
     return out
+
+
+def faction_special_rules(row: dict) -> List[str]:
+    """Engine special rules for the faction rules a ship follows (ships.json
+    faction_rules: its own faction unless its Notes say otherwise)."""
+    rules: List[str] = []
+    followed = row.get("faction_rules") or []
+    if "Space Marines" in followed or "Grey Knights" in followed:
+        # Space Marine faction rules: +2 crew damage boarding, +1 to their (and
+        # their ordnance's) hit-and-run attacks, enemy raids -1, and Teleport
+        # Assault (may teleport-attack targets with more remaining hits)
+        rules += ["space_marine_crew", "teleport_assault"]
+    if "Grey Knights" in followed:
+        rules.append("knights_of_titan")   # re-roll boarding actions
+    if "Orks" in followed:
+        rules.append("ere_we_go")          # auto-pass All Ahead Full, +3D6cm only
+    return rules
+
+
+def _has_built_in_thrusters(notes: str) -> bool:
+    """+D6cm on All Ahead Full built into the profile (Improved Thrusters,
+    Sigils of Quickening...), not offered as a refit for points."""
+    for m in re.finditer(r"\+1?D6cm (?:extra Speed )?on All Ahead Full(?:\))?([^;.]*)", notes):
+        if not re.match(r"\s*\(?[^;.]*\+\d+\s*pts", m.group(1)):
+            return True
+    return False
 
 
 def convert_row(row: dict) -> dict:
@@ -240,9 +276,22 @@ def convert_row(row: dict) -> dict:
     weapons = [d for w in row["weapons"] for d in _convert_weapon(w, craft_map, problems)]
 
     notes = row.get("notes") or ""
-    special_rules = ["ponderous"] if re.search(r"\bponderous\b", notes, re.I) else []
+    group_notes = row.get("roster_group_notes") or ""
+    special_rules = faction_special_rules(row)
+    # Ponderous from the ship's notes or its roster group's (e.g. all Venerable
+    # Battle Barges)
+    if re.search(r"\bponderous\b", notes + " " + group_notes, re.I):
+        special_rules.append("ponderous")
     if "towed" in (row.get("hull_type") or "").lower():
         special_rules.append("towed")
+    if _has_built_in_thrusters(notes):
+        special_rules.append("improved_thrusters")
+    if row.get("roster_group") == "Venerable Battle Barges":
+        special_rules.append("venerable")
+    if "Grey Knights" in (row.get("faction_rules") or []):
+        ld_table = "Astartes"          # Grey Knights use all Space Marine rules
+    elif row.get("faction") == "Space Marines" and not row.get("faction_rules"):
+        ld_table = "Default"           # Rapid Strike Vessels: no Space Marine rules
 
     return {
         "ship_class": row["name"],

@@ -336,7 +336,8 @@ class _FireDialog:
                         return n, True
                     self._log(f"  >> {fresh.name}: {n} hits")
                     return self.panel._apply_hits_to_target(
-                        self.attacker, fresh, n, self._log)
+                        self.attacker, fresh, n, self._log,
+                        crit_on=weapon.get("crit_on", 6))
 
                 sr, _ = fire_at_squadron(
                     self.attacker, fire_weapon, target, group, self.ctx.dice,
@@ -356,7 +357,7 @@ class _FireDialog:
                 self._log(f"  {sr.description}")
                 if sr.hits > 0:
                     all_damage.setdefault(target.id, []).append(
-                        (sr.hits, "battery", target))
+                        (sr.hits, "battery", target, weapon.get("crit_on", 6)))
 
             elif wtype == "lance":
                 sr = resolve_lances(self.attacker, target, fire_weapon,
@@ -364,7 +365,7 @@ class _FireDialog:
                 self._log(f"  {sr.description}")
                 if sr.hits > 0:
                     all_damage.setdefault(target.id, []).append(
-                        (sr.hits, "lance", target))
+                        (sr.hits, "lance", target, weapon.get("crit_on", 6)))
 
             elif wtype == "nova_cannon":
                 dist_to = self.attacker.distance_to(target)
@@ -419,12 +420,16 @@ class _FireDialog:
 
         # Apply accumulated damage
         for target_id, hit_list in all_damage.items():
-            total = sum(h for h, _, _ in hit_list)
-            target = self.ctx.gs.get_ship_by_id(target_id)
-            if not target or target.is_destroyed:
-                continue
-            self._log(f"  >> {target.name}: {total} total hits")
-            self.panel._apply_hits_to_target(self.attacker, target, total, self._log)
+            # Hits that crit on 4+ (bombardment cannons) are applied separately
+            for crit_on in sorted({c for _, _, _, c in hit_list}, reverse=True):
+                total = sum(h for h, _, _, c in hit_list if c == crit_on)
+                target = self.ctx.gs.get_ship_by_id(target_id)
+                if not target or target.is_destroyed:
+                    continue
+                self._log(f"  >> {target.name}: {total} total hits"
+                          + (f" (crits on {crit_on}+)" if crit_on != 6 else ""))
+                self.panel._apply_hits_to_target(self.attacker, target, total, self._log,
+                                                 crit_on=crit_on)
 
         self._record_fired(fired_weapon_indices)
         self.dialog.destroy()

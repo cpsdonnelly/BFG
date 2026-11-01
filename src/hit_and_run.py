@@ -76,7 +76,9 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
     if shields > 0:
         return False, f"{target.name} has {shields} shield(s) still up"
 
-    if target.hits_remaining > attacker.hits_remaining:
+    # Space Marines, Teleport Assault: may attack targets with more hits left
+    if (target.hits_remaining > attacker.hits_remaining
+            and "teleport_assault" not in attacker.special_rules):
         return False, (f"{target.name} has {target.hits_remaining} hits remaining, "
                        f"{attacker.name} only has {attacker.hits_remaining}")
 
