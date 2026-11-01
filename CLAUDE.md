@@ -80,8 +80,8 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   (the target may still brace before damage is rolled), ordnance just before launching.
   `combat.weapon_fire_pool` fixes a weapon's pool on its first shot of the turn.
 
-- **Tactical Reserves covers lances as well as macrobatteries** (battle barges lose 25%, not
-  half, on All Ahead Full or Burn Retros).
+- **Tactical Reserves covers macrobatteries only, not lances** (battle barges lose 25% of
+  macrobattery firepower on All Ahead Full or Burn Retros; lances still halve).
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Attack craft orders (s.18):** each squadron keeps a target (`craft_target_id`: enemy ship,
@@ -111,7 +111,7 @@ Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the
 player's Space Marine ships. Readings to confirm with the owner: Wings of Fury re-rolls raids
 that would have no effect; Tactical Reserves' 25% reduction rounds the result up (as halving
-does); Pack Hunter needs at
+does) and applies to macrobatteries only ("gunnery weapons", not lances); Pack Hunter needs at
 least two boarders; Lightning Thrusters vanguards fire at full only if they didn't turn.
 
 ### Open questions for the owner

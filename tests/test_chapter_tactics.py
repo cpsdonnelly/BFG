@@ -166,15 +166,17 @@ def test_tactical_reserves():
                       special_order="all_ahead_full")
     assert reduce_for_movement_order(barge, 12, gunnery=True) == 9
     assert reduce_for_movement_order(barge, 5, gunnery=True) == 4      # 3.75 rounded up
+    assert reduce_for_movement_order(barge, 12, gunnery=False) == 6    # lances still halve
     from src.combat import resolve_lances
     lance = {"name": "Lances", "weapon_type": "lance", "strength": 4, "range_cm": 30,
              "arcs": ["front"]}
     tgt = make_ship(id="t", player=2, x=10.0, y=0.0)
+    barge.special_order = "all_ahead_full"
     barge.x, barge.y, barge.heading = 0.0, 0.0, 0.0
-    rolls = [1, 1, 1]                                                 # lances 4 -> 3 dice
+    rolls = [1, 1]                                                    # lances 4 -> 2 dice
     dice = DiceStub(rolls)
     resolve_lances(barge, tgt, lance, dice)
-    assert dice._idx == len(rolls)                                    # owner ruling: lances too
+    assert dice._idx == len(rolls)                                    # owner ruling: not lances
     barge.special_order = "come_to_new_heading"
     assert reduce_for_movement_order(barge, 12, gunnery=True) == 6
     assert blast_markers_to_slow(barge) == 2
