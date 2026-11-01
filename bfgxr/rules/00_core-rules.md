@@ -1,12 +1,66 @@
 # Core Rules
 
-## 1. Leadership (incl. Faction Tables)
+## 1. Basics
+
+**Measuring:** a ship occupies the point marked by the stem of its base. Measure moves from the stem, and ranges (for weapons and other ship-to-ship effects) from stem to stem. You may always measure before deciding, unless all players agree otherwise.
+
+**Base contact:** a ship's base represents close range around it. Anything that affects an area of the table, such as ordnance or celestial phenomena, affects a ship whose base touches it.
+
+**Passing other ships:** the flat table stands in for three dimensions, so ships can move and fire past each other freely, with no risk of collision.
+
+**Re-rolls:** pick up the dice and roll them again. The second result stands, even if it is worse, and cannot be re-rolled again by any means.
+
+**Unit types:** every unit is a battleship, cruiser, escort or defence. Battleships and cruisers together are capital ships. Defences with 2 or fewer starting hits follow the rules for escorts, and those with 3 or more follow the rules for capital ships, except where a rule says otherwise (such as the Gunnery Table, which has its own Defences column).
+
+**Comparing size:** battleships are larger than cruisers, and cruisers are larger than escorts. A defence is larger than anything with fewer starting hits and smaller than anything with more.
+
+**Ship profiles:** the roster tables give each ship's characteristics:
+
+| Column | Meaning |
+|---|---|
+| Pts | Points cost. |
+| Hits | Damage the ship can take before it is reduced to a wreck. Its type (battleship, cruiser, escort or defence) is given by its roster heading or Class cell. |
+| Base | Base size (section 4). |
+| Spd | How far it moves in its movement phase (section 10). |
+| Turn | How far it can turn when it turns: 45° or 90°. |
+| Sh | Shields: hits blocked before they go down (section 11). |
+| Armr | The D6 score an attacker needs to hit it. A separate value for the front (marked P for an armoured prow) applies to shots from its front arc. |
+| Tur | Turrets: dice rolled to shoot down attacking ordnance (section 28). |
+| Armament | Each weapon's range (or speed, for ordnance), firepower (FP) or strength (S), and fire arc. |
+
+Leadership (Ld) is not printed: it is rolled before each game (section 3), or set by the campaign or a commander. You may use any models you like, but tell your opponent which ship each model represents.
+
+*Source: BFG:XR Rulebook, "First Principles" and "Unit Types", pp.3-6*
+
+## 2. The Turn
+
+Players take turns. In your turn you move all your ships, then shoot with them, then both players move their ordnance, then the end phase is played. A **game turn** is both players' turns together (a battle of eight game turns has sixteen player turns); 'turn' on its own always means one player's turn.
+
+**First turn:** both players roll a D6, and the higher score chooses whether to go first or second, unless the scenario decides (in an ambush, for example, the attacker always goes first).
+
+**Ending the battle:** as the scenario says. Usually the battle continues until one side surrenders or has no ships left on the table. Some scenarios allow a sudden-death victory (such as destroying the enemy flagship), and players may agree a time limit.
+
+**Acting out of turn:** some actions happen in the opponent's turn, such as Brace for Impact, and an event can interrupt a turn. Afterwards, the turn continues as normal.
+
+### Turn Sequence
+
+> 1\. **Movement phase:** remove the special order markers placed on your ships in your last turn (Brace for Impact markers are removed at the end of this turn instead). Then move your ships and squadrons one at a time, taking any command checks for special orders before each one moves. Once a command check fails, no more may be taken this turn (sections 6, 7 and 10).
+>
+> 2\. **Shooting phase:** fire with your ships, one at a time, and launch ordnance at the end of the phase (sections 13-15).
+>
+> 3\. **Ordnance phase:** both players move and attack with all ordnance on the table, including ordnance launched in earlier turns. The player whose turn it is moves all of theirs first (sections 15-30).
+>
+> 4\. **End phase:** resolve boarding actions and teleport attacks, then both players attempt to repair critical damage, then the player whose turn it is removes blast markers (sections 31, 32 and 36).
+
+*Source: BFG:XR Rulebook, "The Turn" and "Turn Sequence", pp.10-11; "The End Phase", pp.34-35*
+
+## 3. Leadership (incl. Faction Tables)
 
 In Battlefleet Gothic, the expertise of a captain and his (or her) crew is shown by the ship's leadership value: the higher it is, the better the captain and crew. Leadership is very important, because ships must test against this value if they wish to use special orders.
 
 As mentioned earlier, in one-off games you roll a D6 to determine each ship's leadership value before the start of the game. Look up the result of the dice roll on the table below to see what Leadership value the ship has. Escorts roll once per squadron, with the whole squadron sharing the value rolled. Each capital ship rolls individually for leadership, even if it is part of a squadron.
 
-**Starting Leadership by faction:** see Appendix 4, p.157.
+**Starting Leadership by faction:** see Appendix 4, p.168.
 
 ### Leadership Modifiers
 
@@ -18,11 +72,90 @@ If a ship is reduced to leadership 1 or less, it cannot voluntarily attempt spec
 
 ### Faction-Specific Leadership Tables
 
-Some factions do not use the default Starting Leadership table; their fleet lists replace it. All of them are unified into one table in the Appendix: see Appendix 4, p.157. Factions not listed there use the Default column.
+Some factions do not use the default Starting Leadership table; their fleet lists replace it. All of them are unified into one table in the Appendix: see Appendix 4, p.168. Factions not listed there use the Default column.
 
 *Source: BFG:XR faction fleet lists / codex documents*
 
-## 2. Fleet Commanders
+## 4. Assembling the Fleet
+
+**Points:** agree a points limit. Each player picks ships, adding up their points, up to that limit. Some scenarios give the sides different or random points, and say so.
+
+**Fleet lists:** each faction's fleet list says which commanders, capital ships, escorts, ordnance, upgrades and reserves it may take, and its attack rating (if none is given, use the default in the Scenarios section). The number of larger capital ships (battleships, grand cruisers, battlecruisers) is often limited by the number of ordinary or light cruisers taken. Escorts are usually unlimited unless the list says otherwise.
+
+**Writing your list:** write your fleet list down, with all refits and points, and have a model for every ship. Lists are normally open. If both players agree, lists may stay secret until the end of the game (or campaign), but if either player asks to see the other's list, both are revealed immediately.
+
+**Ship Class Variants:** In some ship entries, you may see options to mount different weaponry than 'regular' models of that ship or class. For example, some Lunar class cruisers may exchange their prow torpedoes for a nova cannon. Unless specifically noted as unique in their profile, such as the mighty Planet Killer, you may have multiple copies of any such ship or class variant in your fleet list (subject to the normal restrictions given in their profiles).
+
+**Playing without fleet lists:** regular opponents may agree to ignore some or all fleet list restrictions (an all-battleship battle, say), as long as every player agrees.
+
+**Base sizes:** large bases are 60mm across and small bases 32mm. A ship with 3 or more shields or more than 10 hits uses a large base; every other ship uses a small one. Any capital ship may take Tractor Fields for free to use a large base: it becomes easier for it to ram and board, but it is a larger target for ordnance, ramming and boarding.
+
+The rules for forming squadrons are in section 8.
+
+### Allies of Convenience
+
+Ships from outside your faction, whether from your fleet list, taken as reserves or given by the scenario, are allies of convenience unless stated otherwise. Unless their fleet list allows it, allies of convenience:
+
+- may only be in squadrons with ships of their own faction;
+
+- may only have the refits shown in their own profiles;
+
+- cannot carry commanders from the main fleet, or use those commanders' re-rolls.
+
+**Factions:** for deciding who is an ally of convenience, the factions are as below. Sub-factions are always full allies of others in the same faction, but some special rules refer to them separately.
+
+| Faction | Sub-factions |
+|---|---|
+| Adeptus Mechanicus | None |
+| Chaos | None |
+| Dark Eldar | None |
+| Eldar | Corsair Eldar, Craftworld Eldar |
+| Imperial Navy | None |
+| The Inquisition | Grey Knights |
+| Necrons | None |
+| Orks | None |
+| Rogue Traders | Minor Xenos |
+| Space Marines | None |
+| Tau Empire | Tau, Demiurg, Kroot, Nicassar |
+| Tyranids | None |
+
+### Reserves
+
+- For every 3 battleships, 3 cruisers (of any sub-type) or 3 escorts chosen from your fleet list, you may take 1 ship of the same type from a fleet list named in your list's reserves. Reserves cost points as normal, and reserves from another faction are allies of convenience.
+
+- Ships that are already allies of convenience in the list they come from (such as Space Marine strike cruisers in an Imperial Navy Armageddon Sector fleet) cannot be taken as reserves.
+
+- You cannot take more copies of a class as reserves than its own fleet list could field. Reserves count towards your fleet's limits as normal; their own list's other restrictions are waived.
+
+- You may take reserves from any number of your allowed lists, but reserves never qualify you for more reserves or further reserve lists. For example, taking 9 escorts from your own list and 3 from a reserve list does not let you take a reserve from that reserve list's reserves.
+
+- Reserves from your own faction may take any refits available to them in their profile, their own fleet list or the list they join. Commanders may only come from your main fleet list.
+
+- Ships and characters awarded by a scenario or campaign ignore the reserve restrictions.
+
+**Alternative reserves:** if both players agree beforehand, fleets may take reserves from lists other than those their fleet list allows. Players are encouraged (as a guide, not a restriction) not to take them from their faction's natural enemies, or from fleets that include them. Reserves from another faction are still allies of convenience.
+
+| Faction | Natural enemies |
+|---|---|
+| Imperials (Imperial Navy, Adeptus Mechanicus, the Inquisition) | Chaos, Dark Eldar, Craftworld Eldar, Orks |
+| Space Marines | Everyone except Imperials and Rogue Traders (Rogue Traders too, if they include any xenos ships) |
+| Chaos | All Imperials, Eldar, Space Marines, Tau Empire |
+| Craftworld Eldar | All Imperials, Chaos, Orks, Space Marines |
+| Corsair Eldar | Chaos, Orks, Space Marines |
+| Dark Eldar | All Imperials, Space Marines, Tau Empire |
+| Orks | Everyone except Chaos, Dark Eldar, Rogue Traders |
+| Necrons, Tyranids | Everyone |
+| Tau (not Demiurg or Kroot) | Orks, Chaos, Dark Eldar, Space Marines |
+| Demiurg, Kroot | Orks, Space Marines. They will not fire on ships of their own race if it is on both sides. |
+| Rogue Traders | Necrons, Tyranids |
+
+### Fleet Detachments
+
+A fleet detachment is a small fleet list that cannot be used on its own: it joins a fleet list named in its description (the joined fleet). A fleet may be joined by several different detachments, but never by two copies of the same one. A detachment cannot join another detachment, but two detachments joining the same fleet count each other as the joined fleet for list options (unless they are restricted as allies of convenience).
+
+*Source: BFG:XR Rulebook, "Assembling the Fleet", pp.57-60*
+
+## 5. Fleet Commanders
 
 Your fleet may be led by a commander, such as an Imperial Admiral, Chaos Warmaster, Eldar Dragon Prince or Ork Warboss. A fleet commander is a unique type of unit that is not represented by a separate model. Instead, a commander must embark upon a ship in your fleet, which will usually be a flagship of some sort. That ship will then act as the game piece for your fleet commander (in addition to its normal rules).
 
@@ -30,15 +163,21 @@ Fleet commanders often come with special rules that will benefit their own ship 
 
 Lastly, most fleet commanders may purchase special upgrades for themselves or their ship, including re-rolls for your fleet's command checks. The cost of a fleet commander (and any of his or her re-rolls and upgrades) is added to that of the assigned ship - if it is lost or crippled, that cost will count against the vessel's victory point value (see the Scenarios section for details).
 
-A fleet with a total points value of more than 750 points must be led by a fleet commander.
+A fleet of more than 750 points must be led by a fleet commander; if the commander cannot embark on an escort, the fleet must also include at least one capital ship. Smaller fleets may have a commander if you wish.
 
-**Fleet Commander Re-rolls:** Most commanders have a number of command check re-rolls available to them, as indicated in the Fleet Commander or Secondary Commander section of the fleet list. Each of these re-rolls can only be used once. Any re-rolls from an embarked commander are lost for the remainder of the battle (if the flagship is destroyed).
+A commander's special rules combine with the special rules and upgrades of their ship, unless they match or contradict each other.
+
+**Secondary commanders:** some fleets may take these. They work exactly like fleet commanders, but cannot be the required commander of a fleet over 750 points, and may have restricted re-rolls or upgrades.
+
+No capital ship or escort squadron may carry more than one commander of any kind.
+
+**Fleet Commander Re-rolls:** most commanders have command re-rolls, as listed in their fleet list. Each can be used once per game, to re-roll a failed command check or leadership test for any ship or squadron in the fleet. Only one re-roll can be used on a single test. If the commander's ship suffers a Bridge Smashed critical hit or is destroyed, the commander's re-rolls are lost for the rest of the battle.
 
 **Note also:** during a radiation burst, Fleet Commanders may only use their re-rolls on command checks for their own ship or squadron.
 
 *Source: BFG:XR Rulebook, "Assembling the Fleet - Fleet Commanders", p.57*
 
-## 3. Command Checks & Modifiers
+## 6. Command Checks & Modifiers
 
 In the midst of battle a captain may order his ships to perform special maneuvers or direct more of his ship's power to weapons or engines. However, a vessel's crew is never perfect; miscommunication, mistakes, and slow response can prevent a ship from enacting its captain's orders exactly as instructed. To represent this uncertainty, a vessel undertaking special orders must first pass a Command check.
 
@@ -58,27 +197,27 @@ Enemy Contacts (+1 Ld): Enemy ships operating under special orders create a vari
 
 *Source: BFG:XR Rulebook, "Introduction - Special Orders / Command Checks", p.8-9*
 
-## 4. Special Orders
+## 7. Special Orders
 
 There are six different special orders that a ship may use, each one allowing the vessel to perform better at something, such as gunnery or navigation, during its turn. A ship or squadron may only ever be on one special order at a time, unless specifically stated otherwise in its special rules.
 
 Special orders are declared during the movement phase by choosing a vessel or squadron, declaring the order, resolving the associated command check, then moving the ship or squadron. You must resolve this process completely, including any movement, before continuing with the next ship or squadron.
 
-**All Ahead Full:** A ship going All Ahead Full directs more power to its engines to produce an extra burst of speed, gaining additional movement distance (allowing it to either escape or close with the enemy) at the cost of its weapons' effectiveness.
+**All Ahead Full:** the ship adds 4D6cm to its speed and must move the full distance. It may not turn, and its macrobatteries and lances fire at half firepower and strength (rounding up). A squadron rolls once, and every member adds the result. If members roll different numbers of dice, roll the most dice any member is allowed; members allowed fewer use the highest results, up to their own number (a ship that rolls 2D6 uses the two highest of the 4D6 rolled). Ramming: section 12.
 
-**Come to New Heading:** The ship diverts power to its directional control thrusters in order to change course more sharply, allowing the vessel to turn twice during its movement phase, at the cost of its weapons' effectiveness.
+**Come to New Heading:** the ship may make one extra turn during its move. The normal restrictions apply to it, so a capital ship must move its minimum straight distance again before its second turn (a cruiser that moved 10cm before turning must move another 10cm). Its macrobatteries and lances fire at half (rounding up). Ponderous ships cannot use this order.
 
-**Burn Retros:** The ship directs additional energy into its retro thrusters in order to kill some of its forward momentum and hold position. Again, this impairs the vessel's ability to bring its weapons to bear against enemy targets.
+**Burn Retros:** the ship does not need to move a minimum distance or move straight before turning, and may stay still, but may move no more than half its speed. Its macrobatteries and lances fire at half (rounding up).
 
-**Lock On:** The ship maintains a steady course and draws additional energy from its engines to fire its weapons in multiple salvos. A vessel that is locked on cannot turn, but improves its shooting effectiveness dramatically.
+**Lock On:** in the shooting phase the ship may re-roll any missed to-hit dice for its lances and gunnery weapons (the second result stands). It may not turn during its move.
 
-**Reload Ordnance:** Each time a ship deploys ordnance, it must 'reload' its launch bays, torpedo tubes, and so on before it can deploy another wave or salvo. To do this, a vessel must successfully use the Reload Ordnance special order. As this does not drain weapon or engine power, the ship's movement and shooting effectiveness remains unchanged.
+**Reload Ordnance:** all of the ship's ordnance, of every type, is reloaded and may be launched in any later shooting phase. Its movement and shooting are unaffected. Every ship starts the game with its ordnance loaded unless stated otherwise.
 
-**Brace for Impact!** This order is unique in that it can only be used during the ordnance phase or during an opponent's turn (usually when a particularly deadly salvo is about to strike the ship), and may be used even if the ship is already on special orders. Power from systems is redirected to shields, blast doors, and other defences, while the crew hunkers down at their stations. The vessel gains a saving throw against incoming hits at the cost of reducing its combat effectiveness and preventing it from using any other special orders for a full turn.
+**Brace For Impact:** The second combat-oriented special order is Brace For Impact, which protects the ship from damage. It is unique among special orders in that it may be used any time the ship faces damage (but before the result is rolled).
 
 **Further Brace for Impact notes:** If the ship passes its command check, it is placed on Brace For Impact special orders until the end of its next turn, replacing any special orders it is on currently. A braced ship gains a saving throw against any hits it suffers (but not hits against its shields or other defences). Roll a D6 for each hit: on a score of 4+, the hit is ignored. A ship on Brace For Impact orders may not use special orders at all during its next turn. The ship also halves the firepower of its gunnery weapons and the strength of both its lances and ordnance armaments (rounding up).
 
-**Declaring Brace For Impact Orders:** Brace For Impact orders may be declared at any point before damage is rolled, including during the ordnance phase or the opponent's turn. A ship may brace against each attacker separately (for instance, a ship may brace against an attacker's lances after choosing not to do so against its gunnery weapons). However, a ship may only attempt to brace once per attacker per turn. If the command check is failed, the ship cannot attempt to go on Brace For Impact special orders again until the ship, squadron, or ordnance marker currently attacking has completed all of its attacks.
+**Declaring Brace For Impact Orders:** declare it after any checks that decide whether an attack happens, but before any combat rolls for that attack (rolls to hit, scatter, turrets, weapon strength or critical damage). For example, against ramming or an asteroid field you can wait for the result of the Leadership test, and against an exploding ship you can wait until its 3D6cm blast radius is measured. A ship decides separately against each of an attacker's weapons (it may brace against an attacker's lances after not bracing against its gunnery), but may attempt to brace only once per attacker per turn. If the command check fails, it cannot try again until the ship, squadron or ordnance marker attacking it has finished all its attacks.
 
 **Other Special Orders:** Any changes to a ship's movement resulting from previous special orders remain in effect even after bracing (such as from All Ahead Full or Burn Retros orders). Similarly, a vessel that is braced while on Reload Ordnance orders is still reloaded normally.
 
@@ -104,15 +243,13 @@ Enemy Contacts (+1Ld): A vessel gains a +1 bonus to its leadership value when at
 
 (These modifiers cannot increase a vessel's Ld value above 10 or below zero. The Under Fire and Enemy Contacts modifiers apply to command checks only, not to other leadership tests.)
 
-A summary of all six special orders is given in Appendix 6, p.159.
+**Other leadership tests:** tests other than command checks (for target priority, ramming, navigating an asteroid field and so on) are taken the same way: roll 2D6, and pass on a score equal to or below the ship's Ld. A ship may take several leadership tests in a turn, even after a command check has failed, but may not take the same test more than once. Under Fire and Enemy Contacts do not apply to them; other Ld modifiers may, as their rules say.
 
-## 5. Squadrons
+A summary of all six special orders is given in Appendix 6, p.170.
 
-Small ships, such as escorts, stand little chance of damaging larger ships on their own, so they are normally grouped into squadrons. A squadron will maneuver closely together and mass its weaponry to attack more effectively. Although cruisers and battleships normally operate alone, they can also be grouped into squadrons for a major battle, where their awesome firepower can be put to good effect. Squadrons may have all sorts of different names, such as formations, flotillas, packs, patrol groups or forces, but they all work in the same way.
+## 8. Squadrons
 
 ### Forming Squadrons
-
-In general, a fleet's largest vessels will not always fight as squadrons, except in the fiercest of battles. However, most races' escort-class ships function almost exclusively in groups. As such, squadrons are formed a little differently depending on the type of ships involved.
 
 **Capital Ships:** Squadrons of capital ships will be formed at the beginning of a game, before any ships are deployed for battle. See the 'Forming up the Fleet' section on page 56 for further details regarding capital ship squadrons.
 
@@ -158,7 +295,19 @@ For example, a squadron of three Dauntless light cruisers (6 hits and 1 shield t
 
 This matters most for squadrons of ships that do not roll critical damage normally, such as escorts, small defences and other unique ships that take a point of damage when they suffer a critical hit.
 
-*Source: BFG:XR Rulebook, "Advanced Rules - Squadrons", p.44*
+**Mixed armour:** if the ships in the target squadron have different Armour values (or present arcs with different values), roll against the lowest Armour value. Every die that equals or beats it scores a hit: allocate the dice one at a time, lowest rolls first, each to the nearest ship it can hit.
+
+### Shooting by Squadrons
+
+Ships in a squadron add their firepower or strength together before rolling. When a squadron's shooting is halved (when braced, for example), escorts total their firepower first and then halve it (rounding up); capital ships still halve individually.
+
+Squadrons follow the normal rules for target priority, line of sight and so on. Members out of range or arc of the main target may fire at another enemy, just as one ship can fire different arcs at different enemies.
+
+**Different aspects or ranges:** if members see the target from different aspects or at different ranges, work out each group's firepower separately, then combine the dice for each Armour value the target presents into one attack per Armour value, and apply all the hits together. For example, five frigates fire at a cruiser with 6+ prow armour and 5+ elsewhere: one behind it (moving away) and three abeam combine their dice against 5+, and the one in front rolls separately against 6+.
+
+**Squadron against squadron:** each group of attackers that sees a different mix of target aspects chooses which aspect to fire at (Shooting at Squadrons, above). Groups firing at the same set of target ships, needing the same scores to hit, combine their dice into one attack. Groups firing at different sets of targets, or needing different scores because the targets' Armour differs, resolve separately, in any order, and blast markers placed by one group do not affect the others. A group can be a single ship. Always try the normal squadron rules first: these steps are only needed when facings and Armour values differ.
+
+*Source: BFG:XR Rulebook, "Advanced Rules - Squadrons", pp.44-47*
 
 **Forming Squadrons** (from "Assembling the Fleet - Building Your List", p.58)
 
@@ -176,7 +325,7 @@ Note that the distinctions between different types of cruisers will be found in 
 
 *Source: BFG:XR Rulebook, "Assembling the Fleet - Building Your List", p.58*
 
-## 6. Ship Orientation & Fire Arcs
+## 9. Ship Orientation & Fire Arcs
 
 ### The Bearing Compass
 
@@ -194,7 +343,7 @@ Weapons have a limited field of fire depending on where they are mounted on the 
 
 *Source: BFG:XR Rulebook, "Bearing Compass" p.4; "Fire Arcs" (The Shooting Phase) p.16*
 
-## 7. Movement
+## 10. Movement
 
 **Moving ships:** move your ships one at a time, in any order; each moves up to its speed before you choose the next. Ships never move simultaneously, even in a squadron.
 
@@ -206,15 +355,61 @@ Weapons have a limited field of fire depending on where they are mounted on the 
 
 *Source: BFG:XR Rulebook, "The Movement Phase - Basic Moves", p.13*
 
-## 8. Moving Through Blast Markers
+## 11. Shields & Blast Markers
+
+Blast markers represent explosions, shockwaves, radiation clouds, debris, unexploded warheads and plasma bursts. They are placed where the event happens and stay in play until removed in a later end phase (section 36). Once placed they never move: they are part of the battlefield while in play.
+
+### Shields
+
+Each point of a ship's shield strength blocks one hit. Place a blast marker touching the ship's base for each hit blocked.
+
+A ship's shield strength is reduced by 1 for each blast marker touching its base, however the marker came into contact, to a minimum of 0. At 0 its shields are down, and further hits damage the ship.
+
+Shields are restored automatically as the ship leaves contact with blast markers. A ship may need to move away from several markers before any of its shields come back.
+
+Shields stop direct fire: lances, macrobatteries and nova cannon. Boarding actions, ramming, torpedoes, attack craft and similar attacks bypass shields entirely.
+
+*Clarification (Remastered p.69):* a ship whose shields are down only because of blast markers does not roll for damage when moving through blast markers. That roll is only for ships with no shields or permanently disabled shields (below).
+
+### Placing Blast Markers
+
+Blast markers are placed for each hit absorbed by shields, for destroyed ships (section 34) and for missed nova cannon shots (section 14). Other placements are given in the relevant rules.
+
+**Shield impacts:** place the marker touching the target's base as close as possible to the origin of the attack, narrow end pointing away from the ship's peg. Markers from several impacts in the same turn do not overlap one another: fan them out around the base, as close as possible to the origin of the attack. Avoid overlapping other blast markers (from previous turns, around other ships or from other effects) unless there is no room, and avoid touching ships that are nearby but not in base contact unless there is no other way. If forced to choose, overlap other blast markers first. As a result, a small base can take 3-5 fanned markers in one turn and a large base 5-8, depending on spacing.
+
+**Multiple ships under fire:** if the ship under fire has other ships in base contact, markers fanned around its base may overlap those ships' bases (following the restrictions above), affecting them normally in all respects.
+
+*Clarifications (Remastered pp.68-69):* a blast marker affects only the ships whose bases it physically touches. A ship near the target but not touching it is never affected, and a ship that is touching cannot be treated as out of contact. Touching a ship that has a blast marker is not enough: the marker itself must touch the ship's base.
+
+### Moving Through Blast Markers
 
 If a vessel moves through any blast markers, it reduces its speed that phase by 5cm, regardless of the number of markers actually moved through. A vessel is considered to be moving through blast markers even if it is moving away from markers it is in contact with at the beginning of the movement phase. If a ship cannot elect to slow down (such as those on All Ahead Full special orders), and comes into contact with a blast marker within the last 5cm of its movement, it must instead stop no farther than the point it comes into contact with the marker (and not before).
 
 If a ship is not equipped with shields, or its shields have been permanently disabled (rather than simply depleted) and it moves through at least one blast marker, roll a D6. On a result of 6, it suffers 1 point of damage. Likewise, when an ordnance marker moves through any blast markers, it is destroyed on a D6 roll of 6. These tests only need to be made once per move, no matter how many blast markers a unit encounters along its path.
 
-*Source: BFG:XR Rulebook, "The Shooting Phase - Blast Markers", p.22*
+### Shooting Through Blast Markers
 
-## 9. Ramming
+If a ship's line of fire passes through any blast markers (including those touching a ship's base), it takes a right column shift on the Gunnery Table. Lances and nova cannon are unaffected. Blast markers take effect immediately, so they can affect later shooting in the same turn in which they are placed.
+
+### Optional: Modern Blast Markers
+
+XR offers these as optional 'modern' blast marker rules. They simplify firing through blasts, but can be more complex with more than a few ships on the table. Battlefleet Gothic Remastered uses this approach as its standard rules, with the further differences listed after them.
+
+**Intervening blasts:** a ship in base contact with any blast markers always counts as behind them for enemy shooting and ordnance attacks, wherever the markers actually are. Enemy gunnery takes a right column shift, and attacking ordnance counts as moving through blast markers (destroyed on a D6 roll of 6).
+
+**Overlapping bases:** a ship whose base overlaps the base of a ship in contact with blast markers also counts as in contact with them. This does not cascade along a chain of overlapping ships: if Ships 1 and 2 each overlap Ship 3 but not each other, and Ship 1 touches a blast marker, Ship 3 counts as in contact but Ship 2 does not. When bases are stacked or overlapping, there is no limit to the number of ships' shields one blast marker can take down (Remastered p.69).
+
+**Remastered differences** (Remastered pp.68-69), used with the modern rules above:
+
+*Whole-base contact:* a ship touching any blast marker counts as in contact all round its base and in every arc, for Leadership, movement, shooting, ordnance attacks, boarding and every other blast marker effect, including when it ends its move in contact for any reason.
+
+*Firing ship in contact:* a ship takes the right column shift if its line of fire passes through blast markers, or if it or its target is in base contact with blast markers. Lances and nova cannon are still unaffected.
+
+*Limit on spill-over:* one round of shooting from a ship or squadron may place blast markers in contact with at most one ship besides its target (two in total); the marker goes between the target and the ship closest to it in the line of fire. Exceptions: a ship with several shields (such as a battleship) that takes three or four markers whose normal fan touches more than one ship in actual base contact affects every ship the markers physically touch; and every ship whose base overlaps or is stacked on the target is affected, as above.
+
+*Source: BFG:XR Rulebook, "The Shooting Phase - Shields, Blast Markers, Modern Blast Markers", pp.21-23; Battlefleet Gothic Remastered Rulebook, "Blast Markers", pp.68-69*
+
+## 12. Ramming
 
 A ship on All Ahead Full special orders may try to ram a single enemy vessel as it moves. It can never ram more than one enemy in a single move.
 
@@ -234,9 +429,11 @@ Shields do not deflect ramming damage on either side. Damage is resolved immedia
 
 *Source: BFG:XR Rulebook, "Movement Phase - All Ahead Full: Ramming Speed!", p.37*
 
-## 10. Direct Fire & Gunnery
+## 13. Direct Fire & Gunnery
 
 Direct firing uses a ship's macrobatteries, lances and nova cannon. In order to make direct fire attacks, the firing ship must have at least some weapons within range and fire arc of the enemy.
+
+**Firing order:** fire with one ship at a time, resolving all of its firing before choosing the next.
 
 ### Range
 
@@ -270,15 +467,17 @@ Which way the target is traveling is important for gunnery purposes as it is muc
 
 **Splitting Fire:** Ships that pass a target priority test may split the firepower of their gunnery weapons between multiple targets in a given fire arc. Naturally, a ship must have firepower of 2 or greater (after any modifiers, which must be applied before working out target orientation on the Gunnery table) in order to split fire this way.
 
-**Gunnery Table:** see Appendix 7, p.160.
+**Gunnery Table:** see Appendix 7, p.171.
+
+**Gunnery Table notes:** 'capital ships' on the table means cruisers and battleships. Defences and ordnance always use their own column (plus any column shifts), whatever their orientation, even when fired on by ships that normally count every target as one aspect.
 
 ### Stationary Targets
 
-A ship that does not move at least 5cm, for any reason, counts as Defences on the Gunnery Table (see section 7, Movement).
+A ship that does not move at least 5cm, for any reason, counts as Defences on the Gunnery Table (see section 10, Movement).
 
 *Source: BFG:XR Rulebook (current), "The Shooting Phase - Direct Fire", p.16-18; minimum-movement / stationary rule from "Movement", p.13*
 
-## 11. Nova Cannon
+## 14. Nova Cannon
 
 A nova cannon is a massive weapon, normally mounted in the prow of a ship so that the recoil it generates can be compensated for by the vessel's engines. It fires a projectile at incredible velocity, using graviometric impellers to accelerate it to close to light speed. The projectile implodes at a preset distance after firing, unleashing a force more potent than a dozen plasma bombs.
 
@@ -296,7 +495,7 @@ Note that nova cannon are not affected in any way by Lock On and Reload Ordnance
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Nova Cannon", p.19*
 
-## 12. Ordnance: Launching, Moving & Attacking
+## 15. Ordnance: Launching, Moving & Attacking
 
 Ordnance (torpedoes, mines and attack craft) is represented by markers that move across the table in each ordnance phase. Markers interact with ships and other ordnance whenever they make contact, whatever the turn or phase.
 
@@ -312,15 +511,15 @@ Ordnance (torpedoes, mines and attack craft) is represented by markers that move
 
 **Combining ordnance in squadrons:** members of the same squadron may combine their attack craft into larger waves, and their torpedoes into larger salvos. The combining ships must be in contiguous base contact (an unbroken chain of contact, as for coherency), and the combined marker's launch move is measured from the ship in the group furthest from its destination. Squadron members that do not contribute may launch individually or as a separate group, but each ship may contribute to only one combining group per turn. Torpedoes launched this way do not hit ships in the combining group, but must end their first move within the firing arc of every ship in the group; they can still hit squadron members that are outside base contact with the firing ship and not part of the group.
 
-**Moving:** in the ordnance phase both players move and attack with all their ordnance, including ordnance launched on earlier turns. The player whose turn it is always moves all of theirs first. Each marker moves according to its speed and the turning rules for its type (sections 13-19), and markers in a wave or salvo stay in contact as their rules require. Ordnance moving through blast markers is destroyed on a D6 roll of 6 (section 8).
+**Moving:** in the ordnance phase both players move and attack with all their ordnance, including ordnance launched on earlier turns. The player whose turn it is always moves all of theirs first. Each marker moves according to its speed and the turning rules for its type (sections 16-1922), and markers in a wave or salvo stay in contact as their rules require. Ordnance moving through blast markers is destroyed on a D6 roll of 6 (section 11).
 
 **Ordnance attacks:** a marker that contacts a ship's base or an enemy ordnance marker attacks it immediately, with the effects given for its type. This includes contact made by a ship moving into ordnance during its own move. Unless stated otherwise, ordnance attacks ignore shields, and ordnance other than torpedoes is usually removed from play after attacking.
 
-**First contact:** ordnance must attack the first valid target it contacts, but is not required to move into contact with the nearest enemy. If two ships overlap so that it is impossible to tell which is closer to the attacking ordnance, the attacker chooses which one is attacked. Attack craft have one exception (section 15).
+**First contact:** ordnance must attack the first valid target it contacts, but is not required to move into contact with the nearest enemy. If two ships overlap so that it is impossible to tell which is closer to the attacking ordnance, the attacker chooses which one is attacked. Attack craft have one exception (section 18).
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Using Ordnance, Launching Ordnance, Moving Ordnance, Ordnance Attacks", p.26; "Advanced Rules - Shooting by Squadrons", p.45*
 
-## 13. Torpedoes
+## 16. Torpedoes
 
 The term 'torpedo' has always been used to describe any long-range missile carried by a spaceship. A typical anti-ship torpedo is over 200 feet long and powered by a plasma reactor, which also acts as a sizable portion of its warhead, turning it into a devastating plasma bomb. The area of a ship given over to the torpedo tubes is a massive space criss-crossed by lifts, hoists and gantry cranes for moving the huge missiles from the armored magazine silos where they are stored to the launch tubes.
 
@@ -344,7 +543,7 @@ On the turn it is launched, a torpedo salvo cannot attack a target that is not a
 
 ### Splitting Torpedo Salvos
 
-A single ship firing torpedoes at strength 7 or more may split its salvo into two separate markers. The two salvos must go in different directions (never both at the same target or in the same direction), and neither may contain fewer than three torpedoes. This applies only to individual ships; squadrons follow the combining rules in section 12.
+A single ship firing torpedoes at strength 7 or more may split its salvo into two separate markers. The two salvos must go in different directions (never both at the same target or in the same direction), and neither may contain fewer than three torpedoes. This applies only to individual ships; squadrons follow the combining rules in section 15.
 
 ### Firing Through Allies
 
@@ -358,7 +557,7 @@ Torpedoes that can turn are rotated about the centre of the marker at the start 
 
 **Standard torpedoes:** used by any ship whose torpedo type is not specified. They cannot turn once launched, and each hit inflicts 1 point of damage.
 
-**Boarding torpedoes:** manned, so they may turn up to 45° before moving. They always ignore friendly ships and attack craft, and may ignore drifting or burning hulks; otherwise they must attack the first enemy vessel they contact, and are still destroyed by contact with another torpedo marker. Each hit makes an immediate hit-and-run raid on the target (section 28).
+**Boarding torpedoes:** manned, so they may turn up to 45° before moving. They always ignore friendly ships and attack craft, and may ignore drifting or burning hulks; otherwise they must attack the first enemy vessel they contact, and are still destroyed by contact with another torpedo marker. Each hit makes an immediate hit-and-run raid on the target (section 31).
 
 **Short burn torpedoes:** speed 40cm. After the salvo has moved and made any attacks, roll a D6: on a 6 it runs out of fuel and is replaced with a blast marker. Otherwise they are standard torpedoes.
 
@@ -374,7 +573,7 @@ Torpedoes that can turn are rotated about the centre of the marker at the start 
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Types of Ordnance", p.27; "Torpedo Special Rules", pp.29-30*
 
-## 14. Mines
+## 17. Mines
 
 Space-borne mines almost always follow similar designs, regardless of which race constructs them. Although little more than self-guided explosives, mines are quite dangerous to enemy warships, and pose a substantial threat in large numbers.
 
@@ -388,19 +587,19 @@ Mines follow all the regular rules for ordnance regarding moving through blast m
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Types of Ordnance", p.27*
 
-## 15. Attack Craft
+## 18. Attack Craft
 
 Attack craft are launched from a ship's launch bays: each bay may launch one squadron per turn, so a Dictator with four bays launches four squadrons. Each squadron is a single 20mm square marker, with a different icon for each type of craft. The owner chooses which craft to launch at the time, from those the carrier has, and may launch several types at once or only one.
 
-**Movement:** attack craft may turn as often as desired and move in any direction, up to the speed on the carrier's profile. They need not move towards the nearest target or obstruction unless their move unavoidably brings them into contact. Attack craft that contact enemy ships or ordnance must attack immediately (sections 16-19).
+**Movement:** attack craft may turn as often as desired and move in any direction, up to the speed on the carrier's profile. They need not move towards the nearest target or obstruction unless their move unavoidably brings them into contact. Attack craft that contact enemy ships or ordnance must attack immediately (sections 19-1922).
 
 **Ships hiding under large bases:** unlike torpedoes and mines, attack craft may choose to attack an enemy ship with a small base 'hiding' within the footprint of a large ship's base, if they can actually reach it. This is the only way attack craft may ignore the first enemy ship they contact.
 
-Resilient and multi-role attack craft, waves and combat air patrol: sections 20-23.
+Resilient and multi-role attack craft, waves and combat air patrol: sections 23-2326.
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Attack Craft", p.28*
 
-## 16. Fighters
+## 19. Fighters
 
 Fighters are small, fast and extremely agile. They are only armed with weapons suitable for destroying torpedoes, mines, and other attack craft. In combat, the fighter's job is to intercept enemy ordnance and protect the vulnerable bombers and assault craft on their way to and from their target.
 
@@ -412,7 +611,7 @@ Vs Ships. The puny fighters cannot hope to damage the much larger vessel, so the
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules", p.31*
 
-## 17. Bombers
+## 20. Bombers
 
 Bombers are slower, heavier craft with destructive anti-ship weapons. Though vulnerable to enemy fighters, bombers can be a serious threat to ships.
 
@@ -424,7 +623,7 @@ Vs Ships. The bombers make an attack run on the ship. Make D6 rolls to hit again
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules", p.31*
 
-## 18. Torpedo Bombers
+## 21. Torpedo Bombers
 
 Torpedo bombers are bombers reconfigured to carry small anti-ship torpedoes, so they can attack from further away.
 
@@ -432,17 +631,17 @@ Against other ordnance, torpedo bombers count as bombers. They cannot attack shi
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules - Torpedo Bombers", p.31*
 
-## 19. Assault Boats
+## 22. Assault Boats
 
 Assault boats clamp onto a target and breach its hull, so that boarding parties can sabotage the ship from inside.
 
 **Vs ordnance markers:** enemy fighters remove assault boats normally. Any other ordnance is avoided: leave both markers in play, with no attack.
 
-**Vs ships:** each assault boat squadron makes an immediate hit-and-run raid against the ship (section 28), then is removed from play.
+**Vs ships:** each assault boat squadron makes an immediate hit-and-run raid against the ship (section 31), then is removed from play.
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules - Assault Boats", p.31*
 
-## 20. Resilient Attack Craft
+## 23. Resilient Attack Craft
 
 Some attack craft are so large and heavily armored that interception by enemy fighters may not always guarantee victory. Likewise, some fighters have expanded fuel reserves and armaments, allowing them to operate away from their mother ship for extended periods of time. This is represented by a 'resilient' save noted in an attack craft's description.
 
@@ -466,7 +665,7 @@ Note that the resolution process is the same even if both squadrons are resilien
 
 *Source: BFG:XR Rulebook (current), "Advanced Rules - Ordnance Phase", p.39*
 
-## 21. Multi-Role Attack Craft
+## 24. Multi-Role Attack Craft
 
 Certain fleets throughout the 41st Millennium make use of attack craft that are not restricted to just one type of mission profile, instead employing versatile multi-role attack craft.
 
@@ -480,7 +679,7 @@ When attacking in a wave, all multi-role attack craft that can function as both 
 
 *Source: BFG:XR Rulebook (current), "Advanced Rules - Ordnance Phase", p.39*
 
-## 22. Waves of Attack Craft
+## 25. Waves of Attack Craft
 
 When a ship launches its attack craft, it may choose to combine any number of them into a wave, which will move and attack together. To show attack craft deployed as a wave, place the markers so they're in one of the two formations below:
 
@@ -490,9 +689,21 @@ When a ship launches its attack craft, it may choose to combine any number of th
 
 The order of the markers (and which one is the lead marker) is important for resolving interactions with ships and other ordnance. For this purpose, any multi-role attack craft that function as fighters must be placed between pure fighters and other craft.
 
+**Forming and splitting:** a wave cannot change formation once launched, and formations cannot be mixed. Squadrons may split off from a wave when it moves, alone or as a new wave in the same formation. Once separated, attack craft can never combine or recombine into a wave.
+
+**Open information:** the contents of every wave are open: a close-formation stack cannot hide or bluff what is in it.
+
+**Wave movement:** a wave moves as a single marker for all movement, including contact with ships or ordnance and moving through blast markers (one roll for the whole wave). It moves at the speed of its slowest squadron.
+
+**Shooting at waves:** a wave counts as a single marker for enemy shooting, and is destroyed entirely by a single hit.
+
+**Waves against ordnance:** squadrons in a wave interact one at a time, starting with the lead marker and continuing in order, until one side is entirely removed or the lead squadron does not interact with the opposing marker. Keep the wave in contact as squadrons are removed.
+
+**Waves against ships:** when a wave contacts a ship that any of its squadrons must attack, the ship rolls its turrets once against the whole wave. Each success destroys one squadron, starting with the lead marker and continuing in order. The remaining squadrons then attack together. Afterwards the whole wave is removed, including squadrons that did not attack.
+
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Waves of Attack Craft", p.32*
 
-## 23. Combat Air Patrol (CAP)
+## 26. Combat Air Patrol (CAP)
 
 Due to the danger posed by enemy bombers, assault boats, and torpedoes, fleets will often employ fighter escorts to supplement the turret defences of their light and medium cruisers (although particularly important battleships will sometimes receive a few squadrons as well). This practice is called combat air patrol, or CAP.
 
@@ -530,7 +741,7 @@ Resilient bombers and assault boats that end their movement in base contact with
 
 *Source: BFG:XR Rulebook, "Advanced Rules - Ordnance Phase", p.40*
 
-## 24. Turret Suppression
+## 27. Turret Suppression
 
 Waves containing both fighters and bombers gain an additional bonus, as the fighters may temporarily neutralize enemy turrets before the bombers make their attack run. This is resolved as follows:
 
@@ -542,7 +753,7 @@ Multi-role squadrons that function as both fighters and bombers may either suppr
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Launching Waves of Attack Craft", p.32*
 
-## 25. Defence Turrets
+## 28. Defence Turrets
 
 Most warships mount numerous point-defence systems and automatic turrets for shooting down enemy ordnance during their final attack run. A ship's main armament is simply too huge and slow to track ordnance at such close ranges. However, turrets may be fired immediately whenever enemy ordnance touches the ship's base. This always takes effect before resolving any ordnance attacks. To fire turrets, roll a D6 for each point of the ship's Turrets value, and apply the relevant effect below:
 
@@ -558,13 +769,13 @@ Due to the greater difficulty tracking attack craft as opposed to torpedoes and/
 
 *Source: BFG:XR Rulebook (current), "The Ordnance Phase - Defence Turrets", p.28*
 
-## 26. Massed Turrets
+## 29. Massed Turrets
 
 Ships in base contact with a vessel under attack by ordnance may 'mass' their turrets with it. For each ship contributing its turrets, add +1 to the turret strength of the defending ship (limit +3). Ships that mass turrets are subject to the same restrictions as the defending ship regarding attack craft and other ordnance. Ships that are crippled or have no turrets may not contribute to this bonus, but may benefit from allied ships' turrets normally. As ships move individually, it is not usually possible to mass turrets during a vessel's move unless it contacts ordnance while moving through an allied ship's base.
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Defence Turrets / Massed Turrets", p.28*
 
-## 27. Shooting at Ordnance
+## 30. Shooting at Ordnance
 
 Ordnance may be fired at in the shooting phase with direct fire weapons. Ordnance is subject to the normal rules for target priority, but remember that ships firing at ordnance only count other enemy ordnance markers for the purposes of determining the nearest enemy.
 
@@ -574,7 +785,7 @@ Note that gunnery weapons firing at ordnance use the 'Ordnance' column on the Gu
 
 *Source: BFG:XR Rulebook, "The Ordnance Phase - Shooting at Ordnance", p.26*
 
-## 28. Hit-and-Run Raids
+## 31. Hit-and-Run Raids
 
 A hit-and-run raid is a small boarding party sent to sabotage an enemy ship. Raids come from boarding torps (one raid per hit), assault boats (one raid per squadron that reaches the target) and teleport attacks.
 
@@ -600,7 +811,7 @@ A hit-and-run raid is a small boarding party sent to sabotage an enemy ship. Rai
 
 *Source: BFG:XR Rulebook, "Attack Craft Special Rules - Assault Boats", p.31; "Hit-and-Run Attacks", p.33; "Teleport Attacks", p.42*
 
-## 29. Boarding Actions
+## 32. Boarding Actions
 
 **Moving in:** move the attacking vessel into base contact with the target and declare the boarding action. A ship that boards may not fire its weapons or launch ordnance in the same turn.
 
@@ -649,7 +860,7 @@ A hit-and-run raid is a small boarding party sent to sabotage an enemy ship. Rai
 
 *Source: BFG:XR Rulebook, "End Phase - Boarding Actions", pp.41-42*
 
-## 30. Damage & Critical Hits
+## 33. Damage & Critical Hits
 
 ### Taking Hits
 
@@ -667,9 +878,11 @@ Roll a D6 for each hit scored on a ship (but not against its shields). On a roll
 
 **Critical Hits on Small Targets:** Escorts and defences with less than 3 starting hits suffer one point of damage whenever they suffer a critical hit, instead of rolling on the table.
 
-**Critical Hits Table:** see Appendix 5, p.158.
+**Repeated and impossible critical hits:** if a location suffers several repairable critical hits, all of them must be repaired before it works again, and their effects are not cumulative unless stated. If a critical hit cannot be applied (a ship with no prow weapons rolls Prow Armament Damaged, say), or a location that cannot be repaired is hit again, apply the next higher result instead (Engine Room Damaged, in that example).
 
-## 31. Catastrophic Damage
+**Critical Hits Table:** see Appendix 5, p.169.
+
+## 34. Catastrophic Damage
 
 A ship with no hits left is effectively out of action. There may still be some crew left alive, trapped in compartments that have yet to be breached, and there may still be power available in some sections of the ship, but the vessel can no longer fight. When a ship is reduced to zero damage, do the following based on their type:
 
@@ -679,9 +892,19 @@ A ship with no hits left is effectively out of action. There may still be some c
 
 **Defences:** Any defences with 3 or more hits are treated as capital ships and may explode as normal. All other defences are replaced by a blast marker, like escorts.
 
-**Catastrophic Damage Table:** see Appendix 5, p.158.
+**Exploding vessels:** explosions from the Catastrophic Damage table are area-of-effect attacks, not blocked by line-of-sight obstructions such as hulks, minefields or celestial phenomena. Place one blast marker exactly where the ship was, then fan the rest out around it and touching it, without overlapping other blast markers unless there is no room. The normal restriction against placing blast markers in contact with nearby ships does not apply.
 
-## 32. Crippled Ships
+**Moving drifting and blazing hulks:** the owner may move their hulks in any order. Hulks are affected normally by blast markers and other speed modifiers, and take 1 point of damage from moving through blast markers on a D6 roll of 6, like other ships without shields. This does not include the blast marker a hulk places at the end of its own move.
+
+**Hulks in gravity wells:** a hulk in a gravity well must make any turns it gets towards the centre of the well, always turning the full amount, and makes both turns if it starts and ends its move in the well. A hulk that touches the base of a space hulk generating the well is removed (a blazing hulk first rolls once more on the Catastrophic Damage table).
+
+**Hulks in combat:** hulks block lines of fire to ships behind their base, and have no shields, turrets or other defences (such as holofields or reactive hulls). A hulk that is the closest enemy may be ignored for target priority; firing at a hulk that is not the closest still needs a target priority test. Ships and ordnance may never fire on, board or deliberately launch torpedoes at their own side's hulks, but enemies may. Roll to hit against the destroyed ship's Armour. A hulk that takes any hits rolls once on the Catastrophic Damage table (replacing its current result): once per attacking ship, squadron or ordnance wave, not once per hit.
+
+**Catastrophic Damage Table:** see Appendix 5, p.169.
+
+*Source: BFG:XR Rulebook, "The Shooting Phase - Catastrophic Damage", pp.23-24*
+
+## 35. Crippled Ships
 
 A ship which loses half its damage points (rounding up) is crippled.
 
@@ -691,7 +914,9 @@ For example, a standard Lunar class cruiser has 8 hits and is therefore crippled
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Damage / Crippled Ships", p.20*
 
-## 33. Damage Control & Blast Removal
+## 36. Damage Control & Blast Removal
+
+**End phase order:** resolve boarding actions and teleport attacks first, then damage control, then blast marker removal.
 
 Both players can attempt to repair critical damage during the end phase. Repair crews will be working continuously of course, welding up hull breaches, re-routing power conduits, putting out fires and generally trying to keep the ship functioning.
 
@@ -705,7 +930,7 @@ In addition, the player must also roll a D6 for each stationary defence (if any)
 
 *Source: BFG:XR Rulebook, "The End Phase - Damage Control / Blast Marker Removal", p.35*
 
-## 34. Disengaging
+## 37. Disengaging
 
 Sometimes it is better to run away and live to fight another day. A ship may be crippled with no hope of defeating its attackers, or just outnumbered so heavily that its captain decides that it's hopeless to fight on. The classic approach to disengaging is to make a sudden course alteration and then cut all power so that the ship cannot be detected by its energy emissions. With luck the vessel will simply drift out of the immediate battle area and can set course for home once it is clear of the fighting. This strategy is far from guaranteed to succeed however, and may leave the ship vulnerable if it fails.
 
@@ -723,9 +948,11 @@ If the test is passed, the disengaging ship is removed from the tabletop and may
 
 **Forced Disengagement:** Any ship or squadron that through any combination of effects is reduced to Leadership 1 or less must attempt to disengage or move off of the closest table edge (if possible).
 
+**Squadrons disengaging:** if any escort in a squadron disengages, the rest of the squadron must immediately try to disengage, by any means available, and keep trying every later turn. Capital ships always disengage individually, using their own Ld. A capital ship that tries and fails drops out of its squadron for good and acts as a single ship.
+
 *Source: BFG:XR Rulebook, "Advanced Rules - Disengaging from Combat", p.38*
 
-## 35. Victory Points
+## 38. Victory Points
 
 In many scenarios, the winner will be the player who scores the most victory points. Victory points are a measure of how much damage a fleet has inflicted on its enemy and are won by crippling and destroying enemy ships. Additional victory points can also be scored by achieving certain objectives, as detailed in the Victory Conditions section of the scenario, such as escaping an attack or attacking an enemy base. Victory points are earned as follows:
 
@@ -739,7 +966,49 @@ In many scenarios, the winner will be the player who scores the most victory poi
 
 *Source: BFG:XR Rulebook, "Scenarios - Victory Points", p.79*
 
-## 36. Terrain & Celestial Phenomena
+## 39. Terrain & Celestial Phenomena
+
+### Setting Up the Battlefield
+
+**Table:** a battlefield is usually 6'-8' long (about 1.8-2.4m) and 4'-6' wide (1.2-1.8m); on a smaller table, use proportionately smaller fleets. Any arrangement of celestial phenomena is acceptable as long as it is fair, and both players must agree to any piece that will dominate the battle (such as an asteroid belt across the whole table).
+
+**Battlezones:** a system has six battlezones, from the Flare Region nearest the sun out to Deep Space. The scenario may set the battlezone; if the players have a choice, use one of these methods:
+
+- *Player agreement:* agree on any battlezone the scenario allows.
+
+- *Home-field advantage:* if the scenario needs a planet, the defender chooses any allowed battlezone.
+
+- *Attack ratings:* each player secretly chooses a battlezone and adds its number to their fleet's attack rating. The higher total fights in the battlezone it chose.
+
+**Setting the table:** use one of these methods:
+
+- *Arbitrary setup:* one player places all the celestial phenomena, then the other picks a valid table edge to deploy from (ignoring scenario restrictions and roll-offs for deployment zones).
+
+- *Random generation:* divide the table into 60cm squares and roll a D6 for each. On a 4+, roll on the battlezone's table below and place the feature at least partly in that square, without overlapping another feature. If the result is a tabletop effect, note it down instead. Players may use their own tables instead.
+
+**Battlezone Phenomena Tables**
+
+| D6 | 1. Flare Region | 2. Mercurial Zone | 3. Inner Biosphere |
+|---|---|---|---|
+| 1 | Solar flare | Solar flare | Roll a D6: 1-3 solar flare, 5-6 radiation burst† |
+| 2 | Solar flare | Radiation burst | Asteroid field |
+| 3 | Radiation burst | Asteroid field | D3 asteroid fields |
+| 4 | Asteroid field | D3 gas/dust clouds | D3 gas/dust clouds |
+| 5 | D3 gas/dust clouds | D3 gas/dust clouds | D3 gas/dust clouds |
+| 6 | Planet (S/M) | Planet (S/M) | Planet (S/M) |
+
+| D6 | 4. Primary Biosphere | 5. Outer Reaches | 6. Deep Space |
+|---|---|---|---|
+| 1 | Asteroid field | D3+1 asteroid fields | D3 asteroid fields |
+| 2 | D3 asteroid fields | D3 asteroid fields | Asteroid field |
+| 3 | Gas/dust cloud | D3 gas/dust clouds | D3 gas/dust clouds |
+| 4 | D3 gas/dust clouds | Gas/dust cloud | Gas/dust cloud |
+| 5 | Planet (S/M) | Planet (S/L) | Warp rift |
+| 6 | Planet (S/M) | Planet (S/L) | Small planet (such as a rogue moon) |
+
+**Planet:** (S/M) roll a D6, 1-5 small, 6 medium; (S/L) roll a D6, 1-3 small, 4-6 large. There is never more than one planet on the table: if a second is generated, re-roll. Check whether a planet has moons; a large planet may also have rings.
+
+†The rulebook gives no result for a roll of 4 here.
 
 ### Planets
 
@@ -819,7 +1088,19 @@ Gas and dust clouds represent areas of space with a notably greater density of (
 
 *Source: BFG:XR Rulebook, "Celestial Phenomena - Tabletop Features", p.52-54*
 
-## 37. Celestial: Sun, Solar Flares & Radiation
+### Warp Rifts
+
+**Placement:** a warp rift is D3×5cm wide and D3×10cm long, in any orientation.
+
+**Effects:** warp rifts block line of sight for direct fire like an asteroid field, and torpedoes that hit one detonate. Attack craft that move into a rift are destroyed, and hulks that drift into one are lost (they cannot be salvaged after the battle).
+
+A ship moving into a warp rift must pass a Leadership test on 3D6 to navigate it. If it passes, place it up to 2D6×10cm from the rift, facing any direction. If it fails, it is lost in the warp and leaves the battle. After the game, roll a D6 for each ship lost in the warp: on a 1 it counts as destroyed, on 2-6 as disengaged.
+
+Defences must be placed at least 30cm from any warp rift.
+
+*Source: BFG:XR Rulebook, "Celestial Phenomena - Setting Up the Battlefield, Battlezones, Warp Rifts", pp.49-53*
+
+## 40. Celestial: Sun, Solar Flares & Radiation
 
 ### Sunward Table Edge
 
@@ -845,7 +1126,7 @@ As well as solar flares and often in conjunction with them, a sun will frequentl
 
 *Source: BFG:XR Rulebook, "Tabletop Features / Tabletop Effects" - Sunward p.52; Fighting Sunward, Solar Flares & Radiation Bursts p.55*
 
-## 38. Orbit & Atmosphere
+## 41. Orbit & Atmosphere
 
 ### High Orbit
 

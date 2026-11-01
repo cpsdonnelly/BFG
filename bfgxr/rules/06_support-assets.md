@@ -1,6 +1,48 @@
 # Support Assets (Rulebook p.61-75)
 
-Fleet-support ships and planetary defences, available to add to fleets from any list (subject to the Fleet Support rules on Rulebook p.61-64: high- and low-orbit defences cannot use most special orders, and so on). Launch bays carry the fielding fleet's own fighters and bombers, shown generically as ASF 30cm and BMR 20cm. A fleet may include up to three Blackstone Fortresses total.
+Fleet support units are high orbit defences, low orbit defences (ground facilities), system ships and convoy ships; the first three together are planetary defences. Scenarios say when they may or must be used. Units from this list are part of the fleet that buys them (not reserves or allies of convenience), but do not use that fleet's special rules unless stated. Faction-specific support units follow their own fleet list's rules instead.
+
+**Who may use them:** any fleet except Necrons and Tyranids may use the high orbit defences, ground facilities and system ships here; any fleet except Necrons, Tyranids, Eldar and Dark Eldar may use the convoy ships. Tau fleets may only use orbital stations from their own list. These units cannot be taken as reserves, and do not change a fleet's reserves.
+
+**Limits:** 0-4 Air Bases, 0-8 Defence Laser Silos, 0-8 Missile Silos, 0-2 Minefields, 0-6 Fire Ships, and 0-3 Blackstone Fortresses, all of the same type, with at most one Activated Blackstone Fortress per full 750 points of other ships. System ships are taken in squadrons of 1-6. Escort-sized convoy ships are taken in squadrons of 1-6; heavy transports are taken alone, but may form squadrons like cruisers at the start of the game. No squadron may have more than four 2-hit escorts.
+
+**Ordnance and upgrades:** these units cannot take upgrades or refits from the main fleet. Their launch bays carry generic fighters and bombers (ASF 30cm, BMR 20cm), never a faction's special attack craft, and their torpedoes are standard unless stated.
+
+**Leadership:** all fleet support units have Ld 7 for all command checks and leadership tests (faction-specific support units use their fleet list's rules).
+
+**Special orders:** high and low orbit defences can never use All Ahead Full, Burn Retros or Come to New Heading. System ships and convoy ships use special orders normally, but add only +3D6cm on All Ahead Full.
+
+**Squadrons:** units with 1 hit form squadrons of up to six, and others up to four; defences with more than 10 hits cannot form squadrons. A squadron may not mix categories (convoy ships with system ships, say), and support units never form squadrons with warships.
+
+**Deployment** (unless the scenario says otherwise): high orbit defences within the gravity well of a planet; low orbit defences with their stem on the planetary table edge and a 90° front arc facing straight 'up' the table, used for all their weapons; system ships within a planet's gravity well, following your fleet's deployment restrictions where possible; convoy ships as the scenario's transport rules say. Defences must be at least 30cm from any warp rift, defences in a squadron are placed in formation, and defences may touch but never overlap or stack.
+
+**Damage:** high orbit defences with 3 or more starting hits use the Space Station Critical Hits table (Appendix 3) instead of the normal one. Low orbit defences need the low orbit table, and ignore the usual restrictions on firing and launching ordnance there.
+
+**Including planetary defences:** choose them from this list and/or your faction list.
+
+- *Scenario driven:* some scenarios (such as Planetary Assault) give the defender extra points to spend on them.
+
+- *If a planet is present:* a small planet has D6-2 defences, a medium planet D6-1 and a large planet D6. Each is worth up to D6×5 points (roll separately), and several may be combined to buy one bigger defence (three 30-point defences for one 90-point defence). The scenario's defender controls the planet; with no defender, both players roll a D6 before choosing fleets. Avoid low orbit defences unless you already plan to use the low orbit table.
+
+- *From your points limit:* the defender in any scenario with a planet may spend up to a third of their points limit on planetary defences.
+
+- *In a campaign:* roll 2D6 (or choose) on the table below for the planet type. Each defence is worth up to D6×5 points, or comes from your points limit as above. The table can also generate a planet type in a one-off game.
+
+| 2D6 | Planet type | Defences |
+|---|---|---|
+| 2 | Forge World | D6+1 |
+| 3 | Hive World | D6 |
+| 4-5 | Civilised World | D6-1 |
+| 6-7 | Uninhabited | D3-1 |
+| 8-9 | Agri-World | D6-2 |
+| 10-11 | Mining World | D6-2 |
+| 12 | Penal Colony | D6 |
+
+**Convoy ships and transport capacity:** transport capacity measures mission cargo, and is used for convoy forces, scoring and victory conditions. Most convoy ships have 1 or more; some small ones have ½. Convoy ships larger than an escort halve their transport capacity while crippled. Some (escort carriers, Q-ships) count their capacity only when assembling the fleet: it counts towards the fleet's maximum number of convoy ships, but never scores.
+
+When a scenario sets a transport capacity requirement, include convoy ships from this list and/or your faction list totalling exactly that capacity, paying their points as normal, with at least one ship whose capacity counts during the game. Fleets with convoy ships in their own list may take them freely, with no capacity limit, but only in scenarios with no transport capacity requirement.
+
+*Source: BFG:XR Rulebook, "Fleet Support", pp.61-64, 75*
 
 **Arcs:** each bracket is one weapon mount at the listed FP or S. (L), (R) = two mounts, one per side, firing separately. (L/F/R) = one mount that can fire into any of those arcs, at one target.
 

@@ -737,7 +737,7 @@ class CombatPanel(CombatDialogMixin):
                 self.ctx.gs.ships, no_column_shifts=in_asteroid_field)
             _log(f"  {sr.description}")
 
-            # Nearest eligible ship takes hits until destroyed, then the next (s.5)
+            # Nearest eligible ship takes hits until destroyed, then the next (s.8)
             def _apply_to(member, n):
                 fresh = self.ctx.gs.get_ship_by_id(member.id)
                 if not fresh or fresh.is_destroyed:

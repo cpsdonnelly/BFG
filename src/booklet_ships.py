@@ -155,7 +155,7 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
                     problems.append(f"launch bay strength {bay['strength']} not modelled yet")
                     continue
                 # Random strength: rolled just before launching (owner ruling);
-                # counts its maximum towards the fleet's attack craft limit (s.12)
+                # counts its maximum towards the fleet's attack craft limit (s.15)
                 strength_dice = str(bay["strength"]).replace(" ", "").upper()
                 strength = dice_value_max(strength_dice)
             bay_d = {"name": f"{side} Launch Bays".strip(), "weapon_type": "launch_bay",

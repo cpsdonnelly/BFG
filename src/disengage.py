@@ -16,7 +16,7 @@ def check_off_table(ship: Ship, table_width: float, table_height: float) -> bool
 def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = None):
     """Handle a ship that has moved off the table edge.
 
-    Core rules s.5 (Maneuvering Squadrons): if it was an escort in a squadron,
+    Core rules s.8 (Maneuvering Squadrons): if it was an escort in a squadron,
     the rest of the squadron must immediately, and in later turns, attempt to
     disengage. The immediate test is taken right away (owner ruling); without
     dice the squadron is only flagged and tests at the end of the phase.
@@ -43,7 +43,7 @@ def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = 
 
 
 def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState) -> Dict:
-    """One disengage test for an escort squadron (s.5, s.34).
+    """One disengage test for an escort squadron (s.8, s.37).
 
     Owner ruling: the Leadership modifiers are those of the best-placed member
     (the highest resulting Leadership). Pass: the whole squadron disengages.
@@ -86,7 +86,7 @@ def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState) 
 
 def forced_disengage_tests(gs: GameState, dice: DiceRoller, player: int) -> List[Dict]:
     """End of a player's movement phase: each of their escort squadrons that
-    must disengage (s.5) takes its test, unless it already tested this turn."""
+    must disengage (s.8) takes its test, unless it already tested this turn."""
     squadrons: Dict[str, List[Ship]] = {}
     for s in gs.get_ships():
         if (s.player == player and s.must_disengage and not s.is_destroyed

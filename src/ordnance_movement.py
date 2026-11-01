@@ -91,7 +91,7 @@ class OrdnanceMovementMixin:
 
     def _raid_brace_fn(self, default_raids: int = 1):
         """Callback asking a raid target whether to Brace for Impact before
-        the raids are rolled (s.28). Returns fn(target, msg, n_raids=None)
+        the raids are rolled (s.31). Returns fn(target, msg, n_raids=None)
         -> (wanted, passed). The AI braces against more than two raids or
         when it has fewer than 6 hits left."""
         def _brace_fn(target_ship, msg, n_raids=None):
@@ -122,7 +122,7 @@ class OrdnanceMovementMixin:
 
     def _turn_boarding_torps(self, ships, mover=None):
         """Before ordnance moves, each boarding salvo launched on an earlier turn
-        may turn up to 45° (s.13). The owner chooses; the AI points it at the
+        may turn up to 45° (s.16). The owner chooses; the AI points it at the
         nearest enemy."""
         from tkinter import simpledialog
         from .ordnance import (boarding_torp_may_turn, boarding_torp_suggested_turn,
@@ -158,7 +158,7 @@ class OrdnanceMovementMixin:
     def _choose_mr_attack_modes(self, ships, removed, mover=None, touching=None) -> dict:
         """{marker id: "bomber" | "assault_boat"} for multi-role craft touching an
         enemy ship. Craft with only one attacking role use it; craft that can do
-        both attack the same way as the rest of their wave on that ship (s.21):
+        both attack the same way as the rest of their wave on that ship (s.24):
         the owner chooses (the AI raids ships with 3+ turrets, else bombs)."""
         from .geometry import circle_touches_square
         from .ordnance import craft_roles, MULTI_ROLE_TYPES, mr_attack_mode_ai
@@ -207,7 +207,7 @@ class OrdnanceMovementMixin:
 
     def _resolve_moving_ship_contacts(self):
         """Ships that moved into ordnance during their own move are attacked by
-        it now (s.12). execute_movement records the markers each ship touched."""
+        it now (s.15). execute_movement records the markers each ship touched."""
         gs = self.ctx.gs
         live = {o["id"] for o in gs.ordnance}
         for sd in list(gs.ships):
@@ -226,7 +226,7 @@ class OrdnanceMovementMixin:
 
     def _resolve_ship_contacts(self, ships, mover=None, skip_ids=frozenset(),
                                forced=None):
-        """Ordnance touching ships attacks them (s.12): turrets fire at incoming
+        """Ordnance touching ships attacks them (s.15): turrets fire at incoming
         attack craft, multi-role craft choose how to attack, then torpedoes,
         bombers, mines and assault boats resolve.
 
@@ -278,7 +278,7 @@ class OrdnanceMovementMixin:
                 to_remove_after.add(m.id)
 
         # Multi-role craft that can attack as bombers or assault boats choose
-        # now, after the turrets have fired, one way per wave (s.21)
+        # now, after the turrets have fired, one way per wave (s.24)
         mr_modes = self._choose_mr_attack_modes(ships, to_remove_after | skip_ids, mover,
                                                 touching)
 
@@ -520,14 +520,14 @@ class OrdnanceMovementMixin:
                 self.ctx.log(
                     f"  Tau missiles Str {marker.strength} auto-moved 20cm (minimum)")
 
-        # AI attack craft pick their targets for this move (s.15)
+        # AI attack craft pick their targets for this move (s.18)
         from .ordnance import assign_ai_craft_targets
         for player in (1, 2):
             if self.ctx.is_ai_controlled(player):
                 assign_ai_craft_targets(self.ctx.gs, player)
 
         # Both players move and attack with all their ordnance; the player whose
-        # turn it is moves all of theirs first (s.12)
+        # turn it is moves all of theirs first (s.15)
         active = self.ctx.gs.active_player
         for mover in (active, 2 if active == 1 else 1):
             ships = self.ctx.gs.get_ships()

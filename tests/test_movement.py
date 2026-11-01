@@ -60,7 +60,7 @@ def test_blast_slowdown_reduces_max():
 
 
 def test_blast_slowdown_applies_to_aaf():
-    # Owner ruling on s.8: AAF ships lose 5cm to blast markers too (must move exactly 19)
+    # Owner ruling on s.11: AAF ships lose 5cm to blast markers too (must move exactly 19)
     lo, hi = _speed(SpecialOrder.ALL_AHEAD_FULL.value, aaf_bonus=4, blast=True)
     assert lo == hi == 19
 

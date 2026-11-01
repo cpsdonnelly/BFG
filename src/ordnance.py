@@ -27,7 +27,7 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
     if marker.cap_ship_id:
         return
 
-    # Attack craft fly at their target, turning freely, up to their speed (s.15)
+    # Attack craft fly at their target, turning freely, up to their speed (s.18)
     if marker.ordnance_type in ATTACK_CRAFT_TYPES and marker.craft_target_id:
         point = craft_target_point(marker, game_state)
         if point is not None:
@@ -78,7 +78,7 @@ def craft_target_point(marker: OrdnanceMarker,
 
 def move_craft_toward(marker: OrdnanceMarker, tx: float, ty: float) -> float:
     """Move straight at (tx, ty), up to the craft's speed, stopping there if it
-    is closer (s.15: attack craft may turn as often as desired). Returns the
+    is closer (s.18: attack craft may turn as often as desired). Returns the
     distance moved."""
     dx, dy = tx - marker.x, ty - marker.y
     dist = math.hypot(dx, dy)
@@ -187,10 +187,10 @@ def is_boarding_torpedo(marker: OrdnanceMarker) -> bool:
 
 
 def torpedo_valid_target(marker: OrdnanceMarker, ship: Ship) -> bool:
-    """Ordnance attacks the first valid target it contacts (s.12). Any ship is a
-    valid target for torpedoes (s.13: friend or foe), hulks included (a hulk
+    """Ordnance attacks the first valid target it contacts (s.15). Any ship is a
+    valid target for torpedoes (s.16: friend or foe), hulks included (a hulk
     that takes damage rolls catastrophic damage again, owner ruling). Boarding
-    torpedoes always ignore friendly ships and may ignore hulks (s.13, Torpedo
+    torpedoes always ignore friendly ships and may ignore hulks (s.16, Torpedo
     Types); here they always pass over hulks, where a raid would do nothing."""
     if not is_boarding_torpedo(marker):
         return True
@@ -203,7 +203,7 @@ BOARDING_TORP_MAX_TURN = 45.0
 
 def boarding_torp_may_turn(marker: OrdnanceMarker, turn_number: int) -> bool:
     """Boarding torpedoes are manned and may turn up to 45° before moving, but
-    not in the ordnance phase of the turn they were launched (s.13)."""
+    not in the ordnance phase of the turn they were launched (s.16)."""
     return is_boarding_torpedo(marker) and marker.launched_turn < turn_number
 
 
@@ -230,7 +230,7 @@ def turn_boarding_torp(marker: OrdnanceMarker, degrees: float) -> None:
 def torpedo_in_launch_arc(marker: OrdnanceMarker, ship: Ship,
                           game_state: GameState) -> bool:
     """On the turn it is launched, a salvo cannot attack a target that is not
-    in its firing arc (s.13): the arc of the launcher's torpedo weapon, seen
+    in its firing arc (s.16): the arc of the launcher's torpedo weapon, seen
     from the launcher (which hasn't moved since it launched this turn)."""
     if marker.launched_turn != game_state.turn_number:
         return True
@@ -244,7 +244,7 @@ def torpedo_in_launch_arc(marker: OrdnanceMarker, ship: Ship,
 
 def torpedo_may_attack(marker: OrdnanceMarker, ship: Ship,
                        game_state: GameState) -> bool:
-    """A torpedo salvo touching this ship attacks it (s.12, s.13) unless it is
+    """A torpedo salvo touching this ship attacks it (s.15, s.16) unless it is
     not a valid target (torpedo_valid_target), it is outside the salvo's arc on
     its launch turn, or the salvo already attacked it this full turn (one
     player's turn and the other's: two turn numbers in this game)."""
@@ -263,7 +263,7 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     """Resolve torpedo attack. Bypasses shields. Turrets defend first.
     Turrets cannot fire if already used against attack craft this phase.
 
-    Boarding torpedoes (core rules s.28): each hit is one hit-and-run raid
+    Boarding torpedoes (core rules s.31): each hit is one hit-and-run raid
     instead of a point of damage. The target may brace before the raids are
     rolled: brace_decision_fn(target, msg, n_raids) -> (wanted, passed), as for
     assault boats; a ship already on Brace for Impact saves each raid on 4+.
@@ -271,7 +271,7 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     result = {"hits": 0, "turret_kills": 0, "remaining_strength": marker.strength,
               "raids": None}
 
-    # A hulk can no longer fight (s.31): no turret fire
+    # A hulk can no longer fight (s.34): no turret fire
     is_hulk = target.status in ("drifting_hulk", "burning_hulk")
     turrets = 0 if is_hulk else target.effective_turrets
 
@@ -366,7 +366,7 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     Turret defense: roll the ship's effective turrets (plus massed turret bonus).
     - If ANY die scores 4+: mine attacks with 4D6 instead of 8D6.
     - Otherwise: mine attacks with 8D6.
-    Mine damage ignores shields (core rules s.14; some rulebook printings say
+    Mine damage ignores shields (core rules s.17; some rulebook printings say
     otherwise, which the booklet calls an error).
     Turret restriction (torp/craft split) does not apply to mines.
     """
@@ -422,7 +422,7 @@ def resolve_bomber_interception(bomber_count: int,
     """
     Phase 1 turret interception: the target ship (plus massed turret bonus from
     non-crippled allies in base contact) fires at an incoming wave of attacking
-    craft (bombers and assault boats) before they attack (core rules s.25).
+    craft (bombers and assault boats) before they attack (core rules s.28).
 
     Each turret rolls D6; 4+ kills one marker (capped at bomber_count).
     Massed turret bonus applies here (long-range interception).
@@ -621,11 +621,11 @@ def is_torpedo_salvo(marker: OrdnanceMarker) -> bool:
 
 def friendly_ordnance_contact(m1: OrdnanceMarker, m2: OrdnanceMarker) -> Optional[str]:
     """What happens when two markers of the same player touch:
-    "collide" (two torpedo salvos detonate, s.13), "intercept" (a fighter
-    intercepts torpedoes, friend or foe, s.16), or None (no interaction).
+    "collide" (two torpedo salvos detonate, s.16), "intercept" (a fighter
+    intercepts torpedoes, friend or foe, s.19), or None (no interaction).
     Bombers and assault boats avoid ordnance other than enemy fighters
-    (s.17, s.19); mines ignore all ordnance except enemy fighters (s.14);
-    boarding torpedoes ignore friendly attack craft (s.13)."""
+    (s.20, s.22); mines ignore all ordnance except enemy fighters (s.17);
+    boarding torpedoes ignore friendly attack craft (s.16)."""
     t1, t2 = is_torpedo_salvo(m1), is_torpedo_salvo(m2)
     if t1 and t2:
         return "collide"
@@ -667,7 +667,7 @@ def resolve_ordnance_interactions(game_state: GameState,
                     continue
                 rm1, rm2 = True, True
                 if kind == "intercept":
-                    # A friendly fighter intercepts a torpedo salvo (s.16);
+                    # A friendly fighter intercepts a torpedo salvo (s.19);
                     # a resilient fighter may save
                     fighter = m1 if is_fighter_type(m1) else m2
                     if fighter.resilient_save > 0 and not fighter.resilient_used:
@@ -895,7 +895,7 @@ def reload_ship_ordnance(ship: Ship) -> List[str]:
 
 def torpedo_split_error(total: int, first: int, heading1: float,
                         heading2: Optional[float]) -> Optional[str]:
-    """Splitting Torpedo Salvos (s.13): a single ship firing strength 7 or more
+    """Splitting Torpedo Salvos (s.16): a single ship firing strength 7 or more
     may split into two salvos going in different directions, neither with fewer
     than three torpedoes. Returns an error message, or None if allowed.
     first == total means no split."""
@@ -916,7 +916,7 @@ def torpedo_launch_strength(ship: Ship, weapon: Dict,
     """Strength of a salvo launched now: (strength, rolled). A random strength
     (strength_dice, e.g. Ork Torps S D6) is rolled just before launching (owner
     ruling); then it is halved (rounding up) if the ship is crippled, and again
-    if it is braced, as for any ordnance (s.12)."""
+    if it is braced, as for any ordnance (s.15)."""
     rolled = None
     if weapon.get("strength_dice") and dice is not None:
         from .combat import roll_dice_value
@@ -980,7 +980,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
         can_turn=(torpedo_type == "guided"),
         turn_angle=45 if torpedo_type == "guided" else 0,
         launch_exempt_ships=compute_torpedo_launch_exempt(ship, game_state),
-        # The launcher's raid bonuses go with its boarding torps (s.28)
+        # The launcher's raid bonuses go with its boarding torps (s.31)
         special_rules=list(ship.special_rules),
     )
     game_state.add_ordnance(marker)
@@ -1002,14 +1002,14 @@ CRAFT_STATS = {
     "fighter": (OrdnanceType.FIGHTER.value, 30, 0),
     "bomber": (OrdnanceType.BOMBER.value, 20, 0),
     "assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
-    # Multi-role craft (s.21)
+    # Multi-role craft (s.24)
     "thunderhawk": (OrdnanceType.THUNDERHAWK.value, 20, 4),
     "gun_cutter": (OrdnanceType.GUN_CUTTER.value, 20, 4),
     "fighta_bommer": (OrdnanceType.FIGHTA_BOMMER.value, 25, 0),
 }
 
 # What each attack craft type can act as. Multi-role craft follow the rules of
-# every role they have (s.21): Thunderhawks fighter/bomber/assault boat (Space
+# every role they have (s.24): Thunderhawks fighter/bomber/assault boat (Space
 # Marine rules), Gun-Cutters fighter + assault boat (Inquisition rules),
 # Fighta-Bommerz fighter + bomber (Ork rules: "multi-role", D3+1 attacks).
 CRAFT_ROLES = {
@@ -1032,7 +1032,7 @@ def craft_roles(ordnance_type: str) -> Tuple[str, ...]:
 
 def attacks_ships(ordnance_type: str) -> bool:
     """Attack craft that must attack enemy ships they contact: bombers and
-    assault boats, including multi-role craft with either role (s.21)."""
+    assault boats, including multi-role craft with either role (s.24)."""
     roles = craft_roles(ordnance_type)
     return "bomber" in roles or "assault_boat" in roles
 
@@ -1051,10 +1051,10 @@ def craft_stats(craft_type: str, bay_weapons: List[Dict]) -> Tuple[str, float, i
 
 def bay_launch_capacity(ship: Ship, bay_weapons: List[Dict],
                         dice: Optional[DiceRoller] = None) -> Tuple[int, List[str]]:
-    """Squadrons this ship may launch now: one per launch bay (s.15). Random bay
+    """Squadrons this ship may launch now: one per launch bay (s.18). Random bay
     strengths (strength_dice, e.g. Ork D3+1) are rolled just before launching
     (owner ruling); then halved (rounding up) if crippled, and again if braced
-    (s.12). Returns (capacity, log lines)."""
+    (s.15). Returns (capacity, log lines)."""
     from .combat import roll_dice_value
     total, log = 0, []
     for w in bay_weapons:
@@ -1074,7 +1074,7 @@ def bay_launch_capacity(ship: Ship, bay_weapons: List[Dict],
 def fleet_craft_slots(game_state: GameState, player: int) -> int:
     """Attack craft markers the player may still put in play: launch bays
     remaining in the fleet (random bays count their maximum) minus markers
-    already in play (s.12)."""
+    already in play (s.15)."""
     bays = sum(w.get("strength", 0)
                for s in game_state.player_ships(player)
                if not s.is_destroyed and not s.is_disengaged
@@ -1088,7 +1088,7 @@ def fleet_craft_slots(game_state: GameState, player: int) -> int:
 def fleet_craft_excess(game_state: GameState, player: int) -> int:
     """Attack craft markers in play beyond the fleet's remaining launch bays
     (after critical damage or lost ships). The owner must remove that many the
-    next time a new squadron is launched (s.12)."""
+    next time a new squadron is launched (s.15)."""
     bays = sum(w.get("strength", 0)
                for s in game_state.player_ships(player)
                if not s.is_destroyed and not s.is_disengaged
@@ -1101,7 +1101,7 @@ def fleet_craft_excess(game_state: GameState, player: int) -> int:
 
 def recall_craft(game_state: GameState, player: int, marker_ids: List[str]) -> int:
     """Remove the player's own attack craft squadrons from play (recalling them
-    frees launch capacity, s.12). Returns how many were removed."""
+    frees launch capacity, s.15). Returns how many were removed."""
     ids = set(marker_ids)
     keep = [o for o in game_state.ordnance
             if not (o["id"] in ids and o.get("owner_player") == player
@@ -1122,7 +1122,7 @@ def ai_craft_to_recall(game_state: GameState, player: int, n: int) -> List[str]:
 
 
 def mr_attack_mode_ai(target: Ship) -> str:
-    """AI choice for craft that can attack as bombers or assault boats (s.21):
+    """AI choice for craft that can attack as bombers or assault boats (s.24):
     raid ships whose turrets would cut bomber attacks down."""
     return "assault_boat" if target.effective_turrets >= 3 else "bomber"
 

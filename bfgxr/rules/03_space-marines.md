@@ -26,6 +26,24 @@
 
 **Chapter Tactics** (the Master of the Fleet may take one, affecting all relevant ships): Dark Age Plasma Batteries, Lightning Thrusters, Pack Hunter Protocols, Promethean Unguents, Siege Cannons, Wings of Fury, Shadow Engines, Tactical Reserves, and Heed the Machine Spirit. A fleet with no chosen tactic instead gets **Tactical Flexibility** (-10 pts on Strike Cruiser Variant refits, min 0).
 
+*Dark Age Plasma Batteries:* All capital ships have their Speed reduced to 20cm (unless already slower), but as long as they do not move more than 10cm, their macrobatteries have 45cm range and do not suffer a right column-shift for firing at targets more than 30cm away.
+
+*Lightning Thrusters:* Vanguard cruisers may still conduct teleport attacks and either fire macrobatteries at full effectiveness or turn up to 45° while on All Ahead Full special orders. In addition, you may count up to 4 vanguard cruisers against your fleet's maximum number of strike cruisers (rather than the normal limit).
+
+*Pack Hunter Protocols:* Escorts and vanguard cruisers add +1 to their troop rating while fighting a combined boarding action against a larger ship if they combine their efforts only with other members of their own squadron. This bonus applies per member, so three members boarding the same target would add a total of +3 to their combined troop rating.
+
+*Siege Cannons:* Whenever a battle barge or strike cruiser fires its macrobatteries and bombardment cannons together, add both weapons' firepower together and look up the corresponding number of to-hit rolls on the gunnery table. Any of these in excess of the bombardment cannons' firepower are first made by the macrobatteries, and the rest are then made by the bombardment cannons. However, when a ship with bombardment cannons fires its macrobatteries on their own, they suffer an extra right column-shift.
+
+*Wings of Fury:* Your Thunderhawks have 30cm speed and may re-roll the results of their hit-and-run raids. The second result stands, even if it is worse.
+
+*Shadow Engines:* Escort squadrons automatically pass leadership tests to navigate asteroid fields and cannot be targeted by lances or gunnery weapons beyond 30cm if they are not the closest target (regardless of target priority). This tactic has no effect against Tyranids or Necrons.
+
+*Tactical Reserves:* Battle barges only reduce the effectiveness of their gunnery weapons by 25% (rounding up) instead of 50% while on All Ahead Full or Burn Retros special orders and are only slowed by blast markers if they are in contact with two or more markers simultaneously.
+
+*Promethean Unguents:* Your barrage bombs always hit on a roll of 4+ but do not inflict damage. Instead, for each hit, place a blast marker in contact with the target's base (fanning out from where the salvo made contact, just like shield impacts). If at least one hit is scored, the target's Turrets value is also halved (rounding up) for the next ordnance attack resolved against it in the same turn. In addition, your Thunderhawks may move through blast markers without requiring a roll.
+
+*Heed the Machine Spirit:* After making saving throws, a braced capital ship may take a leadership test counting as Leadership 7 (ignoring all modifiers). If the test is passed, one failed saving throw is treated as successful instead. A ship may only use this ability once per attacker per turn.
+
 **Teleport Assault:** Space Marines may teleport-attack targets with more remaining hits than the attacker. *Honor Guards* (one per ship) double teleport range: a Veteran honor guard rolls 2D6 choosing one result; a Terminator honor guard rolls 3D6 choosing two.
 
 Space Marine attack craft are Thunderhawks (MR, 20cm; multi-role fighter/bomber/assault boat, 4+ resilient save, already in the booklet's Chapter Tactics rules) and Shark Assault Boats (AB, 30cm). "Standard or Boarding" torpedoes means the ship may fire either type as normal. Several escort classes (Firestorm, Sword, Falchion, Cobra "Rapid Strike Vessels") are reprints of the identical Imperial Navy profile and gain no Space Marine special rules; the Nova, Gladius, and Hunter classes are shared with the Mechanicus and Grey Knights sub-lists (same profile everywhere).
@@ -107,7 +125,7 @@ Deployed as a high-orbit defence; follows the Fleet Support orbital-satellite ru
 
 **Quadrants:** weapons, hits, and defences are split into four quadrants (front/back/left/right of the station). Attacks and ordnance hit the quadrant found by tracing a line from the firer to the station's centre (or the first quadrant an ordnance marker touches). Each quadrant has its own shields; blast markers go against the model's base and affect the quadrant taking fire plus the two adjacent quadrants (unremoved markers stay in place through a rotation). Each quadrant automatically counts as massing turrets with its two neighbours, plus any docked ships (subject to the normal +3 cap); crippled/destroyed quadrants don't contribute. Nova cannons and Armageddon guns only score the D6 "direct hit" against the quadrant under the center hole.
 
-**Damage:** all damage and criticals affect only the quadrant hit. A quadrant is crippled individually at 6 Damage Points remaining; at 0 hits it becomes an asteroid field for line-of-sight and movement purposes but stays part of the model. Damage control is rolled per quadrant. The whole fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll (see the Fortress-Monastery Catastrophic Damage table, p.155). Critical hits use the Fortress-Monastery Critical Hits table (p.155) instead of the normal table.
+**Damage:** all damage and criticals affect only the quadrant hit. A quadrant is crippled individually at 6 Damage Points remaining; at 0 hits it becomes an asteroid field for line-of-sight and movement purposes but stays part of the model. Damage control is rolled per quadrant. The whole fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll (see the Fortress-Monastery Catastrophic Damage table, p.165). Critical hits use the Fortress-Monastery Critical Hits table (p.165) instead of the normal table.
 
 **The Basilica:** the central weapons (Macrobatteries, Torps) cannot be targeted separately and are destroyed only when the whole station is; damage that would hit the Basilica (such as its own ordnance detonating from a critical) is instead distributed among the remaining quadrants. Basilica weapons act under every quadrant's special orders simultaneously (so they can be Locked On, Reloading, and Braced all at once); Brace for Impact still halves their firepower and strength as normal.
 

@@ -64,7 +64,7 @@ Some Ork weapons have random firepower or strength (e.g. D6+1). Roll each time t
 
 **Turret Defences:** Ork turrets only score hits on 5+ rather than 4+, and do not differentiate between attack craft, torpedoes, and mines: Ork vessels always use their turrets against all attacking ordnance, regardless of type.
 
-**Ork Fighta-Bommerz:** multi-role attack craft (see main rulebook for multi-role rules) with limited armaments. They make only D3+1 attacks per squadron and cannot suppress turrets. Enemy turrets cannot reduce their attacks below 1 per squadron, as Ork pilots always try to ram the target.
+**Ork Fighta-Bommerz:** multi-role attack craft (section 24) with limited armaments. Each squadron makes only D3+1 attacks, and they cannot suppress turrets (section 27). The target's turrets value cannot reduce a squadron's attacks below 1 (section 20), as Ork pilots always try to ram the target. Squadrons shot down by the turrets are still removed as normal and make no attacks.
 
 **Grabbin' Klaws:** after a ship with grabbin' klaws resolves a boarding roll as the attacker, if it failed to destroy the defender (and was not destroyed itself), roll 2D6. If both dice score 4+, the Ork vessel and the defending ship become temporarily locked together (as a drawn combat). This does not change the boarding action's outcome; the ships stay locked only until the end of the next turn. Ships may keep using their grabbin' klaws while locked, holding the target as long as they keep rolling two 4+. If several ships with grabbin' klaws combine their efforts in one boarding action, roll 1D6 per set of klaws at once instead of separate 2D6 rolls; if at least two of those dice score 4+, all attackers with klaws lock onto the defender and keep combining boarding efforts each turn they stay locked. Crippled ships cannot use grabbin' klaws.
 
@@ -176,7 +176,7 @@ Default Leadership 6. Never crippled; destroyed only. Follows normal ship rules 
 
 **Movement:** moves exactly 10cm straight each turn, never slowed by blast markers or damage. May turn up to 45° only at the end of the move and only every second phase. In a planet's or moon's gravity well it may make one 45° turn toward that body even if it already turned; it also creates its own gravity well 5cm out from its base, which ships and Roks can orbit (orbiting objects move with it until they break orbit).
 
-**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.156), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
+**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.166), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
 #### Ork Rok (Xenos p.72)
 

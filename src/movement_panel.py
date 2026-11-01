@@ -28,7 +28,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 self.ctx.gs.update_ship(u)
             return u
 
-        # Ordnance the ship ran into during its move attacks it (s.12)
+        # Ordnance the ship ran into during its move attacks it (s.15)
         self.ctx.ordnance._resolve_moving_ship_contacts()
 
         updated = self.ctx.gs.get_ship_by_id(ship_id)
@@ -173,7 +173,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
 
     def _retry_short_of_blast(self, ship, result, order, aaf_bonus):
         """If a straight move failed because blast markers shortened the ship's
-        move (owner ruling on s.8), retry it at the distance actually allowed."""
+        move (owner ruling on s.11), retry it at the distance actually allowed."""
         allowed = result.max_allowed - ship.distance_moved_this_turn
         if result.valid or not result.crossed_blast_markers or allowed <= 0.05:
             return result

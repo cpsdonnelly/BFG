@@ -422,7 +422,7 @@ class AIPlayer:
                                f"{weapon['strength_dice']} = {pool}")
                 weapon = shot_weapon(weapon, pool)
 
-            # A ship in a squadron can't be picked out: fire at the squadron (s.5)
+            # A ship in a squadron can't be picked out: fire at the squadron (s.8)
             group = squadron_group(target, gs.get_ships())
             if len(group) > 1 and wtype in ("battery", "lance"):
                 crit_on = weapon.get("crit_on", 6)
@@ -588,7 +588,7 @@ class AIPlayer:
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
                 # All of the ship's bays launch together: launching any craft
-                # means reloading before launching again (s.12)
+                # means reloading before launching again (s.15)
                 bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
                 craft_types = [ct for w in bays for ct in w.get("craft_types", [])]
                 if not craft_types:
@@ -601,7 +601,7 @@ class AIPlayer:
                 else:
                     wanted = multi_role + ("starhawk_bomber", "manta", "bomber")
                 preferred = next((ct for ct in wanted if ct in craft_types), craft_types[0])
-                # Craft in play beyond the fleet's bays must go first (s.12)
+                # Craft in play beyond the fleet's bays must go first (s.15)
                 excess = fleet_craft_excess(gs, self.player)
                 if excess:
                     recall_craft(gs, self.player, ai_craft_to_recall(gs, self.player, excess))

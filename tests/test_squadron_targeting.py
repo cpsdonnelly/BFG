@@ -136,7 +136,7 @@ class TestGunneryColumnSelection:
 
 
 class TestAllocateSquadronHits:
-    """Core rules s.5 Shooting at Squadrons: nearest eligible ship until it is
+    """Core rules s.8 Shooting at Squadrons: nearest eligible ship until it is
     destroyed (critical damage included), then the next takes what is left."""
 
     def _apply(self, gs, dice):
@@ -203,7 +203,7 @@ class TestAllocateSquadronHits:
 
 
 class TestTargetAspect:
-    """s.5 Target aspect, owner's example: two escorts under 15cm, one closing
+    """s.8 Target aspect, owner's example: two escorts under 15cm, one closing
     and one abeam. FP4 at the closing aspect rolls 3 dice but can only hit the
     closing escort; at the abeam aspect it rolls 1 die that can hit either."""
 

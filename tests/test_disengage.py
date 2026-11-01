@@ -114,7 +114,7 @@ def test_attempt_disengage_effective_ld_capped_at_10():
     assert info["effective_ld"] <= 10
 
 
-# ── s.5 Maneuvering Squadrons: escort squadron that loses a ship off the table ──
+# ── s.8 Maneuvering Squadrons: escort squadron that loses a ship off the table ──
 
 def _escort_squadron(n=3, **kw):
     return [make_ship(id=f"e{i}", name=f"E{i}", player=1, ship_type="escort", hits_max=1,

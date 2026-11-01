@@ -1,5 +1,5 @@
 """Owner ruling: a hulk that takes at least one point of damage rolls on the
-Catastrophic Damage table again. Standard torpedoes attack hulks (s.13)."""
+Catastrophic Damage table again. Standard torpedoes attack hulks (s.16)."""
 from tests.conftest import make_ship, make_gs, DiceStub
 from src.combat import apply_damage
 from src.models import OrdnanceMarker, OrdnanceType

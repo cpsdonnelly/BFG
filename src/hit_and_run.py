@@ -49,7 +49,7 @@ from .combat import uses_crit_table
 
 
 def teleport_range(ship: Ship) -> int:
-    """10cm (s.28); honour guards double it (Space Marine Teleport Assault)."""
+    """10cm (s.31); honour guards double it (Space Marine Teleport Assault)."""
     honour_guard = ("terminator_honour_guard" in ship.special_rules
                     or "veteran_honour_guard" in ship.special_rules)
     return 20 if honour_guard else 10

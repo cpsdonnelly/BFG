@@ -20,7 +20,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
     def _recall_craft_dialog(self, player: int, must_remove: int = 0) -> int:
         """Pick friendly attack craft squadrons to remove from play, freeing
-        launch capacity (s.12). must_remove > 0 when the fleet has more craft in
+        launch capacity (s.15). must_remove > 0 when the fleet has more craft in
         play than launch bays left: that many have to go before launching.
         Returns how many were recalled."""
         from .ordnance import ATTACK_CRAFT_TYPES, recall_craft
@@ -34,9 +34,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
         dialog.title("Recall Attack Craft")
         dialog.transient(self.ctx.root)
         msg = ("Your fleet has more attack craft in play than launch bays left: "
-               f"remove {must_remove} squadron(s) before launching (s.12)."
+               f"remove {must_remove} squadron(s) before launching (s.15)."
                if must_remove else
-               "Remove squadrons from play to free launch capacity (s.12).")
+               "Remove squadrons from play to free launch capacity (s.15).")
         tk.Label(dialog, text=msg, font=("Consolas", 8), wraplength=380,
                  justify=tk.LEFT).pack(padx=8, pady=4)
         picks = []
@@ -71,7 +71,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
     def _excess_craft_removed(self, player: int) -> bool:
         """Before a new squadron launches, craft beyond the fleet's remaining
-        bays must be removed (s.12). False if the player didn't remove them."""
+        bays must be removed (s.15). False if the player didn't remove them."""
         from .ordnance import fleet_craft_excess
         excess = fleet_craft_excess(self.ctx.gs, player)
         if excess:
@@ -81,7 +81,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
     def _craft_orders_dialog(self):
         """Give attack craft squadrons a target: an enemy ship, an enemy ordnance
         marker or a friendly ship to escort. Each time ordnance moves, a squadron
-        flies straight at its target up to its speed, turning freely (s.15);
+        flies straight at its target up to its speed, turning freely (s.18);
         without a target it carries straight on. Orders last until changed."""
         from .ordnance import ATTACK_CRAFT_TYPES
         gs = self.ctx.gs
@@ -101,7 +101,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
         dialog.title("Attack Craft Orders")
         dialog.transient(self.ctx.root)
         tk.Label(dialog, text="Each squadron flies at its target, up to its speed, every "
-                              "time ordnance moves (s.15).",
+                              "time ordnance moves (s.18).",
                  font=("Consolas", 8), fg="#AAAAAA").pack(padx=8, pady=4)
         frame = tk.Frame(dialog)
         frame.pack(fill=tk.BOTH, expand=True, padx=8)
@@ -666,14 +666,14 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         self.ctx.gs.update_ship(fresh)
 
             else:
-                # Craft launch: excess craft must be removed first (s.12)
+                # Craft launch: excess craft must be removed first (s.15)
                 if not self._excess_craft_removed(player):
                     return
                 current_remaining = max(
                     0, self._get_player_bay_capacity(player)
                        - self._count_active_craft(player))
                 # One squadron per bay of the contributing ships; random bay
-                # strengths are rolled now (s.15)
+                # strengths are rolled now (s.18)
                 group_cap = 0
                 for c in contributors:
                     if not c.ordnance_loaded_craft:
@@ -885,7 +885,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                              font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
                     tk.Label(torp_frame,
                              text=f"Str {rolled_str or total_str}: Str 7+ may split into two "
-                                  f"salvos of at least 3, in different directions (s.13)",
+                                  f"salvos of at least 3, in different directions (s.16)",
                              font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=10)
                 else:
                     tk.Label(split_frame,
@@ -933,7 +933,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         self.ctx.log(f"{ship.name} {w['name']}: rolled "
                                      f"{w['strength_dice']} = {rolled_now}"
                                      + (f", Str {total} after halving" if total != rolled_now else ""))
-                    # Enforce split rules (s.13)
+                    # Enforce split rules (s.16)
                     if total < 7 or strength is None:
                         strength = total  # can't split below Str 7
                     else:
@@ -1307,7 +1307,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         "their mission before more can be launched.")
                     return
 
-                # One squadron per bay; random bay strengths rolled now (s.15)
+                # One squadron per bay; random bay strengths rolled now (s.18)
                 ship_cap, roll_log = bay_launch_capacity(ship, bay_weapons, self.ctx.dice)
                 for line in roll_log:
                     self.ctx.log(line)
@@ -1326,7 +1326,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     o_type, spd, resil = craft_stats(ct, bay_weapons)
 
                     # CAP only applies to craft that can act as fighters (incl.
-                    # multi-role craft, s.21); bombers (incl. Manta) cannot CAP
+                    # multi-role craft, s.24); bombers (incl. Manta) cannot CAP
                     can_cap = "fighter" in craft_roles(o_type)
                     if cap_var.get() and not can_cap:
                         messagebox.showerror(

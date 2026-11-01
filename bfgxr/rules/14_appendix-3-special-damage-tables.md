@@ -1,6 +1,6 @@
 # Appendix 3 - Special Damage Tables
 
-*Critical hits and catastrophic damage for the Ramilies Star Fort, the Fortress-Monastery, and the Chaos and Ork Space Hulks. Everything else uses Appendix 5, p.158.*
+*Critical hits and catastrophic damage for the Ramilies Star Fort, the Fortress-Monastery, the Chaos and Ork Space Hulks, and space stations and other high orbit defences with 3 or more starting hits. Everything else uses Appendix 5, p.169.*
 
 ### Imperial Navy
 
@@ -34,7 +34,7 @@
 
 ### Space Marines
 
-The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical Hits Table** and **Catastrophic Damage Table (p.155)**.
+The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical Hits Table** and **Catastrophic Damage Table (p.165)**.
 
 ### Chaos
 
@@ -50,4 +50,22 @@ The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical
 
 ### Orks
 
-The Ork Space Hulk uses the shared **Space Hulk Critical Hits Table (p.156)**.
+The Ork Space Hulk uses the shared **Space Hulk Critical Hits Table (p.166)**.
+
+### Fleet Support
+
+**Space Station Critical Hits Table**
+
+*Used by high orbit defences with 3 or more starting hits. Roll 2D6. Source: BFG:XR Rulebook, "Fleet Support", p.62.*
+
+| 2D6 | Extra Damage | Result |
+|---|---|---|
+| 2-3 | +0 | **Lances damaged.** The station may not fire its lances until repaired. |
+| 4 | +0 | **Main armament damaged.** The station's weapons batteries may not fire until repaired. |
+| 5 | +0 | **Ordnance bays hit.** The station may not launch ordnance until repaired, and its bays do not count towards the fleet's launch capacity. |
+| 6 | +1 | **Reactors damaged.** The station's shields and turrets are halved (rounding up) until repaired. |
+| 7 | +0 | **Fire!** Each fire the station fails to extinguish in the end phase inflicts 1 point of damage. |
+| 8-9 | +1 | **Orbit lost.** The station falls D6cm towards the planet's marker in each of its movement phases until repaired, or until it hits the marker and is destroyed. |
+| 10 | +0 | **Shields collapse.** Shield strength reduced to zero (cannot be repaired). |
+| 11 | +D3 | **Hull breach.** |
+| 12 | +D6 | **Bulkhead collapse.** |

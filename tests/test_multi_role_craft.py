@@ -1,4 +1,4 @@
-"""Multi-role attack craft (s.21) and random launch bay strength."""
+"""Multi-role attack craft (s.24) and random launch bay strength."""
 import pytest
 from tests.conftest import make_ship, make_gs, DiceStub
 from src.models import OrdnanceMarker, OrdnanceType as OT
@@ -127,7 +127,7 @@ def test_explorer_rear_armour():
     assert e.playable and (e.armor_prow, e.armor_side, e.armor_rear) == ("5+", "5+", "4+")
 
 
-# ── Recalling attack craft (s.12) ────────────────────────────────────────────
+# ── Recalling attack craft (s.15) ────────────────────────────────────────────
 from src.ordnance import fleet_craft_excess, recall_craft, ai_craft_to_recall
 
 

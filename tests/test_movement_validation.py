@@ -264,7 +264,7 @@ def test_aaf_speed_sum_of_4d6():
     assert bonus == 3 + 4 + 5 + 6
 
 
-# ── Minimum distance before EACH turn (s.7, Appendix: Come to New Heading) ────
+# ── Minimum distance before EACH turn (s.10, Appendix: Come to New Heading) ────
 
 def test_ctnh_second_turn_needs_minimum_distance():
     # Cruiser on CtNH: 10cm, turn, only 5cm, turn again -> invalid

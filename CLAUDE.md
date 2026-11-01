@@ -11,15 +11,16 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   those generated files by hand; the `.docx` in `bfgxr/source/` is the master.
 - Never invent rules, stats or values. If the booklet doesn't cover something, say so and
   ask the owner.
-- Core rules sections most often needed: Movement (7), Moving Through Blast Markers (8),
-  Ramming (9), Ordnance: Launching, Moving & Attacking (12), Torpedoes incl. torpedo types (13),
-  Attack Craft (15), Hit-and-Run Raids incl. teleport attacks (28), Boarding Actions (29),
-  Damage & Critical Hits (30), Catastrophic Damage (31). `bfgxr/CHANGES.md` lists what each
+- Core rules sections most often needed: Basics (1), The Turn (2), Fleet Commanders (5),
+  Special Orders (7), Squadrons (8), Movement (10), Shields & Blast Markers (11), Ramming (12),
+  Direct Fire (13), Ordnance: Launching, Moving & Attacking (15), Torpedoes incl. torpedo types
+  (16), Attack Craft (18), Hit-and-Run Raids incl. teleport attacks (31), Boarding Actions (32),
+  Damage & Critical Hits (33), Catastrophic Damage (34). `bfgxr/CHANGES.md` lists what each
   export changed (read it after every new export: it flags renamed fields and spelling changes).
   Sections are numbered in `bfgxr/rules/00_core-rules.md`.
-- Victory points: core section 35 and the "Victory Points" part of `bfgxr/rules/10_scenarios.md`
+- Victory points: core section 38 and the "Victory Points" part of `bfgxr/rules/10_scenarios.md`
   give the same rules: Destroyed, Crippled, Scattered (disengaged) and Holding the Field.
-- Squadrons (s.5) include Maneuvering Squadrons and Shooting at Squadrons (target aspect, hit
+- Squadrons (s.8) include Maneuvering Squadrons and Shooting at Squadrons (target aspect, hit
   allocation nearest-first, critical damage applied before a ship counts as destroyed).
 - `data/rules_cheatsheet.txt` and `data/*.csv` (plus the copies in the repo root) are an
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
@@ -41,29 +42,29 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   "Messenger" is the booklet's Messenger Starship, an escort (the game wrongly lists it as a
   light cruiser).
 - **Escorts never become hulks:** they are too small. An escort reduced to 0 by anything,
-  boarding included, is replaced by a blast marker (s.31). The "drifting hulk" result for
-  ships boarded to 0 (s.29) applies to capital ships.
+  boarding included, is replaced by a blast marker (s.34). The "drifting hulk" result for
+  ships boarded to 0 (s.32) applies to capital ships.
 - **Victory points never double-count:** an escort squadron is scored once, as one unit.
-- **Boarding and catastrophic damage (s.29):** a ship reduced to 0 by boarding damage becomes
+- **Boarding and catastrophic damage (s.32):** a ship reduced to 0 by boarding damage becomes
   a drifting hulk with no catastrophic roll, but its boarding crit is still rolled. If that crit
   deals extra damage (Engine Room, Hull Breach, Bulkhead Collapse), the ship rolls on the
   Catastrophic Damage table. A crit with no extra damage leaves it a hulk.
-- **Blast markers and speed (s.8):** the 5cm reduction takes effect at the point the ship
+- **Blast markers and speed (s.11):** the 5cm reduction takes effect at the point the ship
   touches a blast marker. If that leaves it with no movement (0 or less), it stops where it
   first touches the marker; otherwise it may carry on with what remains. This applies to All
   Ahead Full too.
 - **Order of speed modifiers:** crippled (-5cm) first, then Burn Retros (halve), then blast
   markers (-5cm). A speed-25 crippled ship on Burn Retros touching a blast marker:
   (25 - 5) / 2 - 5 = 5cm.
-- **Escort squadron off the table (s.5):** when an escort in a squadron moves off the table,
+- **Escort squadron off the table (s.8):** when an escort in a squadron moves off the table,
   the rest of the squadron takes a disengage test right away, and again at the end of each of
   its later movement phases. One test for the whole squadron, using the Leadership modifiers of
   its best-placed member (highest resulting Ld). A failed test has the normal effect for that
   turn; otherwise the squadron acts normally.
 - **Movement is never rounded:** halving a speed gives an exact half (25cm -> 12.5cm), both
   for Burn Retros and for the half-speed minimum. Show distances as exact values too.
-- **Ordnance attacks the first valid target it contacts** (now s.12). Friendly ships are
-  valid targets for standard torpedoes but not for boarding torpedoes (now in s.13's torpedo
+- **Ordnance attacks the first valid target it contacts** (now s.15). Friendly ships are
+  valid targets for standard torpedoes but not for boarding torpedoes (now in s.16's torpedo
   types).
 - **Cruisers are cruisers:** grand cruisers, battlecruisers, heavy and light cruisers all move
   as cruisers (10cm before turning; battleships 15cm, escorts any point).
@@ -81,7 +82,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
-- **Attack craft orders (s.15):** each squadron keeps a target (`craft_target_id`: enemy ship,
+- **Attack craft orders (s.18):** each squadron keeps a target (`craft_target_id`: enemy ship,
   enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
   Craft Orders"; the AI re-targets its craft each ordnance phase.

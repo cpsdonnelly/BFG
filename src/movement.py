@@ -106,7 +106,7 @@ def movement_budget(ship: Ship, special_order: str, aaf_bonus: int = 0,
 
     Accounts for staged movement already made, and for the -5cm blast marker
     penalty if the ship has moved through markers this phase or is touching
-    one now (core rules s.8).
+    one now (core rules s.11).
     """
     slowed = (ship.crossed_blast_this_turn
               or count_blast_markers_touching(ship, blast_markers or []) > 0)
@@ -157,7 +157,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     result.path.append((cx, cy))
 
     # Moving away from blast markers the ship touches counts as moving through
-    # them (core rules s.8)
+    # them (core rules s.11)
     starts_in_blast = count_blast_markers_touching(ship, blast_markers) > 0
     blast_contact_cm = BLAST_MARKER_RADIUS_CM + ship.base_radius
 
@@ -170,7 +170,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
 
     # Track state
     distance_moved = 0.0
-    # Forward movement this phase counts toward the distance before a turn (s.7)
+    # Forward movement this phase counts toward the distance before a turn (s.10)
     if turns_already_used == 0:
         distance_since_last_turn = distance_already_moved
     elif distance_since_last_turn is None:
@@ -254,7 +254,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
                             f"Already used {total_used}/{max_turns} turns")
                     continue
 
-                # Minimum straight-ahead distance before every turn (s.7; Come to
+                # Minimum straight-ahead distance before every turn (s.10; Come to
                 # New Heading must still move the minimum before each turn)
                 if distance_since_last_turn < min_turn_dist:
                     after = " since its last turn" if (turns_made or turns_already_used) else ""
@@ -285,7 +285,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
         elif abs(net_turn_degrees) > 0.1:
             turns_made += 1
 
-    # Speed limits for the whole phase. Blast markers (owner ruling on s.8): the
+    # Speed limits for the whole phase. Blast markers (owner ruling on s.11): the
     # 5cm reduction applies at the point of first contact; a ship with no
     # movement left by then stops where it touched the marker.
     min_spd, max_spd = get_effective_speed(ship, special_order, aaf_bonus,
@@ -365,7 +365,7 @@ def record_staged_move(gs: GameState, ship_id: str, result: MovementResult,
 def ordnance_touched_along_path(ship: Ship, path: List[Tuple[float, float]],
                                 gs: GameState, step_cm: float = 0.5) -> List[str]:
     """Ordnance markers the ship's base touches anywhere along its move, in the
-    order it reaches them (s.12: contact made by a ship moving into ordnance
+    order it reaches them (s.15: contact made by a ship moving into ordnance
     during its own move counts). Fighters on combat air patrol are skipped."""
     from .geometry import circle_touches_torpedo, circle_touches_square
     if not path:
@@ -452,7 +452,7 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
 
 
 def _blast_marker_damage(ship: Ship, gs: GameState, dice: DiceRoller) -> bool:
-    """Core rules s.8: a ship with no shields, or permanently disabled ones,
+    """Core rules s.11: a ship with no shields, or permanently disabled ones,
     that moves through blast markers takes 1 damage on a D6 roll of 6 (once
     per move). Returns True if the ship was destroyed."""
     if ship.effective_shields > 0:

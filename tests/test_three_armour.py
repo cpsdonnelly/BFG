@@ -1,5 +1,5 @@
 """Ships with three Armour values use front / abeam / rear (Ork faction rules),
-by the quadrant the attack comes from (s.6 bearing compass)."""
+by the quadrant the attack comes from (s.9 bearing compass)."""
 from tests.conftest import make_ship, make_gs, DiceStub
 from src.combat import resolve_batteries
 from src.models import OrdnanceMarker, OrdnanceType

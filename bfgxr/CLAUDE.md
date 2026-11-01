@@ -24,10 +24,11 @@ fields and spelling changes that can break existing code.
 
 ```
 rules/        one Markdown file per top-level section of the booklet
-  00_core-rules.md            the 38 core rules sections, including Movement (7),
-                              Ramming (9), Ordnance: Launching, Moving & Attacking (12),
-                              Attack Craft (15), Hit-and-Run Raids with teleport attacks
-                              (28) and Boarding Actions (29)
+  00_core-rules.md            the 41 core rules sections: Basics (1), The Turn (2),
+                              Assembling the Fleet (4), Special Orders (7), Movement (10),
+                              Shields & Blast Markers (11), Ramming (12), Ordnance (15),
+                              Hit-and-Run Raids (31), Boarding Actions (32) and the rest;
+                              grep the '## N.' headings for the full list
   01_imperial-navy.md ... 09_tau-allies.md
                               faction rules, ship rosters, special rules, fleet lists
   10_scenarios.md             scenarios, with deployment maps

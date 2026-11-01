@@ -228,7 +228,7 @@ def gunnery_target_type(ship: Ship) -> str:
     """Gunnery table target type for a ship: capital, escort or defense.
 
     A ship that moved less than 5cm in its last movement phase (for any
-    reason) counts as Defenses (core rules s.7, Movement).
+    reason) counts as Defenses (core rules s.10, Movement).
     """
     if ship.last_move_cm is not None and ship.last_move_cm < 5:
         return "defense"
@@ -682,7 +682,7 @@ def eligible_orientations(chosen: str) -> List[str]:
 
 def allocate_squadron_hits(dice_values: List[int], ships: List[Ship],
                            armor_of, apply_hits) -> Dict[str, int]:
-    """Core rules s.5, Shooting at Squadrons: hits go to the nearest eligible
+    """Core rules s.8, Shooting at Squadrons: hits go to the nearest eligible
     ship until it is destroyed (critical damage included), then the next
     nearest takes the remaining hits, and so on.
 
@@ -709,7 +709,7 @@ def allocate_squadron_hits(dice_values: List[int], ships: List[Ship],
 
 
 def squadron_group(target: Ship, all_ships: List[Ship]) -> List[Ship]:
-    """The squadron a target belongs to, as fired upon (core rules s.5): the
+    """The squadron a target belongs to, as fired upon (core rules s.8): the
     living members chain-coherent with it. A ship not in a squadron, or one
     that has broken formation, is just itself."""
     if not target.squadron_id:
@@ -736,7 +736,7 @@ def squadron_fire_preview(attacker: Ship, weapon: Dict, group: List[Ship],
     Returns {"eligible": [ships nearest first], "ineligible": [(ship, reason)]}.
     A member is eligible if it is in arc, in range and line of sight, and (for
     gunnery, when an orientation is given) not presenting a harder aspect than
-    the one fired at (core rules s.5).
+    the one fired at (core rules s.8).
     """
     allowed = eligible_orientations(orientation) if orientation else None
     max_range = weapon.get("range_cm", 999)
@@ -776,7 +776,7 @@ def fire_at_squadron(attacker: Ship, weapon: Dict, target: Ship, group: List[Shi
                      range_cap: Optional[float] = None):
     """Fire one battery or lance weapon at the squadron `target` belongs to.
 
-    A Leadership test can't pick out one ship in a squadron (s.5): picking a
+    A Leadership test can't pick out one ship in a squadron (s.8): picking a
     member declares the squadron as the target and that ship's aspect as the
     aspect fired at. Hits then go nearest-first via allocate_squadron_hits;
     apply_hits(ship, n) -> (unused_hits, destroyed).

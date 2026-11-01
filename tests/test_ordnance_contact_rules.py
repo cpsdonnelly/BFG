@@ -1,4 +1,4 @@
-"""Ordnance rules from booklet export 3: s.12-19 (first contact, splitting salvos,
+"""Ordnance rules from booklet export 3: s.15-19 (first contact, splitting salvos,
 torpedo types, attack craft vs ordnance)."""
 import pytest
 from tests.conftest import make_ship, make_gs, DiceStub
@@ -13,7 +13,7 @@ def _m(id, otype, player=1, x=50.0, y=50.0, heading=0.0, **kw):
                           launched_by="s", x=x, y=y, heading=heading, **kw)
 
 
-# ── Friendly markers (s.13, s.14, s.16, s.17, s.19) ─────────────────────────
+# ── Friendly markers (s.16, s.17, s.19, s.20, s.22) ─────────────────────────
 
 @pytest.mark.parametrize("a,b,expected", [
     (OT.TORPEDO_STANDARD, OT.TORPEDO_STANDARD, "collide"),     # torps hit torps
@@ -69,7 +69,7 @@ def test_resilient_friendly_fighter_may_save_against_torpedoes():
     assert gs.ordnance[0]["resilient_used"] is True
 
 
-# ── Splitting torpedo salvos (s.13) ─────────────────────────────────────────
+# ── Splitting torpedo salvos (s.16) ─────────────────────────────────────────
 
 def test_split_rules():
     assert torpedo_split_error(8, 8, 0, None) is None            # not split
@@ -82,7 +82,7 @@ def test_split_rules():
     assert torpedo_split_error(7, 3, 350, 20) is None
 
 
-# ── Attack craft launched as their own type (s.15) ──────────────────────────
+# ── Attack craft launched as their own type (s.18) ──────────────────────────
 
 def test_craft_stats_use_booklet_types_and_speeds():
     bays = [{"weapon_type": "launch_bay", "craft_speeds": {"shark_assault_boat": 30,
@@ -92,7 +92,7 @@ def test_craft_stats_use_booklet_types_and_speeds():
     assert craft_stats("assault_boat", []) == (OT.ASSAULT_BOAT.value, 30, 0)
 
 
-# ── Boarding torpedoes turn up to 45° before moving (s.13) ──────────────────
+# ── Boarding torpedoes turn up to 45° before moving (s.16) ──────────────────
 
 def test_boarding_torps_turn_only_after_launch_turn():
     m = _m("bt", OT.TORPEDO_BOARDING.value, launched_turn=2)
@@ -118,7 +118,7 @@ def test_turn_boarding_torp_clamps_to_45():
     assert m.heading == pytest.approx(325.0)
 
 
-# ── Torpedoes: once per full turn, launch-turn arc (s.13) ───────────────────
+# ── Torpedoes: once per full turn, launch-turn arc (s.16) ───────────────────
 from src.ordnance import torpedo_may_attack
 
 
@@ -154,7 +154,7 @@ def test_salvo_attacks_a_ship_at_most_once_per_full_turn():
     assert torpedo_may_attack(m, t, gs)
 
 
-# ── Ships moving into ordnance during their own move (s.12) ─────────────────
+# ── Ships moving into ordnance during their own move (s.15) ─────────────────
 from src.movement import ordnance_touched_along_path, validate_movement, execute_movement, MoveCommand
 
 

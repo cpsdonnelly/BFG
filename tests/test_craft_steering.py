@@ -1,4 +1,4 @@
-"""Attack craft turn freely and move in any direction up to their speed (s.15)."""
+"""Attack craft turn freely and move in any direction up to their speed (s.18)."""
 import pytest
 from tests.conftest import make_ship, make_gs
 from src.models import OrdnanceMarker, OrdnanceType as OT

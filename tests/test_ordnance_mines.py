@@ -49,7 +49,7 @@ def test_mine_no_turrets_uses_8d6():
 
 
 def test_mine_hits_ignore_shields():
-    # Core rules s.14: mines ignore shields
+    # Core rules s.17: mines ignore shields
     target = make_ship(id="t", x=0, y=0, heading=0, turrets=0,
                        armor_prow="5+", armor_side="5+",
                        shields_max=2, hits_max=12)
@@ -347,7 +347,7 @@ def test_generic_attack_craft_use_the_ships_booklet_speed():
 
 
 def test_mines_reload_separately_from_attack_craft():
-    # s.12: launching one type of ordnance does not affect the other
+    # s.15: launching one type of ordnance does not affect the other
     ship = make_ship(id="s", weapons=[
         {"name": "Bay", "weapon_type": "launch_bay", "strength": 2},
         {"name": "Mines", "weapon_type": "mine_launcher", "strength": 2},

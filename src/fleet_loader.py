@@ -132,7 +132,7 @@ def get_fleet_info(path: str) -> Dict[str, str]:
 
 
 def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
-    """Core rules s.1 / Appendix 4: before the game, each booklet ship rolls a
+    """Core rules s.3 / Appendix 4: before the game, each booklet ship rolls a
     D6 on its faction's Leadership column. Escorts roll once per squadron and
     share the result; capital ships always roll individually. Ships without a
     Leadership table (homebrew, older fleet files) keep their saved value.

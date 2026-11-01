@@ -135,7 +135,7 @@ class _FireDialog:
                      font=("Consolas", 8), anchor=tk.W).pack(
                          side=tk.LEFT, fill=tk.X, expand=True)
 
-            # "all" fires the whole pool; a number splits it (s.10 Splitting Fire)
+            # "all" fires the whole pool; a number splits it (s.13 Splitting Fire)
             str_var = tk.StringVar(value="all" if pool_later else str(avail_str))
             if wtype != "nova_cannon" and (avail_str > 1 or pool_later):
                 tk.Label(row, text="Fire:", font=("Consolas", 8)).pack(side=tk.LEFT)
@@ -327,7 +327,7 @@ class _FireDialog:
             fire_weapon = shot_weapon(weapon, fire_str)
 
             # A ship in a squadron can't be picked out: picking it fires at
-            # the squadron at that ship's aspect, hits nearest first (s.5)
+            # the squadron at that ship's aspect, hits nearest first (s.8)
             group = squadron_group(target, self.ctx.gs.get_ships())
             if len(group) > 1 and wtype in ("battery", "lance"):
                 def _apply_to(member, n):

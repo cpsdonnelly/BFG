@@ -1079,7 +1079,7 @@ class GamePanel:
         try:
             if phase == "movement":
                 ai.run_movement_phase()
-                # Ordnance the AI's ships ran into attacks them (s.12)
+                # Ordnance the AI's ships ran into attacks them (s.15)
                 self.ordnance._resolve_moving_ship_contacts()
             elif phase == "shooting":
                 ai.run_shooting_phase()

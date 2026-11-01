@@ -51,13 +51,13 @@ class Arc(str, Enum):
 class OrdnanceType(str, Enum):
     TORPEDO_STANDARD = "torpedo_standard"
     TORPEDO_GUIDED = "torpedo_guided"             # Tau missiles
-    TORPEDO_BOARDING = "torpedo_boarding"         # one hit-and-run raid per hit (s.28)
+    TORPEDO_BOARDING = "torpedo_boarding"         # one hit-and-run raid per hit (s.31)
     TORPEDO_BOARDING_GUIDED = "torpedo_boarding_guided"  # boarding torp w/ guidance
     FIGHTER = "fighter"
     BOMBER = "bomber"
     ASSAULT_BOAT = "assault_boat"
     TORPEDO_BOMBER = "torpedo_bomber"
-    # Multi-role attack craft (s.21); roles in ordnance.MR_ROLES
+    # Multi-role attack craft (s.24); roles in ordnance.MR_ROLES
     THUNDERHAWK = "thunderhawk"           # Space Marines / Grey Knights
     GUN_CUTTER = "gun_cutter"             # Inquisition
     FIGHTA_BOMMER = "fighta_bommer"       # Orks
@@ -147,11 +147,11 @@ class Ship:
     has_fired: bool = False
     ordnance_loaded_torps: bool = True
     ordnance_loaded_craft: bool = True
-    # Mines reload separately from attack craft (s.12: launching one type of
+    # Mines reload separately from attack craft (s.15: launching one type of
     # ordnance does not affect the other)
     ordnance_loaded_mines: bool = True
     # Ordnance markers this ship touched during its own move, waiting to attack
-    # it (s.12); cleared once resolved
+    # it (s.15); cleared once resolved
     pending_ordnance_contacts: List[str] = field(default_factory=list)
     command_check_failed_this_turn: bool = False
 
@@ -250,7 +250,7 @@ class Ship:
         return int((self.armor_rear or self.armor_side).replace("+", ""))
 
     def armor_for_arc(self, arc) -> int:
-        """Armour against an attack from this arc of the ship (s.6 bearing
+        """Armour against an attack from this arc of the ship (s.9 bearing
         compass): prow armour from the front quadrant, rear armour (if the
         ship has three values) from the rear, side armour otherwise."""
         a = getattr(arc, "value", arc)
@@ -386,10 +386,10 @@ class OrdnanceMarker:
     # marker (torpedoes only).  Captured once at launch and stays fixed.
     launch_exempt_ships: List[str] = field(default_factory=list)
     # Attack craft: id of the ship or ordnance marker the squadron is flying at
-    # (s.15: craft turn freely and move in any direction). Empty = straight on.
+    # (s.18: craft turn freely and move in any direction). Empty = straight on.
     craft_target_id: str = ""
     # Torpedoes: {ship id: turn number} of each attack. A salvo may never
-    # attack the same ship more than once per full turn (s.13).
+    # attack the same ship more than once per full turn (s.16).
     attacked_turns: Dict[str, int] = field(default_factory=dict)
 
     def to_dict(self):
