@@ -153,6 +153,8 @@ class Ship:
     # Ordnance markers this ship touched during its own move, waiting to attack
     # it (s.15); cleared once resolved
     pending_ordnance_contacts: List[str] = field(default_factory=list)
+    # Heed the Machine Spirit used against these attackers this turn
+    machine_spirit_used_vs: List[str] = field(default_factory=list)
     command_check_failed_this_turn: bool = False
 
     # Points and game status

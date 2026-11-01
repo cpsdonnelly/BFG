@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter import messagebox
 
 from .models import Ship, SpecialOrder
-from .combat import (weapon_fire_pool, shot_weapon,
+from .chapter_tactics import weapon_range, shadow_engines_hidden
+from .combat import (weapon_fire_pool, shot_weapon, resolve_siege_cannons,
                      resolve_batteries, resolve_lances, resolve_nova_cannon,
                      apply_damage, check_los_clear, squadron_group,
                      squadron_fire_preview, fire_at_squadron)
@@ -147,7 +148,7 @@ class _FireDialog:
                 dist = attacker.distance_to(e)
                 arc = attacker.get_target_arc(e.x, e.y)
                 in_arc = arc.value in weapon.get("arcs", []) or not weapon.get("arcs")
-                eff_range = min(weapon.get("range_cm", 999),
+                eff_range = min(weapon_range(attacker, weapon) or 999,
                                 ast_range_cap if ast_range_cap else 9999)
                 in_range = dist <= eff_range
                 los = check_los_clear(attacker, e, phenomena, self.blast_markers)
@@ -158,6 +159,9 @@ class _FireDialog:
                     status = " [NO ARC]"
                 elif not in_range:
                     status = " [OUT OF RANGE]"
+                elif wtype in ("battery", "lance") and shadow_engines_hidden(
+                        attacker, e, self.enemies):
+                    status = " [HIDDEN: Shadow Engines]"
                 target_options.append(
                     f"{e.name} ({dist:.0f}cm {arc.value})"
                     f"{'' if status else self._squadron_note(weapon, e, ast_range_cap)}"
@@ -254,7 +258,8 @@ class _FireDialog:
         """Return (target_ship, fire_str, avail_str) from widget state, or None."""
         if not target_str:
             return None
-        if any(b in target_str for b in ["[NO ARC]", "[OUT OF RANGE]", "[NO LOS"]):
+        if any(b in target_str for b in ["[NO ARC]", "[OUT OF RANGE]", "[NO LOS",
+                                         "[HIDDEN"]):
             return None
         target_name = target_str.split(" (")[0]
         return next((e for e in self.enemies if e.name == target_name), None)
@@ -267,7 +272,7 @@ class _FireDialog:
         cv_arc = self.attacker.get_target_arc(cv.x, cv.y)
         cv_in_arc = cv_arc.value in weapon.get("arcs", []) or not weapon.get("arcs")
         cv_in_range = (self.attacker.distance_to(cv)
-                       <= weapon.get("range_cm", 999))
+                       <= (weapon_range(self.attacker, weapon) or 999))
         cv_los = check_los_clear(self.attacker, cv,
                                  self.ctx.gs.get_phenomena(), self.blast_markers)
         if not (cv_in_arc and cv_in_range and cv_los["clear"]):
@@ -289,9 +294,10 @@ class _FireDialog:
         """Fire all selected weapons at their assigned targets."""
         all_damage = {}
         fired_weapon_indices = []
+        siege_done = self._fire_siege_cannons(all_damage, fired_weapon_indices)
 
         for w_idx, weapon, enabled, target_var, str_var, avail_str in self.weapon_assignments:
-            if not enabled.get():
+            if not enabled.get() or w_idx in siege_done:
                 continue
             target = self._resolve_target(weapon, target_var.get())
             if target is None:
@@ -434,6 +440,56 @@ class _FireDialog:
         self._record_fired(fired_weapon_indices)
         self.dialog.destroy()
         self.ctx.board.redraw()
+
+    def _fire_siege_cannons(self, all_damage, fired_weapon_indices) -> set:
+        """Siege Cannons Chapter tactic: macrobatteries and bombardment cannons
+        assigned to the same target (not a squadron) fire together as one
+        gunnery roll. Returns the weapon indices fired this way."""
+        from .chapter_tactics import siege_ship
+        done = set()
+        if not siege_ship(self.attacker):
+            return done
+        groups = {}
+        for w_idx, weapon, enabled, target_var, _sv, _av in self.weapon_assignments:
+            if not enabled.get() or weapon.get("weapon_type") != "battery":
+                continue
+            target = self._resolve_target(weapon, target_var.get())
+            if target is None or len(squadron_group(target, self.ctx.gs.get_ships())) > 1:
+                continue
+            groups.setdefault(target.id, (target, []))[1].append((w_idx, weapon))
+        for target, ws in groups.values():
+            macro = [(i, w) for i, w in ws if not w.get("hits_on")]
+            bcs = [(i, w) for i, w in ws if w.get("hits_on")]
+            if not macro or not bcs:
+                continue
+            target = self._check_target_priority(macro[0][1], target)
+            shots = {}
+            for i, w in macro + bcs:
+                pool, mode, err = weapon_fire_pool(self.attacker, w, i,
+                                                   self.attacker.distance_to(target),
+                                                   self.ctx.dice)
+                if err:
+                    self._log(f"  {err}")
+                    continue
+                if self.in_asteroid_field:
+                    pool = max(1, (pool + 1) // 2)
+                shots[i] = shot_weapon(w, pool)
+                fired_weapon_indices.append((i, pool, pool))
+                done.add(i)
+            m_res, b_res = resolve_siege_cannons(
+                self.attacker, target,
+                [shots[i] for i, _ in macro if i in shots],
+                [shots[i] for i, _ in bcs if i in shots],
+                self.ctx.dice, self.blast_markers, self.lock_on,
+                self.ctx.gs.get_phenomena(), self.ctx.gs.ships,
+                no_column_shifts=self.in_asteroid_field)
+            self._log(f"  {m_res.description}")
+            self._log(f"  {b_res.description}")
+            for res, crit_on, wtype in ((m_res, 6, "battery"), (b_res, 4, "battery")):
+                if res.hits:
+                    all_damage.setdefault(target.id, []).append(
+                        (res.hits, wtype, target, crit_on))
+        return done
 
     def _record_fired(self, fired_weapon_indices):
         """Update attacker's weapons_remaining / weapons_fired_indices / has_fired."""

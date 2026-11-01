@@ -712,6 +712,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
                             speed=spd,
                             launched_turn=self.ctx.gs.turn_number,
                             resilient_save=resil,
+                            # Launcher raid bonuses go with its craft (s.31)
+                            special_rules=sorted(set.intersection(
+                                *(set(c.special_rules) for c in contributors))),
                         )
                         self.ctx.gs.add_ordnance(marker)
                         total_launched += 1
@@ -1371,6 +1374,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                             launched_turn=self.ctx.gs.turn_number,
                             resilient_save=resil,
                             cap_ship_id=protect_id,
+                            # Launcher raid bonuses go with its craft (s.31)
+                            special_rules=list(ship.special_rules),
                         )
                         self.ctx.gs.add_ordnance(marker)
                         total_launched += 1

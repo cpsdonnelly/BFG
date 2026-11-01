@@ -22,6 +22,7 @@ from .combat import (
     resolve_batteries, resolve_lances, apply_damage,
     squadron_group, fire_at_squadron, weapon_fire_pool, shot_weapon,
 )
+from .chapter_tactics import shadow_engines_hidden
 from .ordnance import (launch_torpedoes, launch_attack_craft,
                        bay_launch_capacity, fleet_craft_slots,
                        fleet_craft_excess, recall_craft, ai_craft_to_recall,
@@ -398,10 +399,12 @@ class AIPlayer:
         blast_markers = gs.get_blast_markers()
         phenomena = gs.get_phenomena()
         all_ships = gs.get_ships()
+        siege_done = self._fire_siege_cannons(ship, enemies, lock_on, blast_markers,
+                                              phenomena, all_ships)
 
         for w_idx, weapon in enumerate(ship.weapons):
             wtype = weapon.get("weapon_type", "")
-            if wtype in ("torpedo", "launch_bay", "mine_launcher"):
+            if wtype in ("torpedo", "launch_bay", "mine_launcher") or w_idx in siege_done:
                 continue
 
             if wtype == "nova_cannon":
@@ -428,7 +431,7 @@ class AIPlayer:
                 crit_on = weapon.get("crit_on", 6)
                 sr, applied = fire_at_squadron(
                     ship, weapon, target, group, self.dice,
-                    lambda m, n, _c=crit_on: self._apply_hits_to(m, n, _c),
+                    lambda m, n, _c=crit_on, _a=ship.id: self._apply_hits_to(m, n, _c, _a),
                     lock_on, blast_markers, phenomena, all_ships)
                 gs.add_log(f"[AI] {ship.name} → squadron {target.squadron_id}: "
                            f"{weapon['name']} {sr.hits} hit(s)")
@@ -446,9 +449,47 @@ class AIPlayer:
             gs.add_log(f"[AI] {ship.name} → {target.name}: "
                        f"{weapon['name']} {sr.hits} hit(s)")
             if sr.hits > 0:
-                self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6))
+                self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id)
 
-    def _apply_hits_to(self, target: Ship, hits: int, crit_on: int = 6):
+    def _fire_siege_cannons(self, ship, enemies, lock_on, blast_markers, phenomena,
+                            all_ships) -> set:
+        """Siege Cannons: fire bombardment cannons and the macrobatteries that
+        can reach the same (non-squadron) target together. Returns the weapon
+        indices used."""
+        from .chapter_tactics import siege_ship
+        from .combat import resolve_siege_cannons
+        if not siege_ship(ship):
+            return set()
+        bcs = [(i, w) for i, w in enumerate(ship.weapons) if w.get("hits_on")]
+        if not bcs:
+            return set()
+        target = self._pick_target(ship, bcs[0][1], enemies)
+        if not target or len(squadron_group(target, self.gs.get_ships())) > 1:
+            return set()
+        group = [(i, w) for i, w in enumerate(ship.weapons)
+                 if w.get("weapon_type") == "battery"
+                 and self._pick_target(ship, w, [target]) is not None]
+        macro = [(i, w) for i, w in group if not w.get("hits_on")]
+        bc_ok = [(i, w) for i, w in group if w.get("hits_on")]
+        if not macro or not bc_ok:
+            return set()
+        shots = {}
+        for i, w in macro + bc_ok:
+            pool, _m, _e = weapon_fire_pool(ship, w, i, ship.distance_to(target), self.dice)
+            shots[i] = shot_weapon(w, pool)
+        m_res, b_res = resolve_siege_cannons(
+            ship, target, [shots[i] for i, _ in macro], [shots[i] for i, _ in bc_ok],
+            self.dice, blast_markers, lock_on, phenomena, all_ships)
+        self.gs.add_log(f"[AI] {ship.name} → {target.name}: Siege Cannons "
+                        f"{m_res.hits}+{b_res.hits} hit(s)")
+        if m_res.hits:
+            self._apply_hits_to(target, m_res.hits, 6, ship.id)
+        if b_res.hits:
+            self._apply_hits_to(target, b_res.hits, 4, ship.id)
+        return {i for i, _ in macro + bc_ok}
+
+    def _apply_hits_to(self, target: Ship, hits: int, crit_on: int = 6,
+                       attacker_key: str = ""):
         """Apply hits from AI fire, then resolve the ship's destruction if it died.
         Returns (unused hits, destroyed) for squadron hit allocation."""
         t = self.gs.get_ship_by_id(target.id)
@@ -456,7 +497,7 @@ class AIPlayer:
             return hits, True
         braced = t.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
         dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced,
-                           crit_on=crit_on)
+                           crit_on=crit_on, attacker_key=attacker_key)
         self._log_damage(t, dmg)
         self._resolve_kill(t)
         return dmg["unused_hits"], dmg["destroyed"]
@@ -503,6 +544,9 @@ class AIPlayer:
                                   self.gs.get_phenomena(),
                                   self.gs.get_blast_markers())
             if not los.get("clear", True):
+                continue
+            # Shadow Engines: escorts beyond 30cm that aren't the closest target
+            if shadow_engines_hidden(ship, e, enemies):
                 continue
             valid.append(e)
         if not valid:

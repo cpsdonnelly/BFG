@@ -46,7 +46,8 @@ def check_weapon_in_range(ship: Ship, weapon: Dict,
                           target_x: float, target_y: float) -> bool:
     """Check if target is within weapon range."""
     dist = math.sqrt((ship.x - target_x)**2 + (ship.y - target_y)**2)
-    w_range = weapon.get("range_cm", 0)
+    from .chapter_tactics import weapon_range
+    w_range = weapon_range(ship, weapon)     # Dark Age Plasma Batteries: 45cm
     if w_range == 0:
         return True  # torpedoes/bays don't have a direct fire range
     return dist <= w_range
@@ -55,16 +56,22 @@ def check_weapon_in_range(ship: Ship, weapon: Dict,
 def get_column_shifts(ship: Ship, target_ship: Ship,
                       blast_markers: List[BlastMarker],
                       phenomena: list = None,
-                      all_ships: list = None) -> int:
+                      all_ships: list = None,
+                      weapon: Optional[Dict] = None) -> int:
     """Calculate gunnery column shifts for weapons batteries."""
+    from .chapter_tactics import dark_age_batteries, siege_alone_shift
     dist = ship.distance_to(target_ship)
     shifts = 0
 
-    # Range modifiers
+    # Range modifiers (Dark Age Plasma Batteries: no shift beyond 30cm)
     if dist < 15:
         shifts -= 1  # left shift (better)
-    elif dist > 30:
+    elif dist > 30 and not (weapon and dark_age_batteries(ship, weapon)):
         shifts += 1  # right shift (worse)
+
+    # Siege Cannons: macrobatteries fired on their own shift right
+    if weapon:
+        shifts += siege_alone_shift(ship, weapon)
 
     # LoS-based shifts (blast markers and dust clouds in line of fire)
     phenomena = phenomena or []
@@ -210,6 +217,7 @@ def battery_base_firepower(attacker: Ship, weapon: Dict,
 def effective_battery_firepower(attacker: Ship, weapon: Dict,
                                 target: Optional[Ship] = None) -> int:
     """Return the effective firepower of a battery weapon after all modifiers."""
+    from .chapter_tactics import reduce_for_movement_order, lightning_vanguard
     fp = battery_base_firepower(attacker, weapon, target)
     if attacker.is_crippled:
         fp = (fp + 1) // 2
@@ -218,7 +226,11 @@ def effective_battery_firepower(attacker: Ship, weapon: Dict,
         SpecialOrder.BURN_RETROS.value,
         SpecialOrder.COME_TO_NEW_HEADING.value,
     ):
-        fp = (fp + 1) // 2
+        # Lightning Thrusters: a vanguard cruiser on All Ahead Full fires its
+        # macrobatteries at full effectiveness unless it turned this move
+        if not (attacker.special_order == SpecialOrder.ALL_AHEAD_FULL.value
+                and lightning_vanguard(attacker) and attacker.turns_used_this_turn == 0):
+            fp = reduce_for_movement_order(attacker, fp, gunnery=True)
     if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
         fp = (fp + 1) // 2
     return fp
@@ -262,7 +274,7 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
     # Get column and shifts
     column = get_gunnery_column(target_type, target_orientation)
     shifts = 0 if no_column_shifts else get_column_shifts(
-        attacker, target, blast_markers, phenomena, all_ships)
+        attacker, target, blast_markers, phenomena, all_ships, weapon)
 
     # Look up dice count
     num_dice = lookup_gunnery_dice(firepower, column, shifts)
@@ -296,6 +308,48 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
         f"({col_desc}) = {num_dice} dice vs {armor}+ = {result.hits} hits")
 
     return result
+
+
+def resolve_siege_cannons(attacker: Ship, target: Ship, macro_weapons: List[Dict],
+                          bc_weapons: List[Dict], dice: DiceRoller,
+                          blast_markers: List[BlastMarker], lock_on: bool = False,
+                          phenomena: list = None, all_ships: list = None,
+                          no_column_shifts: bool = False) -> Tuple[ShotResult, ShotResult]:
+    """Siege Cannons Chapter tactic: a battle barge or strike cruiser firing its
+    macrobatteries and bombardment cannons together adds both firepowers and
+    looks up the to-hit rolls on the gunnery table. Rolls in excess of the
+    bombardment cannons' firepower are made by the macrobatteries (vs Armour),
+    the rest by the bombardment cannons (4+, crits on 4+).
+    Returns (macrobattery result, bombardment cannon result)."""
+    macro = ShotResult("Macrobatteries (Siege Cannons)", "battery")
+    bc = ShotResult("Bombardment cannons (Siege Cannons)", "battery")
+    macro_fp = sum(effective_battery_firepower(attacker, w, target) for w in macro_weapons)
+    bc_fp = sum(effective_battery_firepower(attacker, w, target) for w in bc_weapons)
+    target_type = gunnery_target_type(target)
+    orientation = attacker.get_target_orientation(target)
+    column = get_gunnery_column(target_type, orientation)
+    shifts = 0 if no_column_shifts else get_column_shifts(
+        attacker, target, blast_markers, phenomena, all_ships)
+    num = lookup_gunnery_dice(macro_fp + bc_fp, column, shifts)
+    macro_rolls = max(0, num - bc_fp)
+    bc_rolls = num - macro_rolls
+    armour = target.armor_vs(attacker.x, attacker.y)
+    for res, n, need in ((macro, macro_rolls, armour), (bc, bc_rolls, 4)):
+        if n <= 0:
+            continue
+        res.dice_rolled = dice.roll_d6(n, f"{attacker.name} {res.weapon_name} vs "
+                                          f"{target.name} (need {need}+)")
+        res.hits = sum(1 for d in res.dice_rolled if d >= need)
+        if lock_on and res.hits < n:
+            misses = n - res.hits
+            res.reroll_dice = dice.roll_d6(misses, f"{attacker.name} Lock On rerolls")
+            res.hits += sum(1 for d in res.reroll_dice if d >= need)
+    col_desc = f"col {column}" + (f" shifted {shifts:+d}" if shifts else "")
+    macro.description = (f"Siege Cannons: FP {macro_fp}+{bc_fp} vs {orientation} {target_type} "
+                         f"({col_desc}) = {num} dice: {macro_rolls} macrobattery vs {armour}+ "
+                         f"= {macro.hits} hits")
+    bc.description = f"  {bc_rolls} bombardment cannon dice vs 4+ = {bc.hits} hits"
+    return macro, bc
 
 
 def resolve_combined_batteries(primary_attacker: Ship,
@@ -485,7 +539,8 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  game_state: GameState,
                  ignores_shields: bool = False,
                  target_braced: bool = False,
-                 crit_on: int = 6) -> Dict:
+                 crit_on: int = 6,
+                 attacker_key: str = "") -> Dict:
     """
     Apply hits to a ship, handling shields, damage, crits.
     Shields are reduced by blast markers already touching the ship.
@@ -515,6 +570,22 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
             save_roll = dice.roll_d6(1, f"{target.name} Brace save (4+)")
             if save_roll[0] >= 4:
                 saves += 1
+        # Heed the Machine Spirit: a braced capital ship may test on Ld 7
+        # (ignoring modifiers); if passed, one failed save succeeds. Once per
+        # attacker per turn.
+        failed = remaining_hits - saves
+        from .chapter_tactics import machine_spirit_ship
+        key = attacker_key or "?"
+        if (failed > 0 and machine_spirit_ship(target)
+                and key not in (target.machine_spirit_used_vs or [])):
+            target.machine_spirit_used_vs = list(target.machine_spirit_used_vs or []) + [key]
+            ld_roll = dice.roll_2d6(f"{target.name} Heed the Machine Spirit (Ld 7)")
+            if ld_roll <= 7:
+                saves += 1
+                game_state.add_log(f"  {target.name}: Heed the Machine Spirit passed "
+                                   f"({ld_roll}) — one failed save succeeds")
+            else:
+                game_state.add_log(f"  {target.name}: Heed the Machine Spirit failed ({ld_roll})")
         summary["brace_saves"] = saves
         remaining_hits -= saves
 
@@ -739,7 +810,8 @@ def squadron_fire_preview(attacker: Ship, weapon: Dict, group: List[Ship],
     the one fired at (core rules s.8).
     """
     allowed = eligible_orientations(orientation) if orientation else None
-    max_range = weapon.get("range_cm", 999)
+    from .chapter_tactics import weapon_range
+    max_range = weapon_range(attacker, weapon) or 999
     if range_cap is not None:
         max_range = min(max_range, range_cap)
     eligible, ineligible = [], []
@@ -833,7 +905,7 @@ def resolve_batteries_vs_squadron(
         shifts = 0
     else:
         shifts = get_column_shifts(attacker, eligible_ships[0], blast_markers,
-                                   phenomena, all_ships)
+                                   phenomena, all_ships, weapon)
     num_dice = lookup_gunnery_dice(fp, column, shifts)
 
     raw_dice = dice.roll_d6(num_dice, f"Sqn fire {weapon['name']} FP{fp}")

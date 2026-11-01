@@ -327,7 +327,8 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         from .combat import apply_damage
         braced = target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
         apply_damage(target, result["hits"], dice, game_state,
-                     ignores_shields=True, target_braced=braced)
+                     ignores_shields=True, target_braced=braced,
+                     attacker_key=marker.id)
 
     return result
 
@@ -528,7 +529,8 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
             from .combat import apply_damage
             braced = target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
             apply_damage(target, result["hits"], dice, game_state,
-                         ignores_shields=True, target_braced=braced)
+                         ignores_shields=True, target_braced=braced,
+                         attacker_key=marker.id)
             game_state.add_log(f"Bombers hit {target.name} for {result['hits']} damage")
 
     return result
@@ -750,6 +752,10 @@ def check_ordnance_vs_blast(marker: OrdnanceMarker,
                             blast_markers: List[BlastMarker],
                             dice: DiceRoller) -> bool:
     """Check if ordnance moving through blast markers is destroyed (D6=6). Returns True if destroyed."""
+    # Promethean Unguents: Thunderhawks move through blast markers without a roll
+    if (marker.ordnance_type == OrdnanceType.THUNDERHAWK.value
+            and "chapter_tactic:promethean_unguents" in (marker.special_rules or [])):
+        return False
     for bm in blast_markers:
         dist = math.sqrt((marker.x - bm.x)**2 + (marker.y - bm.y)**2)
         if dist < 2.0:

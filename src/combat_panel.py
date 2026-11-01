@@ -5,6 +5,7 @@ import math
 from typing import Tuple
 
 from .models import Ship, SpecialOrder, OrdnanceMarker
+from .chapter_tactics import weapon_range
 from .combat import (check_weapon_in_arc, apply_damage, check_los_clear,
                      resolve_batteries_vs_squadron, eligible_orientations,
                      gunnery_target_type, allocate_squadron_hits,
@@ -133,7 +134,7 @@ class CombatPanel(CombatDialogMixin):
                              (target_ord.y - attacker.y)**2)
 
             # Range check
-            if dist > weapon.get("range_cm", 999):
+            if dist > (weapon_range(attacker, weapon) or 999):
                 messagebox.showerror("Out of Range",
                     f"Target at {dist:.0f}cm, weapon range {weapon['range_cm']}cm")
                 return
@@ -286,7 +287,8 @@ class CombatPanel(CombatDialogMixin):
             log_fn(f"     (already failed brace vs {attacker.name})")
 
         dmg = apply_damage(target, total_hits, self.ctx.dice, self.ctx.gs,
-                           target_braced=brace, crit_on=crit_on)
+                           target_braced=brace, crit_on=crit_on,
+                           attacker_key=attacker.id)
         log_fn(f"     Shields: {dmg['shield_hits']}, "
                f"Hull: {dmg['hull_hits']}, "
                f"Saves: {dmg['brace_saves']}")
@@ -701,7 +703,7 @@ class CombatPanel(CombatDialogMixin):
                     continue
                 if not check_weapon_in_arc(attacker, weapon, m.x, m.y):
                     continue
-                eff_range = min(weapon.get("range_cm", 999),
+                eff_range = min(weapon_range(attacker, weapon) or 999,
                                 10 if in_asteroid_field else 9999)
                 if attacker.distance_to(m) > eff_range:
                     continue

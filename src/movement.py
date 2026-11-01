@@ -100,6 +100,26 @@ def get_effective_speed(ship: Ship, special_order: str, aaf_bonus: int = 0,
     return (min_spd, max_spd)
 
 
+def blast_markers_to_slow(ship: Ship) -> int:
+    """Blast markers a ship must touch at once to be slowed: 1, or 2 for battle
+    barges with the Tactical Reserves Chapter tactic."""
+    from .chapter_tactics import tactical_reserves_barge
+    return 2 if tactical_reserves_barge(ship) else 1
+
+
+def _first_multi_contact(x1, y1, x2, y2, markers, radius, need, step=0.25):
+    """Distance along the segment at which a point first lies within `radius`
+    of at least `need` markers at the same time, or None."""
+    length = math.hypot(x2 - x1, y2 - y1)
+    n = max(1, int(length / step))
+    for k in range(n + 1):
+        t = k / n
+        px, py = x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
+        if sum(1 for bm in markers if math.hypot(bm.x - px, bm.y - py) <= radius) >= need:
+            return length * t
+    return None
+
+
 def movement_budget(ship: Ship, special_order: str, aaf_bonus: int = 0,
                     blast_markers: List[BlastMarker] = None) -> Tuple[float, float]:
     """Remaining (min, max) distance the ship may still move this phase.
@@ -109,7 +129,8 @@ def movement_budget(ship: Ship, special_order: str, aaf_bonus: int = 0,
     one now (core rules s.11).
     """
     slowed = (ship.crossed_blast_this_turn
-              or count_blast_markers_touching(ship, blast_markers or []) > 0)
+              or count_blast_markers_touching(ship, blast_markers or [])
+              >= blast_markers_to_slow(ship))
     min_spd, max_spd = get_effective_speed(ship, special_order, aaf_bonus, slowed)
     already = ship.distance_moved_this_turn
     return max(0.0, min_spd - already), max(0.0, max_spd - already)
@@ -121,7 +142,11 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
     for crit in ship.critical_damage:
         if crit.get("crit_type") == "engine_room":
             return 0
-    if special_order in (SpecialOrder.ALL_AHEAD_FULL.value, SpecialOrder.LOCK_ON.value):
+    if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
+        # Lightning Thrusters: vanguard cruisers may turn up to 45 degrees on AAF
+        from .chapter_tactics import lightning_vanguard
+        return 1 if lightning_vanguard(ship) else 0
+    if special_order == SpecialOrder.LOCK_ON.value:
         return 0
     if special_order == SpecialOrder.COME_TO_NEW_HEADING.value:
         if "ponderous" in ship.special_rules:
@@ -158,10 +183,14 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
 
     # Moving away from blast markers the ship touches counts as moving through
     # them (core rules s.11)
-    starts_in_blast = count_blast_markers_touching(ship, blast_markers) > 0
+    need = blast_markers_to_slow(ship)
+    starts_in_blast = count_blast_markers_touching(ship, blast_markers) >= need
     blast_contact_cm = BLAST_MARKER_RADIUS_CM + ship.base_radius
 
     max_turns = get_max_turns(special_order, ship)
+    # Lightning Thrusters vanguards turn at most 45 degrees on All Ahead Full
+    turn_cap = (min(ship.turn_angle, 45)
+                if special_order == SpecialOrder.ALL_AHEAD_FULL.value else ship.turn_angle)
     min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
 
     # Burn Retros: no minimum distance before turning
@@ -191,10 +220,10 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
 
             # If we were in a turn, finalize it
             if in_a_turn:
-                if abs(net_turn_degrees) > ship.turn_angle + 0.1:
+                if abs(net_turn_degrees) > turn_cap + 0.1:
                     result.add_error(
                         f"Net turn of {abs(net_turn_degrees):.0f}° "
-                        f"exceeds maximum {ship.turn_angle}°")
+                        f"exceeds maximum {turn_cap}°")
                 elif abs(net_turn_degrees) > 0.1:  # non-zero net turn
                     turns_made += 1
                 # else: turns cancelled out, no turn consumed
@@ -212,7 +241,13 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
                 new_x = max(0, min(table_width, new_x))
                 new_y = max(0, min(table_height, new_y))
 
-            if first_contact is None:
+            if first_contact is None and need > 1:
+                hit = _first_multi_contact(cx, cy, new_x, new_y, blast_markers,
+                                           blast_contact_cm, need)
+                if hit is not None:
+                    crossed_any_blast = True
+                    first_contact = distance_already_moved + distance_moved + hit
+            elif first_contact is None:
                 hits = [first_contact_along_segment(cx, cy, new_x, new_y,
                                                     bm.x, bm.y, blast_contact_cm)
                         for bm in blast_markers]
@@ -278,10 +313,10 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
 
     # Finalize any pending turn
     if in_a_turn:
-        if abs(net_turn_degrees) > ship.turn_angle + 0.1:
+        if abs(net_turn_degrees) > turn_cap + 0.1:
             result.add_error(
                 f"Net turn of {abs(net_turn_degrees):.0f}° "
-                f"exceeds maximum {ship.turn_angle}°")
+                f"exceeds maximum {turn_cap}°")
         elif abs(net_turn_degrees) > 0.1:
             turns_made += 1
 

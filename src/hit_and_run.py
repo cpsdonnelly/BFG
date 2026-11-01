@@ -80,6 +80,9 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
         return False, f"{attacker.name} is crippled"
 
     allowed_orders = ("none", "lock_on", "reload_ordnance")
+    from .chapter_tactics import lightning_vanguard
+    if lightning_vanguard(attacker):
+        allowed_orders += ("all_ahead_full",)    # Lightning Thrusters
     if attacker.special_order not in allowed_orders:
         return False, f"{attacker.name} is on {attacker.special_order}"
 
@@ -175,7 +178,8 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
                   dice: DiceRoller, gs: GameState,
                   source_name: str = "Assault boat",
                   attacker_rules: Optional[List[str]] = None,
-                  preset_rolls: Optional[List[int]] = None) -> Dict:
+                  preset_rolls: Optional[List[int]] = None,
+                  reroll_failed: bool = False) -> Dict:
     """
     Core raid resolution shared by hit-and-run raids and teleport attacks.
 
@@ -212,8 +216,15 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
             roll = preset_rolls[i]          # chosen from an honour guard's dice
         else:
             roll = dice.roll_d6(1, f"{source_name} raid {i+1}/{num_raids} on {target.name}")[0]
-        summary["raid_rolls"].append(roll)
         effective = roll + mod
+        # Wings of Fury: Thunderhawks may re-roll their raid results; the
+        # second result stands. Re-rolled when the raid would have no effect.
+        no_effect = effective <= 1 or (not uses_crit_table(target) and effective < 4)
+        if reroll_failed and no_effect:
+            gs.add_log(f"  Raid {i+1}: rolled {roll} — Wings of Fury re-roll")
+            roll = dice.roll_d6(1, f"{source_name} raid {i+1} re-roll on {target.name}")[0]
+            effective = roll + mod
+        summary["raid_rolls"].append(roll)
 
         if effective <= 1:
             summary["failures"] += 1
@@ -285,9 +296,12 @@ def resolve_hit_and_run(marker: OrdnanceMarker, target: Ship,
         else:
             gs.add_log(f"  {target.name} brace FAILED — no repel rolls")
 
+    wings = (marker.ordnance_type == "thunderhawk"
+             and "chapter_tactic:wings_of_fury" in (marker.special_rules or []))
     summary = resolve_raids(num_raids, target, brace_passed, dice, gs,
                             source_name=marker.ordnance_type,
-                            attacker_rules=marker.special_rules)
+                            attacker_rules=marker.special_rules,
+                            reroll_failed=wings)
     summary["brace_wanted"] = wanted_brace
     summary["brace_passed"] = brace_passed
     return summary

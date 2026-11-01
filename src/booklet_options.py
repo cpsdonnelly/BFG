@@ -16,14 +16,16 @@ ship_catalog turns into an UpgradeEntry:
 """
 from typing import Dict, List
 
+from .chapter_tactics import TACTICS
+
 _THUNDERHAWK_BAY = {"weapon_type": "launch_bay", "range_cm": 30, "strength": 1, "arcs": [],
                     "craft_types": ["thunderhawk"], "craft_speeds": {"thunderhawk": 20},
                     "craft_speed": 20}
 
 # Tactical Flexibility: a Space Marine fleet with no Chapter tactic takes 10pts
-# off each Strike Cruiser Variant refit (minimum 0). Chapter tactics aren't in
-# the game yet (the booklet names them but gives no effects), so every fleet
-# has Tactical Flexibility for now.
+# off each Strike Cruiser Variant refit (minimum 0). Variant costs below include
+# it; a fleet whose Master of the Fleet takes a Chapter tactic pays the
+# difference back (tactical_flexibility_refund).
 TACTICAL_FLEXIBILITY = 10
 
 
@@ -50,7 +52,7 @@ def space_marine_options(row: dict) -> List[Dict]:
                                          "weapon_type": "battery", "range_cm": 30,
                                          "strength": 5, "arcs": ["front"],
                                          "hits_on": 4, "crit_on": 4}]},
-             "restrictions": ["group:prow_bays", "sc_variant"]},
+             "restrictions": ["group:prow_bays", "sc_variant", "base_cost:10"]},
             {"name": "Variant: prow torpedoes",
              "description": "Swap prow launch bays for torps (30cm S6 F), free; may fire "
                             "standard or boarding torpedoes.",
@@ -60,7 +62,7 @@ def space_marine_options(row: dict) -> List[Dict]:
                                          "range_cm": 30, "strength": 6, "arcs": ["front"],
                                          "torpedo_type": "standard", "torpedo_speed": 30,
                                          "boarding_torpedoes": True}]},
-             "restrictions": ["group:prow_bays", "sc_variant"]},
+             "restrictions": ["group:prow_bays", "sc_variant", "base_cost:0"]},
             {"name": "Variant: macrobatteries to launch bays",
              "description": "Swap both macrobatteries for port and starboard launch bays "
                             "(1 Thunderhawk squadron each), +20pts (-10 Tactical Flexibility).",
@@ -68,7 +70,7 @@ def space_marine_options(row: dict) -> List[Dict]:
              "effect": {"remove_weapons": ["Port Macrobatteries", "Starboard Macrobatteries"],
                         "add_weapons": [dict(_THUNDERHAWK_BAY, name="Port Launch Bays"),
                                         dict(_THUNDERHAWK_BAY, name="Starboard Launch Bays")]},
-             "restrictions": ["sc_variant"]},
+             "restrictions": ["sc_variant", "base_cost:20"]},
         ]
     if row.get("hull_type") == "Battleship" or "Battle Barge" in name:
         mof = "Master of the Fleet (Ld 10)"
@@ -86,6 +88,14 @@ def space_marine_options(row: dict) -> List[Dict]:
              "points_cost": 25 * n, "effect": {"rerolls": n},
              "restrictions": ["group:mof_rerolls", f"requires:{mof}"]}
             for n in (1, 2, 3)
+        ] + [
+            {"name": f"Chapter tactic: {label}",
+             "description": ("+15pts. The Master of the Fleet's Chapter tactic, affecting all "
+                             "relevant ships (replaces Tactical Flexibility)."),
+             "points_cost": 15,
+             "effect": {"add_special_rules": [f"chapter_tactic:{key}"]},
+             "restrictions": ["group:chapter_tactic", f"requires:{mof}"]}
+            for key, label in TACTICS.items()
         ] + [
             {"name": "Master of the Fleet: Terminator honour guard",
              "description": "+25pts. Double teleport range; teleport attacks roll 3D6 and "
@@ -150,3 +160,20 @@ def fleet_option_errors(rows: List[tuple], total_points: int = 0) -> List[str]:
         errors.append("A Space Marine fleet of 750+ pts needs a Master of the Fleet "
                       "(option on a battle barge).")
     return errors
+
+
+def tactical_flexibility_refund(fleet_upgrades: List[List[str]], entries) -> int:
+    """Points to add back when the fleet takes a Chapter tactic: its Strike
+    Cruiser Variant refits lose the Tactical Flexibility discount.
+    fleet_upgrades: each ship's chosen options; entries: the matching
+    ShipClassEntry objects."""
+    if not any(n.startswith("Chapter tactic:") for ups in fleet_upgrades for n in ups):
+        return 0
+    extra = 0
+    for ups, entry in zip(fleet_upgrades, entries):
+        for u in entry.upgrades_available:
+            if u.name in ups:
+                for r in u.restrictions:
+                    if r.startswith("base_cost:"):
+                        extra += int(r[10:]) - u.points_cost
+    return extra

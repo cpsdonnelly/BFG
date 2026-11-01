@@ -144,6 +144,13 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
     """
     # Troop ratings
     a_rating = sum(troop_rating(a, a.is_grappled) for a in attackers)
+    # Pack Hunter Protocols: +1 per escort / vanguard boarding a larger ship
+    # together with only its own squadron
+    from .chapter_tactics import pack_hunter_bonus
+    pack = pack_hunter_bonus(attackers, target)
+    if pack:
+        a_rating += pack
+        gs.add_log(f"  Pack Hunter Protocols: +{pack} troop rating")
     d_rating = troop_rating(target, target.is_grappled)
 
     # Modifiers: each ship's weaknesses add to the OPPONENT's roll

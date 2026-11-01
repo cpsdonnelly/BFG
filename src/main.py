@@ -187,6 +187,9 @@ def main():
 
     # Create turn controller and dice
     dice = DiceRoller(mode=gs.dice_mode, root=root)
+    from .chapter_tactics import apply_fleet_tactics
+    for line in apply_fleet_tactics(gs):          # Space Marine Chapter tactics
+        gs.add_log(line)
     for line in roll_starting_leadership(gs, dice, ai_dice=DiceRoller(mode="auto")):
         gs.add_log(line)
     tc = TurnController(gs, dice)

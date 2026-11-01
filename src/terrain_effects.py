@@ -99,6 +99,11 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
     num_dice = 3 if on_aaf else 2
     ld = ship.leadership
 
+    # Shadow Engines: escort squadrons automatically pass to navigate asteroids
+    if ship.ship_type == "escort" and "chapter_tactic:shadow_engines" in ship.special_rules:
+        gs.add_log(f"  {ship.name} navigates the asteroid field (Shadow Engines)")
+        return {"passed": True, "roll": 0, "needed": ld, "damage": 0}
+
     roll = sum(dice.roll_d6(num_dice,
         f"{ship.name} asteroid navigation ({num_dice}D6 vs Ld {ld})"))
     passed = roll <= ld

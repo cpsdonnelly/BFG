@@ -101,13 +101,21 @@ Full" is `improved_thrusters`; Venerable Battle Barges are `venerable` (VP 50% /
 `src/booklet_options.py` holds booklet options as fleet-builder upgrades (effects: stat deltas,
 set fields, weapon swaps, re-rolls; restrictions: one per group, requires, fleet-unique, Strike
 Cruiser Variant limit). Space Marines so far: Secondary Shield, the three Strike Cruiser
-Variants (Tactical Flexibility -10pts, since Chapter tactics aren't in the game), Master of the
-Fleet (Ld 10, 0-3 re-rolls, Terminator honour guard). Honour guards double teleport range;
-Veteran 2D6 keep best, Terminator 3D6 keep best two (two raids).
+Variants (Tactical Flexibility -10pts unless the fleet takes a Chapter tactic), Master of the
+Fleet (Ld 10, 0-3 re-rolls, Terminator honour guard, one Chapter tactic +15pts). Honour guards
+double teleport range; Veteran 2D6 keep best, Terminator 3D6 keep best two (two raids).
+
+Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
+`chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the
+player's Space Marine ships. Readings to confirm with the owner: Wings of Fury re-rolls raids
+that would have no effect; Tactical Reserves' 25% reduction rounds the result up (as halving
+does) and applies to macrobatteries only ("gunnery weapons", not lances); Pack Hunter needs at
+least two boarders; Lightning Thrusters vanguards fire at full only if they didn't turn.
 
 ### Open questions for the owner
 
-- **Chapter Tactics:** the booklet names the nine tactics but gives no effects.
+- **Brace for Impact timing** (s.7, export 7): declared "before any combat rolls for that
+  attack (rolls to hit...)". The game still asks when damage is applied, after the to-hit roll.
 - **Grey Knights Battle Barge:** does "+1D6cm extra on top of the normal bonus" stack with
   Improved Thrusters? Played as one extra D6.
 

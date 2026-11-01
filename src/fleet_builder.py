@@ -774,8 +774,16 @@ class FleetBuilderWindow:
                 f"{row['custom_name']}{flagship}  {row['points']}pts{upgrades}")
         self._refresh_totals()
 
+    def _fleet_total(self) -> int:
+        """Ship points plus fleet-wide adjustments (a Chapter tactic removes the
+        Tactical Flexibility discount on Strike Cruiser Variants)."""
+        from .booklet_options import tactical_flexibility_refund
+        return (sum(r["points"] for r in self._fleet)
+                + tactical_flexibility_refund([r.get("upgrades", []) for r in self._fleet],
+                                              [r["entry"] for r in self._fleet]))
+
     def _refresh_totals(self):
-        total = sum(r["points"] for r in self._fleet)
+        total = self._fleet_total()
         try:
             limit = int(self._pts_limit_var.get())
         except ValueError:
@@ -799,7 +807,7 @@ class FleetBuilderWindow:
             errors.append("Fleet is empty.")
             return False, errors
 
-        total = sum(r["points"] for r in self._fleet)
+        total = self._fleet_total()
         try:
             limit = int(self._pts_limit_var.get())
         except ValueError:
@@ -894,7 +902,7 @@ class FleetBuilderWindow:
             "faction":      self._faction or "",
             "description":  "",
             "points_limit": limit,
-            "total_points": sum(r["points"] for r in self._fleet),
+            "total_points": self._fleet_total(),
             "ships": [],
         }
 
