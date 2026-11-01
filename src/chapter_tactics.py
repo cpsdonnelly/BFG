@@ -159,9 +159,11 @@ def tactical_reserves_barge(ship) -> bool:
 
 
 def reduce_for_movement_order(ship, fp: int, gunnery: bool) -> int:
-    """Firepower on All Ahead Full / Burn Retros / Come to New Heading: halved
-    (rounding up). Tactical Reserves battle barges lose only 25% (rounding up)
-    of their gunnery weapons on All Ahead Full or Burn Retros."""
+    """Firepower or lance strength on All Ahead Full / Burn Retros / Come to New
+    Heading: halved (rounding up). Tactical Reserves battle barges lose only
+    25% (result rounded up) of their gunnery weapons on All Ahead Full or Burn
+    Retros; owner ruling: lances are covered too. gunnery=False keeps the
+    normal halving for anything else."""
     if (gunnery and tactical_reserves_barge(ship)
             and ship.special_order in ("all_ahead_full", "burn_retros")):
         return math.ceil(fp * 0.75)

@@ -423,13 +423,15 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
     if attacker.is_crippled:
         strength = (strength + 1) // 2
 
-    # Halve if on movement special orders
+    # Halve if on movement special orders (Tactical Reserves battle barges:
+    # -25% on All Ahead Full or Burn Retros, lances included, owner ruling)
     if attacker.special_order in (
         SpecialOrder.ALL_AHEAD_FULL.value,
         SpecialOrder.BURN_RETROS.value,
         SpecialOrder.COME_TO_NEW_HEADING.value,
     ):
-        strength = (strength + 1) // 2
+        from .chapter_tactics import reduce_for_movement_order
+        strength = reduce_for_movement_order(attacker, strength, gunnery=True)
 
     if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
         strength = (strength + 1) // 2
