@@ -109,12 +109,22 @@ class ShipClassEntry:
             d["points_value"] += u.points_cost
             if "add_special_rule" in u.effect:
                 d["special_rules"].append(u.effect["add_special_rule"])
+            d["special_rules"] += list(u.effect.get("add_special_rules", []))
+            if "remove_weapons" in u.effect:
+                gone = set(u.effect["remove_weapons"])
+                d["weapons"] = [w for w in d["weapons"] if w.get("name") not in gone]
             if "add_weapon" in u.effect:
                 d["weapons"].append(u.effect["add_weapon"].copy())
+            d["weapons"] += [w.copy() for w in u.effect.get("add_weapons", [])]
             if "stat_delta" in u.effect:
                 for stat, delta in u.effect["stat_delta"].items():
                     if stat in d:
                         d[stat] += delta
+            d.update(u.effect.get("set", {}))
+            if u.effect.get("rerolls"):
+                d["rerolls_remaining"] = max(d["rerolls_remaining"], u.effect["rerolls"])
+            if u.effect.get("flagship"):
+                d["is_flagship"] = True
 
         return d
 
@@ -126,8 +136,11 @@ class ShipClassEntry:
 def _build_catalogs() -> Dict[str, List[ShipClassEntry]]:
     from .booklet_ships import FACTIONS, convert_row, load_rows
     catalogs: Dict[str, List[ShipClassEntry]] = {fid: [] for fid, _, _ in FACTIONS.values()}
+    from .booklet_options import options_for
     for row in load_rows():
-        entry = ShipClassEntry(**convert_row(row))
+        kw = convert_row(row)
+        kw["upgrades_available"] = [UpgradeEntry(**o) for o in options_for(row)]
+        entry = ShipClassEntry(**kw)
         catalogs.setdefault(entry.faction, []).append(entry)
     return catalogs
 

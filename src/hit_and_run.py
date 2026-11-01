@@ -48,6 +48,28 @@ from .geometry import current_shields
 from .combat import uses_crit_table
 
 
+def teleport_range(ship: Ship) -> int:
+    """10cm (s.28); honour guards double it (Space Marine Teleport Assault)."""
+    honour_guard = ("terminator_honour_guard" in ship.special_rules
+                    or "veteran_honour_guard" in ship.special_rules)
+    return 20 if honour_guard else 10
+
+
+def teleport_raid_rolls(ship: Ship, dice: DiceRoller, target_name: str) -> Optional[List[int]]:
+    """Honour guards (Space Marine Teleport Assault): a Veteran honour guard rolls
+    2D6 and uses one result, a Terminator honour guard rolls 3D6 and uses two
+    (each a raid). The best results are used. None without an honour guard."""
+    if "terminator_honour_guard" in ship.special_rules:
+        n, keep, who = 3, 2, "Terminator"
+    elif "veteran_honour_guard" in ship.special_rules:
+        n, keep, who = 2, 1, "Veteran"
+    else:
+        return None
+    rolls = dice.roll_d6(n, f"{ship.name} {who} honour guard teleport on {target_name} "
+                            f"({n}D6, best {keep})")
+    return sorted(rolls, reverse=True)[:keep]
+
+
 def check_teleport_eligibility(attacker: Ship, target: Ship,
                                 gs: GameState) -> Tuple[bool, str]:
     """
@@ -69,8 +91,9 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
         return False, f"{attacker.name} is too small to perform teleport attacks"
 
     dist = attacker.distance_to(target)
-    if dist > 10:
-        return False, f"{target.name} is {dist:.1f}cm away (max 10cm)"
+    max_range = teleport_range(attacker)
+    if dist > max_range:
+        return False, f"{target.name} is {dist:.1f}cm away (max {max_range}cm)"
 
     shields = current_shields(target, gs.get_blast_markers())
     if shields > 0:
@@ -151,7 +174,8 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
 def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
                   dice: DiceRoller, gs: GameState,
                   source_name: str = "Assault boat",
-                  attacker_rules: Optional[List[str]] = None) -> Dict:
+                  attacker_rules: Optional[List[str]] = None,
+                  preset_rolls: Optional[List[int]] = None) -> Dict:
     """
     Core raid resolution shared by hit-and-run raids and teleport attacks.
 
@@ -184,7 +208,10 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         gs.add_log(f"  Raid modifier: {mod:+d} to each result (crew quality)")
 
     for i in range(num_raids):
-        roll = dice.roll_d6(1, f"{source_name} raid {i+1}/{num_raids} on {target.name}")[0]
+        if preset_rolls is not None:
+            roll = preset_rolls[i]          # chosen from an honour guard's dice
+        else:
+            roll = dice.roll_d6(1, f"{source_name} raid {i+1}/{num_raids} on {target.name}")[0]
         summary["raid_rolls"].append(roll)
         effective = roll + mod
 
@@ -290,9 +317,11 @@ def resolve_teleport_attack(attacker: Ship, target: Ship,
         else:
             gs.add_log(f"  {target.name} brace FAILED — no repel rolls")
 
-    summary = resolve_raids(1, target, brace_passed, dice, gs,
+    chosen = teleport_raid_rolls(attacker, dice, target.name)
+    summary = resolve_raids(len(chosen) if chosen else 1, target, brace_passed, dice, gs,
                             source_name=f"{attacker.name} teleporters",
-                            attacker_rules=attacker.special_rules)
+                            attacker_rules=attacker.special_rules,
+                            preset_rolls=chosen)
     summary["brace_wanted"] = wanted_brace
     summary["brace_passed"] = brace_passed
     return summary

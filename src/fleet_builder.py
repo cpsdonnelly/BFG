@@ -214,6 +214,11 @@ class _ShipEditDialog:
 
     def _save(self):
         chosen = [name for name, v in self._upgrade_vars.items() if v.get()]
+        from .booklet_options import ship_option_errors
+        problems = ship_option_errors(self._entry, chosen)
+        if problems:
+            messagebox.showerror("Options", "\n".join(problems), parent=self.dialog)
+            return
         hits_max = getattr(self._entry, "hits_max", 8)
         try:
             hits = int(self._hits_var.get())
@@ -804,9 +809,18 @@ class FleetBuilderWindow:
         if total > limit:
             errors.append(f"Fleet exceeds points limit: {total} > {limit} pts.")
 
-        flagship_count = sum(1 for r in self._fleet if r["is_flagship"])
+        # A Master of the Fleet's ship is the flagship
+        flagship_count = sum(1 for r in self._fleet if r["is_flagship"]
+                             or "Master of the Fleet (Ld 10)" in r.get("upgrades", []))
         if flagship_count > 1:
             errors.append("Fleet has more than one flagship.")
+
+        from .booklet_options import ship_option_errors, fleet_option_errors
+        for r in self._fleet:
+            for p in ship_option_errors(r["entry"], r.get("upgrades", [])):
+                errors.append(f"{r.get('name', r['entry'].ship_class)}: {p}")
+        errors += fleet_option_errors(
+            [(r["entry"], r.get("upgrades", [])) for r in self._fleet], total)
 
         # Check squadrons by ship type
         squadrons: Dict[str, List[dict]] = {}

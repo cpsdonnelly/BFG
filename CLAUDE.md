@@ -95,6 +95,21 @@ and roll Ld on the Astartes table; Rapid Strike Vessels ("no Space Marine rules 
 Default. Orks get `ere_we_go` (auto-pass All Ahead Full, +3D6cm). Built-in "+D6cm on All Ahead
 Full" is `improved_thrusters`; Venerable Battle Barges are `venerable` (VP 50% / 125%).
 
+### Ship options and fleet commanders
+
+`src/booklet_options.py` holds booklet options as fleet-builder upgrades (effects: stat deltas,
+set fields, weapon swaps, re-rolls; restrictions: one per group, requires, fleet-unique, Strike
+Cruiser Variant limit). Space Marines so far: Secondary Shield, the three Strike Cruiser
+Variants (Tactical Flexibility -10pts, since Chapter tactics aren't in the game), Master of the
+Fleet (Ld 10, 0-3 re-rolls, Terminator honour guard). Honour guards double teleport range;
+Veteran 2D6 keep best, Terminator 3D6 keep best two (two raids).
+
+### Open questions for the owner
+
+- **Chapter Tactics:** the booklet names the nine tactics but gives no effects.
+- **Grey Knights Battle Barge:** does "+1D6cm extra on top of the normal bonus" stack with
+  Improved Thrusters? Played as one extra D6.
+
 ## Running and testing
 
 - `python run.py` starts the desktop game (needs Tk; on Debian/Ubuntu `apt install python3-tk`).

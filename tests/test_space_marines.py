@@ -118,3 +118,89 @@ def test_venerable_battle_barge_vp():
     gs = make_gs([destroyed, crippled])
     vp = calculate_victory_points(gs)
     assert vp[2]["destroyed"] == 500 and vp[2]["crippled"] == 200
+
+
+# ── Fleet options: refits, Master of the Fleet, honour guards ───────────────
+from src.booklet_options import ship_option_errors, fleet_option_errors
+from src.hit_and_run import teleport_range, resolve_teleport_attack
+
+
+def _names(entry):
+    return [u.name for u in entry.upgrades_available]
+
+
+def test_strike_cruiser_options_and_costs():
+    sc = find_ship_class("Strike Cruiser")
+    costs = {u.name: u.points_cost for u in sc.upgrades_available}
+    assert costs["Secondary Shield (+1 Shield)"] == 15
+    # Tactical Flexibility: -10 on each variant refit (min 0)
+    assert costs["Variant: prow Bombardment Cannon"] == 0
+    assert costs["Variant: prow torpedoes"] == 0
+    assert costs["Variant: macrobatteries to launch bays"] == 10
+    assert "Secondary Shield (+1 Shield)" in _names(find_ship_class("Vanguard Cruiser"))
+    assert _names(find_ship_class("Sword Rapid Strike Vessel")) == []
+
+
+def test_variant_swaps_weapons():
+    sc = find_ship_class("Strike Cruiser")
+    d = sc.to_ship_dict("Spear", 1, upgrades=["Variant: prow torpedoes",
+                                              "Variant: macrobatteries to launch bays",
+                                              "Secondary Shield (+1 Shield)"])
+    names = sorted(w["name"] for w in d["weapons"])
+    assert names == ["Port Launch Bays", "Prow Bombardment Cannon", "Prow Torps",
+                     "Starboard Launch Bays"]
+    torps = next(w for w in d["weapons"] if w["name"] == "Prow Torps")
+    assert torps["strength"] == 6 and torps["boarding_torpedoes"]
+    assert d["shields_max"] == sc.shields_max + 1
+    assert d["points_value"] == 145 + 0 + 10 + 15
+
+
+def test_option_groups_and_requirements():
+    sc = find_ship_class("Strike Cruiser")
+    assert ship_option_errors(sc, ["Variant: prow torpedoes",
+                                   "Variant: prow Bombardment Cannon"])
+    bb = find_ship_class("Space Marine Battle Barge")
+    assert ship_option_errors(bb, ["Master of the Fleet: 2 re-rolls"])        # needs MoF
+    assert not ship_option_errors(bb, ["Master of the Fleet (Ld 10)",
+                                       "Master of the Fleet: 2 re-rolls"])
+    assert ship_option_errors(bb, ["Master of the Fleet (Ld 10)",
+                                   "Master of the Fleet: 1 re-roll",
+                                   "Master of the Fleet: 3 re-rolls"])
+
+
+def test_fleet_limits():
+    sc = find_ship_class("Strike Cruiser")
+    bb = find_ship_class("Space Marine Battle Barge")
+    var = ["Variant: prow torpedoes"]
+    mof = ["Master of the Fleet (Ld 10)"]
+    assert not fleet_option_errors([(bb, mof), (sc, var), (sc, [])], 800)
+    assert fleet_option_errors([(bb, mof), (sc, var), (sc, var)], 800)       # 2 of 2
+    assert fleet_option_errors([(bb, mof), (bb, mof)], 900)                 # two MoF
+    assert any("Master of the Fleet" in e for e in fleet_option_errors([(bb, []), (sc, [])], 800))
+    assert not fleet_option_errors([(bb, []), (sc, [])], 700)
+
+
+def test_master_of_the_fleet_ship():
+    bb = find_ship_class("Space Marine Battle Barge")
+    d = bb.to_ship_dict("Hammer", 1, upgrades=["Master of the Fleet (Ld 10)",
+                                               "Master of the Fleet: 2 re-rolls",
+                                               "Master of the Fleet: Terminator honour guard"])
+    assert d["leadership"] == 10 and d["leadership_table"] == ""     # not rolled
+    assert d["rerolls_remaining"] == 2 and d["is_flagship"]
+    assert "terminator_honour_guard" in d["special_rules"]
+    assert d["points_value"] == 425 + 50 + 50 + 25
+
+
+def test_terminator_honour_guard_teleport():
+    hg = make_ship(id="a", player=1, hits_max=12, x=0.0, y=0.0,
+                   special_rules=["space_marine_crew", "teleport_assault",
+                                  "terminator_honour_guard"])
+    target = make_ship(id="t", player=2, hits_max=8, shields_max=0, x=18.0, y=0.0)
+    gs = make_gs([hg, target])
+    assert teleport_range(hg) == 20 and check_teleport_eligibility(hg, target, gs)[0]
+    rolls = [2, 5, 4,      # 3D6: best two are 5 and 4
+             ]
+    dice = DiceStub(rolls + [1] * 6)
+    r = resolve_teleport_attack(hg, target, dice, gs, lambda *a: (False, False))
+    assert r["raid_rolls"] == [5, 4]
+    assert len(r["crits_applied"]) == 2          # 5+1 and 4+1 Space Marine bonus
