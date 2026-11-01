@@ -205,6 +205,22 @@ class OrdnanceMovementMixin:
                 modes[m.id] = mode
         return modes
 
+    def _brace_vs_ordnance(self, marker, ship, expected):
+        """Offer Brace for Impact to a ship about to be attacked by ordnance,
+        before turrets or attack rolls (s.7). The launching ship counts as the
+        attacker (one attempt per attacker per turn). Returns the decision, or
+        None when there is no combat panel to ask through."""
+        combat = getattr(self.ctx, "combat", None)
+        if combat is None:
+            return None
+        from .combat import squadron_group
+        launcher = self.ctx.gs.get_ship_by_id(marker.launched_by)
+        name = f"{marker.ordnance_type.replace('_', ' ')}" + (
+            f" from {launcher.name}" if launcher else "")
+        return combat._brace_before_attack(
+            marker.launched_by or marker.id, name, ship, expected,
+            group=squadron_group(ship, self.ctx.gs.get_ships()), attacker=launcher)
+
     def _resolve_moving_ship_contacts(self):
         """Ships that moved into ordnance during their own move are attacked by
         it now (s.15). execute_movement records the markers each ship touched."""
@@ -234,6 +250,7 @@ class OrdnanceMovementMixin:
         player); None for all. forced: {marker id: ship id} contacts made by a
         ship moving into ordnance during its own move; only those resolve, and
         they count as touching whatever the end positions."""
+        from .ordnance import craft_roles
         from .ordnance import (check_torpedo_contact, resolve_torpedo_attack,
                                torpedo_may_attack, is_torpedo_salvo,
                                resolve_bomber_attack, resolve_mine_contact,
@@ -268,6 +285,11 @@ class OrdnanceMovementMixin:
             ]
             if not wave:
                 continue
+            # Brace for Impact before the turrets fire at a wave that may make
+            # attack runs (s.7); raids keep their own order (s.31)
+            if any("bomber" in craft_roles(m.ordnance_type) for m in wave):
+                self._brace_vs_ordnance(wave[0], s, 2.0 * len(wave))
+                s = self.ctx.gs.get_ship_by_id(s.id) or s     # keep the brace
             p1 = resolve_bomber_interception(
                 len(wave), s, ships, self.ctx.dice, self.ctx.gs)
             for msg in p1["log"]:
@@ -327,10 +349,14 @@ class OrdnanceMovementMixin:
                         f"  Torpedoes contact {s.name}"
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
                         + "!")
+                    # Brace for Impact before turrets and to-hit rolls (s.7)
+                    braced = self._brace_vs_ordnance(
+                        marker, s, marker.strength * max(0, 7 - s.armor_vs(marker.x, marker.y)) / 6)
+                    s = self.ctx.gs.get_ship_by_id(s.id) or s     # keep the brace
                     result = resolve_torpedo_attack(
                         marker, s, self.ctx.dice, self.ctx.gs,
                         all_ships=ships,
-                        brace_decision_fn=self._raid_brace_fn())
+                        brace_decision_fn=None if braced is not None else self._raid_brace_fn())
                     marker.attacked_turns = {**(marker.attacked_turns or {}),
                                              s.id: self.ctx.gs.turn_number}
                     raids = result.get("raids")
@@ -439,6 +465,9 @@ class OrdnanceMovementMixin:
                         f"  Mine contacts {s.name}"
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
                         + "!")
+                    self._brace_vs_ordnance(
+                        marker, s, 8 * max(0, 7 - s.armor_vs(marker.x, marker.y)) / 6)
+                    s = self.ctx.gs.get_ship_by_id(s.id) or s     # keep the brace
                     result = resolve_mine_contact(
                         marker, s, self.ctx.dice, self.ctx.gs, ships)
                     if result["hits"] > 0:

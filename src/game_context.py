@@ -26,6 +26,7 @@ class GameContext:
         # Panel references — wired by GamePanel after construction
         self.movement: Optional["MovementPanel"] = None
         self.ordnance: Optional["OrdnancePanel"] = None
+        self.combat = None          # CombatPanel (brace decisions before attacks)
 
         # LAN multiplayer transport (GameServer or GameClient, or None for local play)
         self.network = None

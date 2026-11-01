@@ -415,6 +415,7 @@ class AIPlayer:
             target = self._pick_target(ship, weapon, enemies)
             if not target:
                 continue
+            self._offer_brace(ship, target)
 
             if wtype in ("battery", "lance"):
                 # Firepower fixed when fired: random values rolled, Heavy Gunz by range
@@ -451,6 +452,29 @@ class AIPlayer:
             if sr.hits > 0:
                 self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id)
 
+    def _offer_brace(self, ship, target):
+        """The target decides on Brace for Impact before this ship's attack on
+        it is rolled (s.7): once per target squadron per firing ship.
+        brace_fn is set by the game (asks a human player; the AI decides for
+        its own ships); without it nothing is asked."""
+        fn = getattr(self, "brace_fn", None)
+        if fn is None:
+            return
+        asked = getattr(self, "_brace_asked", None)
+        if asked is None or asked[0] != ship.id:
+            asked = self._brace_asked = (ship.id, set())
+        group = squadron_group(target, self.gs.get_ships())
+        key = tuple(sorted(m.id for m in group))
+        if key in asked[1]:
+            return
+        asked[1].add(key)
+        from .combat import expected_hits
+        expected = sum(expected_hits(ship, w, target) for w in ship.weapons
+                       if w.get("weapon_type") in ("battery", "lance")
+                       and check_weapon_in_arc(ship, w, target.x, target.y)
+                       and check_weapon_in_range(ship, w, target.x, target.y))
+        fn(ship, target, expected, group)
+
     def _fire_siege_cannons(self, ship, enemies, lock_on, blast_markers, phenomena,
                             all_ships) -> set:
         """Siege Cannons: fire bombardment cannons and the macrobatteries that
@@ -473,6 +497,7 @@ class AIPlayer:
         bc_ok = [(i, w) for i, w in group if w.get("hits_on")]
         if not macro or not bc_ok:
             return set()
+        self._offer_brace(ship, target)
         shots = {}
         for i, w in macro + bc_ok:
             pool, _m, _e = weapon_fire_pool(ship, w, i, ship.distance_to(target), self.dice)

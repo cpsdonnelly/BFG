@@ -2,14 +2,14 @@
 import tkinter as tk
 from tkinter import messagebox
 import math
-from typing import Tuple
+from typing import Optional, Tuple
 
 from .models import Ship, SpecialOrder, OrdnanceMarker
 from .chapter_tactics import weapon_range
 from .combat import (check_weapon_in_arc, apply_damage, check_los_clear,
                      resolve_batteries_vs_squadron, eligible_orientations,
                      gunnery_target_type, allocate_squadron_hits,
-                     weapon_fire_pool, shot_weapon)
+                     weapon_fire_pool, shot_weapon, expected_hits, squadron_group)
 from .game_context import GameContext
 from .combat_dialog import CombatDialogMixin
 
@@ -236,15 +236,74 @@ class CombatPanel(CombatDialogMixin):
         tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
 
+    def _brace_before_attack(self, attacker_key: str, attacker_name: str, target: Ship,
+                             expected: float, log_fn=None, group=None,
+                             attacker: Ship = None) -> bool:
+        """Brace for Impact is declared before any combat rolls for the attack
+        (s.7). Asks the target's player (the AI decides for its own ships) and
+        rolls the command check. group: the target's squadron, which tests once
+        and braces together (s.8). A ship may only try once per attacker per
+        turn. Returns True if the target is braced."""
+        from .movement import attempt_brace
+        log_fn = log_fn or self.ctx.log
+        target = self.ctx.gs.get_ship_by_id(target.id) or target
+        if target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+            return True
+        if attacker_key in (target.brace_failed_vs or []):
+            return False
+        if target.is_destroyed or target.status != "active":
+            return False
+        if self.ctx.is_ai_controlled(target.player):
+            from .ai_player import ai_should_brace
+            want = ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker)
+        else:
+            who = (f"{target.name}'s squadron" if group and len(group) > 1 else target.name)
+            want = messagebox.askyesno(
+                "Brace For Impact?",
+                f"{who} is about to be attacked by {attacker_name} "
+                f"(about {expected:.1f} hits expected).\n"
+                f"Attempt Brace For Impact before the attack is rolled?\n"
+                f"(Ld test, then 4+ save per hull hit; braced ships fire at half.)\n"
+                f"If failed: cannot brace against {attacker_name} again this turn.")
+        if not want:
+            return False
+        check = attempt_brace(target, self.ctx.gs, self.ctx.dice)
+        tag = "[AI] " if self.ctx.is_ai_controlled(target.player) else ""
+        members = [m for m in (group or [target]) if m.id != target.id]
+        if check["passed"]:
+            log_fn(f"     {tag}{target.name} Brace PASSED (rolled {check['roll']} "
+                   f"vs Ld {check['needed']})" + (" — whole squadron braced" if members else ""))
+            for m in members:
+                fresh = self.ctx.gs.get_ship_by_id(m.id)
+                if fresh and fresh.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
+                    fresh.previous_order = fresh.special_order
+                    fresh.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+                    fresh.brace_set_on_turn = self.ctx.gs.turn_number
+                    self.ctx.gs.update_ship(fresh)
+            return True
+        for m in [target] + members:
+            fresh = self.ctx.gs.get_ship_by_id(m.id)
+            if fresh:
+                fresh.brace_failed_vs = list(fresh.brace_failed_vs or []) + [attacker_key]
+                self.ctx.gs.update_ship(fresh)
+        log_fn(f"     {tag}{target.name} Brace FAILED (rolled {check['roll']} "
+               f"vs Ld {check['needed']})")
+        return False
+
     def _apply_hits_to_target(self, attacker: Ship, target: Ship,
                               total_hits: int, log_fn,
-                              crit_on: int = 6) -> Tuple[int, bool]:
-        """Brace prompt, apply_damage, crits, and destruction check for one volley.
+                              crit_on: int = 6,
+                              braced: Optional[bool] = None) -> Tuple[int, bool]:
+        """apply_damage, crits, and destruction check for one volley. braced:
+        the target's Brace for Impact decision, taken before the attack was
+        rolled (s.7); None falls back to asking now (older callers).
         Returns (hits left unused because the ship was destroyed, destroyed)."""
         brace = False
         already_braced = (target.special_order ==
                           SpecialOrder.BRACE_FOR_IMPACT.value)
-        if already_braced:
+        if braced is not None:
+            brace = braced or already_braced
+        elif already_braced:
             brace = True
             log_fn("     (already braced)")
         elif self.ctx.is_ai_controlled(target.player):
@@ -447,6 +506,13 @@ class CombatPanel(CombatDialogMixin):
             self.ctx.log(msg)
 
         def _confirm():
+            # Brace for Impact is declared before any combat rolls (s.7)
+            chosen_rows = [row for row, var in zip(weapon_rows, chk_vars) if var.get()]
+            t_group = squadron_group(target, self.ctx.gs.get_ships())
+            braced = self._brace_before_attack(
+                primary.id, primary.name, target,
+                sum(expected_hits(r[0], dict(r[2], strength=r[3]), target) for r in chosen_rows),
+                _log, group=t_group, attacker=primary)
             # Firepower fixed when fired: random values rolled, Heavy Gunz by range
             selected = []
             for row, var in zip(weapon_rows, chk_vars):
@@ -477,7 +543,8 @@ class CombatPanel(CombatDialogMixin):
                 fresh_target = self.ctx.gs.get_ship_by_id(target.id)
                 if fresh_target and not fresh_target.is_destroyed:
                     _log(f"  >> {fresh_target.name}: {sr.hits} hits")
-                    self._apply_hits_to_target(primary, fresh_target, sr.hits, _log)
+                    self._apply_hits_to_target(primary, fresh_target, sr.hits, _log,
+                                               braced=braced)
 
             # Mark each contributing weapon as fired
             used_by_ship: dict = {}
@@ -722,6 +789,13 @@ class CombatPanel(CombatDialogMixin):
 
             target_type = gunnery_target_type(eligible[0])
 
+            # Brace for Impact is declared before any combat rolls (s.7): one
+            # test for the squadron
+            braced = self._brace_before_attack(
+                attacker.id, attacker.name, eligible[0],
+                expected_hits(attacker, dict(weapon, strength=full_avail), eligible[0]),
+                _log, group=squad_members, attacker=attacker)
+
             # Firepower fixed when fired: random values rolled, Heavy Gunz by
             # range to the nearest eligible ship (as for the range shift)
             full_avail, _mode, err = weapon_fire_pool(
@@ -746,7 +820,8 @@ class CombatPanel(CombatDialogMixin):
                     return n, True      # already gone (e.g. a chained explosion)
                 _log(f"  >> {fresh.name}: {n} hits")
                 return self._apply_hits_to_target(attacker, fresh, n, _log,
-                                                  crit_on=weapon.get("crit_on", 6))
+                                                  crit_on=weapon.get("crit_on", 6),
+                                                  braced=braced)
 
             applied = allocate_squadron_hits(
                 sr.dice_rolled, eligible, lambda m: sr.armors[m.id], _apply_to)

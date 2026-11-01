@@ -4,7 +4,7 @@ from tkinter import messagebox
 
 from .models import Ship, SpecialOrder
 from .chapter_tactics import weapon_range, shadow_engines_hidden
-from .combat import (weapon_fire_pool, shot_weapon, resolve_siege_cannons,
+from .combat import (weapon_fire_pool, shot_weapon, resolve_siege_cannons, expected_hits,
                      resolve_batteries, resolve_lances, resolve_nova_cannon,
                      apply_damage, check_los_clear, squadron_group,
                      squadron_fire_preview, fire_at_squadron)
@@ -294,17 +294,26 @@ class _FireDialog:
         """Fire all selected weapons at their assigned targets."""
         all_damage = {}
         fired_weapon_indices = []
+        # 1. Settle each weapon's target (target priority decides who is shot)
+        self._volley_targets = {}
+        for w_idx, weapon, enabled, target_var, _sv, _av in self.weapon_assignments:
+            if not enabled.get():
+                continue
+            target = self._resolve_target(weapon, target_var.get())
+            if target is not None:
+                self._volley_targets[w_idx] = self._check_target_priority(weapon, target)
+        # 2. Targets decide on Brace for Impact before any combat rolls (s.7)
+        self._braced = self._brace_targets()
+        # 3. Roll
         siege_done = self._fire_siege_cannons(all_damage, fired_weapon_indices)
 
         for w_idx, weapon, enabled, target_var, str_var, avail_str in self.weapon_assignments:
             if not enabled.get() or w_idx in siege_done:
                 continue
-            target = self._resolve_target(weapon, target_var.get())
+            target = self._volley_targets.get(w_idx)
             if target is None:
                 self._log(f"  {weapon['name']}: skipped (no valid target)")
                 continue
-
-            target = self._check_target_priority(weapon, target)
 
             weapon_actually_fired = True
             wtype = weapon.get("weapon_type", "")
@@ -343,7 +352,8 @@ class _FireDialog:
                     self._log(f"  >> {fresh.name}: {n} hits")
                     return self.panel._apply_hits_to_target(
                         self.attacker, fresh, n, self._log,
-                        crit_on=weapon.get("crit_on", 6))
+                        crit_on=weapon.get("crit_on", 6),
+                        braced=self._braced.get(fresh.id, False))
 
                 sr, _ = fire_at_squadron(
                     self.attacker, fire_weapon, target, group, self.ctx.dice,
@@ -435,11 +445,39 @@ class _FireDialog:
                 self._log(f"  >> {target.name}: {total} total hits"
                           + (f" (crits on {crit_on}+)" if crit_on != 6 else ""))
                 self.panel._apply_hits_to_target(self.attacker, target, total, self._log,
-                                                 crit_on=crit_on)
+                                                 crit_on=crit_on,
+                                                 braced=self._braced.get(target.id, False))
 
         self._record_fired(fired_weapon_indices)
         self.dialog.destroy()
         self.ctx.board.redraw()
+
+    def _brace_targets(self) -> dict:
+        """Ask each target (one test per squadron) whether it braces against
+        this ship's volley, before anything is rolled. Returns {ship id: braced}
+        for every ship that may take hits."""
+        braced, asked = {}, set()
+        by_target = {}
+        for w_idx, weapon, *_ in self.weapon_assignments:
+            t = self._volley_targets.get(w_idx)
+            if t is None or weapon.get("weapon_type") not in ("battery", "lance"):
+                continue
+            by_target.setdefault(t.id, (t, []))[1].append(weapon)
+        for t, weapons in by_target.values():
+            group = squadron_group(t, self.ctx.gs.get_ships())
+            key = tuple(sorted(m.id for m in group))
+            if key in asked:
+                continue
+            asked.add(key)
+            expected = sum(expected_hits(self.attacker, w, t) for w in weapons)
+            b = self.panel._brace_before_attack(
+                self.attacker.id, self.attacker.name, t, expected, self._log,
+                group=group, attacker=self.attacker)
+            for m in group:
+                fresh = self.ctx.gs.get_ship_by_id(m.id)
+                braced[m.id] = b or (fresh is not None and fresh.special_order
+                                     == SpecialOrder.BRACE_FOR_IMPACT.value)
+        return braced
 
     def _fire_siege_cannons(self, all_damage, fired_weapon_indices) -> set:
         """Siege Cannons Chapter tactic: macrobatteries and bombardment cannons
@@ -453,7 +491,7 @@ class _FireDialog:
         for w_idx, weapon, enabled, target_var, _sv, _av in self.weapon_assignments:
             if not enabled.get() or weapon.get("weapon_type") != "battery":
                 continue
-            target = self._resolve_target(weapon, target_var.get())
+            target = self._volley_targets.get(w_idx)
             if target is None or len(squadron_group(target, self.ctx.gs.get_ships())) > 1:
                 continue
             groups.setdefault(target.id, (target, []))[1].append((w_idx, weapon))
@@ -462,7 +500,6 @@ class _FireDialog:
             bcs = [(i, w) for i, w in ws if w.get("hits_on")]
             if not macro or not bcs:
                 continue
-            target = self._check_target_priority(macro[0][1], target)
             shots = {}
             for i, w in macro + bcs:
                 pool, mode, err = weapon_fire_pool(self.attacker, w, i,

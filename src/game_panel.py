@@ -46,6 +46,7 @@ class GamePanel:
         # Wire cross-panel references into context
         self.ctx.movement = self.movement
         self.ctx.ordnance = self.ordnance
+        self.ctx.combat = self.combat
 
         self._game_over = False
         self._ai_thinking = False   # expert AI search running on a worker thread
@@ -1041,6 +1042,9 @@ class GamePanel:
             ai = LookaheadAI(ai_player_num, tc, gs, dice, gs.ai_difficulty)
         else:
             ai = AIPlayer(ai_player_num, tc, gs, dice, gs.ai_difficulty)
+        # Targets decide on Brace for Impact before the AI's attacks are rolled
+        ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
+            att.id, att.name, tgt, exp, None, grp, att))
 
         # Expert movement is slow (minimax depth-5); run off-thread so UI stays
         # live. The worker never touches Tk: the main thread polls for it.

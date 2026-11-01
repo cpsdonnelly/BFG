@@ -535,6 +535,22 @@ def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
     return result
 
 
+def expected_hits(attacker: Ship, weapon: Dict, target: Ship) -> float:
+    """Rough number of hits a weapon will score on a target (for deciding
+    whether to brace before the attack is rolled)."""
+    wtype = weapon.get("weapon_type", "")
+    if wtype == "lance":
+        return weapon.get("strength", 0) * 0.5
+    if wtype != "battery":
+        return 0.0
+    fp = effective_battery_firepower(attacker, weapon, target)
+    column = get_gunnery_column(gunnery_target_type(target),
+                                attacker.get_target_orientation(target))
+    n = lookup_gunnery_dice(fp, column, 0)
+    need = weapon.get("hits_on") or target.armor_vs(attacker.x, attacker.y)
+    return n * max(0, 7 - need) / 6
+
+
 def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  game_state: GameState,
                  ignores_shields: bool = False,

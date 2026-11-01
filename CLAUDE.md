@@ -89,6 +89,16 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
   Craft Orders"; the AI re-targets its craft each ordnance phase.
 
+### Brace for Impact (s.7)
+
+Declared before any combat rolls for an attack (to hit, scatter, turrets, weapon strength,
+crits), after checks that decide whether the attack happens (target priority).
+`CombatPanel._brace_before_attack` asks the target's player (the AI decides for its own ships
+with `ai_should_brace`) before the Fire dialog, the squadron dialogs, AI fire (`AIPlayer.brace_fn`)
+and torpedo / mine / bomber-wave attacks roll anything. A squadron tests once and braces
+together. Hit-and-run raids keep s.31's order (brace after turret fire). Nova cannon, ramming
+and explosions still use the ship's current orders only.
+
 ### Faction rules in the catalog
 
 `booklet_ships.faction_special_rules` turns ships.json `faction_rules` into engine special rules:
@@ -116,8 +126,6 @@ least two boarders; Lightning Thrusters vanguards fire at full only if they didn
 
 ### Open questions for the owner
 
-- **Brace for Impact timing** (s.7, export 7): declared "before any combat rolls for that
-  attack (rolls to hit...)". The game still asks when damage is applied, after the to-hit roll.
 - **Grey Knights Battle Barge:** does "+1D6cm extra on top of the normal bonus" stack with
   Improved Thrusters? Played as one extra D6.
 
