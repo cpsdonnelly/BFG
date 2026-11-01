@@ -524,7 +524,9 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if enemy_on_special:
         ld += 1
         mods.append("Enemy Contacts +1")
-    ld = max(2, min(10, ld))
+    # Modifiers can't take Ld above 10 or below 0 (s.6); at Ld 1 or less a
+    # ship always fails (s.3), which a 2D6 roll against it does
+    ld = max(0, min(10, ld))
 
     mod_str = f" ({', '.join(mods)})" if mods else ""
     roll = dice.roll_2d6(
@@ -540,7 +542,14 @@ def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
     preserve the previous special order, set BFI, record the turn it was set,
     and persist the ship. Returns the command-check result dict.
     """
-    check = do_command_check(ship, "brace_for_impact", dice)
+    # A command check, so Under Fire and Enemy Contacts apply (s.6)
+    in_blast = count_blast_markers_touching(ship, gs.get_blast_markers()) > 0
+    enemy_on_special = any(
+        s.player != ship.player and not s.is_destroyed and not s.is_disengaged
+        and s.special_order not in ("none", "")
+        for s in gs.get_ships())
+    check = do_command_check(ship, "brace_for_impact", dice,
+                             enemy_on_special=enemy_on_special, in_blast=in_blast)
     if check["passed"]:
         if ship.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
             ship.previous_order = ship.special_order
@@ -554,10 +563,26 @@ def aaf_bonus_dice(ship: Ship) -> int:
     """D6s rolled for the All Ahead Full speed bonus: 4 normally (Appendix 6),
     3 for Orks ('Ere We Go!), +1 for built-in Improved Thrusters and the like
     ("+D6cm on All Ahead Full")."""
-    n = 3 if "ere_we_go" in ship.special_rules else 4
+    if "aaf_5d6" in ship.special_rules:
+        return 5                       # Fast Clipper: +5D6cm instead of +3D6cm
+    n = 3 if ("ere_we_go" in ship.special_rules
+              or "fleet_support" in ship.special_rules) else 4
     if "improved_thrusters" in ship.special_rules:
         n += 1
     return n
+
+
+def squadron_aaf_bonuses(ships: List[Ship], dice: DiceRoller) -> dict:
+    """A squadron on All Ahead Full rolls once and every member adds the result.
+    If members roll different numbers of dice, roll the most any member is
+    allowed; members allowed fewer use the highest results, up to their own
+    number (s.7). Returns {ship id: bonus}."""
+    if not ships:
+        return {}
+    n = max(aaf_bonus_dice(s) for s in ships)
+    rolls = sorted(dice.roll_d6(n, f"Squadron All Ahead Full speed bonus ({n}D6)"),
+                   reverse=True)
+    return {s.id: sum(rolls[:aaf_bonus_dice(s)]) for s in ships}
 
 
 def resolve_aaf_speed(ship: Ship, dice: DiceRoller) -> int:

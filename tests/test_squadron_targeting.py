@@ -176,15 +176,17 @@ class TestAllocateSquadronHits:
         assert applied == {"n": 2}
         assert gs.get_ship_by_id("f").hits_remaining == 8
 
-    def test_no_die_beats_nearest_armour_so_nothing_reaches_the_next_ship(self):
+    def test_mixed_armour_dice_go_to_the_nearest_ship_they_can_hit(self):
+        # s.8 (export 7): dice that can't beat the nearest ship's armour go to
+        # the nearest ship they can hit
         from src.combat import allocate_squadron_hits
         near = make_ship(id="n", player=2, armor_side="6+", x=20.0)
         far = make_ship(id="f", player=2, armor_side="4+", x=40.0)
         gs = make_gs([near, far])
         armour = {"n": 6, "f": 4}
         applied = allocate_squadron_hits([4, 5], [near, far], lambda s: armour[s.id],
-                                         self._apply(gs, DiceStub([1])))
-        assert applied == {}
+                                         self._apply(gs, DiceStub([1, 1])))
+        assert applied == {"f": 2}
 
     def test_dice_that_missed_a_destroyed_ship_can_hit_the_next(self):
         from src.combat import allocate_squadron_hits
@@ -284,3 +286,19 @@ def test_squadron_fire_preview_lists_eligible_in_order_and_says_why_not():
 
     lances = squadron_fire_preview(att, dict(weapon, weapon_type="lance"), group)
     assert [m.id for m in lances["eligible"]] == ["A", "B"]           # aspect ignored
+
+
+
+def test_mixed_armour_low_dice_skip_a_surviving_nearer_ship():
+    from src.combat import allocate_squadron_hits
+    near = make_ship(id="n", player=2, hits_max=8, shields_max=0)
+    far = make_ship(id="f", player=2, hits_max=8, shields_max=0)
+    armour = {"n": 5, "f": 4}
+    got = {}
+
+    def apply(ship, n):
+        got[ship.id] = n
+        return 0, False
+    # dice 4, 5, 6: the 4 can only hit the 4+ ship; 5 and 6 go to the nearer 5+ ship
+    allocate_squadron_hits([6, 4, 5], [near, far], lambda s: armour[s.id], apply)
+    assert got == {"n": 2, "f": 1}

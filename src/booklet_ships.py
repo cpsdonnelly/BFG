@@ -232,6 +232,10 @@ def faction_special_rules(row: dict) -> List[str]:
         rules.append("knights_of_titan")   # re-roll boarding actions
     if "Orks" in followed:
         rules.append("ere_we_go")          # auto-pass All Ahead Full, +3D6cm only
+    if "Support Assets" in followed:
+        # Fleet Support: Ld 7 for all checks and tests; system and convoy ships
+        # add only +3D6cm on All Ahead Full
+        rules.append("fleet_support")
     return rules
 
 
@@ -292,6 +296,11 @@ def convert_row(row: dict) -> dict:
         ld_table = "Astartes"          # Grey Knights use all Space Marine rules
     elif row.get("faction") == "Space Marines" and not row.get("faction_rules"):
         ld_table = "Default"           # Rapid Strike Vessels: no Space Marine rules
+    fixed_ld = 0
+    if "fleet_support" in special_rules:
+        ld_table, fixed_ld = "", 7     # Fleet Support: Ld 7, not rolled
+    if re.search(r"\+5D6cm on All Ahead Full instead of \+3D6cm", notes):
+        special_rules.append("aaf_5d6")      # Fast Clipper
 
     return {
         "ship_class": row["name"],
@@ -306,7 +315,7 @@ def convert_row(row: dict) -> dict:
         "armor_rear": armour[2] if armour else "",
         "turrets": row.get("turrets") or 0,
         "hits_max": row.get("hits") or 0,
-        "leadership": 0,                 # rolled at game start (Appendix 4)
+        "leadership": fixed_ld,          # 0: rolled at game start (Appendix 4)
         "weapons": weapons,
         "special_rules": special_rules,
         "points_cost": row.get("points") or 0,

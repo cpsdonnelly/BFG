@@ -370,7 +370,21 @@ def resolve_combined_batteries(primary_attacker: Ship,
     contributors = [a.name for a, _ in contributions]
     result = ShotResult(f"Squadron fire ({', '.join(contributors)})", "battery")
 
-    total_fp = sum(effective_battery_firepower(a, w, target) for a, w in contributions)
+    # Escorts total their firepower first and then halve it (rounding up);
+    # capital ships halve individually (s.8, Shooting by Squadrons)
+    escorts = [(a, w) for a, w in contributions if a.ship_type == "escort"]
+    others = [(a, w) for a, w in contributions if a.ship_type != "escort"]
+    total_fp = sum(effective_battery_firepower(a, w, target) for a, w in others)
+    if escorts:
+        esc_fp = sum(battery_base_firepower(a, w, target) for a, w in escorts)
+        lead = escorts[0][0]
+        if lead.special_order in (SpecialOrder.ALL_AHEAD_FULL.value,
+                                  SpecialOrder.BURN_RETROS.value,
+                                  SpecialOrder.COME_TO_NEW_HEADING.value):
+            esc_fp = (esc_fp + 1) // 2
+        if lead.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+            esc_fp = (esc_fp + 1) // 2
+        total_fp += esc_fp
     if total_fp <= 0:
         result.description = "Combined squadron fire: no firepower available"
         return result
@@ -786,27 +800,37 @@ def allocate_squadron_hits(dice_values: List[int], ships: List[Ship],
                            armor_of, apply_hits) -> Dict[str, int]:
     """Core rules s.8, Shooting at Squadrons: hits go to the nearest eligible
     ship until it is destroyed (critical damage included), then the next
-    nearest takes the remaining hits, and so on.
+    nearest takes the remaining hits, and so on. Mixed armour: roll against the
+    lowest Armour and allocate the dice one at a time, lowest rolls first, each
+    to the nearest ship it can hit.
 
     ships: eligible squadron members, nearest first.
     armor_of(ship): the armour a die must equal or beat to hit that ship.
     apply_hits(ship, n): applies n hits and returns (unused_hits, destroyed).
-    A ship that survives keeps every hit; nothing passes beyond it.
+    A ship that survives keeps the dice given to it.
     Returns hits applied per ship id.
     """
-    remaining = sorted(dice_values)
+    alive = list(ships)
+    buckets: Dict[str, List[int]] = {sh.id: [] for sh in ships}
+
+    def allocate(dice):
+        for d in sorted(dice):
+            target = next((sh for sh in alive if d >= armor_of(sh)), None)
+            if target is not None:
+                buckets[target.id].append(d)
+
+    allocate(dice_values)
     applied: Dict[str, int] = {}
-    for ship in ships:
-        usable = [d for d in remaining if d >= armor_of(ship)]
-        if not usable:
-            break
-        unused, destroyed = apply_hits(ship, len(usable))
-        consumed = len(usable) - unused
+    for ship in list(ships):
+        dice = sorted(buckets[ship.id])
+        if not dice:
+            continue
+        unused, destroyed = apply_hits(ship, len(dice))
+        consumed = len(dice) - unused
         applied[ship.id] = consumed
-        for d in usable[:consumed]:
-            remaining.remove(d)
-        if not destroyed:
-            break
+        if destroyed:
+            alive.remove(ship)
+            allocate(dice[consumed:])       # leftover dice move on
     return applied
 
 

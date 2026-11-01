@@ -288,6 +288,9 @@ class TurnController:
             if s_dict["player"] == self.gs.active_player:
                 if s_dict.get("special_order") != SpecialOrder.BRACE_FOR_IMPACT.value:
                     self.gs.ships[i]["special_order"] = SpecialOrder.NONE.value
+                # The order a braced ship was on before bracing (e.g. All Ahead
+                # Full) only affected the move it had already made (s.7)
+                self.gs.ships[i]["previous_order"] = SpecialOrder.NONE.value
                 # Reset per-turn flags
                 self.gs.ships[i]["moved_this_turn"] = False
                 self.gs.ships[i]["has_fired"] = False
@@ -297,6 +300,7 @@ class TurnController:
                 self.gs.ships[i]["weapon_pool_mode"] = {}
                 self.gs.ships[i]["turrets_used_vs"] = ""
                 self.gs.ships[i]["brace_failed_vs"] = []
+                self.gs.ships[i]["target_priority_turn"] = -1
                 self.gs.ships[i]["machine_spirit_used_vs"] = []
                 # Clear per-turn boarding flags (grapple state persists across turns)
                 self.gs.ships[i]["has_boarded"] = False

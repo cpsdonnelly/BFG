@@ -156,7 +156,7 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
         total_mod -= enemy_count
         modifiers.append(f"-{enemy_count} Ld (enemies/ordnance within 15cm)")
 
-    effective_ld = min(10, max(2, base_ld + total_mod))
+    effective_ld = min(10, max(0, base_ld + total_mod))   # Ld 1 or less always fails
 
     return {
         "base_ld": base_ld,

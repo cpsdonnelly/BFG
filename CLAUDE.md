@@ -127,6 +127,20 @@ that would have no effect; Tactical Reserves' 25% reduction rounds the result up
 does) and applies to macrobatteries only ("gunnery weapons", not lances); Pack Hunter needs at
 least two boarders; Lightning Thrusters vanguards fire at full only if they didn't turn.
 
+### Not yet matching the booklet (export 7 audit)
+
+- Waves of attack craft (s.25) aren't modelled: every squadron acts alone.
+- Combined squadron fire uses the lead ship's aspect, range and armour facing; no per-aspect
+  or squadron-vs-squadron grouping (s.8 Shooting by Squadrons).
+- Commander re-rolls are offered only for command checks and disengage tests, not other
+  leadership tests; no secondary commanders (s.5).
+- Shield-impact blast markers are spread evenly round the base rather than towards the
+  attacker, and capped at 3 / 5 a turn (s.11).
+- Hulks: can't be targeted by gunnery, don't block line of fire, and drift the full 4D6 with
+  no blast-marker, gravity-well or planet effects (s.34).
+- Disengaging: no shared escort-squadron test for a voluntary disengage, no forced
+  disengagement at Ld 1 or less (s.37); celestial phenomena measured to their centre.
+
 ### Open questions for the owner
 
 - **Grey Knights Battle Barge:** does "+1D6cm extra on top of the normal bonus" stack with

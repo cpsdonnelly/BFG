@@ -277,8 +277,19 @@ class _FireDialog:
                                  self.ctx.gs.get_phenomena(), self.blast_markers)
         if not (cv_in_arc and cv_in_range and cv_los["clear"]):
             return target  # closest visible isn't valid for this weapon
+        # One target priority test per ship per turn (s.7): the result stands
+        att = self.ctx.gs.get_ship_by_id(self.attacker.id) or self.attacker
+        if att.target_priority_turn == self.ctx.gs.turn_number:
+            if att.target_priority_passed:
+                return target
+            self._log(f"  {weapon['name']}: target priority already failed this turn — "
+                      f"must fire at closest visible: {cv.name}")
+            return cv
         from .movement import do_command_check
         check = do_command_check(self.attacker, "target_priority", self.ctx.dice)
+        att.target_priority_turn = self.ctx.gs.turn_number
+        att.target_priority_passed = check["passed"]
+        self.ctx.gs.update_ship(att)
         if not check["passed"]:
             self._log(
                 f"  {weapon['name']}: Target priority FAILED "

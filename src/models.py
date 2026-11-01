@@ -155,6 +155,10 @@ class Ship:
     pending_ordnance_contacts: List[str] = field(default_factory=list)
     # Heed the Machine Spirit used against these attackers this turn
     machine_spirit_used_vs: List[str] = field(default_factory=list)
+    # A ship takes each leadership test once a turn (s.7): its target priority
+    # result stands for the rest of the turn
+    target_priority_turn: int = -1
+    target_priority_passed: bool = False
     command_check_failed_this_turn: bool = False
 
     # Points and game status

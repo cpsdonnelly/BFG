@@ -126,8 +126,7 @@ class AIPlayer:
                     ship = gs.get_ship_by_id(ship.id)
                     order = ship.special_order or ""
                     if order == SpecialOrder.ALL_AHEAD_FULL.value:
-                        from .movement import resolve_aaf_speed
-                        aaf_bonus = resolve_aaf_speed(ship, self.dice)
+                        aaf_bonus = self._aaf_bonus(ship)
                 else:
                     gs.add_log(f"[AI] {ship.name}: {chosen} failed")
                     ship = gs.get_ship_by_id(ship.id)
@@ -451,6 +450,22 @@ class AIPlayer:
                        f"{weapon['name']} {sr.hits} hit(s)")
             if sr.hits > 0:
                 self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id)
+
+    def _aaf_bonus(self, ship) -> int:
+        """All Ahead Full speed bonus: a squadron rolls once this turn, members
+        taking their own number of the highest dice (s.7)."""
+        from .movement import resolve_aaf_speed, squadron_aaf_bonuses
+        if not ship.squadron_id:
+            return resolve_aaf_speed(ship, self.dice)
+        cache = getattr(self, "_aaf_cache", {})
+        key = (self.gs.turn_number, ship.squadron_id)
+        if key not in cache:
+            members = [s for s in self.gs.player_ships(self.player)
+                       if s.squadron_id == ship.squadron_id
+                       and not s.is_destroyed and not s.is_disengaged]
+            cache[key] = squadron_aaf_bonuses(members, self.dice)
+            self._aaf_cache = cache
+        return cache[key].get(ship.id, resolve_aaf_speed(ship, self.dice))
 
     def _offer_brace(self, ship, target):
         """The target decides on Brace for Impact before this ship's attack on

@@ -855,12 +855,13 @@ class MovementDialogMixin:
         members = active_squads[chosen_sid]
 
         # Pre-compute AAF bonuses
-        aaf_bonuses: dict = {}
+        # One roll for the squadron (s.7)
+        from .movement import squadron_aaf_bonuses
+        aaf_bonuses: dict = squadron_aaf_bonuses(
+            [s for s in members if s.special_order == SpecialOrder.ALL_AHEAD_FULL.value
+             and s.id in unmoved_ids], self.ctx.dice)
         for s in members:
-            if (s.special_order == SpecialOrder.ALL_AHEAD_FULL.value
-                    and s.id in unmoved_ids):
-                bonus = resolve_aaf_speed(s, self.ctx.dice)
-                aaf_bonuses[s.id] = bonus
-                self.ctx.log(f"{s.name} AAF speed bonus: +{bonus}cm")
+            if s.id in aaf_bonuses:
+                self.ctx.log(f"{s.name} AAF speed bonus: +{aaf_bonuses[s.id]}cm")
 
         _MoveSquadronDialog(self, chosen_sid, members, unmoved_ids, aaf_bonuses).run()

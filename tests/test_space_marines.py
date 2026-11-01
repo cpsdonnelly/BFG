@@ -204,3 +204,20 @@ def test_terminator_honour_guard_teleport():
     r = resolve_teleport_attack(hg, target, dice, gs, lambda *a: (False, False))
     assert r["raid_rolls"] == [5, 4]
     assert len(r["crits_applied"]) == 2          # 5+1 and 4+1 Space Marine bonus
+
+
+def test_escort_squadron_totals_firepower_before_halving():
+    # s.8: two braced FP3 escorts fire FP3 (6 halved), not 2 + 2 = 4
+    from src.combat import resolve_combined_batteries
+    from src.tables import lookup_gunnery_dice, get_gunnery_column
+    gun = {"name": "Battery", "weapon_type": "battery", "strength": 3, "range_cm": 30,
+           "arcs": ["front"]}
+    escorts = [make_ship(id=f"e{i}", ship_type="escort", x=0.0, y=float(i), heading=0.0,
+                         special_order="brace_for_impact", weapons=[gun]) for i in range(2)]
+    target = make_ship(id="t", player=2, x=20.0, y=0.5, heading=180.0)     # closing
+    col = get_gunnery_column("capital", escorts[0].get_target_orientation(target))
+    n = lookup_gunnery_dice(3, col, 0)
+    assert n != lookup_gunnery_dice(4, col, 0)
+    dice = DiceStub([1] * n)
+    resolve_combined_batteries(escorts[0], [(e, gun) for e in escorts], target, dice, [])
+    assert dice._idx == n
