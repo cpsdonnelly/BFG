@@ -566,6 +566,63 @@ def offer_brace(game_state: GameState, ship: Ship, attacker_key: str,
     return bool(hook(fresh, attacker_key, attacker_name, expected))
 
 
+SHIELD_IMPACT_OFFSET_CM = 1.2      # marker centre beyond the base edge (touching)
+SHIELD_IMPACT_SPACING_CM = 2.2     # marker centres closer than this overlap
+
+
+def _place_shield_impacts(target: Ship, n: int, game_state: GameState,
+                          origin: Optional[Tuple[float, float]] = None) -> None:
+    """Shield impacts (s.11): one blast marker touching the target's base per
+    hit blocked, as close as possible to the origin of the attack, fanned out
+    so markers don't overlap. Avoid overlapping other blast markers and
+    touching nearby ships not in base contact; if forced to choose, overlap
+    other blast markers first. No fixed limit per turn."""
+    from .geometry import BLAST_MARKER_RADIUS_CM, BASE_CONTACT_MARGIN_CM
+    r = target.base_radius + SHIELD_IMPACT_OFFSET_CM
+    a0 = (math.atan2(origin[1] - target.y, origin[0] - target.x)
+          if origin else math.radians(target.heading))
+    step = 2 * math.asin(min(1.0, (SHIELD_IMPACT_SPACING_CM / 2) / r))
+    n_slots = max(1, int(2 * math.pi / step))
+    order = [0]
+    for k in range(1, n_slots // 2 + 1):
+        order += [k, -k]
+    angles = [a0 + k * step for k in order][:n_slots]
+    others = [s for s in game_state.get_ships()
+              if s.id != target.id and not s.is_disengaged and s.status != "destroyed"
+              and math.hypot(s.x - target.x, s.y - target.y)
+              > s.base_radius + target.base_radius + BASE_CONTACT_MARGIN_CM]
+    turn_label = f"shield_impact_t{game_state.turn_number}"
+    placed_now = []
+    for j in range(n):
+        existing = game_state.get_blast_markers()
+
+        def spot(a):
+            return (target.x + r * math.cos(a), target.y + r * math.sin(a))
+
+        def overlaps(xy, markers):
+            return any(math.hypot(xy[0] - m.x, xy[1] - m.y) < SHIELD_IMPACT_SPACING_CM - 1e-3
+                       for m in markers)
+
+        def touches_others(xy):
+            return any(math.hypot(xy[0] - s.x, xy[1] - s.y) <= s.base_radius + BLAST_MARKER_RADIUS_CM
+                       for s in others)
+
+        free = [a for a in angles if not overlaps(spot(a), placed_now)]
+        best = (next((a for a in free if not overlaps(spot(a), existing)
+                      and not touches_others(spot(a))), None)
+                or next((a for a in free if not touches_others(spot(a))), None)
+                or next(iter(free), None))
+        if best is None:
+            best = angles[j % len(angles)]
+        bx, by = spot(best)
+        bm = BlastMarker(
+            id=f"bm_{target.id}_t{game_state.turn_number}_{j}_{random.randint(0,9999)}",
+            x=bx, y=by, source=turn_label,
+            heading=(math.degrees(best) + 180) % 360)
+        game_state.add_blast_marker(bm)
+        placed_now.append(bm)
+
+
 def expected_hits(attacker: Ship, weapon: Dict, target: Ship) -> float:
     """Rough number of hits a weapon will score on a target (for deciding
     whether to brace before the attack is rolled)."""
@@ -587,7 +644,8 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  ignores_shields: bool = False,
                  target_braced: bool = False,
                  crit_on: int = 6,
-                 attacker_key: str = "") -> Dict:
+                 attacker_key: str = "",
+                 origin: Optional[Tuple[float, float]] = None) -> Dict:
     """
     Apply hits to a ship, handling shields, damage, crits.
     Shields are reduced by blast markers already touching the ship.
@@ -719,67 +777,9 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
             summary["crippled"] = True
             game_state.add_log(f"{target.name} is now CRIPPLED")
 
-    # Place blast markers for SHIELD hits only (not hull damage)
-    # Rules: no overlapping, fan around ship, max 3-5 (small) or 5-8 (large) per turn
+    # Place blast markers for SHIELD hits only (not hull damage), s.11
     if summary["blast_markers_placed"] > 0:
-        max_per_turn = 5 if target.base_size == "large" else 3
-        existing_bms = game_state.get_blast_markers()
-        # Count how many blast markers were already placed on this ship this turn
-        turn_label = f"shield_impact_t{game_state.turn_number}"
-        already_this_turn = sum(
-            1 for bm in existing_bms
-            if bm.source == turn_label
-            and math.sqrt((bm.x - target.x)**2 + (bm.y - target.y)**2) <= target.base_radius + 3
-        )
-        can_place = max(0, max_per_turn - already_this_turn)
-        to_place = min(summary["blast_markers_placed"], can_place)
-
-        if to_place < summary["blast_markers_placed"]:
-            game_state.add_log(
-                f"  Max blast markers this turn ({max_per_turn}): "
-                f"only placing {to_place} of {summary['blast_markers_placed']}")
-            summary["blast_markers_placed"] = to_place
-
-        placed = 0
-        bm_spacing = 2.2  # minimum cm between blast marker centers
-        offset = target.base_radius + 1.2
-
-        for j in range(to_place):
-            # Try angles around the ship to find non-overlapping position
-            best_angle = None
-            for attempt in range(36):
-                angle = (2 * math.pi * (already_this_turn + j)) / max_per_turn + (attempt * 0.17)
-                bx = target.x + offset * math.cos(angle)
-                by = target.y + offset * math.sin(angle)
-
-                # Check overlap with all existing blast markers
-                overlaps = False
-                for ebm in existing_bms:
-                    dist = math.sqrt((bx - ebm.x)**2 + (by - ebm.y)**2)
-                    if dist < bm_spacing:
-                        overlaps = True
-                        break
-
-                if not overlaps:
-                    best_angle = angle
-                    break
-
-            if best_angle is None:
-                # Couldn't find non-overlapping spot, use best effort
-                best_angle = (2 * math.pi * (already_this_turn + j)) / max_per_turn
-
-            bx = target.x + offset * math.cos(best_angle)
-            by = target.y + offset * math.sin(best_angle)
-
-            bm = BlastMarker(
-                id=f"bm_{target.id}_t{game_state.turn_number}_{j}_{random.randint(0,9999)}",
-                x=bx, y=by,
-                source=turn_label,
-                heading=(math.degrees(best_angle) + 180) % 360,
-            )
-            game_state.add_blast_marker(bm)
-            existing_bms.append(bm)  # track for overlap checking
-            placed += 1
+        _place_shield_impacts(target, summary["blast_markers_placed"], game_state, origin)
 
     game_state.update_ship(target)
     return summary
@@ -1190,7 +1190,7 @@ def resolve_explosion(ship: Ship, result: str, dice: DiceRoller,
         log(f"  {other.name} within blast radius ({dist:.1f}cm): {hits} hit(s)")
         if hits:
             apply_damage(other, hits, dice, game_state, target_braced=braced,
-                         attacker_key=ship.id)
+                         attacker_key=ship.id, origin=(ship.x, ship.y))
             victim = game_state.get_ship_by_id(other.id)
             # A hulk already re-rolled inside apply_damage
             if victim and victim.hits_remaining <= 0 and victim.status == "active":

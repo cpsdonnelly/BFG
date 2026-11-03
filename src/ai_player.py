@@ -536,8 +536,10 @@ class AIPlayer:
         if not t or t.is_destroyed:
             return hits, True
         braced = t.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
+        src = self.gs.get_ship_by_id(attacker_key) if attacker_key else None
         dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced,
-                           crit_on=crit_on, attacker_key=attacker_key)
+                           crit_on=crit_on, attacker_key=attacker_key,
+                           origin=(src.x, src.y) if src else None)
         self._log_damage(t, dmg)
         self._resolve_kill(t)
         return dmg["unused_hits"], dmg["destroyed"]
@@ -572,7 +574,8 @@ class AIPlayer:
                 dmg = apply_damage(t, hd["hits"], self.dice, gs,
                                    target_braced=t.special_order
                                    == SpecialOrder.BRACE_FOR_IMPACT.value,
-                                   attacker_key=ship.id)
+                                   attacker_key=ship.id,
+                                   origin=(nc["template_x"], nc["template_y"]))
                 self._log_damage(t, dmg)
                 self._resolve_kill(t)
 

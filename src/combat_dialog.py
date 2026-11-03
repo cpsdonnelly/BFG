@@ -437,7 +437,8 @@ class _FireDialog:
                                                  self.ctx.dice, self.ctx.gs,
                                                  target_braced=hit_ship.special_order
                                                  == SpecialOrder.BRACE_FOR_IMPACT.value,
-                                                 attacker_key=self.attacker.id)
+                                                 attacker_key=self.attacker.id,
+                                                 origin=(tx, ty))
                                     self.ctx.check_destruction(hit_ship)
                         else:
                             self._log("  Nova Cannon: no ships hit")

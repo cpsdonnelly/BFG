@@ -347,7 +347,7 @@ class CombatPanel(CombatDialogMixin):
 
         dmg = apply_damage(target, total_hits, self.ctx.dice, self.ctx.gs,
                            target_braced=brace, crit_on=crit_on,
-                           attacker_key=attacker.id)
+                           attacker_key=attacker.id, origin=(attacker.x, attacker.y))
         log_fn(f"     Shields: {dmg['shield_hits']}, "
                f"Hull: {dmg['hull_hits']}, "
                f"Saves: {dmg['brace_saves']}")

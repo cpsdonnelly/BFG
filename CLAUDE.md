@@ -134,8 +134,6 @@ least two boarders; Lightning Thrusters vanguards fire at full only if they didn
   or squadron-vs-squadron grouping (s.8 Shooting by Squadrons).
 - Commander re-rolls are offered only for command checks and disengage tests, not other
   leadership tests; no secondary commanders (s.5).
-- Shield-impact blast markers are spread evenly round the base rather than towards the
-  attacker, and capped at 3 / 5 a turn (s.11).
 - Hulks: the AI never targets enemy hulks; a hulk drifts in every movement phase (both
   players'), not only its owner's (s.34).
 - Disengaging: no shared escort-squadron test for a voluntary disengage, no forced
