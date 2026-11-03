@@ -40,7 +40,7 @@ Eligibility:
   - Each ship may perform at most one teleport attack per end phase
 """
 
-from typing import List, Dict, Optional, Tuple
+from typing import Callable, List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker
 from .game_state import GameState
 from .dice import DiceRoller
@@ -174,12 +174,31 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
     return {**crit_entry, "extra_damage": extra}
 
 
+def raid_has_no_effect(effective: int, target: Ship) -> bool:
+    """A raid result that does nothing: 1 or less, or under 4 against a target
+    that doesn't use the critical hits table (escorts)."""
+    return effective <= 1 or (not uses_crit_table(target) and effective < 4)
+
+
+def describe_raid_result(effective: int, target: Ship) -> str:
+    """Plain-words outcome of a raid result, before any brace save."""
+    if raid_has_no_effect(effective, target):
+        return "no effect"
+    if not uses_crit_table(target):
+        return "1 damage"
+    from .tables import CRITICAL_HITS
+    entry = CRITICAL_HITS.get(max(2, min(6, effective))) or {}
+    name = entry.get("name") or entry.get("crit_type", "critical hit").replace("_", " ")
+    return f"critical hit: {name}"
+
+
 def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
                   dice: DiceRoller, gs: GameState,
                   source_name: str = "Assault boat",
                   attacker_rules: Optional[List[str]] = None,
                   preset_rolls: Optional[List[int]] = None,
-                  reroll_failed: bool = False) -> Dict:
+                  reroll_failed: bool = False,
+                  reroll_fn: Optional[Callable[[int, int, Ship], bool]] = None) -> Dict:
     """
     Core raid resolution shared by hit-and-run raids and teleport attacks.
 
@@ -218,9 +237,14 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
             roll = dice.roll_d6(1, f"{source_name} raid {i+1}/{num_raids} on {target.name}")[0]
         effective = roll + mod
         # Wings of Fury: Thunderhawks may re-roll their raid results; the
-        # second result stands. Re-rolled when the raid would have no effect.
+        # second result stands. reroll_fn(roll, effective, target) is the
+        # owner's choice; without one, re-roll a raid that would have no effect.
         no_effect = effective <= 1 or (not uses_crit_table(target) and effective < 4)
-        if reroll_failed and no_effect:
+        if reroll_fn is not None:
+            wants = bool(reroll_fn(roll, effective, target))
+        else:
+            wants = reroll_failed and no_effect
+        if wants:
             gs.add_log(f"  Raid {i+1}: rolled {roll} — Wings of Fury re-roll")
             roll = dice.roll_d6(1, f"{source_name} raid {i+1} re-roll on {target.name}")[0]
             effective = roll + mod
@@ -298,10 +322,17 @@ def resolve_hit_and_run(marker: OrdnanceMarker, target: Ship,
 
     wings = (marker.ordnance_type == "thunderhawk"
              and "chapter_tactic:wings_of_fury" in (marker.special_rules or []))
+    hook = getattr(gs, "raid_reroll_hook", None)
+
+    def wings_reroll(roll, effective, tgt, _owner=marker.owner_player):
+        answer = hook(_owner, roll, effective, tgt) if hook else None
+        if answer is None:              # no player to ask (AI, tests): re-roll a raid with no effect
+            return raid_has_no_effect(effective, tgt)
+        return answer
     summary = resolve_raids(num_raids, target, brace_passed, dice, gs,
                             source_name=marker.ordnance_type,
                             attacker_rules=marker.special_rules,
-                            reroll_failed=wings)
+                            reroll_fn=wings_reroll if wings else None)
     summary["brace_wanted"] = wanted_brace
     summary["brace_passed"] = brace_passed
     return summary

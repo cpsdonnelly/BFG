@@ -129,10 +129,14 @@ double teleport range; Veteran 2D6 keep best, Terminator 3D6 keep best two (two 
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the
-player's Space Marine ships. Readings to confirm with the owner: Wings of Fury re-rolls raids
-that would have no effect; Tactical Reserves' 25% reduction rounds the result up (as halving
-does) and applies to macrobatteries only ("gunnery weapons", not lances); Pack Hunter needs at
-least two boarders; Lightning Thrusters vanguards fire at full only if they didn't turn.
+player's Space Marine ships. Checked against the booklet text (s.03): Wings of Fury "may
+re-roll" raids, so the owner chooses per raid (`GameState.raid_reroll_hook`, asked by GamePanel;
+the AI re-rolls only raids with no effect); Tactical Reserves' 25% reduction rounds the result up,
+like "half firepower (rounding up)", macrobatteries only; Pack Hunter needs a combined boarding
+action (two or more of one squadron) against a larger ship; Lightning Thrusters vanguards
+"either fire macrobatteries at full effectiveness or turn up to 45°". Its fleet-list part (up to 4
+vanguards count against the strike cruiser maximum) waits on fleet-list limits, which the fleet
+builder doesn't enforce yet.
 
 ### Not yet matching the booklet (export 7 audit)
 
@@ -147,8 +151,7 @@ least two boarders; Lightning Thrusters vanguards fire at full only if they didn
 
 ### Open questions for the owner
 
-- Readings still to confirm: Wings of Fury, Tactical Reserves rounding, Pack Hunter,
-  Lightning Thrusters (see "Ship options and fleet commanders").
+- None at the moment.
 
 ## Running and testing
 

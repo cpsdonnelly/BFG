@@ -145,6 +145,51 @@ def test_wings_of_fury_rerolls_failed_raids():
     assert dice._idx == len(rolls) and r["damage"] == 1 and r["raid_rolls"] == [4]
 
 
+def _thunderhawk_raid(gs, target, rolls, hook):
+    from tests.conftest import make_marker
+    from src.hit_and_run import resolve_hit_and_run
+    gs.raid_reroll_hook = hook
+    m = make_marker(id="th", ordnance_type="thunderhawk", owner_player=1,
+                    special_rules=tac("wings_of_fury"))
+    dice = DiceStub(rolls)
+    r = resolve_hit_and_run(m, target, dice, gs, lambda t, msg: (False, False))
+    assert dice._idx == len(rolls)
+    return r
+
+
+def test_wings_of_fury_owner_may_reroll_any_raid():
+    # "may re-roll": the owner chooses, even for a raid that already works
+    small = make_ship(id="s", player=2, ship_type="escort", hits_max=1)
+    gs = make_gs([small])
+    asked = []
+
+    def hook(owner, roll, eff, tgt):
+        asked.append((owner, roll, eff))
+        return True
+    r = _thunderhawk_raid(gs, small, [5,     # 5+1 = 6: 1 damage, but the owner re-rolls
+                                      1],    # 1+1 = 2: no effect; the second result stands
+                          hook)
+    assert asked == [(1, 5, 6)] and r["damage"] == 0 and r["raid_rolls"] == [1]
+
+
+def test_wings_of_fury_owner_may_keep_a_failed_raid():
+    small = make_ship(id="s", player=2, ship_type="escort", hits_max=1)
+    gs = make_gs([small])
+    r = _thunderhawk_raid(gs, small, [1], lambda *a: False)
+    assert r["damage"] == 0 and r["raid_rolls"] == [1]
+
+
+def test_wings_of_fury_ai_rerolls_only_raids_with_no_effect():
+    small = make_ship(id="s", player=2, ship_type="escort", hits_max=1)
+    gs = make_gs([small])
+    r = _thunderhawk_raid(gs, small, [4], lambda *a: None)       # 5: works, kept
+    assert r["damage"] == 1
+    small2 = make_ship(id="s2", player=2, ship_type="escort", hits_max=1)
+    gs2 = make_gs([small2])
+    r = _thunderhawk_raid(gs2, small2, [2, 3], lambda *a: None)  # 3: none -> 4: works
+    assert r["damage"] == 1 and r["raid_rolls"] == [3]
+
+
 # ── Shadow Engines ───────────────────────────────────────────────────────────
 
 def test_shadow_engines_hidden_beyond_30_unless_closest():

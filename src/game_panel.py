@@ -50,6 +50,7 @@ class GamePanel:
         # Engine hook: ships about to take damage from ramming, explosions or
         # asteroid fields may brace first (s.7)
         tc.gs.brace_hook = self._brace_hook
+        tc.gs.raid_reroll_hook = self._raid_reroll_hook
 
         self._game_over = False
         self._ai_thinking = False   # expert AI search running on a worker thread
@@ -227,6 +228,24 @@ class GamePanel:
         return self.combat._brace_before_attack(
             attacker_key, attacker_name, ship, expected,
             group=squadron_group(ship, self.ctx.gs.get_ships()))
+
+    def _raid_reroll_hook(self, owner, roll, effective, target):
+        """GameState.raid_reroll_hook (Wings of Fury): ask a human owner whether
+        to re-roll a Thunderhawk raid. None lets the engine decide (AI owner,
+        or off the Tk main thread)."""
+        import threading
+        gs = self.ctx.gs
+        if (threading.current_thread() is not threading.main_thread()
+                or gs.ai_spectator or (gs.ai_player is not None and owner == gs.ai_player)):
+            return None
+        from .hit_and_run import describe_raid_result
+        shown = f"{roll}" + (f" ({effective} after modifiers)" if effective != roll else "")
+        return messagebox.askyesno(
+            "Wings of Fury",
+            f"Thunderhawk raid on {target.name} rolled {shown}: "
+            f"{describe_raid_result(effective, target)}.\n\n"
+            f"Re-roll it? The second result stands, even if it is worse.",
+            parent=self)
 
     def _update_phase_display(self):
         """Update the phase/turn indicators and show the correct buttons."""

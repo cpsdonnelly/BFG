@@ -89,6 +89,7 @@ work stood at the end of a long session (Nov 2026).
 
 ## Open questions for the owner (ask, don't guess)
 
+- (Chapter tactic readings were later checked against s.03; see CLAUDE.md.)
 - (Answered after this brief was written: hulks drift only in their owner's phase; +D6 All
   Ahead Full sources stack. Both are in CLAUDE.md's owner rulings.)
 - Readings to confirm:
