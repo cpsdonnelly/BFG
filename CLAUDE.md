@@ -136,7 +136,11 @@ like "half firepower (rounding up)", macrobatteries only; Pack Hunter needs a co
 action (two or more of one squadron) against a larger ship; Lightning Thrusters vanguards
 "either fire macrobatteries at full effectiveness or turn up to 45°". Its fleet-list part (up to 4
 vanguards count against the strike cruiser maximum) waits on fleet-list limits, which the fleet
-builder doesn't enforce yet.
+builder doesn't enforce yet. The other six also match s.03 (Dark Age, Siege Cannons, Shadow
+Engines, Promethean Unguents, Heed the Machine Spirit, Tactical Flexibility), except:
+Promethean Unguents' barrage-bomb part waits on barrage bombs (no torpedo types beyond
+standard and boarding yet); Shadow Engines' "no effect against Tyranids or Necrons" has no
+faction to apply to; Heed the Machine Spirit is always taken when a save fails (no prompt).
 
 ### Not yet matching the booklet (export 7 audit)
 
