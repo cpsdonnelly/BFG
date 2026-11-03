@@ -219,3 +219,9 @@ unchanged.
 - Space Marines faction rules: the nine Chapter Tactics now have their rules, verbatim from
   Ships of the Imperium p.133 (only "weapon batteries" renamed to "macrobatteries"; flavour text
   left out). Previously only the names were listed.
+
+# Eighth update: drifting hulks
+
+- Appendix 5, Catastrophic Damage table, *Drifting hulk*: now the Rulebook p.23 wording. Hulks move
+  4D6cm "in each of their subsequent movement phases" (the owning player's movement phases), not
+  in every movement phase.

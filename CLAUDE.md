@@ -69,9 +69,9 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - **Cruisers are cruisers:** grand cruisers, battlecruisers, heavy and light cruisers all move
   as cruisers (10cm before turning; battleships 15cm, escorts any point).
 
-- **Hulks drift only in their owner's movement phase** (s.34 "the owner may move their
-  hulks"; Appendix 5's "each movement phase" means each of the owner's). A burning hulk's
-  re-roll happens then too. `resolve_hulk_drift(gs, dice, player=...)`.
+- **Hulks drift only in their owner's movement phase** (export 8: Appendix 5 now says "in
+  each of their subsequent movement phases"). A burning hulk's re-roll happens then too
+  (Appendix 5 still says "each movement phase" for that). `resolve_hulk_drift(gs, dice, player=...)`.
 - **"+D6cm on All Ahead Full" sources stack.** The Grey Knights Battle Barge's Sigils of
   Quickening (`sigils_of_quickening`) already give +1D6; a campaign upgrade such as Improved
   Thrusters would add another (`aaf_bonus_dice`).

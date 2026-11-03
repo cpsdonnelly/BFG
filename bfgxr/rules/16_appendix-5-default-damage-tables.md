@@ -24,7 +24,7 @@
 
 | 2D6 | Result |
 |---|---|
-| 2-6 | **Drifting hulk.** The ship is a shattered hulk; it drifts 4D6cm forward each movement phase, leaving a blast marker in contact with its base after each move. |
+| 2-6 | **Drifting hulk.** The ship is reduced to a shattered hulk drifting in space. Wrecked ships move 4D6cm forward in each of their subsequent movement phases. Place a blast marker in contact with a hulk's base after each move. |
 | 7-8 | **Burning hulk.** As a drifting hulk, but at the end of each movement phase roll again on this table (replacing this result if 2-6 is scored). |
 | 9-11 | **Plasma drive overload.** Remove the ship; leave blast markers equal to half its starting hits. Every ship within 3D6cm is struck by lance shots equal to half the ship's starting damage capacity; all ordnance in the blast radius is destroyed. |
 | 12 | **Warp drive implosion.** Remove the ship; leave blast markers equal to its starting hits. Every ship within 3D6cm is struck by lance shots equal to the ship's starting damage capacity; all ordnance in the blast radius is destroyed. |
