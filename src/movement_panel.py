@@ -463,7 +463,8 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
     def _process_movement_phase_start(self):
         """Process things that happen at the start of each movement phase."""
         from .end_phase import resolve_hulk_drift
-        hulk_logs = resolve_hulk_drift(self.ctx.gs, self.ctx.dice)
+        hulk_logs = resolve_hulk_drift(self.ctx.gs, self.ctx.dice,
+                                       player=self.ctx.gs.active_player)
         if hulk_logs:
             self.ctx.log_lines(hulk_logs)
             self.ctx.board.redraw()

@@ -89,10 +89,8 @@ work stood at the end of a long session (Nov 2026).
 
 ## Open questions for the owner (ask, don't guess)
 
-- Hulk drift: should a hulk drift in every movement phase (current behaviour) or only in its
-  owner's (s.34)?
-- Grey Knights Battle Barge: does "+1D6cm extra" stack with Improved Thrusters? It currently
-  plays as one extra D6.
+- (Answered after this brief was written: hulks drift only in their owner's phase; +D6 All
+  Ahead Full sources stack. Both are in CLAUDE.md's owner rulings.)
 - Readings to confirm:
   - Wings of Fury: re-roll raids that would have no effect.
   - Tactical Reserves: the 25% reduction rounds up.

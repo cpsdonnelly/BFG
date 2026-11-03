@@ -1,7 +1,7 @@
 """BFG:XR End Phase - Damage control, blast removal, fire damage"""
 import math
 import random
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
@@ -310,9 +310,12 @@ def _hulk_wrecked_by_terrain(ship, gs) -> bool:
     return False
 
 
-def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
+def resolve_hulk_drift(gs: GameState, dice: DiceRoller,
+                       player: Optional[int] = None) -> List[str]:
     """
-    Move all hulks (drifting and burning) at the start of movement phase.
+    Move the hulks (drifting and burning) at the start of a movement phase.
+    Owner ruling: hulks move only in their owner's movement phase, so only
+    `player`'s hulks drift (all hulks when player is None).
     Hulks move 4D6cm forward. Place blast marker after each move.
     Burning hulks then re-roll on catastrophic damage table.
     Called at the START of the movement phase, before ships move.
@@ -321,6 +324,8 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
 
     for ship in gs.get_ships():  # snapshot; loop may modify gs.ships
         if ship.status not in ("drifting_hulk", "burning_hulk"):
+            continue
+        if player is not None and ship.player != player:
             continue
 
         # Drift: 4D6cm forward (Appendix 5), turning towards the centre of a

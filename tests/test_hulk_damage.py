@@ -136,3 +136,15 @@ def test_hulks_block_line_of_fire():
     r = check_los_clear(a, t, [], [], [a, t, h])
     assert not r["clear"] and "hulk" in r["blocked_by"]
     assert check_los_clear(a, t, [], [], [a, t])["clear"]
+
+
+def test_hulks_drift_only_in_owners_movement_phase():
+    mine = _hulk(id="h1", player=1, x=10.0, y=50.0, heading=0.0)
+    theirs = _hulk(id="h2", player=2, x=10.0, y=20.0, heading=0.0)
+    gs = make_gs([mine, theirs])
+    rolls = [2, 2, 2, 2]                # only player 1's hulk drifts: 8cm
+    dice = DiceStub(rolls)
+    resolve_hulk_drift(gs, dice, player=1)
+    assert dice._idx == len(rolls)
+    assert abs(gs.get_ship_by_id("h1").x - 18.0) < 0.01
+    assert gs.get_ship_by_id("h2").x == 10.0

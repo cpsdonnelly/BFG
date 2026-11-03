@@ -73,6 +73,16 @@ def test_all_ahead_full_dice():
     assert resolve_aaf_speed(ork, dice) == 6 and dice._idx == 3
 
 
+def test_sigils_of_quickening_stack_with_improved_thrusters():
+    # Owner ruling: +D6cm All Ahead Full sources stack
+    gkbb = find_ship_class("Grey Knights Battle Barge")
+    assert "sigils_of_quickening" in gkbb.special_rules
+    assert "improved_thrusters" not in gkbb.special_rules
+    assert aaf_bonus_dice(make_ship(special_rules=["sigils_of_quickening"])) == 5
+    assert aaf_bonus_dice(make_ship(special_rules=["sigils_of_quickening",
+                                                   "improved_thrusters"])) == 6
+
+
 def test_orks_auto_pass_all_ahead_full():
     ork = make_ship(special_rules=["ere_we_go"], leadership=5)
     dice = DiceStub([12])

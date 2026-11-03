@@ -69,6 +69,13 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - **Cruisers are cruisers:** grand cruisers, battlecruisers, heavy and light cruisers all move
   as cruisers (10cm before turning; battleships 15cm, escorts any point).
 
+- **Hulks drift only in their owner's movement phase** (s.34 "the owner may move their
+  hulks"; Appendix 5's "each movement phase" means each of the owner's). A burning hulk's
+  re-roll happens then too. `resolve_hulk_drift(gs, dice, player=...)`.
+- **"+D6cm on All Ahead Full" sources stack.** The Grey Knights Battle Barge's Sigils of
+  Quickening (`sigils_of_quickening`) already give +1D6; a campaign upgrade such as Improved
+  Thrusters would add another (`aaf_bonus_dice`).
+
 - **Damaging a hulk:** a hulk that takes at least one point of damage rolls on the
   Catastrophic Damage table again. Standard torpedoes attack hulks (boarding torps pass over).
 - **Splitting Heavy Gunz** between a target within 15cm and one further away shares the worse
@@ -134,15 +141,14 @@ least two boarders; Lightning Thrusters vanguards fire at full only if they didn
   or squadron-vs-squadron grouping (s.8 Shooting by Squadrons).
 - Commander re-rolls are offered only for command checks and disengage tests, not other
   leadership tests; no secondary commanders (s.5).
-- Hulks: the AI never targets enemy hulks; a hulk drifts in every movement phase (both
-  players'), not only its owner's (s.34).
+- Hulks: the AI never targets enemy hulks.
 - Disengaging: no shared escort-squadron test for a voluntary disengage, no forced
   disengagement at Ld 1 or less (s.37); celestial phenomena measured to their centre.
 
 ### Open questions for the owner
 
-- **Grey Knights Battle Barge:** does "+1D6cm extra on top of the normal bonus" stack with
-  Improved Thrusters? Played as one extra D6.
+- Readings still to confirm: Wings of Fury, Tactical Reserves rounding, Pack Hunter,
+  Lightning Thrusters (see "Ship options and fleet commanders").
 
 ## Running and testing
 

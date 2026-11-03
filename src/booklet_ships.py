@@ -289,7 +289,10 @@ def convert_row(row: dict) -> dict:
     if "towed" in (row.get("hull_type") or "").lower():
         special_rules.append("towed")
     if _has_built_in_thrusters(notes):
-        special_rules.append("improved_thrusters")
+        # Sigils of Quickening are their own rule so a campaign Improved
+        # Thrusters upgrade stacks with them (owner ruling)
+        special_rules.append("sigils_of_quickening" if "Sigils of Quickening" in notes
+                             else "improved_thrusters")
     if row.get("roster_group") == "Venerable Battle Barges":
         special_rules.append("venerable")
     if "Grey Knights" in (row.get("faction_rules") or []):

@@ -561,14 +561,14 @@ def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
 
 def aaf_bonus_dice(ship: Ship) -> int:
     """D6s rolled for the All Ahead Full speed bonus: 4 normally (Appendix 6),
-    3 for Orks ('Ere We Go!), +1 for built-in Improved Thrusters and the like
-    ("+D6cm on All Ahead Full")."""
+    3 for Orks ('Ere We Go!), +1 for each "+D6cm on All Ahead Full" source
+    (Improved Thrusters, Sigils of Quickening): they stack (owner ruling)."""
     if "aaf_5d6" in ship.special_rules:
         return 5                       # Fast Clipper: +5D6cm instead of +3D6cm
     n = 3 if ("ere_we_go" in ship.special_rules
               or "fleet_support" in ship.special_rules) else 4
-    if "improved_thrusters" in ship.special_rules:
-        n += 1
+    n += sum(1 for r in ("improved_thrusters", "sigils_of_quickening")
+             if r in ship.special_rules)
     return n
 
 
