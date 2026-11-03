@@ -76,10 +76,25 @@ def check_los(x1: float, y1: float, x2: float, y2: float,
 
 def check_los_ships(attacker: Ship, target: Ship,
                     phenomena: List[Phenomenon],
-                    blast_markers: List[BlastMarker] = None) -> dict:
-    """Check LoS between two ships."""
-    return check_los(attacker.x, attacker.y, target.x, target.y,
-                     phenomena, blast_markers)
+                    blast_markers: List[BlastMarker] = None,
+                    ships: list = None) -> dict:
+    """Check LoS between two ships. ships: everything on the table, so hulks
+    can block lines of fire to ships behind their base (s.34)."""
+    result = check_los(attacker.x, attacker.y, target.x, target.y,
+                       phenomena, blast_markers)
+    if result["clear"] and ships:
+        for s in ships:
+            s = Ship.from_dict(s) if isinstance(s, dict) else s
+            if s.id in (attacker.id, target.id):
+                continue
+            if s.status not in ("drifting_hulk", "burning_hulk"):
+                continue
+            if _line_intersects_circle(attacker.x, attacker.y, target.x, target.y,
+                                       s.x, s.y, s.base_radius):
+                result["clear"] = False
+                result["blocked_by"] = f"hulk {s.name}"
+                break
+    return result
 
 
 def _line_intersects_circle(x1, y1, x2, y2, cx, cy, r) -> bool:

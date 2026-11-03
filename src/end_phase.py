@@ -5,7 +5,8 @@ from typing import List, Dict
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
-from .geometry import count_blast_markers_touching, BLAST_MARKER_RADIUS_CM
+from .geometry import (count_blast_markers_touching, BLAST_MARKER_RADIUS_CM,
+                       first_contact_along_segment)
 
 
 def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]:
@@ -274,6 +275,41 @@ def resolve_end_phase(gs: GameState, dice: DiceRoller,
     return all_logs
 
 
+def _gravity_well_planet(ship, gs):
+    for p in gs.get_phenomena():
+        gw = getattr(p, "gravity_well_radius", 0) or 0
+        if gw and math.hypot(ship.x - p.x, ship.y - p.y) <= gw:
+            return p
+    return None
+
+
+def _gravity_turn(ship, gs, logs):
+    """A hulk in a gravity well turns towards its centre, the full free turn:
+    up to 45 degrees, or less if that faces the centre (s.34, s.41)."""
+    p = _gravity_well_planet(ship, gs)
+    if p is None:
+        return
+    want = math.degrees(math.atan2(p.y - ship.y, p.x - ship.x)) % 360
+    diff = (want - ship.heading + 180) % 360 - 180
+    turn = max(-45.0, min(45.0, diff))
+    if abs(turn) > 0.01:
+        ship.heading = (ship.heading + turn) % 360
+        logs.append(f"  {ship.name} turns {turn:+.0f} degrees in the gravity well")
+
+
+def _hulk_wrecked_by_terrain(ship, gs) -> bool:
+    for p in gs.get_phenomena():
+        ptype = getattr(p, "phenomenon_type", "")
+        if "planet" in ptype or ptype == "moon":
+            if math.hypot(ship.x - p.x, ship.y - p.y) <= p.radius + ship.base_radius:
+                return True
+        elif ptype == "asteroid_field":
+            if (abs(ship.x - p.x) <= p.width / 2 + ship.base_radius
+                    and abs(ship.y - p.y) <= p.height / 2 + ship.base_radius):
+                return True
+    return False
+
+
 def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
     """
     Move all hulks (drifting and burning) at the start of movement phase.
@@ -287,14 +323,32 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
         if ship.status not in ("drifting_hulk", "burning_hulk"):
             continue
 
-        # Drift: 4D6cm forward
+        # Drift: 4D6cm forward (Appendix 5), turning towards the centre of a
+        # gravity well it starts in (s.34: hulks always take the full free turn)
         drift_roll = dice.roll_d6(4, f"{ship.name} hulk drift (4D6cm)")
-        drift_dist = sum(drift_roll)
+        drift_dist = float(sum(drift_roll))
+        _gravity_turn(ship, gs, logs)
+
+        # Blast markers (not the one it left itself) slow it by 5cm where it
+        # first touches one, and a hulk has no shields: 1 damage on a 6 (s.34)
         rad = math.radians(ship.heading)
+        ex = ship.x + drift_dist * math.cos(rad)
+        ey = ship.y + drift_dist * math.sin(rad)
+        others = [bm for bm in gs.get_blast_markers()
+                  if not bm.id.startswith(f"hulk_drift_{ship.id}_")]
+        reach = BLAST_MARKER_RADIUS_CM + ship.base_radius
+        hits = [first_contact_along_segment(ship.x, ship.y, ex, ey, bm.x, bm.y, reach)
+                for bm in others]
+        hits = [h for h in hits if h is not None]
+        crossed = bool(hits)
+        if crossed:
+            slowed = drift_dist - 5
+            drift_dist = min(hits) if slowed <= min(hits) else slowed
         ship.x += drift_dist * math.cos(rad)
         ship.y += drift_dist * math.sin(rad)
-
-        logs.append(f"{ship.name} ({ship.status}) drifts {drift_dist}cm")
+        logs.append(f"{ship.name} ({ship.status}) drifts {drift_dist:g}cm"
+                    + (" (slowed by blast markers)" if crossed else ""))
+        _gravity_turn(ship, gs, logs)            # and again if it ends in the well
 
         # Place blast marker after move
         bm = BlastMarker(
@@ -312,7 +366,24 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller) -> List[str]:
             logs.append(f"  {ship.name} drifted off the table!")
             continue
 
+        # Hulks which drift into a planet or an asteroid field are destroyed (s.39)
+        if _hulk_wrecked_by_terrain(ship, gs):
+            ship.status = "destroyed"
+            gs.update_ship(ship)
+            logs.append(f"  {ship.name} drifts into a planet or asteroid field "
+                        f"and is destroyed")
+            continue
+
         gs.update_ship(ship)
+
+        if crossed and dice.roll_d6(1, f"{ship.name} hulk through blast markers "
+                                       f"(6 = 1 damage)")[0] == 6:
+            from .combat import apply_damage
+            logs.append(f"  {ship.name} takes 1 damage from blast markers")
+            apply_damage(ship, 1, dice, gs, ignores_shields=True)   # re-rolls catastrophic
+            ship = gs.get_ship_by_id(ship.id) or ship
+            if ship.status not in ("drifting_hulk", "burning_hulk"):
+                continue
 
         # Burning hulk: re-roll on catastrophic damage table
         if ship.status == "burning_hulk":

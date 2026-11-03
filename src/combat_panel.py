@@ -774,7 +774,8 @@ class CombatPanel(CombatDialogMixin):
                                 10 if in_asteroid_field else 9999)
                 if attacker.distance_to(m) > eff_range:
                     continue
-                los = check_los_clear(attacker, m, phenomena, blast_markers)
+                los = check_los_clear(attacker, m, phenomena, blast_markers,
+                                      self.ctx.gs.ships)
                 if not los["clear"]:
                     _log(f"  {m.name}: no LoS ({los['blocked_by']}) — skipped")
                     continue

@@ -279,6 +279,8 @@ def current_shields(ship: Ship, blast_markers: List[BlastMarker]) -> int:
     halved when crippled) and loses one per blast marker touching the base.
     Every shield check should go through here.
     """
+    if ship.status in ("drifting_hulk", "burning_hulk"):
+        return 0                       # hulks have no shields (s.34)
     return max(0, ship.effective_shields
                - count_blast_markers_touching(ship, blast_markers))
 

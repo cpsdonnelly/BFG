@@ -244,6 +244,12 @@ class Ship:
         return self.hits_remaining <= 0 or self.status in ("destroyed",)
 
     @property
+    def is_hulk(self):
+        """A drifting or burning hulk: out of action (is_destroyed) but still on
+        the table, where enemies may fire on it (s.34)."""
+        return self.status in ("drifting_hulk", "burning_hulk")
+
+    @property
     def armor_prow_value(self):
         return int(self.armor_prow.replace("+", ""))
 
@@ -300,6 +306,8 @@ class Ship:
 
     @property
     def effective_turrets(self):
+        if self.status in ("drifting_hulk", "burning_hulk"):
+            return 0                   # hulks have no turrets (s.34)
         t = self.turrets
         if self.is_crippled:
             t = (t + 1) // 2

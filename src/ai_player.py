@@ -586,7 +586,8 @@ class AIPlayer:
                 continue
             los = check_los_clear(ship, e,
                                   self.gs.get_phenomena(),
-                                  self.gs.get_blast_markers())
+                                  self.gs.get_blast_markers(),
+                                  self.gs.ships)
             if not los.get("clear", True):
                 continue
             # Shadow Engines: escorts beyond 30cm that aren't the closest target

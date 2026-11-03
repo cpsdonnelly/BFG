@@ -91,11 +91,13 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
 
 def check_los_clear(ship: Ship, target_ship: Ship,
                     phenomena: list = None,
-                    blast_markers: list = None) -> dict:
-    """Check if line of sight is clear between attacker and target."""
+                    blast_markers: list = None,
+                    ships: list = None) -> dict:
+    """Check if line of sight is clear between attacker and target. ships: the
+    ships on the table, so hulks block lines of fire (s.34)."""
     phenomena = phenomena or []
     blast_markers = blast_markers or []
-    return check_los_ships(ship, target_ship, phenomena, blast_markers)
+    return check_los_ships(ship, target_ship, phenomena, blast_markers, ships)
 
 
 def _has_tracking_support(ship: Ship, all_ships: list = None) -> bool:
@@ -1168,7 +1170,11 @@ def resolve_explosion(ship: Ship, result: str, dice: DiceRoller,
     for other_id in [s.id for s in game_state.get_ships()]:
         # Re-read each ship: a chained explosion may already have hit it
         other = game_state.get_ship_by_id(other_id)
-        if not other or other.id == ship.id or other.is_destroyed:
+        # Hulks in the blast are hit too (they re-roll catastrophic damage)
+        if (not other or other.id == ship.id or other.status == "destroyed"
+                or other.is_disengaged
+                or (other.is_destroyed
+                    and other.status not in ("drifting_hulk", "burning_hulk"))):
             continue
         dist = ship.distance_to(other)
         if dist > blast_radius:

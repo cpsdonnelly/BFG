@@ -151,7 +151,8 @@ class _FireDialog:
                 eff_range = min(weapon_range(attacker, weapon) or 999,
                                 ast_range_cap if ast_range_cap else 9999)
                 in_range = dist <= eff_range
-                los = check_los_clear(attacker, e, phenomena, self.blast_markers)
+                los = check_los_clear(attacker, e, phenomena, self.blast_markers,
+                                      self.ctx.gs.ships)
                 status = ""
                 if not los["clear"]:
                     status = f" [NO LOS: {los['blocked_by']}]"
@@ -269,12 +270,16 @@ class _FireDialog:
         cv = self.closest_visible
         if not cv or target.id == cv.id:
             return target
+        # A hulk that is the closest enemy may be fired on without a test (s.34)
+        if (target.status in ("drifting_hulk", "burning_hulk")
+                and self.attacker.distance_to(target) < self.attacker.distance_to(cv)):
+            return target
         cv_arc = self.attacker.get_target_arc(cv.x, cv.y)
         cv_in_arc = cv_arc.value in weapon.get("arcs", []) or not weapon.get("arcs")
         cv_in_range = (self.attacker.distance_to(cv)
                        <= (weapon_range(self.attacker, weapon) or 999))
         cv_los = check_los_clear(self.attacker, cv,
-                                 self.ctx.gs.get_phenomena(), self.blast_markers)
+                                 self.ctx.gs.get_phenomena(), self.blast_markers, self.ctx.gs.ships)
         if not (cv_in_arc and cv_in_range and cv_los["clear"]):
             return target  # closest visible isn't valid for this weapon
         # One target priority test per ship per turn (s.7): the result stands
@@ -450,11 +455,16 @@ class _FireDialog:
 
         # Apply accumulated damage
         for target_id, hit_list in all_damage.items():
-            # Hits that crit on 4+ (bombardment cannons) are applied separately
+            # Hits that crit on 4+ (bombardment cannons) are applied separately;
+            # a hulk takes the whole volley at once (one re-roll per attacking
+            # ship, s.34)
+            tgt0 = self.ctx.gs.get_ship_by_id(target_id)
+            if tgt0 is not None and tgt0.status in ("drifting_hulk", "burning_hulk"):
+                hit_list = [(sum(h for h, _, _, _ in hit_list), "battery", tgt0, 6)]
             for crit_on in sorted({c for _, _, _, c in hit_list}, reverse=True):
                 total = sum(h for h, _, _, c in hit_list if c == crit_on)
                 target = self.ctx.gs.get_ship_by_id(target_id)
-                if not target or target.is_destroyed:
+                if not target or (target.is_destroyed and not target.is_hulk):
                     continue
                 self._log(f"  >> {target.name}: {total} total hits"
                           + (f" (crits on {crit_on}+)" if crit_on != 6 else ""))
@@ -663,9 +673,12 @@ class CombatDialogMixin:
             return
 
         enemy_player = 2 if attacker.player == 1 else 1
+        # Enemy hulks may be fired on too (s.34); never your own side's
         enemies = [Ship.from_dict(s) for s in self.ctx.gs.ships
                    if s["player"] == enemy_player
-                   and not Ship.from_dict(s).is_destroyed
+                   and (not Ship.from_dict(s).is_destroyed
+                        or s.get("status") in ("drifting_hulk", "burning_hulk"))
+                   and s.get("status") != "destroyed"
                    and not s.get("is_disengaged", False)]
         if not enemies:
             messagebox.showinfo("No Targets", "No enemy ships in play")
@@ -677,7 +690,9 @@ class CombatDialogMixin:
 
         closest_visible = next(
             (e for e in enemies
-             if check_los_clear(attacker, e, phenomena, blast_markers)["clear"]),
+             if e.status == "active"          # a closest hulk may be ignored (s.34)
+             and check_los_clear(attacker, e, phenomena, blast_markers,
+                                 self.ctx.gs.ships)["clear"]),
             None)
 
         lock_on = attacker.special_order == SpecialOrder.LOCK_ON.value
