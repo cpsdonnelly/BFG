@@ -23,6 +23,7 @@ from .combat import (
     squadron_group, fire_at_squadron, weapon_fire_pool, shot_weapon,
 )
 from .chapter_tactics import shadow_engines_hidden
+from .ordnance import ship_torpedo_types, SHORT_BURN_SPEED
 from .ordnance import (launch_torpedoes, launch_attack_craft,
                        bay_launch_capacity, fleet_craft_slots,
                        fleet_craft_excess, recall_craft, ai_craft_to_recall,
@@ -674,8 +675,19 @@ class AIPlayer:
                 # Pick target whose predicted next position is best covered
                 target = self._best_torp_target(ship, weapon, enemies)
                 if target:
-                    aim = self._torpedo_aim_heading(ship, weapon, target)
-                    launch_torpedoes(ship, weapon, gs, heading=aim, dice=self.dice)
+                    # Short burn torpedoes (if carried) for targets beyond a
+                    # standard salvo's reach; barrage bombs are never better
+                    # than standard torpedoes for the AI's damage-only plan
+                    kind, aim_weapon = "", weapon
+                    if ("short_burn" in ship_torpedo_types(ship)
+                            and weapon.get("torpedo_type") != "guided"
+                            and ship.distance_to(target) > weapon.get(
+                                "torpedo_speed", TORPEDO_SPEED_DEFAULT)):
+                        kind = "short_burn"
+                        aim_weapon = {**weapon, "torpedo_speed": SHORT_BURN_SPEED}
+                    aim = self._torpedo_aim_heading(ship, aim_weapon, target)
+                    launch_torpedoes(ship, weapon, gs, heading=aim, dice=self.dice,
+                                     kind=kind)
                     ship = gs.get_ship_by_id(ship.id)
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:

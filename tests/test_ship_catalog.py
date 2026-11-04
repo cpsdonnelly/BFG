@@ -178,8 +178,10 @@ def test_to_ship_dict_carries_leadership_table_and_booklet_points():
         ("Lunar Cruiser", 180, 0, "Default")
 
 
-def test_booklet_ships_have_no_upgrades_yet():
-    assert get_upgrades_for_ship(get_ship_class("imperial_navy_gothic", "Lunar Cruiser")) == []
+def test_booklet_ships_without_options_have_no_upgrades():
+    # Lunar: only the Navy torpedo types so far
+    assert {u.name.split(":")[0] for u in get_upgrades_for_ship(
+        get_ship_class("imperial_navy_gothic", "Lunar Cruiser"))} == {"Torpedoes"}
 
 
 def test_old_defense_spelling_still_resolves():

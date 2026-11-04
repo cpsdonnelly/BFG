@@ -494,19 +494,22 @@ class OrdnancePanel(OrdnanceMovementMixin):
                  text="All participating ships are exempt from friendly fire.",
                  font=("Consolas", 8), fg="#AAAAAA").pack()
 
-        # Boarding torpedoes only if every contributing launcher carries them
+        # Loads every contributing launcher can fire (boarding, short burn...)
+        from .ordnance import torpedo_kind_options
         kind_var = tk.StringVar(value="standard")
-        _torp_ws = [w for s in contributors for w in s.weapons
-                    if w.get("weapon_type") == "torpedo"]
-        if (launch_torps and _torp_ws and self.ctx.gs.rule_hit_and_run
-                and all(w.get("boarding_torpedoes") for w in _torp_ws)):
+        _kinds = None
+        for _c in contributors:
+            for _w in _c.weapons:
+                if _w.get("weapon_type") == "torpedo":
+                    opts = torpedo_kind_options(_c, _w, self.ctx.gs.rule_hit_and_run)
+                    _kinds = opts if _kinds is None else [k for k in _kinds if k in opts]
+        if launch_torps and _kinds and len(_kinds) > 1:
             kind_frame = tk.Frame(dialog)
             kind_frame.pack(fill=tk.X, padx=10)
-            tk.Label(kind_frame, text="Load:", font=("Consolas", 8)).pack(side=tk.LEFT)
-            for val, text in (("standard", "Standard"),
-                              ("boarding", "Boarding (1 hit-and-run raid per hit)")):
+            tk.Label(kind_frame, text="Load:", font=("Consolas", 8)).pack(anchor=tk.W)
+            for val, text in _kinds:
                 tk.Radiobutton(kind_frame, text=text, variable=kind_var, value=val,
-                               font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
+                               font=("Consolas", 8)).pack(anchor=tk.W, padx=8)
 
         # Heading control
         head_frame = tk.LabelFrame(dialog, text="Launch Heading",
@@ -614,7 +617,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     if torp_weapon:
                         break
                 is_guided = bool(torp_weapon) and torp_weapon.get("torpedo_type") == "guided"
-                o_type = (torpedo_ordnance_type(torp_weapon, kind_var.get() == "boarding")
+                o_type = (torpedo_ordnance_type(torp_weapon, kind=kind_var.get())
                           if torp_weapon else OrdnanceType.TORPEDO_STANDARD.value)
                 # Random strengths (e.g. Ork Torps S D6) are rolled just before launching
                 if any(w.get("strength_dice") for c in contributors for w in c.weapons
@@ -634,7 +637,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 common_rules = set(contributors[0].special_rules)
                 for _c in contributors[1:]:
                     common_rules &= set(_c.special_rules)
-                speed = (torp_weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT)
+                from .ordnance import torpedo_speed_for, torpedo_kind_name
+                speed = (torpedo_speed_for(torp_weapon, o_type)
                          if torp_weapon else TORPEDO_SPEED_DEFAULT)
 
                 marker = OrdnanceMarker(
@@ -654,8 +658,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 )
                 self.ctx.gs.add_ordnance(marker)
                 self.ctx.log(
-                    f"Combined {'boarding ' if o_type == OrdnanceType.TORPEDO_BOARDING.value else ''}"
-                    f"torpedo launch: {names_str} — "
+                    f"Combined {torpedo_kind_name(o_type)} launch: {names_str} — "
                     f"Str {launch_strength} heading {heading:.0f}°")
 
                 # Mark torps expended
@@ -895,19 +898,19 @@ class OrdnancePanel(OrdnanceMovementMixin):
                              text=f"Full salvo: Str {total_str} (splitting requires Str 7+)",
                              font=("Consolas", 8), fg="#888888").pack(side=tk.LEFT)
 
-                # Boarding torpedoes: launchers listed "standard or boarding"
+                # Loads: boarding where the profile lists it, bought torpedo types
+                from .ordnance import torpedo_kind_options
                 kind_var = tk.StringVar(value="standard")
-                if tw.get("boarding_torpedoes") and self.ctx.gs.rule_hit_and_run:
+                _kinds = torpedo_kind_options(ship, tw, self.ctx.gs.rule_hit_and_run)
+                if len(_kinds) > 1:
                     kind_frame = tk.Frame(torp_frame)
                     kind_frame.pack(fill=tk.X, padx=10, pady=1)
                     tk.Label(kind_frame, text="Load:",
-                             font=("Consolas", 8)).pack(side=tk.LEFT)
-                    for val, text in (("standard", "Standard torpedoes"),
-                                      ("boarding", "Boarding torpedoes "
-                                                   "(1 hit-and-run raid per hit)")):
+                             font=("Consolas", 8)).pack(anchor=tk.W)
+                    for val, text in _kinds:
                         tk.Radiobutton(kind_frame, text=text, variable=kind_var,
                                        value=val, font=("Consolas", 8)
-                                       ).pack(side=tk.LEFT, padx=2)
+                                       ).pack(anchor=tk.W, padx=8)
 
                 def _launch_torps(w=tw, hv=heading_var, sv=str_var,
                                    effective_str=total_str, kv=kind_var,
@@ -962,8 +965,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         return
 
                     is_g = w.get("torpedo_type") == "guided"
-                    o_type = torpedo_ordnance_type(w, kv.get() == "boarding")
-                    is_b = o_type == OrdnanceType.TORPEDO_BOARDING.value
+                    o_type = torpedo_ordnance_type(w, kind=kv.get())
+                    from .ordnance import torpedo_speed_for, torpedo_kind_name
 
                     import random as _rng
 
@@ -979,7 +982,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         x=ship.x, y=ship.y,
                         heading=heading,
                         strength=strength,
-                        speed=w.get("torpedo_speed", TORPEDO_SPEED_DEFAULT),
+                        speed=torpedo_speed_for(w, o_type),
                         launched_turn=self.ctx.gs.turn_number,
                         can_turn=is_g,
                         turn_angle=45 if is_g else 0,
@@ -988,8 +991,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     )
                     self.ctx.gs.add_ordnance(marker)
 
-                    name = ("guided missiles" if is_g else
-                            "boarding torpedoes" if is_b else "torpedoes")
+                    name = torpedo_kind_name(o_type)
                     self.ctx.log(
                         f"{ship.name} launched {name} Str {strength} "
                         f"heading {heading:.0f}°")
@@ -1005,7 +1007,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                             x=ship.x, y=ship.y,
                             heading=heading2,
                             strength=remainder,
-                            speed=w.get("torpedo_speed", TORPEDO_SPEED_DEFAULT),
+                            speed=torpedo_speed_for(w, o_type),
                             launched_turn=self.ctx.gs.turn_number,
                             can_turn=is_g,
                             turn_angle=45 if is_g else 0,

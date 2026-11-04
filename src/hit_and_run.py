@@ -335,6 +335,8 @@ def resolve_hit_and_run(marker: OrdnanceMarker, target: Ship,
                             reroll_fn=wings_reroll if wings else None)
     summary["brace_wanted"] = wanted_brace
     summary["brace_passed"] = brace_passed
+    from .ordnance import end_ordnance_attack
+    end_ordnance_attack(target, gs)          # Promethean turret halving used up
     return summary
 
 

@@ -140,6 +140,22 @@ def circle_touches_trefoil(cx: float, cy: float, r: float,
 
 # ── Composite token collision tests ──────────────────────────────────────────
 
+def torpedo_first_contact(cx: float, cy: float, r: float,
+                          x0: float, y0: float, x1: float, y1: float,
+                          heading_deg: float, step: float = 0.25):
+    """Where a torpedo marker moving straight from (x0, y0) to (x1, y1) first
+    touches the circle (cx, cy, r), or None if it never does (s.15: ordnance
+    attacks whatever it contacts during its move)."""
+    dist = math.hypot(x1 - x0, y1 - y0)
+    n = max(1, int(math.ceil(dist / step)))
+    for i in range(n + 1):
+        t = i / n
+        x, y = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+        if circle_touches_torpedo(cx, cy, r, x, y, heading_deg):
+            return x, y
+    return None
+
+
 def circle_touches_torpedo(cx: float, cy: float, r: float,
                             torp_x: float, torp_y: float,
                             heading_deg: float) -> bool:

@@ -91,6 +91,13 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   macrobattery firepower on All Ahead Full or Burn Retros; lances still halve).
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
+- **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength"): one type per
+  ship, carried in addition to its other torpedoes and chosen at each launch
+  (`booklet_options.torpedo_type_options`, ship rule `torpedo_type:<key>`,
+  `ordnance.torpedo_kind_options`). Short burn (40cm, D6 fuel roll after moving: 6 = blast
+  marker) and barrage bombs (hits stopped by shields) are playable; guided, seeking, melta,
+  vortex and anointed munitions aren't yet, nor the Mechanicus / Rogue Trader / Ork random
+  torpedo tables. Barrage bombs' low-orbit and assault-point rules wait on low orbit.
 - **Attack craft orders (s.18):** each squadron keeps a target (`craft_target_id`: enemy ship,
   enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
@@ -138,12 +145,16 @@ action (two or more of one squadron) against a larger ship; Lightning Thrusters 
 vanguards count against the strike cruiser maximum) waits on fleet-list limits, which the fleet
 builder doesn't enforce yet. The other six also match s.03 (Dark Age, Siege Cannons, Shadow
 Engines, Promethean Unguents, Heed the Machine Spirit, Tactical Flexibility), except:
-Promethean Unguents' barrage-bomb part waits on barrage bombs (no torpedo types beyond
-standard and boarding yet); Shadow Engines' "no effect against Tyranids or Necrons" has no
+Promethean Unguents barrage bombs hit on 4+, place a blast marker per hit (no damage) and
+halve turrets for the next ordnance attack that turn (`Ship.turrets_halved_turn`,
+`ordnance.ordnance_turrets`); Shadow Engines' "no effect against Tyranids or Necrons" has no
 faction to apply to; Heed the Machine Spirit is always taken when a save fails (no prompt).
 
 ### Not yet matching the booklet (export 7 audit)
 
+- Torpedoes attack ships touched anywhere along their move (`geometry.torpedo_first_contact`,
+  facing taken from the contact point); attack craft flying straight without a target and
+  torpedo-vs-torpedo collisions are still checked at the end of the move only.
 - Waves of attack craft (s.25) aren't modelled: every squadron acts alone.
 - Combined squadron fire uses the lead ship's aspect, range and armour facing; no per-aspect
   or squadron-vs-squadron grouping (s.8 Shooting by Squadrons).

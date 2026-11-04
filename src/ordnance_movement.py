@@ -257,11 +257,20 @@ class OrdnanceMovementMixin:
                                resolve_bomber_interception, attacks_ships)
         from .geometry import circle_touches_square
 
+        path_start = getattr(self, "_ord_path_start", None) or {}
+
+        def contact_point(m, s):
+            """Where a torpedo salvo touched the ship during this move (its
+            whole path counts, s.15), else None."""
+            from .geometry import torpedo_first_contact
+            x0, y0 = path_start.get(m.id, (m.x, m.y))
+            return torpedo_first_contact(s.x, s.y, s.base_radius, x0, y0, m.x, m.y, m.heading)
+
         def touching(m, s):
             if forced is not None:
                 return forced.get(m.id) == s.id
             if is_torpedo_salvo(m):
-                return check_torpedo_contact(m, s)
+                return check_torpedo_contact(m, s) or contact_point(m, s) is not None
             return circle_touches_square(s.x, s.y, s.base_radius, m.x, m.y, m.heading)
 
         # 3. Check ordnance contact with ships
@@ -349,12 +358,20 @@ class OrdnanceMovementMixin:
                         f"  Torpedoes contact {s.name}"
                         + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
                         + "!")
+                    # The attack comes from where the salvo touched the ship
+                    # (armour facing, shield impacts), not where it ended up
+                    hit_at = (None if forced is not None or check_torpedo_contact(marker, s)
+                              else contact_point(marker, s))
+                    attacker = marker
+                    if hit_at is not None:
+                        attacker = OrdnanceMarker.from_dict(
+                            {**marker.to_dict(), "x": hit_at[0], "y": hit_at[1]})
                     # Brace for Impact before turrets and to-hit rolls (s.7)
                     braced = self._brace_vs_ordnance(
-                        marker, s, marker.strength * max(0, 7 - s.armor_vs(marker.x, marker.y)) / 6)
+                        marker, s, marker.strength * max(0, 7 - s.armor_vs(attacker.x, attacker.y)) / 6)
                     s = self.ctx.gs.get_ship_by_id(s.id) or s     # keep the brace
                     result = resolve_torpedo_attack(
-                        marker, s, self.ctx.dice, self.ctx.gs,
+                        attacker, s, self.ctx.dice, self.ctx.gs,
                         all_ships=ships,
                         brace_decision_fn=None if braced is not None else self._raid_brace_fn())
                     marker.attacked_turns = {**(marker.attacked_turns or {}),
@@ -567,10 +584,12 @@ class OrdnanceMovementMixin:
             # 1. Move this player's ordnance
             self._turn_boarding_torps(ships, mover)
 
+            self._ord_path_start = {}
             for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
                 marker = OrdnanceMarker.from_dict(o_dict)
                 if marker.owner_player != mover:
                     continue
+                self._ord_path_start[marker.id] = (marker.x, marker.y)
                 move_ordnance(marker, self.ctx.gs)
 
                 # CAP fighters are co-located with their ship; skip off-table check
@@ -616,6 +635,11 @@ class OrdnanceMovementMixin:
                 self.ctx.log(log)
 
             self._resolve_ship_contacts(ships, mover, frozenset(to_remove))
+
+            # 3. Short burn torpedoes that moved may run out of fuel (s.16)
+            from .ordnance import short_burn_fuel_checks
+            for log in short_burn_fuel_checks(self.ctx.gs, self.ctx.dice, mover):
+                self.ctx.log(log)
 
         self.ctx.log(
             f"  Ordnance phase complete: {len(self.ctx.gs.ordnance)} markers remain")

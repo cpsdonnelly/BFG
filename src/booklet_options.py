@@ -107,10 +107,39 @@ def space_marine_options(row: dict) -> List[Dict]:
     return opts
 
 
+def torpedo_strength(row: dict) -> int:
+    """Total printed strength of a booklet ship's torpedo launchers."""
+    return sum(int(w["value"]) for w in row.get("weapons") or []
+               if w.get("kind") == "weapon" and "Torp" in (w.get("name") or "")
+               and w.get("stat") == "S" and str(w.get("value", "")).isdigit())
+
+
+def torpedo_type_options(row: dict) -> List[Dict]:
+    """Imperial Navy and Chaos fleet lists: torpedo ships may take short-burn
+    torpedoes or barrage bombs at +5 per torpedo strength. Owner ruling: one
+    type per ship, carried in addition to its other torpedoes. (Guided
+    torpedoes and anointed munitions aren't playable yet.)"""
+    st = torpedo_strength(row)
+    if not st:
+        return []
+    return [{"name": f"Torpedoes: {label}",
+             "description": f"Carried as well as its other torpedoes; chosen at each launch. "
+                            f"+5pts per torpedo strength ({st}).",
+             "points_cost": 5 * st,
+             "effect": {"add_special_rules": [f"torpedo_type:{key}"]},
+             "restrictions": ["group:torpedo_type"]}
+            for key, label in (("short_burn", "short burn (40cm; out of fuel on a 6)"),
+                               ("barrage", "barrage bombs (hits stopped by shields)"))]
+
+
 def options_for(row: dict) -> List[Dict]:
-    """Options for one booklet ship (only ships following Space Marine rules so far)."""
-    if "Space Marines" in (row.get("faction_rules") or []):
+    """Options for one booklet ship (Space Marine options, Imperial Navy and
+    Chaos torpedo types so far)."""
+    rules = row.get("faction_rules") or []
+    if "Space Marines" in rules:
         return space_marine_options(row)
+    if "Imperial Navy" in rules or "Chaos" in rules:
+        return torpedo_type_options(row)
     return []
 
 
