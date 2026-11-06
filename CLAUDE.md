@@ -177,9 +177,10 @@ faction to apply to; Heed the Machine Spirit is always taken when a save fails (
 - The AI fires its one vortex / melta / seeking salvo at the first capital ship target, never
   uses guided torps or barrage bombs, and uses short burn for targets beyond 30cm.
 - Not yet: Inquisition vortex torpedoes +50 and Inferno torpedoes, Rogue Trader refitted
-  torpedoes (no Rogue Trader ship in the roster has torpedoes), the Ork torpedo launcha swap
-  on Terror Ship / Kill Kroozer / Basha (so they can't take looted torps), Deathskulls'
-  half-cost looted torps.
+  torpedoes (no Rogue Trader ship in the roster has torpedoes), Deathskulls' half-cost looted
+  torps, the Ork zzapp gunz swaps. The Ork torpedo launcha swaps (Terror Ship, Kill Kroozer
+  incl. its 2D6+2 variant, Basha) are options (`booklet_options.ork_launcha_options`); looted
+  torps need one of them (`requires_any:`).
 
 ### Open questions for the owner
 

@@ -148,12 +148,60 @@ _REFIT_TABLE = ("D6 at game start: 1 Short Burn, 2 Barrage Bombs, 3 Guided, 4 Se
                 "5 Melta*, 6 Vortex* (*one salvo per game), as well as its other torpedoes.")
 
 
+def _ork_torps(dice: str) -> Dict:
+    from .combat import dice_value_average
+    return {"name": "Prow Torps", "weapon_type": "torpedo", "range_cm": 30,
+            "strength": int(dice_value_average(dice)), "arcs": ["front"],
+            "strength_dice": dice, "torpedo_type": "standard", "torpedo_speed": 30}
+
+
+def ork_launcha_options(row: dict) -> List[Dict]:
+    """Ork kroozers: "Replace prow heavy gunz with a prow torpedo launcha (30cm
+    D6+N F) +Xpts" (Kill Kroozer: with the launcha, may drop both side heavy gunz
+    to add +D6, 2D6+N, free). The zzapp gunz alternatives aren't playable yet."""
+    import re
+    notes = row.get("notes") or ""
+    m = re.search(r"prow torpedo launcha \(30cm (D6\+\d+) F\) (free|\+(\d+)pts)", notes)
+    if not m:
+        return []
+    dice, cost = m.group(1), int(m.group(3) or 0)
+    opts = [{"name": f"Prow torpedo launcha ({dice})",
+             "description": f"Replace the prow heavy gunz with a prow torpedo launcha "
+                            f"(30cm S {dice}, F), {'free' if not cost else f'+{cost}pts'}.",
+             "points_cost": cost,
+             "effect": {"remove_weapons": ["Prow Heavy Gunz"], "add_weapon": _ork_torps(dice)},
+             "restrictions": ["group:ork_prow"]}]
+    if "may drop both side heavy gunz to add +D6" in notes:
+        big = "2" + dice
+        opts.append({"name": f"Prow torpedo launcha ({big}, no side heavy gunz)",
+                     "description": f"The torpedo launcha with both side heavy gunz dropped to "
+                                    f"add +D6 (30cm S {big}, F), +{cost}pts.",
+                     "points_cost": cost,
+                     "effect": {"remove_weapons": ["Prow Heavy Gunz", "Port Heavy Gunz",
+                                                   "Starboard Heavy Gunz"],
+                                "add_weapon": _ork_torps(big)},
+                     "restrictions": ["group:ork_prow"]})
+    return opts
+
+
 def refitted_torpedo_options(row: dict) -> List[Dict]:
     """Adeptus Mechanicus "refitted torpedoes +Npts" and Ork "torps to looted
     torps +20pts" in a ship's notes: a D6 roll at game start (owner ruling for
     Orks: each ship that buys them rolls)."""
     import re
     notes = row.get("notes") or ""
+    launcha = ork_launcha_options(row)
+    if launcha:
+        opts = launcha
+        m = re.search(r"torps to looted torps \+(\d+)pts", notes)
+        if m:
+            opts.append({"name": "Looted Torpedoes (D6 at game start)",
+                         "description": f"+{m.group(1)}pts. Needs the torpedo launcha. {_REFIT_TABLE}",
+                         "points_cost": int(m.group(1)),
+                         "effect": {"add_special_rules": ["torpedo_roll:d6_refitted"]},
+                         "restrictions": ["group:torpedo_type", "requires_any:"
+                                          + "|".join(o["name"] for o in launcha)]})
+        return opts
     if not torpedo_strength(row) and not any(
             "Torp" in (w.get("name") or "") for w in row.get("weapons") or []):
         return []
@@ -201,6 +249,10 @@ def ship_option_errors(entry, chosen: List[str]) -> List[str]:
                 groups.setdefault(r[6:], []).append(name)
             elif r.startswith("requires:") and r[9:] not in chosen:
                 errors.append(f"{name} needs {r[9:]}.")
+            elif r.startswith("requires_any:"):
+                need = r[len("requires_any:"):].split("|")
+                if not any(n in chosen for n in need):
+                    errors.append(f"{name} needs one of: {', '.join(need)}.")
     for names in groups.values():
         if len(names) > 1:
             errors.append(f"Choose only one of: {', '.join(names)}.")

@@ -369,3 +369,26 @@ def test_refitted_looted_and_anointed_options():
     lunar = {u.name: u.points_cost for u in find_ship_class("Lunar Cruiser").upgrades_available}
     assert lunar["Torpedoes: roll for Seeking / Melta / Vortex (D3 at game start)"] == 50
     assert lunar["Torpedoes: guided (turn 45° on a Leadership test)"] == 30
+
+
+# ── Ork torpedo launcha swaps and looted torpedoes ───────────────────────────
+
+def test_ork_torpedo_launcha_replaces_prow_heavy_gunz():
+    from src.booklet_options import ship_option_errors
+    kk = find_ship_class("Kill Kroozer")
+    opts = {u.name: u for u in kk.upgrades_available}
+    big = "Prow torpedo launcha (2D6+2, no side heavy gunz)"
+    assert opts["Prow torpedo launcha (D6+2)"].points_cost == 10 and opts[big].points_cost == 10
+    d = kk.to_ship_dict("K", 1, upgrades=[big, "Looted Torpedoes (D6 at game start)"])
+    names = [w["name"] for w in d["weapons"]]
+    assert "Prow Heavy Gunz" not in names and "Port Heavy Gunz" not in names
+    torps = [w for w in d["weapons"] if w["weapon_type"] == "torpedo"]
+    assert [w["strength_dice"] for w in torps] == ["2D6+2"]
+    assert "torpedo_roll:d6_refitted" in d["special_rules"]
+    assert d["points_value"] == kk.points_cost + 30
+    # Looted torps need the launcha; only one launcha
+    assert ship_option_errors(kk, ["Looted Torpedoes (D6 at game start)"])
+    assert ship_option_errors(kk, ["Prow torpedo launcha (D6+2)", big])
+    basha = find_ship_class("Basha Lite Kroozer")
+    assert {u.name: u.points_cost for u in basha.upgrades_available}[
+        "Prow torpedo launcha (D6+1)"] == 0
