@@ -392,3 +392,47 @@ def test_ork_torpedo_launcha_replaces_prow_heavy_gunz():
     basha = find_ship_class("Basha Lite Kroozer")
     assert {u.name: u.points_cost for u in basha.upgrades_available}[
         "Prow torpedo launcha (D6+1)"] == 0
+
+
+# ── Inquisition: cruiser refits, Inquisitor Lord, Inferno and vortex torpedoes ─
+
+def test_inquisitorial_cruiser_torpedo_refit_inferno_and_vortex():
+    from src.booklet_options import ship_option_errors
+    ic = find_ship_class("Inquisitorial Cruiser")
+    lord, refit = "Ordo Malleus Inquisitor Lord (Ld 10)", "Refit: launch bays to Torpedo Salvo"
+    vortex = "Vortex Torpedoes (Inquisitor Lord's ship)"
+    d = ic.to_ship_dict("I", 1, upgrades=[refit, lord, vortex])
+    torps = [w for w in d["weapons"] if w["weapon_type"] == "torpedo"]
+    assert len(torps) == 1 and torps[0]["strength"] == 6 and torps[0]["boarding_torpedoes"]
+    assert not any(w["weapon_type"] == "launch_bay" for w in d["weapons"])
+    assert d["leadership"] == 10 and d["rerolls_remaining"] == 1 and d["is_flagship"]
+    assert "torpedo_type:vortex" in d["special_rules"]
+    assert d["points_value"] == ic.points_cost + 75 + 50
+    assert ship_option_errors(ic, [refit, vortex])            # needs the Inquisitor Lord
+    assert ship_option_errors(ic, [lord, vortex])             # needs torpedoes
+    assert ship_option_errors(ic, ["Inferno Torpedoes"])      # needs torpedoes
+    assert not ship_option_errors(ic, [refit, "Inferno Torpedoes"])
+    cobra = find_ship_class("Inquisitorial Cobra Destroyer")
+    assert [(u.name, u.points_cost) for u in cobra.upgrades_available] == [("Inferno Torpedoes", 20)]
+
+
+def test_inferno_torpedoes_are_reusable_melta():
+    ship = make_ship(id="a", weapons=[dict(TORPS)], special_rules=["torpedo_type:inferno"])
+    gs = make_gs([ship])
+    m = launch_torpedoes(ship, ship.weapons[0], gs, kind="inferno")
+    assert m.ordnance_type == OrdnanceType.TORPEDO_MELTA.value
+    s = gs.get_ship_by_id("a")
+    assert s.once_torps_used == [] and "inferno" in [k for k, _ in torpedo_kind_options(s, TORPS)]
+
+
+def test_inferno_launcher_crit_inflicts_d6_fires():
+    from src.combat import apply_damage
+    target = _target(weapons=[dict(TORPS)], special_rules=["torpedo_type:inferno"])
+    gs = make_gs([target])
+    rolls = [6, 5,         # crit: Prow Armament Damaged
+             4]            # D6 = 4 Fire results
+    dice = DiceStub(rolls)
+    apply_damage(target, 1, dice, gs, ignores_shields=True)
+    t = gs.get_ship_by_id("t")
+    assert dice._idx == len(rolls)
+    assert [c["crit_type"] for c in t.critical_damage] == ["prow_armament"] + ["fire"] * 4

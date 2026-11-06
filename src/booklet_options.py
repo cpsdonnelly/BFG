@@ -184,6 +184,71 @@ def ork_launcha_options(row: dict) -> List[Dict]:
     return opts
 
 
+INQ_LORD = "Ordo Malleus Inquisitor Lord (Ld 10)"
+INQ_TORPS = "Refit: launch bays to Torpedo Salvo"
+
+
+def inquisition_options(row: dict) -> List[Dict]:
+    """Inquisition vessels: the Inquisitorial Cruiser's special refits (no
+    change in cost), the Ordo Malleus Inquisitor Lord (Banisher Fleet: Ld 10,
+    75pts, one free re-roll), Inferno Torpedoes (+20pts, owner ruling) and
+    vortex torpedoes on the Inquisitor Lord's ship if it has torpedoes (+50pts,
+    owner ruling)."""
+    name = row["name"]
+    opts: List[Dict] = []
+    has_torps = bool(torpedo_strength(row))
+    if name == "Inquisitorial Cruiser":
+        opts += [
+            {"name": "Refit: dorsal lances to Bombardment Cannon",
+             "description": "No change in cost: Bombardment Cannon 30cm FP6 (L/F/R), the "
+                            "Space Marine bombardment cannon rules.",
+             "points_cost": 0,
+             "effect": {"remove_weapons": ["Dorsal Lances"],
+                        "add_weapon": {"name": "Dorsal Bombardment Cannon", "weapon_type": "battery",
+                                       "range_cm": 30, "strength": 6,
+                                       "arcs": ["left", "front", "right"],
+                                       "hits_on": 4, "crit_on": 4}}},
+            {"name": INQ_TORPS,
+             "description": "No change in cost: Torpedo Salvo 30cm S6 (F), standard or "
+                            "boarding torpedoes.",
+             "points_cost": 0,
+             "effect": {"remove_weapons": ["Launch Bays"],
+                        "add_weapon": {"name": "Prow Torpedo Salvo", "weapon_type": "torpedo",
+                                       "range_cm": 30, "strength": 6, "arcs": ["front"],
+                                       "torpedo_type": "standard", "torpedo_speed": 30,
+                                       "boarding_torpedoes": True}}},
+        ]
+    capital = row.get("hits") and row.get("hits") > 1 and "Grey Knights" not in name
+    if capital:
+        opts.append({"name": INQ_LORD,
+                     "description": "Fleet commander (Banisher Fleet), 75pts: Ld 10, one free "
+                                    "re-roll.",
+                     "points_cost": 75,
+                     "effect": {"set": {"leadership": 10, "leadership_table": ""},
+                                "rerolls": 1,
+                                "add_special_rules": ["fleet_commander"], "flagship": True},
+                     "restrictions": ["fleet_unique"]})
+    torp_needs = [] if has_torps else ([f"requires:{INQ_TORPS}"] if name == "Inquisitorial Cruiser"
+                                       else None)
+    if torp_needs is not None:
+        opts.append({"name": "Inferno Torpedoes",
+                     "description": "+20pts (Ordo Hereticus). Melta torpedoes usable any number "
+                                    "of times, as well as its other torpedoes; a torpedo-launcher "
+                                    "critical hit inflicts D6 Fire results.",
+                     "points_cost": 20,
+                     "effect": {"add_special_rules": ["torpedo_type:inferno"]},
+                     "restrictions": ["group:torpedo_type"] + torp_needs})
+        if capital:
+            opts.append({"name": "Vortex Torpedoes (Inquisitor Lord's ship)",
+                         "description": "+50pts (Ordo Malleus). Vortex torpedoes, one salvo per "
+                                        "game, as well as its other torpedoes.",
+                         "points_cost": 50,
+                         "effect": {"add_special_rules": ["torpedo_type:vortex"]},
+                         "restrictions": ["group:torpedo_type", f"requires:{INQ_LORD}"]
+                         + torp_needs})
+    return opts
+
+
 def refitted_torpedo_options(row: dict) -> List[Dict]:
     """Adeptus Mechanicus "refitted torpedoes +Npts" and Ork "torps to looted
     torps +20pts" in a ship's notes: a D6 roll at game start (owner ruling for
@@ -232,6 +297,8 @@ def options_for(row: dict) -> List[Dict]:
         return torpedo_type_options(row)
     if "Adeptus Mechanicus" in rules or "Orks" in rules:
         return refitted_torpedo_options(row)
+    if "Inquisition & Grey Knights" in rules:
+        return inquisition_options(row)
     return []
 
 

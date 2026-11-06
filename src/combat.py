@@ -816,10 +816,16 @@ def torpedo_launcher_crit(target: Ship, crit_type: str, dice: DiceRoller,
     """A ship carrying unused melta torpedoes that suffers a critical hit to its
     torpedo launcher location takes D3 extra Fire critical hits; unused vortex
     torpedoes deal D3 extra damage and an automatic critical hit (s.16). The
-    munitions that exploded are then used up. True if the ship is reduced to 0."""
+    munitions that exploded are then used up. Inferno torpedoes (Ordo Hereticus)
+    inflict D6 Fire results every time. True if the ship is reduced to 0."""
     if crit_type not in _torpedo_crit_location(target):
         return False
-    from .ordnance import unused_once_torpedoes
+    from .ordnance import unused_once_torpedoes, ship_torpedo_types
+    if "inferno" in ship_torpedo_types(target):
+        # Inferno Torpedoes: a torpedo-launcher critical inflicts D6 Fire results
+        n = dice.roll_d6(1, f"{target.name} inferno torpedoes ignite (D6 Fire)")[0]
+        game_state.add_log(f"  {target.name}'s inferno torpedoes ignite: {n} Fire critical hit(s)")
+        add_fire_crits(target, n, game_state, write=False)
     unused = unused_once_torpedoes(target)
     for kind in ("melta", "vortex"):
         if kind not in unused:

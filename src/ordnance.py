@@ -1100,6 +1100,8 @@ EXTRA_TORPEDO_TYPES = {
     "seeking": (OrdnanceType.TORPEDO_SEEKING.value, "Seeking torpedoes (home on the nearest enemy; once per game)"),
     "melta": (OrdnanceType.TORPEDO_MELTA.value, "Melta torpedoes (Fire crit per hit, no damage; once per game)"),
     "vortex": (OrdnanceType.TORPEDO_VORTEX.value, "Vortex torpedoes (1 damage + automatic crit per hit; once per game)"),
+    # Ordo Hereticus Inferno Torpedoes: melta torpedoes usable any number of times
+    "inferno": (OrdnanceType.TORPEDO_MELTA.value, "Inferno torpedoes (melta: Fire crit per hit, no damage)"),
 }
 ONCE_PER_GAME_TORPEDOES = ("seeking", "melta", "vortex")
 # Game-start torpedo rolls (ship rule "torpedo_roll:<table>"), rolled per ship

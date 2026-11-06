@@ -176,7 +176,14 @@ faction to apply to; Heed the Machine Spirit is always taken when a save fails (
 - Melta hits give Fire crits even to escorts; a hulk takes nothing from melta.
 - The AI fires its one vortex / melta / seeking salvo at the first capital ship target, never
   uses guided torps or barrage bombs, and uses short burn for targets beyond 30cm.
-- Not yet: Inquisition vortex torpedoes +50 and Inferno torpedoes, Rogue Trader refitted
+- Inquisition (owner rulings): Inferno Torpedoes +20pts on any Inquisition vessel with
+  torpedoes (melta usable any number of times; a launcher crit gives D6 Fires); vortex
+  torpedoes +50pts only on an Ordo Malleus Inquisitor Lord's ship armed with torpedoes.
+  `booklet_options.inquisition_options` also has the Inquisitorial Cruiser's free refits
+  (Bombardment Cannon, Torpedo Salvo) and the Inquisitor Lord (Banisher list: Ld 10, 75pts,
+  one free re-roll). Not yet: the Lord's extra re-rolls (no cost given), Ordos (a ship may
+  not mix Ordo upgrades), Grand Master, Inquisitors, retinues and honour guards.
+- Not yet: Rogue Trader refitted
   torpedoes (no Rogue Trader ship in the roster has torpedoes), Deathskulls' half-cost looted
   torps, the Ork zzapp gunz swaps. The Ork torpedo launcha swaps (Terror Ship, Kill Kroozer
   incl. its 2D6+2 variant, Basha) are options (`booklet_options.ork_launcha_options`); looted
