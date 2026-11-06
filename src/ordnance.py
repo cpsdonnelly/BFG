@@ -186,12 +186,20 @@ def is_boarding_torpedo(marker: OrdnanceMarker) -> bool:
     return marker.ordnance_type == OrdnanceType.TORPEDO_BOARDING.value
 
 
+def ignores_friendly(marker: OrdnanceMarker) -> bool:
+    """Boarding and seeking torpedoes ignore friendly ships and attack craft (s.16)."""
+    return marker.ordnance_type in (OrdnanceType.TORPEDO_BOARDING.value,
+                                    OrdnanceType.TORPEDO_SEEKING.value)
+
+
 def torpedo_valid_target(marker: OrdnanceMarker, ship: Ship) -> bool:
     """Ordnance attacks the first valid target it contacts (s.15). Any ship is a
     valid target for torpedoes (s.16: friend or foe), hulks included (a hulk
     that takes damage rolls catastrophic damage again, owner ruling). Boarding
     torpedoes always ignore friendly ships and may ignore hulks (s.16, Torpedo
     Types); here they always pass over hulks, where a raid would do nothing."""
+    if marker.ordnance_type == OrdnanceType.TORPEDO_SEEKING.value:
+        return ship.player != marker.owner_player
     if not is_boarding_torpedo(marker):
         return True
     return (ship.player != marker.owner_player
@@ -225,6 +233,74 @@ def turn_boarding_torp(marker: OrdnanceMarker, degrees: float) -> None:
     """Rotate the salvo about its centre (clamped to 45°) before it moves."""
     degrees = max(-BOARDING_TORP_MAX_TURN, min(BOARDING_TORP_MAX_TURN, degrees))
     marker.heading = (marker.heading + degrees) % 360
+
+
+def seeking_turn(marker: OrdnanceMarker, ships: List[Ship]) -> float:
+    """Seeking torpedoes (s.16) must turn up to 45° before moving, in each
+    ordnance phase after launch, to point as close as possible at the nearest
+    enemy ship (the largest, if several are equally near). Returns the turn."""
+    enemies = [s for s in ships if s.player != marker.owner_player
+               and not s.is_destroyed and not s.is_disengaged
+               and s.status not in ("drifting_hulk", "burning_hulk")]
+    if not enemies:
+        return 0.0
+    size = {"escort": 0, "cruiser": 1, "battleship": 2}
+    dist = {s.id: math.hypot(s.x - marker.x, s.y - marker.y) for s in enemies}
+    near = min(dist.values())
+    t = max((s for s in enemies if dist[s.id] - near < 1e-6),
+            key=lambda s: (size.get(s.ship_type, 1), s.hits_max))
+    desired = math.degrees(math.atan2(t.y - marker.y, t.x - marker.x)) % 360
+    diff = signed_angle_diff(desired, marker.heading)
+    return max(-BOARDING_TORP_MAX_TURN, min(BOARDING_TORP_MAX_TURN, diff))
+
+
+def guided_control(marker: OrdnanceMarker, game_state: GameState,
+                   dice: DiceRoller) -> Tuple[Optional[int], List[str]]:
+    """Guided torpedoes (s.16) may turn up to 45° before moving (not in the
+    ordnance phase of their launch), if the launching ship first passes a
+    Leadership test. If it fails, one enemy ship may try to take control with a
+    Leadership test of its own (the enemy ship with the best Leadership tries);
+    if it passes, its owner turns them. Returns (player who turns the salvo or
+    None, log lines). A launcher no longer in play can't guide them: no turn."""
+    logs = []
+    if marker.launched_turn >= game_state.turn_number:
+        return None, logs
+    launcher = game_state.get_ship_by_id(marker.launched_by)
+    if launcher is None or launcher.is_destroyed or launcher.is_disengaged:
+        logs.append("  Guided torpedoes: the launching ship is gone; no turn")
+        return None, logs
+    roll = dice.roll_2d6(f"{launcher.name} guides torpedoes (Ld {launcher.leadership})")
+    if roll <= launcher.leadership:
+        logs.append(f"  {launcher.name} guides its torpedoes (rolled {roll})")
+        return marker.owner_player, logs
+    logs.append(f"  {launcher.name} fails to guide its torpedoes (rolled {roll})")
+    enemies = [s for s in game_state.get_ships() if s.player != marker.owner_player
+               and not s.is_destroyed and not s.is_disengaged
+               and s.status not in ("drifting_hulk", "burning_hulk")]
+    if not enemies:
+        return None, logs
+    e = max(enemies, key=lambda s: s.leadership)
+    roll = dice.roll_2d6(f"{e.name} tries to take control (Ld {e.leadership})")
+    if roll <= e.leadership:
+        logs.append(f"  {e.name} takes control of the torpedoes (rolled {roll})")
+        return e.player, logs
+    logs.append(f"  {e.name} fails to take control (rolled {roll})")
+    return None, logs
+
+
+def guided_suggested_turn(marker: OrdnanceMarker, ships: List[Ship], controller: int) -> float:
+    """The turn a controller would like: at the nearest ship of the controller's
+    enemy (for the owner, an enemy ship; for an enemy who took control, one of
+    the owner's ships)."""
+    targets = [s for s in ships if s.player != controller
+               and not s.is_destroyed and not s.is_disengaged
+               and s.status not in ("drifting_hulk", "burning_hulk")]
+    if not targets:
+        return 0.0
+    t = min(targets, key=lambda s: math.hypot(s.x - marker.x, s.y - marker.y))
+    desired = math.degrees(math.atan2(t.y - marker.y, t.x - marker.x)) % 360
+    diff = signed_angle_diff(desired, marker.heading)
+    return max(-BOARDING_TORP_MAX_TURN, min(BOARDING_TORP_MAX_TURN, diff))
 
 
 def torpedo_in_launch_arc(marker: OrdnanceMarker, ship: Ship,
@@ -357,6 +433,24 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         fresh = game_state.get_ship_by_id(target.id) or target
         fresh.turrets_halved_turn = target.turrets_halved_turn = game_state.turn_number
         game_state.update_ship(fresh)
+    elif result["hits"] > 0 and marker.ordnance_type == OrdnanceType.TORPEDO_MELTA.value:
+        # Melta: no damage; each hit is an automatic Fire critical hit, even on
+        # ships whose critical hit table has no Fire result. A hulk takes no damage.
+        game_state.add_log(f"Melta torpedoes hit {target.name} {result['hits']} time(s): "
+                           f"{result['hits']} Fire critical hit(s), no damage; "
+                           f"{result['remaining_strength']} pass through")
+        if not is_hulk:
+            from .combat import add_fire_crits
+            add_fire_crits(target, result["hits"], game_state)
+    elif result["hits"] > 0 and marker.ordnance_type == OrdnanceType.TORPEDO_VORTEX.value:
+        game_state.add_log(f"Vortex torpedoes hit {target.name} {result['hits']} time(s): "
+                           f"1 damage and an automatic critical hit each; "
+                           f"{result['remaining_strength']} pass through")
+        from .combat import apply_damage
+        braced = target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
+        apply_damage(target, result["hits"], dice, game_state,
+                     ignores_shields=True, target_braced=braced,
+                     attacker_key=marker.id, auto_crit=True)
     elif result["hits"] > 0 and marker.ordnance_type == OrdnanceType.TORPEDO_BARRAGE.value:
         game_state.add_log(
             f"Barrage bombs hit {target.name} {result['hits']} time(s) (stopped by shields); "
@@ -672,12 +766,12 @@ def friendly_ordnance_contact(m1: OrdnanceMarker, m2: OrdnanceMarker) -> Optiona
     intercepts torpedoes, friend or foe, s.19), or None (no interaction).
     Bombers and assault boats avoid ordnance other than enemy fighters
     (s.20, s.22); mines ignore all ordnance except enemy fighters (s.17);
-    boarding torpedoes ignore friendly attack craft (s.16)."""
+    boarding and seeking torpedoes ignore friendly attack craft (s.16)."""
     t1, t2 = is_torpedo_salvo(m1), is_torpedo_salvo(m2)
     if t1 and t2:
         return "collide"
     for f, t, t_is_torp in ((m1, m2, t2), (m2, m1, t1)):
-        if is_fighter_type(f) and t_is_torp and not is_boarding_torpedo(t):
+        if is_fighter_type(f) and t_is_torp and not ignores_friendly(t):
             return "intercept"
     return None
 
@@ -804,8 +898,9 @@ def check_ordnance_vs_blast(marker: OrdnanceMarker,
     for bm in blast_markers:
         dist = math.sqrt((marker.x - bm.x)**2 + (marker.y - bm.y)**2)
         if dist < 2.0:
-            roll = dice.roll_d6(1, "Ordnance through blast marker (6=destroyed)")[0]
-            return roll == 6
+            need = 5 if marker.ordnance_type == OrdnanceType.TORPEDO_SEEKING.value else 6
+            roll = dice.roll_d6(1, f"Ordnance through blast marker ({need}+ = destroyed)")[0]
+            return roll >= need
     return False
 
 
@@ -813,6 +908,10 @@ _TORP_LIKE = {
     OrdnanceType.TORPEDO_STANDARD.value,
     OrdnanceType.TORPEDO_SHORT_BURN.value,
     OrdnanceType.TORPEDO_BARRAGE.value,
+    OrdnanceType.TORPEDO_GUIDED_LD.value,
+    OrdnanceType.TORPEDO_SEEKING.value,
+    OrdnanceType.TORPEDO_MELTA.value,
+    OrdnanceType.TORPEDO_VORTEX.value,
     OrdnanceType.TORPEDO_BOARDING.value,
     OrdnanceType.TORPEDO_GUIDED.value,
     OrdnanceType.TORPEDO_BOARDING_GUIDED.value,
@@ -997,7 +1096,50 @@ def boarding_ok(weapon: Dict, boarding: bool) -> bool:
 EXTRA_TORPEDO_TYPES = {
     "short_burn": (OrdnanceType.TORPEDO_SHORT_BURN.value, "Short burn torpedoes (40cm, out of fuel on a 6)"),
     "barrage": (OrdnanceType.TORPEDO_BARRAGE.value, "Barrage bombs (hits stopped by shields)"),
+    "guided": (OrdnanceType.TORPEDO_GUIDED_LD.value, "Guided torpedoes (turn 45° on a Leadership test)"),
+    "seeking": (OrdnanceType.TORPEDO_SEEKING.value, "Seeking torpedoes (home on the nearest enemy; once per game)"),
+    "melta": (OrdnanceType.TORPEDO_MELTA.value, "Melta torpedoes (Fire crit per hit, no damage; once per game)"),
+    "vortex": (OrdnanceType.TORPEDO_VORTEX.value, "Vortex torpedoes (1 damage + automatic crit per hit; once per game)"),
 }
+ONCE_PER_GAME_TORPEDOES = ("seeking", "melta", "vortex")
+# Game-start torpedo rolls (ship rule "torpedo_roll:<table>"), rolled per ship
+TORPEDO_ROLL_TABLES = {
+    "d3_anointed": ["seeking", "melta", "vortex"],                       # Chaos, Imperial Navy
+    "d6_refitted": ["short_burn", "barrage", "guided", "seeking", "melta", "vortex"],  # AdMech, RT, Orks
+}
+
+
+def unused_once_torpedoes(ship) -> List[str]:
+    return [k for k in ship_torpedo_types(ship) if k in ONCE_PER_GAME_TORPEDOES
+            and k not in (getattr(ship, "once_torps_used", None) or [])]
+
+
+def roll_torpedo_types(game_state: GameState, dice: DiceRoller,
+                       ai_dice: Optional[DiceRoller] = None) -> List[str]:
+    """Game start: each ship with a "torpedo_roll:<table>" rule rolls for its
+    extra torpedo type (Anointed Munitions D3; Refitted / Looted Torpedoes D6).
+    ai_dice rolls for AI-controlled ships."""
+    logs = []
+    for i, d in enumerate(game_state.ships):
+        ai = game_state.ai_spectator or game_state.ai_player == d.get("player")
+        roller = ai_dice if (ai and ai_dice is not None) else dice
+        rules = list(d.get("special_rules", []))
+        rolls = [r for r in rules if r.startswith("torpedo_roll:")]
+        for r in rolls:
+            table = TORPEDO_ROLL_TABLES.get(r.split(":", 1)[1])
+            if not table:
+                continue
+            if len(table) == 3:
+                n = roller.roll_d3(f"{d.get('name')} torpedo type (D3)")
+            else:
+                n = roller.roll_d6(1, f"{d.get('name')} torpedo type (D6)")[0]
+            kind = table[n - 1]
+            rules.remove(r)
+            rules.append(f"torpedo_type:{kind}")
+            logs.append(f"{d.get('name')} rolls {n}: {EXTRA_TORPEDO_TYPES[kind][1]}")
+        if rolls:
+            game_state.ships[i] = {**d, "special_rules": rules}
+    return logs
 SHORT_BURN_SPEED = 40
 
 
@@ -1015,8 +1157,20 @@ def torpedo_kind_options(ship, weapon: Dict, hit_and_run: bool = True) -> List[T
     kinds = [("standard", "Standard torpedoes")]
     if weapon.get("boarding_torpedoes") and hit_and_run:
         kinds.append(("boarding", "Boarding torpedoes (1 hit-and-run raid per hit)"))
-    kinds += [(k, EXTRA_TORPEDO_TYPES[k][1]) for k in ship_torpedo_types(ship)]
+    used = getattr(ship, "once_torps_used", None) or []
+    kinds += [(k, EXTRA_TORPEDO_TYPES[k][1]) for k in ship_torpedo_types(ship)
+              if k not in used]
     return kinds
+
+
+def mark_once_torpedoes_used(ship, kind: str, game_state: GameState) -> None:
+    """Seeking, melta and vortex torpedoes: one salvo per ship per game."""
+    if kind in ONCE_PER_GAME_TORPEDOES:
+        fresh = game_state.get_ship_by_id(ship.id) or ship
+        if kind not in fresh.once_torps_used:
+            fresh.once_torps_used = list(fresh.once_torps_used) + [kind]
+            game_state.update_ship(fresh)
+        ship.once_torps_used = fresh.once_torps_used
 
 
 def torpedo_ordnance_type(weapon: Dict, boarding: bool = False, kind: str = "") -> str:
@@ -1041,7 +1195,11 @@ def torpedo_kind_name(o_type: str) -> str:
     return {OrdnanceType.TORPEDO_GUIDED.value: "guided missiles",
             OrdnanceType.TORPEDO_BOARDING.value: "boarding torpedoes",
             OrdnanceType.TORPEDO_SHORT_BURN.value: "short burn torpedoes",
-            OrdnanceType.TORPEDO_BARRAGE.value: "barrage bombs"}.get(o_type, "torpedoes")
+            OrdnanceType.TORPEDO_BARRAGE.value: "barrage bombs",
+            OrdnanceType.TORPEDO_GUIDED_LD.value: "guided torpedoes",
+            OrdnanceType.TORPEDO_SEEKING.value: "seeking torpedoes",
+            OrdnanceType.TORPEDO_MELTA.value: "melta torpedoes",
+            OrdnanceType.TORPEDO_VORTEX.value: "vortex torpedoes"}.get(o_type, "torpedoes")
 
 
 def short_burn_fuel_checks(game_state: GameState, dice: DiceRoller,
@@ -1107,6 +1265,8 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
     )
     game_state.add_ordnance(marker)
     ship.ordnance_loaded_torps = False
+    if kind in ONCE_PER_GAME_TORPEDOES and kind in ship_torpedo_types(ship):
+        ship.once_torps_used = list(ship.once_torps_used) + [kind]
     game_state.update_ship(ship)
     game_state.add_log(f"{ship.name} launches {torpedo_kind_name(o_type)} (Str {strength})")
     return marker

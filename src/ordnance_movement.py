@@ -154,6 +154,55 @@ class OrdnanceMovementMixin:
                 gs.ordnance[i] = marker.to_dict()
                 self.ctx.log(f"  Boarding torpedoes Str {marker.strength} turn "
                              f"{deg:+.0f}° to heading {marker.heading:.0f}°")
+        self._turn_guided_and_seeking(ships, mover)
+
+    def _turn_guided_and_seeking(self, ships, mover=None):
+        """Seeking torpedoes turn up to 45° at the nearest enemy ship; guided
+        torpedoes turn up to 45° for whoever wins the Leadership tests (s.16).
+        Neither turns in the ordnance phase of its launch turn."""
+        from tkinter import simpledialog
+        from .ordnance import (seeking_turn, guided_control, guided_suggested_turn,
+                               turn_boarding_torp)
+        gs = self.ctx.gs
+        for i, o_dict in enumerate(list(gs.ordnance)):
+            marker = OrdnanceMarker.from_dict(o_dict)
+            if mover is not None and marker.owner_player != mover:
+                continue
+            if marker.launched_turn >= gs.turn_number:
+                continue
+            if marker.ordnance_type == OrdnanceType.TORPEDO_SEEKING.value:
+                deg = seeking_turn(marker, ships)
+                label = "Seeking torpedoes"
+            elif marker.ordnance_type == OrdnanceType.TORPEDO_GUIDED_LD.value:
+                controller, logs = guided_control(marker, gs, self.ctx.dice)
+                for line in logs:
+                    self.ctx.log(line)
+                if controller is None:
+                    continue
+                suggested = guided_suggested_turn(marker, ships, controller)
+                if self.ctx.is_ai_controlled(controller):
+                    deg = suggested
+                else:
+                    who = "your" if controller == marker.owner_player else "the enemy's"
+                    deg = simpledialog.askfloat(
+                        "Guided Torpedoes",
+                        f"Player {controller}: you control {who} guided torpedoes Str "
+                        f"{marker.strength} at ({marker.x:.0f}, {marker.y:.0f}), heading "
+                        f"{marker.heading:.0f}°.\nTurn before moving: -45 (clockwise) to "
+                        f"+45 (anticlockwise).\nSuggested {suggested:+.0f}° points at the "
+                        f"nearest of your enemy's ships.",
+                        initialvalue=round(suggested), minvalue=-45, maxvalue=45,
+                        parent=self.ctx.root)
+                    if deg is None:
+                        deg = 0.0
+                label = "Guided torpedoes"
+            else:
+                continue
+            if abs(deg) >= 0.5:
+                turn_boarding_torp(marker, deg)
+                gs.ordnance[i] = marker.to_dict()
+                self.ctx.log(f"  {label} Str {marker.strength} turn {deg:+.0f}° to "
+                             f"heading {marker.heading:.0f}°")
 
     def _choose_mr_attack_modes(self, ships, removed, mover=None, touching=None) -> dict:
         """{marker id: "bomber" | "assault_boat"} for multi-role craft touching an

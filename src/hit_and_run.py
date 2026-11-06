@@ -169,6 +169,12 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
         gs.add_log(f"  Raid: {crit_data['name']} (+{extra} extra damage)")
     else:
         gs.add_log(f"  Raid: {crit_data['name']}")
+    if target.hits_remaining > 0:
+        # Unused melta / vortex torpedoes in a hit launcher explode (s.16)
+        from .combat import torpedo_launcher_crit
+        before = target.hits_remaining
+        torpedo_launcher_crit(target, crit_data["crit_type"], dice, gs)
+        extra += before - target.hits_remaining
 
     gs.update_ship(target)
     return {**crit_entry, "extra_damage": extra}

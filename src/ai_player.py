@@ -23,7 +23,7 @@ from .combat import (
     squadron_group, fire_at_squadron, weapon_fire_pool, shot_weapon,
 )
 from .chapter_tactics import shadow_engines_hidden
-from .ordnance import ship_torpedo_types, SHORT_BURN_SPEED
+from .ordnance import ship_torpedo_types, SHORT_BURN_SPEED, unused_once_torpedoes
 from .ordnance import (launch_torpedoes, launch_attack_craft,
                        bay_launch_capacity, fleet_craft_slots,
                        fleet_craft_excess, recall_craft, ai_craft_to_recall,
@@ -679,7 +679,12 @@ class AIPlayer:
                     # standard salvo's reach; barrage bombs are never better
                     # than standard torpedoes for the AI's damage-only plan
                     kind, aim_weapon = "", weapon
-                    if ("short_burn" in ship_torpedo_types(ship)
+                    once = unused_once_torpedoes(ship)
+                    if (once and weapon.get("torpedo_type") != "guided"
+                            and target.ship_type != "escort"):
+                        # Save the one-per-game salvo for a capital ship
+                        kind = next(k for k in ("vortex", "melta", "seeking") if k in once)
+                    elif ("short_burn" in ship_torpedo_types(ship)
                             and weapon.get("torpedo_type") != "guided"
                             and ship.distance_to(target) > weapon.get(
                                 "torpedo_speed", TORPEDO_SPEED_DEFAULT)):

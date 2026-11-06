@@ -55,6 +55,10 @@ class OrdnanceType(str, Enum):
     TORPEDO_BOARDING_GUIDED = "torpedo_boarding_guided"  # boarding torp w/ guidance
     TORPEDO_SHORT_BURN = "torpedo_short_burn"     # 40cm; out of fuel on a 6 (s.16)
     TORPEDO_BARRAGE = "torpedo_barrage"           # barrage bombs: hits stopped by shields (s.16)
+    TORPEDO_GUIDED_LD = "torpedo_guided_ld"       # guided: turn 45° on a Leadership test (s.16)
+    TORPEDO_SEEKING = "torpedo_seeking"           # turn 45° at the nearest enemy (s.16)
+    TORPEDO_MELTA = "torpedo_melta"               # each hit: a Fire crit, no damage (s.16)
+    TORPEDO_VORTEX = "torpedo_vortex"             # each hit: 1 damage + automatic crit (s.16)
     FIGHTER = "fighter"
     BOMBER = "bomber"
     ASSAULT_BOAT = "assault_boat"
@@ -174,6 +178,7 @@ class Ship:
     previous_order: str = "none"  # order that was active before bracing
 
     # Tracking fields for per-phase restrictions
+    once_torps_used: List[str] = field(default_factory=list)  # seeking/melta/vortex fired (one salvo per game)
     turrets_halved_turn: int = -1  # Promethean Unguents: next ordnance attack this turn faces half turrets
     turrets_used_vs: str = ""  # "craft" or "torp" - turrets can only fire at one type per phase
     brace_failed_vs: List[str] = field(default_factory=list)  # ship IDs that brace failed against

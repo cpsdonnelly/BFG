@@ -122,14 +122,56 @@ def torpedo_type_options(row: dict) -> List[Dict]:
     st = torpedo_strength(row)
     if not st:
         return []
-    return [{"name": f"Torpedoes: {label}",
+    opts = [{"name": f"Torpedoes: {label}",
              "description": f"Carried as well as its other torpedoes; chosen at each launch. "
                             f"+5pts per torpedo strength ({st}).",
              "points_cost": 5 * st,
              "effect": {"add_special_rules": [f"torpedo_type:{key}"]},
              "restrictions": ["group:torpedo_type"]}
             for key, label in (("short_burn", "short burn (40cm; out of fuel on a 6)"),
-                               ("barrage", "barrage bombs (hits stopped by shields)"))]
+                               ("barrage", "barrage bombs (hits stopped by shields)"),
+                               ("guided", "guided (turn 45° on a Leadership test)"))]
+    # Chaos Anointed Munitions; Imperial Navy "+50 to roll once per game for
+    # Seeking/Melta/Vortex" (owner ruling: per ship, the same D3 roll)
+    name = ("Torpedoes: Anointed Munitions (D3 at game start)" if "Chaos" in row.get("faction_rules", [])
+            else "Torpedoes: roll for Seeking / Melta / Vortex (D3 at game start)")
+    opts.append({"name": name,
+                 "description": "+50pts. At game start roll a D3: 1 Seeking, 2 Melta, 3 Vortex "
+                                "torpedoes, as well as its other torpedoes; one salvo per game.",
+                 "points_cost": 50,
+                 "effect": {"add_special_rules": ["torpedo_roll:d3_anointed"]},
+                 "restrictions": ["group:torpedo_type"]})
+    return opts
+
+
+_REFIT_TABLE = ("D6 at game start: 1 Short Burn, 2 Barrage Bombs, 3 Guided, 4 Seeking*, "
+                "5 Melta*, 6 Vortex* (*one salvo per game), as well as its other torpedoes.")
+
+
+def refitted_torpedo_options(row: dict) -> List[Dict]:
+    """Adeptus Mechanicus "refitted torpedoes +Npts" and Ork "torps to looted
+    torps +20pts" in a ship's notes: a D6 roll at game start (owner ruling for
+    Orks: each ship that buys them rolls)."""
+    import re
+    notes = row.get("notes") or ""
+    if not torpedo_strength(row) and not any(
+            "Torp" in (w.get("name") or "") for w in row.get("weapons") or []):
+        return []
+    m = re.search(r"refitted torpedoes \+(\d+)pts", notes)
+    if m:
+        return [{"name": "Refitted Torpedoes (D6 at game start)",
+                 "description": f"+{m.group(1)}pts. {_REFIT_TABLE}",
+                 "points_cost": int(m.group(1)),
+                 "effect": {"add_special_rules": ["torpedo_roll:d6_refitted"]},
+                 "restrictions": ["group:torpedo_type"]}]
+    m = re.search(r"torps to looted torps \+(\d+)pts", notes)
+    if m:
+        return [{"name": "Looted Torpedoes (D6 at game start)",
+                 "description": f"+{m.group(1)}pts. {_REFIT_TABLE}",
+                 "points_cost": int(m.group(1)),
+                 "effect": {"add_special_rules": ["torpedo_roll:d6_refitted"]},
+                 "restrictions": ["group:torpedo_type"]}]
+    return []
 
 
 def options_for(row: dict) -> List[Dict]:
@@ -140,6 +182,8 @@ def options_for(row: dict) -> List[Dict]:
         return space_marine_options(row)
     if "Imperial Navy" in rules or "Chaos" in rules:
         return torpedo_type_options(row)
+    if "Adeptus Mechanicus" in rules or "Orks" in rules:
+        return refitted_torpedo_options(row)
     return []
 
 

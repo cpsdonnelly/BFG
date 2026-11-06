@@ -192,6 +192,9 @@ def main():
         gs.add_log(line)
     for line in roll_starting_leadership(gs, dice, ai_dice=DiceRoller(mode="auto")):
         gs.add_log(line)
+    from .ordnance import roll_torpedo_types
+    for line in roll_torpedo_types(gs, dice, ai_dice=DiceRoller(mode="auto")):
+        gs.add_log(line)                         # Anointed / Refitted / Looted torpedoes
     tc = TurnController(gs, dice)
 
     # Show main window

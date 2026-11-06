@@ -645,9 +645,11 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  target_braced: bool = False,
                  crit_on: int = 6,
                  attacker_key: str = "",
-                 origin: Optional[Tuple[float, float]] = None) -> Dict:
+                 origin: Optional[Tuple[float, float]] = None,
+                 auto_crit: bool = False) -> Dict:
     """
-    Apply hits to a ship, handling shields, damage, crits.
+    Apply hits to a ship, handling shields, damage, crits. auto_crit: every
+    hull hit is a critical hit, with no D6 check (vortex torpedoes).
     Shields are reduced by blast markers already touching the ship.
     Brace saves apply only to hull damage (not shield hits).
     Returns summary dict.
@@ -720,9 +722,12 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
             # Critical hit check: D6 per hull hit, 6 = crit (crit_on 4 for
             # bombardment cannons and killkannons)
-            crit_roll = dice.roll_d6(1, f"Crit check for hit on {target.name}"
-                                     + (f" ({crit_on}+)" if crit_on != 6 else ""))
-            is_crit = crit_roll[0] >= crit_on
+            if auto_crit:
+                is_crit = True             # vortex torpedoes: every hit is a critical hit
+            else:
+                crit_roll = dice.roll_d6(1, f"Crit check for hit on {target.name}"
+                                         + (f" ({crit_on}+)" if crit_on != 6 else ""))
+                is_crit = crit_roll[0] >= crit_on
             if is_crit and not uses_crit_table(target):
                 # Small escorts/defenses take +1 damage instead of a critical
                 target.hits_remaining -= 1
@@ -731,44 +736,9 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                     summary["destroyed"] = True
                     break
             elif is_crit:
-                crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name}")
-                crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
-
-                if crit_data is None:
-                    # All results cascaded off the top of the table
-                    game_state.add_log(
-                        f"Critical on {target.name}: rolled {crit_2d6}, "
-                        f"all results cascaded, no effect")
-                else:
-                    extra = crit_data["extra_damage"]
-                    if extra == "D3":
-                        extra = dice.roll_d3("Hull Breach extra damage")
-                    elif extra == "D6":
-                        extra = sum(dice.roll_d6(1, "Bulkhead Collapse extra damage"))
-                    elif isinstance(extra, int) and extra > 0:
-                        pass
-
-                    crit_entry = {
-                        "crit_type": crit_data["crit_type"],
-                        "description": crit_data["name"],
-                        "repairable": crit_data["repairable"],
-                        "turn_inflicted": game_state.turn_number,
-                    }
-                    target.critical_damage.append(crit_entry)
-                    summary["crits"].append(crit_data["name"])
-
-                    game_state.add_log(
-                        f"CRITICAL HIT on {target.name}: {crit_data['name']}")
-
-                    if isinstance(extra, int) and extra > 0:
-                        target.hits_remaining = max(0, target.hits_remaining - extra)
-                        game_state.add_log(f"  Extra damage: {extra} HP")
-                        if target.hits_remaining <= 0:
-                            summary["destroyed"] = True
-                            break
-
-                    if crit_data["crit_type"] == "bridge_smashed":
-                        target.leadership = max(1, target.leadership - 3)
+                if roll_critical_hit(target, dice, game_state, summary):
+                    summary["destroyed"] = True
+                    break
 
         if summary["destroyed"]:
             summary["unused_hits"] = summary["hull_hits"] - hull_hits_applied
@@ -785,6 +755,103 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     return summary
 
 
+
+
+def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
+                      summary: Optional[Dict] = None) -> bool:
+    """Roll 2D6 on the critical hits table for a ship that uses it, apply the
+    result (cascading, extra damage) and any torpedo-launcher explosion.
+    Changes target in place (the caller writes it back). True if the ship is
+    reduced to 0."""
+    crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name}")
+    crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
+    if crit_data is None:
+        game_state.add_log(f"Critical on {target.name}: rolled {crit_2d6}, "
+                           f"all results cascaded, no effect")
+        return False
+    extra = crit_data["extra_damage"]
+    if extra == "D3":
+        extra = dice.roll_d3("Hull Breach extra damage")
+    elif extra == "D6":
+        extra = sum(dice.roll_d6(1, "Bulkhead Collapse extra damage"))
+    target.critical_damage.append({
+        "crit_type": crit_data["crit_type"],
+        "description": crit_data["name"],
+        "repairable": crit_data["repairable"],
+        "turn_inflicted": game_state.turn_number,
+    })
+    if summary is not None:
+        summary.setdefault("crits", []).append(crit_data["name"])
+    game_state.add_log(f"CRITICAL HIT on {target.name}: {crit_data['name']}")
+    if isinstance(extra, int) and extra > 0:
+        target.hits_remaining = max(0, target.hits_remaining - extra)
+        game_state.add_log(f"  Extra damage: {extra} HP")
+        if target.hits_remaining <= 0:
+            return True
+    if crit_data["crit_type"] == "bridge_smashed":
+        target.leadership = max(1, target.leadership - 3)
+    return torpedo_launcher_crit(target, crit_data["crit_type"], dice, game_state, summary)
+
+
+def _torpedo_crit_location(ship: Ship) -> set:
+    """Armament crit results that hit a ship's torpedo launchers."""
+    locs = set()
+    for w in ship.weapons:
+        if w.get("weapon_type") != "torpedo":
+            continue
+        arcs = w.get("arcs", [])
+        if "left" in arcs and "front" in arcs and "right" in arcs:
+            locs.add("dorsal_armament")
+        elif "front" in arcs:
+            locs.add("prow_armament")
+        elif "left" in arcs:
+            locs.add("port_armament")
+        elif "right" in arcs:
+            locs.add("starboard_armament")
+    return locs
+
+
+def torpedo_launcher_crit(target: Ship, crit_type: str, dice: DiceRoller,
+                          game_state: GameState, summary: Optional[Dict] = None) -> bool:
+    """A ship carrying unused melta torpedoes that suffers a critical hit to its
+    torpedo launcher location takes D3 extra Fire critical hits; unused vortex
+    torpedoes deal D3 extra damage and an automatic critical hit (s.16). The
+    munitions that exploded are then used up. True if the ship is reduced to 0."""
+    if crit_type not in _torpedo_crit_location(target):
+        return False
+    from .ordnance import unused_once_torpedoes
+    unused = unused_once_torpedoes(target)
+    for kind in ("melta", "vortex"):
+        if kind not in unused:
+            continue
+        target.once_torps_used = list(target.once_torps_used) + [kind]
+        n = dice.roll_d3(f"{target.name} unused {kind} torpedoes explode (D3)")
+        if kind == "melta":
+            game_state.add_log(f"  {target.name}'s unused melta torpedoes explode: "
+                               f"{n} Fire critical hit(s)")
+            add_fire_crits(target, n, game_state, write=False)
+        else:
+            game_state.add_log(f"  {target.name}'s unused vortex torpedoes explode: "
+                               f"{n} extra damage and a critical hit")
+            target.hits_remaining = max(0, target.hits_remaining - n)
+            if target.hits_remaining <= 0:
+                return True
+            if roll_critical_hit(target, dice, game_state, summary):
+                return True
+    return False
+
+
+def add_fire_crits(target: Ship, n: int, game_state: GameState, write: bool = True) -> None:
+    """n automatic Fire critical hits (melta torpedoes), even on ships whose
+    critical hit table has no Fire result."""
+    for _ in range(n):
+        target.critical_damage.append({
+            "crit_type": "fire", "description": "Fire!", "repairable": True,
+            "turn_inflicted": game_state.turn_number})
+    if write:
+        fresh = game_state.get_ship_by_id(target.id) or target
+        fresh.critical_damage = list(target.critical_damage)
+        game_state.update_ship(fresh)
 
 
 # Orientation difficulty (from attacker's perspective): lower = easier to target = better column

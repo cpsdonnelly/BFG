@@ -94,10 +94,12 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength"): one type per
   ship, carried in addition to its other torpedoes and chosen at each launch
   (`booklet_options.torpedo_type_options`, ship rule `torpedo_type:<key>`,
-  `ordnance.torpedo_kind_options`). Short burn (40cm, D6 fuel roll after moving: 6 = blast
-  marker) and barrage bombs (hits stopped by shields) are playable; guided, seeking, melta,
-  vortex and anointed munitions aren't yet, nor the Mechanicus / Rogue Trader / Ork random
-  torpedo tables. Barrage bombs' low-orbit and assault-point rules wait on low orbit.
+  `ordnance.torpedo_kind_options`): short burn, barrage bombs, guided. The Navy "+50 to roll
+  once per game for Seeking/Melta/Vortex" works like Chaos Anointed Munitions: per ship, a D3
+  at game start (`torpedo_roll:d3_anointed`, `ordnance.roll_torpedo_types`). Mechanicus
+  "refitted torpedoes +Npts" and Ork "looted torps +20pts" roll a D6 per ship at game start
+  (`torpedo_roll:d6_refitted`). Seeking, melta and vortex are one salvo **per ship** per game
+  (`Ship.once_torps_used`). Barrage bombs' low-orbit and assault-point rules wait on low orbit.
 - **Attack craft orders (s.18):** each squadron keeps a target (`craft_target_id`: enemy ship,
   enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
@@ -164,9 +166,24 @@ faction to apply to; Heed the Machine Spirit is always taken when a save fails (
 - Disengaging: no shared escort-squadron test for a voluntary disengage, no forced
   disengagement at Ld 1 or less (s.37); celestial phenomena measured to their centre.
 
+### Torpedo type readings (s.16) to confirm with the owner
+
+- Guided: if the launcher fails, the enemy ship with the best Leadership tries to take
+  control (no choice offered); a launcher no longer in play can't guide (no turn, no enemy
+  test). An enemy in control turns the salvo at the owner's ships.
+- Unused melta / vortex torpedoes that explode on a launcher crit are then used up.
+  The launcher location is the torpedo weapon's arc (front = prow, L/F/R = dorsal).
+- Melta hits give Fire crits even to escorts; a hulk takes nothing from melta.
+- The AI fires its one vortex / melta / seeking salvo at the first capital ship target, never
+  uses guided torps or barrage bombs, and uses short burn for targets beyond 30cm.
+- Not yet: Inquisition vortex torpedoes +50 and Inferno torpedoes, Rogue Trader refitted
+  torpedoes (no Rogue Trader ship in the roster has torpedoes), the Ork torpedo launcha swap
+  on Terror Ship / Kill Kroozer / Basha (so they can't take looted torps), Deathskulls'
+  half-cost looted torps.
+
 ### Open questions for the owner
 
-- None at the moment.
+- The torpedo type readings above.
 
 ## Running and testing
 

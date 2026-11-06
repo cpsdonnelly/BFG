@@ -162,7 +162,8 @@ def test_barrage_without_promethean_uses_armour():
 def test_navy_and_chaos_torpedo_ships_may_buy_one_type():
     lunar = find_ship_class("Lunar Cruiser")
     opts = {u.name: u for u in lunar.upgrades_available if u.name.startswith("Torpedoes:")}
-    assert len(opts) == 2 and {u.points_cost for u in opts.values()} == {30}   # S6 x 5
+    assert len(opts) == 4                              # short burn, barrage, guided, D3 roll
+    assert sorted(u.points_cost for u in opts.values()) == [30, 30, 30, 50]   # S6 x 5; +50
     sb = next(u for u in opts.values() if "short burn" in u.name)
     d = lunar.to_ship_dict("L", 1, upgrades=[sb.name])
     assert "torpedo_type:short_burn" in d["special_rules"]
@@ -206,3 +207,165 @@ def test_torpedo_first_contact_along_the_path():
     assert hit is not None and 80.0 < hit[0] < 95.0
     # The same move 10cm to the side never touches it
     assert torpedo_first_contact(95.0, 75.0, 2.0, 80.0, 60.0, 110.0, 60.0, 0.0) is None
+
+
+# ── Seeking, guided, melta, vortex (s.16) ───────────────────────────────────
+
+from src.ordnance import (seeking_turn, guided_control, roll_torpedo_types,  # noqa: E402
+                          check_ordnance_vs_blast, torpedo_valid_target)
+from src.models import BlastMarker  # noqa: E402
+
+
+def test_seeking_turns_45_at_the_nearest_enemy_largest_on_a_tie():
+    m = _marker(OrdnanceType.TORPEDO_SEEKING.value)
+    m.x, m.y, m.heading = 0.0, 0.0, 0.0
+    esc = make_ship(id="e", player=2, x=0.0, y=20.0, ship_type="escort")
+    bs = make_ship(id="b", player=2, x=0.0, y=-20.0, ship_type="battleship")
+    friend = make_ship(id="f", player=1, x=5.0, y=1.0)
+    assert seeking_turn(m, [esc, bs, friend]) == -45.0          # the battleship, clamped
+    assert not torpedo_valid_target(m, friend)
+    assert torpedo_valid_target(m, bs)
+
+
+def test_seeking_detonate_in_blast_markers_on_5():
+    m = _marker(OrdnanceType.TORPEDO_SEEKING.value)
+    bm = [BlastMarker(id="bm", x=m.x, y=m.y)]
+    assert check_ordnance_vs_blast(m, bm, DiceStub([5]))
+    std = _marker(OrdnanceType.TORPEDO_STANDARD.value)
+    assert not check_ordnance_vs_blast(std, bm, DiceStub([5]))
+
+
+def _guided_setup(launcher_ld=8, enemy_ld=7):
+    a = make_ship(id="a", player=1, leadership=launcher_ld)
+    e1 = make_ship(id="e1", player=2, leadership=enemy_ld, x=80.0)
+    e2 = make_ship(id="e2", player=2, leadership=enemy_ld - 2, x=90.0)
+    gs = make_gs([a, e1, e2])
+    gs.turn_number = 3
+    m = _marker(OrdnanceType.TORPEDO_GUIDED_LD.value)
+    m.launched_turn = 1
+    return gs, m
+
+
+def test_guided_owner_turns_on_a_passed_leadership_test():
+    gs, m = _guided_setup()
+    dice = DiceStub([8])
+    assert guided_control(m, gs, dice)[0] == 1 and dice._idx == 1
+
+
+def test_guided_enemy_takes_control_with_its_best_leadership():
+    gs, m = _guided_setup()
+    dice = DiceStub([9,      # launcher fails (Ld 8)
+                     7])     # e1 (Ld 7, the best) passes
+    controller, logs = guided_control(m, gs, dice)
+    assert controller == 2 and dice._idx == 2 and "takes control" in logs[-1]
+
+
+def test_guided_nobody_turns_when_both_fail():
+    gs, m = _guided_setup()
+    dice = DiceStub([9, 8])
+    assert guided_control(m, gs, dice)[0] is None and dice._idx == 2
+
+
+def test_guided_cannot_turn_on_its_launch_turn():
+    gs, m = _guided_setup()
+    m.launched_turn = gs.turn_number
+    dice = DiceStub([])
+    assert guided_control(m, gs, dice)[0] is None and dice._idx == 0
+
+
+def test_melta_hits_are_fire_crits_no_damage():
+    target = _target(shields_max=2)
+    gs = make_gs([target])
+    rolls = [5, 6, 1]      # two hits vs 5+
+    dice = DiceStub(rolls)
+    resolve_torpedo_attack(_marker(OrdnanceType.TORPEDO_MELTA.value), target, dice, gs)
+    t = gs.get_ship_by_id("t")
+    assert dice._idx == len(rolls)
+    assert t.hits_remaining == 8 and [c["crit_type"] for c in t.critical_damage] == ["fire", "fire"]
+
+
+def test_melta_fire_crits_even_on_an_escort():
+    esc = _target(ship_type="escort", hits_max=1)
+    gs = make_gs([esc])
+    dice = DiceStub([6, 1, 1])
+    resolve_torpedo_attack(_marker(OrdnanceType.TORPEDO_MELTA.value), esc, dice, gs)
+    assert [c["crit_type"] for c in gs.get_ship_by_id("t").critical_damage] == ["fire"]
+
+
+def test_vortex_hits_deal_damage_and_automatic_crits():
+    target = _target(weapons=[dict(TORPS)])
+    gs = make_gs([target])
+    rolls = [5, 1, 1,      # one hit
+             8]            # automatic crit, no D6 check: 2D6 = 8 Thrusters Damaged (+1 damage)
+    dice = DiceStub(rolls)
+    resolve_torpedo_attack(_marker(OrdnanceType.TORPEDO_VORTEX.value), target, dice, gs)
+    t = gs.get_ship_by_id("t")
+    assert dice._idx == len(rolls)
+    assert t.hits_remaining == 6 and [c["crit_type"] for c in t.critical_damage] == [
+        "thrusters_damaged"]
+
+
+def test_unused_melta_explodes_on_a_launcher_crit():
+    from src.combat import apply_damage
+    target = _target(weapons=[dict(TORPS)], special_rules=["torpedo_type:melta"])
+    gs = make_gs([target])
+    rolls = [6,            # crit check
+             5,            # 2D6 = 5: Prow Armament Damaged (the torpedo launcher)
+             2]            # D3 = 2 extra Fire crits
+    dice = DiceStub(rolls)
+    apply_damage(target, 1, dice, gs, ignores_shields=True)
+    t = gs.get_ship_by_id("t")
+    assert dice._idx == len(rolls)
+    assert [c["crit_type"] for c in t.critical_damage] == ["prow_armament", "fire", "fire"]
+    assert t.once_torps_used == ["melta"]          # they exploded: none left to fire
+    assert [k for k, _ in torpedo_kind_options(t, TORPS)] == ["standard"]
+
+
+def test_unused_vortex_explodes_for_d3_damage_and_a_crit():
+    from src.combat import apply_damage
+    target = _target(weapons=[dict(TORPS)], special_rules=["torpedo_type:vortex"])
+    gs = make_gs([target])
+    rolls = [6, 5,         # crit: Prow Armament Damaged
+             3,            # D3 = 3 extra damage
+             7]            # automatic crit: Fire!
+    dice = DiceStub(rolls)
+    apply_damage(target, 1, dice, gs, ignores_shields=True)
+    t = gs.get_ship_by_id("t")
+    assert dice._idx == len(rolls)
+    assert t.hits_remaining == 4                      # 1 hit + 3
+    assert [c["crit_type"] for c in t.critical_damage] == ["prow_armament", "fire"]
+
+
+def test_once_per_game_salvo_used_up_by_launching():
+    ship = make_ship(id="a", weapons=[dict(TORPS)], special_rules=["torpedo_type:seeking"])
+    gs = make_gs([ship])
+    assert "seeking" in [k for k, _ in torpedo_kind_options(ship, TORPS)]
+    launch_torpedoes(ship, ship.weapons[0], gs, kind="seeking")
+    s = gs.get_ship_by_id("a")
+    assert s.once_torps_used == ["seeking"]
+    assert [k for k, _ in torpedo_kind_options(s, TORPS)] == ["standard"]
+
+
+def test_game_start_torpedo_rolls():
+    a = make_ship(id="a", player=1, special_rules=["torpedo_roll:d3_anointed"])
+    b = make_ship(id="b", player=2, special_rules=["torpedo_roll:d6_refitted"])
+    gs = make_gs([a, b])
+    dice = DiceStub([2,      # D3 = 2: melta
+                     3])     # D6 = 3: guided
+    roll_torpedo_types(gs, dice)
+    assert dice._idx == 2
+    assert gs.get_ship_by_id("a").special_rules == ["torpedo_type:melta"]
+    assert gs.get_ship_by_id("b").special_rules == ["torpedo_type:guided"]
+
+
+def test_refitted_looted_and_anointed_options():
+    cost = {u.name: u.points_cost for u in find_ship_class("Mechanicus Gothic Cruiser").upgrades_available}
+    assert cost == {"Refitted Torpedoes (D6 at game start)": 20}
+    assert {u.points_cost for u in find_ship_class("Mechanicus Endeavour Light Cruiser").upgrades_available} == {10}
+    assert "Looted Torpedoes (D6 at game start)" in [
+        u.name for u in find_ship_class("Gorbag's Revenge (0-1)").upgrades_available]
+    chaos = [u.name for u in find_ship_class("Desolator Battleship").upgrades_available]
+    assert "Torpedoes: Anointed Munitions (D3 at game start)" in chaos
+    lunar = {u.name: u.points_cost for u in find_ship_class("Lunar Cruiser").upgrades_available}
+    assert lunar["Torpedoes: roll for Seeking / Melta / Vortex (D3 at game start)"] == 50
+    assert lunar["Torpedoes: guided (turn 45° on a Leadership test)"] == 30

@@ -667,6 +667,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     if fresh:
                         fresh.ordnance_loaded_torps = False
                         self.ctx.gs.update_ship(fresh)
+                        from .ordnance import mark_once_torpedoes_used
+                        mark_once_torpedoes_used(fresh, kind_var.get(), self.ctx.gs)
 
             else:
                 # Craft launch: excess craft must be removed first (s.15)
@@ -1023,6 +1025,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     if ship_fresh:
                         ship_fresh.ordnance_loaded_torps = False
                         self.ctx.gs.update_ship(ship_fresh)
+                        from .ordnance import mark_once_torpedoes_used
+                        mark_once_torpedoes_used(ship_fresh, kv.get(), self.ctx.gs)
 
                     dialog.destroy()
                     self.ctx.board.redraw()
@@ -1055,7 +1059,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                          font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
                 tk.Label(mine_frame,
                          text="Each mine attacks with 8D6 vs armor (4D6 if turrets roll 4+). "
-                              "Shields apply.",
+                              "Ignores shields.",
                          font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=5)
 
                 def _lay_mines(w=mw, effective_str=mine_str):

@@ -111,6 +111,58 @@ t = gs.get_ship_by_id("target")
 check(dice.i == len(rolls), f"dice used {dice.i}/{len(rolls)}")
 check(t.hits_remaining == 7, f"one damage gets through ({t.hits_remaining}/8)")
 check(len(gs.get_blast_markers()) == 2, f"two shield impacts ({len(gs.get_blast_markers())})")
-print("   ordnance after:", [(o["ordnance_type"], round(o["x"],1), o["strength"]) for o in gs.ordnance]); print("   bms", len(gs.get_blast_markers()))
+
+print("4. Guided torpedoes: owner passes Ld and is asked how to turn")
+from tkinter import simpledialog
+asked = []
+simpledialog.askfloat = lambda title, prompt, **k: (asked.append((title, k.get("initialvalue"))), 30.0)[1]
+gs.blast_markers = []
+base = {"owner_player": 1, "launched_by": "lunar", "y": 60.0, "heading": 0.0,
+        "strength": 2, "speed": 30.0, "launched_turn": gs.turn_number - 1, "wave_id": "",
+        "cap_ship_id": "", "resilient_save": 0, "resilient_used": False, "can_turn": False,
+        "turn_angle": 0, "special_rules": [], "moved_this_phase": False,
+        "launch_exempt_ships": []}
+gs.ordnance = [{**base, "id": "g", "ordnance_type": "torpedo_guided_ld", "x": 40.0}]
+dice = Dice([6])                       # launcher Ld 7: passed
+panel.ctx.dice = dice
+panel.ordnance._resolve_ordnance_movement()
+check(dice.i == 1, f"one Ld test ({dice.i})")
+check([a[0] for a in asked] == ["Guided Torpedoes"], f"owner asked: {asked}")
+check(gs.ordnance and abs(gs.ordnance[0]["heading"] - 30.0) < 0.01,
+      f"turned 30: {[o['heading'] for o in gs.ordnance]}")
+
+print("5. Seeking torpedoes turn by themselves at the nearest enemy")
+asked.clear()
+gs.ordnance = [{**base, "id": "sk", "ordnance_type": "torpedo_seeking", "x": 40.0, "y": 20.0}]
+dice = Dice([])
+panel.ctx.dice = dice
+panel.ordnance._resolve_ordnance_movement()
+check(not asked and dice.i == 0, "no prompt, no dice")
+import math
+want = math.degrees(math.atan2(60.0 - 20.0, 95.0 - 40.0))     # 36°: within 45, so straight at it
+check(gs.ordnance and abs(gs.ordnance[0]["heading"] - want) < 0.01,
+      f"turned {want:.1f} straight at the target: {[o['heading'] for o in gs.ordnance]}")
+
+print("6. A once-per-game salvo leaves the Load list after launching")
+gs.ordnance = []
+gs.current_phase = "shooting"
+lun = gs.get_ship_by_id("lunar")
+lun.special_rules = ["torpedo_type:vortex"]
+lun.ordnance_loaded_torps = True
+gs.update_ship(lun)
+panel.ordnance._launch_ordnance_dialog(preselected_ship=gs.get_ship_by_id("lunar"))
+root.update()
+dlg = [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)][-1]
+radios = [w for w in walk(dlg) if isinstance(w, tk.Radiobutton)]
+check(any("Vortex" in r.cget("text") for r in radios), "vortex offered")
+[r for r in radios if "Vortex" in r.cget("text")][0].invoke()
+[b for b in walk(dlg) if isinstance(b, tk.Button)
+ and b.cget("text").startswith("Launch Torp")][0].invoke()
+root.update()
+check([o["ordnance_type"] for o in gs.ordnance] == ["torpedo_vortex"], "vortex salvo launched")
+check(gs.get_ship_by_id("lunar").once_torps_used == ["vortex"], "vortex used up")
+from src.ordnance import torpedo_kind_options
+check([k for k, _ in torpedo_kind_options(gs.get_ship_by_id("lunar"), torps)] == ["standard"],
+      "no longer offered")
 root.destroy()
 print("RESULT:", "ALL OK" if not failures else f"FAILURES: {failures}")
