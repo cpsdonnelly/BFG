@@ -321,7 +321,9 @@ def venerable_strike_cruiser_options(row: dict) -> List[Dict]:
                                       "range_cm": 30, "strength": 6, "arcs": ["front"],
                                       "torpedo_type": "standard", "torpedo_speed": 30,
                                       "boarding_torpedoes": True},
-                       "set": {"armor_prow": "6+"}},
+                       "set": {"armor_prow": "6+"},
+                       # Ablative Prow Armour is "lost if prow torpedoes taken"
+                       "remove_special_rules": ["ablative_prow_armor"]},
         })
     needs = [] if has_torps or row.get("strike_cruiser_prow") else [f"requires:{VSC_PROW}"]
     for key, label, cost in (("short_burn", "short burn torpedoes", 5),

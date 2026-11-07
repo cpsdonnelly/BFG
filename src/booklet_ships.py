@@ -309,6 +309,9 @@ def convert_row(row: dict) -> dict:
         special_rules.append("ponderous")
     if "towed" in (row.get("hull_type") or "").lower():
         special_rules.append("towed")
+    if "Ablative Prow Armour" in notes:
+        # Ignores Prow Armament Damaged crits; lost if prow torpedoes are taken
+        special_rules.append("ablative_prow_armor")
     special_rules += gravitic_hook_rules(row)
     if _has_built_in_thrusters(notes):
         # Sigils of Quickening are their own rule so a campaign Improved

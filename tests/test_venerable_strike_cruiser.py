@@ -72,3 +72,11 @@ def test_one_venerable_per_three_strike_cruisers_max_two_at_1000():
     assert any("Venerable" in e for e in fleet_list_errors("sm_crusade", two, 1500))
     many = [_row("Space Marine Battle Barge", True)] + [_row("Strike Cruiser")] * 9 + ven * 3
     assert any("two in all" in e for e in fleet_list_errors("sm_crusade", many, 3000))
+
+
+def test_own_special_rules_apply_ablative_prow_lost_with_prow_torpedoes():
+    assert "ablative_prow_armor" in find_ship_class("Exorcist Grand Cruiser").special_rules
+    e = vsc("Exorcist Grand Cruiser")
+    assert "ablative_prow_armor" in e.special_rules
+    d = e.to_ship_dict("V", 1, upgrades=["Strike Cruiser Prow"])
+    assert "ablative_prow_armor" not in d["special_rules"]

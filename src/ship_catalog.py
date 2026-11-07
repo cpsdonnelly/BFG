@@ -110,6 +110,8 @@ class ShipClassEntry:
             if "add_special_rule" in u.effect:
                 d["special_rules"].append(u.effect["add_special_rule"])
             d["special_rules"] += list(u.effect.get("add_special_rules", []))
+            gone = set(u.effect.get("remove_special_rules", []))
+            d["special_rules"] = [r for r in d["special_rules"] if r not in gone]
             if "remove_weapons" in u.effect:
                 gone = set(u.effect["remove_weapons"])
                 d["weapons"] = [w for w in d["weapons"] if w.get("name") not in gone]

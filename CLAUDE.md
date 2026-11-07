@@ -214,8 +214,11 @@ Owner rulings (fleet lists, export 15):
   Thunderhawks only with the ship's total bay strength halved (rounding up), boarding
   torpedoes free; nova cannon ships get the Strike Cruiser Prow built in for 10pts less.
   Options (`venerable_strike_cruiser_options`): Strike Cruiser Prow (free with 6+ prow,
-  else +25), short burn +5 or barrage bombs +10 instead of boarding torpedoes. Reading: bay
-  halving uses the ship's total, not each side.
+  else +25; removes Ablative Prow Armour, "lost if prow torpedoes taken"), short burn +5 or
+  barrage bombs +10 instead of boarding torpedoes. The base profile's own special rules
+  apply (Ablative Prow Armour, `ablative_prow_armor`, now set from notes for all six booklet
+  ships that have it); its refits don't. Reading: bay halving uses the ship's total, not each
+  side. Designing a Venerable Battle Barge (guidelines agreed with the opponent) isn't built.
 - Demiurg commerce vessels: fixed Ld (Stronghold 10, Bastion and Citadel 9), -1 per point of
   damage to a minimum of 5; Bridge Smashed deals one extra damage instead of -3 Ld
   (`combat.demiurg_leadership`).
