@@ -80,3 +80,19 @@ def test_own_special_rules_apply_ablative_prow_lost_with_prow_torpedoes():
     assert "ablative_prow_armor" in e.special_rules
     d = e.to_ship_dict("V", 1, upgrades=["Strike Cruiser Prow"])
     assert "ablative_prow_armor" not in d["special_rules"]
+
+
+def test_every_hangar_launches_only_thunderhawks():
+    from src.ship_catalog import get_faction_ships
+    from src.ordnance import craft_stats, craft_roles
+    with_bays = 0
+    for e in get_faction_ships("space_marines", True):
+        if not e.ship_class.startswith("Venerable Strike Cruiser ("):
+            continue
+        for w in (w for w in e.weapons if w["weapon_type"] == "launch_bay"):
+            with_bays += 1
+            assert w["craft_types"] == ["thunderhawk"] and w["craft_speeds"] == {"thunderhawk": 20}
+            o_type, speed, save = craft_stats("thunderhawk", [w])
+            assert (speed, save) == (20, 4)
+            assert set(craft_roles(o_type)) == {"fighter", "bomber", "assault_boat"}
+    assert with_bays == 14            # 7 ships, port and starboard hangars
