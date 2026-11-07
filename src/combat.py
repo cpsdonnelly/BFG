@@ -664,7 +664,12 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     remaining_hits = hits
 
     if not ignores_shields:
-        available_shields = current_shields(target, game_state.get_blast_markers())
+        # During a squadron volley, blast markers placed by one group of
+        # attackers don't affect the others (s.8): shields use the markers as
+        # they were before the volley
+        bms = getattr(game_state, "volley_blast_markers", None)
+        available_shields = current_shields(
+            target, bms if bms is not None else game_state.get_blast_markers())
         shield_absorb = min(remaining_hits, available_shields)
         summary["shield_hits"] = shield_absorb
         summary["blast_markers_placed"] = shield_absorb
@@ -1020,6 +1025,127 @@ def fire_at_squadron(attacker: Ship, weapon: Dict, target: Ship, group: List[Shi
         applied = allocate_squadron_hits([4] * sr.hits, eligible, lambda m: 4, apply_hits)
     sr.hits = sum(applied.values())
     return sr, applied
+
+
+_ASPECT_ORDER = ("closing", "moving_away", "abeam")       # easiest to hardest
+
+
+def plan_squadron_volley(contributions: List[Tuple[Ship, Dict]], targets: List[Ship],
+                         blast_markers: list, phenomena: list = None,
+                         all_ships: list = None, no_column_shifts: bool = False,
+                         aspect_choice: Optional[Dict[tuple, str]] = None) -> Dict:
+    """Plan combined squadron battery fire (s.8, Shooting by Squadrons) at one
+    ship or at a squadron (`targets`, the target's squadron group).
+
+    Members that see the target(s) from different aspects or ranges work out
+    their firepower separately (one gunnery lookup per group); the dice are
+    then combined into one attack per set of target ships and Armour values
+    they need. Against a squadron, each group of attackers seeing a different
+    mix of target aspects chooses the aspect it fires at (`aspect_choice`:
+    {view key: aspect}; default the hardest aspect present, so every ship it
+    can see is eligible) and can only hit ships presenting that aspect or an
+    easier one.
+
+    Returns {"attacks": [{"dice", "eligible" (nearest first), "armors" {id:
+    armour}, "label"}], "views": {view key: [aspects present]}, "skipped":
+    [(attacker, weapon, reason)]}."""
+    aspect_choice = aspect_choice or {}
+    groups: Dict[tuple, Dict] = {}
+    views: Dict[tuple, List[str]] = {}
+    skipped = []
+    for attacker, weapon in contributions:
+        aspects = {m.id: attacker.get_target_orientation(m) for m in targets}
+        view = tuple(sorted(aspects.items()))
+        present = sorted(set(aspects.values()), key=_ASPECT_ORDER.index)
+        views[view] = present
+        chosen = aspect_choice.get(view) or present[-1]
+        eligible = eligible_squadron_targets(attacker, weapon, targets, chosen,
+                                             phenomena, blast_markers)
+        if not eligible:
+            skipped.append((attacker, weapon, "no target it can hit"))
+            continue
+        shifts = (0 if no_column_shifts else
+                  get_column_shifts(attacker, eligible[0], blast_markers, phenomena,
+                                    all_ships, weapon))
+        column = get_gunnery_column(gunnery_target_type(eligible[0]), chosen)
+        armors = tuple((m.id, weapon.get("hits_on") or m.armor_vs(attacker.x, attacker.y))
+                       for m in eligible)
+        key = (column, shifts, tuple(m.id for m in eligible), armors)
+        g = groups.setdefault(key, {"members": [], "eligible": eligible, "column": column,
+                                    "shifts": shifts, "aspect": chosen})
+        g["members"].append((attacker, weapon))
+
+    attacks: Dict[tuple, Dict] = {}
+    for (column, shifts, ids, armors), g in groups.items():
+        members = g["members"]
+        escorts = [(a, w) for a, w in members if a.ship_type == "escort"]
+        others = [(a, w) for a, w in members if a.ship_type != "escort"]
+        fp = sum(effective_battery_firepower(a, w, g["eligible"][0]) for a, w in others)
+        if escorts:
+            # Escorts total their firepower first, then halve it (rounding up)
+            esc = sum(battery_base_firepower(a, w, g["eligible"][0]) for a, w in escorts)
+            lead = escorts[0][0]
+            if lead.special_order in (SpecialOrder.ALL_AHEAD_FULL.value,
+                                      SpecialOrder.BURN_RETROS.value,
+                                      SpecialOrder.COME_TO_NEW_HEADING.value):
+                esc = (esc + 1) // 2
+            if lead.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                esc = (esc + 1) // 2
+            fp += esc
+        n = lookup_gunnery_dice(fp, column, shifts) if fp > 0 else 0
+        if n <= 0:
+            continue
+        a = attacks.setdefault((ids, armors), {"dice": 0, "eligible": g["eligible"],
+                                                "armors": dict(armors), "parts": []})
+        a["dice"] += n
+        a["parts"].append(f"{', '.join(m.name for m, _ in members)}: FP{fp} "
+                          f"{g['aspect'].replace('_', ' ')} col {column}"
+                          f"{f' {shifts:+d} shift' if shifts else ''} -> {n} dice")
+    out = []
+    for a in attacks.values():
+        need = sorted(set(a["armors"].values()))
+        a["label"] = (f"{a['dice']} dice vs {'/'.join(f'{x}+' for x in need)} "
+                      f"({'; '.join(a['parts'])})")
+        out.append(a)
+    return {"attacks": out, "views": views, "skipped": skipped}
+
+
+def resolve_squadron_volley(plan: Dict, targets: List[Ship], dice: DiceRoller,
+                            apply_hits, lock_on: bool = False,
+                            game_state: Optional[GameState] = None) -> Dict[str, int]:
+    """Roll and apply a planned volley. Against one ship, every attack's hits
+    are applied together; against a squadron each attack (a set of target
+    ships and scores) resolves separately with hits allocated nearest first,
+    and blast markers placed by one attack don't affect the others (shields
+    use the markers from before the volley). apply_hits(ship, n) ->
+    (unused, destroyed). Returns hits applied per ship id."""
+    applied: Dict[str, int] = {}
+    if game_state is not None:
+        game_state.volley_blast_markers = list(game_state.get_blast_markers())
+    try:
+        rolled = []
+        for a in plan["attacks"]:
+            need = min(a["armors"].values())
+            ds = dice.roll_d6(a["dice"], f"Squadron volley: {a['label']}")
+            if lock_on and any(d < need for d in ds):
+                ds = [dice.roll_d6(1, "Lock On re-roll")[0] if d < need else d for d in ds]
+            rolled.append((a, ds))
+        if len(targets) == 1:
+            t = targets[0]
+            hits = sum(1 for a, ds in rolled for d in ds if d >= a["armors"][t.id])
+            if hits:
+                apply_hits(t, hits)
+                applied[t.id] = hits
+        else:
+            for a, ds in rolled:
+                got = allocate_squadron_hits(ds, a["eligible"], lambda m, a=a: a["armors"][m.id],
+                                             apply_hits)
+                for k, v in got.items():
+                    applied[k] = applied.get(k, 0) + v
+    finally:
+        if game_state is not None:
+            game_state.volley_blast_markers = None
+    return applied
 
 
 def resolve_batteries_vs_squadron(

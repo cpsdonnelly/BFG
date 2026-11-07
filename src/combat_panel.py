@@ -1,6 +1,6 @@
 """BFG:XR — CombatPanel: shooting phase UI, weapon targeting, damage resolution."""
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import math
 from typing import Optional, Tuple
 
@@ -371,8 +371,7 @@ class CombatPanel(CombatDialogMixin):
     def _combine_squadron_fire_dialog(self):
         """Pool battery fire from multiple squadron ships into one gunnery roll."""
         from .squadron import get_squadrons
-        from .combat import (resolve_combined_batteries,
-                             check_weapon_in_range, effective_battery_firepower)
+        from .combat import check_weapon_in_range, effective_battery_firepower
 
         player = self.ctx.gs.active_player
 
@@ -437,8 +436,11 @@ class CombatPanel(CombatDialogMixin):
         phenomena = self.ctx.gs.get_phenomena()
         in_asteroid_field = "in_asteroid_field" in (primary.special_rules or [])
         lock_on = primary.special_order == SpecialOrder.LOCK_ON.value
+        # Firing at a squadron targets the whole squadron (s.8)
+        t_group = squadron_group(target, self.ctx.gs.get_ships())
 
-        # Build the weapon-contribution list: batteries in arc + range + LoS
+        # Build the weapon-contribution list: batteries in arc + range of the
+        # target (or any ship of its squadron)
         weapon_rows = []
         for member in squad_with_batteries:
             wr = member.weapons_remaining or {}
@@ -452,9 +454,8 @@ class CombatPanel(CombatDialogMixin):
                 avail = wr.get(str(i), w["strength"])
                 if avail <= 0:
                     continue
-                if not check_weapon_in_arc(member, w, target.x, target.y):
-                    continue
-                if not check_weapon_in_range(member, w, target):
+                if not any(check_weapon_in_arc(member, w, t.x, t.y)
+                           and check_weapon_in_range(member, w, t.x, t.y) for t in t_group):
                     continue
                 eff_fp = effective_battery_firepower(member,
                                                      dict(w, strength=avail))
@@ -490,6 +491,35 @@ class CombatPanel(CombatDialogMixin):
             tk.Checkbutton(chk_frame, text=text, variable=var,
                            font=("Consolas", 8)).pack(anchor=tk.W, padx=4)
             chk_vars.append(var)
+
+        # Squadron against squadron: each group of firing ships that sees a
+        # different mix of target aspects chooses the aspect it fires at (s.8)
+        from .combat import plan_squadron_volley, resolve_squadron_volley
+        aspect_vars = {}
+        if len(t_group) > 1:
+            views = plan_squadron_volley(
+                [(r[0], dict(r[2], strength=r[3])) for r in weapon_rows], t_group,
+                blast_markers, phenomena, self.ctx.gs.get_ships(),
+                no_column_shifts=in_asteroid_field)["views"]
+            asp_frame = tk.LabelFrame(dialog, text="Aspect fired at (squadron target)",
+                                      font=("Consolas", 9))
+            for view, present in views.items():
+                if len(present) < 2:
+                    continue
+                if not asp_frame.winfo_ismapped():
+                    asp_frame.pack(fill=tk.X, padx=10, pady=2)
+                who = ", ".join(sorted({r[0].name for r in weapon_rows
+                                        if tuple(sorted((m.id, r[0].get_target_orientation(m))
+                                                        for m in t_group)) == view}))
+                row_f = tk.Frame(asp_frame)
+                row_f.pack(fill=tk.X)
+                tk.Label(row_f, text=f"{who}:", font=("Consolas", 8)).pack(side=tk.LEFT)
+                var = tk.StringVar(value=present[-1])
+                ttk.Combobox(row_f, textvariable=var, values=present, state="readonly",
+                             width=12, font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+                tk.Label(row_f, text="(harder aspects can't be hit)",
+                         font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+                aspect_vars[view] = var
 
         pooled_var = tk.StringVar()
         pooled_lbl = tk.Label(dialog, textvariable=pooled_var,
@@ -539,19 +569,28 @@ class CombatPanel(CombatDialogMixin):
                                        "Select at least one weapon.")
                 return
 
-            sr = resolve_combined_batteries(
-                primary, selected, target,
-                self.ctx.dice, blast_markers, lock_on,
-                phenomena, self.ctx.gs.ships,
-                no_column_shifts=in_asteroid_field)
-            _log(f"  {sr.description}")
+            # Different aspects / ranges: one gunnery lookup per group, dice
+            # combined per set of targets and Armour values (s.8)
+            plan = plan_squadron_volley(
+                selected, t_group, blast_markers, phenomena, self.ctx.gs.get_ships(),
+                no_column_shifts=in_asteroid_field,
+                aspect_choice={v: var.get() for v, var in aspect_vars.items()})
+            for a in plan["attacks"]:
+                _log(f"  Attack: {a['label']}")
+            for member, w, why in plan["skipped"]:
+                _log(f"  {member.name} {w['name']}: {why}")
 
-            if sr.hits > 0:
-                fresh_target = self.ctx.gs.get_ship_by_id(target.id)
-                if fresh_target and not fresh_target.is_destroyed:
-                    _log(f"  >> {fresh_target.name}: {sr.hits} hits")
-                    self._apply_hits_to_target(primary, fresh_target, sr.hits, _log,
-                                               braced=braced)
+            def _apply_to(member, n):
+                fresh = self.ctx.gs.get_ship_by_id(member.id)
+                if not fresh or fresh.is_destroyed:
+                    return n, True
+                _log(f"  >> {fresh.name}: {n} hits")
+                return self._apply_hits_to_target(primary, fresh, n, _log, braced=braced)
+
+            applied = resolve_squadron_volley(plan, t_group, self.ctx.dice, _apply_to,
+                                              lock_on, game_state=self.ctx.gs)
+
+            total_hits = sum(applied.values())
 
             # Mark each contributing weapon as fired
             used_by_ship: dict = {}
@@ -587,7 +626,7 @@ class CombatPanel(CombatDialogMixin):
 
             self.ctx.log(
                 f"Squadron combined fire: {len(selected)} weapons vs "
-                f"{target.name} — {sr.hits} hits")
+                f"{target.name if len(t_group) == 1 else 'squadron'} — {total_hits} hits")
             dialog.destroy()
             self.ctx.board.redraw()
 

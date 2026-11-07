@@ -153,6 +153,18 @@ halve turrets for the next ordnance attack that turn (`Ship.turrets_halved_turn`
 `ordnance.ordnance_turrets`); Shadow Engines' "no effect against Tyranids or Necrons" has no
 faction to apply to; Heed the Machine Spirit is always taken when a save fails (no prompt).
 
+### Shooting by Squadrons (s.8)
+
+`combat.plan_squadron_volley` / `resolve_squadron_volley`, used by the "Combine Squadron
+Fire" dialog: firing ships are grouped by aspect fired at, range column shift, the target
+ships they can hit and the Armour each needs; each group makes its own gunnery lookup
+(escorts total then halve), and dice are combined into one attack per target set and
+Armour values. Against one ship all hits are applied together; against a squadron each
+group of firers seeing a different mix of aspects chooses the aspect (dialog comboboxes,
+default the hardest present), each attack resolves separately with hits nearest first,
+and blast markers placed by one attack don't affect the others (reading: shields and
+shifts use the markers from before the volley, `GameState.volley_blast_markers`).
+
 ### Waves of attack craft (s.25)
 
 `src/waves.py`: a wave is the markers sharing `wave_id`, ordered by `wave_order` (fighters,
@@ -228,8 +240,8 @@ Owner rulings (fleet lists, export 15):
 - Torpedoes attack ships touched anywhere along their move (`geometry.torpedo_first_contact`,
   facing taken from the contact point); attack craft flying straight without a target and
   torpedo-vs-torpedo collisions are still checked at the end of the move only.
-- Combined squadron fire uses the lead ship's aspect, range and armour facing; no per-aspect
-  or squadron-vs-squadron grouping (s.8 Shooting by Squadrons).
+- The AI fires squadron members one weapon at a time (it doesn't use combined squadron fire);
+  combined fire covers batteries only (lances hit on 4+ and are fired weapon by weapon).
 - Commander re-rolls are offered only for command checks and disengage tests, not other
   leadership tests; no secondary commanders (s.5).
 - Hulks: the AI never targets enemy hulks.
