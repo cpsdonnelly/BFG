@@ -170,7 +170,9 @@ def test_navy_and_chaos_torpedo_ships_may_buy_one_type():
     assert d["points_value"] == lunar.points_cost + 30
     from src.booklet_options import ship_option_errors
     assert ship_option_errors(lunar, list(opts))        # only one type per ship
-    assert find_ship_class("Cobra Destroyer").upgrades_available[0].points_cost == 10
+    # Capital ships only (export 10): escorts with torpedoes get none
+    assert not find_ship_class("Cobra Destroyer").upgrades_available
+    assert not find_ship_class("Infidel Raider").upgrades_available
     assert any(u.name.startswith("Torpedoes:")
                for u in find_ship_class("Desolator Battleship").upgrades_available)
     assert not any(u.name.startswith("Torpedoes:")
@@ -436,3 +438,18 @@ def test_inferno_launcher_crit_inflicts_d6_fires():
     t = gs.get_ship_by_id("t")
     assert dice._idx == len(rolls)
     assert [c["crit_type"] for c in t.critical_damage] == ["prow_armament"] + ["fire"] * 4
+
+
+def test_chaos_torpedoes_carry_boarding_torpedoes():
+    torps = [w for w in find_ship_class("Desolator Battleship").weapons
+             if w["weapon_type"] == "torpedo"]
+    assert torps and all(w.get("boarding_torpedoes") for w in torps)
+    lunar = [w for w in find_ship_class("Lunar Cruiser").weapons if w["weapon_type"] == "torpedo"]
+    assert not lunar[0].get("boarding_torpedoes")          # Navy: ordinary torpedoes only
+
+
+def test_inquisitor_lord_extra_rerolls():
+    ic = find_ship_class("Inquisitorial Cruiser")
+    lord = "Ordo Malleus Inquisitor Lord (Ld 10)"
+    d = ic.to_ship_dict("I", 1, upgrades=[lord, "Inquisitor Lord: 2 extra re-rolls"])
+    assert d["rerolls_remaining"] == 3 and d["points_value"] == ic.points_cost + 75 + 50

@@ -115,13 +115,15 @@ def torpedo_strength(row: dict) -> int:
 
 
 def torpedo_type_options(row: dict) -> List[Dict]:
-    """Imperial Navy and Chaos fleet lists: torpedo ships may take short-burn
-    torpedoes or barrage bombs at +5 per torpedo strength. Owner ruling: one
+    """Imperial Navy and Chaos fleet lists: capital ships armed with torpedoes
+    may take short burn, guided torpedoes or barrage bombs at +5 per torpedo
+    strength, or the +50pt D3 roll. Owner ruling: one
     type per ship, carried in addition to its other torpedoes. (Guided
     torpedoes and anointed munitions aren't playable yet.)"""
     st = torpedo_strength(row)
-    if not st:
-        return []
+    from .booklet_ships import _ship_type
+    if not st or _ship_type(row) not in ("cruiser", "battleship"):
+        return []                      # "any capital ship armed with torpedoes"
     opts = [{"name": f"Torpedoes: {label}",
              "description": f"Carried as well as its other torpedoes; chosen at each launch. "
                             f"+5pts per torpedo strength ({st}).",
@@ -228,6 +230,12 @@ def inquisition_options(row: dict) -> List[Dict]:
                                 "rerolls": 1,
                                 "add_special_rules": ["fleet_commander"], "flagship": True},
                      "restrictions": ["fleet_unique"]})
+        opts += [{"name": f"Inquisitor Lord: {n} extra re-roll{'s' if n > 1 else ''}",
+                  "description": f"{n} more fleet commander re-roll{'s' if n > 1 else ''} "
+                                 f"({25 * n}pts).",
+                  "points_cost": 25 * n, "effect": {"rerolls": 1 + n},
+                  "restrictions": ["group:inq_rerolls", f"requires:{INQ_LORD}"]}
+                 for n in (1, 2)]
     torp_needs = [] if has_torps else ([f"requires:{INQ_TORPS}"] if name == "Inquisitorial Cruiser"
                                        else None)
     if torp_needs is not None:

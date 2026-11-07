@@ -278,6 +278,12 @@ def convert_row(row: dict) -> dict:
     if row["faction"] in MR_CRAFT:
         craft_map["MR"] = MR_CRAFT[row["faction"]]
     weapons = [d for w in row["weapons"] for d in _convert_weapon(w, craft_map, problems)]
+    if "Chaos" in (row.get("faction_rules") or []):
+        # Chaos: "any vessel with torpedo tubes is armed with both ordinary and
+        # boarding torpedoes"
+        for d in weapons:
+            if d.get("weapon_type") == "torpedo" and d.get("torpedo_type") != "guided":
+                d["boarding_torpedoes"] = True
 
     notes = row.get("notes") or ""
     group_notes = row.get("roster_group_notes") or ""

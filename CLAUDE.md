@@ -91,8 +91,8 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   macrobattery firepower on All Ahead Full or Burn Retros; lances still halve).
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
-- **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength"): one type per
-  ship, carried in addition to its other torpedoes and chosen at each launch
+- **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships
+  armed with torpedoes only**, export 13): one type per ship, carried in addition to its other torpedoes and chosen at each launch
   (`booklet_options.torpedo_type_options`, ship rule `torpedo_type:<key>`,
   `ordnance.torpedo_kind_options`): short burn, barrage bombs, guided. The Navy "+50 to roll
   once per game for Seeking/Melta/Vortex" works like Chaos Anointed Munitions: per ship, a D3
@@ -100,6 +100,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   "refitted torpedoes +Npts" and Ork "looted torps +20pts" roll a D6 per ship at game start
   (`torpedo_roll:d6_refitted`). Seeking, melta and vortex are one salvo **per ship** per game
   (`Ship.once_torps_used`). Barrage bombs' low-orbit and assault-point rules wait on low orbit.
+  Chaos torpedo tubes always carry boarding torpedoes too (`booklet_ships.convert_row`).
 - **Attack craft orders (s.18):** each squadron keeps a target (`craft_target_id`: enemy ship,
   enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
@@ -181,8 +182,12 @@ faction to apply to; Heed the Machine Spirit is always taken when a save fails (
   torpedoes +50pts only on an Ordo Malleus Inquisitor Lord's ship armed with torpedoes.
   `booklet_options.inquisition_options` also has the Inquisitorial Cruiser's free refits
   (Bombardment Cannon, Torpedo Salvo) and the Inquisitor Lord (Banisher list: Ld 10, 75pts,
-  one free re-roll). Not yet: the Lord's extra re-rolls (no cost given), Ordos (a ship may
-  not mix Ordo upgrades), Grand Master, Inquisitors, retinues and honour guards.
+  one free re-roll, +1 / +2 re-rolls for 25 / 50pts). The booklet now has two Inquisition
+  lists (Ordo Malleus Banisher Fleet, Inquisitorial Fleet Detachment) whose options differ
+  (Inferno needs an Ordo Hereticus Inquisitor, so not in the Banisher list); the fleet builder
+  doesn't know which list a fleet uses. Not yet: fleet lists, Ordos (a ship may not mix Ordo
+  upgrades), Grand Master, Inquisitors, Elite Daemonhunters/Captains, retinues, honour guards,
+  Blessing of Chaos.
 - Not yet: Rogue Trader refitted
   torpedoes (no Rogue Trader ship in the roster has torpedoes), Deathskulls' half-cost looted
   torps, the Ork zzapp gunz swaps. The Ork torpedo launcha swaps (Terror Ship, Kill Kroozer

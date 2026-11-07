@@ -1,6 +1,6 @@
 # Changes since the first export
 
-Five updates, oldest first. Section numbers quoted in the first update are the numbers at
+Updates are listed oldest first. Section numbers quoted in the first update are the numbers at
 that time; the third and fifth updates renumbered the core rules (see their tables).
 
 The booklet gained rules it was missing. Core rules sections were renumbered: there are now 34
@@ -225,3 +225,97 @@ unchanged.
 - Appendix 5, Catastrophic Damage table, *Drifting hulk*: now the Rulebook p.23 wording. Hulks move
   4D6cm "in each of their subsequent movement phases" (the owning player's movement phases), not
   in every movement phase.
+- Appendix 5, *Burning hulk*: rolls again "at the end of each of its movement phases" (its owner's
+  movement phases, after it moves), not at the end of every movement phase.
+
+# Ninth update: Inquisition and Chaos faction rules checked against the sourcebook
+
+Inquisition (Ships of the Imperium pp.99-101, 108):
+- Ordo upgrades now use the sourcebook wording. **Hellfire Sentry Guns moved from Ordo Hereticus
+  to Ordo Xenos** (it was listed under the wrong Ordo). Added the Celestian restriction (no Space
+  Marine honour guard or hit-and-run bonuses) and "instead of any other bonus" on every honour
+  guard +2 result.
+- Radical Hereticus: the Purgator's -2 Ld applies to every *capital ship* alongside it (it wrongly
+  read "ships", which included escorts).
+- Radical Xenos: reserves are any Demiurg capital ship, Corsair Eldar cruiser or Tau cruiser; the
+  Xenos refit is bought by the ship carrying the Ordo Xenos Inquisitor; no duplicate refits.
+- Fleet Detachment list: added Ordo Xenos options (hellfire sentry guns free, Deathwatch kill-team
+  +15, Deathwatch Terminators +30), Purifiers +15, Celestians +5, inferno torpedoes +20; vortex
+  torpedoes are an Inquisitor Lord option at +50 (they wrongly read "Malleus, +15"); free boarding
+  torpedoes for Inquisition capital ships; gun-cutter swap limited to Navy / Mechanicus ships
+  carrying an Inquisitor, halving their bays.
+Chaos (Ships of the Imperium pp.20-24):
+- Stormbirds: no other attack craft may be launched; +1 hit-and-run bonus.
+- Daemonic Crew: no Warmaster or Lord "even if it is the largest ship in the fleet".
+- Materialising in an asteroid field: a leadership test may avoid damage.
+- Planet Killer: template placed touching the stem (was "prow"); exterminating a planet (low
+  orbit, hit the planetary table edge, 60cm range on the low-orbit table); reloading only the
+  torpedoes carries no malfunction risk; removed "must be charged before firing" (the gun starts
+  loaded like any ordnance).
+Spelling: "honor" is now "honour" throughout.
+
+# Tenth update: Imperial Navy and Chaos fleet-list ordnance
+
+- Imperial Navy fleet lists, *Ordnance*: now the sourcebook text (Imperium p.89) with the D3 table
+  for the +50pt option (1 Seeking, 2 Melta, 3 Vortex; each usable once per game), which was
+  missing. Upgrades apply to *capital ships* armed with torpedoes (it read "torpedo ships"); the
+  power ram's effect (one automatic hit when ramming) is now stated.
+- Chaos fleet lists, *Ordnance*: same correction (capital ships only); anointed munitions point to
+  the Anointed Munitions table in the Chaos faction rules.
+
+# Eleventh update: hedge and doc-talk fixes
+
+- Shields (section 11): removed the "Clarification (Remastered p.69)" label; the sentence stays as
+  a plain rule, alongside the matching sentence in Moving Through Blast Markers.
+- Space Marines intro: Thunderhawks now point to the Thunderhawks faction rule (p.49), not the
+  Chapter Tactics.
+- "Already in the booklet", "in booklet" and "reprinted for convenience" replaced with booklet page
+  references (Mechanicus Gifts p.44, Mechanicus rules p.43, Imperial Refits p.162, Space Marine
+  rules / Tactical Flexibility / Thunderhawks p.49, Space Marine escorts p.52, Grey Knights rules
+  and Gun-Cutters p.57).
+- Inquisition intro: leftover build note on Gun-Cutters replaced with a pointer to the faction rule.
+- Orks intro: "rolled as printed" replaced with the random firepower/strength timing rule
+  (Ships of the Xenos p.52, verbatim).
+- Appendices moved one page later; internal page references updated.
+- Held for the author's decision: blast marker clarifications (Placing Blast Markers), the
+  optional modern blast marker structure, the Inner Biosphere roll of 4, the Stryxis note, and
+  the Appendix 2 appeals note.
+
+# Twelfth update: Inner Biosphere table
+
+- Inner Biosphere phenomena, roll of 1: now "Roll a D6: 1-3 radiation burst, 4-6 solar flare".
+  XR printed "1-3 Solar Flare, 5-6 Radiation Burst"; the XR author confirmed this was a typo and
+  the intended result is the one Remastered prints (p.107). The footnote about the missing 4 is
+  removed.
+
+# Thirteenth update: Inquisition fleet lists (Ships of the Imperium pp.108-109)
+
+Both Inquisition fleet lists are now the sourcebook text (flavour removed, page refs pointed at
+the booklet). Earlier copies of this package had an Ordo Malleus "vortex torpedoes +15": that was
+wrong and is gone.
+
+Vortex torpedoes (+50):
+- Banisher fleet: only "if an Ordo Malleus Inquisitor Lord's ship is armed with torpedoes".
+- Fleet Detachment: "an Inquisitor Lord's vessel may equip its torpedo tubes with vortex
+  torpedoes for +50 points" (any Ordo).
+Inferno torpedoes (+20): Fleet Detachment, Ordo Hereticus Upgrades, available only to a fleet
+accompanied by an Ordo Hereticus Inquisitor; bought per Inquisition vessel ("Inquisition vessels
+may ... equip their torpedo tubes with inferno torpedoes for +20 points"). A capital ship that
+embarks an Inquisitor or Elite Captain may buy upgrades as if it were an Inquisition vessel; a
+ship cannot take upgrades from more than one Ordo.
+
+Banisher fleet, newly present: Master Daemonhunter must go on a battleship/battle barge if one is
+present; Grand Master gets Paladins free; Ordo Malleus Inquisitor (Ld9, 30) as an Elite
+Daemonhunter; Inquisitorial battleship needs an Inquisitor Lord (non-unique Imperial Navy
+battleship at normal cost); the 3-cruiser caps; Interceptors (battle barge / strike cruiser
+only) and Purifiers (ship with a Brother-Captain or Inquisitor Lord only); Inquisitorial escorts
+(Firestorm 35, Sword 35, Cobra 30) and the mixed-squadron Ld rule; blessing of Chaos; sub-plots;
+no detachments, reserves or allies.
+
+Fleet Detachment, newly present: joins IN/AdMech/SM fleets, never allies of convenience; Inquisitor
+re-roll costs; Elite Captains need a fleet led by an Inquisitor, +15 re-roll; Inquisitorial
+cruisers 0-3 (one per three of the joined fleet's cruisers, count against battlecruiser limit);
+each Ordo's upgrades require an Inquisitor of that Ordo. Removed the incorrect "as allies of
+convenience" for the Ordo Malleus Grey Knights ships.
+
+Layout: one page longer; appendices and their internal page refs moved one page later.

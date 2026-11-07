@@ -121,7 +121,7 @@ A commander who buys a clan upgrade belongs to that clan and applies its bonus t
 
 *Source: Ships of the Xenos, "Clanz and Commanders", p.57*
 
-Ork carriers launch Fighta-Bommerz (MR, 25cm) and Assault Boats (AB, 30cm). Ork weapon types (Gunz, Heavy Gunz, Zzapp Gunz, Kannons) follow the Ork faction rules; Heavy Gunz list long-range firepower with the within-15cm value in brackets, e.g. 6 (10). Random values (D6+6, D3+1) are rolled as printed. Ork ships that show three Armour values use front / abeam / rear. Common Kustom upgrades are listed per ship with cost.
+Ork carriers launch Fighta-Bommerz (MR, 25cm) and Assault Boats (AB, 30cm). Ork weapon types (Gunz, Heavy Gunz, Zzapp Gunz, Kannons) follow the Ork faction rules; Heavy Gunz list long-range firepower with the within-15cm value in brackets, e.g. 6 (10). Some Ork weapons have random firepower or strength (such as D6+1). Where this is the case, roll to determine firepower/strength each time the weapon is fired. When combining multiple such weapons in one shooting attack, roll for each weapon separately before adding their firepower/strength together. Ork ships that show three Armour values use front / abeam / rear. Common Kustom upgrades are listed per ship with cost.
 
 **Arcs:** each bracket is one weapon mount at the listed FP or S. (L), (R) = two mounts, one per side, firing separately. (L/F/R) = one mount that can fire into any of those arcs, at one target.
 
@@ -176,7 +176,7 @@ Default Leadership 6. Never crippled; destroyed only. Follows normal ship rules 
 
 **Movement:** moves exactly 10cm straight each turn, never slowed by blast markers or damage. May turn up to 45° only at the end of the move and only every second phase. In a planet's or moon's gravity well it may make one 45° turn toward that body even if it already turned; it also creates its own gravity well 5cm out from its base, which ships and Roks can orbit (orbiting objects move with it until they break orbit).
 
-**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.166), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
+**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.169), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
 #### Ork Rok (Xenos p.72)
 

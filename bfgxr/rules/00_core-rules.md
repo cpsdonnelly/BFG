@@ -60,7 +60,7 @@ In Battlefleet Gothic, the expertise of a captain and his (or her) crew is shown
 
 As mentioned earlier, in one-off games you roll a D6 to determine each ship's leadership value before the start of the game. Look up the result of the dice roll on the table below to see what Leadership value the ship has. Escorts roll once per squadron, with the whole squadron sharing the value rolled. Each capital ship rolls individually for leadership, even if it is part of a squadron.
 
-**Starting Leadership by faction:** see Appendix 4, p.168.
+**Starting Leadership by faction:** see Appendix 4, p.171.
 
 ### Leadership Modifiers
 
@@ -72,7 +72,7 @@ If a ship is reduced to leadership 1 or less, it cannot voluntarily attempt spec
 
 ### Faction-Specific Leadership Tables
 
-Some factions do not use the default Starting Leadership table; their fleet lists replace it. All of them are unified into one table in the Appendix: see Appendix 4, p.168. Factions not listed there use the Default column.
+Some factions do not use the default Starting Leadership table; their fleet lists replace it. All of them are unified into one table in the Appendix: see Appendix 4, p.171. Factions not listed there use the Default column.
 
 *Source: BFG:XR faction fleet lists / codex documents*
 
@@ -245,7 +245,7 @@ Enemy Contacts (+1Ld): A vessel gains a +1 bonus to its leadership value when at
 
 **Other leadership tests:** tests other than command checks (for target priority, ramming, navigating an asteroid field and so on) are taken the same way: roll 2D6, and pass on a score equal to or below the ship's Ld. A ship may take several leadership tests in a turn, even after a command check has failed, but may not take the same test more than once. Under Fire and Enemy Contacts do not apply to them; other Ld modifiers may, as their rules say.
 
-A summary of all six special orders is given in Appendix 6, p.170.
+A summary of all six special orders is given in Appendix 6, p.173.
 
 ## 8. Squadrons
 
@@ -369,7 +369,7 @@ Shields are restored automatically as the ship leaves contact with blast markers
 
 Shields stop direct fire: lances, macrobatteries and nova cannon. Boarding actions, ramming, torpedoes, attack craft and similar attacks bypass shields entirely.
 
-*Clarification (Remastered p.69):* a ship whose shields are down only because of blast markers does not roll for damage when moving through blast markers. That roll is only for ships with no shields or permanently disabled shields (below).
+A ship whose shields are down only because of blast markers does not roll for damage when moving through blast markers. That roll is only for ships with no shields or permanently disabled shields (below).
 
 ### Placing Blast Markers
 
@@ -467,7 +467,7 @@ Which way the target is traveling is important for gunnery purposes as it is muc
 
 **Splitting Fire:** Ships that pass a target priority test may split the firepower of their gunnery weapons between multiple targets in a given fire arc. Naturally, a ship must have firepower of 2 or greater (after any modifiers, which must be applied before working out target orientation on the Gunnery table) in order to split fire this way.
 
-**Gunnery Table:** see Appendix 7, p.171.
+**Gunnery Table:** see Appendix 7, p.174.
 
 **Gunnery Table notes:** 'capital ships' on the table means cruisers and battleships. Defences and ordnance always use their own column (plus any column shifts), whatever their orientation, even when fired on by ships that normally count every target as one aspect.
 
@@ -880,7 +880,7 @@ Roll a D6 for each hit scored on a ship (but not against its shields). On a roll
 
 **Repeated and impossible critical hits:** if a location suffers several repairable critical hits, all of them must be repaired before it works again, and their effects are not cumulative unless stated. If a critical hit cannot be applied (a ship with no prow weapons rolls Prow Armament Damaged, say), or a location that cannot be repaired is hit again, apply the next higher result instead (Engine Room Damaged, in that example).
 
-**Critical Hits Table:** see Appendix 5, p.169.
+**Critical Hits Table:** see Appendix 5, p.172.
 
 ## 34. Catastrophic Damage
 
@@ -900,7 +900,7 @@ A ship with no hits left is effectively out of action. There may still be some c
 
 **Hulks in combat:** hulks block lines of fire to ships behind their base, and have no shields, turrets or other defences (such as holofields or reactive hulls). A hulk that is the closest enemy may be ignored for target priority; firing at a hulk that is not the closest still needs a target priority test. Ships and ordnance may never fire on, board or deliberately launch torpedoes at their own side's hulks, but enemies may. Roll to hit against the destroyed ship's Armour. A hulk that takes any hits rolls once on the Catastrophic Damage table (replacing its current result): once per attacking ship, squadron or ordnance wave, not once per hit.
 
-**Catastrophic Damage Table:** see Appendix 5, p.169.
+**Catastrophic Damage Table:** see Appendix 5, p.172.
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Catastrophic Damage", pp.23-24*
 
@@ -990,7 +990,7 @@ In many scenarios, the winner will be the player who scores the most victory poi
 
 | D6 | 1. Flare Region | 2. Mercurial Zone | 3. Inner Biosphere |
 |---|---|---|---|
-| 1 | Solar flare | Solar flare | Roll a D6: 1-3 solar flare, 5-6 radiation burst† |
+| 1 | Solar flare | Solar flare | Roll a D6: 1-3 radiation burst, 4-6 solar flare |
 | 2 | Solar flare | Radiation burst | Asteroid field |
 | 3 | Radiation burst | Asteroid field | D3 asteroid fields |
 | 4 | Asteroid field | D3 gas/dust clouds | D3 gas/dust clouds |
@@ -1007,8 +1007,6 @@ In many scenarios, the winner will be the player who scores the most victory poi
 | 6 | Planet (S/M) | Planet (S/L) | Small planet (such as a rogue moon) |
 
 **Planet:** (S/M) roll a D6, 1-5 small, 6 medium; (S/L) roll a D6, 1-3 small, 4-6 large. There is never more than one planet on the table: if a second is generated, re-roll. Check whether a planet has moons; a large planet may also have rings.
-
-†The rulebook gives no result for a roll of 4 here.
 
 ### Planets
 

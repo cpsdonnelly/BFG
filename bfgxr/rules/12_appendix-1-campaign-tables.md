@@ -51,7 +51,7 @@
 | 6 | A company of Space Marines is stationed aboard one ship of your choice. Treat that ship as a Space Marine vessel for all boarding actions and hit-and-run raids. |
 | 7 | One ship of your choice (must be capable of launching attack craft) is supplied with Thunderhawk Gunships. It must halve the strength of its launch bays and may only launch Thunderhawks (see the Space Marine faction rules). These gain a +1 bonus to hit-and-run results, as if launched from a Space Marine vessel. |
 | 8 | One ship of your choice (must be capable of launching torpedoes) gains boarding torpedoes in addition to its normal torpedoes. These gain a +1 bonus to hit-and-run results, as if launched from a Space Marine vessel. |
-| 9 | Your flagship gains a Terminator Honor Guard and may conduct teleport attacks against targets with more remaining hits than itself. |
+| 9 | Your flagship gains a Terminator Honour Guard and may conduct teleport attacks against targets with more remaining hits than itself. |
 | 10 | You may train one ship's crew after each game (mark it on your fleet registry). Trained ships may re-roll the dice in a boarding action. |
 | 11 | In your next game your opponent must reduce his points value by D6×30. |
 | 12 | In the next game where your opponent has planetary defences, their value is reduced by D6×30 points. |

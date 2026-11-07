@@ -26,17 +26,17 @@
 
 **Chaos Space Marines** (taken by capital ships; uses the Space Marine faction rules):
 
-**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.168); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
+**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.171); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
 
 **Champions of the Dark Gods:** use the Space Marine boarding, hit-and-run, planetary-assault, and teleport-assault rules (battleships count as battle barges, other ships as strike cruisers; the honour guard uses Chaos Terminators). This replaces the normal Chaos crew bonus.
 
 **Chaos Terminators:** a teleport attack rolls 3D6 and chooses two results (both keep the +1 CSM hit-and-run bonus).
 
-**Stormbird Gunships:** multi-role attack craft (fighter / bomber / assault boat) with a 4+ resilient save (speed 20cm), replacing attack craft at half launch capacity.
+**Stormbird Gunships:** multi-role attack craft (fighter / bomber / assault boat) with a 4+ resilient save (speed 20cm). Any Chaos Space Marine vessel may replace its existing attack craft with Stormbirds, reducing its launch capacity by half (rounding up); a ship that does so may not launch any other type of attack craft. Stormbirds benefit from the normal +1 bonus Chaos Space Marines add to their hit-and-run raids.
 
 **Daemonships.** Where its fleet list allows, a Chaos fleet may upgrade capital ships to daemonships, one per full 1000pts in the fleet. An upgraded ship keeps its normal profile and refits but must operate alone and may never be squadroned. Upgrade cost by size: Battleship +50, Grand Cruiser +30, Heavy Cruiser or Cruiser +25.
 
-**Daemonic Crew:** cannot embark a Chaos Lord or Warmaster, and cannot be given a Chaos Space Marine crew.
+**Daemonic Crew:** a daemonship cannot embark a Chaos Warmaster or Chaos Lord, even if it is the largest ship in the fleet. Likewise, a daemonship cannot be given a Chaos Space Marine crew.
 
 **Immaterial Predator:** may never score assault points or take an Exterminatus armament.
 
@@ -50,7 +50,7 @@
 
 **Spectral daemonships:** only partly real. Enemy vessels within 15cm suffer -1Ld at all times (not cumulative between daemonships). Otherwise it can neither affect the enemy (including with its Mark) nor be harmed or interacted with in any way, including by fire criticals: no ordnance, mines, special orders, celestial effects, or repairs, only movement and turning. It may remain spectral as long as desired.
 
-**Materializing:** at the end of any movement phase after it arrives, and never while in base contact with an enemy, it may become solid with no roll. It then takes a Leadership test; on a fail its armament works at half effectiveness until the end of the turn. It may use no special orders until the start of its next turn except Brace for Impact. Once solid it is a normal vessel, affected by ordnance and phenomena it contacts.
+**Materializing:** at the end of any movement phase after it arrives, and never while in base contact with an enemy, it may become solid with no roll. It then takes a Leadership test; on a fail its armament works at half effectiveness until the end of the turn. It may use no special orders until the start of its next turn except Brace for Impact. Once solid it is a normal vessel, affected by ordnance and phenomena it contacts. If it materializes in an asteroid field, it may attempt to avoid damage by taking a leadership test as normal.
 
 **Haunting:** on any of your turns, at the end of movement, a daemonship (spectral or solid) may return to the Warp; it is removed like a disengaged ship and may re-enter later by warp translation. While haunting it is again vulnerable to fire criticals, but repairs critical damage on 4+ rather than only 6. If it returns with fewer than its starting hits, roll a D6, adding +1 if it is a battleship and +1 per full turn spent haunting: 1-3 no effect; 4-5 regain 1 hit; 6 regain 2 hits (never above its starting maximum). A daemonship crippled at any point counts as crippled for victory points whatever its final hits. It may use Reload Ordnance and Brace for Impact in the Warp with no Leadership bonus to the enemy, and otherwise counts as disengaged, including for victory points if the game ends while it is haunting.
 
@@ -139,13 +139,15 @@ Ponderous (no Come to New Heading). A one-of-a-kind vessel, usually the objectiv
 
 *Exterminatus*: a Chaos attacker may include the Planet Killer instead of modified exterminators, deducting its cost from the fleet's points limit as normal. It needs no refits and loses no weapons to count as an exterminator, but if the Armageddon Gun is permanently disabled (including when the Planet Killer is crippled), it can no longer act as an exterminator and the Chaos player loses automatically.
 
-*Armageddon Gun* (90cm, Front): fires only straight ahead along the ship's spine, and must be charged before firing. It cannot fire while crippled or while on All Ahead Full, Burn Retros, or Brace for Impact.
+*Armageddon Gun* (90cm, Front): fires only straight ahead along the ship's spine. It cannot fire while crippled or while on All Ahead Full, Burn Retros, or Brace for Impact.
 
-**Firing:** place the nova cannon template touching the prow and move it 90cm directly ahead. A ship whose base the central hole passes over takes D6 automatic hits; any other ship the template crosses takes 1 hit. Shields and defences apply as normal; all ordnance the template touches is removed.
+**Firing:** place the nova cannon template so that it is touching the Planet Killer's stem, then move it 90cm directly ahead. A ship whose base the central hole passes over takes D6 automatic hits; any other ship the template crosses takes 1 hit. Shields and defences apply as normal; all ordnance the template touches is removed.
 
 **Blocked fire:** it cannot fire through obstacles or celestial phenomena that block line of sight (planets, moons, asteroid fields). If the template contacts one it stops there and D6 blast markers are placed at the contact point (the obstacle survives).
 
-**Recharge:** reload with Reload Ordnance orders. On a double 6 it malfunctions (a critical hit on the Planet Killer, and the gun is useless for the rest of the battle); on any other double it may fire only once more, then shuts down for the battle. Torpedoes and the gun can be reloaded on one command check (this does not remove the malfunction risk).
+**Exterminating a planet:** to exterminate a planet, the Planet Killer must enter low orbit to fire a planet-killing shot like other vessels, but it does not have to approach within 45cm of the table edge or roll a 4+ to destroy the planet: instead, it must simply hit the planetary table edge with the Armageddon Gun's template. On the low-orbit table, the Armageddon Gun only has a range of 60cm instead of its usual 90cm.
+
+**Recharge:** reload with Reload Ordnance orders. On a double 6 it malfunctions (a critical hit on the Planet Killer, and the gun is useless for the rest of the battle); on any other double it may fire only once more, then shuts down for the battle. Torpedoes and the gun can be reloaded on one command check (this does not remove the malfunction risk). If only the torpedoes need to be reloaded, you may do so without any danger to the Armageddon Gun.
 
 #### Chaos Space Hulk (Imperium p.44-45)
 
@@ -161,7 +163,7 @@ A Chaos fleet of any size may include one, and it must be the flagship. It canno
 
 **Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Never crippled; it functions until completely destroyed.
 
-**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.166), not the normal table; results cannot be repaired, and no characteristic drops below zero (apply as much of each penalty as possible).
+**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.169), not the normal table; results cannot be repaired, and no characteristic drops below zero (apply as much of each penalty as possible).
 
 **Catastrophic damage:** at 0 damage, roll on the Catastrophic Damage table: drifting and blazing hulk results are unchanged (including any required movement); a plasma drive overload tears it apart into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
@@ -227,7 +229,7 @@ The Chaos lists share the structure below; each then sets its ships and a few di
 
 **Secondary:** any capital ship except the commander's may be led by an Aspiring Champion (Ld +1, max 9) 30, who may buy one re-roll +15.
 
-**Ordnance:** torpedo ships carry ordinary and boarding torpedoes and may upgrade to short-burn/guided/barrage bombs (+5 per torpedo strength) or anointed munitions (+50, rolled at game start); up to two cruisers or heavy cruisers may swap all launch bays for mine launchers (+5/bay).
+**Ordnance:** Chaos attack craft follow the normal rules for their type, and any vessel with torpedo tubes is armed with both ordinary and boarding torpedoes. Any capital ship armed with torpedoes may be equipped with either short burn torpedoes, guided torpedoes, or barrage bombs (choose only one) for +5 points per point of its torpedo strength. Alternatively, for +50 points it may be given anointed munitions (rolled at the start of the game: see Anointed Munitions in the Chaos faction rules). Up to two cruisers or heavy cruisers in the fleet may replace all of their launch bays with mine launchers for +5 points per bay replaced.
 
 **Ratios:** battleships one per three cruisers, grand cruisers one per three cruisers, heavy cruisers one per two cruisers, cruisers any number.
 

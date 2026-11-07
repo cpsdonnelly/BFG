@@ -42,7 +42,7 @@ data/
   ships.csv                   one row per ship, raw cell text
   weapons.csv                 one row per weapon entry, flattened
   parse_report.md             what could not be parsed and is kept as raw text only
-CHANGES.md                    what changed since the first export (two updates; read both)
+CHANGES.md                    what changed since the first export, newest update last
 source/                       copy of the .docx this export was built from
 tools/                        the export scripts
 ```

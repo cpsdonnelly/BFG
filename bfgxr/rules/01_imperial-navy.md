@@ -83,7 +83,7 @@ An immense orbital fortress; follows normal ship rules except as below.
 
 **Quadrants:** its weapons, hits, and defences are split into four quadrants. An attack hits the quadrant found by tracing a line from the firing ship's prow to the station's centre; ordnance hits the first quadrant its marker touches. Each quadrant has its own shields; blast markers go against the matching edge of the base and affect that quadrant plus the two adjacent, and in the end phase D6 are removed from the whole model. On a rotating fort, un-removed markers stay in place and affect whatever quadrants they touch after it turns.
 
-**Damage:** damage and criticals affect only the quadrant hit. A quadrant is crippled at 6 Damage Points and, once reduced to 0 hits, becomes an asteroid field (further hits do nothing). Damage control is per quadrant. The fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll. Nova cannons and Armageddon guns score their D6 direct hit only against the quadrant under the template's centre. Hit-and-run raids affect only their target quadrant. Critical hits use the Ramilies Star Fort Critical Hits table (p.165).
+**Damage:** damage and criticals affect only the quadrant hit. A quadrant is crippled at 6 Damage Points and, once reduced to 0 hits, becomes an asteroid field (further hits do nothing). Damage control is per quadrant. The fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll. Nova cannons and Armageddon guns score their D6 direct hit only against the quadrant under the template's centre. Hit-and-run raids affect only their target quadrant. Critical hits use the Ramilies Star Fort Critical Hits table (p.168).
 
 **The Basilica:** the central redoubt cannot be targeted separately and is destroyed only when the whole station reaches 0 hits. If it would take damage (such as its own ordnance exploding from a critical), that damage is distributed among the remaining quadrants.
 
@@ -127,7 +127,17 @@ Several sector battlefleets share the structure below; each sector then sets its
 
 **Escorts:** any number in squadrons of 2-6.
 
-**Ordnance:** torpedo ships may take short-burn/guided/barrage bombs at +5 per torpedo strength, or +50 to roll once per game for Seeking/Melta/Vortex; up to two cruisers/battlecruisers may swap all launch bays for mine launchers (+5/bay); 6+ prow ships may buy a power ram +5; only one nova-cannon ship per 500 pts.
+**Ordnance:** Imperial Navy attack craft follow all the normal rules for their type, and any vessel with torpedo tubes is armed with ordinary torpedoes. Any capital ship armed with torpedoes may be equipped with either short burn torpedoes, guided torpedoes, or barrage bombs (choose only one) for +5 points per point of its torpedo strength. Alternatively, for +50 points, it may roll on the following table at the start of the game, gaining the appropriate torpedo type shown in addition to its regular torpedoes:
+
+| D3 | Torpedo Type |
+|---|---|
+| 1 | Seeking Torpedoes\* |
+| 2 | Melta Torpedoes\* |
+| 3 | Vortex Torpedoes\* |
+
+\*Usable only once per game.
+
+Up to two cruisers or battlecruisers in the fleet may replace all of their launch bays with mine launchers for +5 points per bay replaced. Any capital ship in the fleet with 6+ prow armour may purchase a power ram for +5 points, which imparts an automatic hit against the target when ramming an enemy ship (in addition to any other hits scored normally). Only one nova cannon armed vessel may be included for every 500 points or part thereof in your fleet.
 
 **Reserves:** from any Imperial Navy or Adeptus Mechanicus list.
 

@@ -16,7 +16,7 @@
 
 **Campaigns:** +1 Repair point per 10 renown (or part) the commander holds; +1 to appeals for refits but -1 to appeals for anything else; only the flagship may carry multiple Gifts.
 
-**Ships & refits:** Mechanicus capital ships and light cruisers use Fury Fighters (ASF, 30cm) and Starhawk Bombers (BMR, 20cm), same as Imperial Navy. Most Mechanicus hulls are refitted Imperial Navy patterns at different costs, stats, and turret counts than their Navy counterparts (extra anti-ordnance turrets are standard on Mechanicus capital ships). "Mechanicus Refits" on cruisers and light cruisers are ship-specific point options, distinct from the general Mechanicus Gifts and Imperial Refits already in the booklet. The escort classes on this list share a profile with an Imperial Navy or Space Marine escort of the same name, but are exclusively Adeptus Mechanicus vessels and follow only the Mechanicus faction rules already in the booklet, not Navy or Space Marine rules.
+**Ships & refits:** Mechanicus capital ships and light cruisers use Fury Fighters (ASF, 30cm) and Starhawk Bombers (BMR, 20cm), same as Imperial Navy. Most Mechanicus hulls are refitted Imperial Navy patterns at different costs, stats, and turret counts than their Navy counterparts (extra anti-ordnance turrets are standard on Mechanicus capital ships). "Mechanicus Refits" on cruisers and light cruisers are ship-specific point options, distinct from the general Mechanicus Gifts (p.44) and Imperial Refits (p.163). The escort classes on this list share a profile with an Imperial Navy or Space Marine escort of the same name, but are exclusively Adeptus Mechanicus vessels and follow only the Mechanicus faction rules (p.43), not Navy or Space Marine rules.
 
 **Might of the Forge Worlds.**
 
