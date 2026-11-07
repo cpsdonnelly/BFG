@@ -168,7 +168,13 @@ catalog by section, then the chosen detachment's ships and the reserve lists' sh
 `fleet_list`, `detachments` and each ship's `fleet_list`. Older fleet files load with no list.
 Rules a list can't check yet are in its `unenforced` text. Not yet: fleet commanders other
 than the Master of the Fleet and Inquisitor Lord, more than one detachment, "can't take more
-copies as reserves than its own list could field", reserve-only refit rules.
+copies as reserves than its own list could field", reserve-only refit rules. Support assets
+have no list (they're scenario units).
+Readings to confirm with the owner (fleet lists): "one per N pts" counts against the points
+limit; Chaos light cruisers don't count as "cruisers" for the Chaos ratios; renegade ships
+don't count towards them; Imperial Renegades are both up to six escorts and one cruiser per
+750pts; the Rogue Trader detachment may join an Ork fleet; the Crusade list may be an
+Expedition supporting fleet; the six Venerable Battle Barges aren't in any list's tables.
 
 ### Not yet matching the booklet (export 7 audit)
 

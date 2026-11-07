@@ -128,5 +128,22 @@ def test_inferno_torpedoes_only_with_the_detachment():
 
 def test_every_faction_with_ships_has_a_list():
     for f in ("imperial_navy_gothic", "adeptus_mechanicus", "space_marines",
-              "inquisition_grey_knights"):
+              "inquisition_grey_knights", "chaos", "orks", "tau_kororvesh"):
         assert lists_for_faction(f), f
+
+
+def test_every_ratio_reserve_and_join_names_something_real():
+    for fl in ALL_LISTS:
+        names = {sec["name"] for sec in fl["sections"]}
+        for sec in fl["sections"]:
+            if sec.get("ratio") and sec["ratio"][1] != ["*cruisers"]:
+                assert set(sec["ratio"][1]) <= names, (fl["key"], sec["name"])
+        for k in fl.get("reserves", []) + fl.get("joins", []):
+            assert k in LISTS, (fl["key"], k)
+
+
+def test_ork_battleships_need_two_kroozers_each():
+    r = rows("Gorbag's Revenge (0-1)", "Kill Kroozer", list_key="orks_green_tide")
+    assert any("Battleships" in e for e in fleet_list_errors("orks_green_tide", r, 1500))
+    r += rows("Terror Ship", list_key="orks_green_tide")
+    assert not any("Battleships" in e for e in fleet_list_errors("orks_green_tide", r, 1500))
