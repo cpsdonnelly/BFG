@@ -37,9 +37,12 @@ _SEL_BG     = "#1a1a2e"
 class _ShipEditDialog:
     def __init__(self, root: tk.Tk, entry: ShipClassEntry,
                  current_name: str, current_upgrades: List[str],
-                 on_save: Callable, current_damage: Optional[dict] = None):
+                 on_save: Callable, current_damage: Optional[dict] = None,
+                 base_cost: Optional[int] = None, list_keys: Optional[List[str]] = None):
         self._on_save = on_save
         self._entry = entry
+        self._base_cost = entry.points_cost if base_cost is None else base_cost
+        self._list_keys = list(list_keys or [])
         dmg = current_damage or {}
 
         self.dialog = tk.Toplevel(root)
@@ -51,7 +54,7 @@ class _ShipEditDialog:
 
         tk.Label(self.dialog, text=entry.ship_class, font=_FONT_TITLE,
                  bg=_BG, fg=_ACCENT).pack(pady=(10, 2))
-        tk.Label(self.dialog, text=f"{entry.ship_type.capitalize()}  •  {entry.points_cost} pts base",
+        tk.Label(self.dialog, text=f"{entry.ship_type.capitalize()}  •  {self._base_cost} pts base",
                  font=_FONT_BODY, bg=_BG, fg=_FG).pack()
 
         # Custom name
@@ -72,7 +75,9 @@ class _ShipEditDialog:
         upgrade_frame.pack(fill=tk.X, padx=15)
 
         self._upgrade_vars: Dict[str, tk.BooleanVar] = {}
-        upgrades = get_upgrades_for_ship(entry)
+        from .fleet_lists import option_allowed
+        upgrades = [u for u in get_upgrades_for_ship(entry)
+                    if option_allowed(u.name, self._list_keys) or u.name in current_upgrades]
         if not upgrades:
             tk.Label(upgrade_frame, text="(no upgrades available)",
                      font=_FONT_BODY, bg=_BG, fg="#666666").pack(anchor="w")
@@ -205,7 +210,7 @@ class _ShipEditDialog:
 
     def _refresh_total(self):
         chosen = [name for name, v in self._upgrade_vars.items() if v.get()]
-        total = self._entry.points_cost
+        total = self._base_cost
         upgrade_map = {u.name: u for u in get_upgrades_for_ship(self._entry)}
         for name in chosen:
             if name in upgrade_map:
@@ -488,17 +493,23 @@ def _make_fleet_row(entry: ShipClassEntry, custom_name: str = "",
                     upgrades: Optional[List[str]] = None,
                     is_flagship: bool = False,
                     squadron_id: str = "",
-                    damage: Optional[dict] = None) -> dict:
+                    damage: Optional[dict] = None,
+                    list_key: str = "", base_cost: Optional[int] = None) -> dict:
+    """A fleet row. list_key: the fleet list the ship was taken from (the main
+    list, a detachment, or "reserve:<key>"); base_cost: its cost in that list."""
     upgrade_map = {u.name: u for u in get_upgrades_for_ship(entry)}
     upgrade_cost = sum(upgrade_map[u].points_cost
                        for u in (upgrades or []) if u in upgrade_map)
+    base = entry.points_cost if base_cost is None else base_cost
     return {
+        "list":        list_key,
+        "base_cost":   base,
         "entry":       entry,
         "custom_name": custom_name or entry.ship_class,
         "upgrades":    list(upgrades or []),
         "is_flagship": is_flagship,
         "squadron_id": squadron_id,
-        "points":      entry.points_cost + upgrade_cost,
+        "points":      base + upgrade_cost,
         "damage":      damage or {},
     }
 
@@ -519,6 +530,8 @@ class FleetBuilderWindow:
         self._on_save = on_save
         self._fleet: List[dict] = []       # list of fleet rows
         self._faction: Optional[str] = None
+        self._list_key: str = ""           # "" = playing without fleet lists (s.4)
+        self._detachment_key: str = ""
         self._points_limit = 1000
         self._fleet_name = "My Fleet"
 
@@ -577,6 +590,21 @@ class FleetBuilderWindow:
                                            font=_FONT_BODY, width=24)
         self._faction_combo.pack(side=tk.LEFT, padx=5)
         self._faction_combo.bind("<<ComboboxSelected>>", self._on_faction_selected)
+
+        tk.Label(bar, text="Fleet list:", font=_FONT_BODY, bg=_BG, fg=_FG).pack(
+            side=tk.LEFT, padx=(10, 0))
+        self._list_combo = ttk.Combobox(bar, values=[], state="readonly",
+                                        font=_FONT_BODY, width=34)
+        self._list_combo.pack(side=tk.LEFT, padx=5)
+        self._list_combo.bind("<<ComboboxSelected>>", self._on_list_selected)
+        self._list_options: List[str] = [""]
+        tk.Label(bar, text="Detachment:", font=_FONT_BODY, bg=_BG, fg=_FG).pack(
+            side=tk.LEFT, padx=(6, 0))
+        self._det_combo = ttk.Combobox(bar, values=[], state="readonly",
+                                       font=_FONT_BODY, width=22)
+        self._det_combo.pack(side=tk.LEFT, padx=5)
+        self._det_combo.bind("<<ComboboxSelected>>", self._on_detachment_selected)
+        self._det_options: List[str] = [""]
 
         for text, cmd in [
             ("Load Fleet", self._load_fleet),
@@ -668,30 +696,135 @@ class FleetBuilderWindow:
             self._fleet.clear()
             self._refresh_fleet_list()
         self._faction = faction_id
+        self._set_list_choices(faction_id)
         self._populate_catalog(faction_id)
         label = "Homebrew" if faction_id == "homebrew" else faction_display_name(faction_id)
         self._status_var.set(f"Faction: {label}")
 
+    # ── Fleet lists (s.4) ────────────────────────────────────────────────────
+
+    def _set_list_choices(self, faction_id: str, list_key: Optional[str] = None,
+                          detachment_key: str = ""):
+        """list_key None: the faction's first list (a new fleet); "" : no list."""
+        from .fleet_lists import lists_for_faction
+        lists = [] if faction_id == "homebrew" else lists_for_faction(faction_id)
+        self._list_options = [""] + [fl["key"] for fl in lists]
+        self._list_combo.config(values=["No fleet list (no restrictions)"]
+                                + [fl["name"] for fl in lists])
+        if list_key is None:
+            list_key = lists[0]["key"] if lists else ""
+        self._list_key = list_key if list_key in self._list_options else ""
+        self._list_combo.current(self._list_options.index(self._list_key))
+        self._set_detachment_choices(detachment_key)
+
+    def _set_detachment_choices(self, detachment_key: str = ""):
+        from .fleet_lists import detachments_for
+        dets = detachments_for(self._list_key) if self._list_key else []
+        self._det_options = [""] + [d["key"] for d in dets]
+        self._det_combo.config(values=["None"] + [d["name"] for d in dets])
+        self._detachment_key = detachment_key if detachment_key in self._det_options else ""
+        self._det_combo.current(self._det_options.index(self._detachment_key))
+
+    def _on_list_selected(self, _event=None):
+        idx = self._list_combo.current()
+        if idx < 0:
+            return
+        self._list_key = self._list_options[idx]
+        self._set_detachment_choices(self._detachment_key)
+        self._reprice_fleet()
+        if self._faction:
+            self._populate_catalog(self._faction)
+
+    def _on_detachment_selected(self, _event=None):
+        idx = self._det_combo.current()
+        if idx < 0:
+            return
+        self._detachment_key = self._det_options[idx]
+        if self._faction:
+            self._populate_catalog(self._faction)
+
+    def _list_keys(self) -> List[str]:
+        return [k for k in (self._list_key, self._detachment_key) if k]
+
+    def _reprice_fleet(self):
+        """Ships already in the fleet take the chosen list's costs."""
+        from .fleet_lists import LISTS, list_cost
+        for r in self._fleet:
+            key = r.get("list") or self._list_key
+            src = key.split(":", 1)[1] if key.startswith("reserve:") else key
+            fl = LISTS.get(src) if src else None
+            if not r.get("list"):
+                r["list"] = self._list_key
+            r["base_cost"] = list_cost(fl, r["entry"].ship_class, r["entry"].points_cost)
+            upgrade_map = {u.name: u for u in get_upgrades_for_ship(r["entry"])}
+            r["points"] = r["base_cost"] + sum(upgrade_map[u].points_cost
+                                               for u in r["upgrades"] if u in upgrade_map)
+        self._refresh_fleet_list()
+
     def _populate_catalog(self, faction: str):
+        """The catalog: every ship of the faction, or with a fleet list chosen,
+        the list's ships by section at the list's costs, then the detachment's
+        and the reserve lists' ships."""
         self._catalog_list.delete(0, tk.END)
+        self._catalog_entries = []
+        self._catalog_meta: List[tuple] = []          # (list key, cost) per entry
         if faction == "homebrew":
-            self._catalog_entries = _hb.load_homebrew_catalog()
+            entries = [(e, "", e.points_cost, "HB") for e in _hb.load_homebrew_catalog()]
+        elif not self._list_key:
+            entries = [(e, "", e.points_cost, e.ship_type[:3].upper())
+                       for e in get_faction_ships(faction, include_unsupported=True)]
         else:
-            self._catalog_entries = get_faction_ships(faction, include_unsupported=True)
-        for e in self._catalog_entries:
-            tag = "HB" if faction == "homebrew" else e.ship_type[:3].upper()
+            entries = self._list_catalog()
+        for e, key, cost, tag in entries:
+            if e is None:                               # section header
+                self._catalog_entries.append(None)
+                self._catalog_meta.append(("", 0))
+                self._catalog_list.insert(tk.END, f"— {tag} —")
+                self._catalog_list.itemconfig(tk.END, fg=_ACCENT, selectforeground=_ACCENT)
+                continue
+            self._catalog_entries.append(e)
+            self._catalog_meta.append((key, cost))
             suffix = "" if e.playable else "  (not playable yet)"
-            self._catalog_list.insert(
-                tk.END,
-                f"[{tag}] {e.ship_class}  {e.points_cost}pts{suffix}")
+            self._catalog_list.insert(tk.END, f"[{tag}] {e.ship_class}  {cost}pts{suffix}")
             if not e.playable:
                 self._catalog_list.itemconfig(tk.END, fg="#777777",
                                               selectforeground="#AAAAAA")
         self._catalog_info.config(text="")
 
+    def _list_catalog(self) -> List[tuple]:
+        from .fleet_lists import LISTS
+        from .ship_catalog import find_ship_class
+        out: List[tuple] = []
+        main = LISTS[self._list_key]
+
+        def add_list(fl, key, label_prefix=""):
+            for sec in fl["sections"]:
+                rows = [(find_ship_class(c), key, cost, sec["name"][:3].upper())
+                        for c, cost in sec["ships"].items()]
+                rows = [r for r in rows if r[0] is not None]
+                if rows:
+                    out.append((None, "", 0, f"{label_prefix}{sec['name']}"))
+                    out.extend(rows)
+
+        add_list(main, self._list_key)
+        if self._detachment_key:
+            det = LISTS[self._detachment_key]
+            add_list(det, self._detachment_key, f"{det['name'].split(' (')[0]}: ")
+        for rkey in main.get("reserves", []):
+            if rkey not in LISTS or rkey == self._list_key:
+                continue
+            fl = LISTS[rkey]
+            out.append((None, "", 0, f"Reserves: {fl['name'].split(' (')[0]}"))
+            for sec in fl["sections"]:
+                for c, cost in sec["ships"].items():
+                    e = find_ship_class(c)
+                    if e is not None:
+                        out.append((e, f"reserve:{rkey}", cost, "RES"))
+        return out
+
     def _show_catalog_entry(self):
         sel = self._catalog_list.curselection()
-        if not sel:
+        if not sel or self._catalog_entries[sel[0]] is None:
             return
         self._catalog_info.config(text=catalog_entry_summary(self._catalog_entries[sel[0]]))
 
@@ -714,11 +847,15 @@ class FleetBuilderWindow:
             self._status_var.set("Select a ship class first.")
             return
         entry = self._catalog_entries[sel[0]]
+        if entry is None:
+            return
         if not entry.playable:
             self._status_var.set(f"{entry.ship_class} can't be played yet: "
                                  + "; ".join(entry.unsupported))
             return
-        row = _make_fleet_row(entry)
+        meta = getattr(self, "_catalog_meta", None)
+        key, cost = meta[sel[0]] if meta else ("", entry.points_cost)
+        row = _make_fleet_row(entry, list_key=key, base_cost=cost)
         self._fleet.append(row)
         self._refresh_fleet_list()
         self._status_var.set(f"Added {entry.ship_class}.")
@@ -737,12 +874,14 @@ class FleetBuilderWindow:
             upgrade_map = {u.name: u for u in get_upgrades_for_ship(row["entry"])}
             upgrade_cost = sum(upgrade_map[u].points_cost
                                for u in upgrades if u in upgrade_map)
-            row["points"] = row["entry"].points_cost + upgrade_cost
+            row["points"] = row.get("base_cost", row["entry"].points_cost) + upgrade_cost
             self._refresh_fleet_list()
 
         _ShipEditDialog(self.win, row["entry"], row["custom_name"],
                         row["upgrades"], on_save=_save,
-                        current_damage=row.get("damage", {}))
+                        current_damage=row.get("damage", {}),
+                        base_cost=row.get("base_cost", row["entry"].points_cost),
+                        list_keys=self._list_keys())
 
     def _toggle_flagship(self):
         sel = self._fleet_list.curselection()
@@ -769,9 +908,12 @@ class FleetBuilderWindow:
         for row in self._fleet:
             flagship = " ★" if row["is_flagship"] else ""
             upgrades = f" [{', '.join(row['upgrades'])}]" if row["upgrades"] else ""
+            key = row.get("list", "")
+            tag = (" (reserve)" if key.startswith("reserve:")
+                   else " (detachment)" if key and key == self._detachment_key else "")
             self._fleet_list.insert(
                 tk.END,
-                f"{row['custom_name']}{flagship}  {row['points']}pts{upgrades}")
+                f"{row['custom_name']}{tag}{flagship}  {row['points']}pts{upgrades}")
         self._refresh_totals()
 
     def _fleet_total(self) -> int:
@@ -829,6 +971,13 @@ class FleetBuilderWindow:
                 errors.append(f"{r.get('name', r['entry'].ship_class)}: {p}")
         errors += fleet_option_errors(
             [(r["entry"], r.get("upgrades", [])) for r in self._fleet], total)
+
+        # Fleet list limits (s.4)
+        from .fleet_lists import fleet_list_errors
+        errors += fleet_list_errors(
+            self._list_key, [{**r, "list": r.get("list") or self._list_key}
+                             for r in self._fleet],
+            limit, [self._detachment_key] if self._detachment_key else [])
 
         # Check squadrons by ship type
         squadrons: Dict[str, List[dict]] = {}
@@ -903,6 +1052,8 @@ class FleetBuilderWindow:
             "description":  "",
             "points_limit": limit,
             "total_points": self._fleet_total(),
+            "fleet_list":   self._list_key,
+            "detachments":  [self._detachment_key] if self._detachment_key else [],
             "ships": [],
         }
 
@@ -918,6 +1069,10 @@ class FleetBuilderWindow:
             storable = {k: v for k, v in ship_dict.items()
                         if k not in ("id", "player", "x", "y", "heading")}
             storable["squadron_id"] = row.get("squadron_id", "")
+            # The ship's cost in its fleet list (Bakka's premium, for example)
+            storable["points_value"] += row.get("base_cost", entry.points_cost) - entry.points_cost
+            if row.get("list"):
+                storable["fleet_list"] = row["list"]
             # Write non-default damage state for campaign/scenario use
             dmg = row.get("damage", {})
             if "hits_remaining" in dmg:
@@ -963,6 +1118,9 @@ class FleetBuilderWindow:
             idx = self._faction_ids.index(faction)
             self._faction_combo.current(idx)
             self._faction = faction
+            # Older fleet files have no fleet list: no restrictions
+            dets = data.get("detachments") or [""]
+            self._set_list_choices(faction, data.get("fleet_list", ""), dets[0])
             self._populate_catalog(faction)
         else:
             self._status_var.set(f"Warning: unknown faction '{faction}'.")
@@ -978,6 +1136,9 @@ class FleetBuilderWindow:
         for s in data.get("ships", []):
             sc = s.get("ship_class", "")
             official_entry = get_ship_class(faction, sc)
+            if official_entry is None and s.get("fleet_list"):
+                from .ship_catalog import find_ship_class
+                official_entry = find_ship_class(sc)      # e.g. a reserve from another faction
 
             if official_entry:
                 official_classes.append(sc)
@@ -1005,10 +1166,11 @@ class FleetBuilderWindow:
                 is_flagship=s.get("is_flagship", False),
                 squadron_id=s.get("squadron_id", ""),
                 damage=dmg if dmg else None,
+                list_key=s.get("fleet_list", ""),
             )
             self._fleet.append(row)
 
-        self._refresh_fleet_list()
+        self._reprice_fleet()
 
         n_off = len(official_classes)
         n_unoff = len(unofficial_classes)

@@ -21,7 +21,7 @@ lst.selection_set(0); w._show_catalog_entry(); print("details:", w._catalog_info
 w._add_selected(); print("add unplayable ->", w._status_var.get()[:120], "| fleet size", len(w._fleet))
 
 w._faction_combo.current(w._faction_ids.index("imperial_navy_gothic")); w._on_faction_selected(); root.update()
-idx = next(i for i, e in enumerate(w._catalog_entries) if e.ship_class == "Lunar Cruiser")
+idx = next(i for i, e in enumerate(w._catalog_entries) if e is not None and e.ship_class == "Lunar Cruiser")
 lst.selection_clear(0, tk.END); lst.selection_set(idx); w._show_catalog_entry()
 print("Lunar details:", w._catalog_info.cget("text"))
 w._add_selected(); print("added ->", w._status_var.get(), "| fleet size", len(w._fleet))

@@ -24,7 +24,7 @@ w = fb.FleetBuilderWindow(root); root.update()
 w._faction_combo.current(w._faction_ids.index("space_marines")); w._on_faction_selected(); root.update()
 lst = w._catalog_list
 def add(cls):
-    idx = next(i for i, e in enumerate(w._catalog_entries) if e.ship_class == cls)
+    idx = next(i for i, e in enumerate(w._catalog_entries) if e is not None and e.ship_class == cls)
     lst.selection_clear(0, tk.END); lst.selection_set(idx); w._show_catalog_entry(); w._add_selected()
 add("Space Marine Battle Barge"); add("Strike Cruiser"); add("Strike Cruiser")
 w._pts_limit_var.set("1500")

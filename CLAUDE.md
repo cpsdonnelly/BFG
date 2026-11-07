@@ -145,13 +145,30 @@ the AI re-rolls only raids with no effect); Tactical Reserves' 25% reduction rou
 like "half firepower (rounding up)", macrobatteries only; Pack Hunter needs a combined boarding
 action (two or more of one squadron) against a larger ship; Lightning Thrusters vanguards
 "either fire macrobatteries at full effectiveness or turn up to 45°". Its fleet-list part (up to 4
-vanguards count against the strike cruiser maximum) waits on fleet-list limits, which the fleet
-builder doesn't enforce yet. The other six also match s.03 (Dark Age, Siege Cannons, Shadow
+vanguards count against the strike cruiser maximum) is in `fleet_lists` (the vanguards'
+`lightning_thrusters` section key). The other six also match s.03 (Dark Age, Siege Cannons, Shadow
 Engines, Promethean Unguents, Heed the Machine Spirit, Tactical Flexibility), except:
 Promethean Unguents barrage bombs hit on 4+, place a blast marker per hit (no damage) and
 halve turrets for the next ordnance attack that turn (`Ship.turrets_halved_turn`,
 `ordnance.ordnance_turrets`); Shadow Engines' "no effect against Tyranids or Necrons" has no
 faction to apply to; Heed the Machine Spirit is always taken when a save fails (no prompt).
+
+### Fleet lists (s.4)
+
+`src/fleet_lists.py` (Navy, Mechanicus, Space Marines, Inquisition) and
+`src/fleet_list_data_other.py` (Chaos, Orks, Tau, Rogue Traders) transcribe each faction's
+Fleet Composition: sections with their ships at the list's costs (Bakka's premium), section
+maxima, "one per N cruisers" ratios, "one per N pts", 0-1 uniques, minimum fleet sizes,
+reserves (one per 3 of each type; Bakka 4; Dominion's own ratios), detachments (`kind:
+"detachment"`, `joins`), options only some lists allow (`list_options`: Inferno torpedoes in
+the Inquisitorial Fleet Detachment) and Lightning Thrusters' vanguards. `fleet_list_errors` is
+called by the fleet builder's validation. The fleet builder picks a list per fleet (the
+faction's first by default; "No fleet list" plays without restrictions, s.4), shows the
+catalog by section, then the chosen detachment's ships and the reserve lists' ships, and saves
+`fleet_list`, `detachments` and each ship's `fleet_list`. Older fleet files load with no list.
+Rules a list can't check yet are in its `unenforced` text. Not yet: fleet commanders other
+than the Master of the Fleet and Inquisitor Lord, more than one detachment, "can't take more
+copies as reserves than its own list could field", reserve-only refit rules.
 
 ### Not yet matching the booklet (export 7 audit)
 
