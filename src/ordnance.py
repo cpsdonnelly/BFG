@@ -1174,7 +1174,8 @@ def torpedo_kind_options(ship, weapon: Dict, hit_and_run: bool = True) -> List[T
     if weapon.get("torpedo_type") == "guided":
         return [("standard", "Guided missiles")]
     kinds = [("standard", "Standard torpedoes")]
-    if weapon.get("boarding_torpedoes") and hit_and_run:
+    if (weapon.get("boarding_torpedoes") and hit_and_run
+            and "no_boarding_torps" not in (getattr(ship, "special_rules", None) or [])):
         kinds.append(("boarding", "Boarding torpedoes (1 hit-and-run raid per hit)"))
     used = getattr(ship, "once_torps_used", None) or []
     kinds += [(k, EXTRA_TORPEDO_TYPES[k][1]) for k in ship_torpedo_types(ship)

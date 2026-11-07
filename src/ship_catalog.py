@@ -134,10 +134,11 @@ class ShipClassEntry:
 # ---------------------------------------------------------------------------
 
 def _build_catalogs() -> Dict[str, List[ShipClassEntry]]:
-    from .booklet_ships import FACTIONS, convert_row, load_rows
+    from .booklet_ships import FACTIONS, convert_row, load_rows, venerable_strike_cruiser_rows
     catalogs: Dict[str, List[ShipClassEntry]] = {fid: [] for fid, _, _ in FACTIONS.values()}
     from .booklet_options import options_for
-    for row in load_rows():
+    rows = load_rows()
+    for row in rows + venerable_strike_cruiser_rows(rows):
         kw = convert_row(row)
         kw["upgrades_available"] = [UpgradeEntry(**o) for o in options_for(row)]
         entry = ShipClassEntry(**kw)

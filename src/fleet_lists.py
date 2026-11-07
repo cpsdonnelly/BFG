@@ -176,14 +176,21 @@ _SM_VENERABLE = {"Emperor Battle Barge": 475, "Apocalypse Battle Barge": 475,
 # fleet must be worth 1000+pts to include the Chapter flagship. (0-1) Chapter
 # Flagship: Venerable Battle Barge, Ultima Battle Barge 450, Space Marine Battle Barge
 # 425; (0-2) Command Ships: Space Marine Battle Barge 425."
+def _venerable_scs() -> Dict[str, int]:
+    """Venerable strike cruisers designed from Navy / Chaos profiles (catalog
+    entries "Venerable Strike Cruiser (<class>)"), at their designed cost."""
+    from .ship_catalog import get_faction_ships
+    return {e.ship_class: e.points_cost for e in get_faction_ships("space_marines", True)
+            if e.ship_class.startswith("Venerable Strike Cruiser (")}
+
+
 _SM_BARGES = {"name": "Battle barges", "per_points": 1000, "or_part": True, "sm_barges": True,
               "ships": dict(_SM_VENERABLE, **{"Ultima Battle Barge": 450,
                                               "Space Marine Battle Barge": 425})}
 _SM_UNENFORCED = [
     "The Master of the Fleet must ride a battle barge, the Chapter flagship if present.",
-    "Venerable Strike Cruisers (designed from the Space Marine rules) aren't in the catalog: "
-    "with a fleet of 1000+pts, up to one per three standard strike cruisers (variants count), "
-    "at most two.",
+    "Venerable strike cruisers are designed (Imperium p.137); the catalog has one for each "
+    "eligible Navy / Chaos class.",
 ]
 
 SM_LISTS = [
@@ -191,7 +198,8 @@ SM_LISTS = [
      "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 750},
      "sections": [
          dict(_SM_BARGES),
-         {"name": "Strike Cruisers", "ships": {"Strike Cruiser": 145}},
+         {"name": "Strike Cruisers", "venerable_sc": True,
+          "ships": dict({"Strike Cruiser": 145}, **_venerable_scs())},
          {"name": "Vanguard Cruisers", "max": 6, "ships": {"Vanguard Cruiser": 130},
           "lightning_thrusters": "Strike Cruisers"},
          {"name": "Escorts", "ships": dict(_SM_ESC)},
@@ -203,7 +211,8 @@ SM_LISTS = [
      "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 750},
      "sections": [
          dict(_SM_BARGES),
-         {"name": "Strike Cruisers", "max": 10, "ships": {"Strike Cruiser": 145}},
+         {"name": "Strike Cruisers", "max": 10, "venerable_sc": True,
+          "ships": dict({"Strike Cruiser": 145}, **_venerable_scs())},
          {"name": "Vanguard Cruisers", "max": 0, "ships": {"Vanguard Cruiser": 130},
           "lightning_thrusters": "Strike Cruisers"},
          {"name": "Escorts",
@@ -541,6 +550,16 @@ def _list_errors(fl: Dict, rows: List[Dict], points_limit: int,
                               f"({cap} for {worth}pts).")
         if sec.get("sm_barges"):
             errors += _sm_barge_errors(classes, points_limit)
+        if sec.get("venerable_sc"):
+            # Owner ruling: with a fleet of 1000+pts, up to one venerable strike
+            # cruiser per three standard ones (variants count), at most two
+            ven = sum(n for c, n in classes.items() if c.startswith("Venerable Strike Cruiser ("))
+            std = classes.get("Strike Cruiser", 0)
+            if ven and points_limit < 1000:
+                errors.append("Venerable strike cruisers need a fleet worth at least 1000pts.")
+            if ven > min(2, std // 3):
+                errors.append(f"Venerable strike cruisers: {ven}, at most one per three "
+                              f"standard strike cruisers and two in all ({min(2, std // 3)}).")
         for cls, mx in (sec.get("class_max") or {}).items():
             if classes.get(cls, 0) > mx:
                 errors.append(f"{cls}: {classes[cls]} taken, at most {mx}.")

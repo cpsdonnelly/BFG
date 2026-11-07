@@ -315,8 +315,13 @@ def convert_row(row: dict) -> dict:
         # Thrusters upgrade stacks with them (owner ruling)
         special_rules.append("sigils_of_quickening" if "Sigils of Quickening" in notes
                              else "improved_thrusters")
-    if row.get("roster_group") == "Venerable Battle Barges":
-        special_rules.append("venerable")
+    if row.get("roster_group") in ("Venerable Battle Barges", "Venerable Strike Cruisers"):
+        special_rules.append("venerable")         # VP 50% crippled / 125% destroyed
+    if row.get("roster_group") == "Venerable Strike Cruisers":
+        # "otherwise gains boarding torpedoes free"
+        for d in weapons:
+            if d.get("weapon_type") == "torpedo":
+                d["boarding_torpedoes"] = True
     if "Grey Knights" in (row.get("faction_rules") or []):
         ld_table = "Astartes"          # Grey Knights use all Space Marine rules
     elif row.get("faction") == "Space Marines" and not row.get("faction_rules"):
@@ -359,3 +364,66 @@ def convert_row(row: dict) -> dict:
 def load_rows(path: str = SHIPS_JSON) -> List[dict]:
     with open(path, encoding="utf-8") as f:
         return json.load(f)["ships"]
+
+
+# ── Venerable Strike Cruisers (Designing a Venerable Strike Cruiser, Imperium
+#    p.137, in 03_space-marines.md) ─────────────────────────────────────────
+
+def venerable_strike_cruiser_rows(rows: List[dict]) -> List[dict]:
+    """A venerable strike cruiser "may be any non-unique grand cruiser,
+    battlecruiser, or heavy cruiser from an Imperial Navy or Chaos list, at
+    normal cost +25pts for its Space Marine crew", and is a Space Marine vessel
+    in all respects. Its attack craft become Thunderhawks with launch bay
+    strength halved (rounding up; the ship's total); a nova cannon must be
+    replaced by the Strike Cruiser Prow (6+ prow armour, prow torpedoes 30cm S6
+    F; free with 6+ prow armour, otherwise +25pts) for 10pts less. The other
+    refits are options (booklet_options.venerable_strike_cruiser_options)."""
+    import copy
+    out = []
+    for row in rows:
+        if row["faction"] not in ("Imperial Navy", "Chaos"):
+            continue
+        if not re.search(r"Grand Cruiser|Battlecruiser|Heavy Cruiser", row["name"]):
+            continue
+        if "unique" in row["name"].lower() or not isinstance(row.get("points"), int):
+            continue
+        v = copy.deepcopy(row)
+        v["base_class"] = row["name"]
+        v["name"] = f"Venerable Strike Cruiser ({row['name']})"
+        v["faction"] = "Space Marines"
+        v["faction_rules"] = ["Space Marines"]
+        v["roster_group"] = "Venerable Strike Cruisers"
+        v["roster_group_notes"] = None
+        v["points"] = row["points"] + 25
+        v["points_raw"] = str(v["points"])
+        bays = [w for w in v["weapons"] if w.get("kind") == "launch_bays"]
+        total = sum(int(b["strength"]) for w in bays for b in w["bays"]
+                    if str(b.get("strength", "")).isdigit())
+        left = -(-total // 2)
+        for w in bays:
+            w["craft"] = [{"type": "MR", "speed_cm": 20}]       # Thunderhawks only
+            for b in w["bays"]:
+                n = min(left, -(-int(b["strength"]) // 2)) if str(b["strength"]).isdigit() else 0
+                b["strength"], left = str(n), left - n
+            w["bays"] = [b for b in w["bays"] if b["strength"] != "0"]
+        v["weapons"] = [w for w in v["weapons"]
+                        if not (w.get("kind") == "launch_bays" and not w["bays"])]
+        if any("Nova" in (w.get("name") or "") for w in v["weapons"]):
+            prow_six = (v.get("armour") or {}).get("front") == 6
+            v["weapons"] = [w for w in v["weapons"] if w.get("location") != "Prow"]
+            v["weapons"].append(STRIKE_CRUISER_PROW_ROW)
+            v["points"] += (0 if prow_six else 25) - 10
+            v["points_raw"] = str(v["points"])
+            v["strike_cruiser_prow"] = True
+            if v.get("armour"):
+                v["armour"] = {**v["armour"], "front": 6}
+        out.append(v)
+    return out
+
+
+STRIKE_CRUISER_PROW_ROW = {
+    "kind": "weapon", "name": "Torps", "location": "Prow", "stat": "S", "value": "6",
+    "value_int": 6, "range_max_cm": 30, "qualifier": "standard or boarding",
+    "mounts": [{"arcs": ["F"]}], "category": "ordnance", "group": None,
+    "raw": "Prow Torps 30cm S6 (F)", "parsed": True}
+

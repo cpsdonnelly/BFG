@@ -295,10 +295,52 @@ def refitted_torpedo_options(row: dict) -> List[Dict]:
     return []
 
 
+VSC_PROW = "Strike Cruiser Prow"
+
+
+def venerable_strike_cruiser_options(row: dict) -> List[Dict]:
+    """Designing a Venerable Strike Cruiser (Imperium p.137): the Strike
+    Cruiser Prow (6+ prow armour and prow torpedoes 30cm S6 F, replacing any
+    prow armament; free with 6+ prow armour, otherwise +25pts; already fitted
+    on nova cannon ships), and short-burn torpedoes +5pts or barrage bombs
+    +10pts instead of the free boarding torpedoes. Its own profile's refits
+    can't be used."""
+    opts: List[Dict] = []
+    has_torps = bool(torpedo_strength(row))
+    if not row.get("strike_cruiser_prow"):
+        prow = [f"Prow {w['name']}" for w in row.get("weapons") or [] if w.get("location") == "Prow"]
+        six = (row.get("armour") or {}).get("front") == 6
+        opts.append({
+            "name": VSC_PROW,
+            "description": "6+ prow armour and prow torpedoes (30cm S6 F, standard or boarding), "
+                           "replacing any prow armament; "
+                           + ("free (already 6+ prow armour)." if six else "+25pts."),
+            "points_cost": 0 if six else 25,
+            "effect": {"remove_weapons": prow,
+                       "add_weapon": {"name": "Prow Torps", "weapon_type": "torpedo",
+                                      "range_cm": 30, "strength": 6, "arcs": ["front"],
+                                      "torpedo_type": "standard", "torpedo_speed": 30,
+                                      "boarding_torpedoes": True},
+                       "set": {"armor_prow": "6+"}},
+        })
+    needs = [] if has_torps or row.get("strike_cruiser_prow") else [f"requires:{VSC_PROW}"]
+    for key, label, cost in (("short_burn", "short burn torpedoes", 5),
+                             ("barrage", "barrage bombs", 10)):
+        opts.append({
+            "name": f"Torpedoes: {label} (instead of boarding torpedoes)",
+            "description": f"+{cost}pts.",
+            "points_cost": cost,
+            "effect": {"add_special_rules": [f"torpedo_type:{key}", "no_boarding_torps"]},
+            "restrictions": ["group:torpedo_type"] + needs})
+    return opts
+
+
 def options_for(row: dict) -> List[Dict]:
     """Options for one booklet ship (Space Marine options, Imperial Navy and
     Chaos torpedo types so far)."""
     rules = row.get("faction_rules") or []
+    if row.get("roster_group") == "Venerable Strike Cruisers":
+        return venerable_strike_cruiser_options(row)
     if "Space Marines" in rules:
         return space_marine_options(row)
     if "Imperial Navy" in rules or "Chaos" in rules:

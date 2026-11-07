@@ -207,7 +207,15 @@ Owner rulings (fleet lists, export 15):
 - Space Marine battle barges (both lists): one per 1000pts or portion thereof; (0-1) Chapter
   Flagship (a Venerable Battle Barge, the Ultima or a Space Marine Battle Barge) needs a
   1000+pt fleet; (0-2) Command Ships (Space Marine Battle Barges). Venerable strike cruisers:
-  with 1000+pts, one per three standard strike cruisers, at most two (not in the catalog).
+  with 1000+pts, one per three standard strike cruisers (variants count), at most two.
+- Venerable Strike Cruisers (Imperium p.137): `booklet_ships.venerable_strike_cruiser_rows`
+  makes "Venerable Strike Cruiser (<class>)" from every non-unique Navy / Chaos grand cruiser,
+  battlecruiser and heavy cruiser (17): +25pts, Space Marine rules only, VP 50% / 125%,
+  Thunderhawks only with the ship's total bay strength halved (rounding up), boarding
+  torpedoes free; nova cannon ships get the Strike Cruiser Prow built in for 10pts less.
+  Options (`venerable_strike_cruiser_options`): Strike Cruiser Prow (free with 6+ prow,
+  else +25), short burn +5 or barrage bombs +10 instead of boarding torpedoes. Reading: bay
+  halving uses the ship's total, not each side.
 - Demiurg commerce vessels: fixed Ld (Stronghold 10, Bastion and Citadel 9), -1 per point of
   damage to a minimum of 5; Bridge Smashed deals one extra damage instead of -3 Ld
   (`combat.demiurg_leadership`).
