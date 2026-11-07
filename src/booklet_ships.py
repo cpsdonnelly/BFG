@@ -376,8 +376,8 @@ def venerable_strike_cruiser_rows(rows: List[dict]) -> List[dict]:
     """A venerable strike cruiser "may be any non-unique grand cruiser,
     battlecruiser, or heavy cruiser from an Imperial Navy or Chaos list, at
     normal cost +25pts for its Space Marine crew", and is a Space Marine vessel
-    in all respects. Its attack craft become Thunderhawks with launch bay
-    strength halved (rounding up; the ship's total); a nova cannon must be
+    in all respects. Its attack craft become Thunderhawks with each hangar's
+    launch bay strength halved (rounding up, owner ruling); a nova cannon must be
     replaced by the Strike Cruiser Prow (6+ prow armour, prow torpedoes 30cm S6
     F; free with 6+ prow armour, otherwise +25pts) for 10pts less. The other
     refits are options (booklet_options.venerable_strike_cruiser_options)."""
@@ -400,15 +400,12 @@ def venerable_strike_cruiser_rows(rows: List[dict]) -> List[dict]:
         v["points"] = row["points"] + 25
         v["points_raw"] = str(v["points"])
         bays = [w for w in v["weapons"] if w.get("kind") == "launch_bays"]
-        total = sum(int(b["strength"]) for w in bays for b in w["bays"]
-                    if str(b.get("strength", "")).isdigit())
-        left = -(-total // 2)
         for w in bays:
             w["craft"] = [{"type": "MR", "speed_cm": 20}]       # Thunderhawks only
             for b in w["bays"]:
-                n = min(left, -(-int(b["strength"]) // 2)) if str(b["strength"]).isdigit() else 0
-                b["strength"], left = str(n), left - n
-            w["bays"] = [b for b in w["bays"] if b["strength"] != "0"]
+                # Owner ruling: each hangar is halved separately, rounding up
+                if str(b.get("strength", "")).isdigit():
+                    b["strength"] = str(-(-int(b["strength"]) // 2))
         v["weapons"] = [w for w in v["weapons"]
                         if not (w.get("kind") == "launch_bays" and not w["bays"])]
         if any("Nova" in (w.get("name") or "") for w in v["weapons"]):

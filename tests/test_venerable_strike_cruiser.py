@@ -19,9 +19,9 @@ def test_cost_crew_and_faction_rules():
 
 
 def test_thunderhawks_only_bay_strength_halved_rounding_up():
-    e = vsc("Exorcist Grand Cruiser")          # port S3 + stbd S3 -> 3 in all
+    e = vsc("Exorcist Grand Cruiser")          # port S3 + stbd S3 -> 2 + 2 (each halved)
     bays = [w for w in e.weapons if w["weapon_type"] == "launch_bay"]
-    assert sum(w["strength"] for w in bays) == 3
+    assert [w["strength"] for w in bays] == [2, 2]
     assert all(w["craft_types"] == ["thunderhawk"] for w in bays)
 
 
