@@ -776,20 +776,9 @@ def friendly_ordnance_contact(m1: OrdnanceMarker, m2: OrdnanceMarker) -> Optiona
     return None
 
 
-def resolve_ordnance_interactions(game_state: GameState,
-                                   dice: DiceRoller) -> List[str]:
-    """
-    Resolve all ordnance-vs-ordnance interactions after movement.
-    Fighters intercept enemy ordnance they contact (compulsory).
-    Torpedo salvos that contact each other are both destroyed.
-    Between friendly markers see friendly_ordnance_contact.
-    Returns log messages.
-    """
-    logs = []
-    to_remove = set()
-
-    ordnance = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance]
-
+def _interaction_pass(ordnance, to_remove, logs, dice, game_state, is_lead):
+    """One pass over every pair of touching markers; markers in a wave only
+    interact while they lead it."""
     for i, m1 in enumerate(ordnance):
         if m1.id in to_remove:
             continue
@@ -800,7 +789,10 @@ def resolve_ordnance_interactions(game_state: GameState,
                 continue
             if m2.cap_ship_id:
                 continue  # same for the other marker
-
+            if m1.wave_id and m1.wave_id == m2.wave_id:
+                continue  # a wave's own squadrons
+            if not (is_lead(m1, ordnance, to_remove) and is_lead(m2, ordnance, to_remove)):
+                continue
             same_player = (m1.owner_player == m2.owner_player)
             if same_player:
                 kind = friendly_ordnance_contact(m1, m2)
@@ -867,6 +859,31 @@ def resolve_ordnance_interactions(game_state: GameState,
                     to_remove.add(m2.id)
                     logs.append(
                         "Torpedo salvos collide and detonate!")
+
+
+
+def resolve_ordnance_interactions(game_state: GameState,
+                                   dice: DiceRoller) -> List[str]:
+    """
+    Resolve all ordnance-vs-ordnance interactions after movement.
+    Fighters intercept enemy ordnance they contact (compulsory).
+    Torpedo salvos that contact each other are both destroyed.
+    Between friendly markers see friendly_ordnance_contact.
+    Returns log messages.
+    """
+    logs = []
+    to_remove = set()
+
+    ordnance = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance]
+    from .waves import is_lead
+
+    # Waves interact one squadron at a time from the lead (s.25): repeat until
+    # nothing more happens, so the next squadron of a wave meets what's left
+    while True:
+        before = (len(to_remove), sum(1 for m in ordnance if m.resilient_used))
+        _interaction_pass(ordnance, to_remove, logs, dice, game_state, is_lead)
+        if (len(to_remove), sum(1 for m in ordnance if m.resilient_used)) == before:
+            break
 
     # Remove destroyed ordnance and persist state changes on survivors
     # (resilient_used flag may have been set on markers that survived)

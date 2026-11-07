@@ -107,7 +107,12 @@ class OrdnancePanel(OrdnanceMovementMixin):
         frame.pack(fill=tk.BOTH, expand=True, padx=8)
         rows = []
         straight = "Straight ahead"
+        from .waves import members as wave_members, wave_speed
+        splits = []                      # (wave member, BooleanVar) "split off" ticks
         for m in craft:
+            ms = wave_members(craft, m.wave_id) if m.wave_id else [m]
+            if ms[0].id != m.id:
+                continue                 # one row per wave: its lead
             options, ids = [straight], {straight: ""}
             for sh in gs.get_ships():
                 if sh.is_destroyed or sh.is_disengaged:
@@ -130,21 +135,45 @@ class OrdnancePanel(OrdnanceMovementMixin):
             var = tk.StringVar(value=current)
             row = tk.Frame(frame)
             row.pack(fill=tk.X, pady=1)
-            tk.Label(row, text=f"P{m.owner_player} {m.ordnance_type} ({m.x:.0f},{m.y:.0f}) "
-                               f"{m.speed:g}cm",
+            title = (f"P{m.owner_player} {m.ordnance_type} ({m.x:.0f},{m.y:.0f}) "
+                     f"{m.speed:g}cm" if len(ms) == 1 else
+                     f"P{m.owner_player} {m.wave_formation} wave of {len(ms)} "
+                     f"({m.x:.0f},{m.y:.0f}) {wave_speed(ms):g}cm")
+            tk.Label(row, text=title,
                      font=("Consolas", 8), width=34, anchor=tk.W).pack(side=tk.LEFT)
             tk.OptionMenu(row, var, *options).pack(side=tk.LEFT, fill=tk.X, expand=True)
-            rows.append((m, var, ids))
+            rows.append((m, var, ids, ms))
+            if len(ms) > 1:
+                # Squadrons may split off when the wave moves: alone, or together
+                # as a new wave in the same formation; they never rejoin (s.25)
+                sub = tk.Frame(frame)
+                sub.pack(fill=tk.X, padx=(24, 0))
+                tk.Label(sub, text="Split off:", font=("Consolas", 7)).pack(side=tk.LEFT)
+                for k, w in enumerate(ms):
+                    v = tk.BooleanVar(value=False)
+                    tk.Checkbutton(sub, text=f"{k + 1}. {w.ordnance_type}", variable=v,
+                                   font=("Consolas", 7)).pack(side=tk.LEFT)
+                    splits.append((w, v))
 
         def _apply():
             changed = 0
-            for m, var, ids in rows:
+            for m, var, ids, ms in rows:
                 tid = ids.get(var.get(), "")
+                wanted = {w.id for w in ms}     # a wave's squadrons share its target
                 for i, o in enumerate(gs.ordnance):
-                    if o["id"] == m.id and o.get("craft_target_id", "") != tid:
+                    if o["id"] in wanted and o.get("craft_target_id", "") != tid:
                         gs.ordnance[i] = {**o, "craft_target_id": tid}
                         changed += 1
             self.ctx.log(f"Attack craft orders: {changed} squadron(s) given new targets")
+            from .waves import split_from_wave
+            by_wave = {}
+            for w, v in splits:
+                if v.get():
+                    by_wave.setdefault(w.wave_id, []).append(w.id)
+            for wid, ids_ in by_wave.items():
+                new = split_from_wave(gs, ids_)
+                self.ctx.log(f"  {len(ids_)} squadron(s) split off their wave"
+                             + (" as a new wave" if new else ""))
             dialog.destroy()
             self.ctx.board.redraw()
 
@@ -691,6 +720,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         self.ctx.log(line)
                 current_remaining = min(current_remaining, group_cap)
                 total_launched = 0
+                launched_ids = []
 
                 for ct, var in composition_vars.items():
                     try:
@@ -722,12 +752,14 @@ class OrdnancePanel(OrdnanceMovementMixin):
                                 *(set(c.special_rules) for c in contributors))),
                         )
                         self.ctx.gs.add_ordnance(marker)
+                        launched_ids.append(marker.id)
                         total_launched += 1
 
                 if total_launched == 0:
                     messagebox.showwarning("No Craft",
                         "Set at least one craft type to a non-zero count.")
                     return
+                self._form_launched_wave(launched_ids, combo_wave[0], combo_wave[1])
 
                 self.ctx.log(
                     f"Combined craft launch: {names_str} — "
@@ -742,6 +774,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
             dialog.destroy()
             self.ctx.board.redraw()
 
+        combo_wave = (None, None) if launch_torps else self._wave_controls(dialog)
         btn_row = tk.Frame(dialog)
         btn_row.pack(pady=8)
         tk.Button(btn_row, text=f"Launch Combined {ord_label}!", command=_launch,
@@ -749,6 +782,28 @@ class OrdnancePanel(OrdnanceMovementMixin):
                   font=("Consolas", 10, "bold")).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_row, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+
+    def _wave_controls(self, parent):
+        """"Launch as one wave" and its formation (s.25). Returns the two vars."""
+        frame = tk.Frame(parent)
+        frame.pack(fill=tk.X, padx=10, pady=2)
+        wave_var = tk.BooleanVar(value=True)
+        form_var = tk.StringVar(value="close")
+        tk.Checkbutton(frame, text="Launch as one wave", variable=wave_var,
+                       font=("Consolas", 8)).pack(side=tk.LEFT)
+        for val in ("close", "loose"):
+            tk.Radiobutton(frame, text=val.capitalize(), variable=form_var, value=val,
+                           font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
+        tk.Label(frame, text="(moves and attacks together; fighters lead)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+        return wave_var, form_var
+
+    def _form_launched_wave(self, ids, wave_var, form_var):
+        if wave_var is not None and wave_var.get() and len(ids) > 1:
+            from .waves import form_wave, members, wave_label
+            wid = form_wave(self.ctx.gs, ids, form_var.get())
+            ms = members([OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance], wid)
+            self.ctx.log(f"  {len(ms)} squadrons form a {form_var.get()} wave: {wave_label(ms)}")
 
     def _launch_ordnance_dialog(self, preselected_ship=None, preselected_heading=None):
         """Dialog to launch torpedoes or attack craft with heading and composition control.
@@ -1322,6 +1377,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     self.ctx.log(line)
                 allowed = min(ship_cap, current_remaining)
                 total_launched = 0
+                launched_ids = []
 
                 import random as _rng
                 for ct, var in composition_vars.items():
@@ -1384,6 +1440,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                             special_rules=list(ship.special_rules),
                         )
                         self.ctx.gs.add_ordnance(marker)
+                        launched_ids.append(marker.id)
                         total_launched += 1
 
                 if total_launched == 0:
@@ -1402,6 +1459,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 if ship_fresh:
                     ship_fresh.ordnance_loaded_craft = False
                     self.ctx.gs.update_ship(ship_fresh)
+                if not cap_var.get():          # craft on CAP are never a wave (s.26)
+                    self._form_launched_wave(launched_ids, wave_var, form_var)
 
                 if cap_var.get():
                     protect_name = cap_protect_var.get()
@@ -1415,6 +1474,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 dialog.destroy()
                 self.ctx.board.redraw()
 
+            wave_var, form_var = self._wave_controls(bay_frame)
             tk.Button(bay_frame, text="Launch Attack Craft",
                       command=_launch_craft,
                       bg="#663333", fg="white",

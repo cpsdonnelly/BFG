@@ -60,6 +60,8 @@ boats = launch_attack_craft(gs.get_ship_by_id("carrier"), carrier.weapons[0],
                             "shark_assault_boat", 2, gs)
 for i, b in enumerate(gs.ordnance):
     gs.ordnance[i] = {**b, "x": 30.0, "y": 60.0 + 0.5 * i, "heading": 0.0}
+from src.waves import form_wave
+form_wave(gs, [b.id for b in boats], "close")          # launched as one wave (s.25)
 gs.active_player = 2
 gs.current_phase = "ordnance"
 

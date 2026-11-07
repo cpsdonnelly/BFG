@@ -303,7 +303,8 @@ class OrdnanceMovementMixin:
         from .ordnance import (check_torpedo_contact, resolve_torpedo_attack,
                                torpedo_may_attack, is_torpedo_salvo,
                                resolve_bomber_attack, resolve_mine_contact,
-                               resolve_bomber_interception, attacks_ships)
+                               resolve_bomber_interception, attacks_ships,
+                               ATTACK_CRAFT_TYPES)
         from .geometry import circle_touches_square
 
         path_start = getattr(self, "_ord_path_start", None) or {}
@@ -329,33 +330,58 @@ class OrdnanceMovementMixin:
         # once per ship at every incoming wave of bombers and assault boats before
         # any attack or hit-and-run raid resolves.
         live_ordnance = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]
+        from .waves import ship_attack_plan
+        self._wave_plan = {}            # attacking marker id -> how it attacks which ship
+        planned = set()
+        wave_spent = set()              # whole waves removed after attacking (s.25)
         for s in ships:
             if s.is_destroyed or s.is_disengaged:
                 continue
-            # Collect enemy attacking craft currently contacting this ship
-            wave = [
+            # Enemy attack craft touching this ship, by wave (a lone squadron is
+            # its own group). Turrets fire once at each group that must attack.
+            touching_craft = [
                 m for m in live_ordnance
-                if attacks_ships(m.ordnance_type)
+                if m.ordnance_type in ATTACK_CRAFT_TYPES and not m.cap_ship_id
                 and (mover is None or m.owner_player == mover)
                 and m.owner_player != s.player
-                and m.id not in skip_ids
-                and touching(m, s)
-            ]
-            if not wave:
-                continue
-            # Brace for Impact before the turrets fire at a wave that may make
-            # attack runs (s.7); raids keep their own order (s.31)
-            if any("bomber" in craft_roles(m.ordnance_type) for m in wave):
-                self._brace_vs_ordnance(wave[0], s, 2.0 * len(wave))
-                s = self.ctx.gs.get_ship_by_id(s.id) or s     # keep the brace
-            p1 = resolve_bomber_interception(
-                len(wave), s, ships, self.ctx.dice, self.ctx.gs)
-            for msg in p1["log"]:
-                self.ctx.log(msg)
-            for m in wave[:p1["killed"]]:
-                self.ctx.log(
-                    f"  Phase 1: {m.ordnance_type} [{m.id[:8]}] destroyed by interception")
-                to_remove_after.add(m.id)
+                and m.id not in skip_ids and m.id not in planned
+                and touching(m, s)]
+            groups = {}
+            for m in touching_craft:
+                groups.setdefault(m.wave_id or m.id, []).append(m)
+            for key, group in groups.items():
+                if not any(attacks_ships(m.ordnance_type) for m in group):
+                    continue            # fighters alone don't attack ships
+                if group[0].wave_id:    # the whole wave, lead first
+                    group = sorted((m for m in live_ordnance if m.wave_id == key
+                                    and m.id not in to_remove_after), key=lambda m: m.wave_order)
+                planned.update(m.id for m in group)
+                # Brace for Impact before the turrets fire at a wave that may make
+                # attack runs (s.7); raids keep their own order (s.31)
+                if any("bomber" in craft_roles(m.ordnance_type) for m in group):
+                    self._brace_vs_ordnance(group[0], s, 2.0 * len(group))
+                    s = self.ctx.gs.get_ship_by_id(s.id) or s     # keep the brace
+                p1 = resolve_bomber_interception(
+                    len(group), s, ships, self.ctx.dice, self.ctx.gs)
+                for msg in p1["log"]:
+                    self.ctx.log(msg)
+                plan = ship_attack_plan(group, p1["killed"])
+                for m in group[:p1["killed"]]:
+                    self.ctx.log(f"  {m.ordnance_type} [{m.id[:8]}] destroyed by turrets")
+                    to_remove_after.add(m.id)
+                n_bombers = sum(1 for m in plan["attackers"]
+                                if "bomber" in craft_roles(m.ordnance_type))
+                for m in plan["attackers"]:
+                    self._wave_plan[m.id] = {"ship": s.id,
+                                             "suppressed": m.id in plan["suppressed"],
+                                             "fighters": plan["suppressors"],
+                                             "bombers": n_bombers}
+                if group[0].wave_id:
+                    if plan["suppressors"]:
+                        self.ctx.log(f"  {plan['suppressors']} fighter squadron(s) in the "
+                                     f"wave suppress turrets for "
+                                     f"{len(plan['suppressed'])} bomber squadron(s)")
+                    wave_spent.update(plan["removed_after"])
 
         # Multi-role craft that can attack as bombers or assault boats choose
         # now, after the turrets have fired, one way per wave (s.24)
@@ -448,13 +474,13 @@ class OrdnanceMovementMixin:
                             break
 
             elif is_bomber:
-                # Bombers attack enemy ships only
+                # Bombers attack the enemy ship their wave (or they alone)
+                # contacted and faced turrets from
+                plan = self._wave_plan.get(marker.id)
                 for s in ships:
-                    if s.player == marker.owner_player:
+                    if plan is None or s.id != plan["ship"]:
                         continue
                     if s.is_destroyed or s.is_disengaged:
-                        continue
-                    if not touching(marker, s):
                         continue
                     # CAP fighters intercept before the bomber attacks
                     if self._check_cap_intercept(marker, s, to_remove_after):
@@ -463,28 +489,10 @@ class OrdnanceMovementMixin:
                     self.ctx.log(
                         f"  {marker.ordnance_type} attacks {s.name}!")
 
-                    # Count friendly fighters whose square marker touches this ship.
-                    # Mantas are bombers, not fighters — they do not suppress turrets.
-                    suppressing_fighters = sum(
-                        1 for od in self.ctx.gs.ordnance
-                        if od.get("owner_player") == marker.owner_player
-                        and od.get("ordnance_type") in (
-                            OrdnanceType.FIGHTER.value,
-                            OrdnanceType.BARRACUDA.value)
-                        and circle_touches_square(s.x, s.y, s.base_radius,
-                                                  od.get("x", 0), od.get("y", 0),
-                                                  od.get("heading", 0)))
-
-                    # Count all bombers from same player contacting this ship
-                    # (needed for Remastered cap)
-                    total_bombers_on_target = sum(
-                        1 for od in self.ctx.gs.ordnance
-                        if od.get("owner_player") == marker.owner_player
-                        and od.get("ordnance_type") in (
-                            OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
-                        and circle_touches_square(s.x, s.y, s.base_radius,
-                                                  od.get("x", 0), od.get("y", 0),
-                                                  od.get("heading", 0)))
+                    # Turret suppression by fighters in the same wave (s.27)
+                    suppressing_fighters = plan["fighters"] if (
+                        plan["suppressed"] or self.ctx.gs.rule_turret_suppression_remastered) else 0
+                    total_bombers_on_target = plan["bombers"]
 
                     if suppressing_fighters > 0:
                         if self.ctx.gs.rule_turret_suppression_remastered:
@@ -546,14 +554,13 @@ class OrdnanceMovementMixin:
                     continue
                 # Assault boats trigger hit-and-run raids against enemy ships
                 from .hit_and_run import resolve_hit_and_run
+                plan = self._wave_plan.get(marker.id)
                 for s in ships:
-                    if s.player == marker.owner_player:
+                    if plan is None or s.id != plan["ship"]:
                         continue
                     if s.is_destroyed or s.is_disengaged:
                         continue
                     if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
-                        continue
-                    if not touching(marker, s):
                         continue
 
                     # CAP fighters intercept before the raid
@@ -578,11 +585,15 @@ class OrdnanceMovementMixin:
                     to_remove_after.add(marker.id)
                     break
 
-        # Remove spent ordnance
+        # Remove spent ordnance; a wave that attacked a ship is removed whole,
+        # squadrons that didn't attack included (s.25)
+        to_remove_after |= wave_spent
         if to_remove_after:
             self.ctx.gs.ordnance = [
                 o for o in self.ctx.gs.ordnance
                 if o["id"] not in to_remove_after]
+        from .waves import tidy_waves
+        tidy_waves(self.ctx.gs)
 
 
     def _resolve_ordnance_movement(self):
@@ -634,12 +645,25 @@ class OrdnanceMovementMixin:
             self._turn_boarding_torps(ships, mover)
 
             self._ord_path_start = {}
+            from .waves import members as wave_members, wave_speed
+            all_markers = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]
+            wave_of = {}                 # lead id -> its wave's other member ids
             for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
                 marker = OrdnanceMarker.from_dict(o_dict)
                 if marker.owner_player != mover:
                     continue
+                if marker.wave_id:
+                    # A wave moves as one marker, at its slowest squadron's
+                    # speed, with one blast marker roll (s.25)
+                    ms = wave_members(all_markers, marker.wave_id)
+                    if ms[0].id != marker.id:
+                        continue                         # follows its lead
+                    wave_of[marker.id] = [m.id for m in ms[1:]]
+                    marker.speed = wave_speed(ms)
                 self._ord_path_start[marker.id] = (marker.x, marker.y)
                 move_ordnance(marker, self.ctx.gs)
+                if marker.wave_id:
+                    marker.speed = o_dict["speed"]
 
                 # CAP fighters are co-located with their ship; skip off-table check
                 if marker.cap_ship_id:
@@ -672,6 +696,19 @@ class OrdnanceMovementMixin:
 
                 # Update position
                 self.ctx.gs.ordnance[i] = marker.to_dict()
+
+            # Waves: the rest of each wave goes where its lead went, or with it
+            for lead_id, others in wave_of.items():
+                lead = next((o for o in self.ctx.gs.ordnance if o["id"] == lead_id), None)
+                for j, o in enumerate(self.ctx.gs.ordnance):
+                    if o["id"] not in others:
+                        continue
+                    if lead_id in to_remove or lead is None:
+                        to_remove.add(o["id"])
+                    else:
+                        self.ctx.gs.ordnance[j] = {**o, "x": lead["x"], "y": lead["y"],
+                                                   "heading": lead["heading"]}
+                        self._ord_path_start[o["id"]] = self._ord_path_start.get(lead_id)
 
             # Remove off-table and blast-destroyed ordnance
             if to_remove:

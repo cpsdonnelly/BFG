@@ -395,7 +395,9 @@ class OrdnanceMarker:
     strength: int = 6       # for torpedoes
     speed: float = 30.0
     launched_turn: int = 0
-    wave_id: str = ""
+    wave_id: str = ""        # waves of attack craft (s.25): markers sharing an id
+    wave_order: int = 0      # 0 = the lead marker
+    wave_formation: str = "" # "close" or "loose"
     cap_ship_id: str = ""   # on CAP for this ship
     resilient_save: int = 0 # 0 = not resilient, 4 = 4+ save
     resilient_used: bool = False

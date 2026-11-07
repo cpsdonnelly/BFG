@@ -27,8 +27,12 @@ class CombatPanel(CombatDialogMixin):
         Batteries use Ordnance column on gunnery table. Lances roll strength dice.
         Ordnance-only target priority (other ordnance = nearest, not ships)."""
         enemy_player = 2 if self.ctx.gs.active_player == 1 else 1
-        enemy_ordnance = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance
-                          if o["owner_player"] == enemy_player]
+        all_ord = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance
+                   if o["owner_player"] == enemy_player]
+        # A wave counts as a single marker for enemy shooting (s.25)
+        from .waves import members as wave_members, wave_label
+        enemy_ordnance = [o for o in all_ord
+                          if not o.wave_id or wave_members(all_ord, o.wave_id)[0].id == o.id]
         if not enemy_ordnance:
             messagebox.showinfo("No Targets", "No enemy ordnance on the board")
             return
@@ -111,7 +115,8 @@ class CombatPanel(CombatDialogMixin):
         target_listbox.pack(fill=tk.X, padx=10, pady=3)
         for o in enemy_ordnance:
             dist = math.sqrt((o.x - attacker.x)**2 + (o.y - attacker.y)**2)
-            label = f"{o.ordnance_type} Str{o.strength} ({dist:.0f}cm)"
+            label = (f"Wave: {wave_label(wave_members(all_ord, o.wave_id))} ({dist:.0f}cm)"
+                     if o.wave_id else f"{o.ordnance_type} Str{o.strength} ({dist:.0f}cm)")
             target_listbox.insert(tk.END, label)
         if enemy_ordnance:
             target_listbox.selection_set(0)
@@ -215,9 +220,11 @@ class CombatPanel(CombatDialogMixin):
 
             if hits > 0:
                 # ONE HIT KILLS ENTIRE WAVE/SALVO
+                from .waves import whole_wave_ids
+                gone = set(whole_wave_ids(self.ctx.gs, target_ord.id))   # the whole wave
                 self.ctx.gs.ordnance = [
                     o for o in self.ctx.gs.ordnance
-                    if o["id"] != target_ord.id]
+                    if o["id"] not in gone]
                 self.ctx.log(
                     f"  HIT! {target_ord.ordnance_type} Str{target_ord.strength} "
                     f"destroyed! (rolled {hits} hit(s) on 6+)")

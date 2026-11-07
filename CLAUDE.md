@@ -153,6 +153,26 @@ halve turrets for the next ordnance attack that turn (`Ship.turrets_halved_turn`
 `ordnance.ordnance_turrets`); Shadow Engines' "no effect against Tyranids or Necrons" has no
 faction to apply to; Heed the Machine Spirit is always taken when a save fails (no prompt).
 
+### Waves of attack craft (s.25)
+
+`src/waves.py`: a wave is the markers sharing `wave_id`, ordered by `wave_order` (fighters,
+then multi-role fighters, then the rest), formation "close"/"loose", stacked on the lead.
+Launch dialogs (single ship and combined squadron) have "Launch as one wave" (on by default;
+never for CAP); the AI launches each ship's craft as a close wave. A wave moves as one marker
+at its slowest speed with one blast / terrain roll (`ordnance_movement`), interacts with
+ordnance lead-first in repeated passes (`ordnance._interaction_pass`, `waves.is_lead`), is
+removed whole by one hit from shooting (`waves.whole_wave_ids`), and against a ship it must
+attack takes one turret roll (kills from the front), then attacks; surviving fighters in
+the wave suppress one bomber each (exactly 3 attacks; Fighta-Bommerz never suppress), and the
+whole wave is removed afterwards (`waves.ship_attack_plan`). Lone squadrons are their own
+group: each faces turrets separately, and a fighter that isn't in the wave no longer
+suppresses. Attack Craft Orders give a wave one target and can split squadrons off (alone
+or as a new wave in the same formation; they never rejoin). The board labels waves "xN C/L".
+Readings / not yet: multi-role fighter-bombers always attack (the choice to suppress isn't
+offered); bombers that re-roll attacks (+1 when suppressed) don't exist yet; resilient
+squadrons don't stop or split (interactions happen after movement); CAP fighters intercept
+a wave's squadrons in order after its turret roll.
+
 ### Fleet lists (s.4)
 
 `src/fleet_lists.py` (Navy, Mechanicus, Space Marines, Inquisition) and
@@ -197,7 +217,6 @@ Owner rulings (fleet lists, export 15):
 - Torpedoes attack ships touched anywhere along their move (`geometry.torpedo_first_contact`,
   facing taken from the contact point); attack craft flying straight without a target and
   torpedo-vs-torpedo collisions are still checked at the end of the move only.
-- Waves of attack craft (s.25) aren't modelled: every squadron acts alone.
 - Combined squadron fire uses the lead ship's aspect, range and armour facing; no per-aspect
   or squadron-vs-squadron grouping (s.8 Shooting by Squadrons).
 - Commander re-rolls are offered only for command checks and disengage tests, not other

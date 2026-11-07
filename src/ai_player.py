@@ -719,9 +719,12 @@ class AIPlayer:
                     gs.add_log(f"[AI] {line}")
                 count = min(count, fleet_craft_slots(gs, self.player))
                 if count > 0:
-                    launch_attack_craft(ship, next(w for w in bays if preferred in
-                                                   w.get("craft_types", [])),
-                                        preferred, count, gs)
+                    launched = launch_attack_craft(ship, next(w for w in bays if preferred in
+                                                              w.get("craft_types", [])),
+                                                   preferred, count, gs)
+                    if len(launched) > 1:            # the AI flies them as one wave (s.25)
+                        from .waves import form_wave
+                        form_wave(gs, [m.id for m in launched], "close")
                 ship = gs.get_ship_by_id(ship.id)
 
     # ── Auto repair (for end phase) ──────────────────────────────────────────

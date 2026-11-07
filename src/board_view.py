@@ -590,6 +590,7 @@ class BoardView:
         self._draw_phenomena()
         self._draw_blast_markers()
         self._draw_ordnance()
+        self._draw_wave_labels()
         self._draw_ships()
         self._draw_artefact_marker()
         self._draw_persistent_rulers()
@@ -794,6 +795,21 @@ class BoardView:
             cr = self.cm_to_pixels(0.3)
             self.canvas.create_oval(sx - cr, sy - cr, sx + cr, sy + cr,
                                      fill="#FFAA33", outline="")
+
+    def _draw_wave_labels(self):
+        """Waves of attack craft are stacked on their lead marker: label each
+        with its size and formation (contents are open information, s.25)."""
+        waves = {}
+        for o in self.gs.ordnance:
+            if o.get("wave_id"):
+                waves.setdefault(o["wave_id"], []).append(o)
+        for ms in waves.values():
+            lead = min(ms, key=lambda o: o.get("wave_order", 0))
+            sx, sy = self.cm_to_screen(lead["x"], lead["y"])
+            off = self.cm_to_pixels(1.6)
+            tag = "C" if lead.get("wave_formation") == "close" else "L"
+            self.canvas.create_text(sx + off, sy - off, text=f"x{len(ms)}{tag}",
+                                    fill="#FFFF88", font=("Consolas", 8, "bold"))
 
     def _draw_ordnance(self):
         # Attack craft orders: dashed line from each squadron to its target

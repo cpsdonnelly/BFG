@@ -80,6 +80,8 @@ def th(i, x):
                           special_rules=["space_marine_crew"]).to_dict()
 root, gs, panel = build([enemy(70.0, turrets=2)])
 gs.ordnance = [th(0, 50.0), th(1, 50.5)]
+from src.waves import form_wave
+form_wave(gs, ["th0", "th1"], "close")              # one wave (s.25)
 gs.current_phase = "ordnance"
 ANSWER[0] = False; ASK.clear()                      # No = assault boats
 rolls = [1, 1,          # Phase 1: 2 turrets vs the wave, both miss
