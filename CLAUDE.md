@@ -161,9 +161,10 @@ ships they can hit and the Armour each needs; each group makes its own gunnery l
 (escorts total then halve), and dice are combined into one attack per target set and
 Armour values. Against one ship all hits are applied together; against a squadron each
 group of firers seeing a different mix of aspects chooses the aspect (dialog comboboxes,
-default the hardest present), each attack resolves separately with hits nearest first,
-and blast markers placed by one attack don't affect the others (reading: shields and
-shifts use the markers from before the volley, `GameState.volley_blast_markers`).
+default the hardest present), each attack resolves separately with hits nearest first.
+Owner ruling: blast markers placed by one group don't make the target harder to hit for
+the others (every group's column shifts come from the markers before the volley), but
+shields knocked down by one group stay down for the rest.
 
 ### Waves of attack craft (s.25)
 
@@ -282,10 +283,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Open questions for the owner
 
-- Squadron volley (s.8): should shields knocked down by one group's hits stay down for the
-  other groups in the same volley? Currently every group uses the blast markers from before
-  the volley (literal reading of "blast markers placed by one group do not affect the
-  others").
+- None at the moment.
 
 ## Running and testing
 

@@ -664,12 +664,7 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     remaining_hits = hits
 
     if not ignores_shields:
-        # During a squadron volley, blast markers placed by one group of
-        # attackers don't affect the others (s.8): shields use the markers as
-        # they were before the volley
-        bms = getattr(game_state, "volley_blast_markers", None)
-        available_shields = current_shields(
-            target, bms if bms is not None else game_state.get_blast_markers())
+        available_shields = current_shields(target, game_state.get_blast_markers())
         shield_absorb = min(remaining_hits, available_shields)
         summary["shield_hits"] = shield_absorb
         summary["blast_markers_placed"] = shield_absorb
@@ -1115,36 +1110,32 @@ def resolve_squadron_volley(plan: Dict, targets: List[Ship], dice: DiceRoller,
                             game_state: Optional[GameState] = None) -> Dict[str, int]:
     """Roll and apply a planned volley. Against one ship, every attack's hits
     are applied together; against a squadron each attack (a set of target
-    ships and scores) resolves separately with hits allocated nearest first,
-    and blast markers placed by one attack don't affect the others (shields
-    use the markers from before the volley). apply_hits(ship, n) ->
+    ships and scores) resolves separately with hits allocated nearest first.
+    Blast markers placed by one attack don't make the target harder to hit
+    for the others: every group's column shifts were worked out from the
+    markers before the volley (plan_squadron_volley). Shields knocked down by
+    one attack stay down for the rest (owner ruling). apply_hits(ship, n) ->
     (unused, destroyed). Returns hits applied per ship id."""
     applied: Dict[str, int] = {}
-    if game_state is not None:
-        game_state.volley_blast_markers = list(game_state.get_blast_markers())
-    try:
-        rolled = []
-        for a in plan["attacks"]:
-            need = min(a["armors"].values())
-            ds = dice.roll_d6(a["dice"], f"Squadron volley: {a['label']}")
-            if lock_on and any(d < need for d in ds):
-                ds = [dice.roll_d6(1, "Lock On re-roll")[0] if d < need else d for d in ds]
-            rolled.append((a, ds))
-        if len(targets) == 1:
-            t = targets[0]
-            hits = sum(1 for a, ds in rolled for d in ds if d >= a["armors"][t.id])
-            if hits:
-                apply_hits(t, hits)
-                applied[t.id] = hits
-        else:
-            for a, ds in rolled:
-                got = allocate_squadron_hits(ds, a["eligible"], lambda m, a=a: a["armors"][m.id],
-                                             apply_hits)
-                for k, v in got.items():
-                    applied[k] = applied.get(k, 0) + v
-    finally:
-        if game_state is not None:
-            game_state.volley_blast_markers = None
+    rolled = []
+    for a in plan["attacks"]:
+        need = min(a["armors"].values())
+        ds = dice.roll_d6(a["dice"], f"Squadron volley: {a['label']}")
+        if lock_on and any(d < need for d in ds):
+            ds = [dice.roll_d6(1, "Lock On re-roll")[0] if d < need else d for d in ds]
+        rolled.append((a, ds))
+    if len(targets) == 1:
+        t = targets[0]
+        hits = sum(1 for a, ds in rolled for d in ds if d >= a["armors"][t.id])
+        if hits:
+            apply_hits(t, hits)
+            applied[t.id] = hits
+    else:
+        for a, ds in rolled:
+            got = allocate_squadron_hits(ds, a["eligible"], lambda m, a=a: a["armors"][m.id],
+                                         apply_hits)
+            for k, v in got.items():
+                applied[k] = applied.get(k, 0) + v
     return applied
 
 

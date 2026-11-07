@@ -63,10 +63,8 @@ session.
 
 ## Waiting on the owner
 
-- **Squadron volley reading:** "blast markers placed by one group do not affect the others" is
-  implemented literally: shields and column shifts for every group in a volley use the blast
-  markers from before the volley (so a second group faces full shields). Asked the owner
-  whether shields knocked down by the first group should stay down; no answer yet.
+- Nothing. (Last ruling: in a squadron volley, shields knocked down by one group stay down;
+  only the column shifts ignore blast markers placed during the volley.)
 
 ## Remaining work (proposed order)
 

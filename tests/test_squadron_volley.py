@@ -65,9 +65,10 @@ def test_squadron_vs_squadron_aspect_choice_limits_eligible_ships():
     assert [m.id for m in closing["attacks"][0]["eligible"]] == ["t1"]
 
 
-def test_groups_on_different_target_sets_resolve_separately_blast_markers_frozen():
-    # Two groups see different target sets: each resolves on its own, and the
-    # shield impacts from the first don't knock down shields for the second
+def test_groups_resolve_separately_shields_stay_down_shifts_from_before():
+    # Two groups see different target sets and resolve separately. Shields
+    # knocked down by the first attack stay down for the second (owner ruling);
+    # column shifts were fixed from the blast markers before the volley.
     t1 = cruiser("t1", 70.0, 50.0, squadron_id="tsq", shields_max=1)
     t2 = cruiser("t2", 70.0, 58.0, squadron_id="tsq", shields_max=1)
     gs = make_gs([t1, t2])
@@ -76,15 +77,15 @@ def test_groups_on_different_target_sets_resolve_separately_blast_markers_frozen
     far_frig = frigate(1, 50.0, 48.0)                   # only t1 within 21cm
     plan = plan_squadron_volley([(near, BAT), (far_frig, far)], [t1, t2], [])
     assert len(plan["attacks"]) == 2
+    from src.geometry import current_shields
     shields_seen = []
 
     def apply(ship, n):
         fresh = gs.get_ship_by_id(ship.id)
-        from src.geometry import current_shields
-        shields_seen.append(current_shields(fresh, gs.volley_blast_markers))
+        shields_seen.append((ship.id, current_shields(fresh, gs.get_blast_markers())))
         apply_damage(fresh, n, DiceStub([1] * 10), gs)
         return 0, False
     rolls = [6] * sum(a["dice"] for a in plan["attacks"])
     resolve_squadron_volley(plan, [t1, t2], DiceStub(rolls), apply, game_state=gs)
-    assert shields_seen and all(s == 1 for s in shields_seen)
-    assert getattr(gs, "volley_blast_markers") is None
+    t1_seen = [s for sid, s in shields_seen if sid == "t1"]
+    assert t1_seen[0] == 1 and t1_seen[-1] == 0          # knocked down, stays down
