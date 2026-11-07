@@ -1,99 +1,84 @@
 # Handoff brief for the next Claude session
 
-Read this, then `CLAUDE.md` (owner rulings, conventions) and `bfgxr/CLAUDE.md` (rules authority)
-before touching anything. `CLAUDE.md` is the living source; this file is a snapshot of where the
-work stood at the end of a long session (Nov 2026).
+Read this first, then `CLAUDE.md` (the living source: every owner ruling, conventions, module
+notes) and `bfgxr/CLAUDE.md` (rules authority). This file is a snapshot at the end of a long
+session.
 
 ## Workflow rules (owner's standing instructions)
 
-- Branch: `claude/battlefleet-gothic-simulator-3sUkl`. Commit and push there
-  (`git push -u origin claude/battlefleet-gothic-simulator-3sUkl`). `main` is untouched.
+- Branch `claude/battlefleet-gothic-simulator-3sUkl`; commit and push there
+  (`git push -u origin claude/battlefleet-gothic-simulator-3sUkl`). `main` untouched.
   **No pull requests unless asked.**
-- Commit trailers: `Co-Authored-By: ...` and `Claude-Session: ...` lines as given by the session
-  reminder. No model identifiers in commits or code.
-- `bfgxr/` is the rules authority. The owner sends new booklet exports as zips; each one
-  **replaces `bfgxr/` wholesale**. Afterwards read `bfgxr/CHANGES.md` (renamed fields, spelling
-  changes, section renumbering) and re-run the tests. Never hand-edit generated files there.
-- **Never invent rules.** When the booklet is silent or ambiguous, ask the owner. Record every
-  answer under "Owner rulings" in `CLAUDE.md`.
-- Before fixing anything an audit agent reports, check it against the booklet text yourself.
-  Audit agents sometimes report things that aren't real.
-- Web client (`web/`, `src/web_*.py`) and LAN multiplayer (`network.py`) are on hold.
-- Owner style: short directives ("go", "do those next"). Propose the next batch of work at the
-  end of each turn and let them pick. They correct rulings quickly, so ask instead of guessing.
+- Commit trailers: the `Co-Authored-By:` and `Claude-Session:` lines from the session reminder.
+  No model identifiers in commits or code.
+- `bfgxr/` is the rules authority. Each new booklet zip the owner sends **replaces `bfgxr/`
+  wholesale** (extract into the scratchpad, `diff -rq`, read the new part of `CHANGES.md`,
+  diff `data/ships.json` by ship, then `rm -rf bfgxr && cp -a <new> bfgxr`). Never hand-edit it.
+  The current install is "export 15" (CHANGES.md: fifteenth update).
+- **Never invent rules.** If the booklet is silent or ambiguous, ask the owner (AskUserQuestion
+  works well), then record the answer under the matching heading in `CLAUDE.md`.
+- Check what an audit or helper agent reports against the booklet yourself before acting on it.
+- Owner style: short directives ("go", "continue", "yes"). Finish each turn with what is left and
+  a proposed next step; ask about readings rather than guess. They answer rules questions
+  precisely and sometimes paste sourcebook text.
+- Web client and LAN multiplayer are on hold.
 
 ## Testing
 
-- `pytest -q`: 778 tests pass at handoff. Use `tests/conftest.py` `DiceStub` with realistic
-  rolls listed one by one, and assert `dice._idx == len(rolls)`.
-- `flake8 --select=E9,F src/` checks that the Tk files compile. pytest never imports them.
-- GUI flow checks: `tools/gui_checks/*.py` drive the real `GamePanel`:
-  `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`. That Python has tkinter; the
-  default one may not. The spectator scripts (`gui_spectator_*.py`) take `normal` or `expert`.
-  They write screenshots and logs to /tmp. Any change to dialog order (for example brace
-  prompts) means the scripts must answer the new prompts explicitly.
+- `pytest -q`: **869 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+  listed one by one; assert `dice._idx == len(rolls)`.
+- `flake8 --select=E9,F src/` (pytest never imports the Tk files).
+- GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
+  (that Python has tkinter). Run the ones touching what you changed; full AI games:
+  `gui_spectator_demo.py normal`, `gui_spectator_sm.py normal`, `gui_ai_check.py` (its
+  "Traceback ... boom" is a deliberate crash test). New this session: `torpedo_types_check`,
+  `fleet_list_check`, `wave_check`, `combined_fire_check`.
 
-## Architecture recap
+## Done this session (all committed and pushed)
 
-- The engine is pure Python in `src/`: models, game_state, movement, combat, ordnance,
-  ordnance_movement, end_phase, boarding, hit_and_run, turn_controller, scenario,
-  victory_points, geometry, los, terrain_effects, ai_player, lookahead_ai.
-- The Tk UI is `game_panel.py` plus the `*_panel.py`, `*_dialog.py` and `*_ui.py` mixins. Only
-  the main thread may touch Tk.
-- `GameState` holds dicts. `get_ship_by_id()` returns a **copy**, so re-read a ship right
-  before you change it and write it back with `gs.update_ship()`. Stale copies have caused
-  several bugs, the latest a lost brace in torpedo code.
-- Catalog: `booklet_ships.py` builds 174 ships from `bfgxr/data/ships.json` (weapon types,
-  armour tuples, faction rules, Leadership tables). `ship_catalog.py` wraps it.
-  `booklet_options.py` holds ship options and fleet commanders (Space Marines so far).
-  `chapter_tactics.py` holds the Space Marine Chapter tactics.
+- Hulks drift only in their owner's phase; "+D6cm on AAF" sources stack (Sigils of Quickening).
+- Chapter tactics: all ten checked against the booklet; Wings of Fury re-roll is the owner's
+  choice per raid.
+- Torpedo types (s.16): short burn, barrage bombs, guided (Ld test, fleet re-roll, enemy player
+  picks the ship that tries to take control), seeking, melta, vortex (one salvo per ship per
+  game; launcher-crit explosions don't use the salvo up), inferno; Navy / Chaos / Mechanicus /
+  Ork / Inquisition purchase options and game-start rolls. Melta: escorts' fires repair
+  normally, hulks become burning hulks. Fix: torpedoes now attack ships anywhere along their
+  move.
+- Ork torpedo launcha swaps; Inquisitorial Cruiser refits, Inquisitor Lord (+re-rolls).
+- Booklet exports 8, 13 and 15 installed (capital-ship-only torpedo upgrades, Chaos boarding
+  torps, Space Marine battle barge sections, Demiurg fixed Ld and Bridge Smashed rule).
+- **Fleet lists** (s.4) for all factions in the fleet builder (`src/fleet_lists.py`,
+  `src/fleet_list_data_other.py`): list choice, list costs, section limits and ratios,
+  per-points limits on the fleet's actual total, reserves, detachments, list-only options,
+  towed escorts and gravitic hooks. Owner rulings recorded in CLAUDE.md.
+- **Waves of attack craft** (s.25, `src/waves.py`): launch as a wave, move as one, lead-first
+  ordnance interactions, one turret roll per wave, fighter turret suppression, whole wave
+  removed; craft orders and splitting.
+- **Venerable Strike Cruisers** (Imperium p.137): 17 designed catalog entries with all design
+  options; each hangar halved separately; Ablative Prow Armour now read from profiles.
+- **Shooting by Squadrons** (s.8, `combat.plan_squadron_volley`): groups by aspect, range and
+  armour; squadron vs squadron with aspect choice. Fix: the Combine Squadron Fire dialog had
+  crashed whenever it was opened.
 
-## Done this session (high level, all committed)
+## Waiting on the owner
 
-- Movement: minimum straight distance before every turn; staged moves; blast-marker contact
-  slowing and order of speed modifiers; squadron All Ahead Full (AAF) bonus rolls;
-  'Ere We Go; Improved Thrusters.
-- Ordnance:
-  - Boarding torpedoes, including turning and friendly-target rules. Ordnance attacks the
-    first valid target it contacts, and a ship moving into ordnance is attacked by it.
-  - Two-pass ordnance movement, active player first.
-  - Multi-role craft (Thunderhawks, Gun-Cutters, Fighta-Bommerz).
-  - Attack craft orders and steering (`craft_target_id`); the AI re-targets each phase.
-  - Launch capacity, fleet craft limits, recall; separate mine reloads.
-- Orks: Gunz and Heavy Gunz (close and far strength, split rule), random firepower rolled when
-  used, three-value armour. Tau Explorer "5+ / 4+R" armour.
-- Space Marines and Grey Knights: crew rules, teleport assaults, honour guards, Secondary
-  Shield, Strike Cruiser variants, Master of the Fleet, 9 Chapter tactics (Tactical Reserves
-  affects macrobatteries only), Knights of Titan, Venerable Battle Barge VP.
-- Brace for Impact timing (s.7) everywhere: before any roll; `offer_brace` + `gs.brace_hook`
-  for ramming, explosions and asteroids.
-- Export 7 audit fixes:
-  - Hulks: they block line of sight and take damage, and damage re-rolls catastrophic. They
-    have no shields or turrets and drift with blast slowing and terrain damage.
-  - Siege and Bombardment cannons; Machine Spirit; target priority once per turn.
-- Shield impacts: blast markers placed towards the attacker, fanned, no fixed cap.
+- **Squadron volley reading:** "blast markers placed by one group do not affect the others" is
+  implemented literally: shields and column shifts for every group in a volley use the blast
+  markers from before the volley (so a second group faces full shields). Asked the owner
+  whether shields knocked down by the first group should stay down; no answer yet.
 
-## Remaining work (booklet gaps; see CLAUDE.md "Not yet matching the booklet")
+## Remaining work (proposed order)
 
-1. Waves of attack craft (s.25). Every squadron currently acts alone.
-2. Squadron fire per aspect and range group, and squadron vs squadron (s.8).
-3. Commander re-rolls for all Leadership tests; secondary commanders (s.5).
-4. The AI never targets enemy hulks.
-5. Disengaging (s.37): shared escort-squadron test for a voluntary disengage, forced disengage
-   at Ld 1 or less; measure celestial phenomena to their edge, not their centre.
-6. Unsupported weapons and rules: Zzapp Gunz, Kustom Kannon, special movement, fortress
-   weapons, short-burn torpedoes, barrage bombs, and the fleet-list part of Lightning
-   Thrusters.
-7. Other factions' booklet options and commanders, added one at a time like the Space Marine
-   ones.
-
-## Open questions for the owner (ask, don't guess)
-
-- (Chapter tactic readings were later checked against s.03; see CLAUDE.md.)
-- (Answered after this brief was written: hulks drift only in their owner's phase; +D6 All
-  Ahead Full sources stack. Both are in CLAUDE.md's owner rulings.)
-- Readings to confirm:
-  - Wings of Fury: re-roll raids that would have no effect.
-  - Tactical Reserves: the 25% reduction rounds up.
-  - Pack Hunter: needs at least two boarders.
-  - Lightning Thrusters: vanguards fire at full only if they didn't turn.
+1. Commander re-rolls for all Leadership tests; secondary commanders (s.5).
+2. AI: shoot at enemy hulks; use combined squadron fire.
+3. Disengaging (s.37): shared escort-squadron test for a voluntary disengage, forced
+   disengagement at Ld 1 or less, phenomena measured to their edge.
+4. Fleet commanders for the other factions (Navy Admirals, Chaos Lords/Warmasters, Ork
+   Warbosses, Archmagos, Tau Kor'el/Kor'O, Rogue Traders...), so lists can check them.
+5. The ordinary profiles' own refits from their notes (Mars Targeting Matrix, Exorcist prow
+   torps, ...), one at a time.
+6. Smaller gaps listed in CLAUDE.md: attack craft flying straight / torpedo collisions checked
+   only at end of move; multi-role suppression choice; resilient wave splitting; low orbit
+   and planetary assaults (barrage bomb assault points); unplayable ships (Zzapp Gunz, Kustom
+   Kannon, special movement, fortress weapons).

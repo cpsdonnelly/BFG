@@ -282,7 +282,10 @@ Owner rulings (fleet lists, export 15):
 
 ### Open questions for the owner
 
-- None at the moment.
+- Squadron volley (s.8): should shields knocked down by one group's hits stay down for the
+  other groups in the same volley? Currently every group uses the blast markers from before
+  the volley (literal reading of "blast markers placed by one group do not affect the
+  others").
 
 ## Running and testing
 
