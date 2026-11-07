@@ -254,22 +254,36 @@ def seeking_turn(marker: OrdnanceMarker, ships: List[Ship]) -> float:
     return max(-BOARDING_TORP_MAX_TURN, min(BOARDING_TORP_MAX_TURN, diff))
 
 
-def guided_control(marker: OrdnanceMarker, game_state: GameState,
-                   dice: DiceRoller) -> Tuple[Optional[int], List[str]]:
+def guided_control(marker: OrdnanceMarker, game_state: GameState, dice: DiceRoller,
+                   reroll_fn=None, choose_enemy_fn=None) -> Tuple[Optional[int], List[str]]:
     """Guided torpedoes (s.16) may turn up to 45° before moving (not in the
-    ordnance phase of their launch), if the launching ship first passes a
-    Leadership test. If it fails, one enemy ship may try to take control with a
-    Leadership test of its own (the enemy ship with the best Leadership tries);
-    if it passes, its owner turns them. Returns (player who turns the salvo or
-    None, log lines). A launcher no longer in play can't guide them: no turn."""
+    ordnance phase of their launch), only if the launching ship first passes a
+    Leadership test; a launching ship no longer in play can't, so the salvo
+    doesn't turn. If it fails, one enemy ship, chosen by the enemy player, may
+    try to take control with a Leadership test of its own; if it passes, its
+    owner turns them.
+
+    reroll_fn(player, ship, roll) -> bool: whether that player spends a fleet
+    commander re-roll on a failed test (None: no re-rolls). choose_enemy_fn(
+    enemy player, candidate ships) -> ship or None (None: no attempt);
+    without one, the enemy ship with the best Leadership tries.
+    Returns (player who turns the salvo or None, log lines)."""
     logs = []
     if marker.launched_turn >= game_state.turn_number:
         return None, logs
     launcher = game_state.get_ship_by_id(marker.launched_by)
     if launcher is None or launcher.is_destroyed or launcher.is_disengaged:
-        logs.append("  Guided torpedoes: the launching ship is gone; no turn")
+        logs.append("  Guided torpedoes: the launching ship is gone; they can't turn")
         return None, logs
-    roll = dice.roll_2d6(f"{launcher.name} guides torpedoes (Ld {launcher.leadership})")
+
+    def test(ship, label):
+        roll = dice.roll_2d6(f"{ship.name} {label} (Ld {ship.leadership})")
+        if roll > ship.leadership and reroll_fn is not None and reroll_fn(ship.player, ship, roll):
+            logs.append(f"  {ship.name} rolled {roll}: fleet re-roll")
+            roll = dice.roll_2d6(f"{ship.name} {label} re-roll (Ld {ship.leadership})")
+        return roll
+
+    roll = test(launcher, "guides torpedoes")
     if roll <= launcher.leadership:
         logs.append(f"  {launcher.name} guides its torpedoes (rolled {roll})")
         return marker.owner_player, logs
@@ -279,8 +293,15 @@ def guided_control(marker: OrdnanceMarker, game_state: GameState,
                and s.status not in ("drifting_hulk", "burning_hulk")]
     if not enemies:
         return None, logs
-    e = max(enemies, key=lambda s: s.leadership)
-    roll = dice.roll_2d6(f"{e.name} tries to take control (Ld {e.leadership})")
+    enemy_player = enemies[0].player
+    if choose_enemy_fn is not None:
+        e = choose_enemy_fn(enemy_player, enemies)
+        if e is None:
+            logs.append("  The enemy doesn't try to take control")
+            return None, logs
+    else:
+        e = max(enemies, key=lambda s: s.leadership)
+    roll = test(e, "tries to take control")
     if roll <= e.leadership:
         logs.append(f"  {e.name} takes control of the torpedoes (rolled {roll})")
         return e.player, logs
@@ -442,6 +463,12 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         if not is_hulk:
             from .combat import add_fire_crits
             add_fire_crits(target, result["hits"], game_state)
+        elif target.status == "drifting_hulk":
+            # Owner ruling: a hulk hit by a melta salvo becomes a burning hulk
+            fresh = game_state.get_ship_by_id(target.id) or target
+            fresh.status = target.status = "burning_hulk"
+            game_state.update_ship(fresh)
+            game_state.add_log(f"  {target.name} (hulk) is set ablaze: now a burning hulk")
     elif result["hits"] > 0 and marker.ordnance_type == OrdnanceType.TORPEDO_VORTEX.value:
         game_state.add_log(f"Vortex torpedoes hit {target.name} {result['hits']} time(s): "
                            f"1 damage and an automatic critical hit each; "

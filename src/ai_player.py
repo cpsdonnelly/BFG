@@ -676,14 +676,19 @@ class AIPlayer:
                 target = self._best_torp_target(ship, weapon, enemies)
                 if target:
                     # Short burn torpedoes (if carried) for targets beyond a
-                    # standard salvo's reach; barrage bombs are never better
-                    # than standard torpedoes for the AI's damage-only plan
+                    # standard salvo's reach. Barrage bombs are for planetary
+                    # assaults (assault points), which aren't modelled yet
                     kind, aim_weapon = "", weapon
                     once = unused_once_torpedoes(ship)
                     if (once and weapon.get("torpedo_type") != "guided"
                             and target.ship_type != "escort"):
                         # Save the one-per-game salvo for a capital ship
                         kind = next(k for k in ("vortex", "melta", "seeking") if k in once)
+                    elif ("guided" in ship_torpedo_types(ship)
+                          and weapon.get("torpedo_type") != "guided"):
+                        # Owner: the enemy can only take control after a failed
+                        # Leadership test (and a re-roll), so guide them freely
+                        kind = "guided"
                     elif ("short_burn" in ship_torpedo_types(ship)
                             and weapon.get("torpedo_type") != "guided"
                             and ship.distance_to(target) > weapon.get(

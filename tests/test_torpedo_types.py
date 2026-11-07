@@ -319,8 +319,9 @@ def test_unused_melta_explodes_on_a_launcher_crit():
     t = gs.get_ship_by_id("t")
     assert dice._idx == len(rolls)
     assert [c["crit_type"] for c in t.critical_damage] == ["prow_armament", "fire", "fire"]
-    assert t.once_torps_used == ["melta"]          # they exploded: none left to fire
-    assert [k for k, _ in torpedo_kind_options(t, TORPS)] == ["standard"]
+    # Owner ruling: the explosion doesn't use up the salvo; only firing it does
+    assert t.once_torps_used == []
+    assert "melta" in [k for k, _ in torpedo_kind_options(t, TORPS)]
 
 
 def test_unused_vortex_explodes_for_d3_damage_and_a_crit():
@@ -453,3 +454,70 @@ def test_inquisitor_lord_extra_rerolls():
     lord = "Ordo Malleus Inquisitor Lord (Ld 10)"
     d = ic.to_ship_dict("I", 1, upgrades=[lord, "Inquisitor Lord: 2 extra re-rolls"])
     assert d["rerolls_remaining"] == 3 and d["points_value"] == ic.points_cost + 75 + 50
+
+
+# ── Owner rulings (torpedo readings) ─────────────────────────────────────────
+
+def test_guided_reroll_on_a_failed_launcher_test():
+    gs, m = _guided_setup()
+    asked = []
+    dice = DiceStub([10, 7])          # fails Ld 8, re-roll passes
+    controller, _ = guided_control(m, gs, dice,
+                                   reroll_fn=lambda p, s, r: asked.append((p, r)) or True)
+    assert controller == 1 and dice._idx == 2 and asked == [(1, 10)]
+
+
+def test_guided_enemy_player_chooses_which_ship_tries():
+    gs, m = _guided_setup()
+    chosen = []
+
+    def choose(player, ships):
+        chosen.append(player)
+        return next(s for s in ships if s.id == "e2")     # not the best Ld
+    dice = DiceStub([9, 6])           # launcher fails; e2 (Ld 5) fails too
+    controller, logs = guided_control(m, gs, dice, choose_enemy_fn=choose)
+    assert chosen == [2] and controller is None and dice._idx == 2
+    dice = DiceStub([9])
+    assert guided_control(m, gs, dice, choose_enemy_fn=lambda p, s: None)[0] is None
+    assert dice._idx == 1             # declining: no enemy test
+
+
+def test_guided_launcher_gone_no_turn_no_enemy_test():
+    gs, m = _guided_setup()
+    gs.ships = [s for s in gs.ships if s["id"] != "a"]
+    dice = DiceStub([])
+    assert guided_control(m, gs, dice)[0] is None and dice._idx == 0
+
+
+def test_melta_sets_a_drifting_hulk_burning():
+    hulk = _target()
+    hulk.status, hulk.hits_remaining = "drifting_hulk", 0
+    gs = make_gs([hulk])
+    dice = DiceStub([5, 1, 1])
+    resolve_torpedo_attack(_marker(OrdnanceType.TORPEDO_MELTA.value), hulk, dice, gs)
+    assert dice._idx == 3 and gs.get_ship_by_id("t").status == "burning_hulk"
+
+
+def test_escort_on_fire_from_melta_gets_damage_control():
+    from src.end_phase import resolve_damage_control
+    esc = _target(ship_type="escort", hits_max=1)
+    gs = make_gs([esc])
+    resolve_torpedo_attack(_marker(OrdnanceType.TORPEDO_MELTA.value), esc,
+                           DiceStub([6, 1, 1]), gs)
+    e = gs.get_ship_by_id("t")
+    assert [c["crit_type"] for c in e.critical_damage] == ["fire"]
+    dice = DiceStub([6])              # one die per hit remaining: a 6 puts it out
+    resolve_damage_control(e, dice, gs)
+    assert dice._idx == 1 and gs.get_ship_by_id("t").critical_damage == []
+
+
+def test_ai_guides_its_torpedoes():
+    from src.ai_player import AIPlayer
+    ship = make_ship(id="a", player=1, x=10.0, y=50.0, heading=0.0, weapons=[dict(TORPS)],
+                     special_rules=["torpedo_type:guided"])
+    ship.ordnance_loaded_torps = True
+    enemy = make_ship(id="e", player=2, x=30.0, y=50.0, heading=180.0)
+    gs = make_gs([ship, enemy])
+    AIPlayer(player=1, tc=None, gs=gs, dice=DiceStub([]))._launch_ship_ordnance(
+        gs.get_ship_by_id("a"))
+    assert [m.ordnance_type for m in gs.get_ordnance()] == [OrdnanceType.TORPEDO_GUIDED_LD.value]

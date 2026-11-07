@@ -131,6 +131,20 @@ check([a[0] for a in asked] == ["Guided Torpedoes"], f"owner asked: {asked}")
 check(gs.ordnance and abs(gs.ordnance[0]["heading"] - 30.0) < 0.01,
       f"turned 30: {[o['heading'] for o in gs.ordnance]}")
 
+print("4b. Launcher fails; the enemy player picks a ship to take control")
+picked = []
+simpledialog.askinteger = lambda title, prompt, **k: (picked.append(title), 1)[1]
+gs.ordnance = [{**base, "id": "g2", "ordnance_type": "torpedo_guided_ld", "x": 40.0,
+                "heading": 0.0}]
+asked.clear()
+dice = Dice([9,       # launcher Ld 7 fails (no re-rolls in this fleet)
+             5])      # target (Ld 7), chosen by player 2, takes control
+panel.ctx.dice = dice
+panel.ordnance._resolve_ordnance_movement()
+check(picked == ["Guided Torpedoes - Take Control?"], f"enemy asked to choose: {picked}")
+check(dice.i == 2 and [a[0] for a in asked] == ["Guided Torpedoes"],
+      f"enemy then turns the salvo ({dice.i} dice, {asked})")
+
 print("5. Seeking torpedoes turn by themselves at the nearest enemy")
 asked.clear()
 gs.ordnance = [{**base, "id": "sk", "ordnance_type": "torpedo_seeking", "x": 40.0, "y": 20.0}]

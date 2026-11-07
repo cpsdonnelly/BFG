@@ -236,16 +236,21 @@ Owner rulings (fleet lists, export 15):
 - Disengaging: no shared escort-squadron test for a voluntary disengage, no forced
   disengagement at Ld 1 or less (s.37); celestial phenomena measured to their centre.
 
-### Torpedo type readings (s.16) to confirm with the owner
+### Torpedo types (s.16): owner rulings
 
-- Guided: if the launcher fails, the enemy ship with the best Leadership tries to take
-  control (no choice offered); a launcher no longer in play can't guide (no turn, no enemy
-  test). An enemy in control turns the salvo at the owner's ships.
-- Unused melta / vortex torpedoes that explode on a launcher crit are then used up.
-  The launcher location is the torpedo weapon's arc (front = prow, L/F/R = dorsal).
-- Melta hits give Fire crits even to escorts; a hulk takes nothing from melta.
-- The AI fires its one vortex / melta / seeking salvo at the first capital ship target, never
-  uses guided torps or barrage bombs, and uses short burn for targets beyond 30cm.
+- Guided: turn up to 45° only if the launching ship passes its Leadership test (a fleet
+  commander re-roll may be used: `guided_control(reroll_fn=...)`); a launcher no longer in
+  play can't guide, so the salvo doesn't turn. After a failed test the enemy player chooses
+  which ship tries to take control (`choose_enemy_fn`; the AI uses its best Ld); in control,
+  it turns the salvo at the owner's ships.
+- Unused melta / vortex torpedoes that explode on a launcher crit are not used up; once the
+  salvo is fired the ship is no longer vulnerable. Launcher location = the torpedo weapon's
+  arc (front = prow, L/F/R = dorsal).
+- Melta Fire crits hit escorts too, and they may put the fire out in damage control like
+  other ships; a drifting hulk hit by melta becomes a burning hulk.
+- The AI fires its one vortex / melta / seeking salvo at the first capital ship target, uses
+  guided torpedoes freely, short burn for targets beyond 30cm, and barrage bombs only once
+  planetary assaults (assault points: +1 at S6 or less, +2 at S7+) exist.
 - Inquisition (owner rulings): Inferno Torpedoes +20pts on any Inquisition vessel with
   torpedoes (melta usable any number of times; a launcher crit gives D6 Fires); vortex
   torpedoes +50pts only on an Ordo Malleus Inquisitor Lord's ship armed with torpedoes.
@@ -265,7 +270,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Open questions for the owner
 
-- The torpedo type readings above.
+- None at the moment.
 
 ## Running and testing
 

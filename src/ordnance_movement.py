@@ -156,6 +156,36 @@ class OrdnanceMovementMixin:
                              f"{deg:+.0f}° to heading {marker.heading:.0f}°")
         self._turn_guided_and_seeking(ships, mover)
 
+    def _guided_reroll(self, player, ship, roll) -> bool:
+        """A failed guided-torpedo Leadership test may use a fleet commander
+        re-roll: the AI always does, a human player is asked."""
+        tc = self.ctx.tc
+        if tc.get_fleet_rerolls(player) <= 0:
+            return False
+        if not self.ctx.is_ai_controlled(player) and not messagebox.askyesno(
+                "Guided Torpedoes - Re-roll?",
+                f"{ship.name} rolled {roll} against Leadership {ship.leadership}.\n"
+                f"Use a fleet commander re-roll ({tc.get_fleet_rerolls(player)} left)?",
+                parent=self.ctx.root):
+            return False
+        return tc.use_fleet_reroll(player)
+
+    def _guided_enemy_choice(self, enemy_player, candidates):
+        """The enemy player chooses which of its ships tries to take control of
+        guided torpedoes whose launcher failed its test (owner ruling); the AI
+        uses its best Leadership."""
+        if self.ctx.is_ai_controlled(enemy_player):
+            return max(candidates, key=lambda s: s.leadership)
+        from tkinter import simpledialog
+        names = [f"{i + 1}. {s.name} (Ld {s.leadership})" for i, s in enumerate(candidates)]
+        pick = simpledialog.askinteger(
+            "Guided Torpedoes - Take Control?",
+            f"Player {enemy_player}: the enemy's guided torpedoes failed their guidance "
+            f"test. Choose a ship to try to take control (Leadership test), or Cancel:\n\n"
+            + "\n".join(names),
+            minvalue=1, maxvalue=len(candidates), parent=self.ctx.root)
+        return candidates[pick - 1] if pick else None
+
     def _turn_guided_and_seeking(self, ships, mover=None):
         """Seeking torpedoes turn up to 45° at the nearest enemy ship; guided
         torpedoes turn up to 45° for whoever wins the Leadership tests (s.16).
@@ -174,7 +204,9 @@ class OrdnanceMovementMixin:
                 deg = seeking_turn(marker, ships)
                 label = "Seeking torpedoes"
             elif marker.ordnance_type == OrdnanceType.TORPEDO_GUIDED_LD.value:
-                controller, logs = guided_control(marker, gs, self.ctx.dice)
+                controller, logs = guided_control(marker, gs, self.ctx.dice,
+                                                  reroll_fn=self._guided_reroll,
+                                                  choose_enemy_fn=self._guided_enemy_choice)
                 for line in logs:
                     self.ctx.log(line)
                 if controller is None:
