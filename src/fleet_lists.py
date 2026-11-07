@@ -168,20 +168,29 @@ ADMECH_LISTS = [
 # ── Space Marines (03_space-marines.md, Crusade & Dominion Fleet Lists) ─────
 
 _SM_ESC = {"Nova Frigate": 45, "Gladius Frigate": 40, "Hunter Destroyer": 40}
+# Venerable Battle Barges (the profiles' costs; the lists print "varies")
+_SM_VENERABLE = {"Emperor Battle Barge": 475, "Apocalypse Battle Barge": 475,
+                 "Oberon Battle Barge": 470, "Desecrator Battle Barge": 465,
+                 "Retribution Battle Barge": 460, "Relictor Battle Barge": 430}
+# Export 15: both lists, "Battle barges: one per 1000pts (or portion thereof); the
+# fleet must be worth 1000+pts to include the Chapter flagship. (0-1) Chapter
+# Flagship: Venerable Battle Barge, Ultima Battle Barge 450, Space Marine Battle Barge
+# 425; (0-2) Command Ships: Space Marine Battle Barge 425."
+_SM_BARGES = {"name": "Battle barges", "per_points": 1000, "or_part": True, "sm_barges": True,
+              "ships": dict(_SM_VENERABLE, **{"Ultima Battle Barge": 450,
+                                              "Space Marine Battle Barge": 425})}
 _SM_UNENFORCED = [
     "The Master of the Fleet must ride a battle barge, the Chapter flagship if present.",
-    "Venerable Strike Cruisers (0-2, designed from the Space Marine rules) aren't in the "
-    "catalog.",
+    "Venerable Strike Cruisers (designed from the Space Marine rules) aren't in the catalog: "
+    "with a fleet of 1000+pts, up to one per three standard strike cruisers (variants count), "
+    "at most two.",
 ]
 
 SM_LISTS = [
     {"key": "sm_crusade", "faction": "space_marines", "name": "Crusade Fleet (Imperium p.148)",
      "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 750},
      "sections": [
-         {"name": "Battle barges", "per_points": 1000,
-          "class_max": {"Ultima Battle Barge": 1},
-          "class_min_points": {"Ultima Battle Barge": 1000},
-          "ships": {"Ultima Battle Barge": 450, "Space Marine Battle Barge": 425}},
+         dict(_SM_BARGES),
          {"name": "Strike Cruisers", "ships": {"Strike Cruiser": 145}},
          {"name": "Vanguard Cruisers", "max": 6, "ships": {"Vanguard Cruiser": 130},
           "lightning_thrusters": "Strike Cruisers"},
@@ -193,7 +202,7 @@ SM_LISTS = [
     {"key": "sm_dominion", "faction": "space_marines", "name": "Dominion Fleet (Imperium p.149)",
      "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 750},
      "sections": [
-         {"name": "Command Ships", "max": 2, "ships": {"Space Marine Battle Barge": 425}},
+         dict(_SM_BARGES),
          {"name": "Strike Cruisers", "max": 10, "ships": {"Strike Cruiser": 145}},
          {"name": "Vanguard Cruisers", "max": 0, "ships": {"Vanguard Cruiser": 130},
           "lightning_thrusters": "Strike Cruisers"},
@@ -318,11 +327,15 @@ def _hull(entry) -> str:
         entry.ship_type, "other")
 
 
-def fleet_list_errors(main_key: Optional[str], rows: List[Dict], points_limit: int,
+def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: int,
                       detachment_keys: Optional[List[str]] = None) -> List[str]:
     """Problems with a fleet against its fleet list. rows: fleet-builder rows
     with "entry" (ShipClassEntry), "upgrades", and "list" (the list key the
-    ship was taken from: the main list, a detachment, or "reserve:<key>")."""
+    ship was taken from: the main list, a detachment, or "reserve:<key>").
+    fleet_points: what the fleet is worth (owner ruling: points-based limits
+    use the fleet's actual total, "for every full 750" rounding down and
+    "(or portion thereof)" rounding up)."""
+    points_limit = fleet_points
     if not main_key or main_key not in LISTS:
         return []
     main = LISTS[main_key]
@@ -379,6 +392,27 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], points_limit: i
                 errors.append(f"Reserves: {n_res} {label}, at most one per {ratio} {label} "
                               f"from the fleet list ({n_own // ratio}).")
 
+    # Rogue Trader Expedition: one supporting fleet; a Space Marine one bars xenos
+    if main.get("expedition"):
+        factions = {LISTS[k.split(":", 1)[1]]["faction"] for k in by_list
+                    if k.startswith("reserve:") and k.split(":", 1)[1] in LISTS}
+        if len(factions) > 1:
+            errors.append("An Expedition takes reserves from one supporting fleet only "
+                          f"({len(factions)} factions chosen).")
+        mercs = [r["entry"].ship_class for k, rs in by_list.items() if k.startswith("reserve:")
+                 for r in rs if (section_of(LISTS.get(k.split(":", 1)[1], {"sections": []}),
+                                            r["entry"].ship_class) or {}).get("name", "")
+                 .startswith("Allies")]
+        if mercs:
+            errors.append("Demiurg and Kroot can't be taken as an Expedition's reserves "
+                          f"({', '.join(mercs)}); take them as mercenaries.")
+        if "space_marines" in factions:
+            xenos = [r["entry"].ship_class for r in own
+                     if (section_of(main, r["entry"].ship_class) or {}).get("xenos")]
+            if xenos:
+                errors.append("With a Space Marine supporting fleet no Demiurg, Kroot or "
+                              f"other xenos ships may be present ({', '.join(xenos)}).")
+
     # Commander required
     cmd = main.get("commander")
     if cmd and cmd.get("required_at") and points_limit >= cmd["required_at"]:
@@ -392,6 +426,57 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], points_limit: i
         for u in r.get("upgrades", []):
             if not option_allowed(u, keys):
                 errors.append(f"{r['entry'].ship_class}: {u} isn't available in this fleet list.")
+    return errors
+
+
+def _sm_barge_errors(classes: Dict[str, int], fleet_points: int) -> List[str]:
+    """Space Marine Crusade / Dominion battle barges: (0-1) Chapter Flagship
+    (a Venerable Battle Barge, the Ultima or a Space Marine Battle Barge), which
+    needs a fleet of 1000+pts, and (0-2) Command Ships (Space Marine Battle
+    Barges)."""
+    errors = []
+    flag = sum(classes.get(c, 0) for c in list(_SM_VENERABLE) + ["Ultima Battle Barge"])
+    smbb = classes.get("Space Marine Battle Barge", 0)
+    if flag > 1:
+        errors.append(f"Chapter Flagship: {flag} Venerable / Ultima battle barges, at most one.")
+    if smbb > (2 if flag else 3):
+        errors.append(f"Space Marine Battle Barges: {smbb}, at most two Command Ships"
+                      + ("" if flag else " and one Chapter Flagship") + ".")
+    if (flag or smbb > 2) and fleet_points < 1000:
+        errors.append("The Chapter Flagship needs a fleet worth at least 1000pts.")
+    return errors
+
+
+def towed_errors(rows: List[Dict]) -> List[str]:
+    """Towed escorts (Warden, Orca, Dhow) need gravitic hooks configured to
+    carry them in the fleet (owner ruling), one per hook ("hooks:<type>:<n>"
+    rules; "any" hooks carry any type). Every Nicassar Rig must be bought with
+    four Dhows (export 15)."""
+    cap: Dict[str, int] = {}
+    for r in rows:
+        for rule in r["entry"].special_rules:
+            if rule.startswith("hooks:"):
+                _, kind, n = rule.split(":")
+                cap[kind] = cap.get(kind, 0) + int(n)
+    need: Dict[str, int] = {}
+    for r in rows:
+        if "towed" in r["entry"].special_rules:
+            kind = next((k for k in ("warden", "orca", "dhow")
+                         if k in r["entry"].ship_class.lower()), "other")
+            need[kind] = need.get(kind, 0) + 1
+    errors = []
+    spare_any = cap.get("any", 0)
+    for kind, n in sorted(need.items()):
+        short = max(0, n - cap.get(kind, 0))
+        used = min(short, spare_any)
+        spare_any -= used
+        if short - used:
+            errors.append(f"{n} towed {kind}(s) but gravitic hooks for only "
+                          f"{n - (short - used)}.")
+    rigs = sum(1 for r in rows if r["entry"].ship_class == "Nicassar Rig")
+    if rigs and need.get("dhow", 0) < 4 * rigs:
+        errors.append(f"Every Nicassar Rig needs four Dhows bought with it "
+                      f"({rigs} Rig(s), {need.get('dhow', 0)} Dhow(s)).")
     return errors
 
 
@@ -443,10 +528,19 @@ def _list_errors(fl: Dict, rows: List[Dict], points_limit: int,
                               f"({base // per}).")
         if sec.get("per_points"):
             pp = sec["per_points"]
-            cap = (-(-points_limit // pp)) if sec.get("or_part") else points_limit // pp
+            worth = points_limit
+            if sec.get("per_points_of"):            # Tau: "of Tau vessels" only
+                prefixes = tuple(sec["per_points_of"])
+                worth = sum(r.get("points", 0) for r in rows
+                            if (section_of(fl, r["entry"].ship_class) or {}).get(
+                                "name", "").startswith(prefixes))
+            cap = (-(-worth // pp)) if sec.get("or_part") else worth // pp
             if n > cap:
-                errors.append(f"{sec['name']}: {n} taken, at most one per {pp}pts "
-                              f"({cap} at {points_limit}pts).")
+                errors.append(f"{sec['name']}: {n} taken, at most one per {pp}pts"
+                              f"{' or portion thereof' if sec.get('or_part') else ''} "
+                              f"({cap} for {worth}pts).")
+        if sec.get("sm_barges"):
+            errors += _sm_barge_errors(classes, points_limit)
         for cls, mx in (sec.get("class_max") or {}).items():
             if classes.get(cls, 0) > mx:
                 errors.append(f"{cls}: {classes[cls]} taken, at most {mx}.")
@@ -461,6 +555,11 @@ def _list_errors(fl: Dict, rows: List[Dict], points_limit: int,
         if n > mx:
             errors.append(f"{cap['label']}: {n} taken, at most {cap['max']} per "
                           f"{cap['per_points']}pts ({mx}).")
+
+    for a, b in fl.get("class_not_more_than", []):          # Demiurg Stronghold vs Bastion
+        if classes.get(a, 0) > classes.get(b, 0):
+            errors.append(f"Never more {a}s than {b}s ({classes.get(a, 0)} vs "
+                          f"{classes.get(b, 0)}).")
 
     for cls, (free, opts) in (fl.get("class_needs_option") or {}).items():
         if classes.get(cls, 0) > free and not any(

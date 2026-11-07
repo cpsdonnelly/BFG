@@ -170,11 +170,27 @@ Rules a list can't check yet are in its `unenforced` text. Not yet: fleet comman
 than the Master of the Fleet and Inquisitor Lord, more than one detachment, "can't take more
 copies as reserves than its own list could field", reserve-only refit rules. Support assets
 have no list (they're scenario units).
-Readings to confirm with the owner (fleet lists): "one per N pts" counts against the points
-limit; Chaos light cruisers don't count as "cruisers" for the Chaos ratios; renegade ships
-don't count towards them; Imperial Renegades are both up to six escorts and one cruiser per
-750pts; the Rogue Trader detachment may join an Ork fleet; the Crusade list may be an
-Expedition supporting fleet; the six Venerable Battle Barges aren't in any list's tables.
+Owner rulings (fleet lists, export 15):
+- Points-based limits use what the fleet is worth (its actual total), not the game's points
+  limit: "for every full 750" rounds down, "(or portion thereof)" rounds up (`or_part`).
+- Chaos ratios count only what each list names: battleships and grand cruisers one per three
+  cruisers and/or heavy cruisers, heavy cruisers one per two cruisers; light cruisers (0-6)
+  don't count. Imperial Renegades are Chaos ships in all respects: a renegade cruiser counts
+  as a cruiser for the ratios (renegade light cruisers don't); they aren't reserves; "six
+  escorts and/or one cruiser" per full 750pts allows both.
+- A Rogue Trader Fleet Detachment joins any fleet but Necrons / Tyranids, Orks included (not a
+  reserve). The Crusade (Inquisitorial detachment only) and Banisher lists still refuse it.
+  An Expedition's supporting fleet is one faction, never Orks, Dark Eldar, Necrons or
+  Tyranids; any Space Marine list may be it, and then no Demiurg, Kroot or other xenos ships.
+- Nicassar: every Rig needs four Dhows bought with it; towed escorts need gravitic hooks of
+  their type (`towed_errors`, every fleet; capacities from the profiles as `hooks:<type>:<n>`).
+- Space Marine battle barges (both lists): one per 1000pts or portion thereof; (0-1) Chapter
+  Flagship (a Venerable Battle Barge, the Ultima or a Space Marine Battle Barge) needs a
+  1000+pt fleet; (0-2) Command Ships (Space Marine Battle Barges). Venerable strike cruisers:
+  with 1000+pts, one per three standard strike cruisers, at most two (not in the catalog).
+- Demiurg commerce vessels: fixed Ld (Stronghold 10, Bastion and Citadel 9), -1 per point of
+  damage to a minimum of 5; Bridge Smashed deals one extra damage instead of -3 Ld
+  (`combat.demiurg_leadership`).
 
 ### Not yet matching the booklet (export 7 audit)
 

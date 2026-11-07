@@ -121,7 +121,7 @@
 | Terminus Est (Death Guard) *Battleship* | 420\* | 13 | 60mm | 20cm | 45° | 4 | 5+ | 4 | Hives of Nurgle 30cm FP14 (L), (R); Dorsal Lances 45cm FP4 (L/F/R); Prow Lances 30cm FP3 (F); Launch Bays prow S3 + port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Unique flagship. Free Mark of Nurgle (in profile). Always has CSM + Terminator crew; full rules: see Chaos Ship Special Rules. Attack craft: TB 20cm +70pts (not if Stormbird gunships taken) |
 | Slaverer (World Eaters) *Battleship* | 400 | 12 | 60mm | 25cm | 45° | 4 | 5+ | 4 | Lances 30cm FP2 (L), (R); Macrobatteries 30cm FP16 (L), (R); Dorsal Macrobatteries 60cm FP8 (L/F/R); Prow Torps 30cm S8 (F) | Unique; flagship only if most expensive. Free Mark of Khorne. Improved Thrusters (+D6cm on All Ahead Full); always has CSM + Terminator crew, re-rolls boarding; Defiant Rage when crippled. Full rules: see Chaos Ship Special Rules |
 
-*\**Terminus Est: some sources print 430pts; this booklet uses 420 throughout.
+*\*Ships of the Imperium prints 430pts on the Terminus Est's profile page and 420pts in both fleet lists. This booklet uses 420.*
 
 \*\*Slaverer: older sources name the World Eaters’ battleship the Conqueror. In the Horus Heresy novels, the Conqueror was changed to Angron’s personal Gloriana-class flagship, a class far larger than standard battleships like the Imperial Emperor class or Chaos Despoiler class.
 

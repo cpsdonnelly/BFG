@@ -2,7 +2,7 @@
 
 **Faction Rules**
 
-*Source: Ships of the Imperium, "Adeptus Mechanicus Special Rules", printed pp.4-5.* **Leadership** (base value for ships without a leader aboard):
+*Source: Ships of the Imperium, "Adeptus Mechanicus Special Rules", printed pp.4-5.* **Adeptus Mechanicus ships and squadrons use the following table when generating random leadership values:**
 
 | D6 Roll | Leadership |
 |---|---|
@@ -14,7 +14,7 @@
 
 **Sacred Technology:** when taken as reserves in another fleet, any crippled Mechanicus capital ship must try to disengage whenever possible, or move toward the nearest table edge if it cannot (squadroned ships only when at least half the squadron is crippled). A destroyed Mechanicus vessel left as a hulk may be fired on by friendly Mechanicus ships via a target priority leadership test (not by non-Mechanicus ships).
 
-**Campaigns:** +1 Repair point per 10 renown (or part) the commander holds; +1 to appeals for refits but -1 to appeals for anything else; only the flagship may carry multiple Gifts.
+**Campaigns:** +1 Repair point per 10 renown (or part) the commander holds; +1 to appeals for refits but -1 to appeals for anything else (such as reinforcements or Space Marines). Note that refits earned via appeal use the normal Imperial Refits table (and not the Mechanicus Gifts table). Only your flagship may have multiple Gifts, as determined by the fleet commander's renown (see the Adeptus Mechanicus Promotion Table, p.154).
 
 **Ships & refits:** Mechanicus capital ships and light cruisers use Fury Fighters (ASF, 30cm) and Starhawk Bombers (BMR, 20cm), same as Imperial Navy. Most Mechanicus hulls are refitted Imperial Navy patterns at different costs, stats, and turret counts than their Navy counterparts (extra anti-ordnance turrets are standard on Mechanicus capital ships). "Mechanicus Refits" on cruisers and light cruisers are ship-specific point options, distinct from the general Mechanicus Gifts (p.44) and Imperial Refits (p.163). The escort classes on this list share a profile with an Imperial Navy or Space Marine escort of the same name, but are exclusively Adeptus Mechanicus vessels and follow only the Mechanicus faction rules (p.43), not Navy or Space Marine rules.
 

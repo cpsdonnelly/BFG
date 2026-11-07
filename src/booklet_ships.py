@@ -126,6 +126,21 @@ def _mount_name(weapon: dict, arcs: List[str], n_mounts: int) -> str:
     return base
 
 
+def gravitic_hook_rules(row: dict) -> List[str]:
+    """"hooks:<type>:<n>" for a profile's gravitic hooks ("3 Orcas", "1 Warden
+    each" on port + stbd, "capacity 2"): what towed escorts the fleet can bring."""
+    out = []
+    for w in row.get("weapons") or []:
+        if w.get("kind") != "gravitic_hooks":
+            continue
+        m = re.match(r"(?:capacity )?(\d+)\s*([A-Za-z]*?)s?(?: each)?$", (w.get("capacity") or "").strip())
+        if not m:
+            continue
+        n = int(m.group(1)) * (len(w.get("sides") or []) if "each" in w["capacity"] else 1)
+        out.append(f"hooks:{(m.group(2) or 'any').lower()}:{n}")
+    return out
+
+
 def _convert_weapon(w: dict, craft_map: Dict[str, str],
                     problems: List[str]) -> List[dict]:
     if w["kind"] == "gravitic_hooks":
@@ -294,6 +309,7 @@ def convert_row(row: dict) -> dict:
         special_rules.append("ponderous")
     if "towed" in (row.get("hull_type") or "").lower():
         special_rules.append("towed")
+    special_rules += gravitic_hook_rules(row)
     if _has_built_in_thrusters(notes):
         # Sigils of Quickening are their own rule so a campaign Improved
         # Thrusters upgrade stacks with them (owner ruling)
@@ -308,6 +324,11 @@ def convert_row(row: dict) -> dict:
     fixed_ld = 0
     if "fleet_support" in special_rules:
         ld_table, fixed_ld = "", 7     # Fleet Support: Ld 7, not rolled
+    m = re.search(r"Automated Ld (\d+)", notes)
+    if m and "demiurg" in (row.get("roster_group") or "").lower() + group_notes.lower():
+        # Demiurg commerce vessels: fixed Ld, -1 per point of damage (min 5)
+        ld_table, fixed_ld = "", int(m.group(1))
+        special_rules += ["demiurg_commerce", f"nominal_ld:{m.group(1)}"]
     if re.search(r"\+5D6cm on All Ahead Full instead of \+3D6cm", notes):
         special_rules.append("aaf_5d6")      # Fast Clipper
 

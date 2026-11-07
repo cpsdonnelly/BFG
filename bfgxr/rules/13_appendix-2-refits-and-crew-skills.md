@@ -16,9 +16,7 @@ Each refit table is subdivided into three sub-tables: Engine, Ship, and Weapon R
 
 **Roll or buy.** Normally you buy the refit, adding its points cost to the ship's cost as usual. When a refit is acquired via a campaign appeal, or by certain fleet or faction special rules, you instead roll for it: the refit's points cost is waived, but other associated costs are not (such as the points increase the appeal itself imposes).
 
-**Rolling.** Unless directed to a specific sub-table, roll a D3 for the category (1 Engine, 2 Ship, 3 Weapon), then a D6 on that sub-table. Re-roll any result the ship cannot take, whether because it already has that refit, is prohibited from equipping it, or already has every refit in the category.
-
-*Note: the Appeals rules in the Campaigns section reach the same result by a different roll, using a D6 for the category (1-2 Ship, 3-4 Engine, 5-6 Weapon). Both are as printed in their respective source books; the odds are identical.*
+**Rolling.** Unless directed to a specific sub-table, roll a D6 for the category (1-2 Ship, 3-4 Engine, 5-6 Weapon), then a D6 on that sub-table. Re-roll any result the ship cannot take, whether because it already has that refit, is prohibited from equipping it, or already has every refit in the category.
 
 **Imperial Refits - Engine Refits**
 

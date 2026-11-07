@@ -751,10 +751,21 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     if summary["blast_markers_placed"] > 0:
         _place_shield_impacts(target, summary["blast_markers_placed"], game_state, origin)
 
+    demiurg_leadership(target)
     game_state.update_ship(target)
     return summary
 
 
+
+
+def demiurg_leadership(ship: Ship) -> None:
+    """Demiurg commerce vessels lose 1 Ld per point of damage suffered, to a
+    minimum of Ld 5, from their nominal (automated) Ld."""
+    rule = next((r for r in ship.special_rules if r.startswith("nominal_ld:")), None)
+    if rule is None:
+        return
+    nominal = int(rule.split(":", 1)[1])
+    ship.leadership = max(5, nominal - max(0, ship.hits_max - ship.hits_remaining))
 
 
 def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
@@ -789,7 +800,14 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
         if target.hits_remaining <= 0:
             return True
     if crit_data["crit_type"] == "bridge_smashed":
-        target.leadership = max(1, target.leadership - 3)
+        if "demiurg_commerce" in target.special_rules:
+            # Demiurg: one extra point of damage instead of -3 Ld
+            target.hits_remaining = max(0, target.hits_remaining - 1)
+            game_state.add_log(f"  {target.name} (Demiurg): Bridge Smashed deals 1 extra damage")
+            if target.hits_remaining <= 0:
+                return True
+        else:
+            target.leadership = max(1, target.leadership - 3)
     return torpedo_launcher_crit(target, crit_data["crit_type"], dice, game_state, summary)
 
 

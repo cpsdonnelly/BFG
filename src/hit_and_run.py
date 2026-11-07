@@ -176,6 +176,8 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
         torpedo_launcher_crit(target, crit_data["crit_type"], dice, gs)
         extra += before - target.hits_remaining
 
+    from .combat import demiurg_leadership
+    demiurg_leadership(target)
     gs.update_ship(target)
     return {**crit_entry, "extra_damage": extra}
 
@@ -284,6 +286,8 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         if not uses_crit_table(target):
             # Escorts and small targets: 1 damage, never a critical hit
             target.hits_remaining = max(0, target.hits_remaining - 1)
+            from .combat import demiurg_leadership
+            demiurg_leadership(target)
             gs.update_ship(target)
             summary["damage"] += 1
             gs.add_log(f"  Raid {i+1}: 1 damage to {target.name}")

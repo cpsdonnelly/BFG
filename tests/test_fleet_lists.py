@@ -147,3 +147,126 @@ def test_ork_battleships_need_two_kroozers_each():
     assert any("Battleships" in e for e in fleet_list_errors("orks_green_tide", r, 1500))
     r += rows("Terror Ship", list_key="orks_green_tide")
     assert not any("Battleships" in e for e in fleet_list_errors("orks_green_tide", r, 1500))
+
+
+# ── Owner rulings (export 15) ────────────────────────────────────────────────
+
+def test_points_limits_use_the_fleet_total_full_rounds_down_portion_rounds_up():
+    from src.fleet_lists import _list_errors
+    r = rows("Retribution Battleship", "Victory Battleship", list_key="navy_bakka")
+    assert any("per 750pts" in e for e in fleet_list_errors("navy_bakka", r, 1499))   # 1
+    assert not any("per 750pts" in e for e in fleet_list_errors("navy_bakka", r, 1500))
+    # "(or portion thereof)": GK strike cruisers one per 500pts or part, so 2 at 501pts
+    gk = rows("Grey Knights Strike Cruiser", "Grey Knights Strike Cruiser",
+              list_key="inq_detachment")
+    assert _list_errors(LISTS["inq_detachment"], gk, 501, gk) == []
+    assert any("per 500pts" in e for e in _list_errors(LISTS["inq_detachment"], gk, 500, gk))
+
+
+def test_space_marine_battle_barges_flagship_and_command_ships():
+    mof = ["Master of the Fleet (Ld 10)"]
+    for key in ("sm_crusade", "sm_dominion"):
+        ven = rows("Emperor Battle Barge", list_key=key, upgrades=mof)
+        assert "Emperor Battle Barge" in list_ships(LISTS[key])
+        assert any("1000pts" in e for e in fleet_list_errors(key, ven, 999))
+        assert fleet_list_errors(key, ven, 1000) == []
+        two_flags = ven + rows("Ultima Battle Barge", list_key=key)
+        assert any("Chapter Flagship" in e for e in fleet_list_errors(key, two_flags, 2000))
+        three = rows(*["Space Marine Battle Barge"] * 3, list_key=key, upgrades=mof)
+        assert fleet_list_errors(key, three, 3000) == []          # flagship + 2 command ships
+        assert any("Chapter Flagship" in e or "Command" in e
+                   for e in fleet_list_errors(key, ven + three, 4000))
+        # one battle barge per 1000pts or portion thereof
+        assert any("per 1000pts" in e for e in fleet_list_errors(
+            key, rows(*["Space Marine Battle Barge"] * 2, list_key=key, upgrades=mof), 1000))
+
+
+def test_chaos_battleships_count_cruisers_and_heavy_cruisers_not_light():
+    r = rows("Despoiler Battleship", "Murder Cruiser", "Hades Heavy Cruiser", "Styx Heavy Cruiser",
+             list_key="chaos_black_crusade")
+    assert not any(e.startswith("Battleships") for e in
+                   fleet_list_errors("chaos_black_crusade", r, 1500))
+    lc = rows("Despoiler Battleship", "Murder Cruiser", "Fanatic Light Cruiser",
+              "Fanatic Light Cruiser", list_key="chaos_black_crusade")
+    assert any(e.startswith("Battleships") for e in
+               fleet_list_errors("chaos_black_crusade", lc, 1500))
+    hc = rows("Hades Heavy Cruiser", "Hades Heavy Cruiser", "Murder Cruiser", "Murder Cruiser",
+              list_key="chaos_black_crusade")
+    assert any(e.startswith("Heavy Cruisers") for e in      # heavy: per two cruisers only
+               fleet_list_errors("chaos_black_crusade", hc, 1500))
+
+
+def test_renegade_cruisers_count_for_chaos_ratios():
+    r = rows("Desolator Battleship", "Murder Cruiser", "Carnage Cruiser", list_key="chaos_renegades")
+    assert any(e.startswith("Battleships") for e in fleet_list_errors("chaos_renegades", r, 1500))
+    r += rows("Lunar Cruiser", list_key="chaos_renegades")
+    assert not any(e.startswith("Battleships") for e in
+                   fleet_list_errors("chaos_renegades", r, 1500))
+    both = rows("Lunar Cruiser", *["Sword Frigate"] * 6, list_key="chaos_renegades")
+    assert fleet_list_errors("chaos_renegades", both, 750) == []      # six escorts and a cruiser
+
+
+def test_rogue_trader_detachment_may_join_orks_and_god_fleets():
+    joins = LISTS["rt_detachment"]["joins"]
+    assert "orks_green_tide" in joins and "chaos_khorne" in joins
+    assert "sm_crusade" not in joins and "inq_banisher" not in joins
+
+
+def test_expedition_space_marine_support_bars_xenos():
+    exp = rows("Dauntless Light Cruiser", "Dauntless Light Cruiser", "Dauntless Light Cruiser",
+               list_key="rt_expedition")
+    merc = rows("Kroot Warsphere", list_key="rt_expedition")
+    sm = rows("Strike Cruiser", list_key="reserve:sm_dominion")
+    assert not any("xenos" in e for e in fleet_list_errors("rt_expedition", exp + merc, 1000))
+    errs = fleet_list_errors("rt_expedition", exp + merc + sm, 1000)
+    assert any("xenos" in e for e in errs)
+    navy = rows("Lunar Cruiser", list_key="reserve:navy_gothic")
+    assert any("one supporting fleet" in e
+               for e in fleet_list_errors("rt_expedition", exp + sm + navy, 1000))
+
+
+def test_towed_escorts_need_hooks_and_rigs_need_four_dhows():
+    from src.fleet_lists import towed_errors
+    merchant = rows("Merchant Starship")
+    assert towed_errors(merchant + rows("Orca Gunship", "Orca Gunship")) == []
+    assert towed_errors(merchant + rows(*["Orca Gunship"] * 3))
+    assert towed_errors(rows("Warden Gunship"))
+    rig = rows("Nicassar Rig")
+    assert any("four Dhows" in e for e in towed_errors(rig + rows("Nicassar Dhow")))
+    assert towed_errors(rig + rows(*["Nicassar Dhow"] * 4)) == []
+    assert towed_errors(rig + rows(*["Nicassar Dhow"] * 5))           # only four hooks
+
+
+def test_never_more_strongholds_than_bastions():
+    r = rows("Stronghold Commerce Vessel", list_key="tau_empire")
+    assert any("Stronghold" in e for e in fleet_list_errors("tau_empire", r, 1000))
+    r += rows("Bastion Commerce Vessel", list_key="tau_empire")
+    assert not any("Never more" in e for e in fleet_list_errors("tau_empire", r, 1000))
+
+
+def test_custodians_per_750_of_tau_vessels():
+    allies = rows("Stronghold Commerce Vessel", "Bastion Commerce Vessel", "Bastion Commerce Vessel",
+                  list_key="tau_empire")
+    cust = rows("Custodian Battleship", list_key="tau_empire")
+    pts = [dict(r, points=r["entry"].points_cost) for r in cust + allies]
+    assert any("Battleships" in e for e in fleet_list_errors("tau_empire", pts, 1195))
+    tau = [dict(r, points=r["entry"].points_cost)
+           for r in rows("Protector Cruiser", "Protector Cruiser", "Hero Starship",
+                         list_key="tau_empire")]
+    assert not any("Battleships" in e for e in fleet_list_errors("tau_empire", pts + tau, 1735))
+
+
+def test_demiurg_fixed_leadership_drops_with_damage():
+    from tests.conftest import DiceStub, make_gs
+    from src.combat import apply_damage
+    from src.models import Ship
+    e = find_ship_class("Citadel Commerce Vessel")
+    d = e.to_ship_dict("C", 2)
+    assert d["leadership"] == 9 and not d["leadership_table"]
+    ship = Ship(**{**{k: v for k, v in d.items() if k in Ship.__dataclass_fields__},
+                   "id": "c", "x": 50.0, "y": 50.0})
+    gs = make_gs([ship])
+    rolls = [1, 1, 1, 1, 1]
+    dice = DiceStub(rolls)
+    apply_damage(ship, 5, dice, gs, ignores_shields=True)
+    assert dice._idx == len(rolls) and gs.get_ship_by_id("c").leadership == 5   # 9-5 -> 5 min

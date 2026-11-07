@@ -319,3 +319,44 @@ each Ordo's upgrades require an Inquisitor of that Ordo. Removed the incorrect "
 convenience" for the Ordo Malleus Grey Knights ships.
 
 Layout: one page longer; appendices and their internal page refs moved one page later.
+
+# Fourteenth update: open-question decisions
+
+- Inner Biosphere: footnote marking the correction from the XR printing.
+- Stryxis Caravan: "(Remastered p.197; missing from the XR profile, p.123, in error)".
+- Terminus Est footnote now says where 430 and 420 come from; 420 is used.
+- Mines: minefields paragraph rewritten plainly, pointing to Minefield (p.75) and Asteroid
+  Fields (p.31).
+- Appendix 2 refit rolling now uses the Campaigns D6 (1-2 Ship, 3-4 Engine, 5-6 Weapon); the D3
+  method and the note comparing them are gone. One method everywhere.
+- Section 5: "All commanders must be assigned to an appropriate ship during deployment (see the
+  players' fleet lists for details)."
+- Mechanicus: Leadership table caption uses the source sentence; appeal refits use the Imperial
+  Refits table (not Gifts); multiple Gifts on the flagship only, per commander renown (p.154).
+- Demiurg: commerce vessels lose 1 Ld per point of damage (minimum Ld5); Bridge Smashed causes
+  one extra damage instead of -3 Ld. They never roll for Ld (Stronghold 10, Bastion 9, Citadel 9).
+
+# Fifteenth update: Space Marine battle barges
+
+- Crusade and Dominion fleet lists (Imperium pp.148-149): Battle barges, one per 1000pts (or
+  portion thereof); the fleet must be worth 1000+pts to include the Chapter flagship.
+  (0-1) Chapter Flagship: Venerable Battle Barge (varies), Ultima Battle Barge 450, Space Marine
+  Battle Barge 425; (0-2) Command Ships: Space Marine Battle Barge 425. The Venerable Battle Barge
+  was missing from both lists, and the Dominion list was missing the Chapter flagship entirely.
+
+Rulings for the fleet builder (from the sourcebooks):
+- Points-based limits use the fleet's actual total ("if your fleet is worth at least",
+  "for every 750 points in your fleet"), not the game's points limit. "For every full 750" rounds
+  down; "(or portion thereof)" rounds up.
+- Chaos ratios count cruisers and heavy cruisers only, as each list says; light cruisers are a
+  separate 0-6 section and do not count.
+- Imperial Renegades (Chaos Renegades list only) "are treated as Chaos ships in all respects", so a
+  renegade cruiser counts as a cruiser for the Chaos ratios. They do not count against reserves.
+- Imperial Renegades "six escorts and/or one cruiser" per full 750pts: both are allowed.
+- A Rogue Trader Fleet Detachment may join any fleet except Necrons or Tyranids, Orks included.
+  A detachment is not a reserve, and Orks are not natural enemies of Rogue Traders.
+- Any Space Marine fleet list may be a Rogue Trader Expedition's supporting fleet; if one is
+  chosen, no Demiurg, Kroot or other xenos ships may be present.
+- Nicassar: every Rig requires four Dhows to be bought with it. The Rig is a Defense/4 stationary
+  defence (placeable anywhere in the deployment zone) with gravitic hooks of capacity 4 Dhows;
+  Dhows are limited to one per gravitic hook configured to carry Dhows.

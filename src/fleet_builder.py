@@ -972,12 +972,14 @@ class FleetBuilderWindow:
         errors += fleet_option_errors(
             [(r["entry"], r.get("upgrades", [])) for r in self._fleet], total)
 
-        # Fleet list limits (s.4)
-        from .fleet_lists import fleet_list_errors
+        # Fleet list limits (s.4): points-based limits use what the fleet is
+        # worth (owner ruling); towed escorts need gravitic hooks in any fleet
+        from .fleet_lists import fleet_list_errors, towed_errors
         errors += fleet_list_errors(
             self._list_key, [{**r, "list": r.get("list") or self._list_key}
                              for r in self._fleet],
-            limit, [self._detachment_key] if self._detachment_key else [])
+            total, [self._detachment_key] if self._detachment_key else [])
+        errors += towed_errors(self._fleet)
 
         # Check squadrons by ship type
         squadrons: Dict[str, List[dict]] = {}

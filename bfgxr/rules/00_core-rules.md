@@ -163,7 +163,7 @@ Fleet commanders often come with special rules that will benefit their own ship 
 
 Lastly, most fleet commanders may purchase special upgrades for themselves or their ship, including re-rolls for your fleet's command checks. The cost of a fleet commander (and any of his or her re-rolls and upgrades) is added to that of the assigned ship - if it is lost or crippled, that cost will count against the vessel's victory point value (see the Scenarios section for details).
 
-A fleet of more than 750 points must be led by a fleet commander; if the commander cannot embark on an escort, the fleet must also include at least one capital ship. Smaller fleets may have a commander if you wish.
+A fleet of more than 750 points must be led by a fleet commander; if the commander cannot embark on an escort, the fleet must also include at least one capital ship. Smaller fleets may have a commander if you wish. All commanders must be assigned to an appropriate ship during deployment (see the players' fleet lists for details).
 
 A commander's special rules combine with the special rules and upgrades of their ship, unless they match or contradict each other.
 
@@ -581,7 +581,7 @@ Space-borne mines almost always follow similar designs, regardless of which race
 
 **Note:** some printings of the rulebook read that damage from mines may be blocked by shields. This is an error: mines ignore shields, as above.
 
-**Do not confuse this with minefields.** A *minefield* (p.67) is *treated as an asteroid field*, and failing the Leadership test to navigate one inflicts **asteroid-impact damage, against which shields DO apply normally** (see Asteroid Fields, p.24). A ship inside a minefield can suffer both: asteroid-impact damage (shields apply) **and**, on a 5+ detection, a mine attack (shields ignored). Two separate damage sources; they stack.
+**A minefield (p.75) counts as an asteroid field, so a ship that fails its Leadership test to navigate one takes asteroid damage, which shields do stop (p.31). A ship in a minefield can take both: asteroid damage (shields apply) and, when it is detected on a 5+, a mine attack (shields ignored).**
 
 Mines follow all the regular rules for ordnance regarding moving through blast markers, shooting, and so forth. Except for fighters (which will remove mines just like any other ordnance), mines are not affected by, and do not affect, any other ordnance markers on the battlefield.
 
@@ -990,12 +990,14 @@ In many scenarios, the winner will be the player who scores the most victory poi
 
 | D6 | 1. Flare Region | 2. Mercurial Zone | 3. Inner Biosphere |
 |---|---|---|---|
-| 1 | Solar flare | Solar flare | Roll a D6: 1-3 radiation burst, 4-6 solar flare |
+| 1 | Solar flare | Solar flare | Roll a D6: 1-3 radiation burst, 4-6 solar flare† |
 | 2 | Solar flare | Radiation burst | Asteroid field |
 | 3 | Radiation burst | Asteroid field | D3 asteroid fields |
 | 4 | Asteroid field | D3 gas/dust clouds | D3 gas/dust clouds |
 | 5 | D3 gas/dust clouds | D3 gas/dust clouds | D3 gas/dust clouds |
 | 6 | Planet (S/M) | Planet (S/M) | Planet (S/M) |
+
+†Corrected from the XR printing (1-3 Solar Flare, 5-6 Radiation Burst), a typo confirmed by the author.
 
 | D6 | 4. Primary Biosphere | 5. Outer Reaches | 6. Deep Space |
 |---|---|---|---|

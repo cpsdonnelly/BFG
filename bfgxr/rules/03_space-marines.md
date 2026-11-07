@@ -155,7 +155,7 @@ Aggressive, insular Chapters such as the Black Templars; attack rating 3.
 
 | Section | Allowance | Ships (pts) |
 |---|---|---|
-| Battle barges | one per 1000pts (Chapter flagship needs 1000+pts) | (0-1) Chapter Flagship Ultima Battle Barge 450, Space Marine Battle Barge 425 |
+| Battle barges | one per 1000pts (Chapter flagship needs 1000+pts) | (0-1) Chapter Flagship: Venerable Battle Barge (varies), Ultima Battle Barge 450, Space Marine Battle Barge 425; (0-2) Command Ships: Space Marine Battle Barge 425 |
 | Strike Cruisers | \- | (0-2) Venerable Strike Cruiser (varies), Space Marine Strike Cruiser 145 |
 | Vanguard Cruisers (0-6) | \- | Space Marine Vanguard Cruiser 130 |
 | Escorts | any, squadrons of 2-6 | Nova 45, Gladius 40, Hunter 40 |
@@ -168,7 +168,7 @@ Chapters with close local ties; attack rating 3, dropping to 2 if it takes any a
 
 | Section | Allowance | Ships (pts) |
 |---|---|---|
-| Command Ships (0-2) | \- | Space Marine Battle Barge 425 |
+| Battle barges | one per 1000pts (Chapter flagship needs 1000+pts) | (0-1) Chapter Flagship: Venerable Battle Barge (varies), Ultima Battle Barge 450, Space Marine Battle Barge 425; (0-2) Command Ships: Space Marine Battle Barge 425 |
 | Strike Cruisers (0-10) | one venerable per three standard | (0-2) Venerable Strike Cruiser (varies), Space Marine Strike Cruiser 145 |
 | Escorts | any, squadrons of 2-6 | Nova 45, Gladius 40, Hunter 40, Firestorm 35, Falchion 35, Cobra 30 |
 

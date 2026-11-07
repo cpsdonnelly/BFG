@@ -15,8 +15,9 @@ _CHAOS_UNENFORCED = [
     "Fleet commander (0-1 Chaos Lord Ld8 50 or Warmaster Ld9 75, on the most expensive "
     "capital ship, required at 750+pts) and Aspiring Champions are not in the fleet builder "
     "yet.",
-    "Battleship, grand cruiser and heavy cruiser ratios count the Cruisers section only "
-    "(the booklet says \"one per three cruisers\"; light cruisers are not counted).",
+    "Ratios (owner ruling, export 15): battleships and grand cruisers one per three "
+    "cruisers and/or heavy cruisers, heavy cruisers one per two cruisers; light cruisers are "
+    "their own 0-6 section and don't count.",
     "Escort squadrons of 2-6: not checked.",
     "Torpedo types (one per capital ship), anointed munitions, and mine launchers on up to "
     "two cruisers or heavy cruisers: not checked here.",
@@ -41,9 +42,11 @@ _DEDICATED = {"Scion of Prospero (Thousand Sons)": 450,
 
 def _chaos_core_sections(battleships: Dict[str, int], class_max: Dict[str, int]) -> List[Dict]:
     return [
-        {"name": "Battleships", "ratio": (3, ["Cruisers"]), "class_max": dict(class_max),
+        {"name": "Battleships", "ratio": (3, ["Cruisers", "Heavy Cruisers"]),
+         "class_max": dict(class_max),
          "ships": dict(battleships)},
-        {"name": "Grand Cruisers", "ratio": (3, ["Cruisers"]), "ships": dict(_CHAOS_GC)},
+        {"name": "Grand Cruisers", "ratio": (3, ["Cruisers", "Heavy Cruisers"]),
+         "ships": dict(_CHAOS_GC)},
         {"name": "Heavy Cruisers", "ratio": (2, ["Cruisers"]), "ships": dict(_CHAOS_HC)},
         {"name": "Cruisers", "ships": dict(_CHAOS_CR)},
         {"name": "Light Cruisers", "max": 6, "ships": dict(_CHAOS_LC)},
@@ -65,6 +68,24 @@ _CRUSADE_UNENFORCED = [
 ]
 
 
+_RENEGADE_LIGHT = ["Dauntless Light Cruiser", "Endeavour Light Cruiser",
+                   "Endurance Light Cruiser", "Defiant Light Cruiser"]
+
+
+def _renegade_ratios(sections: List[Dict]) -> List[Dict]:
+    """Renegades list: Imperial Renegade cruisers count as cruisers for the
+    Chaos ratios (renegade light cruisers, like Chaos light cruisers, don't)."""
+    out = []
+    for sec in sections:
+        sec = dict(sec)
+        if sec.get("ratio"):
+            n, base = sec["ratio"]
+            sec["ratio"] = (n, list(base) + ["Imperial Renegade Cruisers"])
+            sec["ratio_excludes"] = list(_RENEGADE_LIGHT)
+        out.append(sec)
+    return out
+
+
 def _god_list(key: str, name: str, ship: str, rival: str, boons: str) -> Dict:
     return {
         "key": key, "faction": "chaos", "name": name,
@@ -82,9 +103,9 @@ def _god_list(key: str, name: str, ship: str, rival: str, boons: str) -> Dict:
 CHAOS_LISTS = [
     {"key": "chaos_incursion", "faction": "chaos", "name": "Incursion Fleet (Imperium p.54)",
      "sections": [
-         {"name": "Battleships", "ratio": (3, ["Cruisers"]),
+         {"name": "Battleships", "ratio": (3, ["Cruisers", "Heavy Cruisers"]),
           "ships": {"Despoiler Battleship": 390, "Desolator Battleship": 300}},
-         {"name": "Grand Cruisers", "ratio": (3, ["Cruisers"]),
+         {"name": "Grand Cruisers", "ratio": (3, ["Cruisers", "Heavy Cruisers"]),
           "ships": {"Repulsive Grand Cruiser": 230}},
          {"name": "Heavy Cruisers", "ratio": (2, ["Cruisers"]),
           "ships": {"Styx Heavy Cruiser": 260, "Hades Heavy Cruiser": 200,
@@ -111,7 +132,8 @@ CHAOS_LISTS = [
      "unenforced": list(_CHAOS_UNENFORCED) + list(_CRUSADE_UNENFORCED) + [
          "A Chaos Space Hulk, if taken, must be the fleet flagship."]},
     {"key": "chaos_renegades", "faction": "chaos", "name": "Renegades Fleet (Imperium p.57)",
-     "sections": _chaos_core_sections(dict(_CRUSADE_BS, **{"Relictor Battleship": 300}), {}) + [
+     "sections": _renegade_ratios(
+         _chaos_core_sections(dict(_CRUSADE_BS, **{"Relictor Battleship": 300}), {})) + [
          {"name": "Escorts", "ships": dict(_CHAOS_ESC)},
          # Imperial Renegades: per full 750pts, up to six escorts and/or one cruiser
          # (worth up to 185pts) from the Bastion or Armageddon Sector lists
@@ -136,10 +158,11 @@ CHAOS_LISTS = [
          "Warmaster or Aspiring Champion; Undivided on the commander's ship only) and Chaos "
          "Space Marine crews (+35, one capital ship per full 750pts, not battle barges or "
          "strike cruisers): not checked.",
-         "Imperial Renegades: the booklet's \"up to six escorts and/or one cruiser\" per full "
-         "750pts is checked as both; renegade cruisers (worth up to 185pts, the Strike "
-         "Cruiser left out as an ally of convenience in the Armageddon list) don't count "
-         "towards the Chaos cruiser ratios here; they subtract 1 from rolled Leadership."]},
+         "Imperial Renegades (owner rulings): \"six escorts and/or one cruiser (worth up to "
+         "185pts)\" per full 750pts allows both; they are Chaos ships in all respects, so a "
+         "renegade cruiser counts as a cruiser for the Chaos ratios (renegade light cruisers "
+         "don't); they don't count against reserves. The Strike Cruiser is left out as an "
+         "ally of convenience in the Armageddon list. They subtract 1 from rolled Leadership."]},
     _god_list("chaos_slaanesh", "Pleasure Fleet of Slaanesh (Imperium p.58-61)",
               "Wage of Sin (Emperor's Children)", "Khorne",
               "Boons: Veil of Lust (+20), Siren's Summon (+25, up to two ships)."),
@@ -194,9 +217,11 @@ ORK_LISTS = [
 # ── Tau (09_tau-allies.md) ────────────────────────────────────────────────────
 
 TAU_LISTS = [
-    {"key": "tau_empire", "faction": "tau_kororvesh", "name": "Tau Empire Fleet (Xenos p.99-101)",
+    {"key": "tau_empire", "faction": "tau_kororvesh",
+     "class_not_more_than": [("Stronghold Commerce Vessel", "Bastion Commerce Vessel")], "name": "Tau Empire Fleet (Xenos p.99-101)",
      "sections": [
          {"name": "Kor'or'vesh Battleships", "per_points": 750,
+          "per_points_of": ["Kor'or'vesh", "Kor'vattra"],
           "ships": {"Custodian Battleship": 330}},
          {"name": "Kor'or'vesh Cruisers",
           "ships": {"Protector Cruiser": 180, "Emissary Light Cruiser": 110}},
@@ -222,12 +247,12 @@ TAU_LISTS = [
          "and a Kor'O if a Custodian is present) is not in the fleet builder yet.",
          "Kor'O Vash'ya Y'eldi Mesme (Ld9, 110) and his flagship, the unique Custodian "
          "The Se'arle O'Mesme (400), aren't in the fleet builder or catalog.",
-         "Custodians: one per full 750pts \"of Tau vessels\" is checked against the fleet's "
-         "points limit, not the points spent on Tau vessels.",
-         "Towed escorts: one Warden per Warden-configured gravitic hook, one Orca per "
-         "Orca-configured hook, one Dhow per Dhow-configured hook: not checked.",
-         "Demiurg: never more Stronghold than Bastion. Nicassar: Dhows in squadrons of 2-6, "
-         "\"four Dhows per Rig\": not checked.",
+         "Custodians: one per full 750pts of Tau vessels (Kor'or'vesh and Kor'vattra ships, "
+         "not allies).",
+         "Towed escorts need gravitic hooks for their type; every Nicassar Rig needs four "
+         "Dhows (checked for every fleet, fleet_lists.towed_errors). The Rig (a stationary "
+         "defence) isn't playable yet, so Dhows can't be fielded.",
+         "Nicassar Dhows in squadrons of 2-6: not checked.",
          "Mine launchers on up to two cruisers; escort squadrons of 2-6: not checked.",
          "Reserves: only a Rogue Trader Fleet Detachment may join; no other reserves."]},
 ]
@@ -253,9 +278,13 @@ _RT_CONVOY_LIMITS = (
 RT_LISTS = [
     {"key": "rt_detachment", "faction": "rogue_traders", "kind": "detachment",
      "name": "Rogue Trader Fleet Detachment (Imperium p.126)",
+     # Owner ruling: joins any fleet except Necrons or Tyranids, Orks included (a
+     # detachment isn't a reserve). The Crusade list (only an Inquisitorial
+     # detachment) and the Banisher fleet (no detachments) refuse it.
      "joins": _NAVY_KEYS + ["admech_explorator", "sm_dominion", "chaos_incursion",
-                            "chaos_black_crusade", "chaos_renegades", "orks_green_tide",
-                            "tau_empire"],
+                            "chaos_black_crusade", "chaos_renegades", "chaos_slaanesh",
+                            "chaos_nurgle", "chaos_khorne", "chaos_tzeentch",
+                            "orks_green_tide", "tau_empire"],
      "sections": [dict(s, ships=dict(s["ships"])) for s in _RT_CONVOY] + [
          {"name": "Xenos Cutters", "ships": {"Xenos Cutter": 35}},
      ],
@@ -275,7 +304,7 @@ RT_LISTS = [
          "detachments (Space Marine Crusade, Banisher, Chaos god-dedicated fleets, the "
          "Rogue Trader standalone lists). Whether it may join the Green Tide (\"no other "
          "reserves\") is a reading: a detachment isn't reserves."]},
-    {"key": "rt_expedition", "faction": "rogue_traders",
+    {"key": "rt_expedition", "faction": "rogue_traders", "expedition": True,
      "name": "Rogue Trader Expedition Fleet (Imperium p.127)",
      "sections": [
          {"name": "Expedition Cruisers", "max": 6,
@@ -285,10 +314,11 @@ RT_LISTS = [
           "ships": {"Lunar Cruiser": 180, "Carnage Cruiser": 180, "Tyrant Cruiser": 175,
                     "Murder Cruiser": 170}},
          {"name": "Demiurg & Kroot Mercenaries", "ratio": (3, ["Expedition Cruisers"]),
+          "xenos": True,
           "class_max": {"Kroot Warsphere": 1},
           "ships": {"Stronghold Commerce Vessel": 350, "Bastion Commerce Vessel": 225,
                     "Citadel Commerce Vessel": 185, "Kroot Warsphere": 145}},
-         {"name": "Escorts", "ships": {"Xenos Cutter": 35}},
+         {"name": "Escorts", "ships": {"Xenos Cutter": 35}, "xenos": True},
      ] + [dict(s, ships=dict(s["ships"])) for s in _RT_CONVOY],
      "reserves": _NAVY_KEYS + ["admech_explorator", "sm_crusade", "sm_dominion",
                                "chaos_incursion", "chaos_black_crusade", "chaos_renegades",
