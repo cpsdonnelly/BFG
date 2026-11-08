@@ -160,15 +160,15 @@ class OrdnanceMovementMixin:
         """A failed guided-torpedo Leadership test may use a fleet commander
         re-roll: the AI always does, a human player is asked."""
         tc = self.ctx.tc
-        if tc.get_fleet_rerolls(player) <= 0:
+        if tc.get_fleet_rerolls(player, ship) <= 0:
             return False
         if not self.ctx.is_ai_controlled(player) and not messagebox.askyesno(
                 "Guided Torpedoes - Re-roll?",
                 f"{ship.name} rolled {roll} against Leadership {ship.leadership}.\n"
-                f"Use a fleet commander re-roll ({tc.get_fleet_rerolls(player)} left)?",
+                f"Use a fleet commander re-roll ({tc.get_fleet_rerolls(player, ship)} left)?",
                 parent=self.ctx.root):
             return False
-        return tc.use_fleet_reroll(player)
+        return tc.use_fleet_reroll(player, ship)
 
     def _guided_enemy_choice(self, enemy_player, candidates):
         """The enemy player chooses which of its ships tries to take control of

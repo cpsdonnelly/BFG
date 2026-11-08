@@ -165,7 +165,7 @@ class SpecialOrderMixin:
 
         def _handle_failed_individual(result, order_str):
             """Show failure UI and offer re-roll for an individual order."""
-            rerolls = self.ctx.tc.get_fleet_rerolls(ship.player)
+            rerolls = self.ctx.tc.get_fleet_rerolls(ship.player, ship)
             if rerolls > 0:
                 use_reroll = messagebox.askyesno(
                     "Order Failed - Re-roll Available",
@@ -252,7 +252,7 @@ class SpecialOrderMixin:
                     # Offer re-roll on squadron fail (rolls against the leader)
                     leader_ship = max([ship] + sq_members,
                                       key=lambda s: s.leadership)
-                    rerolls = self.ctx.tc.get_fleet_rerolls(ship.player)
+                    rerolls = self.ctx.tc.get_fleet_rerolls(ship.player, ship)
                     if rerolls > 0:
                         use_rr = messagebox.askyesno(
                             "Squadron Order Failed - Re-roll Available",
@@ -309,7 +309,7 @@ class SpecialOrderMixin:
             self.ctx.board.redraw()
 
         # Show re-roll count
-        rerolls = self.ctx.tc.get_fleet_rerolls(ship.player)
+        rerolls = self.ctx.tc.get_fleet_rerolls(ship.player, ship)
         reroll_text = f"Fleet re-rolls available: {rerolls}" if rerolls > 0 else ""
         if reroll_text:
             tk.Label(dialog, text=reroll_text, font=("Consolas", 8),

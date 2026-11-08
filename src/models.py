@@ -234,6 +234,7 @@ class Ship:
     is_flagship: bool = False
     admiral_type: str = ""  # e.g. "vice_admiral", "kor_o"
     rerolls_remaining: int = 0
+    own_rerolls: int = 0       # a secondary commander's re-rolls: this ship / squadron only (s.5)
 
     def __post_init__(self):
         if self.hits_remaining is None:

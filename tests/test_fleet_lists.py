@@ -322,3 +322,41 @@ def test_freebooter_kaptin_adds_one_to_rolled_leadership():
     roll_starting_leadership(gs, dice)
     from src.booklet_ships import LEADERSHIP_TABLES
     assert dice._idx == 1 and gs.ships[0]["leadership"] == min(10, LEADERSHIP_TABLES["Orks"][2] + 1)
+
+
+def test_secondary_commanders_ld_bonus_and_own_rerolls():
+    from tests.conftest import make_gs, make_ship, DiceStub
+    from src.turn_controller import TurnController
+    from src.booklet_options import fleet_option_errors
+    lunar = find_ship_class("Lunar Cruiser")
+    sc = "Strategic Commander (+1 Ld, max 9)"
+    from src.booklet_options import ship_option_errors
+    assert ship_option_errors(lunar, ["Fleet Admiral (Ld 9)", sc])        # one commander per ship
+    four = [(lunar, [sc])] * 4
+    assert any("At most 3" in e for e in fleet_option_errors(four, 1500))
+    flag = make_ship(id="flag", player=1, is_flagship=True, rerolls_remaining=1)
+    sec = make_ship(id="sec", player=1, squadron_id="sq", special_rules=["ld_bonus:1:9"])
+    sec.own_rerolls = 1
+    mate = make_ship(id="mate", player=1, squadron_id="sq")
+    other = make_ship(id="other", player=1)
+    gs = make_gs([flag, sec, mate, other])
+    tc = TurnController(gs, DiceStub([]))
+    assert tc.get_fleet_rerolls(1, gs.get_ship_by_id("mate")) == 2      # own + commander's
+    assert tc.get_fleet_rerolls(1, gs.get_ship_by_id("other")) == 1
+    assert tc.use_fleet_reroll(1, gs.get_ship_by_id("mate"))            # spends the own one first
+    assert gs.get_ship_by_id("sec").own_rerolls == 0 and gs.get_ship_by_id("flag").rerolls_remaining == 1
+
+
+def test_strategic_commander_ld_bonus_capped_at_9():
+    from tests.conftest import make_gs, make_ship, DiceStub
+    from src.fleet_loader import roll_starting_leadership
+    from src.booklet_ships import LEADERSHIP_TABLES
+    table = LEADERSHIP_TABLES["Default"]
+    for rolled_ld, expected in ((8, 9), (9, 9)):
+        if rolled_ld not in table:
+            continue
+        s = make_ship(id="s", player=1, special_rules=["ld_bonus:1:9"])
+        gs = make_gs([s])
+        gs.ships[0]["leadership_table"] = "Default"
+        roll_starting_leadership(gs, DiceStub([table.index(rolled_ld) + 1]))
+        assert gs.ships[0]["leadership"] == expected

@@ -501,8 +501,29 @@ class TurnController:
                 self.gs.add_log(line)
         self.gs.update_ship(ship)
 
-    def get_fleet_rerolls(self, player: int) -> int:
-        """Get remaining re-rolls for a player's fleet commander."""
+    def _own_reroll_holder(self, ship: Optional[Ship]) -> Optional[Ship]:
+        """A secondary commander with re-rolls left on this ship or in its
+        squadron (usable only for that ship or squadron, s.5); lost if its
+        ship is destroyed or Bridge Smashed."""
+        if ship is None:
+            return None
+        for s in self.gs.get_ships():
+            if s.own_rerolls <= 0 or s.player != ship.player or s.is_destroyed:
+                continue
+            if any(c.get("crit_type") == "bridge_smashed" for c in s.critical_damage):
+                continue
+            if s.id == ship.id or (ship.squadron_id and s.squadron_id == ship.squadron_id):
+                return s
+        return None
+
+    def get_fleet_rerolls(self, player: int, ship: Optional[Ship] = None) -> int:
+        """Re-rolls available: the fleet commander's, plus a secondary
+        commander's own when `ship` is his ship or in his squadron."""
+        holder = self._own_reroll_holder(ship)
+        own = holder.own_rerolls if holder else 0
+        return own + self._commander_rerolls(player)
+
+    def _commander_rerolls(self, player: int) -> int:
         flagship = self.get_flagship(player)
         if not flagship:
             return 0
@@ -514,11 +535,19 @@ class TurnController:
             return 0
         return flagship.rerolls_remaining
 
-    def use_fleet_reroll(self, player: int) -> bool:
+    def use_fleet_reroll(self, player: int, ship: Optional[Ship] = None) -> bool:
         """
-        Use one fleet commander re-roll.
+        Use one re-roll: a secondary commander's own first (when `ship` is his
+        ship or squadron), else the fleet commander's.
         Returns True if successful, False if none available.
         """
+        holder = self._own_reroll_holder(ship)
+        if holder is not None:
+            holder.own_rerolls -= 1
+            self.gs.update_ship(holder)
+            self.gs.add_log(f"{holder.name}'s commander re-roll used "
+                            f"({holder.own_rerolls} left)")
+            return True
         flagship = self.get_flagship(player)
         if not flagship or flagship.rerolls_remaining <= 0:
             return False
@@ -549,7 +578,7 @@ class TurnController:
         """
         from .movement import do_command_check
 
-        if not self.use_fleet_reroll(ship.player):
+        if not self.use_fleet_reroll(ship.player, ship):
             return {"success": False, "error": "No re-rolls available"}
 
         # Recalculate modifiers

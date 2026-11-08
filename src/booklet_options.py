@@ -355,6 +355,36 @@ ORK_BOSSES = [("Warboss", 40), ("Big Mek", 40), ("Freebooter Kaptin", 30)]
 ORK_TITLES = [("Big Boss", 1, 20), ("Mega Boss", 2, 40)]
 
 
+# Secondary commanders (s.5): +Ld (or a fixed Ld) and re-rolls usable only
+# for their own ship or squadron (`own_rerolls`). (name, Ld effect, cost,
+# fleet maximum, re-roll cost or None)
+SECONDARY = {
+    "Imperial Navy": ("Strategic Commander (+1 Ld, max 9)", "ld_bonus:1:9", 30, 3, 15),
+    "Chaos": ("Aspiring Champion (+1 Ld, max 9)", "ld_bonus:1:9", 30, None, 15),
+    "Adeptus Mechanicus": ("Magos Explorator (Ld 8)", 8, 25, 3, None),
+}
+
+
+def secondary_commander_options(faction: str) -> List[Dict]:
+    """A secondary commander can't be the required commander and shares the
+    commander group: no ship carries more than one commander of any kind."""
+    if faction not in SECONDARY:
+        return []
+    name, ld, cost, most, rr = SECONDARY[faction]
+    effect = ({"add_special_rules": [ld, "secondary_commander"]} if isinstance(ld, str)
+              else {"set": {"leadership": ld, "leadership_table": ""},
+                    "add_special_rules": ["secondary_commander"]})
+    restr = ["group:fleet_commander"] + ([f"fleet_max:{most}"] if most else [])
+    opts = [{"name": name, "description": f"Secondary commander, {cost}pts.",
+             "points_cost": cost, "effect": effect, "restrictions": restr}]
+    if rr:
+        opts.append({"name": f"{name.split(' (')[0]}: re-roll",
+                     "description": f"+{rr}pts: one re-roll for this ship or its squadron only.",
+                     "points_cost": rr, "effect": {"set": {"own_rerolls": 1}},
+                     "restrictions": [f"requires:{name}"]})
+    return opts
+
+
 def commander_names(faction_rule: str) -> List[str]:
     if faction_rule == "Orks":
         return [f"Ork {n}" for n, _ in ORK_BOSSES]
@@ -405,6 +435,7 @@ def fleet_commander_options(row: dict) -> List[Dict]:
                         "add_special_rules": ["fleet_commander"], "flagship": True},
              "restrictions": ["fleet_unique", "group:fleet_commander"]}
             for n, ld, cost in tiers]
+    opts += secondary_commander_options(faction)
     opts += [{"name": f"Commander: {k} extra re-roll{'s' if k > 1 else ''}",
               "description": f"{cost}pts.",
               "points_cost": cost, "effect": {"rerolls": free + k},
@@ -470,6 +501,13 @@ def fleet_option_errors(rows: List[tuple], total_points: int = 0) -> List[str]:
     for n, c in unique.items():
         if c > 1:
             errors.append(f"Only one ship may take {n} ({c} chosen).")
+    capped: Dict[str, List[int]] = {}
+    for e, n, r in restr:
+        if r.startswith("fleet_max:"):
+            capped.setdefault(n, [int(r.split(":")[1]), 0])[1] += 1
+    for n, (most, c) in capped.items():
+        if c > most:
+            errors.append(f"At most {most} ships may take {n} ({c} chosen).")
     strike = [chosen for e, chosen in rows if e.ship_class == "Strike Cruiser"]
     with_variant = sum(1 for chosen in strike if any(n.startswith("Variant:") for n in chosen))
     if with_variant > len(strike) // 2:

@@ -238,7 +238,7 @@ class GamePanel:
         if threading.current_thread() is not threading.main_thread():
             return False
         tc = self.ctx.tc
-        left = tc.get_fleet_rerolls(ship.player)
+        left = tc.get_fleet_rerolls(ship.player, ship)
         if left <= 0:
             return False
         if self.ctx.is_ai_controlled(ship.player):
@@ -248,7 +248,7 @@ class GamePanel:
                 "Leadership Test Failed - Re-roll?",
                 f"{ship.name}: {label} failed (rolled {roll} vs Ld {needed}).\n"
                 f"Use a fleet commander re-roll ({left} left)?", parent=self)
-        if use and tc.use_fleet_reroll(ship.player):
+        if use and tc.use_fleet_reroll(ship.player, ship):
             self.ctx.log(f"  {ship.name}: fleet re-roll for {label}")
             return True
         return False
@@ -1271,7 +1271,7 @@ class GamePanel:
                 f"{ship.name} has disengaged from battle!\n"
                 f"Rolled {result['roll']} vs Ld {result['needed']}")
         else:
-            rerolls = self.ctx.tc.get_fleet_rerolls(ship.player)
+            rerolls = self.ctx.tc.get_fleet_rerolls(ship.player, ship)
             used_reroll = False
             rr_result = {}
             if rerolls > 0:
@@ -1286,7 +1286,7 @@ class GamePanel:
                     ship.disengage_failed_this_turn = False
                     ship.has_fired = False
                     gs.update_ship(ship)
-                    self.ctx.tc.use_fleet_reroll(ship.player)
+                    self.ctx.tc.use_fleet_reroll(ship.player, ship)
                     rr_result = _rr_disengage(ship, self.ctx.dice, gs)
                     used_reroll = True
                     if rr_result["success"]:

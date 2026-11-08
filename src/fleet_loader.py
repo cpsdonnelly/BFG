@@ -68,6 +68,7 @@ def export_fleet_with_damage(ships: List["Ship"], player: int, filepath: str) ->
             "is_flagship": s.is_flagship,
             "admiral_type": s.admiral_type,
             "rerolls_remaining": s.rerolls_remaining,
+            "own_rerolls": s.own_rerolls,
             "squadron_id": s.squadron_id,
             "spawn_x": s.x,
             "spawn_y": s.y,
@@ -163,10 +164,13 @@ def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
         ld = table[roll - 1]
         # A Freebooter Kaptin adds +1 to the rolled Ld of the ship or
         # squadron he leads (owner ruling)
-        bonus = max((int(r.split(":")[1]) for i in indices
-                     for r in gs.ships[i].get("special_rules", []) if r.startswith("ld_bonus:")),
-                    default=0)
-        ld = min(10, ld + bonus)
+        # ... and a secondary commander adds +1 to a maximum ("ld_bonus:1:9")
+        bonuses = [r.split(":") for i in indices
+                   for r in gs.ships[i].get("special_rules", []) if r.startswith("ld_bonus:")]
+        if bonuses:
+            b = max(bonuses, key=lambda x: int(x[1]))
+            cap = int(b[2]) if len(b) > 2 else 10
+            ld = max(ld, min(cap, ld + int(b[1])))
         for i in indices:
             gs.ships[i]["leadership"] = ld
         logs.append(f"{names}: Leadership {ld} (rolled {roll})")

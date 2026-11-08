@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **873 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **875 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -79,18 +79,13 @@ session.
 
 ## Remaining work (agreed order)
 
-1. **PARTLY DONE: commander re-rolls now also on Brace for Impact, target priority and
-   asteroid / warp rift navigation (`movement.fleet_reroll_offered`, `GameState.ld_reroll_hook`
-   set by GamePanel). Still to do below.** **Commander re-rolls for every Leadership test +
-   secondary commanders (core s.5).** Re-rolls
-   (`TurnController.get_fleet_rerolls` / `use_fleet_reroll`, flagship `rerolls_remaining`) are
-   offered only for command checks (`special_orders_ui`), disengage tests and guided torpedoes
-   (`guided_control(reroll_fn=...)`). Extend to Brace for Impact, target priority, boarding,
-   asteroid navigation and the rest; one re-roll per test; lost if the commander's ship is
-   destroyed or Bridge Smashed. Secondary commanders (Navy Strategic Commanders +1 Ld max 9
-   30pts +15 re-roll; Chaos Aspiring Champions; Mechanicus Magi; Elite Captains /
-   Daemonhunters; Ork Nobz...) don't exist: +Ld and ship/squadron-only re-rolls. Several Ork
-   Bosses' re-rolls also need separate pools.
+1. **MOSTLY DONE (task 1, commander re-rolls and secondary commanders):** fleet re-rolls now
+   also on Brace for Impact, target priority, asteroid / warp rift navigation
+   (`movement.fleet_reroll_offered`, `GameState.ld_reroll_hook` set by GamePanel); secondary
+   commanders for Navy, Chaos and Mechanicus with ship/squadron-only re-rolls
+   (`Ship.own_rerolls`, `booklet_options.SECONDARY`). Left: other factions' secondaries
+   (Inquisition Elite Captains / Daemonhunters, Ork Nobz, Rogue Trader Bond-Captains, Space
+   Marine Captains on Dominion reserves) and separate re-roll pools for several Ork Bosses.
 2. **AI:** shoot at enemy hulks; use combined squadron fire (`combat.plan_squadron_volley`).
 3. **Disengaging (s.37):** shared escort-squadron test for a voluntary disengage, forced
    disengagement at Ld 1 or less, celestial phenomena measured to their edge.
