@@ -161,7 +161,16 @@ def get_massed_turret_bonus(ship: Ship, all_ships: List[Ship]) -> int:
     Crippled ships cannot contribute.
     """
     bonus = 0
-    for ally in all_ships:
+    pool = list(all_ships) + ([] if any(a.id == ship.id for a in all_ships) else [ship])
+    for ally in pool:
+        # Fleet Defence Turrets (Mechanicus Gift): +1 to every friendly ship
+        # within 15cm, itself included
+        if ("fleet_defence_turrets" in ally.special_rules and ally.player == ship.player
+                and not (ally.is_destroyed or ally.is_disengaged)
+                and ally.status not in ("drifting_hulk", "burning_hulk")
+                and math.hypot(ally.x - ship.x, ally.y - ship.y)
+                - ally.base_radius - ship.base_radius <= 15.0):
+            bonus += 1
         if ally.id == ship.id:
             continue
         if ally.player != ship.player:
@@ -171,9 +180,7 @@ def get_massed_turret_bonus(ship: Ship, all_ships: List[Ship]) -> int:
         dist = math.sqrt((ally.x - ship.x)**2 + (ally.y - ship.y)**2)
         if dist <= ally.base_radius + ship.base_radius + BASE_CONTACT_MARGIN_CM:
             bonus += 1
-            if bonus >= 3:
-                break
-    return bonus
+    return min(3, bonus)
 
 
 def check_torpedo_contact(marker: OrdnanceMarker, ship: Ship) -> bool:

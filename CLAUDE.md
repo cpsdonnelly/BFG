@@ -168,6 +168,10 @@ the grand cruisers' "one of" group, the Cobra's improved sensor array (Enemy Con
 Torpedo types bought for a refit's torpedoes need that refit; a refit that removes the
 torpedoes excludes them (`excludes_group:`). Built in from notes: Mercury `catastrophic_3d6`,
 Sensors `ld_always:1` (+1 Ld after the roll or a commander's Ld, max 10; Comms Uplink too).
+Battlefleet Bakka: starred classes +1 Turret when taken from that list (`stat_changes`,
+`fleet_lists.list_stat_changes`, applied at fleet save), Veteran Captains (+1 Ld max 10, 30,
+0-3, re-roll +15) replace Strategic Commanders and Fleet Defence Turrets (+5) are offered
+only there (`list_options`, `list_excludes`), Mechanicus cruisers in the battlecruiser places.
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the

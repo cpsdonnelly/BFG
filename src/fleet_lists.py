@@ -86,9 +86,13 @@ NAVY_LISTS = [
           "class_max": {"The Vae Victis (unique)": 1},
           "ships": {"Retribution Battleship": 355, "Victory Battleship": 355,
                     "The Vae Victis (unique)": 330}},
+         # The Forgeworld of Bakka: Mechanicus cruisers may take any number of the
+         # battlecruiser places, as a normal part of the fleet (Explorator list costs)
          {"name": "Battlecruisers", "ratio": (3, ["Cruisers", "Light Cruisers"]),
           "ships": {"Dominion Battlecruiser": 260, "Mercury Battlecruiser": 255,
-                    "Cardinal Battlecruiser": 200}},
+                    "Cardinal Battlecruiser": 200,
+                    "Mechanicus Dictator Cruiser": 245, "Mechanicus Gothic Cruiser": 215,
+                    "Mechanicus Lunar Cruiser": 215, "Mechanicus Tyrant Cruiser": 215}},
          {"name": "Cruisers", "ratio": (2, ["Light Cruisers"]),
           "ships": {"Gothic Cruiser": 185, "Lunar Cruiser": 185, "Tyrant Cruiser": 180}},
          {"name": "Light Cruisers", "max": 12, "class_max": {"Dauntless Light Cruiser": 2},
@@ -99,10 +103,19 @@ NAVY_LISTS = [
                     "Sword Frigate": 35}},
      ],
      "reserves": ["navy_gothic", "navy_armageddon", "navy_bastion"], "reserve_ratio": 4,
+     # *starred classes: +1 Turret when taken from this list (cost included)
+     "stat_changes": {"classes": ["Gothic Cruiser", "Lunar Cruiser", "Tyrant Cruiser",
+                                  "Dauntless Light Cruiser", "Endeavour Light Cruiser",
+                                  "Endurance Light Cruiser"],
+                      "delta": {"turrets": 1}},
+     # Secondary commanders are 0-3 Veteran Captains; any Navy capital ship may buy
+     # Fleet Defence Turrets (Mechanicus Gifts)
+     "list_options": ["Veteran Captain", "Refit: Fleet Defence Turrets"],
+     "list_excludes": ["Strategic Commander"],
      "unenforced": list(_NAVY_UNENFORCED) + [
-         "Starred Bakka classes gain extra rules (the cost premium is included).",
-         "Secondary commanders are 0-3 Veteran Captains; Lord Admiral Rath (Ld10) 150 at "
-         "1500+pts."]},
+         "Lord Admiral Rath (Ld10) 150 at 1500+pts (The Pride of Bakka's random refits) "
+         "isn't in the fleet builder yet. The list has no mine launcher upgrade (none "
+         "exists in the fleet builder)."]},
     {"key": "navy_bastion", "faction": "imperial_navy_gothic",
      "name": "Bastion Sector, Segmentum Obscurus (Imperium p.90-91)",
      "sections": [
@@ -355,9 +368,19 @@ def list_cost(fl: Optional[Dict], ship_class: str, default: int) -> int:
     return list_ships(fl).get(ship_class, default)
 
 
+def list_stat_changes(list_key: str, ship_class: str) -> Dict:
+    """Stat changes a list makes to the classes taken from it (Bakka's starred
+    classes: +1 Turret)."""
+    sc = (LISTS.get(list_key) or {}).get("stat_changes")
+    return dict(sc["delta"]) if sc and ship_class in sc["classes"] else {}
+
+
 def option_allowed(option_name: str, list_keys: List[str]) -> bool:
     """Options that only some lists allow (Inferno torpedoes: the Fleet
     Detachment; vortex torpedoes: either Inquisition list)."""
+    if any(option_name.startswith(x) for k in list_keys if k in LISTS
+           for x in LISTS[k].get("list_excludes", [])):
+        return False                   # Bakka: Veteran Captains, not Strategic Commanders
     gated = {name for fl in ALL_LISTS for name in fl.get("list_options", [])}
     gate = next((g for g in gated if option_name.startswith(g)), None)
     if gate is None or not list_keys:

@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **885 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **890 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -107,6 +107,10 @@ session.
   "+1 Ld at all times (max 10)" is added after the starting roll **and** after a commander's
   own Ld (a Fleet Admiral's Ld 9 on an Emperor becomes 10) (`ld_always:1`,
   `fleet_loader.roll_starting_leadership`). It stacks with a secondary commander's +1.
+- Bakka "Mechanicus cruisers" for battlecruiser places: the four Mechanicus cruisers
+  (Dictator, Gothic, Lunar, Tyrant) at their Explorator list costs, not the light cruisers.
+- Fleet Defence Turrets: a crippled ship still gives its +1 (only base-contact massed turrets
+  say crippled ships can't contribute); hulks don't. Distance is base edge to base edge.
 - Navy profile refits with no "one of" wording (Mercury's two, Tyrant's two, Mars / Overlord's
   two) may all be taken together; the grand cruisers' "may buy one of" is one only.
 
@@ -161,10 +165,14 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   improved sensor array, assault boats +5), Mercury 3D6 catastrophic and Sensors +1 Ld.
   Not yet: torpedo bomber purchases ("TB 20cm +Npts", Navy, Mechanicus, Chaos: torpedo
   bombers can't fire their salvo yet, s.21), the Cobra's "whole squadron must match".
-  Still to do: Bakka starred classes
-  +1 Turret (cost included), Veteran Captains (+1 Ld max 10, 30, re-roll +15), Fleet Defence
-  Turrets, Mechanicus cruisers in battlecruiser slots, no Bakka mine launchers; Armageddon
-  Admiral / Master of the Fleet ship rules.
+  **Bakka done:** starred classes +1 Turret (`fleet_lists.list_stat_changes`, applied when the
+  fleet builder saves a ship taken from the Bakka list), Veteran Captains instead of Strategic
+  Commanders (`list_options` / `list_excludes`), Fleet Defence Turrets on Navy capital ships
+  (-2 Turrets, +1 massed turret to friendly ships within 15cm including itself, max +3,
+  `ordnance.get_massed_turret_bonus`), Mechanicus cruisers in the battlecruiser places at
+  Explorator costs. No mine launcher upgrade exists to remove. Still to do: Lord Admiral Rath
+  (named commander, random Pride of Bakka refits), Armageddon Admiral / Master of the Fleet
+  ship rules.
 - Space Marines (18): Dominion nova cannon one per 1000pts or portion; Dominion Sword RSV and
   mixed squadrons; Dominion reserve rules rewritten; Space Marine Captains; veteran honour guard
   +10; Master of the Fleet ship rule; Tactical Flexibility covers specialist torpedoes only;

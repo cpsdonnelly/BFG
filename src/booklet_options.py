@@ -551,6 +551,21 @@ def navy_refit_options(row: dict) -> List[Dict]:
                           "add_special_rules": ["improved_sensor_array"]}))
     if torps_from and not torpedo_strength(row):
         opts += torpedo_type_options(row, torp_strength, torps_from)
+    from .booklet_ships import _ship_type
+    if _ship_type(row) in ("cruiser", "battleship"):
+        # Bakka only (fleet_lists list_options): Fleet Defence Turrets from the
+        # Mechanicus Gifts, and Veteran Captains as the secondary commanders
+        opts.append(_opt("Refit: Fleet Defence Turrets", "+5pts (Bakka). -2 Turrets, but "
+                         "+1 massed turret to every friendly ship within 15cm, itself "
+                         "included (+3 at most as normal).", 5,
+                         {"stat_delta": {"turrets": -2},
+                          "add_special_rules": ["fleet_defence_turrets"]}))
+        vc = "Veteran Captain (+1 Ld, max 10)"
+        opts += [_opt(vc, "Secondary commander (Bakka), 30pts.", 30,
+                      {"add_special_rules": ["ld_bonus:1:10", "secondary_commander"]},
+                      ["group:fleet_commander", "fleet_max:3"]),
+                 _opt("Veteran Captain: re-roll", "+15pts: one re-roll for this ship or its "
+                      "squadron only.", 15, {"set": {"own_rerolls": 1}}, [f"requires:{vc}"])]
     return opts
 
 

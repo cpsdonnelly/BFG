@@ -1078,6 +1078,9 @@ class FleetBuilderWindow:
             storable["points_value"] += row.get("base_cost", entry.points_cost) - entry.points_cost
             if row.get("list"):
                 storable["fleet_list"] = row["list"]
+                from .fleet_lists import list_stat_changes
+                for stat, delta in list_stat_changes(row["list"], entry.ship_class).items():
+                    storable[stat] = storable.get(stat, 0) + delta   # Bakka +1 Turret
             # Write non-default damage state for campaign/scenario use
             dmg = row.get("damage", {})
             if "hits_remaining" in dmg:

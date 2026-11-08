@@ -187,7 +187,7 @@ def test_booklet_ships_without_options_have_no_upgrades():
     assert {u.name.split(":")[0] for u in get_upgrades_for_ship(
         get_ship_class("imperial_navy_gothic", "Lunar Cruiser")) if u.name not in cmd} == {
         "Torpedoes", "Refit", "Commander", "Strategic Commander (+1 Ld, max 9)",
-        "Strategic Commander"}
+        "Strategic Commander", "Veteran Captain (+1 Ld, max 10)", "Veteran Captain"}
 
 
 def test_old_defense_spelling_still_resolves():
