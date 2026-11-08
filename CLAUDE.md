@@ -7,7 +7,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 
 - **`bfgxr/` is the rules authority.** Read `bfgxr/CLAUDE.md` before changing any rule or ship
   stat. It is an export of the BFG:XR companion booklet: `bfgxr/rules/` (one Markdown file
-  per section) and `bfgxr/data/ships.json` (174 ships, stats and weapons parsed). Never edit
+  per section) and `bfgxr/data/ships.json` (178 ships, stats and weapons parsed). Never edit
   those generated files by hand; the `.docx` in `bfgxr/source/` is the master.
 - Never invent rules, stats or values. If the booklet doesn't cover something, say so and
   ask the owner.
@@ -25,7 +25,8 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
 - `data/rules_cheatsheet.txt` and `data/*.csv` (plus the copies in the repo root) are an
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
-  `src/booklet_ships.py`: all 9 factions, 174 ships. Ships using rules the engine can't play yet
+  `src/booklet_ships.py`: all 9 factions, 178 booklet ships plus 17 designed Venerable Strike
+Cruisers. Ships using rules the engine can't play yet
   (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons...) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
   ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
@@ -146,7 +147,7 @@ the Archmagos and Tau re-roll costs (25 / 50, Imperium p.17, Xenos p.99); Ork Bo
 (Warboss 40, Big Mek 40, Freebooter Kaptin 30) have no Ld of their own (the ship's rolled
 Ld; a Kaptin adds +1, `ld_bonus:1` in `fleet_loader.roll_starting_leadership`) and get
 re-rolls only from a title (Big Boss 1 +20, Mega Boss 2 +40). Each list's `commander`
-(`fleet_lists._attach_commanders`): required at 750+ pts ("750+" as the lists print it),
+(`fleet_lists._attach_commanders`): required for more than 750 pts (see below),
 Explorator 1000+, Green Tide one Boss at 500+ and at most one per 500pts, a Rogue Trader
 detachment always; a Tau Custodian needs a Kor'O. Secondary commanders: see "Not yet
 matching the booklet" (commander re-rolls). Not yet: several Ork Bosses' re-rolls (the

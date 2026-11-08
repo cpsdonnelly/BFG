@@ -131,6 +131,10 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Remaining work (agreed order)
 
+0. **First: the "Still to do" list from booklet export 31 above** (faction audits and the core
+   rules now in rulebook wording). Work through it faction by faction, reading each CHANGES.md
+   entry; ask the owner only where the text is unclear.
+
 1. **MOSTLY DONE (task 1, commander re-rolls and secondary commanders):** fleet re-rolls now
    also on Brace for Impact, target priority, asteroid / warp rift navigation
    (`movement.fleet_reroll_offered`, `GameState.ld_reroll_hook` set by GamePanel); secondary
