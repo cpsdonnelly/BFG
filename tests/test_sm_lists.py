@@ -38,3 +38,48 @@ def test_dominion_reserves():
     errs = fleet_list_errors("sm_dominion", full + mech + rows(
         "Gothic Cruiser", list_key="reserve:navy_gothic"), 1700)
     assert has(errs, "Strike Cruisers: 11 with the reserves")
+
+
+def test_sm_options_and_gating():
+    from src.ship_catalog import find_ship_class
+    from src.fleet_lists import option_allowed
+    sc = find_ship_class("Strike Cruiser")
+    names = {u.name: u for u in sc.upgrades_available}
+    sb = "Torpedoes: short burn torpedoes (instead of boarding torpedoes)"
+    assert names[sb].points_cost == 0 and "requires:Variant: prow torpedoes" in names[sb].restrictions
+    assert "Master of the Fleet (Ld 10)" in names and "Veteran honour guard" in names
+    assert option_allowed("Veteran honour guard", ["sm_crusade"])
+    assert not option_allowed("Veteran honour guard", ["navy_armageddon"])
+    assert option_allowed("Space Marine Captain", ["sm_dominion"])
+    assert not option_allowed("Space Marine Captain", ["sm_crusade"])
+    assert not option_allowed("Chapter tactic: Wings of Fury", ["navy_gothic"])
+    assert option_allowed("Chapter tactic: Wings of Fury", ["sm_dominion"])
+    d = find_ship_class("Lunar Cruiser").to_ship_dict(name="l", player=1,
+                                                      upgrades=["Space Marine Captain"])
+    assert d["leadership_table"] == "Astartes" and d["points_value"] == 205
+
+
+def test_master_of_the_fleet_rides_a_battle_barge_if_there_is_one():
+    from src.ship_catalog import find_ship_class
+    from src.booklet_options import fleet_option_errors
+    mof = "Master of the Fleet (Ld 10)"
+    sc, bb, ult = (find_ship_class(n) for n in
+                   ("Strike Cruiser", "Space Marine Battle Barge", "Ultima Battle Barge"))
+    assert not fleet_option_errors([(sc, [mof]), (sc, [])], 800)
+    assert fleet_option_errors([(sc, [mof]), (bb, [])], 1200)
+    assert not fleet_option_errors([(sc, []), (bb, [mof])], 1200)
+    assert fleet_option_errors([(bb, [mof]), (ult, [])], 1500)       # the Chapter flagship
+
+
+def test_mixed_rsv_squadron_rolls_on_the_space_marine_table():
+    from tests.conftest import make_gs, make_ship, DiceStub
+    from src.fleet_loader import roll_starting_leadership
+    from src.booklet_ships import LEADERSHIP_TABLES
+    a = make_ship(id="a", ship_type="escort", squadron_id="q")
+    b = make_ship(id="b", ship_type="escort", squadron_id="q")
+    gs = make_gs([a, b])
+    gs.ships[0]["leadership_table"], gs.ships[1]["leadership_table"] = "Default", "Astartes"
+    dice = DiceStub([1])
+    roll_starting_leadership(gs, dice)
+    assert dice._idx == 1
+    assert gs.ships[0]["leadership"] == gs.ships[1]["leadership"] == LEADERSHIP_TABLES["Astartes"][0]

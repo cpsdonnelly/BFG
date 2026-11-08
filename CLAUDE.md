@@ -174,6 +174,11 @@ Battlefleet Bakka: starred classes +1 Turret when taken from that list (`stat_ch
 only there (`list_options`, `list_excludes`), Mechanicus cruisers in the battlecruiser places.
 Armageddon Sector: Master of the Fleet may be its commander (`extra_commanders`); its Space
 Marine ships are allies of convenience (no Chapter tactics, `no_tactical_flexibility`).
+Space Marine lists (update 18): Master of the Fleet on any SM capital ship, on a battle barge if
+the fleet has one (the Ultima / Venerable Battle Barge if present); veteran honour guard +10;
+Dominion Space Marine Captains (Navy reserves, Astartes Ld table); specialist torpedoes;
+Chapter tactics only in SM fleets; Dominion reserve rules and nova cannon limits
+(`nova_per_points`) in `fleet_list_errors`.
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the

@@ -203,7 +203,6 @@ _SM_BARGES = {"name": "Battle barges", "per_points": 1000, "or_part": True, "sm_
               "ships": dict(_SM_VENERABLE, **{"Ultima Battle Barge": 450,
                                               "Space Marine Battle Barge": 425})}
 _SM_UNENFORCED = [
-    "The Master of the Fleet must ride a battle barge, the Chapter flagship if present.",
     "Venerable strike cruisers are designed (Imperium p.137); the catalog has one for each "
     "eligible Navy / Chaos class.",
 ]
@@ -220,6 +219,7 @@ SM_LISTS = [
          {"name": "Escorts", "ships": dict(_SM_ESC)},
      ],
      "reserves": [],
+     "list_options": ["Veteran honour guard"],
      "unenforced": list(_SM_UNENFORCED) + [
          "No reserves; only an Inquisitorial Fleet Detachment may join it."]},
     {"key": "sm_dominion", "faction": "space_marines", "name": "Dominion Fleet (Imperium p.149)",
@@ -239,9 +239,11 @@ SM_LISTS = [
      "reserves": ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion",
                   "admech_explorator"],
      "reserve_rule": "sm_dominion", "nova_per_points": 1000,
+     # Space Marine Captains (25) on Imperial Navy reserve capital ships; veteran
+     # honour guards on Space Marine capital ships and Captains' ships
+     "list_options": ["Veteran honour guard", "Space Marine Captain"],
      "unenforced": list(_SM_UNENFORCED) + [
-         "Space Marine Captains (25pts) on Imperial Navy reserve capital ships.",
-         "Mine launcher swaps (two cruisers): not checked."]},
+         "Mine launcher swaps (two cruisers): not in the fleet builder yet."]},
 ]
 
 # ── Inquisition (04_inquisition-grey-knights.md) ─────────────────────────────
@@ -393,6 +395,9 @@ def option_allowed(option_name: str, list_keys: List[str]) -> bool:
     if any(option_name.startswith(x) for k in list_keys if k in LISTS
            for x in LISTS[k].get("list_excludes", [])):
         return False                   # Bakka: Veteran Captains, not Strategic Commanders
+    if (option_name.startswith("Chapter tactic:") and list_keys and list_keys[0] in LISTS
+            and LISTS[list_keys[0]]["faction"] != "space_marines"):
+        return False                   # only Space Marine fleets use Chapter tactics
     gated = {name for fl in ALL_LISTS for name in fl.get("list_options", [])}
     gate = next((g for g in gated if option_name.startswith(g)), None)
     if gate is None or not list_keys:

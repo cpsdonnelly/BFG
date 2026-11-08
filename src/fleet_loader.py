@@ -155,12 +155,16 @@ def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
     logs = []
     for (player, _, _), indices in groups.items():
         first = gs.ships[indices[0]]
-        table = LEADERSHIP_TABLES.get(first["leadership_table"], LEADERSHIP_TABLES["Default"])
+        tables = [gs.ships[i]["leadership_table"] for i in indices]
+        # Dominion: rapid strike vessels squadroned with Space Marine escorts use
+        # the Space Marine table
+        key = "Astartes" if "Astartes" in tables else first["leadership_table"]
+        table = LEADERSHIP_TABLES.get(key, LEADERSHIP_TABLES["Default"])
         ai = gs.ai_spectator or gs.ai_player == player
         roller = ai_dice if (ai and ai_dice is not None) else dice
         names = ", ".join(gs.ships[i]["name"] for i in indices)
         roll = roller.roll_d6(1, f"Starting Leadership for {names} "
-                                 f"({first['leadership_table']} table)")[0]
+                                 f"({key} table)")[0]
         ld = table[roll - 1]
         # A Freebooter Kaptin adds +1 to the rolled Ld of the ship or
         # squadron he leads (owner ruling)

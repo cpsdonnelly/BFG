@@ -72,7 +72,36 @@ def space_marine_options(row: dict) -> List[Dict]:
                                         dict(_THUNDERHAWK_BAY, name="Starboard Launch Bays")]},
              "restrictions": ["sc_variant", "base_cost:20"]},
         ]
-    if row.get("hull_type") == "Battleship" or "Battle Barge" in name:
+    notes = row.get("notes") or ""
+    if name == "Strike Cruiser":
+        # "any strike cruiser with torpedoes may be armed with boarding torpedoes
+        # free, short-burn torpedoes +5pts, or barrage bombs +10pts" (Variant
+        # costs: Tactical Flexibility takes 10 off, minimum 0)
+        opts += [_opt(f"Torpedoes: {label} (instead of boarding torpedoes)",
+                      f"+{cost}pts (-10 Tactical Flexibility).", _variant_cost(cost),
+                      {"add_special_rules": [f"torpedo_type:{key}", "no_boarding_torps"]},
+                      ["group:torpedo_type", "requires:Variant: prow torpedoes",
+                       f"base_cost:{cost}"])
+                 for key, label, cost in (("short_burn", "short burn torpedoes", 5),
+                                          ("barrage", "barrage bombs", 10))]
+    for text, swaps in (
+            ("May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts",
+             (("short_burn", "short burn torpedoes", 5), ("barrage", "barrage bombs", 10))),
+            ("Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage "
+             "bombs +5pts", (("short_burn", "short burn torpedoes", 0),
+                             ("barrage", "barrage bombs", 5)))):
+        if text in notes:                                   # battle barges, Vanguard
+            opts += [_opt(f"Torpedoes: {label} (instead of boarding torpedoes)",
+                          f"+{cost}pts." if cost else "Free.", cost,
+                          {"add_special_rules": [f"torpedo_type:{key}", "no_boarding_torps"]},
+                          ["group:torpedo_type"]) for key, label, cost in swaps]
+    if row.get("hull_type") != "Escort" and _sm_capital(row):
+        # Crusade and Dominion lists (fleet_lists list_options)
+        opts.append(_opt("Veteran honour guard", "+10pts. Double teleport range; teleport "
+                         "attacks roll 2D6 and use the best.", 10,
+                         {"add_special_rules": ["veteran_honour_guard"]},
+                         ["group:honour_guard"]))
+    if _sm_capital(row):
         mof = "Master of the Fleet (Ld 10)"
         opts += [
             {"name": mof,
@@ -102,9 +131,17 @@ def space_marine_options(row: dict) -> List[Dict]:
                             "use the best two as two raids.",
              "points_cost": 25,
              "effect": {"add_special_rules": ["terminator_honour_guard"]},
-             "restrictions": [f"requires:{mof}"]},
+             "restrictions": [f"requires:{mof}", "group:honour_guard"]},
         ]
     return opts
+
+
+def _sm_capital(row: dict) -> bool:
+    """A Space Marine capital ship (battle barge, strike, vanguard or venerable
+    strike cruiser); not the Fortress-Monastery or escorts."""
+    from .booklet_ships import _ship_type
+    return (_ship_type(row) in ("cruiser", "battleship")
+            and "Fortress" not in row.get("name", ""))
 
 
 def torpedo_strength(row: dict) -> int:
@@ -560,6 +597,16 @@ def navy_refit_options(row: dict) -> List[Dict]:
                          "included (+3 at most as normal).", 5,
                          {"stat_delta": {"turrets": -2},
                           "add_special_rules": ["fleet_defence_turrets"]}))
+        # Dominion only: a Space Marine Captain on an Imperial Navy reserve
+        # capital ship (Space Marine Ld table; no longer an ally of convenience)
+        smc = "Space Marine Captain"
+        opts += [_opt(smc, "25pts (Dominion). The ship rolls Leadership on the Space Marine "
+                      "table.", 25, {"set": {"leadership_table": "Astartes"},
+                                     "add_special_rules": ["space_marine_captain"]},
+                      ["group:fleet_commander"]),
+                 _opt("Veteran honour guard (Space Marine Captain)", "+10pts. Double teleport "
+                      "range; teleport attacks roll 2D6 and use the best.", 10,
+                      {"add_special_rules": ["veteran_honour_guard"]}, [f"requires:{smc}"])]
         vc = "Veteran Captain (+1 Ld, max 10)"
         opts += [_opt(vc, "Secondary commander (Bakka), 30pts.", 30,
                       {"add_special_rules": ["ld_bonus:1:10", "secondary_commander"]},
@@ -574,7 +621,9 @@ def options_for(row: dict) -> List[Dict]:
     torpedo types and refits, and each faction's fleet commander."""
     rules = row.get("faction_rules") or []
     if row.get("roster_group") == "Venerable Strike Cruisers":
-        return venerable_strike_cruiser_options(row)
+        # its own design options, plus the Master of the Fleet and honour guards
+        return venerable_strike_cruiser_options(row) + [
+            o for o in space_marine_options(row) if not o["name"].startswith("Torpedoes")]
     if "Space Marines" in rules:
         return space_marine_options(row)
     opts: List[Dict] = []
@@ -645,6 +694,19 @@ def fleet_option_errors(rows: List[tuple], total_points: int = 0) -> List[str]:
     if with_variant > len(strike) // 2:
         errors.append(f"Strike Cruiser Variants: at most {len(strike) // 2} of the fleet's "
                       f"{len(strike)} strike cruisers (half, round down); {with_variant} chosen.")
+    # Master of the Fleet: on a battle barge if the fleet has one (the Chapter
+    # flagship, a Venerable Battle Barge or the Ultima, if present)
+    mof_on = [e for e, chosen in rows if "Master of the Fleet (Ld 10)" in chosen]
+    barges = [e for e, _ in rows if "Battle Barge" in e.ship_class]
+    flagships = [e for e in barges if e.ship_class == "Ultima Battle Barge"
+                 or "venerable" in e.special_rules]
+    for e in mof_on:
+        if flagships and e not in flagships:
+            errors.append(f"The Master of the Fleet must ride the Chapter flagship "
+                          f"({flagships[0].ship_class}), not the {e.ship_class}.")
+        elif barges and e not in barges:
+            errors.append(f"The Master of the Fleet must ride a battle barge, not the "
+                          f"{e.ship_class}.")
     sm = [e for e, _ in rows if "space_marine_crew" in e.special_rules]
     if sm and len(sm) == len(rows) and total_points >= 750 and not unique.get(
             "Master of the Fleet (Ld 10)"):

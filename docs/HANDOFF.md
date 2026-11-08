@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **892 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **898 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -111,6 +111,8 @@ session.
   (Dictator, Gothic, Lunar, Tyrant) at their Explorator list costs, not the light cruisers.
 - Fleet Defence Turrets: a crippled ship still gives its +1 (only base-contact massed turrets
   say crippled ships can't contribute); hulks don't. Distance is base edge to base edge.
+- Master of the Fleet with only Space Marine Battle Barges (no Ultima or Venerable Battle
+  Barge): any battle barge counts as the Chapter flagship.
 - Navy profile refits with no "one of" wording (Mercury's two, Tyrant's two, Mars / Overlord's
   two) may all be taken together; the grand cruisers' "may buy one of" is one only.
 
@@ -176,10 +178,20 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   Tactical Flexibility (`no_tactical_flexibility`: its Strike Cruiser Variants pay full
   price, in the fleet total and the saved ship's points). Admirals already go on Navy
   capital ships only; no Space Marine ship has torpedo upgrades, and power rams don't exist.
-- Space Marines (18): Dominion nova cannon one per 1000pts or portion; Dominion Sword RSV and
-  mixed squadrons; Dominion reserve rules rewritten; Space Marine Captains; veteran honour guard
-  +10; Master of the Fleet ship rule; Tactical Flexibility covers specialist torpedoes only;
-  Chapter tactics only in Space Marine fleets.
+- Space Marines (18): **done:** Dominion nova cannons one per 1000pts or portion, Navy lists
+  one per 500 (`nova_per_points`, refits counted); Sword RSV; Dominion reserves (Navy: big
+  ships per 3 strike cruisers, cruisers per 2, no escorts; Mechanicus normally at 3:1; both
+  counted against the battle barge and 0-10 strike cruiser limits); Crusade 0-10 strike
+  cruisers; mixed RSV + Space Marine escort squadrons roll on the Astartes table; Space Marine
+  Captains (Dominion, 25, Astartes table) and veteran honour guards (+10, Crusade / Dominion,
+  `group:honour_guard` with the Terminator one); Master of the Fleet on any Space Marine
+  capital ship, but on a battle barge if there is one, the Chapter flagship (Ultima or a
+  Venerable Battle Barge) if present (`fleet_option_errors`); specialist torpedoes (strike
+  cruiser +5 / +10 less Tactical Flexibility, needs the prow torpedo variant; battle barges
+  +5 / +10; Vanguard free / +5); Chapter tactics only in Space Marine fleets
+  (`fleet_lists.option_allowed`). Not yet: mine launcher swaps (Navy, Crusade, Dominion),
+  the -1 Ld for a mixed squadron whose Space Marine members are all destroyed, allies of
+  convenience effects (attack rating), the Fortress-Monastery.
 - Mechanicus (19): Omnissiah's Victory needs 1000+ and counts as a battleship; ordinary torps
   alongside refitted ones; Vault of Technology; mixed escort squadrons.
 - Rogue Traders (20-21): Man O' War example builds (not ships); new Notable Xenos rows; Business
