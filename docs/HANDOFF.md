@@ -83,13 +83,15 @@ session.
 
 ## Readings to confirm (my choices, not owner rulings)
 
-Ask the owner about these when convenient (they're also noted in CLAUDE.md):
-- AI re-roll policy: the AI spends a fleet re-roll on a failed Leadership test only while it
-  has 2+ left; it re-rolls Wings of Fury raids only when the raid had no effect.
-- Waves: multi-role fighter-bombers always attack (the s.27 choice to suppress isn't offered);
-  resilient squadrons don't stop or split off a wave (s.23); CAP fighters intercept a wave's
+- AI re-roll policy (a play-style choice, no rule): the AI spends a fleet re-roll on a failed
+  Leadership test only while it has 2+ left; Wings of Fury raids only when they had no
+  effect. Owner asked why; offered to change it (e.g. use one whenever available). Await
+  their preference.
+- Squadron volley dialog: the starting aspect is the hardest present (every visible ship can
+  be hit); the player changes it per group. Not a rule; offered to default to the aspect
+  that gives the most dice instead. Await their preference.
+- Resilient squadrons don't stop or split off a wave (s.23); CAP fighters intercept a wave's
   squadrons in order after its turret roll (order of turrets vs CAP not stated).
-- Squadron volleys: the default aspect fired at is the hardest present.
 - Melta / vortex launcher location taken from the torpedo weapon's arc.
 
 ## Booklet export bug to report
@@ -162,8 +164,13 @@ Tau re-roll costs and the Ork Boss rules match what was built.
    disengagement at Ld 1 or less, celestial phenomena measured to their edge.
 4. **The ordinary profiles' own refits** from ships.json notes, one at a time (Mars Targeting
    Matrix, Exorcist prow torps, Repulsive extra shield, ...); Ork kustom upgrades and clans.
-5. **Smaller gaps** (see CLAUDE.md): attack craft flying straight / torpedo collisions checked
-   only at the end of the move; multi-role fighter-bomber suppression choice; resilient wave
+5. **Rules gap the owner flagged:** multi-role fighter-bombers (Thunderhawks) in a wave must be
+   offered s.27's choice to suppress turrets instead of attacking, chosen before the turrets
+   fire, the suppressors at the front of the wave (`waves.ship_attack_plan` already takes an
+   `mr_suppress` map; add the prompt in `ordnance_movement._resolve_ship_contacts` and an AI
+   choice). Fighta-Bommerz still never suppress.
+6. **Smaller gaps** (see CLAUDE.md): attack craft flying straight / torpedo collisions checked
+   only at the end of the move; resilient wave
    splitting; low orbit and planetary assaults (barrage bomb assault points); named commanders;
    unplayable ships (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons).
 

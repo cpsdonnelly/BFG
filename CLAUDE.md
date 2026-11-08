@@ -201,8 +201,8 @@ whole wave is removed afterwards (`waves.ship_attack_plan`). Lone squadrons are 
 group: each faces turrets separately, and a fighter that isn't in the wave no longer
 suppresses. Attack Craft Orders give a wave one target and can split squadrons off (alone
 or as a new wave in the same formation; they never rejoin). The board labels waves "xN C/L".
-Readings / not yet: multi-role fighter-bombers always attack (the choice to suppress isn't
-offered); bombers that re-roll attacks (+1 when suppressed) don't exist yet; resilient
+Not yet (rules gap, owner flagged): multi-role fighter-bombers always attack; s.27's choice
+to suppress turrets must be offered (`ship_attack_plan(mr_suppress=...)` supports it). bombers that re-roll attacks (+1 when suppressed) don't exist yet; resilient
 squadrons don't stop or split (interactions happen after movement); CAP fighters intercept
 a wave's squadrons in order after its turret roll.
 
