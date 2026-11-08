@@ -292,6 +292,10 @@ class _FireDialog:
             return cv
         from .movement import do_command_check
         check = do_command_check(self.attacker, "target_priority", self.ctx.dice)
+        from .movement import fleet_reroll_offered
+        if not check["passed"] and fleet_reroll_offered(
+                self.ctx.gs, self.attacker, "target priority", check["roll"], check["needed"]):
+            check = do_command_check(self.attacker, "target_priority", self.ctx.dice)
         att.target_priority_turn = self.ctx.gs.turn_number
         att.target_priority_passed = check["passed"]
         self.ctx.gs.update_ship(att)

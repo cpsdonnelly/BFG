@@ -51,6 +51,7 @@ class GamePanel:
         # asteroid fields may brace first (s.7)
         tc.gs.brace_hook = self._brace_hook
         tc.gs.raid_reroll_hook = self._raid_reroll_hook
+        tc.gs.ld_reroll_hook = self._ld_reroll_hook
 
         self._game_over = False
         self._ai_thinking = False   # expert AI search running on a worker thread
@@ -228,6 +229,29 @@ class GamePanel:
         return self.combat._brace_before_attack(
             attacker_key, attacker_name, ship, expected,
             group=squadron_group(ship, self.ctx.gs.get_ships()))
+
+    def _ld_reroll_hook(self, ship, label, roll, needed):
+        """GameState.ld_reroll_hook: a failed Leadership test may use a fleet
+        commander re-roll (s.5). A human owner is asked; the AI uses one while
+        it has two or more left. Main thread only."""
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            return False
+        tc = self.ctx.tc
+        left = tc.get_fleet_rerolls(ship.player)
+        if left <= 0:
+            return False
+        if self.ctx.is_ai_controlled(ship.player):
+            use = left >= 2
+        else:
+            use = messagebox.askyesno(
+                "Leadership Test Failed - Re-roll?",
+                f"{ship.name}: {label} failed (rolled {roll} vs Ld {needed}).\n"
+                f"Use a fleet commander re-roll ({left} left)?", parent=self)
+        if use and tc.use_fleet_reroll(ship.player):
+            self.ctx.log(f"  {ship.name}: fleet re-roll for {label}")
+            return True
+        return False
 
     def _raid_reroll_hook(self, owner, roll, effective, target):
         """GameState.raid_reroll_hook (Wings of Fury): ask a human owner whether

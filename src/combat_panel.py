@@ -150,6 +150,10 @@ class CombatPanel(CombatDialogMixin):
             if target_ord.id != closest_ord.id:
                 from .movement import do_command_check
                 check = do_command_check(attacker, "target_priority", self.ctx.dice)
+                from .movement import fleet_reroll_offered
+                if not check["passed"] and fleet_reroll_offered(
+                        self.ctx.gs, attacker, "target priority", check["roll"], check["needed"]):
+                    check = do_command_check(attacker, "target_priority", self.ctx.dice)
                 if not check["passed"]:
                     self.ctx.log(
                         f"  Target priority FAILED (rolled {check['roll']} vs Ld {check['needed']}). "

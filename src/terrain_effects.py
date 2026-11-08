@@ -120,6 +120,13 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
         result["passed"] = passed
         if passed:
             gs.add_log(f"  Re-roll passed ({roll2} vs Ld {ld})")
+    elif not passed:
+        from .movement import fleet_reroll_offered
+        if fleet_reroll_offered(gs, ship, "asteroid navigation", roll, ld):
+            roll2 = sum(dice.roll_d6(num_dice,
+                f"{ship.name} asteroid fleet re-roll ({num_dice}D6 vs Ld {ld})"))
+            passed = roll2 <= ld
+            result["roll"], result["passed"] = roll2, passed
 
     if not passed:
         # The Leadership test is failed: the ship may brace before the damage
@@ -176,6 +183,10 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
     ld = ship.leadership
     roll = sum(dice.roll_d6(3, f"{ship.name} warp rift navigation (3D6 vs Ld {ld})"))
     passed = roll <= ld
+    from .movement import fleet_reroll_offered
+    if not passed and fleet_reroll_offered(gs, ship, "warp rift navigation", roll, ld):
+        roll = sum(dice.roll_d6(3, f"{ship.name} warp rift fleet re-roll (3D6 vs Ld {ld})"))
+        passed = roll <= ld
 
     result = {"passed": passed, "roll": roll, "needed": ld}
 

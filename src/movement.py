@@ -536,6 +536,16 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     return {"passed": passed, "roll": roll, "needed": ld, "mods": mods}
 
 
+def fleet_reroll_offered(gs: GameState, ship: Ship, label: str, roll: int, needed: int) -> bool:
+    """A failed Leadership test may use one fleet commander re-roll (s.5:
+    "a failed command check or leadership test for any ship or squadron";
+    only one re-roll per test). GameState.ld_reroll_hook(ship, label, roll,
+    needed) asks the owner (the AI decides) and spends the re-roll; without a
+    hook nothing is offered. Special orders have their own re-roll prompt."""
+    hook = getattr(gs, "ld_reroll_hook", None)
+    return bool(hook and hook(ship, label, roll, needed))
+
+
 def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
     """
     Roll a Brace For Impact command check and, on success, apply the order:
@@ -550,6 +560,11 @@ def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
         for s in gs.get_ships())
     check = do_command_check(ship, "brace_for_impact", dice,
                              enemy_on_special=enemy_on_special, in_blast=in_blast)
+    if not check["passed"] and fleet_reroll_offered(gs, ship, "Brace for Impact",
+                                                    check["roll"], check["needed"]):
+        check = do_command_check(ship, "brace_for_impact", dice,
+                                 enemy_on_special=enemy_on_special, in_blast=in_blast)
+        check["rerolled"] = True
     if check["passed"]:
         if ship.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
             ship.previous_order = ship.special_order

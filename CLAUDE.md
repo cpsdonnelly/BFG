@@ -257,8 +257,12 @@ Owner rulings (fleet lists, export 15):
   torpedo-vs-torpedo collisions are still checked at the end of the move only.
 - The AI fires squadron members one weapon at a time (it doesn't use combined squadron fire);
   combined fire covers batteries only (lances hit on 4+ and are fired weapon by weapon).
-- Commander re-rolls are offered only for command checks and disengage tests, not other
-  leadership tests; no secondary commanders (s.5).
+- Commander re-rolls (s.5) are offered for command checks (special orders), disengage tests,
+  guided torpedoes and, via `GameState.ld_reroll_hook` / `movement.fleet_reroll_offered`
+  (GamePanel asks; the AI uses one while it has 2+ left), Brace for Impact, target priority,
+  asteroid (non-escorts; escorts have their own re-roll) and warp rift navigation. Not yet:
+  boarding / other faction-specific Leadership tests, secondary commanders, per-commander
+  re-roll pools (several Ork Bosses).
 - Hulks: the AI never targets enemy hulks.
 - Disengaging: no shared escort-squadron test for a voluntary disengage, no forced
   disengagement at Ld 1 or less (s.37); celestial phenomena measured to their centre.

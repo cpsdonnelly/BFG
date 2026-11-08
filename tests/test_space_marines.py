@@ -231,3 +231,19 @@ def test_escort_squadron_totals_firepower_before_halving():
     dice = DiceStub([1] * n)
     resolve_combined_batteries(escorts[0], [(e, gun) for e in escorts], target, dice, [])
     assert dice._idx == n
+
+
+def test_fleet_reroll_offered_on_failed_brace():
+    from tests.conftest import make_gs
+    from src.movement import attempt_brace
+    ship = make_ship(id="s", leadership=7)
+    gs = make_gs([ship])
+    asked = []
+    gs.ld_reroll_hook = lambda sh, label, roll, need: asked.append((label, roll)) or True
+    dice = DiceStub([10, 6])                 # fails, re-roll passes
+    check = attempt_brace(gs.get_ship_by_id("s"), gs, dice)
+    assert dice._idx == 2 and check["passed"] and check.get("rerolled")
+    assert asked == [("Brace for Impact", 10)]
+    gs.ld_reroll_hook = lambda *a: False
+    dice = DiceStub([10])
+    assert not attempt_brace(gs.get_ship_by_id("s"), gs, dice)["passed"] and dice._idx == 1
