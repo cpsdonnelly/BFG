@@ -376,6 +376,8 @@ class Ship:
 
     def get_target_orientation(self, target_ship):
         """What orientation is the target presenting to us? (closing/abeam/moving_away)"""
+        if "fraal_targeting" in self.special_rules:
+            return "closing"           # Fra'al targeting matrix: every gunnery target closes
         # Place bearing compass on TARGET, see which quadrant faces us
         bearing_from_target = target_ship.bearing_to(self.x, self.y)
         arc = target_ship.get_arc_for_bearing(bearing_from_target)

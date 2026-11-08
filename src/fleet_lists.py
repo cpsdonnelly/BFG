@@ -376,6 +376,56 @@ def list_cost(fl: Optional[Dict], ship_class: str, default: int) -> int:
     return list_ships(fl).get(ship_class, default)
 
 
+NOTABLE_XENOS_SQUADRON = 30
+
+
+def _notable_squadrons(rows: List[Dict]) -> Dict[str, List[Dict]]:
+    """Notable Xenos ships grouped by squadron (an unsquadroned one is its own)."""
+    out: Dict[str, List[Dict]] = {}
+    for i, r in enumerate(rows):
+        if "(Notable Xenos)" in r["entry"].ship_class:
+            out.setdefault(r.get("squadron_id") or f"#{i}", []).append(r)
+    return out
+
+
+def notable_xenos_cost(rows: List[Dict]) -> int:
+    """A xenos cutter squadron made a Notable Xenos costs +30pts per squadron
+    on top of 35pts per ship (Rogue Traders, Xenos Cutter notes)."""
+    return NOTABLE_XENOS_SQUADRON * len(_notable_squadrons(rows))
+
+
+def notable_xenos_first(rows: List[Dict]) -> set:
+    """Row indexes that carry the squadron's +30pts in the saved fleet (the
+    first ship of each Notable Xenos squadron), so victory points count it."""
+    firsts = {id(rs[0]) for rs in _notable_squadrons(rows).values()}
+    return {i for i, r in enumerate(rows) if id(r) in firsts}
+
+
+def xenos_cutter_errors(rows: List[Dict]) -> List[str]:
+    """Xenos cutters can't squadron with other types, and a Notable Xenos
+    squadron uses one profile; Pthuxutl can't serve a fleet with Ork vessels,
+    the Fra'al Raider one with Imperial Navy vessels."""
+    errors = []
+    squads: Dict[str, List[Dict]] = {}
+    for r in rows:
+        if r.get("squadron_id"):
+            squads.setdefault(r["squadron_id"], []).append(r)
+    for sid, ms in squads.items():
+        classes = {m["entry"].ship_class for m in ms}
+        if len(classes) > 1 and any("Xenos Cutter" == c or "(Notable Xenos)" in c
+                                    for c in classes):
+            errors.append(f"Squadron '{sid}': xenos cutters squadron only with the same "
+                          f"type ({', '.join(sorted(classes))}).")
+    factions = {r["entry"].faction for r in rows}
+    for r in rows:
+        c = r["entry"].ship_class
+        if c.startswith("Pthuxutl") and "orks" in factions:
+            errors.append("Pthuxutl War Cruisers can't be taken by a fleet with Ork vessels.")
+        if c.startswith("Fra'al Raider") and "imperial_navy_gothic" in factions:
+            errors.append("Fra'al Raiders can't be taken by a fleet with Imperial Navy vessels.")
+    return sorted(set(errors), key=errors.index)
+
+
 def no_tactical_flexibility(list_key: str) -> bool:
     """Armageddon: Space Marine ships are allies of convenience, so Strike
     Cruiser Variants lose the Tactical Flexibility discount."""
@@ -557,6 +607,8 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
         if cmd.get("per_points") and n_cmd > max(1, -(-points_limit // cmd["per_points"])):
             errors.append(f"{fl['name']}: {n_cmd} commanders, at most one per "
                           f"{cmd['per_points']}pts.")
+
+    errors += xenos_cutter_errors(rows)
 
     # Options a list doesn't allow
     keys = [main_key] + [d["key"] for d in dets]

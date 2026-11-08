@@ -925,7 +925,9 @@ class FleetBuilderWindow:
         no_tf = sum(tactical_flexibility_refund([r.get("upgrades", []) + ["Chapter tactic:"]],
                                                 [r["entry"]])
                     for r in self._fleet if no_tactical_flexibility(r.get("list") or ""))
+        from .fleet_lists import notable_xenos_cost
         return (sum(r["points"] for r in self._fleet) + no_tf
+                + notable_xenos_cost(self._fleet)
                 + tactical_flexibility_refund([r.get("upgrades", []) for r in self._fleet],
                                               [r["entry"] for r in self._fleet]))
 
@@ -1067,7 +1069,9 @@ class FleetBuilderWindow:
             "ships": [],
         }
 
-        for row in self._fleet:
+        from .fleet_lists import notable_xenos_first, NOTABLE_XENOS_SQUADRON
+        notable_first = notable_xenos_first(self._fleet)
+        for row_i, row in enumerate(self._fleet):
             entry = row["entry"]
             ship_dict = entry.to_ship_dict(
                 name=row["custom_name"],
@@ -1081,6 +1085,8 @@ class FleetBuilderWindow:
             storable["squadron_id"] = row.get("squadron_id", "")
             # The ship's cost in its fleet list (Bakka's premium, for example)
             storable["points_value"] += row.get("base_cost", entry.points_cost) - entry.points_cost
+            if row_i in notable_first:              # the Notable Xenos squadron's +30
+                storable["points_value"] += NOTABLE_XENOS_SQUADRON
             if row.get("list"):
                 storable["fleet_list"] = row["list"]
                 from .fleet_lists import list_stat_changes, no_tactical_flexibility

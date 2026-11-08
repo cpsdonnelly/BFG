@@ -277,6 +277,12 @@ _RT_CONVOY_LIMITS = (
     "third; Escort Carriers and Convoy Monitors one per point of transport capacity) and "
     "squadrons of 2-6 (max four two-hit escorts): not checked.")
 
+# A xenos cutter squadron may instead become a Notable Xenos (one profile for
+# the whole squadron): 35pts per ship plus 30pts per squadron (the squadron
+# cost is added by fleet_lists.notable_xenos_cost)
+_XENOS_CUTTERS = {"Xenos Cutter": 35, "Pthuxutl War Cruiser (Notable Xenos)": 35,
+                  "Fra'al Raider (Notable Xenos)": 35, "Nekulli Whip (Notable Xenos)": 35}
+
 RT_LISTS = [
     {"key": "rt_detachment", "faction": "rogue_traders", "kind": "detachment",
      "name": "Rogue Trader Fleet Detachment (Imperium p.126)",
@@ -288,7 +294,7 @@ RT_LISTS = [
                             "chaos_nurgle", "chaos_khorne", "chaos_tzeentch",
                             "orks_green_tide", "tau_empire"],
      "sections": [dict(s, ships=dict(s["ships"])) for s in _RT_CONVOY] + [
-         {"name": "Xenos Cutters", "ships": {"Xenos Cutter": 35}},
+         {"name": "Xenos Cutters", "ships": dict(_XENOS_CUTTERS)},
      ],
      "unenforced": [
          "1 Rogue Trader (Lord Captain Ld8 50, Venerable Lord Captain Ld9 75) must lead it "
@@ -320,7 +326,7 @@ RT_LISTS = [
           "class_max": {"Kroot Warsphere": 1},
           "ships": {"Stronghold Commerce Vessel": 350, "Bastion Commerce Vessel": 225,
                     "Citadel Commerce Vessel": 185, "Kroot Warsphere": 145}},
-         {"name": "Escorts", "ships": {"Xenos Cutter": 35}, "xenos": True},
+         {"name": "Escorts", "ships": dict(_XENOS_CUTTERS), "xenos": True},
      ] + [dict(s, ships=dict(s["ships"])) for s in _RT_CONVOY],
      "reserves": _NAVY_KEYS + ["admech_explorator", "sm_crusade", "sm_dominion",
                                "chaos_incursion", "chaos_black_crusade", "chaos_renegades",
@@ -346,10 +352,10 @@ RT_LISTS = [
     {"key": "rt_wolf_pack", "faction": "rogue_traders",
      "name": "Wolf-Pack Pirate Fleet (Imperium p.128-129)",
      "sections": [
-         {"name": "Infamous Pirate Ships", "per_points": 1000,
+         {"name": "Infamous Pirate Ships", "per_points": 1000, "or_part": True,
           "class_max": {"Fra'al Battlecruiser": 2},
           "ships": {"Fra'al Battlecruiser": 250}},
-         {"name": "Pirate Cruisers", "per_points": 500,
+         {"name": "Pirate Cruisers", "per_points": 500, "or_part": True,
           "class_max": {"Strike Cruiser": 1},
           "ships": {"Murder Cruiser": 170, "Slaughter Cruiser": 165, "Strike Cruiser": 145,
                     "Fanatic Light Cruiser": 125, "Schismatic Light Cruiser": 125,
@@ -358,7 +364,7 @@ RT_LISTS = [
           "ships": {"Rogue Trader Escort Carrier": 60, "Rogue Trader Convoy Monitor": 60,
                     "Infidel Raider": 40, "Havoc Raider": 35, "Iconoclast Destroyer": 25,
                     "Rogue Trader Sloop": 20, "Rogue Trader Caravel": 10}},
-         {"name": "Xenos Escorts", "ships": {"Xenos Cutter": 35}},
+         {"name": "Xenos Escorts", "ships": dict(_XENOS_CUTTERS)},
          {"name": "Other Xenos Allies", "max": 4, "ships": {"Stryxis Caravan Vessel": 80}},
      ],
      "reserves": [],

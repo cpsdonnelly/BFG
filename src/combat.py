@@ -66,7 +66,8 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     # Range modifiers (Dark Age Plasma Batteries: no shift beyond 30cm)
     if dist < 15:
         shifts -= 1  # left shift (better)
-    elif dist > 30 and not (weapon and dark_age_batteries(ship, weapon)):
+    elif (dist > 30 and not (weapon and dark_age_batteries(ship, weapon))
+          and "fraal_targeting" not in ship.special_rules):     # Fra'al targeting matrix
         shifts += 1  # right shift (worse)
 
     # Siege Cannons: macrobatteries fired on their own shift right

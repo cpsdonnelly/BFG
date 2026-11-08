@@ -43,4 +43,13 @@ w._reprice_fleet()
 check(w._fleet_total() == 145 + 20, f"Armageddon variant at full price: {w._fleet_total()}")
 w._save_fleet()
 check(json.load(open(out))["ships"][0]["points_value"] == 165, "saved ship points 165")
+w._fleet.clear(); w._refresh_fleet_list()
+pick_faction("rogue_traders"); pick_list("rt_wolf_pack")
+add("Fra'al Raider (Notable Xenos)", "rt_wolf_pack"); add("Fra'al Raider (Notable Xenos)", "rt_wolf_pack")
+for r in w._fleet:
+    r["squadron_id"] = "x"
+check(w._fleet_total() == 35 * 2 + 30, f"Notable Xenos squadron 2x35 + 30: {w._fleet_total()}")
+w._save_fleet()
+pv = [s["points_value"] for s in json.load(open(out))["ships"]]
+check(pv == [65, 35], f"saved squadron cost on the first ship: {pv}")
 print("FAILURES:", failures) if failures else print("all ok")

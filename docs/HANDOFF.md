@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **905 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **909 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -205,8 +205,16 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   the AI takes Advanced Shields). Omnissiah's Victory needs 1000+pts. Already true: ordinary
   torpedoes alongside refitted ones, escort classes mixing in squadrons. Not modelled:
   Quest for Knowledge, The Prize, Experimental Ship, Sacred Technology (campaign / scenario).
-- Rogue Traders (20-21): Man O' War example builds (not ships); new Notable Xenos rows; Business
-  as Usual; High-Risk Convoys.
+- Rogue Traders (20-21): **done:** Notable Xenos cutter profiles in every list with xenos
+  cutters (35 per ship, +30 per squadron: `fleet_lists.notable_xenos_cost`, saved on the
+  squadron's first ship), cutters squadron only with their own type, Pthuxutl not with Ork
+  vessels, Fra'al Raider not with Imperial Navy vessels, the Fra'al targeting matrix
+  (`fraal_targeting`: every target closing, no right shift beyond 30cm); Wolf-Pack limits
+  "(or portion thereof)". Not modelled: Man O' War configuration (the example builds aren't
+  ships), Business as Usual and High-Risk Convoys (scenarios), the Nekulli's "opposing
+  Tyranids" limit (no Tyranids), Pthuxutl's disruptor cannon and Nekulli's whisperlance
+  (both lance-like, still listed unsupported), xenos refits (10pts or less per squadron),
+  the torpedo variant for generic cutters.
 - Tau (22-23): new Demiurg War Host fleet list (re-rolls 25 / 75); Courier Transport; Demiurg
   Mercenaries / Absorber fields / cutting beam; Demiurg, Nicassar and Kroot are allies of
   convenience in a Tau fleet.
