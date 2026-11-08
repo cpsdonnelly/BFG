@@ -158,7 +158,7 @@ otherwise (Banisher "at least 750", Explorator "1000+", Green Tide "500+"). Owne
 booklet updates 33-34: commander re-rolls (fleet and secondary) are lost on Bridge Smashed
 **or** when the commander's ship is destroyed (`TurnController`), and the opponent then
 scores the commander's cost, which is part of that ship's points value (options add to
-`points_value`; check `victory_points` counts it).
+`points_value`, which `victory_points` scores).
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the

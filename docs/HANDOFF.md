@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **876 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **877 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -94,7 +94,7 @@ session.
 - **Commander's ship (owner ruling, booklet updates 33-34):** re-rolls are lost when the
   commander's ship is destroyed as well as on Bridge Smashed: **done in code** (fleet and
   secondary commanders, tested). The opponent scores the commander's cost; it is in the
-  ship's `points_value`, but check `victory_points` actually scores it. For the AI:
+  ship's `points_value`, which `victory_points` scores (tested). For the AI:
   protecting the commander's ship matters (keep it out of harm, brace it), and when that
   ship is about to be lost its remaining re-rolls should be spent rather than wasted.
 

@@ -176,3 +176,14 @@ def test_format_vp_winner_shown():
     vp = calculate_victory_points(gs)
     summary = format_vp_summary(vp, gs)
     assert "WINNER" in summary or "DRAW" in summary
+
+
+def test_destroyed_flagship_scores_the_commanders_cost():
+    # Booklet update 34: the opponent scores the commander's points with his ship
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    d = find_ship_class("Lunar Class Cruiser").to_ship_dict(
+        name="Flag", player=1, upgrades=["Fleet Admiral (Ld 9)"], is_flagship=True)
+    d.update(id="s1", x=0.0, y=0.0, heading=0.0, hits_remaining=0, status="destroyed")
+    gs = _make_game([Ship.from_dict(d)])
+    assert calculate_victory_points(gs)[2]["destroyed"] == 180 + 75
