@@ -86,6 +86,29 @@ session.
   printed in the fleet lists" of a newer export, but no new zip had been uploaded. Install it
   when it arrives and check the commander values against it.
 
+## First thing next session: check open issues against the next booklet export
+
+The owner asked that these be held and resolved by reading the next updated rules (a new
+`bfgxr_for_claude_code_*.zip` upload), not by guessing. When it arrives, install it (see
+Workflow rules), read the new part of `CHANGES.md`, and for each item below check whether the
+booklet now settles it; fix the code to match, record the outcome in `CLAUDE.md`, and only ask
+the owner about what is still unclear:
+
+1. Commander threshold: fleet lists "required at 750+ pts" vs core s.5 "more than 750 points"
+   (the game uses 750+, `fleet_lists._attach_commanders`).
+2. Archmagos Explorator re-roll costs (25 / 50) and Tau Kor'el / Kor'O extra re-rolls (25 / 50):
+   the owner says the new export prints them in the fleet lists; check
+   `booklet_options.COMMANDERS`.
+3. Ork Bosses: no fixed Ld, Freebooter Kaptin +1 rolled Ld, re-rolls only from a title (owner
+   ruling); check the Green Tide list wording and whether each Boss's re-rolls are for the
+   whole fleet (the engine has one pool, the flagship's).
+4. Other factions' secondary commanders (Inquisition Elite Captains / Daemonhunters, Ork Nobz,
+   Rogue Trader Bond-Captains, Space Marine Captains): costs, Ld, re-roll limits.
+5. Readings still unconfirmed in CLAUDE.md: the AI's re-roll policy (uses one while 2+ left);
+   resilient wave splitting and multi-role suppression choice (s.23/s.27); CAP intercepting a
+   wave after its turret roll; `ships.json` `profile_from` truncated for the Grey Knights
+   escorts ("Space Marine Hunter (p"), an export bug to report if still there.
+
 ## Known limitations of this session's work
 
 - Several Ork Bosses: each gets `flagship` from its option, but the engine keeps one re-roll
