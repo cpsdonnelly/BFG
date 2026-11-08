@@ -54,7 +54,7 @@ The only problem with this is that it can lead to some odd situations where flee
 
 Anyway, however you decide to do it, you need to challenge other players in the campaign to a game. The game is arranged in exactly the same manner as a one-off game; simply agree on a time and a place and go for it. You can play as many or as few campaign games as you like, all you need to do is find an opponent.
 
-Note that opposing players do not have to agree to play just because you happened to have challenged them to a battle, but you may want to penalize players that refuse to play games with anybody for long periods of time and spoil the campaign for the other players. For example, if a player doesn't play any games for (say) a fortnight then they lose a point of renown, and if they don't play any games for a month then one of their systems (randomly selected) rebels and is turned over to another player.
+Note that opposing players do not have to agree to play just because you happened to have challenged them to a battle, but you may want to penalise players that refuse to play games with anybody for long periods of time and spoil the campaign for the other players. For example, if a player doesn't play any games for (say) a fortnight then they lose a point of renown, and if they don't play any games for a month then one of their systems (randomly selected) rebels and is turned over to another player.
 
 **The Campaign Turn.** Campaign games include a number of extra steps which take place at the beginning and end of the game, as described below. Unless stated otherwise all of the normal Battlefleet Gothic rules apply in a campaign game.
 
@@ -327,7 +327,7 @@ In a campaign, vessels that have suffered damage must be repaired, and it is the
 
 **System Repair Table** (damage points repairable, by system type and renown)
 
-| Renown | Agri | Penal (min. 1) | Mining | Forge, Hive, Hidden Base | Civilized | Uninhabited |
+| Renown | Agri | Penal (min. 1) | Mining | Forge, Hive, Hidden Base | Civilised | Uninhabited |
 |---|---|---|---|---|---|---|
 | 1-5 | 1 | 1 | 2 | 3 | 1 | 1 |
 | 6-10 | 1 | D6-4 | 2 | 3 | 2 | 1 |
@@ -369,7 +369,7 @@ Appeals may normally only be made for refits and reinforcements. If you are allo
 
 **Refits.** A player who is granted a refit must choose one of his capital ships to undergo the refit, then roll a D6 to see what type of equipment system is upgraded. On a roll of 1 or 2 you receive a ship refit, on a roll of 3 or 4 an engine refit, and on a roll of 5 or 6 a weapon refit. If a ship already has every refit in the rolled category, roll again until you get a different category.
 
-The ship, engine, and weapon refit tables are in the Appendix (Appendix 2, p.175). Always use the table that matches your faction list's source book: Imperial Refits for the Imperium, Chaos, the Inquisition, Rogue Traders, the Adeptus Mechanicus and the Space Marines; Xenos Refits for the xenos fleets. For example, Chaos ships that earn a weapon refit must roll on the Weapon Refit section of the Imperial Refits table.
+The ship, engine, and weapon refit tables are in the Appendix (Appendix 2, p.176). Always use the table that matches your faction list's source book: Imperial Refits for the Imperium, Chaos, the Inquisition, Rogue Traders, the Adeptus Mechanicus and the Space Marines; Xenos Refits for the xenos fleets. For example, Chaos ships that earn a weapon refit must roll on the Weapon Refit section of the Imperial Refits table.
 
 If you roll a result that the ship already has, roll again until you get a refit the ship does not have. The points value of the ship is increased by 10% for each refit it has and you'll need to update your ship register appropriately.
 
@@ -415,7 +415,7 @@ You may use the following guidelines to construct campaigns around specific majo
 
 - Sub-Sector: Armageddon, Desedna & Paleoth, Golgotha, Justicar, or Voss
 
-- Special Rules: Infested worlds (indicated with an "I" on the sub-sector map) count as uninhabited to everyone except the Orks, to whom they count as civilized worlds. However, if an Ork player loses a battle in one of his or her own infested systems, all negative (-1, -2, etc) modifiers to their renown are doubled when adjusting renown after that game.
+- Special Rules: Infested worlds (indicated with an "I" on the sub-sector map) count as uninhabited to everyone except the Orks, to whom they count as civilised worlds. However, if an Ork player loses a battle in one of his or her own infested systems, all negative (-1, -2, etc) modifiers to their renown are doubled when adjusting renown after that game.
 
 **Abaddon's 13th Black Crusade**
 
@@ -433,17 +433,17 @@ You may use the following guidelines to construct campaigns around specific majo
 
 - Special Rules: Some of the sub-sectors for this campaign are especially small. To make things interesting, consider linking multiple sub-sector maps together to create a much larger overall map, one fitting the grand scale of Abaddon's 13th Black Crusade!
 
-The three faction appeal tables (Forces of Chaos, Power of the Waaagh!, Space Marine Support) are in the Appendix: see Appendix 1, p.173.
+The three faction appeal tables (Forces of Chaos, Power of the Waaagh!, Space Marine Support) are in the Appendix: see Appendix 1, p.174.
 
 ## Sub-Sector Maps
 
 *Source: BFG:XR Rulebook, printed p.138.*
 
-**Number of Systems.** A sub-sector contains many stars, but of these only a few will have any planets orbiting, the vast majority of which will be gas giants or planets locked in sub-zero ice ages. This means that any given sub-sector will have relatively few star systems actually worth fighting over. Of these, the majority will be mining worlds, agri-worlds and other worlds with a sizable population and contemporary level of technology (categorized as civilized worlds). A few systems may have a forge world, hive world or other such planet. Occasionally uninhabited systems also have strategic importance as jump points or gathering places for assembling war fleets. As a result of these factors, the sub-sector maps only show those systems of military or strategic importance to the forces fighting in the campaign.
+**Number of Systems.** A sub-sector contains many stars, but of these only a few will have any planets orbiting, the vast majority of which will be gas giants or planets locked in sub-zero ice ages. This means that any given sub-sector will have relatively few star systems actually worth fighting over. Of these, the majority will be mining worlds, agri-worlds and other worlds with a sizable population and contemporary level of technology (categorised as civilised worlds). A few systems may have a forge world, hive world or other such planet. Occasionally uninhabited systems also have strategic importance as jump points or gathering places for assembling war fleets. As a result of these factors, the sub-sector maps only show those systems of military or strategic importance to the forces fighting in the campaign.
 
 **Warpspace Channels.** In theory it is possible to travel anywhere through warp space. However, the warp's shifting tides make it easier to travel from some systems to others, and short warp jumps are always more accurate than longer ones. This is particularly true when moving a large fleet, which may become spread out across several light years of space. For this reason, the systems on a sub-sector map are connected by a number of warpspace channels (also known as warp routes) to the other systems.
 
-**System Type.** Each system will be one of the following types: uninhabited, agri-world, mining world, hive world, penal colony, forge world or civilized world, as shown in the map key. Note that a system may actually contain more than one world, but the political power and the bulk of the resources will be concentrated on the type of world shown. The system type will influence how much ship damage it can repair and level of its orbital defences.
+**System Type.** Each system will be one of the following types: uninhabited, agri-world, mining world, hive world, penal colony, forge world or civilised world, as shown in the map key. Note that a system may actually contain more than one world, but the political power and the bulk of the resources will be concentrated on the type of world shown. The system type will influence how much ship damage it can repair and level of its orbital defences.
 
 *Flavour text:* "Every planet, moon, and star in these cosmos belongs to the Emperor. Steal one if you dare."
 
@@ -453,6 +453,6 @@ The three faction appeal tables (Forces of Chaos, Power of the Waaagh!, Space Ma
 |---|---|---|---|---|---|---|---|
 | P | Penal |  | M | Mining |  | A | Agri-world |
 | H | Hive |  | U | Uninhabited |  | ? | Unknown |
-| F | Forge |  | C | Civilized |  | I | Infested |
+| F | Forge |  | C | Civilised |  | I | Infested |
 
 *The sub-sector maps themselves are not yet reproduced in this Companion. Use the named maps in the BFG:XR Rulebook, printed p.138-141, which cover the sub-sectors listed under Notable Campaigns above.*

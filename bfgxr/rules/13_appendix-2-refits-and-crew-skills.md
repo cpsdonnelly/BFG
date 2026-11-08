@@ -28,7 +28,7 @@ Each refit table is subdivided into three sub-tables: Engine, Ship, and Weapon R
 | 2 | 5 pts | **Navigational Shields.** No Speed reduction for moving through blast markers (including gas and dust clouds). |
 | 3 | 10 pts | **Auxiliary Power Relays.** +5cm Speed. |
 | 4 | 10 pts | **Secondary Reactors.** +2D6cm extra Speed on All Ahead Full. |
-| 5 | 20 pts | **Maneuvering Thrusters.** Reduce the distance moved before turning by 5cm. |
+| 5 | 20 pts | **Manoeuvring Thrusters.** Reduce the distance moved before turning by 5cm. |
 | 6 | 20 pts | **Evasive Jets.** At the start of the enemy shooting phase, take a leadership test; if passed, turn 45° in the direction of your choice, but the ship cannot go on special orders during its next turn. |
 
 **Imperial Refits - Ship Refits**

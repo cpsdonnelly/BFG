@@ -17,7 +17,7 @@ Ork ships and squadrons roll for random leadership:
 
 **Da Boss' Orderz:** When a ship or squadron led by a commander fails a leadership test, you may re-roll the result without using a fleet commander re-roll. Each time you use this ability (regardless of outcome), resolve one hit-and-run attack against the commander's ship or a member of the same squadron within 15cm. This attack uses the bonuses of the commander's vessel, cannot be saved by bracing, and you cannot re-roll the result of a single test more than once. If a squadron with multiple commanders fails a leadership test, this ability is resolved only once for the entire squadron, and the attack is made by the commander's vessel with the highest Ld in the squadron.
 
-**Mob Rule:** While an Ork escort squadron has at least two remaining ships, it may attempt a command check using its current number of members as its Ld value (max Ld8) instead of rolling normally. This may be attempted even if another ship or squadron in the fleet has already failed a command check that turn. If an escort squadron fails a command check it cannot make a second attempt using this rule, and vice versa. A command check attempted with this rule is subject to Ld modifiers, applied after adjusting for the limit above (so a 10-ship squadron with -2Ld tests at Ld6, while one with +2Ld tests at Ld10).
+**Mob Rule:** While an Ork escort squadron has at least two remaining ships, it may attempt a command check using its current number of members as its Ld value (max Ld8) instead of rolling normally. This 'mob rule' check may be attempted even if another ship or squadron in the fleet has failed a command check on the same turn. If an escort squadron fails a command check it cannot make a second attempt using this rule, and vice versa. A command check attempted with this rule is subject to Ld modifiers, applied after adjusting for the limit above (so a 10-ship squadron with -2Ld tests at Ld6, while one with +2Ld tests at Ld10).
 
 **'Ere We Go!:** All Ork ships and squadrons automatically pass command checks to go on *All Ahead Full*. However, Ork drive systems are less efficient, so Ork vessels on *All Ahead Full* only add +3D6cm to their speed instead of +4D6cm.
 
@@ -39,13 +39,13 @@ Ork ships and squadrons roll for random leadership:
 
 Some Ork weapons have random firepower or strength (e.g. D6+1). Roll each time the weapon is fired; when combining several such weapons in one attack, roll for each separately before adding firepower/strength together.
 
-**Gunz:** the most basic Ork munitions; follow all the usual macrobattery rules.
+**Gunz:** The so-called 'gunz' are the most basic of Ork munitions, and follow all the usual rules for macrobatteries.
 
 **Heavy Gunz:** massed short-range arrays. Two firepower values: the first used at 15cm+ range, the second (in brackets) within 15cm. Combine with gunz as for regular macrobatteries.
 
-**Zzapp Gunz:** crude lances that only score hits on a 5+ instead of 4+. If a 1 is rolled when determining their strength (on the actual dice, not the D3 result), place a blast marker in contact with the firing ship's rear arc. This occurs at most once per turn and does not apply to zzapp gunz with fixed strength.
+**Zzapp Gunz:** These function as lances that can only score hits on a roll of 5+ instead of 4+. If a score of 1 is rolled when determining the firepower of a ship's zzapp gunz (on the actual dice, not the D3 result), place a blast marker in contact with the rear arc of that ship's base. This may only occur once per turn, and does not apply to zzapp gunz with fixed firepower values.
 
-**Killkannons:** salvaged bombardment cannons. Fire as macrobatteries except: always hit on 4+ regardless of the target's Armor (even versus ordnance); and any critical hit roll for a killkannon hit succeeds on 4+ instead of only 6.
+**Killkannons:** a killkannon is a salvaged bombardment cannon, a salvaged nova cannon, or just a very large gun that is well made by Ork standards. They fire in the same way as macrobatteries with two exceptions: they always score hits on a roll of 4+, regardless of the target's Armour value (even versus ordnance); and any critical hit roll for a hit inflicted by a killkannon will succeed on a roll of 4+ instead of only on a roll of 6.
 
 **Torpedo Launchas & Launch Bays:** Ork ships may never combine torpedoes into larger salvos. When calculating attack craft launch limits, always use the highest possible value for the fleet.
 
@@ -66,7 +66,7 @@ Some Ork weapons have random firepower or strength (e.g. D6+1). Roll each time t
 
 **Ork Fighta-Bommerz:** multi-role attack craft (section 24) with limited armaments. Each squadron makes only D3+1 attacks, and they cannot suppress turrets (section 27). The target's turrets value cannot reduce a squadron's attacks below 1 (section 20), as Ork pilots always try to ram the target. Squadrons shot down by the turrets are still removed as normal and make no attacks.
 
-**Grabbin' Klaws:** after a ship with grabbin' klaws resolves a boarding roll as the attacker, if it failed to destroy the defender (and was not destroyed itself), roll 2D6. If both dice score 4+, the Ork vessel and the defending ship become temporarily locked together (as a drawn combat). This does not change the boarding action's outcome; the ships stay locked only until the end of the next turn. Ships may keep using their grabbin' klaws while locked, holding the target as long as they keep rolling two 4+. If several ships with grabbin' klaws combine their efforts in one boarding action, roll 1D6 per set of klaws at once instead of separate 2D6 rolls; if at least two of those dice score 4+, all attackers with klaws lock onto the defender and keep combining boarding efforts each turn they stay locked. Crippled ships cannot use grabbin' klaws.
+**Grabbin' Klaws:** after a ship with grabbin' klaws resolves a boarding roll as the attacker, if it failed to destroy the defender (and was not destroyed itself), roll 2D6. If both dice score 4+, the Ork vessel and the defending ship become temporarily locked together (as a drawn combat). This does not change the actual outcome of the boarding action, and the ships only stay locked together until the end of the next turn (rather than until one side has been destroyed). Ships may continue to use their grabbin' klaws while locked in combat this way, making it possible to keep holding on to a target (provided they continue to roll two 4+ results). If several ships with grabbin' klaws combine their efforts in one boarding action, roll 1D6 per set of klaws at once instead of separate 2D6 rolls; if at least two of those dice score 4+, all attackers with klaws lock onto the defender and keep combining boarding efforts each turn they stay locked. Crippled ships cannot use grabbin' klaws.
 
 *Source: Ships of the Xenos, "Orks in Battlefleet Gothic", p.55*
 
@@ -78,7 +78,7 @@ No capital ship or escort squadron may be led by more than one character for any
 
 **Freebooter Kaptin:** a capital ship or escort squadron led by a Freebooter kaptin adds +1 to its randomly generated leadership.
 
-**Big Mek:** any capital ship embarking a big mek rolls an extra D6 when repairing critical damage. If a big-mek vessel has no critical damage, it may instead roll to restore one lost hit point exactly as if repairing critical damage. A big mek cannot restore more than one hit point per turn, and cannot raise a ship above its starting hit capacity.
+**Big Mek:** any capital ship embarking a big mek rolls an extra D6 when repairing critical damage. If a vessel led by a big mek has no critical damage, it may instead roll to restore one lost hit point, exactly as if it were rolling to repair critical damage. A big mek cannot restore more than one hit point per turn, and cannot increase a ship's hit points above its starting capacity.
 
 **Nob:** a ship or squadron led by a Nob gains no extra bonuses, but as a special character a Nob may purchase commander upgrades.
 
@@ -89,7 +89,7 @@ No capital ship or escort squadron may be led by more than one character for any
 | Extra Turrets | +2 Turrets, to a max of 6. |
 | Soopa Tellyporta | Hit-and-run teleport attack range becomes 30cm (other restrictions still apply). |
 | Extra Power Field | +1 Shields. Combinable with kustom force fields. |
-| Mega Armored Boarding Parties | +2 crew damage bonus; +1 to score on hit-and-run raids (including ordnance-launched); enemy hit-and-run attacks against the vessel subtract 1 from their result. |
+| Mega Armoured Boarding Parties | +2 crew damage bonus; +1 to score on hit-and-run raids (including ordnance-launched); enemy hit-and-run attacks against the vessel subtract 1 from their result. |
 | Mad Meks | Repair critical damage on 4+ instead of 6. Combinable with the big mek bonus. |
 | More Dakka! | Once per turn, re-roll the random firepower/strength of one of the commander's weapons, taking the second result even if worse. |
 | Grot Riggers | +1Ld when attempting *Reload Ordnance*. A capital ship squadron may not benefit from more than one copy. |
@@ -98,7 +98,7 @@ No capital ship or escort squadron may be led by more than one character for any
 
 ### Da Ork Clanz & Looted Vessels
 
-A commander who buys a clan upgrade belongs to that clan and applies its bonus to all ships under his direct authority. Direct authority covers his own capital ship or escort squadron, plus one more capital ship or escort squadron if he is a Big Boss, or two more if he is a Mega Boss. A ship or squadron may be under only one commander. Ships cannot have multiple clan bonuses, and no squadron may mix clan affiliations. A commander's re-rolls may not be used for ships or squadrons of a different clan (commanders and ships without a clan are exempt). All affiliations must be determined when forces are chosen, and persist regardless of a commander's status.
+An Ork commander that purchases the appropriate clan upgrade from the Ork fleet list belongs to that clan and will apply that clan's corresponding bonus to all of the ships under his direct authority. A commander has direct authority over his own capital ship or escort squadron, plus up to one additional capital ship or escort squadron if he is a Big Boss, or up to two additional capital ships or escort squadrons if he is a Mega Boss. A ship or squadron may only be under the authority of one commander (if any). Ships cannot have multiple clan bonuses, and no squadron can contain ships with different clan affiliations. A commander's re-rolls may not be used for any ships or squadrons with a different clan affiliation (commanders and ships without a clan are exempt from this restriction). All affiliations must be determined when forces are chosen, and persist regardless of a commander's status.
 
 | Clan | Bonus |
 |---|---|
@@ -111,11 +111,11 @@ A commander who buys a clan upgrade belongs to that clan and applies its bonus t
 
 **Looted Vessels:** Ork fleets take looted vessels instead of regular reserves. Looted ships may be chosen from any cruisers in the Imperial Navy, Chaos, or Tau lists (usual 3:1 reserve ratio). They use all normal rules for their type, except:
 
-- They are Ork vessels and use all Ork rules for leadership, special orders, boarding actions, and turrets. They are never allies of convenience.
+- They are Ork vessels, and will use all of the Ork rules for their leadership, special orders, boarding actions, and turrets. They are never allies of convenience.
 
 - When a looted vessel fails a leadership test, roll a D6; on a 1-3 the Orks damage their own ship (loses 1 hit point, no saves of any kind).
 
-- A looted vessel replaces all its lances with zzapp gunz (same profile), all its attack craft with fighta-bommerz/assault boats, and its nova cannon (if any) with a killkannon (Range 30cm, Strength 6, Front).
+- A looted vessel replaces all its lances with zzapp gunz (same profile), all its attack craft with fighta-bommerz/assault boats, and its nova cannon (if any) with a killkannon (Range 30cm, firepower 6, Front).
 
 - Looted vessels may take a clan bonus and any normal upgrades shown in their profile (except nova cannons).
 
@@ -166,7 +166,7 @@ Ork carriers launch Fighta-Bommerz (MR, 25cm) and Assault Boats (AB, 30cm). Ork 
 
 Default Leadership 6. Never crippled; destroyed only. Follows normal ship rules except as below.
 
-**Orders:** may not use Burn Retros or Come to New Heading, and adds only +2D6cm on All Ahead Full.
+**Orders:** An Ork space hulk may not use Burn Retros or Come to New Heading special orders, and will only add +2D6cm to its speed while on All Ahead Full special orders.
 
 **Commanders (reduced effect):** a Warboss adds +10 troop rating instead of doubling it; a Big Mek cannot repair critical damage but may restore lost hit points even while critically damaged (max one per turn); a Freebooter Kaptin adds +1 Ld (to 7).
 
@@ -174,9 +174,9 @@ Default Leadership 6. Never crippled; destroyed only. Follows normal ship rules 
 
 **Clan upgrades:** may take any one clan upgrade for free, but gains no clan bonus; it only marks clan membership for other rules.
 
-**Movement:** moves exactly 10cm straight each turn, never slowed by blast markers or damage. May turn up to 45° only at the end of the move and only every second phase. In a planet's or moon's gravity well it may make one 45° turn toward that body even if it already turned; it also creates its own gravity well 5cm out from its base, which ships and Roks can orbit (orbiting objects move with it until they break orbit).
+**Movement:** moves exactly 10cm straight each turn, never slowed by blast markers or damage. May turn up to 45° only at the end of the move and only every second movement phase. In a planet's or moon's gravity well it may make one 45° turn toward that body even if it already turned; it also creates its own gravity well 5cm out from its base, which ships and Roks can orbit (orbiting objects move with it until they break orbit).
 
-**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.181), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
+**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.182), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
 #### Ork Rok (Xenos p.72)
 
@@ -184,7 +184,7 @@ A small mobile defence; may also be taken as a planetary-defence choice. Cripple
 
 **Movement:** moves exactly 10cm straight each turn; may not turn or use Burn Retros or Come to New Heading. On All Ahead Full it moves an extra 2D6cm in any direction at the end of its move; if that shifts it 10cm or more in a new direction, that becomes its heading (a normal ship's All Ahead Full only extends along its current heading). Crippled Roks and Roks in blast markers do not slow. In a planet's or moon's gravity well it may make free 45° turns like a normal ship and/or take a stationary or low orbit.
 
-**Damage:** each critical hit instead adds +1 damage (as for an escort or small defence). At 0 damage it breaks up with no Catastrophic Damage roll: replace it with four blast markers.
+**Damage:** Each critical hit instead inflicts +1 point of damage, in the same way as an escort ship or small defence. At 0 damage it breaks up with no Catastrophic Damage roll: replace it with four blast markers.
 
 **Fleet Composition (Green Tide Fleet List)**
 
@@ -199,6 +199,6 @@ Single fleet list (*Xenos p.73*); attack rating 3. Upgrade costs are added to th
 | Kroozers | any number | Terror Ship 175, Kill Kroozer 155, Basha Lite Kroozer 110 |
 | Escorts | any number, squadrons of 3-10 | Grunt 35, Ravager 35, Onslaught 30, Savage 25, Brute 20 |
 | Special | any Ork Roks; one Space Hulk per full 1500pts | Ork Space Hulk 610, Ork Rok 80 |
-| Kustom upgrades | commander's ship, up to the title's limit | Extra Turrets 20, Extra Power Field 20, Mad Meks 20, Mega Armored Boarding Parties 15, Grot Riggers 15, More Dakka! 10, Soopa Tellyporta (capital only) 10 |
+| Kustom upgrades | commander's ship, up to the title's limit | Extra Turrets 20, Extra Power Field 20, Mad Meks 20, Mega Armoured Boarding Parties 15, Grot Riggers 15, More Dakka! 10, Soopa Tellyporta (capital only) 10 |
 
 **Da Ork Clanz:** a commander may be backed by one of five clans for +50% of his cost (Goffs, Evil Sunz, Bad Moons, Deathskulls, Blood Axes), giving that clan's bonus to his ships; or any un-clanned ship/squadron may take Snakebite affiliation free. **Assault karriers:** any capital ship with launch bays may become one free (one extra assault-boat marker, but launches only assault boats). **Ordnance:** torpedo-armed ships carry ordinary and boarding torpedoes free. **Reserves:** looted cruisers from any Imperial Navy, Chaos, or Tau fleet list; no other reserves.

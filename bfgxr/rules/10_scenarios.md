@@ -26,7 +26,7 @@ In many of the scenarios, one side will be attacking and the other side will be 
 
 ### Using Attack Ratings
 
-Some fleets are intrinsically better than others at launching attacks and picking where and when they fight their battles. This may be due to a skilled admiral, faster ships, better organization, or access to powerful psykers who can scry the future and predict the enemy's actions. It also represents the fleet's ability to navigate warp space, as well as the wild, aggressive, and often random nature of their attacks. This is called a fleet's attack rating.
+Some fleets are intrinsically better than others at launching attacks and picking where and when they fight their battles. This may be due to a skilled admiral, faster ships, better organisation, or access to powerful psykers who can scry the future and predict the enemy's actions. It also represents the fleet's ability to navigate warp space, as well as the wild, aggressive, and often random nature of their attacks. This is called a fleet's attack rating.
 
 **Attack Ratings**
 
@@ -206,7 +206,7 @@ Rolling for sub-plots is normally done openly in front of both players before th
 
 *Source: BFG:XR Rulebook, printed p.83.*
 
-Whether you are a newcomer to Battlefleet Gothic or simply looking for a quick and straightforward mission to play, the following three scenarios are a great place to start. Each one is designed to be fast and easy to set up, with a variety of mission objectives that emphasize the different kinds of gameplay you will see throughout the more elaborate raids and battles later in this book. Each of these scenarios also comes with rules for variations on the mission configuration, to give you an opportunity to branch out from the basics before diving into the standard scenario tables.
+Whether you are a newcomer to Battlefleet Gothic or simply looking for a quick and straightforward mission to play, the following three scenarios are a great place to start. Each one is designed to be fast and easy to set up, with a variety of mission objectives that emphasise the different kinds of gameplay you will see throughout the more elaborate raids and battles later in this book. Each of these scenarios also comes with rules for variations on the mission configuration, to give you an opportunity to branch out from the basics before diving into the standard scenario tables.
 
 *Flavour text:* Should a machine not function upon striking the panel marked "on" this is an omen of great ill. The reasons ascribed may be as follows. Firstly, the function of inadequate preparation on the part of the operator. Secondly, the action of the machine whose spirit may refuse the binding of the operator. Thirdly, the malintent of some third party upon the operator or machine. The operator must repeat the ritual from the beginning, re-purifying himself, inscribing the runes, intoning the incantations, and striking the panel marked 'on'. An accompanying oath may be made. Should this procedure fail, the operator must recourse to consulting the instruction manual., *From Runic Spaceflight, An Introduction: Naval Flight Manual W110E*
 
@@ -262,7 +262,7 @@ A lone ship has been sent into a system to lure out the defending forces in an e
 
 **Battlezone.** The battle will take place in the outer reaches or deep space. Use any standard method to determine the battlezone, or roll a D6: on a score of 1-3, the battle takes place in the outer reaches; otherwise, it takes place in deep space.
 
-**Set-up.** The pursued vessel is placed in the center of the table first, facing one of the short table edges. The pursuers are deployed more than 60cm away behind it. Reinforcements for the pursued ship enter from the table edge in front of it.
+**Set-up.** The pursued vessel is placed in the centre of the table first, facing one of the short table edges. The pursuers are deployed more than 60cm away behind it. Reinforcements for the pursued ship enter from the table edge in front of it.
 
 ![The Bait](media/scenarios_the-bait.png)
 
@@ -310,7 +310,7 @@ An invading fleet led by a powerful, singular flagship heads towards a vital sys
 
 **Battlezone.** This battle will either take place in the outer reaches or in deep space. You may use any of the usual methods to determine the battlezone, or you may roll a D6: on a score of 1-3, the battle takes place in the outer reaches; otherwise, it takes place in deep space.
 
-**Set-up.** The attacker begins by placing their chosen flagship on the center line of their long table edge, 10cm in from the edge itself. Players then alternate placing one capital ship or escort squadron within their respective deployment zones until all models have been placed.
+**Set-up.** The attacker begins by placing their chosen flagship on the centre line of their long table edge, 10cm in from the edge itself. Players then alternate placing one capital ship or escort squadron within their respective deployment zones until all models have been placed.
 
 ![Chance Encounter](media/scenarios_chance-encounter.png)
 
@@ -334,7 +334,7 @@ If you are playing in a 13th Black Crusade Campaign, this scenario may be used t
 
 ### Suggested Flagships
 
-The following are some recommended flagship vessels for different factions to use with this scenario. This can be a good way to learn how to use some of the larger, centerpiece units in your chosen faction book.
+The following are some recommended flagship vessels for different factions to use with this scenario. This can be a good way to learn how to use some of the larger, centrepiece units in your chosen faction book.
 
 | Faction | Suggested Flagship |
 |---|---|
@@ -353,7 +353,7 @@ For an Imperial Navy or Space Marine fleet, you may also consider using the Rami
 
 *Source: BFG:XR Rulebook, printed p.90.*
 
-The six scenarios presented in this section are referred to as raids. All raids share the common theme of a weaker attacking force launching a lightning strike on a larger defending force, taking advantage of a momentary vulnerability or fortuitous circumstance to hopefully tip the odds in their favor. Due to the inherent asymmetry in raid scenarios, these can be good choices when not all players have a full collection of miniatures ready for the table. Several raids also reward objective-based gameplay over direct engagements, ideal for players looking for more than a straight-up ship brawl.
+The six scenarios presented in this section are referred to as raids. All raids share the common theme of a weaker attacking force launching a lightning strike on a larger defending force, taking advantage of a momentary vulnerability or fortuitous circumstance to hopefully tip the odds in their favour. Due to the inherent asymmetry in raid scenarios, these can be good choices when not all players have a full collection of miniatures ready for the table. Several raids also reward objective-based gameplay over direct engagements, ideal for players looking for more than a straight-up ship brawl.
 
 *Flavour text:* "In my high seat I gaze into the immaterium and see the shadow that our own universe casts into depthlessness. This eye... this eye sees gentle flows of soul-stuff where the becalmed mind might starve to death, and tides and churns of genius and hate. The warp mocks the power of words to describe. But what I can never turn my back on is the power and the beauty of the Emperor. I see His soul shine out from Earth and His presence fill every corner of the immaterium. I am scorned for what I talk of seeing, scorned by my family, so be it. Some say that every one of us sees a face of the warp meant only for him, a warp that none other shall ever see, but it makes no matter. I have known from the first time I beheld it that I could do nothing but follow that light with my life.", Peshto Vask Zemlya, Navigator
 
@@ -495,7 +495,7 @@ The Gauntlet variant scenario uses all the same rules as Scenario Three (Convoy)
 
 **Running Battle (Optional):** As this is a running battle, representing an Imperial fleet desperately trying to get their convoy to safety, you might like to try the following special rule when playing this scenario:
 
-- *Set-Up:* The Imperial convoy and escorting ships are all placed within 30cm of the center of the table at the start of the game, facing either short table edge. The Ork ships move on from any point along either long table edge in the first turn as normal.
+- *Set-Up:* The Imperial convoy and escorting ships are all placed within 30cm of the centre of the table at the start of the game, facing either short table edge. The Ork ships move on from any point along either long table edge in the first turn as normal.
 
 - *Special Rules:* At the end of every Imperial turn, every ship and item of celestial phenomena is moved back 20cm, away from the table edge the Imperial ships were facing at the start of the game. Any ship that "drops" off the end of the table during this shift is considered to have disengaged from the battle. In addition, roll a die at the end of the Imperial player's turn. On a 6, a randomly generated item of celestial phenomena is placed by the Imperial player along the short table edge that his or her ships originally faced, representing the Imperial commander leading the convoy (and the battle) towards any celestial phenomena that will give them an advantage on their mission. Always ignore any rolls that would generate a planet; after all, Armageddon is still many thousands of kilometres away!
 
@@ -507,7 +507,7 @@ The Gauntlet variant scenario uses all the same rules as Scenario Three (Convoy)
 
 *Source: BFG:XR Rulebook, printed p.97.*
 
-Forces sector wide have been split up into smaller patrols and sent in to cripple or destroy as much of an enemy's rearguard as possible before they are destroyed themselves. The targeted hostile forces are experiencing radar malfunctions due to the presence of jammer mines scattered in their way. The time to strike is now. If the attacker can cause enough damage, then these rearguard fleets will be rendered temporarily ineffective, buying the systems ahead some time to organize their defences. The odds are stacked against them, but stealth may just triumph over numerical superiority.
+Forces sector wide have been split up into smaller patrols and sent in to cripple or destroy as much of an enemy's rearguard as possible before they are destroyed themselves. The targeted hostile forces are experiencing radar malfunctions due to the presence of jammer mines scattered in their way. The time to strike is now. If the attacker can cause enough damage, then these rearguard fleets will be rendered temporarily ineffective, buying the systems ahead some time to organise their defences. The odds are stacked against them, but stealth may just triumph over numerical superiority.
 
 **Forces.** Agree on a points limit for the battle. The defender may spend up to this limit on their fleet, but must split at least 25% of its point value off as reinforcements. The attacker may only spend up to half the agreed points limit on their fleet.
 
@@ -547,7 +547,7 @@ Warp Storms have ravaged several sectors, making travel through them difficult a
 
 **First Turn.** The attacker chooses whether to go first or second.
 
-**Special Rules.** If an attacking ship fails to navigate a warp rift, it is not lost forever. Instead, during the attacker's end phase, they must do the following for each of their ships lost in the warp: choose a friendly or enemy capital ship already on the table and roll a D6. On a result of 2+, place the "lost" ship anywhere within 20cm of the target, facing any direction. Otherwise, the "lost" ship remains in the warp for another turn. Ships that arrive this way are materialising: they take no damage, do not interact with anything on the table, and can do nothing except move and turn. At the end of the attacker's movement phase, each materializing ship that is not in base contact with an enemy vessel returns to normal and must take a leadership test. If the test is failed, the ship's armaments function at half-strength until the end of the turn.
+**Special Rules.** If an attacking ship fails to navigate a warp rift, it is not lost forever. Instead, during the attacker's end phase, they must do the following for each of their ships lost in the warp: choose a friendly or enemy capital ship already on the table and roll a D6. On a result of 2+, place the "lost" ship anywhere within 20cm of the target, facing any direction. Otherwise, the "lost" ship remains in the warp for another turn. Ships that arrive this way are materialising: they take no damage, do not interact with anything on the table, and can do nothing except move and turn. At the end of the attacker's movement phase, each materialising ship that is not in base contact with an enemy vessel returns to normal and must take a leadership test. If the test is failed, the ship's armaments function at half-strength until the end of the turn.
 
 **Game Length.** The game lasts until victory conditions are met, or no transport capacity remains in play.
 
@@ -565,7 +565,7 @@ A massive influx of enemy reinforcements are making their way to the orbital doc
 
 **Forces.** The attacking player may spend up to 1500 points on their fleet, then must divide it into two forces with points values as equal as possible. The defender may only spend up to 750 points on their fleet, and cannot include any battleships. In exchange, the defender gains one fleet commander re-roll for free, along with 2 Space Stations, 1 Orbital Dock, 8 Orbital Mines, 1 Defence Monitor, and 2 System Escorts at no additional cost (Support Assets). The defender also chooses (separately from their fleet) eight of the following satellites in any mix desired: Orbital Weapons Platform, Orbital Defence Laser Platform, or Orbital Torpedo Launcher. These must be divided into two groups of four, referred to as the inner platforms and outer platforms respectively.
 
-**Battlezone.** Instead of using the normal battlezone rules, place a large planet in the center of the table. Both players (starting with the attacker) then place an asteroid field anywhere outside the planet's gravity well (30cm from the marker's edge).
+**Battlezone.** Instead of using the normal battlezone rules, place a large planet in the centre of the table. Both players (starting with the attacker) then place an asteroid field anywhere outside the planet's gravity well (30cm from the marker's edge).
 
 **Set-up.** The defending player starts by placing the orbital dock and two space stations anywhere within the planet's gravity well. Then, the defender places the outer platforms anywhere on the table (they do not need to be within a gravity well). The attacker then deploys one of their two forces within 10cm of a short table edge and deploys the other force within 10cm of the opposite table edge. The defender now places the inner platforms, system escorts, defence monitor, and orbital mines anywhere within the planet's gravity well. The remainder of the defender's forces are held in reserve and will arrive later.
 
@@ -642,13 +642,13 @@ Sometimes, an enemy poses a threat so grave and so immediate that there can be o
 
 *Source: BFG:XR Rulebook, printed p.103.*
 
-A hostile fleet thought to have abandoned the sector is instead found raiding a space hulk orbiting a nearby world. When this news reaches allied fleet command, a force is quickly gathered in an attempt to surprise the enemy and crush them. Unfortunately, the reconnaissance group was spotted by the enemy raiders. Now, allied forces have fallen into a trap and all seems to be in favor of the ruthless pillagers aligned against them. That is until sensors begin picking up traces of nearby alien warships...
+A hostile fleet thought to have abandoned the sector is instead found raiding a space hulk orbiting a nearby world. When this news reaches allied fleet command, a force is quickly gathered in an attempt to surprise the enemy and crush them. Unfortunately, the reconnaissance group was spotted by the enemy raiders. Now, allied forces have fallen into a trap and all seems to be in favour of the ruthless pillagers aligned against them. That is until sensors begin picking up traces of nearby alien warships...
 
 **Forces.** Agree on a points limit for the battle. The attacker may spend up to this limit on their fleet. The defender may spend up to 75% of the agreed points limit on their fleet, and up to 25% of the agreed limit on a separate fleet of allies of convenience chosen from a different faction (this fleet is entirely separate, built using its own fleet list). This fleet can also be controlled by a third player, if desired.
 
-**Battlezone.** The attack could take place anywhere from the flare region all the way to deep space. Use any of the methods in section 39 to determine the battlezone and any appropriate celestial phenomena. In addition, you must include one planet and one drifting hulk (section 34; you may use any capital ship to represent the hulk) anywhere within 30cm of the table's center.
+**Battlezone.** The attack could take place anywhere from the flare region all the way to deep space. Use any of the methods in section 39 to determine the battlezone and any appropriate celestial phenomena. In addition, you must include one planet and one drifting hulk (section 34; you may use any capital ship to represent the hulk) anywhere within 30cm of the table's centre.
 
-**Set-up.** First, the defender deploys their entire fleet within 30cm of the table's center line, as shown below. Each defending ship or squadron must be set up at least 10cm apart and facing in the same direction. The attacker then deploys their fleet anywhere within 20cm of either short table edge (divided in any way the attacker chooses).
+**Set-up.** First, the defender deploys their entire fleet within 30cm of the table's centre line, as shown below. Each defending ship or squadron must be set up at least 10cm apart and facing in the same direction. The attacker then deploys their fleet anywhere within 20cm of either short table edge (divided in any way the attacker chooses).
 
 ![Alien Intervention](media/scenarios_alien-intervention.png)
 
@@ -735,7 +735,7 @@ Escort-sized convoy ships that land on the planet (section 41) may score on the 
 
 *Source: BFG:XR Rulebook, printed p.107.*
 
-Any tactician worth their salt knows that the only thing worse than disregarding battlefield intelligence is assuming that it is infallible. As such, it is wise for a fleet traversing contested space to proceed with caution, lest it find itself suddenly outmaneuvered and out-gunned. In this scenario, two opposing fleets are in the area, each unsure of the enemy's size and disposition. As they split to spread their search wider, two groups come into contact and signal the rest of their forces. Whose ships will arrive first? Will they be able to overcome the enemy? Only time will tell...
+Any tactician worth their salt knows that the only thing worse than disregarding battlefield intelligence is assuming that it is infallible. As such, it is wise for a fleet traversing contested space to proceed with caution, lest it find itself suddenly outmanoeuvred and out-gunned. In this scenario, two opposing fleets are in the area, each unsure of the enemy's size and disposition. As they split to spread their search wider, two groups come into contact and signal the rest of their forces. Whose ships will arrive first? Will they be able to overcome the enemy? Only time will tell...
 
 **Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. Each player then gathers five contact markers (25×30mm triangular tokens with numbers on one side work best) and divides their fleet into divisions, each corresponding to one of their contact markers. Note which forces are assigned to each marker. There are no restrictions as to what ships can be in a division, but each division must have at least one ship or squadron assigned to it. Once a division moves onto the table, its ships may move normally; they are not constrained to stay together like a squadron.
 
@@ -843,7 +843,7 @@ This section of the book features three special scenarios, each representing a s
 
 *Source: BFG:XR Rulebook, printed p.111. Grand-finale scenario for the Third Armageddon War Campaign.*
 
-The initial elements of Ghazghkull's fleet entered the Armageddon system on the Day of the Feast of the Emperor's Ascension, a time when the Imperial Navy was building up to full alert status. Admiral Parol knew that time was of the essence as the forces of the Imperium marshaled their strength on Armageddon itself and that it would be the task of his fleet to buy this valuable time in the face of an immense Ork fleet. The Defence of Pelucidar was actually a huge engagement and so this scenario concentrates on only a small portion of the battle. The Imperial player, representing Admiral Parol, must cause as much damage as possible to the Ork fleet whilst trying to minimize his own losses. Initially, the Ork fleet will be poorly organized, but their strength will soon increase and threaten to overwhelm the Imperial force.
+The initial elements of Ghazghkull's fleet entered the Armageddon system on the Day of the Feast of the Emperor's Ascension, a time when the Imperial Navy was building up to full alert status. Admiral Parol knew that time was of the essence as the forces of the Imperium marshalled their strength on Armageddon itself and that it would be the task of his fleet to buy this valuable time in the face of an immense Ork fleet. The Defence of Pelucidar was actually a huge engagement and so this scenario concentrates on only a small portion of the battle. The Imperial player, representing Admiral Parol, must cause as much damage as possible to the Ork fleet whilst trying to minimise his own losses. Initially, the Ork fleet will be poorly organised, but their strength will soon increase and threaten to overwhelm the Imperial force.
 
 **Forces.** The battle takes place between the defending Imperial Navy and the attacking Orks, at the end of the Third Armageddon War. The Imperial player may spend up to 1500 points on their fleet, but may only include cruisers, battlecruisers, and battleships (no grand cruisers, light cruisers, or escorts), as well as up to four minefields at their normal cost. The Ork player starts with no ships or fleet; their forces will arrive at random throughout the battle (arriving ships always use their default profile; they do not get any refits).
 
@@ -882,9 +882,9 @@ The dreaded Planet Killer has managed to battle its way to the planet Macharia w
 
 **Forces.** This battle is fought between the defending Imperial Navy and an attacking Chaos armada at the conclusion of Abaddon's 13th Black Crusade. The Chaos player may spend up to 1500 points on their fleet in addition to including the Planet Killer at no cost. The Imperial player may spend up to 2000 points on their fleet, of which 500 points may be split off as the fleet's vanguard.
 
-**Battlezone.** The battle takes place over Macharia, located in the system's primary biosphere. Place Macharia itself (a medium planet) in the center of the Imperial player's short table edge, as shown below. Randomly generate any other celestial phenomena appropriate to the battlezone.
+**Battlezone.** The battle takes place over Macharia, located in the system's primary biosphere. Place Macharia itself (a medium planet) in the centre of the Imperial player's short table edge, as shown below. Randomly generate any other celestial phenomena appropriate to the battlezone.
 
-**Set-up.** First, the Imperial player deploys their main fleet (without the vanguard) within 20cm of their short table edge (the same side as the planet Macharia). The Chaos player then sets up their whole fleet except the Planet Killer within 10cm of their short table edge (on the other side of the board). The Imperial player may then deploy their vanguard forces anywhere within 5cm of the centerline dividing the Imperial and Chaos sides of the table.
+**Set-up.** First, the Imperial player deploys their main fleet (without the vanguard) within 20cm of their short table edge (the same side as the planet Macharia). The Chaos player then sets up their whole fleet except the Planet Killer within 10cm of their short table edge (on the other side of the board). The Imperial player may then deploy their vanguard forces anywhere within 5cm of the centreline dividing the Imperial and Chaos sides of the table.
 
 ![Macharia's End](media/scenarios_macharias-end.png)
 
@@ -900,7 +900,7 @@ The dreaded Planet Killer has managed to battle its way to the planet Macharia w
 
 **While Overcharging the Gun:** The Planet Killer cannot turn, attempt special orders, or fire its lances while charging, but it gains an additional +2 shields. Once started, the charging process cannot be stopped.
 
-**Firing the Overcharged Gun:** Place the Nova Cannon template so that it is touching the Planet Killer's stem, then move it directly ahead 60cm (just like firing it normally, but with shorter range). If any part of the template passes over any ship's base, that ship is completely destroyed. If the hole in the center of the template touches Macharia, the planet is obliterated and the game is over.
+**Firing the Overcharged Gun:** Place the Nova Cannon template so that it is touching the Planet Killer's stem, then move it directly ahead 60cm (just like firing it normally, but with shorter range). If any part of the template passes over any ship's base, that ship is completely destroyed. If the hole in the centre of the template touches Macharia, the planet is obliterated and the game is over.
 
 **Recharging:** If for some reason you manage to miss Macharia with the overcharged blast (how did you do that?!), the Planet Killer must pass two Reload Ordnance special orders across two consecutive turns to bring the weapon back online. During this time, it can do nothing except move (and attempt to Reload Ordnance).
 
@@ -940,7 +940,7 @@ Unlike planets however, craftworlds do not have independent defences. Instead, c
 
 ### The Fortresses
 
-The two fortresses that flank the main body of the craftworld are designed to repel invaders from Iyanden by utilizing powerful but indirect plasma barrages to disrupt and scatter any enemy that manages to evade the craftworld's patrols.
+The two fortresses that flank the main body of the craftworld are designed to repel invaders from Iyanden by utilising powerful but indirect plasma barrages to disrupt and scatter any enemy that manages to evade the craftworld's patrols.
 
 Each time an assault point would be scored against the craftworld, roll a D6. On a result of 4+, the assault point is negated: the landing force was destroyed by interception fire from one of the fortresses.
 
@@ -975,7 +975,7 @@ A craftworld's bonesingers have at their disposal the means to build and service
 
 Any Eldar capital ship in low orbit can dock with the craftworld by landing on the surface (in the same way that escorts and transports may land on a planet). To do so, simply move the ship into contact with the planet table edge, but do not remove it from the table. Instead, it remains docked in place until the end of the next Eldar turn. (Note that ships crashing into the surface due to the pull of gravity do not get to land; they are still destroyed as normal).
 
-Docked Eldar capital ships add +4D6 to their roll to repair critical damage in the end phase (and ignore blast markers while repairing). Those without any repairable critical damage may also roll (including the preceding bonuses), and will recover 1 lost damage point for every result of 6. Additionally, docked Eldar ships automatically benefit from Reload Ordnance special orders and have the protection of the forges' netherfields and polarization fields (these are identical to those of the Haven Spire found in the Eldar faction list).
+Docked Eldar capital ships add +4D6 to their roll to repair critical damage in the end phase (and ignore blast markers while repairing). Those without any repairable critical damage may also roll (including the preceding bonuses), and will recover 1 lost damage point for every result of 6. Additionally, docked Eldar ships automatically benefit from Reload Ordnance special orders and have the protection of the forges' netherfields and polarisation fields (these are identical to those of the Haven Spire found in the Eldar faction list).
 
 However, docked ships are unable to move, shoot, launch ordnance, board, or conduct teleport attacks, as this would obviously interfere with repair efforts.
 
@@ -1148,7 +1148,7 @@ The commander's flagship narrowly escapes an enemy ambush and sends out a desper
 
 **Battlezone.** The attack takes place in the outer reaches. Use the appropriate table in section 39 to place celestial phenomena.
 
-**Set-up.** The defender chooses one of the short table edges and deploys their fleet (other than their flagship) within 30cm of it. The defending flagship is then placed at the exact center of the board, pointing directly at the defender's table edge. The attacker then sets up their fleet within 30cm of the opposite short table edge.
+**Set-up.** The defender chooses one of the short table edges and deploys their fleet (other than their flagship) within 30cm of it. The defending flagship is then placed at the exact centre of the board, pointing directly at the defender's table edge. The attacker then sets up their fleet within 30cm of the opposite short table edge.
 
 ![Rescue](media/scenarios_rescue.png)
 
@@ -1166,7 +1166,7 @@ The commander's flagship narrowly escapes an enemy ambush and sends out a desper
 
 *Source: BFG:XR Rulebook, printed p.123.*
 
-In the chaos of the warp there is little room for organized maneuvers. Fleets who enter together are often split apart, arriving to the battle in different places or times. In the midst of a warp-storm this chaos only intensifies, often throwing opposing fleets together into a jumbled mess. Scattered and disoriented, the first fleet to recover its formation is likely to emerge the victor.
+In the chaos of the warp there is little room for organised manoeuvres. Fleets who enter together are often split apart, arriving to the battle in different places or times. In the midst of a warp-storm this chaos only intensifies, often throwing opposing fleets together into a jumbled mess. Scattered and disoriented, the first fleet to recover its formation is likely to emerge the victor.
 
 **Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets.
 
@@ -1194,7 +1194,7 @@ After months of drawn out fighting, a local uprising has created a gap in a stra
 
 **Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets. The defender may also spend up to an extra 20% of the agreed points limit on planetary defences (not including low orbit defences, as the low orbit table is not used in this scenario). The defender may also purchase planetary defences with points allocated to their fleet, as described in Support Assets. The attacker must take 1 transport capacity worth of convoy ships for every 100 points (or portion thereof) in their fleet.
 
-**Battlezone.** The attack takes place in the primary biosphere. Start by placing a large planet centered between the long table edges with the far side of the marker exactly 45cm from one of the short table edges. Use the appropriate table in section 39 to place any remaining celestial phenomena (or have a neutral third party set up terrain ahead of time). Do not place any more planets.
+**Battlezone.** The attack takes place in the primary biosphere. Start by placing a large planet centred between the long table edges with the far side of the marker exactly 45cm from one of the short table edges. Use the appropriate table in section 39 to place any remaining celestial phenomena (or have a neutral third party set up terrain ahead of time). Do not place any more planets.
 
 **Set-up.** The attacker deploys first, setting up their fleet within 30cm of the short table edge opposite the planet. The defender then sets up their fleet within 45cm of the other short table edge. Any planetary defences included must be deployed within the planet's gravity well (rather than the defender's deployment zone) as normal.
 
@@ -1228,7 +1228,7 @@ Some fight to save what they hold dear, while others fight to destroy that which
 
 **Forces.** Agree on a points limit for the battle. Both players may spend up to this limit on their fleets.
 
-**Battlezone.** Before placing celestial phenomena, roll a D6 and look up the matching result among the six deployment diagrams at the end of this scenario. The chosen diagram is the deployment configuration the scenario will use. Place objective markers at all the indicated positions. Coins or small ship bases work the best for this purpose. The attack takes place in the primary biosphere. Use the appropriate table in section 39 to place celestial phenomena, keeping each feature at least 15cm from the center of any objective marker.
+**Battlezone.** Before placing celestial phenomena, roll a D6 and look up the matching result among the six deployment diagrams at the end of this scenario. The chosen diagram is the deployment configuration the scenario will use. Place objective markers at all the indicated positions. Coins or small ship bases work the best for this purpose. The attack takes place in the primary biosphere. Use the appropriate table in section 39 to place celestial phenomena, keeping each feature at least 15cm from the centre of any objective marker.
 
 **Set-up.** The attacker deploys their fleet in one of the deployment zones indicated on the chosen deployment diagram. The defender then deploys in the opposite zone.
 
@@ -1236,7 +1236,7 @@ Some fight to save what they hold dear, while others fight to destroy that which
 
 **Game Length.** The game lasts until one fleet disengages or is destroyed, or until one player scores 10 or more objective points.
 
-**Victory Conditions.** The aim of this scenario is to control as many objective markers as possible for as long as possible. An objective marker is controlled by a player if they have at least one ship within 15cm of it (measured from the center of the marker to the stem of the vessel) and their opponent does not. Note that objectives may never be moved, attacked, or destroyed during the course of the game. At the end of each player's turn, that player scores 1 objective point for each objective marker they control. The player with the most objective points at the end of the game wins.
+**Victory Conditions.** The aim of this scenario is to control as many objective markers as possible for as long as possible. An objective marker is controlled by a player if they have at least one ship within 15cm of it (measured from the centre of the marker to the stem of the vessel) and their opponent does not. Note that objectives may never be moved, attacked, or destroyed during the course of the game. At the end of each player's turn, that player scores 1 objective point for each objective marker they control. The player with the most objective points at the end of the game wins.
 
 *Flavour text:* "Beyond that opening are my enemies. Behind me are warriors who would happily turn their weapons on me if they thought they could get away with it. Do you really think I'm doing this to try and impress anyone? I know who I am, and I don't give a greenskin's fart what anyone thinks of me.", Honsou, Warsmith of the Iron Warriors
 

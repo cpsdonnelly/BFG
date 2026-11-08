@@ -27,12 +27,12 @@
 | 2D6 | Result |
 |---|---|
 | 2 | Your flagship is changed into a different random vessel of the same type (cruiser, battleship, etc). Any refits are retained and the Meks add a new one from the Xenos Refits table. Your crew loses 1 Ld for the next battle only. |
-| 3 | You may add up to 1 cruiser or squadron of escorts to your roster for each system you control. Each unit added requires you to reduce the grade of 1 system: Forge to Mining, Civilized to Agri, or any other type to Uninhabited. |
+| 3 | You may add up to 1 cruiser or squadron of escorts to your roster for each system you control. Each unit added requires you to reduce the grade of 1 system: Forge to Mining, Civilised to Agri, or any other type to Uninhabited. |
 | 4 | If you held the field at the end of the last scenario, nominate one capital ship for each enemy hulk you captured. The indicated ships gain either Looted Torpedoes or Extra Power Fields (your choice for each). |
-| 5 | For each civilized system or hive world you control you may give one of your capital ships one Kustom Upgrade. |
+| 5 | For each civilised system or hive world you control you may give one of your capital ships one Kustom Upgrade. |
 | 6 | You may add 1 Ork Boss to your registry. |
 | 7 | One of your ships gains a +2 crew damage bonus instead of the usual +1 applied to Ork vessels. |
-| 8 | Your flagship gains Mega Armored Boarding Parties. |
+| 8 | Your flagship gains Mega Armoured Boarding Parties. |
 | 9 | Assign extra boyz to two vessels, both of which increase their crew damage bonus to +2 instead of +1. |
 | 10 | You win any dice roll-offs which are drawn during your next campaign turn and battle. |
 | 11 | One uninhabited system you own becomes an agri-world system. |

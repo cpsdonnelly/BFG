@@ -610,3 +610,33 @@ The last places outside the core rules that still called lance values "strength"
   attacker.
 - Planetary Assault and Craftworld Assault: subtract 1 per 500 defender VP (or portion thereof).
 - Grammar: Gates "deploys", appeals "depends", "fewer systems", "re-roll".
+
+# Thirty-seventh update: faction sections and appendices in sourcebook wording
+
+The same rule as the core rules: where the sourcebook says the same thing, its wording is used
+(97 paragraphs; table cells unchanged). Rule changes that came with it:
+- Inquisitorial Fleet Detachment retinue: only "Any Inquisitorial cruiser or vessel embarking
+  an Inquisitor (of any rank)" may take one (+15).
+- Daemonship materialising: no special orders until the END of its next turn, Brace for
+  Impact included.
+- Ramilies and Fortress-Monastery: nova cannon / Armageddon gun D6 hits go against the quadrant
+  most under the centre hole; quadrants are crippled once reduced to 6 Damage Points.
+- Battlefleet Cadia: ships with a veteran captain must be squadroned; a captain may go on an
+  escort squadron (whole squadron gets the bonus).
+- Nicassar Caravan must move exactly 10cm in any direction each movement phase.
+Other fixes: lance values (zzapp gunz, cutting beam, looted killkannon, Man O' War example
+lances) are firepower, not strength. 39 cross-references into the Mechanicus / Space Marine /
+Inquisition rules and the appendices were 1-6 pages out and are corrected. 46 American spellings
+are now British (Armor -> Armour etc.; text matching in ship notes may need updating). The booklet
+is 188 pages; Rogue Traders starts on p.70.
+
+# Thirty-eighth update: faction wording fixes
+
+Wording only, no rule changes:
+- Support Assets limits: "all must be the same type" now applies only to Blackstone Fortresses
+  (bracketed with the one-Activated-per-750-points limit).
+- Radical Ordo Malleus: Marks of Chaos pointer now reads "see Marks of Chaos in the Chaos faction
+  rules (p.88)".
+- 13th Black Crusade Marks of Chaos: colon before the costs, semicolon between them.
+- Killkannons: described as a salvaged bombardment cannon, a salvaged nova cannon, or a very large
+  Ork-made gun (flavour only; the firing rules are unchanged).

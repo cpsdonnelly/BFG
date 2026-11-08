@@ -60,7 +60,7 @@ In Battlefleet Gothic, the expertise of a captain and his (or her) crew is shown
 
 As mentioned earlier, in one-off games you roll a D6 to determine each ship's leadership value before the start of the game. Look up the result of the dice roll on the table below to see what Leadership value the ship has. Escorts roll once per squadron, with the whole squadron sharing the value rolled. Each capital ship rolls individually for leadership, even if it is part of a squadron.
 
-**Starting Leadership by faction:** see Appendix 4, p.183.
+**Starting Leadership by faction:** see Appendix 4, p.184.
 
 Some ships never roll for Ld: their rules give a fixed value (for example fleet support units, Demiurg commerce vessels, the Black Ship, the Fortress-Monastery and Ork space hulks).
 
@@ -74,7 +74,7 @@ If a ship is reduced to leadership 1 or less, it cannot voluntarily attempt spec
 
 ### Faction-Specific Leadership Tables
 
-Some factions do not use the default Starting Leadership table; their fleet lists replace it. All factions that roll for leadership are unified into one table in the Appendix: see Appendix 4, p.183. Unless stated otherwise, factions not listed there use the Default column.
+Some factions do not use the default Starting Leadership table; their fleet lists replace it. All factions that roll for leadership are unified into one table in the Appendix: see Appendix 4, p.184. Unless stated otherwise, factions not listed there use the Default column.
 
 *Source: BFG:XR faction fleet lists / codex documents*
 
@@ -247,7 +247,7 @@ Enemy Contacts (+1Ld): A vessel gains a +1 bonus to its leadership value when at
 
 **Other leadership tests:** Sometimes, a ship will need to test against its Ld value for something other than a command check, such as changing target priority, ramming an enemy vessel, or navigating an asteroid field. A leadership test is taken just like a command check, by rolling 2D6 and comparing the result to the vessel's Ld value. A ship may attempt multiple leadership tests each turn, and may do so even if a command check has been failed earlier in the turn. However, remember that a ship cannot attempt the same test more than once. Furthermore, the Under Fire and Enemy Contacts modifiers do not apply to leadership tests, although other Ld modifiers may apply as described in the relevant special rules.
 
-A summary of all six special orders is given in Appendix 6, p.185.
+A summary of all six special orders is given in Appendix 6, p.186.
 
 ## 8. Squadrons
 
@@ -475,7 +475,7 @@ Which way the target is travelling is important for gunnery purposes as it is mu
 
 **Splitting Fire:** Ships that pass a target priority test may split the firepower of their gunnery weapons between multiple targets in a given fire arc. Naturally, a ship must have firepower of 2 or greater, after any changes to its firepower such as halving, in order to split fire this way. Apply those changes before using the Gunnery table.
 
-**Gunnery Table:** see Appendix 7, p.186.
+**Gunnery Table:** see Appendix 7, p.187.
 
 **Gunnery Table notes:** To save space, both cruisers and battleships are referred to as capital ships on the Gunnery table. Defences and ordnance are not affected by orientation, and will always use their associated column (plus any applicable column shifts), even when shot at by ships which normally count all targets as having a specific orientation.
 
@@ -589,7 +589,7 @@ Space-borne mines almost always follow similar designs, regardless of which race
 
 **Note:** some printings of the rulebook read that damage from mines may be blocked by shields. This is an error: mines ignore shields, as above.
 
-**A minefield (p.86) counts as an asteroid field, so a ship that fails its Leadership test to navigate one takes asteroid damage, which shields do stop (p.35). A ship in a minefield can take both: asteroid damage (shields apply) and, when it is detected on a 5+, a mine attack (shields ignored).**
+**A minefield (p.87) counts as an asteroid field, so a ship that fails its Leadership test to navigate one takes asteroid damage, which shields do stop (p.35). A ship in a minefield can take both: asteroid damage (shields apply) and, when it is detected on a 5+, a mine attack (shields ignored).**
 
 Mines follow all the regular rules for ordnance regarding moving through blast markers, shooting, and so forth. Except for fighters (which will remove mines just like any other ordnance), mines are not affected by, and do not affect, any other ordnance markers on the battlefield.
 
@@ -888,7 +888,7 @@ Roll a D6 for each hit scored on a ship (but not against its shields). On a roll
 
 **Repeated and impossible critical hits:** If a ship suffers multiple (repairable) critical hits to the same location, they must all be repaired before the system functions again. However, any effects of these critical hits are not cumulative unless otherwise specified. If a critical hit is rolled which cannot be applied, or multiple critical hits are rolled for a location that cannot be repaired, apply the next highest result instead. For example, a ship with no prow weapons that suffers a 'Prow Armament Damaged' result would suffer an 'Engine Room Damaged' result instead.
 
-**Critical Hits Table:** see Appendix 5, p.184.
+**Critical Hits Table:** see Appendix 5, p.185.
 
 ## 34. Catastrophic Damage
 
@@ -908,7 +908,7 @@ A ship with no hits left is effectively out of action. There may still be some c
 
 **Hulks in combat:** Drifting or blazing hulks will block lines of fire to ships behind their base. Naturally, they have no shields, turrets or any other defence mechanisms (such as holofields or reactive hulls). Furthermore, a drifting or blazing hulk may be ignored for target priority purposes if it is the closest enemy target (shooting at a hulk is still subject to target priority if it is not the closest target). Drifting and blazing hulks cannot be fired upon, boarded, or have torpedoes deliberately launched at them by friendly vessels or ordnance for any reason, although enemies may still do so normally. Use the destroyed ship's Armour value to roll for hits. If a hulk suffers any hits, roll once on the Catastrophic Damage table (replacing the current result, if necessary). Note that hits caused by each individual ship, squadron, or ordnance wave may only trigger one roll on the table, not one roll per hit inflicted.
 
-**Catastrophic Damage Table:** see Appendix 5, p.184.
+**Catastrophic Damage Table:** see Appendix 5, p.185.
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Catastrophic Damage", pp.23-24*
 

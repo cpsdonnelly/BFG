@@ -15,7 +15,7 @@
 
 **The Best That Money Can Buy.**
 
-- *Customized Starships:* Rogue Trader ships are represented by the highly customizable Rogue Trader Man O' War.
+- *Customised Starships:* Rogue Trader ships are represented by the highly customizable Rogue Trader Man O' War.
 
 - *Refitted Torpedoes (+20pts):* roll a D6 at game start for an extra torpedo type (in addition to any others):
 
@@ -133,7 +133,7 @@ These examples are not from the sourcebook; they show the configuration rules ab
 | Prow Lances (brig only) | 25 | 1 |
 | +1 shield | 15 | 1 |
 
-Result: Cruiser/6, 25cm, 45°, Sh2, 5+, Tur2. Macrobatteries 45cm FP4 (L), (R); Prow Lances 30cm S3 (F).
+Result: Cruiser/6, 25cm, 45°, Sh2, 5+, Tur2. Macrobatteries 45cm FP4 (L), (R); Prow Lances 30cm FP3 (F).
 
 **Example 2: Galleon (250 points, 7 Fortune)**
 
@@ -149,7 +149,7 @@ Result: Cruiser/6, 25cm, 45°, Sh2, 5+, Tur2. Macrobatteries 45cm FP4 (L), (R); 
 | 6+ prow armour | 20 |  |
 | +1 shield | 15 | 1 |
 
-Result: Cruiser/8, 20cm, 45°, Sh2, 6+ prow / 5+, Tur2. Macrobatteries 45cm FP6 (L), (R); Lances 45cm S2 (L), (R); Dorsal Lances 60cm S2 (L/F/R); Prow Torps 30cm S6 (F).
+Result: Cruiser/8, 20cm, 45°, Sh2, 6+ prow / 5+, Tur2. Macrobatteries 45cm FP6 (L), (R); Lances 45cm FP2 (L), (R); Dorsal Lances 60cm FP2 (L/F/R); Prow Torps 30cm S6 (F).
 
 **Example 3: Galleon carrier (260 points, 5 Fortune)**
 
@@ -166,7 +166,7 @@ Result: Cruiser/8, 20cm, 45°, Sh2, 6+ prow / 5+, Tur2. Macrobatteries 45cm FP6 
 | +1 turret | 10 |  |
 | +1 shield | 15 | 1 |
 
-Result: Cruiser/8, 20cm, 45°, Sh2, 6+ prow / 5+, Tur3. Launch Bays port S3 + stbd S3 (Fighters 30cm, Bombers 20cm); Dorsal Lances 60cm S2 (L/F/R); Prow Torps 30cm S6 (F).
+Result: Cruiser/8, 20cm, 45°, Sh2, 6+ prow / 5+, Tur3. Launch Bays port S3 + stbd S3 (Fighters 30cm, Bombers 20cm); Dorsal Lances 60cm FP2 (L/F/R); Prow Torps 30cm S6 (F).
 
 The two launch bay options are separate weapons, so both may be taken; the bays on each side combine into one S3 launch bay.
 
@@ -199,7 +199,7 @@ Result: Cruiser/10, 20cm, 45°, Sh2, 5+, Tur3. Launch Bays port S3 + stbd S3 (Fi
 | +1 shield | 15 | 1 |
 | +1 turret, twice | 20 |  |
 
-Result: Cruiser/10, 20cm, 45°, Sh4, 5+, Tur4. Lances 45cm S2 (L), (R); Macrobatteries 60cm FP8 (L), (R); Prow Macrobatteries 60cm FP6 (L/F/R).
+Result: Cruiser/10, 20cm, 45°, Sh4, 5+, Tur4. Lances 45cm FP2 (L), (R); Macrobatteries 60cm FP8 (L), (R); Prow Macrobatteries 60cm FP6 (L/F/R).
 
 The two 60cm macrobattery sets share range, type and arcs, so they combine into one FP8 battery on each side.
 
@@ -219,7 +219,7 @@ The two 60cm macrobattery sets share range, type and arcs, so they combine into 
 | +1 shield | 15 | 1 |
 | +1 turret, twice | 20 |  |
 
-Result: Battleship/12, 15cm, 45°, Sh4, 5+, Tur4, cannot use Come to New Heading. Lances 45cm S2 (L), (R); Macrobatteries 45cm FP6 (L), (R); Macrobatteries 60cm FP4 (L), (R); Dorsal Lances 60cm S2 (L/F/R); Prow Macrobatteries 60cm FP6 (L/F/R).
+Result: Battleship/12, 15cm, 45°, Sh4, 5+, Tur4, cannot use Come to New Heading. Lances 45cm FP2 (L), (R); Macrobatteries 45cm FP6 (L), (R); Macrobatteries 60cm FP4 (L), (R); Dorsal Lances 60cm FP2 (L/F/R); Prow Macrobatteries 60cm FP6 (L/F/R).
 
 **Special & Allied Ships**
 
@@ -242,11 +242,11 @@ A Rogue Trader force is built with both points and Fortune. It is one of three l
 
 A Fleet Detachment cannot fight alone; it joins another fleet (any except Necron or Tyranid) and is subject to the allies-of-convenience rules unless stated otherwise. Its Rogue Trader may also serve as the joined fleet's required fleet commander.
 
-**Fleet commander, 1 Rogue Trader.** Lord Captain (Ld8) 50, Venerable Lord Captain (Ld9) 75; one free re-roll, up to two more (25/50), usable by any Rogue Trader ship or squadron. Assign to the most expensive Man O' War present (points and Fortune combined).
+**Fleet commander, 1 Rogue Trader.** Lord Captain (Ld8) 50, Venerable Lord Captain (Ld9) 75; one free re-roll, up to two more (25/50), usable by any Rogue Trader ship or squadron. He or she must be assigned to the most expensive man o' war present (by points and Fortune cost combined).
 
 **Secondary, 0-3 Bond-Captains.** +1 Ld (max 8) 10pts and 1 Fortune each; assign to a Man O' War if possible, otherwise a convoy ship. Each may buy one re-roll +15 for its own ship or squadron.
 
-**Men O' War.** Up to one per Rogue Trader and/or Bond-Captain. Each counts against the joined fleet's limits by chassis: brig as a light cruiser, galleon as a cruiser, grand galleon as a grand cruiser or battlecruiser, ship of the line as a battleship. In a Space Marine fleet, Men O' War count as strike cruisers, except grand galleons and ships of the line, which count as battle barges. Rogue Trader Man O' War: Varies.
+**Men O' War.** Up to one per Rogue Trader and/or Bond-Captain. A man o' war counts against the joined fleet's limits based on the subtype matching its chassis (light cruiser for brigs, cruiser for galleons, grand cruiser or battlecruiser for grand galleons, and battleship for ships of the line). In a Space Marine fleet, all men o' war count as strike cruisers except grand galleons and ships of the line, which count as battle barges instead. Rogue Trader Man O' War: Varies.
 
 **Convoy ships.**
 
@@ -256,9 +256,9 @@ A Fleet Detachment cannot fight alone; it joins another fleet (any except Necron
 
 - Convoy escorts, any number in squadrons of 2-6 (max four two-hit escorts per squadron): Escort Carrier 60 / 2 Fortune, Convoy Monitor 60 / 2 Fortune, Sloop 20, Caravel 10. Escort Carriers and Convoy Monitors are limited to one per point of the fleet's total transport capacity.
 
-**Ordnance & upgrades.** Standard torpedoes and craft; Men O' War with torpedoes may take refitted torpedoes +20. Up to two Men O' War may swap all launch bays for mine launchers (+5 per bay), to a maximum of two mine-launcher cruisers in the whole fleet.
+**Ordnance & upgrades.** Standard torpedoes and craft; Men O' War with torpedoes may take refitted torpedoes +20. Up to two Rogue Trader men o' war may replace all of their launch bays with mine launchers for +5 points per bay replaced (to a maximum of two cruisers equipped with mine launchers among the entire fleet).
 
-**Reserves & allies.** Any number of xenos cutter squadrons at 1 Fortune (1-3 ships) or 2 Fortune (4-6), points still paid, not counting as reserves. For every 750pts, one Demiurg or Kroot capital ship as a reserve (not in a Tau or Ork joined fleet). If the joined fleet includes any Space Marine ships, honour guards, or commanders, no xenos allies at all (not even cutters). In all other respects, the joined fleet's reserve options are unchanged. Attack rating: a Rogue Trader's presence does not affect a fleet's attack rating unless otherwise specified. Scenarios & sub-plots: in a scenario that gives the joined fleet a transport capacity requirement, convoy ships from this list cannot be mixed in squadrons with those from the generic fleet support list; in any other scenario, the joined fleet must take a random Business as Usual sub-plot if it includes at least one Rogue Trader convoy ship.
+**Reserves & allies.** Any number of xenos cutter squadrons at 1 Fortune (1-3 ships) or 2 Fortune (4-6), points still paid, not counting as reserves. For every 750pts, one Demiurg or Kroot capital ship as a reserve (not in a Tau or Ork joined fleet). If the joined fleet chooses to include any Space Marine ships, honour guards, or commanders, no xenos allies (not even xenos cutters) may be included. In all other respects, the joined fleet's reserve options are unchanged. Attack rating: a Rogue Trader's presence does not affect a fleet's attack rating unless otherwise specified. Scenarios & sub-plots: in a scenario that gives the joined fleet a transport capacity requirement, convoy ships from this list cannot be mixed in squadrons with those from the generic fleet support list; in any other scenario, the joined fleet must take a random Business as Usual sub-plot if it includes at least one Rogue Trader convoy ship.
 
 #### Rogue Trader Expedition Fleet (Imperium p.127)
 
@@ -290,9 +290,9 @@ A standalone Rogue Trader fleet, for when no host fleet is available or the priz
 
 #### Wolf-Pack Pirate Fleet (Imperium p.128-129)
 
-A Rogue Trader list in all respects (it has a Fortune rating, and the first Pirate Captain requires a Warrant of Trade origin, treated as the pirates' origin story). Its non-Rogue-Trader classes are drawn from the Chaos list and count as Rogue Trader vessels.
+A Rogue Trader list in all respects (it has a Fortune rating, and the first Pirate Captain requires a Warrant of Trade origin, treated as the pirates' origin story). The non-Rogue Trader classes below are found in the Chaos fleet list, and will count as Rogue Trader ships in all respects.
 
-**A Problem with Authority.** Rogue Trader ships suffer -1Ld while re-rolling a command check or Leadership test.
+**A Problem with Authority.** Rogue Trader ships in the fleet suffer a -1Ld penalty while re-rolling a command check or leadership test.
 
 **Fleet commander, 0-3 Pirate Captains.** One per 500pts (or portion thereof), and one must lead at 750+pts; assign to the most expensive capital ship(s) available (excluding xenos ships). Pirate Captain (Ld8) 50; one free re-roll, up to two more (25/50); a single Pirate Captain may not use more than one re-roll per turn.
 
@@ -310,13 +310,13 @@ A Rogue Trader list in all respects (it has a Fortune rating, and the first Pira
 
 **Ordnance & upgrades.** Pirate ships with torpedo tubes are armed with ordinary torpedoes; any torpedo-armed capital ship may buy refitted torpedoes +20; Men O' War with launch bays launch standard fighters and bombers. Attack rating 3. Sub-plots: when playing any scenario that does not have its own transport capacity requirement, the fleet must take a random Business as Usual sub-plot if it includes any convoy ships.
 
-**Scenarios & campaigns.** May always roll on the Raids table for a scenario; if the attacker and worth 1500+pts, it may swap a rolled 6 for Planetary Assault. In a campaign it operates from a pirate base and earns extra crew skills instead of refits.
+**Scenarios & campaigns.** May always roll on the Raids table for a scenario; if the attacker and worth 1500+pts, it may swap a rolled 6 for Planetary Assault. In a campaign, a pirate fleet always operates from a pirate base, and earns extra crew skills rather than earning any refits.
 
 **Reserves & allies.** Apart from the options above, it neither gives nor takes ships as reserves or allies, and may not be joined by any fleet detachment.
 
 ### High-Risk Convoys (Imperium p.129)
 
-The threat tables below may be used as alternatives to the one presented in the Convoy Run scenario. If used, the defending player may add up to +50 points or +2 Fortune rating to their fleet's limit for every 2 points of transport capacity required. While these tables suit Rogue Traders and pirates, they may be used in one-off games or campaigns between any two fleets, regardless of their factions.
+The threat tables below may be used as alternatives to the one presented in the Convoy Run scenario. If used, the defending player may add up to +50 points or +2 Fortune rating to their fleet's limit for every 2 points of transport capacity required. While these alternate tables are well-suited to Rogue Traders and pirates, there is absolutely no reason why they cannot be used in one-off games or campaigns between any two fleets, regardless of their respective factions.
 
 **The Cruiser Trap.** This table represents a stronger force of attacking capital ships being in the area the convoy is traversing.
 

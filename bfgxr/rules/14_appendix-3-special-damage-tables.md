@@ -1,6 +1,6 @@
 # Appendix 3 - Special Damage Tables
 
-*Critical hits and catastrophic damage for the Ramilies Star Fort, the Fortress-Monastery, the Chaos and Ork Space Hulks, and space stations and other high orbit defences with 3 or more starting hits. Everything else uses Appendix 5, p.184.*
+*Critical hits and catastrophic damage for the Ramilies Star Fort, the Fortress-Monastery, the Chaos and Ork Space Hulks, and space stations and other high orbit defences with 3 or more starting hits. Everything else uses Appendix 5, p.185.*
 
 ### Imperial Navy
 
@@ -34,7 +34,7 @@
 
 ### Space Marines
 
-The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical Hits Table** and **Catastrophic Damage Table (p.180)**.
+The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical Hits Table** and **Catastrophic Damage Table (p.181)**.
 
 ### Chaos
 
@@ -50,7 +50,7 @@ The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical
 
 ### Orks
 
-The Ork Space Hulk uses the shared **Space Hulk Critical Hits Table (p.181)**.
+The Ork Space Hulk uses the shared **Space Hulk Critical Hits Table (p.182)**.
 
 ### Fleet Support
 

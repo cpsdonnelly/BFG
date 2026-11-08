@@ -26,7 +26,7 @@
 
 **Chaos Space Marines** (taken by capital ships; uses the Space Marine faction rules):
 
-**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.183); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
+**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.184); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
 
 **Champions of the Dark Gods:** use the Space Marine boarding, hit-and-run, planetary-assault, and teleport-assault rules (battleships count as battle barges, other ships as strike cruisers; the honour guard uses Chaos Terminators). This replaces the normal Chaos crew bonus.
 
@@ -38,7 +38,7 @@
 
 **Daemonic Crew:** a daemonship cannot embark a Chaos Warmaster or Chaos Lord, even if it is the largest ship in the fleet. Likewise, a daemonship cannot be given a Chaos Space Marine crew.
 
-**Immaterial Predator:** may never score assault points or take an Exterminatus armament.
+**Immaterial Predator:** Daemonships may never score assault points or be given an Exterminatus armament.
 
 **Chariot of the Gods:** may take one Mark of Chaos, bought as normal, but the Mark cannot affect enemies while the ship is spectral or haunting.
 
@@ -48,9 +48,9 @@
 
 **Warp Translation:** on any of your turns, at the end of the movement phase, pick any capital ship on the table (friend or foe) and roll a D6. On 2+ the daemonship arrives within 20cm of it facing any way; on a fail it stays in the Warp another turn. It arrives spectral, and ignores ordnance and celestial phenomena as it is placed.
 
-**Spectral daemonships:** only partly real. Enemy vessels within 15cm suffer -1Ld at all times (not cumulative between daemonships). Otherwise it can neither affect the enemy (including with its Mark) nor be harmed or interacted with in any way, including by fire criticals: no ordnance, mines, special orders, celestial effects, or repairs, only movement and turning. It may remain spectral as long as desired.
+**Spectral daemonships:** only partly real. Enemy vessels within 15cm suffer -1Ld at all times (not cumulative between daemonships). Otherwise it can neither affect the enemy (including with its Mark) nor be harmed or interacted with in any way, including by fire criticals: no ordnance, mines, special orders, celestial effects, or repairs, only movement and turning. A daemonship may remain in this spectral form for as long as desired.
 
-**Materializing:** at the end of any movement phase after it arrives, and never while in base contact with an enemy, it may become solid with no roll. It then takes a Leadership test; on a fail its armament works at half effectiveness until the end of the turn. It may use no special orders until the start of its next turn except Brace for Impact. Once solid it is a normal vessel, affected by ordnance and phenomena it contacts. If it materializes in an asteroid field, it may attempt to avoid damage by taking a leadership test as normal.
+**Materialising:** at the end of any movement phase after it arrives, and never while in base contact with an enemy, it may become solid with no roll. It then takes a Leadership test; on a fail its armament works at half effectiveness until the end of the turn. A ship that does so may not use any special orders until the end of its next turn (including Brace for Impact). Once solid it is a normal vessel, affected by ordnance and phenomena it contacts. If it materialises in an asteroid field, it may attempt to avoid damage by taking a leadership test as normal.
 
 **Haunting:** on any of your turns, at the end of movement, a daemonship (spectral or solid) may return to the Warp; it is removed like a disengaged ship and may re-enter later by warp translation. While haunting it is again vulnerable to fire criticals, but repairs critical damage on 4+ rather than only 6. If it returns with fewer than its starting hits, roll a D6, adding +1 if it is a battleship and +1 per full turn spent haunting: 1-3 no effect; 4-5 regain 1 hit; 6 regain 2 hits (never above its starting maximum). A daemonship crippled at any point counts as crippled for victory points whatever its final hits. It may use Reload Ordnance and Brace for Impact in the Warp with no Leadership bonus to the enemy, and otherwise counts as disengaged, including for victory points if the game ends while it is haunting.
 
@@ -135,9 +135,9 @@ Ponderous (no Come to New Heading). A one-of-a-kind vessel, usually the objectiv
 
 *Surprise Attack*: the defending Chaos fleet is stationed around the Planet Killer instead of orbiting a world. The defender pays no points for it, but it starts the battle on standby like the other defending vessels: it cannot move or shoot until active, though its turrets and shields work as normal. The attacker must cripple the Planet Killer to win.
 
-*Convoy*: the Planet Killer counts as eight transports. If it moves off the opposite table edge undamaged, the Chaos player wins. If it is crippled before it escapes, the attacker wins a marginal victory; if it is destroyed, a major victory.
+*Convoy*: the Planet Killer counts as eight transports. If it moves off the opposite table edge undamaged, the Chaos player wins. If it is crippled before it escapes it is a marginal attacker win and if it is destroyed the attacker gains a major win.
 
-*Exterminatus*: a Chaos attacker may include the Planet Killer instead of modified exterminators, deducting its cost from the fleet's points limit as normal. It needs no refits and loses no weapons to count as an exterminator, but if the Armageddon Gun is permanently disabled (including when the Planet Killer is crippled), it can no longer act as an exterminator and the Chaos player loses automatically.
+*Exterminatus*: If the Chaos fleet is the attacker, it may include the Planet Killer instead of using modified exterminators (deducting its cost from the fleet's allowed points limit as normal). The Planet Killer does not require any refits or lose any of its weapons to count as an exterminator, but if the Armageddon Gun is permanently disabled (including if the Planet Killer is crippled) then it can no longer act as an exterminator and the Chaos player loses the battle automatically!
 
 *Armageddon Gun* (90cm, Front): fires only straight ahead along the ship's spine. It cannot fire while crippled or while on All Ahead Full, Burn Retros, or Brace for Impact.
 
@@ -163,7 +163,7 @@ A Chaos fleet of any size may include one, and it must be the flagship. It canno
 
 **Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Never crippled; it functions until completely destroyed.
 
-**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.181), not the normal table; results cannot be repaired, and no characteristic drops below zero (apply as much of each penalty as possible).
+**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.182), not the normal table; results cannot be repaired, and no characteristic drops below zero (apply as much of each penalty as possible).
 
 **Catastrophic damage:** at 0 damage, roll on the Catastrophic Damage table: drifting and blazing hulk results are unchanged (including any required movement); a plasma drive overload tears it apart into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
@@ -207,7 +207,7 @@ Ponderous (no Come to New Heading). Unique: at most one per fleet. Unlike the ot
 
 **Improved Thrusters: +D6cm on All Ahead Full**.
 
-**Defiant Rage:** if crippled by enemy shooting, take a 3D6 Ld test. On a pass it is crippled normally; on a fail it instead gains +5cm Speed, auto-passes all leadership tests to check course when ramming, and its armaments drop to 25% effectiveness (rather than being halved). This lasts until the ship or squadron that crippled it is destroyed, after which it is treated as a normal crippled ship.
+**Defiant Rage:** The Conqueror must take a Ld test on 3D6 if it becomes crippled by enemy shooting. On a pass it is crippled normally; on a fail it instead gains +5cm Speed, auto-passes all leadership tests to check course when ramming, and its armaments drop to 25% effectiveness (rather than being halved). This effect lasts until the ship or squadron that crippled the Conqueror is destroyed, at which point the Conqueror is treated like any other crippled vessel.
 
 #### Warmaster Abaddon the Despoiler (Imperium p.56)
 
@@ -217,7 +217,7 @@ A 13th Black Crusade fleet of 1000+pts may be led by Abaddon (Ld10) for 195pts, 
 
 **Lord of the Black Legion:** his vessel automatically has a Chaos Space Marine crew at no cost, and his retinue, the Bringers of Despair (counting as Chaos Terminators), doubles his ship's troop rating.
 
-**"You Have Failed Me for the Last Time...":** if his re-roll is used on a command check or Leadership test and the roll fails a second time: aboard his own ship, it takes 1 point of damage; otherwise, in his next shooting phase his ship must direct at least half its gunnery and lance firepower at the offending ship or squadron (resolved as if it were enemy). Survivors of his wrath gain +1Ld for the rest of the game, once per ship or squadron. If the offender is out of range or arc of his weapons, it gains no bonus and may no longer benefit from Abaddon's re-rolls for the rest of the game.
+**"You Have Failed Me for the Last Time...":** if his re-roll is used on a command check or Leadership test and the roll fails a second time: aboard his own ship, it takes 1 point of damage; otherwise, in his next shooting phase his ship must direct at least half its gunnery and lance firepower at the offending ship or squadron (resolved as if it were enemy). Survivors of his wrath gain +1Ld for the rest of the game, once per ship or squadron. If the object of his wrath is not in range or fire arc of any of his weapons, Abaddon will simply leave them to their fate: they do not gain any bonus leadership and may no longer benefit from Abaddon's re-rolls for the rest of the game.
 
 ## Fleet Composition (Incursion, Crusade, Renegades & God-Dedicated Fleet Lists)
 
@@ -260,7 +260,7 @@ Chaos in all its forms; adds Abaddon, the dedicated battleships, the Planet Kill
 | Special | (0-1) The Planet Killer 505 (fleet 1000+pts; counts as a battleship for fleet requirements and restrictions); (0-1) Chaos Space Hulk 650 (if taken, it must be the fleet flagship) |
 | Escorts (squadrons of 2-6) | Idolator 45, Infidel 40, Havoc 35, Iconoclast 25 |
 
-**Marks of Chaos:** one of each may be bought, each on a different capital ship, Mark of Chaos Undivided 25 (on the Chaos Lord or Warmaster's ship only), Mark of Slaanesh / Nurgle / Khorne / Tzeentch 15 each. **Crusade extras:** any capital ship except a daemonship may take a Chaos Space Marine crew +35; one capital ship per full 1000 points (except light cruisers) may be upgraded to a daemonship. Vessels equipped with Stormbird gunships may not buy mine launchers. Reserves: a 13th Black Crusade fleet may take reserves from the Chaos Incursion and Chaos Renegades fleet lists (except space hulks). The Terminus Est is costed at 420pts in this booklet.
+**Marks of Chaos:** one of each may be bought, each on a different capital ship: Mark of Chaos Undivided 25 (on the Chaos Lord or Warmaster's ship only); Mark of Slaanesh / Nurgle / Khorne / Tzeentch 15 each. **Crusade extras:** any capital ship except a daemonship may take a Chaos Space Marine crew +35; one capital ship per full 1000 points (except light cruisers) may be upgraded to a daemonship. Vessels equipped with Stormbird gunships may not buy mine launchers. Reserves: a 13th Black Crusade fleet may take reserves from the Chaos Incursion and Chaos Renegades fleet lists (except space hulks). The Terminus Est is costed at 420pts in this booklet.
 
 **Renegades Fleet List (Imperium p.57)**
 
@@ -273,7 +273,7 @@ Chaos in all its forms; adds Abaddon, the dedicated battleships, the Planet Kill
 | Light Cruisers (0-6) | Fanatic 125, Schismatic 125, Heretic 120 |
 | Escorts (squadrons of 2-6) | Idolator 45, Infidel 40, Havoc 35, Iconoclast 25 |
 
-**Marks of Chaos:** any vessel with a Chaos Space Marine crew, or led by a Chaos Lord, Warmaster, or aspiring champion, may take one, Undivided 25 (Lord/Warmaster's ship only), Slaanesh/Nurgle/Khorne/Tzeentch 15 each. **Chaos Space Marine crews:** one capital ship per full 750 points (except battle barges and strike cruisers) may take one +35. Chaos Space Marine battle barges and strike cruisers use the Space Marine faction rules, except that they are Chaos ships with Chaos Space Marine crews, not allies of convenience, and may take any upgrades shown in their profile or this fleet list. Chaos Space Marine battleships, battle barges, grand cruisers, and strike cruisers may also have Chaos Terminators for +25 points. **Imperial Renegades:** for every full 750 points the fleet may include up to six escorts and/or one cruiser (worth up to 185pts) from the Imperial Navy Bastion or Armageddon Sector lists. They count as Chaos ships in all respects and may be squadroned normally, but renegade cruisers subtract 1 from their rolled Leadership (recently turned traitor), and they do not count against the fleet's reserves allowance. Special: (0-1) Chaos Space Hulk 650; if included, it must be your commander's flagship. Reserves: a Chaos Renegades fleet may take reserves from the 13th Black Crusade and Chaos Incursion fleet lists, but not the Planet Killer or a space hulk.
+**Marks of Chaos:** any vessel with a Chaos Space Marine crew, or led by a Chaos Lord, Warmaster, or aspiring champion, may take one, Undivided 25 (Lord/Warmaster's ship only), Slaanesh/Nurgle/Khorne/Tzeentch 15 each. **Chaos Space Marine crews:** One capital ship for every full 750 points in your fleet may have a Chaos Space Marine crew for +35 points (except battle barges and strike cruisers). Chaos Space Marine battle barges and strike cruisers use the Space Marine faction rules, except that they are Chaos ships with Chaos Space Marine crews, not allies of convenience, and may take any upgrades shown in their profile or this fleet list. Chaos Space Marine battleships, battle barges, grand cruisers, and strike cruisers may also have Chaos Terminators for +25 points. **Imperial Renegades:** for every full 750 points the fleet may include up to six escorts and/or one cruiser (worth up to 185pts) from the Imperial Navy Bastion or Armageddon Sector lists. They count as Chaos ships in all respects and may be squadroned normally, but renegade cruisers subtract 1 from their rolled Leadership (recently turned traitor), and they do not count against the fleet's reserves allowance. Special: (0-1) Chaos Space Hulk 650; if included, it must be your commander's flagship. Reserves: a Chaos Renegades fleet may take reserves from the 13th Black Crusade and Chaos Incursion fleet lists, but not the Planet Killer or a space hulk.
 
 #### God-Dedicated Fleets (Imperium p.58-61)
 
