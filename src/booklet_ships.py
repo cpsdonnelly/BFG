@@ -388,7 +388,7 @@ def venerable_strike_cruiser_rows(rows: List[dict]) -> List[dict]:
             continue
         if not re.search(r"Grand Cruiser|Battlecruiser|Heavy Cruiser", row["name"]):
             continue
-        if "unique" in row["name"].lower() or not isinstance(row.get("points"), int):
+        if not isinstance(row.get("points"), int):       # export 18: "non-unique" removed
             continue
         v = copy.deepcopy(row)
         v["base_class"] = row["name"]

@@ -120,7 +120,9 @@ CHAOS_LISTS = [
      "unenforced": list(_CHAOS_UNENFORCED)},
     {"key": "chaos_black_crusade", "faction": "chaos",
      "name": "13th Black Crusade Fleet (Imperium p.55-56)",
-     "sections": _chaos_core_sections(dict(_CRUSADE_BS, **_DEDICATED),
+     # Export 25: the Relictor (300) was missing from the battleships
+     "sections": _chaos_core_sections(dict(_CRUSADE_BS, **_DEDICATED,
+                                           **{"Relictor Battleship": 300}),
                                       {s: 1 for s in _DEDICATED}) + [
          {"name": "Special",
           "class_max": {"The Planet Killer": 1, "Chaos Space Hulk": 1},
@@ -230,7 +232,7 @@ TAU_LISTS = [
          {"name": "Kor'vattra Battleships", "ships": {"Explorer Starship": 230}},
          {"name": "Kor'vattra Cruisers",
           "ships": {"Hero Starship": 180, "Merchant Starship": 105}},
-         {"name": "Kor'vattra Messengers", "per_points": 500,
+         {"name": "Kor'vattra Messengers", "per_points": 500, "or_part": True,
           "ships": {"Messenger Starship": 50}},
          {"name": "Kor'vattra Escorts", "ships": {"Defender Starship": 50}},
          {"name": "Kor'vattra Towed Escorts", "ships": {"Orca Gunship": 25}},

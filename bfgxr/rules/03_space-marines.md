@@ -24,7 +24,7 @@
 
 - *Thunderhawks:* multi-role (fighter/bomber/assault boat), 4+ resilient save (speed 20cm), keeping the +1 hit-and-run bonus as assault boats.
 
-**Chapter Tactics** (the Master of the Fleet may take one, affecting all relevant ships): Dark Age Plasma Batteries, Lightning Thrusters, Pack Hunter Protocols, Promethean Unguents, Siege Cannons, Wings of Fury, Shadow Engines, Tactical Reserves, and Heed the Machine Spirit. A fleet with no chosen tactic instead gets **Tactical Flexibility** (-10 pts on Strike Cruiser Variant refits, min 0).
+**Chapter Tactics** (the Master of the Fleet may take one, affecting all relevant ships): Dark Age Plasma Batteries, Lightning Thrusters, Pack Hunter Protocols, Promethean Unguents, Siege Cannons, Wings of Fury, Shadow Engines, Tactical Reserves, and Heed the Machine Spirit. A fleet with no chosen tactic instead gets **Tactical Flexibility** (-10 pts on Strike Cruiser Variant refits, min 0). This includes the cost of specialist torpedoes, but not secondary shields. Only Space Marine fleets may use Chapter tactics.
 
 *Dark Age Plasma Batteries:* All capital ships have their Speed reduced to 20cm (unless already slower), but as long as they do not move more than 10cm, their macrobatteries have 45cm range and do not suffer a right column-shift for firing at targets more than 30cm away.
 
@@ -44,15 +44,15 @@
 
 *Heed the Machine Spirit:* After making saving throws, a braced capital ship may take a leadership test counting as Leadership 7 (ignoring all modifiers). If the test is passed, one failed saving throw is treated as successful instead. A ship may only use this ability once per attacker per turn.
 
-**Teleport Assault:** Space Marines may teleport-attack targets with more remaining hits than the attacker. *Honour Guards* (one per ship) double teleport range: a Veteran honour guard rolls 2D6 choosing one result; a Terminator honour guard rolls 3D6 choosing two.
+**Teleport Assault:** Space Marines may teleport-attack targets with more remaining hits than the attacker. All other restrictions still apply normally. *Honour Guards* (one per ship) double teleport range: a Veteran honour guard rolls 2D6 choosing one result; a Terminator honour guard rolls 3D6 choosing two.
 
-Space Marine attack craft are Thunderhawks (MR, 20cm; multi-role fighter/bomber/assault boat, 4+ resilient save: see Thunderhawks in the faction rules, p.49) and Shark Assault Boats (AB, 30cm). "Standard or Boarding" torpedoes means the ship may fire either type as normal. Several escort classes (Firestorm, Sword, Falchion, Cobra "Rapid Strike Vessels") are reprints of the identical Imperial Navy profile and gain no Space Marine special rules; the Nova, Gladius, and Hunter classes are shared with the Mechanicus and Grey Knights sub-lists (same profile everywhere).
+Space Marine attack craft are Thunderhawks (MR, 20cm; multi-role fighter/bomber/assault boat, 4+ resilient save: see Thunderhawks in the faction rules, p.50) and Shark Assault Boats (AB, 30cm). "Standard or Boarding" torpedoes means the ship may fire either type as normal. Several escort classes (Firestorm, Sword, Falchion, Cobra "Rapid Strike Vessels") are reprints of the identical Imperial Navy profile and gain no Space Marine special rules; the Nova, Gladius, and Hunter classes are shared with the Mechanicus and Grey Knights sub-lists (same profile everywhere).
 
 **Arcs:** each bracket is one weapon mount at the listed FP or S. (L), (R) = two mounts, one per side, firing separately. (L/F/R) = one mount that can fire into any of those arcs, at one target.
 
 **Venerable Battle Barges**
 
-These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.49) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.
+These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.50) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -74,7 +74,7 @@ These six profiles share names and stats with Imperial Navy or Chaos battleships
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Strike Cruiser | 145 | 6 | 32mm | 25cm | 90° | 1 | 6+ | 2 | Macrobatteries 30cm FP4 (L), (R); Prow Bombardment Cannon 30cm FP3 (L/F/R); Prow Launch Bays S2 (MR 20cm) | Secondary Shield: any number may add +1 Shield for +15pts each. Strike Cruiser Variants (up to half the fleet's strike cruisers, round down; cost may be reduced by Tactical Flexibility, p.49): swap prow launch bays for a Bombardment Cannon (30cm FP5 F) +10pts or torps (30cm S6 F) free, which can optionally fire boarding torps instead; the boarding torps option can be swapped for short-burn torps +5pts or barrage bombs +10pts; and/or swap both Macrobatteries for port+stbd launch bays (1 sqn each, MR 20cm) +20pts |
+| Strike Cruiser | 145 | 6 | 32mm | 25cm | 90° | 1 | 6+ | 2 | Macrobatteries 30cm FP4 (L), (R); Prow Bombardment Cannon 30cm FP3 (L/F/R); Prow Launch Bays S2 (MR 20cm) | Secondary Shield: any number may add +1 Shield for +15pts each. Strike Cruiser Variants (up to half the fleet's strike cruisers, round down; cost may be reduced by Tactical Flexibility, p.50): swap prow launch bays for a Bombardment Cannon (30cm FP5 F) +10pts or torps (30cm S6 F) free; any strike cruiser with torpedoes may be armed with boarding torpedoes free, short-burn torpedoes +5pts, or barrage bombs +10pts; and/or swap both Macrobatteries for port+stbd launch bays (1 sqn each, MR 20cm) +20pts |
 | Vanguard Cruiser | 130 | 6 | 32mm | 25cm | 90° | 1 | 6+ | 3 | Macrobatteries 30cm FP5 (L), (R); Prow Torps (standard or boarding) 30cm S4 (F); Prow Launch Bays S1 (MR 20cm) | Improved Thrusters (+D6cm on All Ahead Full). Secondary Shield: any number may add +1 Shield for +15pts each. Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage bombs +5pts |
 
 **Escorts**
@@ -93,7 +93,7 @@ These six profiles share names and stats with Imperial Navy or Chaos battleships
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Fortress-Monastery *Defence* | 875 | 12 | 60mm | \- | \- | 4 | 6+ | 4 | Quadrant: Macrobatteries 60cm FP18 (per quadrant); Lances 45cm FP3 (per quadrant); Launch Bays S3 (MR 20cm). Basilica: Macrobatteries 60cm FP8 (All Round); Torps (standard or boarding) 30cm S9 (All Round) | High-orbit defence; may replace a planet (30cm high-orbit range) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules |
+| Fortress-Monastery *Defence* | 875 | 12 | 60mm | \- | \- | 4 | 6+ | 4 | Quadrant: Macrobatteries 60cm FP18 (per quadrant); Lances 45cm FP3 (per quadrant); Launch Bays S3 (MR 20cm). Basilica: Macrobatteries 60cm FP8 (All Round); Torps (standard or boarding) 30cm S9 (All Round) | High-orbit defence; may replace a planet (30cm high-orbit range from the stem of its base) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules |
 
 ### Space Marine Ship Special Rules
 
@@ -103,7 +103,7 @@ With the opponent's permission, a venerable battle barge may be custom-designed 
 
 #### Designing a Venerable Strike Cruiser (Imperium p.137)
 
-May be any non-unique grand cruiser, battlecruiser, or heavy cruiser from an Imperial Navy or Chaos list, at normal cost +25pts for its Space Marine crew. Considered a Space Marine vessel in all respects (follows only Space Marine faction rules); may not use its own profile's refits (its own special rules still apply), and instead uses:
+May be any grand cruiser, battlecruiser, or heavy cruiser from an Imperial Navy or Chaos list, at normal cost +25pts for its Space Marine crew. Considered a Space Marine vessel in all respects (follows only Space Marine faction rules); may not use its own profile's refits (its own special rules still apply), and instead uses:
 
 **Launch Bays and Thunderhawks:** must replace all attack craft with Thunderhawks, launch bay strength halved (round up); cannot launch any other craft type.
 
@@ -123,11 +123,11 @@ Deployed as a high-orbit defence; follows the Fleet Support orbital-satellite ru
 
 **Movement:** before the game, the owning player chooses whether it rotates. A rotating fort pivots exactly 45° at the start of each movement phase, always the same direction (chosen on the first rotation); this cannot be altered by special orders and continues even if the station is destroyed. Allied ships cannot dock with a rotating fort. Otherwise it does not move at all.
 
-**Quadrants:** weapons, hits, and defences are split into four quadrants (front/back/left/right of the station). Attacks and ordnance hit the quadrant found by tracing a line from the firer to the station's centre (or the first quadrant an ordnance marker touches). Each quadrant has its own shields; blast markers go against the model's base and affect the quadrant taking fire plus the two adjacent quadrants (unremoved markers stay in place through a rotation). Each quadrant automatically counts as massing turrets with its two neighbours, plus any docked ships (subject to the normal +3 cap); crippled/destroyed quadrants don't contribute. Nova cannons and Armageddon guns only score the D6 "direct hit" against the quadrant under the center hole.
+**Quadrants:** weapons, hits, and defences are split into four quadrants (front/back/left/right of the station). Attacks and ordnance hit the quadrant found by tracing a line from the firing ship's stem to the station's centre (or the first quadrant an ordnance marker touches). Each quadrant has its own shields; blast markers go against the matching edge of the base and affect the quadrant taking fire plus the two adjacent quadrants (unremoved markers stay in place through a rotation). In the end phase, D6 blast markers are removed from the whole model, not from each quadrant. Each quadrant automatically counts as massing turrets with its two neighbours, plus any docked ships (subject to the normal +3 cap); crippled/destroyed quadrants don't contribute. Nova cannons and Armageddon guns only score the D6 "direct hit" against the quadrant under the center hole.
 
-**Damage:** all damage and criticals affect only the quadrant hit. A quadrant is crippled individually at 6 Damage Points remaining; at 0 hits it becomes an asteroid field for line-of-sight and movement purposes but stays part of the model. Damage control is rolled per quadrant. The whole fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll (see the Fortress-Monastery Catastrophic Damage table, p.168). Critical hits use the Fortress-Monastery Critical Hits table (p.168) instead of the normal table.
+**Damage:** all damage and criticals affect only the quadrant hit. A quadrant is crippled individually at 6 Damage Points remaining; once a quadrant's hits are reduced to 0, any further hits do no further damage, and that quadrant is treated as an asteroid field from then on. Damage control is rolled per quadrant. The whole fort is destroyed only when all four quadrants reach 0 hits, triggering one Catastrophic Damage roll (see the Fortress-Monastery Catastrophic Damage table, p.180). Critical hits use the Fortress-Monastery Critical Hits table (p.180) instead of the normal table. Hit-and-run raids affect only the quadrant they are directed at.
 
-**The Basilica:** the central weapons (Macrobatteries, Torps) cannot be targeted separately and are destroyed only when the whole station is; damage that would hit the Basilica (such as its own ordnance detonating from a critical) is instead distributed among the remaining quadrants. Basilica weapons act under every quadrant's special orders simultaneously (so they can be Locked On, Reloading, and Braced all at once); Brace for Impact still halves their firepower and strength as normal.
+**The Basilica:** the central weapons (Macrobatteries, Torps) cannot be targeted separately and are destroyed only when the whole station is; damage that would hit the Basilica (such as its own ordnance detonating from a critical) is instead distributed by the opposing player among the remaining quadrants. Basilica weapons act under every quadrant's special orders simultaneously (so they can be Locked On, Reloading, and Braced all at once); Brace for Impact still halves their firepower and strength as normal.
 
 **Split orders:** the owning player may group quadrants into "squadrons" and issue different special orders to each group, making one command check per group.
 
@@ -135,7 +135,7 @@ Deployed as a high-orbit defence; follows the Fleet Support orbital-satellite ru
 
 **Teleport attacks:** each quadrant that is not crippled or destroyed allows one teleport hit-and-run attack. The fort automatically counts as having a Terminator honour guard (First Company garrison) for no extra cost, and so cannot also benefit from any other honour guard purchased for an embarked commander.
 
-**Docking:** friendly ships in base contact may halt as if in a gravity well, and may use Burn Retros to turn without a command check. A ship docked at one of the four inter-quadrant piers gains +4 dice for damage control, and after two full turns fully docked without bracing may auto-reload ordnance without a command check. A docked ship is still targeted separately but counts as in close formation with the fort for massed turret fire.
+**Docking:** friendly ships in base contact may halt as if in a gravity well, and may use Burn Retros to turn without a command check. A ship docked at one of the four inter-quadrant piers gains +4 dice for damage control, and every two complete turns fully docked without bracing may auto-reload ordnance without a command check. A docked ship is still targeted separately but counts as in close formation with the fort for massed turret fire.
 
 **Ordnance limits:** the fleet's launch limit may count as the fortress-monastery's surviving bays, or be calculated normally, whichever is greater.
 
@@ -147,7 +147,7 @@ Deployed as a high-orbit defence; follows the Fleet Support orbital-satellite ru
 
 Two fleet lists share the commander below. The Crusade list is a pure, insular Space Marine force; the Dominion list draws on Imperial Navy reserves.
 
-**Fleet commander (0-1 Master of the Fleet, Ld10) 50 pts (required at 750+ pts):** must ride a battle barge, the Chapter flagship if one is present. May employ a Chapter tactic +15, buy up to three re-rolls (25/50/75), and embark a Terminator honour guard +25.
+**Fleet commander (0-1 Master of the Fleet, Ld10) 50 pts (required at 750+ pts):** if the fleet includes any battle barges, he must be assigned to one (specifically the Chapter flagship, if it is present); otherwise he may be assigned to any capital ship (any Space Marine capital ship in a Dominion fleet). May employ a Chapter tactic +15, buy up to three re-rolls (25/50/75), and embark a Terminator honour guard +25.
 
 **Crusade Fleet List (Imperium p.148)**
 
@@ -156,20 +156,20 @@ Aggressive, insular Chapters such as the Black Templars; attack rating 3.
 | Section | Allowance | Ships (pts) |
 |---|---|---|
 | Battle barges | one per 1000pts (Chapter flagship needs 1000+pts) | (0-1) Chapter Flagship: Venerable Battle Barge (varies), Ultima Battle Barge 450, Space Marine Battle Barge 425; (0-2) Command Ships: Space Marine Battle Barge 425 |
-| Strike Cruisers | \- | (0-2) Venerable Strike Cruiser (varies), Space Marine Strike Cruiser 145 |
+| Strike Cruisers (0-10) | If the fleet is worth at least 1000 points, it may include up to one venerable strike cruiser for every three standard strike cruisers (including any strike cruiser variants), to a maximum of two. | (0-2) Venerable Strike Cruiser (varies), Space Marine Strike Cruiser 145 |
 | Vanguard Cruisers (0-6) | \- | Space Marine Vanguard Cruiser 130 |
 | Escorts | any, squadrons of 2-6 | Nova 45, Gladius 40, Hunter 40 |
 
-**Reserves:** none, and it cannot be joined by any fleet detachment except an Inquisitorial Fleet Detachment (which then uses that list's reserve options).
+**Reserves:** none, and it cannot be joined by any fleet detachment except an Inquisitorial Fleet Detachment (which then uses that list's reserve options). Upgrades: any Space Marine capital ships in the fleet may embark a veteran honour guard for +10 points each. Up to two cruisers in the fleet may replace all of their launch bays with mine launchers for +5 points per bay replaced.
 
 **Dominion Fleet List (Imperium p.149)**
 
-Chapters with close local ties; attack rating 3, dropping to 2 if it takes any allies of convenience. **Secondary commanders:** any Imperial Navy reserve capital ship may embark a Space Marine Captain 25pts; a Captain may add a veteran honour guard +10.
+Chapters with close local ties; attack rating 3, dropping to 2 if it takes any allies of convenience. **Secondary commanders:** any Imperial Navy reserve capital ship may embark a Space Marine Captain 25pts; vessels that do so use the Space Marine leadership table instead of the standard table, and are no longer subject to the rules for allies of convenience; in all other respects they remain Imperial Navy ships. Any Space Marine capital ships (or capital ships led by a Space Marine Captain) may embark a veteran honour guard for +10 points each. Rapid strike vessels are not allies of convenience, even though they are Imperial Navy ships. When mixing them with Space Marine escorts, the squadron uses the Space Marine leadership table but will suffer -1Ld if all of its Space Marine members are destroyed.
 
 | Section | Allowance | Ships (pts) |
 |---|---|---|
 | Battle barges | one per 1000pts (Chapter flagship needs 1000+pts) | (0-1) Chapter Flagship: Venerable Battle Barge (varies), Ultima Battle Barge 450, Space Marine Battle Barge 425; (0-2) Command Ships: Space Marine Battle Barge 425 |
-| Strike Cruisers (0-10) | one venerable per three standard | (0-2) Venerable Strike Cruiser (varies), Space Marine Strike Cruiser 145 |
-| Escorts | any, squadrons of 2-6 | Nova 45, Gladius 40, Hunter 40, Firestorm 35, Falchion 35, Cobra 30 |
+| Strike Cruisers (0-10) | If the fleet is worth at least 1000 points, it may include up to one venerable strike cruiser for every three standard strike cruisers (including any strike cruiser variants), to a maximum of two. | (0-2) Venerable Strike Cruiser (varies), Space Marine Strike Cruiser 145 |
+| Escorts | any, squadrons of 2-6 | Nova 45, Gladius 40, Hunter 40, Firestorm\* 35, Sword\* 35, Falchion\* 35, Cobra\* 30 (\*rapid strike vessels) |
 
-**Upgrades:** up to two cruisers may swap all launch bays for mine launchers (+5/bay). **Reserves:** may take Imperial Navy vessels as reserves (per the Navy reserve rules), at one battleship or grand cruiser per three strike cruisers, one battlecruiser/cruiser/light cruiser per two strike cruisers, and no more than one nova-cannon ship per the usual limit.
+**Upgrades:** up to two cruisers may swap all launch bays for mine launchers (+5/bay). **Reserves:** a Space Marine Dominion Fleet may take vessels from any Imperial Navy fleet list as reserves, according to the following rules (this is the only way it may take Imperial Navy reserves, even if joined by a fleet detachment with different reserve options): one battleship or grand cruiser for every three strike cruisers, counting against the fleet's battle barge limit; one battlecruiser, standard cruiser, or light cruiser for every two strike cruisers, counting against the fleet's strike cruiser limit; no more than one Nova Cannon armed ship for every 1000 points (or portion thereof) in the fleet. These rules replace the normal ratio-based reserve limits when taking Imperial Navy reserves. A Dominion Fleet may also take reserves normally from any Adeptus Mechanicus fleet list, counting battleships against the fleet's battle barge limit and cruisers (of any type) against the fleet's strike cruiser limit, in addition to the usual 3:1 limit on reserves. These vessels are always allies of convenience.

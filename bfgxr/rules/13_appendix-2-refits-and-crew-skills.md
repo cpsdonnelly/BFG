@@ -59,7 +59,7 @@ Each refit table is subdivided into three sub-tables: Engine, Ship, and Weapon R
 
 **Imperial Crew Skills**
 
-*Roll a D6. Re-roll duplicates or results that cannot apply; a ship with all six gains no more. Source: Imperium p.151.*
+*Used by Adeptus Mechanicus, Chaos, Imperial Navy, Inquisition, Rogue Trader, and Space Marine vessels. Roll a D6. Re-roll duplicates or results that cannot apply; a ship with all six gains no more. Source: Imperium p.151.*
 
 | D6 | Crew Skill |
 |---|---|
@@ -111,7 +111,7 @@ Each refit table is subdivided into three sub-tables: Engine, Ship, and Weapon R
 
 **Xenos Crew Skills**
 
-*Roll a D6. Re-roll duplicates or results that cannot apply. Note that this table differs from the Imperial one at results 2, 3 and 4. Source: Xenos p.122.*
+*Used by Dark Eldar, Eldar, Ork, and Tau Empire vessels (Necrons and Tyranids do not gain crew skills). Roll a D6. Re-roll duplicates or results that cannot apply. Note that this table differs from the Imperial one at results 2, 3 and 4. Source: Xenos p.122.*
 
 | D6 | Crew Skill |
 |---|---|

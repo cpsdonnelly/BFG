@@ -71,7 +71,7 @@ NAVY_LISTS = [
                     "Firestorm Frigate": 35, "Sword Frigate": 35, "Falchion Frigate": 35}},
      ],
      "group_caps": [{"classes": ["Endurance Light Cruiser", "Defiant Light Cruiser"],
-                     "max": 2, "per_points": 500,
+                     "max": 2, "per_points": 500, "or_part": True,
                      "label": "Endurance and Defiant light cruisers (combined)"}],
      "reserves": ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion",
                   "admech_explorator"],
@@ -82,7 +82,7 @@ NAVY_LISTS = [
     {"key": "navy_bakka", "faction": "imperial_navy_gothic",
      "name": "Bakka Sector, Segmentum Tempestus (Imperium p.93)",
      "sections": [
-         {"name": "Battleships", "per_points": 750,
+         {"name": "Battleships", "per_points": 750, "or_part": True,
           "class_max": {"The Vae Victis (unique)": 1},
           "ships": {"Retribution Battleship": 355, "Victory Battleship": 355,
                     "The Vae Victis (unique)": 330}},
@@ -95,8 +95,8 @@ NAVY_LISTS = [
           "ships": {"Dauntless Light Cruiser": 115, "Endeavour Light Cruiser": 115,
                     "Endurance Light Cruiser": 115, "Siluria Light Cruiser": 100}},
          {"name": "Escorts",
-          "ships": {"Firestorm Frigate": 35, "Sword Frigate": 35, "Viper Destroyer": 35,
-                    "Cobra Destroyer": 30}},
+          "ships": {"Havoc Frigate": 35, "Viper Destroyer": 35, "Firestorm Frigate": 35,
+                    "Sword Frigate": 35}},
      ],
      "reserves": ["navy_gothic", "navy_armageddon", "navy_bastion"], "reserve_ratio": 4,
      "unenforced": list(_NAVY_UNENFORCED) + [
@@ -123,7 +123,7 @@ NAVY_LISTS = [
          {"name": "Escorts", "ships": dict(_NAVY_ESC)},
      ],
      "group_caps": [{"classes": ["Endurance Light Cruiser", "Defiant Light Cruiser"],
-                     "max": 2, "per_points": 500,
+                     "max": 2, "per_points": 500, "or_part": True,
                      "label": "Endurance and Defiant light cruisers (combined)"}],
      "reserves": ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion",
                   "admech_explorator"],
@@ -195,7 +195,7 @@ _SM_UNENFORCED = [
 
 SM_LISTS = [
     {"key": "sm_crusade", "faction": "space_marines", "name": "Crusade Fleet (Imperium p.148)",
-     "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 750},
+     "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 751},
      "sections": [
          dict(_SM_BARGES),
          {"name": "Strike Cruisers", "venerable_sc": True,
@@ -208,7 +208,7 @@ SM_LISTS = [
      "unenforced": list(_SM_UNENFORCED) + [
          "No reserves; only an Inquisitorial Fleet Detachment may join it."]},
     {"key": "sm_dominion", "faction": "space_marines", "name": "Dominion Fleet (Imperium p.149)",
-     "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 750},
+     "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 751},
      "sections": [
          dict(_SM_BARGES),
          {"name": "Strike Cruisers", "max": 10, "venerable_sc": True,
@@ -306,7 +306,9 @@ def _attach_commanders() -> None:
             want = ["Pirate Captain (Ld 8)"] if fl["key"] == "rt_wolf_pack" else [
                 n for n in names if "Lord Captain" in n]
             names = want
-        req = {"adeptus_mechanicus": 1000, "orks": 500}.get(fl["faction"], 750)
+        # Core s.5 (export 26): "more than 750 points"; Explorator "1000+",
+        # Green Tide "500+"
+        req = {"adeptus_mechanicus": 1000, "orks": 500}.get(fl["faction"], 751)
         if fl.get("kind") == "detachment":
             req = 0
         fl["commander"] = {"options": names, "required_at": req}
@@ -463,11 +465,12 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
         mine = rows if fl is main else by_list.get(fl["key"], [])
         n_cmd = sum(1 for r in mine for u in r.get("upgrades", []) if u in cmd["options"])
         if points_limit >= cmd.get("required_at", 750) and not n_cmd:
-            what = (f"a fleet of {cmd['required_at']}+ pts needs" if cmd["required_at"]
+            what = ("a fleet of more than 750 pts needs" if cmd["required_at"] == 751 else
+                    f"a fleet of {cmd['required_at']}+ pts needs" if cmd["required_at"]
                     else "needs")
             errors.append(f"{fl['name']}: {what} a fleet commander "
                           f"({' or '.join(cmd['options'])}).")
-        if cmd.get("per_points") and n_cmd > max(1, points_limit // cmd["per_points"]):
+        if cmd.get("per_points") and n_cmd > max(1, -(-points_limit // cmd["per_points"])):
             errors.append(f"{fl['name']}: {n_cmd} commanders, at most one per "
                           f"{cmd['per_points']}pts.")
 
@@ -611,8 +614,9 @@ def _list_errors(fl: Dict, rows: List[Dict], points_limit: int,
 
     for cap in fl.get("group_caps", []):
         n = sum(classes.get(c, 0) for c in cap["classes"])
-        mx = cap["max"] * (points_limit // cap["per_points"]) if cap.get("per_points") \
-            else cap["max"]
+        per = cap.get("per_points")
+        mx = (cap["max"] * ((-(-points_limit // per)) if cap.get("or_part") else points_limit // per)
+              if per else cap["max"])
         if n > mx:
             errors.append(f"{cap['label']}: {n} taken, at most {cap['max']} per "
                           f"{cap['per_points']}pts ({mx}).")

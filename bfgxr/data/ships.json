@@ -1,6 +1,6 @@
 {
  "source_document": "BFGXR_XR_Companion.docx",
- "ship_count": 174,
+ "ship_count": 178,
  "ships": [
   {
    "faction": "Imperial Navy",
@@ -887,7 +887,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: AB 30cm +5pts, TB 20cm +60pts. Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: AB 30cm +5pts, TB 20cm +60pts. Refit: may reduce its macrobatteries' range to 30cm to increase their firepower to 10, no extra cost. May also buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Imperial Navy",
@@ -981,7 +981,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Imperial Navy",
@@ -1046,7 +1046,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Imperial Navy",
@@ -1484,7 +1484,7 @@
      "parsed": true
     }
    ],
-   "notes": "Refits: 45cm Macrobatteries to 60cm +10pts; swap nova cannon for torpedo salvo (30cm S6 F), -20pts"
+   "notes": "Always rolls 3D6 on the Catastrophic Damage table instead of 2D6 (treating any result greater than 12 as 12). Refits: 45cm Macrobatteries to 60cm +10pts; swap nova cannon for torpedo salvo (30cm S6 F), -20pts"
   },
   {
    "faction": "Imperial Navy",
@@ -2277,7 +2277,7 @@
      "parsed": true
     }
    ],
-   "notes": "-"
+   "notes": "Refit: swap prow torpedoes for prow nova cannon (30-150cm Template F) +20pts"
   },
   {
    "faction": "Imperial Navy",
@@ -5582,7 +5582,7 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Venerable Battle Barges",
-   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.49) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.50) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
    "faction_rules": [
     "Space Marines"
    ],
@@ -5727,7 +5727,7 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Venerable Battle Barges",
-   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.49) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.50) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
    "faction_rules": [
     "Space Marines"
    ],
@@ -5842,7 +5842,7 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Venerable Battle Barges",
-   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.49) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.50) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
    "faction_rules": [
     "Space Marines"
    ],
@@ -5995,7 +5995,7 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Venerable Battle Barges",
-   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.49) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.50) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
    "faction_rules": [
     "Space Marines"
    ],
@@ -6138,7 +6138,7 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Venerable Battle Barges",
-   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.49) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.50) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
    "faction_rules": [
     "Space Marines"
    ],
@@ -6253,7 +6253,7 @@
    "faction": "Space Marines",
    "source": "Imperium p.135-147",
    "roster_group": "Venerable Battle Barges",
-   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.49) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
+   "roster_group_notes": "These six profiles share names and stats with Imperial Navy or Chaos battleships, but are considered Space Marine vessels in all respects: they follow only the Space Marine faction rules (p.50) and do not use any Imperial Navy or Chaos special rules or refits from their namesakes. All are Ponderous (no Come to New Heading). Because they represent revered relic vessels, each is worth 50% of its cost in victory points if crippled, or 125% if destroyed (instead of the normal VP rules). A fleet may instead design its own venerable battle barge from an Imperial Navy or Chaos profile; see Space Marine Ship Special Rules.",
    "faction_rules": [
     "Space Marines"
    ],
@@ -6781,7 +6781,7 @@
      "parsed": true
     }
    ],
-   "notes": "Secondary Shield: any number may add +1 Shield for +15pts each. Strike Cruiser Variants (up to half the fleet's strike cruisers, round down; cost may be reduced by Tactical Flexibility, p.49): swap prow launch bays for a Bombardment Cannon (30cm FP5 F) +10pts or torps (30cm S6 F) free, which can optionally fire boarding torps instead; the boarding torps option can be swapped for short-burn torps +5pts or barrage bombs +10pts; and/or swap both Macrobatteries for port+stbd launch bays (1 sqn each, MR 20cm) +20pts"
+   "notes": "Secondary Shield: any number may add +1 Shield for +15pts each. Strike Cruiser Variants (up to half the fleet's strike cruisers, round down; cost may be reduced by Tactical Flexibility, p.50): swap prow launch bays for a Bombardment Cannon (30cm FP5 F) +10pts or torps (30cm S6 F) free; any strike cruiser with torpedoes may be armed with boarding torpedoes free, short-burn torpedoes +5pts, or barrage bombs +10pts; and/or swap both Macrobatteries for port+stbd launch bays (1 sqn each, MR 20cm) +20pts"
   },
   {
    "faction": "Space Marines",
@@ -7584,7 +7584,7 @@
      "parsed": true
     }
    ],
-   "notes": "High-orbit defence; may replace a planet (30cm high-orbit range) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules"
+   "notes": "High-orbit defence; may replace a planet (30cm high-orbit range from the stem of its base) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules"
   },
   {
    "faction": "Inquisition & Grey Knights",
@@ -7839,7 +7839,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous (no Come to New Heading). Follows Grey Knights faction rules (p.57). Sigils of Quickening: +1D6cm extra Speed on All Ahead Full (on top of the normal bonus)"
+   "notes": "Ponderous (no Come to New Heading). Follows Grey Knights faction rules (p.58). Sigils of Quickening: +1D6cm extra Speed on All Ahead Full (on top of the normal bonus)"
   },
   {
    "faction": "Inquisition & Grey Knights",
@@ -8091,7 +8091,7 @@
      "parsed": true
     }
    ],
-   "notes": "Follows Grey Knights faction rules (p.57). +D6cm on All Ahead Full. May re-roll arrival rolls for any scenario where it starts off-table, provided its squadron/division has no other ship type"
+   "notes": "Follows Grey Knights faction rules (p.58). +D6cm on All Ahead Full. May re-roll arrival rolls for any scenario where it starts off-table, provided its squadron/division has no other ship type"
   },
   {
    "faction": "Inquisition & Grey Knights",
@@ -8413,7 +8413,7 @@
      "parsed": true
     }
    ],
-   "notes": "Follows Grey Knights faction rules (p.57). Identical to the Space Marine Nova (p.52)"
+   "notes": "Follows Grey Knights faction rules (p.58). Identical to the Space Marine Nova (p.53)"
   },
   {
    "faction": "Inquisition & Grey Knights",
@@ -8475,7 +8475,7 @@
      "parsed": true
     }
    ],
-   "notes": "Follows Grey Knights faction rules (p.57). Identical to the Space Marine Gladius (p.52)"
+   "notes": "Follows Grey Knights faction rules (p.58). Identical to the Space Marine Gladius (p.53)"
   },
   {
    "faction": "Inquisition & Grey Knights",
@@ -8561,7 +8561,7 @@
      "parsed": true
     }
    ],
-   "notes": "Follows Grey Knights faction rules (p.57). Identical to the Space Marine Hunter (p.52)"
+   "notes": "Follows Grey Knights faction rules (p.58). Identical to the Space Marine Hunter (p.53)"
   },
   {
    "faction": "Rogue Traders",
@@ -8769,7 +8769,7 @@
      "parsed": true
     }
    ],
-   "notes": "Convoy ship (transport capacity 2). One refit only: an Imperial or Xenos refit at +1 Fortune plus its points; or Fuel Tanker (free; suffers critical hits on 5+ instead of 6+, and +1D6 to its Catastrophic Damage roll when destroyed; +1 renown if it survives without disengaging); or Repair Tender (+10pts; +1 renown or +2 repair points if it survives); or Super-Heavy Transport (+10pts; +4 Hits, +1 transport capacity, +5cm minimum turn distance, large base)"
+   "notes": "Convoy ship (transport capacity 2). One refit only: an Imperial or Xenos refit at +1 Fortune plus its points; or Fuel Tanker (free; suffers critical hits on 5+ instead of 6+, and +1D6 to its Catastrophic Damage roll when destroyed; +1 renown if it survives without disengaging); or Repair Tender (+10pts; +1 renown or +2 repair points if it survives without disengaging, even if crippled; your opponent earns +1 renown for each repair tender crippled and +2 renown for each one destroyed); or Super-Heavy Transport (+10pts; +4 Hits, +1 transport capacity, +5cm minimum turn distance, large base)"
   },
   {
    "faction": "Rogue Traders",
@@ -9011,7 +9011,7 @@
      "parsed": true
     }
    ],
-   "notes": "Convoy ship (transport capacity ½). Supply Ships: a squadron with at least one sloop has +1Ld on Reload Ordnance command checks. Clipper Configuration (free): swap the Macrobatteries for the Secondary Reactors refit; the whole squadron must match"
+   "notes": "Convoy ship (transport capacity ½, rounding down when calculating the fleet's total capacity). Supply Ships: a squadron with at least one sloop has +1Ld on Reload Ordnance command checks. Clipper Configuration (free): swap the Macrobatteries for the Secondary Reactors refit; the whole squadron must match"
   },
   {
    "faction": "Rogue Traders",
@@ -9393,7 +9393,265 @@
      "parsed": true
     }
    ],
-   "notes": "Config per squadron: buy one Xenos Refit costing 10pts or less (applied to all), or for +30pts the whole squadron becomes a Notable Xenos using one chosen minor-xenos profile (Imperium p.125), with no further changes. Torpedo variant: any generic cutter may swap its Lance for a Torpedo Salvo 30cm S2 (F) at no cost; the whole squadron must match"
+   "notes": "Config per squadron: buy one Xenos Refit costing 10pts or less (applied to all), or for +30pts the whole squadron becomes a Notable Xenos using one chosen Notable Xenos profile from the rows below, with no further changes. Torpedo variant: any generic cutter may swap its Lance for a Torpedo Salvo 30cm S2 (F) at no cost; the whole squadron must match. Regardless of configuration, xenos cutters are allies of convenience with everyone and cannot be placed in squadrons with any other type of ship"
+  },
+  {
+   "faction": "Rogue Traders",
+   "source": "Imperium p.110-129",
+   "roster_group": "Special & Allied Ships",
+   "roster_group_notes": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Pthuxutl War Cruiser (Notable Xenos)",
+   "hull_type": "Escort",
+   "points": 35,
+   "points_raw": "35",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 25,
+   "speed_raw": "25cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": 1,
+   "shields_raw": "1",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Macrobatteries 45cm FP2 (L/F/R); Disruptor Cannon 30cm FP1 (F)",
+   "weapons": [
+    {
+     "raw": "Macrobatteries 45cm FP2 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Macrobatteries",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Disruptor Cannon 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Disruptor Cannon",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Notable Xenos profile for a xenos cutter squadron (+30pts per squadron on top of 35pts per ship). The disruptor cannon follows the rules for lances; it may also fire on any ordnance marker or wave that attacks the ship, making a single roll to-hit immediately before turrets are fired. Cannot be taken by a fleet which includes any Ork vessels"
+  },
+  {
+   "faction": "Rogue Traders",
+   "source": "Imperium p.110-129",
+   "roster_group": "Special & Allied Ships",
+   "roster_group_notes": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Fra'al Raider (Notable Xenos)",
+   "hull_type": "Escort",
+   "points": 35,
+   "points_raw": "35",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 25,
+   "speed_raw": "25cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": 1,
+   "shields_raw": "1",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Macrobatteries 45cm FP2 (L/F/R); Lance 30cm FP1 (F)",
+   "weapons": [
+    {
+     "raw": "Macrobatteries 45cm FP2 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Macrobatteries",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Lance 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Notable Xenos profile for a xenos cutter squadron (+30pts per squadron on top of 35pts per ship). Fra'al targeting matrix (free): treats all gunnery targets as closing and takes no right column-shift when firing gunnery at targets more than 30cm away. Cannot be taken by a fleet which includes Imperial Navy vessels"
+  },
+  {
+   "faction": "Rogue Traders",
+   "source": "Imperium p.110-129",
+   "roster_group": "Special & Allied Ships",
+   "roster_group_notes": "Ships hired or captured through a Warrant of Trade. Points and Fortune costs, and which lists may take them, are given in the fleet lists below.",
+   "faction_rules": [
+    "Rogue Traders"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Nekulli Whip (Notable Xenos)",
+   "hull_type": "Escort",
+   "points": 35,
+   "points_raw": "35",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 25,
+   "speed_raw": "25cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": 2,
+   "shields_raw": "2",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Macrobatteries 45cm FP2 (L/F/R); Whisperlance Cannon 30cm FP1 (F)",
+   "weapons": [
+    {
+     "raw": "Macrobatteries 45cm FP2 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Macrobatteries",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Whisperlance Cannon 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Whisperlance Cannon",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Notable Xenos profile for a xenos cutter squadron (+30pts per squadron on top of 35pts per ship). The whisperlance cannon follows the rules for lances. Cannot be taken if the opposing fleet includes any Tyranid vessels"
   },
   {
    "faction": "Support Assets",
@@ -11587,7 +11845,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +60pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +60pts (not if Stormbird gunships taken). May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Chaos",
@@ -11688,7 +11946,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken). May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Chaos",
@@ -11782,7 +12040,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Chaos",
@@ -15280,7 +15538,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous (no Come to New Heading); may swap Ld with any cruiser that rolled higher. Kustom Kannon fires as an FP6 killkannon or launches S D6+2 torps (one mode per turn). Free hull krusha. Options: launch bays to torpedo bombers +30pts; Soopa boostas +25pts; Kustom Kannon looted torps +20pts; launch bays to mine launchers (S D3+1) +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
+   "notes": "Ponderous (no Come to New Heading); may swap Ld with any cruiser that rolled higher. Kustom Kannon fires as an FP6 killkannon or launches S D6+2 torps (one mode per turn); it must be reloaded using Reload Ordnance after firing, whichever mode it used. Free hull krusha. Options: launch bays to torpedo bombers +30pts; Soopa boostas +25pts; Kustom Kannon looted torps +20pts; launch bays to mine launchers (S D3+1) +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
   },
   {
    "faction": "Orks",
@@ -16388,7 +16646,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous (no Come to New Heading). Bor'kan Configuration: may halve launch-bay strength to add a prow Gravitic Launcher (20-40cm S8 F) free. Option: replace Mantas with Tiger Shark drone carriers +40pts. Armr 5+ front/abeam, 4+ rear"
+   "notes": "Ponderous (no Come to New Heading). Bor'kan Configuration: may halve launch-bay strength to add a prow Gravitic Launcher (20-40cm S8 F) free. Option: replace Mantas with Tiger Shark drone carriers +40pts (+20pts if the Bor'kan Configuration is chosen). Armr 5+ front/abeam, 4+ rear"
   },
   {
    "faction": "Tau & Allies",
@@ -16645,7 +16903,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous (no Come to New Heading). Options: +2 hits (advanced hull armour) +20pts; Dal'yth Configuration: replace port/stbd gravitic hooks with ion cannons (30cm S1, L/F and R/F) +10pts; transport capacity 2 free"
+   "notes": "Ponderous (no Come to New Heading). Options: +2 hits (advanced hull armour) +20pts; Dal'yth Configuration: replace port/stbd gravitic hooks with ion cannons (30cm S1, L/F and R/F) +10pts; in any scenario with a transport capacity requirement, transport capacity 2 free (Merchants refitted this way cannot account for more than 50% of the fleet's total transport capacity)"
   },
   {
    "faction": "Tau & Allies",
@@ -17500,6 +17758,68 @@
   {
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
+   "roster_group": "Kor'or'vesh (Protector Fleet)",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tau & Allies"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Courier Transport",
+   "hull_type": "Escort",
+   "points": null,
+   "points_raw": "Free",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 20,
+   "speed_raw": "20cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": 1,
+   "shields_raw": "1",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Railguns 30cm FP1 (L/F/R)",
+   "weapons": [
+    {
+     "raw": "Railguns 30cm FP1 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Railguns",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Convoy ship (transport capacity 1), following the normal rules for fleet support units and convoy ships, and all applicable Tau Empire special rules. May only be included when the scenario imposes a transport capacity requirement on your fleet"
+  },
+  {
+   "faction": "Tau & Allies",
+   "source": "Xenos p.77-101",
    "roster_group": "Orbital Defences",
    "roster_group_notes": null,
    "faction_rules": [
@@ -17684,7 +18004,7 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Allies: Demiurg",
-   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). Each commerce vessel begins each battle with a nominal Ld value (shown in its notes) rather than rolling randomly. For each point of damage it suffers thereafter, it reduces its Ld value by 1 for the remainder of the battle, to a minimum of Ld5. If it suffers a 'Bridge Smashed!' critical result, it suffers one extra point of damage rather than the usual -3 Ld penalty. The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; Absorber/Repulsor Fields (they never suffer a speed penalty for being in contact with blast markers, are immune to the effects of solar flares, radiation bursts, and gas/dust clouds, and never gain blast markers due to any type of celestial phenomena; when a Demiurg vessel moves, it must collect every blast marker touched by its base during its movement, removing them from the table and setting them aside in a separate pile for that vessel; markers in contact when it begins its move are collected immediately and so do not affect its leadership if it attempts a command check, but command checks made at other times are still affected normally); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). Each commerce vessel begins each battle with a nominal Ld value (shown in its notes) rather than rolling randomly. For each point of damage it suffers thereafter, it reduces its Ld value by 1 for the remainder of the battle, to a minimum of Ld5. If it suffers a 'Bridge Smashed!' critical result, it suffers one extra point of damage rather than the usual -3 Ld penalty. The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Alternatively, two markers may be expended to increase the cutting beam's range to 30cm (with the rest contributing to its strength). Unused markers are lost at the end of each turn. Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm). Mercenaries: unless a fleet is composed entirely of Demiurg vessels, they are considered to be hired mercenaries. In this case, Demiurg ships will not continue to fight after becoming crippled, instead attempting to disengage each and every turn thereafter, or moving as fast as possible towards the nearest table edge if they fail, until they have successfully left the board. However, such is the Demiurg's hatred for the Orks that if the opposing fleet includes any Ork vessels, Demiurg ships will not begin attempting to disengage until they have 2 or fewer hit points remaining, rather than when they are crippled.",
    "faction_rules": [
     "Tau & Allies"
    ],
@@ -17873,7 +18193,7 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Allies: Demiurg",
-   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). Each commerce vessel begins each battle with a nominal Ld value (shown in its notes) rather than rolling randomly. For each point of damage it suffers thereafter, it reduces its Ld value by 1 for the remainder of the battle, to a minimum of Ld5. If it suffers a 'Bridge Smashed!' critical result, it suffers one extra point of damage rather than the usual -3 Ld penalty. The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; Absorber/Repulsor Fields (they never suffer a speed penalty for being in contact with blast markers, are immune to the effects of solar flares, radiation bursts, and gas/dust clouds, and never gain blast markers due to any type of celestial phenomena; when a Demiurg vessel moves, it must collect every blast marker touched by its base during its movement, removing them from the table and setting them aside in a separate pile for that vessel; markers in contact when it begins its move are collected immediately and so do not affect its leadership if it attempts a command check, but command checks made at other times are still affected normally); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). Each commerce vessel begins each battle with a nominal Ld value (shown in its notes) rather than rolling randomly. For each point of damage it suffers thereafter, it reduces its Ld value by 1 for the remainder of the battle, to a minimum of Ld5. If it suffers a 'Bridge Smashed!' critical result, it suffers one extra point of damage rather than the usual -3 Ld penalty. The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Alternatively, two markers may be expended to increase the cutting beam's range to 30cm (with the rest contributing to its strength). Unused markers are lost at the end of each turn. Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm). Mercenaries: unless a fleet is composed entirely of Demiurg vessels, they are considered to be hired mercenaries. In this case, Demiurg ships will not continue to fight after becoming crippled, instead attempting to disengage each and every turn thereafter, or moving as fast as possible towards the nearest table edge if they fail, until they have successfully left the board. However, such is the Demiurg's hatred for the Orks that if the opposing fleet includes any Ork vessels, Demiurg ships will not begin attempting to disengage until they have 2 or fewer hit points remaining, rather than when they are crippled.",
    "faction_rules": [
     "Tau & Allies"
    ],
@@ -17997,7 +18317,7 @@
    "faction": "Tau & Allies",
    "source": "Xenos p.77-101",
    "roster_group": "Allies: Demiurg",
-   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; particle-collecting shields (immune to blast markers and celestial phenomena, and they collect any blast marker their base touches during movement into a per-ship pile); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). Each commerce vessel begins each battle with a nominal Ld value (shown in its notes) rather than rolling randomly. For each point of damage it suffers thereafter, it reduces its Ld value by 1 for the remainder of the battle, to a minimum of Ld5. If it suffers a 'Bridge Smashed!' critical result, it suffers one extra point of damage rather than the usual -3 Ld penalty. The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm).",
+   "roster_group_notes": "Demiurg commerce vessels share several traits: Ponderous (no Come to New Heading); heavily automated, starting each battle at a fixed Ld rather than rolling; an armoured 6+ prow; Absorber/Repulsor Fields (they never suffer a speed penalty for being in contact with blast markers, are immune to the effects of solar flares, radiation bursts, and gas/dust clouds, and never gain blast markers due to any type of celestial phenomena; when a Demiurg vessel moves, it must collect every blast marker touched by its base during its movement, removing them from the table and setting them aside in a separate pile for that vessel; markers in contact when it begins its move are collected immediately and so do not affect its leadership if it attempts a command check, but command checks made at other times are still affected normally); and, in two specific circumstances only, a higher victory-point value when destroyed (see Demiurg VP below). Each commerce vessel begins each battle with a nominal Ld value (shown in its notes) rather than rolling randomly. For each point of damage it suffers thereafter, it reduces its Ld value by 1 for the remainder of the battle, to a minimum of Ld5. If it suffers a 'Bridge Smashed!' critical result, it suffers one extra point of damage rather than the usual -3 Ld penalty. The Cutting Beam is a lance (15cm, Front): base Strength 1, +1 per blast marker the ship collected in its preceding movement phase, to a maximum of Strength 8 (shown as S1+). Alternatively, two markers may be expended to increase the cutting beam's range to 30cm (with the rest contributing to its strength). Unused markers are lost at the end of each turn. Demiurg attack craft are Fighters (ASF, 30cm), Bombers (BMR, 20cm), and Assault Boats (AB, 30cm). Mercenaries: unless a fleet is composed entirely of Demiurg vessels, they are considered to be hired mercenaries. In this case, Demiurg ships will not continue to fight after becoming crippled, instead attempting to disengage each and every turn thereafter, or moving as fast as possible towards the nearest table edge if they fail, until they have successfully left the board. However, such is the Demiurg's hatred for the Orks that if the opposing fleet includes any Ork vessels, Demiurg ships will not begin attempting to disengage until they have 2 or fewer hit points remaining, rather than when they are crippled.",
    "faction_rules": [
     "Tau & Allies"
    ],
@@ -18188,7 +18508,7 @@
      "parsed": true
     }
    ],
-   "notes": "Moves exactly 10cm in any direction each movement phase (caravan movement). When destroyed, replaced by blast markers centred on the point (no catastrophic damage roll)"
+   "notes": "Moves exactly 10cm in any direction each movement phase and never needs to turn; not slowed by blast markers, celestial phenomena, or being crippled; cannot use All Ahead Full, Burn Retros, or Come to New Heading. Classed as a defence for shooting, ramming, etc. Distributed Systems: a critical hit instead inflicts one extra point of damage; at zero hits it is replaced by four blast markers centred on where it was destroyed (no catastrophic damage roll)"
   },
   {
    "faction": "Tau & Allies",
@@ -18301,7 +18621,7 @@
      "parsed": true
     }
    ],
-   "notes": "Immobile; no offensive weapons (6 turrets for point defence). For every Rig, the fleet must buy four Dhows (they ride in its hooks)"
+   "notes": "Treated as a stationary defence, except that it may be placed anywhere in your deployment zone; no offensive weapons. For every Rig, the fleet must buy four Dhows (they ride in its hooks)"
   },
   {
    "faction": "Tau & Allies",
@@ -18361,7 +18681,7 @@
      "parsed": true
     }
    ],
-   "notes": "Classed as a defence. Scalable: buy starting hits up to 16 at +10pts per hit (each added hit gives +1 battery firepower) or sell down to 6 at -10pts per hit; at 10+ hits may also add +1 Shield +15pts, +1 Turret +5pts, or extend battery range to 45cm +25pts (each once). Special movement and damage: see Kroot Ship Special Rules"
+   "notes": "Classed as a defence. Scalable: buy starting hits up to 16 at +10pts per hit (each added hit gives +1 battery firepower) or sell down to 6 at -10pts per hit (each hit lost gives -1 battery firepower); at 10+ hits it may also add +1 Shield +15pts, +1 Turret +5pts, and/or extend battery range to 45cm +25pts (each once). Special movement and damage: see Kroot Ship Special Rules"
   }
  ]
 }

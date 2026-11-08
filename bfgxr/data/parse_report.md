@@ -2,9 +2,9 @@
 
 Source: `BFGXR_XR_Companion.docx`
 
-- Ships: 174
-- Weapon entries: 457
-- Parsed and round-tripped exactly: 456
+- Ships: 178
+- Weapon entries: 464
+- Parsed and round-tripped exactly: 463
 - Not parsed (kept as raw text only): 1
 - Ships whose Armament cell is not a weapon list: 5
 
@@ -21,6 +21,7 @@ Source: `BFGXR_XR_Companion.docx`
 - Chaos / Terminus Est (Death Guard): `points_raw` = `420*`
 - Orks / Ork Space Hulk: `turn_raw` = `Special`
 - Orks / Ork Rok: `turn_raw` = `None`
+- Tau & Allies / Courier Transport: `points_raw` = `Free`
 - Tau & Allies / Nicassar Caravan: `turn_raw` = `Special`
 - Tau & Allies / Kroot Warsphere: `turn_raw` = `Special`
 - Orks / Terror Ship: `armour_raw` = `6+/5+/4+`

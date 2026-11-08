@@ -26,7 +26,7 @@
 
 **Chaos Space Marines** (taken by capital ships; uses the Space Marine faction rules):
 
-**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.171); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
+**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.183); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
 
 **Champions of the Dark Gods:** use the Space Marine boarding, hit-and-run, planetary-assault, and teleport-assault rules (battleships count as battle barges, other ships as strike cruisers; the honour guard uses Chaos Terminators). This replaces the normal Chaos crew bonus.
 
@@ -70,9 +70,9 @@
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Repulsive Grand Cruiser | 230 | 10 | 32mm | 20cm | 45° | 2 | 5+ | 3 | Macrobatteries 45cm FP14 (L), (R); Dorsal Lances 30cm FP3 (L/F/R); Prow Torps 30cm S6 (F) | Refits: dorsal lances to 45cm +10pts; +1 shield +15pts (3rd shield needs large base) |
-| Retaliator Grand Cruiser | 275 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 45cm FP6 (L), (R); Lances 45cm FP2 (L), (R); Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +60pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
-| Nephilim Grand Cruiser | 250 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 60cm FP12 (L), (R); Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
-| Executor Grand Cruiser | 210 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Lances 30cm FP4 (L), (R); Lances 45cm FP2 (L), (R) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Refits: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
+| Retaliator Grand Cruiser | 275 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 45cm FP6 (L), (R); Lances 45cm FP2 (L), (R); Launch Bays port S3 + stbd S3 (ASF 30cm, BMR 20cm, AB 30cm) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +60pts (not if Stormbird gunships taken). May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
+| Nephilim Grand Cruiser | 250 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Macrobatteries 60cm FP12 (L), (R); Launch Bays port S2 + stbd S2 (ASF 30cm, BMR 20cm, AB 30cm) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: TB 20cm +40pts (not if Stormbird gunships taken). May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
+| Executor Grand Cruiser | 210 | 10 | 60mm | 20cm | 45° | 3 | 5+ | 3 | Lances 30cm FP4 (L), (R); Lances 45cm FP2 (L), (R) | Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts |
 
 **Heavy Cruisers**
 
@@ -163,7 +163,7 @@ A Chaos fleet of any size may include one, and it must be the flagship. It canno
 
 **Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Never crippled; it functions until completely destroyed.
 
-**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.169), not the normal table; results cannot be repaired, and no characteristic drops below zero (apply as much of each penalty as possible).
+**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.181), not the normal table; results cannot be repaired, and no characteristic drops below zero (apply as much of each penalty as possible).
 
 **Catastrophic damage:** at 0 damage, roll on the Catastrophic Damage table: drifting and blazing hulk results are unchanged (including any required movement); a plasma drive overload tears it apart into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
@@ -227,7 +227,7 @@ The Chaos lists share the structure below; each then sets its ships and a few di
 
 **Fleet commander:** 0-1 Chaos Lord or Warmaster (on the most expensive capital ship, required at 750+ pts): Chaos Lord (Ld8) 50, Chaos Warmaster (Ld9) 75; one free re-roll, up to two more (25/50).
 
-**Secondary:** any capital ship except the commander's may be led by an Aspiring Champion (Ld +1, max 9) 30, who may buy one re-roll +15.
+**Secondary:** any capital ship except the commander's may be led by an Aspiring Champion (Ld +1, max 9) 30, who may buy one re-roll +15, usable only for his own ship or squadron.
 
 **Ordnance:** Chaos attack craft follow the normal rules for their type, and any vessel with torpedo tubes is armed with both ordinary and boarding torpedoes. Any capital ship armed with torpedoes may be equipped with either short burn torpedoes, guided torpedoes, or barrage bombs (choose only one) for +5 points per point of its torpedo strength. Alternatively, for +50 points it may be given anointed munitions (rolled at the start of the game: see Anointed Munitions in the Chaos faction rules). Up to two cruisers or heavy cruisers in the fleet may replace all of their launch bays with mine launchers for +5 points per bay replaced.
 
@@ -235,7 +235,7 @@ The Chaos lists share the structure below; each then sets its ships and a few di
 
 **Incursion Fleet List (Imperium p.54)**
 
-A lighter raiding force with the fewest options and no light cruisers.
+A lighter raiding force with the fewest options and no light cruisers. Marks of Chaos: any vessel led by a Chaos Lord, Chaos Warmaster, or aspiring champion may choose a single Mark of Chaos: Undivided 25 (Chaos Lord or Warmaster's vessel only), Slaanesh, Nurgle, Khorne, or Tzeentch 15 each. Reserves: a Chaos Incursion fleet may take reserves from the 13th Black Crusade or Chaos Renegades fleet lists, but not the Planet Killer or a space hulk.
 
 | Section | Ships (pts) |
 |---|---|
@@ -252,15 +252,15 @@ Chaos in all its forms; adds Abaddon, the dedicated battleships, the Planet Kill
 | Section | Ships (pts) |
 |---|---|
 | Fleet commander | also Abaddon the Despoiler (Ld10) 195 (fleet 1000+pts; must ride the Planet Killer if present) |
-| Battleships | Despoiler 390, Desecrator 365, Desolator 300; dedicated: Scion of Prospero 450, Wage of Sin 420, Terminus Est 420\*, Slaverer 400 |
+| Battleships | Despoiler 390, Desecrator 365, Desolator 300, Relictor 300; dedicated: Scion of Prospero 450, Wage of Sin 420, Terminus Est 420\*, Slaverer 400 |
 | Grand Cruisers | Retaliator 275, Nephilim 250, Repulsive 230, Executor 210 |
 | Heavy Cruisers | Styx 260, Hecate 230, Hades 200, Acheron 190 |
 | Cruisers | Devastation 190, Carnage 180, Inferno 180, Murder 170, Slaughter 165 |
 | Light Cruisers (0-6) | Fanatic 125, Schismatic 125, Heretic 120 |
-| Special | (0-1) The Planet Killer 505 (fleet 1000+pts); (0-1) Chaos Space Hulk 650 (if taken, it must be the fleet flagship) |
+| Special | (0-1) The Planet Killer 505 (fleet 1000+pts; counts as a battleship for fleet requirements and restrictions); (0-1) Chaos Space Hulk 650 (if taken, it must be the fleet flagship) |
 | Escorts (squadrons of 2-6) | Idolator 45, Infidel 40, Havoc 35, Iconoclast 25 |
 
-**Marks of Chaos:** one of each may be bought, each on a different capital ship, Mark of Chaos Undivided 25 (on the Chaos Lord or Warmaster's ship only), Mark of Slaanesh / Nurgle / Khorne / Tzeentch 15 each. **Crusade extras:** any capital ship except a daemonship may take a Chaos Space Marine crew +35; one capital ship per full 1000 points (except light cruisers) may be upgraded to a daemonship. The Terminus Est is costed at 420pts in this booklet.
+**Marks of Chaos:** one of each may be bought, each on a different capital ship, Mark of Chaos Undivided 25 (on the Chaos Lord or Warmaster's ship only), Mark of Slaanesh / Nurgle / Khorne / Tzeentch 15 each. **Crusade extras:** any capital ship except a daemonship may take a Chaos Space Marine crew +35; one capital ship per full 1000 points (except light cruisers) may be upgraded to a daemonship. Vessels equipped with Stormbird gunships may not buy mine launchers. Reserves: a 13th Black Crusade fleet may take reserves from the Chaos Incursion and Chaos Renegades fleet lists (except space hulks). The Terminus Est is costed at 420pts in this booklet.
 
 **Renegades Fleet List (Imperium p.57)**
 
@@ -269,15 +269,15 @@ Chaos in all its forms; adds Abaddon, the dedicated battleships, the Planet Kill
 | Battleships | Despoiler 390, Desecrator 365, Desolator 300, Relictor 300; (0-1) Chaos Space Marine Battle Barge 440 |
 | Grand Cruisers | Retaliator 275, Nephilim 250, Repulsive 230, Executor 210 |
 | Heavy Cruisers | Styx 260, Hecate 230, Hades 200, Acheron 190 |
-| Cruisers | Devastation 190, Carnage 180, Inferno 180, Murder 170, Slaughter 165; Chaos Space Marine Strike Cruiser 145 (one per 500pts) |
+| Cruisers | Devastation 190, Carnage 180, Inferno 180, Murder 170, Slaughter 165; Chaos Space Marine Strike Cruiser 145 (one per 500pts or portion thereof) |
 | Light Cruisers (0-6) | Fanatic 125, Schismatic 125, Heretic 120 |
 | Escorts (squadrons of 2-6) | Idolator 45, Infidel 40, Havoc 35, Iconoclast 25 |
 
-**Marks of Chaos:** any vessel with a Chaos Space Marine crew, or led by a Chaos Lord, Warmaster, or aspiring champion, may take one, Undivided 25 (Lord/Warmaster's ship only), Slaanesh/Nurgle/Khorne/Tzeentch 15 each. **Chaos Space Marine crews:** one capital ship per full 750 points (except battle barges and strike cruisers) may take one +35; these crews are not allies of convenience. **Imperial Renegades:** for every full 750 points the fleet may include up to six escorts and/or one cruiser (worth up to 185pts) from the Imperial Navy Bastion or Armageddon Sector lists. They count as Chaos ships in all respects and may be squadroned normally, but renegade cruisers subtract 1 from their rolled Leadership (recently turned traitor), and they do not count against the fleet's reserves allowance.
+**Marks of Chaos:** any vessel with a Chaos Space Marine crew, or led by a Chaos Lord, Warmaster, or aspiring champion, may take one, Undivided 25 (Lord/Warmaster's ship only), Slaanesh/Nurgle/Khorne/Tzeentch 15 each. **Chaos Space Marine crews:** one capital ship per full 750 points (except battle barges and strike cruisers) may take one +35. Chaos Space Marine battle barges and strike cruisers use the Space Marine faction rules, except that they are Chaos ships with Chaos Space Marine crews, not allies of convenience, and may take any upgrades shown in their profile or this fleet list. Chaos Space Marine battleships, battle barges, grand cruisers, and strike cruisers may also have Chaos Terminators for +25 points. **Imperial Renegades:** for every full 750 points the fleet may include up to six escorts and/or one cruiser (worth up to 185pts) from the Imperial Navy Bastion or Armageddon Sector lists. They count as Chaos ships in all respects and may be squadroned normally, but renegade cruisers subtract 1 from their rolled Leadership (recently turned traitor), and they do not count against the fleet's reserves allowance. Special: (0-1) Chaos Space Hulk 650; if included, it must be your commander's flagship. Reserves: a Chaos Renegades fleet may take reserves from the 13th Black Crusade and Chaos Incursion fleet lists, but not the Planet Killer or a space hulk.
 
 #### God-Dedicated Fleets (Imperium p.58-61)
 
-The Pleasure Fleet of Slaanesh, Plague Fleet of Nurgle, Berzerker Fleet of Khorne, and Infinite Fleet of Tzeentch each use the 13th Black Crusade list exactly, with two changes: they cannot take the Planet Killer or the Chaos Space Hulk, and of the dedicated battleships they may take only their own god's (Slaanesh: Wage of Sin; Nurgle: Terminus Est; Khorne: Slaverer; Tzeentch: Scion of Prospero). Each also gains extra boons of its god, and a Reserves & Allies rule: the fleet neither gives nor takes reserves or allies, and always treats ships bearing the rival god's Mark as enemy vessels (Slaanesh against Khorne, Nurgle against Tzeentch).
+The Pleasure Fleet of Slaanesh, Plague Fleet of Nurgle, Berzerker Fleet of Khorne, and Infinite Fleet of Tzeentch each use the 13th Black Crusade list's commanders, ship allowances, and ordnance, with these changes: they cannot take Abaddon, the Planet Killer, or the Chaos Space Hulk; of the dedicated battleships they may take only their own god's (Slaanesh: Wage of Sin; Nurgle: Terminus Est; Khorne: Slaverer; Tzeentch: Scion of Prospero); any capital ship may be given a Chaos Space Marine crew for +35 points, and for an extra +25 points any battleship or grand cruiser with Chaos Space Marines may be given Chaos Terminators; the only Mark available is their own god's, which any vessel with a Chaos Space Marine crew or led by a Chaos Lord, Chaos Warmaster, or aspiring champion may take for +15 points; and one capital ship per full 1000 points (except light cruisers) may be upgraded to a daemonship. Each also gains extra boons of its god, and a Reserves & Allies rule: the fleet neither gives nor takes reserves or allies, and always treats ships bearing the rival god's Mark as enemy vessels (Slaanesh against Khorne, Nurgle against Tzeentch).
 
 **Pleasure Fleet of Slaanesh.** *Veil of Lust* (+20) on a Mark-of-Slaanesh capital ship: enemies firing gunnery at it suffer an automatic right column shift. *Siren's Summon* (+25, up to two Mark-of-Slaanesh ships, which may be daemonships): enemy vessels within 15cm cannot use special orders or take any Leadership test (including Brace for Impact), and a forced test auto-fails.
 

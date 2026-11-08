@@ -40,7 +40,7 @@ Fleet support units are high orbit defences, low orbit defences (ground faciliti
 
 **Convoy ships and transport capacity:** transport capacity measures mission cargo, and is used for convoy forces, scoring and victory conditions. Most convoy ships have 1 or more; some small ones have ½. Convoy ships larger than an escort halve their transport capacity while crippled. Some (escort carriers, Q-ships) count their capacity only when assembling the fleet: it counts towards the fleet's maximum number of convoy ships, but never scores.
 
-When a scenario sets a transport capacity requirement, include convoy ships from this list and/or your faction list totalling exactly that capacity, paying their points as normal, with at least one ship whose capacity counts during the game. Fleets with convoy ships in their own list may take them freely, with no capacity limit, but only in scenarios with no transport capacity requirement.
+When a scenario sets a transport capacity requirement, include convoy ships from this list and/or your faction list totalling exactly that capacity, paying their points as normal, with at least one ship whose capacity counts during the game. Fleets with convoy ships in their own list may take them freely, with no capacity limit, but only in scenarios with no transport capacity requirement. In all other scenarios, the normal rules for including convoy ships apply, even when the convoy vessels are part of the regular fleet list.
 
 *Source: BFG:XR Rulebook, "Fleet Support", pp.61-64, 75*
 

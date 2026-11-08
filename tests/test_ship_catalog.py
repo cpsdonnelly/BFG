@@ -25,7 +25,7 @@ def test_all_nine_booklet_factions_present():
 def test_every_booklet_ship_is_in_the_catalog():
     entries = [e for f in list_factions() for e in get_faction_ships(f, include_unsupported=True)]
     designed = [e for e in entries if e.ship_class.startswith("Venerable Strike Cruiser (")]
-    assert len(entries) - len(designed) == len(BOOKLET) == 174
+    assert len(entries) - len(designed) == len(BOOKLET) == 178
     assert len(designed) == 17          # every non-unique Navy / Chaos GC, BC and heavy cruiser
 
 

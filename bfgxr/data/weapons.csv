@@ -235,6 +235,12 @@ Rogue Traders,Stryxis Caravan Vessel,,weapon,,Ghost-Light Batteries,,,45,FP,10,d
 Rogue Traders,Stryxis Caravan Vessel,,weapon,,Ghost-Light Lances,,,30,FP,3,direct,All Round,True,Ghost-Light Lances 30cm FP3 (All Round)
 Rogue Traders,Xenos Cutter,,weapon,,Macrobatteries,,,30,FP,2,direct,L/F/R,True,Macrobatteries 30cm FP2 (L/F/R)
 Rogue Traders,Xenos Cutter,,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Rogue Traders,Pthuxutl War Cruiser (Notable Xenos),,weapon,,Macrobatteries,,,45,FP,2,direct,L/F/R,True,Macrobatteries 45cm FP2 (L/F/R)
+Rogue Traders,Pthuxutl War Cruiser (Notable Xenos),,weapon,,Disruptor Cannon,,,30,FP,1,direct,F,True,Disruptor Cannon 30cm FP1 (F)
+Rogue Traders,Fra'al Raider (Notable Xenos),,weapon,,Macrobatteries,,,45,FP,2,direct,L/F/R,True,Macrobatteries 45cm FP2 (L/F/R)
+Rogue Traders,Fra'al Raider (Notable Xenos),,weapon,,Lance,,,30,FP,1,direct,F,True,Lance 30cm FP1 (F)
+Rogue Traders,Nekulli Whip (Notable Xenos),,weapon,,Macrobatteries,,,45,FP,2,direct,L/F/R,True,Macrobatteries 45cm FP2 (L/F/R)
+Rogue Traders,Nekulli Whip (Notable Xenos),,weapon,,Whisperlance Cannon,,,30,FP,1,direct,F,True,Whisperlance Cannon 30cm FP1 (F)
 Support Assets,Space Station,,weapon,,Macrobatteries,,,60,FP,12,direct,All Round,True,Macrobatteries 60cm FP12 (All Round)
 Support Assets,Space Station,,weapon,,Lances,,,30,FP,3,direct,All Round,True,Lances 30cm FP3 (All Round)
 Support Assets,Space Station,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (ASF 30cm, BMR 20cm)"
@@ -433,6 +439,7 @@ Tau & Allies,Castellan Escort,,weapon,,Railguns,,,45,FP,2,direct,L/F/R,True,Rail
 Tau & Allies,Castellan Escort,,weapon,,Gravitic Launcher,,20,40,S,2,ordnance,F,True,Gravitic Launcher 20-40cm S2 (F)
 Tau & Allies,Warden Gunship,,weapon,,Railguns,,,30,FP,2,direct,F,True,Railguns 30cm FP2 (F)
 Tau & Allies,Warden Gunship,,weapon,,Ion Cannon,,,30,FP,1,direct,L/F/R,True,Ion Cannon 30cm FP1 (L/F/R)
+Tau & Allies,Courier Transport,,weapon,,Railguns,,,30,FP,1,direct,L/F/R,True,Railguns 30cm FP1 (L/F/R)
 Tau & Allies,Tau Orbital City,,weapon,,Railguns,,,45,FP,12,direct,All Round,True,Railguns 45cm FP12 (All Round)
 Tau & Allies,Tau Orbital City,,launch_bays,,Launch Bays,,,,S,4,ordnance,,True,"Launch Bays S4 (BMR 20cm, ASF 25cm)"
 Tau & Allies,Tau Orbital City,,gravitic_hooks,,Gravitic Hooks,,,,,capacity 2,special,,True,Gravitic Hooks (capacity 2)

@@ -504,11 +504,11 @@ class TurnController:
     def _own_reroll_holder(self, ship: Optional[Ship]) -> Optional[Ship]:
         """A secondary commander with re-rolls left on this ship or in its
         squadron (usable only for that ship or squadron, s.5); lost if its
-        ship is destroyed or Bridge Smashed."""
+        ship suffers Bridge Smashed."""
         if ship is None:
             return None
         for s in self.gs.get_ships():
-            if s.own_rerolls <= 0 or s.player != ship.player or s.is_destroyed:
+            if s.own_rerolls <= 0 or s.player != ship.player:
                 continue
             if any(c.get("crit_type") == "bridge_smashed" for c in s.critical_damage):
                 continue
@@ -531,8 +531,8 @@ class TurnController:
         for crit in flagship.critical_damage:
             if crit.get("crit_type") == "bridge_smashed":
                 return 0
-        if flagship.is_destroyed or flagship.is_disengaged:
-            return 0
+        # Export 26: re-rolls are lost on Bridge Smashed only ("or is
+        # destroyed" was not in the source)
         return flagship.rerolls_remaining
 
     def use_fleet_reroll(self, player: int, ship: Optional[Ship] = None) -> bool:
@@ -557,8 +557,7 @@ class TurnController:
                 self.gs.add_log(
                     f"Re-roll unavailable: {flagship.name} bridge is smashed!")
                 return False
-        if flagship.is_destroyed or flagship.is_disengaged:
-            return False
+
 
         flagship.rerolls_remaining -= 1
         self.gs.update_ship(flagship)

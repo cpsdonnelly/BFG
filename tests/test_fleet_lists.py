@@ -55,9 +55,9 @@ def test_battlecruisers_count_towards_battleships_but_need_cruisers():
 
 def test_bakka_battleships_per_750_points_and_dauntless_cap():
     r = rows("Retribution Battleship", "Victory Battleship", list_key="navy_bakka")
-    errs = fleet_list_errors("navy_bakka", r, 1000)
+    errs = fleet_list_errors("navy_bakka", r, 750)
     assert any("per 750pts" in e for e in errs)
-    assert not any("per 750pts" in e for e in fleet_list_errors("navy_bakka", r, 1500))
+    assert not any("per 750pts" in e for e in fleet_list_errors("navy_bakka", r, 760))
     d = rows(*["Dauntless Light Cruiser"] * 3, list_key="navy_bakka")
     assert any("Dauntless" in e and "at most 2" in e
                for e in fleet_list_errors("navy_bakka", d, 1500))
@@ -160,8 +160,9 @@ def test_ork_battleships_need_two_kroozers_each():
 def test_points_limits_use_the_fleet_total_full_rounds_down_portion_rounds_up():
     from src.fleet_lists import _list_errors
     r = rows("Retribution Battleship", "Victory Battleship", list_key="navy_bakka")
-    assert any("per 750pts" in e for e in fleet_list_errors("navy_bakka", r, 1499))   # 1
-    assert not any("per 750pts" in e for e in fleet_list_errors("navy_bakka", r, 1500))
+    # Bakka: one per 750pts or portion thereof (export 17)
+    assert any("per 750pts" in e for e in fleet_list_errors("navy_bakka", r, 750))    # 1
+    assert not any("per 750pts" in e for e in fleet_list_errors("navy_bakka", r, 751))
     # "(or portion thereof)": GK strike cruisers one per 500pts or part, so 2 at 501pts
     gk = rows("Grey Knights Strike Cruiser", "Grey Knights Strike Cruiser",
               list_key="inq_detachment")
@@ -281,7 +282,7 @@ def test_demiurg_fixed_leadership_drops_with_damage():
 def test_fleet_commanders_required_and_custodian_needs_kor_o():
     navy = rows("Lunar Cruiser", "Gothic Cruiser", "Tyrant Cruiser", list_key="navy_gothic")
     assert any("needs a fleet commander" in e for e in _fl.fleet_list_errors("navy_gothic", navy, 760))
-    assert not any("commander" in e for e in _fl.fleet_list_errors("navy_gothic", navy, 749))
+    assert not any("commander" in e for e in _fl.fleet_list_errors("navy_gothic", navy, 750))   # "more than 750"
     navy[0]["upgrades"] = ["Fleet Admiral (Ld 9)"]
     assert not any("commander" in e for e in _fl.fleet_list_errors("navy_gothic", navy, 900))
     am = rows("Mechanicus Lunar Cruiser", list_key="admech_explorator")
@@ -289,7 +290,7 @@ def test_fleet_commanders_required_and_custodian_needs_kor_o():
     assert any("commander" in e for e in _fl.fleet_list_errors("admech_explorator", am, 1000))
     orks = rows("Kill Kroozer", "Kill Kroozer", list_key="orks_green_tide",
                 upgrades=["Ork Warboss"])
-    assert any("one per 500pts" in e for e in _fl.fleet_list_errors("orks_green_tide", orks, 900))
+    assert any("one per 500pts" in e for e in _fl.fleet_list_errors("orks_green_tide", orks, 500))
     assert not any("commander" in e for e in _fl.fleet_list_errors("orks_green_tide", orks, 1000))
     tau = rows("Custodian Battleship", list_key="tau_empire", upgrades=["Kor'el (Ld 8)"])
     assert any("Kor'O" in e for e in _fl.fleet_list_errors("tau_empire", tau, 800))

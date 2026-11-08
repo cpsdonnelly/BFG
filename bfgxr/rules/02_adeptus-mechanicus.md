@@ -12,11 +12,11 @@
 
 **Boarding & Hit-and-Run:** crews are mostly techpriests and hardwired servitors, so any attacker boarding or hit-and-running a Mechanicus ship may re-roll the result (second result stands, even if worse).
 
-**Sacred Technology:** when taken as reserves in another fleet, any crippled Mechanicus capital ship must try to disengage whenever possible, or move toward the nearest table edge if it cannot (squadroned ships only when at least half the squadron is crippled). A destroyed Mechanicus vessel left as a hulk may be fired on by friendly Mechanicus ships via a target priority leadership test (not by non-Mechanicus ships).
+**Sacred Technology:** when taken as reserves in another fleet, any crippled Mechanicus capital ship must try to disengage whenever possible, or, if it fails, move towards the nearest table edge (squadroned ships only when at least half the squadron is crippled). A destroyed Mechanicus vessel left as a hulk may be fired on by friendly Mechanicus ships via a target priority leadership test (not by non-Mechanicus ships).
 
-**Campaigns:** +1 Repair point per 10 renown (or part) the commander holds; +1 to appeals for refits but -1 to appeals for anything else (such as reinforcements or Space Marines). Note that refits earned via appeal use the normal Imperial Refits table (and not the Mechanicus Gifts table). Only your flagship may have multiple Gifts, as determined by the fleet commander's renown (see the Adeptus Mechanicus Promotion Table, p.154).
+**Campaigns:** +1 Repair point per 10 renown (or part) the commander holds; +1 to appeals for refits but -1 to appeals for anything else (such as reinforcements or Space Marines). Note that refits earned via appeal use the normal Imperial Refits table (and not the Mechanicus Gifts table). Only your flagship may have multiple Gifts, as determined by the fleet commander's renown (see the Adeptus Mechanicus Promotion Table, p.166).
 
-**Ships & refits:** Mechanicus capital ships and light cruisers use Fury Fighters (ASF, 30cm) and Starhawk Bombers (BMR, 20cm), same as Imperial Navy. Most Mechanicus hulls are refitted Imperial Navy patterns at different costs, stats, and turret counts than their Navy counterparts (extra anti-ordnance turrets are standard on Mechanicus capital ships). "Mechanicus Refits" on cruisers and light cruisers are ship-specific point options, distinct from the general Mechanicus Gifts (p.44) and Imperial Refits (p.163). The escort classes on this list share a profile with an Imperial Navy or Space Marine escort of the same name, but are exclusively Adeptus Mechanicus vessels and follow only the Mechanicus faction rules (p.43), not Navy or Space Marine rules.
+**Ships & refits:** Mechanicus capital ships and light cruisers use Fury Fighters (ASF, 30cm) and Starhawk Bombers (BMR, 20cm), same as Imperial Navy. Most Mechanicus hulls are refitted Imperial Navy patterns at different costs, stats, and turret counts than their Navy counterparts (extra anti-ordnance turrets are standard on Mechanicus capital ships). "Mechanicus Refits" on cruisers and light cruisers are ship-specific point options, distinct from the general Mechanicus Gifts (p.45) and Imperial Refits (p.175). The escort classes on this list share a profile with an Imperial Navy or Space Marine escort of the same name, but are exclusively Adeptus Mechanicus vessels and follow only the Mechanicus faction rules (p.44), not Navy or Space Marine rules.
 
 **Might of the Forge Worlds.**
 
@@ -46,9 +46,9 @@
 | 3 | 5pts | Advanced Engines. Gains the Auxiliary Power Relays and Secondary Reactors refits for free. |
 | 4 | 10pts | Advanced Shields. Gains the Overloaded Shield Capacitors refit for free, and imposes a right column-shift on gunnery against it while it has active shields. |
 | 5 | 10pts | Advanced Weapons. Gains the Targeting Matrix refit for free, and +1 to dorsal lance FP. |
-| 6 | Free | Vault of Technology. Roll a D6 for a random Gift from this table; on a 6, instead choose any one of the refits above. |
+| 6 | Free | Vault of Technology. At the start of the game, roll a D6; the ship gains the corresponding Gift from this table for free. If a 6 is rolled, you may instead choose one of the above refits to apply. |
 
-**The Quest for Knowledge:** Mechanicus fleets roll on their own sub-plots table (reflecting unstable archaeotech) instead of the standard one. Bracketed values are the (renown gained / lost) for meeting or failing the victory condition.
+**The Quest for Knowledge:** In addition to any sub-plots rolled normally, an Adeptus Mechanicus Explorator Fleet must take a random Quest for Knowledge sub-plot from the table below. Bracketed values are the (renown gained / lost) for meeting or failing the victory condition.
 
 | D6 | Sub-plot | Effect & victory condition |
 |---|---|---|
@@ -56,8 +56,8 @@
 | 2 | Xenos Logic Engine | Roll D6 per capital ship: on 1-3, apply one Critical Damage result to it at game start. VC: none (winning is heroic, losing is condemned). (+2/-1) |
 | 3 | Mimic Drive | Add a secret cruiser to the fleet that is actually a transport worth 0 VP. VC: the decoy must be fired upon. (+1/-1) |
 | 4 | Sacred Vessel | Choose one Mechanicus capital ship. VC: it must not be crippled or destroyed. (+1/-1) |
-| 5 | The Prize | Nominate one enemy capital ship. VC: cripple or destroy it. (+1/-2) |
-| 6 | Experimental Ship | Pick one cruiser; roll once on each table below for an Improvement and a Side Effect. VC: it must not be crippled or destroyed. (+1/-1) |
+| 5 | The Prize | Nominate one enemy capital ship. VC: cripple or destroy it; if it explodes or is detonated after becoming a hulk, no renown is gained or lost. (+1/-2) |
+| 6 | Experimental Ship | Pick one cruiser; roll once on each table below for an Improvement and a Side Effect. These modifications are in addition to any refits taken normally. Re-roll any result that cannot be applied to the vessel. VC: it must not be crippled or destroyed. (+1/-1) |
 
 Experimental Ship (D6 on each table):
 
@@ -112,7 +112,7 @@ Experimental Ship (D6 on each table):
 
 **Fleet Composition (Explorator Fleet List)**
 
-Single fleet list (*Imperium p.17*). **Fleet commander (0-1 Archmagos):** Archmagos Explorator (Ld9) 50 pts; must ride the Ark Mechanicus if it is present, otherwise any capital ship. An Archmagos is required to lead a fleet of 1000+ points (this replaces the usual 750-point commander rule), and may buy up to two re-rolls. **Secondary:** 0-3 Magi Explorators (Magos Explorator Ld8) 25 pts each, each assigned to a capital ship.
+Single fleet list (*Imperium p.17*). **Fleet commander (0-1 Archmagos):** Archmagos Explorator (Ld9) 50 pts; must ride the Ark Mechanicus if it is present, otherwise any capital ship. An Archmagos is required to lead a fleet of 1000+ points (this replaces the usual 750-point commander rule), and may buy up to two fleet commander re-rolls (one 25 points, two 50 points). If your fleet is worth at least 1000 points, you may include the Ark Mechanicus Omnissiah's Victory, counting against your allowed number of battleships. **Secondary:** 0-3 Magi Explorators (Magos Explorator Ld8) 25 pts each, each assigned to a capital ship.
 
 | Section | Allowance | Ships (pts) |
 |---|---|---|
@@ -120,4 +120,4 @@ Single fleet list (*Imperium p.17*). **Fleet commander (0-1 Archmagos):** Archma
 | Cruisers (0-15) | \- | Dictator 245, Gothic 215, Lunar 215, Tyrant 215; light cruisers Endeavour 130, Endurance 130, Defiant 130 |
 | Escorts | any number, squadrons of 2-6 | Nova 45, Gladius 40, Hunter 40, Firestorm 35, Sword 35, Falchion 35, Cobra 30 |
 
-**Upgrades:** up to two cruisers may swap all launch bays for mine launchers (+5/bay); any escort squadron may take improved defences (+1 Turret per member, +5/escort). **Reserves:** from any Imperial Navy fleet list and the Space Marine Dominion list (Battle Barges count as battleships, Strike Cruisers as cruisers).
+**Upgrades:** any vessel with torpedo tubes is armed with ordinary torpedoes in addition to any refitted torpedoes it has purchased; up to two cruisers may swap all launch bays for mine launchers (+5/bay); any escort squadron may take improved defences (+1 Turret per member, +5/escort). All escorts in this list are Adeptus Mechanicus escorts, so they may be squadroned together in any mix. **Reserves:** from any Imperial Navy fleet list and the Space Marine Dominion list (Battle Barges count as battleships, Strike Cruisers as cruisers).

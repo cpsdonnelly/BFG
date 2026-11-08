@@ -360,3 +360,209 @@ Rulings for the fleet builder (from the sourcebooks):
 - Nicassar: every Rig requires four Dhows to be bought with it. The Rig is a Defense/4 stationary
   defence (placeable anywhere in the deployment zone) with gravitic hooks of capacity 4 Dhows;
   Dhows are limited to one per gravitic hook configured to carry Dhows.
+
+# Sixteenth update: venerable strike cruisers
+
+- Crusade and Dominion fleet lists, Strike Cruisers (0-10): "If the fleet is worth at least 1000
+  points, it may include up to one venerable strike cruiser for every three standard strike
+  cruisers (including any strike cruiser variants), to a maximum of two." (Imperium pp.148-149.)
+  The Crusade table had no condition; the Dominion table had a shortened one.
+
+# Seventeenth update: Imperial Navy audit (Ships of the Imperium pp.63-94)
+
+Data changes (ships.json notes):
+- Lunar Cruiser: refit added, prow torpedoes -> prow nova cannon +20pts.
+- Mercury Battlecruiser: always rolls 3D6 on the Catastrophic Damage table (results over 12 count as 12).
+- Exorcist Grand Cruiser: may drop its macrobatteries to 30cm range for FP10, no cost.
+- Grand cruiser refits (Exorcist, Vengeance, Avenger; Chaos Retaliator, Nephilim, Executor):
+  "May buy one of" the listed upgrades, not all of them.
+
+Fleet list changes (rules/01_imperial-navy.md):
+- Bakka escorts are Havoc, Viper, Firestorm, Sword (no Cobra). Bakka battleships one per 750pts
+  (or portion thereof). Starred Bakka classes have +1 Turret, cost included. Veteran Captains
+  (+1 Ld, max 10) 30pts, +15 re-roll. Forgeworld of Bakka: Mechanicus cruisers may replace
+  battlecruiser slots as normal fleet ships; IN capital ships may buy Fleet Defence Turrets. Bakka
+  has no mine launcher upgrade.
+- Admiral may be assigned to any ship; "Admiral" covers all three ranks.
+- Strategic Commander re-roll only for their own ship or squadron.
+- Armageddon: Admiral needs an IN capital ship and cannot board a Space Marine ship; Master of
+  the Fleet needs and must ride a Battle Barge. Torpedo upgrades and power rams there are for IN
+  capital ships only.
+- Endurance/Defiant limit: 2 per 500pts (or portion thereof).
+- Cadia veteran captains may (not must) be assigned after rolling Leadership.
+- Obscura: unreliable ships disengage toward the nearest table edge.
+- Ramilies: quadrant hit is traced from the firing ship's stem (was "prow"); as a planet its
+  high-orbit range is 30cm from the stem of its base.
+
+Booklet is one page longer; sections from Adeptus Mechanicus onward moved one page later.
+
+# Eighteenth update: Space Marines audit (Ships of the Imperium pp.132-149)
+
+- Dominion nova cannon limit: one per 1000pts (or portion thereof), not the usual one per 500.
+- Dominion escorts: Sword rapid strike vessel (35) added; rapid strike vessels are not allies of
+  convenience, and mixed squadrons use the Space Marine Ld table (-1Ld if all Space Marine
+  members are lost).
+- Dominion reserves rewritten from the source: IN reserves only by these ratios (battleship/grand
+  cruiser per 3 strike cruisers vs battle barge limit; battlecruiser/cruiser/light cruiser per 2
+  strike cruisers vs strike cruiser limit), even with a detachment; AdMech reserves normally,
+  always allies of convenience.
+- Dominion Space Marine Captains: the ship uses the Space Marine Ld table and is not an ally of
+  convenience. Veteran honour guard +10 on any SM capital ship or Captain's ship.
+- Crusade upgrades added: veteran honour guard +10 per SM capital ship; mine launchers on up to two
+  cruisers.
+- Master of the Fleet: must be on a battle barge (the Chapter flagship if present) only if the
+  fleet has one; otherwise any capital ship (Dominion: any Space Marine capital ship).
+- Tactical Flexibility covers specialist torpedoes, not secondary shields. Only Space Marine
+  fleets may use Chapter tactics.
+- Venerable strike cruiser: any grand cruiser, battlecruiser or heavy cruiser ("non-unique" removed).
+- Strike cruiser torpedoes: boarding free, short-burn +5, barrage bombs +10.
+- Fortress-Monastery: stem targeting; D6 blast markers removed per model; a quadrant at 0 hits takes
+  no further damage and is an asteroid field; hit-and-run per quadrant; opposing player spreads
+  basilica damage; auto-reload every two complete turns docked. Ramilies: same last two fixes.
+
+# Nineteenth update: Adeptus Mechanicus audit (Ships of the Imperium pp.4-17)
+
+- Quest for Knowledge: an Explorator fleet takes one random Quest for Knowledge sub-plot IN
+  ADDITION to its normal sub-plots (the booklet wrongly said "instead of").
+- Archmagos re-rolls: up to two, 25 / 50 points (no free re-roll).
+- Omnissiah's Victory requires a fleet of 1000+ points and counts against battleships.
+- Torpedo-armed ships carry ordinary torpedoes as well as any refitted torpedoes.
+- All list escorts may squadron together in any mix.
+- Vault of Technology: rolled at game start, Gift is free.
+- The Prize: no renown either way if the target explodes or is detonated after becoming a hulk.
+- Experimental Ship: changes are in addition to normal refits; re-roll inapplicable results.
+- Sacred Technology: a crippled reserve ship that fails to disengage moves towards the nearest
+  table edge.
+
+# Twentieth update: Man O' War example builds
+
+- Rogue Traders: new "Example Builds" subsection after Man O' War Configuration, with six worked
+  examples (brig, two galleons, two grand galleons, ship of the line). These are NOT sourcebook
+  ships; they illustrate the configuration rules. Do not add them to ships.json as real classes.
+  Readings used: a ship with 10+ hits may take both +1 and +2 Shields; the 1-squadron and
+  2-squadron launch bay options are separate weapons and may both be taken.
+- Prow Weapon is optional: "A man o' war may choose one of the following options" (source wording).
+- Booklet is two pages longer from Rogue Traders onward; page refs updated.
+
+# Twenty-first update: Rogue Traders audit (Ships of the Imperium pp.113-129)
+
+Data changes (ships.json):
+- Three new rows: Pthuxutl War Cruiser, Fra'al Raider, Nekulli Whip (Notable Xenos profiles for
+  xenos cutter squadrons; 35pts per ship plus 30pts per squadron).
+- Xenos Cutter notes: allies of convenience with everyone; cannot squadron with other types.
+- Repair Tender and Sloop notes extended.
+
+Rules changes (rules/05_rogue-traders.md):
+- Business as Usual: Punitive Strike, Colony Settlement, Reclamation Crusade, Expeditionary Group
+  and Treasure Haul apply to sloops, caravels and carracks only. Reclamation Crusade sets their
+  weapon range TO 30cm (was wrongly +30cm). Trooping the Colour, Colony Settlement, Expeditionary
+  Group and Treasure Haul given in full.
+- Convoy Fortune: only Rogue Trader convoy ships add Fortune.
+- Fleet Detachment: attack rating unaffected; convoy ships cannot mix with generic fleet-support
+  convoy ships in transport-capacity scenarios; Business as Usual applies otherwise.
+- Expedition and Pirate lists: ordinary torpedoes, Business as Usual sub-plot rule; Pirate limits
+  use "(or portion thereof)".
+- New subsection: High-Risk Convoys (four alternative Convoy Run threat tables).
+- Booklet is two to three pages longer from Rogue Traders onward; page refs updated.
+
+# Twenty-second update: Support Assets, Orks, Tau & Allies audits
+
+Support Assets: convoy ships from a regular fleet list follow the normal transport-capacity rules
+in scenarios that set a requirement.
+
+Orks: Ork Boss and Nob limits are per 500pts (or portion thereof), each assigned to any ship;
+one Space Hulk per FULL 1500pts; clan affiliations are fixed at fleet selection; the Hammer's
+Kustom Kannon must Reload Ordnance after firing in either mode.
+
+Tau & Allies:
+- NEW fleet list: Demiurg War Host (Xenos p.101). Re-rolls 25 / 75pts (not 50).
+- NEW ship row: Courier Transport (Tau, Free, convoy ship, transport capacity 1; only in
+  scenarios with a transport capacity requirement).
+- Tau commander required when the fleet is worth MORE than 750pts; re-rolls 25/50.
+- Demiurg, Nicassar and Kroot in a Tau fleet are allies of convenience.
+- Messenger limit per 500pts (or portion thereof).
+- Notes changed in ships.json: Explorer (Tiger Sharks +20 with Bor'kan), Merchant (TC 2 only in
+  TC scenarios, max 50% of fleet TC), Nicassar Caravan, Nicassar Rig, Kroot Warsphere.
+- Booklet two pages longer from Scenarios onward; page refs updated.
+
+# Twenty-third update: Demiurg special rules (Xenos p.91)
+
+- Mercenaries: unless the fleet is entirely Demiurg, crippled Demiurg ships must try to disengage
+  every turn (moving towards the nearest table edge if they fail). If the opposing fleet includes
+  any Ork vessels, they start this only at 2 or fewer hits remaining instead of when crippled.
+- Absorber/Repulsor Fields corrected: Demiurg ships are NOT immune to blast markers in general.
+  They take no speed penalty from them; are immune to solar flares, radiation bursts and gas/dust
+  clouds; collect every blast marker their base touches while moving. Markers in contact at the
+  start of the move are collected first, so they don't affect a command check made then; command
+  checks at other times are affected normally.
+- Cutting beam: two collected markers may instead raise its range to 30cm; unused markers are
+  lost at the end of each turn.
+
+# Twenty-fourth update: Kroot Warsphere assault points
+
+- In Planetary Assault, each attacking Warsphere that lands scores +3 assault points; Warspheres
+  never score assault points any other way (Xenos p.97).
+
+# Twenty-fifth update: Chaos second pass, Appendix 2
+
+Chaos fleet lists (Imperium pp.54-61):
+- 13th Black Crusade battleships include the Relictor (300); it was missing.
+- Planet Killer counts as a battleship for fleet requirements and restrictions.
+- Crusade: ships with Stormbird gunships cannot buy mine launchers.
+- Incursion: Marks of Chaos (any vessel led by a Lord, Warmaster or aspiring champion; Undivided
+  25 on the commander's ship only, others 15).
+- Renegades: (0-1) Chaos Space Hulk 650 (must be the flagship); CSM strike cruiser limit is per
+  500pts (or portion thereof); CSM battle barges / strike cruisers are Chaos ships, not allies of
+  convenience; Chaos Terminators +25 on CSM battleships, battle barges, grand cruisers, strike
+  cruisers.
+- Reserves for Incursion, Crusade and Renegades (each may take from the other two; no Planet
+  Killer, no space hulk).
+- God-dedicated fleets: NOT identical to the Crusade list. No Abaddon, no Planet Killer, no space
+  hulk; only their own god's dedicated battleship; CSM crew +35 on any capital ship (Terminators
+  +25 on battleships/grand cruisers with CSM); only their own god's Mark (+15).
+- Aspiring champion re-roll only for his own ship or squadron.
+
+Appendix 2: Imperial crew skills are used by AdMech, Chaos, IN, Inquisition, Rogue Trader and
+Space Marine ships; Xenos crew skills by Dark Eldar, Eldar, Ork and Tau (Necrons and Tyranids
+gain none).
+
+## Twenty-sixth update: core rules 1-25 in rulebook wording
+
+Ciarán's rule: where the XR rulebook says the same thing as the booklet, use the rulebook's
+wording. Sections 1-25 of the core rules are now rulebook text, in British spelling, for 131
+paragraphs. Corrections made on the way:
+- Special orders are declared ship by ship, each just before that ship moves (not all at the
+  start of the movement phase).
+- Ships in a squadron, capital ships included, combine their firepower.
+- Fleet commander re-rolls are lost on Bridge Smashed; "or is destroyed" was not in the source.
+- Capital ship squadron page ref: rulebook p.58, "Forming Squadrons".
+- Broken cross-refs "sections 16-1922 / 19-1922 / 23-2326" are now 16-22 / 19-22 / 23-26.
+- Unit types: the rulebook's type list and defence rule (no "stations").
+The booklet is now 186 pages; the TOC and internal page refs are shifted +4 (Rogue Traders 68).
+
+Armament row reverted to: "firepower for gunnery weapons (FP) or strength for launching ordnance markers (S)". The booklet lists lances as FP.
+
+## Twenty-seventh update: core rules 26-41 in rulebook wording
+
+32 more paragraphs swapped to rulebook text (hit-and-run, teleport, boarding, critical hits, hulks, disengaging, battlefield set-up, battlezones, warp rifts, planet note). The contents page now matches the render for sections 28, 35, 36, 38, 40 and campaign rules 4-6, with Rogue Traders at 69. The booklet is 187 pages; internal refs are +1.
+
+## Twenty-eighth update
+
+- Armament row: "firepower for direct-fire weapons such as macrobatteries and lances (FP) or strength for launching ordnance markers (S)".
+- Lance values are called firepower everywhere in the core rules (special orders, Brace for Impact, lance firing, crippled ships); ordnance keeps strength.
+- Fixed-Ld pointer added to section 3 and Appendix 4.
+- Blast markers: the XR optional modern rules and the Remastered rules are now separate sections. "Remastered Blast Markers" has its own heading, and the Remastered no-limit-when-stacked rule moved out of the XR Overlapping Bases rule into the Remastered spill-over exceptions.
+
+## Twenty-ninth update
+
+Remastered "Limit on spill-over" rewritten: the rulebook placement sentence (p.68), then the two-ship limit and its two exceptions as numbered paragraphs. Exception 2 now covers ships overlapping any ship in contact with blast markers, not only the target.
+
+## Thirtieth update: core rules wording fixes 1-8, 10-15
+
+Ciaran-approved rewordings of awkward rulebook passages: reserves limit, 750-point commander rule, Ld modifier limits, a typo, Burn Retros speed, Forming Squadrons refs, Dauntless example, different aspects, moving through blast markers, weapons batteries label, splitting fire, nova cannon placement, scatter and centre hole (the centre hole gives D6 hits instead of the 1 hit). The section 7 TOC entry is now 8.
+
+## Thirty-first update: core rules wording fixes 9, 16, 18-25
+
+Squadron against squadron and combining torpedoes (contiguous base contact) use Ciaran's wording; turning torpedoes keeps the rulebook text. Rulebook page refs in the attack craft rules now point to sections 25/26. The bomber attack rule is clarified and the rulebook example restored. CAP movement and leaving CAP, the hulk gravity-well pronouns and asteroid shields/slowing are reworded. The sunward edge roll is written out (the booklet had no diagram). American spellings in core rules are British. The TOC matches the render.
+
+Squadron against squadron: separate target sets now arise from range, arc or target aspect.

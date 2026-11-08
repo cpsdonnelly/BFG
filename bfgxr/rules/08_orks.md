@@ -98,7 +98,7 @@ No capital ship or escort squadron may be led by more than one character for any
 
 ### Da Ork Clanz & Looted Vessels
 
-A commander who buys a clan upgrade belongs to that clan and applies its bonus to all ships under his direct authority. Direct authority covers his own capital ship or escort squadron, plus one more capital ship or escort squadron if he is a Big Boss, or two more if he is a Mega Boss. A ship or squadron may be under only one commander. Ships cannot have multiple clan bonuses, and no squadron may mix clan affiliations. A commander's re-rolls may not be used for ships or squadrons of a different clan (commanders and ships without a clan are exempt).
+A commander who buys a clan upgrade belongs to that clan and applies its bonus to all ships under his direct authority. Direct authority covers his own capital ship or escort squadron, plus one more capital ship or escort squadron if he is a Big Boss, or two more if he is a Mega Boss. A ship or squadron may be under only one commander. Ships cannot have multiple clan bonuses, and no squadron may mix clan affiliations. A commander's re-rolls may not be used for ships or squadrons of a different clan (commanders and ships without a clan are exempt). All affiliations must be determined when forces are chosen, and persist regardless of a commander's status.
 
 | Clan | Bonus |
 |---|---|
@@ -138,7 +138,7 @@ Ork carriers launch Fighta-Bommerz (MR, 25cm) and Assault Boats (AB, 30cm). Ork 
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Hammer Battlekroozer | 225 | 10 | 32mm | 20cm | 45° | 2 | 6+P / 5+ | 3 | Prow Gunz 45cm FP D6+6 (F); Prow Kustom Kannon 30cm FP Special (F); Gunz 30cm FP6 (L), (R); Heavy Gunz 30cm FP6(10) (L), (R); Launch Bays S D3+1 (MR 25cm, AB 30cm) | Ponderous (no Come to New Heading); may swap Ld with any cruiser that rolled higher. Kustom Kannon fires as an FP6 killkannon or launches S D6+2 torps (one mode per turn). Free hull krusha. Options: launch bays to torpedo bombers +30pts; Soopa boostas +25pts; Kustom Kannon looted torps +20pts; launch bays to mine launchers (S D3+1) +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts |
+| Hammer Battlekroozer | 225 | 10 | 32mm | 20cm | 45° | 2 | 6+P / 5+ | 3 | Prow Gunz 45cm FP D6+6 (F); Prow Kustom Kannon 30cm FP Special (F); Gunz 30cm FP6 (L), (R); Heavy Gunz 30cm FP6(10) (L), (R); Launch Bays S D3+1 (MR 25cm, AB 30cm) | Ponderous (no Come to New Heading); may swap Ld with any cruiser that rolled higher. Kustom Kannon fires as an FP6 killkannon or launches S D6+2 torps (one mode per turn); it must be reloaded using Reload Ordnance after firing, whichever mode it used. Free hull krusha. Options: launch bays to torpedo bombers +30pts; Soopa boostas +25pts; Kustom Kannon looted torps +20pts; launch bays to mine launchers (S D3+1) +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts |
 | Terror Ship *Cruiser* | 175 | 10 | 32mm | 20cm | 45° | 1 | 6+/5+/4+ | 3 | Prow Gunz 45cm FP D6+4 (F); Prow Heavy Gunz 30cm FP6(10) (F); Gunz 30cm FP6 (L), (R); Launch Bays port S2 + stbd S2 (MR 25cm, AB 30cm) | Armour front/abeam/rear. Free hull krusha. Replace prow heavy gunz with a prow torpedo launcha (30cm D6+2 F) +10pts or prow zzapp gunz (30cm D3+1 F) +5pts. Options: launch bays to torpedo bombers +40pts; Soopa boostas +25pts; torps to looted torps +20pts; port/stbd launch bays to mine launchers (S2 each) +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts |
 | Kill Kroozer | 155 | 10 | 32mm | 20cm | 45° | 1 | 6+/5+/4+ | 3 | Prow Gunz 45cm FP D6+6 (F); Prow Heavy Gunz 30cm FP6(10) (F); Gunz 30cm FP6 (L), (R); Heavy Gunz 30cm FP4(6) (L), (R) | Armour front/abeam/rear. Free hull krusha. Replace prow heavy gunz with a prow torpedo launcha (30cm D6+2 F) +10pts or prow zzapp gunz (30cm D3+1 F) +5pts; with the torpedo launcha, may drop both side heavy gunz to add +D6 to it (total 2D6+2) free, or replace both side heavy gunz with zzapp gunz (30cm D3+1, L/R) +20pts. Options: Soopa boostas +25pts; torps to looted torps +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts |
 | Basha Lite Kroozer | 110 | 8 | 32mm | 20cm | 45° | 1 | 6+/5+/4+ | 3 | Prow Gunz 45cm FP D6+2 (F); Prow Heavy Gunz 30cm FP4(6) (F); Gunz 30cm FP4 (L), (R) | Armour front/abeam/rear. Replace prow heavy gunz with a prow torpedo launcha (30cm D6+1 F) free or prow zzapp gunz (30cm D3+1 F) +10pts. Options: Soopa boostas +20pts; torps to looted torps +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts; Hull Krusha +5pts |
@@ -176,7 +176,7 @@ Default Leadership 6. Never crippled; destroyed only. Follows normal ship rules 
 
 **Movement:** moves exactly 10cm straight each turn, never slowed by blast markers or damage. May turn up to 45° only at the end of the move and only every second phase. In a planet's or moon's gravity well it may make one 45° turn toward that body even if it already turned; it also creates its own gravity well 5cm out from its base, which ships and Roks can orbit (orbiting objects move with it until they break orbit).
 
-**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.169), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
+**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.181), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
 #### Ork Rok (Xenos p.72)
 
@@ -192,13 +192,13 @@ Single fleet list (*Xenos p.73*); attack rating 3. Upgrade costs are added to th
 
 | Section | Allowance | Options (pts) |
 |---|---|---|
-| Fleet commander | 0-1 Ork Boss per 500pts (one required at 500+pts); each grants its ship one kustom upgrade | Warboss 40, Big Mek 40, Freebooter Kaptin 30. Titles: Big Boss (1 re-roll, +1 upgrade) 20, Mega Boss (2 re-rolls, +2 upgrades) 40 |
-| Secondary | up to 2 Nobz per 500pts; each grants its ship one kustom upgrade | Nob 20 |
+| Fleet commander | 0-1 Ork Boss per 500pts (or portion thereof), assigned to any ship desired (one required at 500+pts); each grants its ship one kustom upgrade | Warboss 40, Big Mek 40, Freebooter Kaptin 30. Titles: Big Boss (1 re-roll, +1 upgrade) 20, Mega Boss (2 re-rolls, +2 upgrades) 40 |
+| Secondary | up to 2 Nobz per 500pts (or portion thereof), each assigned to any ship; each grants its ship one kustom upgrade | Nob 20 |
 | Battleships (0-4) | one named per two kroozers; each is unique | Gorbag's Revenge 315, Slamblasta 295, Dethdeala 285, Kroolboy 265 |
 | Battlekroozers | one per two kroozers | Hammer Battlekroozer 225 |
 | Kroozers | any number | Terror Ship 175, Kill Kroozer 155, Basha Lite Kroozer 110 |
 | Escorts | any number, squadrons of 3-10 | Grunt 35, Ravager 35, Onslaught 30, Savage 25, Brute 20 |
-| Special | any Ork Roks; one Space Hulk per 1500pts | Ork Space Hulk 610, Ork Rok 80 |
+| Special | any Ork Roks; one Space Hulk per full 1500pts | Ork Space Hulk 610, Ork Rok 80 |
 | Kustom upgrades | commander's ship, up to the title's limit | Extra Turrets 20, Extra Power Field 20, Mad Meks 20, Mega Armored Boarding Parties 15, Grot Riggers 15, More Dakka! 10, Soopa Tellyporta (capital only) 10 |
 
 **Da Ork Clanz:** a commander may be backed by one of five clans for +50% of his cost (Goffs, Evil Sunz, Bad Moons, Deathskulls, Blood Axes), giving that clan's bonus to his ships; or any un-clanned ship/squadron may take Snakebite affiliation free. **Assault karriers:** any capital ship with launch bays may become one free (one extra assault-boat marker, but launches only assault boats). **Ordnance:** torpedo-armed ships carry ordinary and boarding torpedoes free. **Reserves:** looted cruisers from any Imperial Navy, Chaos, or Tau fleet list; no other reserves.
