@@ -115,6 +115,20 @@ class ShipClassEntry:
             if "remove_weapons" in u.effect:
                 gone = set(u.effect["remove_weapons"])
                 d["weapons"] = [w for w in d["weapons"] if w.get("name") not in gone]
+            for mod in u.effect.get("modify_weapons", []):
+                # {"match": {"name": ..., "range_cm": ...}, "set": {...}}: change the
+                # weapons matching every key (Mercury and Tyrant have two weapons
+                # of one name at different ranges)
+                for w in d["weapons"]:
+                    if all(w.get(k) == v for k, v in mod["match"].items()):
+                        w.update(mod.get("set", {}))
+            for ctype, speed in u.effect.get("add_craft", {}).items():
+                # "Attack craft: AB 30cm +5pts": the launch bays may also carry it
+                for w in d["weapons"]:
+                    if w.get("weapon_type") == "launch_bay" and ctype not in w.get("craft_types", []):
+                        w["craft_types"] = list(w.get("craft_types", [])) + [ctype]
+                        w["craft_speeds"] = {**w.get("craft_speeds", {}), ctype: speed}
+                        w["craft_speed"] = max(w["craft_speeds"].values())
             if "add_weapon" in u.effect:
                 d["weapons"].append(u.effect["add_weapon"].copy())
             d["weapons"] += [w.copy() for w in u.effect.get("add_weapons", [])]

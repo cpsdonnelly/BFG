@@ -1314,7 +1314,11 @@ def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) ->
         replace_with_blast_marker(ship, game_state)
         return "escort_destroyed"
 
-    roll = dice.roll_2d6(f"Catastrophic Damage for {ship.name}")
+    if "catastrophic_3d6" in ship.special_rules:
+        # Mercury: 3D6 instead of 2D6, any result over 12 counts as 12
+        roll = min(12, sum(dice.roll_d6(3, f"Catastrophic Damage for {ship.name} (3D6)")))
+    else:
+        roll = dice.roll_2d6(f"Catastrophic Damage for {ship.name}")
     result = lookup_catastrophic(roll)
     game_state.add_log(f"Catastrophic Damage on {ship.name}: {result} (rolled {roll})")
 

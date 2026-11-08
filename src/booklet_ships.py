@@ -312,6 +312,10 @@ def convert_row(row: dict) -> dict:
     if "Ablative Prow Armour" in notes:
         # Ignores Prow Armament Damaged crits; lost if prow torpedoes are taken
         special_rules.append("ablative_prow_armor")
+    if "Always rolls 3D6 on the Catastrophic Damage table" in notes:
+        special_rules.append("catastrophic_3d6")          # Mercury
+    if "Sensors +1 Ld at all times (max 10)" in notes:
+        special_rules.append("ld_always:1")               # Emperor, Oberon
     special_rules += gravitic_hook_rules(row)
     if _has_built_in_thrusters(notes):
         # Sigils of Quickening are their own rule so a campaign Improved

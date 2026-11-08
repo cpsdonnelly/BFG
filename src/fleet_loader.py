@@ -174,4 +174,12 @@ def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
         for i in indices:
             gs.ships[i]["leadership"] = ld
         logs.append(f"{names}: Leadership {ld} (rolled {roll})")
+    # "+1 Ld at all times (max 10)": Sensors (Emperor, Oberon) and the grand
+    # cruisers' Comms Uplink, added after the roll or a commander's own Ld
+    for s in gs.ships:
+        bonus = sum(int(r.split(":")[1]) for r in s.get("special_rules", [])
+                    if r.startswith("ld_always:"))
+        if bonus:
+            s["leadership"] = min(10, s["leadership"] + bonus)
+            logs.append(f"{s['name']}: Leadership {s['leadership']} (+{bonus} at all times)")
     return logs

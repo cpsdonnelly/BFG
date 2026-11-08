@@ -160,6 +160,15 @@ booklet updates 33-34: commander re-rolls (fleet and secondary) are lost on Brid
 scores the commander's cost, which is part of that ship's points value (options add to
 `points_value`, which `victory_points` scores).
 
+Imperial Navy profile refits (`booklet_options.navy_refit_options`, matched on each note's
+text): weapon swaps (`remove_weapons` + `add_weapon`), range / firepower changes
+(`modify_weapons`, matched by name and range: Mercury and Tyrant have two weapons of one
+name), extra craft types (`add_craft`, assault boats +5), Targeting Matrix, Extra Turrets,
+the grand cruisers' "one of" group, the Cobra's improved sensor array (Enemy Contacts +2).
+Torpedo types bought for a refit's torpedoes need that refit; a refit that removes the
+torpedoes excludes them (`excludes_group:`). Built in from notes: Mercury `catastrophic_3d6`,
+Sensors `ld_always:1` (+1 Ld after the roll or a commander's Ld, max 10; Comms Uplink too).
+
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the
 player's Space Marine ships. Checked against the booklet text (s.03): Wings of Fury "may

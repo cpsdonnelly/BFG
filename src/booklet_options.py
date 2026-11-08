@@ -114,13 +114,13 @@ def torpedo_strength(row: dict) -> int:
                and w.get("stat") == "S" and str(w.get("value", "")).isdigit())
 
 
-def torpedo_type_options(row: dict) -> List[Dict]:
+def torpedo_type_options(row: dict, strength: int = 0, requires: str = "") -> List[Dict]:
     """Imperial Navy and Chaos fleet lists: capital ships armed with torpedoes
     may take short burn, guided torpedoes or barrage bombs at +5 per torpedo
     strength, or the +50pt D3 roll. Owner ruling: one
     type per ship, carried in addition to its other torpedoes. (Guided
     torpedoes and anointed munitions aren't playable yet.)"""
-    st = torpedo_strength(row)
+    st = strength or torpedo_strength(row)
     from .booklet_ships import _ship_type
     if not st or _ship_type(row) not in ("cruiser", "battleship"):
         return []                      # "any capital ship armed with torpedoes"
@@ -143,6 +143,9 @@ def torpedo_type_options(row: dict) -> List[Dict]:
                  "points_cost": 50,
                  "effect": {"add_special_rules": ["torpedo_roll:d3_anointed"]},
                  "restrictions": ["group:torpedo_type"]})
+    if requires:                       # torpedoes only from a refit (Victory, Mercury...)
+        for o in opts:
+            o["restrictions"].append("requires_any:" + requires)
     return opts
 
 
@@ -444,6 +447,113 @@ def fleet_commander_options(row: dict) -> List[Dict]:
     return opts
 
 
+# ── Imperial Navy profile refits (bfgxr/rules/01_imperial-navy.md roster notes) ──
+
+_NC = {"name": "Prow Nova Cannon", "weapon_type": "nova_cannon", "range_cm": 150,
+       "strength": 0, "arcs": ["front"], "min_range_cm": 30}
+
+
+def _torps(strength: int) -> Dict:
+    return {"name": "Prow Torps", "weapon_type": "torpedo", "range_cm": 30, "strength": strength,
+            "arcs": ["front"], "torpedo_type": "standard", "torpedo_speed": 30}
+
+
+def _macro(side_range: int, sets: Dict) -> List[Dict]:
+    return [{"match": {"name": f"{side} Macrobatteries", "range_cm": side_range}, "set": sets}
+            for side in ("Port", "Starboard")]
+
+
+def _opt(name, desc, cost, effect, restrictions=()):
+    return {"name": name, "description": desc, "points_cost": cost, "effect": effect,
+            "restrictions": list(restrictions)}
+
+
+def navy_refit_options(row: dict) -> List[Dict]:
+    """The refits printed in Imperial Navy profiles. Each is matched on its note
+    text, so a reworded export drops the option instead of keeping a stale one.
+    Torpedo bomber purchases ("TB 20cm +Npts") wait on torpedo bombers firing
+    their salvo (s.21); they aren't offered."""
+    notes = row.get("notes") or ""
+    opts: List[Dict] = []
+    torps_from = ""                   # option names that give the ship torpedoes
+    torp_strength = 0
+
+    if "AB 30cm +5pts" in notes:
+        from .booklet_ships import _IN_CRAFT
+        opts.append(_opt("Attack craft: assault boats", "+5pts. Its launch bays may also "
+                         "launch assault boats (30cm).", 5,
+                         {"add_craft": {_IN_CRAFT["AB"]: 30}}))
+    if "swap prow nova cannon for prow torpedoes (30cm S9 F), -10pts" in notes:      # Victory
+        opts.append(_opt("Refit: prow torpedoes (S9) for the nova cannon",
+                         "-10pts. Prow torpedoes 30cm S9 (F) instead of the prow nova cannon.",
+                         -10, {"remove_weapons": ["Prow Nova Cannon"], "add_weapon": _torps(9)},
+                         ["group:navy_prow"]))
+        torps_from, torp_strength = opts[-1]["name"], 9
+    if "swap prow torpedoes for prow nova cannon (30-150cm Template F) +20pts" in notes or \
+            "May swap prow torpedoes for a prow nova cannon (30-150cm, Template, F), +20pts" in notes:
+        opts.append(_opt("Refit: prow nova cannon for the torpedoes",
+                         "+20pts. A prow nova cannon (30-150cm, F) instead of the prow torpedoes.",
+                         20, {"remove_weapons": ["Prow Torps"], "add_weapon": dict(_NC)},
+                         ["group:navy_prow", "excludes_group:torpedo_type"]))
+    if "swap nova cannon for torpedo salvo (30cm S6 F), -20pts" in notes:            # Mercury
+        opts.append(_opt("Refit: prow torpedoes (S6) for the nova cannon",
+                         "-20pts. A torpedo salvo 30cm S6 (F) instead of the prow nova cannon.",
+                         -20, {"remove_weapons": ["Prow Nova Cannon"], "add_weapon": _torps(6)},
+                         ["group:navy_prow"]))
+        torps_from, torp_strength = opts[-1]["name"], 6
+    if "swap prow lances for prow torpedoes (30cm S6 F), no cost change" in notes:   # Dauntless
+        opts.append(_opt("Refit: prow torpedoes (S6) for the lances",
+                         "Free. Prow torpedoes 30cm S6 (F) instead of the prow lances.",
+                         0, {"remove_weapons": ["Prow Lances"], "add_weapon": _torps(6)},
+                         ["group:navy_prow"]))
+        torps_from, torp_strength = opts[-1]["name"], 6
+    if "45cm Macrobatteries to 60cm +10pts" in notes:                                 # Mercury
+        opts.append(_opt("Refit: 45cm macrobatteries to 60cm", "+10pts.", 10,
+                         {"modify_weapons": _macro(45, {"range_cm": 60})}))
+    if "30cm Macrobatteries to 45cm +10pts" in notes:                                 # Tyrant
+        opts.append(_opt("Refit: 30cm macrobatteries to 45cm", "+10pts.", 10,
+                         {"modify_weapons": _macro(30, {"range_cm": 45})}))
+    if "Macrobatteries to FP6 for 45cm range, -5pts" in notes:                        # Dominator
+        opts.append(_opt("Refit: macrobatteries 45cm FP6", "-5pts. Port and starboard "
+                         "macrobatteries 45cm FP6 instead of 30cm FP12.", -5,
+                         {"modify_weapons": _macro(30, {"range_cm": 45, "strength": 6})}))
+    if "reduce its macrobatteries' range to 30cm to increase their firepower to 10" in notes:
+        opts.append(_opt("Refit: macrobatteries 30cm FP10", "Free. Port and starboard "    # Exorcist
+                         "macrobatteries 30cm FP10 instead of 45cm FP8.", 0,
+                         {"modify_weapons": _macro(45, {"range_cm": 30, "strength": 10})}))
+    if "Targeting Matrix (Macrobatteries get +1 left column-shift) +15pts" in notes:
+        opts.append(_opt("Refit: Targeting Matrix", "+15pts. Macrobatteries get a column "
+                         "shift to the left.", 15, {"add_special_rules": ["targeting_matrix"]}))
+    if "Extra Turrets 2→3 +10pts" in notes:
+        opts.append(_opt("Refit: Extra Turrets (2 to 3)", "+10pts.", 10,
+                         {"stat_delta": {"turrets": 1}}))
+    if "May buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; " \
+            "Improved Thrusters (+D6cm on All Ahead Full) +5pts" in notes \
+            or "May also buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; " \
+            "Improved Thrusters (+D6cm on All Ahead Full) +5pts" in notes:            # grand cruisers
+        opts += [
+            _opt("Refit: Prow Torps (S6)", "+25pts. Prow torpedoes 30cm S6 (F); the ship "
+                 "loses Ablative Prow Armour.", 25,
+                 {"add_weapon": _torps(6), "remove_special_rules": ["ablative_prow_armor"]},
+                 ["group:grand_cruiser_refit"]),
+            _opt("Refit: Comms Uplink (+1 Ld)", "+20pts. +1 Leadership (max 10).", 20,
+                 {"add_special_rules": ["ld_always:1"]}, ["group:grand_cruiser_refit"]),
+            _opt("Refit: Improved Thrusters", "+5pts. +D6cm on All Ahead Full.", 5,
+                 {"add_special_rules": ["improved_thrusters"]}, ["group:grand_cruiser_refit"]),
+        ]
+        torps_from, torp_strength = "Refit: Prow Torps (S6)", 6
+    if "swap Macrobatteries for improved sensor array (+2 Ld vs enemy on special orders " \
+            "instead of +1 Ld), no cost change" in notes:                             # Cobra
+        opts.append(_opt("Refit: improved sensor array", "Free. No macrobattery; enemy "
+                         "ships on special orders give +2 Ld instead of +1. The whole "
+                         "squadron must match.", 0,
+                         {"remove_weapons": ["Macrobattery"],
+                          "add_special_rules": ["improved_sensor_array"]}))
+    if torps_from and not torpedo_strength(row):
+        opts += torpedo_type_options(row, torp_strength, torps_from)
+    return opts
+
+
 def options_for(row: dict) -> List[Dict]:
     """Options for one booklet ship: Space Marine and Inquisition options,
     torpedo types and refits, and each faction's fleet commander."""
@@ -455,6 +565,8 @@ def options_for(row: dict) -> List[Dict]:
     opts: List[Dict] = []
     if "Imperial Navy" in rules or "Chaos" in rules:
         opts = torpedo_type_options(row)
+    if "Imperial Navy" in rules:
+        opts += navy_refit_options(row)
     elif "Adeptus Mechanicus" in rules or "Orks" in rules:
         opts = refitted_torpedo_options(row)
     elif "Inquisition & Grey Knights" in rules:
@@ -476,6 +588,11 @@ def ship_option_errors(entry, chosen: List[str]) -> List[str]:
                 groups.setdefault(r[6:], []).append(name)
             elif r.startswith("requires:") and r[9:] not in chosen:
                 errors.append(f"{name} needs {r[9:]}.")
+            elif r.startswith("excludes_group:"):
+                g = "group:" + r[len("excludes_group:"):]
+                clash = [n for n in chosen if n in by_name and g in by_name[n].restrictions]
+                if clash:
+                    errors.append(f"{name} can't be taken with {', '.join(clash)}.")
             elif r.startswith("requires_any:"):
                 need = r[len("requires_any:"):].split("|")
                 if not any(n in chosen for n in need):

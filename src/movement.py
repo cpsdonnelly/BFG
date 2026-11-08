@@ -522,8 +522,10 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
         ld -= 1
         mods.append("Under Fire -1")
     if enemy_on_special:
-        ld += 1
-        mods.append("Enemy Contacts +1")
+        # Cobra improved sensor array: +2 instead of +1
+        bonus = 2 if "improved_sensor_array" in ship.special_rules else 1
+        ld += bonus
+        mods.append(f"Enemy Contacts +{bonus}")
     # Modifiers can't take Ld above 10 or below 0 (s.6); at Ld 1 or less a
     # ship always fails (s.3), which a 2D6 roll against it does
     ld = max(0, min(10, ld))

@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **877 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **885 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -103,6 +103,12 @@ session.
 - Resilient squadrons don't stop or split off a wave (s.23); CAP fighters intercept a wave's
   squadrons in order after its turret roll (order of turrets vs CAP not stated).
 - Melta / vortex launcher location taken from the torpedo weapon's arc.
+- Sensors (Emperor, Oberon, both Mechanicus versions) and the grand cruisers' Comms Uplink:
+  "+1 Ld at all times (max 10)" is added after the starting roll **and** after a commander's
+  own Ld (a Fleet Admiral's Ld 9 on an Emperor becomes 10) (`ld_always:1`,
+  `fleet_loader.roll_starting_leadership`). It stacks with a secondary commander's +1.
+- Navy profile refits with no "one of" wording (Mercury's two, Tyrant's two, Mars / Overlord's
+  two) may all be taken together; the grand cruisers' "may buy one of" is one only.
 
 ## Booklet export bug to report
 
@@ -148,8 +154,14 @@ Black Crusade; 178 booklet ships (3 Notable Xenos cutters, Courier Transport). T
 Tau re-roll costs and the Ork Boss rules match what was built.
 
 **Still to do from it (read the CHANGES.md entry before each):**
-- Navy (update 17): Lunar refit to prow nova cannon +20; Mercury 3D6 catastrophic; Exorcist
-  macrobatteries 30cm FP10 option; grand cruiser refits "may buy one of"; Bakka starred classes
+- Navy (update 17): **profile refits done** (`booklet_options.navy_refit_options`, each
+  matched on its note text: Victory / Mercury / Dauntless torpedoes, Lunar / Tyrant /
+  Armageddon nova cannon, macrobattery range and firepower changes, Targeting Matrix, Extra
+  Turrets, grand cruisers' one of Prow Torps / Comms Uplink / Improved Thrusters, Cobra
+  improved sensor array, assault boats +5), Mercury 3D6 catastrophic and Sensors +1 Ld.
+  Not yet: torpedo bomber purchases ("TB 20cm +Npts", Navy, Mechanicus, Chaos: torpedo
+  bombers can't fire their salvo yet, s.21), the Cobra's "whole squadron must match".
+  Still to do: Bakka starred classes
   +1 Turret (cost included), Veteran Captains (+1 Ld max 10, 30, re-roll +15), Fleet Defence
   Turrets, Mechanicus cruisers in battlecruiser slots, no Bakka mine launchers; Armageddon
   Admiral / Master of the Fleet ship rules.

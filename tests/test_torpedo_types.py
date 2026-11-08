@@ -171,7 +171,8 @@ def test_navy_and_chaos_torpedo_ships_may_buy_one_type():
     from src.booklet_options import ship_option_errors
     assert ship_option_errors(lunar, list(opts))        # only one type per ship
     # Capital ships only (export 10): escorts with torpedoes get none
-    assert not find_ship_class("Cobra Destroyer").upgrades_available
+    assert not [u for u in find_ship_class("Cobra Destroyer").upgrades_available
+                if u.name.startswith("Torpedoes")]
     assert not find_ship_class("Infidel Raider").upgrades_available
     assert any(u.name.startswith("Torpedoes:")
                for u in find_ship_class("Desolator Battleship").upgrades_available)

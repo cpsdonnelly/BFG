@@ -181,12 +181,13 @@ def test_to_ship_dict_carries_leadership_table_and_booklet_points():
 
 
 def test_booklet_ships_without_options_have_no_upgrades():
-    # Lunar: only the Navy torpedo types so far
+    # Lunar: the Navy torpedo types, its nova cannon refit and commanders
     from src.booklet_options import commander_names
     cmd = set(commander_names("Imperial Navy"))
     assert {u.name.split(":")[0] for u in get_upgrades_for_ship(
         get_ship_class("imperial_navy_gothic", "Lunar Cruiser")) if u.name not in cmd} == {
-        "Torpedoes", "Commander", "Strategic Commander (+1 Ld, max 9)", "Strategic Commander"}
+        "Torpedoes", "Refit", "Commander", "Strategic Commander (+1 Ld, max 9)",
+        "Strategic Commander"}
 
 
 def test_old_defense_spelling_still_resolves():

@@ -309,7 +309,8 @@ def test_commander_options_set_ld_and_rerolls():
     assert d["leadership_table"] and d["rerolls_remaining"] == 2 and "ld_bonus:1" in d["special_rules"]
     from src.booklet_options import ship_option_errors
     assert ship_option_errors(kk, ["Boss title: Big Boss"])          # needs a Boss
-    assert not find_ship_class("Cobra Destroyer").upgrades_available   # capital ships only
+    assert not [u for u in find_ship_class("Cobra Destroyer").upgrades_available   # capital ships only
+                if "Admiral" in u.name or "Commander" in u.name]
 
 
 def test_freebooter_kaptin_adds_one_to_rolled_leadership():
