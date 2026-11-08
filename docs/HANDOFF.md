@@ -69,8 +69,7 @@ session.
   Rogue Trader captains, Ork Bosses with titles (Kaptin +1 Ld). Fleet lists check the required
   commander (`fleet_lists._attach_commanders`: 750+, Explorator 1000+, Orks one per 500pts,
   RT detachment always) and a Tau Custodian needs a Kor'O. Values for the Archmagos and Tau
-  re-roll costs and Ork Boss Ld came from the owner (the newer booklet zip they mentioned
-  hadn't arrived; check it against these when it does).
+  re-roll costs and Ork Boss Ld came from the owner; export 31 confirms them.
 
 - **Commander re-rolls on more Leadership tests** (Brace for Impact, target priority, asteroid
   and warp rift navigation; `movement.fleet_reroll_offered`, `GameState.ld_reroll_hook`) and
@@ -81,6 +80,22 @@ session.
 
 - Nothing. Export 31 settled the 750-point commander threshold and confirmed the Archmagos /
   Tau re-roll costs.
+
+## Readings to confirm (my choices, not owner rulings)
+
+Ask the owner about these when convenient (they're also noted in CLAUDE.md):
+- AI re-roll policy: the AI spends a fleet re-roll on a failed Leadership test only while it
+  has 2+ left; it re-rolls Wings of Fury raids only when the raid had no effect.
+- Waves: multi-role fighter-bombers always attack (the s.27 choice to suppress isn't offered);
+  resilient squadrons don't stop or split off a wave (s.23); CAP fighters intercept a wave's
+  squadrons in order after its turret roll (order of turrets vs CAP not stated).
+- Squadron volleys: the default aspect fired at is the hardest present.
+- Melta / vortex launcher location taken from the torpedo weapon's arc.
+
+## Booklet export bug to report
+
+- `ships.json` `profile_from` is still cut off for the three Grey Knights escorts
+  ("Space Marine Nova (p", "... Gladius (p", "... Hunter (p"). The game doesn't use the field.
 
 ## Booklet export 31 (installed last; CHANGES.md updates 16-31)
 
