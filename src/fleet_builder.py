@@ -1096,7 +1096,10 @@ class FleetBuilderWindow:
                     storable["points_value"] += tactical_flexibility_refund(
                         [row["upgrades"] + ["Chapter tactic:"]], [entry])
                 for stat, delta in list_stat_changes(row["list"], entry.ship_class).items():
-                    storable[stat] = storable.get(stat, 0) + delta   # Bakka +1 Turret
+                    if stat == "special_rules":       # Renegade cruisers: -1 rolled Ld
+                        storable["special_rules"] = list(storable["special_rules"]) + delta
+                    else:
+                        storable[stat] = storable.get(stat, 0) + delta   # Bakka +1 Turret
             # Write non-default damage state for campaign/scenario use
             dmg = row.get("damage", {})
             if "hits_remaining" in dmg:

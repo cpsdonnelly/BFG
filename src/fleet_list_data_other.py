@@ -12,16 +12,13 @@ from typing import Dict, List
 # ── Chaos (07_chaos.md) ──────────────────────────────────────────────────────
 
 _CHAOS_UNENFORCED = [
-    "Fleet commander (0-1 Chaos Lord Ld8 50 or Warmaster Ld9 75, on the most expensive "
-    "capital ship, required at 750+pts) and Aspiring Champions are not in the fleet builder "
-    "yet.",
+    "The fleet commander rides the most expensive capital ship: not checked.",
     "Ratios (owner ruling, export 15): battleships and grand cruisers one per three "
     "cruisers and/or heavy cruisers, heavy cruisers one per two cruisers; light cruisers are "
     "their own 0-6 section and don't count.",
     "Escort squadrons of 2-6: not checked.",
     "Torpedo types (one per capital ship), anointed munitions, and mine launchers on up to "
     "two cruisers or heavy cruisers: not checked here.",
-    "No reserves list is named.",
 ]
 
 _CHAOS_GC = {"Retaliator Grand Cruiser": 275, "Nephilim Grand Cruiser": 250,
@@ -116,21 +113,26 @@ CHAOS_LISTS = [
          {"name": "Escorts",
           "ships": {"Idolator Raider": 45, "Infidel Raider": 40, "Iconoclast Destroyer": 25}},
      ],
-     "reserves": [],
+     "reserves": ["chaos_black_crusade", "chaos_renegades"],
+     "reserve_excludes": ["The Planet Killer", "Chaos Space Hulk"],
      "unenforced": list(_CHAOS_UNENFORCED)},
     {"key": "chaos_black_crusade", "faction": "chaos",
      "name": "13th Black Crusade Fleet (Imperium p.55-56)",
      # Export 25: the Relictor (300) was missing from the battleships
-     "sections": _chaos_core_sections(dict(_CRUSADE_BS, **_DEDICATED,
-                                           **{"Relictor Battleship": 300}),
-                                      {s: 1 for s in _DEDICATED}) + [
-         {"name": "Special",
-          "class_max": {"The Planet Killer": 1, "Chaos Space Hulk": 1},
-          "class_min_points": {"The Planet Killer": 1000},
-          "ships": {"The Planet Killer": 505, "Chaos Space Hulk": 650}},
+     # The Planet Killer (fleet 1000+pts) counts as a battleship for fleet
+     # requirements and restrictions (update 25)
+     "sections": [dict(sec, class_min_points={"The Planet Killer": 1000})
+                  if sec["name"] == "Battleships" else sec
+                  for sec in _chaos_core_sections(
+                      dict(_CRUSADE_BS, **_DEDICATED, **{"Relictor Battleship": 300,
+                                                          "The Planet Killer": 505}),
+                      dict({s: 1 for s in _DEDICATED}, **{"The Planet Killer": 1}))] + [
+         {"name": "Special", "class_max": {"Chaos Space Hulk": 1},
+          "ships": {"Chaos Space Hulk": 650}},
          {"name": "Escorts", "ships": dict(_CHAOS_ESC)},
      ],
-     "reserves": [],
+     "reserves": ["chaos_incursion", "chaos_renegades"],
+     "reserve_excludes": ["Chaos Space Hulk"],
      "unenforced": list(_CHAOS_UNENFORCED) + list(_CRUSADE_UNENFORCED) + [
          "A Chaos Space Hulk, if taken, must be the fleet flagship."]},
     {"key": "chaos_renegades", "faction": "chaos", "name": "Renegades Fleet (Imperium p.57)",
@@ -139,6 +141,8 @@ CHAOS_LISTS = [
          {"name": "Escorts", "ships": dict(_CHAOS_ESC)},
          # Imperial Renegades: per full 750pts, up to six escorts and/or one cruiser
          # (worth up to 185pts) from the Bastion or Armageddon Sector lists
+         {"name": "Special", "class_max": {"Chaos Space Hulk": 1},
+          "ships": {"Chaos Space Hulk": 650}},
          {"name": "Imperial Renegade Cruisers", "per_points": 750,
           "ships": {"Gothic Cruiser": 180, "Lunar Cruiser": 180, "Tyrant Cruiser": 175,
                     "Dauntless Light Cruiser": 110, "Endeavour Light Cruiser": 110,
@@ -152,7 +156,10 @@ CHAOS_LISTS = [
                                  "Firestorm Frigate", "Sword Frigate", "Falchion Frigate",
                                  "Cobra Destroyer"],
                      "max": 6, "per_points": 750, "label": "Imperial Renegade escorts"}],
-     "reserves": [],
+     # "renegade cruisers subtract 1 from their rolled Leadership"
+     "stat_changes": {"sections": ["Imperial Renegade Cruisers"], "add_rules": ["ld_rolled:-1"]},
+     "reserves": ["chaos_black_crusade", "chaos_incursion"],
+     "reserve_excludes": ["The Planet Killer", "Chaos Space Hulk"],
      "unenforced": list(_CHAOS_UNENFORCED) + [
          "The (0-1) Chaos Space Marine Battle Barge (440) and Chaos Space Marine Strike "
          "Cruisers (145, one per 500pts) aren't in the catalog.",
@@ -164,7 +171,8 @@ CHAOS_LISTS = [
          "185pts)\" per full 750pts allows both; they are Chaos ships in all respects, so a "
          "renegade cruiser counts as a cruiser for the Chaos ratios (renegade light cruisers "
          "don't); they don't count against reserves. The Strike Cruiser is left out as an "
-         "ally of convenience in the Armageddon list. They subtract 1 from rolled Leadership."]},
+         "ally of convenience in the Armageddon list.",
+         "A Chaos Space Hulk must be the commander's flagship (it isn't playable yet)."]},
     _god_list("chaos_slaanesh", "Pleasure Fleet of Slaanesh (Imperium p.58-61)",
               "Wage of Sin (Emperor's Children)", "Khorne",
               "Boons: Veil of Lust (+20), Siren's Summon (+25, up to two ships)."),

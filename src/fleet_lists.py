@@ -429,6 +429,8 @@ def xenos_cutter_errors(rows: List[Dict]) -> List[str]:
 def reserve_allowed(main_key: str, reserve_key: str, ship_class: str) -> bool:
     """Whether a reserve list's ship may be offered (Demiurg War Host:
     Kor'or'vesh vessels only)."""
+    if ship_class in (LISTS.get(main_key) or {}).get("reserve_excludes", []):
+        return False                   # Chaos: no Planet Killer or space hulk as reserves
     allowed = (LISTS.get(main_key) or {}).get("reserve_sections", {}).get(reserve_key)
     if not allowed:
         return True
@@ -489,7 +491,12 @@ def list_stat_changes(list_key: str, ship_class: str) -> Dict:
     """Stat changes a list makes to the classes taken from it (Bakka's starred
     classes: +1 Turret)."""
     sc = (LISTS.get(list_key) or {}).get("stat_changes")
-    return dict(sc["delta"]) if sc and ship_class in sc["classes"] else {}
+    if not sc:
+        return {}
+    if "classes" in sc:
+        return dict(sc["delta"]) if ship_class in sc["classes"] else {}
+    sec = (section_of(LISTS[list_key], ship_class) or {}).get("name")
+    return {"special_rules": list(sc["add_rules"])} if sec in sc["sections"] else {}
 
 
 def option_allowed(option_name: str, list_keys: List[str]) -> bool:
@@ -667,6 +674,9 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
     # Kor'or'vesh vessels only)
     for key, rs in by_list.items():
         src = key.split(":", 1)[1] if key.startswith("reserve:") else None
+        for r in rs if src else []:
+            if r["entry"].ship_class in main.get("reserve_excludes", []):
+                errors.append(f"{r['entry'].ship_class} can't be taken as a reserve.")
         allowed = main.get("reserve_sections", {}).get(src) if src else None
         for r in rs if allowed else []:
             sec = (section_of(LISTS[src], r["entry"].ship_class) or {}).get("name", "")

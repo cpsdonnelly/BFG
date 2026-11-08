@@ -175,6 +175,10 @@ def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
             b = max(bonuses, key=lambda x: int(x[1]))
             cap = int(b[2]) if len(b) > 2 else 10
             ld = max(ld, min(cap, ld + int(b[1])))
+        # Imperial Renegade cruisers subtract 1 from their rolled Leadership
+        ld -= sum(-int(r.split(":")[1]) for i in indices[:1]
+                  for r in gs.ships[i].get("special_rules", []) if r.startswith("ld_rolled:"))
+        ld = max(0, ld)
         for i in indices:
             gs.ships[i]["leadership"] = ld
         logs.append(f"{names}: Leadership {ld} (rolled {roll})")
