@@ -920,7 +920,12 @@ class FleetBuilderWindow:
         """Ship points plus fleet-wide adjustments (a Chapter tactic removes the
         Tactical Flexibility discount on Strike Cruiser Variants)."""
         from .booklet_options import tactical_flexibility_refund
-        return (sum(r["points"] for r in self._fleet)
+        from .fleet_lists import no_tactical_flexibility
+        # Armageddon: its Space Marine ships never had the discount
+        no_tf = sum(tactical_flexibility_refund([r.get("upgrades", []) + ["Chapter tactic:"]],
+                                                [r["entry"]])
+                    for r in self._fleet if no_tactical_flexibility(r.get("list") or ""))
+        return (sum(r["points"] for r in self._fleet) + no_tf
                 + tactical_flexibility_refund([r.get("upgrades", []) for r in self._fleet],
                                               [r["entry"] for r in self._fleet]))
 
@@ -1078,7 +1083,11 @@ class FleetBuilderWindow:
             storable["points_value"] += row.get("base_cost", entry.points_cost) - entry.points_cost
             if row.get("list"):
                 storable["fleet_list"] = row["list"]
-                from .fleet_lists import list_stat_changes
+                from .fleet_lists import list_stat_changes, no_tactical_flexibility
+                if no_tactical_flexibility(row["list"]):
+                    from .booklet_options import tactical_flexibility_refund
+                    storable["points_value"] += tactical_flexibility_refund(
+                        [row["upgrades"] + ["Chapter tactic:"]], [entry])
                 for stat, delta in list_stat_changes(row["list"], entry.ship_class).items():
                     storable[stat] = storable.get(stat, 0) + delta   # Bakka +1 Turret
             # Write non-default damage state for campaign/scenario use

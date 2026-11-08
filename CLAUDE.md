@@ -172,6 +172,8 @@ Battlefleet Bakka: starred classes +1 Turret when taken from that list (`stat_ch
 `fleet_lists.list_stat_changes`, applied at fleet save), Veteran Captains (+1 Ld max 10, 30,
 0-3, re-roll +15) replace Strategic Commanders and Fleet Defence Turrets (+5) are offered
 only there (`list_options`, `list_excludes`), Mechanicus cruisers in the battlecruiser places.
+Armageddon Sector: Master of the Fleet may be its commander (`extra_commanders`); its Space
+Marine ships are allies of convenience (no Chapter tactics, `no_tactical_flexibility`).
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the

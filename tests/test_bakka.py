@@ -48,3 +48,29 @@ def test_fleet_defence_turrets_option_costs_two_turrets():
     d = find_ship_class("Lunar Cruiser").to_ship_dict(name="l", player=1,
                                                       upgrades=["Refit: Fleet Defence Turrets"])
     assert d["turrets"] == 0 and d["points_value"] == 185
+
+
+# ── Armageddon Sector (Imperium p.92) ─────────────────────────────────────────
+
+def test_armageddon_master_of_the_fleet_may_command_and_no_chapter_tactics():
+    from src.fleet_lists import no_tactical_flexibility
+    mof = "Master of the Fleet (Ld 10)"
+    r = rows("Space Marine Battle Barge", "Gothic Cruiser", "Gothic Cruiser", "Gothic Cruiser",
+             list_key="navy_armageddon")
+    r[0]["upgrades"] = [mof]
+    assert not any("commander" in e for e in fleet_list_errors("navy_armageddon", r, 1000))
+    r[0]["upgrades"] = []
+    assert any("commander" in e for e in fleet_list_errors("navy_armageddon", r, 1000))
+    tactic = next(u.name for u in r[0]["entry"].upgrades_available
+                  if u.name.startswith("Chapter tactic:"))
+    assert not option_allowed(tactic, ["navy_armageddon"])
+    assert option_allowed(tactic, ["sm_crusade"])
+    assert no_tactical_flexibility("navy_armageddon") and not no_tactical_flexibility("navy_gothic")
+
+
+def test_armageddon_strike_cruiser_variants_pay_full_price():
+    from src.booklet_options import tactical_flexibility_refund
+    from src.ship_catalog import find_ship_class
+    sc = find_ship_class("Strike Cruiser")
+    ups = ["Variant: macrobatteries to launch bays"]
+    assert tactical_flexibility_refund([ups + ["Chapter tactic:"]], [sc]) == 10

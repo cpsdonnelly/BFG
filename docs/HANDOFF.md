@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **890 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **892 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -171,8 +171,11 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   (-2 Turrets, +1 massed turret to friendly ships within 15cm including itself, max +3,
   `ordnance.get_massed_turret_bonus`), Mechanicus cruisers in the battlecruiser places at
   Explorator costs. No mine launcher upgrade exists to remove. Still to do: Lord Admiral Rath
-  (named commander, random Pride of Bakka refits), Armageddon Admiral / Master of the Fleet
-  ship rules.
+  (named commander, random Pride of Bakka refits). **Armageddon done:** Master of the Fleet
+  (on the Battle Barge) may be the commander; no Chapter tactics (`list_excludes`) and no
+  Tactical Flexibility (`no_tactical_flexibility`: its Strike Cruiser Variants pay full
+  price, in the fleet total and the saved ship's points). Admirals already go on Navy
+  capital ships only; no Space Marine ship has torpedo upgrades, and power rams don't exist.
 - Space Marines (18): Dominion nova cannon one per 1000pts or portion; Dominion Sword RSV and
   mixed squadrons; Dominion reserve rules rewritten; Space Marine Captains; veteran honour guard
   +10; Master of the Fleet ship rule; Tactical Flexibility covers specialist torpedoes only;

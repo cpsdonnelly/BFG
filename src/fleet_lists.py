@@ -75,10 +75,14 @@ NAVY_LISTS = [
                      "label": "Endurance and Defiant light cruisers (combined)"}],
      "reserves": ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion",
                   "admech_explorator"],
-     "unenforced": list(_NAVY_UNENFORCED) + [
-         "Seconded Space Marine vessels are allies of convenience (no Chapter Tactics or "
-         "Tactical Flexibility); the commander may instead be a Master of the Fleet on a "
-         "Battle Barge."]},
+     # Seconded Space Marine vessels are allies of convenience: no Chapter Tactics,
+     # no Tactical Flexibility (Strike Cruiser Variants pay full price). The
+     # commander may instead be a Master of the Fleet on the Battle Barge
+     # (_attach_commanders); Admirals are only offered on Navy capital ships.
+     "list_excludes": ["Chapter tactic:"],
+     "no_tactical_flexibility": True,
+     "extra_commanders": ["Master of the Fleet (Ld 10)"],
+     "unenforced": list(_NAVY_UNENFORCED)},
     {"key": "navy_bakka", "faction": "imperial_navy_gothic",
      "name": "Bakka Sector, Segmentum Tempestus (Imperium p.93)",
      "sections": [
@@ -324,7 +328,8 @@ def _attach_commanders() -> None:
         req = {"adeptus_mechanicus": 1000, "orks": 500}.get(fl["faction"], 751)
         if fl.get("kind") == "detachment":
             req = 0
-        fl["commander"] = {"options": names, "required_at": req}
+        fl["commander"] = {"options": names + fl.get("extra_commanders", []),
+                           "required_at": req}
         if fl["faction"] == "orks":
             fl["commander"]["per_points"] = 500
         if fl["faction"] == "tau_kororvesh":
@@ -366,6 +371,13 @@ def list_cost(fl: Optional[Dict], ship_class: str, default: int) -> int:
     if fl is None:
         return default
     return list_ships(fl).get(ship_class, default)
+
+
+def no_tactical_flexibility(list_key: str) -> bool:
+    """Armageddon: Space Marine ships are allies of convenience, so Strike
+    Cruiser Variants lose the Tactical Flexibility discount."""
+    src = list_key.split(":", 1)[1] if list_key.startswith("reserve:") else list_key
+    return bool((LISTS.get(src) or {}).get("no_tactical_flexibility"))
 
 
 def list_stat_changes(list_key: str, ship_class: str) -> Dict:
