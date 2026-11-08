@@ -960,8 +960,11 @@ class FleetBuilderWindow:
             errors.append(f"Fleet exceeds points limit: {total} > {limit} pts.")
 
         # A Master of the Fleet's ship is the flagship
+        from .booklet_options import commander_names, COMMANDERS, INQ_LORD
+        unique_cmds = {"Master of the Fleet (Ld 10)", INQ_LORD} | {
+            n for f in COMMANDERS for n in commander_names(f)}
         flagship_count = sum(1 for r in self._fleet if r["is_flagship"]
-                             or "Master of the Fleet (Ld 10)" in r.get("upgrades", []))
+                             or unique_cmds & set(r.get("upgrades", [])))
         if flagship_count > 1:
             errors.append("Fleet has more than one flagship.")
 

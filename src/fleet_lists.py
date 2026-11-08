@@ -287,6 +287,38 @@ try:                                   # Chaos, Orks, Tau, Rogue Traders
 except ImportError:                    # pragma: no cover
     pass
 
+def _attach_commanders() -> None:
+    """Each list's required fleet commander, now that the commanders are
+    fleet-builder options (booklet_options.COMMANDERS / ORK_BOSSES): 750+pts
+    (core s.5); Explorator 1000+pts; Green Tide one Boss at 500+pts and at
+    most one per 500pts; a Rogue Trader detachment always has its Rogue
+    Trader; a Tau fleet with a Custodian is led by a Kor'O."""
+    from .booklet_options import commander_names
+    by_faction = {"imperial_navy_gothic": "Imperial Navy", "chaos": "Chaos",
+                  "adeptus_mechanicus": "Adeptus Mechanicus", "tau_kororvesh": "Tau & Allies",
+                  "rogue_traders": "Rogue Traders", "orks": "Orks"}
+    for fl in ALL_LISTS:
+        rule = by_faction.get(fl["faction"])
+        if rule is None or fl.get("commander"):
+            continue
+        names = commander_names(rule)
+        if rule == "Rogue Traders":
+            want = ["Pirate Captain (Ld 8)"] if fl["key"] == "rt_wolf_pack" else [
+                n for n in names if "Lord Captain" in n]
+            names = want
+        req = {"adeptus_mechanicus": 1000, "orks": 500}.get(fl["faction"], 750)
+        if fl.get("kind") == "detachment":
+            req = 0
+        fl["commander"] = {"options": names, "required_at": req}
+        if fl["faction"] == "orks":
+            fl["commander"]["per_points"] = 500
+        if fl["faction"] == "tau_kororvesh":
+            fl.setdefault("class_needs_option", {})["Custodian Battleship"] = (0, ["Kor'O (Ld 9)"])
+        fl["unenforced"] = [u for u in fl.get("unenforced", [])
+                            if not u.lower().startswith("fleet commander")]
+
+
+_attach_commanders()
 LISTS: Dict[str, Dict] = {fl["key"]: fl for fl in ALL_LISTS}
 
 
@@ -422,12 +454,22 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
                 errors.append("With a Space Marine supporting fleet no Demiurg, Kroot or "
                               f"other xenos ships may be present ({', '.join(xenos)}).")
 
-    # Commander required
-    cmd = main.get("commander")
-    if cmd and cmd.get("required_at") and points_limit >= cmd["required_at"]:
-        if not any(u in cmd["options"] for r in rows for u in r.get("upgrades", [])):
-            errors.append(f"{main['name']}: a fleet of {cmd['required_at']}+ pts needs a "
-                          f"fleet commander ({' or '.join(cmd['options'])}).")
+    # Commander required (core s.5: a fleet of more than 750pts; lists may
+    # change the threshold), and Ork Bosses at most one per 500pts
+    for fl in [main] + dets:
+        cmd = fl.get("commander")
+        if not cmd:
+            continue
+        mine = rows if fl is main else by_list.get(fl["key"], [])
+        n_cmd = sum(1 for r in mine for u in r.get("upgrades", []) if u in cmd["options"])
+        if points_limit >= cmd.get("required_at", 750) and not n_cmd:
+            what = (f"a fleet of {cmd['required_at']}+ pts needs" if cmd["required_at"]
+                    else "needs")
+            errors.append(f"{fl['name']}: {what} a fleet commander "
+                          f"({' or '.join(cmd['options'])}).")
+        if cmd.get("per_points") and n_cmd > max(1, points_limit // cmd["per_points"]):
+            errors.append(f"{fl['name']}: {n_cmd} commanders, at most one per "
+                          f"{cmd['per_points']}pts.")
 
     # Options a list doesn't allow
     keys = [main_key] + [d["key"] for d in dets]

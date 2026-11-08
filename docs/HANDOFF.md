@@ -75,7 +75,7 @@ session.
    target priority, boarding, asteroid navigation and the rest. Secondary commanders
    (Strategic Commanders, Aspiring Champions, Elite Captains / Daemonhunters, Magi, Nobz...)
    don't exist: +Ld and ship/squadron-only re-rolls. Read s.5 before starting.
-2. **Fleet commanders for the other factions** as fleet-builder options in
+2. **DONE (this session's last commit): fleet commanders for the other factions** as fleet-builder options in
    `src/booklet_options.py` (pattern: Space Marine "Master of the Fleet (Ld 10)" and
    `INQ_LORD`): Navy Admirals (Vice/Fleet/Solar), Chaos Lord / Warmaster, Ork Warboss / Big
    Mek / Freebooter Kaptin with titles, Archmagos, Tau Kor'el / Kor'O, Rogue Trader. Costs and

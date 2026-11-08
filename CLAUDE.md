@@ -137,6 +137,21 @@ Variants (Tactical Flexibility -10pts unless the fleet takes a Chapter tactic), 
 Fleet (Ld 10, 0-3 re-rolls, Terminator honour guard, one Chapter tactic +15pts). Honour guards
 double teleport range; Veteran 2D6 keep best, Terminator 3D6 keep best two (two raids).
 
+Other factions' fleet commanders (`booklet_options.COMMANDERS`, `fleet_commander_options`,
+on capital ships): Navy Vice / Fleet / Solar Admiral (Ld 8/9/10, 50/75/100, 1 free re-roll,
++1/2/3 for 25/50/75), Chaos Lord / Warmaster (Ld 8/9, 50/75, 1 free, +25/50), Archmagos
+Explorator (Ld 9, 50, no free re-roll, +25/50), Tau Kor'el / Kor'O (Ld 8/9, 50/70, 1 free,
++25/50), Rogue Trader Lord Captain / Venerable Lord Captain / Pirate Captain. Owner rulings:
+the Archmagos and Tau re-roll costs (25 / 50, Imperium p.17, Xenos p.99); Ork Bosses
+(Warboss 40, Big Mek 40, Freebooter Kaptin 30) have no Ld of their own (the ship's rolled
+Ld; a Kaptin adds +1, `ld_bonus:1` in `fleet_loader.roll_starting_leadership`) and get
+re-rolls only from a title (Big Boss 1 +20, Mega Boss 2 +40). Each list's `commander`
+(`fleet_lists._attach_commanders`): required at 750+ pts ("750+" as the lists print it),
+Explorator 1000+, Green Tide one Boss at 500+ and at most one per 500pts, a Rogue Trader
+detachment always; a Tau Custodian needs a Kor'O. Not yet: several Ork Bosses' re-rolls
+(the engine keeps one re-roll pool, on the flagship), kustom upgrades, clans, secondary
+commanders, named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme...).
+
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the
 player's Space Marine ships. Checked against the booklet text (s.03): Wings of Fury "may
@@ -199,8 +214,7 @@ called by the fleet builder's validation. The fleet builder picks a list per fle
 faction's first by default; "No fleet list" plays without restrictions, s.4), shows the
 catalog by section, then the chosen detachment's ships and the reserve lists' ships, and saves
 `fleet_list`, `detachments` and each ship's `fleet_list`. Older fleet files load with no list.
-Rules a list can't check yet are in its `unenforced` text. Not yet: fleet commanders other
-than the Master of the Fleet and Inquisitor Lord, more than one detachment, "can't take more
+Rules a list can't check yet are in its `unenforced` text. Not yet: more than one detachment, "can't take more
 copies as reserves than its own list could field", reserve-only refit rules. Support assets
 have no list (they're scenario units).
 Owner rulings (fleet lists, export 15):

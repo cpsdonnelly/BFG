@@ -58,6 +58,7 @@ w._pts_limit_var.set("1500")
 ok, errs = w._validate_fleet()
 check(any(e.startswith("Battleships") for e in errs), f"battleship ratio error: {errs}")
 add("Tyrant Cruiser", "navy_gothic")
+w._fleet[0]["upgrades"] = ["Fleet Admiral (Ld 9)"]      # 750+ pts needs a commander
 ok, errs = w._validate_fleet()
 check(ok, f"valid with three cruisers: {errs}")
 

@@ -161,6 +161,12 @@ def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
         roll = roller.roll_d6(1, f"Starting Leadership for {names} "
                                  f"({first['leadership_table']} table)")[0]
         ld = table[roll - 1]
+        # A Freebooter Kaptin adds +1 to the rolled Ld of the ship or
+        # squadron he leads (owner ruling)
+        bonus = max((int(r.split(":")[1]) for i in indices
+                     for r in gs.ships[i].get("special_rules", []) if r.startswith("ld_bonus:")),
+                    default=0)
+        ld = min(10, ld + bonus)
         for i in indices:
             gs.ships[i]["leadership"] = ld
         logs.append(f"{names}: Leadership {ld} (rolled {roll})")

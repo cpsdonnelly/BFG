@@ -363,8 +363,9 @@ def test_game_start_torpedo_rolls():
 
 def test_refitted_looted_and_anointed_options():
     cost = {u.name: u.points_cost for u in find_ship_class("Mechanicus Gothic Cruiser").upgrades_available}
-    assert cost == {"Refitted Torpedoes (D6 at game start)": 20}
-    assert {u.points_cost for u in find_ship_class("Mechanicus Endeavour Light Cruiser").upgrades_available} == {10}
+    assert cost["Refitted Torpedoes (D6 at game start)"] == 20
+    assert {u.points_cost for u in find_ship_class("Mechanicus Endeavour Light Cruiser").upgrades_available
+            if u.name.startswith("Refitted")} == {10}
     assert "Looted Torpedoes (D6 at game start)" in [
         u.name for u in find_ship_class("Gorbag's Revenge (0-1)").upgrades_available]
     chaos = [u.name for u in find_ship_class("Desolator Battleship").upgrades_available]

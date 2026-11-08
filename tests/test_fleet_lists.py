@@ -1,7 +1,13 @@
 """Fleet lists (core rules s.4 and the faction Fleet Composition sections)."""
-from src.fleet_lists import (ALL_LISTS, LISTS, list_ships, list_cost, fleet_list_errors,
+from src.fleet_lists import (ALL_LISTS, LISTS, list_ships, list_cost,
                              lists_for_faction, detachments_for, option_allowed)
 from src.ship_catalog import find_ship_class
+from src import fleet_lists as _fl
+
+
+def fleet_list_errors(*a, **k):
+    """The list errors other than the required fleet commander (tested separately)."""
+    return [e for e in _fl.fleet_list_errors(*a, **k) if "needs a fleet commander" not in e]
 
 
 def rows(*names, list_key="", upgrades=None):
@@ -81,11 +87,11 @@ def test_reserves_one_per_three_of_the_same_type():
 
 def test_crusade_needs_master_of_the_fleet_at_750():
     r = rows("Space Marine Battle Barge", list_key="sm_crusade")
-    assert any("fleet commander" in e for e in fleet_list_errors("sm_crusade", r, 1000))
+    assert any("fleet commander" in e for e in _fl.fleet_list_errors("sm_crusade", r, 1000))
     r = rows("Space Marine Battle Barge", list_key="sm_crusade",
              upgrades=["Master of the Fleet (Ld 10)"])
-    assert fleet_list_errors("sm_crusade", r, 1000) == []
-    assert fleet_list_errors("sm_crusade", rows("Strike Cruiser", list_key="sm_crusade"),
+    assert _fl.fleet_list_errors("sm_crusade", r, 1000) == []
+    assert _fl.fleet_list_errors("sm_crusade", rows("Strike Cruiser", list_key="sm_crusade"),
                              500) == []
 
 
@@ -249,11 +255,11 @@ def test_custodians_per_750_of_tau_vessels():
                   list_key="tau_empire")
     cust = rows("Custodian Battleship", list_key="tau_empire")
     pts = [dict(r, points=r["entry"].points_cost) for r in cust + allies]
-    assert any("Battleships" in e for e in fleet_list_errors("tau_empire", pts, 1195))
+    assert any(e.startswith("Kor'or'vesh Battleships") for e in fleet_list_errors("tau_empire", pts, 1195))
     tau = [dict(r, points=r["entry"].points_cost)
            for r in rows("Protector Cruiser", "Protector Cruiser", "Hero Starship",
                          list_key="tau_empire")]
-    assert not any("Battleships" in e for e in fleet_list_errors("tau_empire", pts + tau, 1735))
+    assert not any(e.startswith("Kor'or'vesh Battleships") for e in fleet_list_errors("tau_empire", pts + tau, 1735))
 
 
 def test_demiurg_fixed_leadership_drops_with_damage():
@@ -270,3 +276,49 @@ def test_demiurg_fixed_leadership_drops_with_damage():
     dice = DiceStub(rolls)
     apply_damage(ship, 5, dice, gs, ignores_shields=True)
     assert dice._idx == len(rolls) and gs.get_ship_by_id("c").leadership == 5   # 9-5 -> 5 min
+
+
+def test_fleet_commanders_required_and_custodian_needs_kor_o():
+    navy = rows("Lunar Cruiser", "Gothic Cruiser", "Tyrant Cruiser", list_key="navy_gothic")
+    assert any("needs a fleet commander" in e for e in _fl.fleet_list_errors("navy_gothic", navy, 760))
+    assert not any("commander" in e for e in _fl.fleet_list_errors("navy_gothic", navy, 749))
+    navy[0]["upgrades"] = ["Fleet Admiral (Ld 9)"]
+    assert not any("commander" in e for e in _fl.fleet_list_errors("navy_gothic", navy, 900))
+    am = rows("Mechanicus Lunar Cruiser", list_key="admech_explorator")
+    assert not any("commander" in e for e in _fl.fleet_list_errors("admech_explorator", am, 999))
+    assert any("commander" in e for e in _fl.fleet_list_errors("admech_explorator", am, 1000))
+    orks = rows("Kill Kroozer", "Kill Kroozer", list_key="orks_green_tide",
+                upgrades=["Ork Warboss"])
+    assert any("one per 500pts" in e for e in _fl.fleet_list_errors("orks_green_tide", orks, 900))
+    assert not any("commander" in e for e in _fl.fleet_list_errors("orks_green_tide", orks, 1000))
+    tau = rows("Custodian Battleship", list_key="tau_empire", upgrades=["Kor'el (Ld 8)"])
+    assert any("Kor'O" in e for e in _fl.fleet_list_errors("tau_empire", tau, 800))
+    tau[0]["upgrades"] = ["Kor'O (Ld 9)"]
+    assert not any("Kor'O" in e for e in _fl.fleet_list_errors("tau_empire", tau, 800))
+
+
+def test_commander_options_set_ld_and_rerolls():
+    lunar = find_ship_class("Lunar Cruiser")
+    d = lunar.to_ship_dict("L", 1, upgrades=["Solar Admiral (Ld 10)", "Commander: 2 extra re-rolls"])
+    assert (d["leadership"], d["leadership_table"], d["rerolls_remaining"], d["is_flagship"]) == (
+        10, "", 3, True)
+    assert d["points_value"] == lunar.points_cost + 100 + 50
+    kk = find_ship_class("Kill Kroozer")
+    d = kk.to_ship_dict("K", 1, upgrades=["Ork Freebooter Kaptin", "Boss title: Mega Boss"])
+    assert d["leadership_table"] and d["rerolls_remaining"] == 2 and "ld_bonus:1" in d["special_rules"]
+    from src.booklet_options import ship_option_errors
+    assert ship_option_errors(kk, ["Boss title: Big Boss"])          # needs a Boss
+    assert not find_ship_class("Cobra Destroyer").upgrades_available   # capital ships only
+
+
+def test_freebooter_kaptin_adds_one_to_rolled_leadership():
+    from tests.conftest import make_gs, make_ship, DiceStub
+    from src.fleet_loader import roll_starting_leadership
+    s = make_ship(id="k", player=1, special_rules=["ld_bonus:1"])
+    s.leadership_table, s.leadership = "Orks", 0
+    gs = make_gs([s])
+    gs.ships[0]["leadership_table"] = "Orks"
+    dice = DiceStub([3])
+    roll_starting_leadership(gs, dice)
+    from src.booklet_ships import LEADERSHIP_TABLES
+    assert dice._idx == 1 and gs.ships[0]["leadership"] == min(10, LEADERSHIP_TABLES["Orks"][2] + 1)

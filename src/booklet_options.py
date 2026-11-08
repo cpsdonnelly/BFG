@@ -337,21 +337,98 @@ def venerable_strike_cruiser_options(row: dict) -> List[Dict]:
     return opts
 
 
+# Fleet commanders (each faction's Fleet Composition; owner rulings for the
+# Archmagos and Tau re-roll costs): (name, Ld or None, cost), free re-rolls,
+# cost of each extra re-roll count (1, 2, 3 ...).
+COMMANDERS = {
+    "Imperial Navy": ([("Vice Admiral", 8, 50), ("Fleet Admiral", 9, 75),
+                       ("Solar Admiral", 10, 100)], 1, [25, 50, 75]),
+    "Chaos": ([("Chaos Lord", 8, 50), ("Chaos Warmaster", 9, 75)], 1, [25, 50]),
+    "Adeptus Mechanicus": ([("Archmagos Explorator", 9, 50)], 0, [25, 50]),
+    "Tau & Allies": ([("Kor'el", 8, 50), ("Kor'O", 9, 70)], 1, [25, 50]),
+    "Rogue Traders": ([("Lord Captain", 8, 50), ("Venerable Lord Captain", 9, 75),
+                       ("Pirate Captain", 8, 50)], 1, [25, 50]),
+}
+# Ork Bosses have no Ld of their own (the ship's rolled Ld; a Freebooter
+# Kaptin adds +1) and get re-rolls only from a title (owner ruling)
+ORK_BOSSES = [("Warboss", 40), ("Big Mek", 40), ("Freebooter Kaptin", 30)]
+ORK_TITLES = [("Big Boss", 1, 20), ("Mega Boss", 2, 40)]
+
+
+def commander_names(faction_rule: str) -> List[str]:
+    if faction_rule == "Orks":
+        return [f"Ork {n}" for n, _ in ORK_BOSSES]
+    tiers = COMMANDERS.get(faction_rule, ([], 0, []))[0]
+    return [f"{n} (Ld {ld})" for n, ld, _ in tiers]
+
+
+def fleet_commander_options(row: dict) -> List[Dict]:
+    """The faction's fleet commander as options on a capital ship: fixed Ld
+    (it supersedes the ship's), free and bought re-rolls, flagship. Ork
+    Bosses (one per 500pts) instead keep the ship's rolled Ld and take a title
+    for re-rolls."""
+    from .booklet_ships import _ship_type
+    if _ship_type(row) not in ("cruiser", "battleship"):
+        return []
+    rules = row.get("faction_rules") or []
+    name = row["name"]
+    if any(k in name for k in ("Commerce Vessel", "Nicassar", "Kroot")):
+        return []                        # Demiurg field no commanders; allies
+    if "Orks" in rules:
+        names = commander_names("Orks")
+        opts = [{"name": f"Ork {n}",
+                 "description": f"Fleet commander, {cost}pts (one Boss per 500pts; one must "
+                                f"lead at 500+pts). Uses the ship's rolled Leadership"
+                                + ("; +1 to it." if n == "Freebooter Kaptin" else "."),
+                 "points_cost": cost,
+                 "effect": {"add_special_rules": ["fleet_commander"]
+                            + (["ld_bonus:1"] if n == "Freebooter Kaptin" else []),
+                            "flagship": True},
+                 "restrictions": ["group:fleet_commander"]} for n, cost in ORK_BOSSES]
+        opts += [{"name": f"Boss title: {t}",
+                  "description": f"+{cost}pts: {r} fleet commander re-roll{'s' if r > 1 else ''}.",
+                  "points_cost": cost, "effect": {"rerolls": r},
+                  "restrictions": ["group:boss_title", "requires_any:" + "|".join(names)]}
+                 for t, r, cost in ORK_TITLES]
+        return opts
+    faction = next((f for f in COMMANDERS if f in rules), None)
+    if faction is None:
+        return []
+    tiers, free, extra = COMMANDERS[faction]
+    names = commander_names(faction)
+    opts = [{"name": f"{n} (Ld {ld})",
+             "description": f"Fleet commander, {cost}pts: Ld {ld}"
+                            + (f", {free} free re-roll." if free else "."),
+             "points_cost": cost,
+             "effect": {"set": {"leadership": ld, "leadership_table": ""},
+                        "rerolls": free,
+                        "add_special_rules": ["fleet_commander"], "flagship": True},
+             "restrictions": ["fleet_unique", "group:fleet_commander"]}
+            for n, ld, cost in tiers]
+    opts += [{"name": f"Commander: {k} extra re-roll{'s' if k > 1 else ''}",
+              "description": f"{cost}pts.",
+              "points_cost": cost, "effect": {"rerolls": free + k},
+              "restrictions": ["group:commander_rerolls", "requires_any:" + "|".join(names)]}
+             for k, cost in enumerate(extra, start=1)]
+    return opts
+
+
 def options_for(row: dict) -> List[Dict]:
-    """Options for one booklet ship (Space Marine options, Imperial Navy and
-    Chaos torpedo types so far)."""
+    """Options for one booklet ship: Space Marine and Inquisition options,
+    torpedo types and refits, and each faction's fleet commander."""
     rules = row.get("faction_rules") or []
     if row.get("roster_group") == "Venerable Strike Cruisers":
         return venerable_strike_cruiser_options(row)
     if "Space Marines" in rules:
         return space_marine_options(row)
+    opts: List[Dict] = []
     if "Imperial Navy" in rules or "Chaos" in rules:
-        return torpedo_type_options(row)
-    if "Adeptus Mechanicus" in rules or "Orks" in rules:
-        return refitted_torpedo_options(row)
-    if "Inquisition & Grey Knights" in rules:
+        opts = torpedo_type_options(row)
+    elif "Adeptus Mechanicus" in rules or "Orks" in rules:
+        opts = refitted_torpedo_options(row)
+    elif "Inquisition & Grey Knights" in rules:
         return inquisition_options(row)
-    return []
+    return opts + fleet_commander_options(row)
 
 
 def ship_option_errors(entry, chosen: List[str]) -> List[str]:
