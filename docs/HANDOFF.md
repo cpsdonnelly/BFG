@@ -79,12 +79,8 @@ session.
 
 ## Waiting on the owner
 
-- **Commander threshold:** the fleet lists print "required at 750+ pts" but core s.5 says "a
-  fleet of more than 750 points". The game uses 750+ (750 itself needs a commander); the owner
-  was asked to confirm and hasn't answered yet.
-- **Newer booklet zip:** the owner said the Archmagos and Tau re-roll costs are "already
-  printed in the fleet lists" of a newer export, but no new zip had been uploaded. Install it
-  when it arrives and check the commander values against it.
+- Nothing. Export 31 settled the 750-point commander threshold and confirmed the Archmagos /
+  Tau re-roll costs.
 
 ## Booklet export 31 (installed last; CHANGES.md updates 16-31)
 
