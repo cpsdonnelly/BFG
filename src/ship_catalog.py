@@ -107,42 +107,53 @@ class ShipClassEntry:
             if not u:
                 continue
             d["points_value"] += u.points_cost
-            if "add_special_rule" in u.effect:
-                d["special_rules"].append(u.effect["add_special_rule"])
-            d["special_rules"] += list(u.effect.get("add_special_rules", []))
-            gone = set(u.effect.get("remove_special_rules", []))
-            d["special_rules"] = [r for r in d["special_rules"] if r not in gone]
-            if "remove_weapons" in u.effect:
-                gone = set(u.effect["remove_weapons"])
-                d["weapons"] = [w for w in d["weapons"] if w.get("name") not in gone]
-            for mod in u.effect.get("modify_weapons", []):
-                # {"match": {"name": ..., "range_cm": ...}, "set": {...}}: change the
-                # weapons matching every key (Mercury and Tyrant have two weapons
-                # of one name at different ranges)
-                for w in d["weapons"]:
-                    if all(w.get(k) == v for k, v in mod["match"].items()):
-                        w.update(mod.get("set", {}))
-            for ctype, speed in u.effect.get("add_craft", {}).items():
-                # "Attack craft: AB 30cm +5pts": the launch bays may also carry it
-                for w in d["weapons"]:
-                    if w.get("weapon_type") == "launch_bay" and ctype not in w.get("craft_types", []):
-                        w["craft_types"] = list(w.get("craft_types", [])) + [ctype]
-                        w["craft_speeds"] = {**w.get("craft_speeds", {}), ctype: speed}
-                        w["craft_speed"] = max(w["craft_speeds"].values())
-            if "add_weapon" in u.effect:
-                d["weapons"].append(u.effect["add_weapon"].copy())
-            d["weapons"] += [w.copy() for w in u.effect.get("add_weapons", [])]
-            if "stat_delta" in u.effect:
-                for stat, delta in u.effect["stat_delta"].items():
-                    if stat in d:
-                        d[stat] += delta
-            d.update(u.effect.get("set", {}))
-            if u.effect.get("rerolls"):
-                d["rerolls_remaining"] = max(d["rerolls_remaining"], u.effect["rerolls"])
-            if u.effect.get("flagship"):
-                d["is_flagship"] = True
+            apply_upgrade_effect(d, u.effect)
 
         return d
+
+
+
+def apply_upgrade_effect(d: dict, effect: dict) -> None:
+    """Apply one option's effect to a ship dict (fleet building, and gifts
+    rolled at game start such as Vault of Technology)."""
+    if "add_special_rule" in effect:
+        d["special_rules"].append(effect["add_special_rule"])
+    d["special_rules"] += list(effect.get("add_special_rules", []))
+    gone = set(effect.get("remove_special_rules", []))
+    d["special_rules"] = [r for r in d["special_rules"] if r not in gone]
+    if "remove_weapons" in effect:
+        gone = set(effect["remove_weapons"])
+        d["weapons"] = [w for w in d["weapons"] if w.get("name") not in gone]
+    for mod in effect.get("modify_weapons", []):
+        # {"match": {"name": ..., "range_cm": ...}, "set": {...}}: change the
+        # weapons matching every key (Mercury and Tyrant have two weapons
+        # of one name at different ranges)
+        # ("name_prefix" matches the start of the name; "add" adds to a value)
+        for w in d["weapons"]:
+            if all((w.get("name", "").startswith(v) if k == "name_prefix" else w.get(k) == v)
+                   for k, v in mod["match"].items()):
+                w.update(mod.get("set", {}))
+                for k, v in mod.get("add", {}).items():
+                    w[k] = w.get(k, 0) + v
+    for ctype, speed in effect.get("add_craft", {}).items():
+        # "Attack craft: AB 30cm +5pts": the launch bays may also carry it
+        for w in d["weapons"]:
+            if w.get("weapon_type") == "launch_bay" and ctype not in w.get("craft_types", []):
+                w["craft_types"] = list(w.get("craft_types", [])) + [ctype]
+                w["craft_speeds"] = {**w.get("craft_speeds", {}), ctype: speed}
+                w["craft_speed"] = max(w["craft_speeds"].values())
+    if "add_weapon" in effect:
+        d["weapons"].append(effect["add_weapon"].copy())
+    d["weapons"] += [w.copy() for w in effect.get("add_weapons", [])]
+    if "stat_delta" in effect:
+        for stat, delta in effect["stat_delta"].items():
+            if stat in d:
+                d[stat] += delta
+    d.update(effect.get("set", {}))
+    if effect.get("rerolls"):
+        d["rerolls_remaining"] = max(d["rerolls_remaining"], effect["rerolls"])
+    if effect.get("flagship"):
+        d["is_flagship"] = True
 
 
 # ---------------------------------------------------------------------------

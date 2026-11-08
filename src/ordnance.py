@@ -1129,7 +1129,7 @@ def torpedo_launch_strength(ship: Ship, weapon: Dict,
     else:
         strength = weapon["strength"]
     if ship.is_crippled:
-        strength = (strength + 1) // 2
+        strength = ship.crippled_value(strength)
     if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
         strength = (strength + 1) // 2
     return strength, rolled
@@ -1400,7 +1400,7 @@ def bay_launch_capacity(ship: Ship, bay_weapons: List[Dict],
         else:
             total += w.get("strength", 0)
     if ship.is_crippled:
-        total = (total + 1) // 2
+        total = ship.crippled_value(total)
     if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
         total = (total + 1) // 2
     return total, log

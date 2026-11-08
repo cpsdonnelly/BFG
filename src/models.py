@@ -289,6 +289,14 @@ class Ship:
     def lowest_armor_value(self) -> int:
         return min(self.armor_prow_value, self.armor_side_value, self.armor_rear_value)
 
+    def crippled_value(self, value: int) -> int:
+        """A shield, turret or weapon value while crippled: half, rounding up;
+        Emergency Energy Reserves (Mechanicus Gift) lose 25% instead, the
+        loss rounded down."""
+        if "emergency_energy_reserves" in self.special_rules:
+            return value - value // 4
+        return (value + 1) // 2
+
     @property
     def effective_speed(self):
         spd = self.speed
@@ -300,13 +308,15 @@ class Ship:
             for c in self.critical_damage)
         if has_thrusters_crit:
             spd -= 10
+        if self.is_crippled and "emergency_energy_reserves" in self.special_rules:
+            spd = max(spd, min(15, self.speed))      # can't drop below 15cm
         return max(0, spd)
 
     @property
     def effective_shields(self):
         s = self.shields_max
         if self.is_crippled:
-            s = (s + 1) // 2  # halve rounding up
+            s = self.crippled_value(s)  # halve rounding up
         # Check for shields collapse crit
         for c in self.critical_damage:
             if c.get("crit_type") == "shields_collapse":
@@ -319,7 +329,7 @@ class Ship:
             return 0                   # hulks have no turrets (s.34)
         t = self.turrets
         if self.is_crippled:
-            t = (t + 1) // 2
+            t = self.crippled_value(t)
         return t
 
     def has_armament_slot(self, crit_type: str) -> bool:

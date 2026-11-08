@@ -472,14 +472,14 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 if torps and wtype == "torpedo" and ship.ordnance_loaded_torps:
                     s = w["strength"]
                     if ship.is_crippled:
-                        s = (s + 1) // 2
+                        s = ship.crippled_value(s)
                     if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
                         s = (s + 1) // 2
                     total += s
                 elif not torps and wtype == "launch_bay" and ship.ordnance_loaded_craft:
                     s = w["strength"]
                     if ship.is_crippled:
-                        s = (s + 1) // 2
+                        s = ship.crippled_value(s)
                     if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
                         s = (s + 1) // 2
                     total += s
@@ -869,7 +869,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 # Halve for crippled, then halve again for braced (cumulative)
                 halve_reasons = []
                 if ship.is_crippled:
-                    total_str = (total_str + 1) // 2
+                    total_str = ship.crippled_value(total_str)
                     halve_reasons.append("crippled")
                 if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
                     total_str = (total_str + 1) // 2
@@ -1101,7 +1101,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 mine_str = mw["strength"]
                 mine_halve_reasons = []
                 if ship.is_crippled:
-                    mine_str = (mine_str + 1) // 2
+                    mine_str = ship.crippled_value(mine_str)
                     mine_halve_reasons.append("crippled")
                 if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
                     mine_str = (mine_str + 1) // 2
@@ -1185,7 +1185,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
             # Halve for crippled, then halve again for braced (cumulative)
             bay_halve_reasons = []
             if ship.is_crippled:
-                total_bays = (total_bays + 1) // 2
+                total_bays = ship.crippled_value(total_bays)
                 bay_halve_reasons.append("crippled")
             if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
                 total_bays = (total_bays + 1) // 2

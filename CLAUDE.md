@@ -179,6 +179,11 @@ the fleet has one (the Ultima / Venerable Battle Barge if present); veteran hono
 Dominion Space Marine Captains (Navy reserves, Astartes Ld table); specialist torpedoes;
 Chapter tactics only in SM fleets; Dominion reserve rules and nova cannon limits
 (`nova_per_points`) in `fleet_list_errors`.
+Mechanicus Gifts (`booklet_options.MECHANICUS_GIFTS`, one per capital ship): crippled
+values go through `Ship.crippled_value` (Emergency Energy Reserves), Advanced Shields'
+capacitors in `combat.apply_damage` (`rolled_to_hit=False` for explosions), Vault of
+Technology rolled at game start (`mechanicus.roll_vault_of_technology`, main.py).
+Option effects are applied by `ship_catalog.apply_upgrade_effect`.
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the

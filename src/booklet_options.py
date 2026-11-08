@@ -616,6 +616,45 @@ def navy_refit_options(row: dict) -> List[Dict]:
     return opts
 
 
+# ── Adeptus Mechanicus Gifts (02_adeptus-mechanicus.md; one per capital ship) ──
+# (D6, name, cost, effect). Vault of Technology's game-start roll uses the
+# same table (mechanicus.roll_vault_of_technology).
+MECHANICUS_GIFTS = [
+    (1, "Emergency Energy Reserves", 0, {"add_special_rules": ["emergency_energy_reserves"]}),
+    (2, "Fleet Defence Turrets", 5, {"stat_delta": {"turrets": -2},
+                                     "add_special_rules": ["fleet_defence_turrets"]}),
+    (3, "Advanced Engines", 5, {"stat_delta": {"speed": 5},          # Auxiliary Power Relays
+                                "add_special_rules": ["secondary_reactors"]}),   # +2D6cm AAF
+    (4, "Advanced Shields", 10, {"add_special_rules": ["overloaded_shields", "advanced_shields"]}),
+    (5, "Advanced Weapons", 10, {"add_special_rules": ["targeting_matrix"],
+                                 "modify_weapons": [{"match": {"name_prefix": "Dorsal Lance",
+                                                               "weapon_type": "lance"},
+                                                     "add": {"strength": 1}}]}),
+    (6, "Vault of Technology", 0, {"add_special_rules": ["vault_of_technology"]}),
+]
+_GIFT_TEXT = {
+    1: "While crippled, shields, turrets and weapons lose 25% instead of 50% (round down); "
+       "Speed can't drop below 15cm.",
+    2: "-2 Turrets, but +1 massed turret to every friendly ship within 15cm, itself included "
+       "(+3 at most as normal).",
+    3: "Auxiliary Power Relays (+5cm Speed) and Secondary Reactors (+2D6cm on All Ahead Full).",
+    4: "Overloaded Shield Capacitors (a D6 per active shield after the enemy rolls to hit; "
+       "each 6 discards a hit) and a right column shift on gunnery against it while its "
+       "shields are up.",
+    5: "Targeting Matrix (a left column shift on all gunnery) and +1 dorsal lance FP.",
+    6: "Roll a D6 at the start of the game for a free Gift (on a 6 choose one).",
+}
+
+
+def mechanicus_gift_options(row: dict) -> List[Dict]:
+    from .booklet_ships import _ship_type
+    if _ship_type(row) not in ("cruiser", "battleship"):
+        return []
+    return [_opt(f"Gift: {name}", (f"+{cost}pts. " if cost else "Free. ") + _GIFT_TEXT[n],
+                 cost, effect, ["group:mechanicus_gift"])
+            for n, name, cost, effect in MECHANICUS_GIFTS]
+
+
 def options_for(row: dict) -> List[Dict]:
     """Options for one booklet ship: Space Marine and Inquisition options,
     torpedo types and refits, and each faction's fleet commander."""
@@ -633,6 +672,8 @@ def options_for(row: dict) -> List[Dict]:
         opts += navy_refit_options(row)
     elif "Adeptus Mechanicus" in rules or "Orks" in rules:
         opts = refitted_torpedo_options(row)
+        if "Adeptus Mechanicus" in rules:
+            opts += mechanicus_gift_options(row)       # Tech-Priest Enginseers
     elif "Inquisition & Grey Knights" in rules:
         return inquisition_options(row)
     return opts + fleet_commander_options(row)

@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **898 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **905 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -113,6 +113,9 @@ session.
   say crippled ships can't contribute); hulks don't. Distance is base edge to base edge.
 - Master of the Fleet with only Space Marine Battle Barges (no Ultima or Venerable Battle
   Barge): any battle barge counts as the Chapter flagship.
+- Emergency Energy Reserves "reduce by 25% (round down)": the 25% loss is rounded down
+  (shields 2 stay 2, firepower 8 becomes 6), like "half rounding up" keeps the larger value.
+  Its "Speed cannot drop below 15cm" applies while crippled, after a Thrusters crit too.
 - Navy profile refits with no "one of" wording (Mercury's two, Tyrant's two, Mars / Overlord's
   two) may all be taken together; the grand cruisers' "may buy one of" is one only.
 
@@ -192,8 +195,16 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   (`fleet_lists.option_allowed`). Not yet: mine launcher swaps (Navy, Crusade, Dominion),
   the -1 Ld for a mixed squadron whose Space Marine members are all destroyed, allies of
   convenience effects (attack rating), the Fortress-Monastery.
-- Mechanicus (19): Omnissiah's Victory needs 1000+ and counts as a battleship; ordinary torps
-  alongside refitted ones; Vault of Technology; mixed escort squadrons.
+- Mechanicus (19): **done:** Mechanicus Gifts, one per capital ship
+  (`booklet_options.MECHANICUS_GIFTS`): Emergency Energy Reserves (`Ship.crippled_value`:
+  crippled loses 25%, the loss rounded down; speed floor 15cm), Fleet Defence Turrets,
+  Advanced Engines (+5cm, `secondary_reactors` +2D6 AAF), Advanced Shields (Overloaded
+  Shield Capacitors in `combat.apply_damage`, not for explosions; right column shift while
+  shields are up), Advanced Weapons (Targeting Matrix, +1 dorsal lance FP), Vault of
+  Technology (`mechanicus.roll_vault_of_technology` at game start; a 6 lets the owner choose,
+  the AI takes Advanced Shields). Omnissiah's Victory needs 1000+pts. Already true: ordinary
+  torpedoes alongside refitted ones, escort classes mixing in squadrons. Not modelled:
+  Quest for Knowledge, The Prize, Experimental Ship, Sacred Technology (campaign / scenario).
 - Rogue Traders (20-21): Man O' War example builds (not ships); new Notable Xenos rows; Business
   as Usual; High-Risk Convoys.
 - Tau (22-23): new Demiurg War Host fleet list (re-rolls 25 / 75); Courier Transport; Demiurg

@@ -155,6 +155,7 @@ ADMECH_LISTS = [
      "sections": [
          {"name": "Battleships", "ratio": (3, ["Cruisers"]),
           "class_max": {"Ark Mechanicus Omnissiah's Victory (unique)": 1},
+          "class_min_points": {"Ark Mechanicus Omnissiah's Victory (unique)": 1000},
           "ships": {"Ark Mechanicus Omnissiah's Victory (unique)": 405,
                     "Mechanicus Emperor Battleship": 390,
                     "Mechanicus Retribution Battleship": 380,

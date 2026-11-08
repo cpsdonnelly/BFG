@@ -37,6 +37,25 @@ def _apply_rules(gs, setup):
         gs.artefact_token_pos = (gs.table_width / 2, gs.table_height / 2)
 
 
+def _choose_gift(root, ship_dict) -> int:
+    """Vault of Technology rolled a 6: the owner picks one of Gifts 1-5."""
+    from src.booklet_options import MECHANICUS_GIFTS
+    choice = {"n": 4}
+    win = tk.Toplevel(root)
+    win.title("Vault of Technology")
+    tk.Label(win, text=f"{ship_dict['name']} rolled a 6: choose a Gift", padx=12,
+             pady=8).pack()
+    for n, name, _, _ in MECHANICUS_GIFTS[:5]:
+        def pick(n=n):
+            choice["n"] = n
+            win.destroy()
+        tk.Button(win, text=f"{n}. {name}", width=32, command=pick).pack(padx=12, pady=2)
+    win.transient(root)
+    win.grab_set()
+    root.wait_window(win)
+    return choice["n"]
+
+
 def _load_fleet_checked(path: str, player: int, root):
     """Load fleet and warn via messagebox if any ship classes are not in the catalog."""
     from tkinter import messagebox
@@ -195,6 +214,10 @@ def main():
     from .ordnance import roll_torpedo_types
     for line in roll_torpedo_types(gs, dice, ai_dice=DiceRoller(mode="auto")):
         gs.add_log(line)                         # Anointed / Refitted / Looted torpedoes
+    from .mechanicus import roll_vault_of_technology
+    for line in roll_vault_of_technology(gs, dice, ai_dice=DiceRoller(mode="auto"),
+                                         choose_fn=lambda s: _choose_gift(root, s)):
+        gs.add_log(line)                         # Mechanicus Vault of Technology
     tc = TurnController(gs, dice)
 
     # Show main window

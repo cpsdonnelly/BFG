@@ -586,6 +586,8 @@ def aaf_bonus_dice(ship: Ship) -> int:
               or "fleet_support" in ship.special_rules) else 4
     n += sum(1 for r in ("improved_thrusters", "sigils_of_quickening")
              if r in ship.special_rules)
+    if "secondary_reactors" in ship.special_rules:
+        n += 2                         # Secondary Reactors: +2D6cm (Advanced Engines)
     return n
 
 

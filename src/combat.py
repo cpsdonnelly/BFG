@@ -82,6 +82,11 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     if "targeting_matrix" in ship.special_rules:
         shifts -= 1
 
+    # Advanced Shields (Mechanicus Gift): a right shift while its shields are up
+    if ("advanced_shields" in target_ship.special_rules
+            and current_shields(target_ship, blast_markers or []) > 0):
+        shifts += 1
+
     # Tau tracking systems aura - ignore >30cm penalty
     if dist > 30 and _has_tracking_support(ship, all_ships):
         shifts -= 1  # cancel the >30cm right shift
@@ -222,7 +227,7 @@ def effective_battery_firepower(attacker: Ship, weapon: Dict,
     from .chapter_tactics import reduce_for_movement_order, lightning_vanguard
     fp = battery_base_firepower(attacker, weapon, target)
     if attacker.is_crippled:
-        fp = (fp + 1) // 2
+        fp = attacker.crippled_value(fp)
     if attacker.special_order in (
         SpecialOrder.ALL_AHEAD_FULL.value,
         SpecialOrder.BURN_RETROS.value,
@@ -437,7 +442,7 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
 
     # Halve if crippled
     if attacker.is_crippled:
-        strength = (strength + 1) // 2
+        strength = attacker.crippled_value(strength)
 
     # Halve if on movement special orders
     if attacker.special_order in (
@@ -646,7 +651,8 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  crit_on: int = 6,
                  attacker_key: str = "",
                  origin: Optional[Tuple[float, float]] = None,
-                 auto_crit: bool = False) -> Dict:
+                 auto_crit: bool = False,
+                 rolled_to_hit: bool = True) -> Dict:
     """
     Apply hits to a ship, handling shields, damage, crits. auto_crit: every
     hull hit is a critical hit, with no D6 check (vortex torpedoes).
@@ -665,6 +671,18 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
     if not ignores_shields:
         available_shields = current_shields(target, game_state.get_blast_markers())
+        # Overloaded Shield Capacitors (Advanced Shields): after the enemy rolls
+        # to hit, a D6 per active shield; each 6 discards one hit
+        if ("overloaded_shields" in target.special_rules and rolled_to_hit
+                and available_shields > 0 and remaining_hits > 0):
+            rolls = dice.roll_d6(available_shields,
+                                 f"{target.name} Overloaded Shield Capacitors (6s discard hits)")
+            gone = min(remaining_hits, sum(1 for r in rolls if r == 6))
+            if gone:
+                remaining_hits -= gone
+                summary["capacitor_discards"] = gone
+                game_state.add_log(f"{target.name}: Overloaded Shield Capacitors discard "
+                                   f"{gone} hit(s)")
         shield_absorb = min(remaining_hits, available_shields)
         summary["shield_hits"] = shield_absorb
         summary["blast_markers_placed"] = shield_absorb
@@ -1401,7 +1419,7 @@ def resolve_explosion(ship: Ship, result: str, dice: DiceRoller,
         hits = sum(1 for d in lance_dice if d >= 4)
         log(f"  {other.name} within blast radius ({dist:.1f}cm): {hits} hit(s)")
         if hits:
-            apply_damage(other, hits, dice, game_state, target_braced=braced,
+            apply_damage(other, hits, dice, game_state, target_braced=braced, rolled_to_hit=False,
                          attacker_key=ship.id, origin=(ship.x, ship.y))
             victim = game_state.get_ship_by_id(other.id)
             # A hulk already re-rolled inside apply_damage
