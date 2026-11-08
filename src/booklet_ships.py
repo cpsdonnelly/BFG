@@ -44,6 +44,8 @@ WEAPON_TYPES = {
     "Railguns": "battery", "Railgun": "battery",
     "Lances": "lance", "Lance": "lance",
     "Ion Cannons": "lance", "Ion Cannon": "lance",
+    # Nekulli Whip: "The whisperlance cannon follows the rules for lances"
+    "Whisperlance Cannon": "lance",
     "Torps": "torpedo", "Gravitic Launcher": "torpedo",
     # Ork faction rules: Gunz follow all the usual macrobattery rules; Heavy Gunz are
     # macrobatteries with a second firepower used within 15cm, e.g. FP6(10)
