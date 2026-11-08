@@ -148,9 +148,11 @@ Ld; a Kaptin adds +1, `ld_bonus:1` in `fleet_loader.roll_starting_leadership`) a
 re-rolls only from a title (Big Boss 1 +20, Mega Boss 2 +40). Each list's `commander`
 (`fleet_lists._attach_commanders`): required at 750+ pts ("750+" as the lists print it),
 Explorator 1000+, Green Tide one Boss at 500+ and at most one per 500pts, a Rogue Trader
-detachment always; a Tau Custodian needs a Kor'O. Not yet: several Ork Bosses' re-rolls
-(the engine keeps one re-roll pool, on the flagship), kustom upgrades, clans, secondary
-commanders, named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme...).
+detachment always; a Tau Custodian needs a Kor'O. Secondary commanders: see "Not yet
+matching the booklet" (commander re-rolls). Not yet: several Ork Bosses' re-rolls (the
+engine keeps one re-roll pool, on the flagship), kustom upgrades, clans, named commanders
+(Lord Admiral Rath, Abaddon, Kor'O'Mesme...). Asked the owner: lists say "750+ pts", core
+s.5 says "more than 750"; the game uses 750+.
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the
@@ -295,9 +297,8 @@ Owner rulings (fleet lists, export 15):
   (Bombardment Cannon, Torpedo Salvo) and the Inquisitor Lord (Banisher list: Ld 10, 75pts,
   one free re-roll, +1 / +2 re-rolls for 25 / 50pts). The booklet now has two Inquisition
   lists (Ordo Malleus Banisher Fleet, Inquisitorial Fleet Detachment) whose options differ
-  (Inferno needs an Ordo Hereticus Inquisitor, so not in the Banisher list); the fleet builder
-  doesn't know which list a fleet uses. Not yet: fleet lists, Ordos (a ship may not mix Ordo
-  upgrades), Grand Master, Inquisitors, Elite Daemonhunters/Captains, retinues, honour guards,
+  (Inferno needs an Ordo Hereticus Inquisitor, so not in the Banisher list); the fleet
+  lists enforce that (`list_options`). Not yet: Ordos (a ship may not mix Ordo upgrades), Grand Master, Inquisitors, Elite Daemonhunters/Captains, retinues, honour guards,
   Blessing of Chaos.
 - Not yet: Rogue Trader refitted
   torpedoes (no Rogue Trader ship in the roster has torpedoes), Deathskulls' half-cost looted
@@ -307,7 +308,8 @@ Owner rulings (fleet lists, export 15):
 
 ### Open questions for the owner
 
-- None at the moment.
+- Commander threshold: "required at 750+ pts" (the lists) or "more than 750 points" (core
+  s.5)? The game uses 750+.
 
 ## Running and testing
 

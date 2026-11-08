@@ -72,10 +72,30 @@ session.
   re-roll costs and Ork Boss Ld came from the owner (the newer booklet zip they mentioned
   hadn't arrived; check it against these when it does).
 
+- **Commander re-rolls on more Leadership tests** (Brace for Impact, target priority, asteroid
+  and warp rift navigation; `movement.fleet_reroll_offered`, `GameState.ld_reroll_hook`) and
+  **secondary commanders** for Navy, Chaos and Mechanicus with ship/squadron-only re-rolls
+  (`Ship.own_rerolls`, `booklet_options.SECONDARY`, `fleet_max:` option restriction).
+
 ## Waiting on the owner
 
-- Nothing. (Last ruling: in a squadron volley, shields knocked down by one group stay down;
-  only the column shifts ignore blast markers placed during the volley.)
+- **Commander threshold:** the fleet lists print "required at 750+ pts" but core s.5 says "a
+  fleet of more than 750 points". The game uses 750+ (750 itself needs a commander); the owner
+  was asked to confirm and hasn't answered yet.
+- **Newer booklet zip:** the owner said the Archmagos and Tau re-roll costs are "already
+  printed in the fleet lists" of a newer export, but no new zip had been uploaded. Install it
+  when it arrives and check the commander values against it.
+
+## Known limitations of this session's work
+
+- Several Ork Bosses: each gets `flagship` from its option, but the engine keeps one re-roll
+  pool (the first flagship's). Boss titles on other ships aren't usable yet.
+- Ork kustom upgrades, clans and Nobz; named commanders (Lord Admiral Rath, Abaddon,
+  Kor'O'Mesme); Space Marine Captains on Dominion reserves; Rogue Trader Bond-Captains;
+  Inquisition Inquisitors (non-Lord), Elite Captains / Daemonhunters, retinues, honour guards
+  and Ordos are not in the fleet builder.
+- The AI uses fleet re-rolls on Leadership tests only while it has 2+ left; it never takes
+  secondary commanders' re-rolls into account beyond that (they are spent first automatically).
 
 ## Remaining work (agreed order)
 
