@@ -291,11 +291,11 @@ class _FireDialog:
                       f"must fire at closest visible: {cv.name}")
             return cv
         from .movement import do_command_check
-        check = do_command_check(self.attacker, "target_priority", self.ctx.dice)
+        check = do_command_check(self.attacker, "target_priority", self.ctx.dice, gs=self.ctx.gs)
         from .movement import fleet_reroll_offered
         if not check["passed"] and fleet_reroll_offered(
                 self.ctx.gs, self.attacker, "target priority", check["roll"], check["needed"]):
-            check = do_command_check(self.attacker, "target_priority", self.ctx.dice)
+            check = do_command_check(self.attacker, "target_priority", self.ctx.dice, gs=self.ctx.gs)
         att.target_priority_turn = self.ctx.gs.turn_number
         att.target_priority_passed = check["passed"]
         self.ctx.gs.update_ship(att)

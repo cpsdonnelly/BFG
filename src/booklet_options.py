@@ -458,7 +458,8 @@ def fleet_commander_options(row: dict) -> List[Dict]:
                                 + ("; +1 to it." if n == "Freebooter Kaptin" else "."),
                  "points_cost": cost,
                  "effect": {"add_special_rules": ["fleet_commander"]
-                            + (["ld_bonus:1"] if n == "Freebooter Kaptin" else []),
+                            + (["ld_bonus:1"] if n == "Freebooter Kaptin" else [])
+                            + (["warboss"] if n == "Warboss" else []),   # doubles troops
                             "flagship": True},
                  "restrictions": ["group:fleet_commander"]} for n, cost in ORK_BOSSES]
         opts += [{"name": f"Boss title: {t}",
@@ -663,6 +664,55 @@ def mechanicus_gift_options(row: dict) -> List[Dict]:
             for n, name, cost, effect in MECHANICUS_GIFTS]
 
 
+# ── Chaos: Marks of Chaos, Chaos Space Marine crews (07_chaos.md) ─────────────
+# Which lists offer them and on which ships is checked by
+# fleet_lists._chaos_option_errors (each list's "chaos_options").
+CHAOS_MARKS = {"khorne": "the marked ship doubles its troop rating",
+               "nurgle": "+1 hit",
+               "slaanesh": "enemy ships within 15cm suffer -1 Ld (not cumulative)",
+               "tzeentch": "the ship may re-roll a Critical Hits result it suffers (the "
+                           "second stands)"}
+CSM_CREW = "Chaos Space Marine crew"
+CHAOS_TERMINATORS = "Chaos Terminators"
+
+
+def chaos_options(row: dict) -> List[Dict]:
+    from .booklet_ships import _ship_type
+    if _ship_type(row) not in ("cruiser", "battleship") or "Space Hulk" in row.get("name", "") \
+            or "Planet Killer" in row.get("name", ""):
+        return []
+    if "Free Mark of" in (row.get("notes") or ""):
+        marks = []                     # dedicated battleships: their god's mark, no other
+    else:
+        marks = [_opt(f"Mark of {god.title()}", f"+15pts. {text}.", 15,
+                      dict({"add_special_rules": [f"mark:{god}"]},
+                           **({"stat_delta": {"hits_max": 1}} if god == "nurgle" else {})),
+                      ["group:chaos_mark"]) for god, text in CHAOS_MARKS.items()]
+    csm = [] if "csm_crew" in _built_in_csm(row) else [
+        _opt(CSM_CREW, "+35pts. Space Marine boarding, hit-and-run and teleport rules (instead "
+             "of the Chaos crew bonus); Leadership on the Astartes table, or +1 to a "
+             "commander's fixed Ld (max 10).", 35,
+             {"add_special_rules": ["csm_crew", "space_marine_crew", "teleport_assault"]}),
+        _opt(CHAOS_TERMINATORS, "+25pts. Teleport attacks roll 3D6 and use the best two.", 25,
+             {"add_special_rules": ["terminator_honour_guard"]}, [f"requires:{CSM_CREW}"])]
+    return marks + csm
+
+
+def _built_in_csm(row: dict) -> List[str]:
+    """Dedicated battleships' crews and free Marks, from their notes."""
+    import re
+    notes = row.get("notes") or ""
+    rules = []
+    m = re.search(r"Free Mark of (\w+)", notes)
+    if m:
+        rules.append(f"mark:{m.group(1).lower()}")
+    if "Always has a Chaos Space Marine crew" in notes or "CSM + Terminator crew" in notes:
+        rules += ["csm_crew", "space_marine_crew", "teleport_assault"]
+    if "CSM + Terminator crew" in notes:
+        rules.append("terminator_honour_guard")
+    return rules
+
+
 def demiurg_war_host_options(row: dict) -> List[Dict]:
     """Demiurg War Host (Xenos p.101): no fleet commander, but up to two re-rolls
     for any Demiurg vessel in the fleet: one 25pts, two 75pts. Bought once, on
@@ -686,6 +736,8 @@ def options_for(row: dict) -> List[Dict]:
     opts: List[Dict] = []
     if "Imperial Navy" in rules or "Chaos" in rules:
         opts = torpedo_type_options(row)
+    if "Chaos" in rules:
+        opts += chaos_options(row)
     if "Imperial Navy" in rules:
         opts += navy_refit_options(row)
     elif "Adeptus Mechanicus" in rules or "Orks" in rules:

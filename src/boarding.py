@@ -23,12 +23,19 @@ from .geometry import count_blast_markers_touching
 _TROOP_BONUS_TABLE = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}  # floored at 0, capped at 4
 
 
-def troop_rating(ship: Ship, grappled: bool = False) -> int:
-    """Return a ship's troop rating: hits_remaining (+ turrets if not grappled)."""
+def troop_rating(ship: Ship, grappled: bool = False, defending: bool = False) -> int:
+    """Return a ship's troop rating: hits_remaining (+ turrets if not grappled).
+    Before the turrets (s.32): the Mark of Khorne and an Ork Warboss double it;
+    Tau Kor'vattra vessels always halve it, Nicassar when boarded (rounding up)."""
     if ship.hits_remaining <= 0:
         return 0
+    base = ship.hits_remaining
+    if "mark:khorne" in ship.special_rules or "warboss" in ship.special_rules:
+        base *= 2
+    if "kor_vattra" in ship.special_rules or ("frail_crew" in ship.special_rules and defending):
+        base = (base + 1) // 2
     t = 0 if grappled else ship.turrets
-    return ship.hits_remaining + t
+    return base + t
 
 
 def _troop_advantage_bonus(attacker_rating: int, defender_rating: int) -> int:
@@ -49,7 +56,9 @@ def _troop_advantage_bonus(attacker_rating: int, defender_rating: int) -> int:
 # Crew-quality bonuses added to a ship's boarding roll, keyed by special rule.
 # Unless a ship carries one of these rules, its bonus is 0.
 _CREW_DAMAGE_BONUSES = {
-    "space_marine_crew": 2,  # Space Marines: +2 crew damage in boarding actions
+    "space_marine_crew": 2,  # Space Marines (and Chaos Space Marine crews): +2
+    "chaos_crew": 1,         # Chaos: +1
+    "ork_crew": 1,           # Orks: +1
 }
 
 
@@ -59,7 +68,8 @@ def _crew_damage_bonus(ship: Ship) -> int:
     Defaults to 0. Keyed off ``ship.special_rules`` so factions/upgrades can
     grant varying bonuses (e.g. Space Marine crews add +2).
     """
-    return sum(_CREW_DAMAGE_BONUSES.get(rule, 0) for rule in ship.special_rules)
+    # "Ships may only use the largest applicable bonus" (s.32)
+    return max([_CREW_DAMAGE_BONUSES.get(rule, 0) for rule in ship.special_rules] or [0])
 
 
 def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
@@ -151,7 +161,7 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
     if pack:
         a_rating += pack
         gs.add_log(f"  Pack Hunter Protocols: +{pack} troop rating")
-    d_rating = troop_rating(target, target.is_grappled)
+    d_rating = troop_rating(target, target.is_grappled, defending=True)
 
     # Modifiers: each ship's weaknesses add to the OPPONENT's roll
     # Attacker's modifiers (from target's perspective)

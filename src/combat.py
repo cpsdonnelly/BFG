@@ -681,6 +681,7 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     }
 
     remaining_hits = hits
+    summary["attacker_key"] = attacker_key
 
     if not ignores_shields:
         available_shields = current_shields(target, game_state.get_blast_markers())
@@ -807,6 +808,9 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
     reduced to 0."""
     crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name}")
     crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
+    if _tzeentch_reroll(target, crit_2d6, crit_data, game_state, summary):
+        crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name} (Mark of Tzeentch re-roll)")
+        crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
     if crit_data is None:
         game_state.add_log(f"Critical on {target.name}: rolled {crit_2d6}, "
                            f"all results cascaded, no effect")
@@ -840,6 +844,34 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
         else:
             target.leadership = max(1, target.leadership - 3)
     return torpedo_launcher_crit(target, crit_data["crit_type"], dice, game_state, summary)
+
+
+def _tzeentch_reroll(target: Ship, roll: int, crit_data: Optional[Dict],
+                     game_state: GameState, summary: Optional[Dict]) -> bool:
+    """Mark of Tzeentch: the marked ship may re-roll a Critical Hits result it
+    suffers or inflicts (the second stands). One re-roll per critical; the
+    target's owner is asked first. GameState.crit_reroll_hook(player, text) ->
+    bool asks a human owner; the AI (or no hook) re-rolls its own ship's 9+
+    and an enemy's 5 or less."""
+    attacker = None
+    key = (summary or {}).get("attacker_key")
+    if key:
+        attacker = game_state.get_ship_by_id(key)
+    name = crit_data["name"] if crit_data else "no effect"
+    for ship, own in ((target, True), (attacker, False)):
+        if ship is None or "mark:tzeentch" not in ship.special_rules:
+            continue
+        ai = game_state.ai_spectator or game_state.ai_player == ship.player
+        hook = getattr(game_state, "crit_reroll_hook", None)
+        if hook is not None and not ai:
+            use = hook(ship.player, f"{target.name} critical hit: {name} (rolled {roll}). "
+                                    f"Re-roll it with {ship.name}'s Mark of Tzeentch?")
+        else:
+            use = roll >= 9 if own else roll <= 5
+        if use:
+            game_state.add_log(f"{ship.name}: Mark of Tzeentch re-rolls the critical ({name})")
+            return True
+    return False
 
 
 def _torpedo_crit_location(ship: Ship) -> set:

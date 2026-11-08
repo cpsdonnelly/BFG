@@ -533,9 +533,23 @@ def _blast_marker_damage(ship: Ship, gs: GameState, dice: DiceRoller) -> bool:
     return False
 
 
+def slaanesh_penalty(ship: Ship, gs) -> int:
+    """Mark of Slaanesh: enemy ships within 15cm of a marked ship suffer -1 Ld
+    (not cumulative across marked ships)."""
+    if gs is None:
+        return 0
+    for o in gs.get_ships():
+        if (o.player != ship.player and "mark:slaanesh" in o.special_rules
+                and not o.is_destroyed and not o.is_disengaged
+                and math.hypot(o.x - ship.x, o.y - ship.y) - o.base_radius - ship.base_radius
+                <= 15.0):
+            return 1
+    return 0
+
+
 def do_command_check(ship: Ship, order: str, dice: DiceRoller,
                      enemy_on_special: bool = False,
-                     in_blast: bool = False) -> dict:
+                     in_blast: bool = False, gs=None) -> dict:
     """
     Perform a command check for special orders.
     Returns dict with 'passed', 'roll', 'needed' (effective Ld).
@@ -549,6 +563,9 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if in_blast:
         ld -= 1
         mods.append("Under Fire -1")
+    if slaanesh_penalty(ship, gs):
+        ld -= 1
+        mods.append("Mark of Slaanesh -1")
     if enemy_on_special:
         # Cobra improved sensor array: +2 instead of +1
         bonus = 2 if "improved_sensor_array" in ship.special_rules else 1
@@ -589,11 +606,11 @@ def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
         and s.special_order not in ("none", "")
         for s in gs.get_ships())
     check = do_command_check(ship, "brace_for_impact", dice,
-                             enemy_on_special=enemy_on_special, in_blast=in_blast)
+                             enemy_on_special=enemy_on_special, in_blast=in_blast, gs=gs)
     if not check["passed"] and fleet_reroll_offered(gs, ship, "Brace for Impact",
                                                     check["roll"], check["needed"]):
         check = do_command_check(ship, "brace_for_impact", dice,
-                                 enemy_on_special=enemy_on_special, in_blast=in_blast)
+                                 enemy_on_special=enemy_on_special, in_blast=in_blast, gs=gs)
         check["rerolled"] = True
     if check["passed"]:
         if ship.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:

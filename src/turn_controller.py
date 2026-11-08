@@ -364,7 +364,7 @@ class TurnController:
         )
 
         check = do_command_check(ship, order, self.dice,
-                                  enemy_on_special, in_blast)
+                                  enemy_on_special, in_blast, gs=self.gs)
         passed = check["passed"]
         roll_val = check["roll"]
         needed = check["needed"]
@@ -448,7 +448,8 @@ class TurnController:
             if s["player"] != leader.player and not Ship.from_dict(s).is_destroyed
         )
 
-        check = do_command_check(leader, order, self.dice, enemy_on_special, in_blast)
+        check = do_command_check(leader, order, self.dice, enemy_on_special, in_blast,
+                                 gs=self.gs)
         passed = check["passed"]
         roll_val = check["roll"]
         needed = check["needed"]
@@ -624,7 +625,7 @@ class TurnController:
         )
 
         check = do_command_check(ship, order, self.dice,
-                                  enemy_on_special, in_blast)
+                                  enemy_on_special, in_blast, gs=self.gs)
         passed = check["passed"]
         roll_val = check["roll"]
         needed = check["needed"]

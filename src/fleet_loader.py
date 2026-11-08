@@ -144,6 +144,13 @@ def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
     from .booklet_ships import LEADERSHIP_TABLES
     groups: Dict[tuple, List[int]] = {}
     for i, s in enumerate(gs.ships):
+        # Chaos Space Marine crews: the Astartes column, or +1 to a commander's
+        # fixed Leadership (max 10) (Veterans of the Long War)
+        if "csm_crew" in s.get("special_rules", []):
+            if s.get("leadership_table"):
+                s["leadership_table"] = "Astartes"
+            elif s.get("leadership"):
+                s["leadership"] = min(10, s["leadership"] + 1)
         if not s.get("leadership_table"):
             continue
         if s.get("ship_type") == "escort" and s.get("squadron_id"):

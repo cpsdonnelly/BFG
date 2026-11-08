@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **918 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **927 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -116,6 +116,9 @@ session.
 - Emergency Energy Reserves "reduce by 25% (round down)": the 25% loss is rounded down
   (shields 2 stay 2, firepower 8 becomes 6), like "half rounding up" keeps the larger value.
   Its "Speed cannot drop below 15cm" applies while crippled, after a Thrusters crit too.
+- Mark of Tzeentch AI: re-rolls a critical of 9+ on its own ship and 5 or less on an enemy.
+- Troop rating: doubling / halving applies to hits remaining, the turrets added after
+  ("after any other modifiers"); halving rounds up.
 - Navy profile refits with no "one of" wording (Mercury's two, Tyrant's two, Mars / Overlord's
   two) may all be taken together; the grand cruisers' "may buy one of" is one only.
 
@@ -243,9 +246,24 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   every turn; with Orks opposing, at 2 hits or fewer), mine launchers, the Courier Transport
   (scenario only), the Tau list's "allies of convenience" effects (attack rating), undoing a
   Demiurg move doesn't put collected blast markers back.
-- Chaos (25): Planet Killer counts as a battleship; Renegades Space Hulk 650 (flagship), CSM ships,
-  Terminators; reserves among Incursion / Crusade / Renegades; god-dedicated fleets differ from
-  the Crusade list (CSM crew +35, own Mark only); Incursion Marks.
+- Chaos (25): **done:** Planet Killer counts as a battleship (Battleships section, 1000+);
+  reserves among Incursion / Crusade / Renegades (`reserve_excludes`: no Planet Killer or
+  space hulk); Renegades space hulk (0-1, unplayable); renegade cruisers -1 rolled Ld and
+  renegade ships Chaos crew (`stat_changes` lists of `add_rules`); Marks of Chaos (Khorne
+  doubles troops, Nurgle +1 hit, Slaanesh -1 Ld to enemies within 15cm in command checks and
+  disengage tests, Tzeentch re-rolls a critical it suffers or inflicts: `combat._tzeentch_reroll`,
+  `GameState.crit_reroll_hook`; dedicated battleships' free Marks and crews from notes);
+  Chaos Space Marine crews (+35: Space Marine boarding / raids / teleports, Astartes Ld or +1 to
+  a commander's fixed Ld) and Terminators (+25); per-list rules in
+  `fleet_lists._chaos_option_errors` (Incursion marks need a leader; Crusade one of each;
+  Renegades / gods leader or CSM, Renegades crews per full 750, Terminators on battleships
+  and grand cruisers; gods only their own Mark; same-mark squadrons). Boarding (s.32): crew
+  bonuses Chaos +1, Orks +1, largest only; Ork Warboss doubles troops; Kor'vattra halve,
+  Nicassar halve when boarded. Not yet: Mark of Chaos Undivided (not offered: the fleet uses
+  the marked ship's Ld once per game), Tzeentch on hit-and-run crit results, Slaanesh on
+  navigation tests, daemonships, Stormbird gunships, Abaddon, god boons, mine launchers, CSM
+  battle barge / strike cruiser (not in the catalog), Mechanicus attackers' boarding re-roll,
+  Nicassar never initiating boarding.
 - Core (26-31, rulebook wording): special orders are declared ship by ship just before each
   moves (the game declares them in a batch); capital ships in a squadron combine firepower
   (check `plan_squadron_volley`); squadron-vs-squadron target sets from range, arc or aspect;

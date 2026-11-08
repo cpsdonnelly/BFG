@@ -480,6 +480,61 @@ def _war_host_errors(rows: List[Dict]) -> List[str]:
     return errors
 
 
+_CHAOS_LEADERS = ("Chaos Lord (Ld 8)", "Chaos Warmaster (Ld 9)",
+                  "Aspiring Champion (+1 Ld, max 9)")
+
+
+def _chaos_option_errors(cfg: Dict, rows: List[Dict], points: int) -> List[str]:
+    """Marks of Chaos and Chaos Space Marine crews by list (07_chaos.md):
+    "marks_need": "leader" (a Lord, Warmaster or Aspiring Champion's ship) or
+    "leader_or_csm"; "marks_unique": one of each Mark, each on a different
+    ship; "csm_per_750": one crew per full 750pts; "terminators_on":
+    hull types that may take Terminators. A squadron mixes only same-mark or
+    unmarked ships."""
+    errors = []
+    for r in rows:
+        ups = r.get("upgrades", [])
+        marks = [u for u in ups if u.startswith("Mark of ")]
+        leader = any(u in _CHAOS_LEADERS for u in ups)
+        csm = "Chaos Space Marine crew" in ups or "csm_crew" in r["entry"].special_rules
+        need = cfg.get("marks_need")
+        if marks and need == "leader" and not leader:
+            errors.append(f"{r['entry'].ship_class}: a Mark of Chaos needs a Chaos Lord, "
+                          f"Warmaster or Aspiring Champion aboard.")
+        if marks and need == "leader_or_csm" and not (leader or csm):
+            errors.append(f"{r['entry'].ship_class}: a Mark of Chaos needs a Chaos Space Marine "
+                          f"crew or a Chaos Lord, Warmaster or Aspiring Champion aboard.")
+        if "Chaos Terminators" in ups and cfg.get("terminators") and not (
+                r["entry"].ship_type == "battleship" or "Grand Cruiser" in r["entry"].ship_class):
+            errors.append(f"{r['entry'].ship_class}: Chaos Terminators only on battleships and "
+                          f"grand cruisers with Chaos Space Marines.")
+    if cfg.get("marks_unique"):
+        taken: Dict[str, int] = {}
+        for r in rows:
+            for u in r.get("upgrades", []):
+                if u.startswith("Mark of "):
+                    taken[u] = taken.get(u, 0) + 1
+        for m, n in taken.items():
+            if n > 1:
+                errors.append(f"{m}: one of each Mark, each on a different ship ({n} chosen).")
+    if cfg.get("csm_per_750"):
+        n = sum(1 for r in rows if "Chaos Space Marine crew" in r.get("upgrades", []))
+        if n > points // 750:
+            errors.append(f"Chaos Space Marine crews: {n}, one capital ship per full 750pts "
+                          f"({points // 750}).")
+    squads: Dict[str, set] = {}
+    for r in rows:
+        if r.get("squadron_id"):
+            mark = next((u for u in r.get("upgrades", []) if u.startswith("Mark of ")), None) or \
+                next((x for x in r["entry"].special_rules if x.startswith("mark:")), "")
+            squads.setdefault(r["squadron_id"], set()).add(mark.replace("Mark of ", "mark:").lower())
+    for sid, ms in squads.items():
+        if len(ms - {""}) > 1:
+            errors.append(f"Squadron '{sid}': marked ships squadron only with the same Mark or "
+                          f"unmarked ships.")
+    return errors
+
+
 def no_tactical_flexibility(list_key: str) -> bool:
     """Armageddon: Space Marine ships are allies of convenience, so Strike
     Cruiser Variants lose the Tactical Flexibility discount."""
@@ -493,10 +548,13 @@ def list_stat_changes(list_key: str, ship_class: str) -> Dict:
     sc = (LISTS.get(list_key) or {}).get("stat_changes")
     if not sc:
         return {}
-    if "classes" in sc:
+    if isinstance(sc, dict) and "classes" in sc:
         return dict(sc["delta"]) if ship_class in sc["classes"] else {}
     sec = (section_of(LISTS[list_key], ship_class) or {}).get("name")
-    return {"special_rules": list(sc["add_rules"])} if sec in sc["sections"] else {}
+    for entry in (sc if isinstance(sc, list) else [sc]):
+        if sec in entry["sections"]:
+            return {"special_rules": list(entry["add_rules"])}
+    return {}
 
 
 def option_allowed(option_name: str, list_keys: List[str]) -> bool:
@@ -509,10 +567,10 @@ def option_allowed(option_name: str, list_keys: List[str]) -> bool:
             and LISTS[list_keys[0]]["faction"] != "space_marines"):
         return False                   # only Space Marine fleets use Chapter tactics
     gated = {name for fl in ALL_LISTS for name in fl.get("list_options", [])}
-    gate = next((g for g in gated if option_name.startswith(g)), None)
-    if gate is None or not list_keys:
+    if not list_keys or not any(option_name.startswith(g) for g in gated):
         return True
-    return any(gate in LISTS[k].get("list_options", []) for k in list_keys if k in LISTS)
+    return any(option_name.startswith(o) for k in list_keys if k in LISTS
+               for o in LISTS[k].get("list_options", []))
 
 
 def _hull(entry) -> str:
@@ -670,6 +728,8 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
     errors += xenos_cutter_errors(rows)
     if main.get("demiurg_war_host"):
         errors += _war_host_errors(rows)
+    if main.get("chaos_options"):
+        errors += _chaos_option_errors(main["chaos_options"], rows, points_limit)
     # Reserves limited to some sections of their list (Demiurg War Host:
     # Kor'or'vesh vessels only)
     for key, rs in by_list.items():

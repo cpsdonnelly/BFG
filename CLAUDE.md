@@ -190,6 +190,10 @@ re-rolls on `Ship.war_host_rerolls`, any Demiurg vessel, never lost); absorber f
 (`combat.cutting_beam_firepower`, `chapter_tactics.weapon_range`), phenomena immunity
 (`terrain_effects`), Demiurg VP (`victory_points`). Owner ruling: the Bastion's modular bays
 are S2 launch bays or S4 torpedoes, chosen at each launch (`Ship.mark_launched` unloads both).
+Chaos (update 25): Marks (`mark:<god>` rules; Khorne troops, Nurgle +1 hit, Slaanesh
+`movement.slaanesh_penalty`, Tzeentch `combat._tzeentch_reroll` with `GameState.crit_reroll_hook`),
+Chaos Space Marine crews / Terminators, per-list limits in `fleet_lists._chaos_option_errors`
+(each list's `chaos_options`). Boarding crew bonuses: largest only (`boarding._CREW_DAMAGE_BONUSES`).
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the

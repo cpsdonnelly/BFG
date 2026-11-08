@@ -265,6 +265,14 @@ def faction_special_rules(row: dict) -> List[str]:
         rules.append("knights_of_titan")   # re-roll boarding actions
     if "Orks" in followed:
         rules.append("ere_we_go")          # auto-pass All Ahead Full, +3D6cm only
+        rules.append("ork_crew")           # +1 crew damage boarding (s.32)
+    if "Chaos" in followed:
+        rules.append("chaos_crew")         # +1 crew damage boarding (s.32)
+    group = row.get("roster_group") or ""
+    if group.startswith("Kor'vattra"):
+        rules.append("kor_vattra")         # always halve troop rating; no teleport
+    if group.startswith("Allies: Nicassar"):
+        rules.append("frail_crew")         # halve troop rating when boarded
     if "Support Assets" in followed:
         # Fleet Support: Ld 7 for all checks and tests; system and convoy ships
         # add only +3D6cm on All Ahead Full
@@ -334,6 +342,9 @@ def convert_row(row: dict) -> dict:
             or "Fra'al targeting matrix for no extra cost, allowing it to treat all gunnery "
                "targets as closing" in notes):
         special_rules.append("fraal_targeting")           # Fra'al Raider
+    if "Chaos" in (row.get("faction_rules") or []):
+        from .booklet_options import _built_in_csm
+        special_rules += _built_in_csm(row)       # dedicated battleships
     if "Always rolls 3D6 on the Catastrophic Damage table" in notes:
         special_rules.append("catastrophic_3d6")          # Mercury
     if "Sensors +1 Ld at all times (max 10)" in notes:

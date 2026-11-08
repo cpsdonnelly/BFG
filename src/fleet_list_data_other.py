@@ -84,8 +84,14 @@ def _renegade_ratios(sections: List[Dict]) -> List[Dict]:
 
 
 def _god_list(key: str, name: str, ship: str, rival: str, boons: str) -> Dict:
+    god = {"chaos_slaanesh": "Slaanesh", "chaos_nurgle": "Nurgle", "chaos_khorne": "Khorne",
+           "chaos_tzeentch": "Tzeentch"}[key]
     return {
         "key": key, "faction": "chaos", "name": name,
+        # only their own god's Mark (+15); CSM crews on any capital ship;
+        # Terminators on battleships and grand cruisers with CSM
+        "list_options": [f"Mark of {god}", "Chaos Space Marine crew", "Chaos Terminators"],
+        "chaos_options": {"marks_need": "leader_or_csm", "terminators": True},
         "sections": _chaos_core_sections(
             dict(_CRUSADE_BS, **{ship: _DEDICATED[ship]}), {ship: 1}) + [
             {"name": "Escorts", "ships": dict(_CHAOS_ESC)}],
@@ -115,6 +121,7 @@ CHAOS_LISTS = [
      ],
      "reserves": ["chaos_black_crusade", "chaos_renegades"],
      "reserve_excludes": ["The Planet Killer", "Chaos Space Hulk"],
+     "list_options": ["Mark of "], "chaos_options": {"marks_need": "leader"},
      "unenforced": list(_CHAOS_UNENFORCED)},
     {"key": "chaos_black_crusade", "faction": "chaos",
      "name": "13th Black Crusade Fleet (Imperium p.55-56)",
@@ -133,6 +140,8 @@ CHAOS_LISTS = [
      ],
      "reserves": ["chaos_incursion", "chaos_renegades"],
      "reserve_excludes": ["Chaos Space Hulk"],
+     "list_options": ["Mark of ", "Chaos Space Marine crew"],
+     "chaos_options": {"marks_unique": True},
      "unenforced": list(_CHAOS_UNENFORCED) + list(_CRUSADE_UNENFORCED) + [
          "A Chaos Space Hulk, if taken, must be the fleet flagship."]},
     {"key": "chaos_renegades", "faction": "chaos", "name": "Renegades Fleet (Imperium p.57)",
@@ -157,9 +166,14 @@ CHAOS_LISTS = [
                                  "Cobra Destroyer"],
                      "max": 6, "per_points": 750, "label": "Imperial Renegade escorts"}],
      # "renegade cruisers subtract 1 from their rolled Leadership"
-     "stat_changes": {"sections": ["Imperial Renegade Cruisers"], "add_rules": ["ld_rolled:-1"]},
+     "stat_changes": [{"sections": ["Imperial Renegade Cruisers"],
+                       "add_rules": ["ld_rolled:-1", "chaos_crew"]},
+                      {"sections": ["Imperial Renegade Escorts"], "add_rules": ["chaos_crew"]}],
      "reserves": ["chaos_black_crusade", "chaos_incursion"],
      "reserve_excludes": ["The Planet Killer", "Chaos Space Hulk"],
+     "list_options": ["Mark of ", "Chaos Space Marine crew", "Chaos Terminators"],
+     "chaos_options": {"marks_need": "leader_or_csm", "csm_per_750": True,
+                       "terminators": True},
      "unenforced": list(_CHAOS_UNENFORCED) + [
          "The (0-1) Chaos Space Marine Battle Barge (440) and Chaos Space Marine Strike "
          "Cruisers (145, one per 500pts) aren't in the catalog.",
