@@ -90,7 +90,7 @@ class _ShipEditDialog:
                            selectcolor=_SEL_BG,
                            activebackground=_BG,
                            command=self._refresh_total).pack(side=tk.LEFT)
-            tk.Label(urow, text=f"{u.name}  (+{u.points_cost} pts)",
+            tk.Label(urow, text=f"{u.name}  ({u.points_cost:+d} pts)",
                      font=_FONT_BODY, bg=_BG, fg=_FG, anchor="w").pack(side=tk.LEFT)
             tk.Label(urow, text=u.description, font=("Consolas", 8),
                      bg=_BG, fg="#888888", wraplength=300, justify="left",
