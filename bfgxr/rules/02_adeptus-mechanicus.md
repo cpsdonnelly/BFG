@@ -63,7 +63,7 @@ Experimental Ship (D6 on each table):
 
 | D6 | Improvement | Side Effect |
 |---|---|---|
-| 1 | +15cm range on all direct fire weapons | All gunnery firepower and lance strength halved |
+| 1 | +15cm range on all direct fire weapons | All gunnery and lance firepower halved |
 | 2 | +1 Shield | -2 starting Hit Points |
 | 3 | Re-roll missed turret hits | -2 Turrets |
 | 4 | Turn rate set to 90 degrees | Minimum turn distance +5cm |

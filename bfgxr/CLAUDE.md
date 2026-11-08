@@ -49,9 +49,31 @@ tools/                        the export scripts
 
 Grep `rules/` for a rule by name; each file is a single section, so read only the one needed.
 
+## Standing rulings (apply these in code)
+
+Ciarán has ruled on these. They override any reading of the rule text alone. `CHANGES.md` gives the details.
+
+- **Commander re-rolls** are lost for the rest of the battle if the commander's ship suffers a
+  Bridge Smashed critical hit **or is destroyed**. This applies to fleet and secondary
+  commanders (update 33). The core rules paragraph says so; Appendix 5's Bridge Smashed row
+  reprints only the rulebook's -3 Ld text.
+- **Commander's ship destroyed:** "The opponent scores the commander's VPs, & all commander
+  rerolls are lost." (Ciarán, update 34.) The commander's VPs are the cost of the commander and
+  his or her re-rolls and upgrades, which section 5 adds to the assigned ship's victory point
+  value.
+- **Inner Biosphere** phenomena, roll of 1: D6 1-3 radiation burst, 4-6 solar flare (XR typo
+  corrected, update 12).
+- **Fleet-builder limits:** "(or portion thereof)" rounds up, "for every full" rounds down, and
+  both use the fleet's actual total; see update 15 for the Chaos ratio, Renegade and detachment
+  rulings.
+- **Lances** use FP (firepower) like macrobatteries; only ordnance uses S (update 28).
+- **Nova cannon centre hole:** D6 hits instead of the single hit (update 30).
+- **Combining torpedoes:** they don't hit ships in contiguous base contact with the combining
+  group (update 31).
+
 ## Ship data: `data/ships.json`
 
-One object per roster row (174 ships). Every parsed field keeps its original cell text in a
+One object per roster row (`ship_count` gives the total; 178 in this export). Every parsed field keeps its original cell text in a
 `*_raw` sibling, so nothing is lost when a value isn't a plain number.
 
 | field | meaning |

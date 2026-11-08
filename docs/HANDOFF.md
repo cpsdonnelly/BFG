@@ -14,7 +14,7 @@ session.
 - `bfgxr/` is the rules authority. Each new booklet zip the owner sends **replaces `bfgxr/`
   wholesale** (extract into the scratchpad, `diff -rq`, read the new part of `CHANGES.md`,
   diff `data/ships.json` by ship, then `rm -rf bfgxr && cp -a <new> bfgxr`). Never hand-edit it.
-  The current install is "export 31" (CHANGES.md: thirty-first update).
+  The current install is "export 36" (CHANGES.md: thirty-sixth update).
 - **Never invent rules.** If the booklet is silent or ambiguous, ask the owner (AskUserQuestion
   works well), then record the answer under the matching heading in `CLAUDE.md`.
 - Check what an audit or helper agent reports against the booklet yourself before acting on it.
@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **875 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **876 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -91,21 +91,12 @@ session.
   think of others (Brace for Impact on a ship about to be destroyed or crippled; disengaging a
   crippled ship worth many VP; the flagship's own checks; asteroid / warp rift tests that
   risk losing a ship). Spend the last re-roll only on high-importance tests.
-- **Commander's ship (owner ruling, end of session):** re-rolls are lost if the commander dies
-  (his ship is destroyed), as well as on Bridge Smashed. **Code conflict:** this session
-  followed booklet export 26 ("or is destroyed was not in the source") and made
-  `TurnController.get_fleet_rerolls / use_fleet_reroll / _own_reroll_holder` keep re-rolls
-  after the ship is destroyed. Restore the loss on destruction (fleet commander and
-  secondary commanders), update CLAUDE.md, and tell the owner the booklet wording
-  disagrees with this ruling. For the AI: protecting the commander's ship matters (keep it
-  out of harm, brace it), and when that ship is about to be lost its remaining re-rolls
-  should be spent rather than wasted.
-- **Squadron volley aspect:** the dialog's default (hardest aspect present) is fine, but add a
-  tool that picks the aspect choice (and target) maximising expected hits and, through them,
-  VPs: a "Best for expected hits" button in Combine Squadron Fire, and the same logic as the
-  AI's strategy. Don't waste firepower overkilling one target, and don't spread it so thin
-  that nothing is crippled or destroyed; value kills and cripples (VP thresholds), using
-  `combat.plan_squadron_volley` to score each option.
+- **Commander's ship (owner ruling, booklet updates 33-34):** re-rolls are lost when the
+  commander's ship is destroyed as well as on Bridge Smashed: **done in code** (fleet and
+  secondary commanders, tested). The opponent scores the commander's cost; it is in the
+  ship's `points_value`, but check `victory_points` actually scores it. For the AI:
+  protecting the commander's ship matters (keep it out of harm, brace it), and when that
+  ship is about to be lost its remaining re-rolls should be spent rather than wasted.
 
 ## Readings to confirm (my choices, not owner rulings)
 
@@ -118,7 +109,16 @@ session.
 - `ships.json` `profile_from` is still cut off for the three Grey Knights escorts
   ("Space Marine Nova (p", "... Gladius (p", "... Hunter (p"). The game doesn't use the field.
 
-## Booklet export 31 (installed last; CHANGES.md updates 16-31)
+## Booklet export 36 (installed last)
+
+Updates 32-36: scenario/campaign restorations (capital ships count ½ transport capacity in
+Planetary Assault / Craftworld assault), the re-roll correction above, lance values are
+"firepower" everywhere, scenario and campaign wording (Extended Duty -1 to command checks
+for Lock On / Reload Ordnance; campaign crippled ships -1 Ld min 6; Planetary / Craftworld
+Assault subtract 1 per 500 defender VP or portion). Scenarios and campaigns aren't modelled
+in detail, so these are notes for when they are.
+
+## Booklet export 31 (CHANGES.md updates 16-31)
 
 Done from it: commander needed for **more than 750 points** (core s.5; lists with their own
 wording keep it); re-rolls lost only on Bridge Smashed; venerable strike cruisers from any

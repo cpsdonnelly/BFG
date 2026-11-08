@@ -217,7 +217,7 @@ A 13th Black Crusade fleet of 1000+pts may be led by Abaddon (Ld10) for 195pts, 
 
 **Lord of the Black Legion:** his vessel automatically has a Chaos Space Marine crew at no cost, and his retinue, the Bringers of Despair (counting as Chaos Terminators), doubles his ship's troop rating.
 
-**"You Have Failed Me for the Last Time...":** if his re-roll is used on a command check or Leadership test and the roll fails a second time: aboard his own ship, it takes 1 point of damage; otherwise, in his next shooting phase his ship must direct at least half its firepower and lance strength at the offending ship or squadron (resolved as if it were enemy). Survivors of his wrath gain +1Ld for the rest of the game, once per ship or squadron. If the offender is out of range or arc of his weapons, it gains no bonus and may no longer benefit from Abaddon's re-rolls for the rest of the game.
+**"You Have Failed Me for the Last Time...":** if his re-roll is used on a command check or Leadership test and the roll fails a second time: aboard his own ship, it takes 1 point of damage; otherwise, in his next shooting phase his ship must direct at least half its gunnery and lance firepower at the offending ship or squadron (resolved as if it were enemy). Survivors of his wrath gain +1Ld for the rest of the game, once per ship or squadron. If the offender is out of range or arc of his weapons, it gains no bonus and may no longer benefit from Abaddon's re-rolls for the rest of the game.
 
 ## Fleet Composition (Incursion, Crusade, Renegades & God-Dedicated Fleet Lists)
 

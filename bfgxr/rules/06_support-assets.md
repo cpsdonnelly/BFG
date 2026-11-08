@@ -53,7 +53,7 @@ When a scenario sets a transport capacity requirement, include convoy ships from
 | Space Station *Defence* | 150 | 8 | 32mm | \- | \- | 2 | 6+ | 4 | Macrobatteries 60cm FP12 (All Round); Lances 30cm FP3 (All Round); Launch Bays S4 (ASF 30cm, BMR 20cm) | Immobile |
 | Orbital Dock *Defence* | 90 | 6 | 32mm | \- | \- | 2 | 6+ | 3 | Macrobatteries 30cm FP4 (All Round); Launch Bays S4 (ASF 30cm, BMR 20cm) | Immobile; construction/repair facilities for smaller vessels |
 | Orbital Weapons Platform *Defence* | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Macrobatteries 60cm FP6 (All Round) | Immobile |
-| Orbital Defence Laser Platform | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Lance 60cm FP1 (All Round) | Immobile. May +1 lance strength in exchange for -30cm range, no cost change |
+| Orbital Defence Laser Platform | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Lance 60cm FP1 (All Round) | Immobile. May +1 lance firepower in exchange for -30cm range, no cost change |
 | Orbital Torpedo Launcher *Defence* | 30 | 2 | 32mm | \- | \- | 1 | 6+ | 2 | Torps 30cm S6 (All Round) | Immobile |
 | Minefield | 40 |  | 32mm | \- | \- | \- | \- | \- | Area terrain-defence; no stat block. Rules: see Support Ship Special Rules |  |
 | Orbital Mine | 5 |  | 32mm | \- | \- | \- | \- | \- | Deployed mine; no stat block. Rules: see Support Ship Special Rules |  |

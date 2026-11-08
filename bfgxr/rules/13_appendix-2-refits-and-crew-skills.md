@@ -106,7 +106,7 @@ Each refit table is subdivided into three sub-tables: Engine, Ship, and Weapon R
 | 2 | 5 pts | **Auto-loaders.** +1 Ld on Reload Ordnance command checks. Re-roll if the ship has no ordnance. *(shared)* |
 | 3 | 10 pts | **Rail-Accelerated Torpedoes.** The ship's torpedoes have +10cm Speed on the turn they are launched. |
 | 4 | 10 pts | **Piercing Ammunition.** Never suffers a right column-shift for firing gunnery through blast markers. |
-| 5 | 20 pts | **Xenos Weapon Emplacement.** Gains a Dorsal Lance (Range 60cm, Strength 1, Left/Front/Right), always a basic lance. If the ship already has a standard lance of the same range and arcs, add +1 to that lance's strength instead. |
+| 5 | 20 pts | **Xenos Weapon Emplacement.** Gains a Dorsal Lance (Range 60cm, firepower 1, Left/Front/Right), always a basic lance. If the ship already has a standard lance of the same range and arcs, add +1 to that lance's firepower instead. |
 | 6 | 20 pts | **Motion-Tracking Targeters.** On All Ahead Full, Burn Retros, or Come to New Heading, gunnery effectiveness is reduced by only 25% (rounding up) rather than halved. *(shared)* |
 
 **Xenos Crew Skills**

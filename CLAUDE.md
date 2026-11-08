@@ -154,10 +154,11 @@ matching the booklet" (commander re-rolls). Not yet: several Ork Bosses' re-roll
 engine keeps one re-roll pool, on the flagship), kustom upgrades, clans, named commanders
 (Lord Admiral Rath, Abaddon, Kor'O'Mesme...). Export 31 settled it: a commander is required
 for a fleet of **more than 750 points** (core s.5; `required_at` 751), except where a list says
-otherwise (Banisher "at least 750", Explorator "1000+", Green Tide "500+"). Owner ruling
-(overrides export 26's wording): commander re-rolls are lost on Bridge Smashed **and** when
-the commander's ship is destroyed; the code still keeps them after destruction (to fix,
-see docs/HANDOFF.md).
+otherwise (Banisher "at least 750", Explorator "1000+", Green Tide "500+"). Owner ruling,
+booklet updates 33-34: commander re-rolls (fleet and secondary) are lost on Bridge Smashed
+**or** when the commander's ship is destroyed (`TurnController`), and the opponent then
+scores the commander's cost, which is part of that ship's points value (options add to
+`points_value`; check `victory_points` counts it).
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the

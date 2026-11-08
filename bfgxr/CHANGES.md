@@ -1,7 +1,9 @@
 # Changes since the first export
 
-Updates are listed oldest first. Section numbers quoted in the first update are the numbers at
-that time; the third and fifth updates renumbered the core rules (see their tables).
+Updates are listed oldest first. Section numbers and booklet page numbers quoted in an update are
+the ones at that time; later updates renumbered sections and moved pages, so check the current
+`rules/` files for live numbers. Where a later update reverses an earlier one, the earlier entry
+says so.
 
 The booklet gained rules it was missing. Core rules sections were renumbered: there are now 34
 (previously 30). Re-read `rules/00_core-rules.md`; any code or notes that refer to core rules by
@@ -130,10 +132,10 @@ Core rules lacked the XR shield and blast-marker rules (Rulebook pp.21-24). No r
   - *Shooting Through Blast Markers*: right column shift; lances and nova cannon unaffected.
   - *Optional: Modern Blast Markers*: XR's optional rules (intervening blasts, overlapping
     bases), which Battlefleet Gothic Remastered uses as standard, followed by Remastered's
-    differences: whole-base contact, a column shift when the firing ship is in contact with
+    differences (update 28 moved these into a separate "Remastered Blast Markers" section): whole-base contact, a column shift when the firing ship is in contact with
     blast markers, and a limit on blast markers spilling onto other ships.
   - Clarifications from Remastered pp.68-69 that agree with XR are marked "Clarification
-    (Remastered ...)". Everything Remastered-only is labelled as such; the default game is XR.
+    (Remastered ...)" (labels removed in update 11). Everything Remastered-only is labelled as such; the default game is XR.
 - **31. Catastrophic Damage**: added *Exploding vessels* and *Moving drifting and blazing hulks*
   (Rulebook p.24), and a source line.
 
@@ -526,7 +528,7 @@ Appendix 2: Imperial crew skills are used by AdMech, Chaos, IN, Inquisition, Rog
 Space Marine ships; Xenos crew skills by Dark Eldar, Eldar, Ork and Tau (Necrons and Tyranids
 gain none).
 
-## Twenty-sixth update: core rules 1-25 in rulebook wording
+# Twenty-sixth update: core rules 1-25 in rulebook wording
 
 Ciarán's rule: where the XR rulebook says the same thing as the booklet, use the rulebook's
 wording. Sections 1-25 of the core rules are now rulebook text, in British spelling, for 131
@@ -534,35 +536,77 @@ paragraphs. Corrections made on the way:
 - Special orders are declared ship by ship, each just before that ship moves (not all at the
   start of the movement phase).
 - Ships in a squadron, capital ships included, combine their firepower.
-- Fleet commander re-rolls are lost on Bridge Smashed; "or is destroyed" was not in the source.
-- Capital ship squadron page ref: rulebook p.58, "Forming Squadrons".
+- (Corrected in the thirty-third update: fleet commander re-rolls are lost on Bridge Smashed OR when the commander's ship is destroyed. This is Ciaran's ruling, and it stands.)
+- Capital ship squadron page ref: rulebook p.58, "Forming Squadrons". (Superseded by update 30: it now points to Forming Squadrons at the end of section 8.)
 - Broken cross-refs "sections 16-1922 / 19-1922 / 23-2326" are now 16-22 / 19-22 / 23-26.
 - Unit types: the rulebook's type list and defence rule (no "stations").
 The booklet is now 186 pages; the TOC and internal page refs are shifted +4 (Rogue Traders 68).
 
-Armament row reverted to: "firepower for gunnery weapons (FP) or strength for launching ordnance markers (S)". The booklet lists lances as FP.
+Follow-up: the Armament row went back to "firepower for gunnery weapons (FP) or strength for launching ordnance markers (S)", because the booklet lists lances as FP. (Superseded by update 28: it now says "direct-fire weapons such as macrobatteries and lances".)
 
-## Twenty-seventh update: core rules 26-41 in rulebook wording
+# Twenty-seventh update: core rules 26-41 in rulebook wording
 
 32 more paragraphs swapped to rulebook text (hit-and-run, teleport, boarding, critical hits, hulks, disengaging, battlefield set-up, battlezones, warp rifts, planet note). The contents page now matches the render for sections 28, 35, 36, 38, 40 and campaign rules 4-6, with Rogue Traders at 69. The booklet is 187 pages; internal refs are +1.
 
-## Twenty-eighth update
+# Twenty-eighth update
 
 - Armament row: "firepower for direct-fire weapons such as macrobatteries and lances (FP) or strength for launching ordnance markers (S)".
 - Lance values are called firepower everywhere in the core rules (special orders, Brace for Impact, lance firing, crippled ships); ordnance keeps strength.
 - Fixed-Ld pointer added to section 3 and Appendix 4.
 - Blast markers: the XR optional modern rules and the Remastered rules are now separate sections. "Remastered Blast Markers" has its own heading, and the Remastered no-limit-when-stacked rule moved out of the XR Overlapping Bases rule into the Remastered spill-over exceptions.
 
-## Twenty-ninth update
+# Twenty-ninth update
 
 Remastered "Limit on spill-over" rewritten: the rulebook placement sentence (p.68), then the two-ship limit and its two exceptions as numbered paragraphs. Exception 2 now covers ships overlapping any ship in contact with blast markers, not only the target.
 
-## Thirtieth update: core rules wording fixes 1-8, 10-15
+# Thirtieth update: core rules wording fixes 1-8, 10-15
 
 Ciaran-approved rewordings of awkward rulebook passages: reserves limit, 750-point commander rule, Ld modifier limits, a typo, Burn Retros speed, Forming Squadrons refs, Dauntless example, different aspects, moving through blast markers, weapons batteries label, splitting fire, nova cannon placement, scatter and centre hole (the centre hole gives D6 hits instead of the 1 hit). The section 7 TOC entry is now 8.
 
-## Thirty-first update: core rules wording fixes 9, 16, 18-25
+# Thirty-first update: core rules wording fixes 9, 16, 18-25
 
 Squadron against squadron and combining torpedoes (contiguous base contact) use Ciaran's wording; turning torpedoes keeps the rulebook text. Rulebook page refs in the attack craft rules now point to sections 25/26. The bomber attack rule is clarified and the rulebook example restored. CAP movement and leaving CAP, the hulk gravity-well pronouns and asteroid shields/slowing are reworded. The sunward edge roll is written out (the booklet had no diagram). American spellings in core rules are British. The TOC matches the render.
 
-Squadron against squadron: separate target sets now arise from range, arc or target aspect.
+Follow-up: Squadron against squadron now says separate target sets come from range, arc or target aspect.
+
+# Thirty-second update: scenario/campaign source restorations
+
+Planetary Assault and Assault on a Craftworld: capital ships count as having ½ a point of transport capacity (the ½ had been lost). Campaign build-up step 1 now points to Using Attack Ratings instead of rulebook p.78. Refits: "must roll on" restored.
+
+# Thirty-third update: CORRECTION to the twenty-sixth update
+
+The twenty-sixth update removed "or is destroyed" from the fleet commander re-roll rule. That was wrong and is reversed. **Ruling (Ciaran, standing): a commander's re-rolls are lost for the rest of the battle if the ship carrying them suffers a Bridge Smashed critical hit OR is destroyed.** This applies to fleet commanders and secondary commanders. The rulebook's campaign rules support it ("If the flagship is destroyed... He or she may not have any further effect in that game"). The booklet now reads: "If a ship suffers a Bridge Smashed critical hit or is destroyed, any re-rolls from an embarked commander are lost for the remainder of the battle." Code must remove the re-rolls in both cases. Do not drop the "destroyed" case again because the core rules paragraph doesn't mention it.
+
+# Thirty-fourth update: commander's ship destroyed
+
+Ruling (Ciarán, standing): "The opponent scores the commander's VPs, & all commander rerolls are
+lost." When the ship carrying a commander is destroyed, the opponent scores the commander's cost
+(the commander plus his or her re-rolls and upgrades, which section 5 adds to that ship's victory
+point value), and every re-roll that commander has is lost for the rest of the battle. Code must
+do both. Added to the Standing rulings in CLAUDE.md.
+
+# Thirty-fifth update: lance values are firepower everywhere
+
+The last places outside the core rules that still called lance values "strength" now say "firepower": the crippled-ship summary, the design guideline (lance firepower per arc 3-4), the +1 lance firepower refit, the Chaos rule on firing at the offending ship ("half its gunnery and lance firepower"), the Demiurg Cutting Beam (firepower 1 to 8, shown as FP1+ to match the profile; it said S1+), the Craftworld fortresses' "firepower 1 pulsar lance", and the Appendix 2 Dorsal Lance refit. Ordnance still uses strength. The weapons batteries label in section 13 is bold again.
+
+# Thirty-sixth update: scenarios and campaigns wording (Ciarán-approved)
+
+- Rulebook page references in scenario and campaign rules now point to booklet sections:
+  celestial phenomena and battlezone tables section 39, low orbit and landing section 41, hulks
+  section 34, mines section 17, advanced rules sections 12 and 31-37, commanders section 5,
+  secret lists section 4, planetary defences, orbital mines and the General Fleet Support List
+  Support Assets.
+- Comma splices split in fourteen places. The Raids table label is its own line again.
+- Extended Duty: -1 to command checks (it said Leadership tests) for Lock On and Reload Ordnance.
+- Fleet Experience: the flagship must keep at least 75% of its starting hits.
+- Fresh Captain: suffers -1 Leadership. Campaign crippled ships lose 1 Leadership (minimum 6).
+- Enemy Plans: +1 to the D6 when boarding the enemy fleet commander's ship, 4+ finds the plans.
+- Meteor Storm, Navigational Hazards, Surprise Attack: the sub-plot succeeds if you win the
+  battle and fails if you lose.
+- Decoy: an extra ship presented as a capital ship that uses conventional transport
+  characteristics.
+- Navigate the Storm: if only one player meets their objective, that player wins; otherwise
+  (both or neither) the most transport capacity destroyed or evacuated wins; ties go to the
+  attacker.
+- Planetary Assault and Craftworld Assault: subtract 1 per 500 defender VP (or portion thereof).
+- Grammar: Gates "deploys", appeals "depends", "fewer systems", "re-roll".

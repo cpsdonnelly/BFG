@@ -18,7 +18,7 @@ As I hope you can tell, campaigns can be a lot of fun and they are not all that 
 
 Once you've got your players together you need to pick one of the sub-sectors on the sub-sector maps as the location for your campaign to take place. For your first campaign we recommend starting off with one of the smaller sub-sectors, unless you have a large number of players (i.e. more than eight) taking part in the campaign. You'll probably need to photocopy the sub-sector map you've decided to use (or draw it by hand) to keep track of which player controls each system.
 
-Next you need to get all the players together for a "campaign briefing". The most important thing you'll need to go over at this point is the rules for the campaign, to make sure that everybody knows what's going on. You should then decide how long the campaign is to last. For your first campaign we recommend playing for one month of real time and on the whole it's best to keep campaigns short, after all, you can always start another one!
+Next you need to get all the players together for a "campaign briefing". The most important thing you'll need to go over at this point is the rules for the campaign, to make sure that everybody knows what's going on. You should then decide how long the campaign is to last. For your first campaign we recommend playing for one month of real time and on the whole it's best to keep campaigns short; after all, you can always start another one!
 
 Once this has been decided, players can pick their starting systems and design their fleets using the rules described below, then you can start fighting battles. However, it is usually a good idea to set a regular time and place for campaign meetings, and also to elect a "campaign arbitrator" who is in charge of making sure that the campaign runs smoothly. You might also want to consider putting together a campaign newsletter, in which case you'll need to decide who will be its editor.
 
@@ -44,7 +44,7 @@ Each player's fleet begins with a commander (or an appropriately named leader fo
 
 Your campaign commander fills the role of a fleet commander in your fleet list, but does not cost any points and cannot purchase any of the usual options shown in the list's Fleet Commander section. (They will instead receive bonuses as they develop during the campaign, see the Promotion tables, below.)
 
-Once you've filled in your fleet register, you need to fill in the details of your commander. He or she will need a name, and starts off with 1 point of renown and one re-roll. In addition, you must pick one ship in your fleet as their flagship. If this ship is involved in a battle then "you" are there, and you may use the commander's re-roll or any other special abilities he or she may have in the battle. If the flagship is not there then you may not use the commander's reroll or abilities.
+Once you've filled in your fleet register, you need to fill in the details of your commander. He or she will need a name, and starts off with 1 point of renown and one re-roll. In addition, you must pick one ship in your fleet as their flagship. If this ship is involved in a battle then "you" are there, and you may use the commander's re-roll or any other special abilities he or she may have in the battle. If the flagship is not there then you may not use the commander's re-roll or abilities.
 
 If the flagship is destroyed, then it is assumed that your commander manages to escape somehow. He or she may not have any further effect in that game, but you may choose a new flagship for them once the game is over.
 
@@ -72,7 +72,7 @@ Each time that two players have a game they both get what is known as a campaign
 
 The build-up stage takes place at the start of the battle, before either player deploys or picks their fleet. In this stage you decide where the battle will be, what type of scenario to play, and what size of fleets to use. The stage has a number of steps that need to be carried out in the following order: 1. Determine Attacker & Defender; 2. Roll for Incoming Orders; 3. Pick Fleets.
 
-**1. Determine Attacker & Defender.** Using the fleets' attack ratings as described on p.78 (above), determine who will be the attacker and who will be the defender. The player who controls less total systems does not need to spread their forces as thinly as their opponent, and thus adds +1 to the result(s) of their dice. Similarly, the player who controls more systems in total must spread their forces thinly, reducing their fleet size by 10 points for each additional system they hold over their opponent.
+**1. Determine Attacker & Defender.** Using the fleets' attack ratings as described in Using Attack Ratings (Scenarios), determine who will be the attacker and who will be the defender. The player who controls fewer systems does not need to spread their forces as thinly as their opponent, and thus adds +1 to the result(s) of their dice. Similarly, the player who controls more systems in total must spread their forces thinly, reducing their fleet size by 10 points for each additional system they hold over their opponent.
 
 **2. Roll for Incoming Orders.** Although fleet commanders have a large measure of autonomy, higher command still sends down orders telling them what they must achieve next. In effect, the players get to decide what happens in the battles, but receive orders that direct the strategy they must follow, and the type of battles they will fight. To reflect this, the attacker must roll a D6 to determine what type and size of scenario is to be played.
 
@@ -113,7 +113,7 @@ Having established the scenario and location, both players must agree on a point
 
 *Raiders:* Note that raider fleets never engage in full battles. Instead, if one or both players are acting as raiders, treat results of 3-6 on the Incoming Orders table as a major raid rather than a battle. A major raid uses the Raids table to determine the scenario but will have a points limit of 750-1500 points like a standard battle.
 
-**3. Pick Fleets.** Both players must now pick their fleets using ships from their fleet register. The total value of the ships you pick may not exceed the points total you and your opponent have decided for the scenario you are to play. Note that you can't change the details of ships on the register or adjust their points value at this stage, the ships you pick must come from your register and not be changed in any way. With the build-up completed all you need do now is roll for a sub-plot and then get fighting!
+**3. Pick Fleets.** Both players must now pick their fleets using ships from their fleet register. The total value of the ships you pick may not exceed the points total you and your opponent have decided for the scenario you are to play. Note that you can't change the details of ships on the register or adjust their points value at this stage; the ships you pick must come from your register and not be changed in any way. With the build-up completed all you need do now is roll for a sub-plot and then get fighting!
 
 **Hidden Bases:** Raider fleets never get to capture systems, but instead have a secret base. If the opponent of a raider fleet is the attacker and has at least 21 renown points, that player may attempt to find and attack the secret base. To do this, they must roll a D6 and multiply the result by 10. If the result is less than the raider player's renown, the secret base is found and remains revealed until the raider player moves it. Otherwise, it stays hidden and the players choose a normal scenario to play.
 
@@ -127,7 +127,7 @@ Once you have fought a campaign game and know who has won, you come to probably 
 
 **1. Spoils of War.** Whenever an attacker wins a battle, he or she may claim control of the system if it is connected by a warp route to one he or she already controls. The system can only be taken over by the player that won the battle if it previously belonged to the player that was defeated, or if it was previously neutral. Whenever an attacker wins a raid, he or she may count the system where the raid took place as his or her own for the rest of this campaign turn (which is important, since the systems you control affect your ability to repair ships, etc). After the campaign turn ends, control of the system reverts to normal.
 
-**2. Adjust Renown.** Renown is a measure of the total fame (or infamy) enjoyed by you, the fleet commander. Players start the campaign with 1 point of renown and can gain or lose renown as shown on the Renown table below. Renown is very important, at the end of the campaign, the player that has earned the most renown is the winner! Note that you can gain or lose renown even if your commander was not present during the scenario (i.e. their flagship did not take part).
+**2. Adjust Renown.** Renown is a measure of the total fame (or infamy) enjoyed by you, the fleet commander. Players start the campaign with 1 point of renown and can gain or lose renown as shown on the Renown table below. Renown is very important: at the end of the campaign, the player that has earned the most renown is the winner! Note that you can gain or lose renown even if your commander was not present during the scenario (i.e. their flagship did not take part).
 
 **Renown Table**
 
@@ -311,7 +311,7 @@ As the campaign progresses, ships (or rather, their crews) will gain experience.
 
 **Gaining Experience:** Ships which fought in a battle and were not crippled or destroyed roll 2D6. If the roll is higher than their Leadership rating, then either their Leadership may be improved by +1 point (up to a maximum of 10) or the ship may roll on the Crew Skills table for their faction (Imperial or Xenos), in the Appendix. You may choose which option to take, unless the ship has a Leadership of 6 or 7, in which case you must choose to increase the ship's Leadership.
 
-**Crippled Ships:** Vessels that become crippled in a battle lose -1 Leadership (to a minimum of 6). Note that crew skills aren't lost for being crippled, even if the ship's Leadership is reduced to 6 or 7.
+**Crippled Ships:** Vessels that become crippled in a battle lose 1 Leadership (to a minimum of 6). Note that crew skills aren't lost for being crippled, even if the ship's Leadership is reduced to 6 or 7.
 
 **Destroyed Ships:** Vessels which are destroyed (i.e. reduced to 0 damage points) must be replaced with a new ship of the same class. Change their name on your fleet register. The new ship has a Leadership of 6, no crew skills, and any refits that have been taken are lost (the rules for refits follow later on).
 
@@ -346,7 +346,7 @@ In a campaign, vessels that have suffered damage must be repaired, and it is the
 
 *Source: BFG:XR Rulebook, printed p.135.*
 
-After repairs have been completed, both players can appeal to higher authorities and/or the gods of Chaos for aid. The amount of help you can expect to receive depends on how well you've been doing, as measured by your renown. To reflect this, the number of appeals that may be made depend on the players' renown as shown on the table below.
+After repairs have been completed, both players can appeal to higher authorities and/or the gods of Chaos for aid. The amount of help you can expect to receive depends on how well you've been doing, as measured by your renown. To reflect this, the number of appeals that may be made depends on the players' renown as shown on the table below.
 
 | Renown | No. of Appeals |
 |---|---|
@@ -355,7 +355,7 @@ After repairs have been completed, both players can appeal to higher authorities
 | 31-50 | 3 Appeals |
 | 51+ | 4 Appeals |
 
-Appeals may normally only be made for refits and reinforcements. If you are allowed to make more than one appeal you can ask for the same thing up to two times (and may have each appeal granted), or you can appeal for different things, it's up to you! However, you must declare what you will appeal for this turn before determining whether the appeals have been granted. Having declared what you are going to appeal for, roll a D6 for each appeal to see if the appeal is granted.
+Appeals may normally only be made for refits and reinforcements. If you are allowed to make more than one appeal you can ask for the same thing up to two times (and may have each appeal granted), or you can appeal for different things; it's up to you! However, you must declare what you will appeal for this turn before determining whether the appeals have been granted. Having declared what you are going to appeal for, roll a D6 for each appeal to see if the appeal is granted.
 
 | Appeal Type | Score Needed |
 |---|---|
@@ -365,11 +365,11 @@ Appeals may normally only be made for refits and reinforcements. If you are allo
 
 *Note: Some campaigns may allow access to other types of appeals besides refits and reinforcements. These will naturally use the "Other" category of the table above. However, raider fleets may only ever appeal for refits and/or reinforcements, regardless of the campaign being played.*
 
-**Reinforcements.** If the appeal is granted, one new capital ship or a squadron of up to five escorts may be added to the player's fleet registry. Note that you must have the models to represent the ships, if you don't, then they can't be added to the fleet register.
+**Reinforcements.** If the appeal is granted, one new capital ship or a squadron of up to five escorts may be added to the player's fleet registry. Note that you must have the models to represent the ships; if you don't, they can't be added to the fleet register.
 
 **Refits.** A player who is granted a refit must choose one of his capital ships to undergo the refit, then roll a D6 to see what type of equipment system is upgraded. On a roll of 1 or 2 you receive a ship refit, on a roll of 3 or 4 an engine refit, and on a roll of 5 or 6 a weapon refit. If a ship already has every refit in the rolled category, roll again until you get a different category.
 
-The ship, engine, and weapon refit tables are in the Appendix (Appendix 2, p.175). Always use the table that matches your faction list's source book: Imperial Refits for the Imperium, Chaos, the Inquisition, Rogue Traders, the Adeptus Mechanicus and the Space Marines; Xenos Refits for the xenos fleets. For example, Chaos ships that earn a weapon refit roll on the Weapon Refit section of the Imperial Refits table.
+The ship, engine, and weapon refit tables are in the Appendix (Appendix 2, p.175). Always use the table that matches your faction list's source book: Imperial Refits for the Imperium, Chaos, the Inquisition, Rogue Traders, the Adeptus Mechanicus and the Space Marines; Xenos Refits for the xenos fleets. For example, Chaos ships that earn a weapon refit must roll on the Weapon Refit section of the Imperial Refits table.
 
 If you roll a result that the ship already has, roll again until you get a refit the ship does not have. The points value of the ship is increased by 10% for each refit it has and you'll need to update your ship register appropriately.
 

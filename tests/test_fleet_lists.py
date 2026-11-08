@@ -361,3 +361,20 @@ def test_strategic_commander_ld_bonus_capped_at_9():
         gs.ships[0]["leadership_table"] = "Default"
         roll_starting_leadership(gs, DiceStub([table.index(rolled_ld) + 1]))
         assert gs.ships[0]["leadership"] == expected
+
+
+def test_commander_rerolls_lost_when_his_ship_is_destroyed():
+    from tests.conftest import make_gs, make_ship, DiceStub
+    from src.turn_controller import TurnController
+    flag = make_ship(id="flag", player=1, is_flagship=True, rerolls_remaining=2)
+    sec = make_ship(id="sec", player=1)
+    sec.own_rerolls = 1
+    gs = make_gs([flag, sec])
+    tc = TurnController(gs, DiceStub([]))
+    assert tc.get_fleet_rerolls(1, gs.get_ship_by_id("sec")) == 3
+    for sid in ("flag", "sec"):
+        s = gs.get_ship_by_id(sid)
+        s.hits_remaining, s.status = 0, "destroyed"
+        gs.update_ship(s)
+    assert tc.get_fleet_rerolls(1, gs.get_ship_by_id("sec")) == 0
+    assert not tc.use_fleet_reroll(1, gs.get_ship_by_id("sec"))
