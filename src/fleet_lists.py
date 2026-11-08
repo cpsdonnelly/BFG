@@ -28,15 +28,13 @@ from typing import Dict, List, Optional
 # ── Imperial Navy (bfgxr/rules/01_imperial-navy.md, Sector Fleet Lists) ─────
 
 _NAVY_UNENFORCED = [
-    "Fleet commander (Admiral, Strategic Commanders) and their re-rolls are not in the "
-    "fleet builder yet.",
-    "Up to two cruisers or battlecruisers may swap launch bays for mine launchers; power rams; "
-    "one nova-cannon ship per 500pts or part thereof: not checked.",
+    "Up to two cruisers or battlecruisers may swap launch bays for mine launchers; power "
+    "rams: not in the fleet builder yet.",
 ]
 _NAVY_ESC = {"Firestorm Frigate": 35, "Sword Frigate": 35, "Cobra Destroyer": 30}
 
 NAVY_LISTS = [
-    {"key": "navy_gothic", "faction": "imperial_navy_gothic",
+    {"key": "navy_gothic", "faction": "imperial_navy_gothic", "nova_per_points": 500,
      "name": "Gothic Sector, Segmentum Obscurus (Imperium p.89)",
      "sections": [
          {"name": "Battleships", "ratio": (3, ["Cruisers", "Battlecruisers"]),
@@ -52,7 +50,7 @@ NAVY_LISTS = [
      "reserves": ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion",
                   "admech_explorator"],
      "unenforced": list(_NAVY_UNENFORCED)},
-    {"key": "navy_armageddon", "faction": "imperial_navy_gothic",
+    {"key": "navy_armageddon", "faction": "imperial_navy_gothic", "nova_per_points": 500,
      "name": "Armageddon Sector, Segmentum Solar (Imperium p.92)",
      "sections": [
          {"name": "Battleships", "ratio": (3, ["Cruisers", "Battlecruisers"]),
@@ -83,7 +81,7 @@ NAVY_LISTS = [
      "no_tactical_flexibility": True,
      "extra_commanders": ["Master of the Fleet (Ld 10)"],
      "unenforced": list(_NAVY_UNENFORCED)},
-    {"key": "navy_bakka", "faction": "imperial_navy_gothic",
+    {"key": "navy_bakka", "faction": "imperial_navy_gothic", "nova_per_points": 500,
      "name": "Bakka Sector, Segmentum Tempestus (Imperium p.93)",
      "sections": [
          {"name": "Battleships", "per_points": 750, "or_part": True,
@@ -120,7 +118,7 @@ NAVY_LISTS = [
          "Lord Admiral Rath (Ld10) 150 at 1500+pts (The Pride of Bakka's random refits) "
          "isn't in the fleet builder yet. The list has no mine launcher upgrade (none "
          "exists in the fleet builder)."]},
-    {"key": "navy_bastion", "faction": "imperial_navy_gothic",
+    {"key": "navy_bastion", "faction": "imperial_navy_gothic", "nova_per_points": 500,
      "name": "Bastion Sector, Segmentum Obscurus (Imperium p.90-91)",
      "sections": [
          {"name": "Battleships", "ratio": (3, ["Cruisers", "Battlecruisers & Grand Cruisers"]),
@@ -215,7 +213,7 @@ SM_LISTS = [
      "commander": {"options": ["Master of the Fleet (Ld 10)"], "required_at": 751},
      "sections": [
          dict(_SM_BARGES),
-         {"name": "Strike Cruisers", "venerable_sc": True,
+         {"name": "Strike Cruisers", "max": 10, "venerable_sc": True,
           "ships": dict({"Strike Cruiser": 145}, **_venerable_scs())},
          {"name": "Vanguard Cruisers", "max": 6, "ships": {"Vanguard Cruiser": 130},
           "lightning_thrusters": "Strike Cruisers"},
@@ -234,11 +232,13 @@ SM_LISTS = [
           "lightning_thrusters": "Strike Cruisers"},
          {"name": "Escorts",
           "ships": dict(_SM_ESC, **{"Firestorm Rapid Strike Vessel": 35,
+                                     "Sword Rapid Strike Vessel": 35,
                                      "Falchion Rapid Strike Vessel": 35,
                                      "Cobra Rapid Strike Vessel": 30})},
      ],
-     "reserves": ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion"],
-     "reserve_rule": "sm_dominion",
+     "reserves": ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion",
+                  "admech_explorator"],
+     "reserve_rule": "sm_dominion", "nova_per_points": 1000,
      "unenforced": list(_SM_UNENFORCED) + [
          "Space Marine Captains (25pts) on Imperial Navy reserve capital ships.",
          "Mine launcher swaps (two cruisers): not checked."]},
@@ -451,16 +451,47 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
                           f"{LISTS[src]['name'] if src in LISTS else src}.")
     reserves = [r for k, rs in by_list.items() if k.startswith("reserve:") for r in rs]
     if main.get("reserve_rule") == "sm_dominion":
+        # Imperial Navy reserves only by these ratios (they replace the normal
+        # ones): a battleship or grand cruiser per three strike cruisers, against
+        # the battle barge limit; a battlecruiser, cruiser or light cruiser per
+        # two, against the strike cruiser limit; no escorts. Mechanicus
+        # reserves are taken normally (3:1) and count against the same limits.
+        navy = [r for k, rs in by_list.items() if k.startswith("reserve:navy_") for r in rs]
+        admech = [r for r in reserves if r not in navy]
         strike = sum(1 for r in own if r["entry"].ship_class in ("Strike Cruiser",))
-        big = [r for r in reserves if _hull(r["entry"]) == "battleship"
+        big = [r for r in navy if _hull(r["entry"]) == "battleship"
                or "Grand Cruiser" in r["entry"].ship_class]
-        cru = [r for r in reserves if _hull(r["entry"]) == "cruiser" and r not in big]
+        cru = [r for r in navy if _hull(r["entry"]) == "cruiser" and r not in big]
+        esc = [r for r in navy if _hull(r["entry"]) == "escort"]
         if len(big) > strike // 3:
             errors.append(f"Reserves: {len(big)} battleship(s) or grand cruiser(s), at most one "
                           f"per three strike cruisers ({strike // 3}).")
         if len(cru) > strike // 2:
             errors.append(f"Reserves: {len(cru)} cruiser(s), at most one per two strike "
                           f"cruisers ({strike // 2}).")
+        if esc:
+            errors.append(f"Reserves: a Dominion fleet takes no Imperial Navy escorts "
+                          f"({', '.join(r['entry'].ship_class for r in esc)}).")
+        for hull, label in (("battleship", "battleships"), ("cruiser", "cruisers"),
+                            ("escort", "escorts")):
+            n_own = sum(1 for r in own if _hull(r["entry"]) == hull)
+            n_res = sum(1 for r in admech if _hull(r["entry"]) == hull)
+            if n_res > n_own // 3:
+                errors.append(f"Reserves: {n_res} Mechanicus {label}, at most one per 3 "
+                              f"{label} from the fleet list ({n_own // 3}).")
+        barges = sum(1 for r in own if (section_of(main, r["entry"].ship_class) or {})
+                     .get("name") == "Battle barges")
+        barges += len(big) + sum(1 for r in admech if _hull(r["entry"]) == "battleship")
+        most = -(-points_limit // 1000)
+        if barges > most:
+            errors.append(f"Battle barges: {barges} with the reserves counted against them, at "
+                          f"most one per 1000pts or portion thereof ({most}).")
+        scs = sum(1 for r in own if (section_of(main, r["entry"].ship_class) or {})
+                  .get("name") == "Strike Cruisers")
+        scs += len(cru) + sum(1 for r in admech if _hull(r["entry"]) == "cruiser")
+        if scs > 10:
+            errors.append(f"Strike Cruisers: {scs} with the reserves counted against them, at "
+                          f"most 10.")
     else:
         for hull, label in (("battleship", "battleships"), ("cruiser", "cruisers"),
                             ("escort", "escorts")):
@@ -469,6 +500,18 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
             if n_res > n_own // ratio:
                 errors.append(f"Reserves: {n_res} {label}, at most one per {ratio} {label} "
                               f"from the fleet list ({n_own // ratio}).")
+
+    # Nova cannons: Navy lists one armed ship per 500pts or part thereof,
+    # Dominion one per 1000pts (or portion thereof); refits count
+    if main.get("nova_per_points"):
+        per = main["nova_per_points"]
+        nova = sum(1 for r in rows if any(
+            w.get("weapon_type") == "nova_cannon" for w in r["entry"].to_ship_dict(
+                name="", player=0, upgrades=r.get("upgrades", []))["weapons"]))
+        most = -(-points_limit // per)
+        if nova > most:
+            errors.append(f"Nova cannons: {nova} armed ships, at most one per {per}pts or "
+                          f"part thereof ({most}).")
 
     # Rogue Trader Expedition: one supporting fleet; a Space Marine one bars xenos
     if main.get("expedition"):
