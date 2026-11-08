@@ -66,17 +66,33 @@ session.
 - Nothing. (Last ruling: in a squadron volley, shields knocked down by one group stay down;
   only the column shifts ignore blast markers placed during the volley.)
 
-## Remaining work (proposed order)
+## Remaining work (agreed order: start with 1 and 2 together)
 
-1. Commander re-rolls for all Leadership tests; secondary commanders (s.5).
-2. AI: shoot at enemy hulks; use combined squadron fire.
-3. Disengaging (s.37): shared escort-squadron test for a voluntary disengage, forced
-   disengagement at Ld 1 or less, phenomena measured to their edge.
-4. Fleet commanders for the other factions (Navy Admirals, Chaos Lords/Warmasters, Ork
-   Warbosses, Archmagos, Tau Kor'el/Kor'O, Rogue Traders...), so lists can check them.
-5. The ordinary profiles' own refits from their notes (Mars Targeting Matrix, Exorcist prow
-   torps, ...), one at a time.
-6. Smaller gaps listed in CLAUDE.md: attack craft flying straight / torpedo collisions checked
-   only at end of move; multi-role suppression choice; resilient wave splitting; low orbit
-   and planetary assaults (barrage bomb assault points); unplayable ships (Zzapp Gunz, Kustom
-   Kannon, special movement, fortress weapons).
+1. **Commander re-rolls for every Leadership test + secondary commanders (core s.5).** Today
+   re-rolls (`TurnController.get_fleet_rerolls` / `use_fleet_reroll`, flagship
+   `rerolls_remaining`) are offered only for command checks (`special_orders_ui`), disengage
+   tests and guided torpedoes (`guided_control(reroll_fn=...)`). Extend to Brace for Impact,
+   target priority, boarding, asteroid navigation and the rest. Secondary commanders
+   (Strategic Commanders, Aspiring Champions, Elite Captains / Daemonhunters, Magi, Nobz...)
+   don't exist: +Ld and ship/squadron-only re-rolls. Read s.5 before starting.
+2. **Fleet commanders for the other factions** as fleet-builder options in
+   `src/booklet_options.py` (pattern: Space Marine "Master of the Fleet (Ld 10)" and
+   `INQ_LORD`): Navy Admirals (Vice/Fleet/Solar), Chaos Lord / Warmaster, Ork Warboss / Big
+   Mek / Freebooter Kaptin with titles, Archmagos, Tau Kor'el / Kor'O, Rogue Trader. Costs and
+   re-roll prices are in each faction file's Fleet Composition. Then add a `commander` entry
+   to each list in `fleet_lists.py` / `fleet_list_data_other.py` so "750+ pts needs a
+   commander" (Mechanicus 1000+, Orks one Boss per 500pts) is checked, and drop those
+   sentences from the lists' `unenforced`.
+3. **AI:** shoot at enemy hulks; use combined squadron fire (`combat.plan_squadron_volley`).
+4. **Disengaging (s.37):** shared escort-squadron test for a voluntary disengage, forced
+   disengagement at Ld 1 or less, celestial phenomena measured to their edge.
+5. **The ordinary profiles' own refits** from ships.json notes, one at a time (Mars Targeting
+   Matrix, Exorcist prow torps, Repulsive extra shield, ...).
+6. **Smaller gaps** (see CLAUDE.md): attack craft flying straight / torpedo collisions checked
+   only at the end of the move; multi-role fighter-bomber suppression choice; resilient wave
+   splitting; low orbit and planetary assaults (barrage bomb assault points); unplayable ships
+   (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons).
+
+Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
+transcriptions (as done for the Chaos/Ork/Tau/RT fleet lists) and verify a sample against the
+booklet yourself.
