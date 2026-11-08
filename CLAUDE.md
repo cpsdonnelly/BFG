@@ -151,8 +151,10 @@ Explorator 1000+, Green Tide one Boss at 500+ and at most one per 500pts, a Rogu
 detachment always; a Tau Custodian needs a Kor'O. Secondary commanders: see "Not yet
 matching the booklet" (commander re-rolls). Not yet: several Ork Bosses' re-rolls (the
 engine keeps one re-roll pool, on the flagship), kustom upgrades, clans, named commanders
-(Lord Admiral Rath, Abaddon, Kor'O'Mesme...). Asked the owner: lists say "750+ pts", core
-s.5 says "more than 750"; the game uses 750+.
+(Lord Admiral Rath, Abaddon, Kor'O'Mesme...). Export 31 settled it: a commander is required
+for a fleet of **more than 750 points** (core s.5; `required_at` 751), except where a list says
+otherwise (Banisher "at least 750", Explorator "1000+", Green Tide "500+"). Fleet commander
+re-rolls are lost on Bridge Smashed only, not when the ship is destroyed.
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the
@@ -308,8 +310,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Open questions for the owner
 
-- Commander threshold: "required at 750+ pts" (the lists) or "more than 750 points" (core
-  s.5)? The game uses 750+.
+- None at the moment.
 
 ## Running and testing
 

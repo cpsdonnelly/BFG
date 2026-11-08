@@ -14,7 +14,7 @@ session.
 - `bfgxr/` is the rules authority. Each new booklet zip the owner sends **replaces `bfgxr/`
   wholesale** (extract into the scratchpad, `diff -rq`, read the new part of `CHANGES.md`,
   diff `data/ships.json` by ship, then `rm -rf bfgxr && cp -a <new> bfgxr`). Never hand-edit it.
-  The current install is "export 15" (CHANGES.md: fifteenth update).
+  The current install is "export 31" (CHANGES.md: thirty-first update).
 - **Never invent rules.** If the booklet is silent or ambiguous, ask the owner (AskUserQuestion
   works well), then record the answer under the matching heading in `CLAUDE.md`.
 - Check what an audit or helper agent reports against the booklet yourself before acting on it.
@@ -86,28 +86,41 @@ session.
   printed in the fleet lists" of a newer export, but no new zip had been uploaded. Install it
   when it arrives and check the commander values against it.
 
-## First thing next session: check open issues against the next booklet export
+## Booklet export 31 (installed last; CHANGES.md updates 16-31)
 
-The owner asked that these be held and resolved by reading the next updated rules (a new
-`bfgxr_for_claude_code_*.zip` upload), not by guessing. When it arrives, install it (see
-Workflow rules), read the new part of `CHANGES.md`, and for each item below check whether the
-booklet now settles it; fix the code to match, record the outcome in `CLAUDE.md`, and only ask
-the owner about what is still unclear:
+Done from it: commander needed for **more than 750 points** (core s.5; lists with their own
+wording keep it); re-rolls lost only on Bridge Smashed; venerable strike cruisers from any
+grand cruiser / battlecruiser / heavy cruiser ("non-unique" removed); Bakka escorts (Havoc,
+Viper, Firestorm, Sword), Bakka battleships and Endurance/Defiant limits "or portion thereof";
+Ork Bosses one per 500pts or portion; Tau Messengers per 500 or portion; Relictor in the 13th
+Black Crusade; 178 booklet ships (3 Notable Xenos cutters, Courier Transport). The Archmagos /
+Tau re-roll costs and the Ork Boss rules match what was built.
 
-1. Commander threshold: fleet lists "required at 750+ pts" vs core s.5 "more than 750 points"
-   (the game uses 750+, `fleet_lists._attach_commanders`).
-2. Archmagos Explorator re-roll costs (25 / 50) and Tau Kor'el / Kor'O extra re-rolls (25 / 50):
-   the owner says the new export prints them in the fleet lists; check
-   `booklet_options.COMMANDERS`.
-3. Ork Bosses: no fixed Ld, Freebooter Kaptin +1 rolled Ld, re-rolls only from a title (owner
-   ruling); check the Green Tide list wording and whether each Boss's re-rolls are for the
-   whole fleet (the engine has one pool, the flagship's).
-4. Other factions' secondary commanders (Inquisition Elite Captains / Daemonhunters, Ork Nobz,
-   Rogue Trader Bond-Captains, Space Marine Captains): costs, Ld, re-roll limits.
-5. Readings still unconfirmed in CLAUDE.md: the AI's re-roll policy (uses one while 2+ left);
-   resilient wave splitting and multi-role suppression choice (s.23/s.27); CAP intercepting a
-   wave after its turret roll; `ships.json` `profile_from` truncated for the Grey Knights
-   escorts ("Space Marine Hunter (p"), an export bug to report if still there.
+**Still to do from it (read the CHANGES.md entry before each):**
+- Navy (update 17): Lunar refit to prow nova cannon +20; Mercury 3D6 catastrophic; Exorcist
+  macrobatteries 30cm FP10 option; grand cruiser refits "may buy one of"; Bakka starred classes
+  +1 Turret (cost included), Veteran Captains (+1 Ld max 10, 30, re-roll +15), Fleet Defence
+  Turrets, Mechanicus cruisers in battlecruiser slots, no Bakka mine launchers; Armageddon
+  Admiral / Master of the Fleet ship rules.
+- Space Marines (18): Dominion nova cannon one per 1000pts or portion; Dominion Sword RSV and
+  mixed squadrons; Dominion reserve rules rewritten; Space Marine Captains; veteran honour guard
+  +10; Master of the Fleet ship rule; Tactical Flexibility covers specialist torpedoes only;
+  Chapter tactics only in Space Marine fleets.
+- Mechanicus (19): Omnissiah's Victory needs 1000+ and counts as a battleship; ordinary torps
+  alongside refitted ones; Vault of Technology; mixed escort squadrons.
+- Rogue Traders (20-21): Man O' War example builds (not ships); new Notable Xenos rows; Business
+  as Usual; High-Risk Convoys.
+- Tau (22-23): new Demiurg War Host fleet list (re-rolls 25 / 75); Courier Transport; Demiurg
+  Mercenaries / Absorber fields / cutting beam; Demiurg, Nicassar and Kroot are allies of
+  convenience in a Tau fleet.
+- Chaos (25): Planet Killer counts as a battleship; Renegades Space Hulk 650 (flagship), CSM ships,
+  Terminators; reserves among Incursion / Crusade / Renegades; god-dedicated fleets differ from
+  the Crusade list (CSM crew +35, own Mark only); Incursion Marks.
+- Core (26-31, rulebook wording): special orders are declared ship by ship just before each
+  moves (the game declares them in a batch); capital ships in a squadron combine firepower
+  (check `plan_squadron_volley`); squadron-vs-squadron target sets from range, arc or aspect;
+  nova cannon centre hole D6 hits; blast marker optional / Remastered sections split. Re-read
+  s.8, s.11 and s.14 against the code.
 
 ## Known limitations of this session's work
 
