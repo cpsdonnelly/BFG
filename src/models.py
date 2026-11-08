@@ -235,6 +235,7 @@ class Ship:
     admiral_type: str = ""  # e.g. "vice_admiral", "kor_o"
     rerolls_remaining: int = 0
     own_rerolls: int = 0       # a secondary commander's re-rolls: this ship / squadron only (s.5)
+    collected_blast_markers: int = 0  # Demiurg absorber fields: collected this turn (cutting beam)
     war_host_rerolls: int = 0  # Demiurg War Host re-rolls bought on this ship: any Demiurg vessel, never lost
 
     def __post_init__(self):

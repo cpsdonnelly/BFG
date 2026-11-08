@@ -50,6 +50,19 @@ def calculate_victory_points(gs: GameState) -> Dict:
         venerable = "venerable" in s.special_rules
         destroyed_vp = pts * 5 // 4 if venerable else pts
         crippled_vp = pts // 2 if venerable else max(1, pts // 4)
+        # Demiurg VP: a commerce vessel destroyed is worth its higher value
+        # (Stronghold 400, Bastion 300, Citadel 200) only if its fleet is all
+        # Demiurg or the opposing fleet has any Ork vessels
+        higher = next((int(r.split(":")[1]) for r in s.special_rules
+                       if r.startswith("demiurg_vp:")), None)
+        if higher is not None:
+            own = [o for o in ships if o.player == s.player]
+            if (all("demiurg_commerce" in o.special_rules for o in own)
+                    or any(o.player == opponent and o.faction == "orks" for o in ships)):
+                from .ship_catalog import find_ship_class
+                entry = find_ship_class(s.ship_class)
+                base = entry.points_cost if entry else pts
+                destroyed_vp = pts + max(0, higher - base)
 
         # Capital ships and solo escorts
         if s.status == "destroyed" or s.hits_remaining <= 0:

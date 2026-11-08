@@ -94,6 +94,8 @@ def dark_age_batteries(ship, weapon) -> bool:
 
 def weapon_range(ship, weapon) -> float:
     r = weapon.get("range_cm", 0)
+    if weapon.get("cutting_beam") and getattr(ship, "collected_blast_markers", 0) >= 2:
+        return 30                      # Demiurg cutting beam: two markers raise it to 30cm
     if r and dark_age_batteries(ship, weapon):
         return max(r, 45)
     return r

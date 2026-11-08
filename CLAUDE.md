@@ -184,6 +184,12 @@ values go through `Ship.crippled_value` (Emergency Energy Reserves), Advanced Sh
 capacitors in `combat.apply_damage` (`rolled_to_hit=False` for explosions), Vault of
 Technology rolled at game start (`mechanicus.roll_vault_of_technology`, main.py).
 Option effects are applied by `ship_catalog.apply_upgrade_effect`.
+Demiurg (Xenos p.91-94, p.101): War Host list `tau_demiurg_war_host` (no commander; War Host
+re-rolls on `Ship.war_host_rerolls`, any Demiurg vessel, never lost); absorber fields
+(`movement.collect_blast_markers`, `blast_markers_to_slow`), cutting beam
+(`combat.cutting_beam_firepower`, `chapter_tactics.weapon_range`), phenomena immunity
+(`terrain_effects`), Demiurg VP (`victory_points`). Owner ruling: the Bastion's modular bays
+are S2 launch bays or S4 torpedoes, chosen at each launch (`Ship.mark_launched` unloads both).
 
 Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the

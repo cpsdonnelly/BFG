@@ -234,6 +234,8 @@ def resolve_gas_dust_contact(ship: Ship, dice: DiceRoller,
     shieldless ships take 1 damage on D6=6.
     """
     result = {"speed_penalty": 5, "damage": 0}
+    if "demiurg_commerce" in ship.special_rules:
+        return {"speed_penalty": 0, "damage": 0}      # Absorber fields: immune
 
     # Shieldless means no shields at all or collapsed, not merely knocked down
     if ship.effective_shields == 0:
@@ -292,6 +294,8 @@ class TabletopEffects:
         for s in gs.get_ships():
             if s.is_destroyed or s.is_disengaged:
                 continue
+            if "demiurg_commerce" in s.special_rules:
+                continue                # Absorber fields: immune to solar flares
 
             bm = BlastMarker(
                 id=f"flare_{s.id}",
@@ -333,6 +337,8 @@ class TabletopEffects:
             s = Ship.from_dict(s_dict)
             if s.is_destroyed or s.is_disengaged:
                 continue
+            if "demiurg_commerce" in s.special_rules:
+                continue                # Absorber fields: immune to radiation bursts
             # Temporarily reduce leadership (will need to be restored at end of turn)
             # Store original Ld for restoration
             gs.ships[i]["_original_ld"] = s.leadership

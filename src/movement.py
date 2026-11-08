@@ -104,7 +104,33 @@ def blast_markers_to_slow(ship: Ship) -> int:
     """Blast markers a ship must touch at once to be slowed: 1, or 2 for battle
     barges with the Tactical Reserves Chapter tactic."""
     from .chapter_tactics import tactical_reserves_barge
+    if "demiurg_commerce" in ship.special_rules:
+        return 10 ** 6                 # Absorber fields: never slowed by blast markers
     return 2 if tactical_reserves_barge(ship) else 1
+
+
+def collect_blast_markers(ship: Ship, gs: GameState, path=None) -> int:
+    """Demiurg absorber / repulsor fields: the ship collects every blast marker
+    its base touches while it moves (those in contact at the start first),
+    removing them from the table; they power its cutting beam this turn.
+    path: [(x, y), ...] points of the move (default: where it stands)."""
+    if "demiurg_commerce" not in ship.special_rules:
+        return 0
+    points = list(path or []) or [(ship.x, ship.y)]
+    reach = BLAST_MARKER_RADIUS_CM + ship.base_radius
+    dense = []
+    for (x1, y1), (x2, y2) in zip(points, points[1:] or points):
+        n = max(1, int(math.hypot(x2 - x1, y2 - y1) / 0.5))
+        dense += [(x1 + (x2 - x1) * k / n, y1 + (y2 - y1) * k / n) for k in range(n + 1)]
+    taken = [bm for bm in gs.get_blast_markers()
+             if any(math.hypot(bm.x - px, bm.y - py) <= reach for px, py in dense)]
+    if taken:
+        ids = {bm.id for bm in taken}
+        gs.blast_markers = [b for b in gs.blast_markers if b["id"] not in ids]
+        ship.collected_blast_markers += len(taken)
+        gs.add_log(f"{ship.name} collects {len(taken)} blast marker(s) "
+                   f"({ship.collected_blast_markers} this turn)")
+    return len(taken)
 
 
 def _first_multi_contact(x1, y1, x2, y2, markers, radius, need, step=0.25):
@@ -438,6 +464,8 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
         ship.pending_ordnance_contacts = list(dict.fromkeys(
             list(ship.pending_ordnance_contacts or []) + touched))
 
+    collect_blast_markers(ship, gs, [(ship.x, ship.y)] + [tuple(p[:2]) for p in (result.path or [])]
+                          + [(result.final_x, result.final_y)])
     ship.x = result.final_x
     ship.y = result.final_y
     ship.heading = result.final_heading

@@ -44,6 +44,7 @@ WEAPON_TYPES = {
     "Railguns": "battery", "Railgun": "battery",
     "Lances": "lance", "Lance": "lance",
     "Ion Cannons": "lance", "Ion Cannon": "lance",
+    "Cutting Beam": "lance",          # Demiurg: FP1+ (1 + collected blast markers, max 8)
     # Nekulli Whip: "The whisperlance cannon follows the rules for lances"
     "Whisperlance Cannon": "lance",
     "Torps": "torpedo", "Gravitic Launcher": "torpedo",
@@ -60,6 +61,7 @@ WEAPON_TYPES = {
 WEAPON_RULES = {
     "Bombardment Cannon": {"hits_on": 4, "crit_on": 4},
     "Killkannon": {"hits_on": 4, "crit_on": 4},
+    "Cutting Beam": {"cutting_beam": True},
 }
 
 ARC_CODES = {"L": ["left"], "R": ["right"], "F": ["front"], "Rear": ["rear"],
@@ -148,6 +150,18 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
     if w["kind"] == "gravitic_hooks":
         return []   # tow escorts into battle: fleet building only, no battle effect
     if w["kind"] == "unparsed":
+        m = re.match(r"Dorsal Modular Launch Bays S(\d+) or S(\d+) Torps", w["raw"])
+        if m:
+            # Demiurg Bastion: launch bays or torpedoes, chosen at each launch
+            # (owner ruling); launching either uses both (Ship.mark_launched)
+            return [{"name": "Dorsal Modular Launch Bays", "weapon_type": "launch_bay",
+                     "range_cm": 30, "strength": int(m.group(1)), "arcs": [],
+                     "craft_types": ["fighter", "bomber", "assault_boat"],
+                     "craft_speeds": {"fighter": 30, "bomber": 20, "assault_boat": 30},
+                     "craft_speed": 30},
+                    {"name": "Dorsal Modular Torps", "weapon_type": "torpedo", "range_cm": 30,
+                     "strength": int(m.group(2)), "arcs": ["left", "front", "right", "rear"],
+                     "torpedo_type": "standard", "torpedo_speed": 30}]
         problems.append(f"weapon not parsed: {w['raw']}")
         return []
     if w["kind"] == "launch_bays":
@@ -198,6 +212,8 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
         if m:
             strength, strength_close = int(m.group(1)), int(m.group(2))
     strength_dice = None
+    if w["name"] == "Cutting Beam" and (w.get("value") or "") == "1+":
+        strength = 1                   # combat.cutting_beam_profile adds the markers
     if strength is None and wtype in ("battery", "lance", "torpedo"):
         from .combat import is_dice_value, dice_value_average
         if is_dice_value(w.get("value") or ""):
@@ -347,6 +363,11 @@ def convert_row(row: dict) -> dict:
         # Demiurg commerce vessels: fixed Ld, -1 per point of damage (min 5)
         ld_table, fixed_ld = "", int(m.group(1))
         special_rules += ["demiurg_commerce", f"nominal_ld:{m.group(1)}"]
+        vp = re.search(r"VP \d+ \((\d+) in the circumstances below\)", notes)
+        if vp:
+            special_rules.append(f"demiurg_vp:{vp.group(1)}")   # Demiurg VP
+        if "modular" in (row.get("armament_raw") or "").lower():
+            special_rules.append("modular_bays")
     if re.search(r"\+5D6cm on All Ahead Full instead of \+3D6cm", notes):
         special_rules.append("aaf_5d6")      # Fast Clipper
 

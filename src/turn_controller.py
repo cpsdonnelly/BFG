@@ -293,6 +293,7 @@ class TurnController:
                 self.gs.ships[i]["previous_order"] = SpecialOrder.NONE.value
                 # Reset per-turn flags
                 self.gs.ships[i]["moved_this_turn"] = False
+                self.gs.ships[i]["collected_blast_markers"] = 0   # unused markers are lost
                 self.gs.ships[i]["has_fired"] = False
                 self.gs.ships[i]["disengage_failed_this_turn"] = False
                 self.gs.ships[i]["weapons_fired_indices"] = []
@@ -343,6 +344,12 @@ class TurnController:
                 result["error"] = "Ponderous ships cannot use Come to New Heading"
                 return result
 
+        # Demiurg: markers in contact as it begins its move are collected first
+        # (no Under Fire for a movement-phase order); Brace is checked normally
+        if order != SpecialOrder.BRACE_FOR_IMPACT.value and self.gs.current_phase == "movement":
+            from .movement import collect_blast_markers
+            if collect_blast_markers(ship, self.gs):
+                self.gs.update_ship(ship)
         # Determine Ld modifiers
         blast_markers = self.gs.get_blast_markers()
         in_blast = any(
@@ -425,6 +432,11 @@ class TurnController:
                                   + ", ".join(s.name for s in ponderous))}
 
         blast_markers = self.gs.get_blast_markers()
+        if order != SpecialOrder.BRACE_FOR_IMPACT.value and self.gs.current_phase == "movement":
+            from .movement import collect_blast_markers
+            if collect_blast_markers(leader, self.gs):
+                self.gs.update_ship(leader)
+            blast_markers = self.gs.get_blast_markers()
         in_blast = any(
             circle_touches_trefoil(leader.x, leader.y, leader.base_radius,
                                    bm.x, bm.y, bm.heading)

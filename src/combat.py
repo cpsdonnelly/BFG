@@ -435,11 +435,23 @@ def resolve_combined_batteries(primary_attacker: Ship,
     return result
 
 
+def cutting_beam_firepower(ship: Ship, dist: float) -> int:
+    """Demiurg cutting beam (lance, 15cm, front): FP 1 + each blast marker the
+    ship collected in its movement phase, at most 8; beyond 15cm two markers
+    are expended to reach 30cm and the rest add firepower."""
+    markers = ship.collected_blast_markers
+    if dist > 15:
+        markers -= 2
+    return min(8, 1 + max(0, markers))
+
+
 def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
                    dice: DiceRoller, lock_on: bool = False) -> ShotResult:
     """Resolve a lance weapon attack."""
     result = ShotResult(weapon["name"], "lance")
     strength = weapon["strength"]
+    if weapon.get("cutting_beam"):
+        strength = cutting_beam_firepower(attacker, attacker.distance_to(target))
 
     # Halve if crippled
     if attacker.is_crippled:

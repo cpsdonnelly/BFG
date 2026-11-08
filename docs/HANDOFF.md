@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **909 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **918 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -225,9 +225,24 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   Tyranids" limit (no Tyranids), Pthuxutl's disruptor cannon (a lance that may also
   shoot at attacking ordnance; unsupported; the Nekulli's whisperlance is now a lance), xenos refits (10pts or less per squadron),
   the torpedo variant for generic cutters.
-- Tau (22-23): new Demiurg War Host fleet list (re-rolls 25 / 75); Courier Transport; Demiurg
-  Mercenaries / Absorber fields / cutting beam; Demiurg, Nicassar and Kroot are allies of
-  convenience in a Tau fleet.
+- Tau (22-23): **done:** the Demiurg War Host list (`tau_demiurg_war_host`: no commander,
+  War Host re-rolls 1 for 25 / 2 for 75 usable by any Demiurg vessel and never lost
+  (`Ship.war_host_rerolls`, `TurnController._war_host_rerolls`), more Demiurg commerce
+  vessels than other cruisers incl. reserves, one Stronghold per two cruisers, 0-12 cruisers,
+  Kroot 0-3 one per 750 or portion, one escort squadron per three Demiurg capital ships,
+  Warden / Orca / Dhow mixing, no Demiurg-Tau squadrons, Kor'or'vesh reserves only
+  (`reserve_sections`), Rogue Trader detachment may join). The Demiurg ships are playable:
+  absorber fields (never slowed; collect every blast marker touched while moving, those in
+  contact first, before a movement-phase command check: `movement.collect_blast_markers`;
+  immune to solar flares, radiation bursts, dust clouds), cutting beam (FP 1 + collected
+  markers, max 8; two markers for 30cm range: `combat.cutting_beam_firepower`; unused
+  markers lost at the start of the owner's next turn), the Bastion's modular bays (owner
+  ruling: S2 bays or S4 torpedoes chosen at each launch; launching either uses both,
+  `Ship.mark_launched`), Demiurg VP (higher value if the fleet is all Demiurg or the enemy
+  has Ork vessels). Not yet: Mercenaries (crippled Demiurg in a mixed fleet must disengage
+  every turn; with Orks opposing, at 2 hits or fewer), mine launchers, the Courier Transport
+  (scenario only), the Tau list's "allies of convenience" effects (attack rating), undoing a
+  Demiurg move doesn't put collected blast markers back.
 - Chaos (25): Planet Killer counts as a battleship; Renegades Space Hulk 650 (flagship), CSM ships,
   Terminators; reserves among Incursion / Crusade / Renegades; god-dedicated fleets differ from
   the Crusade list (CSM crew +35, own Mark only); Incursion Marks.

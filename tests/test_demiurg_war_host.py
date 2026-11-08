@@ -68,3 +68,66 @@ def test_war_host_rerolls_any_demiurg_vessel_never_lost():
     assert tc.get_fleet_rerolls(1, other) == 2 and tc.get_fleet_rerolls(1, tau) == 0
     assert tc.use_fleet_reroll(1, other) and tc.get_fleet_rerolls(1, other) == 1
     assert not tc.use_fleet_reroll(1, tau)
+
+
+# ── Demiurg ship rules (Xenos p.91-94) ────────────────────────────────────────
+
+def test_absorber_fields_collect_markers_and_are_never_slowed():
+    from src.models import BlastMarker
+    from src.movement import blast_markers_to_slow, collect_blast_markers
+    d = make_ship(id="d", x=0.0, y=0.0, special_rules=["demiurg_commerce"])
+    gs = make_gs([d])
+    gs.add_blast_marker(BlastMarker(id="a", x=1.0, y=0.0))
+    gs.add_blast_marker(BlastMarker(id="b", x=10.0, y=0.0))
+    gs.add_blast_marker(BlastMarker(id="c", x=40.0, y=0.0))
+    assert collect_blast_markers(d, gs, [(0.0, 0.0), (12.0, 0.0)]) == 2
+    assert d.collected_blast_markers == 2 and [b["id"] for b in gs.blast_markers] == ["c"]
+    assert blast_markers_to_slow(d) > 100
+    other = make_ship(id="o")
+    assert collect_blast_markers(other, gs, [(0.0, 0.0), (45.0, 0.0)]) == 0
+
+
+def test_cutting_beam_firepower_and_range():
+    from src.combat import cutting_beam_firepower
+    from src.chapter_tactics import weapon_range
+    d = make_ship(special_rules=["demiurg_commerce"], collected_blast_markers=3)
+    beam = {"name": "Prow Cutting Beam", "weapon_type": "lance", "range_cm": 15, "strength": 1,
+            "cutting_beam": True}
+    assert cutting_beam_firepower(d, 10) == 4 and cutting_beam_firepower(d, 25) == 2
+    assert weapon_range(d, beam) == 30
+    d.collected_blast_markers = 12
+    assert cutting_beam_firepower(d, 10) == 8
+    d.collected_blast_markers = 1
+    assert weapon_range(d, beam) == 15
+
+
+def test_bastion_modular_bays_launch_one_or_the_other():
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    d = find_ship_class(BASTION).to_ship_dict(name="b", player=1)
+    d.update(id="b", x=0.0, y=0.0, heading=0.0)
+    s = Ship.from_dict(d)
+    assert s.ordnance_loaded_torps and s.ordnance_loaded_craft
+    s.mark_launched("craft")
+    assert not s.ordnance_loaded_torps and not s.ordnance_loaded_craft
+    plain = make_ship()
+    plain.mark_launched("craft")
+    assert plain.ordnance_loaded_torps and not plain.ordnance_loaded_craft
+
+
+def test_demiurg_immune_to_dust_clouds_and_higher_vp_against_orks():
+    from src.terrain_effects import resolve_gas_dust_contact
+    from src.victory_points import calculate_victory_points
+    from tests.conftest import DiceStub
+    d = make_ship(id="d", player=1, shields_max=0, special_rules=["demiurg_commerce"])
+    dice = DiceStub([])
+    assert resolve_gas_dust_contact(d, dice, make_gs([d])) == {"speed_penalty": 0, "damage": 0}
+    dead = make_ship(id="c", player=1, ship_class="Citadel Commerce Vessel", points_value=185,
+                     hits_remaining=0, status="destroyed",
+                     special_rules=["demiurg_commerce", "demiurg_vp:200"])
+    tau = make_ship(id="t", player=1)
+    ork = make_ship(id="k", player=2, faction="orks")
+    imp = make_ship(id="i", player=2)
+    assert calculate_victory_points(make_gs([dead, tau, ork]))[2]["destroyed"] == 200
+    assert calculate_victory_points(make_gs([dead, tau, imp]))[2]["destroyed"] == 185
+    assert calculate_victory_points(make_gs([dead, imp]))[2]["destroyed"] == 200   # all Demiurg
