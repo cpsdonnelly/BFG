@@ -815,10 +815,11 @@ class FleetBuilderWindow:
                 continue
             fl = LISTS[rkey]
             out.append((None, "", 0, f"Reserves: {fl['name'].split(' (')[0]}"))
+            from .fleet_lists import reserve_allowed
             for sec in fl["sections"]:
                 for c, cost in sec["ships"].items():
                     e = find_ship_class(c)
-                    if e is not None:
+                    if e is not None and reserve_allowed(self._list_key, rkey, c):
                         out.append((e, f"reserve:{rkey}", cost, "RES"))
         return out
 

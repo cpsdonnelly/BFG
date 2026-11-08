@@ -314,7 +314,9 @@ def convert_row(row: dict) -> dict:
     if "Ablative Prow Armour" in notes:
         # Ignores Prow Armament Damaged crits; lost if prow torpedoes are taken
         special_rules.append("ablative_prow_armor")
-    if "Fra'al targeting matrix (free): treats all gunnery targets as closing" in notes:
+    if ("Fra'al targeting matrix (free): treats all gunnery targets as closing" in notes
+            or "Fra'al targeting matrix for no extra cost, allowing it to treat all gunnery "
+               "targets as closing" in notes):
         special_rules.append("fraal_targeting")           # Fra'al Raider
     if "Always rolls 3D6 on the Catastrophic Damage table" in notes:
         special_rules.append("catastrophic_3d6")          # Mercury

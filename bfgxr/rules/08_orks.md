@@ -89,10 +89,10 @@ No capital ship or escort squadron may be led by more than one character for any
 | Extra Turrets | +2 Turrets, to a max of 6. |
 | Soopa Tellyporta | Hit-and-run teleport attack range becomes 30cm (other restrictions still apply). |
 | Extra Power Field | +1 Shields. Combinable with kustom force fields. |
-| Mega Armoured Boarding Parties | +2 crew damage bonus; +1 to score on hit-and-run raids (including ordnance-launched); enemy hit-and-run attacks against the vessel subtract 1 from their result. |
-| Mad Meks | Repair critical damage on 4+ instead of 6. Combinable with the big mek bonus. |
-| More Dakka! | Once per turn, re-roll the random firepower/strength of one of the commander's weapons, taking the second result even if worse. |
-| Grot Riggers | +1Ld when attempting *Reload Ordnance*. A capital ship squadron may not benefit from more than one copy. |
+| Mega Armoured Boarding Parties | The commander's vessel increases its crew damage bonus to +2, and adds +1 to its score when making hit-and-run raids (including those made by ordnance it launches). In addition, all enemy hit-and-run attacks against the commander's vessel subtract 1 from their result. |
+| Mad Meks | When rolling to repair critical damage, the commander's vessel will succeed on a roll of 4+ instead of 6. Combinable with the big mek bonus. |
+| More Dakka! | Once per turn, the commander's vessel may re-roll the random firepower/strength of one of its weapons, taking the second result, even if it is worse. |
+| Grot Riggers | +1Ld when attempting *Reload Ordnance*. A capital ship squadron may not benefit from more than one copy of this upgrade. |
 
 *Source: Ships of the Xenos, "Clanz and Commanders", p.56*
 
@@ -102,12 +102,12 @@ An Ork commander that purchases the appropriate clan upgrade from the Ork fleet 
 
 | Clan | Bonus |
 |---|---|
-| Goffs | Always pass leadership tests to ram; add turrets to troop rating in any boarding action they initiate (limit +1 for escorts). |
+| Goffs | Goff vessels always pass leadership tests to ram and add their turrets to their troop rating in any boarding action they initiate (limit +1 for escorts due to their size). |
 | Evil Sunz | Extra +2D6cm to speed while on *All Ahead Full*. |
-| Bad Moons | Re-roll one equipped weapon's random firepower/strength each turn, taking the higher result. Combinable with More Dakka, but the same weapon may not be re-rolled more than once. |
-| Deathskulls | Add +1 or -1 to any critical hit or hit-and-run raid result they suffer; pay only half cost for looted torpedoes. |
-| Blood Axes | +2 Ld while re-rolling command checks and while using Mob Rule. |
-| Snakebites | +1 Assault point when scoring during a Planetary Assault scenario (or any scenario using Assault points). |
+| Bad Moons | Bad Moons vessels may reroll one equipped weapon's random firepower/strength each turn, taking the higher result. This bonus may be combined with More Dakka, but the same weapon may not be re-rolled more than once. |
+| Deathskulls | Deathskulls ships may add +1 or -1 to any critical hit or hit-and-run raid result they suffer, and only pay half the usual cost for looted torpedoes. |
+| Blood Axes | Blood Axe ships have +2 Ld while re-rolling command checks and while using Mob Rule. |
+| Snakebites | All Snakebite ships earn +1 Assault point when scoring during a Planetary Assault scenario (or any other scenario that uses Assault points). |
 
 **Looted Vessels:** Ork fleets take looted vessels instead of regular reserves. Looted ships may be chosen from any cruisers in the Imperial Navy, Chaos, or Tau lists (usual 3:1 reserve ratio). They use all normal rules for their type, except:
 
@@ -139,7 +139,7 @@ Ork carriers launch Fighta-Bommerz (MR, 25cm) and Assault Boats (AB, 30cm). Ork 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Hammer Battlekroozer | 225 | 10 | 32mm | 20cm | 45° | 2 | 6+P / 5+ | 3 | Prow Gunz 45cm FP D6+6 (F); Prow Kustom Kannon 30cm FP Special (F); Gunz 30cm FP6 (L), (R); Heavy Gunz 30cm FP6(10) (L), (R); Launch Bays S D3+1 (MR 25cm, AB 30cm) | Ponderous (no Come to New Heading); may swap Ld with any cruiser that rolled higher. Kustom Kannon fires as an FP6 killkannon or launches S D6+2 torps (one mode per turn); it must be reloaded using Reload Ordnance after firing, whichever mode it used. Free hull krusha. Options: launch bays to torpedo bombers +30pts; Soopa boostas +25pts; Kustom Kannon looted torps +20pts; launch bays to mine launchers (S D3+1) +20pts; Kustom force field +20pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts |
-| Terror Ship *Cruiser* | 175 | 10 | 32mm | 20cm | 45° | 1 | 6+/5+/4+ | 3 | Prow Gunz 45cm FP D6+4 (F); Prow Heavy Gunz 30cm FP6(10) (F); Gunz 30cm FP6 (L), (R); Launch Bays port S2 + stbd S2 (MR 25cm, AB 30cm) | Armour front/abeam/rear. Free hull krusha. Replace prow heavy gunz with a prow torpedo launcha (30cm D6+2 F) +10pts or prow zzapp gunz (30cm D3+1 F) +5pts. Options: launch bays to torpedo bombers +40pts; Soopa boostas +25pts; torps to looted torps +20pts; port/stbd launch bays to mine launchers (S2 each) +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts |
+| Terror Ship *Cruiser* | 175 | 10 | 32mm | 20cm | 45° | 1 | 6+/5+/4+ | 3 | Prow Gunz 45cm FP D6+4 (F); Prow Heavy Gunz 30cm FP6(10) (F); Gunz 30cm FP6 (L), (R); Launch Bays port S2 + stbd S2 (MR 25cm, AB 30cm) | Armour front/abeam/rear. Free hull krusha. Replace prow heavy gunz with a prow torpedo launcha (Speed 30cm, Strength D6+2, Front) for +10 points, or prow zzapp gunz (Range 30cm, Firepower D3+1, Front) for +5 points. Options: launch bays to torpedo bombers +40pts; Soopa boostas +25pts; torps to looted torps +20pts; port/stbd launch bays to mine launchers (S2 each) +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts |
 | Kill Kroozer | 155 | 10 | 32mm | 20cm | 45° | 1 | 6+/5+/4+ | 3 | Prow Gunz 45cm FP D6+6 (F); Prow Heavy Gunz 30cm FP6(10) (F); Gunz 30cm FP6 (L), (R); Heavy Gunz 30cm FP4(6) (L), (R) | Armour front/abeam/rear. Free hull krusha. Replace prow heavy gunz with a prow torpedo launcha (30cm D6+2 F) +10pts or prow zzapp gunz (30cm D3+1 F) +5pts; with the torpedo launcha, may drop both side heavy gunz to add +D6 to it (total 2D6+2) free, or replace both side heavy gunz with zzapp gunz (30cm D3+1, L/R) +20pts. Options: Soopa boostas +25pts; torps to looted torps +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts |
 | Basha Lite Kroozer | 110 | 8 | 32mm | 20cm | 45° | 1 | 6+/5+/4+ | 3 | Prow Gunz 45cm FP D6+2 (F); Prow Heavy Gunz 30cm FP4(6) (F); Gunz 30cm FP4 (L), (R) | Armour front/abeam/rear. Replace prow heavy gunz with a prow torpedo launcha (30cm D6+1 F) free or prow zzapp gunz (30cm D3+1 F) +10pts. Options: Soopa boostas +20pts; torps to looted torps +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts; Hull Krusha +5pts |
 
@@ -147,9 +147,9 @@ Ork carriers launch Fighta-Bommerz (MR, 25cm) and Assault Boats (AB, 30cm). Ork 
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Grunt Assault Ship *Escort* | 35 | 2 | 32mm | 25cm | 90° | 1 | 6+P / 4+ | 3 | Gunz 30cm FP2 (F) | Boarder: counts as troop rating 4 (any hits) when boarding as attacker. Cannot use Come to New Heading. Options (squadron must match): Grabbin' klaws +10pts; Soopa boostas +5pts; Magno-tracktor beam +5pts; +1 Turret +5pts |
+| Grunt Assault Ship *Escort* | 35 | 2 | 32mm | 25cm | 90° | 1 | 6+P / 4+ | 3 | Gunz 30cm FP2 (F) | Boarder: counts as having a troop rating of 4 (regardless of hits) when boarding as the attacker. Cannot use Come to New Heading. Options (squadron must match): Grabbin' klaws +10pts; Soopa boostas +5pts; Magno-tracktor beam +5pts; +1 Turret +5pts |
 | Ravager Attack Ship *Escort* | 35 | 1 | 32mm | 25cm | 45° | 1 | 6+P / 4+ | 3 | Gunz 30cm FP2 (F); Torps 30cm S D6 (F) | Options (squadron must match): Soopa boostas +5pts; +1 Turret +5pts |
-| Onslaught Attack Ship *Escort* | 30 | 1 | 32mm | 25cm | 45° | 1 | 6+P / 4+ | 3 | Gunz 30cm FP D6+1 (L/F/R) | Options (squadron must match): Soopa boostas +5pts; +1 Turret +5pts; or reduce gunz to FP2 to add a zzapp gun (30cm FP1 F) free |
+| Onslaught Attack Ship *Escort* | 30 | 1 | 32mm | 20cm | 45° | 1 | 6+P / 4+ | 2 | Gunz 30cm FP D6+1 (L/F/R) | Options (squadron must match): Soopa boostas +5pts; +1 Turret +5pts; or reduce gunz to FP2 to add a zzapp gun (30cm FP1 F) free |
 | Savage Gunship *Escort* | 25 | 1 | 32mm | 25cm | 45° | 1 | 6+P / 4+ | 2 | Heavy Gunz 30cm FP2(6) (F) | Free soopa boostas. Options (squadron must match): +1 Turret +5pts |
 | Brute Ramship *Escort* | 20 | 1 | 32mm | 25cm | 90° | 1 | 6+P / 4+ | 2 | Gunz 30cm FP2 (F) | Rolls 4D6 for ramming damage instead of 1D6. Options (squadron must match): hull krusha +10pts; Soopa boostas +5pts; +1 Turret +5pts |
 
@@ -158,7 +158,7 @@ Ork carriers launch Fighta-Bommerz (MR, 25cm) and Assault Boats (AB, 30cm). Ork 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Ork Space Hulk *Defence* | 610 | 40 | 60mm | 10cm | Special | 3 | 4+ | 6 | Gunz 45cm FP 2D6+6 (F), (L), (R); Prow Heavy Gunz 30cm FP8(12) (F); Torps 30cm S 2D6 (F), (L), (R); Dorsal Lances 60cm FP4 (All Round); Launch Bays port S D6+2 + stbd S D6+2 (MR 25cm, AB 30cm) | Default Ld 6; never crippled; moves 10cm straight only; reduced commander effects. Full rules: see Ork Ship Special Rules |
-| Ork Rok *Defence* | 80 | 8 | 32mm | 10cm | None | 1 | 5+ | 2 | Gunz 45cm FP D6+6 (All Round); Heavy Gunz 30cm FP2(6) (All Round); Torps 30cm S D6 (All Round) | May also be a planetary-defence choice. Crippled at half damage. Special movement and damage: see Ork Ship Special Rules |
+| Ork Rok *Defence* | 80 | 8 | 32mm | 10cm | Special | 1 | 5+ | 2 | Gunz 45cm FP D6+6 (All Round); Heavy Gunz 30cm FP2(6) (All Round); Torps 30cm S D6 (All Round) | May also be a planetary-defence choice. Crippled at half damage. Special movement and damage: see Ork Ship Special Rules |
 
 ### Ork Ship Special Rules
 
@@ -176,7 +176,7 @@ Default Leadership 6. Never crippled; destroyed only. Follows normal ship rules 
 
 **Movement:** moves exactly 10cm straight each turn, never slowed by blast markers or damage. May turn up to 45° only at the end of the move and only every second movement phase. In a planet's or moon's gravity well it may make one 45° turn toward that body even if it already turned; it also creates its own gravity well 5cm out from its base, which ships and Roks can orbit (orbiting objects move with it until they break orbit).
 
-**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.182), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
+**Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Critical hits use the Ork Space Hulk Critical Hits table (p.183), not the normal table; results cannot be repaired, and no characteristic drops below zero. At 0 damage, roll Catastrophic Damage: drifting and blazing results are unchanged; a plasma drive overload breaks it into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 
 #### Ork Rok (Xenos p.72)
 

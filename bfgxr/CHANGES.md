@@ -640,3 +640,51 @@ Wording only, no rule changes:
 - 13th Black Crusade Marks of Chaos: colon before the costs, semicolon between them.
 - Killkannons: described as a salvaged bombardment cannon, a salvaged nova cannon, or a very large
   Ork-made gun (flavour only; the firing rules are unchanged).
+
+# Thirty-ninth update: table cells in sourcebook wording
+
+Long table cells (ship special rules, fleet list notes, scenario/campaign tables, refits and crew
+skills, damage tables) now use the sourcebook's wording wherever it says the same thing (123
+cells). Short stat cells are unchanged. Mostly wording; points to check in code:
+- Lance values given as strength in the source are firepower: orbital defence laser option (+1
+  lance firepower for -30cm range), Xenos Weapon Emplacement, Plasma Drive Overload / Warp Drive
+  Implosion lance shots, space hulk "Target high-energy systems" (5-6: -1 firepower to all lances).
+- Refit and crew skill text now
+  matches Imperium p.151-152 / Xenos p.122-123 rule sentences (flavour omitted).
+- The booklet is 189 pages: everything from Support Assets on moved one page later (Support Assets
+  84, Chaos 89, Orks 100, Tau 110, Scenarios 119, Campaigns 163, Appendix 1-7 at
+  175/177/182/185/186/187/188). Internal cross-references updated.
+
+# Fortieth update: table wording decisions
+
+Wording only. Xenos Logic Engine sub-plot VC now reads "VC: none; the sub-plot succeeds if you
+win the battle and fails if you lose." Mimic Drive points to the booklet's Conventional Transport
+entry (Convoy Ships table, p.87) instead of the BFG:XR Rulebook. Extended Duty keeps "command
+checks".
+
+# Forty-first update: Remastered blast marker clarifications in source wording
+
+The three blast marker passages taken from Remastered (pp.68-69) now use the Remastered wording:
+the base-contact clarification in section 11, "Whole-base contact" and "Firing ship in contact"
+in the Remastered differences. No rule changes. Section 37 (Disengaging) now starts on p.32.
+
+# Forty-second update: scenario diagrams corrected
+
+Sixteen scenario maps redrawn (tools/diagrams.py regenerates them; table drawn as 180x120cm).
+Rules content that changed:
+- Cruiser Clash: Fleet A / Fleet B are 90cm-wide zones centred on the long edges, 30cm deep,
+  60cm apart (was full-width strips).
+- Fleet Engagement Set-up B: bottom divisions now Div. 3, Div. 2, Div. 1 from left to right.
+- Escalating Engagement: table edges numbered for the random-edge roll (1 left, 2-3 top,
+  4-5 bottom, 6 right).
+- Domination 5: the two centre-line objectives are 30cm from the top and bottom edges (was 45cm).
+- Surprise Attack: the full-alert area is 30cm from every edge (the old box was 20cm from the short
+  edges while labelled 30cm).
+Layout only: Navigate the Storm, Destroy the Docks, Fleet Engagement A/C/D, Ambush, Warp Storm,
+Domination 1/2/3/6 (clipped and overlapping labels, "Centre Objective").
+
+# Forty-third update: stat corrections from the full profile check
+
+All 178 profiles were checked against the source books (stats, weapons, launch bays). Two cells changed:
+- Onslaught Attack Ship: Speed 20cm (was 25cm), Turrets 2 (was 3), per Xenos p.67.
+- Ork Rok: Turns "Special" (was "None"), per Xenos p.69. turn_raw is now "Special" like the hulks.

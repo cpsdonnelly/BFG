@@ -52,4 +52,14 @@ check(w._fleet_total() == 35 * 2 + 30, f"Notable Xenos squadron 2x35 + 30: {w._f
 w._save_fleet()
 pv = [s["points_value"] for s in json.load(open(out))["ships"]]
 check(pv == [65, 35], f"saved squadron cost on the first ship: {pv}")
+w._fleet.clear(); w._refresh_fleet_list()
+pick_faction("tau_kororvesh"); pick_list("tau_demiurg_war_host")
+res = [e.ship_class for e, m in zip(w._catalog_entries, w._catalog_meta)
+       if e is not None and m[0] == "reserve:tau_empire"]
+check("Protector Cruiser" in res and "Hero Starship" not in res,
+      f"War Host reserves are Kor'or'vesh only: {res}")
+add("Bastion Commerce Vessel", "tau_demiurg_war_host"); add("Citadel Commerce Vessel", "tau_demiurg_war_host")
+w._pts_limit_var.set("800")
+ok, errs = w._validate_fleet()
+check(ok, f"two Demiurg ships validate with no commander: {errs}")
 print("FAILURES:", failures) if failures else print("all ok")

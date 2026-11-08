@@ -20,7 +20,7 @@ Source: `BFGXR_XR_Companion.docx`
 - Chaos / Chaos Space Hulk: `turn_raw` = `Special`
 - Chaos / Terminus Est (Death Guard): `points_raw` = `420*`
 - Orks / Ork Space Hulk: `turn_raw` = `Special`
-- Orks / Ork Rok: `turn_raw` = `None`
+- Orks / Ork Rok: `turn_raw` = `Special`
 - Tau & Allies / Courier Transport: `points_raw` = `Free`
 - Tau & Allies / Nicassar Caravan: `turn_raw` = `Special`
 - Tau & Allies / Kroot Warsphere: `turn_raw` = `Special`

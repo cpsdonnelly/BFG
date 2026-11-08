@@ -56,7 +56,7 @@ Tau weapon and system terms follow the Tau faction rules: Railguns = macrobatter
 | Emissary Light Cruiser | 110 | 4 | 32mm | 20cm | 90° | 1 | 5+ | 2 | Railguns 45cm FP4 (L/F), (R/F); Prow Launch Bays S2 (ASF 25cm); Gravitic Hooks port + stbd (1 Warden each) | Bor'kan/Sa'cea Configurations (no extra cost): replace port/stbd gravitic hooks with ion cannons (30cm S1, L/F and R/F); and/or replace the prow launch bays with a prow Gravitic Launcher (20-40cm S3 F). May add a Deflector +10pts |
 | Castellan Escort | 45 | 1 | 32mm | 25cm | 90° | 1 | 5+ | 2 | Railguns 45cm FP2 (L/F/R); Gravitic Launcher 20-40cm S2 (F) | \- |
 | Warden Gunship *towed escort* | 30 | 1 | 32mm | 25cm | 90° | 1 | 5+ | 1 | Railguns 30cm FP2 (F); Ion Cannon 30cm FP1 (L/F/R) | Towed by Gravitic Hooks (the Custodian carries 3) |
-| Courier Transport *Escort* | Free | 1 | 32mm | 20cm | 45° | 1 | 5+ | 1 | Railguns 30cm FP1 (L/F/R) | Convoy ship (transport capacity 1), following the normal rules for fleet support units and convoy ships, and all applicable Tau Empire special rules. May only be included when the scenario imposes a transport capacity requirement on your fleet |
+| Courier Transport *Escort* | Free | 1 | 32mm | 20cm | 45° | 1 | 5+ | 1 | Railguns 30cm FP1 (L/F/R) | Convoy ship (transport capacity 1), following the normal rules for fleet support units and convoy ships, and all applicable Tau Empire special rules. May only be included when the chosen scenario imposes a transport capacity requirement on your fleet |
 
 **Orbital Defences**
 
@@ -95,9 +95,9 @@ Nicassar vessels may never initiate boarding actions or teleport attacks, and al
 
 | Class | Pts | Hits | Base | Spd | Turn | Sh | Armr | Tur | Armament | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Nicassar Caravan *Defence* | 200 | 8 | 60mm | 10cm | Special | 4 | 5+ | 6 | Railguns 30cm FP10 (All Round) | Moves exactly 10cm in any direction each movement phase and never needs to turn; not slowed by blast markers, celestial phenomena, or being crippled; cannot use All Ahead Full, Burn Retros, or Come to New Heading. Classed as a defence for shooting, ramming, etc. Distributed Systems: a critical hit instead inflicts one extra point of damage; at zero hits it is replaced by four blast markers centred on where it was destroyed (no catastrophic damage roll) |
+| Nicassar Caravan *Defence* | 200 | 8 | 60mm | 10cm | Special | 4 | 5+ | 6 | Railguns 30cm FP10 (All Round) | Moves exactly 10cm in any direction each movement phase and never needs to turn; not slowed by blast markers, celestial phenomena, or being crippled; cannot use All Ahead Full, Burn Retros, or Come to New Heading. Classed as defences for the purposes of shooting, ramming, etc. Distributed Systems: a critical hit instead inflicts one extra point of damage; at zero hits it is replaced by four blast markers centred on where it was destroyed (no catastrophic damage roll) |
 | Nicassar Dhow *towed escort* | 45 | 1 | 32mm | 20cm | 180° | 2 | 5+ | 1 | Railguns 30cm FP3 (L), (R) | May not be squadroned with Tau escorts. Any Kor'vattra capital ship may reconfigure its gravitic hooks to tow Dhows for no cost change |
-| Nicassar Rig *Defence* | 20 | 4 | 32mm | \- | \- | 1 | 5+ | 6 | Gravitic Hooks (4 Dhows) | Treated as a stationary defence, except that it may be placed anywhere in your deployment zone; no offensive weapons. For every Rig, the fleet must buy four Dhows (they ride in its hooks) |
+| Nicassar Rig *Defence* | 20 | 4 | 32mm | \- | \- | 1 | 5+ | 6 | Gravitic Hooks (4 Dhows) | Rigs are treated as stationary defences as described in the main rulebook, except that they may be placed anywhere in your deployment zone; no offensive weapons. You must purchase four dhows for every rig in the fleet (they ride in its hooks) |
 
 **Allies: Kroot**
 
@@ -160,7 +160,7 @@ One Empire list with two divisions, the Kor'or'vesh (Protector Fleet) and Kor'va
 | Battleships | one Stronghold per two cruisers | Stronghold 350 |
 | Cruisers (0-12) | the fleet must include more Demiurg commerce vessels than all other non-Demiurg cruisers combined; all ships are still bound by the rules for allies of convenience, so different factions' ships cannot be placed in squadrons together | Bastion 255, Citadel 185, Protector 180, Hero 180, Emissary 110, Merchant 105 |
 | Kroot Vessels (0-3) | one per 750pts (or portion thereof); do not count against the allowed number of cruisers | Kroot Warsphere 145 |
-| Escorts | one squadron of 2-6 allied escorts for every three Demiurg capital ships | Defender 50, Castellan 45, Nicassar Dhow 45, Warden\* 30, Orca\* 25 |
+| Escorts | for every three Demiurg capital ships in your fleet, you may include one squadron of 2 to 6 allied escorts | Defender 50, Castellan 45, Nicassar Dhow 45, Warden\* 30, Orca\* 25 |
 
 \*Wardens, Orcas, and Dhows are still limited by the number of gravitic hooks in the fleet configured for their type. Wardens may only be mixed with Castellans, Orcas may only be mixed with Defenders, and Dhows may not be mixed with any other escort. Castellans and Defenders may be mixed in squadrons as normal.
 

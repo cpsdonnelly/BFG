@@ -259,6 +259,33 @@ TAU_LISTS = [
          "Reserves: only a Rogue Trader Fleet Detachment may join; no other reserves."]},
 ]
 
+TAU_LISTS.append(
+    {"key": "tau_demiurg_war_host", "faction": "tau_kororvesh", "demiurg_war_host": True,
+     "name": "Demiurg War Host (Xenos p.101)",
+     # Never requires or fields fleet commanders; up to two re-rolls bought for
+     # the whole host (booklet_options.demiurg_war_host_options)
+     "no_commander": True,
+     "list_excludes": ["Kor'el", "Kor'O", "Commander:"],
+     "list_options": ["War Host re-roll"],
+     "sections": [
+         {"name": "Battleships", "ratio": (2, ["Cruisers"]),
+          "ships": {"Stronghold Commerce Vessel": 350}},
+         {"name": "Cruisers", "max": 12,
+          "ships": {"Bastion Commerce Vessel": 255, "Citadel Commerce Vessel": 185,
+                    "Protector Cruiser": 180, "Hero Starship": 180,
+                    "Emissary Light Cruiser": 110, "Merchant Starship": 105}},
+         {"name": "Kroot Vessels", "max": 3, "per_points": 750, "or_part": True,
+          "ships": {"Kroot Warsphere": 145}},
+         {"name": "Escorts",
+          "ships": {"Defender Starship": 50, "Castellan Escort": 45, "Nicassar Dhow": 45,
+                    "Warden Gunship": 30, "Orca Gunship": 25}},
+     ],
+     # Tau Kor'or'vesh vessels as reserves (normal 3:1)
+     "reserves": ["tau_empire"], "reserve_sections": {"tau_empire": ["Kor'or'vesh"]},
+     "unenforced": [
+         "Mine launchers on up to two cruisers: not in the fleet builder yet.",
+         "Demiurg ships use only generic attack craft and ordinary torpedoes."]})
+
 # ── Rogue Traders (05_rogue-traders.md) ───────────────────────────────────────
 
 _RT_CONVOY_ESC = {"Rogue Trader Escort Carrier": 60, "Rogue Trader Convoy Monitor": 60,
@@ -292,7 +319,7 @@ RT_LISTS = [
      "joins": _NAVY_KEYS + ["admech_explorator", "sm_dominion", "chaos_incursion",
                             "chaos_black_crusade", "chaos_renegades", "chaos_slaanesh",
                             "chaos_nurgle", "chaos_khorne", "chaos_tzeentch",
-                            "orks_green_tide", "tau_empire"],
+                            "orks_green_tide", "tau_empire", "tau_demiurg_war_host"],
      "sections": [dict(s, ships=dict(s["ships"])) for s in _RT_CONVOY] + [
          {"name": "Xenos Cutters", "ships": dict(_XENOS_CUTTERS)},
      ],

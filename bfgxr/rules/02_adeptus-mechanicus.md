@@ -14,9 +14,9 @@
 
 **Sacred Technology:** when taken as reserves in another fleet, any crippled Mechanicus capital ship must try to disengage whenever possible, or, if it fails, move towards the nearest table edge (squadroned ships only when at least half the squadron is crippled). A destroyed Mechanicus vessel left as a hulk may be fired on by friendly Mechanicus ships via a target priority leadership test (not by non-Mechanicus ships).
 
-**Campaigns:** +1 Repair point per 10 renown (or part) the commander holds; +1 to appeals for refits but -1 to appeals for anything else (such as reinforcements or Space Marines). Note that refits earned via appeal use the normal Imperial Refits table (and not the Mechanicus Gifts table). Only your flagship may have multiple Gifts, as determined by the fleet commander's renown (see the Adeptus Mechanicus Promotion Table, p.167).
+**Campaigns:** +1 Repair point per 10 renown (or part) the commander holds; +1 to appeals for refits but -1 to appeals for anything else (such as reinforcements or Space Marines). Note that refits earned via appeal use the normal Imperial Refits table (and not the Mechanicus Gifts table). Only your flagship may have multiple Gifts, as determined by the fleet commander's renown (see the Adeptus Mechanicus Promotion Table, p.168).
 
-**Ships & refits:** Mechanicus capital ships and light cruisers use Fury Fighters (ASF, 30cm) and Starhawk Bombers (BMR, 20cm), same as Imperial Navy. Most Mechanicus hulls are refitted Imperial Navy patterns at different costs, stats, and turret counts than their Navy counterparts (extra anti-ordnance turrets are standard on Mechanicus capital ships). "Mechanicus Refits" on cruisers and light cruisers are ship-specific point options, distinct from the general Mechanicus Gifts (p.50) and Imperial Refits (p.176). The escort classes on this list share a profile with an Imperial Navy or Space Marine escort of the same name, but are exclusively Adeptus Mechanicus vessels and follow only the Mechanicus faction rules (p.49), not Navy or Space Marine rules.
+**Ships & refits:** Mechanicus capital ships and light cruisers use Fury Fighters (ASF, 30cm) and Starhawk Bombers (BMR, 20cm), same as Imperial Navy. Most Mechanicus hulls are refitted Imperial Navy patterns at different costs, stats, and turret counts than their Navy counterparts (extra anti-ordnance turrets are standard on Mechanicus capital ships). "Mechanicus Refits" on cruisers and light cruisers are ship-specific point options, distinct from the general Mechanicus Gifts (p.50) and Imperial Refits (p.177). The escort classes on this list share a profile with an Imperial Navy or Space Marine escort of the same name, but are exclusively Adeptus Mechanicus vessels and follow only the Mechanicus faction rules (p.49), not Navy or Space Marine rules.
 
 **Might of the Forge Worlds.**
 
@@ -42,22 +42,22 @@
 | D6 | Cost | Gift |
 |---|---|---|
 | 1 | Free | Emergency Energy Reserves. While crippled, reduce shields, turrets, and weapons by 25% instead of 50% (round down); Speed cannot drop below 15cm. |
-| 2 | 5pts | Fleet Defence Turrets. -2 Turrets, but +1 massed turret to all allied ships within 15cm including itself (limit +3 as normal). |
-| 3 | 5pts | Advanced Engines. Gains the Auxiliary Power Relays and Secondary Reactors refits for free. |
-| 4 | 10pts | Advanced Shields. Gains the Overloaded Shield Capacitors refit for free, and imposes a right column-shift on gunnery against it while it has active shields. |
-| 5 | 10pts | Advanced Weapons. Gains the Targeting Matrix refit for free, and +1 to dorsal lance FP. |
+| 2 | 5pts | Fleet Defence Turrets. Reduces its Turrets value by 2 but adds +1 massed turret to all allied ships within 15cm (including itself; limit +3 as normal for massed turrets). |
+| 3 | 5pts | Advanced Engines. Gains the Auxiliary Power Relays and Secondary Reactors refits (see the Imperial Refits table) for free. |
+| 4 | 10pts | Advanced Shields. Gains the Overloaded Shield Capacitors refit (see the Imperial Refits table) for free and imposes a right column-shift on all gunnery attacks made against it while it has any active shields. |
+| 5 | 10pts | Advanced Weapons. Gains the Targeting Matrix refit (see the Imperial Refits table) for free and increases the firepower of its dorsal lance battery (if any) by +1. |
 | 6 | Free | Vault of Technology. At the start of the game, roll a D6; the ship gains the corresponding Gift from this table for free. If a 6 is rolled, you may instead choose one of the above refits to apply. |
 
 **The Quest for Knowledge:** In addition to any sub-plots rolled normally, an Adeptus Mechanicus Explorator Fleet must take a random Quest for Knowledge sub-plot from the table below. Bracketed values are the (renown gained / lost) for meeting or failing the victory condition.
 
 | D6 | Sub-plot | Effect & victory condition |
 |---|---|---|
-| 1 | Extended Duty | Roll D6 per capital ship: on 1 it takes D3 damage at game start (ignoring shields/bracing); on 2 it suffers -1 Ld on Lock On and Reload Ordnance. VC: destroy or cripple more enemy ships than you lose. (+1/0) |
-| 2 | Xenos Logic Engine | Roll D6 per capital ship: on 1-3, apply one Critical Damage result to it at game start. VC: none (winning is heroic, losing is condemned). (+2/-1) |
-| 3 | Mimic Drive | Add a secret cruiser to the fleet that is actually a transport worth 0 VP. VC: the decoy must be fired upon. (+1/-1) |
-| 4 | Sacred Vessel | Choose one Mechanicus capital ship. VC: it must not be crippled or destroyed. (+1/-1) |
+| 1 | Extended Duty | Roll a D6 for each Mechanicus capital ship in your fleet. On a result of 1, the ship suffers D3 damage at the start of the game (ignoring shields, bracing, and so forth). On a result of 2, the ship suffers a -1 Ld penalty while attempting Lock On and Reload Ordnance special orders during the game. VC: you must destroy or cripple more ships in the enemy fleet than are crippled or destroyed in yours. (+1/0) |
+| 2 | Xenos Logic Engine | Roll a D6 for each Mechanicus capital ship in your fleet: on a 1, 2, or 3, roll once on the Critical Damage table and apply the result to the ship at the start of the game. VC: none; the sub-plot succeeds if you win the battle and fails if you lose. (+2/-1) |
+| 3 | Mimic Drive | Add a cruiser to the fleet, keeping its identity a secret. This vessel actually has all the characteristics of a conventional transport (see Conventional Transport in the Convoy Ships table, p.87) and is worth zero victory points. VC: the decoy must be fired upon. (+1/-1) |
+| 4 | Sacred Vessel | Choose one Mechanicus capital ship in your fleet to represent the sacred vessel. VC: the sacred vessel must not be crippled or destroyed. (+1/-1) |
 | 5 | The Prize | Nominate one enemy capital ship. VC: cripple or destroy it; if it explodes or is detonated after becoming a hulk, no renown is gained or lost. (+1/-2) |
-| 6 | Experimental Ship | Pick one cruiser; roll once on each table below for an Improvement and a Side Effect. These modifications are in addition to any refits taken normally. Re-roll any result that cannot be applied to the vessel. VC: it must not be crippled or destroyed. (+1/-1) |
+| 6 | Experimental Ship | Pick one cruiser; roll once on each table below for an Improvement and a Side Effect. These modifications are in addition to any refits taken normally by a Mechanicus vessel. Re-roll any result that cannot be applied to the vessel. VC: it must not be crippled or destroyed. (+1/-1) |
 
 Experimental Ship (D6 on each table):
 

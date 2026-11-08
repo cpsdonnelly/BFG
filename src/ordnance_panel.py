@@ -694,7 +694,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 for s in contributors:
                     fresh = self.ctx.gs.get_ship_by_id(s.id)
                     if fresh:
-                        fresh.ordnance_loaded_torps = False
+                        fresh.mark_launched("torps")
                         self.ctx.gs.update_ship(fresh)
                         from .ordnance import mark_once_torpedoes_used
                         mark_once_torpedoes_used(fresh, kind_var.get(), self.ctx.gs)
@@ -768,7 +768,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 for s in contributors:
                     fresh = self.ctx.gs.get_ship_by_id(s.id)
                     if fresh:
-                        fresh.ordnance_loaded_craft = False
+                        fresh.mark_launched("craft")
                         self.ctx.gs.update_ship(fresh)
 
             dialog.destroy()
@@ -1078,7 +1078,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
                     ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
                     if ship_fresh:
-                        ship_fresh.ordnance_loaded_torps = False
+                        ship_fresh.mark_launched("torps")
                         self.ctx.gs.update_ship(ship_fresh)
                         from .ordnance import mark_once_torpedoes_used
                         mark_once_torpedoes_used(ship_fresh, kv.get(), self.ctx.gs)
@@ -1457,7 +1457,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
                 ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
                 if ship_fresh:
-                    ship_fresh.ordnance_loaded_craft = False
+                    ship_fresh.mark_launched("craft")
                     self.ctx.gs.update_ship(ship_fresh)
                 if not cap_var.get():          # craft on CAP are never a wave (s.26)
                     self._form_launched_wave(launched_ids, wave_var, form_var)

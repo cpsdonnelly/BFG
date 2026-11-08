@@ -60,7 +60,7 @@ In Battlefleet Gothic, the expertise of a captain and his (or her) crew is shown
 
 As mentioned earlier, in one-off games you roll a D6 to determine each ship's leadership value before the start of the game. Look up the result of the dice roll on the table below to see what Leadership value the ship has. Escorts roll once per squadron, with the whole squadron sharing the value rolled. Each capital ship rolls individually for leadership, even if it is part of a squadron.
 
-**Starting Leadership by faction:** see Appendix 4, p.184.
+**Starting Leadership by faction:** see Appendix 4, p.185.
 
 Some ships never roll for Ld: their rules give a fixed value (for example fleet support units, Demiurg commerce vessels, the Black Ship, the Fortress-Monastery and Ork space hulks).
 
@@ -74,7 +74,7 @@ If a ship is reduced to leadership 1 or less, it cannot voluntarily attempt spec
 
 ### Faction-Specific Leadership Tables
 
-Some factions do not use the default Starting Leadership table; their fleet lists replace it. All factions that roll for leadership are unified into one table in the Appendix: see Appendix 4, p.184. Unless stated otherwise, factions not listed there use the Default column.
+Some factions do not use the default Starting Leadership table; their fleet lists replace it. All factions that roll for leadership are unified into one table in the Appendix: see Appendix 4, p.185. Unless stated otherwise, factions not listed there use the Default column.
 
 *Source: BFG:XR faction fleet lists / codex documents*
 
@@ -247,7 +247,7 @@ Enemy Contacts (+1Ld): A vessel gains a +1 bonus to its leadership value when at
 
 **Other leadership tests:** Sometimes, a ship will need to test against its Ld value for something other than a command check, such as changing target priority, ramming an enemy vessel, or navigating an asteroid field. A leadership test is taken just like a command check, by rolling 2D6 and comparing the result to the vessel's Ld value. A ship may attempt multiple leadership tests each turn, and may do so even if a command check has been failed earlier in the turn. However, remember that a ship cannot attempt the same test more than once. Furthermore, the Under Fire and Enemy Contacts modifiers do not apply to leadership tests, although other Ld modifiers may apply as described in the relevant special rules.
 
-A summary of all six special orders is given in Appendix 6, p.186.
+A summary of all six special orders is given in Appendix 6, p.187.
 
 ## 8. Squadrons
 
@@ -381,7 +381,7 @@ Blast markers are most commonly placed in the following circumstances: for each 
 
 **Multiple ships under fire:** If a vessel taking fire has other ships in base contact with it, blast markers fanned out around its base due to shield impacts may overlap the bases of those ships (provided all other restrictions are followed), affecting them normally in all respects.
 
-*Clarifications (Remastered pp.68-69):* a blast marker affects only the ships whose bases it physically touches. A ship near the target but not touching it is never affected, and a ship that is touching cannot be treated as out of contact. Touching a ship that has a blast marker is not enough: the marker itself must touch the ship's base.
+*Clarifications (Remastered pp.68-69):* blast markers placed in base contact with a ship that took fire do not affect ships near to but not actually in base contact with that ship. This is not a "counts as" rule; one cannot declare a ship is actually not in base contact if it is making physical contact. If a ship moves into base contact with another ship that already has a blast marker but the blast marker does not touch its own base, it does not count as having a blast marker in contact as well.
 
 ### Moving Through Blast Markers
 
@@ -405,9 +405,9 @@ If desired, players may use the following extra rules concerning blast markers. 
 
 Battlefleet Gothic Remastered (pp.68-69) uses the modern rules above as its standard rules, with the following differences:
 
-*Whole-base contact:* a ship touching any blast marker counts as in contact all round its base and in every arc, for Leadership, movement, shooting, ordnance attacks, boarding and every other blast marker effect, including when it ends its move in contact for any reason.
+*Whole-base contact:* a ship in base contact with a blast marker means the whole base is affected. It counts as being in contact all around it and in every arc for purposes of leadership, movement, shooting, ordnance attacks, being boarded, or every other respect where blast markers have an effect. This includes if it ended its movement in contact with a blast marker for any reason.
 
-*Firing ship in contact:* a ship takes the right column shift if its line of fire passes through blast markers, or if it or its target is in base contact with blast markers. Lances and nova cannon are still unaffected.
+*Firing ship in contact:* if a ship's line of fire passes through any blast markers (including those in contact with a ship's base) or it or its targets are in base contact with blast markers, it suffers a column shift to the right on the Gunnery table. Lances and nova cannon are unaffected.
 
 *Limit on spill-over:* When a ship has multiple bases in contact when taking fire, the blast marker is placed between the base of the ship taking fire and the ship closest in the line of fire to the ship taking fire. The blast markers from one round of shooting by a ship or squadron may touch at most two ships: the target and one other. The limit does not apply in two cases:
 
@@ -475,7 +475,7 @@ Which way the target is travelling is important for gunnery purposes as it is mu
 
 **Splitting Fire:** Ships that pass a target priority test may split the firepower of their gunnery weapons between multiple targets in a given fire arc. Naturally, a ship must have firepower of 2 or greater, after any changes to its firepower such as halving, in order to split fire this way. Apply those changes before using the Gunnery table.
 
-**Gunnery Table:** see Appendix 7, p.187.
+**Gunnery Table:** see Appendix 7, p.188.
 
 **Gunnery Table notes:** To save space, both cruisers and battleships are referred to as capital ships on the Gunnery table. Defences and ordnance are not affected by orientation, and will always use their associated column (plus any applicable column shifts), even when shot at by ships which normally count all targets as having a specific orientation.
 
@@ -589,7 +589,7 @@ Space-borne mines almost always follow similar designs, regardless of which race
 
 **Note:** some printings of the rulebook read that damage from mines may be blocked by shields. This is an error: mines ignore shields, as above.
 
-**A minefield (p.87) counts as an asteroid field, so a ship that fails its Leadership test to navigate one takes asteroid damage, which shields do stop (p.35). A ship in a minefield can take both: asteroid damage (shields apply) and, when it is detected on a 5+, a mine attack (shields ignored).**
+**A minefield (p.88) counts as an asteroid field, so a ship that fails its Leadership test to navigate one takes asteroid damage, which shields do stop (p.35). A ship in a minefield can take both: asteroid damage (shields apply) and, when it is detected on a 5+, a mine attack (shields ignored).**
 
 Mines follow all the regular rules for ordnance regarding moving through blast markers, shooting, and so forth. Except for fighters (which will remove mines just like any other ordnance), mines are not affected by, and do not affect, any other ordnance markers on the battlefield.
 
@@ -888,7 +888,7 @@ Roll a D6 for each hit scored on a ship (but not against its shields). On a roll
 
 **Repeated and impossible critical hits:** If a ship suffers multiple (repairable) critical hits to the same location, they must all be repaired before the system functions again. However, any effects of these critical hits are not cumulative unless otherwise specified. If a critical hit is rolled which cannot be applied, or multiple critical hits are rolled for a location that cannot be repaired, apply the next highest result instead. For example, a ship with no prow weapons that suffers a 'Prow Armament Damaged' result would suffer an 'Engine Room Damaged' result instead.
 
-**Critical Hits Table:** see Appendix 5, p.185.
+**Critical Hits Table:** see Appendix 5, p.186.
 
 ## 34. Catastrophic Damage
 
@@ -908,7 +908,7 @@ A ship with no hits left is effectively out of action. There may still be some c
 
 **Hulks in combat:** Drifting or blazing hulks will block lines of fire to ships behind their base. Naturally, they have no shields, turrets or any other defence mechanisms (such as holofields or reactive hulls). Furthermore, a drifting or blazing hulk may be ignored for target priority purposes if it is the closest enemy target (shooting at a hulk is still subject to target priority if it is not the closest target). Drifting and blazing hulks cannot be fired upon, boarded, or have torpedoes deliberately launched at them by friendly vessels or ordnance for any reason, although enemies may still do so normally. Use the destroyed ship's Armour value to roll for hits. If a hulk suffers any hits, roll once on the Catastrophic Damage table (replacing the current result, if necessary). Note that hits caused by each individual ship, squadron, or ordnance wave may only trigger one roll on the table, not one roll per hit inflicted.
 
-**Catastrophic Damage Table:** see Appendix 5, p.185.
+**Catastrophic Damage Table:** see Appendix 5, p.186.
 
 *Source: BFG:XR Rulebook, "The Shooting Phase - Catastrophic Damage", pp.23-24*
 

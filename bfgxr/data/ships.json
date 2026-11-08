@@ -887,7 +887,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: AB 30cm +5pts, TB 20cm +60pts. Refit: may reduce its macrobatteries' range to 30cm to increase their firepower to 10, no extra cost. May also buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
+   "notes": "Ablative Prow Armour (ignores Prow Armament Damaged crits; lost if prow torpedoes taken). Attack craft: AB 30cm +5pts, TB 20cm +60pts. Refit: may reduce the range of its macrobatteries to 30cm in order to increase their firepower to 10, for no extra cost. May also buy one of: Prow Torps 30cm S6 (F) +25pts; Comms Uplink +1 Ld +20pts; Improved Thrusters (+D6cm on All Ahead Full) +5pts"
   },
   {
    "faction": "Imperial Navy",
@@ -6529,7 +6529,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous (no Come to New Heading). May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts"
+   "notes": "Ponderous (no Come to New Heading). May replace its boarding torpedoes with either short-burn torpedoes for +5 points or barrage bombs for +10 points"
   },
   {
    "faction": "Space Marines",
@@ -6667,7 +6667,7 @@
      "parsed": true
     }
    ],
-   "notes": "Ponderous (no Come to New Heading). May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts"
+   "notes": "Ponderous (no Come to New Heading). May replace its boarding torpedoes with either short-burn torpedoes for +5 points or barrage bombs for +10 points"
   },
   {
    "faction": "Space Marines",
@@ -6893,7 +6893,7 @@
      "parsed": true
     }
    ],
-   "notes": "Improved Thrusters (+D6cm on All Ahead Full). Secondary Shield: any number may add +1 Shield for +15pts each. Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage bombs +5pts"
+   "notes": "Improved Thrusters (+D6cm on All Ahead Full). Secondary Shield: any number may add +1 Shield for +15pts each. Specialist Torpedoes: may replace its boarding torpedoes with either short-burn torpedoes for free or barrage bombs for +5 points"
   },
   {
    "faction": "Space Marines",
@@ -7584,7 +7584,7 @@
      "parsed": true
     }
    ],
-   "notes": "High-orbit defence; may replace a planet (30cm high-orbit range from the stem of its base) with opponent's permission. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules"
+   "notes": "High-orbit defence; with your opponent's permission it may also be used as a replacement for a planet, with a high-orbit range of 30cm from the stem of its base. Cost always included in the fleet list (not bought separately); fleet must be 2000+ pts; one per Chapter. Full rules (quadrant/basilica mechanics, campaign acquisition and relocation): see Space Marine Ship Special Rules"
   },
   {
    "faction": "Inquisition & Grey Knights",
@@ -8678,7 +8678,7 @@
      "parsed": true
     }
    ],
-   "notes": "Convoy ship (transport capacity 8). Ponderous (no Come to New Heading). Reduce any roll against it on the Critical Hits table by 1, to a minimum of 0 (including hit-and-run raids)"
+   "notes": "Convoy ship (transport capacity 8). Ponderous (no Come to New Heading). Reduce the result of any roll on the Critical Hits table against a mass conveyor by 1, to a minimum of 0. This includes rolls for hit-and-run raids"
   },
   {
    "faction": "Rogue Traders",
@@ -9393,7 +9393,7 @@
      "parsed": true
     }
    ],
-   "notes": "Config per squadron: buy one Xenos Refit costing 10pts or less (applied to all), or for +30pts the whole squadron becomes a Notable Xenos using one chosen Notable Xenos profile from the rows below, with no further changes. Torpedo variant: any generic cutter may swap its Lance for a Torpedo Salvo 30cm S2 (F) at no cost; the whole squadron must match. Regardless of configuration, xenos cutters are allies of convenience with everyone and cannot be placed in squadrons with any other type of ship"
+   "notes": "Config per squadron: buy one Xenos Refit costing 10pts or less (applied to all), or for +30pts the whole squadron becomes a Notable Xenos using one chosen Notable Xenos profile from the rows below, with no further changes. Torpedo variant: any generic cutter may swap its Lance for a Torpedo Salvo 30cm S2 (F) at no cost; the whole squadron must match. Regardless of how they are configured, xenos cutters are treated as allies of convenience with everyone, and thus cannot be placed in squadrons with any other type of ship"
   },
   {
    "faction": "Rogue Traders",
@@ -9479,7 +9479,7 @@
      "parsed": true
     }
    ],
-   "notes": "Notable Xenos profile for a xenos cutter squadron (+30pts per squadron on top of 35pts per ship). The disruptor cannon follows the rules for lances; it may also fire on any ordnance marker or wave that attacks the ship, making a single roll to-hit immediately before turrets are fired. Cannot be taken by a fleet which includes any Ork vessels"
+   "notes": "Notable Xenos profile for a xenos cutter squadron (+30pts per squadron on top of 35pts per ship). Pthuxutl disruptor cannons follow the rules for lances. In addition, the disruptor cannon may fire on any ordnance marker or wave that attacks the ship, making a single roll to-hit immediately before turrets are fired. Cannot be taken by a fleet which includes any Ork vessels"
   },
   {
    "faction": "Rogue Traders",
@@ -9565,7 +9565,7 @@
      "parsed": true
     }
    ],
-   "notes": "Notable Xenos profile for a xenos cutter squadron (+30pts per squadron on top of 35pts per ship). Fra'al targeting matrix (free): treats all gunnery targets as closing and takes no right column-shift when firing gunnery at targets more than 30cm away. Cannot be taken by a fleet which includes Imperial Navy vessels"
+   "notes": "Notable Xenos profile for a xenos cutter squadron (+30pts per squadron on top of 35pts per ship). Equipped with a Fra'al targeting matrix for no extra cost, allowing it to treat all gunnery targets as closing, and preventing it from suffering a right column-shift when firing gunnery weapons at targets more than 30cm away. Cannot be taken by a fleet which includes Imperial Navy vessels"
   },
   {
    "faction": "Rogue Traders",
@@ -9969,7 +9969,7 @@
      "parsed": true
     }
    ],
-   "notes": "Immobile. May +1 lance firepower in exchange for -30cm range, no cost change"
+   "notes": "Immobile. May increase the firepower of its lance battery by +1 in exchange for reducing its range by 30cm, for no change in cost"
   },
   {
    "faction": "Support Assets",
@@ -15679,7 +15679,7 @@
      "parsed": true
     }
    ],
-   "notes": "Armour front/abeam/rear. Free hull krusha. Replace prow heavy gunz with a prow torpedo launcha (30cm D6+2 F) +10pts or prow zzapp gunz (30cm D3+1 F) +5pts. Options: launch bays to torpedo bombers +40pts; Soopa boostas +25pts; torps to looted torps +20pts; port/stbd launch bays to mine launchers (S2 each) +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
+   "notes": "Armour front/abeam/rear. Free hull krusha. Replace prow heavy gunz with a prow torpedo launcha (Speed 30cm, Strength D6+2, Front) for +10 points, or prow zzapp gunz (Range 30cm, Firepower D3+1, Front) for +5 points. Options: launch bays to torpedo bombers +40pts; Soopa boostas +25pts; torps to looted torps +20pts; port/stbd launch bays to mine launchers (S2 each) +20pts; Kustom force field +15pts; Grabbin' klaws +10pts; Magno-tracktor beam +5pts"
   },
   {
    "faction": "Orks",
@@ -15986,7 +15986,7 @@
      "parsed": true
     }
    ],
-   "notes": "Boarder: counts as troop rating 4 (any hits) when boarding as attacker. Cannot use Come to New Heading. Options (squadron must match): Grabbin' klaws +10pts; Soopa boostas +5pts; Magno-tracktor beam +5pts; +1 Turret +5pts"
+   "notes": "Boarder: counts as having a troop rating of 4 (regardless of hits) when boarding as the attacker. Cannot use Come to New Heading. Options (squadron must match): Grabbin' klaws +10pts; Soopa boostas +5pts; Magno-tracktor beam +5pts; +1 Turret +5pts"
   },
   {
    "faction": "Orks",
@@ -16089,8 +16089,8 @@
    "hits": 1,
    "hits_raw": "1",
    "base": "32mm",
-   "speed_cm": 25,
-   "speed_raw": "25cm",
+   "speed_cm": 20,
+   "speed_raw": "20cm",
    "turn_deg": 45,
    "turn_raw": "45°",
    "shields": 1,
@@ -16101,8 +16101,8 @@
     "other": 4
    },
    "armour_raw": "6+P / 4+",
-   "turrets": 3,
-   "turrets_raw": "3",
+   "turrets": 2,
+   "turrets_raw": "2",
    "armament_raw": "Gunz 30cm FP D6+1 (L/F/R)",
    "weapons": [
     {
@@ -16458,7 +16458,7 @@
    "speed_cm": 10,
    "speed_raw": "10cm",
    "turn_deg": null,
-   "turn_raw": "None",
+   "turn_raw": "Special",
    "shields": 1,
    "shields_raw": "1",
    "armour": {
@@ -17815,7 +17815,7 @@
      "parsed": true
     }
    ],
-   "notes": "Convoy ship (transport capacity 1), following the normal rules for fleet support units and convoy ships, and all applicable Tau Empire special rules. May only be included when the scenario imposes a transport capacity requirement on your fleet"
+   "notes": "Convoy ship (transport capacity 1), following the normal rules for fleet support units and convoy ships, and all applicable Tau Empire special rules. May only be included when the chosen scenario imposes a transport capacity requirement on your fleet"
   },
   {
    "faction": "Tau & Allies",
@@ -18508,7 +18508,7 @@
      "parsed": true
     }
    ],
-   "notes": "Moves exactly 10cm in any direction each movement phase and never needs to turn; not slowed by blast markers, celestial phenomena, or being crippled; cannot use All Ahead Full, Burn Retros, or Come to New Heading. Classed as a defence for shooting, ramming, etc. Distributed Systems: a critical hit instead inflicts one extra point of damage; at zero hits it is replaced by four blast markers centred on where it was destroyed (no catastrophic damage roll)"
+   "notes": "Moves exactly 10cm in any direction each movement phase and never needs to turn; not slowed by blast markers, celestial phenomena, or being crippled; cannot use All Ahead Full, Burn Retros, or Come to New Heading. Classed as defences for the purposes of shooting, ramming, etc. Distributed Systems: a critical hit instead inflicts one extra point of damage; at zero hits it is replaced by four blast markers centred on where it was destroyed (no catastrophic damage roll)"
   },
   {
    "faction": "Tau & Allies",
@@ -18621,7 +18621,7 @@
      "parsed": true
     }
    ],
-   "notes": "Treated as a stationary defence, except that it may be placed anywhere in your deployment zone; no offensive weapons. For every Rig, the fleet must buy four Dhows (they ride in its hooks)"
+   "notes": "Rigs are treated as stationary defences as described in the main rulebook, except that they may be placed anywhere in your deployment zone; no offensive weapons. You must purchase four dhows for every rig in the fleet (they ride in its hooks)"
   },
   {
    "faction": "Tau & Allies",

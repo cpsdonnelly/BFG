@@ -319,7 +319,7 @@ def _attach_commanders() -> None:
                   "rogue_traders": "Rogue Traders", "orks": "Orks"}
     for fl in ALL_LISTS:
         rule = by_faction.get(fl["faction"])
-        if rule is None or fl.get("commander"):
+        if rule is None or fl.get("commander") or fl.get("no_commander"):
             continue
         names = commander_names(rule)
         if rule == "Rogue Traders":
@@ -424,6 +424,58 @@ def xenos_cutter_errors(rows: List[Dict]) -> List[str]:
         if c.startswith("Fra'al Raider") and "imperial_navy_gothic" in factions:
             errors.append("Fra'al Raiders can't be taken by a fleet with Imperial Navy vessels.")
     return sorted(set(errors), key=errors.index)
+
+
+def reserve_allowed(main_key: str, reserve_key: str, ship_class: str) -> bool:
+    """Whether a reserve list's ship may be offered (Demiurg War Host:
+    Kor'or'vesh vessels only)."""
+    allowed = (LISTS.get(main_key) or {}).get("reserve_sections", {}).get(reserve_key)
+    if not allowed:
+        return True
+    sec = (section_of(LISTS[reserve_key], ship_class) or {}).get("name", "")
+    return any(sec.startswith(a) for a in allowed)
+
+
+def _war_host_errors(rows: List[Dict]) -> List[str]:
+    """Demiurg War Host (Xenos p.101): more Demiurg commerce vessels than all
+    other cruisers combined (reserves included); one escort squadron per three
+    Demiurg capital ships; Wardens only with Castellans, Orcas only with
+    Defenders, Dhows only with Dhows, no squadrons mixing factions; the
+    re-rolls bought once."""
+    errors = []
+    demiurg = [r for r in rows if "demiurg_commerce" in r["entry"].special_rules]
+    others = [r for r in rows if r["entry"].ship_type == "cruiser" and r not in demiurg]
+    if len(demiurg) <= len(others):
+        errors.append(f"A Demiurg War Host needs more Demiurg commerce vessels ({len(demiurg)}) "
+                      f"than all other cruisers combined ({len(others)}).")
+    squads: Dict[str, List[Dict]] = {}
+    for i, r in enumerate(rows):
+        if r["entry"].ship_type == "escort":
+            squads.setdefault(r.get("squadron_id") or f"#{i}", []).append(r)
+    if len(squads) > len(demiurg) // 3:
+        errors.append(f"Escorts: {len(squads)} squadron(s), at most one per three Demiurg "
+                      f"capital ships ({len(demiurg) // 3}).")
+    partners = {"Warden Gunship": "Castellan Escort", "Orca Gunship": "Defender Starship"}
+    for sid, ms in squads.items():
+        classes = {m["entry"].ship_class for m in ms}
+        for towed, mate in partners.items():
+            if towed in classes and classes - {towed, mate}:
+                errors.append(f"Squadron '{sid}': {towed}s may only be mixed with {mate}s.")
+        if "Nicassar Dhow" in classes and len(classes) > 1:
+            errors.append(f"Squadron '{sid}': Dhows may not be mixed with other escorts.")
+    caps: Dict[str, set] = {}
+    for r in rows:
+        if r.get("squadron_id") and r["entry"].ship_type != "escort":
+            caps.setdefault(r["squadron_id"], set()).add(
+                "demiurg" if r in demiurg else r["entry"].ship_class.split()[0])
+    for sid, kinds in caps.items():
+        if "demiurg" in kinds and len(kinds) > 1:
+            errors.append(f"Squadron '{sid}': Demiurg and Tau ships can't squadron together "
+                          f"(allies of convenience).")
+    bought = [r for r in rows if any(u.startswith("War Host re-roll") for u in r.get("upgrades", []))]
+    if len(bought) > 1:
+        errors.append("War Host re-rolls are bought once for the whole host.")
+    return errors
 
 
 def no_tactical_flexibility(list_key: str) -> bool:
@@ -609,6 +661,18 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
                           f"{cmd['per_points']}pts.")
 
     errors += xenos_cutter_errors(rows)
+    if main.get("demiurg_war_host"):
+        errors += _war_host_errors(rows)
+    # Reserves limited to some sections of their list (Demiurg War Host:
+    # Kor'or'vesh vessels only)
+    for key, rs in by_list.items():
+        src = key.split(":", 1)[1] if key.startswith("reserve:") else None
+        allowed = main.get("reserve_sections", {}).get(src) if src else None
+        for r in rs if allowed else []:
+            sec = (section_of(LISTS[src], r["entry"].ship_class) or {}).get("name", "")
+            if not any(sec.startswith(a) for a in allowed):
+                errors.append(f"{r['entry'].ship_class}: only {', '.join(allowed)} vessels "
+                              f"may be taken as reserves.")
 
     # Options a list doesn't allow
     keys = [main_key] + [d["key"] for d in dets]

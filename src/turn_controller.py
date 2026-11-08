@@ -521,7 +521,14 @@ class TurnController:
         commander's own when `ship` is his ship or in his squadron."""
         holder = self._own_reroll_holder(ship)
         own = holder.own_rerolls if holder else 0
-        return own + self._commander_rerolls(player)
+        return own + self._commander_rerolls(player) + self._war_host_rerolls(player, ship)
+
+    def _war_host_rerolls(self, player: int, ship: Optional[Ship]) -> int:
+        """Demiurg War Host re-rolls: usable by any Demiurg vessel, not lost
+        with the ship they were bought on."""
+        if ship is None or "demiurg_commerce" not in ship.special_rules:
+            return 0
+        return sum(s.war_host_rerolls for s in self.gs.get_ships() if s.player == player)
 
     def _commander_rerolls(self, player: int) -> int:
         flagship = self.get_flagship(player)
@@ -551,6 +558,13 @@ class TurnController:
                             f"({holder.own_rerolls} left)")
             return True
         flagship = self.get_flagship(player)
+        if (not flagship or flagship.rerolls_remaining <= 0) and self._war_host_rerolls(player, ship):
+            pool = next(s for s in self.gs.get_ships()
+                        if s.player == player and s.war_host_rerolls > 0)
+            pool.war_host_rerolls -= 1
+            self.gs.update_ship(pool)
+            self.gs.add_log(f"War Host re-roll used ({self._war_host_rerolls(player, ship)} left)")
+            return True
         if not flagship or flagship.rerolls_remaining <= 0:
             return False
         # Check bridge smashed

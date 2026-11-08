@@ -85,12 +85,16 @@ def space_marine_options(row: dict) -> List[Dict]:
                  for key, label, cost in (("short_burn", "short burn torpedoes", 5),
                                           ("barrage", "barrage bombs", 10))]
     for text, swaps in (
-            ("May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts",
+            (("May swap boarding torpedoes for short-burn torpedoes +5pts or barrage bombs +10pts",
+              "May replace its boarding torpedoes with either short-burn torpedoes for +5 points "
+              "or barrage bombs for +10 points"),
              (("short_burn", "short burn torpedoes", 5), ("barrage", "barrage bombs", 10))),
-            ("Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage "
-             "bombs +5pts", (("short_burn", "short burn torpedoes", 0),
-                             ("barrage", "barrage bombs", 5)))):
-        if text in notes:                                   # battle barges, Vanguard
+            (("Specialist Torpedoes: swap boarding torpedoes for short-burn free, or barrage "
+              "bombs +5pts",
+              "Specialist Torpedoes: may replace its boarding torpedoes with either short-burn "
+              "torpedoes for free or barrage bombs for +5 points"),
+             (("short_burn", "short burn torpedoes", 0), ("barrage", "barrage bombs", 5)))):
+        if any(t in notes for t in text):                   # battle barges, Vanguard
             opts += [_opt(f"Torpedoes: {label} (instead of boarding torpedoes)",
                           f"+{cost}pts." if cost else "Free.", cost,
                           {"add_special_rules": [f"torpedo_type:{key}", "no_boarding_torps"]},
@@ -203,7 +207,9 @@ def ork_launcha_options(row: dict) -> List[Dict]:
     to add +D6, 2D6+N, free). The zzapp gunz alternatives aren't playable yet."""
     import re
     notes = row.get("notes") or ""
-    m = re.search(r"prow torpedo launcha \(30cm (D6\+\d+) F\) (free|\+(\d+)pts)", notes)
+    m = (re.search(r"prow torpedo launcha \(30cm (D6\+\d+) F\) (free|\+(\d+)pts)", notes)
+         or re.search(r"prow torpedo launcha \(Speed 30cm, Strength (D6\+\d+), Front\) "
+                      r"(free|for \+(\d+) points)", notes))
     if not m:
         return []
     dice, cost = m.group(1), int(m.group(3) or 0)
@@ -554,7 +560,9 @@ def navy_refit_options(row: dict) -> List[Dict]:
         opts.append(_opt("Refit: macrobatteries 45cm FP6", "-5pts. Port and starboard "
                          "macrobatteries 45cm FP6 instead of 30cm FP12.", -5,
                          {"modify_weapons": _macro(30, {"range_cm": 45, "strength": 6})}))
-    if "reduce its macrobatteries' range to 30cm to increase their firepower to 10" in notes:
+    if ("reduce its macrobatteries' range to 30cm to increase their firepower to 10" in notes
+            or "reduce the range of its macrobatteries to 30cm in order to increase their "
+               "firepower to 10" in notes):
         opts.append(_opt("Refit: macrobatteries 30cm FP10", "Free. Port and starboard "    # Exorcist
                          "macrobatteries 30cm FP10 instead of 45cm FP8.", 0,
                          {"modify_weapons": _macro(45, {"range_cm": 30, "strength": 10})}))
@@ -655,6 +663,16 @@ def mechanicus_gift_options(row: dict) -> List[Dict]:
             for n, name, cost, effect in MECHANICUS_GIFTS]
 
 
+def demiurg_war_host_options(row: dict) -> List[Dict]:
+    """Demiurg War Host (Xenos p.101): no fleet commander, but up to two re-rolls
+    for any Demiurg vessel in the fleet: one 25pts, two 75pts. Bought once, on
+    any Demiurg commerce vessel (the re-rolls aren't lost with it)."""
+    return [_opt(f"War Host re-roll{'s' if n > 1 else ''}: {n}",
+                 f"{cost}pts (Demiurg War Host). {n} re-roll{'s' if n > 1 else ''} for any "
+                 f"Demiurg vessel in the fleet.", cost, {"set": {"war_host_rerolls": n}},
+                 ["group:war_host_rerolls"]) for n, cost in ((1, 25), (2, 75))]
+
+
 def options_for(row: dict) -> List[Dict]:
     """Options for one booklet ship: Space Marine and Inquisition options,
     torpedo types and refits, and each faction's fleet commander."""
@@ -676,7 +694,15 @@ def options_for(row: dict) -> List[Dict]:
             opts += mechanicus_gift_options(row)       # Tech-Priest Enginseers
     elif "Inquisition & Grey Knights" in rules:
         return inquisition_options(row)
+    if "demiurg" in (row.get("roster_group") or "").lower() and \
+            _ship_type_of(row) in ("cruiser", "battleship"):
+        opts += demiurg_war_host_options(row)
     return opts + fleet_commander_options(row)
+
+
+def _ship_type_of(row: dict) -> str:
+    from .booklet_ships import _ship_type
+    return _ship_type(row)
 
 
 def ship_option_errors(entry, chosen: List[str]) -> List[str]:

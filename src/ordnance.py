@@ -1318,7 +1318,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
         special_rules=list(ship.special_rules),
     )
     game_state.add_ordnance(marker)
-    ship.ordnance_loaded_torps = False
+    ship.mark_launched("torps")
     if kind in ONCE_PER_GAME_TORPEDOES and kind in ship_torpedo_types(ship):
         ship.once_torps_used = list(ship.once_torps_used) + [kind]
     game_state.update_ship(ship)
@@ -1481,7 +1481,7 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
         markers.append(marker)
         game_state.add_ordnance(marker)
 
-    ship.ordnance_loaded_craft = False
+    ship.mark_launched("craft")
     game_state.update_ship(ship)
     game_state.add_log(f"{ship.name} launches {count}x {craft_type}")
     return markers

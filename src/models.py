@@ -235,6 +235,7 @@ class Ship:
     admiral_type: str = ""  # e.g. "vice_admiral", "kor_o"
     rerolls_remaining: int = 0
     own_rerolls: int = 0       # a secondary commander's re-rolls: this ship / squadron only (s.5)
+    war_host_rerolls: int = 0  # Demiurg War Host re-rolls bought on this ship: any Demiurg vessel, never lost
 
     def __post_init__(self):
         if self.hits_remaining is None:
@@ -288,6 +289,15 @@ class Ship:
     @property
     def lowest_armor_value(self) -> int:
         return min(self.armor_prow_value, self.armor_side_value, self.armor_rear_value)
+
+    def mark_launched(self, kind: str) -> None:
+        """A ship has launched torpedoes ("torps") or attack craft ("craft").
+        A Demiurg Bastion's modular bays carry one or the other each ordnance
+        phase (owner ruling), so launching either uses both up."""
+        if kind == "torps" or "modular_bays" in self.special_rules:
+            self.ordnance_loaded_torps = False
+        if kind == "craft" or "modular_bays" in self.special_rules:
+            self.ordnance_loaded_craft = False
 
     def crippled_value(self, value: int) -> int:
         """A shield, turret or weapon value while crippled: half, rounding up;
