@@ -212,8 +212,8 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   (`fraal_targeting`: every target closing, no right shift beyond 30cm); Wolf-Pack limits
   "(or portion thereof)". Not modelled: Man O' War configuration (the example builds aren't
   ships), Business as Usual and High-Risk Convoys (scenarios), the Nekulli's "opposing
-  Tyranids" limit (no Tyranids), Pthuxutl's disruptor cannon and Nekulli's whisperlance
-  (both lance-like, still listed unsupported), xenos refits (10pts or less per squadron),
+  Tyranids" limit (no Tyranids), Pthuxutl's disruptor cannon (a lance that may also
+  shoot at attacking ordnance; unsupported; the Nekulli's whisperlance is now a lance), xenos refits (10pts or less per squadron),
   the torpedo variant for generic cutters.
 - Tau (22-23): new Demiurg War Host fleet list (re-rolls 25 / 75); Courier Transport; Demiurg
   Mercenaries / Absorber fields / cutting beam; Demiurg, Nicassar and Kroot are allies of
