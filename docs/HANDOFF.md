@@ -91,6 +91,15 @@ session.
   think of others (Brace for Impact on a ship about to be destroyed or crippled; disengaging a
   crippled ship worth many VP; the flagship's own checks; asteroid / warp rift tests that
   risk losing a ship). Spend the last re-roll only on high-importance tests.
+- **Commander's ship (owner ruling, end of session):** re-rolls are lost if the commander dies
+  (his ship is destroyed), as well as on Bridge Smashed. **Code conflict:** this session
+  followed booklet export 26 ("or is destroyed was not in the source") and made
+  `TurnController.get_fleet_rerolls / use_fleet_reroll / _own_reroll_holder` keep re-rolls
+  after the ship is destroyed. Restore the loss on destruction (fleet commander and
+  secondary commanders), update CLAUDE.md, and tell the owner the booklet wording
+  disagrees with this ruling. For the AI: protecting the commander's ship matters (keep it
+  out of harm, brace it), and when that ship is about to be lost its remaining re-rolls
+  should be spent rather than wasted.
 - **Squadron volley aspect:** the dialog's default (hardest aspect present) is fine, but add a
   tool that picks the aspect choice (and target) maximising expected hits and, through them,
   VPs: a "Best for expected hits" button in Combine Squadron Fire, and the same logic as the
