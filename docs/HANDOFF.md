@@ -81,15 +81,25 @@ session.
 - Nothing. Export 31 settled the 750-point commander threshold and confirmed the Archmagos /
   Tau re-roll costs.
 
+## Owner guidance on AI play (from the end of this session)
+
+- **AI re-rolls:** holding one back is right, but only so it can be spent on something
+  important. Replace the fixed "2+ left" rule (`GamePanel._ld_reroll_hook`, `_guided_reroll`,
+  AI command checks) with an importance score. Important examples from the owner: a failed
+  test (e.g. Lock On, target priority) on a ship that could finish off an enemy ship or push it
+  past its cripple threshold, especially when it is one of the last ships still to shoot; also
+  think of others (Brace for Impact on a ship about to be destroyed or crippled; disengaging a
+  crippled ship worth many VP; the flagship's own checks; asteroid / warp rift tests that
+  risk losing a ship). Spend the last re-roll only on high-importance tests.
+- **Squadron volley aspect:** the dialog's default (hardest aspect present) is fine, but add a
+  tool that picks the aspect choice (and target) maximising expected hits and, through them,
+  VPs: a "Best for expected hits" button in Combine Squadron Fire, and the same logic as the
+  AI's strategy. Don't waste firepower overkilling one target, and don't spread it so thin
+  that nothing is crippled or destroyed; value kills and cripples (VP thresholds), using
+  `combat.plan_squadron_volley` to score each option.
+
 ## Readings to confirm (my choices, not owner rulings)
 
-- AI re-roll policy (a play-style choice, no rule): the AI spends a fleet re-roll on a failed
-  Leadership test only while it has 2+ left; Wings of Fury raids only when they had no
-  effect. Owner asked why; offered to change it (e.g. use one whenever available). Await
-  their preference.
-- Squadron volley dialog: the starting aspect is the hardest present (every visible ship can
-  be hit); the player changes it per group. Not a rule; offered to default to the aspect
-  that gives the most dice instead. Await their preference.
 - Resilient squadrons don't stop or split off a wave (s.23); CAP fighters intercept a wave's
   squadrons in order after its turret roll (order of turrets vs CAP not stated).
 - Melta / vortex launcher location taken from the torpedo weapon's arc.
@@ -159,7 +169,9 @@ Tau re-roll costs and the Ork Boss rules match what was built.
    (`Ship.own_rerolls`, `booklet_options.SECONDARY`). Left: other factions' secondaries
    (Inquisition Elite Captains / Daemonhunters, Ork Nobz, Rogue Trader Bond-Captains, Space
    Marine Captains on Dominion reserves) and separate re-roll pools for several Ork Bosses.
-2. **AI:** shoot at enemy hulks; use combined squadron fire (`combat.plan_squadron_volley`).
+2. **AI:** shoot at enemy hulks; use combined squadron fire (`combat.plan_squadron_volley`)
+   with expected-hits / VP target scoring (see "Owner guidance on AI play"); importance-based
+   re-roll spending; the "Best for expected hits" tool in the Combine Squadron Fire dialog.
 3. **Disengaging (s.37):** shared escort-squadron test for a voluntary disengage, forced
    disengagement at Ld 1 or less, celestial phenomena measured to their edge.
 4. **The ordinary profiles' own refits** from ships.json notes, one at a time (Mars Targeting
