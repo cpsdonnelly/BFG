@@ -264,11 +264,15 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   navigation tests, daemonships, Stormbird gunships, Abaddon, god boons, mine launchers, CSM
   battle barge / strike cruiser (not in the catalog), Mechanicus attackers' boarding re-roll,
   Nicassar never initiating boarding.
-- Core (26-31, rulebook wording): special orders are declared ship by ship just before each
-  moves (the game declares them in a batch); capital ships in a squadron combine firepower
-  (check `plan_squadron_volley`); squadron-vs-squadron target sets from range, arc or aspect;
-  nova cannon centre hole D6 hits; blast marker optional / Remastered sections split. Re-read
-  s.8, s.11 and s.14 against the code.
+- Core (26-31): **checked.** Special orders are already declared ship by ship just before
+  each ship moves (player dialog and AI); squadron fire combines capital ships too
+  (`plan_squadron_volley`); squadron-against-squadron target sets come from range, arc and
+  aspect; the nova cannon centre hole gives D6 hits. Fixed: torpedoes pass through every
+  friendly ship in contiguous base contact with the launcher or combining group when fired
+  (`ordnance.combined_exempt`; before, only the launcher / group was exempt). Not built (optional
+  play modes, s.11): "Modern Blast Markers" (intervening blasts, overlapping bases) and
+  "Remastered Blast Markers" (whole-base contact, firing ship in contact shifts right,
+  spill-over limit). Ask the owner whether he wants them as game-setup options.
 
 ## Known limitations of this session's work
 
