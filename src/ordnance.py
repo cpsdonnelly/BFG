@@ -1058,13 +1058,29 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
 
 def compute_torpedo_launch_exempt(launcher: Ship,
                                    game_state: GameState) -> List[str]:
-    """Return ship IDs immune to friendly fire from torpedoes launched by `launcher`.
+    """Ship IDs the torpedoes launched by `launcher` pass through: the launcher
+    and every friendly ship in contiguous base contact with it when they are
+    fired (s.15-16: "fire its torpedoes 'through' an allied ship ... in base
+    contact"; combined salvos "will not hit vessels in contiguous base
+    contact"). combined_exempt() does the same for a combining group."""
+    return combined_exempt([launcher], game_state)
 
-    Only the launcher itself is exempt for individual launches.  For combined
-    squadron ordnance, the caller passes the full combining-group IDs directly
-    as launch_exempt_ships on the created OrdnanceMarker.
-    """
-    return [launcher.id]
+
+def combined_exempt(launchers: List[Ship], game_state: GameState) -> List[str]:
+    from .boarding import ships_in_base_contact
+    friends = [s for s in game_state.get_ships()
+               if s.player == launchers[0].player and not s.is_destroyed and not s.is_disengaged]
+    chain = {s.id for s in launchers}
+    grew = True
+    while grew:
+        grew = False
+        for s in friends:
+            if s.id in chain:
+                continue
+            if any(ships_in_base_contact(s, o) for o in friends if o.id in chain):
+                chain.add(s.id)
+                grew = True
+    return sorted(chain)
 
 
 def reload_ship_ordnance(ship: Ship) -> List[str]:

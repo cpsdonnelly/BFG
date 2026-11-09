@@ -129,15 +129,16 @@ def test_launcher_always_exempt():
     assert "launcher" in exempt
 
 
-def test_nearby_friendly_ship_not_exempt_individual_launch():
-    # Individual launches only exempt the launcher itself.
-    # Combined squadron launches (handled by the ordnance panel) exempt the whole group.
+def test_friendly_ships_in_contiguous_base_contact_are_exempt():
+    # s.15-16: torpedoes pass "through" an allied ship in base contact when
+    # fired, and through the ships chained to it; a friend further away isn't
     launcher = make_ship(id="launcher", x=50, y=50, player=1, base_size="small")
     ally = make_ship(id="ally", x=52, y=50, player=1, base_size="small")
-    gs = make_gs([launcher, ally])
+    chained = make_ship(id="chained", x=54, y=50, player=1, base_size="small")
+    apart = make_ship(id="apart", x=70, y=50, player=1, base_size="small")
+    gs = make_gs([launcher, ally, chained, apart])
     exempt = compute_torpedo_launch_exempt(launcher, gs)
-    assert "ally" not in exempt
-    assert "launcher" in exempt
+    assert set(exempt) == {"launcher", "ally", "chained"}
 
 
 def test_enemy_ship_not_exempt():

@@ -498,7 +498,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
         launch_x = launch_ship.x
         launch_y = launch_ship.y
 
-        exempt_ids = [s.id for s in contributors]
+        from .ordnance import combined_exempt
+        exempt_ids = combined_exempt(contributors, self.ctx.gs)   # contiguous base contact
 
         # Main launch dialog
         dialog = tk.Toplevel(self.ctx.root)
