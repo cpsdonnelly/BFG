@@ -425,6 +425,10 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Remaining work (agreed order)
 
+**The current to-do list and open questions are in CLAUDE.md ("To do", "Open questions for
+the owner"); it supersedes the list below where they differ** (disengaging, the export 31
+items and the first AI steps below are done).
+
 0. **First: the "Still to do" list from booklet export 31 above** (faction audits and the core
    rules now in rulebook wording). Work through it faction by faction, reading each CHANGES.md
    entry; ask the owner only where the text is unclear.
