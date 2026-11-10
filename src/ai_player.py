@@ -13,6 +13,7 @@ from .game_state import GameState
 from .turn_controller import TurnController
 from .dice import DiceRoller
 from .geometry import current_shields
+from .movement import do_command_check
 from .movement import (
     MoveCommand, validate_movement, execute_movement, record_staged_move,
     get_effective_speed, get_max_turns,
@@ -672,7 +673,7 @@ class AIPlayer:
             return None
 
         if self.difficulty == "easy":
-            return random.choice(valid)
+            return self._enforce_target_priority(ship, weapon, random.choice(valid), valid)
         # normal / hard / expert: the most expected VP for this weapon, counting the
         # fire already committed to each target this phase (owner guidance:
         # finish and cripple ships, no overkill, don't spread too thin)
@@ -682,10 +683,46 @@ class AIPlayer:
                                                 committed.get(e.id, 0.0)))
         if shot_vp(ship, weapon, best, self.gs, committed.get(best.id, 0.0)) <= 0:
             return min(valid, key=lambda s: s.hits_remaining / max(1, s.hits_max))
+        best = self._enforce_target_priority(ship, weapon, best, valid)
         from .combat import expected_hits
         committed[best.id] = committed.get(best.id, 0.0) + expected_hits(ship, weapon, best)
         self._committed = committed
         return best
+
+    def _enforce_target_priority(self, ship: Ship, weapon: Dict, wanted: Ship,
+                                 valid: List[Ship]) -> Ship:
+        """Target priority (s.13): a weapon fires at the nearest enemy in its arc
+        unless the ship passes a target priority test (once per ship per turn,
+        the result stands). A closer hulk may be fired on without a test (s.34).
+        Same rule as the player's Fire dialog (`_check_target_priority`)."""
+        gs = self.gs
+        visible = sorted((e for e in self._live_enemies() if e.status == "active"
+                          and check_los_clear(ship, e, gs.get_phenomena(),
+                                              gs.get_blast_markers(), gs.ships).get("clear", True)),
+                         key=ship.distance_to)
+        cv = visible[0] if visible else None
+        if cv is None or wanted.id == cv.id or not any(v.id == cv.id for v in valid):
+            return wanted                     # the closest isn't a target for this weapon
+        if (wanted.status in ("drifting_hulk", "burning_hulk")
+                and ship.distance_to(wanted) < ship.distance_to(cv)):
+            return wanted
+        att = gs.get_ship_by_id(ship.id) or ship
+        if att.target_priority_turn != gs.turn_number:
+            check = do_command_check(att, "target_priority", self.dice, gs=gs)
+            if not check["passed"]:
+                from .ai_rerolls import should_reroll
+                left = self.tc.get_fleet_rerolls(att.player, att)
+                if left and should_reroll(att, "target priority", gs, left) \
+                        and self.tc.use_fleet_reroll(att.player, att):
+                    check = do_command_check(att, "target_priority", self.dice, gs=gs)
+            att = gs.get_ship_by_id(ship.id) or att
+            att.target_priority_turn = gs.turn_number
+            att.target_priority_passed = check["passed"]
+            gs.update_ship(att)
+            gs.add_log(f"[AI] {att.name}: target priority "
+                       f"{'passed' if check['passed'] else 'FAILED'} "
+                       f"(rolled {check['roll']} vs Ld {check['needed']})")
+        return wanted if att.target_priority_passed else next(v for v in valid if v.id == cv.id)
 
     def _log_damage(self, target: Ship, dmg: Dict):
         gs = self.gs

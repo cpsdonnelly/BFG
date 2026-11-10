@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **945 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **946 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -158,7 +158,10 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    firing at a ship that is probably dead. Still to do: combined squadron fire for the AI,
    the "Best for expected hits" default in the Combine Squadron Fire dialog, hulks (only worth
    shooting when an explosion would hurt nearby enemies; destroying an enemy hulk also lowers
-   Holding the Field VP), and the target priority test (the AI fires at any target in arc).
+   Holding the Field VP). Fixed: the AI now takes the target priority test (s.13) like the
+   player's Fire dialog (`AIPlayer._enforce_target_priority`: nearest visible enemy unless
+   the test is passed, once per ship per turn; re-rolls by importance); it used to fire at
+   any target in arc.
    Original plan: per weapon / combined squadron fire, expected hits ->
    P(kill), P(cripple) -> expected VP; prefer finishing and crippling, avoid overkill
    (stop committing fire once the target is likely dead), don't spread too thin; hulks are
