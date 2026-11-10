@@ -90,3 +90,34 @@ def test_commanders_ship_counts_its_exposure_and_braces_earlier():
     gs2 = make_gs([f2, p2])
     assert ai_should_brace(gs2, gs2.get_ship_by_id("c2"), 4)
     assert not ai_should_brace(gs2, gs2.get_ship_by_id("p2"), 4)
+
+
+def test_fighters_go_for_the_most_dangerous_ordnance():
+    from src.ordnance import ai_craft_target
+    s = make_ship(id="s", player=1, x=0.0, y=0.0, points_value=180, hits_max=8)
+    gs = make_gs([s])
+    f = make_marker(id="f", ordnance_type="fighter", owner_player=1, x=20.0, y=0.0, speed=30.0)
+    torp = make_marker(id="t", ordnance_type="torpedo_standard", owner_player=2, x=25.0,
+                       y=5.0, heading=180.0, speed=30.0, strength=2)
+    mine = make_marker(id="m", ordnance_type="mine_launcher", owner_player=2, x=12.0, y=0.0,
+                       heading=180.0, speed=10.0, strength=1)
+    for m in (f, torp, mine):
+        gs.add_ordnance(m)
+    assert ai_craft_target(f, gs) == "m"
+
+
+def test_ship_shoots_an_incoming_mine_when_nothing_better_is_in_reach():
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    lance = {"name": "Prow Lances", "weapon_type": "lance", "range_cm": 30, "strength": 3,
+             "arcs": ["front"]}
+    s = make_ship(id="s", player=1, x=0.0, y=0.0, heading=0.0, points_value=180, hits_max=8,
+                  weapons=[lance])
+    far = make_ship(id="e", player=2, x=0.0, y=90.0)
+    gs = make_gs([s, far])
+    gs.add_ordnance(make_marker(id="m", ordnance_type="mine_launcher", owner_player=2, x=15.0,
+                                y=0.0, heading=180.0, speed=10.0, strength=1))
+    dice = DiceStub([6, 2, 3])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.run_shooting_phase()
+    assert dice._idx == 3 and not gs.ordnance          # the mine is gone

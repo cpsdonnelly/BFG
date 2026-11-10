@@ -96,64 +96,83 @@ def _turret_kills(ship: Ship) -> float:
     return ship.effective_turrets * 0.5             # each turret hits on 4+
 
 
+def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
+                my_ships: Sequence[Ship]) -> Tuple[float, str]:
+    """Expected hits one enemy marker does to a ship that ends at `end` having
+    passed through `pts` (0 if it can't reach it). my_ships: the ship's other
+    friends (a mine goes for the nearest enemy vessel)."""
+    r = ship.base_radius
+    otype = m.ordnance_type
+    if m.cap_ship_id or otype == "mine_field":
+        return 0.0, ""
+    ph = p_hit(ship.armor_vs(m.x, m.y))
+    on_path = any(math.hypot(px - m.x, py - m.y) <= r + 1.5 for px, py in pts)
+    if "mine" in otype:
+        # 10cm straight at the nearest enemy vessel, in our ordnance phase and
+        # the enemy's: reach 20cm if this ship is the nearest
+        d_end = math.hypot(end[0] - m.x, end[1] - m.y) - r
+        nearest = all(math.hypot(s.x - m.x, s.y - m.y) - s.base_radius >= d_end
+                      for s in my_ships if s.id != ship.id)
+        if on_path or (d_end <= 20.0 and nearest):
+            h = 8 * ph
+            return h, f"mine ({h:.1f} hits)"
+        return 0.0, ""
+    if "torpedo" in otype and otype != "torpedo_bomber":
+        strength = max(0.0, m.strength - _turret_kills(ship))
+        if strength <= 0:
+            return 0.0, ""
+        rad = math.radians(m.heading)
+        ex, ey = m.x + m.speed * math.cos(rad), m.y + m.speed * math.sin(rad)
+        if on_path or _seg_dist(end[0], end[1], m.x, m.y, ex, ey) <= r + 1.0:
+            h = strength * ph * (0.5 if "boarding" in otype else 1.0)   # raids, not hull
+            return h, f"torpedoes S{m.strength} ({h:.1f} hits)"
+        return 0.0, ""
+    # attack craft that may reach the ship before it moves again
+    if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + r:
+        if "bomber" in otype or otype in ("manta", "thunderhawk", "fighta_bommer"):
+            h = max(0.0, 3.5 - ship.effective_turrets) * ph
+        elif "assault" in otype or otype == "gun_cutter":
+            h = 0.5 * max(0.0, 1 - 0.5 * ship.effective_turrets / 2)
+        else:
+            return 0.0, ""                       # fighters don't attack ships
+        return h, f"{otype} ({h:.1f} hits)"
+    return 0.0, ""
+
+
 def ordnance_threat(ship: Ship, end: Point, path: Sequence[Point], gs) -> Tuple[float, List[str]]:
     """Expected hits from enemy ordnance on a ship that moves along `path` to
     `end`: what it runs into on the way (attacks at once), and what can reach
     it before its next move (the enemy's ordnance phase; mines also move in
     ours). Returns (expected hits, reasons)."""
-    r = ship.base_radius
     hits, why = 0.0, []
     pts = _dense(path)
     my_ships = [s for s in gs.get_ships() if s.player == ship.player
-                and not s.is_destroyed and not s.is_disengaged and s.id != ship.id]
+                and not s.is_destroyed and not s.is_disengaged]
     for o in gs.ordnance:
         m = OrdnanceMarker.from_dict(o)
-        if m.owner_player == ship.player or m.cap_ship_id:
+        if m.owner_player == ship.player:
             continue
-        otype = m.ordnance_type
-        armour = ship.armor_vs(m.x, m.y)
-        ph = p_hit(armour)
-        on_path = any(math.hypot(px - m.x, py - m.y) <= r + 1.5 for px, py in pts)
-        if otype == "mine_field":
-            continue
-        if "mine" in otype:
-            # 10cm straight at the nearest enemy vessel, in our ordnance phase
-            # and the enemy's: reach 20cm if this ship is the nearest
-            d_end = math.hypot(end[0] - m.x, end[1] - m.y) - r
-            nearest = all(math.hypot(s.x - m.x, s.y - m.y) - s.base_radius >= d_end
-                          for s in my_ships)
-            if on_path or (d_end <= 20.0 and nearest):
-                h = 8 * ph
-                hits += h
-                why.append(f"mine ({h:.1f} hits)")
-            continue
-        if "torpedo" in otype and otype != "torpedo_bomber":
-            strength = max(0.0, m.strength - _turret_kills(ship))
-            if strength <= 0:
-                continue
-            rad = math.radians(m.heading)
-            ex, ey = m.x + m.speed * math.cos(rad), m.y + m.speed * math.sin(rad)
-            in_line = _seg_dist(end[0], end[1], m.x, m.y, ex, ey) <= r + 1.0
-            if on_path or in_line:
-                h = strength * ph
-                if "boarding" in otype:
-                    h *= 0.5                         # raids, not hull damage
-                hits += h
-                why.append(f"torpedoes S{m.strength} ({h:.1f} hits)")
-            continue
-        # attack craft that may reach the ship before it moves again
-        reach = (m.speed or 20) + r
-        if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= reach:
-            if "bomber" in otype or otype in ("manta", "thunderhawk", "fighta_bommer"):
-                attacks = max(0.0, 3.5 - ship.effective_turrets)
-                h = attacks * ph
-            elif "assault" in otype or otype == "gun_cutter":
-                h = 0.5 * max(0.0, 1 - 0.5 * ship.effective_turrets / 2)
-            else:
-                continue                             # fighters don't attack ships
+        h, w = marker_hits(ship, m, end, pts, my_ships)
+        if h > 0:
             hits += h
-            why.append(f"{otype} ({h:.1f} hits)")
+            why.append(w)
     return hits, why
+
+
+def marker_threat_vp(m: OrdnanceMarker, gs, player: int) -> float:
+    """Expected VP an enemy marker (or its whole wave) threatens against
+    `player`'s ships where they stand: the worst ship it can reach. Used to
+    pick what fighters intercept and what is worth shooting at."""
+    from .waves import whole_wave_ids
+    mine = [s for s in gs.get_ships() if s.player == player
+            and not s.is_destroyed and not s.is_disengaged]
+    ids = set(whole_wave_ids(gs, m.id)) if m.wave_id else {m.id}
+    markers = [OrdnanceMarker.from_dict(o) for o in gs.ordnance if o["id"] in ids]
+    best = 0.0
+    for s in mine:
+        hits = sum(marker_hits(s, mk, (s.x, s.y), [(s.x, s.y)], mine)[0] for mk in markers)
+        best = max(best, hits * value_per_hit(s, gs))
+    return best
 
 
 def terrain_threat(ship: Ship, end: Point, path: Sequence[Point], gs,

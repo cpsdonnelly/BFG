@@ -441,6 +441,49 @@ def resolve_combined_batteries(primary_attacker: Ship,
     return result
 
 
+def ordnance_fire_dice(attacker: Ship, weapon: Dict, x: float, y: float, gs,
+                       avail: int) -> int:
+    """Dice a direct-fire weapon rolls at an ordnance marker (s.30): gunnery
+    on the Ordnance column with range, blast marker and special-rule shifts
+    (no target aspect); lances their firepower."""
+    wtype = weapon.get("weapon_type", "")
+    if wtype == "lance":
+        return avail
+    if wtype != "battery":
+        return 0
+    from .tables import lookup_gunnery_dice, COL_ABEAM_ESCORT
+    from .los import check_los
+    dist = math.hypot(x - attacker.x, y - attacker.y)
+    shifts = -1 if dist < 15 else (1 if dist > 30 else 0)
+    shifts += check_los(attacker.x, attacker.y, x, y, gs.get_phenomena(),
+                        gs.get_blast_markers()).get("column_shifts", 0)
+    if "targeting_matrix" in attacker.special_rules:
+        shifts -= 1
+    return lookup_gunnery_dice(avail, COL_ABEAM_ESCORT, shifts)
+
+
+def fire_at_ordnance(attacker: Ship, weapon: Dict, marker_id: str, gs, dice,
+                     avail: int) -> Dict:
+    """Shoot one weapon at an enemy marker (s.30): 6+ to hit (bombardment
+    cannons 4+); one hit removes the marker, or its whole wave. Returns
+    {"dice", "hits", "removed": [ids]}."""
+    m = next((o for o in gs.ordnance if o["id"] == marker_id), None)
+    if m is None:
+        return {"dice": 0, "hits": 0, "removed": []}
+    n = ordnance_fire_dice(attacker, weapon, m["x"], m["y"], gs, avail)
+    if n <= 0:
+        return {"dice": 0, "hits": 0, "removed": []}
+    need = weapon.get("hits_on") or 6
+    rolls = dice.roll_d6(n, f"{weapon['name']} vs {m['ordnance_type']} ({need}+ to hit)")
+    hits = sum(1 for r in rolls if r >= need)
+    removed = []
+    if hits:
+        from .waves import whole_wave_ids
+        removed = list(whole_wave_ids(gs, marker_id))
+        gs.ordnance = [o for o in gs.ordnance if o["id"] not in set(removed)]
+    return {"dice": n, "hits": hits, "removed": removed}
+
+
 def cutting_beam_firepower(ship: Ship, dist: float) -> int:
     """Demiurg cutting beam (lance, 15cm, front): FP 1 + each blast marker the
     ship collected in its movement phase, at most 8; beyond 15cm two markers

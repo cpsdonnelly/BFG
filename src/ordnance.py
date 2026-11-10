@@ -93,7 +93,8 @@ def move_craft_toward(marker: OrdnanceMarker, tx: float, ty: float) -> float:
 
 def ai_craft_target(marker: OrdnanceMarker, game_state: GameState) -> str:
     """AI choice of target for one attack craft squadron: fighters intercept the
-    nearest enemy ordnance within two moves; craft that attack ships go for the
+    most threatening enemy ordnance within two moves (ai_hazards.marker_threat_vp,
+    nearest on a tie); craft that attack ships go for the
     nearest enemy ship; anything else heads for the nearest enemy ship too."""
     def dist(x, y):
         return math.hypot(x - marker.x, y - marker.y)
@@ -107,7 +108,11 @@ def ai_craft_target(marker: OrdnanceMarker, game_state: GameState) -> str:
                      if o["owner_player"] != marker.owner_player
                      and dist(o["x"], o["y"]) <= 2 * marker.speed]
         if enemy_ord:
-            return min(enemy_ord, key=lambda o: dist(o["x"], o["y"]))["id"]
+            # the most dangerous first (a mine before a small salvo), then the nearest
+            from .ai_hazards import marker_threat_vp
+            return max(enemy_ord, key=lambda o: (
+                marker_threat_vp(OrdnanceMarker.from_dict(o), game_state, marker.owner_player),
+                -dist(o["x"], o["y"])))["id"]
     if enemy_ships:
         return min(enemy_ships, key=lambda s: dist(s.x, s.y)).id
     return ""

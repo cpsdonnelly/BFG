@@ -130,7 +130,6 @@ class CombatPanel(CombatDialogMixin):
 
             # Find the weapon
             weapon = attacker.weapons[w_idx]
-            wtype = weapon.get("weapon_type", "")
             wr = attacker.weapons_remaining or {}
             idx_key = str(w_idx)
             avail = wr.get(idx_key, weapon.get("strength", 0))
@@ -169,51 +168,17 @@ class CombatPanel(CombatDialogMixin):
             if weapon.get("strength_dice") and idx_key not in wr:
                 self.ctx.log(f"  {weapon['name']}: rolled {weapon['strength_dice']} = {avail}")
 
-            # Determine dice count
-            if wtype == "battery":
-                # Use Ordnance column (col 5) on gunnery table
-                # Column shifts for range, blast markers, special rules still apply
-                from .tables import lookup_gunnery_dice, COL_ABEAM_ESCORT
-                shifts = 0
-                # Range shifts
-                if dist < 15:
-                    shifts -= 1  # close range = better
-                elif dist > 30:
-                    shifts += 1  # long range = worse
-                # Blast markers in line of fire
-                from .los import check_los
-                los = check_los(attacker.x, attacker.y,
-                                target_ord.x, target_ord.y,
-                                self.ctx.gs.get_phenomena(),
-                                self.ctx.gs.get_blast_markers())
-                shifts += los.get("column_shifts", 0)
-                # Targeting matrix
-                if "targeting_matrix" in attacker.special_rules:
-                    shifts -= 1
-
-                dice_count = lookup_gunnery_dice(avail, COL_ABEAM_ESCORT, shifts)
-                self.ctx.log(
-                    f"  {weapon['name']} FP{avail} vs ordnance: "
-                    f"{dice_count} dice (col Ordnance, {shifts:+d} shifts)")
-            elif wtype == "lance":
-                # Lances roll their strength in dice
-                dice_count = avail
-                self.ctx.log(
-                    f"  {weapon['name']} Str{avail} vs ordnance: "
-                    f"{dice_count} dice")
-            else:
-                dice_count = 0
-
+            # Dice and resolution (s.30): engine combat.fire_at_ordnance
+            from .combat import fire_at_ordnance, ordnance_fire_dice
+            dice_count = ordnance_fire_dice(attacker, weapon, target_ord.x, target_ord.y,
+                                            self.ctx.gs, avail)
             if dice_count <= 0:
                 self.ctx.log("  No dice to roll")
                 dialog.destroy()
                 return
-
-            # Roll: 6+ to hit ordnance (bombardment cannons: 4+, even vs ordnance)
-            need = weapon.get("hits_on") or 6
-            rolls = self.ctx.dice.roll_d6(dice_count,
-                f"{weapon['name']} vs {target_ord.ordnance_type} ({need}+ to hit)")
-            hits = sum(1 for r in rolls if r >= need)
+            self.ctx.log(f"  {weapon['name']} FP{avail} vs ordnance: {dice_count} dice")
+            res = fire_at_ordnance(attacker, weapon, target_ord.id, self.ctx.gs,
+                                   self.ctx.dice, avail)
 
             # Track weapon as used
             wr[idx_key] = 0
@@ -222,19 +187,12 @@ class CombatPanel(CombatDialogMixin):
                 attacker.weapons_fired_indices.append(w_idx)
             self.ctx.gs.update_ship(attacker)
 
-            if hits > 0:
-                # ONE HIT KILLS ENTIRE WAVE/SALVO
-                from .waves import whole_wave_ids
-                gone = set(whole_wave_ids(self.ctx.gs, target_ord.id))   # the whole wave
-                self.ctx.gs.ordnance = [
-                    o for o in self.ctx.gs.ordnance
-                    if o["id"] not in gone]
+            if res["hits"] > 0:
                 self.ctx.log(
                     f"  HIT! {target_ord.ordnance_type} Str{target_ord.strength} "
-                    f"destroyed! (rolled {hits} hit(s) on 6+)")
+                    f"destroyed! ({res['hits']} hit(s))")
             else:
-                self.ctx.log(
-                    f"  MISS! No 6s rolled ({dice_count} dice)")
+                self.ctx.log(f"  MISS! ({dice_count} dice)")
 
             dialog.destroy()
             self.ctx.board.redraw()

@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **947 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **949 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -111,6 +111,42 @@ session.
   Whole-base contact already holds (contact ignores arcs). Not modelled: Remastered's
   spill-over limit (markers from one round touching at most two ships), and overlapping
   bases for shields / speed / Leadership (only gunnery and ordnance use it so far).
+
+- **Destroying incoming threats (owner, this session):** fighters should go after incoming
+  mines (and other dangerous ordnance); when no fighters will reach a mine in time, or there
+  are none, weigh shooting it with a ship's main armament. **Done (first version):**
+  `ai_hazards.marker_threat_vp` scores each enemy marker or wave by the VP it threatens
+  (worst ship it can reach); AI fighters intercept the most threatening ordnance in reach
+  (`ordnance.ai_craft_target`, nearest on a tie); before each battery / lance shot the AI
+  compares shooting the nearest enemy marker in arc (P(a 6) x its threat, a third of that
+  if a friendly fighter can reach it this ordnance phase; `AIPlayer._ordnance_shot`) with its
+  best ship shot, and fires at the marker when that is worth more (`combat.fire_at_ordnance`,
+  now also used by the player's Fire at Ordnance dialog).
+- **Combat air patrol vs strikes (owner, this session: tricky trade-off, think it through).**
+  Not built yet. Plan:
+  1. *Launch slots*: each ship with loaded bays offers squadrons of the craft types it can
+     launch (bay strength, fleet craft limit s.15). Launching uses the bays up until Reload
+     Ordnance, so a slot also has an option value: keeping it loaded keeps next turn's choice
+     open (higher when the enemy is still out of reach or its ordnance hasn't launched yet).
+  2. *Three uses, one currency (expected VP)*:
+     - CAP fighters on ship S: VP saved = sum over enemy ordnance / waves that can reach S
+       before our next ordnance phase of P(the CAP squadron stops it) x `marker_threat_vp`,
+       with diminishing returns (one CAP squadron meets one enemy squadron or salvo; check
+       s.26 for how many it can engage). A ship with many shields / turrets needs it less;
+       the flagship counts its commander value (ai_hazards.ship_value).
+     - Free fighters: the same saving for ordnance they can reach in their move (no
+       double move risk), plus escorting our own bombers (fewer of them lost).
+     - Bombers / assault boats offensively: expected VP on the best enemy ship in reach
+       after its turrets and the interceptions its fighters / CAP are likely to make
+       (ai_hazards.shot_vp style, with ship_attack_plan's suppression maths).
+  3. *Allocation*: greedy across the fleet: list every slot x use with its marginal value,
+     take the best, update what it covers (a threat already stopped is worth nothing to the
+     next fighter; a target already likely dead to the next bomber), repeat; keep a slot
+     loaded when its best use is worth less than its option value. Many enemy mines /
+     torpedoes push value to CAP and free fighters; a weak enemy screen pushes it to strikes.
+  4. *Tests*: lots of incoming mines -> CAP / fighters chosen; no enemy ordnance and a
+     crippled enemy in reach -> bombers; mixed -> both, fighters first on the threatened
+     ship.
 
 ### AI design (plan agreed in principle; build in this order)
 

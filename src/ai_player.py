@@ -502,6 +502,16 @@ class AIPlayer:
                 self._fire_nova_cannon(ship, enemies)
                 continue
 
+            # Shoot an incoming mine / salvo / wave instead, when that's worth more
+            ordshot = self._ordnance_shot(ship, weapon, w_idx) if self.difficulty != "easy" else None
+            if ordshot:
+                from .combat import fire_at_ordnance
+                m = ordshot["marker"]
+                res = fire_at_ordnance(ship, weapon, m.id, gs, self.dice, ordshot["avail"])
+                gs.add_log(f"[AI] {ship.name} → {m.ordnance_type}: {weapon['name']} "
+                           f"{res['dice']} dice, {'destroyed' if res['hits'] else 'missed'}")
+                continue
+
             enemies = self._live_enemies()      # earlier weapons may have killed some
             target = self._pick_target(ship, weapon, enemies)
             if not target:
@@ -670,6 +680,64 @@ class AIPlayer:
                                    origin=(nc["template_x"], nc["template_y"]))
                 self._log_damage(t, dmg)
                 self._resolve_kill(t)
+
+    def _ordnance_shot(self, ship: Ship, weapon: Dict, w_idx: int) -> Optional[Dict]:
+        """Is shooting enemy ordnance with this weapon worth more than its best
+        shot at a ship (owner guidance: shoot incoming mines and the like when
+        fighters won't get there first)? The nearest enemy marker in arc, range
+        and line of fire (no target priority test needed, s.30); value = P(at
+        least one 6) x the VP it threatens, a third of that when a friendly
+        fighter squadron can reach it in our ordnance phase."""
+        from .ai_hazards import marker_threat_vp, shot_vp
+        from .combat import ordnance_fire_dice
+        gs = self.gs
+        if weapon.get("weapon_type") not in ("battery", "lance"):
+            return None
+        enemy_ord = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
+                     if o["owner_player"] != self.player and not o.get("cap_ship_id")]
+        in_reach = [m for m in enemy_ord
+                    if check_weapon_in_arc(ship, weapon, m.x, m.y)
+                    and check_weapon_in_range(ship, weapon, m.x, m.y)]
+        if not in_reach:
+            return None
+        m = min(in_reach, key=lambda o: math.hypot(o.x - ship.x, o.y - ship.y))
+        threat = marker_threat_vp(m, gs, self.player)
+        if threat <= 0:
+            return None
+        from .ordnance import craft_roles
+        covered = any("fighter" in craft_roles(o["ordnance_type"]) and o["owner_player"] == self.player
+                      and not o.get("cap_ship_id")
+                      and math.hypot(o["x"] - m.x, o["y"] - m.y) <= (o.get("speed") or 0)
+                      for o in gs.ordnance)
+        avail = weapon.get("strength", 0)
+        if ship.is_crippled:
+            avail = ship.crippled_value(avail)
+        n = ordnance_fire_dice(ship, weapon, m.x, m.y, gs, avail)
+        need = weapon.get("hits_on") or 6
+        p = 1.0 - (1.0 - max(0, 7 - need) / 6.0) ** n
+        value = p * threat * (0.33 if covered else 1.0)
+        ships = self._valid_targets(ship, weapon, self._live_enemies())
+        best_ship = max((shot_vp(ship, weapon, e, gs, self._committed.get(e.id, 0.0))
+                         for e in ships), default=0.0) if hasattr(self, "_committed") else 0.0
+        if value <= best_ship:
+            return None
+        return {"marker": m, "avail": avail, "value": value}
+
+    def _valid_targets(self, ship: Ship, weapon: Dict, enemies: List[Ship]) -> List[Ship]:
+        valid = []
+        for e in enemies:
+            if not check_weapon_in_arc(ship, weapon, e.x, e.y):
+                continue
+            if not check_weapon_in_range(ship, weapon, e.x, e.y):
+                continue
+            los = check_los_clear(ship, e, self.gs.get_phenomena(),
+                                  self.gs.get_blast_markers(), self.gs.ships)
+            if not los.get("clear", True):
+                continue
+            if shadow_engines_hidden(ship, e, enemies):
+                continue
+            valid.append(e)
+        return valid
 
     def _pick_target(self, ship: Ship, weapon: Dict,
                      enemies: List[Ship]) -> Optional[Ship]:
