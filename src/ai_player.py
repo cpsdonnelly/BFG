@@ -448,6 +448,7 @@ class AIPlayer:
     def run_shooting_phase(self):
         gs = self.gs
         tc = self.tc
+        self._committed = {}                # expected hits planned per target this phase
         for ship in gs.player_ships(self.player):
             if ship.is_destroyed or ship.is_disengaged or ship.has_fired:
                 continue
@@ -672,12 +673,19 @@ class AIPlayer:
 
         if self.difficulty == "easy":
             return random.choice(valid)
-        elif self.difficulty == "normal":
+        # normal / hard / expert: the most expected VP for this weapon, counting the
+        # fire already committed to each target this phase (owner guidance:
+        # finish and cripple ships, no overkill, don't spread too thin)
+        from .ai_hazards import shot_vp
+        committed = getattr(self, "_committed", {})
+        best = max(valid, key=lambda e: shot_vp(ship, weapon, e, self.gs,
+                                                committed.get(e.id, 0.0)))
+        if shot_vp(ship, weapon, best, self.gs, committed.get(best.id, 0.0)) <= 0:
             return min(valid, key=lambda s: s.hits_remaining / max(1, s.hits_max))
-        else:  # hard: focus crippled, then lowest HP
-            crippled = [s for s in valid if s.is_crippled]
-            pool = crippled if crippled else valid
-            return min(pool, key=lambda s: s.hits_remaining)
+        from .combat import expected_hits
+        committed[best.id] = committed.get(best.id, 0.0) + expected_hits(ship, weapon, best)
+        self._committed = committed
+        return best
 
     def _log_damage(self, target: Ship, dmg: Dict):
         gs = self.gs

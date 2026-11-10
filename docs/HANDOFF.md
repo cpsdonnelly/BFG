@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **944 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **945 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -150,7 +150,16 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    crippled ship, the flagship's own tests); spend when the score clears a bar that rises as
    re-rolls run out (the last one only on the biggest swings); spend everything left when
    the commander's ship is about to be lost.
-3. **Targeting by expected VP**: per weapon / combined squadron fire, expected hits ->
+3. **Targeting by expected VP: done for single weapons.** `AIPlayer._pick_target` (normal
+   and up) takes the target with the most marginal expected VP (`ai_hazards.shot_vp`:
+   expected hits from `combat.expected_hits`, shields first, Poisson spread for P(kill) /
+   P(cripple), a little per hull hit, a little for shields knocked down), counting the
+   expected hits already committed to each target this phase (`_committed`), so it stops
+   firing at a ship that is probably dead. Still to do: combined squadron fire for the AI,
+   the "Best for expected hits" default in the Combine Squadron Fire dialog, hulks (only worth
+   shooting when an explosion would hurt nearby enemies; destroying an enemy hulk also lowers
+   Holding the Field VP), and the target priority test (the AI fires at any target in arc).
+   Original plan: per weapon / combined squadron fire, expected hits ->
    P(kill), P(cripple) -> expected VP; prefer finishing and crippling, avoid overkill
    (stop committing fire once the target is likely dead), don't spread too thin; hulks are
    targets when worth it (a re-rolled catastrophic result can hurt nearby enemies; no VP

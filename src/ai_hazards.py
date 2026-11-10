@@ -222,3 +222,51 @@ def move_hazard_vp(ship: Ship, end: Point, path: Sequence[Point], gs,
         down = min(ship.effective_shields, blast_markers_at(ship, end, gs))
         vp += down * 0.5 * vph
     return {"vp": vp, "why": ow + tw}
+
+
+# ── Targeting by expected VP ─────────────────────────────────────────────────
+
+def poisson_at_least(mean: float, k: int) -> float:
+    """P(X >= k) for X ~ Poisson(mean): a stand-in for the spread of hits."""
+    if k <= 0:
+        return 1.0
+    if mean <= 0:
+        return 0.0
+    term, cdf = math.exp(-mean), 0.0
+    for i in range(k):
+        cdf += term
+        term *= mean / (i + 1)
+    return max(0.0, 1.0 - cdf)
+
+
+def damage_vp(target: Ship, gs, mean_hits: float) -> float:
+    """Expected VP from `mean_hits` hull hits on a target (s.38): its value if
+    destroyed, a quarter if crippled, plus a little for each hit (later
+    damage, crits)."""
+    v = ship_value(target, gs)
+    rem = max(1, target.hits_remaining)
+    p_kill = poisson_at_least(mean_hits, rem)
+    to_cripple = rem - target.hits_max // 2
+    p_crip = 0.0 if target.is_crippled or to_cripple <= 0 else poisson_at_least(mean_hits, to_cripple)
+    return (p_kill * v + max(0.0, p_crip - p_kill) * v * 0.25
+            + min(mean_hits, rem) * value_per_hit(target, gs) * 0.2)
+
+
+def shot_vp(attacker: Ship, weapon: dict, target: Ship, gs, committed: float = 0.0) -> float:
+    """Marginal expected VP of firing `weapon` at `target`, given `committed`
+    expected hull hits already planned against it this phase (so the AI stops
+    piling fire on a ship that is probably dead, and doesn't spread too thin)."""
+    from .combat import expected_hits
+    from .geometry import current_shields
+    raw = expected_hits(attacker, weapon, target)
+    if raw <= 0:
+        return 0.0
+    shields = current_shields(target, gs.get_blast_markers())
+    # `committed` counts all expected hits planned so far; shields take the first
+    before = max(0.0, committed - shields)
+    after = max(0.0, committed + raw - shields)
+    # shields knocked down open the target to the rest of the fleet's fire
+    shield_hits = min(raw, max(0.0, shields - committed))
+    alive = 1.0 - poisson_at_least(before, max(1, target.hits_remaining))
+    return (damage_vp(target, gs, after) - damage_vp(target, gs, before)
+            + shield_hits * value_per_hit(target, gs) * 0.1 * alive)

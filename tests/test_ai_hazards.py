@@ -53,3 +53,16 @@ def test_planner_steers_out_of_a_torpedo_line():
     r = validate_movement(gs.get_ship_by_id("s"), cmds, "", table_width=gs.table_width,
                           table_height=gs.table_height)
     assert r.valid and abs(r.final_x - 60.0) > 3.0       # doesn't end in the salvo's path
+
+
+def test_targeting_prefers_a_kill_and_avoids_overkill():
+    from src.ai_hazards import shot_vp
+    gun = {"name": "Port", "weapon_type": "battery", "range_cm": 30, "strength": 8, "arcs": ["left"]}
+    a = make_ship(id="a", player=1, x=0.0, y=0.0)
+    weak = make_ship(id="w", player=2, x=20.0, y=0.0, points_value=180, hits_max=8,
+                     hits_remaining=2, shields_max=1)
+    fresh = make_ship(id="f", player=2, x=20.0, y=0.0, points_value=180, hits_max=8,
+                      hits_remaining=8, shields_max=2)
+    gs = make_gs([a, weak, fresh])
+    assert shot_vp(a, gun, weak, gs) > shot_vp(a, gun, fresh, gs)
+    assert shot_vp(a, gun, weak, gs, committed=10.0) < shot_vp(a, gun, fresh, gs)   # already dead
