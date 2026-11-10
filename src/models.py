@@ -174,6 +174,7 @@ class Ship:
     disengage_failed_this_turn: bool = False  # failed disengage = no fire/orders this turn
     must_disengage: bool = False             # escort squadron that lost a ship off the table
     must_disengage_tested_turn: int = 0      # turn of its last forced disengage test
+    must_flee: bool = False                  # failed a forced test: heads for the nearest edge
     brace_set_on_turn: int = 0  # turn number when brace was applied (0 = not set)
     previous_order: str = "none"  # order that was active before bracing
 

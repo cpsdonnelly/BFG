@@ -136,7 +136,11 @@ class AIPlayer:
             order = ship.special_order or ""
 
         enemy = self._nearest_enemy(ship)
-        commands = (self._plan_move_toward(ship, enemy, order, aaf_bonus)
+        if ship.must_flee:                 # failed a forced disengage test
+            commands = self._plan_flee(ship, order, aaf_bonus)
+        else:
+            commands = None
+        commands = commands or (self._plan_move_toward(ship, enemy, order, aaf_bonus)
                     if enemy else
                     self._forward_commands(ship, order, aaf_bonus, fraction=0.6))
 
@@ -334,6 +338,37 @@ class AIPlayer:
                 penalty += marker.strength * 4.0
 
         return penalty
+
+    def _plan_flee(self, ship: Ship, order: str, aaf_bonus: int) -> List[MoveCommand]:
+        """As fast as possible towards the nearest table edge (s.37; Demiurg
+        Mercenaries): the candidate move that ends closest to it."""
+        from .movement import MIN_TURN_DISTANCE
+        gs = self.gs
+        _, max_spd = get_effective_speed(ship, order, aaf_bonus)
+        td = min(MIN_TURN_DISTANCE.get(ship.ship_type, 0), max_spd)
+        ta = ship.turn_angle
+        cands = [[MoveCommand("forward", max_spd)]]
+        for turn in ("turn_left", "turn_right"):
+            for ang in (ta, ta / 2):
+                cmds = ([MoveCommand("forward", td)] if td else []) + [MoveCommand(turn, ang)]
+                if max_spd - td > 0:
+                    cmds.append(MoveCommand("forward", max_spd - td))
+                cands.append(cmds)
+
+        def edge_dist(x, y):
+            return min(x, y, gs.table_width - x, gs.table_height - y)
+
+        best, best_d = None, None
+        for cmds in cands:
+            r = validate_movement(ship, cmds, special_order=order, aaf_bonus=aaf_bonus,
+                                  blast_markers=gs.get_blast_markers(),
+                                  table_width=gs.table_width, table_height=gs.table_height)
+            if not r.valid:
+                continue
+            d = edge_dist(r.final_x, r.final_y)
+            if best_d is None or d < best_d:
+                best, best_d = cmds, d
+        return best
 
     def _forward_commands(self, ship: Ship, order: str, aaf_bonus: int,
                           fraction: float = 1.0) -> List[MoveCommand]:

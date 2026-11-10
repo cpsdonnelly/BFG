@@ -314,8 +314,10 @@ Owner rulings (fleet lists, export 15):
   other factions' secondaries (Elite Captains / Daemonhunters, Ork Nobz, Bond-Captains,
   Space Marine Captains), per-Boss re-roll pools for several Ork Bosses.
 - Hulks: the AI never targets enemy hulks.
-- Disengaging: no shared escort-squadron test for a voluntary disengage, no forced
-  disengagement at Ld 1 or less (s.37); celestial phenomena measured to their centre.
+- Disengaging (s.37): escort squadrons test together; Forced Disengagement (Ld 1 or less) and
+  Demiurg Mercenaries test at the end of movement (`disengage.forced_disengage_tests`); a ship
+  that fails gets `Ship.must_flee` (AI `_plan_flee`). Not yet: the +3 during a radiation burst
+  or solar flare; the AI never disengages voluntarily.
 
 ### Torpedo types (s.16): owner rulings
 

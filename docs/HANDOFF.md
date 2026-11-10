@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **928 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **934 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -252,8 +252,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   markers lost at the start of the owner's next turn), the Bastion's modular bays (owner
   ruling: S2 bays or S4 torpedoes chosen at each launch; launching either uses both,
   `Ship.mark_launched`), Demiurg VP (higher value if the fleet is all Demiurg or the enemy
-  has Ork vessels). Not yet: Mercenaries (crippled Demiurg in a mixed fleet must disengage
-  every turn; with Orks opposing, at 2 hits or fewer), mine launchers, the Courier Transport
+  has Ork vessels). Mercenaries are done (see Disengaging). Not yet: mine launchers, the Courier Transport
   (scenario only), the Tau list's "allies of convenience" effects (attack rating), undoing a
   Demiurg move doesn't put collected blast markers back.
 - Chaos (25): **done:** Planet Killer counts as a battleship (Battleships section, 1000+);
@@ -311,8 +310,13 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 2. **AI:** shoot at enemy hulks; use combined squadron fire (`combat.plan_squadron_volley`)
    with expected-hits / VP target scoring (see "Owner guidance on AI play"); importance-based
    re-roll spending; the "Best for expected hits" tool in the Combine Squadron Fire dialog.
-3. **Disengaging (s.37):** shared escort-squadron test for a voluntary disengage, forced
-   disengagement at Ld 1 or less, celestial phenomena measured to their edge.
+3. **Disengaging (s.37): done.** A voluntary disengage by an escort in a squadron is one
+   squadron test; a capital ship that fails leaves its squadron; Forced Disengagement at Ld 1
+   or less and Demiurg Mercenaries (`disengage.mercenary_must_disengage`) test at the end of
+   the movement phase (`forced_disengage_tests`), and a ship that fails gets `must_flee` (the
+   AI heads for the nearest edge, `AIPlayer._plan_flee`; a human is reminded in the log);
+   celestial phenomena are measured to their edge. Not yet: the +3 for a radiation burst or
+   solar flare in progress (anywhere on the table); the AI never disengages voluntarily.
 4. **The ordinary profiles' own refits** from ships.json notes, one at a time (Mars Targeting
    Matrix, Exorcist prow torps, Repulsive extra shield, ...); Ork kustom upgrades and clans.
 5. **Rules gap the owner flagged:** multi-role fighter-bombers (Thunderhawks) in a wave must be

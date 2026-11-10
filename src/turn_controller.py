@@ -230,6 +230,11 @@ class TurnController:
             self.command_check_failed = False
             # Remove previous special orders (except Brace)
             self._clear_previous_orders()
+            for s in self.gs.get_ships():
+                if (s.player == self.gs.active_player and s.must_flee
+                        and not s.is_destroyed and not s.is_disengaged):
+                    self.gs.add_log(f"{s.name} must move as fast as possible towards the "
+                                    f"nearest table edge (failed a forced disengage test)")
 
         elif phase == "shooting":
             self.ships_fired.clear()
