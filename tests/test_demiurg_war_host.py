@@ -131,3 +131,15 @@ def test_demiurg_immune_to_dust_clouds_and_higher_vp_against_orks():
     assert calculate_victory_points(make_gs([dead, tau, ork]))[2]["destroyed"] == 200
     assert calculate_victory_points(make_gs([dead, tau, imp]))[2]["destroyed"] == 185
     assert calculate_victory_points(make_gs([dead, imp]))[2]["destroyed"] == 200   # all Demiurg
+
+
+def test_demiurg_hired_reserves():
+    from src.fleet_lists import LISTS
+    assert "demiurg_hired" in LISTS["navy_gothic"]["reserves"]
+    assert "demiurg_hired" not in LISTS["navy_bakka"]["reserves"]
+    assert "demiurg_hired" not in LISTS["orks_green_tide"]["reserves"]
+    own = rows(*["Gothic Cruiser"] * 3, list_key="navy_gothic")
+    hired = rows(CITADEL, list_key="reserve:demiurg_hired")
+    assert not has(fleet_list_errors("navy_gothic", own + hired, 800), "Reserves")
+    hired += rows(BASTION, list_key="reserve:demiurg_hired")
+    assert has(fleet_list_errors("navy_gothic", own + hired, 1100), "Reserves")

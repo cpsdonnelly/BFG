@@ -688,3 +688,22 @@ Domination 1/2/3/6 (clipped and overlapping labels, "Centre Objective").
 All 178 profiles were checked against the source books (stats, weapons, launch bays). Two cells changed:
 - Onslaught Attack Ship: Speed 20cm (was 25cm), Turrets 2 (was 3), per Xenos p.67.
 - Ork Rok: Turns "Special" (was "None"), per Xenos p.69. turn_raw is now "Special" like the hulks.
+
+# Forty-fourth update: Bastion price in the Rogue Trader Expedition list
+
+The Expedition list's Demiurg mercenaries now price the Bastion at 255 / 1 Fortune (was 225), matching
+its profile (Xenos p.93). Ships of the Imperium's 225 is treated as a misprint; footnoted. Its VP
+follows the Demiurg rule: points cost normally, 300 if the opposing fleet includes Ork vessels.
+
+# Forty-fifth update: Demiurg and Tau rules restored from the omissions check
+
+- Citadel commerce vessel: base is 60mm (Xenos p.94 modelling note), despite only 6 hits.
+- Bastion: Modular Launch Bays launch attack craft or torpedoes, one mode per turn, and must Reload
+  Ordnance after launching whichever mode was used. With mine launchers it keeps its bays and gains
+  mines as a third mode (launch strength = its attack craft).
+- Demiurg Hired Reserves: any fleet except Orks, Tyranids and Necrons may take Bastions or Citadels in
+  place of allowed reserve cruisers (reserve and allies-of-convenience rules, Mercenaries rule applies).
+- Tau Orbital City: hooks carry one escort type only (Orcas, Wardens or Dhows); those ships squadron
+  together, with no other vessels, as system ships.
+The booklet is now 190 pages: everything from the Demiurg table (p.115) on moved one page later
+(Scenarios 120, Campaigns 164, Appendices 1-7 at 176/178/183/186/187/188/189). Cross-references updated.

@@ -276,7 +276,7 @@ A standalone Rogue Trader fleet, for when no host fleet is available or the priz
 
 - Recommissioned Cruisers, up to one per expedition cruiser (count as Rogue Trader vessels): Lunar 180 / 1 Fortune, Carnage 180 / 1 Fortune, Tyrant 175 / 1 Fortune, Murder 170 / 1 Fortune.
 
-- Demiurg & Kroot Mercenaries, up to one per three expedition cruisers (allies of convenience, from the Tau Empire list): Stronghold 350 / 2 Fortune, Bastion 225 / 1 Fortune, Citadel 185 / 1 Fortune, (0-1) Kroot Warsphere 145 / 1 Fortune.
+- Demiurg & Kroot Mercenaries, up to one per three expedition cruisers (allies of convenience, from the Tau Empire list): Stronghold 350 / 2 Fortune, Bastion 255\* / 1 Fortune, Citadel 185 / 1 Fortune, (0-1) Kroot Warsphere 145 / 1 Fortune.
 
 **Escorts.** One squadron of 2-6 per capital ship (max four two-hit escorts): Xenos Cutter 35, plus supporting-fleet escorts (see Reserves & allies).
 
@@ -286,7 +286,7 @@ A standalone Rogue Trader fleet, for when no host fleet is available or the priz
 
 **Reserves & allies.** Choose a supporting fleet from another faction (not Dark Eldar, Ork, Necron, or Tyranid). Its escorts may be taken in the Escorts section above (allies of convenience; not Tau escorts needing hooks). Its capital ships may be taken as reserves at 3:1: cruisers other than grand cruisers count against the recommissioned-cruiser limit, while grand cruisers and battleships count against the expedition-flagship limit; Demiurg and Kroot cannot be taken this way. A Space Marine supporting fleet bars all xenos.
 
-*The Expedition list prints the Bastion Commerce Vessel at 225 / 1 Fortune; its Demiurg profile in Tau & Allies shows 255. The list value is used here.*
+*\*Ships of the Imperium prints 225 points for the Bastion in the Rogue Trader list; its profile in Ships of the Xenos gives 255, and this booklet uses 255.*
 
 #### Wolf-Pack Pirate Fleet (Imperium p.128-129)
 

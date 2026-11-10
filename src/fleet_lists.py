@@ -307,6 +307,26 @@ try:                                   # Chaos, Orks, Tau, Rogue Traders
 except ImportError:                    # pragma: no cover
     pass
 
+# Demiurg Hired Reserves (Xenos p.91-94): "any fleet except Orks, Tyranids, and
+# Necrons may substitute Bastion or Citadel commerce vessels in place of any
+# reserve cruisers it is normally allowed", under the normal reserve rules
+# (allies of convenience, Mercenaries). Offered to every list that takes reserves.
+DEMIURG_HIRED = {"key": "demiurg_hired", "faction": "tau_kororvesh", "kind": "reserve_only",
+                 "no_commander": True,
+                 "name": "Demiurg Hired Reserves (Xenos p.91-94)",
+                 "sections": [{"name": "Cruisers",
+                               "ships": {"Bastion Commerce Vessel": 255,
+                                         "Citadel Commerce Vessel": 185}}]}
+# Not: Bakka (Imperial Navy reserves only), the Rogue Trader Expedition (Demiurg
+# are its own mercenaries, never reserves) or the War Host (Demiurg are its fleet)
+_NO_HIRED = {"navy_bakka", "rt_expedition", "tau_demiurg_war_host"}
+for _fl in ALL_LISTS:
+    if (_fl.get("reserves") and _fl["faction"] != "orks" and _fl["key"] not in _NO_HIRED
+            and "demiurg_hired" not in _fl["reserves"]):
+        _fl["reserves"] = list(_fl["reserves"]) + ["demiurg_hired"]
+ALL_LISTS.append(DEMIURG_HIRED)
+
+
 def _attach_commanders() -> None:
     """Each list's required fleet commander, now that the commanders are
     fleet-builder options (booklet_options.COMMANDERS / ORK_BOSSES): 750+pts

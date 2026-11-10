@@ -14,7 +14,7 @@ session.
 - `bfgxr/` is the rules authority. Each new booklet zip the owner sends **replaces `bfgxr/`
   wholesale** (extract into the scratchpad, `diff -rq`, read the new part of `CHANGES.md`,
   diff `data/ships.json` by ship, then `rm -rf bfgxr && cp -a <new> bfgxr`). Never hand-edit it.
-  The current install is zip 11 (CHANGES.md: forty-third update).
+  The current install is zip 12 (CHANGES.md: forty-fifth update).
 - **Never invent rules.** If the booklet is silent or ambiguous, ask the owner (AskUserQuestion
   works well), then record the answer under the matching heading in `CLAUDE.md`.
 - Check what an audit or helper agent reports against the booklet yourself before acting on it.
@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **927 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **928 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -127,7 +127,17 @@ session.
 - `ships.json` `profile_from` is still cut off for the three Grey Knights escorts
   ("Space Marine Nova (p", "... Gladius (p", "... Hunter (p"). The game doesn't use the field.
 
-## Booklet zip 11 (updates 39-43, installed last)
+## Booklet zip 12 (updates 44-45, installed last)
+
+Catalog diff: only the Citadel's base (now 60mm, large). Done: the Expedition's Bastion is 255
+(was 225); Demiurg Hired Reserves (`fleet_lists.DEMIURG_HIRED`, a reserve-only list of Bastion
+255 / Citadel 185 offered to every list that takes reserves except Orks, Bakka, the Expedition
+and the War Host; counted as cruiser reserves at the list's normal ratio, Dominion included).
+Already matching: the Bastion's modular bays (one mode per turn, Reload Ordnance after either).
+Not yet: the Bastion's mines as a third mode (mine launcher swaps don't exist yet), the Tau
+Orbital City's hook rules (not playable), the Mercenaries rule.
+
+## Booklet zip 11 (updates 39-43)
 
 Table cells now use sourcebook wording. Code matches notes text in places, so the built
 catalog was diffed before and after: five matches broke (Exorcist macrobattery refit, Terror

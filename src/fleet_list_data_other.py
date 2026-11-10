@@ -373,7 +373,7 @@ RT_LISTS = [
          {"name": "Demiurg & Kroot Mercenaries", "ratio": (3, ["Expedition Cruisers"]),
           "xenos": True,
           "class_max": {"Kroot Warsphere": 1},
-          "ships": {"Stronghold Commerce Vessel": 350, "Bastion Commerce Vessel": 225,
+          "ships": {"Stronghold Commerce Vessel": 350, "Bastion Commerce Vessel": 255,
                     "Citadel Commerce Vessel": 185, "Kroot Warsphere": 145}},
          {"name": "Escorts", "ships": dict(_XENOS_CUTTERS), "xenos": True},
      ] + [dict(s, ships=dict(s["ships"])) for s in _RT_CONVOY],
@@ -395,7 +395,6 @@ RT_LISTS = [
          "Choose one supporting fleet from another faction (not Dark Eldar, Ork, Necron or "
          "Tyranid); its capital ships come as reserves at 3:1, but Demiurg and Kroot can't "
          "be taken that way. A Space Marine supporting fleet bars all xenos.",
-         "The Bastion Commerce Vessel is 225 in this list (its profile shows 255).",
          _RT_FORTUNE + " Refitted torpedoes +20; mine launchers on up to two capital ships. "
          "Attack rating 3."]},
     {"key": "rt_wolf_pack", "faction": "rogue_traders",
