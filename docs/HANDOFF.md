@@ -98,6 +98,45 @@ session.
   protecting the commander's ship matters (keep it out of harm, brace it), and when that
   ship is about to be lost its remaining re-rolls should be spent rather than wasted.
 
+- **Hazard avoidance (owner, this session):** the AI should avoid asteroid fields, dust
+  clouds, blast markers, and incoming torpedoes and mines, with a threat level per hazard
+  (one mine is more dangerous than one torpedo salvo).
+- **Optional blast markers (owner, this session):** add the Modern and Remastered blast marker
+  rules (s.11) as an advanced setting toggle.
+
+### AI design (plan agreed in principle; build in this order)
+
+One common currency: **expected victory points**, so hazards, targets and re-rolls compare.
+A ship's "value at risk" is its VP (points value, x1.25 venerable, its commander's cost and
+re-rolls included; the flagship counts double while the fleet still has re-rolls to lose).
+
+1. **Hazards** (`ai_hazards.py`, used by every movement candidate, along the whole path,
+   not just the end point). Threat = expected damage x the ship's VP per hit, plus speed or
+   firing losses where they matter. From the rules, not invented weights:
+   - mines: 8D6 vs Armour, ignoring shields, moving 10cm towards the nearest enemy every
+     ordnance phase, so a mine's reach next phase is a 10cm (+ base) circle around it;
+   - torpedoes: strength dice vs Armour, ignoring shields, along their next move line (speed);
+     guided / seeking salvos get a turn cone; boarding torpedoes as raids;
+   - attack craft heading for the ship: bombers' expected attacks after turrets;
+   - asteroid fields: P(fail the Ld test) x D6 damage (shields stop it), escorts' re-roll;
+   - warp rifts: P(fail) x the ship;
+   - dust clouds: -5cm, and 1/6 damage only without shields;
+   - blast markers: -5cm speed, shields down while touching, 1/6 damage to shieldless ships.
+   So a mine (8 dice) weighs more than a 2-6 strength salvo, as the owner expects.
+2. **Re-roll importance**: score each failed test by the VP it swings (finishing or crippling
+   a target, a Brace that saves a ship, a navigation test that risks it, disengaging a
+   crippled ship, the flagship's own tests); spend when the score clears a bar that rises as
+   re-rolls run out (the last one only on the biggest swings); spend everything left when
+   the commander's ship is about to be lost.
+3. **Targeting by expected VP**: per weapon / combined squadron fire, expected hits ->
+   P(kill), P(cripple) -> expected VP; prefer finishing and crippling, avoid overkill
+   (stop committing fire once the target is likely dead), don't spread too thin; hulks are
+   targets when worth it (a re-rolled catastrophic result can hurt nearby enemies; no VP
+   for a hulk already scored). The Combine Squadron Fire dialog gets a "Best for expected
+   hits" default from the same scorer.
+4. **Commander's ship**: movement scores its exposure (enemy firepower that can reach it) at
+   a higher weight, it braces earlier, and the AI keeps escorts near it.
+
 ## Readings to confirm (my choices, not owner rulings)
 
 - Resilient squadrons don't stop or split off a wave (s.23); CAP fighters intercept a wave's
