@@ -76,7 +76,10 @@ def ai_should_brace(gs: GameState, target: Ship,
             future_hull += net
             shields_left = max(0.0, shields_left - expected)
 
-    return (current_hull + future_hull) >= target.hits_remaining / 4.0
+    # The commander's ship braces earlier: losing it costs its re-rolls and its
+    # commander's VP too (owner guidance; booklet updates 33-34)
+    share = 6.0 if (target.is_flagship and target.rerolls_remaining > 0) else 4.0
+    return (current_hull + future_hull) >= target.hits_remaining / share
 
 
 class AIPlayer:
@@ -330,6 +333,8 @@ class AIPlayer:
             from .ai_hazards import move_hazard_vp, value_per_hit
             risk = move_hazard_vp(ship, (final_x, final_y), path or [(ship.x, ship.y),
                                   (final_x, final_y)], self.gs, order)["vp"]
+            if ship.is_flagship:
+                risk += self._flagship_exposure_vp(ship, final_x, final_y)
             target = enemy or self._nearest_enemy(ship)
             per_fp = 0.35 * (value_per_hit(target, self.gs) if target else 20.0)
             return risk / max(1.0, per_fp)
@@ -373,6 +378,21 @@ class AIPlayer:
                 penalty += marker.strength * 4.0
 
         return penalty
+
+    def _flagship_exposure_vp(self, ship: Ship, x: float, y: float) -> float:
+        """Owner guidance: keep the commander's ship out of harm. Expected VP of
+        the enemy direct fire that could reach it at (x, y) next turn (weapons in
+        range, arcs ignored: the enemy will turn), half-weighted since not all
+        of it will be aimed there."""
+        from .ai_hazards import value_per_hit
+        hits = 0.0
+        for e in self._live_enemies():
+            d = math.hypot(e.x - x, e.y - y) - e.base_radius - ship.base_radius
+            for w in e.weapons:
+                if w.get("weapon_type") in ("battery", "lance") and d <= (w.get("range_cm") or 0) + e.speed:
+                    hits += (w.get("strength") or 0) * 0.35
+        hits = max(0.0, hits - ship.effective_shields)
+        return hits * value_per_hit(ship, self.gs) * 0.5
 
     def _plan_flee(self, ship: Ship, order: str, aaf_bonus: int) -> List[MoveCommand]:
         """As fast as possible towards the nearest table edge (s.37; Demiurg

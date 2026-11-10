@@ -66,3 +66,27 @@ def test_targeting_prefers_a_kill_and_avoids_overkill():
     gs = make_gs([a, weak, fresh])
     assert shot_vp(a, gun, weak, gs) > shot_vp(a, gun, fresh, gs)
     assert shot_vp(a, gun, weak, gs, committed=10.0) < shot_vp(a, gun, fresh, gs)   # already dead
+
+
+def test_commanders_ship_counts_its_exposure_and_braces_earlier():
+    from src.ai_player import AIPlayer, ai_should_brace
+    from src.turn_controller import TurnController
+    gun = {"name": "Port", "weapon_type": "battery", "range_cm": 30, "strength": 8, "arcs": ["left"]}
+    flag = make_ship(id="c", player=1, x=0.0, y=0.0, is_flagship=True, rerolls_remaining=1,
+                     points_value=250, hits_max=8)
+    plain = make_ship(id="p", player=1, x=0.0, y=0.0, points_value=250, hits_max=8)
+    foe = make_ship(id="e", player=2, x=40.0, y=0.0, weapons=[gun])
+    gs = make_gs([flag, plain, foe])
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    near = ai._position_penalty(20.0, 0.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (20.0, 0.0)])
+    far = ai._position_penalty(-60.0, 0.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (-60.0, 0.0)])
+    other = ai._position_penalty(20.0, 0.0, gs.get_ship_by_id("p"), [(0.0, 0.0), (20.0, 0.0)])
+    assert near > far and near > other
+    # 12 hits, 2 shields, 4 hits incoming (2 hull): the flagship braces (12/6), a
+    # plain ship doesn't (12/4); the foe is out of range, so no follow-on fire
+    f2 = make_ship(id="c2", player=1, x=0.0, y=0.0, is_flagship=True, rerolls_remaining=1,
+                   hits_max=12, hits_remaining=12, shields_max=2)
+    p2 = make_ship(id="p2", player=1, x=0.0, y=0.0, hits_max=12, hits_remaining=12, shields_max=2)
+    gs2 = make_gs([f2, p2])
+    assert ai_should_brace(gs2, gs2.get_ship_by_id("c2"), 4)
+    assert not ai_should_brace(gs2, gs2.get_ship_by_id("p2"), 4)

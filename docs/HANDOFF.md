@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **946 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **947 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -168,7 +168,12 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    targets when worth it (a re-rolled catastrophic result can hurt nearby enemies; no VP
    for a hulk already scored). The Combine Squadron Fire dialog gets a "Best for expected
    hits" default from the same scorer.
-4. **Commander's ship**: movement scores its exposure (enemy firepower that can reach it) at
+4. **Commander's ship: done (first version).** Its movement candidates add the enemy direct
+   fire that could reach the end point next turn (`AIPlayer._flagship_exposure_vp`, weapons
+   within range + the enemy's speed, arcs ignored, half weight), and it braces at a sixth of
+   its hits instead of a quarter while it still has re-rolls (`ai_should_brace`). Not yet:
+   keeping escorts near it.
+   Original plan: movement scores its exposure (enemy firepower that can reach it) at
    a higher weight, it braces earlier, and the AI keeps escorts near it.
 
 ## Readings to confirm (my choices, not owner rulings)
