@@ -211,6 +211,14 @@ halve turrets for the next ordnance attack that turn (`Ship.turrets_halved_turn`
 `ordnance.ordnance_turrets`); Shadow Engines' "no effect against Tyranids or Necrons" has no
 faction to apply to; Heed the Machine Spirit is always taken when a save fails (no prompt).
 
+### Optional blast marker rules (s.11)
+
+Advanced settings "Blast marker rules" (`GameState.blast_marker_rules`: standard / modern /
+remastered). The engine reads the mode from `src/optional_rules.py` (`set_blast_rules`, set by
+TurnController and the settings dialog): gunnery shifts in `combat.get_column_shifts`
+(`blast_gunnery_shift`), ordnance vs ships in contact in `ordnance_movement._resolve_ship_contacts`.
+Not modelled: Remastered's spill-over limit; overlapping bases only for gunnery and ordnance.
+
 ### Shooting by Squadrons (s.8)
 
 `combat.plan_squadron_volley` / `resolve_squadron_volley`, used by the "Combine Squadron

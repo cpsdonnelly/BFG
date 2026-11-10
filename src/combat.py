@@ -77,7 +77,13 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     # LoS-based shifts (blast markers and dust clouds in line of fire)
     phenomena = phenomena or []
     los = check_los_ships(ship, target_ship, phenomena, blast_markers)
-    shifts += los.get("column_shifts", 0)
+    # Optional Modern / Remastered blast markers (s.11): targets in contact count
+    # as behind them, and in Remastered a firing ship in contact shifts too
+    from .optional_rules import blast_gunnery_shift
+    blast_line = 1 if los.get("blast_markers_crossed", 0) else 0
+    other = los.get("column_shifts", 0) - blast_line
+    shifts += other + blast_gunnery_shift(ship, target_ship, blast_line, blast_markers,
+                                          all_ships)
 
     # Targeting matrix upgrade (Imperial Mars)
     if "targeting_matrix" in ship.special_rules:

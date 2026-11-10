@@ -955,6 +955,12 @@ def check_ordnance_vs_blast(marker: OrdnanceMarker,
     return False
 
 
+def check_ordnance_vs_blast_contact(dice: DiceRoller) -> bool:
+    """Modern / Remastered blast markers: ordnance attacking a ship in contact
+    with blast markers is treated as moving through them: destroyed on a 6."""
+    return dice.roll_d6(1, "Ordnance attacking a ship in blast markers (6 = destroyed)")[0] == 6
+
+
 _TORP_LIKE = {
     OrdnanceType.TORPEDO_STANDARD.value,
     OrdnanceType.TORPEDO_SHORT_BURN.value,

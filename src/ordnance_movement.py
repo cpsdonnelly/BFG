@@ -355,6 +355,33 @@ class OrdnanceMovementMixin:
                 return check_torpedo_contact(m, s) or contact_point(m, s) is not None
             return circle_touches_square(s.x, s.y, s.base_radius, m.x, m.y, m.heading)
 
+        # Optional Modern / Remastered blast markers (s.11): ordnance attacking a
+        # ship in contact with blast markers is treated as moving through them
+        # (destroyed on a 6); a wave rolls once
+        from .optional_rules import blast_rules, in_blast_contact
+        from .ordnance import check_ordnance_vs_blast_contact
+        if blast_rules() != "standard":
+            bms = self.ctx.gs.get_blast_markers()
+            rolled, gone = set(), set()
+            for m in [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]:
+                key = m.wave_id or m.id
+                if (m.id in skip_ids or key in rolled or m.cap_ship_id
+                        or (mover is not None and m.owner_player != mover)):
+                    continue
+                hit = next((s for s in ships if not s.is_destroyed and s.player != m.owner_player
+                            and touching(m, s) and in_blast_contact(s, bms, ships)), None)
+                if hit is None:
+                    continue
+                rolled.add(key)
+                if check_ordnance_vs_blast_contact(self.ctx.dice):
+                    gone.update(o["id"] for o in self.ctx.gs.ordnance
+                                if (o.get("wave_id") or o["id"]) == key)
+                    self.ctx.log(f"  {m.ordnance_type} attacking {hit.name} destroyed by "
+                                 f"its blast markers")
+            if gone:
+                self.ctx.gs.ordnance = [o for o in self.ctx.gs.ordnance if o["id"] not in gone]
+                skip_ids = frozenset(skip_ids) | gone
+
         # 3. Check ordnance contact with ships
         to_remove_after = set()
 

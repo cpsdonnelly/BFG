@@ -1412,6 +1412,8 @@ class BoardView:
         if d:
             try:
                 self.gs.restore_from(GameState.load(d))
+                from .optional_rules import set_blast_rules
+                set_blast_rules(self.gs.blast_marker_rules)
                 self.redraw()
                 messagebox.showinfo("Loaded", f"Game loaded from {d}")
             except Exception as e:

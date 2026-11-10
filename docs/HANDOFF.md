@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **934 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **937 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -101,8 +101,16 @@ session.
 - **Hazard avoidance (owner, this session):** the AI should avoid asteroid fields, dust
   clouds, blast markers, and incoming torpedoes and mines, with a threat level per hazard
   (one mine is more dangerous than one torpedo salvo).
-- **Optional blast markers (owner, this session):** add the Modern and Remastered blast marker
-  rules (s.11) as an advanced setting toggle.
+- **Optional blast markers (owner, this session): done.** Advanced settings "Blast marker
+  rules": XR standard / Modern / Remastered (`GameState.blast_marker_rules`,
+  `src/optional_rules.py`). Modern: a target in contact counts as behind its markers (at least
+  one right shift for gunnery), ordnance attacking a ship in contact rolls as if moving
+  through them (6 = destroyed, a wave rolls once), and a ship overlapping the base of a ship
+  in contact counts as in contact (no cascade). Remastered adds: a firing ship in contact
+  shifts right (lances and nova cannon unaffected: they don't use the gunnery table).
+  Whole-base contact already holds (contact ignores arcs). Not modelled: Remastered's
+  spill-over limit (markers from one round touching at most two ships), and overlapping
+  bases for shields / speed / Leadership (only gunnery and ordnance use it so far).
 
 ### AI design (plan agreed in principle; build in this order)
 

@@ -61,6 +61,8 @@ class TurnController:
                  save_dir: str = None):
         self.gs = game_state
         self.dice = dice
+        from .optional_rules import set_blast_rules
+        set_blast_rules(getattr(game_state, "blast_marker_rules", "standard"))
         self.save_dir = save_dir or os.path.join("saves", game_state.game_name)
         self.snapshots_dir = os.path.join(self.save_dir, "snapshots")
         os.makedirs(self.snapshots_dir, exist_ok=True)

@@ -443,6 +443,14 @@ class GamePanel:
                  font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
         tk.Label(margin_row, text="(wiggle room for contact distance checks)",
                  font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+        blast_row = tk.Frame(adv_frame)
+        blast_row.pack(fill=tk.X, pady=(4, 0))
+        tk.Label(blast_row, text="Blast marker rules:", font=("Consolas", 8)).pack(side=tk.LEFT)
+        blast_labels = {"standard": "XR standard", "modern": "Modern (optional, s.11)",
+                        "remastered": "Remastered (s.11)"}
+        blast_var = tk.StringVar(value=blast_labels.get(gs.blast_marker_rules, "XR standard"))
+        ttk.Combobox(blast_row, textvariable=blast_var, values=list(blast_labels.values()),
+                     state="readonly", width=24, font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
 
         camp_frame = tk.LabelFrame(dialog, text="Campaign / Scenario", font=("Consolas", 9, "bold"),
                                    padx=8, pady=4)
@@ -550,6 +558,10 @@ class GamePanel:
                 gs.contact_margin_cm = float(margin_var.get())
             except ValueError:
                 pass
+            from .optional_rules import set_blast_rules
+            gs.blast_marker_rules = next(k for k, v in blast_labels.items()
+                                         if v == blast_var.get())
+            set_blast_rules(gs.blast_marker_rules)
             # Scenario settings (only if not locked)
             if not locked:
                 gs.scenario_mode = scen_var.get()
@@ -608,6 +620,8 @@ class GamePanel:
             try:
                 from .game_state import GameState
                 self.ctx.gs.restore_from(GameState.load(d))
+                from .optional_rules import set_blast_rules
+                set_blast_rules(self.ctx.gs.blast_marker_rules)
                 self.ctx.dice.mode = self.ctx.gs.dice_mode
                 self.ctx.tc.reset_after_load()
             except Exception as exc:
