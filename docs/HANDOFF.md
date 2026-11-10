@@ -76,10 +76,80 @@ session.
   **secondary commanders** for Navy, Chaos and Mechanicus with ship/squadron-only re-rolls
   (`Ship.own_rerolls`, `booklet_options.SECONDARY`, `fleet_max:` option restriction).
 
-## Waiting on the owner
+## Current status (copied from CLAUDE.md; keep the two in step)
 
-- Nothing. Export 31 settled the 750-point commander threshold and confirmed the Archmagos /
-  Tau re-roll costs.
+Booklet installed: zip 12 (CHANGES.md update 45). After every new export, diff the built
+catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
+matched in code, and a reworded note silently drops an option.
+
+Done this session (all pushed): exports 36 / zip 10-12; the whole export 31 "still to do"
+list (Navy refits, Bakka, Armageddon, Space Marine lists and options, Mechanicus Gifts, Rogue
+Trader Notable Xenos, Demiurg War Host and playable Demiurg ships, Hired Reserves, Chaos Marks /
+CSM crews / reserves, core wording checks); boarding crew bonuses and troop modifiers (s.32);
+torpedoes passing through friendly ships in contiguous contact; disengaging (s.37) incl. forced
+disengagement and Demiurg Mercenaries; optional Modern / Remastered blast markers; defence
+turret split (s.28) and Ork turrets; the AI work below.
+
+AI (all in expected VP; `ai_hazards.py`, `ai_rerolls.py`, `AIPlayer`): hazard avoidance along
+the move path (mines, torpedoes, attack craft, asteroids, warp rifts, dust, blast markers);
+importance-based re-rolls; targeting by marginal expected VP (no overkill); target priority
+test obeyed; the commander's ship protected (exposure, braces earlier); fighters allocated
+fleet-wide by VP saved (one per salvo / mine, one per wave squadron); ships shoot incoming
+ordnance when worth more than their best ship shot; turret choice by expected hits saved.
+
+### To do (agreed order; detail in "AI design" and "Remaining work" below)
+
+1. AI: combat air patrol vs strikes allocation (plan written in HANDOFF: launch slots, CAP /
+   free fighters / bombers in one VP currency, greedy fleet allocation, option value of
+   keeping bays loaded); combined squadron fire for the AI and a "Best for expected hits"
+   default in the Combine Squadron Fire dialog; when hulks are worth shooting; guided /
+   seeking torpedo turn cones in hazard maths; escorts staying near the commander's ship;
+   voluntary disengaging. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
+   hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
+   the owner's feedback.
+2. Thunderhawk / multi-role turret-suppression choice (s.27).
+3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
+   mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
+4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
+   daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
+   commander's Extra Turrets: 4+), other factions' secondary commanders, Inquisition Ordos.
+5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
+   Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
+   disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
+6. Smaller gaps: the +3 disengage Ld during a radiation burst / solar flare; Remastered
+   spill-over limit and overlapping bases for shields / speed / Ld; undoing a Demiurg move
+   doesn't return collected blast markers; a human player isn't stopped from not fleeing
+   after a failed forced disengage (log reminder only); scenario rules (Business as Usual,
+   High-Risk Convoys, planetary assaults, low orbit).
+
+### Open questions for the owner (the full list of my readings is in "Readings to confirm")
+
+My readings, to confirm or overrule (also in HANDOFF "Readings to confirm"):
+- Sensors / Comms Uplink "+1 Ld at all times (max 10)" also apply on top of a commander's own
+  fixed Ld (a Fleet Admiral's Ld 9 on an Emperor becomes 10)?
+- Bakka's "Mechanicus cruisers" in battlecruiser places: only the four full cruisers, not
+  Mechanicus light cruisers?
+- Fleet Defence Turrets: does a crippled ship still give its +1? (I said yes.)
+- Master of the Fleet when the only battle barges are standard Space Marine Battle Barges:
+  any of them counts as the Chapter flagship?
+- Emergency Energy Reserves "reduce by 25% (round down)": the loss rounded down (2 shields
+  stay 2)? And the 15cm speed floor applies after a Thrusters Damaged crit too?
+- Troop rating doubling / halving applies to hits remaining before turrets are added?
+- Navy refits without "one of" wording (Mercury, Tyrant, Mars, Overlord) may all be taken
+  together?
+- Should the optional blast marker modes also apply overlapping bases to shields, speed and
+  Leadership, and should Remastered's spill-over limit be built?
+
+### Owner rulings given this session (also in CLAUDE.md)
+
+- Bastion's modular bays: S2 attack craft or S4 torpedoes, chosen at each launch.
+- Turrets (s.28): after turrets fired at torpedoes / mines, bombers' attacks are still reduced
+  by turrets (only the shoot-down roll is blocked).
+- Optional blast markers: add Modern and Remastered as an advanced setting (done).
+- AI guidance: hazards with threat levels (a mine outweighs a torpedo salvo), destroy incoming
+  threats (fighters first, guns when worth it), do the most good with each fighter (one per
+  salvo / mine / wave squadron), think through CAP vs strikes (plan below), protect the
+  commander's ship, spend re-rolls by importance.
 
 ## Owner guidance on AI play (from the end of this session)
 
