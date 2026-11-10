@@ -118,16 +118,78 @@ def ai_craft_target(marker: OrdnanceMarker, game_state: GameState) -> str:
     return ""
 
 
+def plan_fighter_intercepts(game_state: GameState, player: int) -> Dict[str, str]:
+    """Owner guidance: do the most good with the fighters. A fighter removes
+    one marker it meets: a whole torpedo salvo, one mine, or one squadron of a
+    wave (lead first). Greedy across the fleet: take the fighter / target pair
+    that saves the most VP (ai_hazards.intercept_gain; half for a target only
+    reachable next phase), then update what's covered (a mine or salvo needs one
+    fighter; each further fighter on a wave meets its next squadron), repeat.
+    Returns {fighter id: target id}."""
+    from .ai_hazards import intercept_gain
+    fighters = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance
+                if o["owner_player"] == player and o["ordnance_type"] in ATTACK_CRAFT_TYPES
+                and not o.get("cap_ship_id") and "fighter" in craft_roles(o["ordnance_type"])]
+    enemies = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance
+               if o["owner_player"] != player and not o.get("cap_ship_id")
+               and o["ordnance_type"] != "mine_field"]
+    # a wave is one target (its lead); lone markers are their own
+    targets = {}
+    for e in enemies:
+        targets.setdefault(e.wave_id or e.id, e)
+    taken: Dict[str, int] = {}
+    plan: Dict[str, str] = {}
+    free = list(fighters)
+    while free:
+        best = None
+        for f in free:
+            for key, t in targets.items():
+                d = math.hypot(t.x - f.x, t.y - f.y)
+                if d > 2 * (f.speed or 0):
+                    continue
+                gain = intercept_gain(game_state, player, t, taken.get(key, 0))
+                if d > (f.speed or 0):
+                    gain *= 0.5                    # only next phase
+                if gain > 0 and (best is None or (gain, -d) > (best[0], -best[3])):
+                    best = (gain, f, key, d)
+        if best is None:
+            break
+        _, f, key, _ = best
+        plan[f.id] = targets[key].id
+        taken[key] = taken.get(key, 0) + 1
+        free.remove(f)
+    return plan
+
+
+def plan_has_run(plan: Dict[str, str], game_state: GameState, player: int) -> bool:
+    """True when the fighter plan considered some enemy ordnance (so a fighter
+    left out of it has nothing useful in reach)."""
+    return bool(plan) or not any(o["owner_player"] != player for o in game_state.ordnance)
+
+
 def assign_ai_craft_targets(game_state: GameState, player: int) -> int:
     """Give each of the player's attack craft (not on CAP) a target for this
-    ordnance phase. Returns how many were assigned."""
+    ordnance phase: fighters by plan_fighter_intercepts, the rest (and spare
+    fighters) by ai_craft_target. Returns how many were assigned."""
+    plan = plan_fighter_intercepts(game_state, player)
     n = 0
     for i, o in enumerate(game_state.ordnance):
         if (o["owner_player"] != player or o["ordnance_type"] not in ATTACK_CRAFT_TYPES
                 or o.get("cap_ship_id")):
             continue
         m = OrdnanceMarker.from_dict(o)
-        m.craft_target_id = ai_craft_target(m, game_state)
+        if m.id in plan:
+            m.craft_target_id = plan[m.id]
+        elif "fighter" in craft_roles(m.ordnance_type) and plan_has_run(plan, game_state, player):
+            # a spare fighter: everything in reach is already covered, so it
+            # doesn't double up; it advances on the nearest enemy ship
+            ships = [x for x in game_state.get_ships() if x.player != player
+                     and not x.is_destroyed and not x.is_disengaged
+                     and x.status not in ("drifting_hulk", "burning_hulk")]
+            m.craft_target_id = (min(ships, key=lambda x: math.hypot(x.x - m.x, x.y - m.y)).id
+                                 if ships else "")
+        else:
+            m.craft_target_id = ai_craft_target(m, game_state)
         game_state.ordnance[i] = m.to_dict()
         n += 1
     return n

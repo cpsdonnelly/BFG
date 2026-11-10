@@ -289,3 +289,31 @@ def shot_vp(attacker: Ship, weapon: dict, target: Ship, gs, committed: float = 0
     alive = 1.0 - poisson_at_least(before, max(1, target.hits_remaining))
     return (damage_vp(target, gs, after) - damage_vp(target, gs, before)
             + shield_hits * value_per_hit(target, gs) * 0.1 * alive)
+
+
+def intercept_gain(gs, player: int, target: OrdnanceMarker, already: int = 0) -> float:
+    """VP a fighter squadron saves by meeting `target` (s.19: both markers are
+    removed). A torpedo salvo or a mine is one marker: the whole of its threat
+    goes, however strong the salvo. A wave meets fighters one squadron at a
+    time (s.25), lead first: the fighter removes only the squadron it meets
+    (`already` fighters have taken the ones in front). Resilient craft save on
+    4+, so they are worth half."""
+    from .waves import members
+    if target.wave_id:
+        ms = members([OrdnanceMarker.from_dict(o) for o in gs.ordnance], target.wave_id)
+        if already >= len(ms):
+            return 0.0
+        hit = ms[already]
+    else:
+        if already:
+            return 0.0                       # one fighter is enough for one marker
+        hit = target
+    mine = [s for s in gs.get_ships() if s.player == player
+            and not s.is_destroyed and not s.is_disengaged]
+    best = 0.0
+    for s in mine:
+        h, _ = marker_hits(s, hit, (s.x, s.y), [(s.x, s.y)], mine)
+        best = max(best, h * value_per_hit(s, gs))
+    if hit.resilient_save:
+        best *= 0.5
+    return best

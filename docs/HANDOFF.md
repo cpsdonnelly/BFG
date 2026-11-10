@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **949 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **952 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -122,6 +122,13 @@ session.
   if a friendly fighter can reach it this ordnance phase; `AIPlayer._ordnance_shot`) with its
   best ship shot, and fires at the marker when that is worth more (`combat.fire_at_ordnance`,
   now also used by the player's Fire at Ordnance dialog).
+- **Fighters do the most good (owner, this session): done.** A fighter removes one marker
+  it meets (s.19): a whole torpedo salvo however strong, one mine, or one squadron of a wave
+  (lead first, s.25). `ordnance.plan_fighter_intercepts` allocates the fleet's fighters
+  greedily by VP saved (`ai_hazards.intercept_gain`: one fighter per salvo or mine, one per
+  squadron of a wave; half value if only reachable next phase; resilient craft half); a
+  spare fighter with nothing useful in reach advances on the nearest enemy ship instead of
+  doubling up on a covered target.
 - **Combat air patrol vs strikes (owner, this session: tricky trade-off, think it through).**
   Not built yet. Plan:
   1. *Launch slots*: each ship with loaded bays offers squadrons of the craft types it can

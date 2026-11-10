@@ -121,3 +121,57 @@ def test_ship_shoots_an_incoming_mine_when_nothing_better_is_in_reach():
     ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
     ai.run_shooting_phase()
     assert dice._idx == 3 and not gs.ordnance          # the mine is gone
+
+
+def _fleet():
+    s = make_ship(id="s", player=1, x=0.0, y=0.0, points_value=180, hits_max=8, turrets=1)
+    return make_gs([s])
+
+
+def test_two_fighters_split_between_a_mine_and_a_salvo():
+    from src.ordnance import plan_fighter_intercepts
+    gs = _fleet()
+    for m in (make_marker(id="f1", ordnance_type="fighter", owner_player=1, x=5.0, y=0.0, speed=30.0),
+              make_marker(id="f2", ordnance_type="fighter", owner_player=1, x=5.0, y=2.0, speed=30.0),
+              make_marker(id="m", ordnance_type="mine_launcher", owner_player=2, x=15.0, y=0.0,
+                          heading=180.0, speed=10.0, strength=1),
+              make_marker(id="t", ordnance_type="torpedo_standard", owner_player=2, x=25.0,
+                          y=0.0, heading=180.0, speed=30.0, strength=6)):
+        gs.add_ordnance(m)
+    plan = plan_fighter_intercepts(gs, 1)
+    assert sorted(plan.values()) == ["m", "t"]          # not both on the mine
+
+
+def test_a_salvo_is_worth_one_fighter_a_bomber_wave_one_per_squadron():
+    from src.ai_hazards import intercept_gain
+    from src.waves import form_wave
+    from src.models import OrdnanceMarker
+    gs = _fleet()
+    salvo = make_marker(id="t", ordnance_type="torpedo_standard", owner_player=2, x=25.0, y=0.0,
+                        heading=180.0, speed=30.0, strength=6)
+    gs.add_ordnance(salvo)
+    for i in range(3):
+        gs.add_ordnance(make_marker(id=f"b{i}", ordnance_type="bomber", owner_player=2,
+                                    x=15.0, y=0.0, heading=180.0, speed=20.0, strength=1))
+    form_wave(gs, ["b0", "b1", "b2"])
+    lead = OrdnanceMarker.from_dict(next(o for o in gs.ordnance if o["id"] == "b0"))
+    assert intercept_gain(gs, 1, salvo) > 0 and intercept_gain(gs, 1, salvo, already=1) == 0
+    one = intercept_gain(gs, 1, lead)
+    assert one > 0 and intercept_gain(gs, 1, lead, already=1) == one   # the next squadron
+    assert intercept_gain(gs, 1, lead, already=3) == 0
+    assert intercept_gain(gs, 1, salvo) > one          # S6 salvo gone vs one bomber squadron
+
+
+def test_a_spare_fighter_does_not_chase_a_covered_mine():
+    from src.ordnance import assign_ai_craft_targets
+    gs = _fleet()
+    e = make_ship(id="e", player=2, x=80.0, y=0.0)
+    gs.add_ship(e)
+    for m in (make_marker(id="f1", ordnance_type="fighter", owner_player=1, x=5.0, y=0.0, speed=30.0),
+              make_marker(id="f2", ordnance_type="fighter", owner_player=1, x=5.0, y=2.0, speed=30.0),
+              make_marker(id="m", ordnance_type="mine_launcher", owner_player=2, x=15.0, y=0.0,
+                          heading=180.0, speed=10.0, strength=1)):
+        gs.add_ordnance(m)
+    assign_ai_craft_targets(gs, 1)
+    t = {o["id"]: o["craft_target_id"] for o in gs.ordnance}
+    assert sorted([t["f1"], t["f2"]]) == ["e", "m"]
