@@ -390,6 +390,33 @@ class OrdnanceMovementMixin:
         # 3. Check ordnance contact with ships
         to_remove_after = set()
 
+        # s.28 turret split: a ship touched this phase by both attack craft that
+        # attack it and torpedoes / mines chooses which its turrets defend against
+        # (Orks fire at everything); the AI by expected hits saved, a human is asked
+        from .ordnance import (choose_turret_target, is_torpedo_salvo as _is_torp,
+                               attacks_ships as _attacks)
+        live = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]
+        for s in ships:
+            if (s.is_destroyed or s.is_disengaged or s.turrets_used_vs
+                    or "ork_turrets" in s.special_rules or s.effective_turrets <= 0):
+                continue
+            mine = [m for m in live if m.owner_player != s.player and m.id not in skip_ids
+                    and not m.cap_ship_id and (mover is None or m.owner_player == mover)
+                    and touching(m, s)]
+            craft = [m for m in mine if m.ordnance_type in ATTACK_CRAFT_TYPES
+                     and _attacks(m.ordnance_type)]
+            torps = [m for m in mine if _is_torp(m) or "mine" in m.ordnance_type]
+            if craft and torps:
+                kind = choose_turret_target(s, craft, torps, self.ctx.gs,
+                                            ai=self.ctx.is_ai_controlled(s.player))
+                fresh = self.ctx.gs.get_ship_by_id(s.id)
+                fresh.turrets_used_vs = kind
+                self.ctx.gs.update_ship(fresh)
+                self.ctx.log(f"  {s.name} turrets defend against "
+                             f"{'attack craft' if kind == 'craft' else 'torpedoes / mines'} "
+                             f"this phase")
+        ships = [self.ctx.gs.get_ship_by_id(s.id) or s for s in ships]
+
         # Phase 1: attack craft wave interception — turrets (with massed bonus) fire
         # once per ship at every incoming wave of bombers and assault boats before
         # any attack or hit-and-run raid resolves.

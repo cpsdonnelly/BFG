@@ -427,6 +427,56 @@ def torpedo_may_attack(marker: OrdnanceMarker, ship: Ship,
     return last is None or game_state.turn_number - last >= 2
 
 
+def turret_hit_on(ship: Ship) -> int:
+    """Turrets hit ordnance on 4+ (s.28); Ork turrets on 5+ (Xenos, Turret Defences)."""
+    return 5 if "ork_turrets" in ship.special_rules else 4
+
+
+def turrets_blocked(ship: Ship, kind: str) -> bool:
+    """s.28: a ship that uses its turrets against attack craft ("craft") may not
+    use them against torpedoes or mines ("torp") in the same phase, and vice
+    versa. Ork ships always use their turrets against all ordnance."""
+    if "ork_turrets" in ship.special_rules:
+        return False
+    return bool(ship.turrets_used_vs) and ship.turrets_used_vs != kind
+
+
+def mark_turrets_used(ship: Ship, kind: str, game_state: GameState) -> None:
+    if not ship.turrets_used_vs:
+        ship.turrets_used_vs = kind
+        game_state.update_ship(ship)
+
+
+def choose_turret_target(ship: Ship, craft: List[OrdnanceMarker],
+                         torps: List[OrdnanceMarker], game_state: GameState,
+                         ai: bool = True) -> str:
+    """Attack craft and torpedoes / mines touch the ship in one phase (s.28):
+    "craft" or "torp". A human owner is asked (GameState.turret_choice_hook);
+    the AI takes whichever saves more expected hits."""
+    hook = getattr(game_state, "turret_choice_hook", None)
+    if not ai and hook is not None:
+        choice = hook(ship, craft, torps)
+        if choice in ("craft", "torp"):
+            return choice
+    t = ordnance_turrets(ship, game_state)
+    p = (7 - turret_hit_on(ship)) / 6.0
+    ph = max(1, 7 - ship.lowest_armor_value) / 6.0
+    # Turrets fire their full value at each wave / lone squadron, salvo and mine
+    groups: Dict[str, int] = {}
+    for m in craft:
+        groups[m.wave_id or m.id] = groups.get(m.wave_id or m.id, 0) + 1
+    # hits a bomber squadron would do: D6 attacks less one per turret
+    per_sq = sum(max(0, k - ship.effective_turrets) for k in range(1, 7)) / 6.0 * ph
+    vs_craft = sum(min(n, t * p) * per_sq for n in groups.values())
+    vs_torp = 0.0
+    for m in torps:
+        if "mine" in m.ordnance_type:             # any success: 4D6 instead of 8D6
+            vs_torp += (1 - (1 - p) ** t) * 4 * ph
+        else:                                     # each success: one torpedo fewer
+            vs_torp += min(m.strength, t * p) * ph
+    return "craft" if vs_craft >= vs_torp else "torp"
+
+
 def ordnance_turrets(target: Ship, game_state: GameState) -> int:
     """Turrets a ship fires at ordnance: halved (rounding up) for the next
     ordnance attack after Promethean Unguents barrage bombs hit it this turn."""
@@ -477,21 +527,19 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
                 f"  {target.name} massed turrets: +{bonus} "
                 f"(total {turrets})")
 
-    # Check turret restriction: can't use vs torps if already used vs craft
-    turret_blocked = (target.turrets_used_vs == "craft")
-    if turret_blocked:
+    # s.28: turrets used against attack craft this phase can't fire at torpedoes
+    if turrets > 0 and turrets_blocked(target, "torp"):
         game_state.add_log(f"  {target.name} turrets already used vs attack craft this phase")
         turrets = 0
 
     if turrets > 0:
-        turret_rolls = dice.roll_d6(turrets, f"{target.name} turrets vs torpedoes (4+)")
-        turret_kills = sum(1 for d in turret_rolls if d >= 4)
+        need = turret_hit_on(target)
+        turret_rolls = dice.roll_d6(turrets, f"{target.name} turrets vs torpedoes ({need}+)")
+        turret_kills = sum(1 for d in turret_rolls if d >= need)
         result["turret_kills"] = turret_kills
         result["remaining_strength"] = max(0, marker.strength - turret_kills)
         game_state.add_log(f"{target.name} turrets destroy {turret_kills} torpedoes")
-        # Mark turrets as used vs torps
-        target.turrets_used_vs = "torp"
-        game_state.update_ship(target)
+        mark_turrets_used(target, "torp", game_state)
 
     end_ordnance_attack(target, game_state)
     if result["remaining_strength"] <= 0:
@@ -610,7 +658,9 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     - Otherwise: mine attacks with 8D6.
     Mine damage ignores shields (core rules s.17; some rulebook printings say
     otherwise, which the booklet calls an error).
-    Turret restriction (torp/craft split) does not apply to mines.
+    Turret split (s.28): mines count with torpedoes, so turrets already used
+    against attack craft this phase can't fire at a mine (Orks excepted); Ork
+    turrets need 5+.
     """
     result = {"hits": 0, "attack_dice": 8}
 
@@ -625,11 +675,16 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
             game_state.add_log(
                 f"  {ship.name} massed turrets: +{bonus} (total {turrets})")
     attack_dice = 8
+    if turrets > 0 and turrets_blocked(ship, "torp"):
+        game_state.add_log(f"  {ship.name} turrets already used vs attack craft this phase")
+        turrets = 0
 
     if turrets > 0:
+        need = turret_hit_on(ship)
         turret_rolls = dice.roll_d6(
-            turrets, f"{ship.name} turrets vs mine (any 4+ reduces to 4D6)")
-        if any(r >= 4 for r in turret_rolls):
+            turrets, f"{ship.name} turrets vs mine (any {need}+ reduces to 4D6)")
+        mark_turrets_used(ship, "torp", game_state)
+        if any(r >= need for r in turret_rolls):
             attack_dice = 4
             game_state.add_log(
                 "  Turrets reduce mine attack to 4D6")
@@ -679,11 +734,16 @@ def resolve_bomber_interception(bomber_count: int,
 
     if turrets <= 0 or bomber_count <= 0:
         return {"killed": 0, "log": []}
+    if turrets_blocked(target, "craft"):
+        # s.28 "vice versa": turrets used against torpedoes / mines this phase
+        return {"killed": 0, "log": [f"  {target.name} turrets already used vs "
+                                     f"torpedoes / mines this phase: no shots at the attack craft"]}
 
+    need = turret_hit_on(target)
     rolls = dice.roll_d6(
         turrets,
-        f"Phase 1 interception: {target.name} vs {bomber_count} attack craft (4+)")
-    kills = min(sum(1 for r in rolls if r >= 4), bomber_count)
+        f"Phase 1 interception: {target.name} vs {bomber_count} attack craft ({need}+)")
+    kills = min(sum(1 for r in rolls if r >= need), bomber_count)
 
     bonus_str = f" +{bonus} massed" if bonus else ""
     log = [
@@ -693,8 +753,7 @@ def resolve_bomber_interception(bomber_count: int,
     ]
 
     # Mark turrets as used vs craft this phase (blocks torpedo defence)
-    target.turrets_used_vs = "craft"
-    game_state.update_ship(target)
+    mark_turrets_used(target, "craft", game_state)
 
     return {"killed": kills, "log": log}
 
@@ -709,8 +768,8 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
 
     Per XR rules:
     - Turret reduction uses base turrets ONLY; massed turret bonus does not apply.
-    - Turret reduction always applies, even if turrets fired at torpedoes this phase
-      (the restriction is one-way: craft→blocks torp, but torp does NOT block craft).
+    - Turret reduction always applies, even if turrets fired at torpedoes or mines this
+      phase (owner ruling: only the shoot-down roll is blocked by s.28's "vice versa").
 
     Turret suppression modes:
       XR (default): suppressed_by_fighter=True → exactly 3 attacks, turrets bypassed.
@@ -725,8 +784,7 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
     if marker.ordnance_type == OrdnanceType.FIGHTA_BOMMER.value:
         # Ork rules: Fighta-Bommerz make only D3+1 attacks per squadron, and
         # turrets cannot reduce them below 1 (Ork pilots always try to ram)
-        target.turrets_used_vs = "craft"
-        game_state.update_ship(target)
+        mark_turrets_used(target, "craft", game_state)
         roll = dice.roll_d3(f"Fighta-Bommerz attacks on {target.name} (D3+1)")
         total_attacks = max(1, roll + 1 - turret_reduction)
         result["turret_reduction"] = turret_reduction
@@ -741,9 +799,9 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
             f"  Fighter suppression: {marker.ordnance_type} gets 3 attacks "
             f"(turrets bypassed)")
     else:
-        # Mark turrets as used vs craft so torpedo defence knows
-        target.turrets_used_vs = "craft"
-        game_state.update_ship(target)
+        # Mark turrets as used vs craft so torpedo defence knows (owner ruling:
+        # the attack reduction applies even after turrets fired at torpedoes)
+        mark_turrets_used(target, "craft", game_state)
 
         attack_roll = dice.roll_d6(1, f"Bomber attacks on {target.name}")[0]
 

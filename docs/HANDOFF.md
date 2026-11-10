@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **952 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **956 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -154,6 +154,14 @@ session.
   4. *Tests*: lots of incoming mines -> CAP / fighters chosen; no enemy ordnance and a
      crippled enemy in reach -> bombers; mixed -> both, fighters first on the threatened
      ship.
+
+- **Turret priorities (owner, this session):** checked against s.28 and the Ork rules and
+  fixed: the split now works both ways and covers mines (mines were exempt, torpedoes didn't
+  block anti-craft fire); it resets every phase for every ship (it used to last until the
+  ship's own next turn); Ork turrets hit on 5+ with no split. When both kinds attack a ship in
+  one phase it chooses (AI: expected hits saved; human: prompt). Owner ruling: bomber attack
+  reduction still applies after turrets fired at torpedoes / mines. Also fixed: a bomber's
+  expected attacks are E[max(0, D6 - turrets)] in the AI maths (was 3.5 - turrets).
 
 ### AI design (plan agreed in principle; build in this order)
 

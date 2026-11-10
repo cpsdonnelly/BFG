@@ -226,6 +226,10 @@ class TurnController:
         """Start a new phase."""
         self.gs.current_phase = phase
         self._save_phase_start()
+        # A ship's turrets defend against attack craft or against torpedoes and
+        # mines "in the same phase" (s.28): the split lasts one phase, every ship
+        for i in range(len(self.gs.ships)):
+            self.gs.ships[i]["turrets_used_vs"] = ""
 
         if phase == "movement":
             self.ships_moved.clear()

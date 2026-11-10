@@ -266,6 +266,7 @@ def faction_special_rules(row: dict) -> List[str]:
     if "Orks" in followed:
         rules.append("ere_we_go")          # auto-pass All Ahead Full, +3D6cm only
         rules.append("ork_crew")           # +1 crew damage boarding (s.32)
+        rules.append("ork_turrets")        # turrets hit on 5+, fire at every ordnance type
     if "Chaos" in followed:
         rules.append("chaos_crew")         # +1 crew damage boarding (s.32)
     group = row.get("roster_group") or ""

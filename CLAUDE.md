@@ -90,6 +90,14 @@ Cruisers. Ships using rules the engine can't play yet
 
 - **Tactical Reserves covers macrobatteries only, not lances** (battle barges lose 25% of
   macrobattery firepower on All Ahead Full or Burn Retros; lances still halve).
+- **Defence turrets (s.28; owner ruling this session):** a ship's turrets defend against
+  attack craft or against torpedoes and mines in one phase, not both, and vice versa
+  (`ordnance.turrets_blocked`, `mark_turrets_used`, reset every phase in
+  `TurnController.begin_phase`). The split blocks shoot-down rolls only: bombers' attacks are
+  still reduced by turrets after they fired at torpedoes / mines. A ship touched by both kinds
+  in one phase chooses (`ordnance.choose_turret_target`: AI by expected hits saved, a human via
+  `GameState.turret_choice_hook`). Orks (`ork_turrets`) hit on 5+ and fire at everything
+  (Xenos, Turret Defences). Not yet: the Ork commander's Extra Turrets (4+).
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships

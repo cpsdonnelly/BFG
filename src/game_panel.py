@@ -53,6 +53,7 @@ class GamePanel:
         tc.gs.raid_reroll_hook = self._raid_reroll_hook
         tc.gs.ld_reroll_hook = self._ld_reroll_hook
         tc.gs.crit_reroll_hook = self._crit_reroll_hook
+        tc.gs.turret_choice_hook = self._turret_choice_hook
 
         self._game_over = False
         self._ai_thinking = False   # expert AI search running on a worker thread
@@ -230,6 +231,22 @@ class GamePanel:
         return self.combat._brace_before_attack(
             attacker_key, attacker_name, ship, expected,
             group=squadron_group(ship, self.ctx.gs.get_ships()))
+
+    def _turret_choice_hook(self, ship, craft, torps):
+        """GameState.turret_choice_hook (s.28): attack craft and torpedoes /
+        mines attack this ship in one phase; its turrets may defend against
+        one kind only. Off the main thread nothing is asked (AI choice)."""
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            return None
+        tdesc = ", ".join(f"{m.ordnance_type} S{m.strength}" for m in torps)
+        yes = messagebox.askyesno(
+            "Turrets: attack craft or torpedoes?",
+            f"{ship.name} is attacked by {len(craft)} attack craft squadron(s) and by "
+            f"{tdesc}.\nIts turrets can defend against only one kind this phase (s.28).\n\n"
+            f"Yes = shoot at the attack craft\nNo = shoot at the torpedoes / mines",
+            parent=self)
+        return "craft" if yes else "torp"
 
     def _crit_reroll_hook(self, player, text):
         """GameState.crit_reroll_hook (Mark of Tzeentch): ask the owner. Off the

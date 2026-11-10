@@ -93,7 +93,9 @@ def _touches_phenomenon(x, y, r, p) -> bool:
 # ── Threats ──────────────────────────────────────────────────────────────────
 
 def _turret_kills(ship: Ship) -> float:
-    return ship.effective_turrets * 0.5             # each turret hits on 4+
+    """Expected torpedoes a ship's turrets shoot down: 4+ each (Orks 5+)."""
+    need = 5 if "ork_turrets" in ship.special_rules else 4
+    return ship.effective_turrets * (7 - need) / 6.0
 
 
 def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
@@ -130,7 +132,8 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
     # attack craft that may reach the ship before it moves again
     if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + r:
         if "bomber" in otype or otype in ("manta", "thunderhawk", "fighta_bommer"):
-            h = max(0.0, 3.5 - ship.effective_turrets) * ph
+            # D6 attacks less one per turret (s.20)
+            h = sum(max(0, k - ship.effective_turrets) for k in range(1, 7)) / 6.0 * ph
         elif "assault" in otype or otype == "gun_cutter":
             h = 0.5 * max(0.0, 1 - 0.5 * ship.effective_turrets / 2)
         else:
