@@ -158,11 +158,16 @@ class OrdnanceMovementMixin:
 
     def _guided_reroll(self, player, ship, roll) -> bool:
         """A failed guided-torpedo Leadership test may use a fleet commander
-        re-roll: the AI always does, a human player is asked."""
+        re-roll: the AI decides by importance (ai_rerolls), a human is asked."""
         tc = self.ctx.tc
         if tc.get_fleet_rerolls(player, ship) <= 0:
             return False
-        if not self.ctx.is_ai_controlled(player) and not messagebox.askyesno(
+        if self.ctx.is_ai_controlled(player):
+            from .ai_rerolls import should_reroll
+            if not should_reroll(ship, "guided torpedoes", self.ctx.gs,
+                                 tc.get_fleet_rerolls(player, ship)):
+                return False
+        elif not messagebox.askyesno(
                 "Guided Torpedoes - Re-roll?",
                 f"{ship.name} rolled {roll} against Leadership {ship.leadership}.\n"
                 f"Use a fleet commander re-roll ({tc.get_fleet_rerolls(player, ship)} left)?",

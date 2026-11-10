@@ -131,6 +131,15 @@ class AIPlayer:
                 else:
                     gs.add_log(f"[AI] {ship.name}: {chosen} failed")
                     ship = gs.get_ship_by_id(ship.id)
+                    from .ai_rerolls import should_reroll
+                    left = tc.get_fleet_rerolls(ship.player, ship)
+                    if left and should_reroll(ship, chosen, gs, left):
+                        rr = tc.attempt_reroll_command_check(ship, chosen)
+                        gs.add_log(f"[AI] {ship.name}: re-roll for {chosen} "
+                                   f"{'passed' if rr.get('success') else 'failed'}")
+                        ship = gs.get_ship_by_id(ship.id)
+                        if rr.get("success") and ship.special_order == SpecialOrder.ALL_AHEAD_FULL.value:
+                            aaf_bonus = self._aaf_bonus(ship)
                     order = ship.special_order or ""
         else:
             order = ship.special_order or ""

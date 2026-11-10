@@ -310,8 +310,8 @@ Owner rulings (fleet lists, export 15):
   combined fire covers batteries only (lances hit on 4+ and are fired weapon by weapon).
 - Commander re-rolls (s.5) are offered for command checks (special orders), disengage tests,
   guided torpedoes and, via `GameState.ld_reroll_hook` / `movement.fleet_reroll_offered`
-  (GamePanel asks; the AI uses one while it has 2+ left; owner wants this replaced by an
-  importance score, see docs/HANDOFF.md "Owner guidance on AI play"), Brace for Impact, target priority,
+  (GamePanel asks; the AI spends by importance in expected VP, `ai_rerolls.should_reroll`,
+  see docs/HANDOFF.md "AI design"), Brace for Impact, target priority,
   asteroid (non-escorts; escorts have their own re-roll) and warp rift navigation.
   Secondary commanders (`booklet_options.SECONDARY`): Navy Strategic Commander (+1 Ld max 9,
   30pts, 0-3, re-roll +15), Chaos Aspiring Champion (+1 Ld max 9, 30, re-roll +15), Mechanicus

@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **941 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **944 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -139,7 +139,13 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    - dust clouds: -5cm, and 1/6 damage only without shields;
    - blast markers: -5cm speed, shields down while touching, 1/6 damage to shieldless ships.
    So a mine (8 dice) weighs more than a 2-6 strength salvo, as the owner expects.
-2. **Re-roll importance**: score each failed test by the VP it swings (finishing or crippling
+2. **Re-roll importance: done (first version).** `ai_rerolls.should_reroll` replaces the
+   "2+ left" rule in `GamePanel._ld_reroll_hook`, the guided-torpedo re-roll and the AI's own
+   failed special orders (it never re-rolled those before). Bars: 45 VP for the last
+   re-roll, 25 with two, 15 with three, 10 with more; everything goes once the commander's
+   ship is about to be lost (`commander_in_danger`). Brace scores lack the attack's expected
+   hits when asked through the generic hook (default 2).
+   Original plan: score each failed test by the VP it swings (finishing or crippling
    a target, a Brace that saves a ship, a navigation test that risks it, disengaging a
    crippled ship, the flagship's own tests); spend when the score clears a bar that rises as
    re-rolls run out (the last one only on the biggest swings); spend everything left when

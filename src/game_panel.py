@@ -251,7 +251,8 @@ class GamePanel:
         if left <= 0:
             return False
         if self.ctx.is_ai_controlled(ship.player):
-            use = left >= 2
+            from .ai_rerolls import should_reroll     # importance-based (owner guidance)
+            use = should_reroll(ship, label, self.ctx.gs, left)
         else:
             use = messagebox.askyesno(
                 "Leadership Test Failed - Re-roll?",
