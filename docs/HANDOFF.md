@@ -122,23 +122,36 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
    after a failed forced disengage (log reminder only); scenario rules (Business as Usual,
    High-Risk Convoys, planetary assaults, low orbit).
 
-### Open questions for the owner (the full list of my readings is in "Readings to confirm")
+### Owner answers to the open questions (NOT YET IMPLEMENTED)
 
-My readings, to confirm or overrule (also in HANDOFF "Readings to confirm"):
-- Sensors / Comms Uplink "+1 Ld at all times (max 10)" also apply on top of a commander's own
-  fixed Ld (a Fleet Admiral's Ld 9 on an Emperor becomes 10)?
-- Bakka's "Mechanicus cruisers" in battlecruiser places: only the four full cruisers, not
-  Mechanicus light cruisers?
-- Fleet Defence Turrets: does a crippled ship still give its +1? (I said yes.)
-- Master of the Fleet when the only battle barges are standard Space Marine Battle Barges:
-  any of them counts as the Chapter flagship?
-- Emergency Energy Reserves "reduce by 25% (round down)": the loss rounded down (2 shields
-  stay 2)? And the 15cm speed floor applies after a Thrusters Damaged crit too?
-- Troop rating doubling / halving applies to hits remaining before turrets are added?
-- Navy refits without "one of" wording (Mercury, Tyrant, Mars, Overlord) may all be taken
-  together?
-- Should the optional blast marker modes also apply overlapping bases to shields, speed and
-  Leadership, and should Remastered's spill-over limit be built?
+The owner answered these at the end of the session. They are not yet implemented: the next
+session must change the code (and tests) to match each one, then move it into CLAUDE.md's
+owner rulings.
+
+- **Fleet Defence Turrets:** the gift reduces the ship's own Turrets by 2 and gives +1
+  MASSED turret to all allied ships within 15cm, including itself (massed limit +3). It does
+  not raise innate turrets. Crippling halves only the innate value (rounding up); the massed
+  +1 is added after. Massed turrets never count towards troop rating. A crippled ship cannot
+  contribute massed turrets, so a crippled Fleet Defence Turrets ship gives no +1 (including
+  to itself).
+- **Bakka:** any Mechanicus cruiser in the Mechanicus list's Cruisers section may take
+  battlecruiser places, including the Endeavour, Endurance and Defiant light cruisers.
+- **Emergency Energy Reserves:** round the LOSS down (25% of 2 = 0.5, so 2 stays 2; 4
+  becomes 3; FP6 becomes 5). The 15cm speed floor still applies after Thrusters Damaged.
+- **Troop rating:** apply doubling / halving to remaining hits first, then the defender adds
+  turrets ("after any other modifiers"), not including massed turrets.
+- **Master of the Fleet:** a standard Battle Barge is the Chapter flagship only if bought in
+  the 0-1 Chapter Flagship slot (fleet must be 1000+ pts). If all battle barges are Command
+  Ships, there is no flagship and the Master of the Fleet goes on any battle barge.
+- **Sensors / Comms Uplink:** yes, +1 on top of the commander's Ld, max 10.
+- **Navy refits:** yes, Mercury, Tyrant, Mars and Overlord refits may all be combined.
+- **Optional blast markers:** overlapping bases covers every blast marker effect (shields,
+  speed, Ld, shooting, ordnance). Build Remastered's spill-over limit as a separate
+  Remastered option, not the XR default.
+
+### Open questions for the owner
+
+- None open: all answered above (to be implemented).
 
 ### Owner rulings given this session (also in CLAUDE.md)
 
@@ -297,7 +310,7 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    Original plan: movement scores its exposure (enemy firepower that can reach it) at
    a higher weight, it braces earlier, and the AI keeps escorts near it.
 
-## Readings to confirm (my choices, not owner rulings)
+## Readings to confirm (my choices; the owner answered the open ones, see "Owner answers" above)
 
 - Resilient squadrons don't stop or split off a wave (s.23); CAP fighters intercept a wave's
   squadrons in order after its turret roll (order of turrets vs CAP not stated).
