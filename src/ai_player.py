@@ -218,8 +218,9 @@ class AIPlayer:
                 if abs(turn_deg) > 0.5 and min_td > 0 and dist <= min_td:
                     continue  # not enough distance to turn
                 fx, fy, fh = self._simulate_final_pos(ship, turn_deg, dist)
+                path = self._simulate_path(ship, turn_deg, dist)
                 score = (self._arc_score(ship, fx, fy, fh, enemy)
-                         - self._position_penalty(fx, fy))
+                         - self._position_penalty(fx, fy, ship, path, order, enemy))
                 if score > best_score:
                     best_score = score
                     cmds: List[MoveCommand] = []
@@ -296,8 +297,32 @@ class AIPlayer:
                 score += strength * (w_range / dist) * 0.5  # closing bonus
         return score
 
-    def _position_penalty(self, final_x: float, final_y: float) -> float:
-        """Penalty for landing in dangerous terrain or a torpedo's predicted path."""
+    def _simulate_path(self, ship: Ship, turn_deg: float, total_dist: float):
+        """[(x, y), ...] of a move: start, turn point, end."""
+        from .movement import MIN_TURN_DISTANCE
+        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        pts = [(ship.x, ship.y)]
+        if abs(turn_deg) >= 0.5 and 0 < min_td < total_dist:
+            r = math.radians(ship.heading)
+            pts.append((ship.x + min_td * math.cos(r), ship.y + min_td * math.sin(r)))
+        fx, fy, _ = self._simulate_final_pos(ship, turn_deg, total_dist)
+        pts.append((fx, fy))
+        return pts
+
+    def _position_penalty(self, final_x: float, final_y: float, ship: Ship = None,
+                          path=None, order: str = "", enemy: Ship = None) -> float:
+        """Penalty for a move, in the planner's units (in-arc firepower). With
+        the ship, the hazards along its path in expected VP (ai_hazards:
+        mines, torpedoes, attack craft, asteroid fields, warp rifts, dust
+        clouds, blast markers), converted at what one point of in-arc
+        firepower is worth against the enemy (about 0.35 expected hits)."""
+        if ship is not None:
+            from .ai_hazards import move_hazard_vp, value_per_hit
+            risk = move_hazard_vp(ship, (final_x, final_y), path or [(ship.x, ship.y),
+                                  (final_x, final_y)], self.gs, order)["vp"]
+            target = enemy or self._nearest_enemy(ship)
+            per_fp = 0.35 * (value_per_hit(target, self.gs) if target else 20.0)
+            return risk / max(1.0, per_fp)
         gs = self.gs
         penalty = 0.0
 

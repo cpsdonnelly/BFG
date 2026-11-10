@@ -221,7 +221,9 @@ def _generate_best_moves(state: SimState, player: int,
             # Simulate position
             fx, fy, fh = _sim_pos(ship, turn_deg, dist)
             score = _arc_score_sim(ship, fx, fy, fh, nearest)
-            score -= ai_player_ref._position_penalty(fx, fy)
+            real = ai_player_ref.gs.get_ship_by_id(ship.id)
+            score -= (ai_player_ref._position_penalty(fx, fy, real, [(ship.x, ship.y), (fx, fy)])
+                      if real else ai_player_ref._position_penalty(fx, fy))
             if score > best_score:
                 best_score = score
                 best = (turn_deg, dist)

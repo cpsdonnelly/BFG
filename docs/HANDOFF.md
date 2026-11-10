@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **937 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **941 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -118,7 +118,15 @@ One common currency: **expected victory points**, so hazards, targets and re-rol
 A ship's "value at risk" is its VP (points value, x1.25 venerable, its commander's cost and
 re-rolls included; the flagship counts double while the fleet still has re-rolls to lose).
 
-1. **Hazards** (`ai_hazards.py`, used by every movement candidate, along the whole path,
+1. **Hazards: done (first version).** `ai_hazards.move_hazard_vp` scores every movement
+   candidate of the normal and expert AI (`AIPlayer._position_penalty` with the ship and its
+   path, converted at 0.35 expected hits per point of in-arc firepower). Mines (20cm reach if
+   it's the nearest enemy), torpedoes (next move line, turrets first), bombers / assault
+   boats in reach, asteroid fields, warp rifts, dust clouds, blast markers crossed and shields
+   lost to markers at the end. Hits near the cripple / kill thresholds weigh more. Next:
+   guided / seeking torpedo turn cones; the Burn Retros decision still uses the old
+   end-point penalty.
+   Original plan: (`ai_hazards.py`, used by every movement candidate, along the whole path,
    not just the end point). Threat = expected damage x the ship's VP per hit, plus speed or
    firing losses where they matter. From the rules, not invented weights:
    - mines: 8D6 vs Armour, ignoring shields, moving 10cm towards the nearest enemy every
