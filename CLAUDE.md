@@ -256,8 +256,11 @@ whole wave is removed afterwards (`waves.ship_attack_plan`). Lone squadrons are 
 group: each faces turrets separately, and a fighter that isn't in the wave no longer
 suppresses. Attack Craft Orders give a wave one target and can split squadrons off (alone
 or as a new wave in the same formation; they never rejoin). The board labels waves "xN C/L".
-Not yet (rules gap, owner flagged): multi-role fighter-bombers always attack; s.27's choice
-to suppress turrets must be offered (`ship_attack_plan(mr_suppress=...)` supports it). bombers that re-roll attacks (+1 when suppressed) don't exist yet; resilient
+Multi-role fighter-bombers (s.27) may suppress turrets instead of attacking, chosen before
+the turrets fire (`waves.apply_mr_suppress`: suppressors to the front, at least one squadron
+attacks; AI `waves.best_mr_suppress` by expected hits, a human via
+`GameState.mr_suppress_hook`; Fighta-Bommerz never). Not yet: bombers that re-roll attacks
+(+1 when suppressed) don't exist yet; resilient
 squadrons don't stop or split (interactions happen after movement); CAP fighters intercept
 a wave's squadrons in order after its turret roll.
 
@@ -398,7 +401,7 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
    voluntary disengaging. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
-2. Thunderhawk / multi-role turret-suppression choice (s.27).
+2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,

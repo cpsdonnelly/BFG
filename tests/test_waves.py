@@ -112,3 +112,19 @@ def test_tidy_waves_renumbers_and_dissolves():
     gs.ordnance = [o for o in gs.ordnance if o["id"] != "b"]
     tidy_waves(gs)
     assert gs.ordnance[0]["wave_id"] == ""
+
+
+def test_multi_role_suppress_choice_s27():
+    from src.waves import apply_mr_suppress, best_mr_suppress, mr_suppress_candidates
+    th = [craft(f"t{i}", "thunderhawk", wave_order=i) for i in range(3)]
+    g, sup = apply_mr_suppress(th, 5)
+    assert len(sup) == 2                                   # at least one must attack
+    assert [m.id for m in g][:2] == list(sup)               # suppressors at the front
+    # 4 Thunderhawks vs 4 turrets (2 kills from the front): three suppress, two
+    # die, the third gives the last attacker exactly 3 attacks (vs D6-4 = 0.5)
+    four = [craft(f"u{i}", "thunderhawk", wave_order=i) for i in range(4)]
+    assert best_mr_suppress(four, 4, 0.5, 5) == 3
+    # no turrets: suppression gains nothing over D6 attacks each
+    assert best_mr_suppress(th, 0, 0.5, 5) == 0
+    fb = [craft("f", "fighta_bommer"), craft("b", "bomber")]
+    assert mr_suppress_candidates(fb) == []                # Fighta-Bommerz never suppress

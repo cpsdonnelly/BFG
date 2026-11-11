@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **963 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **964 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -107,7 +107,7 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
    voluntary disengaging. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
-2. Thunderhawk / multi-role turret-suppression choice (s.27).
+2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,

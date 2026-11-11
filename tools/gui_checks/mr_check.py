@@ -17,6 +17,12 @@ def _ask(title, msg, **k):
     return ANSWER[0]
 messagebox.askyesno = _ask
 ANSWER = [True]
+from tkinter import simpledialog
+SUPPRESS_ASKED = []
+def _askint(title, msg, **k):
+    SUPPRESS_ASKED.append(title)
+    return 0                             # s.27: no multi-role squadron suppresses here
+simpledialog.askinteger = _askint
 failures = []
 def check(c, label):
     print(("  ok   " if c else "  FAIL ") + label)

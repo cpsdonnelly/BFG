@@ -186,3 +186,46 @@ def ship_attack_plan(group: List[OrdnanceMarker], turret_kills: int,
     return {"killed": [m.id for m in killed], "attackers": attackers,
             "suppressors": len(suppressors), "suppressed": suppressed,
             "removed_after": [m.id for m in group]}
+
+
+def mr_suppress_candidates(group: List[OrdnanceMarker]) -> List[OrdnanceMarker]:
+    """Multi-role squadrons in the wave that can act as fighters and bombers
+    and so may suppress turrets instead of attacking (s.27); Fighta-Bommerz
+    never suppress."""
+    from .models import OrdnanceType
+    return [m for m in group if {"fighter", "bomber"} <= set(_roles(m))
+            and m.ordnance_type != OrdnanceType.FIGHTA_BOMMER.value]
+
+
+def apply_mr_suppress(group: List[OrdnanceMarker], n: int):
+    """Choose `n` multi-role squadrons to suppress (s.27): they move as close to
+    the front as possible (after pure fighters), so turrets remove them first.
+    At least one squadron must still attack. Returns (reordered group,
+    {id: True})."""
+    cands = mr_suppress_candidates(group)
+    attackers = [m for m in group if any(r in _roles(m) for r in ("bomber", "assault_boat"))]
+    n = max(0, min(n, len(cands), len(attackers) - 1))
+    chosen = cands[:n]
+    fighters = [m for m in group if set(_roles(m)) == {"fighter"}]
+    rest = [m for m in group if m not in fighters and m not in chosen]
+    return fighters + chosen + rest, {m.id: True for m in chosen}
+
+
+def best_mr_suppress(group: List[OrdnanceMarker], turrets: int, p_turret: float,
+                     armour: int) -> int:
+    """AI: how many multi-role squadrons should suppress, by expected hits on
+    the ship: turrets remove about turrets x p squadrons from the front, each
+    surviving fighter suppresses one bomber (exactly 3 attacks), unsuppressed
+    bombers make D6 attacks less one per turret."""
+    ph = max(1, 7 - armour) / 6.0
+    plain = sum(max(0, k - turrets) for k in range(1, 7)) / 6.0
+    kills = int(round(turrets * p_turret))
+    best_n, best_v = 0, -1.0
+    for n in range(len(mr_suppress_candidates(group)) + 1):
+        g, sup = apply_mr_suppress(group, n)
+        plan = ship_attack_plan(g, min(kills, len(g)), sup)
+        v = sum((3.0 if m.id in plan["suppressed"] else plain) * ph
+                for m in plan["attackers"] if "bomber" in _roles(m))
+        if v > best_v + 1e-9:
+            best_n, best_v = n, v
+    return best_n

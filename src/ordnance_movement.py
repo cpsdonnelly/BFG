@@ -452,11 +452,30 @@ class OrdnanceMovementMixin:
                 if any("bomber" in craft_roles(m.ordnance_type) for m in group):
                     self._brace_vs_ordnance(group[0], s, 2.0 * len(group))
                     s = self.ctx.gs.get_ship_by_id(s.id) or s     # keep the brace
+                # s.27: multi-role fighter-bombers may suppress turrets instead
+                # of attacking, chosen before the turrets fire (suppressors to
+                # the front; at least one squadron attacks)
+                from .waves import mr_suppress_candidates, apply_mr_suppress, best_mr_suppress
+                mr_suppress = {}
+                if mr_suppress_candidates(group) and len(group) > 1:
+                    from .ordnance import turret_hit_on, ordnance_turrets
+                    owner = group[0].owner_player
+                    hook = getattr(self.ctx.gs, "mr_suppress_hook", None)
+                    if self.ctx.is_ai_controlled(owner) or hook is None:
+                        t = ordnance_turrets(s, self.ctx.gs)
+                        n = best_mr_suppress(group, t, (7 - turret_hit_on(s)) / 6.0,
+                                             s.lowest_armor_value)
+                    else:
+                        n = hook(s, group)
+                    group, mr_suppress = apply_mr_suppress(group, n or 0)
+                    if mr_suppress:
+                        self.ctx.log(f"  {len(mr_suppress)} multi-role squadron(s) suppress "
+                                     f"{s.name}'s turrets instead of attacking")
                 p1 = resolve_bomber_interception(
                     len(group), s, ships, self.ctx.dice, self.ctx.gs)
                 for msg in p1["log"]:
                     self.ctx.log(msg)
-                plan = ship_attack_plan(group, p1["killed"])
+                plan = ship_attack_plan(group, p1["killed"], mr_suppress)
                 for m in group[:p1["killed"]]:
                     self.ctx.log(f"  {m.ordnance_type} [{m.id[:8]}] destroyed by turrets")
                     to_remove_after.add(m.id)
