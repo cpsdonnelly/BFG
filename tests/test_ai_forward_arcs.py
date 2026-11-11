@@ -54,3 +54,21 @@ def test_ai_tau_move_score_counts_every_forward_mount():
     ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
     total = sum(w["strength"] for w in tau.weapons if w["weapon_type"] in ("battery", "lance"))
     assert ai._arc_score(tau, 0.0, 0.0, 0.0, t) == total
+
+
+def test_turn_allowance_uses_each_ships_turn_angle():
+    """Owner: the Protector turns 90 degrees, the Hero 45. A target 120 degrees
+    off the bow (port quarter) is only reachable for the prow railguns by a ship
+    that can turn 90."""
+    import math
+    from src.ai_hazards import _mount_bears
+    protector = _tau()
+    assert protector.turn_angle == 90
+    hero_like = Ship.from_dict({**protector.to_dict(), "turn_angle": 45})
+    a = math.radians(120)
+    t = make_ship(id="q", player=1, x=30 * math.cos(a), y=30 * math.sin(a))
+    prow = next(w for w in protector.weapons if w["name"] == "Prow Railguns")
+    assert _mount_bears(protector, prow, t)
+    assert not _mount_bears(hero_like, prow, t)
+    hero = find_ship_class("Hero Class Cruiser").to_ship_dict("Hero", 2)
+    assert hero["turn_angle"] == 45

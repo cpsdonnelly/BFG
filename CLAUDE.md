@@ -108,7 +108,9 @@ Cruisers. Ships using rules the engine can't play yet
   weapons with arcs left+front and right+front, so every AI planner (move score `_arc_score`,
   firing `_valid_targets`, threat model `_mount_bears` / `enemy_fire_plan`, squadron volleys)
   lets both sides' guns fire at a target ahead, never both broadsides at one target abeam.
-  The threat model also allows the enemy's next 45-degree turn (`tests/test_ai_forward_arcs.py`).
+  The threat model also allows the enemy's next turn, using each ship's own turn angle (owner:
+  not all ships are the same; the Tau Protector turns 90 degrees, the Hero 45)
+  (`ai_hazards._mount_bears`, `hit_and_run._weapon_can_bear`; `tests/test_ai_forward_arcs.py`).
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships
@@ -449,7 +451,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1005 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1006 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 

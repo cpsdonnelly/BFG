@@ -570,7 +570,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1005 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1006 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
