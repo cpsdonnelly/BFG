@@ -58,3 +58,55 @@ def test_strike_waves_focus_then_move_on():
     first, second = ("a", "b") if plan["a0"] == "e" else ("b", "a")
     assert all(plan[f"{first}{i}"] == "e" for i in range(3))
     assert all(plan[f"{second}{i}"] == "h" for i in range(3))
+
+
+GUNS = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 6,
+         "arcs": ["left"]},
+        {"name": "Starboard Battery", "weapon_type": "battery", "range_cm": 30, "strength": 6,
+         "arcs": ["right"]},
+        {"name": "Prow Lances", "weapon_type": "lance", "range_cm": 30, "strength": 2,
+         "arcs": ["front"]}]
+
+
+def _fleet():
+    ours = [make_ship(id=f"o{i}", player=1, x=0.0, y=10.0 * i, weapons=[dict(w) for w in GUNS],
+                      points_value=180) for i in range(2)]
+    hard = make_ship(id="hard", player=2, x=35.0, y=0.0, heading=180.0, turrets=3,
+                     armor_prow="6+", armor_side="6+", shields_max=2, points_value=200,
+                     weapons=[dict(w) for w in GUNS])
+    soft = make_ship(id="soft", player=2, x=45.0, y=25.0, heading=180.0, armor_prow="4+",
+                     armor_side="4+", shields_max=1, hits_remaining=3, points_value=200,
+                     weapons=[dict(w) for w in GUNS])
+    return make_gs(ours + [hard, soft])
+
+
+def test_fleet_focus_prefers_the_easier_damaged_ship():
+    from src.ai_hazards import fleet_focus_targets
+    ranked = fleet_focus_targets(_fleet(), 1)
+    assert ranked[0][1].id == "soft"
+
+
+def test_movement_closes_on_the_focus_target():
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    gs = _fleet()
+    gs.current_phase = "movement"
+    dice = DiceStub([1] * 40)
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai._focus = "soft"
+    o0 = gs.get_ship_by_id("o0")
+    assert ai._focus_for(o0).id == "soft"          # nearer "hard" is not the plan target
+    ai._focus = "missing"
+    assert ai._focus_for(o0) is None
+    ai.run_movement_phase()
+    assert any("fleet focus: Test Ship" in line for line in gs.log)
+
+
+def test_exposure_is_higher_in_the_enemy_arcs_than_behind():
+    from src.ai_hazards import position_exposure_hits
+    gs = _fleet()
+    me = gs.get_ship_by_id("o0")
+    beside = position_exposure_hits(me, 35.0, 15.0, 0.0, gs)    # off "hard"'s port side
+    behind = position_exposure_hits(me, 60.0, 0.0, 0.0, gs)     # astern of both, far
+    assert beside > behind

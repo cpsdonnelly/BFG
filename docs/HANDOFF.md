@@ -105,10 +105,10 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
    built), the option value of keeping bays loaded, CAP against enemy bomber waves not yet
    launched; combined squadron fire for the AI and a "Best for expected hits" default in the
    Combine Squadron Fire dialog; guided / seeking torpedo turn cones in hazard maths; escorts
-   staying near the commander's ship; fleet focus positioning (owner agreed: pick the fleet's
-   focus targets each movement phase, score each ship's moves by what it adds against them
-   minus its exposure from `enemy_fire_plan`). Done: hulk targeting, voluntary disengaging,
-   ordnance focus by expected VP (first versions). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per point
+   staying near the commander's ship; fleet focus positioning, next steps (several focus
+   targets, torpedo lanes and craft reach in the move score, expert leaf evaluation). Done:
+   hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
+   positioning (first versions: `fleet_focus_targets`, `_focus_for`, `_exposure_penalty`). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per point
    of in-arc firepower, half-weight flagship exposure, the disengage and hulk models) are
    judgment: tune on the owner's feedback.
 1b. (done) Bombers vs assault boats by expected VP.
@@ -571,7 +571,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 997 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1000 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -608,6 +608,11 @@ Latest items, newest last:
   phase's planned ordnance. Gunnery does this already (`shot_vp` with `_committed`). Owner
   answer to "does the AI focus / position for it?": guns yes, ordnance now yes, positioning
   not yet (To do 1: fleet focus positioning).
+- AI fleet focus positioning (first version): `ai_hazards.fleet_focus_targets` picks one
+  enemy per turn by the VP the fleet's guns in reach would add (easier / damaged first); ships
+  that can reach it plan their moves against it, keep 0.3 weight on their nearest enemy, and
+  pay half the hits the enemy could focus on their end position
+  (`ai_hazards.position_exposure_hits`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

@@ -601,3 +601,53 @@ def plan_strike_targets(gs, player: int) -> dict:
         for m in g:
             plan[m.id] = best_t.id
     return plan
+
+
+def fleet_focus_targets(gs, player: int) -> list:
+    """Enemy ships ranked for the fleet to concentrate on (owner: focus fire,
+    easier targets first): for each enemy, the expected hits the fleet's
+    batteries / lances could put on it next turn (within range + the firing
+    ship's move; 0.35 a battery point scaled by its Armour, 0.5 a lance), and
+    the VP those hits add through its shields and damage thresholds
+    (added_vp). Easier (low Armour / shields) and damaged ships rank first.
+    Returns [(VP, enemy ship), ...] best first."""
+    import math as _m
+    ours = [s for s in gs.get_ships() if s.player == player
+            and not s.is_destroyed and not s.is_disengaged]
+    ranked = []
+    for e in gs.get_ships():
+        if (e.player == player or e.is_destroyed or e.is_disengaged
+                or e.status in ("drifting_hulk", "burning_hulk")):
+            continue
+        hits = 0.0
+        armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
+        for s in ours:
+            d = _m.hypot(s.x - e.x, s.y - e.y)
+            for w in s.weapons:
+                wt = w.get("weapon_type")
+                if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
+                    continue
+                h = (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35 * armour_factor)
+                hits += h
+        if hits > 0:
+            ranked.append((added_vp(e, gs, 0.0, hits), e))
+    ranked.sort(key=lambda t: -t[0])
+    return ranked
+
+
+def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -> float:
+    """Expected hits the enemy's guns could put on `ship` if it ended its move
+    at (x, y) and the enemy focused on it: every enemy battery / lance mount
+    that could bear there (_mount_bears), less its shields once per enemy."""
+    from .geometry import current_shields
+    moved = Ship.from_dict({**ship.to_dict(), "x": x, "y": y, "heading": heading})
+    shields = current_shields(ship, gs.get_blast_markers())
+    total = 0.0
+    for e in gs.get_ships():
+        if e.player == ship.player or e.is_destroyed or e.is_disengaged:
+            continue
+        hits = sum((w.get("strength") or 0) * (0.5 if w.get("weapon_type") == "lance" else 0.35)
+                   for w in e.weapons if w.get("weapon_type") in ("battery", "lance")
+                   and _mount_bears(e, w, moved))
+        total += max(0.0, hits - shields)
+    return total

@@ -113,6 +113,15 @@ class AIPlayer:
                     if not s.is_destroyed and not s.is_disengaged
                     and s.id not in tc.ships_moved]
 
+        # Fleet focus (owner): the enemy ship the fleet concentrates on this turn
+        self._focus = None
+        if self.difficulty != "easy":
+            from .ai_hazards import fleet_focus_targets
+            ranked = fleet_focus_targets(gs, self.player)
+            self._focus = ranked[0][1].id if ranked else None
+            if ranked:
+                gs.add_log(f"[AI] fleet focus: {ranked[0][1].name} (about "
+                           f"{ranked[0][0]:.0f} VP in reach)")
         for ship in my_ships:
             self._move_ship(ship)
         if self.difficulty != "easy":
@@ -180,6 +189,10 @@ class AIPlayer:
             order = ship.special_order or ""
 
         enemy = self._nearest_enemy(ship)
+        self._move_nearest = enemy
+        focus = self._focus_for(ship)
+        if focus is not None:
+            enemy = focus
         if ship.must_flee:                 # failed a forced disengage test
             commands = self._plan_flee(ship, order, aaf_bonus)
         else:
@@ -265,6 +278,10 @@ class AIPlayer:
                 path = self._simulate_path(ship, turn_deg, dist)
                 score = (self._arc_score(ship, fx, fy, fh, enemy)
                          - self._position_penalty(fx, fy, ship, path, order, enemy))
+                near = getattr(self, "_move_nearest", None)
+                if near is not None and near.id != enemy.id:
+                    score += 0.3 * self._arc_score(ship, fx, fy, fh, near)
+                score -= self._exposure_penalty(ship, fx, fy, fh, enemy)
                 if score > best_score:
                     best_score = score
                     cmds: List[MoveCommand] = []
@@ -282,6 +299,38 @@ class AIPlayer:
                     best_cmds = cmds
 
         return best_cmds or [MoveCommand("forward", max(min_spd, max_spd / 2))]
+
+    def _focus_for(self, ship: Ship) -> Optional[Ship]:
+        """The fleet's focus target (run_movement_phase) if this ship can bring
+        guns to bear on it within about two moves (its longest battery / lance
+        range + twice its speed), else None (it plans against its nearest
+        enemy as before)."""
+        fid = getattr(self, "_focus", None)
+        if not fid or self.difficulty == "easy":
+            return None
+        f = self.gs.get_ship_by_id(fid)
+        if f is None or f.is_destroyed or f.is_disengaged:
+            return None
+        reach = max((w.get("range_cm") or 0) for w in ship.weapons
+                    if w.get("weapon_type") in ("battery", "lance")) if any(
+            w.get("weapon_type") in ("battery", "lance") for w in ship.weapons) else 0
+        if not reach or ship.distance_to(f) > reach + 2 * (ship.speed or 0):
+            return None
+        return f
+
+    def _exposure_penalty(self, ship: Ship, x: float, y: float, h: float,
+                          target: Ship) -> float:
+        """Half the expected hits the enemy could focus on the ship at this end
+        position (ai_hazards.position_exposure_hits), in the planner's
+        firepower units (one point of in-arc firepower ~ 0.35 expected hits on
+        the target). Half, as the enemy has other targets and our own fire
+        thins it first."""
+        if self.difficulty == "easy":
+            return 0.0
+        from .ai_hazards import position_exposure_hits, value_per_hit
+        hits = position_exposure_hits(ship, x, y, h, self.gs)
+        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
+        return 0.5 * hits * max(1.0, value_per_hit(ship, self.gs)) / max(1.0, per_fp)
 
     def _simulate_final_pos(self, ship: Ship, turn_deg: float,
                             total_dist: float):
