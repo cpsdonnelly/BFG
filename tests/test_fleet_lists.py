@@ -179,8 +179,12 @@ def test_space_marine_battle_barges_flagship_and_command_ships():
         assert fleet_list_errors(key, ven, 1000) == []
         two_flags = ven + rows("Ultima Battle Barge", list_key=key)
         assert any("Chapter Flagship" in e for e in fleet_list_errors(key, two_flags, 2000))
-        three = rows(*["Space Marine Battle Barge"] * 3, list_key=key, upgrades=mof)
+        three = rows(*["Space Marine Battle Barge"] * 3, list_key=key)
+        three[0]["upgrades"] = mof + ["Chapter Flagship (0-1)"]
         assert fleet_list_errors(key, three, 3000) == []          # flagship + 2 command ships
+        three[0]["upgrades"] = list(mof)                          # three Command Ships: too many
+        assert any("Command Ships" in e for e in fleet_list_errors(key, three, 3000))
+        three[0]["upgrades"] = mof + ["Chapter Flagship (0-1)"]
         assert any("Chapter Flagship" in e or "Command" in e
                    for e in fleet_list_errors(key, ven + three, 4000))
         # one battle barge per 1000pts or portion thereof

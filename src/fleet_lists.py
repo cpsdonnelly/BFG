@@ -773,20 +773,23 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
     return errors
 
 
-def _sm_barge_errors(classes: Dict[str, int], fleet_points: int) -> List[str]:
+def _sm_barge_errors(rows: List[Dict], fleet_points: int) -> List[str]:
     """Space Marine Crusade / Dominion battle barges: (0-1) Chapter Flagship
-    (a Venerable Battle Barge, the Ultima or a Space Marine Battle Barge), which
-    needs a fleet of 1000+pts, and (0-2) Command Ships (Space Marine Battle
-    Barges)."""
+    (a Venerable Battle Barge, the Ultima, or a Space Marine Battle Barge bought
+    in that slot: option "Chapter Flagship (0-1)", owner ruling), which needs a
+    fleet of 1000+pts, and (0-2) Command Ships (Space Marine Battle Barges)."""
+    from .booklet_options import is_chapter_flagship
     errors = []
-    flag = sum(classes.get(c, 0) for c in list(_SM_VENERABLE) + ["Ultima Battle Barge"])
-    smbb = classes.get("Space Marine Battle Barge", 0)
-    if flag > 1:
-        errors.append(f"Chapter Flagship: {flag} Venerable / Ultima battle barges, at most one.")
-    if smbb > (2 if flag else 3):
-        errors.append(f"Space Marine Battle Barges: {smbb}, at most two Command Ships"
-                      + ("" if flag else " and one Chapter Flagship") + ".")
-    if (flag or smbb > 2) and fleet_points < 1000:
+    barges = [r for r in rows if "Battle Barge" in r["entry"].ship_class]
+    flag = [r for r in barges if is_chapter_flagship(r["entry"], r.get("upgrades", []))]
+    command = [r for r in barges if r not in flag
+               and r["entry"].ship_class == "Space Marine Battle Barge"]
+    if len(flag) > 1:
+        errors.append(f"Chapter Flagship: {len(flag)} chosen, at most one.")
+    if len(command) > 2:
+        errors.append(f"Command Ships: {len(command)} Space Marine Battle Barges, at most two "
+                      f"(a third may be the Chapter Flagship).")
+    if flag and fleet_points < 1000:
         errors.append("The Chapter Flagship needs a fleet worth at least 1000pts.")
     return errors
 
@@ -884,7 +887,7 @@ def _list_errors(fl: Dict, rows: List[Dict], points_limit: int,
                               f"{' or portion thereof' if sec.get('or_part') else ''} "
                               f"({cap} for {worth}pts).")
         if sec.get("sm_barges"):
-            errors += _sm_barge_errors(classes, points_limit)
+            errors += _sm_barge_errors(rows, points_limit)
         if sec.get("venerable_sc"):
             # Owner ruling: with a fleet of 1000+pts, up to one venerable strike
             # cruiser per three standard ones (variants count), at most two

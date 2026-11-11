@@ -83,3 +83,15 @@ def test_mixed_rsv_squadron_rolls_on_the_space_marine_table():
     roll_starting_leadership(gs, dice)
     assert dice._idx == 1
     assert gs.ships[0]["leadership"] == gs.ships[1]["leadership"] == LEADERSHIP_TABLES["Astartes"][0]
+
+
+def test_standard_barge_is_flagship_only_in_the_slot():
+    from src.ship_catalog import find_ship_class
+    from src.booklet_options import fleet_option_errors
+    mof = "Master of the Fleet (Ld 10)"
+    bb = find_ship_class("Space Marine Battle Barge")
+    # two Command Ships, no flagship: the Master of the Fleet may ride either
+    assert not fleet_option_errors([(bb, []), (bb, [mof])], 1500)
+    # one bought as the Chapter Flagship: he must ride that one
+    assert fleet_option_errors([(bb, ["Chapter Flagship (0-1)"]), (bb, [mof])], 1500)
+    assert not fleet_option_errors([(bb, ["Chapter Flagship (0-1)", mof]), (bb, [])], 1500)

@@ -105,6 +105,10 @@ def space_marine_options(row: dict) -> List[Dict]:
                          "attacks roll 2D6 and use the best.", 10,
                          {"add_special_rules": ["veteran_honour_guard"]},
                          ["group:honour_guard"]))
+    if name == "Space Marine Battle Barge":
+        opts.append(_opt(CHAPTER_FLAGSHIP, "Free. Bought in the Chapter Flagship slot (fleet "
+                         "1000+pts) instead of as a Command Ship.", 0, {},
+                         ["fleet_unique"]))
     if _sm_capital(row):
         mof = "Master of the Fleet (Ld 10)"
         opts += [
@@ -138,6 +142,16 @@ def space_marine_options(row: dict) -> List[Dict]:
              "restrictions": [f"requires:{mof}", "group:honour_guard"]},
         ]
     return opts
+
+
+CHAPTER_FLAGSHIP = "Chapter Flagship (0-1)"
+
+
+def is_chapter_flagship(entry, chosen) -> bool:
+    """A Venerable Battle Barge or the Ultima is always the Chapter flagship; a
+    standard Space Marine Battle Barge only when bought in that slot."""
+    return (entry.ship_class == "Ultima Battle Barge" or "venerable" in entry.special_rules
+            or CHAPTER_FLAGSHIP in chosen)
 
 
 def _sm_capital(row: dict) -> bool:
@@ -815,15 +829,18 @@ def fleet_option_errors(rows: List[tuple], total_points: int = 0) -> List[str]:
                       f"{len(strike)} strike cruisers (half, round down); {with_variant} chosen.")
     # Master of the Fleet: on a battle barge if the fleet has one (the Chapter
     # flagship, a Venerable Battle Barge or the Ultima, if present)
-    mof_on = [e for e, chosen in rows if "Master of the Fleet (Ld 10)" in chosen]
-    barges = [e for e, _ in rows if "Battle Barge" in e.ship_class]
-    flagships = [e for e in barges if e.ship_class == "Ultima Battle Barge"
-                 or "venerable" in e.special_rules]
-    for e in mof_on:
-        if flagships and e not in flagships:
+    # (owner ruling: a standard Space Marine Battle Barge is the Chapter flagship
+    # only when bought in the 0-1 Chapter Flagship slot; if every barge is a
+    # Command Ship there is no flagship and he may ride any battle barge)
+    barge_rows = [i for i, (e, _) in enumerate(rows) if "Battle Barge" in e.ship_class]
+    flag_rows = [i for i in barge_rows if is_chapter_flagship(*rows[i])]
+    for i, (e, chosen) in enumerate(rows):
+        if "Master of the Fleet (Ld 10)" not in chosen:
+            continue
+        if flag_rows and i not in flag_rows:
             errors.append(f"The Master of the Fleet must ride the Chapter flagship "
-                          f"({flagships[0].ship_class}), not the {e.ship_class}.")
-        elif barges and e not in barges:
+                          f"({rows[flag_rows[0]][0].ship_class}), not the {e.ship_class}.")
+        elif barge_rows and i not in barge_rows:
             errors.append(f"The Master of the Fleet must ride a battle barge, not the "
                           f"{e.ship_class}.")
     sm = [e for e, _ in rows if "space_marine_crew" in e.special_rules]
