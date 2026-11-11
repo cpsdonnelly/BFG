@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1017 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1018 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -579,7 +579,16 @@ points to):
    fighters don't count; worth half a turret shot's expected hits saved per threat, up to 3). Done: guided / seeking torpedo turn cones in the hazard maths
    (`ai_hazards._torpedo_heading / _in_turn_cone`: seeking salvos turn up to 45 degrees at the
    nearest of our ships at its end position; guided ones threaten their whole 45-degree cone at
-   the launcher's Leadership-test odds (`guided_turn_chance`); Tau missiles their whole cone). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
+   the launcher's Leadership-test odds (`guided_turn_chance`); owner: not every turning salvo
+   uses Ld: boarding torpedoes (manned) turn freely within 45 degrees, Tau missiles turn 45
+   every move, reach up to 40cm (`torpedo_reach`) and count at 5/6 strength (a point lost on
+   each 1 before moving); standard / short burn / barrage / melta / vortex run straight). The
+   AI's own torpedo targeting routes round obstacles the same way: Tau missiles (weapon
+   "guided") within 45 at 40cm, bought Ld-guided torpedoes at the launcher's Ld odds, others
+   straight. In code, weapon torpedo_type "guided" means Tau missiles (`torpedo_guided`); the
+   Leadership type is `torpedo_guided_ld`. When torpedo bombers are built (To do 3: s.21, a
+   squadron becomes an S2 salvo facing any way, removed at the end of that phase), change
+   `ai_hazards.marker_hits` too: it still counts them as bombers, as the engine plays them now. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
 1b. (done) Bombers vs assault boats by expected VP (owner idea): `waves.bomber_squadron_value`

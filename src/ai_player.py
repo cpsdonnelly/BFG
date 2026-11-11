@@ -1541,10 +1541,23 @@ class AIPlayer:
                 hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y))
                 # Planets / asteroid fields on the way destroy the salvo; blast
                 # markers and dust clouds on a 6 (owner: hazards on the path)
-                # salvos that can turn (guided) may go round, within 45 degrees
-                turn = 45.0 if weapon.get("torpedo_type") == "guided" else 0.0
-                hits *= best_route(ship.x, ship.y, e.x, e.y, self.gs, "torpedo", speed,
-                                   max_turn=turn)[1]
+                # Salvos that can turn may go round obstacles within 45 degrees:
+                # Tau missiles (weapon "guided") always; Leadership-guided torpedoes
+                # (bought type) at the launcher's Ld odds; standard ones run straight
+                straight = best_route(ship.x, ship.y, e.x, e.y, self.gs, "torpedo",
+                                      speed, max_turn=0)[1]
+                if weapon.get("torpedo_type") == "guided":
+                    surv = best_route(ship.x, ship.y, e.x, e.y, self.gs, "torpedo", 40.0,
+                                      max_turn=45.0)[1]
+                elif "guided" in ship_torpedo_types(ship):
+                    from .ai_hazards import p_sum_at_most
+                    p_ld = p_sum_at_most(2, min(10, ship.leadership or 8))
+                    turned = best_route(ship.x, ship.y, e.x, e.y, self.gs, "torpedo",
+                                        speed, max_turn=45.0)[1]
+                    surv = p_ld * turned + (1 - p_ld) * straight
+                else:
+                    surv = straight
+                hits *= surv
                 px, py = self._predict_ship_pos(e)
                 both = (check_weapon_in_arc(ship, weapon, e.x, e.y)
                         and check_weapon_in_arc(ship, weapon, px, py))

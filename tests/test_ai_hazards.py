@@ -197,7 +197,9 @@ def test_seeking_and_guided_torpedo_turn_cones():
     assert straight == 0.0
     assert abs(seeking - 6 * 2 / 6) < 1e-9                     # turns 30 degrees onto us
     assert abs(guided - seeking * GUIDED_TURN_CHANCE) < 1e-9
-    assert abs(tau - seeking) < 1e-9
+    assert abs(tau - seeking * 5 / 6) < 1e-9                   # loses strength on 1s
+    boarding, _ = marker_hits(me, salvo("torpedo_boarding"), end, pts, [me])
+    assert abs(boarding - seeking * 0.5) < 1e-9                 # manned: turns freely; raids
     # 60 degrees off the bow is outside every cone
     far = make_ship(id="f", player=1, x=20.0 * math.cos(math.radians(60)),
                     y=20.0 * math.sin(math.radians(60)), armor_side="5+", turrets=0)
@@ -232,3 +234,17 @@ def test_burn_retros_when_it_avoids_more_hazard_than_it_costs():
     gs.add_phenomenon(Phenomenon(id="ast", phenomenon_type="asteroid_field", x=14.0,
                                  y=0.0, width=14.0, height=80.0, radius=0.0, rotation=0.0))
     assert ai._burn_retros_worth_it(gs.get_ship_by_id("me")) is True
+
+
+
+def test_tau_missiles_reach_40cm():
+    """s.09: Tau missiles move 20-40cm at their owner's choice; a 30cm salvo can't reach."""
+    from src.ai_hazards import marker_hits
+    me = make_ship(id="me", player=1, x=36.0, y=0.0, armor_side="5+", turrets=0)
+    tau = make_marker(id="m", ordnance_type="torpedo_guided", owner_player=2, x=0.0, y=0.0,
+                      heading=0.0, speed=30.0, strength=6, can_turn=True)
+    std = make_marker(id="s", ordnance_type="torpedo_standard", owner_player=2, x=0.0, y=0.0,
+                      heading=0.0, speed=30.0, strength=6)
+    end, pts = (me.x, me.y), [(me.x, me.y)]
+    assert marker_hits(me, std, end, pts, [me])[0] == 0.0
+    assert marker_hits(me, tau, end, pts, [me])[0] > 0.0

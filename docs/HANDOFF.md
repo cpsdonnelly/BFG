@@ -569,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1017 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1018 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -635,6 +635,10 @@ Latest items, newest last:
 - AI: guided salvos use the launcher's Ld (`guided_turn_chance`); Burn Retros by expected VP
   (`_burn_retros_worth_it`); escorts screen the commander's ship for massed turrets (base
   contact, s.29) while ordnance threatens it (`_screen_bonus`).
+- Owner: turning torpedoes aren't all Ld-based. Hazard maths per type (s.16, s.09): boarding
+  torpedoes turn freely within 45; Tau missiles turn 45, reach 40cm, 5/6 strength; guided at the
+  launcher's Ld; seeking at the nearest enemy; the rest straight. Torpedo bombers (s.21) still
+  count as bombers until To do 3 builds their salvos.
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

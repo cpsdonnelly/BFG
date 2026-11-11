@@ -124,15 +124,18 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
         if strength <= 0:
             return 0.0, ""
         h = strength * ph * (0.5 if "boarding" in otype else 1.0)   # raids, not hull
+        if otype == "torpedo_guided":
+            h *= 5 / 6        # Tau missiles: each strength point lost on a 1 before moving
         heading, p_reach = _torpedo_heading(m, ship, end, my_ships, gs)
         rad = math.radians(heading)
-        ex, ey = m.x + m.speed * math.cos(rad), m.y + m.speed * math.sin(rad)
+        reach = torpedo_reach(m)
+        ex, ey = m.x + reach * math.cos(rad), m.y + reach * math.sin(rad)
         if on_path or _seg_dist(end[0], end[1], m.x, m.y, ex, ey) <= r + 1.0:
             return h, f"torpedoes S{m.strength} ({h:.1f} hits)"
         # Guided salvos (s.16) may turn up to 45 degrees before they move: the
         # whole cone in reach is at risk, weighted by the chance they turn
         if p_reach > 0 and _in_turn_cone(m, end, r):
-            return h * p_reach, f"guided torpedoes S{m.strength} ({h * p_reach:.1f} hits)"
+            return h * p_reach, f"turning torpedoes S{m.strength} ({h * p_reach:.1f} hits)"
         return 0.0, ""
     # attack craft that may reach the ship before it moves again
     if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + r:
@@ -219,15 +222,23 @@ def _torpedo_heading(m: OrdnanceMarker, ship: Ship, end: Point,
         return (m.heading + max(-45.0, min(45.0, diff))) % 360, 0.0
     if otype == "torpedo_guided_ld":
         return m.heading, guided_turn_chance(m, gs)
-    if otype == "torpedo_guided" and m.can_turn:
-        return m.heading, 1.0
+    if otype in ("torpedo_boarding", "torpedo_boarding_guided"):
+        return m.heading, 1.0          # manned: turn up to 45 degrees as their owner wishes
+    if otype == "torpedo_guided":
+        return m.heading, 1.0          # Tau missiles: one 45-degree turn every move
     return m.heading, 0.0
+
+
+def torpedo_reach(m: OrdnanceMarker) -> float:
+    """How far a salvo can go in its next move: Tau missiles 20-40cm at their
+    owner's choice (s.09), everything else its speed."""
+    return 40.0 if m.ordnance_type == "torpedo_guided" else (m.speed or 0.0)
 
 
 def _in_turn_cone(m: OrdnanceMarker, end: Point, r: float) -> bool:
     """Is `end` within a salvo's reach after a turn of up to 45 degrees?"""
     d = math.hypot(end[0] - m.x, end[1] - m.y)
-    if d > m.speed + r + 1.0:
+    if d > torpedo_reach(m) + r + 1.0:
         return False
     if d <= r + 1.0:
         return True
