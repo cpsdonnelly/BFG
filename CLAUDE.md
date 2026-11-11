@@ -529,6 +529,15 @@ points to):
   (`ordnance_path_survival`, mirroring the engine's terrain rules), and routes round obstacles
   for craft and guided torpedoes (`best_route`; AI craft fly the detour). Dust-cloud rulings
   answered and built (see "Open questions" section).
+- AI: guided salvos use the launcher's real Ld; Burn Retros by expected VP; escorts screen the
+  commander's ship for massed turrets in base contact (s.29), only while enemy torpedoes,
+  torpedo bombers, bombers, assault boats or mines can reach it (owner: never against
+  fighters alone, never when there is nothing to mass against).
+- AI hazard maths per torpedo type (owner: not every turning salvo uses Ld): boarding
+  torpedoes turn freely within 45, Tau missiles turn 45 / reach 40cm / 5/6 strength, guided
+  on the launcher's Ld, seeking at the nearest enemy, the rest straight.
+- Owner, for To do 3: a wave of torpedo bombers combines into one salvo of 2 per squadron
+  (a wave of 4 makes a strength-8 salvo, s.21).
 - AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
   e.g. a crippled cruiser on 2 hits under enemy guns tries to leave; a healthy one facing a
   single enemy cruiser fights on (a lone healthy cruiser facing three full cruisers also leaves:
