@@ -930,7 +930,21 @@ class AIPlayer:
                 for line in roll_log:
                     gs.add_log(f"[AI] {line}")
                 count = min(count, fleet_craft_slots(gs, self.player))
-                if count > 0:
+                plan = self._wave_split(ship, craft_types, count, enemies,
+                                        defending=bool(enemy_ord))
+                if count > 0 and plan:
+                    # Plain fighters + bombers: the wave planner's split against
+                    # the nearest enemy ship (waves.plan_wave_against)
+                    launched = []
+                    for ct, n in plan:
+                        if n > 0:
+                            bay = next(w for w in bays if ct in w.get("craft_types", []))
+                            launched += launch_attack_craft(gs.get_ship_by_id(ship.id),
+                                                            bay, ct, n, gs)
+                    if len(launched) > 1:
+                        from .waves import form_wave
+                        form_wave(gs, [m.id for m in launched], "close")
+                elif count > 0:
                     launched = launch_attack_craft(ship, next(w for w in bays if preferred in
                                                               w.get("craft_types", [])),
                                                    preferred, count, gs)
@@ -938,6 +952,24 @@ class AIPlayer:
                         from .waves import form_wave
                         form_wave(gs, [m.id for m in launched], "close")
                 ship = gs.get_ship_by_id(ship.id)
+
+    def _wave_split(self, ship: Ship, craft_types, count: int, enemies,
+                    defending: bool):
+        """[(fighter type, n), (bomber type, n)] for one strike wave when the
+        bays offer plain fighters and bombers (no multi-role craft), there are
+        2+ squadrons to launch and no enemy ordnance to defend against (then
+        the AI keeps launching fighters). None otherwise."""
+        from .waves import split_craft_types, wave_plan_inputs, plan_wave_against
+        if count < 2 or self.difficulty == "easy" or defending or not enemies:
+            return None
+        types = split_craft_types(ship, set(craft_types))
+        if not types:
+            return None
+        fk, bk, f_save, b_save = types
+        target = min(enemies, key=lambda e: ship.distance_to(e))
+        f, b, _ = plan_wave_against(count, wave_plan_inputs(target, self.gs), f_save, b_save)
+        self.gs.add_log(f"[AI] {ship.name} wave vs {target.name}: {f} fighters + {b} bombers")
+        return [(fk, f), (bk, b)]
 
     # ── Auto repair (for end phase) ──────────────────────────────────────────
 

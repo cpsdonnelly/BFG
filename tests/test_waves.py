@@ -186,3 +186,40 @@ def test_resilience_changes_the_best_split():
     assert best_wave_split(6, 2, 2, 1, 5, f_save=4)[:2] == (1, 5)
     # A smaller wave than the bays (others launched outside it)
     assert sum(best_wave_split(6, 3, 3, 0, 5)[:2]) == 6
+
+
+def _ai_launch(turrets, enemy_ord=False):
+    from tests.conftest import make_ship, make_gs, DiceStub, make_marker
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    d = find_ship_class("Emperor Class Battleship").to_ship_dict("Emp", 1, ship_id="emp")
+    d.update(x=0.0, y=0.0, heading=0.0, leadership=8)
+    emp = Ship.from_dict(d)
+    tgt = make_ship(id="t", player=2, x=60.0, y=0.0, turrets=turrets, armor_side="5+",
+                    armor_prow="5+")
+    gs = make_gs([emp, tgt])
+    gs.current_phase = "ordnance"
+    if enemy_ord:
+        gs.add_ordnance(make_marker(id="torp", ordnance_type="torpedo", owner_player=2,
+                                    x=40.0, y=0.0, strength=4))
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai._launch_ship_ordnance(gs.get_ship_by_id("emp"))
+    craft = [o for o in gs.ordnance if o["owner_player"] == 1]
+    return [o["ordnance_type"] for o in craft], {o.get("wave_id") for o in craft}
+
+
+def test_ai_launch_uses_wave_planner():
+    from src.waves import best_wave_split
+    types, waves = _ai_launch(turrets=4)
+    f, b, _ = best_wave_split(8, 4, 4, 0, 5)
+    assert types.count("fighter") == f and types.count("bomber") == b and f > 0
+    assert len(waves) == 1 and None not in waves
+    types, _ = _ai_launch(turrets=1)
+    assert types.count("fighter") == 0 and types.count("bomber") == 8
+    # Enemy ordnance about: the AI still launches fighters to defend
+    types, _ = _ai_launch(turrets=4, enemy_ord=True)
+    assert set(types) == {"fighter"}

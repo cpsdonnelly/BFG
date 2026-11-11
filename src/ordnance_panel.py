@@ -365,36 +365,15 @@ class OrdnancePanel(OrdnanceMovementMixin):
         return sorted(enemies, key=lambda e: ship.distance_to(e))
 
     def _split_inputs_for(self, tgt):
-        """The planner's inputs read from a target as it is now: innate turrets,
-        massed turrets, enemy CAP fighters escorting it, its lowest Armour and
-        whether it has Ork turrets (hit on 5+)."""
-        from .ordnance import craft_roles, ordnance_turrets, get_massed_turret_bonus
-        gs = self.ctx.gs
-        cap = sum(1 for o in gs.ordnance if o.get("cap_ship_id") == tgt.id
-                  and "fighter" in craft_roles(o["ordnance_type"]))
-        cap_save = max((o.get("resilient_save") or 0 for o in gs.ordnance
-                        if o.get("cap_ship_id") == tgt.id
-                        and "fighter" in craft_roles(o["ordnance_type"])), default=0)
-        return {"turrets": ordnance_turrets(tgt, gs),
-                "massed": get_massed_turret_bonus(tgt, gs.get_ships()),
-                "cap": cap, "armour": tgt.lowest_armor_value, "cap_save": cap_save,
-                "ork": "ork_turrets" in tgt.special_rules}
+        """The planner's inputs read from a target as it is now (waves.wave_plan_inputs)."""
+        from .waves import wave_plan_inputs
+        return wave_plan_inputs(tgt, self.ctx.gs)
 
     def _split_types(self, ship, available_types):
-        """(fighter type, bomber type, fighter save, bomber save) for the split
-        planner, or None when the bays don't offer one pure fighter and one pure
-        bomber type (multi-role craft use the s.27 suppression choice)."""
-        from .ordnance import craft_roles, craft_stats
-        bay_ws = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
-        stats = {ct: craft_stats(ct, bay_ws) for ct in available_types}
-        roles = {ct: set(craft_roles(st[0])) for ct, st in stats.items()}
-        if any(len(r) > 1 for r in roles.values()):
-            return None
-        fk = next((ct for ct, r in roles.items() if r == {"fighter"}), None)
-        bk = next((ct for ct, r in roles.items() if r == {"bomber"}), None)
-        if not fk or not bk:
-            return None
-        return fk, bk, stats[fk][2] or 0, stats[bk][2] or 0
+        """(fighter type, bomber type, fighter save, bomber save) or None
+        (waves.split_craft_types)."""
+        from .waves import split_craft_types
+        return split_craft_types(ship, available_types)
 
     def _best_split_plan(self, ship, available_types, total_bays, check_only=False,
                          inputs=None, bays=None, target_name=None):
@@ -403,7 +382,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
         the nearest enemy ship's current values; `bays` to all the ship can
         launch. Only for bays that offer a pure fighter and a pure bomber type
         (multi-role craft use the s.27 suppression choice instead)."""
-        from .waves import best_wave_split
+        from .waves import plan_wave_against
         types = self._split_types(ship, available_types)
         if not types or total_bays < 2:
             return None
@@ -418,12 +397,10 @@ class OrdnancePanel(OrdnanceMovementMixin):
             target_name = targets[0].name
         n = total_bays if bays is None else max(0, min(total_bays, bays))
         t, massed, cap = inputs["turrets"], inputs["massed"], inputs["cap"]
-        p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
         f_save = inputs.get("f_save", f_save)
         b_save = inputs.get("b_save", b_save)
         cap_save = inputs.get("cap_save", 0)
-        f, b, ev = best_wave_split(n, t, t + massed, cap, inputs["armour"], p,
-                                   f_save, b_save, cap_save)
+        f, b, ev = plan_wave_against(n, inputs, f_save, b_save)
         who = f"vs {target_name}" if target_name else "custom values"
         saves = ", ".join(f"{lbl} {v}+" for lbl, v in (("fighters", f_save), ("bombers", b_save),
                                                        ("CAP", cap_save)) if v)

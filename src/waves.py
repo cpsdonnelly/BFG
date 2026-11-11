@@ -331,3 +331,44 @@ def best_wave_split(slots: int, turrets: int, shots: int, cap: int, armour: int,
         if v > best[2] + 1e-9:
             best = (f, slots - f, v)
     return best
+
+
+def wave_plan_inputs(target, gs) -> dict:
+    """The wave planner's inputs read from a target as it is now: innate
+    turrets, massed turrets, enemy CAP fighter squadrons escorting it and their
+    best resilient save, its lowest Armour and whether it has Ork turrets (5+)."""
+    from .ordnance import craft_roles, ordnance_turrets, get_massed_turret_bonus
+    caps = [o for o in gs.ordnance if o.get("cap_ship_id") == target.id
+            and "fighter" in craft_roles(o["ordnance_type"])]
+    return {"turrets": ordnance_turrets(target, gs),
+            "massed": get_massed_turret_bonus(target, gs.get_ships()),
+            "cap": len(caps), "armour": target.lowest_armor_value,
+            "cap_save": max((o.get("resilient_save") or 0 for o in caps), default=0),
+            "ork": "ork_turrets" in target.special_rules}
+
+
+def split_craft_types(ship, craft_types):
+    """(fighter type, bomber type, fighter save, bomber save) when the ship's
+    bays offer one plain fighter and one plain bomber type and no multi-role
+    craft (those use the s.27 suppression choice instead), else None."""
+    from .ordnance import craft_roles, craft_stats
+    bay_ws = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+    stats = {ct: craft_stats(ct, bay_ws) for ct in craft_types}
+    roles = {ct: set(craft_roles(st[0])) for ct, st in stats.items()}
+    if any(len(r) > 1 for r in roles.values()):
+        return None
+    fk = next((ct for ct, r in roles.items() if r == {"fighter"}), None)
+    bk = next((ct for ct, r in roles.items() if r == {"bomber"}), None)
+    if not fk or not bk:
+        return None
+    return fk, bk, stats[fk][2] or 0, stats[bk][2] or 0
+
+
+def plan_wave_against(slots: int, inputs: dict, f_save: int = 0, b_save: int = 0):
+    """best_wave_split from wave_plan_inputs-style inputs (any of f_save / b_save
+    / cap_save in `inputs` override the arguments)."""
+    t = inputs["turrets"]
+    p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
+    return best_wave_split(slots, t, t + inputs["massed"], inputs["cap"], inputs["armour"], p,
+                           inputs.get("f_save", f_save), inputs.get("b_save", b_save),
+                           inputs.get("cap_save", 0))

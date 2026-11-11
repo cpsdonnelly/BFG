@@ -50,6 +50,6 @@ for dist in (10.0, 20.0):
     dlg._fire_all()
     shown = any("(10 within 15cm)" in t for t in labels)
     print(f"{dist}cm: label shows close FP {shown}; split entry {bool(entries)}; dice {panel.ctx.dice.i} (expected {n} for FP{fp})")
-    ok &= shown and not entries and panel.ctx.dice.i == n
+    ok &= shown and bool(entries) and panel.ctx.dice.i == n   # split entry: Heavy Gunz split ruling
     root.destroy()
 print("RESULT:", "OK" if ok else "FAIL")
