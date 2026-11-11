@@ -557,7 +557,8 @@ Latest items: wave planner (resilient saves, partial launches, editable inputs),
 combined launches, Wings of Fury expected-value re-rolls (owner ruling: an armament disable that
 threatens no allied ship in arc and range is re-rolled; Engine Room kept; escorts re-roll results
 under 4), AI respects armament crits. Next: CLAUDE.md "To do" (item 2b is the planner follow-ups)
-and the open question on resilient saves vs non-fighter ordnance.
+(the resilient-save question is settled: owner confirmed the booklet, saves work against any
+other ordnance, never turrets).
 
 ## Remaining work (agreed order)
 
