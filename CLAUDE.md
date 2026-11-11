@@ -574,8 +574,9 @@ points to):
    half-speed move along the path, taken when the hazard saved beats half the ship's
    firepower value); escorts guard the commander's ship (`AIPlayer._screen_bonus`: an escort's
    move scores the massed turret it adds by ending in base contact with the flagship, s.29,
-   +1 each up to +3, while enemy torpedoes / attack craft could reach the flagship; worth
-   half a turret shot's expected hits saved per threat, up to 3). Done: guided / seeking torpedo turn cones in the hazard maths
+   +1 each up to +3, while enemy torpedoes, bombers, assault boats or mines could reach the
+   flagship; owner: with none of those about, ships don't try to mass turrets, and enemy
+   fighters don't count; worth half a turret shot's expected hits saved per threat, up to 3). Done: guided / seeking torpedo turn cones in the hazard maths
    (`ai_hazards._torpedo_heading / _in_turn_cone`: seeking salvos turn up to 45 degrees at the
    nearest of our ships at its end position; guided ones threaten their whole 45-degree cone at
    the launcher's Leadership-test odds (`guided_turn_chance`); Tau missiles their whole cone). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected

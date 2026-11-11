@@ -128,6 +128,14 @@ def test_escort_screens_the_flagship_against_incoming_ordnance():
     ai.difficulty = "normal"
     touching = (0.0, -(flag.base_radius + esc.base_radius))
     assert ai._screen_bonus(esc, *touching, 90.0, foe) == 0.0       # nothing incoming
+    # Owner: only torpedoes, bombers, assault boats (and mines) are worth massing against
+    gs.add_ordnance(make_marker(id="ftr", ordnance_type="fighter", owner_player=2, x=20.0,
+                                y=0.0, speed=30))
+    assert ai._screen_bonus(esc, *touching, 90.0, foe) == 0.0       # fighters only
+    gs.add_ordnance(make_marker(id="bmb", ordnance_type="bomber", owner_player=2, x=25.0,
+                                y=5.0, speed=20))
+    assert ai._screen_bonus(esc, *touching, 90.0, foe) > 0.0        # a bomber wave coming
+    gs.ordnance = [o for o in gs.ordnance if o["id"] != "bmb"]
     gs.add_ordnance(make_marker(id="t", ordnance_type="torpedo", owner_player=2, x=30.0,
                                 y=0.0, heading=180.0, speed=30, strength=6))
     assert ai._screen_bonus(esc, *touching, 90.0, foe) > 0.0

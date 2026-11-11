@@ -323,8 +323,9 @@ class AIPlayer:
         """Escorts guard the commander's ship (CLAUDE.md To do 1): ending in base
         contact with it adds one massed turret (s.29: +1 per contributing ship in
         base contact, limit +3; not if this escort is crippled or has no turrets)
-        while enemy torpedoes or attack craft could reach it in their next
-        ordnance phase. Worth the turret's half chance to stop one of them (a
+        while enemy torpedoes, bombers, assault boats or mines could reach it in
+        their next ordnance phase (owner: with none of those about, ships don't
+        try to mass turrets; enemy fighters don't count). Worth the turret's half chance to stop one of them (a
         torpedo's or bomber's expected hits on the flagship), in the planner's
         firepower units."""
         if self.difficulty == "easy" or ship.ship_type != "escort" or ship.is_crippled:
@@ -345,12 +346,16 @@ class AIPlayer:
         others = [s for s in gs.get_ships() if s.id != ship.id]
         if get_massed_turret_bonus(flag, others) >= 3:
             return 0.0
+        from .ordnance import attacks_ships
         threats = 0
         for o in gs.ordnance:
             if o["owner_player"] == self.player or o.get("cap_ship_id"):
                 continue
             kind = o["ordnance_type"]
-            if not ("torpedo" in kind or kind in ATTACK_CRAFT_TYPES):
+            # Owner: only massing against torpedoes, bombers and assault boats
+            # (and mines, which turrets also shoot, s.28); fighters don't attack ships
+            ship_attacker = kind in ATTACK_CRAFT_TYPES and attacks_ships(kind)
+            if not ("torpedo" in kind or "mine" in kind or ship_attacker):
                 continue
             if math.hypot(o["x"] - flag.x, o["y"] - flag.y) <= (o.get("speed") or 20) * 2 + 10:
                 threats += 1
