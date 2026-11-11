@@ -112,3 +112,9 @@ def test_csm_crew_uses_the_astartes_table_or_adds_one_to_a_commander():
     roll_starting_leadership(gs, dice)
     assert dice._idx == 1 and gs.ships[0]["leadership"] == LEADERSHIP_TABLES["Astartes"][0]
     assert gs.ships[1]["leadership"] == 10
+
+
+def test_troop_rating_turrets_after_doubling_no_massed():
+    from src.boarding import troop_rating
+    k = make_ship(hits_max=8, hits_remaining=6, turrets=4, special_rules=["mark:khorne"])
+    assert troop_rating(k) == 6 * 2 + 4       # turrets added after the doubling

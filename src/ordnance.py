@@ -232,8 +232,10 @@ def get_massed_turret_bonus(ship: Ship, all_ships: List[Ship]) -> int:
     for ally in pool:
         # Fleet Defence Turrets (Mechanicus Gift): +1 to every friendly ship
         # within 15cm, itself included
+        # A crippled ship can't contribute massed turrets, so a crippled Fleet
+        # Defence Turrets ship gives no +1, not even to itself (owner ruling)
         if ("fleet_defence_turrets" in ally.special_rules and ally.player == ship.player
-                and not (ally.is_destroyed or ally.is_disengaged)
+                and not (ally.is_destroyed or ally.is_disengaged or ally.is_crippled)
                 and ally.status not in ("drifting_hulk", "burning_hulk")
                 and math.hypot(ally.x - ship.x, ally.y - ship.y)
                 - ally.base_radius - ship.base_radius <= 15.0):

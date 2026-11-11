@@ -94,7 +94,12 @@ NAVY_LISTS = [
           "ships": {"Dominion Battlecruiser": 260, "Mercury Battlecruiser": 255,
                     "Cardinal Battlecruiser": 200,
                     "Mechanicus Dictator Cruiser": 245, "Mechanicus Gothic Cruiser": 215,
-                    "Mechanicus Lunar Cruiser": 215, "Mechanicus Tyrant Cruiser": 215}},
+                    "Mechanicus Lunar Cruiser": 215, "Mechanicus Tyrant Cruiser": 215,
+                    # owner ruling: any Mechanicus cruiser of the Explorator list's
+                    # Cruisers section, light cruisers included
+                    "Mechanicus Endeavour Light Cruiser": 130,
+                    "Mechanicus Endurance Light Cruiser": 130,
+                    "Mechanicus Defiant Light Cruiser": 130}},
          {"name": "Cruisers", "ratio": (2, ["Light Cruisers"]),
           "ships": {"Gothic Cruiser": 185, "Lunar Cruiser": 185, "Tyrant Cruiser": 180}},
          {"name": "Light Cruisers", "max": 12, "class_max": {"Dauntless Light Cruiser": 2},

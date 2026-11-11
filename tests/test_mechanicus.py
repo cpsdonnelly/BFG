@@ -83,3 +83,10 @@ def test_omnissiahs_victory_needs_1000_points():
     assert any("Omnissiah" in e for e in fleet_list_errors("admech_explorator", r, 999))
     assert not any("Omnissiah" in e and "points" in e
                    for e in fleet_list_errors("admech_explorator", r, 1100))
+
+
+def test_owner_rulings_emergency_reserves_examples():
+    s = make_ship(hits_max=8, hits_remaining=4, speed=20, special_rules=["emergency_energy_reserves"],
+                  critical_damage=[{"crit_type": "thrusters_damaged"}])
+    assert [s.crippled_value(v) for v in (2, 4, 6)] == [2, 3, 5]
+    assert s.effective_speed == 15            # the floor holds after Thrusters Damaged too

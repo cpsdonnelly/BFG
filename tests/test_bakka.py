@@ -74,3 +74,13 @@ def test_armageddon_strike_cruiser_variants_pay_full_price():
     sc = find_ship_class("Strike Cruiser")
     ups = ["Variant: macrobatteries to launch bays"]
     assert tactical_flexibility_refund([ups + ["Chapter tactic:"]], [sc]) == 10
+
+
+def test_owner_rulings_fdt_crippled_and_bakka_light_cruisers():
+    from src.fleet_lists import LISTS, section_of
+    assert section_of(LISTS["navy_bakka"], "Mechanicus Defiant Light Cruiser")["name"] == "Battlecruisers"
+    crip = make_ship(id="f", player=1, x=0.0, y=0.0, hits_max=8, hits_remaining=3,
+                     special_rules=["fleet_defence_turrets"])
+    near = make_ship(id="n", player=1, x=16.0, y=0.0)
+    assert get_massed_turret_bonus(crip, [crip, near]) == 0      # none, not even to itself
+    assert get_massed_turret_bonus(near, [crip, near]) == 0
