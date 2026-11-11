@@ -325,7 +325,7 @@ def shot_vp(attacker: Ship, weapon: dict, target: Ship, gs, committed: float = 0
     piling fire on a ship that is probably dead, and doesn't spread too thin)."""
     from .combat import expected_hits
     from .geometry import current_shields
-    raw = expected_hits(attacker, weapon, target)
+    raw = expected_hits(attacker, weapon, target, gs)     # with column shifts
     if raw <= 0:
         return 0.0
     shields = current_shields(target, gs.get_blast_markers())
@@ -637,7 +637,8 @@ def plan_strike_targets(gs, player: int) -> dict:
                 else:
                     per_mr = bomber_squadron_value(e, gs)
                 v += through * ((a * per + len(mr) * per_mr) / max(1, n))
-            v *= travel_discount(_m.hypot(e.x - lead.x, e.y - lead.y), speed)
+            v *= (travel_discount(_m.hypot(e.x - lead.x, e.y - lead.y), speed)
+                  * ordnance_path_survival(lead.x, lead.y, e.x, e.y, gs, "craft"))
             if v > best:
                 best, best_t, best_hits = v, e, hits
         if best_t is None:
@@ -696,3 +697,43 @@ def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -
                    and _mount_bears(e, w, moved))
         total += max(0.0, hits - shields)
     return total
+
+
+def ordnance_path_survival(x1: float, y1: float, x2: float, y2: float, gs,
+                           kind: str = "torpedo") -> float:
+    """Chance ordnance flying straight from (x1, y1) to (x2, y2) gets there,
+    as the engine resolves it (ordnance.check_ordnance_vs_phenomena,
+    check_ordnance_vs_blast; s.11 and Celestial Phenomena):
+      torpedoes: a planet, asteroid field or warp rift on the way destroys
+        them (they detonate on it); a gas / dust cloud on a 6; blast markers
+        on a 6 (seeking torpedoes on 5+);
+      attack craft ("craft"): an asteroid field on a 6, a warp rift
+        outright, blast markers on a 6; planets and dust clouds don't harm them.
+    Each kind of hazard is rolled once along the path (one test per move)."""
+    from .los import _line_intersects_circle, _line_intersects_rect
+    from .geometry import line_touches_trefoil
+    p = 1.0
+    for ph in gs.get_phenomena():
+        t = ph.phenomenon_type
+        if "planet" in t and ph.radius > 0:
+            hit = _line_intersects_circle(x1, y1, x2, y2, ph.x, ph.y, ph.radius)
+        else:
+            hit = _line_intersects_rect(x1, y1, x2, y2, ph.x - ph.width / 2,
+                                        ph.y - ph.height / 2, ph.x + ph.width / 2,
+                                        ph.y + ph.height / 2)
+        if not hit:
+            continue
+        if t == "warp_rift":
+            return 0.0
+        if kind == "craft":
+            if t == "asteroid_field":
+                p *= 5 / 6
+        else:
+            if "planet" in t or t == "asteroid_field":
+                return 0.0
+            if t == "gas_dust_cloud":
+                p *= 5 / 6
+    if any(line_touches_trefoil(x1, y1, x2, y2, b.x, b.y, b.heading)
+           for b in gs.get_blast_markers()):
+        p *= (4 / 6) if kind == "seeking" else (5 / 6)
+    return p

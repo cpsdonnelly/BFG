@@ -713,9 +713,12 @@ def _place_shield_impacts(target: Ship, n: int, game_state: GameState,
         placed_now.append(bm)
 
 
-def expected_hits(attacker: Ship, weapon: Dict, target: Ship) -> float:
+def expected_hits(attacker: Ship, weapon: Dict, target: Ship, gs=None) -> float:
     """Rough number of hits a weapon will score on a target (for deciding
-    whether to brace before the attack is rolled)."""
+    whether to brace before the attack is rolled, and the AI's targeting).
+    With the game state, batteries take their column shifts (range, blast
+    markers / dust in the line of fire or in contact, s.11 / s.13); lances
+    don't use the gunnery table, so blast markers don't affect them."""
     wtype = weapon.get("weapon_type", "")
     if wtype == "lance":
         return weapon.get("strength", 0) * 0.5
@@ -724,7 +727,11 @@ def expected_hits(attacker: Ship, weapon: Dict, target: Ship) -> float:
     fp = effective_battery_firepower(attacker, weapon, target)
     column = get_gunnery_column(gunnery_target_type(target),
                                 attacker.get_target_orientation(target))
-    n = lookup_gunnery_dice(fp, column, 0)
+    shifts = 0
+    if gs is not None:
+        shifts = get_column_shifts(attacker, target, gs.get_blast_markers(),
+                                   gs.get_phenomena(), gs.get_ships(), weapon)
+    n = lookup_gunnery_dice(fp, column, shifts)
     need = weapon.get("hits_on") or target.armor_vs(attacker.x, attacker.y)
     return n * max(0, 7 - need) / 6
 

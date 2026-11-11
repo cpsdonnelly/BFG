@@ -746,7 +746,7 @@ class AIPlayer:
             return
         asked[1].add(key)
         from .combat import expected_hits
-        expected = sum(expected_hits(ship, w, target) for w in ship.weapons
+        expected = sum(expected_hits(ship, w, target, self.gs) for w in ship.weapons
                        if w.get("weapon_type") in ("battery", "lance")
                        and check_weapon_in_arc(ship, w, target.x, target.y)
                        and check_weapon_in_range(ship, w, target.x, target.y))
@@ -909,7 +909,7 @@ class AIPlayer:
         value = hulk_shot_vp(h, gs, self.player)
         if value <= 0:
             return None
-        p_any = 1.0 - math.exp(-max(0.0, expected_hits(ship, weapon, h)))
+        p_any = 1.0 - math.exp(-max(0.0, expected_hits(ship, weapon, h, self.gs)))
         best_ship = max((shot_vp(ship, weapon, e, gs, self._committed.get(e.id, 0.0))
                          for e in ships), default=0.0) if hasattr(self, "_committed") else 0.0
         if p_any * value <= best_ship:
@@ -968,7 +968,7 @@ class AIPlayer:
             return min(valid, key=lambda s: s.hits_remaining / max(1, s.hits_max))
         best = self._enforce_target_priority(ship, weapon, best, valid)
         from .combat import expected_hits
-        committed[best.id] = committed.get(best.id, 0.0) + expected_hits(ship, weapon, best)
+        committed[best.id] = committed.get(best.id, 0.0) + expected_hits(ship, weapon, best, self.gs)
         self._committed = committed
         return best
 
@@ -1221,7 +1221,9 @@ class AIPlayer:
         for target in targets:
             inputs = wave_plan_inputs(target, self.gs)
             p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
-            disc = travel_discount(ship.distance_to(target), speed)
+            from .ai_hazards import ordnance_path_survival
+            disc = (travel_discount(ship.distance_to(target), speed)
+                    * ordnance_path_survival(ship.x, ship.y, target.x, target.y, self.gs, "craft"))
             c = committed.get(target.id, 0.0)
             if types:
                 fk, bk, f_save, b_save = types
@@ -1446,8 +1448,13 @@ class AIPlayer:
             speed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
             strength = weapon.get("strength") or 0
 
+            from .ai_hazards import ordnance_path_survival
+
             def score(e):
                 hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y))
+                # Planets / asteroid fields on the way destroy the salvo; blast
+                # markers and dust clouds on a 6 (owner: hazards on the path)
+                hits *= ordnance_path_survival(ship.x, ship.y, e.x, e.y, self.gs, "torpedo")
                 px, py = self._predict_ship_pos(e)
                 both = (check_weapon_in_arc(ship, weapon, e.x, e.y)
                         and check_weapon_in_arc(ship, weapon, px, py))

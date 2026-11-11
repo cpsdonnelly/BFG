@@ -111,6 +111,14 @@ Cruisers. Ships using rules the engine can't play yet
   The threat model also allows the enemy's next turn, using each ship's own turn angle (owner:
   not all ships are the same; the Tau Protector turns 90 degrees, the Hero 45)
   (`ai_hazards._mount_bears`, `hit_and_run._weapon_can_bear`; `tests/test_ai_forward_arcs.py`).
+- **Hazards in the AI's target choices (owner check):** batteries are valued with their column
+  shifts (`combat.expected_hits(..., gs)`: blast markers / dust in the line of fire or in
+  contact, range; lances and nova cannon unaffected, s.11); asteroid fields, planets, warp
+  rifts and hulks block direct fire (`los.check_los`, already enforced); torpedo and strike
+  targets are weighted by `ai_hazards.ordnance_path_survival`, which mirrors the engine:
+  torpedoes detonate on planets / asteroid fields / warp rifts, die on a 6 in dust clouds and
+  blast markers (seeking 5+); attack craft die on a 6 in asteroid fields and blast markers, to
+  warp rifts outright, and ignore planets and dust. Open questions below on dust clouds.
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships
@@ -454,7 +462,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1008 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1011 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -633,7 +641,16 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- None open.
+- **Dust clouds in the line of fire:** the booklet says a gas / dust cloud has "the same effect
+  as a single blast marker" to ships in base contact, and that clouds "impair targeting by
+  macrobatteries". The engine also gives a right column shift when the line of fire merely
+  passes through a cloud (neither ship in contact), one shift per cloud, on top of the single
+  shift for blast markers (`los.check_los`), so a cloud plus blast markers gives two. Is a
+  cloud between the ships meant to shift, and if so do clouds and blast markers stack, or is
+  it one right shift at most for "something in the way"?
+- **Attack craft and dust clouds:** the booklet says clouds "may destroy ordnance" (and in
+  contact they act as a blast marker). The engine destroys torpedoes in a cloud on a 6 but lets
+  attack craft through untouched. Should attack craft also roll (destroyed on a 6)?
 
 Owner ruling (resilient saves, s.23): the booklet's wording stands. A resilient squadron saves
 against any other ordnance it intercepts or is intercepted by (fighters, bombers, torpedoes,

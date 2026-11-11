@@ -1,0 +1,64 @@
+"""Hazards in the AI's target choices (owner): ordnance through blast markers,
+dust clouds and asteroid fields; batteries shifted by blast markers and dust,
+lances not; asteroid fields and planets block direct fire."""
+from tests.conftest import make_ship, make_gs, make_blast, make_phenomenon, DiceStub
+from src.ai_hazards import ordnance_path_survival
+from src.combat import expected_hits
+
+
+def _gs(*phen, blasts=()):
+    gs = make_gs([])
+    for p in phen:
+        gs.add_phenomenon(p)
+    for b in blasts:
+        gs.add_blast_marker(b)
+    return gs
+
+
+def test_path_survival_by_hazard_and_ordnance_kind():
+    ast = make_phenomenon("asteroid_field", x=20.0, y=0.0, width=6.0, height=6.0)
+    gs = _gs(ast)
+    assert ordnance_path_survival(0, 0, 40, 0, gs, "torpedo") == 0.0        # detonates
+    assert abs(ordnance_path_survival(0, 0, 40, 0, gs, "craft") - 5 / 6) < 1e-9
+    dust = make_phenomenon("gas_dust_cloud", x=20.0, y=0.0, width=6.0, height=6.0)
+    gs = _gs(dust)
+    assert abs(ordnance_path_survival(0, 0, 40, 0, gs, "torpedo") - 5 / 6) < 1e-9
+    assert ordnance_path_survival(0, 0, 40, 0, gs, "craft") == 1.0          # no effect
+    gs = _gs(blasts=[make_blast(x=20.0, y=0.0)])
+    assert abs(ordnance_path_survival(0, 0, 40, 0, gs, "torpedo") - 5 / 6) < 1e-9
+    assert abs(ordnance_path_survival(0, 0, 40, 0, gs, "seeking") - 4 / 6) < 1e-9
+    assert ordnance_path_survival(0, 20, 40, 20, gs, "torpedo") == 1.0      # clear lane
+
+
+def test_battery_estimate_shifted_by_blast_markers_lances_not():
+    bat = {"name": "Prow Battery", "weapon_type": "battery", "range_cm": 30, "strength": 8,
+           "arcs": ["front"]}
+    lance = {"name": "Prow Lance", "weapon_type": "lance", "range_cm": 30, "strength": 2,
+             "arcs": ["front"]}
+    a = make_ship(id="a", player=1, x=0.0, y=0.0, heading=0.0, weapons=[bat, lance])
+    t = make_ship(id="t", player=2, x=25.0, y=0.0, heading=90.0, armor_side="5+")
+    clear = make_gs([a, t])
+    blocked = make_gs([a, t])
+    blocked.add_blast_marker(make_blast(x=12.0, y=0.0))
+    assert expected_hits(a, bat, t, blocked) < expected_hits(a, bat, t, clear)
+    assert expected_hits(a, lance, t, blocked) == expected_hits(a, lance, t, clear)
+
+
+def test_ai_torpedoes_avoid_a_target_behind_an_asteroid_field():
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    torp = {"name": "Prow Torpedoes", "weapon_type": "torpedo", "range_cm": 30,
+            "strength": 6, "arcs": ["front"], "torpedo_type": "standard", "torpedo_speed": 30}
+    me = make_ship(id="me", player=1, x=0.0, y=0.0, heading=0.0, weapons=[torp])
+    # The easier target sits behind an asteroid field; the harder one is in the clear
+    easy = make_ship(id="easy", player=2, x=30.0, y=-4.0, armor_prow="4+", armor_side="4+",
+                     turrets=1, points_value=200)
+    hard = make_ship(id="hard", player=2, x=30.0, y=6.0, armor_prow="5+", armor_side="5+",
+                     turrets=2, points_value=200)
+    gs = make_gs([me, easy, hard])
+    gs.add_phenomenon(make_phenomenon("asteroid_field", x=15.0, y=-4.0, width=4.0, height=4.0))
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai._ord_committed = {}
+    assert ai._best_torp_target(gs.get_ship_by_id("me"), torp, ai._live_enemies()).id == "hard"
