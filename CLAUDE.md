@@ -500,6 +500,9 @@ points to):
   firing separately (`AIPlayer._squadron_volleys`).
 - AI fleet focus positioning: one focus target per turn by expected VP (easier / damaged
   first); ships in reach close on it, weighing their exposure to enemy arcs.
+- Owner checks this session, all recorded under Owner rulings: bombers always hit the lowest
+  Armour (one AI hazard estimate fixed), Tau forward arcs (both sides' mounts bear ahead), and
+  each ship's own turn angle in every turn allowance (Protector 90, Hero 45); tests added.
 - AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
   e.g. a crippled cruiser on 2 hits under enemy guns tries to leave; a healthy one facing a
   single enemy cruiser fights on (a lone healthy cruiser facing three full cruisers also leaves:

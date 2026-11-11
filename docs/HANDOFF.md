@@ -605,8 +605,8 @@ Latest items, newest last:
   strike launches and craft in flight (`_best_torp_target`, `_strike_option`,
   `ai_hazards.plan_strike_targets`), from the enemy's actual state after shooting plus the
   phase's planned ordnance. Gunnery does this already (`shot_vp` with `_committed`). Owner
-  answer to "does the AI focus / position for it?": guns yes, ordnance now yes, positioning
-  not yet (To do 1: fleet focus positioning).
+  asked "does the AI focus / position for it?": guns, ordnance and positioning now all do
+  (positioning: next item).
 - AI fleet focus positioning (first version): `ai_hazards.fleet_focus_targets` picks one
   enemy per turn by the VP the fleet's guns in reach would add (easier / damaged first); ships
   that can reach it plan their moves against it, keep 0.3 weight on their nearest enemy, and
@@ -620,13 +620,17 @@ Latest items, newest last:
 - Owner asked whether Tau-style forward arcs are accounted for: yes; (L/F), (R/F) mounts are
   two weapons with overlapping front arcs, and the AI planners treat them per mount (tests in
   `tests/test_ai_forward_arcs.py`).
+- Owner: not all ships turn alike (Tau Protector 90 degrees, Hero 45). Every turn allowance in
+  the AI (threat model `_mount_bears`, Wings of Fury `_weapon_can_bear`, move planning) reads
+  the ship's own `turn_angle`; a test pins it.
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
 Next: CLAUDE.md "To do" item 1 (what is left: fleet-wide CAP / strikes, keeping bays loaded,
-reactive CAP, AI combined squadron fire + "Best for expected hits" in the Combine Squadron Fire
-dialog, guided / seeking turn cones, escorts near the commander) and 1c (strike planning at
-arrival time), then items 3-6. Owner feedback wanted on the AI's judgement weights, e.g. a
+reactive CAP, "Best for expected hits" in the Combine Squadron Fire dialog, guided / seeking
+turn cones, escorts near the commander, and for fleet focus positioning: several focus
+targets, torpedo lanes / craft reach in the move score, expert leaf evaluation) and 1c (strike
+planning at arrival time), then items 3-6. Owner feedback wanted on the AI's judgement weights, e.g. a
 healthy lone cruiser facing three full enemy cruisers disengages under the current model. No
 open questions.
 
