@@ -1145,10 +1145,14 @@ class AIPlayer:
         # actual state (after this turn's shooting) plus what this phase's
         # launches are planned to do (_ord_committed)
         self._ord_committed = {}
+        enemies = self._live_enemies()
+        self._fleet_defence = (self._plan_fleet_defence(enemies)
+                               if enemies and self.difficulty != "easy" else None)
         for ship in gs.player_ships(self.player):
             if ship.is_destroyed or ship.is_disengaged:
                 continue
             self._launch_ship_ordnance(ship)
+        self._fleet_defence = None
 
     def _steer_guided_missile(self, marker: OrdnanceMarker,
                               target: Optional[Ship]) -> None:
@@ -1371,9 +1375,7 @@ class AIPlayer:
         Threats our fighters already fly at count as covered. Returns {"strike":
         [(type, n)], "cap": [(ship_id, n)], "free": n, "fighter": type}, or None
         when the bays have no plain fighter type (multi-role craft)."""
-        import math as _m
         from .ordnance import craft_roles, craft_stats
-        from .ai_hazards import intercept_gain
         bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
         stats = {ct: craft_stats(ct, bays) for ct in set(craft_types)}
         if any(len(craft_roles(st[0])) > 1 for st in stats.values()):
@@ -1384,40 +1386,14 @@ class AIPlayer:
             return None
         spd = stats[fighter][1] or 30
         gs = self.gs
-        covered = {o.get("craft_target_id") for o in gs.ordnance
-                   if o["owner_player"] == self.player and o.get("craft_target_id")}
-        friends = [s for s in gs.get_ships() if s.player == self.player
-                   and not s.is_destroyed and not s.is_disengaged]
-        threats = []                      # (gain, "cap"/"free", cap ship id)
-        seen_waves = set()
-        for o in gs.ordnance:
-            if o["owner_player"] == self.player or o.get("cap_ship_id"):
-                continue
-            m = OrdnanceMarker.from_dict(o)
-            if m.wave_id:
-                if m.wave_id in seen_waves:
-                    continue
-                seen_waves.add(m.wave_id)
-            if m.id in covered:
-                continue
-            n_sq = (sum(1 for x in gs.ordnance if x.get("wave_id") == m.wave_id)
-                    if m.wave_id else 1)
-            # The friendly ship it is closing on: nearest within its move + 15cm
-            reach = (m.speed or 20) + 15.0
-            near = [f for f in friends if _m.hypot(f.x - m.x, f.y - m.y) <= reach]
-            guard = min(near, key=lambda f: _m.hypot(f.x - m.x, f.y - m.y)) if near else None
-            can_cap = guard is not None and ship.distance_to(guard) <= spd
-            can_free = _m.hypot(ship.x - m.x, ship.y - m.y) <= spd
-            if not (can_cap or can_free):
-                continue
-            for k in range(n_sq):
-                g = intercept_gain(gs, self.player, m, already=k)
-                if g <= 0:
-                    break
-                if can_cap:
-                    threats.append((g, "cap", guard.id))
-                else:
-                    threats.append((0.75 * g, "free", ""))
+        fleet = getattr(self, "_fleet_defence", None)
+        if fleet is not None and ship.id in fleet["carriers"]:
+            # Fleet-wide plan (_plan_fleet_defence): only the threats this
+            # carrier was given; the others are covered by better-placed carriers
+            threats = list(fleet["assigned"].get(ship.id, []))
+        else:
+            threats = [t for slot in self._threat_slots()
+                       for t in [self._slot_for(ship, spd, slot)] if t]
         threats.sort(key=lambda t: -t[0])
         cache = {0: (0.0, None)}
 
@@ -1454,6 +1430,125 @@ class AIPlayer:
             gs.add_log(f"[AI] {ship.name} keeps {sum(cap.values())} fighter(s) on CAP, "
                        f"{free} free against incoming ordnance")
         return {"strike": plan, "cap": list(cap.items()), "free": free, "fighter": fighter}
+
+    def _threat_slots(self):
+        """Enemy ordnance a fighter could meet, one entry per fighter it would
+        take: (gain, marker x, y, guard ship id or None, threat key, k). A salvo or
+        mine is one slot; a wave one per squadron, lead first (intercept_gain).
+        Threats our fighters already fly at count as covered."""
+        import math as _m
+        from .ai_hazards import intercept_gain
+        gs = self.gs
+        covered = {o.get("craft_target_id") for o in gs.ordnance
+                   if o["owner_player"] == self.player and o.get("craft_target_id")}
+        friends = [s for s in gs.get_ships() if s.player == self.player
+                   and not s.is_destroyed and not s.is_disengaged]
+        slots, seen_waves = [], set()
+        for o in gs.ordnance:
+            if o["owner_player"] == self.player or o.get("cap_ship_id"):
+                continue
+            m = OrdnanceMarker.from_dict(o)
+            if m.wave_id:
+                if m.wave_id in seen_waves:
+                    continue
+                seen_waves.add(m.wave_id)
+            if m.id in covered:
+                continue
+            n_sq = (sum(1 for x in gs.ordnance if x.get("wave_id") == m.wave_id)
+                    if m.wave_id else 1)
+            # The friendly ship it is closing on: nearest within its move + 15cm
+            reach = (m.speed or 20) + 15.0
+            near = [f for f in friends if _m.hypot(f.x - m.x, f.y - m.y) <= reach]
+            guard = min(near, key=lambda f: _m.hypot(f.x - m.x, f.y - m.y)) if near else None
+            for k in range(n_sq):
+                g = intercept_gain(gs, self.player, m, already=k)
+                if g <= 0:
+                    break
+                slots.append((g, m.x, m.y, guard, m.wave_id or m.id, k))
+        return slots
+
+    @staticmethod
+    def _slot_for(carrier, spd, slot):
+        """A threat slot as this carrier would cover it: (gain, "cap", guard id)
+        when its fighters can reach the guarded ship (CAP always intercepts,
+        s.26), (0.75 x gain, "free", "") when they can reach the threat, else None."""
+        import math as _m
+        g, x, y, guard, _key, _k = slot
+        if guard is not None and carrier.distance_to(guard) <= spd:
+            return (g, "cap", guard.id)
+        if _m.hypot(carrier.x - x, carrier.y - y) <= spd:
+            return (0.75 * g, "free", "")
+        return None
+
+    def _plan_fleet_defence(self, enemies):
+        """Fleet-wide CAP vs strike (To do 1): which carrier covers which
+        incoming threat. Every carrier starts with all its bays in its strike;
+        threat slots are then taken best first (a wave's squadrons lead first),
+        each by the carrier that loses least by it: its last strike squadron's
+        marginal value (_strike_option) against what the fighter saves there (CAP
+        full, free 0.75). A slot nobody gains by covering is left. Carriers with
+        multi-role or no plain fighters, or nothing loaded, are left out (they
+        plan alone). Returns {"carriers": set of ids, "assigned": {id: [(gain,
+        kind, guard id)]}}."""
+        from .ordnance import craft_roles, craft_stats, bay_launch_capacity
+        gs = self.gs
+        carriers = []
+        for ship in gs.player_ships(self.player):
+            if ship.is_destroyed or ship.is_disengaged or not ship.ordnance_loaded_craft:
+                continue
+            bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+            cts = [ct for w in bays for ct in w.get("craft_types", [])]
+            if not cts:
+                continue
+            stats = {ct: craft_stats(ct, bays) for ct in set(cts)}
+            if any(len(craft_roles(st[0])) > 1 for st in stats.values()):
+                continue
+            fighter = next((ct for ct, st in stats.items()
+                            if set(craft_roles(st[0])) == {"fighter"}), None)
+            if fighter is None:
+                continue
+            count = bay_launch_capacity(ship, bays, None)[0]    # random bays: estimate
+            if count > 0:
+                carriers.append((ship, cts, count, stats[fighter][1] or 30))
+        plan = {"carriers": {c[0].id for c in carriers}, "assigned": {}}
+        if not carriers:
+            return plan
+        cache = {}
+
+        def strike(i, k):
+            if (i, k) not in cache:
+                ship, cts, _n, _s = carriers[i]
+                opt = self._strike_option(ship, cts, k, enemies) if k else None
+                cache[(i, k)] = opt[0] if opt else 0.0
+            return cache[(i, k)]
+        left = [c[2] for c in carriers]
+        # Threats in order; a wave's next squadron only once the one before is taken
+        by_key = {}
+        for slot in self._threat_slots():
+            by_key.setdefault(slot[4], []).append(slot)
+        queues = [sorted(v, key=lambda t: t[5]) for v in by_key.values()]
+        while queues:
+            qi = max(range(len(queues)), key=lambda i: queues[i][0][0])
+            slot = queues[qi].pop(0)
+            best = None
+            for i, (ship, _cts, _n, spd) in enumerate(carriers):
+                if left[i] <= 0:
+                    continue
+                t = self._slot_for(ship, spd, slot)
+                if t is None:
+                    continue
+                net = t[0] - (strike(i, left[i]) - strike(i, left[i] - 1))
+                if best is None or net > best[0]:
+                    best = (net, i, t)
+            if best is None or best[0] < 0:
+                queues.pop(qi)                 # nobody gains by covering it (or more of it)
+                continue
+            _net, i, t = best
+            left[i] -= 1
+            plan["assigned"].setdefault(carriers[i][0].id, []).append(t)
+            if not queues[qi]:
+                queues.pop(qi)
+        return plan
 
     def _launch_defence(self, ship: Ship, bays, alloc):
         """Launch _bay_allocation's CAP and free fighters (not in the wave)."""

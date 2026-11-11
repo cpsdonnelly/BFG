@@ -101,8 +101,7 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 
 (CLAUDE.md "To do" is the current list; this copy is kept in step with it.)
 
-1. AI, still to do: fleet-wide CAP / strike allocation across carriers (per-carrier version
-   built), the option value of keeping bays loaded, CAP against enemy bomber waves not yet
+1. AI, still to do: the option value of keeping bays loaded, CAP against enemy bomber waves not yet
    launched; fleet focus positioning, next steps (several focus
    targets, torpedo lanes and craft reach in the move score, expert leaf evaluation). Done:
    hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
@@ -569,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1021 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1023 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -647,10 +646,13 @@ Latest items, newest last:
   removed that phase, no strength-loss roll). Torpedo bomber options
   ("TB 20cm +N") are on 19 carriers: Navy 6, Mechanicus 3, Chaos 10, plus Tau Tiger Sharks
   (full list in CLAUDE.md To do 3; the owner corrected an earlier, incomplete list).
+- AI CAP vs strikes fleet-wide (`AIPlayer._plan_fleet_defence`): threat slots go to the
+  carrier whose strike loses least; carriers no longer each send a fighter at one salvo.
+  The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
-Next: CLAUDE.md "To do" item 1 (what is left: fleet-wide CAP / strikes, keeping bays loaded,
+Next: CLAUDE.md "To do" item 1 (what is left: keeping bays loaded,
 reactive CAP; fleet focus positioning follow-ups: several focus targets, torpedo lanes /
 craft reach in the move score, expert leaf evaluation; torpedo launch lanes and
 multi-waypoint routes) and 1c (strike planning at arrival time), then items 3-6 (item 3 now

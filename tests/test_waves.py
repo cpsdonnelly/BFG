@@ -405,3 +405,45 @@ def test_bombers_always_use_lowest_armour():
     b = make_marker(id="b", ordnance_type="bomber", owner_player=2, x=5.0, y=0.0, speed=20)
     h, _ = marker_hits(s, b, (0.0, 0.0), [(0.0, 0.0)], [s])     # from the prow (6+)
     assert abs(h - 3.5 * 0.5) < 1e-9                            # but hits the rear's 4+
+
+
+def _two_carrier_launch(x2, y2):
+    from tests.conftest import make_ship, make_gs, DiceStub, make_marker
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    ships = []
+    for sid, x, y in (("emp", 0.0, 0.0), ("emp2", x2, y2)):
+        d = find_ship_class("Emperor Class Battleship").to_ship_dict(sid, 1, ship_id=sid)
+        d.update(x=x, y=y, heading=0.0, leadership=8)
+        ships.append(Ship.from_dict(d))
+    ships.append(make_ship(id="t", player=2, x=60.0, y=0.0, turrets=4, armor_side="5+",
+                           armor_prow="5+"))
+    gs = make_gs(ships)
+    gs.current_phase = "ordnance"
+    gs.add_ordnance(make_marker(id="torp", ordnance_type="torpedo", owner_player=2,
+                                x=25.0, y=0.0, heading=180.0, speed=30, strength=6))
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai.run_ordnance_phase()
+    assert dice._idx == 0
+    return [o for o in gs.ordnance if o["owner_player"] == 1]
+
+
+def test_fleet_cap_one_fighter_per_salvo_across_carriers():
+    """Fleet-wide CAP vs strikes (To do 1): one salvo needs one fighter, not
+    one from every carrier in reach (s.19)."""
+    craft = _two_carrier_launch(0.0, 10.0)
+    cap = [o for o in craft if o.get("cap_ship_id")]
+    assert len(cap) == 1 and cap[0]["cap_ship_id"] == "emp"
+
+
+def test_fleet_cap_comes_from_the_carrier_losing_least():
+    """The carrier further from the strike target (its wave is worth less after
+    the longer flight) puts up the CAP; the nearer one strikes with all bays."""
+    craft = _two_carrier_launch(-25.0, 0.0)
+    cap = [o for o in craft if o.get("cap_ship_id")]
+    assert len(cap) == 1 and cap[0]["launched_by"] == "emp2"
+    assert sum(1 for o in craft if o.get("launched_by") == "emp") == 8

@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1021 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1023 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -555,6 +555,8 @@ points to):
 - AI shoots enemy hulks when their explosion would hurt enemy ships (`AIPlayer._hulk_shot`);
   fixed: AI hits on a hulk were dropped (`_apply_hits_to` skipped "destroyed" ships), so its
   catastrophic damage was never re-rolled.
+- AI CAP vs strikes fleet-wide across carriers (`AIPlayer._plan_fleet_defence`; tests in
+  `tests/test_waves.py`): one fighter per salvo from the carrier whose strike loses least.
 - AI CAP vs strikes per carrier (To do 1, first version): one fighter per incoming salvo / mine
   / wave squadron that is worth more than the next strike squadron, on CAP or free, the rest
   strike as one wave (before: any enemy ordnance in play made it launch all fighters).
@@ -585,7 +587,12 @@ points to):
    the enemy could focus on its end position (`_exposure_penalty`,
    `ai_hazards.position_exposure_hits`). Not yet: several focus targets, torpedo lanes and
    craft reach in the move score, the expert AI's leaf evaluation using the same terms.
-   Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
+   Done: fleet-wide CAP / strike allocation (`AIPlayer._plan_fleet_defence`, each ordnance
+   phase: every carrier starts all-strike; threat slots, best first and a wave's squadrons lead
+   first, go to the carrier losing least, i.e. its last strike squadron's marginal value against
+   the fighter's gain, CAP full / free 0.75; `_bay_allocation` then covers only its own
+   threats, so one salvo no longer draws a fighter from every carrier in reach). Multi-role
+   carriers still plan alone. Still to do here: the option value of
    keeping bays loaded, CAP against enemy bomber waves not yet launched; torpedo launch headings aimed down a clear lane and multi-waypoint
    routes (`best_route` does one detour). Done: guided salvos use the launcher's real Ld in the
    hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
