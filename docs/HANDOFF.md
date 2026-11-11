@@ -165,6 +165,15 @@ rather than touch a third ship).
 
 - None open.
 
+### Player "Auto (best)" button (owner request, done)
+
+The player's choice prompts (re-rolls, Wings of Fury, Mark of Tzeentch, turret split,
+multi-role suppression) have an "Auto (best: ...)" button picking the AI's expected-best
+option (`src/choice_dialog.py`). Still to add it to: Brace for Impact, special-order
+re-rolls, the Combine Squadron Fire aspect choice, the Vault of Technology chooser.
+Known stale GUI check: `tools/gui_checks/heavy_gunz_check.py` expects no split-fire entry in
+the Fire dialog; it already failed at the start of this session (not caused by this work).
+
 ### Owner rulings given this session (also in CLAUDE.md)
 
 - Bastion's modular bays: S2 attack craft or S4 torpedoes, chosen at each launch.

@@ -238,19 +238,22 @@ class GamePanel:
         fighter-bombers suppress turrets instead of attacking (before the
         turrets fire; at least one squadron must attack)."""
         import threading
-        from tkinter import simpledialog
         from .waves import mr_suppress_candidates
         if threading.current_thread() is not threading.main_thread():
             return 0
         n_mr = len(mr_suppress_candidates(group))
-        n = simpledialog.askinteger(
-            "Suppress turrets?",
+        from .waves import best_mr_suppress
+        from .ordnance import turret_hit_on, ordnance_turrets
+        from .choice_dialog import choose
+        best = best_mr_suppress(group, ordnance_turrets(ship, self.ctx.gs),
+                                (7 - turret_hit_on(ship)) / 6.0, ship.lowest_armor_value)
+        return choose(
+            self.ctx.root, "Suppress turrets?",
             f"A wave of {len(group)} squadrons is attacking {ship.name} "
-            f"({ship.effective_turrets} turrets).\n{n_mr} multi-role squadron(s) may "
-            f"suppress turrets instead of attacking (s.27): each surviving one gives a "
-            f"bomber exactly 3 attacks.\nHow many suppress? (at least one squadron must "
-            f"attack)", parent=self.ctx.root, minvalue=0, maxvalue=n_mr, initialvalue=0)
-        return n or 0
+            f"({ship.effective_turrets} turrets). {n_mr} multi-role squadron(s) may suppress "
+            f"turrets instead of attacking (s.27): each surviving one gives a bomber exactly 3 "
+            f"attacks. At least one squadron must attack. How many suppress?",
+            [(str(k), k) for k in range(n_mr + 1)], best)
 
     def _turret_choice_hook(self, ship, craft, torps):
         """GameState.turret_choice_hook (s.28): attack craft and torpedoes /
@@ -260,22 +263,24 @@ class GamePanel:
         if threading.current_thread() is not threading.main_thread():
             return None
         tdesc = ", ".join(f"{m.ordnance_type} S{m.strength}" for m in torps)
-        yes = messagebox.askyesno(
-            "Turrets: attack craft or torpedoes?",
-            f"{ship.name} is attacked by {len(craft)} attack craft squadron(s) and by "
-            f"{tdesc}.\nIts turrets can defend against only one kind this phase (s.28).\n\n"
-            f"Yes = shoot at the attack craft\nNo = shoot at the torpedoes / mines",
-            parent=self.ctx.root)
-        return "craft" if yes else "torp"
+        from .ordnance import choose_turret_target
+        from .choice_dialog import choose
+        best = choose_turret_target(ship, craft, torps, self.ctx.gs, ai=True)
+        return choose(
+            self.ctx.root, "Turrets: attack craft or torpedoes?",
+            f"{ship.name} is attacked by {len(craft)} attack craft squadron(s) and by {tdesc}. "
+            f"Its turrets can defend against only one kind this phase (s.28).",
+            [("Shoot the attack craft", "craft"), ("Shoot the torpedoes / mines", "torp")], best)
 
-    def _crit_reroll_hook(self, player, text):
+    def _crit_reroll_hook(self, player, text, best=False):
         """GameState.crit_reroll_hook (Mark of Tzeentch): ask the owner. Off the
         main thread nothing is asked (the engine's AI choice applies)."""
         import threading
         if threading.current_thread() is not threading.main_thread():
             return False
-        return messagebox.askyesno("Mark of Tzeentch", f"Player {player}: {text}",
-                                   parent=self.ctx.root)
+        from .choice_dialog import choose
+        return choose(self.ctx.root, "Mark of Tzeentch", f"Player {player}: {text}",
+                      [("Re-roll", True), ("Keep", False)], best)
 
     def _ld_reroll_hook(self, ship, label, roll, needed):
         """GameState.ld_reroll_hook: a failed Leadership test may use a fleet
@@ -292,10 +297,14 @@ class GamePanel:
             from .ai_rerolls import should_reroll     # importance-based (owner guidance)
             use = should_reroll(ship, label, self.ctx.gs, left)
         else:
-            use = messagebox.askyesno(
-                "Leadership Test Failed - Re-roll?",
-                f"{ship.name}: {label} failed (rolled {roll} vs Ld {needed}).\n"
-                f"Use a fleet commander re-roll ({left} left)?", parent=self.ctx.root)
+            from .ai_rerolls import should_reroll
+            from .choice_dialog import choose
+            use = choose(
+                self.ctx.root, "Leadership Test Failed - Re-roll?",
+                f"{ship.name}: {label} failed (rolled {roll} vs Ld {needed}). "
+                f"Use a fleet commander re-roll ({left} left)?",
+                [("Re-roll", True), ("Don't", False)],
+                should_reroll(ship, label, self.ctx.gs, left))
         if use and tc.use_fleet_reroll(ship.player, ship):
             self.ctx.log(f"  {ship.name}: fleet re-roll for {label}")
             return True
@@ -312,12 +321,14 @@ class GamePanel:
             return None
         from .hit_and_run import describe_raid_result
         shown = f"{roll}" + (f" ({effective} after modifiers)" if effective != roll else "")
-        return messagebox.askyesno(
-            "Wings of Fury",
+        from .hit_and_run import raid_has_no_effect
+        from .choice_dialog import choose
+        return choose(
+            self.ctx.root, "Wings of Fury",
             f"Thunderhawk raid on {target.name} rolled {shown}: "
-            f"{describe_raid_result(effective, target)}.\n\n"
-            f"Re-roll it? The second result stands, even if it is worse.",
-            parent=self.ctx.root)
+            f"{describe_raid_result(effective, target)}. Re-roll it? The second result "
+            f"stands, even if it is worse.",
+            [("Re-roll", True), ("Keep", False)], raid_has_no_effect(effective, target))
 
     def _update_phase_display(self):
         """Update the phase/turn indicators and show the correct buttons."""

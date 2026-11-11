@@ -936,11 +936,12 @@ def _tzeentch_reroll(target: Ship, roll: int, crit_data: Optional[Dict],
             continue
         ai = game_state.ai_spectator or game_state.ai_player == ship.player
         hook = getattr(game_state, "crit_reroll_hook", None)
+        best = roll >= 9 if own else roll <= 5          # the AI's choice
         if hook is not None and not ai:
             use = hook(ship.player, f"{target.name} critical hit: {name} (rolled {roll}). "
-                                    f"Re-roll it with {ship.name}'s Mark of Tzeentch?")
+                                    f"Re-roll it with {ship.name}'s Mark of Tzeentch?", best)
         else:
-            use = roll >= 9 if own else roll <= 5
+            use = best
         if use:
             game_state.add_log(f"{ship.name}: Mark of Tzeentch re-rolls the critical ({name})")
             return True

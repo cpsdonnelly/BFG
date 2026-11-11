@@ -167,12 +167,16 @@ class OrdnanceMovementMixin:
             if not should_reroll(ship, "guided torpedoes", self.ctx.gs,
                                  tc.get_fleet_rerolls(player, ship)):
                 return False
-        elif not messagebox.askyesno(
-                "Guided Torpedoes - Re-roll?",
-                f"{ship.name} rolled {roll} against Leadership {ship.leadership}.\n"
-                f"Use a fleet commander re-roll ({tc.get_fleet_rerolls(player, ship)} left)?",
-                parent=self.ctx.root):
-            return False
+        else:
+            from .ai_rerolls import should_reroll
+            from .choice_dialog import choose
+            left = tc.get_fleet_rerolls(player, ship)
+            if not choose(self.ctx.root, "Guided Torpedoes - Re-roll?",
+                          f"{ship.name} rolled {roll} against Leadership {ship.leadership}. "
+                          f"Use a fleet commander re-roll ({left} left)?",
+                          [("Re-roll", True), ("Don't", False)],
+                          should_reroll(ship, "guided torpedoes", self.ctx.gs, left)):
+                return False
         return tc.use_fleet_reroll(player, ship)
 
     def _guided_enemy_choice(self, enemy_player, candidates):

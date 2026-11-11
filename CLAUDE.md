@@ -115,6 +115,17 @@ Cruisers. Ships using rules the engine can't play yet
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
   Craft Orders"; the AI re-targets its craft each ordnance phase.
 
+### Player choice prompts: "Auto (best)"
+
+Owner request: the player's choice prompts have an "Auto (best: ...)" button that picks what
+the AI's expected-value logic would (`src/choice_dialog.choose`; closing the window takes it
+too): Leadership-test re-rolls and guided torpedo re-rolls (`ai_rerolls.should_reroll`),
+Wings of Fury raid re-rolls (`raid_has_no_effect`), Mark of Tzeentch re-rolls (9+ own / 5-
+enemy), the turret split (`ordnance.choose_turret_target`) and multi-role turret suppression
+(`waves.best_mr_suppress`). GUI checks that answer these prompts must stub `choose`.
+Not yet: the Brace prompt, special-order re-rolls (special_orders_ui), the Combine Squadron
+Fire aspect choice, Vault of Technology's chooser.
+
 ### Brace for Impact (s.7)
 
 Declared before any combat rolls for an attack (to hit, scatter, turrets, weapon strength,
