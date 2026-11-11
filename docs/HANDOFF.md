@@ -293,8 +293,8 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    it's the nearest enemy), torpedoes (next move line, turrets first), bombers / assault
    boats in reach, asteroid fields, warp rifts, dust clouds, blast markers crossed and shields
    lost to markers at the end. Hits near the cripple / kill thresholds weigh more. Since
-   done: guided / seeking torpedo turn cones (`_torpedo_heading`). Next: the Burn Retros
-   decision still uses the old end-point penalty.
+   done: guided / seeking torpedo turn cones (`_torpedo_heading`) and the Burn Retros
+   decision by expected VP (`_burn_retros_worth_it`).
    Original plan: (`ai_hazards.py`, used by every movement candidate, along the whole path,
    not just the end point). Threat = expected damage x the ship's VP per hit, plus speed or
    firing losses where they matter. From the rules, not invented weights:
@@ -569,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1014 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1016 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:

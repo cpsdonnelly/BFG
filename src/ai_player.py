@@ -513,12 +513,8 @@ class AIPlayer:
 
     def _choose_special_order(self, ship: Ship) -> Optional[str]:
         """Pick the most tactically useful special order for this ship."""
-        # Burn Retros if ship is about to enter dangerous terrain at full speed
-        _, max_spd = get_effective_speed(ship, "", 0)
-        rad = math.radians(ship.heading)
-        projected_x = ship.x + max_spd * math.cos(rad)
-        projected_y = ship.y + max_spd * math.sin(rad)
-        if self._position_penalty(projected_x, projected_y) >= 30.0:
+        # Burn Retros when it avoids more hazard than it costs (expected VP)
+        if self._burn_retros_worth_it(ship):
             return SpecialOrder.BURN_RETROS.value
 
         # Lock On if an enemy is in a battery or lance arc+range
@@ -543,6 +539,49 @@ class AIPlayer:
             return SpecialOrder.RELOAD_ORDNANCE.value
 
         return None
+
+    def _safest_move_vp(self, ship: Ship, order: str) -> float:
+        """The least hazard (ai_hazards.move_hazard_vp, along the path) of the
+        moves this order allows: straight or one turn of the ship's turn angle,
+        at its minimum, middle and maximum speed."""
+        from .ai_hazards import move_hazard_vp
+        from .movement import MIN_TURN_DISTANCE
+        min_spd, max_spd = get_effective_speed(ship, order, 0)
+        turns = [0.0]
+        if get_max_turns(order, ship) > 0:
+            turns += [-ship.turn_angle, ship.turn_angle]
+        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        best = None
+        for turn in turns:
+            for dist in sorted({min_spd, (min_spd + max_spd) / 2.0, max_spd}):
+                if abs(turn) > 0.5 and min_td > 0 and dist <= min_td:
+                    continue
+                fx, fy, _fh = self._simulate_final_pos(ship, turn, dist)
+                path = self._simulate_path(ship, turn, dist)
+                vp = move_hazard_vp(ship, (fx, fy), path, self.gs, order)["vp"]
+                best = vp if best is None else min(best, vp)
+        return best or 0.0
+
+    def _burn_retros_worth_it(self, ship: Ship) -> bool:
+        """Burn Retros (s.7: half speed) when the safest normal move risks more
+        expected VP from hazards (asteroids, warp rifts, mines, torpedoes, blast
+        markers...) than the safest half-speed move, by more than the order
+        costs: special orders halve the ship's firepower this turn, worth half
+        what its guns can take off the best target (ai_rerolls.firepower_swing)."""
+        if self.difficulty == "easy":
+            return False
+        from .ai_rerolls import firepower_swing
+        normal = self._safest_move_vp(ship, "")
+        retros = self._safest_move_vp(ship, SpecialOrder.BURN_RETROS.value)
+        saved = normal - retros
+        if saved <= 0:
+            return False
+        cost = 0.5 * firepower_swing(ship, self.gs)
+        if saved > cost:
+            self.gs.add_log(f"[AI] {ship.name}: Burn Retros avoids about {saved:.0f} VP of "
+                            f"hazards (costs about {cost:.0f})")
+            return True
+        return False
 
     # ── Shooting phase ───────────────────────────────────────────────────────
 

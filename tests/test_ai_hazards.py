@@ -203,3 +203,32 @@ def test_seeking_and_guided_torpedo_turn_cones():
                     y=20.0 * math.sin(math.radians(60)), armor_side="5+", turrets=0)
     assert marker_hits(far, salvo("torpedo_seeking"), (far.x, far.y), [(far.x, far.y)],
                        [far])[0] == 0.0
+
+
+def test_guided_turn_chance_uses_the_launchers_leadership():
+    from src.ai_hazards import guided_turn_chance, p_sum_at_most
+    launcher = make_ship(id="L", player=2, leadership=10)
+    gs = make_gs([launcher])
+    m = make_marker(id="g", ordnance_type="torpedo_guided_ld", owner_player=2,
+                    launched_by="L")
+    assert abs(guided_turn_chance(m, gs) - p_sum_at_most(2, 10)) < 1e-9
+    gone = make_marker(id="g2", ordnance_type="torpedo_guided_ld", owner_player=2,
+                       launched_by="nobody")
+    assert guided_turn_chance(gone, gs) == 0.0          # launcher out of play: no turn
+
+
+def test_burn_retros_when_it_avoids_more_hazard_than_it_costs():
+    """Burn Retros by expected VP: a cruiser that can't avoid an asteroid field at
+    normal speed (minimum 10cm) stops short of it on Burn Retros (0-10cm)."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    me = make_ship(id="me", player=1, x=0.0, y=0.0, heading=0.0, speed=20,
+                   leadership=8, points_value=180)
+    far = make_ship(id="e", player=2, x=200.0, y=0.0)
+    gs = make_gs([me, far])
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai.difficulty = "normal"
+    assert ai._burn_retros_worth_it(gs.get_ship_by_id("me")) is False      # open space
+    gs.add_phenomenon(Phenomenon(id="ast", phenomenon_type="asteroid_field", x=14.0,
+                                 y=0.0, width=14.0, height=80.0, radius=0.0, rotation=0.0))
+    assert ai._burn_retros_worth_it(gs.get_ship_by_id("me")) is True

@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1014 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1016 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -569,12 +569,14 @@ points to):
    Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
    keeping bays loaded, CAP against enemy bomber waves not yet launched; escorts staying near
    the commander's ship; torpedo launch headings aimed down a clear lane and multi-waypoint
-   routes (`best_route` does one detour); guided salvos' real launcher Ld in the hazard maths
-   (assumed 8); the Burn Retros decision still uses the older end-point hazard check. Done: guided / seeking torpedo turn cones in the hazard maths
+   routes (`best_route` does one detour). Done: guided salvos use the launcher's real Ld in the
+   hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
+   Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest
+   half-speed move along the path, taken when the hazard saved beats half the ship's
+   firepower value). Done: guided / seeking torpedo turn cones in the hazard maths
    (`ai_hazards._torpedo_heading / _in_turn_cone`: seeking salvos turn up to 45 degrees at the
    nearest of our ships at its end position; guided ones threaten their whole 45-degree cone at
-   the launcher's Leadership-test odds, assumed Ld 8 (`GUIDED_TURN_CHANCE`, the launcher isn't
-   looked up yet); Tau missiles their whole cone). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
+   the launcher's Leadership-test odds (`guided_turn_chance`); Tau missiles their whole cone). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
 1b. (done) Bombers vs assault boats by expected VP (owner idea): `waves.bomber_squadron_value`

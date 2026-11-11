@@ -99,7 +99,7 @@ def _turret_kills(ship: Ship) -> float:
 
 
 def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
-                my_ships: Sequence[Ship]) -> Tuple[float, str]:
+                my_ships: Sequence[Ship], gs=None) -> Tuple[float, str]:
     """Expected hits one enemy marker does to a ship that ends at `end` having
     passed through `pts` (0 if it can't reach it). my_ships: the ship's other
     friends (a mine goes for the nearest enemy vessel)."""
@@ -124,7 +124,7 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
         if strength <= 0:
             return 0.0, ""
         h = strength * ph * (0.5 if "boarding" in otype else 1.0)   # raids, not hull
-        heading, p_reach = _torpedo_heading(m, ship, end, my_ships)
+        heading, p_reach = _torpedo_heading(m, ship, end, my_ships, gs)
         rad = math.radians(heading)
         ex, ey = m.x + m.speed * math.cos(rad), m.y + m.speed * math.sin(rad)
         if on_path or _seg_dist(end[0], end[1], m.x, m.y, ex, ey) <= r + 1.0:
@@ -162,7 +162,7 @@ def ordnance_threat(ship: Ship, end: Point, path: Sequence[Point], gs) -> Tuple[
         m = OrdnanceMarker.from_dict(o)
         if m.owner_player == ship.player:
             continue
-        h, w = marker_hits(ship, m, end, pts, my_ships)
+        h, w = marker_hits(ship, m, end, pts, my_ships, gs)
         if h > 0:
             hits += h
             why.append(w)
@@ -180,18 +180,31 @@ def marker_threat_vp(m: OrdnanceMarker, gs, player: int) -> float:
     markers = [OrdnanceMarker.from_dict(o) for o in gs.ordnance if o["id"] in ids]
     best = 0.0
     for s in mine:
-        hits = sum(marker_hits(s, mk, (s.x, s.y), [(s.x, s.y)], mine)[0] for mk in markers)
+        hits = sum(marker_hits(s, mk, (s.x, s.y), [(s.x, s.y)], mine, gs)[0] for mk in markers)
         best = max(best, hits * value_per_hit(s, gs))
     return best
 
 
-# Guided torpedoes turn if their launcher passes a Leadership test (s.16): the
-# AI doesn't see the launcher here, so it assumes Ld 8 (2D6 <= 8: 26 in 36)
+# Guided torpedoes turn if their launcher passes a Leadership test (s.16); with
+# no game state to look the launcher up, assume Ld 8 (2D6 <= 8: 26 in 36)
 GUIDED_TURN_CHANCE = 26 / 36
 
 
+def guided_turn_chance(m: OrdnanceMarker, gs) -> float:
+    """Chance a guided salvo turns next move (s.16): its launcher passes a
+    Leadership test (2D6 <= Ld); a launcher no longer in play can't guide it
+    (owner ruling). Without the game state, an assumed Ld 8."""
+    if gs is None:
+        return GUIDED_TURN_CHANCE
+    src = gs.get_ship_by_id(m.launched_by) if m.launched_by else None
+    if src is None or src.is_destroyed or src.is_disengaged:
+        return 0.0
+    ld = src.leadership or 8
+    return p_sum_at_most(2, min(10, ld))
+
+
 def _torpedo_heading(m: OrdnanceMarker, ship: Ship, end: Point,
-                     my_ships: Sequence[Ship]) -> Tuple[float, float]:
+                     my_ships: Sequence[Ship], gs=None) -> Tuple[float, float]:
     """(heading the salvo will run on next, chance it can instead turn anywhere
     in its 45-degree cone). Seeking torpedoes (s.16) must turn up to 45 degrees
     towards the nearest enemy ship, which is this ship at its end position if
@@ -205,7 +218,7 @@ def _torpedo_heading(m: OrdnanceMarker, ship: Ship, end: Point,
         diff = (want - m.heading + 180) % 360 - 180
         return (m.heading + max(-45.0, min(45.0, diff))) % 360, 0.0
     if otype == "torpedo_guided_ld":
-        return m.heading, GUIDED_TURN_CHANCE
+        return m.heading, guided_turn_chance(m, gs)
     if otype == "torpedo_guided" and m.can_turn:
         return m.heading, 1.0
     return m.heading, 0.0
@@ -360,7 +373,7 @@ def intercept_gain(gs, player: int, target: OrdnanceMarker, already: int = 0) ->
             and not s.is_destroyed and not s.is_disengaged]
     best = 0.0
     for s in mine:
-        h, _ = marker_hits(s, hit, (s.x, s.y), [(s.x, s.y)], mine)
+        h, _ = marker_hits(s, hit, (s.x, s.y), [(s.x, s.y)], mine, gs)
         best = max(best, h * value_per_hit(s, gs))
     if hit.resilient_save:
         best *= 0.5
