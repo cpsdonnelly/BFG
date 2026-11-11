@@ -17,12 +17,14 @@ def _ask(title, msg, **k):
     return ANSWER[0]
 messagebox.askyesno = _ask
 ANSWER = [True]
-from tkinter import simpledialog
+import src.choice_dialog as _cd
 SUPPRESS_ASKED = []
-def _askint(title, msg, **k):
+def _choose(root, title, text, options, best):
     SUPPRESS_ASKED.append(title)
-    return 0                             # s.27: no multi-role squadron suppresses here
-simpledialog.askinteger = _askint
+    if "Suppress" in title:
+        return 0                         # s.27: no multi-role squadron suppresses here
+    return ANSWER[0] if isinstance(best, bool) else best
+_cd.choose = _choose
 failures = []
 def check(c, label):
     print(("  ok   " if c else "  FAIL ") + label)
