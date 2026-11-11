@@ -562,7 +562,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 989 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 992 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -586,6 +586,8 @@ Latest items, newest last:
 - AI shoots enemy hulks when the re-rolled catastrophic damage would blow up among enemies
   (`ai_hazards.hulk_shot_vp`, `AIPlayer._hulk_shot`); AI hits on hulks now reach
   `apply_damage` (they were dropped before).
+- AI voluntary disengagement by expected VP (`ai_hazards.incoming_hits / disengage_gain`,
+  `AIPlayer._consider_disengage`); tune on the owner's feedback (one-turn horizon, Poisson risk).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

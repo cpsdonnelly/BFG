@@ -367,3 +367,77 @@ def hulk_shot_vp(hulk: Ship, gs, player: int) -> float:
     if_explodes = now / (p_plasma + p_warp)
     later = 0.0 if hulk.status == "burning_hulk" else p_burn * (10 / 36) * 0.5 * if_explodes
     return now + later
+
+
+def _poisson_at_least(lam: float, k: int) -> float:
+    """P(X >= k) for X ~ Poisson(lam)."""
+    import math as _m
+    if k <= 0:
+        return 1.0
+    if lam <= 0:
+        return 0.0
+    term, cdf = _m.exp(-lam), 0.0
+    for i in range(k):
+        cdf += term
+        term *= lam / (i + 1)
+    return max(0.0, 1.0 - cdf)
+
+
+def incoming_hits(ship: Ship, gs) -> float:
+    """Rough hits the enemy's guns can put on `ship` in their next turn: every
+    enemy battery / lance within its range + the enemy's move (0.35 a battery
+    point, 0.5 a lance; only the stronger broadside), less the ship's shields
+    once per firing ship, shared among the ships of ours that enemy can reach."""
+    import math as _m
+    from .geometry import current_shields
+    shields = current_shields(ship, gs.get_blast_markers())
+    ours = [s for s in gs.get_ships() if s.player == ship.player
+            and not s.is_destroyed and not s.is_disengaged]
+    total = 0.0
+    for e in gs.get_ships():
+        if e.player == ship.player or e.is_destroyed or e.is_disengaged:
+            continue
+        reach = (e.speed or 0)
+
+        def in_reach(w, t):
+            return _m.hypot(e.x - t.x, e.y - t.y) <= (w.get("range_cm") or 0) + reach
+        side = {"left": 0.0, "right": 0.0}
+        hits = 0.0
+        for w in e.weapons:
+            wt = w.get("weapon_type")
+            if wt not in ("battery", "lance") or not in_reach(w, ship):
+                continue
+            h = (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35)
+            arcs = w.get("arcs") or []
+            if arcs in (["left"], ["right"]):
+                side[arcs[0]] += h          # only one broadside bears on one target
+            else:
+                hits += h
+        hits += max(side.values())
+        # its fire is shared among the ships of ours it can reach
+        n = sum(1 for t in ours if any(in_reach(w, t) for w in e.weapons
+                                       if w.get("weapon_type") in ("battery", "lance")))
+        total += max(0.0, hits - shields) / max(1, n)
+    return total
+
+
+def disengage_gain(ship: Ship, gs, ld: int, contribution: float) -> float:
+    """Expected VP gained by trying to disengage now (s.37, VP s.38) instead of
+    fighting on for another turn. Staying risks the enemy's next turn
+    (incoming_hits as a Poisson count): destroyed -> the full value, newly
+    crippled -> 25%. Leaving concedes 10% (25% if crippled, which a crippled
+    ship concedes anyway). Either way the ship's guns are lost this turn (a
+    failed test also forbids firing), worth `contribution`.
+    gain = P(pass) x (risk avoided - extra VP conceded) - contribution."""
+    v = ship_value(ship, gs)
+    lam = incoming_hits(ship, gs)
+    left = max(1, ship.hits_remaining)
+    p_kill = _poisson_at_least(lam, left)
+    risk = p_kill * v * (0.75 if ship.is_crippled else 1.0)
+    if not ship.is_crippled:
+        to_cripple = left - ship.hits_max // 2
+        if to_cripple > 0:
+            risk += max(0.0, _poisson_at_least(lam, to_cripple) - p_kill) * 0.25 * v
+    extra = 0.0 if ship.is_crippled else 0.10 * v
+    p_pass = p_sum_at_most(2, ld) if ld > 1 else 0.0
+    return p_pass * (risk - extra) - contribution

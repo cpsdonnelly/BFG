@@ -384,8 +384,15 @@ Owner rulings (fleet lists, export 15):
   closest target (would need the target priority test).
 - Disengaging (s.37): escort squadrons test together; Forced Disengagement (Ld 1 or less) and
   Demiurg Mercenaries test at the end of movement (`disengage.forced_disengage_tests`); a ship
-  that fails gets `Ship.must_flee` (AI `_plan_flee`). Not yet: the +3 during a radiation burst
-  or solar flare; the AI never disengages voluntarily.
+  that fails gets `Ship.must_flee` (AI `_plan_flee`). The AI disengages voluntarily at the end
+  of its movement when `ai_hazards.disengage_gain` > 0 (`AIPlayer._consider_disengage`):
+  P(pass) x (risk avoided over the enemy's next turn - extra VP conceded) - its guns' value
+  (`ai_rerolls.firepower_swing`; lost either way this turn). Risk: `incoming_hits` (enemy guns
+  in range + move, stronger broadside only, shared among our ships in reach) as a Poisson
+  count; destroyed = full value (75% more if already crippled), newly crippled 25%; leaving
+  concedes 10% (crippled: nothing extra). Judgement weights; one-turn horizon; escort squadrons
+  and the last turn of a game not special-cased yet. Not yet: the +3 during a radiation burst
+  or solar flare.
 
 ### Torpedo types (s.16): owner rulings
 
@@ -420,7 +427,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 989 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 992 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -458,6 +465,10 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
   combined launch dialog has a compact planner (target, wave size, CAP;
   `OrdnancePanel._combined_split_planner`).
 - CAP now meets incoming craft lead first before the turret roll, with s.23 saves (see Waves).
+- AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
+  e.g. a crippled cruiser on 2 hits under enemy guns tries to leave; a healthy one facing a
+  single enemy cruiser fights on (a lone healthy cruiser facing three full cruisers also leaves:
+  ~39% to be destroyed next turn by this model).
 - AI shoots enemy hulks when their explosion would hurt enemy ships (`AIPlayer._hulk_shot`);
   fixed: AI hits on a hulk were dropped (`_apply_hits_to` skipped "destroyed" ships), so its
   catastrophic damage was never re-rolled.

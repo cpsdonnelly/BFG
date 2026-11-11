@@ -1,0 +1,45 @@
+"""AI voluntary disengagement by expected VP (s.37 / s.38; CLAUDE.md To do 1)."""
+from tests.conftest import make_ship, make_gs, DiceStub
+from src.ai_hazards import disengage_gain, incoming_hits
+
+GUNS = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 8,
+         "arcs": ["left"]},
+        {"name": "Prow Lances", "weapon_type": "lance", "range_cm": 30, "strength": 3,
+         "arcs": ["front"]}]
+
+
+def _scene(hits_left, enemy_x=40.0, n_foes=3):
+    me = make_ship(id="me", player=1, hits_max=8, hits_remaining=hits_left, points_value=180,
+                   weapons=[dict(GUNS[0])])
+    foes = [make_ship(id=f"e{i}", player=2, x=enemy_x, y=10.0 * i, points_value=180,
+                      weapons=[dict(w) for w in GUNS]) for i in range(n_foes)]
+    return me, make_gs([me] + foes)
+
+
+def test_crippled_ship_under_the_guns_disengages():
+    me, gs = _scene(2)
+    assert me.is_crippled and incoming_hits(me, gs) > 4
+    assert disengage_gain(me, gs, ld=8, contribution=5.0) > 0
+
+
+def test_healthy_or_safe_ships_fight_on():
+    me, gs = _scene(8, n_foes=1)
+    assert disengage_gain(me, gs, ld=8, contribution=5.0) < 0     # not worth 10% + its guns
+    me2, gs2 = _scene(2, enemy_x=200.0)                            # crippled but out of reach
+    assert incoming_hits(me2, gs2) == 0
+    assert disengage_gain(me2, gs2, ld=8, contribution=5.0) < 0
+
+
+def test_ai_attempts_disengage_after_moving():
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    me, gs = _scene(2)
+    gs.current_phase = "movement"
+    rolls = [5]                         # 2D6 total 5 vs Ld 8: passes
+    dice = DiceStub(rolls)
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    gs.update_ship(me.__class__.from_dict({**me.to_dict(), "leadership": 8}))
+    ai._consider_disengage(gs.get_ship_by_id("me"))
+    assert dice._idx == len(rolls)
+    assert gs.get_ship_by_id("me").is_disengaged

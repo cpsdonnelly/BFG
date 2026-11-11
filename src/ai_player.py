@@ -115,6 +115,36 @@ class AIPlayer:
 
         for ship in my_ships:
             self._move_ship(ship)
+        if self.difficulty != "easy":
+            for ship in my_ships:
+                self._consider_disengage(gs.get_ship_by_id(ship.id))
+
+    def _consider_disengage(self, ship: Optional[Ship]):
+        """Voluntary disengagement (s.37) at the end of movement when it is worth
+        more in expected VP than fighting on (ai_hazards.disengage_gain): mostly
+        crippled ships about to be destroyed. Escort squadrons and ships already
+        made to flee are left to the existing rules."""
+        from .ai_hazards import disengage_gain
+        from .ai_rerolls import firepower_swing
+        from .disengage import get_disengage_ld_modifiers, attempt_disengage, _ftl_blocked
+        gs = self.gs
+        if (ship is None or ship.is_destroyed or ship.is_disengaged
+                or getattr(ship, "must_flee", False) or ship.status != "active"):
+            return
+        if ship.ship_type == "escort" and ship.squadron_id and any(
+                s.squadron_id == ship.squadron_id and s.id != ship.id
+                for s in gs.get_ships() if s.player == ship.player and not s.is_destroyed
+                and not s.is_disengaged):
+            return
+        if _ftl_blocked(ship, gs):
+            return
+        ld = get_disengage_ld_modifiers(ship, gs)["effective_ld"]
+        gain = disengage_gain(ship, gs, ld, firepower_swing(ship, gs))
+        if gain <= 0:
+            return
+        gs.add_log(f"[AI] {ship.name} tries to disengage (Ld {ld}; worth about "
+                   f"{gain:.0f} VP)")
+        attempt_disengage(ship, self.dice, gs)
 
     def _move_ship(self, ship: Ship):
         gs = self.gs
