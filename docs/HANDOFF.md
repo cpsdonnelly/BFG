@@ -643,7 +643,9 @@ Latest items, newest last:
 - Owner: kills / cripples now count the damage they prevent (`ship_threat_vp`) and the chance a
   kill explodes among nearby ships (`death_explosion_vp`); movement avoids ships about to blow
   up and a dying ship hugs enemies (`explosion_position_vp`). Torpedo-bomber salvos last one
-  phase (s.21); open question on Tau Tiger Shark salvos (CLAUDE.md).
+  phase (s.21); open question on Tau Tiger Shark salvos (CLAUDE.md). Torpedo bomber options
+  ("TB 20cm +N") are on 19 carriers: Navy 6, Mechanicus 3, Chaos 10, plus Tau Tiger Sharks
+  (full list in CLAUDE.md To do 3; the owner corrected an earlier, incomplete list).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

@@ -649,9 +649,19 @@ points to):
    removes the whole combined salvo, s.19) and strike planning (torpedo bombers vs bombers).
    Owner reminder: torpedo-bomber salvos don't live on like other torpedoes: s.21 "limited
    fuel ... removed at the end of the phase in which it is fired" (one move only). Who has
-   them: Imperial Navy Marauder torpedo bombers (TB 20cm, attack-craft option); Tau Tiger
-   Shark drone carriers (torpedo bombers "producing missile salvos", 4+ resilient, 20cm; open
-   question below). No other faction lists torpedo bombers.
+   them (owner corrected an incomplete list; full search of ships.json notes and the rules):
+   "Attack craft: TB 20cm +Npts" options on 19 carriers in four factions, plus Tau:
+   - Imperial Navy (Marauders, Imperial Navy rules p.3): Emperor +80, Oberon +80, Exorcist +60,
+     Mars +40, Dominion +40, Dictator +40;
+   - Adeptus Mechanicus: Mechanicus Emperor +80, Mechanicus Oberon +40, Mechanicus Dictator +40;
+   - Chaos ("not if Stormbird gunships taken"): Despoiler +80, Desecrator +40, Retaliator +60,
+     Nephilim +40, Styx +60, Hecate +40, Devastation +40, Scion of Prospero +90, Wage of Sin +60,
+     Terminus Est +70;
+   - Tau: Tiger Shark drone carriers (torpedo bombers "producing missile salvos", 4+ resilient,
+     20cm) replacing Mantas on many Tau ships and the Orbital City's defence module (open
+     question below).
+   None of these purchases is offered by the fleet builder yet (`booklet_options` note, l.532);
+   Orks, Space Marines, Inquisition and Rogue Traders list none.
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
    daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
    commander's Extra Turrets: 4+), other factions' secondary commanders, Inquisition Ordos.
