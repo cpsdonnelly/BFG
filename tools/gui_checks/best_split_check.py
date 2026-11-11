@@ -51,17 +51,64 @@ for turrets in (1, 4):
         if cap_entry is not None:
             plan["CAP"].delete(0, tk.END); plan["CAP"].insert(0, str(cap_entry))
         btn[0].invoke(); root.update()
-        f_ = int(next(e.get() for k, e in plan.items() if "ight" in k))
-        b_ = int(next(e.get() for k, e in plan.items() if "omb" in k))
+        f_ = int(next(e.get() for k, e in plan.items() if k.startswith("Fury")))
+        b_ = int(next(e.get() for k, e in plan.items() if k.startswith("Starhawk")))
         ok = (f_, b_) == expect[:2]
         print(("  ok   " if ok else "  FAIL ") + f"{label}: got {f_}F/{b_}B expected "
               f"{expect[0]}F/{expect[1]}B")
         if not ok:
             fails.append(label)
 
-    bays = int(plan["Bays"].get())
+    bays = int(plan["Wave size"].get())
     run_case(f"auto, turrets {turrets}", None, best_wave_split(bays, turrets, turrets, 0, 5))
     run_case(f"manual, turrets {turrets}, expected CAP 3", 3,
              best_wave_split(bays, turrets, turrets, 3, 5))
     root.destroy()
+
+print("Emperor (8 bays): wave of 6 + 1 lone fighter + 1 on CAP, resilient bombers")
+root = tk.Tk(); gs = GameState(); gs.dice_mode = "auto"
+d = find_ship_class("Emperor Class Battleship").to_ship_dict("Emp", 1, ship_id="emp")
+d.update(x=30.0, y=60.0, heading=0.0, leadership=8)
+gs.add_ship(Ship.from_dict(d))
+gs.add_ship(Ship(id="e", name="e", ship_class="T", faction="imperial_navy_gothic", player=2,
+                 ship_type="cruiser", base_size="small", x=80.0, y=60.0, heading=90.0,
+                 speed=20, turn_angle=45, shields_max=2, armor_prow="5+", armor_side="5+",
+                 turrets=3, hits_max=8, leadership=7, weapons=[], special_rules=[],
+                 upgrades=[], critical_damage=[]))
+tc = TurnController(gs, DiceRoller(mode="auto")); tc.start_game()
+gs.current_phase = "ordnance"; gs.active_player = 1
+board = BoardView(root, gs); f = tk.Frame(board.side_panel); f.pack()
+panel = GamePanel(f, tc, board, root)
+panel.ordnance._launch_ordnance_dialog(preselected_ship=gs.get_ship_by_id("emp")); root.update()
+dlg = [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)][-1]
+plan = {}
+for w in walk(dlg):
+    if isinstance(w, tk.Entry) and isinstance(w.master, tk.Frame):
+        kids = w.master.winfo_children(); k = kids.index(w)
+        if k and isinstance(kids[k - 1], tk.Label):
+            plan[kids[k - 1].cget("text")] = w
+def setv(key, v):
+    plan[key].delete(0, tk.END); plan[key].insert(0, str(v))
+setv("Wave size", 6); setv("+ lone fighters", 1); setv("+ CAP fighters", 1)
+setv("CAP", 2); setv("Bombers", 4)
+[b for b in walk(dlg) if isinstance(b, tk.Button) and b.cget("text") == "Best split"][0].invoke()
+root.update()
+fb, bb, _ = best_wave_split(6, 3, 3, 2, 5, b_save=4)
+got = (int(plan[next(k for k in plan if k.startswith("Fury"))].get()),
+       int(plan[next(k for k in plan if k.startswith("Starhawk"))].get()))
+ok = got == (fb, bb)
+print(("  ok   " if ok else "  FAIL ") + f"planned {got}, expected {(fb, bb)}")
+fails += [] if ok else ["emperor plan"]
+[b for b in walk(dlg) if isinstance(b, tk.Button) and b.cget("text") == "Launch Attack Craft"][0].invoke()
+root.update()
+ords = gs.ordnance
+wave = [o for o in ords if o.get("wave_id")]
+lone = [o for o in ords if not o.get("wave_id") and not o.get("cap_ship_id")]
+cap = [o for o in ords if o.get("cap_ship_id") == "emp"]
+ok = (len(ords) == 8 and len(wave) == 6 and len(lone) == 1 and len(cap) == 1
+      and all(o["ordnance_type"] == "fighter" for o in lone + cap))
+print(("  ok   " if ok else "  FAIL ") + f"launched {len(ords)}: wave {len(wave)}, "
+      f"lone {[o['ordnance_type'] for o in lone]}, CAP {[o['ordnance_type'] for o in cap]}")
+fails += [] if ok else ["emperor launch"]
+root.destroy()
 print("RESULT: ALL OK" if not fails else f"RESULT: FAIL {fails}")

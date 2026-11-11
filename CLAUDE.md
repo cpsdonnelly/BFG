@@ -286,7 +286,12 @@ button in the single-ship launch dialog (`waves.best_wave_split`: fighters vs bo
 wave from the bays available, the nearest enemy ship's turrets incl. massed, its enemy CAP
 fighters and Armour; `OrdnancePanel._best_split_plan`). Its inputs (target, bays, turrets,
 massed, CAP, Armour) are filled from the chosen target, nearest first, and can be edited, e.g.
-for CAP the enemy is expected to launch before the wave arrives; "Reset" refills them. Combining ordnance launches (s.15):
+for CAP the enemy is expected to launch before the wave arrives; "Reset" refills them.
+Resilient saves (s.23) for own fighters, bombers and enemy CAP (`waves.cap_survivors`: CAP
+intercepts first, a passed save keeps the squadron in play as the lead with its save used;
+turrets ignore saves). The wave size may be less than the bays: "+ lone fighters" launch
+outside the wave (e.g. to intercept torpedoes), "+ CAP fighters" go on CAP for the Protect
+ship, all in the same launch. Combining ordnance launches (s.15):
 only members of one squadron (escorts or capital ships) in contiguous base contact. Not yet: bombers that re-roll attacks
 (+1 when suppressed) don't exist yet; resilient
 squadrons don't stop or split (interactions happen after movement); CAP fighters intercept

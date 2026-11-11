@@ -372,10 +372,29 @@ class OrdnancePanel(OrdnanceMovementMixin):
         gs = self.ctx.gs
         cap = sum(1 for o in gs.ordnance if o.get("cap_ship_id") == tgt.id
                   and "fighter" in craft_roles(o["ordnance_type"]))
+        cap_save = max((o.get("resilient_save") or 0 for o in gs.ordnance
+                        if o.get("cap_ship_id") == tgt.id
+                        and "fighter" in craft_roles(o["ordnance_type"])), default=0)
         return {"turrets": ordnance_turrets(tgt, gs),
                 "massed": get_massed_turret_bonus(tgt, gs.get_ships()),
-                "cap": cap, "armour": tgt.lowest_armor_value,
+                "cap": cap, "armour": tgt.lowest_armor_value, "cap_save": cap_save,
                 "ork": "ork_turrets" in tgt.special_rules}
+
+    def _split_types(self, ship, available_types):
+        """(fighter type, bomber type, fighter save, bomber save) for the split
+        planner, or None when the bays don't offer one pure fighter and one pure
+        bomber type (multi-role craft use the s.27 suppression choice)."""
+        from .ordnance import craft_roles, craft_stats
+        bay_ws = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+        stats = {ct: craft_stats(ct, bay_ws) for ct in available_types}
+        roles = {ct: set(craft_roles(st[0])) for ct, st in stats.items()}
+        if any(len(r) > 1 for r in roles.values()):
+            return None
+        fk = next((ct for ct, r in roles.items() if r == {"fighter"}), None)
+        bk = next((ct for ct, r in roles.items() if r == {"bomber"}), None)
+        if not fk or not bk:
+            return None
+        return fk, bk, stats[fk][2] or 0, stats[bk][2] or 0
 
     def _best_split_plan(self, ship, available_types, total_bays, check_only=False,
                          inputs=None, bays=None, target_name=None):
@@ -384,16 +403,11 @@ class OrdnancePanel(OrdnanceMovementMixin):
         the nearest enemy ship's current values; `bays` to all the ship can
         launch. Only for bays that offer a pure fighter and a pure bomber type
         (multi-role craft use the s.27 suppression choice instead)."""
-        from .ordnance import craft_roles, craft_stats
         from .waves import best_wave_split
-        bay_ws = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
-        roles = {ct: set(craft_roles(craft_stats(ct, bay_ws)[0])) for ct in available_types}
-        if any(len(r) > 1 for r in roles.values()):
-            return None                              # multi-role: see s.27 suppression
-        fk = next((ct for ct, r in roles.items() if r == {"fighter"}), None)
-        bk = next((ct for ct, r in roles.items() if r == {"bomber"}), None)
-        if not fk or not bk or total_bays < 2:
+        types = self._split_types(ship, available_types)
+        if not types or total_bays < 2:
             return None
+        fk, bk, f_save, b_save = types
         if check_only:
             return True
         if inputs is None:
@@ -405,12 +419,19 @@ class OrdnancePanel(OrdnanceMovementMixin):
         n = total_bays if bays is None else max(0, min(total_bays, bays))
         t, massed, cap = inputs["turrets"], inputs["massed"], inputs["cap"]
         p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
-        f, b, ev = best_wave_split(n, t, t + massed, cap, inputs["armour"], p)
+        f_save = inputs.get("f_save", f_save)
+        b_save = inputs.get("b_save", b_save)
+        cap_save = inputs.get("cap_save", 0)
+        f, b, ev = best_wave_split(n, t, t + massed, cap, inputs["armour"], p,
+                                   f_save, b_save, cap_save)
         who = f"vs {target_name}" if target_name else "custom values"
+        saves = ", ".join(f"{lbl} {v}+" for lbl, v in (("fighters", f_save), ("bombers", b_save),
+                                                       ("CAP", cap_save)) if v)
         return {"counts": {fk: f, bk: b},
                 "note": f"{who} ({t} turrets, {massed} massed, {cap} CAP, Armour "
-                        f"{inputs['armour']}+, {n} bays): {f} fighters + {b} bombers, "
-                        f"about {ev:.1f} hits"}
+                        f"{inputs['armour']}+, wave of {n}"
+                        + (f"; resilient {saves}" if saves else "")
+                        + f"): {f} fighters + {b} bombers, about {ev:.1f} hits"}
 
     def _combine_ordnance_dialog(self):
         """Pool torpedo or craft launches from ships in contiguous base contact.
@@ -1414,6 +1435,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
             # Best fighter / bomber split for one wave (fleets without
             # multi-role craft): from the bays, the target's turrets and its CAP
             split_note = tk.StringVar(value="")
+            extra_vars = {"lone": tk.StringVar(value="0"), "cap": tk.StringVar(value="0")}
+            split_types = self._split_types(ship, available_types)
+            _AUTO_KEYS = ("turrets", "massed", "cap", "armour", "cap_save")
             if self._best_split_plan(ship, available_types, total_bays, check_only=True):
                 # Planner inputs: filled from a target, editable (e.g. CAP the
                 # enemy is expected to launch before the wave arrives)
@@ -1428,27 +1452,59 @@ class OrdnancePanel(OrdnanceMovementMixin):
                                        state="readonly", width=22, font=("Consolas", 7))
                 tgt_box.pack(side=tk.LEFT, padx=2)
                 split_vars = {}
-                for key, label, width in (("bays", "Bays", 2), ("turrets", "Turrets", 2),
-                                          ("massed", "Massed", 2), ("cap", "CAP", 2),
-                                          ("armour", "Armour", 2)):
-                    tk.Label(plan_frame, text=label, font=("Consolas", 7)).pack(side=tk.LEFT)
+                plan_frame2 = tk.Frame(bay_frame)
+                plan_frame2.pack(fill=tk.X, padx=10, pady=1)
+                plan_frame3 = tk.Frame(bay_frame)
+                plan_frame3.pack(fill=tk.X, padx=10, pady=1)
+                tk.Label(plan_frame2, text="Resilient saves (0 = none):",
+                         font=("Consolas", 7)).pack(side=tk.LEFT)
+                tk.Label(plan_frame3, text="Wave size", font=("Consolas", 7)).pack(side=tk.LEFT)
+                for frame, key, label in ((plan_frame, "turrets", "Turrets"),
+                                          (plan_frame, "massed", "Massed"),
+                                          (plan_frame, "cap", "CAP"),
+                                          (plan_frame, "armour", "Armour"),
+                                          (plan_frame2, "f_save", "Fighters"),
+                                          (plan_frame2, "b_save", "Bombers"),
+                                          (plan_frame2, "cap_save", "Enemy CAP"),
+                                          (plan_frame3, "bays", None)):
+                    if label:
+                        tk.Label(frame, text=label, font=("Consolas", 7)).pack(side=tk.LEFT)
                     v = tk.StringVar()
-                    tk.Entry(plan_frame, textvariable=v, width=width,
+                    tk.Entry(frame, textvariable=v, width=2,
                              font=("Consolas", 7)).pack(side=tk.LEFT, padx=1)
                     split_vars[key] = v
+                # Bays not in the wave: lone fighters (e.g. to intercept torpedoes)
+                # and fighters on CAP for the "Protect" ship above
+                tk.Label(plan_frame3, text="+ lone fighters",
+                         font=("Consolas", 7)).pack(side=tk.LEFT)
+                tk.Entry(plan_frame3, textvariable=extra_vars["lone"], width=2,
+                         font=("Consolas", 7)).pack(side=tk.LEFT, padx=1)
+                tk.Label(plan_frame3, text="+ CAP fighters",
+                         font=("Consolas", 7)).pack(side=tk.LEFT)
+                tk.Entry(plan_frame3, textvariable=extra_vars["cap"], width=2,
+                         font=("Consolas", 7)).pack(side=tk.LEFT, padx=1)
+                tk.Label(plan_frame3, text=f"(of {total_bays} bays)",
+                         font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=2)
                 split_ork = [False]
                 split_auto = [None]
 
+                _fk, _bk, _fsave, _bsave = split_types
+
                 def _fill_split_inputs(*_):
+                    extra_vars["lone"].set("0")
+                    extra_vars["cap"].set("0")
                     split_vars["bays"].set(str(total_bays))
+                    split_vars["f_save"].set(str(_fsave))
+                    split_vars["b_save"].set(str(_bsave))
+                    split_vars["cap_save"].set("0")
                     if not tgt_names or tgt_var.get() not in tgt_names:
                         return
                     tgt = split_targets[tgt_names.index(tgt_var.get())]
                     vals = self._split_inputs_for(tgt)
                     split_ork[0] = vals["ork"]
-                    for k in ("turrets", "massed", "cap", "armour"):
+                    for k in ("turrets", "massed", "cap", "armour", "cap_save"):
                         split_vars[k].set(str(vals[k]))
-                    split_auto[0] = {k: str(vals[k]) for k in ("turrets", "massed", "cap", "armour")}
+                    split_auto[0] = {k: split_vars[k].get() for k in _AUTO_KEYS}
                 tgt_box.bind("<<ComboboxSelected>>", _fill_split_inputs)
                 _fill_split_inputs()
                 tk.Button(plan_frame, text="Reset", command=_fill_split_inputs,
@@ -1456,17 +1512,23 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
                 def _set_best_split():
                     try:
-                        vals = {k: int(split_vars[k].get()) for k in
-                                ("bays", "turrets", "massed", "cap", "armour")}
+                        vals = {k: int(split_vars[k].get()) for k in split_vars}
+                        lone = int(extra_vars["lone"].get() or 0)
+                        capn = int(extra_vars["cap"].get() or 0)
                     except ValueError:
-                        split_note.set("(enter whole numbers for bays, turrets, massed, CAP, armour)")
+                        split_note.set("(enter whole numbers in every planner field)")
                         return
-                    if vals["armour"] < 2 or vals["armour"] > 6 or min(vals.values()) < 0:
-                        split_note.set("(Armour 2-6; other values 0 or more)")
+                    if (vals["armour"] < 2 or vals["armour"] > 6 or min(vals.values()) < 0
+                            or lone < 0 or capn < 0
+                            or any(vals[k] > 6 for k in ("f_save", "b_save", "cap_save"))):
+                        split_note.set("(Armour 2-6, saves 0 or 2-6, other values 0 or more)")
+                        return
+                    if vals["bays"] + lone + capn > total_bays:
+                        split_note.set(f"(wave {vals['bays']} + {lone} lone + {capn} CAP "
+                                       f"is more than the {total_bays} bays)")
                         return
                     vals["ork"] = split_ork[0]
-                    edited = split_auto[0] != {k: split_vars[k].get()
-                                               for k in ("turrets", "massed", "cap", "armour")}
+                    edited = split_auto[0] != {k: split_vars[k].get() for k in _AUTO_KEYS}
                     name = None if edited or not tgt_names else tgt_var.get().rsplit(" (", 1)[0]
                     plan = self._best_split_plan(ship, available_types, total_bays,
                                                  inputs=vals, bays=vals["bays"],
@@ -1476,7 +1538,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         return
                     for ct, v in composition_vars.items():
                         v.set(str(plan["counts"].get(ct, 0)))
-                    split_note.set(plan["note"])
+                    extra = (f"; plus {lone} lone fighter(s)" if lone else "") + \
+                            (f"; plus {capn} on CAP for {cap_protect_var.get()}" if capn else "")
+                    split_note.set(plan["note"] + extra)
                 tk.Button(quick_craft, text="Best split", command=_set_best_split,
                           bg="#335533", fg="white",
                           font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
@@ -1491,6 +1555,16 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     return
                 if not self._excess_craft_removed(ship.player):
                     return
+                # Split planner's CAP fighters must reach the protected ship
+                if split_types and extra_vars["cap"].get().strip() not in ("", "0"):
+                    _spd = craft_stats(split_types[0], bay_weapons)[1]
+                    _pid = cap_ship_id_map.get(cap_protect_var.get(), ship.id)
+                    _px, _py = cap_ship_pos_map.get(_pid, (ship.x, ship.y))
+                    if math.hypot(ship.x - _px, ship.y - _py) > _spd:
+                        messagebox.showerror(
+                            "CAP Out of Range",
+                            f"{cap_protect_var.get()} is beyond the fighters' {_spd:.0f}cm.")
+                        return
 
                 # Re-check fleet cap at launch time (may have changed)
                 current_remaining = max(
@@ -1576,13 +1650,44 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         launched_ids.append(marker.id)
                         total_launched += 1
 
+                # Fighters outside the wave (split planner): lone, and on CAP
+                wave_ids = list(launched_ids)
+                extra_counts = {k: int(v.get()) if v.get().strip().isdigit() else 0
+                                for k, v in extra_vars.items()}
+                if split_types and any(extra_counts.values()):
+                    o_type, spd, resil = craft_stats(split_types[0], bay_weapons)
+                    protect_id = cap_ship_id_map.get(cap_protect_var.get(), ship.id)
+                    ppos = cap_ship_pos_map.get(protect_id, (ship.x, ship.y))
+                    for kind in ("lone", "cap"):
+                        for i in range(extra_counts[kind]):
+                            if total_launched >= allowed:
+                                break
+                            on_cap = kind == "cap"
+                            x0, y0 = ppos if on_cap else (ship.x, ship.y)
+                            marker = OrdnanceMarker(
+                                id=f"craft_{ship.id}_{kind}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
+                                ordnance_type=o_type, owner_player=ship.player,
+                                launched_by=ship.id, x=x0 + (i + 1) * 1.5, y=y0 + 2.0,
+                                heading=heading, strength=1, speed=spd,
+                                launched_turn=self.ctx.gs.turn_number,
+                                resilient_save=resil,
+                                cap_ship_id=protect_id if on_cap else "",
+                                special_rules=list(ship.special_rules))
+                            self.ctx.gs.add_ordnance(marker)
+                            launched_ids.append(marker.id)
+                            total_launched += 1
+                    if extra_counts["lone"] or extra_counts["cap"]:
+                        self.ctx.log(f"  {extra_counts['lone']} lone fighter(s), "
+                                     f"{extra_counts['cap']} on CAP for {cap_protect_var.get()}"
+                                     f" (not in the wave)")
+
                 if total_launched == 0:
                     messagebox.showwarning("No Craft",
                         "Set at least one craft type to a non-zero count")
                     return
 
                 wanted = sum(int(v.get()) for v in composition_vars.values()
-                             if v.get().strip().isdigit())
+                             if v.get().strip().isdigit()) + sum(extra_counts.values())
                 if wanted > total_launched:
                     self.ctx.log(f"  Only {total_launched} of {wanted} squadrons launched "
                                  f"(this ship's bays: {ship_cap}, fleet slots: "
@@ -1593,7 +1698,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     ship_fresh.mark_launched("craft")
                     self.ctx.gs.update_ship(ship_fresh)
                 if not cap_var.get():          # craft on CAP are never a wave (s.26)
-                    self._form_launched_wave(launched_ids, wave_var, form_var)
+                    self._form_launched_wave(wave_ids, wave_var, form_var)
 
                 if cap_var.get():
                     protect_name = cap_protect_var.get()

@@ -242,41 +242,92 @@ def best_mr_suppress(group: List[OrdnanceMarker], turrets: int, p_turret: float,
     return best_n
 
 
+def _save_p(save: int) -> float:
+    """Chance to pass a resilient save of `save`+ (0 = no save)."""
+    return 0.0 if not save else max(0, 7 - save) / 6.0
+
+
+def cap_survivors(fighters: int, bombers: int, cap: int, f_save: int = 0,
+                  b_save: int = 0, cap_save: int = 0) -> dict:
+    """Distribution of (fighters, bombers) left after a wave meets `cap` enemy
+    CAP fighter squadrons (s.26: CAP intercepts on contact, before the turrets
+    fire). Each CAP squadron meets the wave's lead squadron (fighters lead).
+    Interception removes both markers, except that a resilient squadron
+    passing its save stays in play (s.23). A save is used once per phase: a
+    squadron that passed stays the lead and is removed by the next CAP
+    squadron it meets (removing that one too); if both sides pass, both are
+    removed. A resilient CAP fighter that passes stays and meets the next lead
+    squadron without a save."""
+    from functools import lru_cache
+    pf, pb, pc = _save_p(f_save), _save_p(b_save), _save_p(cap_save)
+
+    @lru_cache(maxsize=None)
+    def go(f, b, c, lead_used, cap_used):
+        if c <= 0 or f + b <= 0:
+            return {(f, b): 1.0}
+        lead_f = f > 0
+        ps = 0.0 if lead_used else (pf if lead_f else pb)
+        pcap = 0.0 if cap_used else pc
+        nf, nb = (f - 1, b) if lead_f else (f, b - 1)
+        out = {}
+
+        def add(dist, w):
+            if w <= 0:
+                return
+            for k, v in dist.items():
+                out[k] = out.get(k, 0.0) + v * w
+        add(go(nf, nb, c - 1, False, False), ps * pcap + (1 - ps) * (1 - pcap))  # both removed
+        add(go(f, b, c - 1, True, False), ps * (1 - pcap))          # lead saved, CAP gone
+        add(go(nf, nb, c, False, True), (1 - ps) * pcap)            # CAP saved, lead gone
+        return out
+    return go(fighters, bombers, cap, False, False)
+
+
 def wave_split_value(fighters: int, bombers: int, turrets: int, shots: int, cap: int,
-                     armour: int, p_turret: float = 0.5) -> float:
+                     armour: int, p_turret: float = 0.5, f_save: int = 0,
+                     b_save: int = 0, cap_save: int = 0) -> float:
     """Expected hits on a ship from a wave of `fighters` then `bombers` (s.25,
-    s.27): the turrets roll `shots` dice (its turrets plus massed turrets),
-    each success removing a squadron from the front; then each enemy CAP
-    fighter squadron on the target stops one more from the front (CAP meets the
-    wave's squadrons in order after its turret roll); each surviving fighter
-    gives one bomber exactly 3 attacks, the other bombers make D6 attacks less
-    one per turret (its own turrets only)."""
+    s.27). Enemy CAP fighters intercept first (cap_survivors; resilient saves
+    f_save / b_save / cap_save, 0 = none, s.23); then the turrets roll `shots`
+    dice (its turrets plus massed turrets), each success removing a squadron
+    from the front (resilient saves don't work against turrets); each surviving
+    fighter gives one bomber exactly 3 attacks, the other bombers make D6
+    attacks less one per turret (its own turrets only). Resilient bombers that
+    saved against CAP still attack (s.26)."""
     from math import comb
-    n = fighters + bombers
     if bombers <= 0:
         return 0.0
     ph = max(1, 7 - armour) / 6.0
     plain = sum(max(0, k - turrets) for k in range(1, 7)) / 6.0
     total = 0.0
-    for kills in range(shots + 1):
-        pk = comb(shots, kills) * p_turret ** kills * (1 - p_turret) ** (shots - kills)
-        lost = min(n, kills + cap)                   # from the front: fighters first
-        f_left = max(0, fighters - lost)
-        b_left = bombers - max(0, lost - fighters)
-        sup = min(f_left, b_left)
-        total += pk * (sup * 3.0 + (b_left - sup) * plain) * ph
+    for (f0, b0), pw in cap_survivors(fighters, bombers, cap, f_save, b_save, cap_save).items():
+        n = f0 + b0
+        for kills in range(shots + 1):
+            pk = comb(shots, kills) * p_turret ** kills * (1 - p_turret) ** (shots - kills)
+            lost = min(n, kills)                     # from the front: fighters first
+            f_left = max(0, f0 - lost)
+            b_left = b0 - max(0, lost - f0)
+            sup = min(f_left, b_left)
+            total += pw * pk * (sup * 3.0 + (b_left - sup) * plain) * ph
     return total
 
 
 def best_wave_split(slots: int, turrets: int, shots: int, cap: int, armour: int,
-                    p_turret: float = 0.5):
-    """For fleets without multi-role craft: how many of `slots` launch-bay
-    squadrons should be fighters and how many bombers in one wave against a
-    target with `turrets` (and `shots` turret dice incl. massed turrets) and
-    `cap` enemy CAP fighter squadrons. Returns (fighters, bombers, expected hits)."""
-    best = (0, slots, wave_split_value(0, slots, turrets, shots, cap, armour, p_turret))
+                    p_turret: float = 0.5, f_save: int = 0, b_save: int = 0,
+                    cap_save: int = 0):
+    """For fleets without multi-role craft: how many of `slots` squadrons in
+    one wave should be fighters and how many bombers against a target with
+    `turrets` (and `shots` turret dice incl. massed turrets) and `cap` enemy
+    CAP fighter squadrons, with the craft's resilient saves (0 = none).
+    `slots` is the wave size: it may be less than the ship's launch capacity
+    when other bays launch lone fighters or CAP. Returns (fighters, bombers,
+    expected hits)."""
+    def val(f):
+        return wave_split_value(f, slots - f, turrets, shots, cap, armour, p_turret,
+                                f_save, b_save, cap_save)
+    best = (0, slots, val(0))
     for f in range(1, slots):
-        v = wave_split_value(f, slots - f, turrets, shots, cap, armour, p_turret)
+        v = val(f)
         if v > best[2] + 1e-9:
             best = (f, slots - f, v)
     return best

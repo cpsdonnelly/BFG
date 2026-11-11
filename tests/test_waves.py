@@ -155,3 +155,34 @@ def test_best_wave_split():
     f_cap, _, _ = best_wave_split(6, 4, 4, 2, 5)
     assert f_cap >= f
     assert best_wave_split(1, 4, 4, 0, 5)[:2] == (0, 1)   # one slot: it must be a bomber
+
+
+def test_cap_survivors_resilient_rules_s23():
+    from src.waves import cap_survivors
+    # Plain: each CAP squadron removes the lead squadron (fighters lead)
+    assert cap_survivors(1, 2, 2) == {(0, 1): 1.0}
+    # Resilient 4+ fighter vs 2 CAP: fail (1/2) -> it and CAP 1 gone, CAP 2 takes a bomber;
+    # pass -> CAP 1 gone, CAP 2 meets it again without a save: both gone
+    d = cap_survivors(1, 2, 2, f_save=4)
+    assert abs(d[(0, 1)] - 0.5) < 1e-9 and abs(d[(0, 2)] - 0.5) < 1e-9
+    # Resilient bomber that saves stays in play and still attacks
+    d = cap_survivors(0, 1, 1, b_save=4)
+    assert abs(d[(0, 1)] - 0.5) < 1e-9 and abs(d[(0, 0)] - 0.5) < 1e-9
+    # Both resilient and both pass: both removed
+    d = cap_survivors(0, 1, 1, b_save=4, cap_save=4)
+    assert abs(d[(0, 1)] - 0.25) < 1e-9
+
+
+def test_resilience_changes_the_best_split():
+    from src.waves import best_wave_split
+    # Resilient bombers need no escort against CAP (3 turrets, 2 CAP)
+    assert best_wave_split(6, 3, 3, 2, 5)[:2] == (4, 2)
+    assert best_wave_split(6, 3, 3, 2, 5, b_save=4)[:2] == (0, 6)
+    # Resilient fighters break CAP: fewer needed (4 turrets, 2 CAP) ...
+    assert best_wave_split(6, 4, 4, 2, 5)[:2] == (5, 1)
+    assert best_wave_split(6, 4, 4, 2, 5, f_save=4)[:2] == (4, 2)
+    # ... and worth taking even against 2 turrets
+    assert best_wave_split(6, 2, 2, 1, 5)[:2] == (0, 6)
+    assert best_wave_split(6, 2, 2, 1, 5, f_save=4)[:2] == (1, 5)
+    # A smaller wave than the bays (others launched outside it)
+    assert sum(best_wave_split(6, 3, 3, 0, 5)[:2]) == 6
