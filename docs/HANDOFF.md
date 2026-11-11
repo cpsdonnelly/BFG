@@ -103,11 +103,12 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 
 1. AI, still to do: fleet-wide CAP / strike allocation across carriers (per-carrier version
    built), the option value of keeping bays loaded, CAP against enemy bomber waves not yet
-   launched; escorts
-   staying near the commander's ship; fleet focus positioning, next steps (several focus
+   launched; fleet focus positioning, next steps (several focus
    targets, torpedo lanes and craft reach in the move score, expert leaf evaluation). Done:
    hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
-   positioning (first versions: `fleet_focus_targets`, `_focus_for`, `_exposure_penalty`). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per point
+   positioning (first versions: `fleet_focus_targets`, `_focus_for`, `_exposure_penalty`),
+   escorts screening the commander's ship (`_screen_bonus`), prevented damage and explosions in
+   `damage_vp`. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per point
    of in-arc firepower, half-weight flagship exposure, the disengage and hulk models) are
    judgment: tune on the owner's feedback.
 1b. (done) Bombers vs assault boats by expected VP.
@@ -178,9 +179,8 @@ rather than touch a third ship).
 The player's choice prompts (re-rolls, Wings of Fury, Mark of Tzeentch, turret split,
 multi-role suppression) have an "Auto (best: ...)" button picking the AI's expected-best
 option (`src/choice_dialog.py`). Still to add it to: Brace for Impact, special-order
-re-rolls, the Combine Squadron Fire aspect choice, the Vault of Technology chooser.
-Known stale GUI check: `tools/gui_checks/heavy_gunz_check.py` expects no split-fire entry in
-the Fire dialog; it already failed at the start of this session (not caused by this work).
+re-rolls, the Vault of Technology chooser. (The Combine Squadron Fire aspect choice defaults
+to "Best for expected hits"; `heavy_gunz_check.py` was updated and passes.)
 
 ### Owner rulings given this session (also in CLAUDE.md)
 
@@ -623,7 +623,7 @@ Latest items, newest last:
   the AI (threat model `_mount_bears`, Wings of Fury `_weapon_can_bear`, move planning) reads
   the ship's own `turn_angle`; a test pins it.
 - Hazard maths: seeking / guided / Tau torpedo turn cones (`ai_hazards._torpedo_heading`,
-  `_in_turn_cone`; guided at an assumed Ld 8 test).
+  `_in_turn_cone`; guided salvos now at the launcher's real Ld, see below).
 - Hazards in the AI's targeting (owner check): battery values include column shifts
   (`expected_hits(..., gs)`), torpedo / strike targets weighted by
   `ai_hazards.ordnance_path_survival` (mirrors the engine's terrain rules). Owner answers on
@@ -778,7 +778,7 @@ items and the first AI steps below are done).
    (`Ship.own_rerolls`, `booklet_options.SECONDARY`). Left: other factions' secondaries
    (Inquisition Elite Captains / Daemonhunters, Ork Nobz, Rogue Trader Bond-Captains, Space
    Marine Captains on Dominion reserves) and separate re-roll pools for several Ork Bosses.
-2. **AI:** shoot at enemy hulks; use combined squadron fire (`combat.plan_squadron_volley`)
+2. **AI (done):** shoot at enemy hulks; use combined squadron fire (`combat.plan_squadron_volley`)
    with expected-hits / VP target scoring (see "Owner guidance on AI play"); importance-based
    re-roll spending; the "Best for expected hits" tool in the Combine Squadron Fire dialog.
 3. **Disengaging (s.37): done.** A voluntary disengage by an escort in a squadron is one
@@ -787,10 +787,11 @@ items and the first AI steps below are done).
    the movement phase (`forced_disengage_tests`), and a ship that fails gets `must_flee` (the
    AI heads for the nearest edge, `AIPlayer._plan_flee`; a human is reminded in the log);
    celestial phenomena are measured to their edge. Not yet: the +3 for a radiation burst or
-   solar flare in progress (anywhere on the table); the AI never disengages voluntarily.
+   solar flare in progress (anywhere on the table). The AI disengages voluntarily by expected
+   VP (`AIPlayer._consider_disengage`).
 4. **The ordinary profiles' own refits** from ships.json notes, one at a time (Mars Targeting
    Matrix, Exorcist prow torps, Repulsive extra shield, ...); Ork kustom upgrades and clans.
-5. **Rules gap the owner flagged:** multi-role fighter-bombers (Thunderhawks) in a wave must be
+5. **Done:** multi-role fighter-bombers (Thunderhawks) in a wave must be
    offered s.27's choice to suppress turrets instead of attacking, chosen before the turrets
    fire, the suppressors at the front of the wave (`waves.ship_attack_plan` already takes an
    `mr_suppress` map; add the prompt in `ordnance_movement._resolve_ship_contacts` and an AI
