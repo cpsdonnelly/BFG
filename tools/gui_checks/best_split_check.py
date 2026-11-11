@@ -39,20 +39,29 @@ for turrets in (1, 4):
     btn = [b for b in walk(dlg) if isinstance(b, tk.Button) and b.cget("text") == "Best split"]
     if not btn:
         fails.append("no Best split button"); print("  FAIL no button"); root.destroy(); continue
-    btn[0].invoke(); root.update()
-    vals = {}
+    plan = {}
     for w in walk(dlg):
         if isinstance(w, tk.Entry) and isinstance(w.master, tk.Frame):
-            ls = [c.cget("text") for c in w.master.winfo_children() if isinstance(c, tk.Label)]
-            if ls:
-                vals[ls[0]] = w.get()
-    bays = sum(int(v) for v in vals.values() if v.isdigit())
-    fb, bb, _ = best_wave_split(bays, turrets, turrets, 0, 5)
-    got_f = next((int(v) for k, v in vals.items() if "ight" in k), None)
-    got_b = next((int(v) for k, v in vals.items() if "omb" in k), None)
-    ok = (got_f, got_b) == (fb, bb)
-    print(("  ok   " if ok else "  FAIL ") + f"turrets {turrets}: {vals} expected {fb}F/{bb}B")
-    if not ok:
-        fails.append(turrets)
+            kids = w.master.winfo_children()
+            k = kids.index(w)
+            if k and isinstance(kids[k - 1], tk.Label):
+                plan[kids[k - 1].cget("text")] = w
+
+    def run_case(label, cap_entry, expect):
+        if cap_entry is not None:
+            plan["CAP"].delete(0, tk.END); plan["CAP"].insert(0, str(cap_entry))
+        btn[0].invoke(); root.update()
+        f_ = int(next(e.get() for k, e in plan.items() if "ight" in k))
+        b_ = int(next(e.get() for k, e in plan.items() if "omb" in k))
+        ok = (f_, b_) == expect[:2]
+        print(("  ok   " if ok else "  FAIL ") + f"{label}: got {f_}F/{b_}B expected "
+              f"{expect[0]}F/{expect[1]}B")
+        if not ok:
+            fails.append(label)
+
+    bays = int(plan["Bays"].get())
+    run_case(f"auto, turrets {turrets}", None, best_wave_split(bays, turrets, turrets, 0, 5))
+    run_case(f"manual, turrets {turrets}, expected CAP 3", 3,
+             best_wave_split(bays, turrets, turrets, 3, 5))
     root.destroy()
 print("RESULT: ALL OK" if not fails else f"RESULT: FAIL {fails}")

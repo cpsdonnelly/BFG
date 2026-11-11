@@ -358,16 +358,36 @@ class OrdnancePanel(OrdnanceMovementMixin):
         tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
 
-    def _best_split_plan(self, ship, available_types, total_bays, check_only=False):
-        """Fighters / bombers for one wave against the nearest enemy ship (in
-        craft reach first): waves.best_wave_split with its turrets (shots incl.
-        massed turrets), its enemy CAP fighters and its Armour. Only for bays
-        that offer a pure fighter and a pure bomber type (no multi-role craft)."""
-        from .ordnance import (craft_roles, craft_stats, ordnance_turrets,
-                               get_massed_turret_bonus)
+    def _split_targets(self, ship):
+        """Enemy ships a wave could be planned against, nearest first."""
+        enemies = [e for e in self.ctx.gs.get_ships() if e.player != ship.player
+                   and not e.is_destroyed and not e.is_disengaged and e.status == "active"]
+        return sorted(enemies, key=lambda e: ship.distance_to(e))
+
+    def _split_inputs_for(self, tgt):
+        """The planner's inputs read from a target as it is now: innate turrets,
+        massed turrets, enemy CAP fighters escorting it, its lowest Armour and
+        whether it has Ork turrets (hit on 5+)."""
+        from .ordnance import craft_roles, ordnance_turrets, get_massed_turret_bonus
+        gs = self.ctx.gs
+        cap = sum(1 for o in gs.ordnance if o.get("cap_ship_id") == tgt.id
+                  and "fighter" in craft_roles(o["ordnance_type"]))
+        return {"turrets": ordnance_turrets(tgt, gs),
+                "massed": get_massed_turret_bonus(tgt, gs.get_ships()),
+                "cap": cap, "armour": tgt.lowest_armor_value,
+                "ork": "ork_turrets" in tgt.special_rules}
+
+    def _best_split_plan(self, ship, available_types, total_bays, check_only=False,
+                         inputs=None, bays=None, target_name=None):
+        """Fighters / bombers for one wave: waves.best_wave_split. `inputs` (the
+        dialog's editable fields: turrets, massed, CAP, Armour, Ork) default to
+        the nearest enemy ship's current values; `bays` to all the ship can
+        launch. Only for bays that offer a pure fighter and a pure bomber type
+        (multi-role craft use the s.27 suppression choice instead)."""
+        from .ordnance import craft_roles, craft_stats
         from .waves import best_wave_split
-        bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
-        roles = {ct: set(craft_roles(craft_stats(ct, bays)[0])) for ct in available_types}
+        bay_ws = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+        roles = {ct: set(craft_roles(craft_stats(ct, bay_ws)[0])) for ct in available_types}
         if any(len(r) > 1 for r in roles.values()):
             return None                              # multi-role: see s.27 suppression
         fk = next((ct for ct, r in roles.items() if r == {"fighter"}), None)
@@ -376,21 +396,21 @@ class OrdnancePanel(OrdnanceMovementMixin):
             return None
         if check_only:
             return True
-        gs = self.ctx.gs
-        enemies = [e for e in gs.get_ships() if e.player != ship.player and not e.is_destroyed
-                   and not e.is_disengaged and e.status == "active"]
-        if not enemies:
-            return None
-        tgt = min(enemies, key=lambda e: ship.distance_to(e))
-        t = ordnance_turrets(tgt, gs)
-        shots = t + get_massed_turret_bonus(tgt, gs.get_ships())
-        cap = sum(1 for o in gs.ordnance if o.get("cap_ship_id") == tgt.id
-                  and "fighter" in craft_roles(o["ordnance_type"]))
-        f, b, ev = best_wave_split(total_bays, t, shots, cap, tgt.lowest_armor_value,
-                                   (7 - (5 if "ork_turrets" in tgt.special_rules else 4)) / 6.0)
+        if inputs is None:
+            targets = self._split_targets(ship)
+            if not targets:
+                return None
+            inputs = self._split_inputs_for(targets[0])
+            target_name = targets[0].name
+        n = total_bays if bays is None else max(0, min(total_bays, bays))
+        t, massed, cap = inputs["turrets"], inputs["massed"], inputs["cap"]
+        p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
+        f, b, ev = best_wave_split(n, t, t + massed, cap, inputs["armour"], p)
+        who = f"vs {target_name}" if target_name else "custom values"
         return {"counts": {fk: f, bk: b},
-                "note": f"vs {tgt.name} ({t} turrets, {shots - t} massed, {cap} CAP): "
-                        f"{f} fighters + {b} bombers, about {ev:.1f} hits"}
+                "note": f"{who} ({t} turrets, {massed} massed, {cap} CAP, Armour "
+                        f"{inputs['armour']}+, {n} bays): {f} fighters + {b} bombers, "
+                        f"about {ev:.1f} hits"}
 
     def _combine_ordnance_dialog(self):
         """Pool torpedo or craft launches from ships in contiguous base contact.
@@ -1394,16 +1414,69 @@ class OrdnancePanel(OrdnanceMovementMixin):
             # Best fighter / bomber split for one wave (fleets without
             # multi-role craft): from the bays, the target's turrets and its CAP
             split_note = tk.StringVar(value="")
-
-            def _set_best_split():
-                plan = self._best_split_plan(ship, available_types, total_bays)
-                if not plan:
-                    split_note.set("(no plain fighter + bomber choice, or no enemy ship)")
-                    return
-                for ct, v in composition_vars.items():
-                    v.set(str(plan["counts"].get(ct, 0)))
-                split_note.set(plan["note"])
             if self._best_split_plan(ship, available_types, total_bays, check_only=True):
+                # Planner inputs: filled from a target, editable (e.g. CAP the
+                # enemy is expected to launch before the wave arrives)
+                from tkinter import ttk
+                plan_frame = tk.Frame(bay_frame)
+                plan_frame.pack(fill=tk.X, padx=10, pady=1)
+                split_targets = self._split_targets(ship)
+                tgt_names = [f"{e.name} ({ship.distance_to(e):.0f}cm)" for e in split_targets]
+                tgt_var = tk.StringVar(value=tgt_names[0] if tgt_names else "")
+                tk.Label(plan_frame, text="Plan vs:", font=("Consolas", 7)).pack(side=tk.LEFT)
+                tgt_box = ttk.Combobox(plan_frame, textvariable=tgt_var, values=tgt_names,
+                                       state="readonly", width=22, font=("Consolas", 7))
+                tgt_box.pack(side=tk.LEFT, padx=2)
+                split_vars = {}
+                for key, label, width in (("bays", "Bays", 2), ("turrets", "Turrets", 2),
+                                          ("massed", "Massed", 2), ("cap", "CAP", 2),
+                                          ("armour", "Armour", 2)):
+                    tk.Label(plan_frame, text=label, font=("Consolas", 7)).pack(side=tk.LEFT)
+                    v = tk.StringVar()
+                    tk.Entry(plan_frame, textvariable=v, width=width,
+                             font=("Consolas", 7)).pack(side=tk.LEFT, padx=1)
+                    split_vars[key] = v
+                split_ork = [False]
+                split_auto = [None]
+
+                def _fill_split_inputs(*_):
+                    split_vars["bays"].set(str(total_bays))
+                    if not tgt_names or tgt_var.get() not in tgt_names:
+                        return
+                    tgt = split_targets[tgt_names.index(tgt_var.get())]
+                    vals = self._split_inputs_for(tgt)
+                    split_ork[0] = vals["ork"]
+                    for k in ("turrets", "massed", "cap", "armour"):
+                        split_vars[k].set(str(vals[k]))
+                    split_auto[0] = {k: str(vals[k]) for k in ("turrets", "massed", "cap", "armour")}
+                tgt_box.bind("<<ComboboxSelected>>", _fill_split_inputs)
+                _fill_split_inputs()
+                tk.Button(plan_frame, text="Reset", command=_fill_split_inputs,
+                          font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
+
+                def _set_best_split():
+                    try:
+                        vals = {k: int(split_vars[k].get()) for k in
+                                ("bays", "turrets", "massed", "cap", "armour")}
+                    except ValueError:
+                        split_note.set("(enter whole numbers for bays, turrets, massed, CAP, armour)")
+                        return
+                    if vals["armour"] < 2 or vals["armour"] > 6 or min(vals.values()) < 0:
+                        split_note.set("(Armour 2-6; other values 0 or more)")
+                        return
+                    vals["ork"] = split_ork[0]
+                    edited = split_auto[0] != {k: split_vars[k].get()
+                                               for k in ("turrets", "massed", "cap", "armour")}
+                    name = None if edited or not tgt_names else tgt_var.get().rsplit(" (", 1)[0]
+                    plan = self._best_split_plan(ship, available_types, total_bays,
+                                                 inputs=vals, bays=vals["bays"],
+                                                 target_name=name)
+                    if not plan:
+                        split_note.set("(no plain fighter + bomber choice)")
+                        return
+                    for ct, v in composition_vars.items():
+                        v.set(str(plan["counts"].get(ct, 0)))
+                    split_note.set(plan["note"])
                 tk.Button(quick_craft, text="Best split", command=_set_best_split,
                           bg="#335533", fg="white",
                           font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
