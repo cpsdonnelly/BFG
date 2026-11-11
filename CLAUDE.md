@@ -509,13 +509,12 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- **Resilient saves vs non-fighter ordnance:** the owner said the save "only works against
-  enemy fighters". s.23 says "a save against other ordnance ... when a squadron of resilient
-  attack craft intercept or are intercepted by another ordnance marker", so the engine
-  (`ordnance.py` interception code) also lets a resilient fighter save when it intercepts
-  torpedoes, mines or bombers. Not changed: does the owner want saves limited to
-  fighter-vs-fighter / fighter-vs-craft interceptions, or is the booklet's wider wording right?
-  (Turrets: no save, as implemented.)
+- None open.
+
+Owner ruling (resilient saves, s.23): the booklet's wording stands. A resilient squadron saves
+against any other ordnance it intercepts or is intercepted by (fighters, bombers, torpedoes,
+mines), as `ordnance.py` already does; never against turrets, blast markers, shooting or after
+attacking a ship.
 
 ## Running and testing
 
