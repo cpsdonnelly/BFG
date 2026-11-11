@@ -188,6 +188,114 @@ def raid_has_no_effect(effective: int, target: Ship) -> bool:
     return effective <= 1 or (not uses_crit_table(target) and effective < 4)
 
 
+def raid_crit_preview(effective: int, target: Ship) -> Optional[str]:
+    """The critical a raid result would inflict on a crit-table target, after
+    the cascade (no weapons in that slot, unrepairable crit already there), or
+    None (off the table, or a prow crit absorbed by Ablative Prow Armour). No
+    side effects: used to value Wings of Fury re-rolls."""
+    from .tables import CRITICAL_HITS
+    from .combat import ARMAMENT_CRIT_TYPES
+    roll = max(2, min(6, effective))
+    while roll <= 12:
+        data = CRITICAL_HITS.get(roll)
+        ct = data["crit_type"]
+        if ct == "prow_armament" and "ablative_prow_armor" in target.special_rules:
+            return None
+        if ct in ARMAMENT_CRIT_TYPES and not target.has_armament_slot(ct):
+            roll += 1
+            continue
+        if not data["repairable"] and any(c.get("crit_type") == ct
+                                          for c in target.critical_damage):
+            roll += 1
+            continue
+        return ct
+    return None
+
+
+# Expected extra damage of each critical (D3 = 2, D6 = 3.5)
+_CRIT_EXTRA = {"engine_room": 1.0, "thrusters_damaged": 1.0, "hull_breach": 2.0,
+               "bulkhead_collapse": 3.5, "fire": 0.5}
+
+
+def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: int) -> float:
+    """Expected VP the raiding player saves by knocking out the target's weapons
+    in one location: each weapon there scores its expected hits (lances 0.5 a
+    die, batteries 0.35, torpedoes 0.3) on the most valuable of the owner's
+    ships it threatens. A ship in the weapon's arc and in reach (range + 15cm
+    of movement) counts in full; in reach but outside the arc 0.25 (the target
+    may turn to bring it in); out of reach 0.05. Weapons already knocked out
+    there count nothing. So disabling a long-ranged, heavy battery that bears
+    on friendly ships is worth most; a broadside facing nothing is worth little."""
+    from .ai_hazards import value_per_hit
+    from .combat import check_weapon_in_arc, weapon_in_crit_slot, weapon_disabled_by_crit
+    friends = [f for f in gs.get_ships() if f.player == owner and not f.is_destroyed
+               and not f.is_disengaged]
+    total = 0.0
+    for w in target.weapons:
+        if not weapon_in_crit_slot(w, crit_type) or weapon_disabled_by_crit(target, w):
+            continue
+        wt = w.get("weapon_type")
+        per_die = {"lance": 0.5, "battery": 0.35, "torpedo": 0.3}.get(wt)
+        if per_die is None:
+            continue
+        reach = (w.get("range_cm") or 0) + 15.0
+        best = 0.0
+        for f in friends:
+            if target.distance_to(f) > reach:
+                weight = 0.05
+            elif check_weapon_in_arc(target, w, f.x, f.y):
+                weight = 1.0
+            else:
+                weight = 0.25
+            best = max(best, weight * max(1.0, value_per_hit(f, gs)))
+        total += (w.get("strength") or 0) * per_die * best
+    return total
+
+
+def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int) -> float:
+    """Expected VP a raid result is worth to the raiding player (before any
+    brace save, which scales every result alike). Escorts: 1 damage on 4+.
+    Capital ships: the critical it inflicts after the cascade, valued as its
+    extra damage (Engine Room +1 hit) plus its effect: an armament critical by
+    the weapons it silences (armament_threat_value), Bridge Smashed and
+    Shields Collapse a share of the ship's value."""
+    from .ai_hazards import ship_value, value_per_hit
+    if raid_has_no_effect(effective, target):
+        return 0.0
+    vph = max(1.0, value_per_hit(target, gs))       # points unknown: still worth something
+    if not uses_crit_table(target):
+        return vph + (ship_value(target, gs) if target.hits_remaining <= 1 else 0.0)
+    ct = raid_crit_preview(effective, target)
+    if ct is None:
+        return 0.0
+    from .combat import ARMAMENT_CRIT_TYPES
+    extra = _CRIT_EXTRA.get(ct, 0.0)
+    value = extra * vph
+    if extra and target.hits_remaining <= extra:
+        value += ship_value(target, gs) * 0.5          # may finish it off
+    if ct in ARMAMENT_CRIT_TYPES:
+        value += armament_threat_value(target, ct, gs, owner)
+    elif ct == "bridge_smashed":
+        value += ship_value(target, gs) * 0.1
+    elif ct == "shields_collapse":
+        value += ship_value(target, gs) * 0.15
+    elif ct == "thrusters_damaged":
+        value += vph * 0.5
+    return value
+
+
+def best_raid_reroll(roll: int, effective: int, target: Ship, gs: GameState,
+                     owner: int) -> bool:
+    """Wings of Fury: re-roll when a fresh D6 (same modifiers) is worth more on
+    average than the result in hand. Against escorts (1 damage on 4+) that is
+    exactly "re-roll a result with no effect": Space Marines (+1) re-roll a 1
+    or 2."""
+    mod = effective - roll
+    keep = raid_result_value(effective, target, gs, owner)
+    again = sum(raid_result_value(r + mod, target, gs, owner) for r in range(1, 7)) / 6.0
+    return again > keep + 1e-9
+
+
 def describe_raid_result(effective: int, target: Ship) -> str:
     """Plain-words outcome of a raid result, before any brace save."""
     if raid_has_no_effect(effective, target):
@@ -336,8 +444,8 @@ def resolve_hit_and_run(marker: OrdnanceMarker, target: Ship,
 
     def wings_reroll(roll, effective, tgt, _owner=marker.owner_player):
         answer = hook(_owner, roll, effective, tgt) if hook else None
-        if answer is None:              # no player to ask (AI, tests): re-roll a raid with no effect
-            return raid_has_no_effect(effective, tgt)
+        if answer is None:              # no player to ask (AI, tests): expected-value choice
+            return best_raid_reroll(roll, effective, tgt, gs, _owner)
         return answer
     summary = resolve_raids(num_raids, target, brace_passed, dice, gs,
                             source_name=marker.ordnance_type,

@@ -323,14 +323,15 @@ class GamePanel:
             return None
         from .hit_and_run import describe_raid_result
         shown = f"{roll}" + (f" ({effective} after modifiers)" if effective != roll else "")
-        from .hit_and_run import raid_has_no_effect
+        from .hit_and_run import best_raid_reroll
         from .choice_dialog import choose
         return choose(
             self.ctx.root, "Wings of Fury",
             f"Thunderhawk raid on {target.name} rolled {shown}: "
             f"{describe_raid_result(effective, target)}. Re-roll it? The second result "
             f"stands, even if it is worse.",
-            [("Re-roll", True), ("Keep", False)], raid_has_no_effect(effective, target))
+            [("Re-roll", True), ("Keep", False)],
+            best_raid_reroll(roll, effective, target, gs, owner))
 
     def _update_phase_display(self):
         """Update the phase/turn indicators and show the correct buttons."""

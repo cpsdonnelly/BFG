@@ -875,20 +875,5 @@ class CombatPanel(CombatDialogMixin):
 
     def _weapon_disabled_by_crit(self, ship: Ship, weapon: dict) -> bool:
         """Check if a weapon is disabled by critical damage."""
-        arcs = weapon.get("arcs", [])
-        for crit in ship.critical_damage:
-            ct = crit.get("crit_type", "")
-            if ct == "dorsal_armament" and "dorsal" in weapon["name"].lower():
-                return True
-            if ct == "port_armament" and "port" in weapon["name"].lower():
-                return True
-            if ct == "starboard_armament" and "starboard" in weapon["name"].lower():
-                return True
-            if ct == "prow_armament" and "prow" in weapon["name"].lower():
-                return True
-            # Also check by arc matching
-            if ct == "port_armament" and arcs == ["left"]:
-                return True
-            if ct == "starboard_armament" and arcs == ["right"]:
-                return True
-        return False
+        from .combat import weapon_disabled_by_crit
+        return weapon_disabled_by_crit(ship, weapon)

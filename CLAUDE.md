@@ -120,11 +120,21 @@ Cruisers. Ships using rules the engine can't play yet
 Owner request: the player's choice prompts have an "Auto (best: ...)" button that picks what
 the AI's expected-value logic would (`src/choice_dialog.choose`; closing the window takes it
 too): Leadership-test re-rolls and guided torpedo re-rolls (`ai_rerolls.should_reroll`),
-Wings of Fury raid re-rolls (`raid_has_no_effect`), Mark of Tzeentch re-rolls (9+ own / 5-
+Wings of Fury raid re-rolls (`hit_and_run.best_raid_reroll`, below), Mark of Tzeentch re-rolls (9+ own / 5-
 enemy), the turret split (`ordnance.choose_turret_target`) and multi-role turret suppression
 (`waves.best_mr_suppress`). GUI checks that answer these prompts must stub `choose`.
 Not yet: the Brace prompt, special-order re-rolls (special_orders_ui), the Combine Squadron
 Fire aspect choice, Vault of Technology's chooser.
+
+Wings of Fury re-rolls (owner guidance): re-roll when a fresh D6 is worth more on average than
+the result in hand (`raid_result_value`, in expected VP, using the crit after the cascade,
+`raid_crit_preview`). Engine Room is +1 hit; an armament crit is worth the expected hits its
+weapons would score on the raiding player's ships (`armament_threat_value`: in arc and in reach
+in full, in reach but out of arc 0.25, out of reach 0.05; so long-ranged, heavy weapons that bear
+on friendly ships count most, and a location already knocked out counts nothing). Escorts: 1
+damage on 4+, so Space Marines (+1) re-roll a 1 or 2. Armament crits now also silence the
+AI's weapons (`combat.weapon_disabled_by_crit`, shared with the fire dialogs; it used to be
+UI-only, so the AI kept firing knocked-out weapons).
 
 ### Brace for Impact (s.7)
 

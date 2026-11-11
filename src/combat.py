@@ -948,6 +948,39 @@ def _tzeentch_reroll(target: Ship, roll: int, crit_data: Optional[Dict],
     return False
 
 
+ARMAMENT_CRIT_TYPES = ("dorsal_armament", "starboard_armament", "port_armament", "prow_armament")
+
+
+def weapon_in_crit_slot(weapon: Dict, crit_type: str) -> bool:
+    """Is this weapon knocked out by an armament critical of crit_type? By its
+    name (Port / Starboard / Prow / Dorsal ...) or, failing that, its arcs
+    (left only = port, right only = starboard, front only = prow, left + front
+    + right = dorsal), the same slots the crit cascade checks."""
+    name = (weapon.get("name") or "").lower()
+    arcs = weapon.get("arcs") or []
+    word = {"dorsal_armament": "dorsal", "port_armament": "port",
+            "starboard_armament": "starboard", "prow_armament": "prow"}.get(crit_type)
+    if word is None:
+        return False
+    if word in name:
+        return True
+    if any(w in name for w in ("dorsal", "port", "starboard", "prow")):
+        return False                         # named for another location
+    if crit_type == "port_armament":
+        return arcs == ["left"]
+    if crit_type == "starboard_armament":
+        return arcs == ["right"]
+    if crit_type == "prow_armament":
+        return arcs == ["front"]
+    return "left" in arcs and "front" in arcs and "right" in arcs
+
+
+def weapon_disabled_by_crit(ship: Ship, weapon: Dict) -> bool:
+    """Is this weapon out of action because of an armament critical hit?"""
+    return any(weapon_in_crit_slot(weapon, c.get("crit_type", ""))
+               for c in ship.critical_damage)
+
+
 def _torpedo_crit_location(ship: Ship) -> set:
     """Armament crit results that hit a ship's torpedo launchers."""
     locs = set()

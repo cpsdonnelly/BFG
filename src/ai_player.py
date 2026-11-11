@@ -22,6 +22,7 @@ from .combat import (
     check_weapon_in_arc, check_weapon_in_range, check_los_clear,
     resolve_batteries, resolve_lances, apply_damage,
     squadron_group, fire_at_squadron, weapon_fire_pool, shot_weapon,
+    weapon_disabled_by_crit,
 )
 from .chapter_tactics import shadow_engines_hidden
 from .ordnance import ship_torpedo_types, SHORT_BURN_SPEED, unused_once_torpedoes
@@ -497,6 +498,8 @@ class AIPlayer:
             wtype = weapon.get("weapon_type", "")
             if wtype in ("torpedo", "launch_bay", "mine_launcher") or w_idx in siege_done:
                 continue
+            if weapon_disabled_by_crit(ship, weapon):
+                continue                        # armament critical hit
 
             if wtype == "nova_cannon":
                 self._fire_nova_cannon(ship, enemies)
@@ -601,7 +604,8 @@ class AIPlayer:
         from .combat import resolve_siege_cannons
         if not siege_ship(ship):
             return set()
-        bcs = [(i, w) for i, w in enumerate(ship.weapons) if w.get("hits_on")]
+        bcs = [(i, w) for i, w in enumerate(ship.weapons) if w.get("hits_on")
+               and not weapon_disabled_by_crit(ship, w)]
         if not bcs:
             return set()
         target = self._pick_target(ship, bcs[0][1], enemies)
@@ -609,6 +613,7 @@ class AIPlayer:
             return set()
         group = [(i, w) for i, w in enumerate(ship.weapons)
                  if w.get("weapon_type") == "battery"
+                 and not weapon_disabled_by_crit(ship, w)
                  and self._pick_target(ship, w, [target]) is not None]
         macro = [(i, w) for i, w in group if not w.get("hits_on")]
         bc_ok = [(i, w) for i, w in group if w.get("hits_on")]
