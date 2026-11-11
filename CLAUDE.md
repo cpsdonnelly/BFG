@@ -486,12 +486,13 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
    its launch slots in expected VP; a fighter on CAP for the friendly ship a threat is closing
    on (full `intercept_gain`) or free (0.75), else one more squadron in the strike
    (`_strike_option` marginal: planner wave or assault boats); threats our fighters already fly
-   at count as covered). Done: when hulks are worth shooting (see "Not yet matching": Hulks).
-   Still to do here: fleet-wide allocation across carriers, the option
-   value of keeping bays loaded, CAP against enemy bomber waves not yet launched; combined squadron fire for the AI and a "Best for expected hits"
-   default in the Combine Squadron Fire dialog; guided /
-   seeking torpedo turn cones in hazard maths; escorts staying near the commander's ship;
-   voluntary disengaging; bombers vs assault boats by expected VP (owner idea, below). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
+   at count as covered). Done: when hulks are worth shooting (see "Not yet matching": Hulks);
+   voluntary disengaging (see "Not yet matching": Disengaging); bombers vs assault boats (1b).
+   Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
+   keeping bays loaded, CAP against enemy bomber waves not yet launched; combined squadron fire
+   for the AI and a "Best for expected hits" default in the Combine Squadron Fire dialog;
+   guided / seeking torpedo turn cones in hazard maths; escorts staying near the commander's
+   ship. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
 1b. (done) Bombers vs assault boats by expected VP (owner idea): `waves.bomber_squadron_value`
