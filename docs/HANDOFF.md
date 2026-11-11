@@ -292,9 +292,9 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    path, converted at 0.35 expected hits per point of in-arc firepower). Mines (20cm reach if
    it's the nearest enemy), torpedoes (next move line, turrets first), bombers / assault
    boats in reach, asteroid fields, warp rifts, dust clouds, blast markers crossed and shields
-   lost to markers at the end. Hits near the cripple / kill thresholds weigh more. Next:
-   guided / seeking torpedo turn cones; the Burn Retros decision still uses the old
-   end-point penalty.
+   lost to markers at the end. Hits near the cripple / kill thresholds weigh more. Since
+   done: guided / seeking torpedo turn cones (`_torpedo_heading`). Next: the Burn Retros
+   decision still uses the old end-point penalty.
    Original plan: (`ai_hazards.py`, used by every movement candidate, along the whole path,
    not just the end point). Threat = expected damage x the ship's VP per hit, plus speed or
    firing losses where they matter. From the rules, not invented weights:
