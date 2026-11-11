@@ -383,12 +383,39 @@ def _poisson_at_least(lam: float, k: int) -> float:
     return max(0.0, 1.0 - cdf)
 
 
-def incoming_hits(ship: Ship, gs) -> float:
-    """Rough hits the enemy's guns can put on `ship` in their next turn: every
-    enemy battery / lance within its range + the enemy's move (0.35 a battery
-    point, 0.5 a lance; only the stronger broadside), less the ship's shields
-    once per firing ship, shared among the ships of ours that enemy can reach."""
+def _mount_bears(e: Ship, w: dict, t: Ship) -> bool:
+    """Could enemy `e`'s weapon `w` fire at `t` in its next turn? In range +
+    its move, and facing: a port broadside (arcs left only) covers ships on its
+    left side, a starboard one ships on its right (turning can swing a
+    broadside across that whole side, but not onto the other one); other
+    mounts count within their arc after a turn of up to its turn angle."""
     import math as _m
+    from .combat import check_weapon_in_arc
+    if _m.hypot(e.x - t.x, e.y - t.y) > (w.get("range_cm") or 0) + (e.speed or 0):
+        return False
+    arcs = w.get("arcs") or []
+    h = _m.radians(e.heading)
+    cross = _m.cos(h) * (t.y - e.y) - _m.sin(h) * (t.x - e.x)
+    if arcs == ["left"]:
+        return cross > 0
+    if arcs == ["right"]:
+        return cross < 0
+    turn = e.turn_angle or 0
+    for dh in (0, -turn, turn):
+        turned = e if not dh else Ship.from_dict({**e.to_dict(), "heading": (e.heading + dh) % 360})
+        if check_weapon_in_arc(turned, w, t.x, t.y):
+            return True
+    return False
+
+
+def incoming_hits(ship: Ship, gs) -> float:
+    """Rough hits the enemy's guns can put on `ship` in their next turn: each
+    enemy battery / lance mount that can bear on it (`_mount_bears`: in range
+    + the enemy's move, facing it; 0.35 a battery point, 0.5 a lance), its
+    fire shared among the ships of ours that mount can bear on, less the
+    ship's shields once per firing ship. One broadside never counts twice
+    against one target, but an enemy between two of our ships can turn port
+    guns on one and starboard guns on the other (owner)."""
     from .geometry import current_shields
     shields = current_shields(ship, gs.get_blast_markers())
     ours = [s for s in gs.get_ships() if s.player == ship.player
@@ -397,27 +424,14 @@ def incoming_hits(ship: Ship, gs) -> float:
     for e in gs.get_ships():
         if e.player == ship.player or e.is_destroyed or e.is_disengaged:
             continue
-        reach = (e.speed or 0)
-
-        def in_reach(w, t):
-            return _m.hypot(e.x - t.x, e.y - t.y) <= (w.get("range_cm") or 0) + reach
-        side = {"left": 0.0, "right": 0.0}
         hits = 0.0
         for w in e.weapons:
             wt = w.get("weapon_type")
-            if wt not in ("battery", "lance") or not in_reach(w, ship):
+            if wt not in ("battery", "lance") or not _mount_bears(e, w, ship):
                 continue
-            h = (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35)
-            arcs = w.get("arcs") or []
-            if arcs in (["left"], ["right"]):
-                side[arcs[0]] += h          # only one broadside bears on one target
-            else:
-                hits += h
-        hits += max(side.values())
-        # its fire is shared among the ships of ours it can reach
-        n = sum(1 for t in ours if any(in_reach(w, t) for w in e.weapons
-                                       if w.get("weapon_type") in ("battery", "lance")))
-        total += max(0.0, hits - shields) / max(1, n)
+            n = sum(1 for t in ours if _mount_bears(e, w, t))
+            hits += (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35) / max(1, n)
+        total += max(0.0, hits - shields)
     return total
 
 

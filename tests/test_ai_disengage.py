@@ -4,6 +4,8 @@ from src.ai_hazards import disengage_gain, incoming_hits
 
 GUNS = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 8,
          "arcs": ["left"]},
+        {"name": "Starboard Battery", "weapon_type": "battery", "range_cm": 30, "strength": 8,
+         "arcs": ["right"]},
         {"name": "Prow Lances", "weapon_type": "lance", "range_cm": 30, "strength": 3,
          "arcs": ["front"]}]
 
@@ -11,7 +13,8 @@ GUNS = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "stre
 def _scene(hits_left, enemy_x=40.0, n_foes=3):
     me = make_ship(id="me", player=1, hits_max=8, hits_remaining=hits_left, points_value=180,
                    weapons=[dict(GUNS[0])])
-    foes = [make_ship(id=f"e{i}", player=2, x=enemy_x, y=10.0 * i, points_value=180,
+    foes = [make_ship(id=f"e{i}", player=2, x=enemy_x, y=10.0 * i, heading=180.0,
+                      points_value=180,
                       weapons=[dict(w) for w in GUNS]) for i in range(n_foes)]
     return me, make_gs([me] + foes)
 
@@ -43,3 +46,25 @@ def test_ai_attempts_disengage_after_moving():
     ai._consider_disengage(gs.get_ship_by_id("me"))
     assert dice._idx == len(rolls)
     assert gs.get_ship_by_id("me").is_disengaged
+
+
+def test_both_broadsides_at_different_targets():
+    """An enemy between two of our ships fires port at one, starboard at the other."""
+    sides = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 8,
+              "arcs": ["left"]},
+             {"name": "Starboard Battery", "weapon_type": "battery", "range_cm": 30,
+              "strength": 8, "arcs": ["right"]}]
+    e = make_ship(id="e", player=2, x=0.0, y=0.0, heading=0.0, shields_max=0,
+                  weapons=[dict(w) for w in sides])
+    a = make_ship(id="a", player=1, x=0.0, y=20.0, shields_max=0)      # its left
+    b = make_ship(id="b", player=1, x=0.0, y=-20.0, shields_max=0)     # its right
+    gs = make_gs([e, a, b])
+    assert abs(incoming_hits(a, gs) - 8 * 0.35) < 1e-9
+    assert abs(incoming_hits(b, gs) - 8 * 0.35) < 1e-9
+    # A lone target only ever faces one broadside
+    gs1 = make_gs([e, a])
+    assert abs(incoming_hits(a, gs1) - 8 * 0.35) < 1e-9
+    # Two of ours on the same side share that broadside
+    c = make_ship(id="c", player=1, x=10.0, y=20.0, shields_max=0)
+    gs2 = make_gs([e, a, c])
+    assert abs(incoming_hits(a, gs2) - 8 * 0.35 / 2) < 1e-9
