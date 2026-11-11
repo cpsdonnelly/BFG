@@ -550,6 +550,9 @@ class AIPlayer:
         gs = self.gs
         tc = self.tc
         self._committed = {}                # expected hits planned per target this phase
+        self._volley_fired = set()          # (ship id, weapon index) used in a squadron volley
+        if self.difficulty != "easy":
+            self._squadron_volleys()
         for ship in gs.player_ships(self.player):
             if ship.is_destroyed or ship.is_disengaged or ship.has_fired:
                 continue
@@ -579,6 +582,8 @@ class AIPlayer:
                 continue
             if weapon_disabled_by_crit(ship, weapon):
                 continue                        # armament critical hit
+            if (ship.id, w_idx) in getattr(self, "_volley_fired", set()):
+                continue                        # already fired in its squadron's volley
 
             if wtype == "nova_cannon":
                 self._fire_nova_cannon(ship, enemies)
@@ -638,6 +643,71 @@ class AIPlayer:
                        f"{weapon['name']} {sr.hits} hit(s)")
             if sr.hits > 0:
                 self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id)
+
+    def _squadron_volleys(self):
+        """Shooting by Squadrons for the AI (s.8, combat.plan_squadron_volley):
+        each AI squadron of 2+ ships combines its batteries into one volley
+        when that rolls at least as many dice as firing them separately. The
+        target is the one adding the most expected VP (ai_hazards.added_vp,
+        counting hits already planned this phase), among enemies that are the
+        nearest valid target for every contributing battery (so no target
+        priority test is needed). Lances, torpedoes and the rest still fire
+        ship by ship afterwards."""
+        from .combat import plan_squadron_volley, resolve_squadron_volley
+        from .ai_hazards import added_vp, p_hit
+        gs = self.gs
+        squads = {}
+        for s in gs.player_ships(self.player):
+            if (s.squadron_id and not s.is_destroyed and not s.is_disengaged
+                    and not s.has_fired and not s.disengage_failed_this_turn):
+                squads.setdefault(s.squadron_id, []).append(s)
+        bms, phen, all_ships = gs.get_blast_markers(), gs.get_phenomena(), gs.get_ships()
+        for members in squads.values():
+            if len(members) < 2:
+                continue
+            batteries = [(m, i, w) for m in members for i, w in enumerate(m.weapons)
+                         if w.get("weapon_type") == "battery" and not w.get("strength_dice")
+                         and not weapon_disabled_by_crit(m, w)]
+            if len(batteries) < 2:
+                continue
+            enemies = self._live_enemies()
+            best = None
+            for target in enemies:
+                contrib = []
+                for m, i, w in batteries:
+                    valid = self._valid_targets(m, w, enemies)
+                    if valid and min(valid, key=lambda e: m.distance_to(e)).id == target.id:
+                        contrib.append((m, i, w))
+                if len(contrib) < 2:
+                    continue
+                group = squadron_group(target, all_ships)
+                pairs = [(m, w) for m, _i, w in contrib]
+                plan = plan_squadron_volley(pairs, group, bms, phen, all_ships)
+                combined = sum(a["dice"] for a in plan["attacks"])
+                separate = sum(sum(a["dice"] for a in plan_squadron_volley(
+                    [pr], group, bms, phen, all_ships)["attacks"]) for pr in pairs)
+                if combined <= 0 or combined < separate:
+                    continue
+                hits = sum(a["dice"] * p_hit(min(a["armors"].values())) for a in plan["attacks"])
+                value = added_vp(target, gs, self._committed.get(target.id, 0.0), hits)
+                if best is None or value > best[0]:
+                    best = (value, target, group, contrib, plan, hits)
+            if best is None:
+                continue
+            value, target, group, contrib, plan, hits = best
+            lead = contrib[0][0]
+            self._offer_brace(lead, target)
+            lock_on = all(m.special_order == SpecialOrder.LOCK_ON.value for m, _i, _w in contrib)
+            applied = resolve_squadron_volley(
+                plan, group, self.dice,
+                lambda t, n, _a=lead.id: self._apply_hits_to(t, n, 6, _a),
+                lock_on=lock_on, game_state=gs)
+            self._committed[target.id] = self._committed.get(target.id, 0.0) + hits
+            for m, i, _w in contrib:
+                self._volley_fired.add((m.id, i))
+            gs.add_log(f"[AI] squadron {lead.squadron_id} combined batteries at "
+                       f"{target.name}: {sum(a['dice'] for a in plan['attacks'])} dice, "
+                       f"{sum(applied.values())} hit(s)")
 
     def _aaf_bonus(self, ship) -> int:
         """All Ahead Full speed bonus: a squadron rolls once this turn, members

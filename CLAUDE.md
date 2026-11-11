@@ -367,8 +367,14 @@ Owner rulings (fleet lists, export 15):
 - Torpedoes attack ships touched anywhere along their move (`geometry.torpedo_first_contact`,
   facing taken from the contact point); attack craft flying straight without a target and
   torpedo-vs-torpedo collisions are still checked at the end of the move only.
-- The AI fires squadron members one weapon at a time (it doesn't use combined squadron fire);
-  combined fire covers batteries only (lances hit on 4+ and are fired weapon by weapon).
+- The AI combines its squadrons' batteries (`AIPlayer._squadron_volleys`, before ships fire
+  one by one): one `plan_squadron_volley` per squadron when it rolls at least as many dice as
+  firing separately, at the target adding the most expected VP among enemies that are the
+  nearest valid target for every contributing battery (no target priority test needed); the
+  batteries used are skipped afterwards. Combined fire covers batteries only (lances hit on 4+
+  and are fired weapon by weapon). Not yet: Ork random-firepower batteries in volleys, a
+  volley at a target needing a target priority test, and the dialog's "Best for expected
+  hits" aspect default.
 - Commander re-rolls (s.5) are offered for command checks (special orders), disengage tests,
   guided torpedoes and, via `GameState.ld_reroll_hook` / `movement.fleet_reroll_offered`
   (GamePanel asks; the AI spends by importance in expected VP, `ai_rerolls.should_reroll`,
@@ -438,7 +444,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1001 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1002 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -483,6 +489,8 @@ points to):
   (thresholds + 0.2 per hit) for choosing among gun / torpedo targets; `hull_hits_vp` (full
   value per hit + thresholds, the raid scale) wherever bomber hits are compared with raids.
   Ordnance never loses hits to shields (s.11 / s.15) in these values.
+- AI squadrons combine their batteries into one volley (s.8) when it is at least as good as
+  firing separately (`AIPlayer._squadron_volleys`).
 - AI fleet focus positioning: one focus target per turn by expected VP (easier / damaged
   first); ships in reach close on it, weighing their exposure to enemy arcs.
 - AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
@@ -523,8 +531,8 @@ points to):
    `ai_hazards.position_exposure_hits`). Not yet: several focus targets, torpedo lanes and
    craft reach in the move score, the expert AI's leaf evaluation using the same terms.
    Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
-   keeping bays loaded, CAP against enemy bomber waves not yet launched; combined squadron fire
-   for the AI and a "Best for expected hits" default in the Combine Squadron Fire dialog;
+   keeping bays loaded, CAP against enemy bomber waves not yet launched; a "Best for expected
+   hits" default in the Combine Squadron Fire dialog (AI squadron volleys done);
    guided / seeking torpedo turn cones in hazard maths; escorts staying near the commander's
    ship. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on

@@ -103,8 +103,8 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 
 1. AI, still to do: fleet-wide CAP / strike allocation across carriers (per-carrier version
    built), the option value of keeping bays loaded, CAP against enemy bomber waves not yet
-   launched; combined squadron fire for the AI and a "Best for expected hits" default in the
-   Combine Squadron Fire dialog; guided / seeking torpedo turn cones in hazard maths; escorts
+   launched; a "Best for expected hits" default in the Combine Squadron Fire dialog (AI
+   squadron volleys done: `AIPlayer._squadron_volleys`); guided / seeking torpedo turn cones in hazard maths; escorts
    staying near the commander's ship; fleet focus positioning, next steps (several focus
    targets, torpedo lanes and craft reach in the move score, expert leaf evaluation). Done:
    hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
@@ -571,7 +571,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1001 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1002 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -615,6 +615,9 @@ Latest items, newest last:
   (`ai_hazards.position_exposure_hits`).
 - Owner: bombers always attack the lowest Armour value. Checked everywhere; the AI's hazard
   maths for incoming bombers used the facing Armour and is fixed (`ai_hazards.marker_hits`).
+- AI Shooting by Squadrons: `AIPlayer._squadron_volleys` combines each squadron's batteries
+  into one volley (combat.plan_squadron_volley / resolve_squadron_volley) at the best
+  expected-VP target that is every contributor's nearest valid target.
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
