@@ -909,7 +909,10 @@ class AIPlayer:
                 target = self._nearest_enemy_to(marker.x, marker.y)
                 self._steer_guided_missile(marker, target)
 
-        # Launch new ordnance
+        # Launch new ordnance. Targets are chosen by expected VP from the enemy's
+        # actual state (after this turn's shooting) plus what this phase's
+        # launches are planned to do (_ord_committed)
+        self._ord_committed = {}
         for ship in gs.player_ships(self.player):
             if ship.is_destroyed or ship.is_disengaged:
                 continue
@@ -1021,6 +1024,17 @@ class AIPlayer:
                     if len(launched) > 1:
                         from .waves import form_wave
                         form_wave(gs, [m.id for m in launched], "close")
+                    # Fly at the chosen target; later launches this phase see its hits
+                    tgt = getattr(self, "_strike_target", None)
+                    if tgt:
+                        ids = {m.id for m in launched}
+                        for o in gs.ordnance:
+                            if o["id"] in ids:
+                                o["craft_target_id"] = tgt[0]
+                        oc = getattr(self, "_ord_committed", {})
+                        oc[tgt[0]] = oc.get(tgt[0], 0.0) + tgt[1]
+                        self._ord_committed = oc
+                        self._strike_target = None
                 elif count > 0:
                     launched = launch_attack_craft(ship, next(w for w in bays if preferred in
                                                               w.get("craft_types", [])),
@@ -1040,9 +1054,10 @@ class AIPlayer:
         opt = self._strike_option(ship, craft_types, count, enemies)
         if opt is None:
             return None
-        value, plan, label, target = opt
+        value, plan, label, target, ev = opt
         self.gs.add_log(f"[AI] {ship.name} wave vs {target.name}: {label} "
                         f"(about {value:.0f} VP)")
+        self._strike_target = (target.id, ev)
         return plan
 
     def _strike_option(self, ship: Ship, craft_types, count: int, enemies):
@@ -1054,7 +1069,6 @@ class AIPlayer:
         from .waves import (split_craft_types, wave_plan_inputs, plan_wave_against,
                             expected_survivors, raid_squadron_value)
         from .ordnance import craft_roles, craft_stats
-        from .ai_hazards import value_per_hit
         if count < 1 or not enemies:
             return None
         cts = set(craft_types)
@@ -1071,33 +1085,43 @@ class AIPlayer:
             boat = None
         if not bomber and not boat:
             return None
-        target = min(enemies, key=lambda e: ship.distance_to(e))
-        inputs = wave_plan_inputs(target, self.gs)
+        from .ai_hazards import hull_hits_vp, travel_discount
+        committed = getattr(self, "_ord_committed", {})
+        speed = min((stats[ct][1] or 20) for ct in (bomber, boat) if ct)
+        near = min(enemies, key=lambda e: ship.distance_to(e))
+        # Owner: focus on the easiest, most valuable targets in reach, by
+        # expected VP (bomber hits through damage_vp's thresholds, counting the
+        # enemy's actual damage and this phase's other launches; raids by
+        # raid_squadron_value), less for targets further away
+        targets = [e for e in enemies if ship.distance_to(e) <= 3 * speed] or [near]
         options = []
-        if types:
-            fk, bk, f_save, b_save = types
-            f, b, ev = plan_wave_against(count, inputs, f_save, b_save)
-            options.append((ev * max(1.0, value_per_hit(target, self.gs)),
-                            [(fk, f), (bk, b)], f"{f} fighters + {b} bombers"))
-        elif bomber:
-            from .waves import best_wave_split
-            t = inputs["turrets"]
+        for target in targets:
+            inputs = wave_plan_inputs(target, self.gs)
             p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
-            _f, b, ev = best_wave_split(count, t, t + inputs["massed"], inputs["cap"],
-                                        inputs["armour"], p, 0, stats[bomber][2] or 0,
-                                        inputs["cap_save"])
-            options.append((ev * max(1.0, value_per_hit(target, self.gs)),
-                            [(bomber, count)], f"{count} bombers"))
-        if boat:
-            p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
-            through = expected_survivors(count, inputs["turrets"] + inputs["massed"],
-                                         inputs["cap"], p, stats[boat][2] or 0,
-                                         inputs["cap_save"])
-            options.append((through * raid_squadron_value(target, self.gs, self.player,
-                                                          ship.special_rules),
-                            [(boat, count)], f"{count} assault boats"))
-        value, plan, label = max(options, key=lambda o: o[0])
-        return value, plan, label, target
+            disc = travel_discount(ship.distance_to(target), speed)
+            c = committed.get(target.id, 0.0)
+            if types:
+                fk, bk, f_save, b_save = types
+                f, b, ev = plan_wave_against(count, inputs, f_save, b_save)
+                options.append((hull_hits_vp(target, self.gs, c, ev) * disc,
+                                [(fk, f), (bk, b)], f"{f} fighters + {b} bombers", target, ev))
+            elif bomber:
+                from .waves import best_wave_split
+                t = inputs["turrets"]
+                _f, b, ev = best_wave_split(count, t, t + inputs["massed"], inputs["cap"],
+                                            inputs["armour"], p, 0, stats[bomber][2] or 0,
+                                            inputs["cap_save"])
+                options.append((hull_hits_vp(target, self.gs, c, ev) * disc,
+                                [(bomber, count)], f"{count} bombers", target, ev))
+            if boat:
+                through = expected_survivors(count, inputs["turrets"] + inputs["massed"],
+                                             inputs["cap"], p, stats[boat][2] or 0,
+                                             inputs["cap_save"])
+                options.append((through * raid_squadron_value(target, self.gs, self.player,
+                                                              ship.special_rules) * disc,
+                                [(boat, count)], f"{count} assault boats", target, 0.0))
+        value, plan, label, target, ev = max(options, key=lambda o: o[0])
+        return value, plan, label, target, ev
 
     def _bay_allocation(self, ship: Ship, craft_types, count: int, enemies):
         """CAP vs free fighters vs strike (owner: a trade-off; HANDOFF "AI design").
@@ -1186,9 +1210,10 @@ class AIPlayer:
             strike(k)
             opt = cache[k][1]
             if opt:
-                value, plan, label, target = opt
+                value, plan, label, target, ev = opt
                 gs.add_log(f"[AI] {ship.name} strike vs {target.name}: {label} "
                            f"(about {value:.0f} VP)")
+                self._strike_target = (target.id, ev)
             else:
                 free += k                 # nothing to strike with: fighters go free
         if cap or free:
@@ -1289,6 +1314,27 @@ class AIPlayer:
             dist = math.sqrt((ship.x - e.x) ** 2 + (ship.y - e.y) ** 2)
             if dist <= torp_range:
                 candidates.append(e)
+        if candidates and self.difficulty != "easy":
+            # Owner: focus by expected VP; easy targets (low Armour / turrets /
+            # shields, damaged ships) score most. Counts what the guns have done
+            # (ships' actual state) and what this phase's ordnance is planned to do
+            from .ai_hazards import added_vp, torpedo_salvo_hits, travel_discount
+            committed = getattr(self, "_ord_committed", {})
+            speed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
+            strength = weapon.get("strength") or 0
+
+            def score(e):
+                hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y))
+                px, py = self._predict_ship_pos(e)
+                both = (check_weapon_in_arc(ship, weapon, e.x, e.y)
+                        and check_weapon_in_arc(ship, weapon, px, py))
+                return (added_vp(e, self.gs, committed.get(e.id, 0.0), hits, shields=False)
+                        * (1.0 if both else 0.6) * travel_discount(ship.distance_to(e), speed),
+                        hits)
+            best = max(candidates, key=lambda e: score(e)[0])
+            committed[best.id] = committed.get(best.id, 0.0) + score(best)[1]
+            self._ord_committed = committed
+            return best
         if candidates:
             return self._nearest_ship(ship, candidates)
         # Fallback: nearest enemy in current arc

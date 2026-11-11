@@ -486,3 +486,118 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float) -> float:
     extra = 0.0 if ship.is_crippled else 0.10 * v
     p_pass = p_sum_at_most(2, ld) if ld > 1 else 0.0
     return p_pass * (risk - extra) - contribution
+
+
+def added_vp(target: Ship, gs, committed: float, hits: float, shields: bool = True) -> float:
+    """Expected VP that `hits` more hits add to a target that already has
+    `committed` expected hits planned on it this phase: shields take the first
+    hits (direct fire; ordnance ignores shields, s.11 / s.15: shields=False),
+    then damage_vp's thresholds (destroy, cripple)."""
+    from .geometry import current_shields
+    sh = current_shields(target, gs.get_blast_markers()) if shields else 0
+    before = max(0.0, committed - sh)
+    after = max(0.0, committed + hits - sh)
+    return damage_vp(target, gs, after) - damage_vp(target, gs, before)
+
+
+def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy) -> float:
+    """Expected hits (torpedoes ignore shields) of a torpedo salvo of `strength` reaching
+    `target`: its turrets (plus massed turrets) shoot torpedoes down first,
+    each success one torpedo (Ork turrets 5+), then each torpedo hits its
+    Armour facing the launcher's side."""
+    from .ordnance import ordnance_turrets, get_massed_turret_bonus, turret_hit_on
+    shots = ordnance_turrets(target, gs) + get_massed_turret_bonus(target, gs.get_ships())
+    p_turret = max(0, 7 - turret_hit_on(target)) / 6.0
+    left = max(0.0, strength - shots * p_turret)
+    return left * p_hit(target.armor_vs(*from_xy))
+
+
+def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,
+                      f_save: int = 0, b_save: int = 0) -> float:
+    """Expected bomber hits of a wave on `target` (waves.wave_split_value with
+    the target's turrets, massed turrets, CAP and Armour)."""
+    from .waves import wave_plan_inputs, wave_split_value
+    inp = wave_plan_inputs(target, gs)
+    p = (7 - (5 if inp.get("ork") else 4)) / 6.0
+    t = inp["turrets"]
+    return wave_split_value(n_fighters, n_bombers, t, t + inp["massed"], inp["cap"],
+                            inp["armour"], p, f_save, b_save, inp["cap_save"])
+
+
+def travel_discount(dist: float, speed: float) -> float:
+    """Ordnance aimed further away is worth less: the target moves, more
+    turrets, fighters and blast markers on the way. 1 within one move, x0.85
+    per extra move."""
+    import math as _m
+    moves = max(1, _m.ceil(dist / max(1.0, speed)))
+    return 0.85 ** (moves - 1)
+
+
+def hull_hits_vp(target: Ship, gs, committed: float, hits: float) -> float:
+    """`hits` more expected ordnance hits on `target` (shields don't stop
+    ordnance, s.11 / s.15), on the same scale as raid values
+    (hit_and_run.raid_result_value: full value per hit) plus the focus bonus of
+    crossing its cripple / destroy thresholds (added_vp). Used to compare
+    bombers with assault boats and to pick strike targets."""
+    rem = max(1, target.hits_remaining)
+    hull = max(0.0, min(committed + hits, rem) - min(committed, rem))
+    vph = max(1.0, value_per_hit(target, gs))
+    return added_vp(target, gs, committed, hits, shields=False) + 0.8 * vph * hull
+
+
+def plan_strike_targets(gs, player: int) -> dict:
+    """Targets for `player`'s ship-attacking craft in flight (bombers, assault
+    boats, multi-role craft; not on CAP), by expected VP with focus (owner):
+    each wave (or lone squadron) goes to the enemy ship it adds the most to,
+    counting what earlier groups are planned to do there, discounted for the
+    moves it needs to get there. Fighters in a wave follow it. Returns
+    {marker id: target ship id}."""
+    import math as _m
+    from .models import OrdnanceMarker
+    from .ordnance import craft_roles, attacks_ships
+    from .waves import (expected_survivors, raid_squadron_value, bomber_squadron_value,
+                        wave_plan_inputs)
+    own = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
+           if o["owner_player"] == player and not o.get("cap_ship_id")]
+    groups = {}
+    for m in own:
+        groups.setdefault(m.wave_id or m.id, []).append(m)
+    enemies = [e for e in gs.get_ships() if e.player != player and not e.is_destroyed
+               and not e.is_disengaged and e.status not in ("drifting_hulk", "burning_hulk")]
+    plan, committed = {}, {}
+    order = sorted(groups.values(), key=lambda g: -len(g))
+    for g in order:
+        if not any(attacks_ships(m.ordnance_type) for m in g):
+            continue
+        lead = g[0]
+        speed = min((m.speed or 20) for m in g)
+        f = sum(1 for m in g if craft_roles(m.ordnance_type) == ("fighter",))
+        b = sum(1 for m in g if set(craft_roles(m.ordnance_type)) == {"bomber"})
+        a = sum(1 for m in g if set(craft_roles(m.ordnance_type)) == {"assault_boat"})
+        mr = [m for m in g if len(craft_roles(m.ordnance_type)) > 1
+              and attacks_ships(m.ordnance_type)]
+        best, best_t, best_hits = 0.0, None, 0.0
+        for e in enemies:
+            c = committed.get(e.id, 0.0)
+            hits = strike_group_hits(f, b, e, gs) if b else 0.0
+            v = hull_hits_vp(e, gs, c, hits) if hits else 0.0
+            if a or mr:
+                inp = wave_plan_inputs(e, gs)
+                p = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                n = a + len(mr)
+                through = expected_survivors(n, inp["turrets"] + inp["massed"], inp["cap"], p)
+                per = raid_squadron_value(e, gs, player, lead.special_rules or [])
+                if mr and getattr(gs, "rule_hit_and_run", True):
+                    per_mr = max(per, bomber_squadron_value(e, gs))
+                else:
+                    per_mr = bomber_squadron_value(e, gs)
+                v += through * ((a * per + len(mr) * per_mr) / max(1, n))
+            v *= travel_discount(_m.hypot(e.x - lead.x, e.y - lead.y), speed)
+            if v > best:
+                best, best_t, best_hits = v, e, hits
+        if best_t is None:
+            continue
+        committed[best_t.id] = committed.get(best_t.id, 0.0) + best_hits
+        for m in g:
+            plan[m.id] = best_t.id
+    return plan

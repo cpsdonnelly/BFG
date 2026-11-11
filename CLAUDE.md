@@ -432,7 +432,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 994 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 997 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -471,6 +471,12 @@ points to):
   combined launch dialog has a compact planner (target, wave size, CAP;
   `OrdnancePanel._combined_split_planner`).
 - CAP now meets incoming craft lead first before the turret roll, with s.23 saves (see Waves).
+- AI ordnance focuses fire by expected VP like its guns: torpedoes, strike launches and craft
+  in flight go for the target they add most VP to (easier and damaged ships first), counting
+  what the guns did and the phase's other ordnance. Two VP scales: gunnery `damage_vp`
+  (thresholds + 0.2 per hit) for choosing among gun / torpedo targets; `hull_hits_vp` (full
+  value per hit + thresholds, the raid scale) wherever bomber hits are compared with raids.
+  Ordnance never loses hits to shields (s.11 / s.15) in these values.
 - AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
   e.g. a crippled cruiser on 2 hits under enemy guns tries to leave; a healthy one facing a
   single enemy cruiser fights on (a lone healthy cruiser facing three full cruisers also leaves:
@@ -494,6 +500,16 @@ points to):
    (`_strike_option` marginal: planner wave or assault boats); threats our fighters already fly
    at count as covered). Done: when hulks are worth shooting (see "Not yet matching": Hulks);
    voluntary disengaging (see "Not yet matching": Disengaging); bombers vs assault boats (1b).
+   Done: ordnance focus by expected VP (owner: focusing on easier targets is optimal):
+   torpedoes (`_best_torp_target`: `ai_hazards.torpedo_salvo_hits` after turrets, Armour facing
+   the launcher, `added_vp` with ordnance ignoring shields), strike launches (`_strike_option`
+   plans against every enemy within 3 moves, `hull_hits_vp` x `travel_discount`) and craft in
+   flight (`ai_hazards.plan_strike_targets`, fleet-wide, biggest group first), all counting the
+   enemy's actual state after the guns and this phase's planned ordnance (`_ord_committed`).
+   Next here: fleet focus positioning (owner agreed): each movement phase pick the enemy ships
+   the fleet concentrates on (most VP per expected hit, damaged first) and score each ship's
+   candidate moves by what it adds against them (guns, torpedo lanes, craft reach) minus its
+   exposure (`ai_hazards.enemy_fire_plan`); the expert AI's leaf evaluation uses the same terms.
    Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
    keeping bays loaded, CAP against enemy bomber waves not yet launched; combined squadron fire
    for the AI and a "Best for expected hits" default in the Combine Squadron Fire dialog;

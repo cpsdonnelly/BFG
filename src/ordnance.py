@@ -172,13 +172,19 @@ def assign_ai_craft_targets(game_state: GameState, player: int) -> int:
     ordnance phase: fighters by plan_fighter_intercepts, the rest (and spare
     fighters) by ai_craft_target. Returns how many were assigned."""
     plan = plan_fighter_intercepts(game_state, player)
+    # Bombers / assault boats (and the fighters in their waves): by expected VP
+    # with focus, fleet-wide (ai_hazards.plan_strike_targets)
+    from .ai_hazards import plan_strike_targets
+    strikes = plan_strike_targets(game_state, player)
     n = 0
     for i, o in enumerate(game_state.ordnance):
         if (o["owner_player"] != player or o["ordnance_type"] not in ATTACK_CRAFT_TYPES
                 or o.get("cap_ship_id")):
             continue
         m = OrdnanceMarker.from_dict(o)
-        if m.id in plan:
+        if m.id in strikes and (m.wave_id or attacks_ships(m.ordnance_type)):
+            m.craft_target_id = strikes[m.id]
+        elif m.id in plan:
             m.craft_target_id = plan[m.id]
         elif "fighter" in craft_roles(m.ordnance_type) and plan_has_run(plan, game_state, player):
             # a spare fighter: everything in reach is already covered, so it

@@ -105,8 +105,10 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
    built), the option value of keeping bays loaded, CAP against enemy bomber waves not yet
    launched; combined squadron fire for the AI and a "Best for expected hits" default in the
    Combine Squadron Fire dialog; guided / seeking torpedo turn cones in hazard maths; escorts
-   staying near the commander's ship. Done: hulk targeting, voluntary disengaging (first
-   versions). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per point
+   staying near the commander's ship; fleet focus positioning (owner agreed: pick the fleet's
+   focus targets each movement phase, score each ship's moves by what it adds against them
+   minus its exposure from `enemy_fire_plan`). Done: hulk targeting, voluntary disengaging,
+   ordnance focus by expected VP (first versions). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per point
    of in-arc firepower, half-weight flagship exposure, the disengage and hulk models) are
    judgment: tune on the owner's feedback.
 1b. (done) Bombers vs assault boats by expected VP.
@@ -569,7 +571,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 994 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 997 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -600,6 +602,12 @@ Latest items, newest last:
   (`enemy_fire_plan`, owner: optimal play concentrates fire rather than splitting it): each
   mount goes wholly to the target it adds most VP to, biggest mounts first, so fire piles onto
   a damaged ship until it is likely dead and then moves on. Reusable for brace / positioning.
+- AI ordnance focus by expected VP (owner: focusing on easier targets is optimal): torpedoes,
+  strike launches and craft in flight (`_best_torp_target`, `_strike_option`,
+  `ai_hazards.plan_strike_targets`), from the enemy's actual state after shooting plus the
+  phase's planned ordnance. Gunnery does this already (`shot_vp` with `_committed`). Owner
+  answer to "does the AI focus / position for it?": guns yes, ordnance now yes, positioning
+  not yet (To do 1: fleet focus positioning).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
