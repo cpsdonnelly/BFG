@@ -282,6 +282,7 @@ class AIPlayer:
                 if near is not None and near.id != enemy.id:
                     score += 0.3 * self._arc_score(ship, fx, fy, fh, near)
                 score -= self._exposure_penalty(ship, fx, fy, fh, enemy)
+                score += self._screen_bonus(ship, fx, fy, fh, enemy)
                 if score > best_score:
                     best_score = score
                     cmds: List[MoveCommand] = []
@@ -317,6 +318,48 @@ class AIPlayer:
         if not reach or ship.distance_to(f) > reach + 2 * (ship.speed or 0):
             return None
         return f
+
+    def _screen_bonus(self, ship: Ship, x: float, y: float, h: float, target: Ship) -> float:
+        """Escorts guard the commander's ship (CLAUDE.md To do 1): ending in base
+        contact with it adds one massed turret (s.29: +1 per contributing ship in
+        base contact, limit +3; not if this escort is crippled or has no turrets)
+        while enemy torpedoes or attack craft could reach it in their next
+        ordnance phase. Worth the turret's half chance to stop one of them (a
+        torpedo's or bomber's expected hits on the flagship), in the planner's
+        firepower units."""
+        if self.difficulty == "easy" or ship.ship_type != "escort" or ship.is_crippled:
+            return 0.0
+        if (ship.turrets or 0) <= 0:
+            return 0.0
+        from .boarding import ships_in_base_contact
+        from .ordnance import get_massed_turret_bonus, ATTACK_CRAFT_TYPES
+        from .ai_hazards import value_per_hit, p_hit
+        gs = self.gs
+        flag = next((s for s in gs.player_ships(self.player) if s.is_flagship
+                     and s.id != ship.id and not s.is_destroyed and not s.is_disengaged), None)
+        if flag is None:
+            return 0.0
+        moved = Ship.from_dict({**ship.to_dict(), "x": x, "y": y, "heading": h})
+        if not ships_in_base_contact(moved, flag):
+            return 0.0
+        others = [s for s in gs.get_ships() if s.id != ship.id]
+        if get_massed_turret_bonus(flag, others) >= 3:
+            return 0.0
+        threats = 0
+        for o in gs.ordnance:
+            if o["owner_player"] == self.player or o.get("cap_ship_id"):
+                continue
+            kind = o["ordnance_type"]
+            if not ("torpedo" in kind or kind in ATTACK_CRAFT_TYPES):
+                continue
+            if math.hypot(o["x"] - flag.x, o["y"] - flag.y) <= (o.get("speed") or 20) * 2 + 10:
+                threats += 1
+        if not threats:
+            return 0.0
+        saved_hits = 0.5 * p_hit(flag.lowest_armor_value) * min(threats, 3)
+        per_fp = 0.35 * max(1.0, value_per_hit(target, gs))
+        # value_per_hit already counts the commander's ship double while it has re-rolls
+        return saved_hits * max(1.0, value_per_hit(flag, gs)) / per_fp
 
     def _exposure_penalty(self, ship: Ship, x: float, y: float, h: float,
                           target: Ship) -> float:

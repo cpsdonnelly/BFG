@@ -110,3 +110,25 @@ def test_exposure_is_higher_in_the_enemy_arcs_than_behind():
     beside = position_exposure_hits(me, 35.0, 15.0, 0.0, gs)    # off "hard"'s port side
     behind = position_exposure_hits(me, 60.0, 0.0, 0.0, gs)     # astern of both, far
     assert beside > behind
+
+
+def test_escort_screens_the_flagship_against_incoming_ordnance():
+    """An escort ending in base contact with the commander's ship adds a massed
+    turret (s.29) while enemy ordnance can reach it."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    from tests.conftest import make_marker
+    flag = make_ship(id="f", player=1, x=0.0, y=0.0, is_flagship=True, points_value=250,
+                     rerolls_remaining=1)
+    esc = make_ship(id="e", player=1, x=0.0, y=-20.0, ship_type="escort", hits_max=1,
+                    turrets=1, points_value=40)
+    foe = make_ship(id="x", player=2, x=60.0, y=0.0)
+    gs = make_gs([flag, esc, foe])
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai.difficulty = "normal"
+    touching = (0.0, -(flag.base_radius + esc.base_radius))
+    assert ai._screen_bonus(esc, *touching, 90.0, foe) == 0.0       # nothing incoming
+    gs.add_ordnance(make_marker(id="t", ordnance_type="torpedo", owner_player=2, x=30.0,
+                                y=0.0, heading=180.0, speed=30, strength=6))
+    assert ai._screen_bonus(esc, *touching, 90.0, foe) > 0.0
+    assert ai._screen_bonus(esc, 0.0, -20.0, 90.0, foe) == 0.0       # not in contact

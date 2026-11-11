@@ -569,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1016 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1017 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -632,11 +632,14 @@ Latest items, newest last:
 - Owner: craft (and turning torpedoes, within their turns) can fly round obstacles:
   `ai_hazards.best_route` (detour waypoints), used by strike targeting and by AI craft movement
   (`ordnance.craft_target_point`, AI-owned craft only).
+- AI: guided salvos use the launcher's Ld (`guided_turn_chance`); Burn Retros by expected VP
+  (`_burn_retros_worth_it`); escorts screen the commander's ship for massed turrets (base
+  contact, s.29) while ordnance threatens it (`_screen_bonus`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
 Next: CLAUDE.md "To do" item 1 (what is left: fleet-wide CAP / strikes, keeping bays loaded,
-reactive CAP, escorts near the commander; fleet focus positioning follow-ups: several focus
+reactive CAP; fleet focus positioning follow-ups: several focus
 targets, torpedo lanes / craft reach in the move score, expert leaf evaluation; torpedo launch
 lanes and multi-waypoint routes)
 and 1c (strike planning at arrival time), then items 3-6. Owner feedback wanted on the AI's judgement weights, e.g. a

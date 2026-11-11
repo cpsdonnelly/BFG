@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1016 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1017 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -567,13 +567,15 @@ points to):
    `ai_hazards.position_exposure_hits`). Not yet: several focus targets, torpedo lanes and
    craft reach in the move score, the expert AI's leaf evaluation using the same terms.
    Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
-   keeping bays loaded, CAP against enemy bomber waves not yet launched; escorts staying near
-   the commander's ship; torpedo launch headings aimed down a clear lane and multi-waypoint
+   keeping bays loaded, CAP against enemy bomber waves not yet launched; torpedo launch headings aimed down a clear lane and multi-waypoint
    routes (`best_route` does one detour). Done: guided salvos use the launcher's real Ld in the
    hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
    Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest
    half-speed move along the path, taken when the hazard saved beats half the ship's
-   firepower value). Done: guided / seeking torpedo turn cones in the hazard maths
+   firepower value); escorts guard the commander's ship (`AIPlayer._screen_bonus`: an escort's
+   move scores the massed turret it adds by ending in base contact with the flagship, s.29,
+   +1 each up to +3, while enemy torpedoes / attack craft could reach the flagship; worth
+   half a turret shot's expected hits saved per threat, up to 3). Done: guided / seeking torpedo turn cones in the hazard maths
    (`ai_hazards._torpedo_heading / _in_turn_cone`: seeking salvos turn up to 45 degrees at the
    nearest of our ships at its end position; guided ones threaten their whole 45-degree cone at
    the launcher's Leadership-test odds (`guided_turn_chance`); Tau missiles their whole cone). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
