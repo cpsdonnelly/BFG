@@ -234,7 +234,13 @@ the Fire dialog; it already failed at the start of this session (not caused by t
   spare fighter with nothing useful in reach advances on the nearest enemy ship instead of
   doubling up on a covered target.
 - **Combat air patrol vs strikes (owner, this session: tricky trade-off, think it through).**
-  Not built yet. Plan:
+  **First version built** (`AIPlayer._bay_allocation` / `_strike_option` / `_launch_defence`):
+  per launching ship, greedy over its slots in expected VP (step 3 below, one ship at a time);
+  CAP on the friendly ship a threat is closing on (within its move + 15cm; the fighters must
+  reach that ship), free fighters at 0.75 within their reach, otherwise the strike's marginal
+  value; threats our fighters already target count as covered. Not yet: fleet-wide allocation
+  across carriers, option value of keeping bays loaded, CAP against bomber waves the enemy may
+  launch next (reactive CAP). Plan:
   1. *Launch slots*: each ship with loaded bays offers squadrons of the craft types it can
      launch (bay strength, fleet craft limit s.15). Launching uses the bays up until Reload
      Ordnance, so a slot also has an option value: keeping it loaded keeps next turn's choice
@@ -556,7 +562,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 985 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 986 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -575,6 +581,8 @@ Latest items, newest last:
 - Bombers vs assault boats by expected VP (multi-role attack mode, the human prompt's Auto
   (best), AI carrier launches). Fixed on the way: the raid value of a destroying hit on a 1-hit
   escort counted the ship twice.
+- AI CAP vs strikes, first version (To do 1): per carrier, fighters to CAP / free only when
+  a threat is worth more than the next strike squadron.
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

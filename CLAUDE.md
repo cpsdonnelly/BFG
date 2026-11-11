@@ -415,7 +415,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 985 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 986 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -453,15 +453,22 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
   combined launch dialog has a compact planner (target, wave size, CAP;
   `OrdnancePanel._combined_split_planner`).
 - CAP now meets incoming craft lead first before the turret roll, with s.23 saves (see Waves).
+- AI CAP vs strikes per carrier (To do 1, first version): one fighter per incoming salvo / mine
+  / wave squadron that is worth more than the next strike squadron, on CAP or free, the rest
+  strike as one wave (before: any enemy ordnance in play made it launch all fighters).
+  `launch_attack_craft` now gives unique ids to several launches of one type in a phase.
 - GUI checks added: `combine_capital_check.py`, `best_split_check.py`, `combine_split_check.py`,
   `cap_wave_check.py`.
   The whole GUI suite passes (`heavy_gunz_check.py` updated for the split entry).
 
 ### To do (agreed order; see docs/HANDOFF.md "Remaining work" and "AI design")
 
-1. AI: combat air patrol vs strikes allocation (plan written in HANDOFF: launch slots, CAP /
-   free fighters / bombers in one VP currency, greedy fleet allocation, option value of
-   keeping bays loaded); combined squadron fire for the AI and a "Best for expected hits"
+1. AI: CAP vs strikes is built per launching ship (`AIPlayer._bay_allocation`: greedy over
+   its launch slots in expected VP; a fighter on CAP for the friendly ship a threat is closing
+   on (full `intercept_gain`) or free (0.75), else one more squadron in the strike
+   (`_strike_option` marginal: planner wave or assault boats); threats our fighters already fly
+   at count as covered). Still to do here: fleet-wide allocation across carriers, the option
+   value of keeping bays loaded, CAP against enemy bomber waves not yet launched; combined squadron fire for the AI and a "Best for expected hits"
    default in the Combine Squadron Fire dialog; when hulks are worth shooting; guided /
    seeking torpedo turn cones in hazard maths; escorts staying near the commander's ship;
    voluntary disengaging; bombers vs assault boats by expected VP (owner idea, below). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected

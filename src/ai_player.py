@@ -930,9 +930,19 @@ class AIPlayer:
                 for line in roll_log:
                     gs.add_log(f"[AI] {line}")
                 count = min(count, fleet_craft_slots(gs, self.player))
-                plan = self._wave_split(ship, craft_types, count, enemies,
-                                        defending=bool(enemy_ord))
-                if count > 0 and plan:
+                alloc = (self._bay_allocation(ship, craft_types, count, enemies)
+                         if count > 0 and self.difficulty != "easy" else None)
+                plan = None
+                if alloc is not None:
+                    plan = alloc["strike"]
+                    self._launch_defence(ship, bays, alloc)
+                    count = sum(n for _ct, n in plan) if plan else 0
+                else:
+                    plan = self._wave_split(ship, craft_types, count, enemies,
+                                            defending=bool(enemy_ord))
+                if alloc is not None and not plan:
+                    pass                         # all bays went to CAP / free fighters
+                elif count > 0 and plan:
                     # Plain fighters + bombers: the wave planner's split against
                     # the nearest enemy ship (waves.plan_wave_against)
                     launched = []
@@ -955,40 +965,63 @@ class AIPlayer:
 
     def _wave_split(self, ship: Ship, craft_types, count: int, enemies,
                     defending: bool):
-        """[(fighter type, n), (bomber type, n)] for one strike wave when the
-        bays offer plain fighters and bombers (no multi-role craft), there are
-        2+ squadrons to launch and no enemy ordnance to defend against (then
-        the AI keeps launching fighters). None otherwise."""
+        """[(type, n), ...] for one strike wave (_strike_option) when there are
+        2+ squadrons and no enemy ordnance to defend against, else None (then
+        the AI keeps launching fighters; used when _bay_allocation can't plan)."""
+        if count < 2 or self.difficulty == "easy" or defending or not enemies:
+            return None
+        opt = self._strike_option(ship, craft_types, count, enemies)
+        if opt is None:
+            return None
+        value, plan, label, target = opt
+        self.gs.add_log(f"[AI] {ship.name} wave vs {target.name}: {label} "
+                        f"(about {value:.0f} VP)")
+        return plan
+
+    def _strike_option(self, ship: Ship, craft_types, count: int, enemies):
+        """Best strike of `count` squadrons against the nearest enemy ship, in
+        expected VP: the wave planner's fighter / bomber split, or all assault
+        boats (they ignore Armour, To do 1b). (value, [(type, n)], label,
+        target), or None when the bays can't strike (multi-role craft use the
+        s.24 / s.27 choices; no bombers or boats)."""
         from .waves import (split_craft_types, wave_plan_inputs, plan_wave_against,
                             expected_survivors, raid_squadron_value)
         from .ordnance import craft_roles, craft_stats
         from .ai_hazards import value_per_hit
-        if count < 2 or self.difficulty == "easy" or defending or not enemies:
+        if count < 1 or not enemies:
             return None
         cts = set(craft_types)
-        types = split_craft_types(ship, cts)
         bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
         stats = {ct: craft_stats(ct, bays) for ct in cts}
         if any(len(craft_roles(st[0])) > 1 for st in stats.values()):
-            return None                         # multi-role craft: s.27 / s.24 choices
+            return None
+        types = split_craft_types(ship, cts)
+        bomber = next((ct for ct, st in stats.items()
+                       if set(craft_roles(st[0])) == {"bomber"}), None)
         boat = next((ct for ct, st in stats.items()
                      if set(craft_roles(st[0])) == {"assault_boat"}), None)
         if not getattr(self.gs, "rule_hit_and_run", True):
             boat = None
-        if not types and not boat:
+        if not bomber and not boat:
             return None
         target = min(enemies, key=lambda e: ship.distance_to(e))
         inputs = wave_plan_inputs(target, self.gs)
         options = []
         if types:
-            # The planner's fighter / bomber wave, in expected VP
             fk, bk, f_save, b_save = types
             f, b, ev = plan_wave_against(count, inputs, f_save, b_save)
             options.append((ev * max(1.0, value_per_hit(target, self.gs)),
                             [(fk, f), (bk, b)], f"{f} fighters + {b} bombers"))
+        elif bomber:
+            from .waves import best_wave_split
+            t = inputs["turrets"]
+            p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
+            _f, b, ev = best_wave_split(count, t, t + inputs["massed"], inputs["cap"],
+                                        inputs["armour"], p, 0, stats[bomber][2] or 0,
+                                        inputs["cap_save"])
+            options.append((ev * max(1.0, value_per_hit(target, self.gs)),
+                            [(bomber, count)], f"{count} bombers"))
         if boat:
-            # Assault boats ignore Armour (owner idea, To do 1b): the squadrons
-            # expected through CAP and turrets x the mean raid value
             p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
             through = expected_survivors(count, inputs["turrets"] + inputs["massed"],
                                          inputs["cap"], p, stats[boat][2] or 0,
@@ -997,9 +1030,120 @@ class AIPlayer:
                                                           ship.special_rules),
                             [(boat, count)], f"{count} assault boats"))
         value, plan, label = max(options, key=lambda o: o[0])
-        self.gs.add_log(f"[AI] {ship.name} wave vs {target.name}: {label} "
-                        f"(about {value:.0f} VP)")
-        return plan
+        return value, plan, label, target
+
+    def _bay_allocation(self, ship: Ship, craft_types, count: int, enemies):
+        """CAP vs free fighters vs strike (owner: a trade-off; HANDOFF "AI design").
+        Greedy over the ship's launch slots in one VP currency: each slot goes to
+        whichever is worth more now -
+          - a fighter against the next uncovered enemy threat (intercept_gain:
+            a whole salvo or mine, or the next squadron of a wave): on CAP for the
+            friendly ship it is closing on (full value; CAP always intercepts,
+            s.26) if the fighters can reach that ship, else free (0.75) if the
+            threat is within the fighters' reach;
+          - one more squadron in the strike (its value with k + 1 squadrons minus
+            with k, _strike_option).
+        Threats our fighters already fly at count as covered. Returns {"strike":
+        [(type, n)], "cap": [(ship_id, n)], "free": n, "fighter": type}, or None
+        when the bays have no plain fighter type (multi-role craft)."""
+        import math as _m
+        from .ordnance import craft_roles, craft_stats
+        from .ai_hazards import intercept_gain
+        bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+        stats = {ct: craft_stats(ct, bays) for ct in set(craft_types)}
+        if any(len(craft_roles(st[0])) > 1 for st in stats.values()):
+            return None
+        fighter = next((ct for ct, st in stats.items()
+                        if set(craft_roles(st[0])) == {"fighter"}), None)
+        if fighter is None:
+            return None
+        spd = stats[fighter][1] or 30
+        gs = self.gs
+        covered = {o.get("craft_target_id") for o in gs.ordnance
+                   if o["owner_player"] == self.player and o.get("craft_target_id")}
+        friends = [s for s in gs.get_ships() if s.player == self.player
+                   and not s.is_destroyed and not s.is_disengaged]
+        threats = []                      # (gain, "cap"/"free", cap ship id)
+        seen_waves = set()
+        for o in gs.ordnance:
+            if o["owner_player"] == self.player or o.get("cap_ship_id"):
+                continue
+            m = OrdnanceMarker.from_dict(o)
+            if m.wave_id:
+                if m.wave_id in seen_waves:
+                    continue
+                seen_waves.add(m.wave_id)
+            if m.id in covered:
+                continue
+            n_sq = (sum(1 for x in gs.ordnance if x.get("wave_id") == m.wave_id)
+                    if m.wave_id else 1)
+            # The friendly ship it is closing on: nearest within its move + 15cm
+            reach = (m.speed or 20) + 15.0
+            near = [f for f in friends if _m.hypot(f.x - m.x, f.y - m.y) <= reach]
+            guard = min(near, key=lambda f: _m.hypot(f.x - m.x, f.y - m.y)) if near else None
+            can_cap = guard is not None and ship.distance_to(guard) <= spd
+            can_free = _m.hypot(ship.x - m.x, ship.y - m.y) <= spd
+            if not (can_cap or can_free):
+                continue
+            for k in range(n_sq):
+                g = intercept_gain(gs, self.player, m, already=k)
+                if g <= 0:
+                    break
+                if can_cap:
+                    threats.append((g, "cap", guard.id))
+                else:
+                    threats.append((0.75 * g, "free", ""))
+        threats.sort(key=lambda t: -t[0])
+        cache = {0: (0.0, None)}
+
+        def strike(k):
+            if k not in cache:
+                opt = self._strike_option(ship, craft_types, k, enemies)
+                cache[k] = (opt[0], opt) if opt else (0.0, None)
+            return cache[k][0]
+        k = 0
+        cap, free = {}, 0
+        for _slot in range(count):
+            d = threats[0][0] if threats else 0.0
+            sv = strike(k + 1) - strike(k)
+            if d > 0 and d >= sv:
+                g, kind, sid = threats.pop(0)
+                if kind == "cap":
+                    cap[sid] = cap.get(sid, 0) + 1
+                else:
+                    free += 1
+            else:
+                k += 1
+        plan = None
+        if k:
+            strike(k)
+            opt = cache[k][1]
+            if opt:
+                value, plan, label, target = opt
+                gs.add_log(f"[AI] {ship.name} strike vs {target.name}: {label} "
+                           f"(about {value:.0f} VP)")
+            else:
+                free += k                 # nothing to strike with: fighters go free
+        if cap or free:
+            gs.add_log(f"[AI] {ship.name} keeps {sum(cap.values())} fighter(s) on CAP, "
+                       f"{free} free against incoming ordnance")
+        return {"strike": plan, "cap": list(cap.items()), "free": free, "fighter": fighter}
+
+    def _launch_defence(self, ship: Ship, bays, alloc):
+        """Launch _bay_allocation's CAP and free fighters (not in the wave)."""
+        gs = self.gs
+        fk = alloc["fighter"]
+        bay = next(w for w in bays if fk in w.get("craft_types", []))
+        for sid, n in alloc["cap"]:
+            guard = gs.get_ship_by_id(sid)
+            launched = launch_attack_craft(gs.get_ship_by_id(ship.id), bay, fk, n, gs)
+            ids = {m.id for m in launched}
+            for o in gs.ordnance:
+                if o["id"] in ids and guard:
+                    o["cap_ship_id"] = sid
+                    o["x"], o["y"] = guard.x, guard.y
+        if alloc["free"]:
+            launch_attack_craft(gs.get_ship_by_id(ship.id), bay, fk, alloc["free"], gs)
 
     # ── Auto repair (for end phase) ──────────────────────────────────────────
 

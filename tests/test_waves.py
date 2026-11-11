@@ -203,12 +203,14 @@ def _ai_launch(turrets, enemy_ord=False):
     gs.current_phase = "ordnance"
     if enemy_ord:
         gs.add_ordnance(make_marker(id="torp", ordnance_type="torpedo", owner_player=2,
-                                    x=40.0, y=0.0, strength=4))
+                                    x=25.0, y=0.0, heading=180.0, speed=30, strength=6))
     dice = DiceStub([])
     ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
     ai.difficulty = "normal"
     ai._launch_ship_ordnance(gs.get_ship_by_id("emp"))
     craft = [o for o in gs.ordnance if o["owner_player"] == 1]
+    if enemy_ord:
+        return craft
     return [o["ordnance_type"] for o in craft], {o.get("wave_id") for o in craft}
 
 
@@ -220,9 +222,13 @@ def test_ai_launch_uses_wave_planner():
     assert len(waves) == 1 and None not in waves
     types, _ = _ai_launch(turrets=1)
     assert types.count("fighter") == 0 and types.count("bomber") == 8
-    # Enemy ordnance about: the AI still launches fighters to defend
-    types, _ = _ai_launch(turrets=4, enemy_ord=True)
-    assert set(types) == {"fighter"}
+    # A salvo closing on the carrier: one fighter on CAP covers all of it (s.19),
+    # the other seven bays strike as one wave (CAP vs strikes, To do 1)
+    craft = _ai_launch(turrets=4, enemy_ord=True)
+    cap = [o for o in craft if o.get("cap_ship_id") == "emp"]
+    wave = [o for o in craft if o.get("wave_id")]
+    assert len(cap) == 1 and cap[0]["ordnance_type"] == "fighter" and not cap[0].get("wave_id")
+    assert len(wave) == 7 and len({o["wave_id"] for o in wave}) == 1
 
 
 def _craft(i, kind, save=0, order=0, owner=1):
@@ -355,3 +361,30 @@ def test_ai_carrier_picks_assault_boats_vs_armoured_target():
     # Owner's example with turret suppression counted, crits threatening nothing:
     # 3 fighters + 1 suppressed bomber (~0.36 hits) edge out 4 boats (~0.33)
     assert "bomber" in _carrier_launch(4, "6+")
+
+
+
+def test_ai_many_threats_go_to_cap():
+    """Several mines / salvos closing in: fighters before bombers."""
+    from tests.conftest import make_ship, make_gs, DiceStub, make_marker
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    d = find_ship_class("Dictator Class Cruiser").to_ship_dict("D", 1, ship_id="d")
+    d.update(x=0.0, y=0.0, heading=0.0, leadership=8)
+    gs = make_gs([Ship.from_dict(d),
+                  make_ship(id="t", player=2, x=80.0, turrets=4, points_value=150)])
+    gs.current_phase = "ordnance"
+    for i in range(4):
+        gs.add_ordnance(make_marker(id=f"m{i}", ordnance_type="torpedo", owner_player=2,
+                                    x=20.0 + 3 * i, y=0.0, heading=180.0, speed=30,
+                                    strength=6))
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai._launch_ship_ordnance(gs.get_ship_by_id("d"))
+    craft = [o for o in gs.ordnance if o["owner_player"] == 1
+             and "torpedo" not in o["ordnance_type"]]     # its own prow torpedoes too
+    assert len(craft) == 4 and all(o["ordnance_type"] == "fighter" for o in craft)
+    assert all(o.get("cap_ship_id") == "d" for o in craft)

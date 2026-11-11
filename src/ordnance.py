@@ -1629,9 +1629,16 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
     o_type, speed, resilient = craft_stats(craft_type, [weapon])
 
     markers = []
+    taken = {o["id"] for o in game_state.ordnance}
     for i in range(count):
+        mid = f"craft_{ship.id}_{craft_type}_{i}_{game_state.turn_number}"
+        n = 1
+        while mid in taken:                  # several launches of one type in a phase
+            mid = f"craft_{ship.id}_{craft_type}_{i}_{game_state.turn_number}_{n}"
+            n += 1
+        taken.add(mid)
         marker = OrdnanceMarker(
-            id=f"craft_{ship.id}_{craft_type}_{i}_{game_state.turn_number}",
+            id=mid,
             ordnance_type=o_type, owner_player=ship.player,
             launched_by=ship.id, x=ship.x, y=ship.y,
             heading=ship.heading, speed=speed,
