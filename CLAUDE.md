@@ -98,6 +98,12 @@ Cruisers. Ships using rules the engine can't play yet
   in one phase chooses (`ordnance.choose_turret_target`: AI by expected hits saved, a human via
   `GameState.turret_choice_hook`). Orks (`ork_turrets`) hit on 5+ and fire at everything
   (Xenos, Turret Defences). Not yet: the Ork commander's Extra Turrets (4+).
+- **Bombers always attack the lowest Armour value** (s.20, owner), whatever side they come from:
+  the engine (`ordnance.resolve_bomber_attack`), the wave planner / "Best split"
+  (`waves.wave_plan_inputs`), bomber vs assault boat values (`waves.bomber_squadron_value`),
+  multi-role suppression, AI strike targeting and the AI's hazard maths for incoming bombers
+  (`ai_hazards.marker_hits`, fixed: it used the Armour facing the bombers). Torpedoes use the
+  facing they hit.
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships
@@ -432,7 +438,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1000 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1001 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 

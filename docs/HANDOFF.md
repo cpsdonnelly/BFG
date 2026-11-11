@@ -571,7 +571,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1000 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1001 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -613,6 +613,8 @@ Latest items, newest last:
   that can reach it plan their moves against it, keep 0.3 weight on their nearest enemy, and
   pay half the hits the enemy could focus on their end position
   (`ai_hazards.position_exposure_hits`).
+- Owner: bombers always attack the lowest Armour value. Checked everywhere; the AI's hazard
+  maths for incoming bombers used the facing Armour and is fixed (`ai_hazards.marker_hits`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

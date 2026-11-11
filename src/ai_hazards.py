@@ -132,8 +132,10 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
     # attack craft that may reach the ship before it moves again
     if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + r:
         if "bomber" in otype or otype in ("manta", "thunderhawk", "fighta_bommer"):
-            # D6 attacks less one per turret (s.20)
-            h = sum(max(0, k - ship.effective_turrets) for k in range(1, 7)) / 6.0 * ph
+            # D6 attacks less one per turret, each hitting the LOWEST Armour
+            # value whatever side they come from (s.20)
+            h = (sum(max(0, k - ship.effective_turrets) for k in range(1, 7)) / 6.0
+                 * p_hit(ship.lowest_armor_value))
         elif "assault" in otype or otype == "gun_cutter":
             h = 0.5 * max(0.0, 1 - 0.5 * ship.effective_turrets / 2)
         else:

@@ -388,3 +388,20 @@ def test_ai_many_threats_go_to_cap():
              and "torpedo" not in o["ordnance_type"]]     # its own prow torpedoes too
     assert len(craft) == 4 and all(o["ordnance_type"] == "fighter" for o in craft)
     assert all(o.get("cap_ship_id") == "d" for o in craft)
+
+
+def test_bombers_always_use_lowest_armour():
+    """s.20: each bomber attack hits on the ship's lowest Armour value, whatever
+    side the bombers come from (engine, planners and the AI's hazard maths)."""
+    from tests.conftest import make_ship, make_gs, make_marker
+    from src.ai_hazards import marker_hits
+    from src.waves import wave_plan_inputs, bomber_squadron_value
+    from src.ai_hazards import value_per_hit
+    s = make_ship(id="s", player=1, x=0.0, y=0.0, heading=0.0, turrets=0, armor_prow="6+",
+                  armor_side="6+", armor_rear="4+", points_value=160)
+    gs = make_gs([s])
+    assert wave_plan_inputs(s, gs)["armour"] == 4
+    assert abs(bomber_squadron_value(s, gs) - 3.5 * 0.5 * value_per_hit(s, gs)) < 1e-9
+    b = make_marker(id="b", ordnance_type="bomber", owner_player=2, x=5.0, y=0.0, speed=20)
+    h, _ = marker_hits(s, b, (0.0, 0.0), [(0.0, 0.0)], [s])     # from the prow (6+)
+    assert abs(h - 3.5 * 0.5) < 1e-9                            # but hits the rear's 4+
