@@ -245,8 +245,10 @@ class GamePanel:
         from .waves import best_mr_suppress
         from .ordnance import turret_hit_on, ordnance_turrets
         from .choice_dialog import choose
-        best = best_mr_suppress(group, ordnance_turrets(ship, self.ctx.gs),
-                                (7 - turret_hit_on(ship)) / 6.0, ship.lowest_armor_value)
+        from .ordnance import get_massed_turret_bonus
+        t = ordnance_turrets(ship, self.ctx.gs)
+        best = best_mr_suppress(group, t, (7 - turret_hit_on(ship)) / 6.0, ship.lowest_armor_value,
+                                shots=t + get_massed_turret_bonus(ship, self.ctx.gs.get_ships()))
         return choose(
             self.ctx.root, "Suppress turrets?",
             f"A wave of {len(group)} squadrons is attacking {ship.name} "

@@ -466,9 +466,11 @@ class OrdnanceMovementMixin:
                     owner = group[0].owner_player
                     hook = getattr(self.ctx.gs, "mr_suppress_hook", None)
                     if self.ctx.is_ai_controlled(owner) or hook is None:
+                        from .ordnance import get_massed_turret_bonus
                         t = ordnance_turrets(s, self.ctx.gs)
                         n = best_mr_suppress(group, t, (7 - turret_hit_on(s)) / 6.0,
-                                             s.lowest_armor_value)
+                                             s.lowest_armor_value,
+                                             shots=t + get_massed_turret_bonus(s, ships))
                     else:
                         n = hook(s, group)
                     group, mr_suppress = apply_mr_suppress(group, n or 0)

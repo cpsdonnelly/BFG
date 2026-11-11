@@ -212,20 +212,31 @@ def apply_mr_suppress(group: List[OrdnanceMarker], n: int):
 
 
 def best_mr_suppress(group: List[OrdnanceMarker], turrets: int, p_turret: float,
-                     armour: int) -> int:
-    """AI: how many multi-role squadrons should suppress, by expected hits on
-    the ship: turrets remove about turrets x p squadrons from the front, each
-    surviving fighter suppresses one bomber (exactly 3 attacks), unsuppressed
-    bombers make D6 attacks less one per turret."""
+                     armour: int, shots: Optional[int] = None) -> int:
+    """AI / "Auto (best)": how many multi-role squadrons should suppress (s.27).
+    It depends on the target's turrets and the wave's size and make-up:
+    - the turrets roll `shots` dice (its turrets plus massed turrets), each
+      success removing a squadron from the front of the wave, where the
+      suppressors stand; the expectation is over every possible number of
+      kills (binomial), not a rounded average;
+    - each surviving suppressor (pure fighter or multi-role) gives one bomber
+      exactly 3 attacks; the others make D6 attacks less one per turret (the
+      ship's own turrets only, never massed).
+    Returns the number with the most expected hits on the ship."""
+    from math import comb
+    shots = turrets if shots is None else shots
     ph = max(1, 7 - armour) / 6.0
     plain = sum(max(0, k - turrets) for k in range(1, 7)) / 6.0
-    kills = int(round(turrets * p_turret))
+    dist = [comb(shots, k) * p_turret ** k * (1 - p_turret) ** (shots - k)
+            for k in range(shots + 1)]
     best_n, best_v = 0, -1.0
     for n in range(len(mr_suppress_candidates(group)) + 1):
         g, sup = apply_mr_suppress(group, n)
-        plan = ship_attack_plan(g, min(kills, len(g)), sup)
-        v = sum((3.0 if m.id in plan["suppressed"] else plain) * ph
-                for m in plan["attackers"] if "bomber" in _roles(m))
+        v = 0.0
+        for kills, pk in enumerate(dist):
+            plan = ship_attack_plan(g, min(kills, len(g)), sup)
+            v += pk * sum((3.0 if m.id in plan["suppressed"] else plain) * ph
+                          for m in plan["attackers"] if "bomber" in _roles(m))
         if v > best_v + 1e-9:
             best_n, best_v = n, v
     return best_n

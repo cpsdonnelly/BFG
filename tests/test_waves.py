@@ -128,3 +128,17 @@ def test_multi_role_suppress_choice_s27():
     assert best_mr_suppress(th, 0, 0.5, 5) == 0
     fb = [craft("f", "fighta_bommer"), craft("b", "bomber")]
     assert mr_suppress_candidates(fb) == []                # Fighta-Bommerz never suppress
+
+
+def test_suppression_depends_on_turrets_and_wave_size():
+    from src.waves import best_mr_suppress
+    wave = lambda n: [craft(f"w{i}", "thunderhawk", wave_order=i) for i in range(n)]
+    # no turrets: suppressing gains nothing (D6 attacks each beat a fixed 3 on average)
+    assert best_mr_suppress(wave(4), 0, 0.5, 5) == 0
+    # more turrets -> more worth suppressing, never fewer
+    picks = [best_mr_suppress(wave(4), t, 0.5, 5) for t in range(0, 7)]
+    assert picks == sorted(picks) and picks[-1] > 0
+    # a bigger wave can afford more suppressors against the same turrets
+    assert best_mr_suppress(wave(6), 4, 0.5, 5) >= best_mr_suppress(wave(3), 4, 0.5, 5)
+    # massed turrets add shots (more kills at the front) but don't reduce attacks
+    assert best_mr_suppress(wave(4), 2, 0.5, 5, shots=5) >= 0
