@@ -113,6 +113,13 @@ class AIPlayer:
                     if not s.is_destroyed and not s.is_disengaged
                     and s.id not in tc.ships_moved]
 
+        # Explosion risk / opportunity for this phase's moves (owner): where the
+        # enemy is likely to focus, and what our guns can put on each enemy
+        self._enemy_plan, self._our_hits = {}, {}
+        if self.difficulty != "easy":
+            from .ai_hazards import enemy_fire_plan, fleet_hits_on
+            self._enemy_plan = enemy_fire_plan(gs, self.player)
+            self._our_hits = fleet_hits_on(gs, self.player)
         # Fleet focus (owner): the enemy ship the fleet concentrates on this turn
         self._focus = None
         if self.difficulty != "easy":
@@ -283,6 +290,7 @@ class AIPlayer:
                     score += 0.3 * self._arc_score(ship, fx, fy, fh, near)
                 score -= self._exposure_penalty(ship, fx, fy, fh, enemy)
                 score += self._screen_bonus(ship, fx, fy, fh, enemy)
+                score += self._explosion_term(ship, fx, fy, enemy)
                 if score > best_score:
                     best_score = score
                     cmds: List[MoveCommand] = []
@@ -318,6 +326,18 @@ class AIPlayer:
         if not reach or ship.distance_to(f) > reach + 2 * (ship.speed or 0):
             return None
         return f
+
+    def _explosion_term(self, ship: Ship, x: float, y: float, target: Ship) -> float:
+        """ai_hazards.explosion_position_vp in the planner's firepower units:
+        keep clear of ships about to blow up; a ship likely to die gains by
+        ending next to enemy ships rather than its own (owner)."""
+        if self.difficulty == "easy" or getattr(self, "_enemy_plan", None) is None:
+            return 0.0
+        from .ai_hazards import explosion_position_vp, value_per_hit
+        vp = explosion_position_vp(ship, x, y, self.gs, getattr(self, "_enemy_plan", {}),
+                                   getattr(self, "_our_hits", {}))
+        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
+        return vp / per_fp
 
     def _screen_bonus(self, ship: Ship, x: float, y: float, h: float, target: Ship) -> float:
         """Escorts guard the commander's ship (CLAUDE.md To do 1): ending in base

@@ -569,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1018 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1021 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -640,6 +640,10 @@ Latest items, newest last:
   launcher's Ld; seeking at the nearest enemy; the rest straight. Torpedo bombers (s.21) still
   count as bombers until To do 3 builds their salvos; owner: a wave of 4 torpedo bombers
   becomes one combined strength-8 salvo (s.21: waves combine like a squadron in base contact).
+- Owner: kills / cripples now count the damage they prevent (`ship_threat_vp`) and the chance a
+  kill explodes among nearby ships (`death_explosion_vp`); movement avoids ships about to blow
+  up and a dying ship hugs enemies (`explosion_position_vp`). Torpedo-bomber salvos last one
+  phase (s.21); open question on Tau Tiger Shark salvos (CLAUDE.md).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
@@ -647,10 +651,9 @@ Next: CLAUDE.md "To do" item 1 (what is left: fleet-wide CAP / strikes, keeping 
 reactive CAP; fleet focus positioning follow-ups: several focus targets, torpedo lanes /
 craft reach in the move score, expert leaf evaluation; torpedo launch lanes and
 multi-waypoint routes) and 1c (strike planning at arrival time), then items 3-6 (item 3 now
-carries the full torpedo bomber rules incl. combined wave salvos and the AI changes they need). Owner feedback wanted on the AI's judgement weights, e.g. a
-healthy lone cruiser facing three full enemy cruisers disengages under the current model. No open
-questions (the dust-cloud answers are built: one shift at most with blast markers; attack craft
-destroyed on a 6 in a cloud).
+carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos and the AI
+changes they need). One open question: Tiger Shark salvos (CLAUDE.md). Owner feedback wanted on the AI's judgement weights, e.g. a
+healthy lone cruiser facing three full enemy cruisers disengages under the current model.
 
 ## Bombers vs assault boats (owner idea, done: CLAUDE.md To do 1b)
 

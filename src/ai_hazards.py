@@ -330,17 +330,94 @@ def poisson_at_least(mean: float, k: int) -> float:
     return max(0.0, 1.0 - cdf)
 
 
+_THREAT_CACHE: Dict = {}
+
+
+def _opponent(player: int) -> int:
+    return 2 if player == 1 else 1
+
+
+def ship_threat_vp(ship: Ship, gs) -> float:
+    """Expected VP the ship's guns could take off its enemies in their next
+    turn: every battery / lance mount that can bear (`_mount_bears`: in range +
+    its move, facing) at the most valuable enemy it bears on. Killing it
+    removes this, crippling halves it (s.33: half firepower). Cached per
+    position and damage."""
+    key = (id(gs), gs.turn_number, gs.current_phase, ship.id, ship.hits_remaining,
+           round(ship.x, 1), round(ship.y, 1), round(ship.heading))
+    if key in _THREAT_CACHE:
+        return _THREAT_CACHE[key]
+    if len(_THREAT_CACHE) > 5000:
+        _THREAT_CACHE.clear()
+    foes = [t for t in gs.get_ships() if t.player != ship.player
+            and not t.is_destroyed and not t.is_disengaged
+            and t.status not in ("drifting_hulk", "burning_hulk")]
+    total = 0.0
+    for w in ship.weapons:
+        wt = w.get("weapon_type")
+        if wt not in ("battery", "lance"):
+            continue
+        h = (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35)
+        if ship.is_crippled:
+            h *= 0.5
+        best = max((value_per_hit(t, gs) for t in foes if _mount_bears(ship, w, t)), default=0.0)
+        total += h * best
+    _THREAT_CACHE[key] = total
+    return total
+
+
+def explosion_odds(ship: Ship):
+    """(P plasma drive overload, P warp drive implosion) when a capital ship is
+    destroyed (Catastrophic Damage, 2D6: 9-11 / 12); the Mercury rolls 3D6
+    (over 12 counts as 12). Escorts and small defences never explode (they
+    become blast markers)."""
+    from .combat import becomes_blast_marker
+    if becomes_blast_marker(ship):
+        return 0.0, 0.0
+    if "catastrophic_3d6" in ship.special_rules:
+        p = [0.0] * 19
+        for a in range(1, 7):
+            for b in range(1, 7):
+                for c in range(1, 7):
+                    p[a + b + c] += 1 / 216
+        plasma = p[9] + p[10] + p[11]
+        warp = sum(p[12:])
+        return plasma, warp
+    return 9 / 36, 1 / 36
+
+
+def death_explosion_vp(ship: Ship, gs, player: int, at=None) -> float:
+    """Net expected VP for `player` of `ship` blowing up (at its position, or
+    `at`) if it is destroyed: plasma overload (half its starting hits) or warp
+    implosion (all of them) over 3D6cm (explosion_vp)."""
+    pp, pw = explosion_odds(ship)
+    if not pp and not pw:
+        return 0.0
+    centre = at or (ship.x, ship.y)
+    return (pp * explosion_vp(centre, ship.hits_max // 2, gs, player, ship.id)
+            + pw * explosion_vp(centre, ship.hits_max, gs, player, ship.id))
+
+
 def damage_vp(target: Ship, gs, mean_hits: float) -> float:
     """Expected VP from `mean_hits` hull hits on a target (s.38): its value if
     destroyed, a quarter if crippled, plus a little for each hit (later
-    damage, crits)."""
+    damage, crits). Owner: also the damage it would have done that we prevent,
+    destroying it removes its next turn's threat (ship_threat_vp), crippling
+    halves it, and a destroyed ship may explode among the ships near it
+    (death_explosion_vp: good for us near enemies, bad near our own ships)."""
     v = ship_value(target, gs)
     rem = max(1, target.hits_remaining)
     p_kill = poisson_at_least(mean_hits, rem)
     to_cripple = rem - target.hits_max // 2
     p_crip = 0.0 if target.is_crippled or to_cripple <= 0 else poisson_at_least(mean_hits, to_cripple)
-    return (p_kill * v + max(0.0, p_crip - p_kill) * v * 0.25
+    base = (p_kill * v + max(0.0, p_crip - p_kill) * v * 0.25
             + min(mean_hits, rem) * value_per_hit(target, gs) * 0.2)
+    if p_kill <= 0 and p_crip <= 0:
+        return base
+    threat = ship_threat_vp(target, gs)
+    prevented = p_kill * threat + max(0.0, p_crip - p_kill) * 0.5 * threat
+    boom = p_kill * death_explosion_vp(target, gs, _opponent(target.player)) if p_kill > 0.01 else 0.0
+    return base + prevented + boom
 
 
 def shot_vp(attacker: Ship, weapon: dict, target: Ship, gs, committed: float = 0.0) -> float:
@@ -669,6 +746,73 @@ def plan_strike_targets(gs, player: int) -> dict:
         for m in g:
             plan[m.id] = best_t.id
     return plan
+
+
+def fleet_hits_on(gs, player: int) -> Dict[str, float]:
+    """Expected hits `player`'s batteries / lances in reach (range + the firing
+    ship's move) could put on each enemy ship next shooting phase (0.35 a
+    battery point scaled by its Armour, 0.5 a lance), before shields."""
+    import math as _m
+    ours = [s for s in gs.get_ships() if s.player == player
+            and not s.is_destroyed and not s.is_disengaged]
+    out = {}
+    for e in gs.get_ships():
+        if (e.player == player or e.is_destroyed or e.is_disengaged
+                or e.status in ("drifting_hulk", "burning_hulk")):
+            continue
+        hits = 0.0
+        armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
+        for s in ours:
+            d = _m.hypot(s.x - e.x, s.y - e.y)
+            for w in s.weapons:
+                wt = w.get("weapon_type")
+                if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
+                    continue
+                hits += (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35 * armour_factor)
+        out[e.id] = hits
+    return out
+
+
+def explosion_position_vp(ship: Ship, x: float, y: float, gs, enemy_plan: Dict[str, float],
+                          our_hits: Dict[str, float]) -> float:
+    """Owner: catastrophic damage and positioning. Net expected VP of the ship
+    ending its move at (x, y), from explosions alone:
+      - risk: any other ship, friend or foe, that may be destroyed before our
+        next move and blow up with this ship inside its 3D6cm radius (our ships
+        at the hits the enemy can focus on them, enemy_fire_plan; enemies at
+        half the hits our fleet can put on them, fleet_hits_on);
+      - opportunity: this ship itself, if it is likely to be destroyed, blowing
+        up among enemies (good) or friends (bad) (death_explosion_vp), so a
+        wounded ship gains by hugging enemy ships and keeping away from its own.
+    Escorts never explode."""
+    import math as _m
+    from .geometry import current_shields
+    shields = current_shields(ship, gs.get_blast_markers())
+    vph = max(1.0, value_per_hit(ship, gs))
+    risk = 0.0
+    for o in gs.get_ships():
+        if o.id == ship.id or o.is_destroyed or o.is_disengaged:
+            continue
+        pp, pw = explosion_odds(o)
+        if not pp and not pw:
+            continue
+        lam = enemy_plan.get(o.id, 0.0) if o.player == ship.player else 0.5 * our_hits.get(o.id, 0.0)
+        pd = poisson_at_least(lam, max(1, o.hits_remaining))
+        if pd <= 0.001:
+            continue
+        d = _m.hypot(o.x - x, o.y - y)
+        p_in = 1.0 - p_sum_at_most(3, max(0, _m.ceil(d) - 1))
+        if p_in <= 0:
+            continue
+        hits = (pp * max(0.0, (o.hits_max // 2) * 0.5 - shields)
+                + pw * max(0.0, o.hits_max * 0.5 - shields))
+        risk += pd * p_in * min(hits, ship.hits_remaining) * vph
+    lam_me = enemy_plan.get(ship.id, 0.0)
+    pd_me = poisson_at_least(lam_me, max(1, ship.hits_remaining))
+    bonus = 0.0
+    if pd_me > 0.01:
+        bonus = pd_me * death_explosion_vp(ship, gs, ship.player, at=(x, y))
+    return bonus - risk
 
 
 def fleet_focus_targets(gs, player: int) -> list:

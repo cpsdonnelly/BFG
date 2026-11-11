@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1018 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1021 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -538,6 +538,16 @@ points to):
   on the launcher's Ld, seeking at the nearest enemy, the rest straight.
 - Owner, for To do 3: a wave of torpedo bombers combines into one salvo of 2 per squadron
   (a wave of 4 makes a strength-8 salvo, s.21).
+- Prevented damage and catastrophic damage in the AI's values (owner): `ai_hazards.damage_vp`
+  (every gun / torpedo / strike target value) now adds the enemy's threat removed: destroying
+  a ship removes its next turn of fire at us (`ship_threat_vp`: each battery / lance mount
+  that can bear, at the most valuable ship it bears on), crippling halves it; and a kill may
+  explode (`death_explosion_vp`, Catastrophic Damage 9-11 plasma / 12 warp, Mercury 3D6;
+  escorts never), good for us near enemies, bad near our own ships. Movement weighs explosions
+  too (`explosion_position_vp` via `AIPlayer._explosion_term`): stay out of the 3D6cm radius of
+  ships (friend or foe) likely to die before our next move, and a ship of ours likely to be
+  destroyed gains by ending next to enemy ships rather than friends. Raids already counted
+  damage prevented by armament crits.
 - AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
   e.g. a crippled cruiser on 2 hits under enemy guns tries to leave; a healthy one facing a
   single enemy cruiser fights on (a lone healthy cruiser facing three full cruisers also leaves:
@@ -637,6 +647,11 @@ points to):
    update the AI: `ai_hazards.marker_hits` (a torpedo bomber wave threatens one salvo of 2 x
    its squadrons, any facing, within its torpedo reach), fighter allocation (one fighter
    removes the whole combined salvo, s.19) and strike planning (torpedo bombers vs bombers).
+   Owner reminder: torpedo-bomber salvos don't live on like other torpedoes: s.21 "limited
+   fuel ... removed at the end of the phase in which it is fired" (one move only). Who has
+   them: Imperial Navy Marauder torpedo bombers (TB 20cm, attack-craft option); Tau Tiger
+   Shark drone carriers (torpedo bombers "producing missile salvos", 4+ resilient, 20cm; open
+   question below). No other faction lists torpedo bombers.
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
    daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
    commander's Extra Turrets: 4+), other factions' secondary commanders, Inquisition Ordos.
@@ -690,7 +705,11 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- None open.
+- **Tiger Shark salvos (Tau):** the Tau rules say Tiger Sharks are torpedo bombers "producing
+  missile salvos". Core s.21 removes a torpedo-bomber salvo at the end of the phase it is
+  fired; Tau missiles otherwise stay in play, losing a point of strength on each 1. Does a
+  Tiger Shark salvo move like Tau missiles (20-40cm, one 45-degree turn) but still vanish at
+  the end of that phase, or does it stay in play as a normal Tau missile salvo?
 
 Owner rulings (dust clouds, answers to the last questions; implemented, tested):
 - A gas / dust cloud in the line of fire shifts macrobatteries one column right even if
