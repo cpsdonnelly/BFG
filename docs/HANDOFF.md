@@ -569,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 993 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 994 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -596,7 +596,10 @@ Latest items, newest last:
 - AI voluntary disengagement by expected VP (`ai_hazards.incoming_hits / disengage_gain`,
   `AIPlayer._consider_disengage`); tune on the owner's feedback (one-turn horizon, Poisson risk).
   Threat per weapon mount (`ai_hazards._mount_bears`, owner: good positioning lets a ship fire
-  both broadsides at different targets; never both at one).
+  both broadsides at different targets; never both at one), and the enemy focuses fire
+  (`enemy_fire_plan`, owner: optimal play concentrates fire rather than splitting it): each
+  mount goes wholly to the target it adds most VP to, biggest mounts first, so fire piles onto
+  a damaged ship until it is likely dead and then moves on. Reusable for brace / positioning.
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

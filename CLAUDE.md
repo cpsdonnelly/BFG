@@ -389,9 +389,11 @@ Owner rulings (fleet lists, export 15):
   P(pass) x (risk avoided over the enemy's next turn - extra VP conceded) - its guns' value
   (`ai_rerolls.firepower_swing`; lost either way this turn). Risk: `incoming_hits` (enemy guns
   in range + move, per mount: a port broadside counts against our ships on the enemy's left,
-  starboard on its right, other mounts within their arc after one turn; each mount's fire
-  shared among the ships it can bear on, so an enemy between two of ours can fire both
-  broadsides, at different targets (owner)) as a Poisson
+  starboard on its right, other mounts within their arc after one turn, so an enemy between two
+  of ours can fire both broadsides at different targets (owner); the enemy focuses fire (owner:
+  optimal play concentrates, it doesn't split): `ai_hazards.enemy_fire_plan` gives each mount
+  wholly to the ship it adds the most VP against, damage so far counted, finishing a ship
+  valued) as a Poisson
   count; destroyed = full value (75% more if already crippled), newly crippled 25%; leaving
   concedes 10% (crippled: nothing extra). Judgement weights; one-turn horizon; escort squadrons
   and the last turn of a game not special-cased yet. Not yet: the +3 during a radiation burst
@@ -430,7 +432,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 993 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 994 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 

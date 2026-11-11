@@ -64,7 +64,20 @@ def test_both_broadsides_at_different_targets():
     # A lone target only ever faces one broadside
     gs1 = make_gs([e, a])
     assert abs(incoming_hits(a, gs1) - 8 * 0.35) < 1e-9
-    # Two of ours on the same side share that broadside
-    c = make_ship(id="c", player=1, x=10.0, y=20.0, shields_max=0)
+    # Two of ours on the same side: the broadside goes wholly to one of them
+    # (focus fire, owner), the more damaged one when it can finish it
+    c = make_ship(id="c", player=1, x=10.0, y=20.0, shields_max=0, hits_remaining=2)
     gs2 = make_gs([e, a, c])
-    assert abs(incoming_hits(a, gs2) - 8 * 0.35 / 2) < 1e-9
+    assert abs(incoming_hits(c, gs2) - 8 * 0.35) < 1e-9 and incoming_hits(a, gs2) == 0.0
+
+
+def test_focus_fire_moves_on_once_a_target_is_likely_dead():
+    from src.ai_hazards import enemy_fire_plan
+    big = [{"name": f"Prow Lances {i}", "weapon_type": "lance", "range_cm": 30,
+            "strength": 4, "arcs": ["front"]} for i in range(3)]
+    e = make_ship(id="e", player=2, x=0.0, y=0.0, heading=0.0, weapons=big)
+    weak = make_ship(id="w", player=1, x=20.0, y=2.0, shields_max=0, hits_remaining=1,
+                     points_value=180)
+    other = make_ship(id="o", player=1, x=20.0, y=-2.0, shields_max=0, points_value=180)
+    plan = enemy_fire_plan(make_gs([e, weak, other]), 1)
+    assert plan["w"] == 2.0 and plan["o"] == 4.0     # one mount finishes it, the rest move on

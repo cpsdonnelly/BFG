@@ -408,31 +408,62 @@ def _mount_bears(e: Ship, w: dict, t: Ship) -> bool:
     return False
 
 
-def incoming_hits(ship: Ship, gs) -> float:
-    """Rough hits the enemy's guns can put on `ship` in their next turn: each
-    enemy battery / lance mount that can bear on it (`_mount_bears`: in range
-    + the enemy's move, facing it; 0.35 a battery point, 0.5 a lance), its
-    fire shared among the ships of ours that mount can bear on, less the
-    ship's shields once per firing ship. One broadside never counts twice
-    against one target, but an enemy between two of our ships can turn port
-    guns on one and starboard guns on the other (owner)."""
+def enemy_fire_plan(gs, player: int) -> dict:
+    """Where the enemy's guns are expected to go in its next turn, assuming it
+    focuses fire (owner: optimal play concentrates, it doesn't split): each
+    enemy battery / lance mount goes wholly to the ship of `player` it adds the
+    most expected VP against (`_mount_bears`; 0.35 a battery point, 0.5 a
+    lance; that enemy ship's first mount on a target loses the target's
+    shields), given the hits already planned on it: value per hit up to the
+    hits it has left, plus half its value times P(those hits finish it).
+    Biggest mounts are placed first. Returns {ship id: expected hits}."""
     from .geometry import current_shields
-    shields = current_shields(ship, gs.get_blast_markers())
-    ours = [s for s in gs.get_ships() if s.player == ship.player
+    bms = gs.get_blast_markers()
+    ours = [s for s in gs.get_ships() if s.player == player
             and not s.is_destroyed and not s.is_disengaged]
-    total = 0.0
+    planned = {t.id: 0.0 for t in ours}
+    shields = {t.id: current_shields(t, bms) for t in ours}
+    firing = set()                     # (enemy id, target id) pairs already shooting
+
+    def value(t, h):
+        rem = max(1, t.hits_remaining)
+        vph = max(1.0, value_per_hit(t, gs))        # points unknown: still worth something
+        return (vph * min(h, rem)
+                + 0.5 * max(ship_value(t, gs), vph * t.hits_max) * _poisson_at_least(h, rem))
+    mounts = []
     for e in gs.get_ships():
-        if e.player == ship.player or e.is_destroyed or e.is_disengaged:
+        if e.player == player or e.is_destroyed or e.is_disengaged:
             continue
-        hits = 0.0
         for w in e.weapons:
             wt = w.get("weapon_type")
-            if wt not in ("battery", "lance") or not _mount_bears(e, w, ship):
+            if wt not in ("battery", "lance"):
                 continue
-            n = sum(1 for t in ours if _mount_bears(e, w, t))
-            hits += (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35) / max(1, n)
-        total += max(0.0, hits - shields)
-    return total
+            h = (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35)
+            if h > 0:
+                mounts.append((h, e, w))
+    mounts.sort(key=lambda m: -m[0])
+    for h, e, w in mounts:
+        best, best_t, best_dh = 0.0, None, 0.0
+        for t in ours:
+            if not _mount_bears(e, w, t):
+                continue
+            dh = h if (e.id, t.id) in firing else max(0.0, h - shields[t.id])
+            gain = value(t, planned[t.id] + dh) - value(t, planned[t.id])
+            if gain > best:
+                best, best_t, best_dh = gain, t, dh
+        if best_t is not None:
+            if (e.id, best_t.id) not in firing:
+                firing.add((e.id, best_t.id))
+            planned[best_t.id] += best_dh
+    return planned
+
+
+def incoming_hits(ship: Ship, gs) -> float:
+    """Expected hits the enemy's guns put on `ship` in their next turn when it
+    focuses fire (enemy_fire_plan). An enemy between two of our ships can
+    turn port guns on one and starboard guns on the other, never both on one
+    (owner)."""
+    return enemy_fire_plan(gs, ship.player).get(ship.id, 0.0)
 
 
 def disengage_gain(ship: Ship, gs, ld: int, contribution: float) -> float:
