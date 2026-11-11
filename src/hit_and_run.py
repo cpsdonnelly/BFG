@@ -217,20 +217,70 @@ _CRIT_EXTRA = {"engine_room": 1.0, "thrusters_damaged": 1.0, "hull_breach": 2.0,
                "bulkhead_collapse": 3.5, "fire": 0.5}
 
 
+def _end_phases_before_target_shoots(target: Ship, gs: GameState) -> int:
+    """Damage control rolls a crit faces before the target's next shooting
+    phase: one (this end phase) when it lands in the raider's turn; two (the
+    target's and the raider's end phases) when it lands in the target's own
+    turn, after the target has already fired."""
+    return 2 if gs.active_player == target.player else 1
+
+
+def p_crit_unrepaired(target: Ship, gs: GameState, phases: int = 1, new_crits: int = 1) -> float:
+    """Chance a newly inflicted repairable crit is still there after `phases`
+    end phases of damage control (s.36): one D6 per remaining hit (halved,
+    rounding up, touching a blast marker), each 6 repairs one repairable crit;
+    the repair crews' choice among several crits is taken as even."""
+    from math import comb
+    from .geometry import count_blast_markers_touching
+    if target.ship_type in ("escort", "defense") and not uses_crit_table(target):
+        return 1.0
+    n = max(0, target.hits_remaining)
+    if count_blast_markers_touching(target, gs.get_blast_markers()) > 0:
+        n = (n + 1) // 2
+    k = new_crits + sum(1 for c in target.critical_damage if c.get("repairable"))
+    survive = 0.0
+    for sixes in range(n + 1):
+        p = comb(n, sixes) * (1 / 6) ** sixes * (5 / 6) ** (n - sixes)
+        survive += p * max(0.0, 1.0 - sixes / k)
+    return survive ** max(1, phases)
+
+
+def _weapon_can_bear(target: Ship, weapon: Dict, friend: Ship, reach: float) -> float:
+    """Threat weight at the target's next shooting phase: 1 if the friend is in
+    the weapon's arc now and within range + `reach` (the movement before that
+    phase); 0.75 if a turn of up to the target's turn angle would bring it into
+    the arc; else 0."""
+    from .combat import check_weapon_in_arc
+    from .chapter_tactics import weapon_range
+    rng = weapon_range(target, weapon) or (weapon.get("range_cm") or 0)
+    if target.distance_to(friend) > rng + reach:
+        return 0.0
+    if check_weapon_in_arc(target, weapon, friend.x, friend.y):
+        return 1.0
+    turn = target.turn_angle or 0
+    for dh in (-turn, turn):
+        turned = Ship.from_dict({**target.to_dict(), "heading": (target.heading + dh) % 360})
+        if dh and check_weapon_in_arc(turned, weapon, friend.x, friend.y):
+            return 0.75
+    return 0.0
+
+
 def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: int) -> float:
     """Expected VP the raiding player saves by knocking out the target's weapons
-    in one location: each weapon there scores its expected hits (lances 0.5 a
-    die, batteries 0.35, torpedoes 0.3) on the most valuable of the owner's
-    ships it threatens, i.e. in that weapon's arc AND range. Owner ruling: a
-    location that threatens no allied ship (all out of range or out of arc) is
-    worth nothing, so Wings of Fury re-rolls it. Weapons already knocked out
-    count nothing. So silencing long-ranged, heavy weapons that bear on
-    friendly ships is worth most."""
+    in one location (owner ruling: what the weapons threaten at the target's
+    NEXT shooting phase, weighted by the chance damage control hasn't repaired
+    the crit by then). Each weapon there scores its expected hits (lances 0.5 a
+    die, batteries 0.35, torpedoes 0.3) on the most valuable allied ship it
+    can bear on then (`_weapon_can_bear`: in reach = range + the movement
+    before that phase, i.e. the target's move, plus ours when the crit lands in
+    the target's own turn; in arc now, or after one turn at 0.75). A location
+    threatening no allied ship then is worth nothing, so Wings of Fury re-rolls
+    it. Weapons already knocked out count nothing."""
     from .ai_hazards import value_per_hit
-    from .combat import (check_weapon_in_arc, check_weapon_in_range,
-                         weapon_in_crit_slot, weapon_disabled_by_crit)
+    from .combat import weapon_in_crit_slot, weapon_disabled_by_crit
     friends = [f for f in gs.get_ships() if f.player == owner and not f.is_destroyed
                and not f.is_disengaged]
+    phases = _end_phases_before_target_shoots(target, gs)
     total = 0.0
     for w in target.weapons:
         if not weapon_in_crit_slot(w, crit_type) or weapon_disabled_by_crit(target, w):
@@ -238,14 +288,14 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
         per_die = {"lance": 0.5, "battery": 0.35, "torpedo": 0.3}.get(w.get("weapon_type"))
         if per_die is None:
             continue
-        threatened = [f for f in friends
-                      if check_weapon_in_arc(target, w, f.x, f.y)
-                      and check_weapon_in_range(target, w, f.x, f.y)]
-        if not threatened:
-            continue
-        best = max(max(1.0, value_per_hit(f, gs)) for f in threatened)
+        best = 0.0
+        for f in friends:
+            reach = (target.speed or 0) + ((f.speed or 0) if phases > 1 else 0)
+            wt = _weapon_can_bear(target, w, f, reach)
+            if wt:
+                best = max(best, wt * max(1.0, value_per_hit(f, gs)))
         total += (w.get("strength") or 0) * per_die * best
-    return total
+    return total * p_crit_unrepaired(target, gs, phases) if total else 0.0
 
 
 def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int) -> float:

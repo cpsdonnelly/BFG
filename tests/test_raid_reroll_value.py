@@ -56,8 +56,9 @@ def test_already_disabled_location_is_worth_nothing():
 
 
 def test_long_heavy_weapons_worth_more():
-    # Friend ahead, 50cm away: only the 60cm dorsal lances reach in arc
-    target, gs = _setup(friend_xy=(50.0, 0.0))
+    # Friend ahead, 60cm away: after the target's 20cm move only the 60cm dorsal
+    # lances can reach (prow lance 30 + 20 = 50cm)
+    target, gs = _setup(friend_xy=(60.0, 0.0))
     assert raid_result_value(2, target, gs, 1) > raid_result_value(5, target, gs, 1)
 
 
@@ -73,8 +74,8 @@ def test_weapon_disabled_by_crit_names_and_arcs():
 
 
 def test_port_disable_rerolled_when_no_ally_threatened():
-    # Friend in the port arc but beyond the 45cm battery: nothing threatened
-    target, gs = _setup(friend_xy=(0.0, 50.0))
+    # Friend in the port arc but beyond the 45cm battery + the target's 20cm move
+    target, gs = _setup(friend_xy=(0.0, 70.0))
     assert raid_result_value(4, target, gs, 1) == 0.0
     assert best_raid_reroll(4, 4, target, gs, 1) is True
     # Friend in range but in the starboard arc: the port disable threatens nothing
@@ -82,3 +83,29 @@ def test_port_disable_rerolled_when_no_ally_threatened():
     assert raid_result_value(4, target, gs, 1) == 0.0
     assert best_raid_reroll(4, 4, target, gs, 1) is True
     assert best_raid_reroll(3, 3, target, gs, 1) is False      # starboard bears: keep
+
+
+def test_next_shooting_phase_reach_and_repairs():
+    from src.hit_and_run import p_crit_unrepaired
+    # 50cm away in the port arc: out of range now, within reach after the
+    # target's 20cm move, so the port disable is worth something
+    target, gs = _setup(friend_xy=(0.0, 50.0))
+    gs.active_player = 1                       # raid lands in the raider's turn
+    v1 = raid_result_value(4, target, gs, 1)
+    assert v1 > 0 and best_raid_reroll(4, 4, target, gs, 1) is False
+    # Damage control: 8 hits, one crit -> (5/6)^8 survives one end phase
+    assert abs(p_crit_unrepaired(target, gs, 1) - (5 / 6) ** 8) < 1e-9
+    # Landing in the target's own turn: two end phases before it shoots again
+    gs.active_player = 2
+    v2 = raid_result_value(4, target, gs, 1)
+    assert 0 < v2 < v1
+    assert abs(p_crit_unrepaired(target, gs, 2) - ((5 / 6) ** 8) ** 2) < 1e-9
+
+
+def test_repairs_halved_by_blast_markers():
+    from tests.conftest import make_blast
+    from src.hit_and_run import p_crit_unrepaired
+    target, gs = _setup()
+    clear = p_crit_unrepaired(target, gs, 1)
+    gs.add_blast_marker(make_blast(x=target.x, y=target.y))
+    assert abs(p_crit_unrepaired(target, gs, 1) - (5 / 6) ** 4) < 1e-9 and clear < (5 / 6) ** 4

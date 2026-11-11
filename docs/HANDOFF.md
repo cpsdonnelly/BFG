@@ -556,7 +556,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 980 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 982 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 Latest items: wave planner (resilient saves, partial launches, editable inputs), squadron-only
 combined launches, Wings of Fury expected-value re-rolls (owner ruling: an armament disable that
@@ -662,10 +662,11 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    ordnance in flight valued at arrival with survival, reach-based threat) so a move that pays
    off after the horizon is still seen.
 
-9. **Open question (owner):** Wings of Fury re-rolls currently follow the owner's ruling (only
-   allied ships in the weapon's arc and range right now count). Switch to "threatened at the
-   target's next shooting phase (reach model), weighted by P(not repaired first)"? Recommended,
-   since that is when the crit matters; travel time doesn't apply (the raid has landed).
+9. **Done (owner ruling: "the second idea is an extension of the first"):** Wings of Fury
+   re-rolls value armament crits by the threat at the target's next shooting phase (reach =
+   range + the movement before it; in arc now or after one turn at 0.75), times
+   `hit_and_run.p_crit_unrepaired` (one or two end phases). Points 2-3 are thus built for raids;
+   the rest (travel time, waves, splitting, expert leaf) is still to do.
 
 ## Remaining work (agreed order)
 

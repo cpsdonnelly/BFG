@@ -129,10 +129,16 @@ Fire aspect choice, Vault of Technology's chooser.
 Wings of Fury re-rolls (owner guidance): re-roll when a fresh D6 is worth more on average than
 the result in hand (`raid_result_value`, in expected VP, using the crit after the cascade,
 `raid_crit_preview`). Engine Room is +1 hit; an armament crit is worth the expected hits its
-weapons would score on the raiding player's ships (`armament_threat_value`). Owner ruling: only
-allied ships in that weapon's arc AND range count, so a disable that threatens no allied ship
-(all out of range or out of arc) is worth nothing and is re-rolled; long-ranged, heavy weapons
-that bear on friendly ships count most; a location already knocked out counts nothing. Escorts: 1
+weapons would score on the raiding player's ships (`armament_threat_value`). Owner ruling
+(extends the earlier "in arc and range now"): what the weapons threaten at the target's NEXT
+shooting phase, weighted by the chance damage control hasn't repaired the crit by then
+(`p_crit_unrepaired`: D6 per remaining hit, 6s repair, halved touching a blast marker; one end
+phase when the raid lands in the raider's turn, two when in the target's own turn). An allied
+ship counts if it is within range + the movement before that phase (the target's move, plus
+ours in the two-end-phase case) and in the weapon's arc now (full) or after one turn of the
+target's turn angle (0.75) (`_weapon_can_bear`). A disable that threatens no allied ship then is
+worth nothing and is re-rolled; long-ranged, heavy weapons count most; a location already
+knocked out counts nothing. Escorts: 1
 damage on 4+, so Space Marines (+1) re-roll a 1 or 2. Armament crits now also silence the
 AI's weapons (`combat.weapon_disabled_by_crit`, shared with the fire dialogs; it used to be
 UI-only, so the AI kept firing knocked-out weapons).
@@ -409,7 +415,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 980 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 982 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -535,11 +541,7 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- **Wings of Fury re-roll threat window:** keep the ruling "only allied ships in the weapon's
-  arc and range right now count", or switch to "threatened at the target's next shooting phase
-  (after it and our ships move), weighted by the chance damage control hasn't repaired it"?
-  Recommended: the latter (docs/HANDOFF.md "Ordnance strike planning", point 9). Until the
-  owner answers, the current ruling stays.
+- None open.
 
 Owner ruling (resilient saves, s.23): the booklet's wording stands. A resilient squadron saves
 against any other ordnance it intercepts or is intercepted by (fighters, bombers, torpedoes,
