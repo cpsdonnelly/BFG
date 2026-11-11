@@ -142,3 +142,16 @@ def test_suppression_depends_on_turrets_and_wave_size():
     assert best_mr_suppress(wave(6), 4, 0.5, 5) >= best_mr_suppress(wave(3), 4, 0.5, 5)
     # massed turrets add shots (more kills at the front) but don't reduce attacks
     assert best_mr_suppress(wave(4), 2, 0.5, 5, shots=5) >= 0
+
+
+def test_best_wave_split():
+    from src.waves import best_wave_split
+    # no turrets, no CAP: all bombers (D6 each beats a fixed 3 only through suppression)
+    assert best_wave_split(4, 0, 0, 0, 5)[0] == 0
+    # heavy turrets: fighters in front soak kills and suppress
+    f, b, _ = best_wave_split(6, 4, 4, 0, 5)
+    assert f >= 1 and b >= 1 and f + b == 6
+    # enemy CAP takes squadrons from the front: more fighters ahead pay off
+    f_cap, _, _ = best_wave_split(6, 4, 4, 2, 5)
+    assert f_cap >= f
+    assert best_wave_split(1, 4, 4, 0, 5)[:2] == (0, 1)   # one slot: it must be a bomber

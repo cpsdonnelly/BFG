@@ -240,3 +240,43 @@ def best_mr_suppress(group: List[OrdnanceMarker], turrets: int, p_turret: float,
         if v > best_v + 1e-9:
             best_n, best_v = n, v
     return best_n
+
+
+def wave_split_value(fighters: int, bombers: int, turrets: int, shots: int, cap: int,
+                     armour: int, p_turret: float = 0.5) -> float:
+    """Expected hits on a ship from a wave of `fighters` then `bombers` (s.25,
+    s.27): the turrets roll `shots` dice (its turrets plus massed turrets),
+    each success removing a squadron from the front; then each enemy CAP
+    fighter squadron on the target stops one more from the front (CAP meets the
+    wave's squadrons in order after its turret roll); each surviving fighter
+    gives one bomber exactly 3 attacks, the other bombers make D6 attacks less
+    one per turret (its own turrets only)."""
+    from math import comb
+    n = fighters + bombers
+    if bombers <= 0:
+        return 0.0
+    ph = max(1, 7 - armour) / 6.0
+    plain = sum(max(0, k - turrets) for k in range(1, 7)) / 6.0
+    total = 0.0
+    for kills in range(shots + 1):
+        pk = comb(shots, kills) * p_turret ** kills * (1 - p_turret) ** (shots - kills)
+        lost = min(n, kills + cap)                   # from the front: fighters first
+        f_left = max(0, fighters - lost)
+        b_left = bombers - max(0, lost - fighters)
+        sup = min(f_left, b_left)
+        total += pk * (sup * 3.0 + (b_left - sup) * plain) * ph
+    return total
+
+
+def best_wave_split(slots: int, turrets: int, shots: int, cap: int, armour: int,
+                    p_turret: float = 0.5):
+    """For fleets without multi-role craft: how many of `slots` launch-bay
+    squadrons should be fighters and how many bombers in one wave against a
+    target with `turrets` (and `shots` turret dice incl. massed turrets) and
+    `cap` enemy CAP fighter squadrons. Returns (fighters, bombers, expected hits)."""
+    best = (0, slots, wave_split_value(0, slots, turrets, shots, cap, armour, p_turret))
+    for f in range(1, slots):
+        v = wave_split_value(f, slots - f, turrets, shots, cap, armour, p_turret)
+        if v > best[2] + 1e-9:
+            best = (f, slots - f, v)
+    return best

@@ -358,6 +358,40 @@ class OrdnancePanel(OrdnanceMovementMixin):
         tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
 
+    def _best_split_plan(self, ship, available_types, total_bays, check_only=False):
+        """Fighters / bombers for one wave against the nearest enemy ship (in
+        craft reach first): waves.best_wave_split with its turrets (shots incl.
+        massed turrets), its enemy CAP fighters and its Armour. Only for bays
+        that offer a pure fighter and a pure bomber type (no multi-role craft)."""
+        from .ordnance import (craft_roles, craft_stats, ordnance_turrets,
+                               get_massed_turret_bonus)
+        from .waves import best_wave_split
+        bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+        roles = {ct: set(craft_roles(craft_stats(ct, bays)[0])) for ct in available_types}
+        if any(len(r) > 1 for r in roles.values()):
+            return None                              # multi-role: see s.27 suppression
+        fk = next((ct for ct, r in roles.items() if r == {"fighter"}), None)
+        bk = next((ct for ct, r in roles.items() if r == {"bomber"}), None)
+        if not fk or not bk or total_bays < 2:
+            return None
+        if check_only:
+            return True
+        gs = self.ctx.gs
+        enemies = [e for e in gs.get_ships() if e.player != ship.player and not e.is_destroyed
+                   and not e.is_disengaged and e.status == "active"]
+        if not enemies:
+            return None
+        tgt = min(enemies, key=lambda e: ship.distance_to(e))
+        t = ordnance_turrets(tgt, gs)
+        shots = t + get_massed_turret_bonus(tgt, gs.get_ships())
+        cap = sum(1 for o in gs.ordnance if o.get("cap_ship_id") == tgt.id
+                  and "fighter" in craft_roles(o["ordnance_type"]))
+        f, b, ev = best_wave_split(total_bays, t, shots, cap, tgt.lowest_armor_value,
+                                   (7 - (5 if "ork_turrets" in tgt.special_rules else 4)) / 6.0)
+        return {"counts": {fk: f, bk: b},
+                "note": f"vs {tgt.name} ({t} turrets, {shots - t} massed, {cap} CAP): "
+                        f"{f} fighters + {b} bombers, about {ev:.1f} hits"}
+
     def _combine_ordnance_dialog(self):
         """Pool torpedo or craft launches from ships in contiguous base contact.
 
@@ -382,13 +416,19 @@ class OrdnancePanel(OrdnanceMovementMixin):
             messagebox.showinfo("No Ordnance", "No ships with loaded ordnance.")
             return
 
-        # Contiguous base-contact groups of 2+ ships
-        groups = [g for g in contiguous_contact_groups(eligible) if len(g) >= 2]
+        # s.15 Combining ordnance in squadrons: members of the same squadron
+        # (escorts or capital ships) in contiguous base contact with each other
+        by_sq = {}
+        for s in eligible:
+            if s.squadron_id:
+                by_sq.setdefault(s.squadron_id, []).append(s)
+        groups = [g for members in by_sq.values()
+                  for g in contiguous_contact_groups(members) if len(g) >= 2]
 
         if not groups:
             messagebox.showinfo(
                 "No Groups",
-                "No groups of 2+ ordnance-loaded ships are in base contact.\n"
+                "No squadron has 2+ ordnance-loaded members in contiguous base contact.\n"
                 "Use 'Launch Ordnance' for individual launches.")
             return
 
@@ -1350,6 +1390,25 @@ class OrdnancePanel(OrdnanceMovementMixin):
                       font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
             tk.Button(quick_craft, text="Mixed", command=_set_mixed,
                       font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
+
+            # Best fighter / bomber split for one wave (fleets without
+            # multi-role craft): from the bays, the target's turrets and its CAP
+            split_note = tk.StringVar(value="")
+
+            def _set_best_split():
+                plan = self._best_split_plan(ship, available_types, total_bays)
+                if not plan:
+                    split_note.set("(no plain fighter + bomber choice, or no enemy ship)")
+                    return
+                for ct, v in composition_vars.items():
+                    v.set(str(plan["counts"].get(ct, 0)))
+                split_note.set(plan["note"])
+            if self._best_split_plan(ship, available_types, total_bays, check_only=True):
+                tk.Button(quick_craft, text="Best split", command=_set_best_split,
+                          bg="#335533", fg="white",
+                          font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
+                tk.Label(bay_frame, textvariable=split_note, font=("Consolas", 7),
+                         fg="#88aa88", wraplength=420, justify=tk.LEFT).pack(anchor=tk.W, padx=10)
 
             def _launch_craft():
                 try:

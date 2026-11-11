@@ -270,7 +270,11 @@ or as a new wave in the same formation; they never rejoin). The board labels wav
 Multi-role fighter-bombers (s.27) may suppress turrets instead of attacking, chosen before
 the turrets fire (`waves.apply_mr_suppress`: suppressors to the front, at least one squadron
 attacks; AI `waves.best_mr_suppress` by expected hits, a human via
-`GameState.mr_suppress_hook`; Fighta-Bommerz never). Not yet: bombers that re-roll attacks
+`GameState.mr_suppress_hook`; Fighta-Bommerz never). Fleets without multi-role craft get a "Best split"
+button in the single-ship launch dialog (`waves.best_wave_split`: fighters vs bombers for one
+wave from the bays available, the nearest enemy ship's turrets incl. massed, its enemy CAP
+fighters and Armour; `OrdnancePanel._best_split_plan`). Combining ordnance launches (s.15):
+only members of one squadron (escorts or capital ships) in contiguous base contact. Not yet: bombers that re-roll attacks
 (+1 when suppressed) don't exist yet; resilient
 squadrons don't stop or split (interactions happen after movement); CAP fighters intercept
 a wave's squadrons in order after its turret roll.

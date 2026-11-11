@@ -527,6 +527,22 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 - The AI uses fleet re-rolls on Leadership tests only while it has 2+ left; it never takes
   secondary commanders' re-rolls into account beyond that (they are spent first automatically).
 
+## Fighter / bomber split and combined squadron launches (latest)
+
+- `waves.wave_split_value(fighters, bombers, turrets, shots, cap, armour, p_turret)`: expected
+  hits of one wave. Turret shots (innate + massed) are binomial; losses come off the front
+  (fighters first), then enemy CAP fighters each remove one more squadron; surviving fighters
+  suppress one bomber each (3 attacks); other bombers roll D6 - innate turrets.
+  `best_wave_split(slots, ...)` tries every split. Example, 6 bays vs Armour 5: turrets 1-2 ->
+  all bombers; 3 -> 3/3; 4 -> 4/2; with 2 CAP fighters, one more fighter each time.
+- Launch dialog "Best split" (`OrdnancePanel._best_split_plan`): shown only when the bays offer a
+  pure fighter and a pure bomber type (multi-role craft use the s.27 suppression choice instead)
+  and 2+ bays; it plans against the nearest active enemy ship. Not yet: choosing the target, the
+  combined launch dialog, the AI's own launches (it still uses its own mix).
+- Combine Ordnance Launch (s.15) groups only members of one squadron in contiguous base contact
+  (`contiguous_contact_groups` per `squadron_id`), capital ships included; unsquadroned ships in
+  contact no longer combine. GUI checks: `combine_capital_check.py`, `best_split_check.py`.
+
 ## Remaining work (agreed order)
 
 **The current to-do list and open questions are in CLAUDE.md ("To do", "Open questions for
