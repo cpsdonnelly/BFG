@@ -586,9 +586,9 @@ points to):
    AI's own torpedo targeting routes round obstacles the same way: Tau missiles (weapon
    "guided") within 45 at 40cm, bought Ld-guided torpedoes at the launcher's Ld odds, others
    straight. In code, weapon torpedo_type "guided" means Tau missiles (`torpedo_guided`); the
-   Leadership type is `torpedo_guided_ld`. When torpedo bombers are built (To do 3: s.21, a
-   squadron becomes an S2 salvo facing any way, removed at the end of that phase), change
-   `ai_hazards.marker_hits` too: it still counts them as bombers, as the engine plays them now. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
+   Leadership type is `torpedo_guided_ld`. When torpedo bombers are built (To do 3: a wave of N
+   becomes one combined 2N-strength salvo, s.21), change `ai_hazards.marker_hits` too: it still
+   counts them as bombers, as the engine plays them now. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
 1b. (done) Bombers vs assault boats by expected VP (owner idea): `waves.bomber_squadron_value`
@@ -618,7 +618,16 @@ points to):
 2b. (done) Wave planner follow-ups: combined launch dialog, AI launches, engine CAP vs wave
    order (`waves.resolve_cap_vs_group`), heavy_gunz_check fixed.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
-   mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
+   mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules to
+   build (s.21, owner): torpedo bombers are bombers against other ordnance but can't attack
+   ships; at the start of any ordnance phase after their launch turn a squadron may be
+   replaced by a strength-2 salvo facing any direction, removed at the end of that phase; a
+   wave combines its salvos like a squadron in base contact, so a wave of 4 becomes one
+   strength-8 salvo (owner: "a wave of 4 torpedo bombers becomes a wave of 8 missiles"). Tau
+   Tiger Shark drone carriers are torpedo bombers whose salvos are Tau missiles (s.09). Then
+   update the AI: `ai_hazards.marker_hits` (a torpedo bomber wave threatens one salvo of 2 x
+   its squadrons, any facing, within its torpedo reach), fighter allocation (one fighter
+   removes the whole combined salvo, s.19) and strike planning (torpedo bombers vs bombers).
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
    daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
    commander's Extra Turrets: 4+), other factions' secondary commanders, Inquisition Ordos.

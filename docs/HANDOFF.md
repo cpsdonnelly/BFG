@@ -638,7 +638,8 @@ Latest items, newest last:
 - Owner: turning torpedoes aren't all Ld-based. Hazard maths per type (s.16, s.09): boarding
   torpedoes turn freely within 45; Tau missiles turn 45, reach 40cm, 5/6 strength; guided at the
   launcher's Ld; seeking at the nearest enemy; the rest straight. Torpedo bombers (s.21) still
-  count as bombers until To do 3 builds their salvos.
+  count as bombers until To do 3 builds their salvos; owner: a wave of 4 torpedo bombers
+  becomes one combined strength-8 salvo (s.21: waves combine like a squadron in base contact).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
