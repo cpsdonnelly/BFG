@@ -454,7 +454,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1007 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1008 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -544,9 +544,12 @@ points to):
    `ai_hazards.position_exposure_hits`). Not yet: several focus targets, torpedo lanes and
    craft reach in the move score, the expert AI's leaf evaluation using the same terms.
    Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
-   keeping bays loaded, CAP against enemy bomber waves not yet launched;
-   guided / seeking torpedo turn cones in hazard maths; escorts staying near the commander's
-   ship. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
+   keeping bays loaded, CAP against enemy bomber waves not yet launched; escorts staying near
+   the commander's ship. Done: guided / seeking torpedo turn cones in the hazard maths
+   (`ai_hazards._torpedo_heading / _in_turn_cone`: seeking salvos turn up to 45 degrees at the
+   nearest of our ships at its end position; guided ones threaten their whole 45-degree cone at
+   the launcher's Leadership-test odds, assumed Ld 8 (`GUIDED_TURN_CHANCE`, the launcher isn't
+   looked up yet); Tau missiles their whole cone). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
 1b. (done) Bombers vs assault boats by expected VP (owner idea): `waves.bomber_squadron_value`

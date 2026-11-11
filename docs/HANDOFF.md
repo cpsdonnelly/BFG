@@ -103,7 +103,7 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 
 1. AI, still to do: fleet-wide CAP / strike allocation across carriers (per-carrier version
    built), the option value of keeping bays loaded, CAP against enemy bomber waves not yet
-   launched; guided / seeking torpedo turn cones in hazard maths; escorts
+   launched; escorts
    staying near the commander's ship; fleet focus positioning, next steps (several focus
    targets, torpedo lanes and craft reach in the move score, expert leaf evaluation). Done:
    hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
@@ -569,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1007 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1008 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -622,12 +622,13 @@ Latest items, newest last:
 - Owner: not all ships turn alike (Tau Protector 90 degrees, Hero 45). Every turn allowance in
   the AI (threat model `_mount_bears`, Wings of Fury `_weapon_can_bear`, move planning) reads
   the ship's own `turn_angle`; a test pins it.
+- Hazard maths: seeking / guided / Tau torpedo turn cones (`ai_hazards._torpedo_heading`,
+  `_in_turn_cone`; guided at an assumed Ld 8 test).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
 Next: CLAUDE.md "To do" item 1 (what is left: fleet-wide CAP / strikes, keeping bays loaded,
-reactive CAP, guided / seeking
-turn cones, escorts near the commander, and for fleet focus positioning: several focus
+reactive CAP, escorts near the commander, and for fleet focus positioning: several focus
 targets, torpedo lanes / craft reach in the move score, expert leaf evaluation) and 1c (strike
 planning at arrival time), then items 3-6. Owner feedback wanted on the AI's judgement weights, e.g. a
 healthy lone cruiser facing three full enemy cruisers disengages under the current model. No

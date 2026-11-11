@@ -175,3 +175,31 @@ def test_a_spare_fighter_does_not_chase_a_covered_mine():
     assign_ai_craft_targets(gs, 1)
     t = {o["id"]: o["craft_target_id"] for o in gs.ordnance}
     assert sorted([t["f1"], t["f2"]]) == ["e", "m"]
+
+
+def test_seeking_and_guided_torpedo_turn_cones():
+    """s.16: seeking salvos turn up to 45 degrees at the nearest enemy, guided ones may
+    turn 45 on a Leadership test; standard ones run straight."""
+    import math
+    from src.ai_hazards import marker_hits, GUIDED_TURN_CHANCE
+    me = make_ship(id="me", player=1, x=20.0 * math.cos(math.radians(30)),
+                   y=20.0 * math.sin(math.radians(30)), armor_prow="5+", armor_side="5+",
+                   turrets=0)
+    end, pts = (me.x, me.y), [(me.x, me.y)]
+
+    def salvo(kind, can_turn=False):
+        return make_marker(id="t", ordnance_type=kind, owner_player=2, x=0.0, y=0.0,
+                           heading=0.0, speed=30.0, strength=6, can_turn=can_turn)
+    straight, _ = marker_hits(me, salvo("torpedo_standard"), end, pts, [me])
+    seeking, _ = marker_hits(me, salvo("torpedo_seeking"), end, pts, [me])
+    guided, _ = marker_hits(me, salvo("torpedo_guided_ld"), end, pts, [me])
+    tau, _ = marker_hits(me, salvo("torpedo_guided", can_turn=True), end, pts, [me])
+    assert straight == 0.0
+    assert abs(seeking - 6 * 2 / 6) < 1e-9                     # turns 30 degrees onto us
+    assert abs(guided - seeking * GUIDED_TURN_CHANCE) < 1e-9
+    assert abs(tau - seeking) < 1e-9
+    # 60 degrees off the bow is outside every cone
+    far = make_ship(id="f", player=1, x=20.0 * math.cos(math.radians(60)),
+                    y=20.0 * math.sin(math.radians(60)), armor_side="5+", turrets=0)
+    assert marker_hits(far, salvo("torpedo_seeking"), (far.x, far.y), [(far.x, far.y)],
+                       [far])[0] == 0.0

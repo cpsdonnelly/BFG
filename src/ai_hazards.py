@@ -123,11 +123,16 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
         strength = max(0.0, m.strength - _turret_kills(ship))
         if strength <= 0:
             return 0.0, ""
-        rad = math.radians(m.heading)
+        h = strength * ph * (0.5 if "boarding" in otype else 1.0)   # raids, not hull
+        heading, p_reach = _torpedo_heading(m, ship, end, my_ships)
+        rad = math.radians(heading)
         ex, ey = m.x + m.speed * math.cos(rad), m.y + m.speed * math.sin(rad)
         if on_path or _seg_dist(end[0], end[1], m.x, m.y, ex, ey) <= r + 1.0:
-            h = strength * ph * (0.5 if "boarding" in otype else 1.0)   # raids, not hull
             return h, f"torpedoes S{m.strength} ({h:.1f} hits)"
+        # Guided salvos (s.16) may turn up to 45 degrees before they move: the
+        # whole cone in reach is at risk, weighted by the chance they turn
+        if p_reach > 0 and _in_turn_cone(m, end, r):
+            return h * p_reach, f"guided torpedoes S{m.strength} ({h * p_reach:.1f} hits)"
         return 0.0, ""
     # attack craft that may reach the ship before it moves again
     if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + r:
@@ -178,6 +183,44 @@ def marker_threat_vp(m: OrdnanceMarker, gs, player: int) -> float:
         hits = sum(marker_hits(s, mk, (s.x, s.y), [(s.x, s.y)], mine)[0] for mk in markers)
         best = max(best, hits * value_per_hit(s, gs))
     return best
+
+
+# Guided torpedoes turn if their launcher passes a Leadership test (s.16): the
+# AI doesn't see the launcher here, so it assumes Ld 8 (2D6 <= 8: 26 in 36)
+GUIDED_TURN_CHANCE = 26 / 36
+
+
+def _torpedo_heading(m: OrdnanceMarker, ship: Ship, end: Point,
+                     my_ships: Sequence[Ship]) -> Tuple[float, float]:
+    """(heading the salvo will run on next, chance it can instead turn anywhere
+    in its 45-degree cone). Seeking torpedoes (s.16) must turn up to 45 degrees
+    towards the nearest enemy ship, which is this ship at its end position if
+    it will be the nearest; guided ones (s.16) may turn on a Leadership test;
+    Tau missiles are steered every move (s.09)."""
+    otype = m.ordnance_type
+    if otype == "torpedo_seeking":
+        pts = [(end[0], end[1])] + [(s.x, s.y) for s in my_ships if s.id != ship.id]
+        tx, ty = min(pts, key=lambda p: math.hypot(p[0] - m.x, p[1] - m.y))
+        want = math.degrees(math.atan2(ty - m.y, tx - m.x)) % 360
+        diff = (want - m.heading + 180) % 360 - 180
+        return (m.heading + max(-45.0, min(45.0, diff))) % 360, 0.0
+    if otype == "torpedo_guided_ld":
+        return m.heading, GUIDED_TURN_CHANCE
+    if otype == "torpedo_guided" and m.can_turn:
+        return m.heading, 1.0
+    return m.heading, 0.0
+
+
+def _in_turn_cone(m: OrdnanceMarker, end: Point, r: float) -> bool:
+    """Is `end` within a salvo's reach after a turn of up to 45 degrees?"""
+    d = math.hypot(end[0] - m.x, end[1] - m.y)
+    if d > m.speed + r + 1.0:
+        return False
+    if d <= r + 1.0:
+        return True
+    bearing = math.degrees(math.atan2(end[1] - m.y, end[0] - m.x)) % 360
+    off = abs((bearing - m.heading + 180) % 360 - 180)
+    return off <= 45.0 + math.degrees(math.asin(min(1.0, (r + 1.0) / d)))
 
 
 def terrain_threat(ship: Ship, end: Point, path: Sequence[Point], gs,
