@@ -565,6 +565,30 @@ under 4), AI respects armament crits. Next: CLAUDE.md "To do" (2b done; next is 
 (the resilient-save question is settled: owner confirmed the booklet, saves work against any
 other ordnance, never turrets).
 
+## Bombers vs assault boats (owner idea, to do: CLAUDE.md To do 1b)
+
+When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),
+the AI should choose by expected VP per squadron that reaches the target. Owner's example,
+checked against s.20 / s.22 / s.31:
+
+- Target: 4 turrets, Armour 6+ all round. Bomber: D6 - 4 attacks (s.20: innate turrets only,
+  massed turrets don't reduce attacks) = 0 on 1-4, 1 on a 5, 2 on a 6, mean 0.5 attacks; each
+  hits on a 6, so 0.5 x 1/6 = 0.083 hits per bomber (suppressed by a fighter: exactly 3 attacks,
+  0.5 hits).
+- Assault boat (s.22: one hit-and-run raid, no Armour roll): fails only on a 1 vs a capital
+  ship; a 6 is Engine Room (+1 hit) on its own worth 1/6 = 0.167 hits, already twice the
+  bomber, plus the 2-5 armament crits (worth what those weapons threaten,
+  `hit_and_run.raid_result_value`) and Space Marine +1. So assault boats win against heavily
+  armoured, high-turret targets.
+- Against escorts it reverses: raids need 4+ for 1 damage (0.5 per boat), while a bomber vs
+  1 turret / Armour 5+ makes D6 - 1 = 2.5 attacks x 1/3 = 0.83 hits.
+- Both face the same turret roll and enemy CAP, and Brace repels raids / saves hits on 4+, so
+  those don't change the choice. Implementation: bomber EV = E[max(0, D6 - t)] x P(hit) x
+  value per hit; boat EV = mean over D6 of raid_result_value(roll + modifier, target); replace
+  `ordnance.mr_attack_mode_ai` (raid at 3+ turrets, ignores Armour) and use it in the AI launch
+  mix (`AIPlayer._launch_ship_ordnance` / `_wave_split`) and as the "Auto (best)" for the
+  human multi-role prompt.
+
 ## Remaining work (agreed order)
 
 **The current to-do list and open questions are in CLAUDE.md ("To do", "Open questions for

@@ -456,9 +456,17 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
    keeping bays loaded); combined squadron fire for the AI and a "Best for expected hits"
    default in the Combine Squadron Fire dialog; when hulks are worth shooting; guided /
    seeking torpedo turn cones in hazard maths; escorts staying near the commander's ship;
-   voluntary disengaging. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
+   voluntary disengaging; bombers vs assault boats by expected VP (owner idea, below). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
+1b. AI: bombers vs assault boats by expected VP (owner idea, maths checked; see docs/HANDOFF.md
+   "Bombers vs assault boats"). For a carrier that can launch both (and for multi-role craft
+   choosing an attack mode, which today uses `ordnance.mr_attack_mode_ai`: raid at 3+ turrets,
+   ignoring Armour), compare per squadron that gets past the turrets: bomber = E[max(0, D6 -
+   innate turrets)] x P(hit lowest Armour) x VP per hit (3 attacks if suppressed); assault boat
+   = mean over D6 of `hit_and_run.raid_result_value(roll + crew modifier)` (which already prices
+   Engine Room +1 hit, armament crits by what they threaten, escorts 1 damage on 4+). Both face
+   the same turret roll and CAP, so those cancel out of the choice; Brace saves 4+ against both.
 2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
 2b. (done) Wave planner follow-ups: combined launch dialog, AI launches, engine CAP vs wave
    order (`waves.resolve_cap_vs_group`), heavy_gunz_check fixed.
