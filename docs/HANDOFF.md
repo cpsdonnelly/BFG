@@ -643,7 +643,8 @@ Latest items, newest last:
 - Owner: kills / cripples now count the damage they prevent (`ship_threat_vp`) and the chance a
   kill explodes among nearby ships (`death_explosion_vp`); movement avoids ships about to blow
   up and a dying ship hugs enemies (`explosion_position_vp`). Torpedo-bomber salvos last one
-  phase (s.21); open question on Tau Tiger Shark salvos (CLAUDE.md). Torpedo bomber options
+  phase (s.21); owner ruled on Tau Tiger Shark salvos (CLAUDE.md: S2 Tau missiles, 20-40cm,
+  removed that phase, no strength-loss roll). Torpedo bomber options
   ("TB 20cm +N") are on 19 carriers: Navy 6, Mechanicus 3, Chaos 10, plus Tau Tiger Sharks
   (full list in CLAUDE.md To do 3; the owner corrected an earlier, incomplete list).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
@@ -654,7 +655,7 @@ reactive CAP; fleet focus positioning follow-ups: several focus targets, torpedo
 craft reach in the move score, expert leaf evaluation; torpedo launch lanes and
 multi-waypoint routes) and 1c (strike planning at arrival time), then items 3-6 (item 3 now
 carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos and the AI
-changes they need). One open question: Tiger Shark salvos (CLAUDE.md). Owner feedback wanted on the AI's judgement weights, e.g. a
+changes they need, and the Tiger Shark ruling). No open questions. Owner feedback wanted on the AI's judgement weights, e.g. a
 healthy lone cruiser facing three full enemy cruisers disengages under the current model.
 
 ## Bombers vs assault boats (owner idea, done: CLAUDE.md To do 1b)

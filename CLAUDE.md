@@ -643,7 +643,8 @@ points to):
    replaced by a strength-2 salvo facing any direction, removed at the end of that phase; a
    wave combines its salvos like a squadron in base contact, so a wave of 4 becomes one
    strength-8 salvo (owner: "a wave of 4 torpedo bombers becomes a wave of 8 missiles"). Tau
-   Tiger Shark drone carriers are torpedo bombers whose salvos are Tau missiles (s.09). Then
+   Tiger Shark drone carriers are torpedo bombers whose salvos are Tau missiles (owner ruling
+   below: 20-40cm, removed that phase, no strength-loss roll). Then
    update the AI: `ai_hazards.marker_hits` (a torpedo bomber wave threatens one salvo of 2 x
    its squadrons, any facing, within its torpedo reach), fighter allocation (one fighter
    removes the whole combined salvo, s.19) and strike planning (torpedo bombers vs bombers).
@@ -658,8 +659,9 @@ points to):
      Nephilim +40, Styx +60, Hecate +40, Devastation +40, Scion of Prospero +90, Wage of Sin +60,
      Terminus Est +70;
    - Tau: Tiger Shark drone carriers (torpedo bombers "producing missile salvos", 4+ resilient,
-     20cm) replacing Mantas on many Tau ships and the Orbital City's defence module (open
-     question below).
+     20cm) replacing Mantas on many Tau ships and the Orbital City's defence module (owner
+     ruling under "Open questions": S2 Tau missile salvo per squadron, 20-40cm, gone at the
+     end of the phase, no strength-loss roll).
    None of these purchases is offered by the fleet builder yet (`booklet_options` note, l.532);
    Orks, Space Marines, Inquisition and Rogue Traders list none.
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
@@ -715,11 +717,25 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- **Tiger Shark salvos (Tau):** the Tau rules say Tiger Sharks are torpedo bombers "producing
-  missile salvos". Core s.21 removes a torpedo-bomber salvo at the end of the phase it is
-  fired; Tau missiles otherwise stay in play, losing a point of strength on each 1. Does a
-  Tiger Shark salvo move like Tau missiles (20-40cm, one 45-degree turn) but still vanish at
-  the end of that phase, or does it stay in play as a normal Tau missile salvo?
+- None open.
+
+Owner ruling (Tiger Sharks, Tau; for To do 3): Tiger Sharks follow the torpedo bomber rules in
+full, except that the salvo they produce is a Tau missile salvo (Xenos, Tiger Shark entry:
+"follow the rules for torpedo bombers, except that they produce missile salvos ... rather than
+normal torpedoes"). So:
+- at the start of any ordnance phase after the turn they are launched, a Tiger Shark squadron
+  may be replaced by a strength-2 missile salvo placed facing any direction; a wave may combine
+  its salvos as normal torpedo bombers do (XR Rulebook p.31);
+- the salvo uses a torpedo marker and moves 20-40cm that phase (player's choice), per the Tau
+  Missiles rule; the missile rule's single 45-degree turn is redundant, since the salvo is
+  already placed facing any direction;
+- the salvo is removed at the end of the ordnance phase in which it is fired (torpedo bomber
+  limited fuel, p.31);
+- the Tau missile strength-loss roll (1D6 per point, each 1 loses 1) never applies: it only
+  affects salvos launched on a previous turn, and a Tiger Shark salvo never survives to a later
+  phase;
+- Tiger Sharks have a 4+ resilient save and speed 20cm, and are bombers when interacting with
+  other ordnance.
 
 Owner rulings (dust clouds, answers to the last questions; implemented, tested):
 - A gas / dust cloud in the line of fire shifts macrobatteries one column right even if
