@@ -529,12 +529,15 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Fighter / bomber split and combined squadron launches (latest)
 
-- `waves.wave_split_value(fighters, bombers, turrets, shots, cap, armour, p_turret)`: expected
-  hits of one wave. Turret shots (innate + massed) are binomial; losses come off the front
-  (fighters first), then enemy CAP fighters each remove one more squadron; surviving fighters
-  suppress one bomber each (3 attacks); other bombers roll D6 - innate turrets.
+- `waves.wave_split_value(fighters, bombers, turrets, shots, cap, armour, p_turret, f_save,
+  b_save, cap_save)`: expected hits of one wave. Enemy CAP intercepts first
+  (`waves.cap_survivors`, resilient saves per s.23); then turret shots (innate + massed,
+  binomial, never stopped by resilient saves) remove squadrons from the front (fighters first);
+  surviving fighters suppress one bomber each (3 attacks); other bombers roll D6 - innate turrets.
   `best_wave_split(slots, ...)` tries every split. Example, 6 bays vs Armour 5: turrets 1-2 ->
-  all bombers; 3 -> 3/3; 4 -> 4/2; with 2 CAP fighters, one more fighter each time.
+  all bombers; 3 -> 3/3; 4 -> 4/2; with 2 CAP fighters, one more fighter each time. Resilient
+  4+ bombers vs 3 turrets / 2 CAP -> 0/6 (no escort needed); resilient 4+ fighters vs 4 turrets
+  / 2 CAP -> 4/2 instead of 5/1; vs 2 turrets / 1 CAP -> 1/5 instead of 0/6.
 - Launch dialog "Best split" (`OrdnancePanel._best_split_plan`): shown only when the bays offer a
   pure fighter and a pure bomber type (multi-role craft use the s.27 suppression choice instead)
   and 2+ bays. A "Plan vs" target list (nearest first) fills editable Bays / Turrets / Massed /
@@ -544,7 +547,8 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   `waves.cap_survivors` (exact recursion over CAP interactions, s.23 rules incl. the used save
   and both-pass removal), then the turret roll. Wave size < bays: lone and CAP fighters are
   launched outside the wave in the same launch (`extra_vars`). Note: the engine itself still
-  doesn't make CAP intercept a wave's squadrons in order (see CLAUDE.md "Not yet"). Not yet: the combined launch dialog, the AI's own launches (it still uses its own mix).
+  doesn't make CAP intercept a wave's squadrons in order (see CLAUDE.md "Not yet"). Not yet (CLAUDE.md To do 2b): the combined launch dialog, the
+  AI's own launches (it still uses its own mix).
 - Combine Ordnance Launch (s.15) groups only members of one squadron in contiguous base contact
   (`contiguous_contact_groups` per `squadron_id`), capital ships included; unsquadroned ships in
   contact no longer combine. GUI checks: `combine_capital_check.py`, `best_split_check.py`.

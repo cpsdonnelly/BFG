@@ -229,7 +229,7 @@ Chapter tactics (`src/chapter_tactics.py`): chosen on the Master of the Fleet as
 `chapter_tactic:<key>`; `apply_fleet_tactics` (game start, in main.py) copies it to the
 player's Space Marine ships. Checked against the booklet text (s.03): Wings of Fury "may
 re-roll" raids, so the owner chooses per raid (`GameState.raid_reroll_hook`, asked by GamePanel;
-the AI re-rolls only raids with no effect); Tactical Reserves' 25% reduction rounds the result up,
+the AI and "Auto (best)" use `hit_and_run.best_raid_reroll`, see above); Tactical Reserves' 25% reduction rounds the result up,
 like "half firepower (rounding up)", macrobatteries only; Pack Hunter needs a combined boarding
 action (two or more of one squadron) against a larger ship; Lightning Thrusters vanguards
 "either fire macrobatteries at full effectiveness or turn up to 45°". Its fleet-list part (up to 4
@@ -283,8 +283,8 @@ the turrets fire (`waves.apply_mr_suppress`: suppressors to the front, at least 
 attacks; AI `waves.best_mr_suppress` by expected hits, a human via
 `GameState.mr_suppress_hook`; Fighta-Bommerz never). Fleets without multi-role craft get a "Best split"
 button in the single-ship launch dialog (`waves.best_wave_split`: fighters vs bombers for one
-wave from the bays available, the nearest enemy ship's turrets incl. massed, its enemy CAP
-fighters and Armour; `OrdnancePanel._best_split_plan`). Its inputs (target, bays, turrets,
+wave from the wave size, the chosen enemy ship's turrets incl. massed, its enemy CAP
+fighters, Armour and resilient saves; `OrdnancePanel._best_split_plan`). Its inputs (target, bays, turrets,
 massed, CAP, Armour) are filled from the chosen target, nearest first, and can be edited, e.g.
 for CAP the enemy is expected to launch before the wave arrives; "Reset" refills them.
 Resilient saves (s.23) for own fighters, bombers and enemy CAP (`waves.cap_survivors`: CAP
@@ -405,7 +405,8 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 975 pass; GUI checks all pass except
+the stale `heavy_gunz_check.py`. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
