@@ -676,6 +676,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 composition_vars[ct] = var
                 tk.Entry(row, textvariable=var, width=3,
                          font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+            self._combined_split_planner(comp_frame, contributors, available_types,
+                                         composition_vars, fleet_remaining)
 
         def _launch():
             try:
@@ -841,6 +843,75 @@ class OrdnancePanel(OrdnanceMovementMixin):
                   font=("Consolas", 10, "bold")).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_row, text="Cancel", command=dialog.destroy,
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+
+    def _combined_split_planner(self, parent, contributors, available_types,
+                                composition_vars, fleet_remaining):
+        """Wave planner for a combined squadron launch: plain fighters + bombers
+        only. The target list (nearest the group first) fills the target's
+        turrets, massed turrets, CAP, Armour and saves (waves.wave_plan_inputs);
+        wave size and CAP can be overridden here (the single-ship dialog has
+        every field)."""
+        from tkinter import ttk
+        from .waves import split_craft_types, wave_plan_inputs, plan_wave_against
+        ref = next((s for s in contributors if split_craft_types(s, available_types)), None)
+        types = split_craft_types(ref, available_types) if ref else None
+        if not types:
+            return
+        fk, bk, f_save, b_save = types
+        bays = 0
+        for s in contributors:
+            bays += sum(w.get("strength") or 0 for w in s.weapons
+                        if w.get("weapon_type") == "launch_bay")
+        bays = min(bays, fleet_remaining)
+        if bays < 2:
+            return
+        cx = sum(s.x for s in contributors) / len(contributors)
+        cy = sum(s.y for s in contributors) / len(contributors)
+        player = contributors[0].player
+        targets = sorted((e for e in self.ctx.gs.get_ships() if e.player != player
+                          and not e.is_destroyed and not e.is_disengaged
+                          and e.status == "active"),
+                         key=lambda e: math.hypot(e.x - cx, e.y - cy))
+        if not targets:
+            return
+        names = [f"{e.name} ({math.hypot(e.x - cx, e.y - cy):.0f}cm)" for e in targets]
+        row = tk.Frame(parent)
+        row.pack(fill=tk.X, padx=5, pady=2)
+        tgt_var = tk.StringVar(value=names[0])
+        wave_var = tk.StringVar(value=str(bays))
+        cap_var = tk.StringVar(value=str(wave_plan_inputs(targets[0], self.ctx.gs)["cap"]))
+        note = tk.StringVar(value="")
+        tk.Label(row, text="Plan vs:", font=("Consolas", 7)).pack(side=tk.LEFT)
+        box = ttk.Combobox(row, textvariable=tgt_var, values=names, state="readonly",
+                           width=22, font=("Consolas", 7))
+        box.pack(side=tk.LEFT, padx=2)
+        box.bind("<<ComboboxSelected>>", lambda *_: cap_var.set(str(wave_plan_inputs(
+            targets[names.index(tgt_var.get())], self.ctx.gs)["cap"])))
+        for label, var in (("Wave size", wave_var), ("CAP", cap_var)):
+            tk.Label(row, text=label, font=("Consolas", 7)).pack(side=tk.LEFT)
+            tk.Entry(row, textvariable=var, width=2, font=("Consolas", 7)).pack(side=tk.LEFT)
+
+        def _best():
+            try:
+                n, cap = int(wave_var.get()), int(cap_var.get())
+            except ValueError:
+                note.set("(whole numbers for wave size and CAP)")
+                return
+            if n < 1 or n > bays or cap < 0:
+                note.set(f"(wave size 1-{bays}, CAP 0 or more)")
+                return
+            tgt = targets[names.index(tgt_var.get())]
+            inputs = dict(wave_plan_inputs(tgt, self.ctx.gs), cap=cap)
+            f, b, ev = plan_wave_against(n, inputs, f_save, b_save)
+            for ct, v in composition_vars.items():
+                v.set(str({fk: f, bk: b}.get(ct, 0)))
+            note.set(f"vs {tgt.name} ({inputs['turrets']} turrets, {inputs['massed']} massed, "
+                     f"{cap} CAP, Armour {inputs['armour']}+): {f} fighters + {b} bombers, "
+                     f"about {ev:.1f} hits")
+        tk.Button(row, text="Best split", command=_best, bg="#335533", fg="white",
+                  font=("Consolas", 7)).pack(side=tk.LEFT, padx=3)
+        tk.Label(parent, textvariable=note, font=("Consolas", 7), fg="#88aa88",
+                 wraplength=400, justify=tk.LEFT).pack(anchor=tk.W, padx=5)
 
     def _wave_controls(self, parent):
         """"Launch as one wave" and its formation (s.25). Returns the two vars."""

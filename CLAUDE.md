@@ -405,8 +405,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 975 pass; GUI checks all pass except
-the stale `heavy_gunz_check.py`. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 976 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -436,8 +435,13 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
 - Combine Ordnance Launch: only members of one squadron in contiguous contact (capital ships too).
 - Wings of Fury re-rolls by expected VP (see "Auto (best)" above); AI no longer fires weapons
   knocked out by armament crits (`combat.weapon_disabled_by_crit`).
-- GUI checks added: `combine_capital_check.py`, `best_split_check.py`. Full GUI suite passes
-  except `heavy_gunz_check.py` (stale, fails since before this session).
+- The AI launches plain fighters + bombers as the planner's mix in one close wave against the
+  nearest enemy (all fighters while enemy ordnance is about; `AIPlayer._wave_split`). Planner
+  inputs live in `waves.wave_plan_inputs / split_craft_types / plan_wave_against`. The
+  combined launch dialog has a compact planner (target, wave size, CAP;
+  `OrdnancePanel._combined_split_planner`).
+- GUI checks added: `combine_capital_check.py`, `best_split_check.py`, `combine_split_check.py`.
+  The whole GUI suite passes (`heavy_gunz_check.py` updated for the split entry).
 
 ### To do (agreed order; see docs/HANDOFF.md "Remaining work" and "AI design")
 
@@ -450,11 +454,10 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
 2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
-2b. Wave planner follow-ups: put it in the combined (squadron) launch dialog; let the AI
-   use `best_wave_split` for its own launches (it still uses its own mix); make the engine
-   resolve CAP against a wave's squadrons in order before the turret roll, with resilient
-   squadrons stopping / splitting (the planner already assumes this; the engine doesn't).
-   Fix the stale `tools/gui_checks/heavy_gunz_check.py`.
+2b. Wave planner follow-up: make the engine resolve CAP against a wave's squadrons in order
+   before the turret roll, with resilient squadrons stopping / splitting (the planner already
+   assumes this; the engine doesn't). Done: planner in the combined launch dialog, AI launches
+   with the planner, heavy_gunz_check fixed.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,

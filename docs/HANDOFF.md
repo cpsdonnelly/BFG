@@ -547,16 +547,17 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   `waves.cap_survivors` (exact recursion over CAP interactions, s.23 rules incl. the used save
   and both-pass removal), then the turret roll. Wave size < bays: lone and CAP fighters are
   launched outside the wave in the same launch (`extra_vars`). Note: the engine itself still
-  doesn't make CAP intercept a wave's squadrons in order (see CLAUDE.md "Not yet"). Not yet (CLAUDE.md To do 2b): the combined launch dialog, the
-  AI's own launches (it still uses its own mix).
+  doesn't make CAP intercept a wave's squadrons in order (see CLAUDE.md "Not yet"). The combined launch dialog has a compact version (target, wave
+  size, CAP) and the AI launches the planner's mix (`AIPlayer._wave_split`). Left (To do 2b): the
+  engine's CAP-vs-wave order.
 - Combine Ordnance Launch (s.15) groups only members of one squadron in contiguous base contact
   (`contiguous_contact_groups` per `squadron_id`), capital ships included; unsquadroned ships in
   contact no longer combine. GUI checks: `combine_capital_check.py`, `best_split_check.py`.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 975 tests pass,
-`flake8 --select=E9,F src/` clean, GUI checks pass except the stale `heavy_gunz_check.py`.
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 976 tests pass,
+`flake8 --select=E9,F src/` clean, all GUI checks pass.
 Latest items: wave planner (resilient saves, partial launches, editable inputs), squadron-only
 combined launches, Wings of Fury expected-value re-rolls (owner ruling: an armament disable that
 threatens no allied ship in arc and range is re-rolled; Engine Room kept; escorts re-roll results
