@@ -221,33 +221,29 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     """Expected VP the raiding player saves by knocking out the target's weapons
     in one location: each weapon there scores its expected hits (lances 0.5 a
     die, batteries 0.35, torpedoes 0.3) on the most valuable of the owner's
-    ships it threatens. A ship in the weapon's arc and in reach (range + 15cm
-    of movement) counts in full; in reach but outside the arc 0.25 (the target
-    may turn to bring it in); out of reach 0.05. Weapons already knocked out
-    there count nothing. So disabling a long-ranged, heavy battery that bears
-    on friendly ships is worth most; a broadside facing nothing is worth little."""
+    ships it threatens, i.e. in that weapon's arc AND range. Owner ruling: a
+    location that threatens no allied ship (all out of range or out of arc) is
+    worth nothing, so Wings of Fury re-rolls it. Weapons already knocked out
+    count nothing. So silencing long-ranged, heavy weapons that bear on
+    friendly ships is worth most."""
     from .ai_hazards import value_per_hit
-    from .combat import check_weapon_in_arc, weapon_in_crit_slot, weapon_disabled_by_crit
+    from .combat import (check_weapon_in_arc, check_weapon_in_range,
+                         weapon_in_crit_slot, weapon_disabled_by_crit)
     friends = [f for f in gs.get_ships() if f.player == owner and not f.is_destroyed
                and not f.is_disengaged]
     total = 0.0
     for w in target.weapons:
         if not weapon_in_crit_slot(w, crit_type) or weapon_disabled_by_crit(target, w):
             continue
-        wt = w.get("weapon_type")
-        per_die = {"lance": 0.5, "battery": 0.35, "torpedo": 0.3}.get(wt)
+        per_die = {"lance": 0.5, "battery": 0.35, "torpedo": 0.3}.get(w.get("weapon_type"))
         if per_die is None:
             continue
-        reach = (w.get("range_cm") or 0) + 15.0
-        best = 0.0
-        for f in friends:
-            if target.distance_to(f) > reach:
-                weight = 0.05
-            elif check_weapon_in_arc(target, w, f.x, f.y):
-                weight = 1.0
-            else:
-                weight = 0.25
-            best = max(best, weight * max(1.0, value_per_hit(f, gs)))
+        threatened = [f for f in friends
+                      if check_weapon_in_arc(target, w, f.x, f.y)
+                      and check_weapon_in_range(target, w, f.x, f.y)]
+        if not threatened:
+            continue
+        best = max(max(1.0, value_per_hit(f, gs)) for f in threatened)
         total += (w.get("strength") or 0) * per_die * best
     return total
 
@@ -293,7 +289,7 @@ def best_raid_reroll(roll: int, effective: int, target: Ship, gs: GameState,
     mod = effective - roll
     keep = raid_result_value(effective, target, gs, owner)
     again = sum(raid_result_value(r + mod, target, gs, owner) for r in range(1, 7)) / 6.0
-    return again > keep + 1e-9
+    return keep <= 0 or again > keep + 1e-9      # nothing in hand: nothing to lose
 
 
 def describe_raid_result(effective: int, target: Ship) -> str:

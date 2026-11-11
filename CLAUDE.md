@@ -129,9 +129,10 @@ Fire aspect choice, Vault of Technology's chooser.
 Wings of Fury re-rolls (owner guidance): re-roll when a fresh D6 is worth more on average than
 the result in hand (`raid_result_value`, in expected VP, using the crit after the cascade,
 `raid_crit_preview`). Engine Room is +1 hit; an armament crit is worth the expected hits its
-weapons would score on the raiding player's ships (`armament_threat_value`: in arc and in reach
-in full, in reach but out of arc 0.25, out of reach 0.05; so long-ranged, heavy weapons that bear
-on friendly ships count most, and a location already knocked out counts nothing). Escorts: 1
+weapons would score on the raiding player's ships (`armament_threat_value`). Owner ruling: only
+allied ships in that weapon's arc AND range count, so a disable that threatens no allied ship
+(all out of range or out of arc) is worth nothing and is re-rolled; long-ranged, heavy weapons
+that bear on friendly ships count most; a location already knocked out counts nothing. Escorts: 1
 damage on 4+, so Space Marines (+1) re-roll a 1 or 2. Armament crits now also silence the
 AI's weapons (`combat.weapon_disabled_by_crit`, shared with the fire dialogs; it used to be
 UI-only, so the AI kept firing knocked-out weapons).

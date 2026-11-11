@@ -34,7 +34,7 @@ def test_armament_crit_valued_by_what_bears_on_friends():
     assert raid_crit_preview(4, target) == "port_armament"
     port = raid_result_value(4, target, gs, 1)
     stbd = raid_result_value(3, target, gs, 1)
-    assert port > 3 * stbd
+    assert port > 0 and stbd == 0
     assert best_raid_reroll(3, 3, target, gs, 1) is True      # starboard faces nothing
     assert best_raid_reroll(4, 4, target, gs, 1) is False     # port bears on the friend
 
@@ -70,3 +70,15 @@ def test_weapon_disabled_by_crit_names_and_arcs():
     assert not weapon_disabled_by_crit(s, DORSAL)
     s.critical_damage = [{"crit_type": "dorsal_armament"}]
     assert weapon_disabled_by_crit(s, {"name": "Lances", "arcs": ["left", "front", "right"]})
+
+
+def test_port_disable_rerolled_when_no_ally_threatened():
+    # Friend in the port arc but beyond the 45cm battery: nothing threatened
+    target, gs = _setup(friend_xy=(0.0, 50.0))
+    assert raid_result_value(4, target, gs, 1) == 0.0
+    assert best_raid_reroll(4, 4, target, gs, 1) is True
+    # Friend in range but in the starboard arc: the port disable threatens nothing
+    target, gs = _setup(friend_xy=(0.0, -20.0))
+    assert raid_result_value(4, target, gs, 1) == 0.0
+    assert best_raid_reroll(4, 4, target, gs, 1) is True
+    assert best_raid_reroll(3, 3, target, gs, 1) is False      # starboard bears: keep
