@@ -99,15 +99,22 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 
 ### To do (agreed order; detail in "AI design" and "Remaining work" below)
 
-1. AI: combat air patrol vs strikes allocation (plan written in HANDOFF: launch slots, CAP /
-   free fighters / bombers in one VP currency, greedy fleet allocation, option value of
-   keeping bays loaded); combined squadron fire for the AI and a "Best for expected hits"
-   default in the Combine Squadron Fire dialog; when hulks are worth shooting; guided /
-   seeking torpedo turn cones in hazard maths; escorts staying near the commander's ship;
-   voluntary disengaging. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
-   hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
-   the owner's feedback.
+(CLAUDE.md "To do" is the current list; this copy is kept in step with it.)
+
+1. AI, still to do: fleet-wide CAP / strike allocation across carriers (per-carrier version
+   built), the option value of keeping bays loaded, CAP against enemy bomber waves not yet
+   launched; combined squadron fire for the AI and a "Best for expected hits" default in the
+   Combine Squadron Fire dialog; guided / seeking torpedo turn cones in hazard maths; escorts
+   staying near the commander's ship. Done: hulk targeting, voluntary disengaging (first
+   versions). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per point
+   of in-arc firepower, half-weight flagship exposure, the disengage and hulk models) are
+   judgment: tune on the owner's feedback.
+1b. (done) Bombers vs assault boats by expected VP.
+1c. Strike planning at arrival time ("Ordnance strike planning" below): travel time, phase
+   timing, losses en route, enemy guns vs waves and splitting, risk preference, expert AI leaf
+   evaluation. Built: crit value over time and the reach model, for raids (Wings of Fury).
 2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
+2b. (done) Wave planner follow-ups (combined launch dialog, AI launches, engine CAP vs wave).
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
@@ -591,8 +598,12 @@ Latest items, newest last:
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
-Next: CLAUDE.md "To do" items 1 (AI: CAP vs strikes and the rest) and 1c (strike planning at arrival time: travel time, phase timing, losses en route, enemy guns
-vs waves / splitting, risk preference, expert leaf evaluation). No open questions.
+Next: CLAUDE.md "To do" item 1 (what is left: fleet-wide CAP / strikes, keeping bays loaded,
+reactive CAP, AI combined squadron fire + "Best for expected hits" in the Combine Squadron Fire
+dialog, guided / seeking turn cones, escorts near the commander) and 1c (strike planning at
+arrival time), then items 3-6. Owner feedback wanted on the AI's judgement weights, e.g. a
+healthy lone cruiser facing three full enemy cruisers disengages under the current model. No
+open questions.
 
 ## Bombers vs assault boats (owner idea, done: CLAUDE.md To do 1b)
 

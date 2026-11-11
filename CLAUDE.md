@@ -446,7 +446,8 @@ test obeyed; the commander's ship protected (exposure, braces earlier); fighters
 fleet-wide by VP saved (one per salvo / mine, one per wave squadron); ships shoot incoming
 ordnance when worth more than their best ship shot; turret choice by expected hits saved.
 
-Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split..."):
+Latest work (all pushed; details in docs/HANDOFF.md "Session end state" and the sections it
+points to):
 - Wave planner in the single-ship launch dialog ("Best split", `waves.best_wave_split`,
   `waves.cap_survivors`, `OrdnancePanel._best_split_plan / _split_inputs_for / _split_types`):
   target list (nearest first) fills editable Turrets / Massed / CAP / Armour / resilient saves
