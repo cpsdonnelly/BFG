@@ -122,7 +122,7 @@ the AI's expected-value logic would (`src/choice_dialog.choose`; closing the win
 too): Leadership-test re-rolls and guided torpedo re-rolls (`ai_rerolls.should_reroll`),
 Wings of Fury raid re-rolls (`hit_and_run.best_raid_reroll`, below), Mark of Tzeentch re-rolls (9+ own / 5-
 enemy), the turret split (`ordnance.choose_turret_target`) and multi-role turret suppression
-(`waves.best_mr_suppress`). GUI checks that answer these prompts must stub `choose`.
+(`waves.best_mr_suppress`), multi-role attack mode (`waves.best_attack_mode`). GUI checks that answer these prompts must stub `choose`.
 Not yet: the Brace prompt, special-order re-rolls (special_orders_ui), the Combine Squadron
 Fire aspect choice, Vault of Technology's chooser.
 
@@ -415,7 +415,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 982 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 985 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -467,14 +467,15 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
    voluntary disengaging; bombers vs assault boats by expected VP (owner idea, below). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
-1b. AI: bombers vs assault boats by expected VP (owner idea, maths checked; see docs/HANDOFF.md
-   "Bombers vs assault boats"). For a carrier that can launch both (and for multi-role craft
-   choosing an attack mode, which today uses `ordnance.mr_attack_mode_ai`: raid at 3+ turrets,
-   ignoring Armour), compare per squadron that gets past the turrets: bomber = E[max(0, D6 -
-   innate turrets)] x P(hit lowest Armour) x VP per hit (3 attacks if suppressed); assault boat
-   = mean over D6 of `hit_and_run.raid_result_value(roll + crew modifier)` (which already prices
-   Engine Room +1 hit, armament crits by what they threaten, escorts 1 damage on 4+). Both face
-   the same turret roll and CAP, so those cancel out of the choice; Brace saves 4+ against both.
+1b. (done) Bombers vs assault boats by expected VP (owner idea): `waves.bomber_squadron_value`
+   (D6 - innate turrets attacks, 3 if suppressed, lowest Armour; a 1-hit target is worth the
+   ship once), `waves.raid_squadron_value` (mean raid value with crew modifiers),
+   `waves.best_attack_mode` -> `ordnance.mr_attack_mode_ai(target, gs, owner, rules)` for
+   multi-role craft (the human prompt is now a choice showing both values, Auto (best)); the AI
+   carrier compares the planner's fighter / bomber wave with an all-assault-boat strike
+   (`expected_survivors` through CAP and turrets x raid value, `AIPlayer._wave_split`). Note:
+   counting turret suppression, 3 fighters + 1 bomber edge out 4 boats in the owner's 4-turret
+   6+ example when the target's guns threaten nothing; boats win once their crits matter.
 1c. Strike planning by expected VP when the strike lands (owner discussion; full design in
    docs/HANDOFF.md "Ordnance strike planning"): crit values over the turns they last (damage
    control s.36: D6 per remaining hit, 6s repair, halved near blast markers; permanent crits and

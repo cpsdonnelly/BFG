@@ -23,6 +23,9 @@ def _choose(root, title, text, options, best):
     SUPPRESS_ASKED.append(title)
     if "Suppress" in title:
         return 0                         # s.27: no multi-role squadron suppresses here
+    if title == "Multi-role Attack Craft":
+        ASK.append((title, text))
+        return "bomber" if ANSWER[0] else "assault_boat"
     return ANSWER[0] if isinstance(best, bool) else best
 _cd.choose = _choose
 failures = []

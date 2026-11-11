@@ -399,3 +399,54 @@ def resolve_cap_vs_group(group, caps, dice, gs) -> dict:
         if not survivors:
             break
     return {"survivors": survivors, "removed": removed, "cap_removed": cap_removed}
+
+
+def bomber_squadron_value(target, gs, suppressed: bool = False) -> float:
+    """Expected VP of one bomber squadron that reaches the target (s.20): D6
+    attacks less one per turret (the ship's own, not massed; exactly 3 when a
+    fighter suppresses), each hitting on its lowest Armour."""
+    from .ordnance import ordnance_turrets
+    from .ai_hazards import value_per_hit, ship_value
+    t = ordnance_turrets(target, gs)
+    p_hit = max(1, 7 - target.lowest_armor_value) / 6.0
+    counts = [3] if suppressed else [max(0, k - t) for k in range(1, 7)]
+    if target.hits_remaining <= 1:
+        # one hit destroys it: worth the ship once, whatever the number of hits
+        p_any = sum(1 - (1 - p_hit) ** a for a in counts) / len(counts)
+        return p_any * ship_value(target, gs)
+    attacks = sum(counts) / len(counts)
+    return attacks * p_hit * max(1.0, value_per_hit(target, gs))
+
+
+def raid_squadron_value(target, gs, owner: int, rules=None) -> float:
+    """Expected VP of one assault boat squadron that reaches the target (s.22:
+    one hit-and-run raid, no Armour roll): the mean over a D6 of
+    hit_and_run.raid_result_value, with the crews' raid modifiers."""
+    from .hit_and_run import raid_result_value, _raid_roll_modifier
+    mod = _raid_roll_modifier(list(rules or []), target)
+    return sum(raid_result_value(r + mod, target, gs, owner) for r in range(1, 7)) / 6.0
+
+
+def expected_survivors(n: int, shots: int, cap: int, p_turret: float = 0.5,
+                       save: int = 0, cap_save: int = 0) -> float:
+    """Expected squadrons of a wave of `n` identical attackers left after the
+    target's CAP (cap_survivors) and its turret roll (`shots` dice, no saves)."""
+    from math import comb
+    total = 0.0
+    for (_f, b0), pw in cap_survivors(0, n, cap, 0, save, cap_save).items():
+        for kills in range(shots + 1):
+            pk = comb(shots, kills) * p_turret ** kills * (1 - p_turret) ** (shots - kills)
+            total += pw * pk * max(0, b0 - kills)
+    return total
+
+
+def best_attack_mode(target, gs, owner: int, rules=None) -> str:
+    """"bomber" or "assault_boat", whichever is worth more in expected VP per
+    squadron that reaches the target (owner idea: assault boats ignore Armour,
+    so they beat bombers against heavily armoured, high-turret ships; bombers
+    win against escorts, which raids only damage on 4+)."""
+    if not getattr(gs, "rule_hit_and_run", True):
+        return "bomber"
+    b = bomber_squadron_value(target, gs)
+    a = raid_squadron_value(target, gs, owner, rules)
+    return "assault_boat" if a > b else "bomber"

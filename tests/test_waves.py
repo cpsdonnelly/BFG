@@ -286,3 +286,72 @@ def test_resilient_cap_saves_and_meets_next_lead():
     assert dice._idx == len(rolls)
     assert r["removed"] == ["b1", "b2"] and r["cap_removed"] == ["c1"]
     assert r["survivors"] == []
+
+
+def test_bombers_vs_assault_boats_owner_example():
+    from tests.conftest import make_ship, make_gs
+    from src.waves import bomber_squadron_value, raid_squadron_value, best_attack_mode
+    from src.ai_hazards import value_per_hit
+    W = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 4,
+          "arcs": ["left"]},
+         {"name": "Starboard Battery", "weapon_type": "battery", "range_cm": 30, "strength": 4,
+          "arcs": ["right"]},
+         {"name": "Prow Lance", "weapon_type": "lance", "range_cm": 30, "strength": 2,
+          "arcs": ["front"]},
+         {"name": "Dorsal Lance", "weapon_type": "lance", "range_cm": 30, "strength": 2,
+          "arcs": ["left", "front", "right"]}]
+    # 4 turrets, Armour 6+ all round, nothing of ours in reach (armament crits worth 0)
+    t = make_ship(id="t", player=2, turrets=4, armor_prow="6+", armor_side="6+",
+                  points_value=200, weapons=W)
+    gs = make_gs([t])
+    gs.rule_hit_and_run = True
+    vph = value_per_hit(t, gs)
+    assert abs(bomber_squadron_value(t, gs) - 0.5 * (1 / 6) * vph) < 1e-9     # 0.083 hits
+    assert abs(raid_squadron_value(t, gs, 1) - vph / 6) < 1e-9               # Engine Room
+    assert best_attack_mode(t, gs, 1) == "assault_boat"
+
+
+def test_bombers_beat_assault_boats_against_escorts():
+    from tests.conftest import make_ship, make_gs
+    from src.waves import bomber_squadron_value, raid_squadron_value, best_attack_mode
+    esc = make_ship(id="e", player=2, ship_type="escort", hits_max=1, turrets=1,
+                    armor_prow="5+", armor_side="5+", points_value=40)
+    gs = make_gs([esc])
+    gs.rule_hit_and_run = True
+    assert abs(raid_squadron_value(esc, gs, 1) - 0.5 * 40) < 1e-9       # 4+: destroyed
+    assert bomber_squadron_value(esc, gs) > raid_squadron_value(esc, gs, 1)
+    assert best_attack_mode(esc, gs, 1) == "bomber"
+
+
+def _carrier_launch(turrets, armour, x=60.0):
+    from tests.conftest import make_ship, make_gs, DiceStub
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    bay = {"name": "Port Launch Bays", "weapon_type": "launch_bay", "range_cm": 30,
+           "strength": 4, "arcs": [],
+           "craft_types": ["fury_fighter", "starhawk_bomber", "shark_assault_boat"],
+           "craft_speeds": {"fury_fighter": 30, "starhawk_bomber": 20, "shark_assault_boat": 30}}
+    c = make_ship(id="c", player=1, weapons=[bay], points_value=250)
+    W = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 4,
+          "arcs": ["left"]},
+         {"name": "Prow Lance", "weapon_type": "lance", "range_cm": 30, "strength": 2,
+          "arcs": ["front"]}]
+    t = make_ship(id="t", player=2, x=x, heading=180.0, turrets=turrets, armor_prow=armour,
+                  armor_side=armour, points_value=200, weapons=W)
+    gs = make_gs([c, t])
+    gs.rule_hit_and_run = True
+    gs.current_phase = "ordnance"
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai._launch_ship_ordnance(gs.get_ship_by_id("c"))
+    return sorted(o["ordnance_type"] for o in gs.ordnance if o["owner_player"] == 1)
+
+
+def test_ai_carrier_picks_assault_boats_vs_armoured_target():
+    # Its prow lance bears on our carrier: raid crits are worth something
+    assert set(_carrier_launch(4, "6+", x=25.0)) == {"assault_boat"}
+    assert "bomber" in _carrier_launch(1, "4+", x=25.0)
+    # Owner's example with turret suppression counted, crits threatening nothing:
+    # 3 fighters + 1 suppressed bomber (~0.36 hits) edge out 4 boats (~0.33)
+    assert "bomber" in _carrier_launch(4, "6+")

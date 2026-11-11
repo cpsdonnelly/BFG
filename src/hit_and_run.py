@@ -310,7 +310,8 @@ def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int) -
         return 0.0
     vph = max(1.0, value_per_hit(target, gs))       # points unknown: still worth something
     if not uses_crit_table(target):
-        return vph + (ship_value(target, gs) if target.hits_remaining <= 1 else 0.0)
+        # the hit that destroys it is worth the ship (not its value per hit on top)
+        return max(vph, ship_value(target, gs)) if target.hits_remaining <= 1 else vph
     ct = raid_crit_preview(effective, target)
     if ct is None:
         return 0.0

@@ -959,17 +959,47 @@ class AIPlayer:
         bays offer plain fighters and bombers (no multi-role craft), there are
         2+ squadrons to launch and no enemy ordnance to defend against (then
         the AI keeps launching fighters). None otherwise."""
-        from .waves import split_craft_types, wave_plan_inputs, plan_wave_against
+        from .waves import (split_craft_types, wave_plan_inputs, plan_wave_against,
+                            expected_survivors, raid_squadron_value)
+        from .ordnance import craft_roles, craft_stats
+        from .ai_hazards import value_per_hit
         if count < 2 or self.difficulty == "easy" or defending or not enemies:
             return None
-        types = split_craft_types(ship, set(craft_types))
-        if not types:
+        cts = set(craft_types)
+        types = split_craft_types(ship, cts)
+        bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+        stats = {ct: craft_stats(ct, bays) for ct in cts}
+        if any(len(craft_roles(st[0])) > 1 for st in stats.values()):
+            return None                         # multi-role craft: s.27 / s.24 choices
+        boat = next((ct for ct, st in stats.items()
+                     if set(craft_roles(st[0])) == {"assault_boat"}), None)
+        if not getattr(self.gs, "rule_hit_and_run", True):
+            boat = None
+        if not types and not boat:
             return None
-        fk, bk, f_save, b_save = types
         target = min(enemies, key=lambda e: ship.distance_to(e))
-        f, b, _ = plan_wave_against(count, wave_plan_inputs(target, self.gs), f_save, b_save)
-        self.gs.add_log(f"[AI] {ship.name} wave vs {target.name}: {f} fighters + {b} bombers")
-        return [(fk, f), (bk, b)]
+        inputs = wave_plan_inputs(target, self.gs)
+        options = []
+        if types:
+            # The planner's fighter / bomber wave, in expected VP
+            fk, bk, f_save, b_save = types
+            f, b, ev = plan_wave_against(count, inputs, f_save, b_save)
+            options.append((ev * max(1.0, value_per_hit(target, self.gs)),
+                            [(fk, f), (bk, b)], f"{f} fighters + {b} bombers"))
+        if boat:
+            # Assault boats ignore Armour (owner idea, To do 1b): the squadrons
+            # expected through CAP and turrets x the mean raid value
+            p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
+            through = expected_survivors(count, inputs["turrets"] + inputs["massed"],
+                                         inputs["cap"], p, stats[boat][2] or 0,
+                                         inputs["cap_save"])
+            options.append((through * raid_squadron_value(target, self.gs, self.player,
+                                                          ship.special_rules),
+                            [(boat, count)], f"{count} assault boats"))
+        value, plan, label = max(options, key=lambda o: o[0])
+        self.gs.add_log(f"[AI] {ship.name} wave vs {target.name}: {label} "
+                        f"(about {value:.0f} VP)")
+        return plan
 
     # ── Auto repair (for end phase) ──────────────────────────────────────────
 

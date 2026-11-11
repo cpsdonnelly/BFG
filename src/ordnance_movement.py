@@ -307,15 +307,21 @@ class OrdnanceMovementMixin:
                 modes[m.id] = "bomber" if can_bomb else "assault_boat"
         for (_sid, owner), (target, ms) in groups.items():
             names = ms[0].ordnance_type.replace("_", " ").title()
+            best = mr_attack_mode_ai(target, self.ctx.gs, owner, ms[0].special_rules)
             if self.ctx.is_ai_controlled(owner):
-                mode = mr_attack_mode_ai(target)
+                mode = best
             else:
-                mode = "bomber" if messagebox.askyesno(
-                    "Multi-role Attack Craft",
+                from .choice_dialog import choose
+                from .waves import bomber_squadron_value, raid_squadron_value
+                bv = bomber_squadron_value(target, self.ctx.gs)
+                av = raid_squadron_value(target, self.ctx.gs, owner, ms[0].special_rules)
+                mode = choose(
+                    self.ctx.root, "Multi-role Attack Craft",
                     f"{len(ms)} {names} squadron(s) attack {target.name} "
-                    f"({target.effective_turrets} turrets).\n\n"
-                    f"Attack as BOMBERS? (No = as assault boats, hit-and-run raids)",
-                    parent=self.ctx.root) else "assault_boat"
+                    f"({target.effective_turrets} turrets, Armour {target.lowest_armor_value}+)."
+                    f"\n\nExpected VP per squadron: as bombers {bv:.1f}, as assault boats "
+                    f"(hit-and-run raids) {av:.1f}.",
+                    [("Bombers", "bomber"), ("Assault boats", "assault_boat")], best)
             self.ctx.log(f"  {len(ms)} {names} attack {target.name} as "
                          f"{'bombers' if mode == 'bomber' else 'assault boats'}")
             for m in ms:

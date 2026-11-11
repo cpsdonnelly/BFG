@@ -1612,10 +1612,15 @@ def ai_craft_to_recall(game_state: GameState, player: int, n: int) -> List[str]:
     return [o["id"] for o in own[:n]]
 
 
-def mr_attack_mode_ai(target: Ship) -> str:
+def mr_attack_mode_ai(target: Ship, gs: Optional[GameState] = None, owner: int = 0,
+                      rules=None) -> str:
     """AI choice for craft that can attack as bombers or assault boats (s.24):
-    raid ships whose turrets would cut bomber attacks down."""
-    return "assault_boat" if target.effective_turrets >= 3 else "bomber"
+    whichever is worth more in expected VP (waves.best_attack_mode). Without a
+    game state, the old rule: raid ships with 3+ turrets."""
+    if gs is None:
+        return "assault_boat" if target.effective_turrets >= 3 else "bomber"
+    from .waves import best_attack_mode
+    return best_attack_mode(target, gs, owner, rules)
 
 
 def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
