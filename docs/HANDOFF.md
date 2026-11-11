@@ -570,7 +570,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1002 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1005 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -617,6 +617,9 @@ Latest items, newest last:
 - AI Shooting by Squadrons: `AIPlayer._squadron_volleys` combines each squadron's batteries
   into one volley (combat.plan_squadron_volley / resolve_squadron_volley) at the best
   expected-VP target that is every contributor's nearest valid target.
+- Owner asked whether Tau-style forward arcs are accounted for: yes; (L/F), (R/F) mounts are
+  two weapons with overlapping front arcs, and the AI planners treat them per mount (tests in
+  `tests/test_ai_forward_arcs.py`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
