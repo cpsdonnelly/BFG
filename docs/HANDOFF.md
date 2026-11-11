@@ -25,7 +25,7 @@ session.
 
 ## Testing
 
-- `pytest -q`: **962 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q`: **963 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
@@ -156,10 +156,14 @@ rather than touch a third ship).
   speed, Ld, shooting, ordnance). Build Remastered's spill-over limit as a separate
   Remastered option, not the XR default.
 
+- **Troop rating, crippled defender (implemented):** it adds its CURRENT turrets, halved
+  rounding up when crippled (s.33; the drawn-combat rule says "remaining turrets"). Order:
+  remaining hits, any doubling / halving, then current innate turrets (crippled-halved, after
+  Fleet Defence Turrets' -2, never massed) (`boarding.troop_rating`, `Ship.effective_turrets`).
+
 ### Open questions for the owner
 
-- Troop rating: a crippled defender adds its printed turrets (current code, old tests) or its
-  halved turrets (crippling halves turrets, s.33)?
+- None open.
 
 ### Owner rulings given this session (also in CLAUDE.md)
 

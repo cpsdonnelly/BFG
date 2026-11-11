@@ -24,8 +24,9 @@ class TestTroopRating:
         assert troop_rating(s, grappled=True) == 8
 
     def test_damaged_ship(self):
+        # crippled (4 of 8): its current turrets, 3 halved rounding up = 2 (owner ruling)
         s = make_ship(hits_remaining=4, turrets=3)
-        assert troop_rating(s) == 7
+        assert troop_rating(s) == 6
         assert troop_rating(s, grappled=True) == 4
 
     def test_zero_hits_remaining(self):
@@ -356,7 +357,8 @@ class TestBoardedEscorts:
 
     def test_escort_can_win_and_still_be_destroyed_by_its_crit(self):
         escort = make_ship(id="e", player=1, ship_type="escort", hits_max=1, turrets=1)
-        cruiser = make_ship(id="c", player=2, hits_max=8, hits_remaining=1, turrets=2, x=5.0)
+        # crippled cruiser: 4 turrets halved to 2, so its troops are 1 + 2 = 3
+        cruiser = make_ship(id="c", player=2, hits_max=8, hits_remaining=1, turrets=4, x=5.0)
         gs = make_gs([escort, cruiser])
         rolls = (
             [6, 5]   # escort 6 +2 (cruiser crippled) = 8 vs 5 +1 (troops 3 vs 2) = 6: diff 2

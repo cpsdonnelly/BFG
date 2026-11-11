@@ -447,10 +447,14 @@ rather than touch a third ship).
   speed, Ld, shooting, ordnance). Build Remastered's spill-over limit as a separate
   Remastered option, not the XR default.
 
+- **Troop rating, crippled defender (implemented):** it adds its CURRENT turrets, halved
+  rounding up when crippled (s.33; the drawn-combat rule says "remaining turrets"). Order:
+  remaining hits, any doubling / halving, then current innate turrets (crippled-halved, after
+  Fleet Defence Turrets' -2, never massed) (`boarding.troop_rating`, `Ship.effective_turrets`).
+
 ### Open questions for the owner
 
-- Troop rating: a crippled defender adds its printed turrets (current code, old tests) or its
-  halved turrets (crippling halves turrets, s.33)?
+- None open.
 
 ## Running and testing
 

@@ -34,8 +34,9 @@ def troop_rating(ship: Ship, grappled: bool = False, defending: bool = False) ->
         base *= 2
     if "kor_vattra" in ship.special_rules or ("frail_crew" in ship.special_rules and defending):
         base = (base + 1) // 2
-    # the ship's own turrets, never massed turrets (owner ruling)
-    t = 0 if grappled else ship.turrets
+    # Owner ruling: its CURRENT innate turrets (halved rounding up when crippled,
+    # s.33; after Fleet Defence Turrets' -2), never massed turrets
+    t = 0 if grappled else ship.effective_turrets
     return base + t
 
 
