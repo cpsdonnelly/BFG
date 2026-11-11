@@ -549,6 +549,16 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   (`contiguous_contact_groups` per `squadron_id`), capital ships included; unsquadroned ships in
   contact no longer combine. GUI checks: `combine_capital_check.py`, `best_split_check.py`.
 
+## Session end state (latest)
+
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 975 tests pass,
+`flake8 --select=E9,F src/` clean, GUI checks pass except the stale `heavy_gunz_check.py`.
+Latest items: wave planner (resilient saves, partial launches, editable inputs), squadron-only
+combined launches, Wings of Fury expected-value re-rolls (owner ruling: an armament disable that
+threatens no allied ship in arc and range is re-rolled; Engine Room kept; escorts re-roll results
+under 4), AI respects armament crits. Next: CLAUDE.md "To do" (item 2b is the planner follow-ups)
+and the open question on resilient saves vs non-fighter ordnance.
+
 ## Remaining work (agreed order)
 
 **The current to-do list and open questions are in CLAUDE.md ("To do", "Open questions for

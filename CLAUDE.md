@@ -294,8 +294,8 @@ outside the wave (e.g. to intercept torpedoes), "+ CAP fighters" go on CAP for t
 ship, all in the same launch. Combining ordnance launches (s.15):
 only members of one squadron (escorts or capital ships) in contiguous base contact. Not yet: bombers that re-roll attacks
 (+1 when suppressed) don't exist yet; resilient
-squadrons don't stop or split (interactions happen after movement); CAP fighters intercept
-a wave's squadrons in order after its turret roll.
+squadrons don't stop or split (interactions happen after movement); the engine doesn't yet make
+CAP fighters intercept a wave's squadrons in order before its turret roll (the planner assumes it).
 
 ### Fleet lists (s.4)
 
@@ -424,6 +424,20 @@ test obeyed; the commander's ship protected (exposure, braces earlier); fighters
 fleet-wide by VP saved (one per salvo / mine, one per wave squadron); ships shoot incoming
 ordnance when worth more than their best ship shot; turret choice by expected hits saved.
 
+Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split..."):
+- Wave planner in the single-ship launch dialog ("Best split", `waves.best_wave_split`,
+  `waves.cap_survivors`, `OrdnancePanel._best_split_plan / _split_inputs_for / _split_types`):
+  target list (nearest first) fills editable Turrets / Massed / CAP / Armour / resilient saves
+  (own fighters, bombers, enemy CAP); wave size may be less than the bays, with "+ lone
+  fighters" and "+ CAP fighters" launched outside the wave in the same launch. Order modelled:
+  CAP first (resilient saves per s.23), then turrets (resilient saves never work against
+  turrets: owner confirmed), then suppression / bomber attacks.
+- Combine Ordnance Launch: only members of one squadron in contiguous contact (capital ships too).
+- Wings of Fury re-rolls by expected VP (see "Auto (best)" above); AI no longer fires weapons
+  knocked out by armament crits (`combat.weapon_disabled_by_crit`).
+- GUI checks added: `combine_capital_check.py`, `best_split_check.py`. Full GUI suite passes
+  except `heavy_gunz_check.py` (stale, fails since before this session).
+
 ### To do (agreed order; see docs/HANDOFF.md "Remaining work" and "AI design")
 
 1. AI: combat air patrol vs strikes allocation (plan written in HANDOFF: launch slots, CAP /
@@ -435,6 +449,11 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
 2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
+2b. Wave planner follow-ups: put it in the combined (squadron) launch dialog; let the AI
+   use `best_wave_split` for its own launches (it still uses its own mix); make the engine
+   resolve CAP against a wave's squadrons in order before the turret roll, with resilient
+   squadrons stopping / splitting (the planner already assumes this; the engine doesn't).
+   Fix the stale `tools/gui_checks/heavy_gunz_check.py`.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
@@ -490,7 +509,13 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- None open.
+- **Resilient saves vs non-fighter ordnance:** the owner said the save "only works against
+  enemy fighters". s.23 says "a save against other ordnance ... when a squadron of resilient
+  attack craft intercept or are intercepted by another ordnance marker", so the engine
+  (`ordnance.py` interception code) also lets a resilient fighter save when it intercepts
+  torpedoes, mines or bombers. Not changed: does the owner want saves limited to
+  fighter-vs-fighter / fighter-vs-craft interceptions, or is the booklet's wider wording right?
+  (Turrets: no save, as implemented.)
 
 ## Running and testing
 
