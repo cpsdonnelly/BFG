@@ -638,7 +638,7 @@ Latest items, newest last:
 Next: CLAUDE.md "To do" item 1 (what is left: fleet-wide CAP / strikes, keeping bays loaded,
 reactive CAP, escorts near the commander; fleet focus positioning follow-ups: several focus
 targets, torpedo lanes / craft reach in the move score, expert leaf evaluation; torpedo launch
-lanes and multi-waypoint routes; guided salvos' real launcher Ld; Burn Retros hazard check)
+lanes and multi-waypoint routes)
 and 1c (strike planning at arrival time), then items 3-6. Owner feedback wanted on the AI's judgement weights, e.g. a
 healthy lone cruiser facing three full enemy cruisers disengages under the current model. No open
 questions (the dust-cloud answers are built: one shift at most with blast markers; attack craft
