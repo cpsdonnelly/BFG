@@ -569,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1012 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1014 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -626,8 +626,9 @@ Latest items, newest last:
   `_in_turn_cone`; guided at an assumed Ld 8 test).
 - Hazards in the AI's targeting (owner check): battery values include column shifts
   (`expected_hits(..., gs)`), torpedo / strike targets weighted by
-  `ai_hazards.ordnance_path_survival` (mirrors the engine's terrain rules). Two questions on
-  dust clouds raised (CLAUDE.md).
+  `ai_hazards.ordnance_path_survival` (mirrors the engine's terrain rules). Owner answers on
+  dust clouds built: a cloud in the line of fire shifts macrobatteries but doesn't stack with
+  blast markers; attack craft in a cloud die on a 6.
 - Owner: craft (and turning torpedoes, within their turns) can fly round obstacles:
   `ai_hazards.best_route` (detour waypoints), used by strike targeting and by AI craft movement
   (`ordnance.craft_target_point`, AI-owned craft only).
@@ -639,8 +640,9 @@ reactive CAP, escorts near the commander; fleet focus positioning follow-ups: se
 targets, torpedo lanes / craft reach in the move score, expert leaf evaluation; torpedo launch
 lanes and multi-waypoint routes; guided salvos' real launcher Ld; Burn Retros hazard check)
 and 1c (strike planning at arrival time), then items 3-6. Owner feedback wanted on the AI's judgement weights, e.g. a
-healthy lone cruiser facing three full enemy cruisers disengages under the current model. Two
-open questions on dust clouds (CLAUDE.md "Open questions").
+healthy lone cruiser facing three full enemy cruisers disengages under the current model. No open
+questions (the dust-cloud answers are built: one shift at most with blast markers; attack craft
+destroyed on a 6 in a cloud).
 
 ## Bombers vs assault boats (owner idea, done: CLAUDE.md To do 1b)
 

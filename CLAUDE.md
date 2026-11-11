@@ -117,15 +117,15 @@ Cruisers. Ships using rules the engine can't play yet
   rifts and hulks block direct fire (`los.check_los`, already enforced); torpedo and strike
   targets are weighted by `ai_hazards.ordnance_path_survival`, which mirrors the engine:
   torpedoes detonate on planets / asteroid fields / warp rifts, die on a 6 in dust clouds and
-  blast markers (seeking 5+); attack craft die on a 6 in asteroid fields and blast markers, to
-  warp rifts outright, and ignore planets and dust. Owner: attack craft, and less so torpedoes
+  blast markers (seeking 5+); attack craft die on a 6 in asteroid fields, dust clouds and blast markers, to
+  warp rifts outright, and ignore planets (dust clouds: on a 6, owner ruling). Owner: attack craft, and less so torpedoes
   that can turn, may move round obstacles: `ai_hazards.best_route` scores the straight line and
   two-leg detours via a waypoint just outside each harmful obstacle (survival x travel
   discount for the longer path); attack craft turn freely, guided torpedoes only within 45
   degrees, standard ones run straight. Strike targeting uses it, and AI craft really fly the
   detour (`ordnance.craft_target_point` returns the waypoint for AI-owned craft heading for a
   ship; a human's craft go straight at the target given). Not yet: torpedo launch headings
-  aimed down a clear lane, routes with more than one waypoint. Open questions below on dust.
+  aimed down a clear lane, routes with more than one waypoint.
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships
@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1012 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1014 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -527,8 +527,8 @@ points to):
 - Hazards in the AI's targeting (owner check): battery values with column shifts
   (`expected_hits(..., gs)`), ordnance targets weighted by path survival
   (`ordnance_path_survival`, mirroring the engine's terrain rules), and routes round obstacles
-  for craft and guided torpedoes (`best_route`; AI craft fly the detour). Two dust-cloud
-  questions are open (below).
+  for craft and guided torpedoes (`best_route`; AI craft fly the detour). Dust-cloud rulings
+  answered and built (see "Open questions" section).
 - AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
   e.g. a crippled cruiser on 2 hits under enemy guns tries to leave; a healthy one facing a
   single enemy cruiser fights on (a lone healthy cruiser facing three full cruisers also leaves:
@@ -658,16 +658,16 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- **Dust clouds in the line of fire:** the booklet says a gas / dust cloud has "the same effect
-  as a single blast marker" to ships in base contact, and that clouds "impair targeting by
-  macrobatteries". The engine also gives a right column shift when the line of fire merely
-  passes through a cloud (neither ship in contact), one shift per cloud, on top of the single
-  shift for blast markers (`los.check_los`), so a cloud plus blast markers gives two. Is a
-  cloud between the ships meant to shift, and if so do clouds and blast markers stack, or is
-  it one right shift at most for "something in the way"?
-- **Attack craft and dust clouds:** the booklet says clouds "may destroy ordnance" (and in
-  contact they act as a blast marker). The engine destroys torpedoes in a cloud on a 6 but lets
-  attack craft through untouched. Should attack craft also roll (destroyed on a 6)?
+- None open.
+
+Owner rulings (dust clouds, answers to the last questions; implemented, tested):
+- A gas / dust cloud in the line of fire shifts macrobatteries one column right even if
+  neither ship touches it, but it doesn't stack with blast markers: blast markers and dust in
+  the way give one right shift between them (`los.check_los` "column_shifts" is 0 or 1;
+  `combat.get_column_shifts`; also shooting at ordnance). Lances and nova cannon unaffected.
+- Attack craft in a gas / dust cloud are destroyed on a 6, like torpedoes
+  (`ordnance.check_ordnance_vs_phenomena`; the AI's `ordnance_path_survival` / `best_route`
+  count it).
 
 Owner ruling (resilient saves, s.23): the booklet's wording stands. A resilient squadron saves
 against any other ordnance it intercepts or is intercepted by (fighters, bombers, torpedoes,

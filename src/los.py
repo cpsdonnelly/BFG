@@ -15,7 +15,7 @@ def check_los(x1: float, y1: float, x2: float, y2: float,
       - blocked_by: str or None (what blocks it)
       - blast_markers_crossed: int (count of blast markers in the line)
       - dust_clouds_crossed: int
-      - column_shifts: int (right shifts from blast/dust)
+      - column_shifts: int (one right shift if any blast marker or dust cloud is in the way)
     """
     result = {
         "clear": True,
@@ -60,7 +60,6 @@ def check_los(x1: float, y1: float, x2: float, y2: float,
                                       p.x - p.width/2, p.y - p.height/2,
                                       p.x + p.width/2, p.y + p.height/2):
                 result["dust_clouds_crossed"] += 1
-                result["column_shifts"] += 1
 
     # Check blast markers in line of fire (cause column shift for batteries)
     blast_crossed = False
@@ -68,9 +67,12 @@ def check_los(x1: float, y1: float, x2: float, y2: float,
         if line_touches_trefoil(x1, y1, x2, y2, bm.x, bm.y, bm.heading):
             if not blast_crossed:
                 result["blast_markers_crossed"] += 1
-                result["column_shifts"] += 1
-                blast_crossed = True  # only one shift for blast markers total
+                blast_crossed = True
 
+    # Owner ruling: blast markers and gas / dust clouds in the line of fire give
+    # one right column shift between them, however many there are (no stacking)
+    if result["blast_markers_crossed"] or result["dust_clouds_crossed"]:
+        result["column_shifts"] = 1
     return result
 
 

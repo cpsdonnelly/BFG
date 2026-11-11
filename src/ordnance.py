@@ -1163,7 +1163,7 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
         asteroid field = D6=6 destroys
         warp rift = auto-destroyed
         planets = no effect
-        gas/dust cloud = no effect
+        gas/dust cloud = D6=6 destroys (owner ruling)
 
     Returns (destroyed: bool, reason: str).
     """
@@ -1197,7 +1197,13 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
                     return True, "asteroid_field"
             elif ptype == "warp_rift":
                 return True, ptype
-            # Planets and gas/dust clouds have no effect on attack craft
+            elif ptype == "gas_dust_cloud":
+                # Owner ruling: attack craft in a gas / dust cloud are destroyed
+                # on a 6, like torpedoes ("may destroy ordnance")
+                roll = dice.roll_d6(1, "Attack craft in dust cloud (6=destroyed)")[0]
+                if roll == 6:
+                    return True, "gas_dust_cloud"
+            # Planets have no effect on attack craft
         else:
             # Torpedoes and mines
             if "planet" in ptype:

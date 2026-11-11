@@ -705,8 +705,9 @@ def ordnance_path_survival(x1: float, y1: float, x2: float, y2: float, gs,
       torpedoes: a planet, asteroid field or warp rift on the way destroys
         them (they detonate on it); a gas / dust cloud on a 6; blast markers
         on a 6 (seeking torpedoes on 5+);
-      attack craft ("craft"): an asteroid field on a 6, a warp rift
-        outright, blast markers on a 6; planets and dust clouds don't harm them.
+      attack craft ("craft"): an asteroid field or gas / dust cloud on a 6
+        (dust: owner ruling), a warp rift outright, blast markers on a 6;
+        planets don't harm them.
     Each kind of hazard is rolled once along the path (one test per move)."""
     from .los import _line_intersects_circle, _line_intersects_rect
     from .geometry import line_touches_trefoil
@@ -724,7 +725,7 @@ def ordnance_path_survival(x1: float, y1: float, x2: float, y2: float, gs,
         if t == "warp_rift":
             return 0.0
         if kind == "craft":
-            if t == "asteroid_field":
+            if t in ("asteroid_field", "gas_dust_cloud"):     # dust: owner ruling
                 p *= 5 / 6
         else:
             if "planet" in t or t == "asteroid_field":
@@ -752,7 +753,7 @@ def _harmful_obstacles(x1, y1, x2, y2, gs, kind: str):
     for ph in gs.get_phenomena():
         t = ph.phenomenon_type
         planet = "planet" in t and ph.radius > 0
-        if kind == "craft" and t not in ("asteroid_field", "warp_rift"):
+        if kind == "craft" and t not in ("asteroid_field", "warp_rift", "gas_dust_cloud"):
             continue
         if kind != "craft" and not (planet or t in ("asteroid_field", "warp_rift",
                                                     "gas_dust_cloud")):

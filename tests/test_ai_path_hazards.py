@@ -23,7 +23,7 @@ def test_path_survival_by_hazard_and_ordnance_kind():
     dust = make_phenomenon("gas_dust_cloud", x=20.0, y=0.0, width=6.0, height=6.0)
     gs = _gs(dust)
     assert abs(ordnance_path_survival(0, 0, 40, 0, gs, "torpedo") - 5 / 6) < 1e-9
-    assert ordnance_path_survival(0, 0, 40, 0, gs, "craft") == 1.0          # no effect
+    assert abs(ordnance_path_survival(0, 0, 40, 0, gs, "craft") - 5 / 6) < 1e-9   # owner
     gs = _gs(blasts=[make_blast(x=20.0, y=0.0)])
     assert abs(ordnance_path_survival(0, 0, 40, 0, gs, "torpedo") - 5 / 6) < 1e-9
     assert abs(ordnance_path_survival(0, 0, 40, 0, gs, "seeking") - 4 / 6) < 1e-9
@@ -88,3 +88,36 @@ def test_craft_route_round_an_asteroid_field():
     assert craft_target_point(m, gs) == wp
     gs.ai_player = 2                                   # player 1 is human: straight
     assert craft_target_point(m, gs) == (40.0, 0.0)
+
+
+
+def test_blast_markers_and_dust_give_one_shift_between_them():
+    """Owner ruling: a dust cloud in the line of fire shifts macrobatteries even
+    if neither ship touches it, but it doesn't stack with blast markers."""
+    from src.los import check_los
+    from src.combat import get_column_shifts
+    dust = make_phenomenon("gas_dust_cloud", x=10.0, y=0.0, width=4.0, height=4.0)
+    dust2 = make_phenomenon("gas_dust_cloud", x=18.0, y=0.0, width=4.0, height=4.0, id="p2")
+    blast = make_blast(x=14.0, y=0.0)
+    assert check_los(0, 0, 25, 0, [dust], [])["column_shifts"] == 1
+    assert check_los(0, 0, 25, 0, [dust, dust2], [blast])["column_shifts"] == 1
+    assert check_los(0, 0, 25, 0, [], [])["column_shifts"] == 0
+    a = make_ship(id="a", player=1, x=0.0, y=0.0)
+    t = make_ship(id="t", player=2, x=25.0, y=0.0)
+    assert get_column_shifts(a, t, [blast], [dust, dust2]) == get_column_shifts(a, t, [], [dust])
+
+
+def test_attack_craft_in_dust_destroyed_on_a_six():
+    """Owner ruling: attack craft in a gas / dust cloud are destroyed on a 6."""
+    from src.ordnance import check_ordnance_vs_phenomena
+    from tests.conftest import make_marker
+    dust = make_phenomenon("gas_dust_cloud", x=0.0, y=0.0, width=10.0, height=10.0)
+    m = make_marker(id="b", ordnance_type="bomber", owner_player=1, x=0.0, y=0.0)
+    rolls = [6]
+    dice = DiceStub(rolls)
+    assert check_ordnance_vs_phenomena(m, [dust], dice) == (True, "gas_dust_cloud")
+    assert dice._idx == len(rolls)
+    rolls = [5]
+    dice = DiceStub(rolls)
+    assert check_ordnance_vs_phenomena(m, [dust], dice) == (False, "")
+    assert dice._idx == len(rolls)
