@@ -546,8 +546,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   bombers from the craft profiles, enemy CAP from its markers, all editable) go through
   `waves.cap_survivors` (exact recursion over CAP interactions, s.23 rules incl. the used save
   and both-pass removal), then the turret roll. Wave size < bays: lone and CAP fighters are
-  launched outside the wave in the same launch (`extra_vars`). Note: the engine itself still
-  doesn't make CAP intercept a wave's squadrons in order (see CLAUDE.md "Not yet"). The combined launch dialog has a compact version (target, wave
+  launched outside the wave in the same launch (`extra_vars`). The combined launch dialog has a compact version (target, wave
   size, CAP) and the AI launches the planner's mix (`AIPlayer._wave_split`). The engine now
   resolves CAP against incoming groups lead first before the turret roll
   (`waves.resolve_cap_vs_group`), matching the planner.
