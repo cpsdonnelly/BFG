@@ -62,3 +62,29 @@ def test_ai_torpedoes_avoid_a_target_behind_an_asteroid_field():
     ai.difficulty = "normal"
     ai._ord_committed = {}
     assert ai._best_torp_target(gs.get_ship_by_id("me"), torp, ai._live_enemies()).id == "hard"
+
+
+def test_craft_route_round_an_asteroid_field():
+    """Owner: attack craft can fly round obstacles. The detour is worth more than
+    flying through (1 in 6 lost), and AI craft really fly it; a human's don't."""
+    from src.ai_hazards import best_route
+    from src.ordnance import craft_target_point
+    from tests.conftest import make_marker
+    ast = make_phenomenon("asteroid_field", x=20.0, y=0.0, width=6.0, height=6.0)
+    target = make_ship(id="t", player=2, x=40.0, y=0.0)
+    gs = make_gs([target])
+    gs.add_phenomenon(ast)
+    value, surv, length, wp = best_route(0, 0, 40, 0, gs, "craft", 20)
+    from src.ai_hazards import ordnance_path_survival, travel_discount
+    straight = ordnance_path_survival(0, 0, 40, 0, gs, "craft") * travel_discount(40, 20)
+    assert surv == 1.0 and wp is not None and value > straight   # safe, a little longer
+    # Standard torpedoes can't turn: straight through (and detonate)
+    assert best_route(0, 0, 40, 0, gs, "torpedo", 30, max_turn=0)[1] == 0.0
+    # Guided torpedoes may go round if the turn is within 45 degrees
+    assert best_route(0, 0, 40, 0, gs, "torpedo", 30, max_turn=45)[1] == 1.0
+    m = make_marker(id="b", ordnance_type="bomber", owner_player=1, x=0.0, y=0.0,
+                    speed=20, craft_target_id="t")
+    gs.ai_player = 1
+    assert craft_target_point(m, gs) == wp
+    gs.ai_player = 2                                   # player 1 is human: straight
+    assert craft_target_point(m, gs) == (40.0, 0.0)

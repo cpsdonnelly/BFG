@@ -1208,7 +1208,7 @@ class AIPlayer:
             boat = None
         if not bomber and not boat:
             return None
-        from .ai_hazards import hull_hits_vp, travel_discount
+        from .ai_hazards import hull_hits_vp
         committed = getattr(self, "_ord_committed", {})
         speed = min((stats[ct][1] or 20) for ct in (bomber, boat) if ct)
         near = min(enemies, key=lambda e: ship.distance_to(e))
@@ -1221,9 +1221,9 @@ class AIPlayer:
         for target in targets:
             inputs = wave_plan_inputs(target, self.gs)
             p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
-            from .ai_hazards import ordnance_path_survival
-            disc = (travel_discount(ship.distance_to(target), speed)
-                    * ordnance_path_survival(ship.x, ship.y, target.x, target.y, self.gs, "craft"))
+            from .ai_hazards import best_route
+            # craft may fly round obstacles (owner): best of straight line / detours
+            disc = best_route(ship.x, ship.y, target.x, target.y, self.gs, "craft", speed)[0]
             c = committed.get(target.id, 0.0)
             if types:
                 fk, bk, f_save, b_save = types
@@ -1448,13 +1448,16 @@ class AIPlayer:
             speed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
             strength = weapon.get("strength") or 0
 
-            from .ai_hazards import ordnance_path_survival
+            from .ai_hazards import best_route
 
             def score(e):
                 hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y))
                 # Planets / asteroid fields on the way destroy the salvo; blast
                 # markers and dust clouds on a 6 (owner: hazards on the path)
-                hits *= ordnance_path_survival(ship.x, ship.y, e.x, e.y, self.gs, "torpedo")
+                # salvos that can turn (guided) may go round, within 45 degrees
+                turn = 45.0 if weapon.get("torpedo_type") == "guided" else 0.0
+                hits *= best_route(ship.x, ship.y, e.x, e.y, self.gs, "torpedo", speed,
+                                   max_turn=turn)[1]
                 px, py = self._predict_ship_pos(e)
                 both = (check_weapon_in_arc(ship, weapon, e.x, e.y)
                         and check_weapon_in_arc(ship, weapon, px, py))

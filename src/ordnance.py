@@ -69,6 +69,18 @@ def craft_target_point(marker: OrdnanceMarker,
     if ship is not None:
         if ship.is_destroyed or ship.is_disengaged:
             return None
+        # AI craft fly round asteroid fields, warp rifts and blast markers when
+        # a detour is worth more (owner; ai_hazards.best_route); a human's craft
+        # go straight at the target they were given
+        ai = getattr(game_state, "ai_player", None)
+        if (ai is not None and marker.owner_player == ai
+                and marker.ordnance_type in ATTACK_CRAFT_TYPES):
+            from .ai_hazards import best_route
+            route = best_route(marker.x, marker.y, ship.x, ship.y, game_state, "craft",
+                               marker.speed or 20)
+            if route[3] is not None and math.hypot(route[3][0] - marker.x,
+                                                   route[3][1] - marker.y) > 1.0:
+                return route[3]
         return ship.x, ship.y
     for o in game_state.ordnance:
         if o["id"] == tid and o["id"] != marker.id:

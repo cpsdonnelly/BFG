@@ -569,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1011 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1012 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -628,6 +628,9 @@ Latest items, newest last:
   (`expected_hits(..., gs)`), torpedo / strike targets weighted by
   `ai_hazards.ordnance_path_survival` (mirrors the engine's terrain rules). Two questions on
   dust clouds raised (CLAUDE.md).
+- Owner: craft (and turning torpedoes, within their turns) can fly round obstacles:
+  `ai_hazards.best_route` (detour waypoints), used by strike targeting and by AI craft movement
+  (`ordnance.craft_target_point`, AI-owned craft only).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

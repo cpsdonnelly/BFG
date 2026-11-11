@@ -118,7 +118,14 @@ Cruisers. Ships using rules the engine can't play yet
   targets are weighted by `ai_hazards.ordnance_path_survival`, which mirrors the engine:
   torpedoes detonate on planets / asteroid fields / warp rifts, die on a 6 in dust clouds and
   blast markers (seeking 5+); attack craft die on a 6 in asteroid fields and blast markers, to
-  warp rifts outright, and ignore planets and dust. Open questions below on dust clouds.
+  warp rifts outright, and ignore planets and dust. Owner: attack craft, and less so torpedoes
+  that can turn, may move round obstacles: `ai_hazards.best_route` scores the straight line and
+  two-leg detours via a waypoint just outside each harmful obstacle (survival x travel
+  discount for the longer path); attack craft turn freely, guided torpedoes only within 45
+  degrees, standard ones run straight. Strike targeting uses it, and AI craft really fly the
+  detour (`ordnance.craft_target_point` returns the waypoint for AI-owned craft heading for a
+  ship; a human's craft go straight at the target given). Not yet: torpedo launch headings
+  aimed down a clear lane, routes with more than one waypoint. Open questions below on dust.
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships
@@ -462,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1011 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1012 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 

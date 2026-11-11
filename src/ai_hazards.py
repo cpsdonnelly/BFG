@@ -597,7 +597,6 @@ def plan_strike_targets(gs, player: int) -> dict:
     counting what earlier groups are planned to do there, discounted for the
     moves it needs to get there. Fighters in a wave follow it. Returns
     {marker id: target ship id}."""
-    import math as _m
     from .models import OrdnanceMarker
     from .ordnance import craft_roles, attacks_ships
     from .waves import (expected_survivors, raid_squadron_value, bomber_squadron_value,
@@ -637,8 +636,7 @@ def plan_strike_targets(gs, player: int) -> dict:
                 else:
                     per_mr = bomber_squadron_value(e, gs)
                 v += through * ((a * per + len(mr) * per_mr) / max(1, n))
-            v *= (travel_discount(_m.hypot(e.x - lead.x, e.y - lead.y), speed)
-                  * ordnance_path_survival(lead.x, lead.y, e.x, e.y, gs, "craft"))
+            v *= best_route(lead.x, lead.y, e.x, e.y, gs, "craft", speed)[0]   # round obstacles
             if v > best:
                 best, best_t, best_hits = v, e, hits
         if best_t is None:
@@ -737,3 +735,73 @@ def ordnance_path_survival(x1: float, y1: float, x2: float, y2: float, gs,
            for b in gs.get_blast_markers()):
         p *= (4 / 6) if kind == "seeking" else (5 / 6)
     return p
+
+
+def _harmful_obstacles(x1, y1, x2, y2, gs, kind: str):
+    """Obstacles on the segment that can destroy `kind` of ordnance, each as a
+    list of detour waypoints just outside it (asteroid field / warp rift / dust
+    corners, either side of a planet or blast marker)."""
+    import math as _m
+    from .los import _line_intersects_circle, _line_intersects_rect
+    from .geometry import line_touches_trefoil, BLAST_MARKER_RADIUS_CM
+    margin = 3.0
+    dx, dy = x2 - x1, y2 - y1
+    L = _m.hypot(dx, dy) or 1.0
+    nx, ny = -dy / L, dx / L
+    out = []
+    for ph in gs.get_phenomena():
+        t = ph.phenomenon_type
+        planet = "planet" in t and ph.radius > 0
+        if kind == "craft" and t not in ("asteroid_field", "warp_rift"):
+            continue
+        if kind != "craft" and not (planet or t in ("asteroid_field", "warp_rift",
+                                                    "gas_dust_cloud")):
+            continue
+        if planet:
+            if not _line_intersects_circle(x1, y1, x2, y2, ph.x, ph.y, ph.radius):
+                continue
+            r = ph.radius + margin
+            out.append([(ph.x + nx * r, ph.y + ny * r), (ph.x - nx * r, ph.y - ny * r)])
+        else:
+            hw, hh = ph.width / 2, ph.height / 2
+            if not _line_intersects_rect(x1, y1, x2, y2, ph.x - hw, ph.y - hh,
+                                         ph.x + hw, ph.y + hh):
+                continue
+            out.append([(ph.x + sx * (hw + margin), ph.y + sy * (hh + margin))
+                        for sx in (-1, 1) for sy in (-1, 1)])
+    for b in gs.get_blast_markers():
+        if line_touches_trefoil(x1, y1, x2, y2, b.x, b.y, b.heading):
+            r = BLAST_MARKER_RADIUS_CM + margin
+            out.append([(b.x + nx * r, b.y + ny * r), (b.x - nx * r, b.y - ny * r)])
+    return out
+
+
+def best_route(x1: float, y1: float, x2: float, y2: float, gs, kind: str = "craft",
+               speed: float = 20.0, max_turn: float = None):
+    """Owner: attack craft (and, within their turns, torpedoes that can turn)
+    may fly round obstacles. The best of the straight line and two-leg detours
+    via a waypoint just outside each harmful obstacle on it, scored by
+    ordnance_path_survival x travel_discount(length). Attack craft turn freely
+    (max_turn None); turning torpedoes only where the detour's turn is at most
+    `max_turn` degrees; standard torpedoes pass max_turn=0 (straight only).
+    Returns (value 0-1, survival, length, waypoint or None)."""
+    import math as _m
+    direct_len = _m.hypot(x2 - x1, y2 - y1)
+    surv = ordnance_path_survival(x1, y1, x2, y2, gs, kind)
+    best = (surv * travel_discount(direct_len, speed), surv, direct_len, None)
+    if surv >= 1.0 or max_turn == 0:
+        return best
+    for group in _harmful_obstacles(x1, y1, x2, y2, gs, kind):
+        for wx, wy in group:
+            if max_turn is not None:
+                a1 = _m.degrees(_m.atan2(wy - y1, wx - x1))
+                a2 = _m.degrees(_m.atan2(y2 - wy, x2 - wx))
+                if abs((a2 - a1 + 180) % 360 - 180) > max_turn:
+                    continue
+            s = (ordnance_path_survival(x1, y1, wx, wy, gs, kind)
+                 * ordnance_path_survival(wx, wy, x2, y2, gs, kind))
+            length = _m.hypot(wx - x1, wy - y1) + _m.hypot(x2 - wx, y2 - wy)
+            v = s * travel_discount(length, speed)
+            if v > best[0] + 1e-9:
+                best = (v, s, length, (wx, wy))
+    return best
