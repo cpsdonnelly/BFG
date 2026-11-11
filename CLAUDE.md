@@ -407,8 +407,7 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
    Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
    disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
-6. Smaller gaps: the +3 disengage Ld during a radiation burst / solar flare; Remastered
-   spill-over limit and overlapping bases for shields / speed / Ld; undoing a Demiurg move
+6. Smaller gaps: the +3 disengage Ld during a radiation burst / solar flare; undoing a Demiurg move
    doesn't return collected blast markers; a human player isn't stopped from not fleeing
    after a failed forced disengage (log reminder only); scenario rules (Business as Usual,
    High-Risk Convoys, planetary assaults, low orbit).
