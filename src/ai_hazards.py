@@ -320,3 +320,50 @@ def intercept_gain(gs, player: int, target: OrdnanceMarker, already: int = 0) ->
     if hit.resilient_save:
         best *= 0.5
     return best
+
+
+def explosion_vp(centre, strength: int, gs, player: int, exclude_id: str = "") -> float:
+    """Net expected VP for `player` of a ship exploding at `centre` (s.34,
+    combat.resolve_explosion): every ship within a 3D6cm radius takes
+    `strength` lance shots hitting on 4+, less its shields; enemy losses count
+    for us, our own against us. Finishing a ship off adds part of its value."""
+    import math as _m
+    from .geometry import current_shields
+    total = 0.0
+    bms = gs.get_blast_markers()
+    for s in gs.get_ships():
+        if s.id == exclude_id or s.is_destroyed or s.is_disengaged:
+            continue
+        d = _m.hypot(s.x - centre[0], s.y - centre[1])
+        p_in = 1.0 - p_sum_at_most(3, max(0, _m.ceil(d) - 1))
+        if p_in <= 0:
+            continue
+        hits = max(0.0, strength * 0.5 - current_shields(s, bms))
+        if hits <= 0:
+            continue
+        v = min(hits, s.hits_remaining) * value_per_hit(s, gs)
+        if hits >= s.hits_remaining:
+            v += ship_value(s, gs) * 0.3
+        total += p_in * v * (1 if s.player != player else -1)
+    return total
+
+
+def hulk_shot_vp(hulk: Ship, gs, player: int) -> float:
+    """Expected VP for `player` of putting at least one hit on an enemy hulk.
+    It already scores as destroyed (s.38), so the value is the re-rolled
+    Catastrophic Damage result (owner ruling): 9-11 plasma drive overload
+    (half its starting hits as blast strength), 12 warp drive implosion (all of
+    them), 7-8 a burning hulk that may blow up at its next re-roll (10 in 36,
+    at half value), 2-6 a drifting hulk (nothing). Explosions hurt whoever is near:
+    with our own ships close by, the value goes negative. Not counted: the
+    Holding the Field points a removed hulk no longer gives."""
+    centre = (hulk.x, hulk.y)
+    plasma = explosion_vp(centre, hulk.hits_max // 2, gs, player, hulk.id)
+    warp = explosion_vp(centre, hulk.hits_max, gs, player, hulk.id)
+    p_plasma, p_warp, p_burn = 9 / 36, 1 / 36, 11 / 36
+    now = p_plasma * plasma + p_warp * warp
+    # A new burning hulk re-rolls in its next movement phase (explodes 10 in
+    # 36); half value, as ships will have moved by then
+    if_explodes = now / (p_plasma + p_warp)
+    later = 0.0 if hulk.status == "burning_hulk" else p_burn * (10 / 36) * 0.5 * if_explodes
+    return now + later

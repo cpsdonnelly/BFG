@@ -562,7 +562,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 986 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 989 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -583,6 +583,9 @@ Latest items, newest last:
   escort counted the ship twice.
 - AI CAP vs strikes, first version (To do 1): per carrier, fighters to CAP / free only when
   a threat is worth more than the next strike squadron.
+- AI shoots enemy hulks when the re-rolled catastrophic damage would blow up among enemies
+  (`ai_hazards.hulk_shot_vp`, `AIPlayer._hulk_shot`); AI hits on hulks now reach
+  `apply_damage` (they were dropped before).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 

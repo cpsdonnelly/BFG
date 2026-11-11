@@ -376,7 +376,12 @@ Owner rulings (fleet lists, export 15):
   commander's (`TurnController.get_fleet_rerolls / use_fleet_reroll(player, ship)`). Not yet:
   other factions' secondaries (Elite Captains / Daemonhunters, Ork Nobz, Bond-Captains,
   Space Marine Captains), per-Boss re-roll pools for several Ork Bosses.
-- Hulks: the AI never targets enemy hulks.
+- Hulks: the AI shoots an enemy hulk when it is the closest target in arc (no target priority
+  test) and P(a hit) x `ai_hazards.hulk_shot_vp` beats its best ship shot: the re-rolled
+  Catastrophic Damage exploding among enemy ships (3D6cm, half / all starting hits as 4+ lance
+  shots less shields, `explosion_vp`), negative near our own ships; a new burning hulk's next
+  re-roll at half value. Not counted: Holding the Field hulk points, a hulk that isn't the
+  closest target (would need the target priority test).
 - Disengaging (s.37): escort squadrons test together; Forced Disengagement (Ld 1 or less) and
   Demiurg Mercenaries test at the end of movement (`disengage.forced_disengage_tests`); a ship
   that fails gets `Ship.must_flee` (AI `_plan_flee`). Not yet: the +3 during a radiation burst
@@ -415,7 +420,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 986 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 989 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -453,6 +458,9 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
   combined launch dialog has a compact planner (target, wave size, CAP;
   `OrdnancePanel._combined_split_planner`).
 - CAP now meets incoming craft lead first before the turret roll, with s.23 saves (see Waves).
+- AI shoots enemy hulks when their explosion would hurt enemy ships (`AIPlayer._hulk_shot`);
+  fixed: AI hits on a hulk were dropped (`_apply_hits_to` skipped "destroyed" ships), so its
+  catastrophic damage was never re-rolled.
 - AI CAP vs strikes per carrier (To do 1, first version): one fighter per incoming salvo / mine
   / wave squadron that is worth more than the next strike squadron, on CAP or free, the rest
   strike as one wave (before: any enemy ordnance in play made it launch all fighters).
@@ -467,9 +475,10 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
    its launch slots in expected VP; a fighter on CAP for the friendly ship a threat is closing
    on (full `intercept_gain`) or free (0.75), else one more squadron in the strike
    (`_strike_option` marginal: planner wave or assault boats); threats our fighters already fly
-   at count as covered). Still to do here: fleet-wide allocation across carriers, the option
+   at count as covered). Done: when hulks are worth shooting (see "Not yet matching": Hulks).
+   Still to do here: fleet-wide allocation across carriers, the option
    value of keeping bays loaded, CAP against enemy bomber waves not yet launched; combined squadron fire for the AI and a "Best for expected hits"
-   default in the Combine Squadron Fire dialog; when hulks are worth shooting; guided /
+   default in the Combine Squadron Fire dialog; guided /
    seeking torpedo turn cones in hazard maths; escorts staying near the commander's ship;
    voluntary disengaging; bombers vs assault boats by expected VP (owner idea, below). The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on

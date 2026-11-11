@@ -515,7 +515,11 @@ class AIPlayer:
                            f"{res['dice']} dice, {'destroyed' if res['hits'] else 'missed'}")
                 continue
 
-            enemies = self._live_enemies()      # earlier weapons may have killed some
+            hulk = self._hulk_shot(ship, weapon) if self.difficulty != "easy" else None
+            if hulk is not None:
+                enemies = [hulk]                 # worth more than any ship shot (below)
+            else:
+                enemies = self._live_enemies()  # earlier weapons may have killed some
             target = self._pick_target(ship, weapon, enemies)
             if not target:
                 continue
@@ -640,8 +644,9 @@ class AIPlayer:
         """Apply hits from AI fire, then resolve the ship's destruction if it died.
         Returns (unused hits, destroyed) for squadron hit allocation."""
         t = self.gs.get_ship_by_id(target.id)
-        if not t or t.is_destroyed:
-            return hits, True
+        hulk = t is not None and t.status in ("drifting_hulk", "burning_hulk")
+        if not t or (t.is_destroyed and not hulk):
+            return hits, True             # hulks take hits: they re-roll catastrophic damage
         braced = t.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
         src = self.gs.get_ship_by_id(attacker_key) if attacker_key else None
         dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced,
@@ -727,6 +732,38 @@ class AIPlayer:
         if value <= best_ship:
             return None
         return {"marker": m, "avail": avail, "value": value}
+
+    def _hulk_shot(self, ship: Ship, weapon: Dict) -> Optional[Ship]:
+        """An enemy hulk worth shooting with this weapon instead of a ship:
+        P(at least one hit) x ai_hazards.hulk_shot_vp (its re-rolled
+        Catastrophic Damage exploding among enemy ships, never near ours)
+        beats the best ship shot. Only when the hulk is the closest target in
+        arc, so no target priority test is needed (s.34 Hulks in combat)."""
+        from .ai_hazards import hulk_shot_vp, shot_vp
+        from .combat import expected_hits
+        if weapon.get("weapon_type") not in ("battery", "lance"):
+            return None
+        gs = self.gs
+        hulks = [s for s in gs.get_ships() if s.player != self.player
+                 and s.status in ("drifting_hulk", "burning_hulk")]
+        hulks = self._valid_targets(ship, weapon, hulks)
+        if not hulks:
+            return None
+        h = min(hulks, key=lambda x: ship.distance_to(x))
+        ships = self._valid_targets(ship, weapon, self._live_enemies())
+        if any(ship.distance_to(e) < ship.distance_to(h) for e in ships):
+            return None
+        value = hulk_shot_vp(h, gs, self.player)
+        if value <= 0:
+            return None
+        p_any = 1.0 - math.exp(-max(0.0, expected_hits(ship, weapon, h)))
+        best_ship = max((shot_vp(ship, weapon, e, gs, self._committed.get(e.id, 0.0))
+                         for e in ships), default=0.0) if hasattr(self, "_committed") else 0.0
+        if p_any * value <= best_ship:
+            return None
+        gs.add_log(f"[AI] {ship.name} {weapon['name']}: shooting the hulk of {h.name} "
+                   f"(about {p_any * value:.0f} VP if it blows up among enemies)")
+        return h
 
     def _valid_targets(self, ship: Ship, weapon: Dict, enemies: List[Ship]) -> List[Ship]:
         valid = []
