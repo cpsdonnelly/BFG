@@ -22,9 +22,32 @@ def blast_rules() -> str:
     return _mode
 
 
+_ships_source = None
+
+
+def set_ship_source(fn) -> None:
+    """fn() -> the ships on the table (TurnController registers the game's)."""
+    global _ships_source
+    _ships_source = fn
+
+
+def overlap_ships(ship) -> list:
+    """Other ships whose base overlaps this ship's base (Modern / Remastered
+    "Overlapping bases")."""
+    if _ships_source is None:
+        return []
+    out = []
+    for o in _ships_source():
+        if o.id == ship.id or getattr(o, "is_destroyed", False) or getattr(o, "is_disengaged", False):
+            continue
+        if math.hypot(o.x - ship.x, o.y - ship.y) < o.base_radius + ship.base_radius:
+            out.append(o)
+    return out
+
+
 def touches_blast(ship, blast_markers) -> bool:
-    from .geometry import count_blast_markers_touching
-    return count_blast_markers_touching(ship, blast_markers or []) > 0
+    from .geometry import blast_markers_touching_direct
+    return bool(blast_markers_touching_direct(ship, blast_markers or []))
 
 
 def in_blast_contact(ship, blast_markers, ships=None) -> bool:

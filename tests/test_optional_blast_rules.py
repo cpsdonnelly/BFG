@@ -46,3 +46,18 @@ def test_remastered_firer_in_contact_shifts_and_overlap_counts():
     far = make_ship(id="x", player=1, x=5.0, y=-1.5)    # overlaps 'over' only (no cascade)
     assert in_blast_contact(over, bms, [f, over, far])
     assert not in_blast_contact(far, bms, [f, far, over])
+
+
+def test_overlapping_bases_cover_shields_too():
+    from src.optional_rules import set_ship_source
+    from src.geometry import current_shields
+    a = make_ship(id="a", x=0.0, y=0.0, shields_max=2)
+    b = make_ship(id="b", x=2.5, y=0.0, shields_max=2)          # overlaps a, no marker of its own
+    bms = [BlastMarker(id="m", x=-2.5, y=0.0)]                    # touches a only
+    set_ship_source(lambda: [a, b])
+    try:
+        assert current_shields(b, bms) == 2                        # standard: not in contact
+        set_blast_rules("modern")
+        assert current_shields(b, bms) == 1                        # overlapping a: in contact
+    finally:
+        set_ship_source(None)

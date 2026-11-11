@@ -277,15 +277,25 @@ def place_trefoil(ship_cx: float, ship_cy: float, ship_r: float,
 
 # ── Convenience: count blast markers touching a ship ─────────────────────────
 
+def blast_markers_touching_direct(ship: Ship, blast_markers: List[BlastMarker]) -> List:
+    """Blast markers whose trefoil overlaps the ship's own base circle."""
+    return [bm for bm in blast_markers
+            if circle_touches_trefoil(ship.x, ship.y, ship.base_radius, bm.x, bm.y, bm.heading)]
+
+
 def count_blast_markers_touching(ship: Ship,
                                   blast_markers: List[BlastMarker]) -> int:
-    """Count blast markers whose trefoil overlaps the ship's base circle."""
-    count = 0
-    for bm in blast_markers:
-        if circle_touches_trefoil(ship.x, ship.y, ship.base_radius,
-                                   bm.x, bm.y, bm.heading):
-            count += 1
-    return count
+    """Count blast markers the ship is in contact with: those touching its
+    base, plus, under the optional Modern / Remastered rules (s.11,
+    "Overlapping bases"; owner ruling: for every blast marker effect), those
+    touching a ship whose base overlaps its own (no cascade)."""
+    from .optional_rules import blast_rules, overlap_ships
+    found = {id(bm): bm for bm in blast_markers_touching_direct(ship, blast_markers)}
+    if blast_rules() != "standard":
+        for o in overlap_ships(ship):
+            for bm in blast_markers_touching_direct(o, blast_markers):
+                found[id(bm)] = bm
+    return len(found)
 
 
 def current_shields(ship: Ship, blast_markers: List[BlastMarker]) -> int:

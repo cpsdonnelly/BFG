@@ -8,7 +8,6 @@ from typing import List, Dict, Optional
 from .game_state import GameState
 from .models import Ship, SpecialOrder
 from .dice import DiceRoller
-from .geometry import circle_touches_trefoil
 
 
 class ActionRecord:
@@ -61,8 +60,9 @@ class TurnController:
                  save_dir: str = None):
         self.gs = game_state
         self.dice = dice
-        from .optional_rules import set_blast_rules
+        from .optional_rules import set_blast_rules, set_ship_source
         set_blast_rules(getattr(game_state, "blast_marker_rules", "standard"))
+        set_ship_source(game_state.get_ships)
         self.save_dir = save_dir or os.path.join("saves", game_state.game_name)
         self.snapshots_dir = os.path.join(self.save_dir, "snapshots")
         os.makedirs(self.snapshots_dir, exist_ok=True)
@@ -363,11 +363,8 @@ class TurnController:
                 self.gs.update_ship(ship)
         # Determine Ld modifiers
         blast_markers = self.gs.get_blast_markers()
-        in_blast = any(
-            circle_touches_trefoil(ship.x, ship.y, ship.base_radius,
-                                   bm.x, bm.y, bm.heading)
-            for bm in blast_markers
-        )
+        from .geometry import count_blast_markers_touching
+        in_blast = count_blast_markers_touching(ship, blast_markers) > 0
         enemy_on_special = any(
             s.get("special_order", "none") != "none"
             for s in self.gs.ships
@@ -448,11 +445,8 @@ class TurnController:
             if collect_blast_markers(leader, self.gs):
                 self.gs.update_ship(leader)
             blast_markers = self.gs.get_blast_markers()
-        in_blast = any(
-            circle_touches_trefoil(leader.x, leader.y, leader.base_radius,
-                                   bm.x, bm.y, bm.heading)
-            for bm in blast_markers
-        )
+        from .geometry import count_blast_markers_touching
+        in_blast = count_blast_markers_touching(leader, blast_markers) > 0
         enemy_on_special = any(
             s.get("special_order", "none") != "none"
             for s in self.gs.ships
@@ -624,11 +618,8 @@ class TurnController:
 
         # Recalculate modifiers
         blast_markers = self.gs.get_blast_markers()
-        in_blast = any(
-            circle_touches_trefoil(ship.x, ship.y, ship.base_radius,
-                                   bm.x, bm.y, bm.heading)
-            for bm in blast_markers
-        )
+        from .geometry import count_blast_markers_touching
+        in_blast = count_blast_markers_touching(ship, blast_markers) > 0
         enemy_on_special = any(
             s.get("special_order", "none") != "none"
             for s in self.gs.ships
