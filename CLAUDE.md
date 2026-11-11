@@ -225,7 +225,8 @@ Advanced settings "Blast marker rules" (`GameState.blast_marker_rules`: standard
 remastered). The engine reads the mode from `src/optional_rules.py` (`set_blast_rules`, set by
 TurnController and the settings dialog): gunnery shifts in `combat.get_column_shifts`
 (`blast_gunnery_shift`), ordnance vs ships in contact in `ordnance_movement._resolve_ship_contacts`.
-Not modelled: Remastered's spill-over limit; overlapping bases only for gunnery and ordnance.
+Overlapping bases count for every effect (`geometry.count_blast_markers_touching`); the
+Remastered spill-over limit is a separate checkbox (`rule_remastered_spillover`).
 
 ### Shooting by Squadrons (s.8)
 
@@ -412,11 +413,19 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
    after a failed forced disengage (log reminder only); scenario rules (Business as Usual,
    High-Risk Convoys, planetary assaults, low orbit).
 
-### Owner answers to the open questions (NOT YET IMPLEMENTED)
+### Owner rulings: answers to the open questions (implemented, tested)
 
-The owner answered these at the end of the session. They are not yet implemented: the next
-session must change the code (and tests) to match each one, then move it into CLAUDE.md's
-owner rulings.
+All implemented: Fleet Defence Turrets (a crippled ship gives no +1, `ordnance.get_massed_turret_bonus`);
+Bakka (Mechanicus Endeavour / Endurance / Defiant added to its Battlecruisers section); Emergency
+Energy Reserves, troop rating, Sensors / Comms Uplink and Navy refits already matched (tests
+added); Master of the Fleet (new free option "Chapter Flagship (0-1)" on the Space Marine Battle
+Barge, `booklet_options.is_chapter_flagship`, used by `fleet_lists._sm_barge_errors` and the
+placement check); overlapping bases for every blast marker effect
+(`geometry.count_blast_markers_touching` + `optional_rules.overlap_ships`, the turn controller
+registers the ships); Remastered spill-over limit as its own Advanced checkbox
+(`GameState.rule_remastered_spillover`, `combat._place_shield_impacts`: one round of a ship's
+shooting in a phase touches at most the target and one other ship; markers overlap each other
+rather than touch a third ship).
 
 - **Fleet Defence Turrets:** the gift reduces the ship's own Turrets by 2 and gives +1
   MASSED turret to all allied ships within 15cm, including itself (massed limit +3). It does
@@ -441,7 +450,8 @@ owner rulings.
 
 ### Open questions for the owner
 
-- None open: all answered above (to be implemented).
+- Troop rating: a crippled defender adds its printed turrets (current code, old tests) or its
+  halved turrets (crippling halves turrets, s.33)?
 
 ## Running and testing
 

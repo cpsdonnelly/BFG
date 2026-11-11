@@ -469,6 +469,10 @@ class GamePanel:
         blast_var = tk.StringVar(value=blast_labels.get(gs.blast_marker_rules, "XR standard"))
         ttk.Combobox(blast_row, textvariable=blast_var, values=list(blast_labels.values()),
                      state="readonly", width=24, font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        spill_var = tk.BooleanVar(value=gs.rule_remastered_spillover)
+        tk.Checkbutton(adv_frame, text="Remastered spill-over limit (one round's blast markers "
+                       "touch at most the target and one other ship)",
+                       variable=spill_var, font=("Consolas", 8)).pack(anchor=tk.W)
 
         camp_frame = tk.LabelFrame(dialog, text="Campaign / Scenario", font=("Consolas", 9, "bold"),
                                    padx=8, pady=4)
@@ -580,6 +584,7 @@ class GamePanel:
             gs.blast_marker_rules = next(k for k, v in blast_labels.items()
                                          if v == blast_var.get())
             set_blast_rules(gs.blast_marker_rules)
+            gs.rule_remastered_spillover = spill_var.get()
             # Scenario settings (only if not locked)
             if not locked:
                 gs.scenario_mode = scen_var.get()

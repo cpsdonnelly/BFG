@@ -61,3 +61,24 @@ def test_overlapping_bases_cover_shields_too():
         assert current_shields(b, bms) == 1                        # overlapping a: in contact
     finally:
         set_ship_source(None)
+
+
+def _ring(spill):
+    import math
+    from src.combat import _place_shield_impacts
+    from src.geometry import BLAST_MARKER_RADIUS_CM
+    t = make_ship(id="t", x=50.0, y=50.0)
+    d = t.base_radius * 2 + 1.2
+    ring = [make_ship(id=f"o{k}", x=50.0 + d * math.cos(k * math.pi / 2),
+                      y=50.0 + d * math.sin(k * math.pi / 2)) for k in range(4)]
+    gs = make_gs([t] + ring)
+    gs.rule_remastered_spillover = spill
+    _place_shield_impacts(t, 10, gs, (0.0, 50.0), attacker_key="att")
+    hit = {o.id for o in ring for b in gs.get_blast_markers()
+           if math.hypot(b.x - o.x, b.y - o.y) <= o.base_radius + BLAST_MARKER_RADIUS_CM}
+    return hit
+
+
+def test_remastered_spillover_limit_one_other_ship():
+    assert len(_ring(False)) > 1
+    assert len(_ring(True)) <= 1

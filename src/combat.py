@@ -638,7 +638,8 @@ SHIELD_IMPACT_SPACING_CM = 2.2     # marker centres closer than this overlap
 
 
 def _place_shield_impacts(target: Ship, n: int, game_state: GameState,
-                          origin: Optional[Tuple[float, float]] = None) -> None:
+                          origin: Optional[Tuple[float, float]] = None,
+                          attacker_key: str = "") -> None:
     """Shield impacts (s.11): one blast marker touching the target's base per
     hit blocked, as close as possible to the origin of the attack, fanned out
     so markers don't overlap. Avoid overlapping other blast markers and
@@ -670,18 +671,40 @@ def _place_shield_impacts(target: Ship, n: int, game_state: GameState,
             return any(math.hypot(xy[0] - m.x, xy[1] - m.y) < SHIELD_IMPACT_SPACING_CM - 1e-3
                        for m in markers)
 
+        # Remastered spill-over limit (optional, s.11): one round of shooting by
+        # a ship or squadron touches at most the target and one other ship;
+        # ships in base contact with (or overlapping) the target are exempt.
+        spill = getattr(game_state, "rule_remastered_spillover", False)
+        key = (game_state.turn_number, game_state.current_phase, attacker_key)
+        touched = game_state.__dict__.setdefault("_spillover_touched", {}).setdefault(key, set())
+
+        def touching_ids(xy):
+            return {s.id for s in others
+                    if math.hypot(xy[0] - s.x, xy[1] - s.y) <= s.base_radius + BLAST_MARKER_RADIUS_CM}
+
         def touches_others(xy):
-            return any(math.hypot(xy[0] - s.x, xy[1] - s.y) <= s.base_radius + BLAST_MARKER_RADIUS_CM
-                       for s in others)
+            """A spot to avoid: it touches a ship it shouldn't. Normally any other
+            ship; with the spill-over limit, any but the one other ship this
+            round may touch (the first one touched becomes it)."""
+            ids = touching_ids(xy)
+            if spill and attacker_key and ids:
+                return not (ids <= touched or (not touched and len(ids) == 1))
+            return bool(ids)
 
         free = [a for a in angles if not overlaps(spot(a), placed_now)]
         best = (next((a for a in free if not overlaps(spot(a), existing)
                       and not touches_others(spot(a))), None)
                 or next((a for a in free if not touches_others(spot(a))), None)
+                # spill-over limit: overlap this round's markers rather than touch
+                # a forbidden ship
+                or (next((a for a in angles if not touches_others(spot(a))), None)
+                    if spill and attacker_key else None)
                 or next(iter(free), None))
         if best is None:
             best = angles[j % len(angles)]
         bx, by = spot(best)
+        if spill and attacker_key:
+            touched.update(touching_ids((bx, by)))
         bm = BlastMarker(
             id=f"bm_{target.id}_t{game_state.turn_number}_{j}_{random.randint(0,9999)}",
             x=bx, y=by, source=turn_label,
@@ -830,7 +853,8 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
     # Place blast markers for SHIELD hits only (not hull damage), s.11
     if summary["blast_markers_placed"] > 0:
-        _place_shield_impacts(target, summary["blast_markers_placed"], game_state, origin)
+        _place_shield_impacts(target, summary["blast_markers_placed"], game_state, origin,
+                              attacker_key)
 
     demiurg_leadership(target)
     game_state.update_ship(target)

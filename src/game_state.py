@@ -59,6 +59,7 @@ class GameState:
     rule_turret_suppression_remastered: bool = False  # False = XR mode, True = Remastered mode
     contact_margin_cm: float = 0.2  # wiggle room added to base contact distance checks
     blast_marker_rules: str = "standard"  # s.11: standard | modern | remastered (optional_rules)
+    rule_remastered_spillover: bool = False  # s.11 Remastered: one round's markers touch <= 2 ships
 
     # Collections
     ships: List[Dict] = field(default_factory=list)
@@ -150,6 +151,7 @@ class GameState:
             "ai_spectator": self.ai_spectator,
             "contact_margin_cm": self.contact_margin_cm,
             "blast_marker_rules": self.blast_marker_rules,
+            "rule_remastered_spillover": self.rule_remastered_spillover,
             "turn_limit": self.turn_limit,
             "ftl_available_turn": self.ftl_available_turn,
             "scenario_mode": self.scenario_mode,
