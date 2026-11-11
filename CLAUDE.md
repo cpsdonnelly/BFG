@@ -294,8 +294,12 @@ outside the wave (e.g. to intercept torpedoes), "+ CAP fighters" go on CAP for t
 ship, all in the same launch. Combining ordnance launches (s.15):
 only members of one squadron (escorts or capital ships) in contiguous base contact. Not yet: bombers that re-roll attacks
 (+1 when suppressed) don't exist yet; resilient
-squadrons don't stop or split (interactions happen after movement); the engine doesn't yet make
-CAP fighters intercept a wave's squadrons in order before its turret roll (the planner assumes it).
+squadrons don't stop or split (interactions happen after movement, so it rarely matters).
+CAP vs incoming craft (s.26, `waves.resolve_cap_vs_group`, `OrdnancePanel._cap_vs_group`): on
+contact, before Brace and the turret roll, each of the ship's CAP squadrons intercepts the
+group's current lead (fighters lead), any enemy craft group including fighters alone; s.23
+saves (once per phase; a squadron that saved stays lead / keeps intercepting without a save;
+both passing removes both, also in `ordnance.resolve_fighter_intercept`).
 
 ### Fleet lists (s.4)
 
@@ -405,7 +409,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 976 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 980 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -440,7 +444,9 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
   inputs live in `waves.wave_plan_inputs / split_craft_types / plan_wave_against`. The
   combined launch dialog has a compact planner (target, wave size, CAP;
   `OrdnancePanel._combined_split_planner`).
-- GUI checks added: `combine_capital_check.py`, `best_split_check.py`, `combine_split_check.py`.
+- CAP now meets incoming craft lead first before the turret roll, with s.23 saves (see Waves).
+- GUI checks added: `combine_capital_check.py`, `best_split_check.py`, `combine_split_check.py`,
+  `cap_wave_check.py`.
   The whole GUI suite passes (`heavy_gunz_check.py` updated for the split entry).
 
 ### To do (agreed order; see docs/HANDOFF.md "Remaining work" and "AI design")
@@ -454,10 +460,8 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
    the owner's feedback.
 2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
-2b. Wave planner follow-up: make the engine resolve CAP against a wave's squadrons in order
-   before the turret roll, with resilient squadrons stopping / splitting (the planner already
-   assumes this; the engine doesn't). Done: planner in the combined launch dialog, AI launches
-   with the planner, heavy_gunz_check fixed.
+2b. (done) Wave planner follow-ups: combined launch dialog, AI launches, engine CAP vs wave
+   order (`waves.resolve_cap_vs_group`), heavy_gunz_check fixed.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,

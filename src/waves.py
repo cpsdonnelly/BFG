@@ -372,3 +372,30 @@ def plan_wave_against(slots: int, inputs: dict, f_save: int = 0, b_save: int = 0
     return best_wave_split(slots, t, t + inputs["massed"], inputs["cap"], inputs["armour"], p,
                            inputs.get("f_save", f_save), inputs.get("b_save", b_save),
                            inputs.get("cap_save", 0))
+
+
+def resolve_cap_vs_group(group, caps, dice, gs) -> dict:
+    """Enemy CAP fighters meet an incoming wave (or lone squadron) on contact,
+    before the turrets fire (s.26). Each CAP squadron intercepts the group's
+    current lead squadron (fighters lead, `group` in wave order); interception
+    removes both unless a resilient save is passed (s.23, resolve_fighter_
+    intercept: a save once per phase, both passing removes both). A lead that
+    saved stays the lead and meets the next CAP squadron without a save; a CAP
+    squadron that saved meets the next lead without one.
+    Returns {"survivors": [...], "removed": [ids], "cap_removed": [ids]}."""
+    from .ordnance import resolve_fighter_intercept
+    survivors = list(group)
+    removed, cap_removed = [], []
+    for cap in caps:
+        while survivors:
+            lead = survivors[0]
+            gs.add_log(f"  CAP fighter intercepts the lead {lead.ordnance_type} squadron")
+            res = resolve_fighter_intercept(cap, lead, dice, gs)
+            if res["target_removed"]:
+                removed.append(survivors.pop(0).id)
+            if res["fighter_removed"]:
+                cap_removed.append(cap.id)
+                break
+        if not survivors:
+            break
+    return {"survivors": survivors, "removed": removed, "cap_removed": cap_removed}

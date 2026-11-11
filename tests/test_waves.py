@@ -223,3 +223,66 @@ def test_ai_launch_uses_wave_planner():
     # Enemy ordnance about: the AI still launches fighters to defend
     types, _ = _ai_launch(turrets=4, enemy_ord=True)
     assert set(types) == {"fighter"}
+
+
+def _craft(i, kind, save=0, order=0, owner=1):
+    from tests.conftest import make_marker
+    return make_marker(id=i, ordnance_type=kind, owner_player=owner, resilient_save=save,
+                       wave_order=order)
+
+
+def test_cap_meets_wave_lead_first_plain():
+    from tests.conftest import make_gs, DiceStub
+    from src.waves import resolve_cap_vs_group
+    gs = make_gs([])
+    group = [_craft("f1", "fighter", order=0), _craft("b1", "bomber", order=1),
+             _craft("b2", "bomber", order=2)]
+    caps = [_craft("c1", "fighter", owner=2), _craft("c2", "fighter", owner=2)]
+    dice = DiceStub([])
+    r = resolve_cap_vs_group(group, caps, dice, gs)
+    assert r["removed"] == ["f1", "b1"] and r["cap_removed"] == ["c1", "c2"]
+    assert [m.id for m in r["survivors"]] == ["b2"] and dice._idx == 0
+
+
+def test_cap_vs_resilient_lead_s23():
+    from tests.conftest import make_gs, DiceStub
+    from src.waves import resolve_cap_vs_group
+    gs = make_gs([])
+    # Resilient fighter passes vs CAP 1 (CAP 1 gone), stays lead; CAP 2 removes it
+    # (no second save) and is removed too; the bomber gets through
+    group = [_craft("f1", "fighter", save=4, order=0), _craft("b1", "bomber", order=1)]
+    caps = [_craft("c1", "fighter", owner=2), _craft("c2", "fighter", owner=2)]
+    rolls = [5]
+    dice = DiceStub(rolls)
+    r = resolve_cap_vs_group(group, caps, dice, gs)
+    assert dice._idx == len(rolls)
+    assert r["removed"] == ["f1"] and r["cap_removed"] == ["c1", "c2"]
+    assert [m.id for m in r["survivors"]] == ["b1"]
+
+
+def test_cap_both_resilient_pass_both_removed():
+    from tests.conftest import make_gs, DiceStub
+    from src.waves import resolve_cap_vs_group
+    gs = make_gs([])
+    group = [_craft("b1", "bomber", save=4, order=0), _craft("b2", "bomber", order=1)]
+    caps = [_craft("c1", "fighter", save=4, owner=2)]
+    rolls = [6, 4]          # CAP passes, bomber passes: both removed anyway
+    dice = DiceStub(rolls)
+    r = resolve_cap_vs_group(group, caps, dice, gs)
+    assert dice._idx == len(rolls)
+    assert r["removed"] == ["b1"] and r["cap_removed"] == ["c1"]
+    assert [m.id for m in r["survivors"]] == ["b2"]
+
+
+def test_resilient_cap_saves_and_meets_next_lead():
+    from tests.conftest import make_gs, DiceStub
+    from src.waves import resolve_cap_vs_group
+    gs = make_gs([])
+    group = [_craft("b1", "bomber", order=0), _craft("b2", "bomber", order=1)]
+    caps = [_craft("c1", "fighter", save=4, owner=2)]
+    rolls = [5]             # CAP saves vs b1 (b1 gone), then meets b2 without a save
+    dice = DiceStub(rolls)
+    r = resolve_cap_vs_group(group, caps, dice, gs)
+    assert dice._idx == len(rolls)
+    assert r["removed"] == ["b1", "b2"] and r["cap_removed"] == ["c1"]
+    assert r["survivors"] == []

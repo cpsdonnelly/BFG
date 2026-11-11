@@ -897,6 +897,13 @@ def resolve_fighter_intercept(fighter: OrdnanceMarker,
                 game_state.add_log(
                     f"  {target.ordnance_type} passes resilient save!")
 
+        # s.23: if both pass, they must keep interacting and, unable to save
+        # twice in a phase, both are removed
+        if not result["fighter_removed"] and not result["target_removed"]:
+            result["fighter_removed"] = result["target_removed"] = True
+            game_state.add_log("  Both passed their saves: they interact again and "
+                               "both are removed")
+
     return result
 
 

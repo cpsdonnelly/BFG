@@ -89,6 +89,33 @@ class OrdnanceMovementMixin:
 
         return marker.id in to_remove_set
 
+    def _cap_vs_group(self, group, ship, to_remove_set: set):
+        """waves.resolve_cap_vs_group for the ship's own CAP fighters against an
+        enemy group touching it; removes the casualties and keeps the survivors'
+        used resilient saves. Returns the surviving group, lead first."""
+        from .ordnance import is_fighter_type
+        from .waves import resolve_cap_vs_group
+        gs = self.ctx.gs
+        caps = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
+                if o.get("cap_ship_id") == ship.id and o.get("owner_player") == ship.player]
+        caps = [c for c in caps if is_fighter_type(c)]
+        if not caps or not group:
+            return group
+        n0 = len(gs.log) if hasattr(gs, "log") else None
+        res = resolve_cap_vs_group(group, caps, self.ctx.dice, gs)
+        if n0 is not None:
+            for msg in gs.log[n0:]:
+                self.ctx.log(msg)
+        to_remove_set.update(res["removed"])
+        keep = {m.id: m for m in res["survivors"]}
+        keep.update({c.id: c for c in caps})
+        gone = set(res["cap_removed"]) | set(res["removed"])
+        gs.ordnance = [keep[o["id"]].to_dict() if o["id"] in keep and o["id"] not in gone
+                       else o for o in gs.ordnance if o["id"] not in gone]
+        self.ctx.log(f"  {ship.name}'s CAP: {len(res['cap_removed'])} of {len(caps)} lost, "
+                     f"{len(res['removed'])} of {len(group)} incoming squadron(s) removed")
+        return res["survivors"]
+
     def _raid_brace_fn(self, default_raids: int = 1):
         """Callback asking a raid target whether to Brace for Impact before
         the raids are rolled (s.31). Returns fn(target, msg, n_raids=None)
@@ -445,11 +472,14 @@ class OrdnanceMovementMixin:
             for m in touching_craft:
                 groups.setdefault(m.wave_id or m.id, []).append(m)
             for key, group in groups.items():
-                if not any(attacks_ships(m.ordnance_type) for m in group):
-                    continue            # fighters alone don't attack ships
                 if group[0].wave_id:    # the whole wave, lead first
                     group = sorted((m for m in live_ordnance if m.wave_id == key
                                     and m.id not in to_remove_after), key=lambda m: m.wave_order)
+                # CAP fighters intercept any enemy ordnance the ship encounters,
+                # on contact, lead first, before the turrets fire (s.26; s.23)
+                group = self._cap_vs_group(group, s, to_remove_after)
+                if not group or not any(attacks_ships(m.ordnance_type) for m in group):
+                    continue            # fighters alone don't attack ships
                 planned.update(m.id for m in group)
                 # Brace for Impact before the turrets fire at a wave that may make
                 # attack runs (s.7); raids keep their own order (s.31)
