@@ -558,12 +558,26 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 982 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
-Latest items: wave planner (resilient saves, partial launches, editable inputs), squadron-only
-combined launches, Wings of Fury expected-value re-rolls (owner ruling: an armament disable that
-threatens no allied ship in arc and range is re-rolled; Engine Room kept; escorts re-roll results
-under 4), AI respects armament crits. Next: CLAUDE.md "To do" (2b done; items 1, 1b, 1c are the AI / strike planning work)
-(the resilient-save question is settled: owner confirmed the booklet, saves work against any
-other ordnance, never turrets).
+
+Latest items, newest last:
+- Wave planner in the launch dialogs (resilient saves, partial launches with lone / CAP
+  fighters, editable inputs; compact version in the combined launch dialog); the AI launches the
+  planner's mix (`AIPlayer._wave_split`).
+- Combined ordnance launches only within a squadron (capital ships too).
+- The engine resolves CAP against incoming craft lead first before the turret roll, with s.23
+  saves (`waves.resolve_cap_vs_group`; both-pass removal also in `resolve_fighter_intercept`).
+- AI respects armament crits (`combat.weapon_disabled_by_crit`).
+- Wings of Fury re-rolls by expected VP. Owner rulings: Engine Room kept, escorts re-roll results
+  under 4, and armament crits are valued by what the weapons threaten at the target's NEXT
+  shooting phase (reach = range + movement before it; in arc now or after one turn at 0.75),
+  weighted by the chance damage control hasn't repaired them (`p_crit_unrepaired`).
+- Resilient saves: owner confirmed the booklet (against any other ordnance, never turrets).
+- Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
+  planning" below.
+
+Next: CLAUDE.md "To do" items 1 (AI: CAP vs strikes and the rest), 1b (bombers vs assault boats)
+and 1c (strike planning at arrival time: travel time, phase timing, losses en route, enemy guns
+vs waves / splitting, risk preference, expert leaf evaluation). No open questions.
 
 ## Bombers vs assault boats (owner idea, to do: CLAUDE.md To do 1b)
 

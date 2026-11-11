@@ -443,7 +443,9 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
   CAP first (resilient saves per s.23), then turrets (resilient saves never work against
   turrets: owner confirmed), then suppression / bomber attacks.
 - Combine Ordnance Launch: only members of one squadron in contiguous contact (capital ships too).
-- Wings of Fury re-rolls by expected VP (see "Auto (best)" above); AI no longer fires weapons
+- Wings of Fury re-rolls by expected VP, armament crits valued at the target's next shooting
+  phase with damage control odds (`hit_and_run.p_crit_unrepaired`, `_weapon_can_bear`; see
+  "Auto (best)" above); AI no longer fires weapons
   knocked out by armament crits (`combat.weapon_disabled_by_crit`).
 - The AI launches plain fighters + bombers as the planner's mix in one close wave against the
   nearest enemy (all fighters while enemy ordnance is about; `AIPlayer._wave_split`). Planner
@@ -483,6 +485,10 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
    turrets separately and loses cross-group suppression), a risk preference from the game state,
    and the expert AI's leaf evaluation using the same terms. One function feeds the planner, AI
    launches, bombers vs assault boats (1b), multi-role attack modes and Wings of Fury.
+   Built so far: the crit-over-time value and reach model for raids (Wings of Fury,
+   `hit_and_run.armament_threat_value`); reuse them for the rest. Not yet: travel time, phase
+   timing for waves, losses en route, enemy guns vs waves / splitting, risk preference, expert
+   leaf evaluation.
 2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
 2b. (done) Wave planner follow-ups: combined launch dialog, AI launches, engine CAP vs wave
    order (`waves.resolve_cap_vs_group`), heavy_gunz_check fixed.
