@@ -325,10 +325,9 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    expected hits from `combat.expected_hits`, shields first, Poisson spread for P(kill) /
    P(cripple), a little per hull hit, a little for shields knocked down), counting the
    expected hits already committed to each target this phase (`_committed`), so it stops
-   firing at a ship that is probably dead. Still to do: combined squadron fire for the AI,
-   the "Best for expected hits" default in the Combine Squadron Fire dialog, hulks (only worth
-   shooting when an explosion would hurt nearby enemies; destroying an enemy hulk also lowers
-   Holding the Field VP). Fixed: the AI now takes the target priority test (s.13) like the
+   firing at a ship that is probably dead. Since done: combined squadron fire for the AI
+   (`_squadron_volleys`) and hulks (`_hulk_shot`; Holding the Field VP still not counted).
+   Still to do: the "Best for expected hits" default in the Combine Squadron Fire dialog. Fixed: the AI now takes the target priority test (s.13) like the
    player's Fire dialog (`AIPlayer._enforce_target_priority`: nearest visible enemy unless
    the test is passed, once per ship per turn; re-rolls by importance); it used to fire at
    any target in arc.
