@@ -136,8 +136,9 @@ too): Leadership-test re-rolls and guided torpedo re-rolls (`ai_rerolls.should_r
 Wings of Fury raid re-rolls (`hit_and_run.best_raid_reroll`, below), Mark of Tzeentch re-rolls (9+ own / 5-
 enemy), the turret split (`ordnance.choose_turret_target`) and multi-role turret suppression
 (`waves.best_mr_suppress`), multi-role attack mode (`waves.best_attack_mode`). GUI checks that answer these prompts must stub `choose`.
-Not yet: the Brace prompt, special-order re-rolls (special_orders_ui), the Combine Squadron
-Fire aspect choice, Vault of Technology's chooser.
+The Combine Squadron Fire aspect choice defaults to "Best for expected hits" (shown beside
+it). Not yet: the Brace prompt, special-order re-rolls (special_orders_ui), Vault of
+Technology's chooser.
 
 Wings of Fury re-rolls (owner guidance): re-roll when a fresh D6 is worth more on average than
 the result in hand (`raid_result_value`, in expected VP, using the crit after the cascade,
@@ -277,7 +278,9 @@ ships they can hit and the Armour each needs; each group makes its own gunnery l
 (escorts total then halve), and dice are combined into one attack per target set and
 Armour values. Against one ship all hits are applied together; against a squadron each
 group of firers seeing a different mix of aspects chooses the aspect (dialog comboboxes,
-default the hardest present), each attack resolves separately with hits nearest first.
+default "Best for expected hits": `combat.best_aspect_choice` / `volley_expected_hits`,
+the aspect per group of firers giving the volley the most expected hits; the AI's volleys use
+it too), each attack resolves separately with hits nearest first.
 Owner ruling: blast markers placed by one group don't make the target harder to hit for
 the others (every group's column shifts come from the markers before the volley), but
 shields knocked down by one group stay down for the rest.
@@ -380,8 +383,8 @@ Owner rulings (fleet lists, export 15):
   nearest valid target for every contributing battery (no target priority test needed); the
   batteries used are skipped afterwards. Combined fire covers batteries only (lances hit on 4+
   and are fired weapon by weapon). Not yet: Ork random-firepower batteries in volleys, a
-  volley at a target needing a target priority test, and the dialog's "Best for expected
-  hits" aspect default.
+  volley at a target needing a target priority test. (The dialog's "Best for expected hits"
+  aspect default is done.)
 - Commander re-rolls (s.5) are offered for command checks (special orders), disengage tests,
   guided torpedoes and, via `GameState.ld_reroll_hook` / `movement.fleet_reroll_offered`
   (GamePanel asks; the AI spends by importance in expected VP, `ai_rerolls.should_reroll`,
@@ -451,7 +454,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1006 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1007 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -541,8 +544,7 @@ points to):
    `ai_hazards.position_exposure_hits`). Not yet: several focus targets, torpedo lanes and
    craft reach in the move score, the expert AI's leaf evaluation using the same terms.
    Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
-   keeping bays loaded, CAP against enemy bomber waves not yet launched; a "Best for expected
-   hits" default in the Combine Squadron Fire dialog (AI squadron volleys done);
+   keeping bays loaded, CAP against enemy bomber waves not yet launched;
    guided / seeking torpedo turn cones in hazard maths; escorts staying near the commander's
    ship. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
    hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on

@@ -103,8 +103,7 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 
 1. AI, still to do: fleet-wide CAP / strike allocation across carriers (per-carrier version
    built), the option value of keeping bays loaded, CAP against enemy bomber waves not yet
-   launched; a "Best for expected hits" default in the Combine Squadron Fire dialog (AI
-   squadron volleys done: `AIPlayer._squadron_volleys`); guided / seeking torpedo turn cones in hazard maths; escorts
+   launched; guided / seeking torpedo turn cones in hazard maths; escorts
    staying near the commander's ship; fleet focus positioning, next steps (several focus
    targets, torpedo lanes and craft reach in the move score, expert leaf evaluation). Done:
    hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
@@ -327,7 +326,7 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
    expected hits already committed to each target this phase (`_committed`), so it stops
    firing at a ship that is probably dead. Since done: combined squadron fire for the AI
    (`_squadron_volleys`) and hulks (`_hulk_shot`; Holding the Field VP still not counted).
-   Still to do: the "Best for expected hits" default in the Combine Squadron Fire dialog. Fixed: the AI now takes the target priority test (s.13) like the
+   Since done too: the "Best for expected hits" default (`combat.best_aspect_choice`). Fixed: the AI now takes the target priority test (s.13) like the
    player's Fire dialog (`AIPlayer._enforce_target_priority`: nearest visible enemy unless
    the test is passed, once per ship per turn; re-rolls by importance); it used to fire at
    any target in arc.
@@ -570,7 +569,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1006 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1007 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -627,7 +626,7 @@ Latest items, newest last:
   planning" below.
 
 Next: CLAUDE.md "To do" item 1 (what is left: fleet-wide CAP / strikes, keeping bays loaded,
-reactive CAP, "Best for expected hits" in the Combine Squadron Fire dialog, guided / seeking
+reactive CAP, guided / seeking
 turn cones, escorts near the commander, and for fleet focus positioning: several focus
 targets, torpedo lanes / craft reach in the move score, expert leaf evaluation) and 1c (strike
 planning at arrival time), then items 3-6. Owner feedback wanted on the AI's judgement weights, e.g. a

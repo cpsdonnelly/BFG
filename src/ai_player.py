@@ -682,7 +682,11 @@ class AIPlayer:
                     continue
                 group = squadron_group(target, all_ships)
                 pairs = [(m, w) for m, _i, w in contrib]
-                plan = plan_squadron_volley(pairs, group, bms, phen, all_ships)
+                from .combat import best_aspect_choice
+                aspects = (best_aspect_choice(pairs, group, bms, phen, all_ships)
+                           if len(group) > 1 else None)
+                plan = plan_squadron_volley(pairs, group, bms, phen, all_ships,
+                                            aspect_choice=aspects)
                 combined = sum(a["dice"] for a in plan["attacks"])
                 separate = sum(sum(a["dice"] for a in plan_squadron_volley(
                     [pr], group, bms, phen, all_ships)["attacks"]) for pr in pairs)

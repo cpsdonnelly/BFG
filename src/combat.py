@@ -1275,6 +1275,44 @@ def plan_squadron_volley(contributions: List[Tuple[Ship, Dict]], targets: List[S
     return {"attacks": out, "views": views, "skipped": skipped}
 
 
+def volley_expected_hits(plan: Dict) -> float:
+    """Rough expected hits of a planned volley: each attack's dice against the
+    Armour of the nearest ship it can hit (hits go nearest first, s.8)."""
+    total = 0.0
+    for a in plan["attacks"]:
+        need = a["armors"][a["eligible"][0].id] if a["eligible"] else 6
+        total += a["dice"] * max(1, 7 - need) / 6.0
+    return total
+
+
+def best_aspect_choice(contributions, targets, blast_markers, phenomena=None,
+                       all_ships=None, no_column_shifts: bool = False) -> Dict[tuple, str]:
+    """"Best for expected hits" (Combine Squadron Fire against a squadron): for
+    each group of firers that sees a mix of target aspects, the aspect that gives
+    the volley the most expected hits (volley_expected_hits). A harder aspect
+    lets the group hit more of the squadron; an easier one gives more dice on
+    the gunnery table but fewer ships it can hit. Views are improved one at a
+    time, twice over. Returns {view key: aspect}."""
+    kw = dict(no_column_shifts=no_column_shifts)
+    views = plan_squadron_volley(contributions, targets, blast_markers, phenomena,
+                                 all_ships, **kw)["views"]
+    choice = {v: present[-1] for v, present in views.items()}
+    for _ in range(2):
+        for v, present in views.items():
+            if len(present) < 2:
+                continue
+            best_a, best_h = choice[v], -1.0
+            for a in present:
+                trial = {**choice, v: a}
+                h = volley_expected_hits(plan_squadron_volley(
+                    contributions, targets, blast_markers, phenomena, all_ships,
+                    aspect_choice=trial, **kw))
+                if h > best_h + 1e-9:
+                    best_a, best_h = a, h
+            choice[v] = best_a
+    return choice
+
+
 def resolve_squadron_volley(plan: Dict, targets: List[Ship], dice: DiceRoller,
                             apply_hits, lock_on: bool = False,
                             game_state: Optional[GameState] = None) -> Dict[str, int]:

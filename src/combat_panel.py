@@ -459,10 +459,15 @@ class CombatPanel(CombatDialogMixin):
         from .combat import plan_squadron_volley, resolve_squadron_volley
         aspect_vars = {}
         if len(t_group) > 1:
+            from .combat import best_aspect_choice
+            contribs = [(r[0], dict(r[2], strength=r[3])) for r in weapon_rows]
             views = plan_squadron_volley(
-                [(r[0], dict(r[2], strength=r[3])) for r in weapon_rows], t_group,
-                blast_markers, phenomena, self.ctx.gs.get_ships(),
+                contribs, t_group, blast_markers, phenomena, self.ctx.gs.get_ships(),
                 no_column_shifts=in_asteroid_field)["views"]
+            # Default: "Best for expected hits" (combat.best_aspect_choice)
+            best_aspects = best_aspect_choice(contribs, t_group, blast_markers, phenomena,
+                                              self.ctx.gs.get_ships(),
+                                              no_column_shifts=in_asteroid_field)
             asp_frame = tk.LabelFrame(dialog, text="Aspect fired at (squadron target)",
                                       font=("Consolas", 9))
             for view, present in views.items():
@@ -476,10 +481,12 @@ class CombatPanel(CombatDialogMixin):
                 row_f = tk.Frame(asp_frame)
                 row_f.pack(fill=tk.X)
                 tk.Label(row_f, text=f"{who}:", font=("Consolas", 8)).pack(side=tk.LEFT)
-                var = tk.StringVar(value=present[-1])
+                best_a = best_aspects.get(view, present[-1])
+                var = tk.StringVar(value=best_a)
                 ttk.Combobox(row_f, textvariable=var, values=present, state="readonly",
                              width=12, font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
-                tk.Label(row_f, text="(harder aspects can't be hit)",
+                tk.Label(row_f, text=f"(Auto best for expected hits: "
+                                     f"{best_a.replace('_', ' ')}; harder aspects can't be hit)",
                          font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
                 aspect_vars[view] = var
 
