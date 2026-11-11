@@ -521,6 +521,14 @@ points to):
 - Owner checks this session, all recorded under Owner rulings: bombers always hit the lowest
   Armour (one AI hazard estimate fixed), Tau forward arcs (both sides' mounts bear ahead), and
   each ship's own turn angle in every turn allowance (Protector 90, Hero 45); tests added.
+- Combine Squadron Fire defaults to "Best for expected hits" (`combat.best_aspect_choice`;
+  the AI's volleys use it too).
+- AI hazard maths: guided / seeking / Tau torpedo turn cones (`ai_hazards._torpedo_heading`).
+- Hazards in the AI's targeting (owner check): battery values with column shifts
+  (`expected_hits(..., gs)`), ordnance targets weighted by path survival
+  (`ordnance_path_survival`, mirroring the engine's terrain rules), and routes round obstacles
+  for craft and guided torpedoes (`best_route`; AI craft fly the detour). Two dust-cloud
+  questions are open (below).
 - AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
   e.g. a crippled cruiser on 2 hits under enemy guns tries to leave; a healthy one facing a
   single enemy cruiser fights on (a lone healthy cruiser facing three full cruisers also leaves:
@@ -560,7 +568,9 @@ points to):
    craft reach in the move score, the expert AI's leaf evaluation using the same terms.
    Still to do here: fleet-wide CAP / strike allocation across carriers, the option value of
    keeping bays loaded, CAP against enemy bomber waves not yet launched; escorts staying near
-   the commander's ship. Done: guided / seeking torpedo turn cones in the hazard maths
+   the commander's ship; torpedo launch headings aimed down a clear lane and multi-waypoint
+   routes (`best_route` does one detour); guided salvos' real launcher Ld in the hazard maths
+   (assumed 8); the Burn Retros decision still uses the older end-point hazard check. Done: guided / seeking torpedo turn cones in the hazard maths
    (`ai_hazards._torpedo_heading / _in_turn_cone`: seeking salvos turn up to 45 degrees at the
    nearest of our ships at its end position; guided ones threaten their whole 45-degree cone at
    the launcher's Leadership-test odds, assumed Ld 8 (`GUIDED_TURN_CHANCE`, the launcher isn't
