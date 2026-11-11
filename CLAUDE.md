@@ -467,6 +467,16 @@ Latest work (all pushed, details in docs/HANDOFF.md "Fighter / bomber split...")
    = mean over D6 of `hit_and_run.raid_result_value(roll + crew modifier)` (which already prices
    Engine Room +1 hit, armament crits by what they threaten, escorts 1 damage on 4+). Both face
    the same turret roll and CAP, so those cancel out of the choice; Brace saves 4+ against both.
+1c. Strike planning by expected VP when the strike lands (owner discussion; full design in
+   docs/HANDOFF.md "Ordnance strike planning"): crit values over the turns they last (damage
+   control s.36: D6 per remaining hit, 6s repair, halved near blast markers; permanent crits and
+   extra damage in full), threat at the target's next shooting phase (reach model), travel time
+   and which player's ordnance phase the wave lands in, losses on the way (fighters, blast
+   markers, reactive CAP, target leaving), the option of not launching yet, enemy guns vs waves
+   (one hit removes a whole wave on 6+, s.25 / s.30) and when to split a wave (each group faces
+   turrets separately and loses cross-group suppression), a risk preference from the game state,
+   and the expert AI's leaf evaluation using the same terms. One function feeds the planner, AI
+   launches, bombers vs assault boats (1b), multi-role attack modes and Wings of Fury.
 2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
 2b. (done) Wave planner follow-ups: combined launch dialog, AI launches, engine CAP vs wave
    order (`waves.resolve_cap_vs_group`), heavy_gunz_check fixed.
@@ -525,7 +535,11 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- None open.
+- **Wings of Fury re-roll threat window:** keep the ruling "only allied ships in the weapon's
+  arc and range right now count", or switch to "threatened at the target's next shooting phase
+  (after it and our ships move), weighted by the chance damage control hasn't repaired it"?
+  Recommended: the latter (docs/HANDOFF.md "Ordnance strike planning", point 9). Until the
+  owner answers, the current ruling stays.
 
 Owner ruling (resilient saves, s.23): the booklet's wording stands. A resilient squadron saves
 against any other ordnance it intercepts or is intercepted by (fighters, bombers, torpedoes,

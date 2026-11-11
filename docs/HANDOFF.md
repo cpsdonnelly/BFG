@@ -561,7 +561,7 @@ All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 98
 Latest items: wave planner (resilient saves, partial launches, editable inputs), squadron-only
 combined launches, Wings of Fury expected-value re-rolls (owner ruling: an armament disable that
 threatens no allied ship in arc and range is re-rolled; Engine Room kept; escorts re-roll results
-under 4), AI respects armament crits. Next: CLAUDE.md "To do" (2b done; next is item 1, AI CAP vs strikes)
+under 4), AI respects armament crits. Next: CLAUDE.md "To do" (2b done; items 1, 1b, 1c are the AI / strike planning work)
 (the resilient-save question is settled: owner confirmed the booklet, saves work against any
 other ordnance, never turrets).
 
@@ -588,6 +588,84 @@ checked against s.20 / s.22 / s.31:
   `ordnance.mr_attack_mode_ai` (raid at 3+ turrets, ignores Armour) and use it in the AI launch
   mix (`AIPlayer._launch_ship_ordnance` / `_wave_split`) and as the "Auto (best)" for the
   human multi-role prompt.
+
+## Ordnance strike planning: design from the owner discussion (to do: CLAUDE.md To do 1c)
+
+Raised by the owner after the wave planner and the bombers-vs-assault-boats idea. Nothing
+below is built yet except where it says so. The aim: one function, "expected VP of this
+strike when it lands", used by the wave planner, the AI's launches, the bomber / assault boat
+choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf evaluation.
+
+1. **Why expected VP (owner asked "does it help?").** It is one currency for unlike effects
+   (bomber hits vs raid crits vs a silenced broadside), it knows what a target is worth and
+   where its crippling / destruction thresholds are, and every AI decision already uses it.
+   Weak points: crit effects (Bridge Smashed, Shields Collapse, silenced weapons) need
+   judgement weights to turn into VP; it is risk-neutral (a sure 1 hit = a 50% chance of 2),
+   so idea: a risk preference from the game state (behind on the last turn -> gamble; ahead ->
+   play safe); and today it looks about one step ahead.
+
+2. **Crits are worth what they do over the turns they last, not just now.** The owner's
+   problem: at the start of a game every ship is out of range, so a "threatens nothing now"
+   rule makes every armament crit worthless. Damage control (s.36, engine matches it: every
+   ship, in every end phase of both players, `end_phase.resolve_damage_control`): one D6 per
+   remaining hit, each 6 repairs one repairable crit, dice halved (round up) when touching a
+   blast marker. An undamaged 8-hit cruiser repairs one crit with 1 - (5/6)^8 = 77% per end
+   phase (52% touching a blast marker), so a repairable crit inflicted in your ordnance phase is
+   still there for the target's next shooting phase only ~23-48% of the time. Unrepairable crits
+   (Bridge Smashed, Shields Collapse, Hull Breach, Bulkhead Collapse) last all game; extra
+   damage (Engine Room +1, D3, D6) counts in full anywhere. Value of a crit =
+   sum over the target's future shooting phases (up to the scenario's turn limit) of
+   P(still unrepaired then; several crits compete for the same 6s) x P(an allied ship in that
+   weapon's arc AND range then) x VP that weapon would do. Early in a game repairable armament
+   crits are then worth little, permanent ones and extra damage keep their value.
+
+3. **Reach model** for "in arc and range then": distance minus both ships' movement before
+   that shooting phase vs the weapon's range; broadside arcs count for less when the target
+   would have to turn to bring them to bear.
+
+4. **Travel time.** A crit lands when the wave arrives, not at launch. Attack craft move in
+   both players' ordnance phases (up to 2 x speed per game turn) while the target moves:
+   estimate the meeting point and the arrival phase, then evaluate the threat at the target's
+   first shooting phase after arrival. Phase timing matters (turn order: movement, shooting,
+   ordnance, end): a wave landing in your own ordnance phase faces one end phase of repairs
+   before the target shoots again; one landing in the enemy's ordnance phase comes after the
+   target has already fired that turn, so its repairable crits face more repairs before they
+   matter. Holding a wave back or taking a longer route to strike in your own phase can pay.
+
+5. **Losses on the way:** enemy fighters that can reach the wave first, blast markers on its
+   path, CAP the target may launch before contact (the planner's editable CAP field covers it
+   by hand today), the target turning away or disengaging. Against that, the option value of
+   not launching yet and keeping the bays loaded (already in the CAP-vs-strikes plan).
+
+6. **Enemy guns against the wave; splitting.** A wave is one marker for enemy shooting and is
+   removed entirely by one hit (s.25); direct fire hits ordnance only on 6+, Ordnance column,
+   range / blast shifts apply, no aspect (s.30); each weapon fires at one target; target
+   priority counts only enemy ordnance when firing at ordnance. Splitting into groups means one
+   6 removes one group, and guns spent on craft don't fire at ships. Costs: each group faces the
+   target's turrets separately (s.25: lone squadrons / separate waves each face all turret dice),
+   fighters only suppress bombers in their own wave, CAP meets each group lead first. Evaluate
+   candidate groupings (one wave; two waves; a wave plus lone squadrons; each split by the
+   planner): value = sum over groups of P(group survives the enemy shooting phases it is
+   exposed to in flight) x planner value of that group, with survival ~ (5/6)^(dice the
+   enemy would put on it), the enemy spending guns on ordnance only when that beats its best
+   ship shot (the AI's own rule). Expected outcome: keep one big wave when it arrives before the
+   enemy shoots again or flies outside its guns' arcs; split or re-time it when it must cross
+   enemy guns in their shooting phase; escorts have little firepower, so it matters less
+   against them. Splitting already exists in the engine (Attack Craft Orders; split groups
+   never rejoin), so the AI must decide before committing.
+
+7. **Bombers vs assault boats** (owner idea, maths checked): see the section above; it plugs into
+   the same function (bomber EV vs mean raid value), now evaluated at arrival time.
+
+8. **Expert AI long-range planning:** the search simulates a short horizon; its leaf
+   evaluation should add these static terms (unrepaired-crit values over the remaining turns,
+   ordnance in flight valued at arrival with survival, reach-based threat) so a move that pays
+   off after the horizon is still seen.
+
+9. **Open question (owner):** Wings of Fury re-rolls currently follow the owner's ruling (only
+   allied ships in the weapon's arc and range right now count). Switch to "threatened at the
+   target's next shooting phase (reach model), weighted by P(not repaired first)"? Recommended,
+   since that is when the crit matters; travel time doesn't apply (the raid has landed).
 
 ## Remaining work (agreed order)
 
