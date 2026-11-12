@@ -717,8 +717,13 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       6 hits, 5+) out-guns a Lunar (all 30cm: 6 battery points + 2 lances a side, 6 torpedoes
       forward) at 30-45cm but not at 0-30cm. Plan: a matchup table per pair of ships, the
       expected VP each does to the other per shooting phase in brackets 0-15 / 15-30 / 30-45 /
-      45-60+ (in-arc mounts, the Gunnery table's range shifts, armour, shields), summed for
-      the fleets; the move score then prefers the bracket where our guns beat theirs, for each
+      45-60 / 60-150 (in-arc mounts, the Gunnery table's range shifts, armour, shields), summed
+      for the fleets. Owner: 0-15 is its own bracket mostly because of Ork Heavy Gunz (unique to
+      Orks: batteries with a bigger `strength_close` value within 15cm, e.g. Kroolboy, Savage
+      Gunship, Gorbag's Revenge; the Gunnery table also shifts every battery one column left
+      within 15cm); 45-60 is its own bracket (Chaos 60cm batteries and lances); 60-150 is for
+      artillery such as the Nova Cannon (150cm, 30cm minimum: it can't fire at ships closer
+      than that). The move score then prefers the bracket where our guns beat theirs, for each
       ship against what it faces. Kiting (c) is the case where we also out-move them; the
       Merchant is slower than a Lunar (15 vs 20), so it can't hold the bracket against a
       Lunar that wants to close: it takes the bracket when it can and positions to delay.
