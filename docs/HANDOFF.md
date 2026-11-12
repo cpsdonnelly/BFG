@@ -568,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1030 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1031 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -655,8 +655,10 @@ Latest items, newest last:
   Fighters already on CAP now cover the launched threats closing on their ship first, and
   carriers keep their bays loaded while no enemy ship is within three moves of their fastest
   craft and no enemy ordnance is in play (Reload Ordnance needed after a launch, s.15).
-  Torpedo launch lanes (`AIPlayer._torp_lane`): the AI aims down the clearest heading
-  that still meets the target and never fires through its own ships (s.15).
+  Torpedo launch lanes (`AIPlayer._torp_lane`): the AI aims down the heading worth most
+  that still meets the target. Owner: friendly fire is negative VP, so each lane counts the
+  ships the salvo hits on the way (s.15: it attacks friend or foe and carries on weakened):
+  our ships cost their damage's VP; it holds fire when the result is a net loss.
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
