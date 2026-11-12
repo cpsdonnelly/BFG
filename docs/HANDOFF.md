@@ -831,7 +831,7 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    edge (Orks) to think about boarding and ramming (the AI plans neither today), and carrier
    play as discussed (already built), and teleport attacks both ways (CLAUDE.md 8 j; done:
    the AI now decides its own teleports, it used to get the human's dialog). All in
-   CLAUDE.md To do 8 f-j. Its place in the order is an open question (listed last for now).
+   CLAUDE.md To do 8 f-j. Owner: the order isn't hugely important; 8 a and 8 f come before 11 a.
 9. Smaller "Not yet" notes collected from CLAUDE.md's sections (Auto (best) prompts, bombers
    that re-roll attacks, fleet-list gaps, a Venerable Battle Barge, Rogue Trader / Ork torpedo
    options, end-of-move-only ordnance checks, a few AI cases): CLAUDE.md To do 9.
