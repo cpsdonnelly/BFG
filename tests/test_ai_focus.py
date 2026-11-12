@@ -144,3 +144,24 @@ def test_escort_screens_the_flagship_against_incoming_ordnance():
                                 y=0.0, heading=180.0, speed=30, strength=6))
     assert ai._screen_bonus(esc, *touching, 90.0, foe) > 0.0
     assert ai._screen_bonus(esc, 0.0, -20.0, 90.0, foe) == 0.0       # not in contact
+
+
+def test_several_focus_targets_split_once_a_kill_is_covered():
+    """Owner: focus fire, but no overkill. Two ships are plenty to finish the
+    1-hit enemy; the rest go to the second target, all within reach."""
+    from src.ai_hazards import fleet_focus_assignment
+    ours = [make_ship(id=f"o{i}", player=1, x=0.0, y=10.0 * i, heading=0.0, speed=20,
+                      weapons=[dict(w) for w in GUNS]) for i in range(4)]
+    dying = make_ship(id="dying", player=2, x=40.0, y=10.0, armor_prow="5+", armor_side="5+",
+                      shields_max=1, hits_remaining=1, points_value=200)
+    fresh = make_ship(id="fresh", player=2, x=40.0, y=25.0, armor_prow="5+", armor_side="5+",
+                      shields_max=1, points_value=200)
+    gs = make_gs(ours + [dying, fresh])
+    plan = fleet_focus_assignment(gs, 1)
+    assert set(plan) == {s.id for s in ours}
+    on = {t: sum(1 for v in plan.values() if v == t) for t in ("dying", "fresh")}
+    assert on["dying"] >= 1 and on["fresh"] >= 1
+    # A ship out of every enemy's reach gets no focus (plans against its nearest)
+    far = make_ship(id="far", player=1, x=-300.0, y=0.0, weapons=[dict(w) for w in GUNS])
+    gs2 = make_gs(ours + [far, dying, fresh])
+    assert "far" not in fleet_focus_assignment(gs2, 1)

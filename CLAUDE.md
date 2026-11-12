@@ -472,7 +472,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1047 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1048 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -602,8 +602,15 @@ points to):
    `ai_hazards.position_exposure_hits`). Done: loaded torpedoes in the move score
    (`AIPlayer._arc_score`: they launch from the end position, s.15; the launcher's strength
    when the target is in its arc within one torpedo move, half within two; unloaded nothing;
-   craft need no term, they launch any way and the strike planner reaches 3 moves). Not
-   yet: several focus targets, the expert AI's leaf evaluation using the same terms.
+   craft need no term, they launch any way and the strike planner reaches 3 moves). Done:
+   several focus targets (`ai_hazards.fleet_focus_assignment`, `AIPlayer._focus_map`): each
+   ship's guns go to the enemy where they add the most VP on top of what the ships already
+   given to it are expected to do (`added_vp`: shields, damage thresholds), biggest batteries
+   first, then one round of second thoughts; ships that reach no enemy plan against their
+   nearest. E.g. four cruisers (about 5 hits each) and two enemies: one finishes a 1-hit
+   ship while three go to the other; against two healthy 8-hit cruisers they split 2 / 2
+   (each pair kills its target; all four on one would be overkill). Not yet: the expert
+   AI's leaf evaluation using the same terms.
    Done: fleet-wide CAP / strike allocation (`AIPlayer._plan_fleet_defence`, each ordnance
    phase: every carrier starts all-strike; threat slots, best first and a wave's squadrons lead
    first, go to the carrier losing least, i.e. its last strike squadron's marginal value against

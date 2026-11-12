@@ -122,13 +122,24 @@ class AIPlayer:
             self._our_hits = fleet_hits_on(gs, self.player)
         # Fleet focus (owner): the enemy ship the fleet concentrates on this turn
         self._focus = None
+        self._focus_map = {}
         if self.difficulty != "easy":
-            from .ai_hazards import fleet_focus_targets
+            from .ai_hazards import fleet_focus_targets, fleet_focus_assignment
             ranked = fleet_focus_targets(gs, self.player)
             self._focus = ranked[0][1].id if ranked else None
+            # Several focus targets: each ship's guns where they add the most VP
+            # given the rest of the fleet's (owner: focus fire)
+            self._focus_map = fleet_focus_assignment(gs, self.player)
             if ranked:
                 gs.add_log(f"[AI] fleet focus: {ranked[0][1].name} (about "
                            f"{ranked[0][0]:.0f} VP in reach)")
+            groups = {}
+            for sid, eid in self._focus_map.items():
+                groups.setdefault(eid, []).append(sid)
+            if len(groups) > 1:
+                names = ", ".join(f"{gs.get_ship_by_id(e).name} ({len(v)})"
+                                  for e, v in groups.items())
+                gs.add_log(f"[AI] focus targets: {names}")
         for ship in my_ships:
             self._move_ship(ship)
         if self.difficulty != "easy":
@@ -310,12 +321,15 @@ class AIPlayer:
         return best_cmds or [MoveCommand("forward", max(min_spd, max_spd / 2))]
 
     def _focus_for(self, ship: Ship) -> Optional[Ship]:
-        """The fleet's focus target (run_movement_phase) if this ship can bring
+        """This ship's focus target (run_movement_phase: its own from
+        fleet_focus_assignment, else the fleet's) if this ship can bring
         guns to bear on it within about two moves (its longest battery / lance
         range + twice its speed), else None (it plans against its nearest
         enemy as before)."""
-        fid = getattr(self, "_focus", None)
-        if not fid or self.difficulty == "easy":
+        if self.difficulty == "easy":
+            return None
+        fid = getattr(self, "_focus_map", {}).get(ship.id) or getattr(self, "_focus", None)
+        if not fid:
             return None
         f = self.gs.get_ship_by_id(fid)
         if f is None or f.is_destroyed or f.is_disengaged:

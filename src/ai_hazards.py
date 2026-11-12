@@ -864,6 +864,57 @@ def fleet_focus_targets(gs, player: int) -> list:
     return ranked
 
 
+def _ship_hits_on(s: Ship, e: Ship) -> float:
+    """Expected hits ship `s`'s batteries / lances could put on enemy `e` next
+    turn (within range + its move), as fleet_focus_targets counts them."""
+    import math as _m
+    d = _m.hypot(s.x - e.x, s.y - e.y)
+    armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
+    hits = 0.0
+    for w in s.weapons:
+        wt = w.get("weapon_type")
+        if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
+            continue
+        hits += (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35 * armour_factor)
+    return hits
+
+
+def fleet_focus_assignment(gs, player: int) -> dict:
+    """Several focus targets (owner: focus fire, easier targets first; To do 1):
+    each of our ships is given the enemy where its guns add the most VP
+    (added_vp, through shields and damage thresholds) on top of what the ships
+    already given to that enemy are expected to do. Biggest batteries choose
+    first, then every ship reconsiders once with the others fixed. So fire
+    piles onto a ship near a threshold, and moves to a second target once the
+    first is covered or out of a ship's reach. {ship id: enemy id}; ships that
+    reach no enemy are left out (they plan against their nearest enemy)."""
+    ours = [s for s in gs.get_ships() if s.player == player
+            and not s.is_destroyed and not s.is_disengaged]
+    foes = [e for e in gs.get_ships() if e.player != player and not e.is_destroyed
+            and not e.is_disengaged and not e.is_hulk]
+    contrib = {s.id: {e.id: h for e in foes for h in [_ship_hits_on(s, e)] if h > 0}
+               for s in ours}
+    by_id = {e.id: e for e in foes}
+    order = sorted((s for s in ours if contrib[s.id]),
+                   key=lambda s: -max(contrib[s.id].values()))
+    assign, load = {}, {e.id: 0.0 for e in foes}
+
+    def pick(sid):
+        return max(contrib[sid], key=lambda eid: (
+            added_vp(by_id[eid], gs, load[eid], contrib[sid][eid]), contrib[sid][eid]))
+    for s in order:
+        eid = pick(s.id)
+        assign[s.id] = eid
+        load[eid] += contrib[s.id][eid]
+    for s in order:                       # one round of second thoughts
+        old = assign[s.id]
+        load[old] -= contrib[s.id][old]
+        eid = pick(s.id)
+        assign[s.id] = eid
+        load[eid] += contrib[s.id][eid]
+    return assign
+
+
 def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -> float:
     """Expected hits the enemy's guns could put on `ship` if it ended its move
     at (x, y) and the enemy focused on it: every enemy battery / lance mount
