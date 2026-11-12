@@ -111,24 +111,16 @@ Cruisers. Ships using rules the engine can't play yet
   The threat model also allows the enemy's next turn, using each ship's own turn angle (owner:
   not all ships are the same; the Tau Protector turns 90 degrees, the Hero 45)
   (`ai_hazards._mount_bears`, `hit_and_run._weapon_can_bear`; `tests/test_ai_forward_arcs.py`).
-- **Hazards in the AI's target choices (owner check):** batteries are valued with their column
-  shifts (`combat.expected_hits(..., gs)`: blast markers / dust in the line of fire or in
-  contact, range; lances and nova cannon unaffected, s.11); asteroid fields, planets, warp
-  rifts and hulks block direct fire (`los.check_los`, already enforced); torpedo and strike
-  targets are weighted by `ai_hazards.ordnance_path_survival`, which mirrors the engine:
-  torpedoes detonate on planets / asteroid fields / warp rifts, die on a 6 in dust clouds and
-  blast markers (seeking 5+); attack craft die on a 6 in asteroid fields, dust clouds and blast markers, to
-  warp rifts outright, and ignore planets (dust clouds: on a 6, owner ruling). Owner: attack craft, and less so torpedoes
-  that can turn, may move round obstacles: `ai_hazards.best_route` scores the straight line and
-  two-leg detours via a waypoint just outside each harmful obstacle (survival x travel
-  discount for the longer path); attack craft turn freely, guided torpedoes only within 45
-  degrees, standard ones run straight. Strike targeting uses it, and AI craft really fly the
-  detour (`ordnance.craft_target_point` returns the waypoint for AI-owned craft heading for a
-  ship; a human's craft go straight at the target given). Torpedo launch headings take the
-  lane worth most, friendly fire counted as negative VP (owner; `AIPlayer._torp_lane`), and
-  straight salvos lead the target from its sampled next move (owner; `_torp_lead_plan`).
-  Routes may have two waypoints (a field behind a field is flown round too; craft re-plan
-  each move and follow the rest).
+- **Hazards in the AI's target choices (owner check):** gun values include column shifts
+  (blast markers / dust in the line of fire or in contact, range; lances and nova cannon
+  unaffected, s.11); asteroid fields, planets, warp rifts and hulks block direct fire
+  (`los.check_los`); ordnance values use path survival mirroring the engine
+  (`ai_hazards.ordnance_path_survival`): torpedoes detonate on planets / asteroid fields / warp
+  rifts, die on a 6 in dust clouds and blast markers (seeking 5+); attack craft die on a 6 in
+  asteroid fields, dust clouds (owner ruling) and blast markers, to warp rifts outright, and
+  ignore planets. Owner: attack craft, and less so torpedoes that can turn, may move round
+  obstacles (`ai_hazards.best_route`, up to two waypoints; AI craft fly them, a human's go
+  straight at the target given). See "AI: how it decides".
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships
@@ -390,19 +382,11 @@ Owner rulings (fleet lists, export 15):
   damage to a minimum of 5; Bridge Smashed deals one extra damage instead of -3 Ld
   (`combat.demiurg_leadership`).
 
-### Not yet matching the booklet (export 7 audit)
+### Engine notes and gaps (export 7 audit)
 
 - Torpedoes attack ships touched anywhere along their move (`geometry.torpedo_first_contact`,
   facing taken from the contact point); attack craft flying straight without a target and
   torpedo-vs-torpedo collisions are still checked at the end of the move only.
-- The AI combines its squadrons' batteries (`AIPlayer._squadron_volleys`, before ships fire
-  one by one): one `plan_squadron_volley` per squadron when it rolls at least as many dice as
-  firing separately, at the target adding the most expected VP among enemies that are the
-  nearest valid target for every contributing battery (no target priority test needed); the
-  batteries used are skipped afterwards. Combined fire covers batteries only (lances hit on 4+
-  and are fired weapon by weapon). Not yet: Ork random-firepower batteries in volleys, a
-  volley at a target needing a target priority test. (The dialog's "Best for expected hits"
-  aspect default is done.)
 - Commander re-rolls (s.5) are offered for command checks (special orders), disengage tests,
   guided torpedoes and, via `GameState.ld_reroll_hook` / `movement.fleet_reroll_offered`
   (GamePanel asks; the AI spends by importance in expected VP, `ai_rerolls.should_reroll`,
@@ -416,28 +400,10 @@ Owner rulings (fleet lists, export 15):
   commander's (`TurnController.get_fleet_rerolls / use_fleet_reroll(player, ship)`). Not yet:
   other factions' secondaries (Elite Captains / Daemonhunters, Ork Nobz, Bond-Captains,
   Space Marine Captains), per-Boss re-roll pools for several Ork Bosses.
-- Hulks: the AI shoots an enemy hulk when it is the closest target in arc (no target priority
-  test) and P(a hit) x `ai_hazards.hulk_shot_vp` beats its best ship shot: the re-rolled
-  Catastrophic Damage exploding among enemy ships (3D6cm, half / all starting hits as 4+ lance
-  shots less shields, `explosion_vp`), negative near our own ships; a new burning hulk's next
-  re-roll at half value. Not counted: Holding the Field hulk points, a hulk that isn't the
-  closest target (would need the target priority test).
 - Disengaging (s.37): escort squadrons test together; Forced Disengagement (Ld 1 or less) and
   Demiurg Mercenaries test at the end of movement (`disengage.forced_disengage_tests`); a ship
-  that fails gets `Ship.must_flee` (AI `_plan_flee`). The AI disengages voluntarily at the end
-  of its movement when `ai_hazards.disengage_gain` > 0 (`AIPlayer._consider_disengage`):
-  P(pass) x (risk avoided over the enemy's next turn - extra VP conceded) - its guns' value
-  (`ai_rerolls.firepower_swing`; lost either way this turn). Risk: `incoming_hits` (enemy guns
-  in range + move, per mount: a port broadside counts against our ships on the enemy's left,
-  starboard on its right, other mounts within their arc after one turn, so an enemy between two
-  of ours can fire both broadsides at different targets (owner); the enemy focuses fire (owner:
-  optimal play concentrates, it doesn't split): `ai_hazards.enemy_fire_plan` gives each mount
-  wholly to the ship it adds the most VP against, damage so far counted, finishing a ship
-  valued) as a Poisson
-  count; destroyed = full value (75% more if already crippled), newly crippled 25%; leaving
-  concedes 10% (crippled: nothing extra). Judgement weights; one-turn horizon; escort squadrons
-  and the last turn of a game not special-cased yet. Not yet: the +3 during a radiation burst
-  or solar flare.
+  that fails gets `Ship.must_flee` (AI `_plan_flee`; voluntary AI disengaging: see "AI: how it
+  decides"). Not yet: the +3 during a radiation burst or solar flare.
 
 ### Torpedo types (s.16): owner rulings
 
@@ -451,9 +417,6 @@ Owner rulings (fleet lists, export 15):
   arc (front = prow, L/F/R = dorsal).
 - Melta Fire crits hit escorts too, and they may put the fire out in damage control like
   other ships; a drifting hulk hit by melta becomes a burning hulk.
-- The AI fires its one vortex / melta / seeking salvo at the first capital ship target, uses
-  guided torpedoes freely, short burn for targets beyond 30cm, and barrage bombs only once
-  planetary assaults (assault points: +1 at S6 or less, +2 at S7+) exist.
 - Inquisition (owner rulings): Inferno Torpedoes +20pts on any Inquisition vessel with
   torpedoes (melta usable any number of times; a launcher crit gives D6 Fires); vortex
   torpedoes +50pts only on an Ordo Malleus Inquisitor Lord's ship armed with torpedoes.
@@ -470,338 +433,185 @@ Owner rulings (fleet lists, export 15):
   incl. its 2D6+2 variant, Basha) are options (`booklet_options.ork_launcha_options`); looted
   torps need one of them (`requires_any:`).
 
-### Session status (latest session; details in docs/HANDOFF.md)
+### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1055 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1055 pass; all GUI checks pass
+(`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
+difficulty: `gui_spectator_demo.py normal` / `expert`). After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
-Done this session (all pushed): exports 36 / zip 10-12; the whole export 31 "still to do"
-list (Navy refits, Bakka, Armageddon, Space Marine lists and options, Mechanicus Gifts, Rogue
-Trader Notable Xenos, Demiurg War Host and playable Demiurg ships, Hired Reserves, Chaos Marks /
-CSM crews / reserves, core wording checks); boarding crew bonuses and troop modifiers (s.32);
-torpedoes passing through friendly ships in contiguous contact; disengaging (s.37) incl. forced
-disengagement and Demiurg Mercenaries; optional Modern / Remastered blast markers; defence
-turret split (s.28) and Ork turrets; the AI work below.
+Built so far: every booklet rule section the engine plays (see the sections above), the export
+31 "still to do" list, boarding crew bonuses, disengaging incl. forced disengagement, optional
+blast marker rules, the turret split, waves / CAP / wave planner, and the expected-VP AI below.
+Next: To do 2, then 3-7.
 
-AI (all in expected VP; `ai_hazards.py`, `ai_rerolls.py`, `AIPlayer`): hazard avoidance along
-the move path (mines, torpedoes, attack craft, asteroids, warp rifts, dust, blast markers);
-importance-based re-rolls; targeting by marginal expected VP (no overkill); target priority
-test obeyed; the commander's ship protected (exposure, braces earlier); fighters allocated
-fleet-wide by VP saved (one per salvo / mine, one per wave squadron); ships shoot incoming
-ordnance when worth more than their best ship shot; turret choice by expected hits saved.
+### AI: how it decides (expected VP)
 
-Latest work (all pushed; details in docs/HANDOFF.md "Session end state" and the sections it
-points to):
-- Wave planner in the single-ship launch dialog ("Best split", `waves.best_wave_split`,
-  `waves.cap_survivors`, `OrdnancePanel._best_split_plan / _split_inputs_for / _split_types`):
-  target list (nearest first) fills editable Turrets / Massed / CAP / Armour / resilient saves
-  (own fighters, bombers, enemy CAP); wave size may be less than the bays, with "+ lone
-  fighters" and "+ CAP fighters" launched outside the wave in the same launch. Order modelled:
-  CAP first (resilient saves per s.23), then turrets (resilient saves never work against
-  turrets: owner confirmed), then suppression / bomber attacks.
-- Combine Ordnance Launch: only members of one squadron in contiguous contact (capital ships too).
-- Wings of Fury re-rolls by expected VP, armament crits valued at the target's next shooting
-  phase with damage control odds (`hit_and_run.p_crit_unrepaired`, `_weapon_can_bear`; see
-  "Auto (best)" above); AI no longer fires weapons
-  knocked out by armament crits (`combat.weapon_disabled_by_crit`).
-- The AI launches plain fighters + bombers as the planner's mix in one close wave against the
-  nearest enemy (all fighters while enemy ordnance is about; `AIPlayer._wave_split`). Planner
-  inputs live in `waves.wave_plan_inputs / split_craft_types / plan_wave_against`. The
-  combined launch dialog has a compact planner (target, wave size, CAP;
-  `OrdnancePanel._combined_split_planner`).
-- CAP now meets incoming craft lead first before the turret roll, with s.23 saves (see Waves).
-- AI ordnance focuses fire by expected VP like its guns: torpedoes, strike launches and craft
-  in flight go for the target they add most VP to (easier and damaged ships first), counting
-  what the guns did and the phase's other ordnance. Two VP scales: gunnery `damage_vp`
-  (thresholds + 0.2 per hit) for choosing among gun / torpedo targets; `hull_hits_vp` (full
-  value per hit + thresholds, the raid scale) wherever bomber hits are compared with raids.
-  Ordnance never loses hits to shields (s.11 / s.15) in these values.
-- AI squadrons combine their batteries into one volley (s.8) when it is at least as good as
-  firing separately (`AIPlayer._squadron_volleys`).
-- AI fleet focus positioning: one focus target per turn by expected VP (easier / damaged
-  first); ships in reach close on it, weighing their exposure to enemy arcs.
-- Owner checks this session, all recorded under Owner rulings: bombers always hit the lowest
-  Armour (one AI hazard estimate fixed), Tau forward arcs (both sides' mounts bear ahead), and
-  each ship's own turn angle in every turn allowance (Protector 90, Hero 45); tests added.
-- Combine Squadron Fire defaults to "Best for expected hits" (`combat.best_aspect_choice`;
-  the AI's volleys use it too).
-- AI hazard maths: guided / seeking / Tau torpedo turn cones (`ai_hazards._torpedo_heading`).
-- Hazards in the AI's targeting (owner check): battery values with column shifts
-  (`expected_hits(..., gs)`), ordnance targets weighted by path survival
-  (`ordnance_path_survival`, mirroring the engine's terrain rules), and routes round obstacles
-  for craft and guided torpedoes (`best_route`; AI craft fly the detour). Dust-cloud rulings
-  answered and built (see "Open questions" section).
-- AI: guided salvos use the launcher's real Ld; Burn Retros by expected VP; escorts screen the
-  commander's ship for massed turrets in base contact (s.29), only while enemy torpedoes,
-  torpedo bombers, bombers, assault boats or mines can reach it (owner: never against
-  fighters alone, never when there is nothing to mass against).
-- AI hazard maths per torpedo type (owner: not every turning salvo uses Ld): boarding
-  torpedoes turn freely within 45, Tau missiles turn 45 / reach 40cm / 5/6 strength, guided
-  on the launcher's Ld, seeking at the nearest enemy, the rest straight.
-- Owner, for To do 3: a wave of torpedo bombers combines into one salvo of 2 per squadron
-  (a wave of 4 makes a strength-8 salvo, s.21).
-- Prevented damage and catastrophic damage in the AI's values (owner): `ai_hazards.damage_vp`
-  (every gun / torpedo / strike target value) now adds the enemy's threat removed: destroying
-  a ship removes its next turn of fire at us (`ship_threat_vp`: each battery / lance mount
-  that can bear, at the most valuable ship it bears on), crippling halves it; and a kill may
-  explode (`death_explosion_vp`, Catastrophic Damage 9-11 plasma / 12 warp, Mercury 3D6;
-  escorts never), good for us near enemies, bad near our own ships. Movement weighs explosions
-  too (`explosion_position_vp` via `AIPlayer._explosion_term`): stay out of the 3D6cm radius of
-  ships (friend or foe) likely to die before our next move, and a ship of ours likely to be
-  destroyed gains by ending next to enemy ships rather than friends. Raids already counted
-  damage prevented by armament crits.
-- AI disengages voluntarily when it pays in expected VP (`AIPlayer._consider_disengage`):
-  e.g. a crippled cruiser on 2 hits under enemy guns tries to leave; a healthy one facing a
-  single enemy cruiser fights on (a lone healthy cruiser facing three full cruisers also leaves:
-  ~39% to be destroyed next turn by this model).
-- AI shoots enemy hulks when their explosion would hurt enemy ships (`AIPlayer._hulk_shot`);
-  fixed: AI hits on a hulk were dropped (`_apply_hits_to` skipped "destroyed" ships), so its
-  catastrophic damage was never re-rolled.
-- AI CAP vs strikes fleet-wide across carriers (`AIPlayer._plan_fleet_defence`; tests in
-  `tests/test_waves.py`): one fighter per salvo from the carrier whose strike loses least.
-- AI turning salvos plan their approach for the weakest Armour facing they can reach (owner):
-  off-side launches and detours (`ai_hazards.approach_plan`), followed in flight.
-- AI leads torpedo targets from their possible next moves (owner): minimum move, turning
-  distance, Burn Retros / All Ahead Full dodges; a salvo parked inside a ship's minimum move
-  can only be escaped by Burn Retros. Turning salvos steer ahead of their target.
-- AI torpedo lanes: best lane within the hit window by expected VP; friendly fire is negative
-  VP (owner): ships hit on the way weaken the salvo (s.15) and our own cost their damage.
-- AI: existing CAP counts against launched threats on its ship; carriers keep bays loaded
-  while nothing is within three craft moves (no enemy ordnance about).
-- AI CAP against enemy strikes not yet launched (`_anticipated_strike_slots`) and an exact
-  CAP / strike count per carrier (`_best_defence_count`).
-- AI CAP vs strikes per carrier (To do 1, first version): one fighter per incoming salvo / mine
-  / wave squadron that is worth more than the next strike squadron, on CAP or free, the rest
-  strike as one wave (before: any enemy ordnance in play made it launch all fighters).
-  `launch_attack_craft` now gives unique ids to several launches of one type in a phase.
-- GUI checks added: `combine_capital_check.py`, `best_split_check.py`, `combine_split_check.py`,
-  `cap_wave_check.py`.
-  The whole GUI suite passes (`heavy_gunz_check.py` updated for the split entry).
+All AI choices are in expected VP (`ai_hazards.py`, `ai_rerolls.py`, `waves.py`, `AIPlayer` in
+`ai_player.py`; the expert AI in `lookahead_ai.py`). Weights marked "judgement" are mine, to
+tune on the owner's feedback: re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per battery
+point, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT` 0.5,
+`DODGE_WEIGHT` 0.5, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
+0.5, CAP free fighters 0.75, the disengage and hulk models.
 
-### To do (agreed order; see docs/HANDOFF.md "Remaining work" and "AI design")
+Values:
+- Two VP scales: gunnery `damage_vp` (s.38 thresholds + 0.2 per hit) for choosing gun / torpedo
+  targets; `hull_hits_vp` (full value per hit + thresholds, the raid scale) wherever bomber hits
+  are compared with raids. Ordnance never loses hits to shields (s.11 / s.15).
+- `damage_vp` adds the threat removed (owner): a kill removes the target's next turn of fire
+  (`ship_threat_vp`), a cripple halves it; and a kill may explode (`death_explosion_vp`,
+  Catastrophic Damage 9-11 plasma / 12 warp, Mercury 3D6, escorts never), good near enemies,
+  bad near our own ships.
+- Sooner beats later (owner): `phase_weight(k)` = 0.85 per ordnance phase of delay, x 0.5 from
+  the next game turn (1, 0.85, 0.36, 0.31); strikes' `travel_discount` shares the factor.
 
-1. AI: CAP vs strikes is built per launching ship (`AIPlayer._bay_allocation`: greedy over
-   its launch slots in expected VP; a fighter on CAP for the friendly ship a threat is closing
-   on (full `intercept_gain`) or free (0.75), else one more squadron in the strike
-   (`_strike_option` marginal: planner wave or assault boats); threats our fighters already fly
-   at count as covered). Done: when hulks are worth shooting (see "Not yet matching": Hulks);
-   voluntary disengaging (see "Not yet matching": Disengaging); bombers vs assault boats (1b).
-   Done: ordnance focus by expected VP (owner: focusing on easier targets is optimal):
-   torpedoes (`_best_torp_target`: `ai_hazards.torpedo_salvo_hits` after turrets, Armour facing
-   the launcher, `added_vp` with ordnance ignoring shields), strike launches (`_strike_option`
-   plans against every enemy within 3 moves, `hull_hits_vp` x `travel_discount`) and craft in
-   flight (`ai_hazards.plan_strike_targets`, fleet-wide, biggest group first), all counting the
-   enemy's actual state after the guns and this phase's planned ordnance (`_ord_committed`).
-   Done (first version): fleet focus positioning (owner agreed). Each AI movement phase picks
-   the fleet's focus target (`ai_hazards.fleet_focus_targets`: the enemy where the fleet's guns
-   within range + one move add the most VP, so easier and damaged ships first); each ship that
-   can bring guns to bear on it within about two moves plans its move against it
-   (`AIPlayer._focus_for`), plus 0.3 x its arc score on its nearest enemy, minus half the hits
-   the enemy could focus on its end position (`_exposure_penalty`,
-   `ai_hazards.position_exposure_hits`). Done: loaded torpedoes in the move score
-   (`AIPlayer._arc_score`: they launch from the end position, s.15; the launcher's strength
-   when the target is in its arc within one torpedo move, half within two; unloaded nothing;
-   craft need no term, they launch any way and the strike planner reaches 3 moves). Done:
-   several focus targets (`ai_hazards.fleet_focus_assignment`, `AIPlayer._focus_map`): each
-   ship's guns go to the enemy where they add the most VP on top of what the ships already
-   given to it are expected to do (`added_vp`: shields, damage thresholds), biggest batteries
-   first, then one round of second thoughts; ships that reach no enemy plan against their
-   nearest. E.g. four cruisers (about 5 hits each) and two enemies: one finishes a 1-hit
-   ship while three go to the other; against two healthy 8-hit cruisers they split 2 / 2
-   (each pair kills its target; all four on one would be overkill). Done: the expert AI's
-   search (`lookahead_ai`) uses the same terms: battery points 0.35 hits scaled by Armour,
-   lances 0.5 whatever the Armour (it used to roll lances against Armour); each ship fires
-   where its hits add the most VP given the ships before it (`_sim_value`: s.38 thresholds +
-   0.2 a hit; no overkill); loaded torpedoes fire once (target in arc within two torpedo
-   moves, turret kills, no shields); a capital ship killed in the sim explodes at its
-   Catastrophic Damage odds (`explosion_odds`, half / all starting hits as 4+ shots within
-   10.5cm); shields come back each turn; the real table size. Its leaf score is VP banked
-   (destroyed full, crippled 25%) plus next turn's expected VP swing at `LATER_TURN_WEIGHT`,
-   over the total points (was: banked points + a firepower ratio)
-   (`tests/test_lookahead_sim.py`).
-   Done: fleet-wide CAP / strike allocation (`AIPlayer._plan_fleet_defence`, each ordnance
-   phase: every carrier starts all-strike; threat slots, best first and a wave's squadrons lead
-   first, go to the carrier losing least, i.e. its last strike squadron's marginal value against
-   the fighter's gain, CAP full / free 0.75; `_bay_allocation` then covers only its own
-   threats, so one salvo no longer draws a fighter from every carrier in reach). Multi-role
-   carriers still plan alone. Strike values aren't linear (fighters suppress turrets, a big
-   wave cripples), so each carrier takes the exact number of defence slots j that maximises
-   strike(n - j) + the j best gains (`AIPlayer._best_defence_count`; the old slot-by-slot
-   greedy misjudged convex strikes), carriers with the weakest strike per squadron first.
-   Done: CAP against enemy strikes not yet launched (`AIPlayer._anticipated_strike_slots`;
-   s.26: CAP stays with its ship): a ship within an enemy carrier's move + its bomber /
-   assault boat speed gets CAP-only slots, one per enemy squadron, each worth that
-   squadron's value against it (`waves.bomber_squadron_value` / `raid_squadron_value`)
-   split over the ships in that carrier's reach, x 0.5 (`ANTICIPATED_STRIKE_WEIGHT`,
-   judgement: it may not launch, may go elsewhere, may lead with fighters); fighters already
-   on CAP there take the best slots. Done: fighters already on CAP for a ship take the
-   most valuable launched-threat slots closing on it first (s.26: CAP intercepts whatever
-   reaches its ship), then the anticipated ones. Done (first version, judgement): carriers
-   keep their bays loaded (relaunching needs Reload Ordnance, s.15) while no enemy ship is
-   within three moves of their fastest craft (the strike planner's reach) and no enemy
-   ordnance is in play. Done: the option value of holding within reach
-   (`AIPlayer._hold_bays`): launching now is worth V_now + p x V_next (Reload Ordnance at
-   Leadership odds p, s.15), holding V_next; hold when (1 - p) x V_next > V_now. V_next = the
-   same strike a turn later from a turn closer (`_strike_option(next_turn=True)`: route
-   length less both ships' moves, x `PHASE_DISCOUNT`^2 for the delay) or the CAP the enemy's
-   loaded carriers would call for (`_anticipated_strike_slots`). A turn's closure saves about
-   as much flight as its delay costs, so with fair odds it launches; e.g. an Emperor facing a
-   6-turret 6+ carrier that threatens a weak friend: launch now ~19 VP vs ~33 VP of CAP next
-   turn, holds at Ld 2 and 5, launches at Ld 8. Out of reach the old rule stays (hold while
-   no enemy is within three moves of the fastest craft: long flights face reactive fighters,
-   turrets and guns, which these values don't capture). Done:
-   two-waypoint routes (`best_route`: detours of detours, every turn within `max_turn`). Done: torpedo launch lanes (`AIPlayer._torp_lane`):
-   of the headings that still meet the target (intercept heading +/- the angle its base and
-   the marker's half width subtend) the AI takes the one worth most in expected VP. Owner:
-   friendly fire is negative VP. Along each lane, in order of contact up to one move past
-   the target, the salvo attacks every ship it touches and carries on with its strength
-   reduced by its hits (s.15): a friendly ship takes the full remaining strength against its
-   Armour (turrets only fire at enemy ordnance, s.28) and costs us that damage's VP
-   (`added_vp`), an enemy ship takes `torpedo_salvo_hits`; the total is scaled by path
-   survival. Friends in contiguous base contact with the launcher are passed through,
-   boarding torpedoes ignore friends (s.16). `_best_torp_target` uses the lane's reduced
-   hits on the target and subtracts the friendly loss; it holds fire when the best is a net
-   loss (`tests/test_ai_torpedo_lanes.py`). Torpedo path hazards are checked across the
-   marker's full width (`ai_hazards.torpedo_path_survival`: centre and both edges).
-   Done: leading the target (owner). Straight-running salvos within reach this turn and the
-   enemy's (`AIPlayer._torp_lead_plan`): the salvo moves now (P0 -> P1), sits at P1 while the
-   enemy moves (a ship moving into it is attacked, s.15) and moves to P2 in the enemy's
-   ordnance phase. The target's next move is sampled (`ai_hazards.enemy_move_samples`: half
-   to full speed, one turn after 10cm / 15cm battleships / escorts anywhere, s.10; dodges by
-   Burn Retros, 0 to half speed turning at once, or All Ahead Full +14cm straight, s.7). The
-   enemy dodges with `DODGE_WEIGHT` 0.5 (judgement): by a normal move that misses if any,
-   else by an order at its Leadership odds; a salvo parked within its minimum move ahead can
-   only be escaped that way (owner). The heading worth most in expected VP is taken (friendly
-   ships are static until our turn, so every one touched on P0 -> P2 costs its damage's VP;
-   other enemies in the lane soak strength, their VP is left to their own plans). A salvo
-   that misses this turn runs on: the target continues its course for a mean move and a
-   catch on the salvo's second turn counts at `LATER_TURN_WEIGHT` 0.5 (judgement; it sees the
-   salvo coming). Sampled moves are weighted 40% holding course, 15% each of the four turns
-   (`MOVE_TURN_WEIGHTS`, judgement). Owner: closing easiest, abeam hardest, receding in
-   between. Result for a speed-20 Ld 8 cruiser: at 40cm closing 0.64, receding 0.34, abeam
-   0.32; from about 45cm a receding ship is out of this turn's reach and only caught on the
-   second turn (0.21 at 50cm vs 0.32 abeam, 0.34 closing) (`tests/test_ai_torpedo_lead.py`). Owner: target size matters.
-   Every contact uses the ship's own base (large 60mm, radius 3.0cm, s.4: battleships, 3+
-   shields or 10+ hits; small 32mm, 1.6cm) plus the marker's half width, so large bases are
-   easier to hit (abeam at 50cm, before the course prior: 0.41 vs 0.32), and a closing battleship, straight for 15cm
-   before turning, can't sidestep (0.64 out to 60cm). The hazard maths for enemy torpedoes
-   against our own ships uses the same contact width (`marker_hits`). Beyond that reach the intercept
-   aim is kept (later turns are too uncertain). Done: Armour-facing approaches for salvos
-   that turn and roll against Armour (owner: fire off to the side or take a detour to hit a
-   weaker facing; Tau missiles, Ld-guided and boarding torpedoes; seeking turn by themselves).
-   `ai_hazards.approach_plan` searches the launch heading (within the arc, plus the bearings to
-   the target now and where it will be) and a turn of up to 45 degrees at the start of each
-   later move, four moves deep (full choice on the first turn, then -45 / 0 / +45; Tau
-   missiles 20 / 30 / 40cm a move on the first two moves), against the target where it will
-   be each phase (`_predicted_positions`: weighted mean of its sampled moves). Each path's
-   first contact rolls against the facing it hits (a ship that moves onto the waiting salvo
-   takes it on the side it leads with), after turrets; value x path survival x
-   `phase_weight` x the Leadership odds per turn for Ld-guided torpedoes x 5/6
-   per later phase for Tau missiles x 1/2 for boarding torpedoes; friendly ships touched first
-   cost their damage's VP (not boarding). Ties: earlier hit, then nearest the bearing. Used for
-   the launch heading and target choice (`AIPlayer._approach_for_launch`), recorded on the
-   salvo (`OrdnanceMarker.torp_target_id`) and followed in flight: Tau missiles in
-   `_steer_guided_missile`, the AI's own boarding / guided salvos via
-   `ordnance_movement._ai_salvo_turn` -> `ai_hazards.salvo_approach` (a human's prompts still
-   suggest the nearest enemy). E.g. an Ork-style 6+/5+/4+ cruiser abeam: the planner comes
-   round to the 4+ rear (18.9 VP vs 9.6 for the best salvo that never turns, 5+ side); one
-   closing on the launcher can only be met on its prow (`tests/test_ai_armour_approach.py`).
-   Not yet: the target turning to show its strongest facing.
-   Owner: sooner beats later ("2 hits on the side within 2 turns are worth much more than 3
-   on the rear after a 4-turn loop"). One time discount for every ordnance planner:
-   `ai_hazards.phase_weight(k)` = `PHASE_DISCOUNT` 0.85 per ordnance phase of delay, x
-   `LATER_TURN_WEIGHT` from the next game turn on (1, 0.85, 0.36, 0.31), used by
-   `approach_plan` and the lead plan (`_torp_lead_plan`: the enemy's phase 0.85, the next turn
-   0.36 / 0.31); strikes' `travel_discount` uses the same factor per move. Hit chances
-   (`p_hit`) stay probabilities; only values are discounted. The planners look two game turns
-   ahead, so long loops are never on the table. Done: guided salvos use the launcher's real Ld in the
-   hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
-   Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest
-   half-speed move along the path, taken when the hazard saved beats half the ship's
-   firepower value); escorts guard the commander's ship (`AIPlayer._screen_bonus`: an escort's
-   move scores the massed turret it adds by ending in base contact with the flagship, s.29,
-   +1 each up to +3, while enemy torpedoes, torpedo bombers, bombers, assault boats or mines could reach the
-   flagship; owner: with none of those about, ships don't try to mass turrets, and enemy
-   fighters don't count; worth half a turret shot's expected hits saved per threat, up to 3). Done: guided / seeking torpedo turn cones in the hazard maths
-   (`ai_hazards._torpedo_heading / _in_turn_cone`: seeking salvos turn up to 45 degrees at the
-   nearest of our ships at its end position; guided ones threaten their whole 45-degree cone at
-   the launcher's Leadership-test odds (`guided_turn_chance`); owner: not every turning salvo
-   uses Ld: boarding torpedoes (manned) turn freely within 45 degrees, Tau missiles turn 45
-   every move, reach up to 40cm (`torpedo_reach`) and count at 5/6 strength (a point lost on
-   each 1 before moving); standard / short burn / barrage / melta / vortex run straight). The
-   AI's own torpedo targeting routes round obstacles the same way: Tau missiles (weapon
-   "guided") within 45 at 40cm, bought Ld-guided torpedoes at the launcher's Ld odds, others
-   straight. In code, weapon torpedo_type "guided" means Tau missiles (`torpedo_guided`); the
-   Leadership type is `torpedo_guided_ld`. When torpedo bombers are built (To do 3: a wave of N
-   becomes one combined 2N-strength salvo, s.21), change `ai_hazards.marker_hits` too: it still
-   counts them as bombers, as the engine plays them now. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected
-   hits per point of in-arc firepower, half-weight flagship exposure) are judgment: tune on
-   the owner's feedback.
-1b. (done) Bombers vs assault boats by expected VP (owner idea): `waves.bomber_squadron_value`
-   (D6 - innate turrets attacks, 3 if suppressed, lowest Armour; a 1-hit target is worth the
-   ship once), `waves.raid_squadron_value` (mean raid value with crew modifiers),
-   `waves.best_attack_mode` -> `ordnance.mr_attack_mode_ai(target, gs, owner, rules)` for
-   multi-role craft (the human prompt is now a choice showing both values, Auto (best)); the AI
-   carrier compares the planner's fighter / bomber wave with an all-assault-boat strike
-   (`expected_survivors` through CAP and turrets x raid value, `AIPlayer._wave_split`). Note:
-   counting turret suppression, 3 fighters + 1 bomber edge out 4 boats in the owner's 4-turret
-   6+ example when the target's guns threaten nothing; boats win once their crits matter.
-1c. Strike planning by expected VP when the strike lands (owner discussion; full design in
+Movement:
+- Hazards along the move path (mines, torpedoes, attack craft, asteroids, warp rifts, dust,
+  blast markers), each marker's threat by type (`marker_hits`): guided / seeking / Tau turn
+  cones (`_torpedo_heading`, launcher's real Ld), boarding torpedoes turn freely within 45,
+  Tau missiles 45 / 40cm / 5/6 strength, the rest straight; contact = base + marker half width.
+- Fleet focus (owner: focus fire, easier targets first): several focus targets
+  (`fleet_focus_assignment`: each ship's guns where they add most VP given the others', no
+  overkill), planned against with 0.3 x the arc score on the nearest enemy, minus half the hits
+  the enemy could focus on the end position (`_exposure_penalty`, `position_exposure_hits`).
+- The move score (`_arc_score`) counts in-arc batteries / lances / nova cannon and loaded
+  torpedoes (they launch from the end position: full within one torpedo move, half within two).
+- Explosions (`explosion_position_vp`): keep out of the 3D6cm radius of ships likely to die; a
+  ship of ours likely to die ends next to enemies.
+- Burn Retros by expected VP (`_burn_retros_worth_it`); escorts screen the commander's ship for
+  massed turrets (s.29, `_screen_bonus`) only while enemy torpedoes, torpedo bombers, bombers,
+  assault boats or mines can reach it (owner: never against fighters alone).
+- Voluntary disengaging (s.37, `_consider_disengage`, `ai_hazards.disengage_gain`): P(pass) x
+  (risk avoided over the enemy's next turn - extra VP conceded) - its guns' value. Risk from
+  `incoming_hits`: per enemy mount (a port broadside bears on ships on its left, starboard on its
+  right, other mounts within their arc after one turn of the ship's own turn angle), the enemy
+  focusing fire (`enemy_fire_plan`, owner), a Poisson count; destroyed = full value (75% more if
+  already crippled), newly crippled 25%; leaving concedes 10%. One-turn horizon; escort squadrons
+  and the last turn not special-cased.
+
+Shooting:
+- Targets by marginal expected VP (no overkill), target priority test obeyed; battery values with
+  column shifts (`combat.expected_hits(..., gs)`); weapons knocked out by armament crits never
+  fire (`combat.weapon_disabled_by_crit`); the commander's ship braces earlier.
+- Squadron volleys (s.8, `_squadron_volleys`): one `plan_squadron_volley` per squadron when it
+  rolls at least as many dice as firing separately, at the best target that is every
+  contributor's nearest valid target; aspect by `best_aspect_choice`. Batteries only. Not yet:
+  Ork random-firepower batteries in volleys, a volley needing a target priority test.
+- Hulks (`_hulk_shot`, `hulk_shot_vp`): shot when the closest target in arc and P(a hit) x the
+  re-rolled catastrophic damage among enemy ships beats the best ship shot. Not counted: Holding
+  the Field hulk points, hulks that aren't the closest target.
+- Ships shoot incoming ordnance when worth more than their best ship shot.
+
+Ordnance:
+- Torpedo targets (`_best_torp_target`) by expected VP after turrets and path survival, counting
+  the guns' work and the phase's other launches (`_ord_committed`). Lanes (`_torp_lane`): the
+  heading worth most within the hit window; owner: friendly fire is negative VP (a salvo attacks
+  every ship it touches and carries on weakened, s.15; friends in base contact with the launcher
+  are passed through, boarding torpedoes ignore friends); path hazards across the marker's full
+  width (`torpedo_path_survival`). Holds fire when the best is a net loss.
+- Leading straight salvos (owner, `_torp_lead_plan`): the target's next move is sampled
+  (`enemy_move_samples`: half to full speed, one turn after its turning distance, dodges by Burn
+  Retros / All Ahead Full); the salvo moves now, waits while the enemy moves (a ship moving into
+  it is attacked), moves again; the enemy dodges with `DODGE_WEIGHT` when a normal move or an
+  order at its Ld odds escapes (a salvo parked within its minimum move ahead can only be escaped
+  by an order); a catch on the second turn counts at `LATER_TURN_WEIGHT`. Owner: closing
+  easiest, abeam hardest, receding between (speed-20 Ld 8 cruiser at 40cm: 0.64 / 0.34 / 0.32);
+  large bases easier to hit (owner); a closing battleship can't sidestep. Beyond two moves'
+  reach the intercept aim is kept.
+- Turning salvos that roll against Armour (owner; Tau missiles, Ld-guided, boarding):
+  `approach_plan` searches the launch heading and a 45-degree turn per later move, four moves
+  deep, for the weakest facing they can reach (facing from the contact point; a ship that moves
+  onto the salvo takes it on its leading side), weighted by `phase_weight`, Ld odds per guided
+  turn, Tau strength loss, boarding at half; recorded on the salvo (`torp_target_id`) and
+  followed in flight (`salvo_approach`, `ordnance_movement._ai_salvo_turn`,
+  `_steer_guided_missile`). E.g. an Ork 6+/5+/4+ cruiser abeam: round to the 4+ rear (18.9 VP vs
+  9.6 for the 5+ side). Not yet: the target turning to show its strongest facing.
+- The AI fires its one vortex / melta / seeking salvo at the first capital ship target, guides
+  torpedoes freely, short burn beyond 30cm, no barrage bombs until planetary assaults exist.
+- Carriers: CAP vs strike fleet-wide (`_plan_fleet_defence`): every carrier starts all-strike;
+  threat slots (a salvo or mine = one fighter, a wave one per squadron lead first,
+  `intercept_gain`; CAP full, free fighters 0.75; enemy strikes not launched yet, CAP only,
+  `_anticipated_strike_slots`; existing CAP covers its ship's threats first) go to the carriers
+  with the weakest strike per squadron, each taking the exact count that maximises strike +
+  gains (`_best_defence_count`). Multi-role carriers plan alone.
+- Strikes (`_strike_option`): every enemy within 3 moves, the planner's fighter / bomber wave
+  (`waves.plan_wave_against`) or all assault boats (owner idea: by expected VP, `waves.raid_squadron_value`), x the
+  route (`best_route`: up to two waypoints round obstacles, AI craft fly them,
+  `ordnance.craft_target_point`); craft in flight re-targeted fleet-wide
+  (`plan_strike_targets`); multi-role attack mode by `waves.best_attack_mode`.
+- Holding bays (`_hold_bays`): out of reach (nothing within three moves of the fastest craft)
+  hold; within reach hold when (1 - Reload Ordnance odds) x next turn's launch or CAP value >
+  launching now (rarely, with fair Ld).
+- Fighters fleet-wide by VP saved; turret split by expected hits saved.
+
+Re-rolls and choices: importance-based re-rolls (`ai_rerolls.should_reroll`); Wings of Fury raid
+re-rolls and the "Auto (best)" prompts (see above).
+
+Expert AI (`lookahead_ai`): minimax over a deterministic sim using the same terms (battery 0.35
+scaled by Armour, lances 0.5, focus without overkill, torpedoes once, explosions at their odds,
+shields each turn, the real table); leaf = VP banked + next turn's expected swing at
+`LATER_TURN_WEIGHT`.
+
+### To do (agreed order; detail in docs/HANDOFF.md)
+
+1. AI tuning on the owner's feedback (the judgement weights above). Example to check: a lone
+   healthy cruiser facing three full enemy cruisers disengages under the current model.
+2. Strike planning by expected VP when the strike lands (owner discussion; design in
    docs/HANDOFF.md "Ordnance strike planning"): crit values over the turns they last (damage
-   control s.36: D6 per remaining hit, 6s repair, halved near blast markers; permanent crits and
-   extra damage in full), threat at the target's next shooting phase (reach model), travel time
-   and which player's ordnance phase the wave lands in, losses on the way (fighters, blast
-   markers, reactive CAP, target leaving), the option of not launching yet, enemy guns vs waves
-   (one hit removes a whole wave on 6+, s.25 / s.30) and when to split a wave (each group faces
-   turrets separately and loses cross-group suppression), a risk preference from the game state,
-   and the expert AI's leaf evaluation using the same terms. One function feeds the planner, AI
-   launches, bombers vs assault boats (1b), multi-role attack modes and Wings of Fury.
-   Built so far: the crit-over-time value and reach model for raids (Wings of Fury,
-   `hit_and_run.armament_threat_value`); reuse them for the rest. Not yet: travel time, phase
-   timing for waves, losses en route, enemy guns vs waves / splitting, risk preference, expert
-   leaf evaluation.
-2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
-2b. (done) Wave planner follow-ups: combined launch dialog, AI launches, engine CAP vs wave
-   order (`waves.resolve_cap_vs_group`), heavy_gunz_check fixed.
+   control s.36), threat at the target's next shooting phase, travel time and which player's
+   ordnance phase the wave lands in, losses on the way (fighters, blast markers, reactive CAP,
+   target leaving), enemy guns vs waves (one hit removes a whole wave on 6+, s.25 / s.30) and
+   when to split a wave, a risk preference from the game state, the expert AI using the same
+   terms. One function feeds the planner, AI launches, bombers vs assault boats, multi-role
+   attack modes and Wings of Fury. Built: crit-over-time value and the reach model for raids
+   (`hit_and_run.armament_threat_value`), the time discount (`phase_weight`).
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
-   mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules to
-   build (s.21, owner): torpedo bombers are bombers against other ordnance but can't attack
-   ships; at the start of any ordnance phase after their launch turn a squadron may be
-   replaced by a strength-2 salvo facing any direction, removed at the end of that phase; a
-   wave combines its salvos like a squadron in base contact, so a wave of 4 becomes one
-   strength-8 salvo (owner: "a wave of 4 torpedo bombers becomes a wave of 8 missiles"). Tau
-   Tiger Shark drone carriers are torpedo bombers whose salvos are Tau missiles (owner ruling
-   below: 20-40cm, removed that phase, no strength-loss roll). Then
-   update the AI: `ai_hazards.marker_hits` (a torpedo bomber wave threatens one salvo of 2 x
-   its squadrons, any facing, within its torpedo reach), fighter allocation (one fighter
-   removes the whole combined salvo, s.19) and strike planning (torpedo bombers vs bombers).
-   Owner reminder: torpedo-bomber salvos don't live on like other torpedoes: s.21 "limited
-   fuel ... removed at the end of the phase in which it is fired" (one move only). Who has
-   them (owner corrected an incomplete list; full search of ships.json notes and the rules):
-   "Attack craft: TB 20cm +Npts" options on 19 carriers in four factions, plus Tau:
-   - Imperial Navy (Marauders, Imperial Navy rules p.3): Emperor +80, Oberon +80, Exorcist +60,
-     Mars +40, Dominion +40, Dictator +40;
-   - Adeptus Mechanicus: Mechanicus Emperor +80, Mechanicus Oberon +40, Mechanicus Dictator +40;
-   - Chaos ("not if Stormbird gunships taken"): Despoiler +80, Desecrator +40, Retaliator +60,
-     Nephilim +40, Styx +60, Hecate +40, Devastation +40, Scion of Prospero +90, Wage of Sin +60,
-     Terminus Est +70;
-   - Tau: Tiger Shark drone carriers (torpedo bombers "producing missile salvos", 4+ resilient,
-     20cm) replacing Mantas on many Tau ships and the Orbital City's defence module (owner
-     ruling under "Open questions": S2 Tau missile salvo per squadron, 20-40cm, gone at the
-     end of the phase, no strength-loss roll).
-   None of these purchases is offered by the fleet builder yet (`booklet_options` note, l.532);
-   Orks, Space Marines, Inquisition and Rogue Traders list none.
+   mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
+   owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the
+   start of any ordnance phase after their launch turn a squadron may be replaced by a
+   strength-2 salvo facing any direction, removed at the end of that phase ("limited fuel": one
+   move only); a wave combines its salvos like a squadron in base contact (owner: "a wave of 4
+   torpedo bombers becomes a wave of 8 missiles"). Tiger Sharks: see the owner ruling below.
+   Then the AI: `ai_hazards.marker_hits` (a torpedo bomber wave threatens one salvo of 2 x its
+   squadrons, any facing, within its reach; today it counts them as bombers), fighter allocation
+   (one fighter removes the whole combined salvo, s.19), strike planning (torpedo bombers vs
+   bombers). Who has them (owner corrected an incomplete list; "Attack craft: TB 20cm +Npts"
+   options): Imperial Navy (Marauders) Emperor +80, Oberon +80, Exorcist +60, Mars +40,
+   Dominion +40, Dictator +40; Adeptus Mechanicus Emperor +80, Oberon +40, Dictator +40; Chaos
+   ("not if Stormbird gunships taken") Despoiler +80, Desecrator +40, Retaliator +60, Nephilim
+   +40, Styx +60, Hecate +40, Devastation +40, Scion of Prospero +90, Wage of Sin +60, Terminus
+   Est +70; Tau Tiger Shark drone carriers (replacing Mantas on many Tau ships, and the Orbital
+   City's defence module). None is offered by the fleet builder yet (`booklet_options` note,
+   l.532); Orks, Space Marines, Inquisition and Rogue Traders list none.
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
    daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
    commander's Extra Turrets: 4+), other factions' secondary commanders, Inquisition Ordos.
 5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
    Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
    disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
-6. Smaller gaps: the +3 disengage Ld during a radiation burst / solar flare; undoing a Demiurg move
-   doesn't return collected blast markers; a human player isn't stopped from not fleeing
-   after a failed forced disengage (log reminder only); scenario rules (Business as Usual,
-   High-Risk Convoys, planetary assaults, low orbit).
+6. Smaller gaps: the +3 disengage Ld during a radiation burst / solar flare; undoing a Demiurg
+   move doesn't return collected blast markers; a human player isn't stopped from not fleeing
+   after a failed forced disengage (log reminder only).
+7. Scenarios and sub-plots, engine and AI (owner request: the AI must play scenario and sub-plot
+   games, not just cruiser clash; after items 1-6). The engine has only the old generic modes
+   (`scenario.check_scenario_end`: kill the admiral, destroy / protect a ship, capture an
+   artefact); none of the booklet's scenarios (`bfgxr/rules/10_scenarios.md`: Cruiser Clash, The
+   Bait, Chance Encounter, The Raiders, Blockade Run, Convoy, Rearguard Attack, Navigate the
+   Storm, Destroy the Docks, Exterminatus!, Alien Intervention, Surprise Attack, Planetary
+   Assault, Escalating Engagement, Fleet Engagement, the campaign set pieces and the newer
+   short set: Confrontation, Line Breaker, Ambush, Convoy, Space Assault, Rescue, Warp Storm,
+   Planet Strike, Domination) or sub-plots (p.80-82: Legacies of War, Chance Circumstances,
+   Secret Ploys; Heroic / Victory / Heroic Defeat / Miserable Defeat results; renown in
+   campaigns; plus faction sub-plots: Mechanicus Quest for Knowledge, Inquisition Secret Ploys,
+   Rogue Trader Business as Usual). Build: (a) the scenarios' set-up, special rules, game length
+   and victory conditions (attack ratings, attacker / defender, low orbit, planets, convoys,
+   transport capacity, assault points, High-Risk Convoys); (b) sub-plot generation, their
+   effects and objectives, and the battle result; (c) the AI: value each scenario's and
+   sub-plot's objectives in expected VP alongside ship VP (e.g. escaping or stopping convoys and
+   blockade runners, objective ships, planets and assault points, the Vendetta target, keeping
+   the flagship above 75% for Fleet Experience, reinforcements surviving, boarding for battle
+   plans, Holding the Field, the turn limit). Ask the owner where the booklet is unclear.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

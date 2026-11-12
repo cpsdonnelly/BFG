@@ -25,16 +25,26 @@ session.
 
 ## Testing
 
-- `pytest -q`: **964 tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
+- `pytest -q` (here: `/root/.local/share/uv/tools/pytest/bin/python -m pytest -q`): **1055
+  tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
 - GUI checks drive the real panels: `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<name>.py`
-  (that Python has tkinter). Run the ones touching what you changed; full AI games:
-  `gui_spectator_demo.py normal`, `gui_spectator_sm.py normal`, `gui_ai_check.py` (its
+  (that Python has tkinter; it has no pytest). Run the ones touching what you changed; full AI
+  games: `gui_spectator_demo.py normal` (or `expert`), `gui_spectator_orks.py normal`,
+  `gui_spectator_sm.py normal`, `gui_ai_check.py` (its
   "Traceback ... boom" is a deliberate crash test). New this session: `torpedo_types_check`,
   `fleet_list_check`, `wave_check`, `combined_fire_check`.
 
-## Done this session (all committed and pushed)
+## Where things stand
+
+`CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
+drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
+does, with the judgement weights to tune), "To do" (agreed order, items 1-7), "Open questions"
+(none open) and every owner ruling. This file keeps the history: owner guidance in their words,
+design notes, booklet export notes and the session log.
+
+## Earlier in the session (history; all committed and pushed)
 
 - Hulks drift only in their owner's phase; "+D6cm on AAF" sources stack (Sigils of Quickening).
 - Chapter tactics: all ten checked against the booklet; Wings of Fury re-roll is the owner's
@@ -76,123 +86,10 @@ session.
   **secondary commanders** for Navy, Chaos and Mechanicus with ship/squadron-only re-rolls
   (`Ship.own_rerolls`, `booklet_options.SECONDARY`, `fleet_max:` option restriction).
 
-## Current status (copied from CLAUDE.md; keep the two in step)
-
-Booklet installed: zip 12 (CHANGES.md update 45). After every new export, diff the built
-catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
-matched in code, and a reworded note silently drops an option.
-
-Done this session (all pushed): exports 36 / zip 10-12; the whole export 31 "still to do"
-list (Navy refits, Bakka, Armageddon, Space Marine lists and options, Mechanicus Gifts, Rogue
-Trader Notable Xenos, Demiurg War Host and playable Demiurg ships, Hired Reserves, Chaos Marks /
-CSM crews / reserves, core wording checks); boarding crew bonuses and troop modifiers (s.32);
-torpedoes passing through friendly ships in contiguous contact; disengaging (s.37) incl. forced
-disengagement and Demiurg Mercenaries; optional Modern / Remastered blast markers; defence
-turret split (s.28) and Ork turrets; the AI work below.
-
-AI (all in expected VP; `ai_hazards.py`, `ai_rerolls.py`, `AIPlayer`): hazard avoidance along
-the move path (mines, torpedoes, attack craft, asteroids, warp rifts, dust, blast markers);
-importance-based re-rolls; targeting by marginal expected VP (no overkill); target priority
-test obeyed; the commander's ship protected (exposure, braces earlier); fighters allocated
-fleet-wide by VP saved (one per salvo / mine, one per wave squadron); ships shoot incoming
-ordnance when worth more than their best ship shot; turret choice by expected hits saved.
-
-### To do (agreed order; detail in "AI design" and "Remaining work" below)
-
-(CLAUDE.md "To do" is the current list; this copy is kept in step with it.)
-
-1. AI: the agreed pieces are done (several focus targets, torpedoes in the move score,
-   holding bays by option value, two-waypoint routes, the expert AI's evaluation). Left: tune
-   the judgement weights on the owner's feedback. Done:
-   hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
-   positioning (first versions: `fleet_focus_targets`, `_focus_for`, `_exposure_penalty`),
-   escorts screening the commander's ship (`_screen_bonus`), prevented damage and explosions in
-   `damage_vp`. The AI weights (re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per point
-   of in-arc firepower, half-weight flagship exposure, the disengage and hulk models) are
-   judgment: tune on the owner's feedback.
-1b. (done) Bombers vs assault boats by expected VP.
-1c. Strike planning at arrival time ("Ordnance strike planning" below): travel time, phase
-   timing, losses en route, enemy guns vs waves and splitting, risk preference, expert AI leaf
-   evaluation. Built: crit value over time and the reach model, for raids (Wings of Fury).
-2. (done) Thunderhawk / multi-role turret-suppression choice (s.27).
-2b. (done) Wave planner follow-ups (combined launch dialog, AI launches, engine CAP vs wave).
-3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
-   mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21).
-4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
-   daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
-   commander's Extra Turrets: 4+), other factions' secondary commanders, Inquisition Ordos.
-5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
-   Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
-   disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
-6. Smaller gaps: the +3 disengage Ld during a radiation burst / solar flare; undoing a Demiurg move
-   doesn't return collected blast markers; a human player isn't stopped from not fleeing
-   after a failed forced disengage (log reminder only); scenario rules (Business as Usual,
-   High-Risk Convoys, planetary assaults, low orbit).
-
-### Owner rulings: answers to the open questions (implemented, tested)
-
-All implemented: Fleet Defence Turrets (a crippled ship gives no +1, `ordnance.get_massed_turret_bonus`);
-Bakka (Mechanicus Endeavour / Endurance / Defiant added to its Battlecruisers section); Emergency
-Energy Reserves, troop rating, Sensors / Comms Uplink and Navy refits already matched (tests
-added); Master of the Fleet (new free option "Chapter Flagship (0-1)" on the Space Marine Battle
-Barge, `booklet_options.is_chapter_flagship`, used by `fleet_lists._sm_barge_errors` and the
-placement check); overlapping bases for every blast marker effect
-(`geometry.count_blast_markers_touching` + `optional_rules.overlap_ships`, the turn controller
-registers the ships); Remastered spill-over limit as its own Advanced checkbox
-(`GameState.rule_remastered_spillover`, `combat._place_shield_impacts`: one round of a ship's
-shooting in a phase touches at most the target and one other ship; markers overlap each other
-rather than touch a third ship).
-
-- **Fleet Defence Turrets:** the gift reduces the ship's own Turrets by 2 and gives +1
-  MASSED turret to all allied ships within 15cm, including itself (massed limit +3). It does
-  not raise innate turrets. Crippling halves only the innate value (rounding up); the massed
-  +1 is added after. Massed turrets never count towards troop rating. A crippled ship cannot
-  contribute massed turrets, so a crippled Fleet Defence Turrets ship gives no +1 (including
-  to itself).
-- **Bakka:** any Mechanicus cruiser in the Mechanicus list's Cruisers section may take
-  battlecruiser places, including the Endeavour, Endurance and Defiant light cruisers.
-- **Emergency Energy Reserves:** round the LOSS down (25% of 2 = 0.5, so 2 stays 2; 4
-  becomes 3; FP6 becomes 5). The 15cm speed floor still applies after Thrusters Damaged.
-- **Troop rating:** apply doubling / halving to remaining hits first, then the defender adds
-  turrets ("after any other modifiers"), not including massed turrets.
-- **Master of the Fleet:** a standard Battle Barge is the Chapter flagship only if bought in
-  the 0-1 Chapter Flagship slot (fleet must be 1000+ pts). If all battle barges are Command
-  Ships, there is no flagship and the Master of the Fleet goes on any battle barge.
-- **Sensors / Comms Uplink:** yes, +1 on top of the commander's Ld, max 10.
-- **Navy refits:** yes, Mercury, Tyrant, Mars and Overlord refits may all be combined.
-- **Optional blast markers:** overlapping bases covers every blast marker effect (shields,
-  speed, Ld, shooting, ordnance). Build Remastered's spill-over limit as a separate
-  Remastered option, not the XR default.
-
-- **Troop rating, crippled defender (implemented):** it adds its CURRENT turrets, halved
-  rounding up when crippled (s.33; the drawn-combat rule says "remaining turrets"). Order:
-  remaining hits, any doubling / halving, then current innate turrets (crippled-halved, after
-  Fleet Defence Turrets' -2, never massed) (`boarding.troop_rating`, `Ship.effective_turrets`).
-
-### Open questions for the owner
-
-- None open.
-
-### Player "Auto (best)" button (owner request, done)
-
-The player's choice prompts (re-rolls, Wings of Fury, Mark of Tzeentch, turret split,
-multi-role suppression) have an "Auto (best: ...)" button picking the AI's expected-best
-option (`src/choice_dialog.py`). Still to add it to: Brace for Impact, special-order
-re-rolls, the Vault of Technology chooser. (The Combine Squadron Fire aspect choice defaults
-to "Best for expected hits"; `heavy_gunz_check.py` was updated and passes.)
-
-### Owner rulings given this session (also in CLAUDE.md)
-
-- Bastion's modular bays: S2 attack craft or S4 torpedoes, chosen at each launch.
-- Turrets (s.28): after turrets fired at torpedoes / mines, bombers' attacks are still reduced
-  by turrets (only the shoot-down roll is blocked).
-- Optional blast markers: add Modern and Remastered as an advanced setting (done).
-- AI guidance: hazards with threat levels (a mine outweighs a torpedo salvo), destroy incoming
-  threats (fighters first, guns when worth it), do the most good with each fighter (one per
-  salvo / mine / wave squadron), think through CAP vs strikes (plan below), protect the
-  commander's ship, spend re-rolls by importance.
-
 ## Owner guidance on AI play (from the end of this session)
+
+(History: the owner's guidance in their words. What was built from it is described in
+CLAUDE.md "AI: how it decides"; open points are in its "To do".)
 
 - **AI re-rolls:** holding one back is right, but only so it can be spent on something
   important. Replace the fixed "2+ left" rule (`GamePanel._ld_reroll_hook`, `_guided_reroll`,
@@ -566,7 +463,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
   (`contiguous_contact_groups` per `squadron_id`), capital ships included; unsquadroned ships in
   contact no longer combine. GUI checks: `combine_capital_check.py`, `best_split_check.py`.
 
-## Session end state (latest)
+## Session log (latest session, newest last; history)
 
 All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1055 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
@@ -689,15 +586,20 @@ Latest items, newest last:
   without overkill, torpedoes, explosions, shields per turn, real table; leaf = banked VP +
   next turn's expected swing at LATER_TURN_WEIGHT). Expert spectator games run clean.
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
+- Owner request: a new To do item 7, scenarios and sub-plots in the engine and the AI (after
+  items 1-6). Brief tidied: CLAUDE.md now has one "AI: how it decides" section and a To do of
+  open items only (renumbered 1-7: tuning, strike planning at arrival, mines / torpedo
+  bombers, commanders and options, unplayable units, smaller gaps, scenarios); this file keeps
+  history and points to CLAUDE.md instead of copying it.
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
-Next: CLAUDE.md "To do" 1c (strike planning at arrival time), then items 3-6 (item 3 now
+Next: CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-6 (item 3 now
 carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos and the AI
 changes they need, and the Tiger Shark ruling). No open questions. Owner feedback wanted on the AI's judgement weights, e.g. a
 healthy lone cruiser facing three full enemy cruisers disengages under the current model.
 
-## Bombers vs assault boats (owner idea, done: CLAUDE.md To do 1b)
+## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),
 the AI should choose by expected VP per squadron that reaches the target. Owner's example,
@@ -721,7 +623,7 @@ checked against s.20 / s.22 / s.31:
   mix (`AIPlayer._launch_ship_ordnance` / `_wave_split`) and as the "Auto (best)" for the
   human multi-role prompt.
 
-## Ordnance strike planning: design from the owner discussion (to do: CLAUDE.md To do 1c)
+## Ordnance strike planning: design from the owner discussion (to do: CLAUDE.md To do 2)
 
 Raised by the owner after the wave planner and the bombers-vs-assault-boats idea. Nothing
 below is built yet except where it says so. The aim: one function, "expected VP of this
@@ -800,46 +702,22 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    `hit_and_run.p_crit_unrepaired` (one or two end phases). Points 2-3 are thus built for raids;
    the rest (travel time, waves, splitting, expert leaf) is still to do.
 
-## Remaining work (agreed order)
+## Remaining work (agreed order; CLAUDE.md "To do" has the detail)
 
-**The current to-do list and open questions are in CLAUDE.md ("To do", "Open questions for
-the owner"); it supersedes the list below where they differ** (disengaging, the export 31
-items and the first AI steps below are done).
-
-0. **First: the "Still to do" list from booklet export 31 above** (faction audits and the core
-   rules now in rulebook wording). Work through it faction by faction, reading each CHANGES.md
-   entry; ask the owner only where the text is unclear.
-
-1. **MOSTLY DONE (task 1, commander re-rolls and secondary commanders):** fleet re-rolls now
-   also on Brace for Impact, target priority, asteroid / warp rift navigation
-   (`movement.fleet_reroll_offered`, `GameState.ld_reroll_hook` set by GamePanel); secondary
-   commanders for Navy, Chaos and Mechanicus with ship/squadron-only re-rolls
-   (`Ship.own_rerolls`, `booklet_options.SECONDARY`). Left: other factions' secondaries
-   (Inquisition Elite Captains / Daemonhunters, Ork Nobz, Rogue Trader Bond-Captains, Space
-   Marine Captains on Dominion reserves) and separate re-roll pools for several Ork Bosses.
-2. **AI (done):** shoot at enemy hulks; use combined squadron fire (`combat.plan_squadron_volley`)
-   with expected-hits / VP target scoring (see "Owner guidance on AI play"); importance-based
-   re-roll spending; the "Best for expected hits" tool in the Combine Squadron Fire dialog.
-3. **Disengaging (s.37): done.** A voluntary disengage by an escort in a squadron is one
-   squadron test; a capital ship that fails leaves its squadron; Forced Disengagement at Ld 1
-   or less and Demiurg Mercenaries (`disengage.mercenary_must_disengage`) test at the end of
-   the movement phase (`forced_disengage_tests`), and a ship that fails gets `must_flee` (the
-   AI heads for the nearest edge, `AIPlayer._plan_flee`; a human is reminded in the log);
-   celestial phenomena are measured to their edge. Not yet: the +3 for a radiation burst or
-   solar flare in progress (anywhere on the table). The AI disengages voluntarily by expected
-   VP (`AIPlayer._consider_disengage`).
-4. **The ordinary profiles' own refits** from ships.json notes, one at a time (Mars Targeting
-   Matrix, Exorcist prow torps, Repulsive extra shield, ...); Ork kustom upgrades and clans.
-5. **Done:** multi-role fighter-bombers (Thunderhawks) in a wave must be
-   offered s.27's choice to suppress turrets instead of attacking, chosen before the turrets
-   fire, the suppressors at the front of the wave (`waves.ship_attack_plan` already takes an
-   `mr_suppress` map; add the prompt in `ordnance_movement._resolve_ship_contacts` and an AI
-   choice). Fighta-Bommerz still never suppress.
-6. **Smaller gaps** (see CLAUDE.md): attack craft flying straight / torpedo collisions checked
-   only at the end of the move; resilient wave
-   splitting; low orbit and planetary assaults (barrage bomb assault points); named commanders;
-   unplayable ships (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons).
+1. AI tuning on the owner's feedback (judgement weights listed in CLAUDE.md's AI section).
+2. Strike planning at arrival time (design below, "Ordnance strike planning").
+3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
+   Sharks per the owner ruling) and the AI changes they need.
+4. Named commanders, Mark of Chaos Undivided, daemonships, Stormbirds, god-fleet boons, Ork
+   kustom upgrades / clans, other factions' secondary commanders, Inquisition Ordos.
+5. Unplayable units (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons...).
+6. Smaller gaps (radiation burst / solar flare disengage bonus, Demiurg undo, forced-flee
+   enforcement for humans).
+7. New (owner request): scenarios and sub-plots, engine and AI: the booklet's scenarios
+   (`bfgxr/rules/10_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
+   Rogue Trader faction sub-plots), then an AI that plays their objectives, not just cruiser
+   clash. The engine has only the old generic modes today (`scenario.check_scenario_end`).
+   Do items 1-6 first.
 
 Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
-transcriptions (as done for the Chaos/Ork/Tau/RT fleet lists) and verify a sample against the
-booklet yourself.
+transcriptions and verify a sample against the booklet yourself.
