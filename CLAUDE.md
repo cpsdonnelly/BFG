@@ -463,14 +463,15 @@ Values:
   (`ship_threat_vp`), a cripple halves it; and a kill may explode (`death_explosion_vp`,
   Catastrophic Damage 9-11 plasma / 12 warp, Mercury 3D6, escorts never), good near enemies,
   bad near our own ships.
-- Sooner beats later (owner): `phase_weight(k)` = 0.85 per ordnance phase of delay, x 0.5 from
-  the next game turn (1, 0.85, 0.36, 0.31); strikes' `travel_discount` shares the factor.
+- Sooner beats later (owner: "2 hits on the side within 2 turns are worth much more than 3 on
+  the rear after a 4-turn loop"): `phase_weight(k)` = 0.85 per ordnance phase of delay, x 0.5
+  from the next game turn (1, 0.85, 0.36, 0.31); strikes' `travel_discount` shares the factor.
 
 Movement:
 - Hazards along the move path (mines, torpedoes, attack craft, asteroids, warp rifts, dust,
   blast markers), each marker's threat by type (`marker_hits`): guided / seeking / Tau turn
   cones (`_torpedo_heading`, launcher's real Ld), boarding torpedoes turn freely within 45,
-  Tau missiles 45 / 40cm / 5/6 strength, the rest straight; contact = base + marker half width.
+  Tau missiles 45 / 40cm (`torpedo_reach`) / 5/6 strength, the rest straight; contact = base + marker half width.
 - Fleet focus (owner: focus fire, easier targets first): several focus targets
   (`fleet_focus_assignment`: each ship's guns where they add most VP given the others', no
   overkill), planned against with 0.3 x the arc score on the nearest enemy, minus half the hits
