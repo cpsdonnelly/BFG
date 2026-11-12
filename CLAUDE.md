@@ -471,7 +471,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1038 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1043 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -559,6 +559,8 @@ points to):
   catastrophic damage was never re-rolled.
 - AI CAP vs strikes fleet-wide across carriers (`AIPlayer._plan_fleet_defence`; tests in
   `tests/test_waves.py`): one fighter per salvo from the carrier whose strike loses least.
+- AI turning salvos plan their approach for the weakest Armour facing they can reach (owner):
+  off-side launches and detours (`ai_hazards.approach_plan`), followed in flight.
 - AI leads torpedo targets from their possible next moves (owner): minimum move, turning
   distance, Burn Retros / All Ahead Full dodges; a salvo parked inside a ship's minimum move
   can only be escaped by Burn Retros. Turning salvos steer ahead of their target.
@@ -656,10 +658,27 @@ points to):
    easier to hit (abeam at 50cm, before the course prior: 0.41 vs 0.32), and a closing battleship, straight for 15cm
    before turning, can't sidestep (0.64 out to 60cm). The hazard maths for enemy torpedoes
    against our own ships uses the same contact width (`marker_hits`). Beyond that reach the intercept
-   aim is kept (later turns are too uncertain). Turning salvos (Tau missiles, Ld-guided,
-   boarding) keep the intercept launch aim and, in flight, steer for the middle of the
-   target's sampled end positions when it is out of reach this phase (`_steer_guided_missile`). The path check is a line, so a
-   blast marker the marker's width would clip but the centre line misses isn't counted. Done: guided salvos use the launcher's real Ld in the
+   aim is kept (later turns are too uncertain). Done: Armour-facing approaches for salvos
+   that turn and roll against Armour (owner: fire off to the side or take a detour to hit a
+   weaker facing; Tau missiles, Ld-guided and boarding torpedoes; seeking turn by themselves).
+   `ai_hazards.approach_plan` searches the launch heading (within the arc, plus the bearings to
+   the target now and where it will be) and a turn of up to 45 degrees at the start of each
+   later move, four moves deep (full choice on the first turn, then -45 / 0 / +45; Tau
+   missiles 20 / 30 / 40cm a move on the first two moves), against the target where it will
+   be each phase (`_predicted_positions`: weighted mean of its sampled moves). Each path's
+   first contact rolls against the facing it hits (a ship that moves onto the waiting salvo
+   takes it on the side it leads with), after turrets; value x path survival x phase weight
+   (next turn `LATER_TURN_WEIGHT`) x the Leadership odds per turn for Ld-guided torpedoes x 5/6
+   per later phase for Tau missiles x 1/2 for boarding torpedoes; friendly ships touched first
+   cost their damage's VP (not boarding). Ties: earlier hit, then nearest the bearing. Used for
+   the launch heading and target choice (`AIPlayer._approach_for_launch`), recorded on the
+   salvo (`OrdnanceMarker.torp_target_id`) and followed in flight: Tau missiles in
+   `_steer_guided_missile`, the AI's own boarding / guided salvos via
+   `ordnance_movement._ai_salvo_turn` -> `ai_hazards.salvo_approach` (a human's prompts still
+   suggest the nearest enemy). E.g. an Ork-style 6+/5+/4+ cruiser abeam: the planner comes
+   round to the 4+ rear (18.9 VP vs 9.6 for the best salvo that never turns, 5+ side); one
+   closing on the launcher can only be met on its prow (`tests/test_ai_armour_approach.py`).
+   Not yet: the target turning to show its strongest facing. Done: guided salvos use the launcher's real Ld in the
    hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
    Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest
    half-speed move along the path, taken when the hazard saved beats half the ship's

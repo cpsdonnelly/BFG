@@ -11,6 +11,18 @@ import math
 from .models import SpecialOrder, OrdnanceMarker, OrdnanceType
 
 
+
+def _ai_salvo_turn(marker, gs, fallback: float) -> float:
+    """The AI's turn for its own boarding or guided salvo in flight (owner:
+    come in on the weakest Armour facing it can reach, ai_hazards.
+    salvo_approach); `fallback` (at the nearest enemy) when there is no plan."""
+    from .ai_hazards import salvo_approach
+    from .models import signed_angle_diff
+    plan = salvo_approach(marker, gs)
+    if plan is None:
+        return fallback
+    return max(-45.0, min(45.0, signed_angle_diff(plan["heading"] % 360, marker.heading)))
+
 class OrdnanceMovementMixin:
     """Ordnance-phase resolution methods shared into OrdnancePanel."""
 
@@ -163,7 +175,7 @@ class OrdnanceMovementMixin:
                 continue
             suggested = boarding_torp_suggested_turn(marker, ships)
             if self.ctx.is_ai_controlled(marker.owner_player):
-                deg = suggested
+                deg = _ai_salvo_turn(marker, gs, suggested)
             else:
                 deg = simpledialog.askfloat(
                     "Boarding Torpedoes",
@@ -249,7 +261,8 @@ class OrdnanceMovementMixin:
                     continue
                 suggested = guided_suggested_turn(marker, ships, controller)
                 if self.ctx.is_ai_controlled(controller):
-                    deg = suggested
+                    deg = (_ai_salvo_turn(marker, gs, suggested)
+                           if controller == marker.owner_player else suggested)
                 else:
                     who = "your" if controller == marker.owner_player else "the enemy's"
                     deg = simpledialog.askfloat(

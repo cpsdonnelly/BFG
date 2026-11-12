@@ -440,6 +440,9 @@ class OrdnanceMarker:
     # Torpedoes: {ship id: turn number} of each attack. A salvo may never
     # attack the same ship more than once per full turn (s.16).
     attacked_turns: Dict[str, int] = field(default_factory=dict)
+    # Torpedoes that can turn: the ship the AI planned the salvo against (its
+    # in-flight turns follow ai_hazards.salvo_approach). Empty = nearest enemy.
+    torp_target_id: str = ""
 
     def to_dict(self):
         return asdict(self)

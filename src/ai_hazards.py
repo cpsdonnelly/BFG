@@ -1088,3 +1088,185 @@ def torpedo_path_survival(x1, y1, x2, y2, gs, kind: str = "torpedo",
     nx, ny = -(y2 - y1) / d * half_w, (x2 - x1) / d * half_w
     return min(ordnance_path_survival(x1 + ox, y1 + oy, x2 + ox, y2 + oy, gs, kind)
                for ox, oy in ((0.0, 0.0), (nx, ny), (-nx, -ny)))
+
+
+# ── Armour-facing approaches for turning salvos (owner) ─────────────────────
+# Tau missiles, Leadership-guided and boarding torpedoes can turn up to 45
+# degrees at the start of each move after launch (s.16; Tau missiles every
+# move), and roll against the Armour facing they hit. Firing off to the side
+# or taking a detour so the salvo comes in on a weaker facing (abeam on most
+# Imperial ships, the rear on Ork cruisers) can be worth the longer flight.
+
+# Contact weight by ordnance phase from now: this turn and the enemy's at full
+# weight, the next turn's at LATER_TURN_WEIGHT (it is a guess where the target
+# will be by then)
+APPROACH_TURN_STEPS = (-1.0, -0.5, 0.0, 0.5, 1.0)
+
+
+def _predicted_positions(target, our_phase: bool):
+    """Target copies at the start of each of the next four ordnance phases:
+    its weighted mean end after each of its next moves (enemy_move_samples),
+    facing along its course. If it is our ordnance phase it hasn't moved yet:
+    [now, after 1 move, after 1 move, after 2 moves]; in the enemy's phase it
+    already has: [now, now, after 1, after 1]."""
+    import dataclasses
+    import math as _m
+    paths = enemy_move_samples(target)[0]
+    wsum = sum(p.weight for p in paths) or 1.0
+    ex = sum(p.weight * p[-1][0] for p in paths) / wsum
+    ey = sum(p.weight * p[-1][1] for p in paths) / wsum
+    mv = 0.75 * (target.effective_speed or 0)
+    h = _m.radians(target.heading)
+    e1 = dataclasses.replace(target, x=ex, y=ey)
+    e2 = dataclasses.replace(target, x=ex + mv * _m.cos(h), y=ey + mv * _m.sin(h))
+    return [target, e1, e1, e2] if our_phase else [target, target, e1, e1]
+
+
+def approach_plan(x, y, heading, speed, target, gs, player, strength,
+                  arc_half=45.0, turn_now=True, max_turn=45.0, p_turn=1.0,
+                  our_phase=True, boarding=False, tau=False, friends=(),
+                  committed=0.0, lengths=None):
+    """Best path for a salvo at (x, y) that can turn, against `target`: the
+    first move's heading (within `arc_half` of `heading`; at launch the arc,
+    in flight the 45-degree turn, `turn_now` False when it may not turn this
+    phase), then a turn of up to `max_turn` at the start of each later move,
+    four moves deep. Each path is followed to its first contact with the
+    target where it will be (`_predicted_positions`); the hits roll against
+    the Armour facing that contact (torpedoes use the facing they hit, s.15),
+    after turrets. Friendly ships touched first take hits and cost their VP
+    (owner: friendly fire is negative VP), except for boarding torpedoes.
+    Value = VP x path survival x the phase weight (this turn and the enemy's
+    1, the next turn LATER_TURN_WEIGHT) x p_turn per turn made (Leadership-
+    guided torpedoes test to turn) x 5/6 per later phase for Tau missiles
+    (strength lost on 1s) x 1/2 for boarding torpedoes (raids, as marker_hits).
+    `lengths`: move lengths to try (Tau missiles choose 20-40cm each move;
+    others move their speed). Returns {"heading", "value", "hits", "armour",
+    "phase"} or None."""
+    import math as _m
+    positions = _predicted_positions(target, our_phase)
+    rt = target.base_radius + TORP_CONTACT_HALF_W
+    phase_w = (1.0, 1.0, LATER_TURN_WEIGHT, LATER_TURN_WEIGHT)
+    if turn_now:
+        firsts = sorted({round(heading + arc_half * f, 1) for f in (-1, -2 / 3, -1 / 3, 0,
+                                                                     1 / 3, 2 / 3, 1)})
+        # also straight at where it is and where it will be
+        for p in positions:
+            bearing = _m.degrees(_m.atan2(p.y - y, p.x - x))
+            diff = (bearing - heading + 180) % 360 - 180
+            if abs(diff) <= arc_half:
+                firsts.append(round(heading + diff, 1))
+        firsts = sorted(set(firsts))
+    else:
+        firsts = [heading]
+    best = None
+
+    lengths = tuple(lengths or (speed,))
+
+    max_len = max(lengths)
+    mid_len = sorted(lengths)[len(lengths) // 2]
+
+    def walk(px, py, h, k, turns, left, lost):
+        # Full choice of move lengths on the first two moves; later ones (a
+        # guess anyway) at the middle length, to keep the search small
+        for ln in (lengths if k <= 1 else (mid_len,)):
+            step(px, py, h, k, turns, left, lost, ln)
+
+    def step(px, py, h, k, turns, left, lost, ln):
+        nonlocal best
+        if k >= 4 or left <= 0:
+            return
+        rad = _m.radians(h)
+        qx, qy = px + ln * _m.cos(rad), py + ln * _m.sin(rad)
+        surv = torpedo_path_survival(px, py, qx, qy, gs)
+        tgt = positions[k]
+        t_hit = seg_first_contact(px, py, qx, qy, tgt.x, tgt.y, rt)
+        seq = []
+        for f in friends:
+            t = seg_first_contact(px, py, qx, qy, f.x, f.y, f.base_radius + TORP_CONTACT_HALF_W)
+            if t is not None and (t_hit is None or t < t_hit):
+                seq.append((t, f))
+        for _t, f in sorted(seq, key=lambda c: c[0]):
+            hh = left * p_hit(f.armor_vs(px, py))
+            lost += added_vp(f, gs, 0.0, hh, shields=False)
+            left -= hh
+        if t_hit is not None and left > 0:
+            if t_hit <= 1e-9 and k > 0:
+                # The target moved onto the waiting salvo (s.15): it meets the
+                # salvo with the side it was moving with, seen from where the
+                # salvo sits as the target's base first touches it
+                import dataclasses
+                th = _m.radians(tgt.heading)
+                tgt = dataclasses.replace(tgt, x=px - rt * _m.cos(th), y=py - rt * _m.sin(th))
+                back = (px, py)
+            else:
+                cx, cy = px + (qx - px) * t_hit, py + (qy - py) * t_hit
+                back = (cx - _m.cos(rad), cy - _m.sin(rad))   # just before contact
+            arm = tgt.armor_vs(*back)
+            s_eff = left * ((5 / 6) ** k if tau else 1.0)
+            hits = torpedo_salvo_hits(s_eff, tgt, gs, back)
+            v = added_vp(target, gs, committed, hits, shields=False)
+            if boarding:
+                v *= 0.5
+            v = (v - lost) * surv_acc[0] * surv * phase_w[k] * (p_turn ** turns)
+            # ties: the earlier hit, then the heading nearest the target's bearing
+            dev = abs((first[0] - bearing0 + 180) % 360 - 180)
+            key = (round(v, 6), -k, -dev)
+            if best is None or key > best["_key"]:
+                best = {"heading": first[0] % 360, "value": v, "hits": hits, "armour": arm,
+                        "phase": k, "_key": key}
+            return
+        if surv <= 0 or k + 1 >= 4:
+            return                                   # dies on the way / out of moves
+        nxt = positions[k + 1]
+        if _m.hypot(nxt.x - qx, nxt.y - qy) > (3 - k) * max_len + rt:
+            return                                   # can no longer reach it
+        surv_acc[0] *= surv
+        steps = APPROACH_TURN_STEPS if k == 0 else (-1.0, 0.0, 1.0)
+        for f in (steps if max_turn > 0 else (0.0,)):
+            d = f * max_turn
+            walk(qx, qy, h + d, k + 1, turns + (1 if d else 0), left, lost)
+        surv_acc[0] /= surv
+
+    surv_acc = [1.0]
+    bearing0 = _m.degrees(_m.atan2(target.y - y, target.x - x))
+    for h0 in firsts:
+        first = [h0]
+        walk(x, y, h0, 0, 0, float(strength), 0.0)
+    if best is not None:
+        best.pop("_key", None)
+    return best
+
+
+def salvo_approach(marker, gs, target=None, our_phase=None):
+    """approach_plan for a salvo already in flight (the AI's in-flight turn):
+    its target (marker.torp_target_id, else the nearest enemy ship), a turn of
+    up to 45 degrees now, Tau missiles 20-40cm a move, Leadership-guided
+    salvos at the launcher's Ld odds per later turn. None if no target."""
+    from .ordnance import is_boarding_torpedo
+    ships = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
+    enemies = [s for s in ships if s.player != marker.owner_player and not s.is_hulk]
+    if target is None:
+        target = next((s for s in enemies if s.id == getattr(marker, "torp_target_id", "")),
+                      None)
+    if target is None and enemies:
+        import math as _m
+        target = min(enemies, key=lambda s: _m.hypot(s.x - marker.x, s.y - marker.y))
+    if target is None:
+        return None
+    if our_phase is None:
+        our_phase = gs.active_player == marker.owner_player
+    boarding = is_boarding_torpedo(marker)
+    tau = marker.ordnance_type == "torpedo_guided"
+    p_turn = 1.0
+    if marker.ordnance_type == "torpedo_guided_ld":
+        launcher = next((s for s in ships if s.id == marker.launched_by), None)
+        if launcher is None:
+            return None
+        p_turn = p_sum_at_most(2, min(10, launcher.leadership or 8))
+    friends = [] if boarding else [
+        s for s in ships if s.player == marker.owner_player
+        and s.id not in (marker.launch_exempt_ships or [])]
+    return approach_plan(marker.x, marker.y, marker.heading, marker.speed or 30.0, target, gs,
+                         marker.owner_player, marker.strength, arc_half=45.0,
+                         p_turn=p_turn, our_phase=our_phase, boarding=boarding, tau=tau,
+                         friends=friends, lengths=(20.0, 30.0, 40.0) if tau else None)

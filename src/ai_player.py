@@ -1138,7 +1138,9 @@ class AIPlayer:
             if marker.owner_player != self.player or marker.moved_this_phase:
                 continue
             if marker.can_turn:
-                target = self._nearest_enemy_to(marker.x, marker.y)
+                target = next((s for s in self._live_enemies()
+                               if s.id == marker.torp_target_id), None) \
+                    or self._nearest_enemy_to(marker.x, marker.y)
                 self._steer_guided_missile(marker, target)
 
         # Launch new ordnance. Targets are chosen by expected VP from the enemy's
@@ -1157,6 +1159,13 @@ class AIPlayer:
     def _steer_guided_missile(self, marker: OrdnanceMarker,
                               target: Optional[Ship]) -> None:
         gs = self.gs
+        if target is not None:
+            from .ai_hazards import salvo_approach
+            plan = salvo_approach(marker, gs, target=target, our_phase=True)
+            if plan is not None:
+                # Owner: come in on the weakest facing it can reach
+                marker.heading = plan["heading"] % 360
+                target = None
         if target is not None:
             # Owner: turning salvos lead too (less than straight ones, since they
             # steer again): out of reach this phase, head for the middle of where
@@ -1220,8 +1229,12 @@ class AIPlayer:
                         kind = "short_burn"
                         aim_weapon = {**weapon, "torpedo_speed": SHORT_BURN_SPEED}
                     aim = self._torpedo_aim_heading(ship, aim_weapon, target)
-                    launch_torpedoes(ship, weapon, gs, heading=aim, dice=self.dice,
-                                     kind=kind)
+                    m = launch_torpedoes(ship, weapon, gs, heading=aim, dice=self.dice,
+                                         kind=kind)
+                    if m is not None:
+                        for o in gs.ordnance:     # its in-flight turns follow the plan
+                            if o["id"] == m.id:
+                                o["torp_target_id"] = target.id
                     ship = gs.get_ship_by_id(ship.id)
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft and not bays_held:
@@ -1718,9 +1731,35 @@ class AIPlayer:
         """
         if not self._torpedo_turns(ship, weapon):
             plan = self._torp_lead_plan(ship, weapon, target)
-            if plan is not None:
-                return plan["heading"]
+        else:
+            plan = self._approach_for_launch(ship, weapon, target)
+        if plan is not None:
+            return plan["heading"]
         return self._torp_lane(ship, weapon, target, *self._intercept(ship, weapon, target))[0]
+
+    def _approach_for_launch(self, ship: Ship, weapon: Dict, target: Ship):
+        """Owner: a salvo that can turn and rolls against Armour may fire off to
+        the side or take a detour to come in on a weaker facing
+        (ai_hazards.approach_plan from the launcher: any heading in the launch
+        arc, then a 45-degree turn at the start of each later move)."""
+        from .ai_hazards import approach_plan, p_sum_at_most
+        from .ordnance import compute_torpedo_launch_exempt
+        ttype = weapon.get("torpedo_type")
+        boarding = ttype == "boarding"
+        tau = ttype == "guided"
+        p_turn = 1.0
+        if not (boarding or tau):                      # bought Leadership-guided torpedoes
+            p_turn = p_sum_at_most(2, min(10, ship.leadership or 8))
+        speed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
+        exempt = set(compute_torpedo_launch_exempt(ship, self.gs))
+        friends = [] if boarding else [
+            f for f in self.gs.get_ships() if f.player == self.player and f.id not in exempt
+            and not f.is_destroyed and not f.is_disengaged]
+        committed = getattr(self, "_ord_committed", {}).get(target.id, 0.0)
+        return approach_plan(ship.x, ship.y, ship.heading, speed, target, self.gs, self.player,
+                             weapon.get("strength") or 0, arc_half=45.0, p_turn=p_turn,
+                             our_phase=True, boarding=boarding, tau=tau, friends=friends,
+                             committed=committed, lengths=(20.0, 30.0, 40.0) if tau else None)
 
     @staticmethod
     def _torpedo_turns(ship: Ship, weapon: Dict) -> bool:
@@ -2026,6 +2065,11 @@ class AIPlayer:
                         # Within this turn and the enemy's: value from where the
                         # target can move (owner: lead it; dodges counted)
                         return plan["value"], plan["p_hit"] * plan["hits"]
+                else:
+                    plan = self._approach_for_launch(ship, weapon, e)
+                    if plan is not None:
+                        # Turning salvo: best approach, weaker facings included
+                        return plan["value"], plan["hits"]
                 hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y))
                 # Planets / asteroid fields on the way destroy the salvo; blast
                 # markers and dust clouds on a 6 (owner: hazards on the path)

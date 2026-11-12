@@ -568,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1038 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1043 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -669,6 +669,12 @@ Latest items, newest last:
   marker's width (`torpedo_path_survival`). Turning salvos steer ahead of their target.
   Owner: target size; contacts use each ship's base (large bases easier to hit; closing
   battleships, 15cm before turning, can't sidestep), in our aim and in `marker_hits`.
+- Owner: turning salvos that roll against Armour (Tau missiles, Ld-guided, boarding) plan
+  approaches for the weakest facing they can reach (`ai_hazards.approach_plan`: launch
+  heading, then a 45-degree turn per move, four moves deep; facing from the contact point;
+  phase weights, Ld odds, Tau strength loss), used at launch (`_approach_for_launch`),
+  recorded on the salvo (`torp_target_id`) and followed in flight (`salvo_approach`,
+  `ordnance_movement._ai_salvo_turn`, `_steer_guided_missile`). Under 25ms a plan.
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
