@@ -444,13 +444,13 @@ matched in code, and a reworded note silently drops an option.
 Built so far: every booklet rule section the engine plays (see the sections above), the export
 31 "still to do" list, boarding crew bonuses, disengaging incl. forced disengagement, optional
 blast marker rules, the turret split, waves / CAP / wave planner, and the expected-VP AI below.
-Next: To do 2, then 3-7.
+Next: To do 2, then 3-7 (1, weight tuning, is on hold).
 
 ### AI: how it decides (expected VP)
 
 All AI choices are in expected VP (`ai_hazards.py`, `ai_rerolls.py`, `waves.py`, `AIPlayer` in
-`ai_player.py`; the expert AI in `lookahead_ai.py`). Weights marked "judgement" are mine, to
-tune on the owner's feedback: re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per battery
+`ai_player.py`; the expert AI in `lookahead_ai.py`). Weights marked "judgement" are mine;
+tuning them is on hold (owner: keep it in mind, but it is hard work, so leave it for now): re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per battery
 point, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT` 0.5,
 `DODGE_WEIGHT` 0.5, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
 0.5, CAP free fighters 0.75, the disengage and hulk models.
@@ -556,8 +556,10 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
 
 ### To do (agreed order; detail in docs/HANDOFF.md)
 
-1. AI tuning on the owner's feedback (the judgement weights above). Example to check: a lone
-   healthy cruiser facing three full enemy cruisers disengages under the current model.
+1. On hold (owner): tuning the AI's judgement weights (listed in "AI: how it decides"). Keep
+   it in mind, but it is hard work, so leave it be for now: don't retune them unless the
+   owner asks. Example worth a look later: a lone healthy cruiser facing three full enemy
+   cruisers disengages under the current model.
 2. Strike planning by expected VP when the strike lands (owner discussion; design in
    docs/HANDOFF.md "Ordnance strike planning"): crit values over the turns they last (damage
    control s.36), threat at the target's next shooting phase, travel time and which player's

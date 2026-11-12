@@ -704,7 +704,8 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
 
 ## Remaining work (agreed order; CLAUDE.md "To do" has the detail)
 
-1. AI tuning on the owner's feedback (judgement weights listed in CLAUDE.md's AI section).
+1. On hold (owner): tuning the AI's judgement weights (listed in CLAUDE.md's AI section).
+   Keep it in mind, but it is hard work, so leave it be until the owner asks.
 2. Strike planning at arrival time (design below, "Ordnance strike planning").
 3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
    Sharks per the owner ruling) and the AI changes they need.
