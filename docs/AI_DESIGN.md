@@ -211,6 +211,12 @@ the ships needed to kill them rather than all piling on one.
 - **f.** Firepower by range bracket, fleet vs fleet and ship vs ship: 0-15cm (Ork Heavy Gunz),
   15-30, 30-45, 45-60 (Chaos long guns), 60-150 (artillery such as the Nova Cannon). Fight in
   the bracket where our guns win (a Tau Merchant out-guns a Lunar at 30-45cm, not at 0-30cm).
+  **The table is built**: for each pair of ships and for the fleets, the VP each side does per
+  shooting phase in each bracket, from the real Gunnery table (range shifts, Heavy Gunz), lances
+  and the Nova Cannon's own scatter rules, past shields (a ship whose average is below the
+  target's shields still gets some hits through on good rolls). It confirms the owner's
+  examples: the Merchant beats a Lunar only at 30-45cm, a Murder at 30-60cm. Movement doesn't
+  use it yet: that comes with the range-band goal (To do 11 a) and kiting (8 c).
 - **g.** Speed and turn edge: get out of the enemy's main arcs (e.g. into a Lunar's rear).
 - **h.** Hit-point edge (Orks): boarding and ramming.
 - **j.** Teleport attacks both ways.

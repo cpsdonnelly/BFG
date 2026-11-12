@@ -1754,3 +1754,158 @@ def turret_split_gain(target: Ship, gs, torp_strength: float, fighters: int, bom
                    - wave_split_value(fighters, bombers, t, shots, inp["cap"], inp["armour"], p,
                                       f_save, b_save, inp["cap_save"]))
     return max(0.0, min(torp_saved, craft_saved))
+
+
+# ── Firepower by range bracket (To do 8 f, owner) ───────────────────────────
+# Owner: fight in the bracket where our guns beat theirs, fleet vs fleet and
+# ship vs ship. 0-15cm is its own bracket mostly for Ork Heavy Gunz (and the
+# Gunnery table's left shift), 45-60 for Chaos long guns, 60-150 for
+# artillery such as the Nova Cannon (30cm minimum). The table is measured, not
+# scripted: consumers (the range-band goal of To do 11 a, kiting in 8 c) read
+# where our expected VP beats theirs.
+RANGE_BRACKETS = ((0.0, 15.0), (15.0, 30.0), (30.0, 45.0), (45.0, 60.0), (60.0, 150.0))
+_BRACKET_HEADINGS = tuple(range(0, 360, 45))
+
+
+class _BareState:
+    """Just enough game state for the Gunnery table's column shifts between
+    two ships on an empty table (range shifts, no blast markers / terrain)."""
+    def __init__(self, ships):
+        self._ships = ships
+
+    def get_blast_markers(self):
+        return []
+
+    def get_phenomena(self):
+        return []
+
+    def get_ships(self):
+        return self._ships
+
+
+def nova_expected_hits(dist: float, target: Ship) -> float:
+    """Expected hits of a Nova Cannon shot aimed at `target` `dist` away, as
+    `combat.resolve_nova_cannon` resolves it: a direct hit (1 in 3 on the
+    scatter die) puts the template on the target, D6 hits; otherwise it
+    scatters 1D6 (to 45cm), 2D6 (to 60cm) or 3D6cm: D6 hits if the target's base
+    still touches the centre hole, 1 if it touches the template. 0 outside
+    30-150cm. Shields still stop the hits (owner ruling)."""
+    from .geometry import NOVA_CANNON_TEMPLATE_RADIUS_CM as TR, \
+        NOVA_CANNON_CENTER_HOLE_RADIUS_CM as CR
+    if dist < 30 or dist > 150:
+        return 0.0
+    n = 1 if dist <= 45 else 2 if dist <= 60 else 3
+    r = target.base_radius
+    dist_p = {0: 1.0}
+    for _ in range(n):
+        nxt = {}
+        for s, p in dist_p.items():
+            for f in range(1, 7):
+                nxt[s + f] = nxt.get(s + f, 0.0) + p / 6.0
+        dist_p = nxt
+    # The scatter direction is random, so only the distance matters here
+    centre = sum(p for s, p in dist_p.items() if s <= CR + r)
+    edge = sum(p for s, p in dist_p.items() if CR + r < s <= TR + r)
+    return (1 / 3) * 3.5 + (2 / 3) * (centre * 3.5 + edge * 1.0)
+
+
+def past_shields(lam: float, shields: int) -> float:
+    """Expected hits past `shields` when the hits are a Poisson count with mean
+    `lam`: E[max(0, H - shields)]. Shields stop the first hits each turn, but
+    a ship whose average is below its target's shields still gets some through
+    on the turns it rolls well."""
+    s = max(0, int(shields or 0))
+    if s == 0:
+        return max(0.0, lam)
+    if lam <= 0:
+        return 0.0
+    p = math.exp(-lam)
+    short = 0.0
+    for k in range(s):
+        short += (s - k) * p
+        p *= lam / (k + 1)
+    return max(0.0, lam - s + short)
+
+
+def ship_bracket_raw(a: Ship, b: Ship, dist: float, heading_b: float, heading_a: float) -> float:
+    """Expected hits (before shields) of `a`'s direct fire on `b` at `dist`,
+    `a` at the origin facing `heading_a`, `b` on its x axis facing `heading_b`:
+    batteries on the real Gunnery table with its range shifts (and Ork Heavy
+    Gunz' close value), lances 0.5, the Nova Cannon (nova_expected_hits; not
+    when crippled). Ordnance isn't counted (it launches once and flies)."""
+    from .combat import check_weapon_in_arc, expected_hits, weapon_disabled_by_crit
+    tb = Ship.from_dict({**b.to_dict(), "x": dist, "y": 0.0, "heading": float(heading_b)})
+    ta = Ship.from_dict({**a.to_dict(), "x": 0.0, "y": 0.0, "heading": float(heading_a),
+                         "special_order": ""})
+    gs = _BareState([ta, tb])
+    hits = 0.0
+    for w in ta.weapons:
+        wt = w.get("weapon_type")
+        if wt not in ("battery", "lance", "nova_cannon") or weapon_disabled_by_crit(ta, w):
+            continue
+        if not check_weapon_in_arc(ta, w, tb.x, tb.y):
+            continue
+        if wt == "nova_cannon":
+            if not ta.is_crippled:
+                hits += nova_expected_hits(dist, tb)
+            continue
+        if dist > (w.get("range_cm") or 0):
+            continue
+        hits += expected_hits(ta, w, tb, gs)
+    return hits
+
+
+def ship_bracket_hits(a: Ship, b: Ship, dist: float, shields: bool = True) -> float:
+    """Expected hits `a` puts on `b` at `dist`, on average over b's facing,
+    `a` turned to bring its best guns to bear; with `shields`, past b's
+    shields (past_shields), else before them."""
+    total = 0.0
+    sh = b.effective_shields or 0
+    for hb in _BRACKET_HEADINGS:
+        best = 0.0
+        for ha in _BRACKET_HEADINGS:
+            lam = ship_bracket_raw(a, b, dist, hb, ha)
+            best = max(best, past_shields(lam, sh) if shields else lam)
+        total += best
+    return total / len(_BRACKET_HEADINGS)
+
+
+def bracket_matchup(a: Ship, b: Ship) -> List[Tuple[Tuple[float, float], float, float]]:
+    """Ship vs ship, per range bracket: [((lo, hi), VP a does to b, VP b does
+    to a) per shooting phase, past shields], at each bracket's middle
+    distance."""
+    out = []
+    for lo, hi in RANGE_BRACKETS:
+        d = (lo + hi) / 2.0
+        out.append(((lo, hi), ship_bracket_hits(a, b, d) * value_per_hit(b, None),
+                    ship_bracket_hits(b, a, d) * value_per_hit(a, None)))
+    return out
+
+
+def fleet_bracket_table(gs, player: int) -> List[Tuple[Tuple[float, float], float, float]]:
+    """Fleet vs fleet, per range bracket: [((lo, hi), our VP, their VP)] per
+    shooting phase, on average (owner): each side's fire spread evenly over
+    the other's ships, each target's shields taken once against all of it
+    (shields stop the first hits of a turn, whoever fires them)."""
+    ours = [s for s in gs.get_ships() if s.player == player and not s.is_destroyed
+            and not s.is_disengaged]
+    theirs = [s for s in gs.get_ships() if s.player != player and not s.is_destroyed
+              and not s.is_disengaged]
+    table = []
+    for lo, hi in RANGE_BRACKETS:
+        d = (lo + hi) / 2.0
+        sides = []
+        for shooters, targets in ((ours, theirs), (theirs, ours)):
+            vp = 0.0
+            for t in targets:
+                lam = sum(ship_bracket_hits(a, t, d, shields=False)
+                          for a in shooters) / max(1, len(targets))
+                vp += past_shields(lam, t.effective_shields or 0) * value_per_hit(t, None)
+            sides.append(vp)
+        table.append(((lo, hi), sides[0], sides[1]))
+    return table
+
+
+def best_bracket(table) -> Tuple[float, float]:
+    """The bracket where our expected VP beats theirs by most."""
+    return max(table, key=lambda r: r[1] - r[2])[0]

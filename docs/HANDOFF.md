@@ -699,6 +699,10 @@ Latest items, newest last:
 - Built (To do 8 a): exposure respects our Armour facing (`ai_hazards.mount_hits`, used by
   `position_exposure_hits` and `enemy_fire_plan`); prow-on (6+) is half as exposed as side-on
   (5+) to an enemy broadside. 1088 tests.
+- Built (To do 8 f, the table): firepower by range bracket, ship vs ship and fleet vs fleet
+  (`ai_hazards.bracket_matchup`, `fleet_bracket_table`, `best_bracket`, `nova_expected_hits`,
+  `past_shields`); the owner's Merchant / Lunar example comes out right. Movement doesn't use
+  it yet (11 a, 8 c). 1093 tests.
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.

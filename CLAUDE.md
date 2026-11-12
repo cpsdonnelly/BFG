@@ -473,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1088 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1093 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -490,7 +490,7 @@ before each kind of weapon in the Fire dialog, the AI's mine hazard counting tur
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
 Next: the rest of To do 2 (the risk preference in brace and strike choices, the expert AI
-valuing its own craft in flight), then 3-7, 9, 10 and 11 (8 f before 11 a; 8 a is built), 12 (learned
+valuing its own craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f, its prerequisites, are built), 12 (learned
 evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -503,7 +503,8 @@ against the enemy's, on average and ship vs ship. Owner: "do not take these as h
 depends on the matchup": every one should come out of the expected-VP values, not a fixed rule.
 - Firepower by range bracket (0-15 Ork Heavy Gunz, 15-30, 30-45, 45-60 Chaos long guns,
   60-150 artillery such as the Nova Cannon): fight in the bracket where our guns beat theirs
-  (e.g. a Tau Merchant out-guns a Lunar at 30-45cm, not at 0-30cm). Planned: To do 8 f.
+  (e.g. a Tau Merchant out-guns a Lunar at 30-45cm, not at 0-30cm). The matchup table is
+  built (To do 8 f); using it in movement is planned (11 a, 8 c).
 - Speed (and turn angle) edge: out-moving the enemy, get out of its main fire arcs (e.g. into a
   Lunar's rear arc). Planned: 8 g.
 - Out-range and out-move it on average (Chaos): kite, holding the band where we can fire and it
@@ -889,6 +890,19 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       ship against what it faces. Kiting (c) is the case where we also out-move them; the
       Merchant is slower than a Lunar (15 vs 20), so it can't hold the bracket against a
       Lunar that wants to close: it takes the bracket when it can and positions to delay.
+      Built (the table; its use in movement waits for 11 a's range-band goal and 8 c, per
+      "compute, don't script"): `ai_hazards.RANGE_BRACKETS`, `bracket_matchup(a, b)` (ship vs
+      ship) and `fleet_bracket_table(gs, player)` (fleet vs fleet, each side's fire spread
+      evenly, each target's shields taken once), `best_bracket`. Per bracket at its middle
+      distance: batteries on the real Gunnery table with the range shifts and Heavy Gunz'
+      close value (`combat.expected_hits` on an empty table), lances 0.5, the Nova Cannon by
+      its own rules (`nova_expected_hits`: 1/3 direct hit for D6, else 1-3D6cm scatter, D6
+      on the centre hole or 1 on the template, 30-150cm), averaged over the target's facing
+      with the shooter turned to bear its best guns; shields by `past_shields` (E[max(0, H -
+      shields)], H Poisson: a ship averaging below the target's shields still gets some
+      through). Ordnance isn't counted. Checks: the Merchant beats a Lunar only at 30-45cm,
+      a Murder at 30-60cm, a Dominator's Nova Cannon alone reaches 60-150cm
+      (`tests/test_ai_range_brackets.py`).
    g. Speed (and turn angle) edge, on average and ship vs ship: out-moving an enemy, get out
       of its main fire arcs, e.g. into a Lunar's rear arc where neither broadside nor prow
       bears. Plan: per enemy, the arcs its mounts can bring to bear after its next move and
