@@ -784,7 +784,8 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
 7. New (owner request): scenarios and sub-plots, engine and AI: the booklet's scenarios
    (`bfgxr/rules/10_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
    Rogue Trader faction sub-plots), then an AI that plays their objectives and win conditions,
-   not just cruiser clash (owner: e.g. Domination's objective markers and 10-point race). The engine has only the old generic modes today (`scenario.check_scenario_end`).
+   not just cruiser clash (owner: Domination's objective markers and 10-point race are just one
+   example; there are many other scenarios, and the AI must handle each one's conditions). The engine has only the old generic modes today (`scenario.check_scenario_end`).
    Do items 1-6 first.
 8. New (owner ideas, not hard rules: it depends on the matchup): matchup-aware manoeuvre.
    Crossing the T / both broadsides busy for gun-heavy Imperium fleets, kiting for Chaos (or

@@ -763,7 +763,9 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    blockade runners, objective ships, planets and assault points, the Vendetta target, keeping
    the flagship above 75% for Fleet Experience, reinforcements surviving, boarding for battle
    plans, Holding the Field, the turn limit). Ask the owner where the booklet is unclear.
-   Owner: the AI must know every scenario's own win conditions, not only VP. E.g. Domination
+   Owner: the AI must know every scenario's own win conditions, not only VP. Domination is just
+   one example (owner); there are many other scenarios, each with its own objectives, game
+   length and end triggers, and the AI must handle all of them. E.g. Domination
    (p.125-126): objective markers that can't be moved or attacked; a player controls one with
    at least one ship within 15cm of it (marker centre to the ship's stem) and no enemy ship;
    at the end of each player's own turn they score 1 point per marker controlled; the game ends
