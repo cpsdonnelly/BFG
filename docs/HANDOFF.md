@@ -736,6 +736,12 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    Rogue Trader faction sub-plots), then an AI that plays their objectives, not just cruiser
    clash. The engine has only the old generic modes today (`scenario.check_scenario_end`).
    Do items 1-6 first.
+8. New (owner ideas, not hard rules: it depends on the matchup): matchup-aware manoeuvre.
+   Crossing the T / both broadsides busy for gun-heavy Imperium fleets, kiting for Chaos (or
+   any fleet that out-ranges and out-moves its enemy on average), Tau prow-on only when the
+   enemy is about to be in range. Plan in CLAUDE.md To do 8: first make exposure respect our
+   Armour facing, then a fleet-aware per-mount coverage score, a range / speed edge check
+   with a kiting band, and prow-on emerging from the two.
 
 Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
 transcriptions and verify a sample against the booklet yourself.

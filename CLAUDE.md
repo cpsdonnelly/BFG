@@ -663,6 +663,45 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    the flagship above 75% for Fleet Experience, reinforcements surviving, boarding for battle
    plans, Holding the Field, the turn limit). Ask the owner where the booklet is unclear.
 
+8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the
+   matchup": each should come out of the expected-VP move score, not a fixed doctrine).
+   Ship facts checked in the catalog: Lunar speed 20, 6+ prow / 5+ sides, port and starboard
+   30cm batteries and lances that don't overlap; Chaos Murder / Carnage speed 25 with 45-60cm
+   batteries and 60cm prow guns (the Slaughter is fast but 30cm: a brawler, not a kiter); Tau
+   Protector speed 20, 6+ prow, railguns / ion cannons all bearing forward (L/F, R/F, F).
+   Plan:
+   a. First, a shared prerequisite: exposure should respect our Armour facing.
+      `ai_hazards.position_exposure_hits` / `incoming_hits` count 0.35 hits a battery point
+      whatever side the enemy sees; scale each enemy mount's hits by p_hit of the Armour it
+      would hit (`Ship.armor_vs` from the enemy's position at our end heading). A 6+ prow then
+      really is safer than a 5+ side, which the Tau and crossing-the-T ideas both need.
+   b. Both broadsides busy (gun-heavy Imperium, e.g. Lunars; "crossing the T"): replace the
+      move score's single-target arc score with a fleet-aware mount coverage score at the end
+      position: each battery / lance mount scores the best expected VP it could add next
+      shooting phase among enemies in its arc and range (the enemy's predicted positions,
+      `_predicted_positions`), so a position with a target off each beam scores both
+      broadsides, one with everything off one side scores one. Crossing the T then comes out
+      of (a) + (b): across the enemy's line of advance our broadsides bear while only its prow
+      guns bear back on us. Cost: per candidate move x mounts x enemies (cheap). Squadrons
+      should plan together (one heading for the squadron, s.8).
+   c. Kiting (Chaos and other long-range / fast fleets): a matchup check, `range_speed_edge`:
+      our guns' firepower-weighted range and speed vs the enemy's (on average, per owner). With
+      an edge, the move score prefers end positions where we can fire next shooting phase but
+      the enemy, after its own move, mostly can't (distance in (enemy range + enemy move, our
+      range]); this is (a)'s exposure at full weight instead of half, plus a band bonus. No
+      edge (or a brawler like the Slaughter): close as now. Watch: the table edge (kiting
+      backwards runs out of table; disengaging off it concedes VP), and turning to keep a
+      broadside on a closing enemy.
+   d. Tau prow-on (forward-firing ships with the best Armour in front, e.g. the Protector):
+      falls out of (a) + the move score: when the enemy will be in range after its move, ending
+      prow-on keeps the 6+ front facing it and every gun bearing; while it is out of reach any
+      heading is fine (no exposure), so the ship can manoeuvre freely and turn in only as it
+      closes. Turn angle matters (Protector 90, Hero 45: owner).
+   e. Tests: a Lunar pair placed so one position has targets off both beams scores higher
+      than one with both off one side; a Murder squadron facing Lunars holds the 30-45cm band;
+      a Slaughter facing Lunars closes; a Protector ends prow-on when the enemy will reach it
+      and is free otherwise. Then AI-vs-AI games for each faction pair.
+
 ### Owner rulings: answers to the open questions (implemented, tested)
 
 All implemented: Fleet Defence Turrets (a crippled ship gives no +1, `ordnance.get_massed_turret_bonus`);
