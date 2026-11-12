@@ -861,7 +861,11 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    volley needing a target priority test, hulks that aren't the closest target and Holding the
    Field hulk points, the target turning to show its strongest facing to a turning salvo,
    assault boats and mines in co-ordinated strikes and re-timing a launch to arrive together
-   ("AI: how it decides"). Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
+   ("AI: how it decides"); AI special orders by expected VP (today: Burn Retros by hazard
+   value, otherwise Lock On whenever any enemy is in a battery / lance arc and range, else
+   Reload Ordnance when spent; it never chooses All Ahead Full or Come to New Heading, so
+   ramming, closing fast, escaping and sharp turns aren't options yet); the Nova Cannon aims
+   at the nearest enemy 30-150cm rather than by expected VP. Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
    Bosses' re-roll pools, secondary commanders and Ordos are in 4; the radiation / flare
    disengage bonus is in 6; the teleport AI's positioning is in 8 j).
 
