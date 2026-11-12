@@ -703,6 +703,9 @@ Latest items, newest last:
   (`ai_hazards.bracket_matchup`, `fleet_bracket_table`, `best_bracket`, `nova_expected_hits`,
   `past_shields`); the owner's Merchant / Lunar example comes out right. Movement doesn't use
   it yet (11 a, 8 c). 1093 tests.
+- Built (To do 11 a, first slice): turn points, a 50% distance, and the guns-to-bear and
+  range-band goals in `AIPlayer._move_candidates`; every candidate validated by the engine.
+  1096 tests; normal, Ork, Space Marine and expert spectator games pass.
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.

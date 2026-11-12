@@ -473,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1093 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1096 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -584,6 +584,10 @@ Movement:
   on the Armour facing each enemy would hit, `mount_hits`, To do 8 a).
 - The move score (`_arc_score`) counts in-arc batteries / lances / nova cannon and loaded
   torpedoes (they launch from the end position: full within one torpedo move, half within two).
+- Candidates (To do 11 a, first slice): the even grid plus turn points (after the turning
+  distance, after the minimum move, at the end; escorts and Burn Retros also at the start) and
+  two goals against the target, guns to bear and the winning range bracket
+  (`_move_candidates`).
 - Explosions (`explosion_position_vp`): keep out of the 3D6cm radius of ships likely to die; a
   ship of ours likely to die ends next to enemies.
 - Special orders (today, to be rebuilt by To do 10): Burn Retros by expected VP
@@ -1108,7 +1112,21 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
          aren't known: measure them in the engine (candidates scored and time per ship against
          move quality), don't guess.
       Dependencies: build 8 a (Armour facing) and 8 f (range brackets) first; goals b and c come
-      from them.
+      from them (both built).
+      First slice built (`AIPlayer._move_candidates`, scored by `_move_score`, commands by
+      `_move_cmds`; the simulators take a turn point, `_simulate_final_pos(..., turn_at)`):
+      the even grid (straight, half and full turn each way, at 50 / 60 / 80 / 100% of speed)
+      as the fallback; turn points after the turning distance, after the minimum move and at
+      the end, and at the very start for escorts and Burn Retros; goal a (guns to bear: the
+      end heading searched every 5 degrees up to the turn angle, by the arc score) and goal b
+      (range band: the distance along those headings ending nearest the middle of the bracket
+      where the ship beats the target most, `_range_band` from `bracket_matchup`, none when it
+      wins nowhere). Every candidate passes `movement.validate_movement` and the simulator
+      ends where the engine does (`tests/test_ai_move_candidates.py`); about 30-65 candidates
+      and 3-8ms a ship; `_last_move_source` records which source won (diagnostic e). Not yet:
+      goals c-g and 3, hill-climbing refinement, the denser grid for crowded / hazardous
+      cases, pruning by cheap terms, the coordination pass, the expert search using the
+      candidates.
       Then a coordination pass over the fleet (suggestion): moves are greedy in fleet order, so
       each ship ignores ships still to move; re-optimise each against everyone's planned end
       positions (coordinate descent, one or two passes), which catches screening and mutual

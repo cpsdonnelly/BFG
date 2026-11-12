@@ -271,55 +271,162 @@ class AIPlayer:
 
     def _plan_move_toward(self, ship: Ship, enemy: Ship,
                           order: str, aaf_bonus: int) -> List[MoveCommand]:
-        """Choose movement commands that maximise in-arc weapon coverage against enemy."""
-        from .movement import MIN_TURN_DISTANCE
-        min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
-        max_t  = get_max_turns(order, ship)
-        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
-        ta = ship.turn_angle
-
-        turn_candidates = [0.0]
-        if max_t > 0:
-            turn_candidates += [-ta, -ta * 0.5, ta * 0.5, ta]
-
+        """Choose the move worth most against `enemy` (the move score below)
+        among the candidates of `_move_candidates` (To do 11 a: an even grid
+        plus target-directed goals)."""
         best_cmds: Optional[List[MoveCommand]] = None
         best_score = -1.0
+        best_src = None
+        for turn_deg, dist, turn_at, src in self._move_candidates(ship, enemy, order, aaf_bonus):
+            score = self._move_score(ship, enemy, order, turn_deg, dist, turn_at)
+            if score > best_score:
+                best_score, best_src = score, src
+                best_cmds = self._move_cmds(ship, turn_deg, dist, turn_at)
+        self._last_move_source = best_src            # diagnostic (11 a e)
+        if best_cmds is None:
+            min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
+            return [MoveCommand("forward", max(min_spd, max_spd / 2))]
+        return best_cmds
 
-        for turn_deg in turn_candidates:
-            for frac in (0.6, 0.8, 1.0):
-                dist = max(min_spd, int(max_spd * frac))
-                if dist < 1:
+    def _move_score(self, ship: Ship, enemy: Ship, order: str, turn_deg: float,
+                    dist: float, turn_at: Optional[float]) -> float:
+        """The move score of one candidate: guns that bear on the target (0.3
+        of those on the nearest enemy), minus hazards and flagship danger on
+        the way, exposure, carrier exposure, plus screening and explosions."""
+        fx, fy, fh = self._simulate_final_pos(ship, turn_deg, dist, turn_at)
+        path = self._simulate_path(ship, turn_deg, dist, turn_at)
+        score = (self._arc_score(ship, fx, fy, fh, enemy)
+                 - self._position_penalty(fx, fy, ship, path, order, enemy))
+        near = getattr(self, "_move_nearest", None)
+        if near is not None and near.id != enemy.id:
+            score += 0.3 * self._arc_score(ship, fx, fy, fh, near)
+        score -= self._exposure_penalty(ship, fx, fy, fh, enemy)
+        score -= self._carrier_exposure(ship, fx, fy, enemy)
+        score += self._screen_bonus(ship, fx, fy, fh, enemy)
+        score += self._explosion_term(ship, fx, fy, enemy)
+        return score
+
+    @staticmethod
+    def _move_cmds(ship: Ship, turn_deg: float, dist: float,
+                   turn_at: Optional[float]) -> List[MoveCommand]:
+        """Commands for a move of `dist` with one turn after `turn_at` cm (by
+        default right after the minimum distance before turning)."""
+        from .movement import MIN_TURN_DISTANCE
+        if abs(turn_deg) <= 0.5:
+            return [MoveCommand("forward", dist)]
+        t = MIN_TURN_DISTANCE.get(ship.ship_type, 0) if turn_at is None else turn_at
+        t = max(0.0, min(dist, t))
+        cmds: List[MoveCommand] = []
+        if t > 0:
+            cmds.append(MoveCommand("forward", t))
+        cmds.append(MoveCommand("turn_left" if turn_deg > 0 else "turn_right", abs(turn_deg)))
+        if dist - t > 0:
+            cmds.append(MoveCommand("forward", dist - t))
+        return cmds
+
+    def _move_candidates(self, ship: Ship, enemy: Ship, order: str, aaf_bonus: int):
+        """[(turn_deg, dist, turn_at, source)] (To do 11 a, owner):
+          - the even grid kept as the fallback: straight, half and full turn
+            angle each way, at the minimum move (50%), 60, 80 and 100% of speed,
+            turning right after the minimum distance before turning;
+          - turn points (the rules for every candidate): a capital ship may
+            also turn just after its minimum move (half speed) or at the end of
+            its move; escorts anywhere, including at the very start; Burn
+            Retros needs no movement before turning;
+          - target-directed goals against `enemy`: bring the best guns to bear
+            (the end heading, searched every 5 degrees up to the turn angle,
+            that maximises the arc score) and a range band (the distance along
+            those headings that ends nearest the middle of the range bracket
+            where this ship beats the target most, ai_hazards.bracket_matchup;
+            none when it beats the target nowhere).
+        Candidates propose, the move score decides (owner: not hard rules)."""
+        from .movement import MIN_TURN_DISTANCE
+        from .models import SpecialOrder
+        min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
+        max_t = get_max_turns(order, ship)
+        min_td = 0 if order == SpecialOrder.BURN_RETROS.value else \
+            MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        ta = ship.turn_angle if max_t > 0 else 0
+        out, seen = [], set()
+
+        def add(turn_deg, dist, turn_at, src):
+            if dist < 1 or dist < min_spd - 1e-9 or dist > max_spd + 1e-9:
+                return
+            if abs(turn_deg) > 0.5:
+                if abs(turn_deg) > ta + 1e-9:
+                    return
+                if turn_at is None:
+                    if min_td > 0 and dist <= min_td:
+                        return                    # the grid turns after min_td
+                    turn_at = float(min_td)       # explicit: simulator = commands
+                if turn_at < min_td - 1e-9 or turn_at > dist + 1e-9:
+                    return                        # not enough distance to turn
+            else:
+                turn_at = None
+            key = (round(turn_deg, 1), round(dist, 1),
+                   None if turn_at is None else round(turn_at, 1))
+            if key not in seen:
+                seen.add(key)
+                out.append((turn_deg, dist, turn_at, src))
+
+        dists = sorted({min_spd, max_spd * 0.6, max_spd * 0.8, max_spd})
+        dists = [d for d in dists if d >= min_spd]
+        turns = [0.0] + ([-ta, -ta * 0.5, ta * 0.5, ta] if ta else [])
+        for t in turns:
+            for d in dists:
+                add(t, d, None, "grid")
+        if self.difficulty == "easy" or not ta:
+            return out
+        # Turn points: after the minimum move, at the end, at the start (escorts,
+        # Burn Retros)
+        points = {min_td, max(min_td, min_spd)}
+        if min_td == 0:
+            points.add(0.0)
+        for t in (-ta, -ta * 0.5, ta * 0.5, ta):
+            for d in dists:
+                for p in sorted(points | {d}):
+                    add(t, d, p, "turn point")
+        # Goal: bring the best guns to bear on the target
+        steps = max(1, int(ta // 5))
+        angles = [ta * k / steps for k in range(-steps, steps + 1)]
+        best_heads = []
+        for p in sorted(points):
+            for d in (min_spd, max_spd):
+                if d < p:
                     continue
-                if abs(turn_deg) > 0.5 and min_td > 0 and dist <= min_td:
-                    continue  # not enough distance to turn
-                fx, fy, fh = self._simulate_final_pos(ship, turn_deg, dist)
-                path = self._simulate_path(ship, turn_deg, dist)
-                score = (self._arc_score(ship, fx, fy, fh, enemy)
-                         - self._position_penalty(fx, fy, ship, path, order, enemy))
-                near = getattr(self, "_move_nearest", None)
-                if near is not None and near.id != enemy.id:
-                    score += 0.3 * self._arc_score(ship, fx, fy, fh, near)
-                score -= self._exposure_penalty(ship, fx, fy, fh, enemy)
-                score -= self._carrier_exposure(ship, fx, fy, enemy)
-                score += self._screen_bonus(ship, fx, fy, fh, enemy)
-                score += self._explosion_term(ship, fx, fy, enemy)
-                if score > best_score:
-                    best_score = score
-                    cmds: List[MoveCommand] = []
-                    if abs(turn_deg) > 0.5:
-                        if min_td > 0:
-                            cmds.append(MoveCommand("forward", min_td))
-                        cmds.append(MoveCommand(
-                            "turn_left" if turn_deg > 0 else "turn_right",
-                            abs(turn_deg)))
-                        rem = dist - (min_td if 0 < min_td < dist else 0)
-                        if rem > 0:
-                            cmds.append(MoveCommand("forward", rem))
-                    else:
-                        cmds.append(MoveCommand("forward", dist))
-                    best_cmds = cmds
+                best = max(angles, key=lambda a: self._arc_score(
+                    ship, *self._simulate_final_pos(ship, a, d, p), enemy))
+                add(best, d, p, "guns to bear")
+                best_heads.append((best, p))
+        # Goal: the range band where this ship beats the target most
+        band = self._range_band(ship, enemy)
+        if band is not None:
+            span = max(0.0, max_spd - min_spd)
+            n = max(1, int(span))
+            for a, p in best_heads + [(t, None) for t in turns]:
+                cands = [min_spd + span * k / n for k in range(n + 1)]
+                cands = [d for d in cands if p is None or d >= p]
+                if not cands:
+                    continue
+                d = min(cands, key=lambda dd: abs(math.hypot(
+                    *(lambda q: (q[0] - enemy.x, q[1] - enemy.y))(
+                        self._simulate_final_pos(ship, a, dd, p))) - band))
+                add(a, d, p, "range band")
+        return out
 
-        return best_cmds or [MoveCommand("forward", max(min_spd, max_spd / 2))]
+    def _range_band(self, ship: Ship, enemy: Ship) -> Optional[float]:
+        """The middle of the range bracket where `ship` beats `enemy` most in
+        expected VP per shooting phase (ai_hazards.bracket_matchup, To do 8 f),
+        or None when it beats it in none. Cached per pair and turn."""
+        from .ai_hazards import bracket_matchup
+        cache = self.__dict__.setdefault("_band_cache", {})
+        key = (ship.id, enemy.id, self.gs.turn_number, ship.hits_remaining,
+               enemy.hits_remaining)
+        if key not in cache:
+            rows = [(br, o - t) for br, o, t in bracket_matchup(ship, enemy)]
+            best = max(rows, key=lambda r: r[1])
+            cache[key] = (sum(best[0]) / 2.0) if best[1] > 0 else None
+        return cache[key]
 
     def _focus_for(self, ship: Ship) -> Optional[Ship]:
         """This ship's focus target (run_movement_phase: its own from
@@ -418,11 +525,21 @@ class AIPlayer:
         return 0.5 * hits * max(1.0, value_per_hit(ship, self.gs)) / max(1.0, per_fp)
 
     def _simulate_final_pos(self, ship: Ship, turn_deg: float,
-                            total_dist: float):
-        """Return (x, y, heading) after applying turn_deg then moving total_dist."""
+                            total_dist: float, turn_at: Optional[float] = None):
+        """Return (x, y, heading) after moving total_dist with one turn of
+        turn_deg: after `turn_at` cm of forward movement (To do 11 a turn
+        points), by default right after the minimum distance before turning."""
         from .movement import MIN_TURN_DISTANCE
         min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
         r = math.radians
+        if turn_at is not None and abs(turn_deg) >= 0.5:
+            t = max(0.0, min(total_dist, turn_at))
+            h0 = ship.heading
+            mx = ship.x + t * math.cos(r(h0))
+            my = ship.y + t * math.sin(r(h0))
+            h1 = (h0 + turn_deg) % 360
+            rem = total_dist - t
+            return (mx + rem * math.cos(r(h1)), my + rem * math.sin(r(h1)), h1)
 
         if abs(turn_deg) < 0.5:
             h = ship.heading
@@ -493,15 +610,16 @@ class AIPlayer:
                 score += strength * (w_range / dist) * 0.5  # closing bonus
         return score
 
-    def _simulate_path(self, ship: Ship, turn_deg: float, total_dist: float):
+    def _simulate_path(self, ship: Ship, turn_deg: float, total_dist: float,
+                       turn_at: Optional[float] = None):
         """[(x, y), ...] of a move: start, turn point, end."""
         from .movement import MIN_TURN_DISTANCE
-        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0) if turn_at is None else turn_at
         pts = [(ship.x, ship.y)]
-        if abs(turn_deg) >= 0.5 and 0 < min_td < total_dist:
+        if abs(turn_deg) >= 0.5 and 0 < min_td <= total_dist:
             r = math.radians(ship.heading)
             pts.append((ship.x + min_td * math.cos(r), ship.y + min_td * math.sin(r)))
-        fx, fy, _ = self._simulate_final_pos(ship, turn_deg, total_dist)
+        fx, fy, _ = self._simulate_final_pos(ship, turn_deg, total_dist, turn_at)
         pts.append((fx, fy))
         return pts
 

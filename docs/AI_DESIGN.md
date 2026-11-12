@@ -143,7 +143,15 @@ any angle up to the maximum is legal. Distances run from the minimum move (endin
 legally possible often keeps a ship out of range; under 5cm a ship counts as Defences on the
 Gunnery table, which matters for Burn Retros) to full speed.
 
-**Target-directed candidates** (Planned, owner; replaces the earlier idea of headings every 15
+**First slice built** (To do 11 a): every capital ship now also considers turning after its
+minimum move or at the end of its move, escorts and Burn Retros at the very start, and a 50%
+(minimum move) distance; on top of the old grid come two goals against its target: the end
+heading that brings the most guns to bear (searched every 5 degrees) and the distance that
+lands in the range bracket where it beats the target most (from the matchup table). Every
+candidate is checked against the movement rules. About 30-65 candidates a ship, a few
+milliseconds. The other goals, refinement and the coordination pass are still to come.
+
+**Target-directed candidates** (Planned in full, owner; replaces the earlier idea of headings every 15
 degrees, about 150 candidates, which survives only as a fallback). Candidates propose, values
 decide. Instead of sampling headings evenly, the AI picks **goals** and solves for the move
 that reaches each one (heading for a point and clamping to the turn limit, or a short search
@@ -367,8 +375,9 @@ Each ordnance phase the AI plans fighters across all its carriers:
 
 ## 6. How many moves it evaluates
 
-- **Normal AI movement**: up to 15 candidates per ship (5 headings x 3 distances), scored
-  greedily, ship by ship in fleet order. The Burn Retros check compares the safest of up to 9
+- **Normal AI movement**: about 30-65 candidates per ship (the grid of 5 headings x 4
+  distances, extra turn points, and goal candidates for guns to bear and the winning range
+  bracket), scored greedily, ship by ship in fleet order. The Burn Retros check compares the safest of up to 9
   normal moves with the safest of up to 9 half-speed moves.
 - **Torpedo aiming**: every heading through the target's sampled positions within the launch
   arc (dumb-fire); for turning salvos, up to several thousand short paths (launch heading, then
