@@ -510,7 +510,7 @@ Latest items, newest last:
   that can reach it plan their moves against it, keep 0.3 weight on their nearest enemy, and
   pay half the hits the enemy could focus on their end position
   (`ai_hazards.position_exposure_hits`).
-- Owner: bombers always attack the lowest Armour value. Checked everywhere; the AI's hazard
+- Bombers always attack the lowest Armour value (a rule, s.20; the owner asked for it everywhere). Checked everywhere; the AI's hazard
   maths for incoming bombers used the facing Armour and is fixed (`ai_hazards.marker_hits`).
 - AI Shooting by Squadrons: `AIPlayer._squadron_volleys` combines each squadron's batteries
   into one volley (combat.plan_squadron_volley / resolve_squadron_volley) at the best
@@ -763,7 +763,9 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
 ## Remaining work (agreed order; CLAUDE.md "To do" has the detail)
 
 1. On hold (owner): tuning the AI's judgement weights (listed in CLAUDE.md's AI section).
-   Keep it in mind, but it is hard work, so leave it be until the owner asks.
+   Keep it in mind, but it is hard work, so leave it be until the owner asks. Owner (AI design
+   feedback): do it last, after 11 and 12, with CMA-ES, paired common-random-number games, an
+   opponent pool, judgement weights only (CLAUDE.md To do 1).
 2. Strike planning at arrival time (design below, "Ordnance strike planning"); with it the
    owner's turn-limit risk preference: the expert AI (5 turns ahead) must know the turn
    limit and play riskier when behind near the end, safer when ahead (score by the chance of
@@ -807,7 +809,19 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    a failed command check ends the turn's orders (s.2), so the AI must prioritise them (gain x
    pass chance, best first; skip a low-value order that risks the rest); every order valued
    the same way (Burn Retros vs a hazard, Lock On for hits, Come to New Heading, All Ahead
-   Full, Reload Ordnance). Plan: CLAUDE.md To do 10.
+   Full, Reload Ordnance). Plan: CLAUDE.md To do 10. Brace rules recorded there (10 e): a
+   failed command check doesn't block Brace; a failed brace blocks only that ship until the
+   attacker has finished; brace is decided per weapon, once per attacker per turn.
+11. New (owner's AI design feedback, CLAUDE.md To do 11): checks done (shields in gunnery
+   values, the per-hit term, Ork turrets, mine movement; gap: mine hazard ignores turrets);
+   movement candidates (turn points, more headings, ~150 candidates, coordination pass);
+   hazards in the expert AI; Brace priced by its real costs; command check and disengage
+   modifiers; plasma explosions destroying ordnance; teleports given up by orders; dust
+   clouds; batteries before lances; damage control and blast-marker removal by expected VP;
+   first-turn choice; scale-free re-roll bars; Eldar / Necrons; compute, don't script;
+   softmax Easy.
+12. New (owner: do it, low priority, after 11): a learned evaluation for the expert search
+   (features, self-play data, fit / play / refit; CLAUDE.md To do 12).
 
 Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
 transcriptions and verify a sample against the booklet yourself.

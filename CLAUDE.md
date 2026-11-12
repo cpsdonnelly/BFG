@@ -98,7 +98,8 @@ Cruisers. Ships using rules the engine can't play yet
   in one phase chooses (`ordnance.choose_turret_target`: AI by expected hits saved, a human via
   `GameState.turret_choice_hook`). Orks (`ork_turrets`) hit on 5+ and fire at everything
   (Xenos, Turret Defences). Not yet: the Ork commander's Extra Turrets (4+).
-- **Bombers always attack the lowest Armour value** (s.20, owner), whatever side they come from:
+- **Bombers always attack the lowest Armour value** (a rule, s.20; the owner asked for it to be
+  applied everywhere), whatever side they come from:
   the engine (`ordnance.resolve_bomber_attack`), the wave planner / "Best split"
   (`waves.wave_plan_inputs`), bomber vs assault boat values (`waves.bomber_squadron_value`),
   multi-role suppression, AI strike targeting and the AI's hazard maths for incoming bombers
@@ -482,8 +483,8 @@ covering every raid, Remastered turret suppression per p.82, the optional-rule t
 and the expected-VP AI below (incl. carrier doctrine, strikes valued when they land,
 co-ordinated strikes, the AI's own teleports). Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2, then 3-7, 9 and 10; 8's place in the order is an open question; 1
-(weight tuning) is on hold.
+Next: the rest of To do 2, then 3-7, 9, 10 and 11; 8's place in the order is an open question;
+12 (learned evaluation) after 11; 1 (weight tuning) last and on hold.
 
 ### AI: how it decides (expected VP)
 
@@ -539,7 +540,7 @@ p.82, `waves.wave_split_value`); the celestial-phenomena rules aren't modelled
 by the AI yet (check their flags when they are).
 
 Values:
-- Two VP scales: gunnery `damage_vp` (s.38 thresholds + 0.2 per hit) for choosing gun / torpedo
+- Two VP scales: gunnery `damage_vp` (s.38 thresholds + 0.2 x points / starting hits per hit; checked) for choosing gun / torpedo
   targets; `hull_hits_vp` (full value per hit + thresholds, the raid scale) wherever bomber hits
   are compared with raids. Ordnance never loses hits to shields (s.11 / s.15).
 - `damage_vp` adds the threat removed (owner): a kill removes the target's next turn of fire
@@ -668,7 +669,17 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
 1. On hold (owner): tuning the AI's judgement weights (listed in "AI: how it decides"). Keep
    it in mind, but it is hard work, so leave it be for now: don't retune them unless the
    owner asks. Example worth a look later: a lone healthy cruiser facing three full enemy
-   cruisers disengages under the current model.
+   cruisers disengages under the current model. Owner (AI design feedback): do it, but as
+   the LOWEST priority, after To do 11 and 12. Method agreed: CMA-ES (not a genetic
+   algorithm); tune the judgement weights only, never rule-derived values (25% / 100% / 10%
+   VP, Tau 5/6, the 10.5cm explosion radius, +14cm All Ahead Full, 0.5 per lance), and first
+   replace the 0.35-per-battery-point rule of thumb with the exact Gunnery table; paired
+   evaluation with common random numbers (same seeds and scenarios, sides swapped), VP margin
+   as fitness; an opponent pool (earlier weight sets, the untuned AI, hand-made styles);
+   normal AI only (speed); the harness doubles as a rules test; redo after any structural
+   change. If weights must differ by matchup, make them functions of measured features
+   (launch-capacity ratio, mean speed difference, range-bracket advantage, hits per point),
+   never per-faction weight sets.
 2. Strike planning by expected VP when the strike lands (owner discussion; design in
    docs/HANDOFF.md "Ordnance strike planning"): crit values over the turns they last (damage
    control s.36), threat at the target's next shooting phase, travel time and which player's
@@ -923,6 +934,99 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       failure would block (`ai_rerolls.should_reroll` should count them).
    e. Brace for Impact stays a reaction during the enemy's attacks (any time before damage is
       rolled), with its own value; note that bracing ends Lock On's re-rolls and halves fire.
+      Rules (s.7, XR p.21; feedback 1a-b): a failed movement-phase command check does NOT
+      block Brace, so (c) must not treat it as blocking braces. A failed brace blocks only
+      that ship, and only until the attacker (ship, squadron or ordnance marker) has finished
+      all its attacks; other ships may still brace. A ship decides separately against each of
+      an attacker's weapons (it may brace against the lances after not bracing against the
+      gunnery) but attempts only once per attacker per turn. Engine today:
+      `CombatPanel._brace_before_attack` keeps `Ship.brace_failed_vs` (attacker keys, cleared
+      in the end phase) and asks again after a decline; still to check that the Fire dialog
+      and AI fire ask before each weapon, not once per firing ship.
+   f. Command check modifiers (s.6) in every order's pass chance: Enemy Contacts +1 Ld if any
+      enemy ship is on special orders, Under Fire -1 with blast markers in contact, Ld 0-10;
+      command checks only, not Leadership tests. Both directions matter (our orders make the
+      enemy's checks easier).
+   g. Teleport-capable ships: an order other than Lock On / Reload Ordnance gives up the
+      end-phase raid (s.31), so its value counts against that order.
+
+11. AI design feedback (owner, on docs/AI_DESIGN.md; items tagged Rules / Owner / Suggestion
+   in its priority order; Suggestions are the intended direction, raise them with the owner
+   if they conflict with something already decided). Checks done this session: gunnery values
+   subtract shields (`ai_player` `added_vp` / `ai_should_brace` use `current_shields`);
+   `damage_vp`'s per-hit term is 0.2 x points / starting hits (`value_per_hit`); Ork turrets
+   hit on 5+ (`ai_hazards`, `waves`) and fire at everything (`turret_split_gain` gives no
+   split gain); mines in the hazard model move 10cm toward the nearest enemy vessel of the
+   layer in each ordnance phase (`marker_hits`). Gap found: the mine hazard counts 8D6 against
+   Armour flat, ignoring the turret roll that cuts it to 4D6 (`ordnance.resolve_mine_contact`).
+   To build:
+   a. Movement candidates (owner): turn points for capital ships right after the turning
+      distance (battleships 15cm, cruisers 10cm), just after the minimum move (half speed) and
+      at the end of the move; escorts anywhere, including at the very start; Burn Retros needs
+      no movement before turning; only forward movement this phase counts toward the turning
+      distance. More headings for sharper turners (owner; suggestion every 15 degrees up to the
+      maximum: 45 -> 7 headings, 90 -> 13; any angle up to the maximum is legal). Suggestions:
+      add a 50% distance (the exact minimum move); a ship moving under 5cm counts as Defences
+      on the Gunnery table (s.10), which matters for Burn Retros; a budget of about 150
+      candidates, pruned with the cheap terms, exposure scored on the best ~20, the extra time
+      spent on 90-degree ships and escorts; then a coordination pass over the fleet
+      (coordinate descent, one or two passes).
+   b. Expert AI hazards (suggestion, high): it plans movement without hazards. Minimum: the
+      path-hazard cost at the root and in its evaluation; better: expected values at chance
+      points, or sampled dice.
+   c. Rule effects missing from valuations:
+      - Price Brace instead of the 1/4-of-hits rule: its costs until the end of the ship's
+        next turn (gunnery, lances and ordnance halved, halved again if crippled; no special
+        orders; no firing at all inside an asteroid field, s.39); saves only for hits past
+        shields; drop the fixed commander bias, let it come from the values.
+      - Command check modifiers (To do 10 f).
+      - Disengage test (s.37, XR p.38), end of the movement phase: +1 Ld per blast marker
+        within 5cm, +3 once for a celestial phenomenon within 15cm (anywhere during a
+        radiation burst or solar flare), -1 per enemy within 15cm, enemy ordnance markers
+        included; Ld max 10. A failed test: no firing, launching or orders but Brace for the
+        rest of that turn. Suggestion: value moving near phenomena before trying. VP for a
+        non-crippled disengaged ship: 10%. Check `disengage_gain` uses every modifier.
+      - Plasma drive overload (Appendix 5, 9-11): lance shots at half starting hits at every
+        ship within 3D6cm AND all ordnance within the radius destroyed, so an explosion
+        protects its neighbours from incoming waves and salvos; `explosion_vp` counts the
+        ship damage only.
+      - Teleports (s.31): not crippled, Lock On / Reload only, target shields down, within
+        10cm, no more remaining hits; no escorts or defences under 3 hits; order valuation
+        counts the raid given up (To do 10 g).
+      - Dust clouds (s.39): ships in contact count as having a blast marker in all respects;
+        ordnance moving through tests as for blast markers (owner ruling; matches).
+   d. Shooting order (suggestion): against shielded targets fire batteries before lances
+      (shield-hit blast markers shift later batteries; lances aren't affected); knocking
+      shields down also opens teleports (To do 8 j).
+   e. End phase and pre-game: damage control by expected VP (a fire costs 1 hit per end
+      phase; a weapon is worth its next turn of fire; an engine crit what is lost by not
+      turning; escorts don't repair; the fixed order stays as the fallback); blast marker
+      removal as s.36 states it; first-turn policy (s.2: the roll-off winner chooses to move
+      first or second) alongside deployment.
+   f. Scale-free re-roll bars (suggestion): the 45 / 25 / 15 / 10 VP bars as a fraction of fleet
+      points or points in play.
+   g. Faction behaviour (suggestion): Eldar (MMS v2.0: two moves, holofields, Fragile, turning,
+      own ordnance) and Necrons aren't modelled; the generic AI would misplay them.
+   h. Compute, don't script (suggestion): build To do 8 a and 8 f first and see what emerges
+      before adding doctrine code; matchup weights only as functions of measured features (To
+      do 1).
+   i. Difficulty (suggestion): Easy chooses by softmax on expected value with a temperature
+      (human-like mistakes); Hard gets the coordination pass or tuned weights.
+   Claude's view (not an owner ruling): expected value of the work is rules completeness >
+   candidate generation > search with dice > learned evaluation > weight tuning.
+
+12. Learned evaluation for the expert search (owner: do it; low priority, after To do 11,
+   and only after its a-c). Supervised fitting of position features to game outcomes.
+   Features: material, threat both ways, relative geometry (no absolute coordinates),
+   ordnance in flight, tempo, state, and terrain by what it does to ships (hazard cost of
+   reachable moves, cloud / blast contact, distance to the nearest phenomenon and the table
+   edge, cover share, gravity wells, ordnance paths crossing hazards). Fleet size: sum / mean /
+   max aggregation first, set-based networks optional later. Baseline to beat: VP margin +
+   next turn's expected swing (today's leaf); alternative: rollouts to make labels, then fit
+   the fast evaluation. Data: normal-AI self-play across factions, lists, scenarios and varied
+   terrain (s.39 random generation), logged after each phase; a few thousand games give about
+   100k positions; softmax randomness (11 i) for variety; log the tuning games (To do 1) if
+   they run. Iterate fit / play / refit.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

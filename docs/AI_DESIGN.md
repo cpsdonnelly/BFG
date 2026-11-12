@@ -23,7 +23,7 @@ fighter held on CAP, a re-roll spent now or kept.
 
 - Crossing the **crippled** line scores 25% of a ship's points, **destroying** it 100% (s.38;
   an escort squadron is scored once, as one unit). Damage short of a threshold is worth a
-  little (0.2 of the ship's value per hit), so the AI still likes wearing a ship down.
+  little (0.2 x the ship's points / its starting hits, per hit), so the AI still likes wearing a ship down.
 - **Threat removed** (owner): killing a ship removes its next turn of fire at us, crippling
   halves it. "Fire" includes a carrier's launch bays: what its strikes would do to us, and how
   many of our strike squadrons its fighters would stop.
@@ -89,7 +89,7 @@ hit-and-run off, assault boats, boarding torpedoes and teleports are off for eve
   torpedoes run straight; guided torpedoes turn at the launcher's Leadership odds; seeking ones
   home on the nearest enemy; boarding torpedoes turn freely within 45 degrees; Tau missiles
   turn 45, reach 40cm and lose strength on later phases. Bombers always attack the lowest
-  Armour (owner). Contact uses the ship's base size plus the marker's width, so large bases are
+  Armour (s.20). Contact uses the ship's base size plus the marker's width, so large bases are
   easier to hit.
 - **Enemy carriers** (Built): what their loaded bays could launch next turn, and their fighters
   as a threat to our strikes (section 5).
@@ -126,6 +126,17 @@ minimum move): up to **15 candidate moves**, each scored as:
   enemy torpedoes, torpedo bombers, bombers, assault boats or mines could reach it (owner: never
   against fighters alone, never when there is nothing to mass against).
 
+**Better candidates** (Planned, To do 11 a; owner, from the design feedback): turn points
+where the rules allow them, not only at the end: a capital ship right after its turning
+distance (battleships 15cm, cruisers 10cm), just after its minimum move, and at the end;
+escorts anywhere, even at the very start; Burn Retros needs no movement before turning; only
+forward movement this phase counts toward the turning distance. More headings for sharp
+turners (every 15 degrees up to the maximum: 45 -> 7 headings, 90 -> 13; any angle up to the
+maximum is legal). Suggested: a 50% distance (the exact minimum move; under 5cm a ship counts
+as Defences on the Gunnery table, s.10, which matters for Burn Retros), a budget of about 150
+candidates pruned with the cheap terms and exposure scored on the best ~20, and a coordination
+pass over the whole fleet (coordinate descent, one or two passes) so ships' moves fit together.
+
 **Fleet focus** (Built, owner: focus fire, easier targets first): the fleet assigns focus
 targets together. Each ship's guns go where they add most VP on top of what the others will
 do, so one ship finishes a 1-hit enemy while the rest move on, and two healthy targets each get
@@ -160,6 +171,11 @@ respected when shooting.
 It disengages voluntarily when the chance of passing x (the risk avoided over the enemy's next
 turn - the VP conceded) beats the value of its guns. Forced disengagement and Demiurg
 Mercenaries make it flee for the nearest edge.
+Planned (To do 11 c): every modifier of the test (s.37): +1 Ld per blast marker within 5cm, +3
+once for a celestial phenomenon within 15cm (anywhere during a radiation burst or solar flare),
+-1 per enemy within 15cm, ordnance markers included; a failed test means no firing, launching
+or orders but Brace for the rest of the turn. Suggested: move next to a phenomenon before
+trying.
 
 ### Special orders
 
@@ -183,6 +199,19 @@ remaining hits (the commander's ship braces earlier).
   valuable, most reliable orders first and skip a low-value order whose failure would block
   more valuable ones. A commander re-roll on a failed check is worth the order plus everything
   the failure would block.
+- **Command check modifiers** (s.6) in every pass chance: Enemy Contacts +1 Ld when any enemy
+  ship is on special orders, Under Fire -1 with blast markers in contact (command checks only,
+  not Leadership tests). Our orders make the enemy's checks easier too.
+- A teleport-capable ship on any order but Lock On / Reload Ordnance gives up its end-phase
+  raid (s.31); that counts against the order.
+- **Brace for Impact** (rules, s.7): a failed movement-phase check doesn't stop a ship bracing
+  later; a failed brace blocks only that ship until that attacker has finished all its
+  attacks; a ship decides separately against each of an attacker's weapons (it may brace
+  against the lances after not bracing against the gunnery) but tries only once per attacker
+  per turn. Planned (To do 11 c): price Brace by what it really costs until the end of the
+  ship's next turn (guns, lances and ordnance halved, halved again if crippled; no special
+  orders; no firing at all inside an asteroid field, s.39) against the hits it saves (only
+  hits past shields), instead of the fixed quarter-of-hits rule and the commander bias.
 
 ---
 
@@ -264,6 +293,8 @@ Each ordnance phase the AI plans fighters across all its carriers:
   -45 / 0 / +45 per move, 20/30/40cm for Tau missiles), pruned to well under a second.
 - **Strikes**: every enemy within three craft moves x every fighter / bomber split x every
   interception case.
+- **Planned** (To do 11 a): about 150 candidates per ship (more turn points and headings),
+  pruned with the cheap terms, exposure on the best ~20, then a fleet coordination pass.
 - **Expert AI movement**: for each ship, 9 candidate moves at the root, each followed by a
   minimax search 5 turns deep that tries 6 variations of each side's moves per step and keeps
   the best 4 (alpha-beta pruning), within 2 seconds per ship.
@@ -357,6 +388,14 @@ Tuning these is on hold (owner: "keep it in mind, but it is hard work, so leave 
 | Squadron volleys, hulks, shooting ordnance, disengaging, explosions, screening | off | on | as normal |
 | Movement | the same 15 candidates, scored on guns and hazards only (no exposure, focus, explosions or screening) | 15 candidates scored greedily, one turn ahead | 5-turn minimax per ship (9 x search), ~75s a game |
 
+Planned (To do 11 i, suggestion): Easy chooses by a softmax on expected value with a temperature,
+so its mistakes look human rather than random; Hard gets the coordination pass or tuned weights.
+The expert AI should see hazards (To do 11 b): at least the path-hazard cost at the root and in
+its evaluation, better expected values at chance points or sampled dice. Later (To do 12, owner:
+low priority) a learned evaluation for its search: position features (material, threat both
+ways, relative geometry, ordnance in flight, tempo, terrain by what it does to ships) fitted to
+self-play outcomes, to beat today's "VP banked + next turn's swing" leaf.
+
 Hard currently plays like Normal. The expert AI replaces only movement; its simulation is
 dice-free and leaves out attack craft, hazards and blast markers, so its strength is long-range
 manoeuvre. Its other phases are the normal AI's.
@@ -367,13 +406,28 @@ manoeuvre. Its other phases are the normal AI's.
 
 - **Deployment** (gap): ships are grouped for set-up (escorts first, squadrons together) but not
   placed by strategy. Planned with scenarios (To do 7): deploy for the matchup and objectives.
-- **Damage control** (gap): repairs follow a fixed priority (fires first, then engines, then the
-  rest), not expected VP (e.g. repair the weapon that bears next turn).
+- **Damage control** (gap; To do 11 e): repairs follow a fixed priority (fires first, then
+  engines, then the rest), not expected VP: a fire costs 1 hit per end phase, a weapon is worth
+  its next turn of fire, an engine crit what is lost by not turning; escorts don't repair. The
+  fixed order stays as the fallback.
+- **First turn** (gap; To do 11 e): the roll-off winner chooses to move first or second (s.2);
+  the AI should choose, alongside deployment.
+- **Shooting order** (suggestion, To do 11 d): against shielded targets fire batteries before
+  lances, since shield-hit blast markers shift later batteries but not lances; knocking shields
+  down also opens teleports.
+- **Explosions and ordnance** (gap, To do 11 c): a plasma drive overload also destroys all
+  ordnance within its radius, so it shields its neighbours from incoming waves and salvos; the
+  explosion values count only the ship damage.
+- **Mines** (gap found in the check): the hazard model counts a mine's 8D6 flat; the turret roll
+  that cuts it to 4D6 isn't counted.
+- **Eldar and Necrons** (suggestion, To do 11 g): Eldar (MMS v2.0: two moves, holofields,
+  Fragile, turning, own ordnance) and Necrons aren't modelled; the generic AI would misplay them.
 - **Blast marker removal** (gap): the player whose turn it is chooses which D6 blast markers to
   remove; the AI doesn't choose strategically (clear its own lines of fire, keep enemies'
   shields down).
 - **Re-rolls** (Built): spent by importance in expected VP against the bars above; the
-  commander's ship is protected (it braces earlier, its moves pay for exposure). Commander
+  commander's ship is protected (it braces earlier, its moves pay for exposure). Planned (To do
+  11 f, suggestion): bars as a fraction of fleet points or points in play, so they scale. Commander
   re-rolls are lost on Bridge Smashed or the commander's death.
 - **Leadership** is rolled at game start; the AI reads its real Ld for every test.
 - **Faction rules** it plays: Ork random firepower and Ere We Go, Heavy Gunz, Ork turrets; Tau
@@ -391,6 +445,15 @@ manoeuvre. Its other phases are the normal AI's.
   Radiation Bursts (s.40; To do 6), torpedo bombers and mine launcher swaps (To do 3), several
   units (To do 5).
 - **Open question**: where the matchup-aware manoeuvre work (To do 8) goes in the order.
+
+**Approach** (owner feedback): compute, don't script. Build exposure by Armour facing (8 a) and
+range brackets (8 f) first and see what behaviour emerges before adding doctrine code; where
+weights must vary by matchup, make them functions of measured features (launch-capacity ratio,
+mean speed difference, range-bracket advantage, hits per point), never per-faction weight sets.
+Order of value (Claude's view, not a ruling): rules completeness > candidate generation >
+search with dice > learned evaluation > weight tuning. Weight tuning (owner: last, on hold):
+CMA-ES over the judgement weights only, paired games with common random numbers, an opponent
+pool, the normal AI; the 0.35 battery rule of thumb gives way to the exact Gunnery table first.
 
 Possible gaps in this plan worth the owner's view: deployment strategy, damage-control choices,
 blast-marker removal, whether Hard should differ from Normal, and how much the expert AI should
