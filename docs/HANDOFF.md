@@ -465,7 +465,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session log (latest session, newest last; history)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1055 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1058 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -695,6 +695,12 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    evaluation should add these static terms (unrepaired-crit values over the remaining turns,
    ordnance in flight valued at arrival with survival, reach-based threat) so a move that pays
    off after the horizon is still seen.
+
+10. **Done (this session): points 4-5 in part.** `ai_hazards.strike_timeline` gives the
+   arrival phase, the landing turn (the raid's repair window), enemy guns on the way and
+   reactive CAP; `_strike_option` and `plan_strike_targets` use it (CLAUDE.md To do 2 has the
+   detail and what is left: crits beyond the next shooting phase, splitting, risk preference,
+   the expert AI and craft in flight).
 
 9. **Done (owner ruling: "the second idea is an extension of the first"):** Wings of Fury
    re-rolls value armament crits by the threat at the target's next shooting phase (reach =

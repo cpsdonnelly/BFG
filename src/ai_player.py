@@ -1438,38 +1438,105 @@ class AIPlayer:
         targets = [e for e in enemies
                    if ship.distance_to(e) - closure(e) <= 3 * speed] or [near]
         options = []
+        from .ai_hazards import (best_route, phase_weight, strike_timeline,
+                                 REACTIVE_CAP_WEIGHT, _predicted_positions)
         for target in targets:
-            inputs = wave_plan_inputs(target, self.gs)
-            p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
-            from .ai_hazards import best_route, travel_discount, PHASE_DISCOUNT
+            base_inputs = wave_plan_inputs(target, self.gs)
             # craft may fly round obstacles (owner): best of straight line / detours
             route = best_route(ship.x, ship.y, target.x, target.y, self.gs, "craft", speed)
-            disc = route[0]
-            if next_turn:
-                # a turn later (two ordnance phases of delay) from a turn closer
-                disc = (route[1] * travel_discount(max(1.0, route[2] - closure(target)), speed)
-                        * PHASE_DISCOUNT ** 2)
+            ratio = max(1.0, route[2] / max(1.0, ship.distance_to(target)))
+            # Valued when it lands (To do 2): the arrival phase (phase_weight),
+            # enemy guns on the way, reactive CAP, the raid's repair window
+            tls = {}
+
+            def timeline(spd):
+                """strike_timeline for a wave of speed `spd` (a wave moves at its
+                slowest craft's speed, s.25), with the discount and CAP cases."""
+                if spd not in tls:
+                    if next_turn:
+                        # the same launch a turn later: we move a mean move closer and
+                        # the target is where it will be at our next ordnance phase
+                        mv = 0.75 * (ship.effective_speed or 0)
+                        d = ship.distance_to(target) or 1.0
+                        lx = ship.x + (target.x - ship.x) * min(1.0, mv / d)
+                        ly = ship.y + (target.y - ship.y) * min(1.0, mv / d)
+                        tl = strike_timeline(lx, ly, spd, _predicted_positions(target, True)[2],
+                                             self.gs, self.player, ratio)
+                        offset = 2
+                    else:
+                        tl = strike_timeline(ship.x, ship.y, spd, target, self.gs,
+                                             self.player, ratio)
+                        offset = 0
+                    if tl is None:
+                        tls[spd] = None
+                    else:
+                        caps = [(1.0, base_inputs)]
+                        if tl["reactive_cap"]:
+                            more = dict(base_inputs,
+                                        cap=base_inputs["cap"] + tl["reactive_cap"])
+                            caps = [(1 - REACTIVE_CAP_WEIGHT, base_inputs),
+                                    (REACTIVE_CAP_WEIGHT, more)]
+                        disc = route[1] * tl["survival"] * phase_weight(tl["phase"] + offset)
+                        tls[spd] = (tl, disc, caps)
+                return tls[spd]
+
+            def mixed(fn, caps):
+                """fn(inputs) -> (value, ev) mixed over the reactive-CAP cases."""
+                v = e = 0.0
+                for w, inp in caps:
+                    a, b = fn(inp)
+                    v, e = v + w * a, e + w * b
+                return v, e
             c = committed.get(target.id, 0.0)
             if types:
                 fk, bk, f_save, b_save = types
-                f, b, ev = plan_wave_against(count, inputs, f_save, b_save)
-                options.append((hull_hits_vp(target, self.gs, c, ev) * disc,
-                                [(fk, f), (bk, b)], f"{f} fighters + {b} bombers", target, ev))
+                f, b, _ev = plan_wave_against(count, base_inputs, f_save, b_save)
+
+                def wave(inp, f=f, b=b):
+                    from .waves import wave_split_value
+                    t = inp["turrets"]
+                    pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                    ev = wave_split_value(f, b, t, t + inp["massed"], inp["cap"],
+                                          inp["armour"], pp, f_save, b_save, inp["cap_save"])
+                    return hull_hits_vp(target, self.gs, c, ev), ev
+                spd = min((stats[k][1] or 20) for k, n in ((fk, f), (bk, b)) if n) if f + b else 20
+                got = timeline(spd)
+                if got:
+                    _tl, disc, caps = got
+                    v, ev = mixed(wave, caps)
+                    options.append((v * disc, [(fk, f), (bk, b)], f"{f} fighters + {b} bombers",
+                                    target, ev))
             elif bomber:
                 from .waves import best_wave_split
-                t = inputs["turrets"]
-                _f, b, ev = best_wave_split(count, t, t + inputs["massed"], inputs["cap"],
-                                            inputs["armour"], p, 0, stats[bomber][2] or 0,
-                                            inputs["cap_save"])
-                options.append((hull_hits_vp(target, self.gs, c, ev) * disc,
-                                [(bomber, count)], f"{count} bombers", target, ev))
-            if boat:
-                through = expected_survivors(count, inputs["turrets"] + inputs["massed"],
-                                             inputs["cap"], p, stats[boat][2] or 0,
-                                             inputs["cap_save"])
-                options.append((through * raid_squadron_value(target, self.gs, self.player,
-                                                              ship.special_rules) * disc,
-                                [(boat, count)], f"{count} assault boats", target, 0.0))
+
+                def bombers(inp):
+                    t = inp["turrets"]
+                    pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                    _f, _b, ev = best_wave_split(count, t, t + inp["massed"], inp["cap"],
+                                                 inp["armour"], pp, 0, stats[bomber][2] or 0,
+                                                 inp["cap_save"])
+                    return hull_hits_vp(target, self.gs, c, ev), ev
+                got = timeline(stats[bomber][1] or 20)
+                if got:
+                    _tl, disc, caps = got
+                    v, ev = mixed(bombers, caps)
+                    options.append((v * disc, [(bomber, count)], f"{count} bombers", target, ev))
+            got = timeline(stats[boat][1] or 20) if boat else None
+            if got:
+                tl, disc, caps = got
+                raid = raid_squadron_value(target, self.gs, self.player, ship.special_rules,
+                                           end_phases=tl["end_phases"])
+
+                def boats(inp):
+                    pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                    through = expected_survivors(count, inp["turrets"] + inp["massed"],
+                                                 inp["cap"], pp, stats[boat][2] or 0,
+                                                 inp["cap_save"])
+                    return through * raid, 0.0
+                v, _e = mixed(boats, caps)
+                options.append((v * disc, [(boat, count)], f"{count} assault boats", target, 0.0))
+        if not options:
+            return None
         value, plan, label, target, ev = max(options, key=lambda o: o[0])
         return value, plan, label, target, ev
 

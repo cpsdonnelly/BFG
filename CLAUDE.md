@@ -435,7 +435,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1055 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1058 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`). After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
@@ -537,9 +537,11 @@ Ordnance:
   with the weakest strike per squadron, each taking the exact count that maximises strike +
   gains (`_best_defence_count`). Multi-role carriers plan alone.
 - Strikes (`_strike_option`): every enemy within 3 moves, the planner's fighter / bomber wave
-  (`waves.plan_wave_against`) or all assault boats (owner idea: by expected VP, `waves.raid_squadron_value`), x the
-  route (`best_route`: up to two waypoints round obstacles, AI craft fly them,
-  `ordnance.craft_target_point`); craft in flight re-targeted fleet-wide
+  (`waves.plan_wave_against`) or all assault boats (owner idea: by expected VP,
+  `waves.raid_squadron_value`), valued when they land (`strike_timeline`: arrival phase,
+  enemy guns on the way, reactive CAP, the raid's repair window) along the route
+  (`best_route`: up to two waypoints round obstacles, AI craft fly them,
+  `ordnance.craft_target_point`); craft in flight re-targeted fleet-wide the same way
   (`plan_strike_targets`); multi-role attack mode by `waves.best_attack_mode`.
 - Holding bays (`_hold_bays`): out of reach (nothing within three moves of the fastest craft)
   hold; within reach hold when (1 - Reload Ordnance odds) x next turn's launch or CAP value >
@@ -568,7 +570,23 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    when to split a wave, a risk preference from the game state, the expert AI using the same
    terms. One function feeds the planner, AI launches, bombers vs assault boats, multi-role
    attack modes and Wings of Fury. Built: crit-over-time value and the reach model for raids
-   (`hit_and_run.armament_threat_value`), the time discount (`phase_weight`).
+   (`hit_and_run.armament_threat_value`), the time discount (`phase_weight`), and strikes
+   valued when they land (`ai_hazards.strike_timeline`, used by `_strike_option` and
+   `plan_strike_targets`: arrival phase from both players' ordnance moves and the target's
+   predicted track, each option at its own wave's speed (the slowest craft); the raid's
+   repair window from the landing turn (1 end phase in ours, 2 in the enemy's;
+   `raid_result_value(..., end_phases)`); enemy guns in reach of the waiting wave in each
+   enemy shooting phase before arrival (Ordnance column, one 6 removes the wave, out of arc at
+   half, x `ENEMY_FIRE_AT_WAVE` 0.5, judgement); reactive CAP from a loaded target carrier
+   when an enemy ordnance phase comes first, incl. the arrival one (the enemy moves its
+   ordnance first, s.15), at `REACTIVE_CAP_WEIGHT` 0.5 (judgement); `tests/test_strike_timeline.py`).
+   Effects: faster assault boats now beat a slower fighter / bomber wave in the owner's
+   4-turret 6+ example (they land a phase sooner, less time under the target's guns; at equal
+   speed the bombers still edge it); an enemy carrier holding loaded fighters 35cm away makes
+   our strike land after its guns and CAP, so CAP for our weak friend wins, while from within
+   one bomber move the full wave wins. Still to do here: crit values beyond the next shooting
+   phase, splitting waves against enemy guns, a risk preference, the expert AI valuing craft
+   in flight, reactive CAP for craft already in flight.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
    owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the

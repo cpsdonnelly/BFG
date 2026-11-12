@@ -329,14 +329,15 @@ def test_bombers_beat_assault_boats_against_escorts():
     assert best_attack_mode(esc, gs, 1) == "bomber"
 
 
-def _carrier_launch(turrets, armour, x=60.0):
+def _carrier_launch(turrets, armour, x=60.0, boat_speed=30):
     from tests.conftest import make_ship, make_gs, DiceStub
     from src.ai_player import AIPlayer
     from src.turn_controller import TurnController
     bay = {"name": "Port Launch Bays", "weapon_type": "launch_bay", "range_cm": 30,
            "strength": 4, "arcs": [],
            "craft_types": ["fury_fighter", "starhawk_bomber", "shark_assault_boat"],
-           "craft_speeds": {"fury_fighter": 30, "starhawk_bomber": 20, "shark_assault_boat": 30}}
+           "craft_speeds": {"fury_fighter": 30, "starhawk_bomber": 20,
+                            "shark_assault_boat": boat_speed}}
     c = make_ship(id="c", player=1, weapons=[bay], points_value=250)
     W = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 4,
           "arcs": ["left"]},
@@ -359,8 +360,12 @@ def test_ai_carrier_picks_assault_boats_vs_armoured_target():
     assert set(_carrier_launch(4, "6+", x=25.0)) == {"assault_boat"}
     assert "bomber" in _carrier_launch(1, "4+", x=25.0)
     # Owner's example with turret suppression counted, crits threatening nothing:
-    # 3 fighters + 1 suppressed bomber (~0.36 hits) edge out 4 boats (~0.33)
-    assert "bomber" in _carrier_launch(4, "6+")
+    # 3 fighters + 1 suppressed bomber (~0.36 hits) edge out 4 boats (~0.33) when
+    # both land at the same time (boats as slow as the bombers)...
+    assert "bomber" in _carrier_launch(4, "6+", boat_speed=20)
+    # ...but faster boats (30cm) land a phase sooner and spend less time under the
+    # target's guns (To do 2: strikes valued when they land; sooner beats later)
+    assert set(_carrier_launch(4, "6+")) == {"assault_boat"}
 
 
 
@@ -485,8 +490,12 @@ def test_cap_against_enemy_strike_not_yet_launched():
 
 def test_full_strike_beats_scattered_cap():
     """Strike values aren't linear (suppression, crippling): a close full wave
-    can outweigh several CAP slots even when the enemy carrier threatens us."""
-    craft = _pre_cap_launch(0.0)
+    can outweigh several CAP slots even when the enemy carrier threatens us,
+    when it lands in our own ordnance phase (within one bomber move), before the
+    enemy can fire at it or put its own fighters on CAP (To do 2). From 35cm it
+    would land in the enemy's phase, after both, and the CAP wins."""
+    assert all(o.get("cap_ship_id") for o in _pre_cap_launch(0.0))
+    craft = _pre_cap_launch(16.0)
     assert not any(o.get("cap_ship_id") for o in craft)
     assert sorted(o["ordnance_type"] for o in craft) == ["bomber", "bomber", "fighter", "fighter"]
 

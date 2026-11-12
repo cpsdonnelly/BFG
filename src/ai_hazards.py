@@ -712,9 +712,11 @@ def plan_strike_targets(gs, player: int) -> dict:
     """Targets for `player`'s ship-attacking craft in flight (bombers, assault
     boats, multi-role craft; not on CAP), by expected VP with focus (owner):
     each wave (or lone squadron) goes to the enemy ship it adds the most to,
-    counting what earlier groups are planned to do there, discounted for the
-    moves it needs to get there. Fighters in a wave follow it. Returns
+    counting what earlier groups are planned to do there, valued when it lands
+    (strike_timeline: arrival phase, enemy guns on the way, the raid's repair
+    window). Fighters in a wave follow it. Returns
     {marker id: target ship id}."""
+    import math as _m
     from .models import OrdnanceMarker
     from .ordnance import craft_roles, attacks_ships
     from .waves import (expected_survivors, raid_squadron_value, bomber_squadron_value,
@@ -740,6 +742,14 @@ def plan_strike_targets(gs, player: int) -> dict:
               and attacks_ships(m.ordnance_type)]
         best, best_t, best_hits = 0.0, None, 0.0
         for e in enemies:
+            # Valued when it lands (To do 2): arrival phase, enemy guns on the way,
+            # the raid's repair window; routes round obstacles (owner)
+            route = best_route(lead.x, lead.y, e.x, e.y, gs, "craft", speed)
+            d = _m.hypot(e.x - lead.x, e.y - lead.y) or 1.0
+            tl = strike_timeline(lead.x, lead.y, speed, e, gs, player,
+                                 max(1.0, route[2] / d), gs.active_player == player)
+            if tl is None:
+                continue
             c = committed.get(e.id, 0.0)
             hits = strike_group_hits(f, b, e, gs) if b else 0.0
             v = hull_hits_vp(e, gs, c, hits) if hits else 0.0
@@ -748,13 +758,14 @@ def plan_strike_targets(gs, player: int) -> dict:
                 p = (7 - (5 if inp.get("ork") else 4)) / 6.0
                 n = a + len(mr)
                 through = expected_survivors(n, inp["turrets"] + inp["massed"], inp["cap"], p)
-                per = raid_squadron_value(e, gs, player, lead.special_rules or [])
+                per = raid_squadron_value(e, gs, player, lead.special_rules or [],
+                                          end_phases=tl["end_phases"])
                 if mr and getattr(gs, "rule_hit_and_run", True):
                     per_mr = max(per, bomber_squadron_value(e, gs))
                 else:
                     per_mr = bomber_squadron_value(e, gs)
                 v += through * ((a * per + len(mr) * per_mr) / max(1, n))
-            v *= best_route(lead.x, lead.y, e.x, e.y, gs, "craft", speed)[0]   # round obstacles
+            v *= route[1] * tl["survival"] * phase_weight(tl["phase"])
             if v > best:
                 best, best_t, best_hits = v, e, hits
         if best_t is None:
@@ -1350,3 +1361,96 @@ def salvo_approach(marker, gs, target=None, our_phase=None):
                          marker.owner_player, marker.strength, arc_half=45.0,
                          p_turn=p_turn, our_phase=our_phase, boarding=boarding, tau=tau,
                          friends=friends, lengths=(20.0, 30.0, 40.0) if tau else None)
+
+
+# ── Strikes valued when they land (To do 2) ─────────────────────────────────
+# Owner discussion (HANDOFF "Ordnance strike planning"): a strike is worth what
+# it does when the wave arrives, discounted by how long that takes, after the
+# losses on the way, with its crits valued at the right point in the turn.
+
+# Chance the enemy spends a gun that could hit our wave on it rather than on
+# one of our ships (judgement; it only does when that beats its ship shot)
+ENEMY_FIRE_AT_WAVE = 0.5
+# Chance a loaded enemy carrier puts its fighters on CAP for the target before
+# our wave arrives, when it has an ordnance phase to do it in (judgement)
+REACTIVE_CAP_WEIGHT = 0.5
+
+
+def _positions_through(target, our_phase: bool, phases: int):
+    """_predicted_positions extended to `phases` ordnance phases: after the
+    second move the target keeps going along its course, a mean move per turn."""
+    import dataclasses
+    import math as _m
+    pos = list(_predicted_positions(target, our_phase))
+    mv = 0.75 * (target.effective_speed or 0)
+    h = _m.radians(target.heading)
+    while len(pos) < phases:
+        last = pos[-1]
+        # it moves before the enemy's ordnance phases: odd ones when it is our phase now
+        moves = (len(pos) % 2 == 1) if our_phase else (len(pos) % 2 == 0)
+        pos.append(dataclasses.replace(last, x=last.x + (mv * _m.cos(h) if moves else 0.0),
+                                       y=last.y + (mv * _m.sin(h) if moves else 0.0)))
+    return pos[:phases]
+
+
+def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: int,
+                    route_ratio: float = 1.0, our_phase: bool = True, max_phases: int = 8):
+    """When and how a wave launched from (x, y) at `speed` meets `target`:
+    attack craft move in both players' ordnance phases (s.15), flying at the
+    target where it will be (`_positions_through`), the route `route_ratio`
+    times the straight line. Returns {"phase": k (0 = this ordnance phase),
+    "end_phases": damage control phases a raid's crits face before the target
+    next shoots (1 landing in our turn, 2 in the enemy's), "survival": the
+    chance no enemy gun removes the wave on the way (s.25 / s.30: one hit, a
+    6, removes the whole wave; batteries on the Ordnance column; each enemy
+    shooting phase before arrival, from the enemy's predicted positions,
+    weapons in range of the wave there, out of arc at half weight, x
+    ENEMY_FIRE_AT_WAVE), "reactive_cap": fighter squadrons the target could
+    put on CAP before arrival (its own loaded bays, when an enemy ordnance
+    phase comes first)}, or None if the wave can't reach it in `max_phases`."""
+    import math as _m
+    from .combat import ordnance_fire_dice, check_weapon_in_arc
+    rt = target.base_radius
+    tpos = _positions_through(target, our_phase, max_phases)
+    k = None
+    for j, p in enumerate(tpos):
+        if _m.hypot(p.x - x, p.y - y) * route_ratio <= (j + 1) * speed + rt:
+            k = j
+            break
+    if k is None:
+        return None
+    # Enemy shooting phases before arrival: after each of its moves, i.e. before
+    # the enemy's ordnance phases (odd j when we launch in our own phase)
+    enemy_js = [j for j in range(1, k + 1) if (j % 2 == 1) == our_phase]
+    enemies = [e for e in gs.get_ships() if e.player != player and not e.is_destroyed
+               and not e.is_disengaged and not e.is_hulk]
+    epos = {e.id: _positions_through(e, our_phase, max(k + 1, 1)) for e in enemies}
+    dice = 0.0
+    for j in enemy_js:
+        p = tpos[j]
+        d = _m.hypot(p.x - x, p.y - y) * route_ratio or 1.0
+        f = min(1.0, j * speed / d)
+        wx, wy = x + (p.x - x) * f, y + (p.y - y) * f     # where the wave waits
+        for e in enemies:
+            ep = epos[e.id][min(j, len(epos[e.id]) - 1)]
+            for w in e.weapons:
+                if w.get("weapon_type") not in ("battery", "lance"):
+                    continue
+                if _m.hypot(wx - ep.x, wy - ep.y) > (w.get("range_cm") or 0):
+                    continue
+                n = ordnance_fire_dice(ep, w, wx, wy, gs, w.get("strength") or 0)
+                dice += n * (1.0 if check_weapon_in_arc(ep, w, wx, wy) else 0.5)
+    survival = (5 / 6) ** (dice * ENEMY_FIRE_AT_WAVE)
+    cap = 0
+    # The enemy launches at the end of its shooting phase and moves its ordnance
+    # first in its own ordnance phase (s.15), so arriving in its phase is too late
+    enemy_ord_before = any((j % 2 == 1) == our_phase for j in range(0, k + 1))
+    if enemy_ord_before and target.ordnance_loaded_craft:
+        from .ordnance import craft_roles, craft_stats, bay_launch_capacity
+        bays = [w for w in target.weapons if w.get("weapon_type") == "launch_bay"]
+        if any("fighter" in craft_roles(craft_stats(ct, bays)[0])
+               for w in bays for ct in w.get("craft_types", [])):
+            cap = bay_launch_capacity(target, bays, None)[0]
+    landed_ours = (k % 2 == 0) == our_phase
+    return {"phase": k, "end_phases": 1 if landed_ours else 2, "survival": survival,
+            "reactive_cap": cap}

@@ -265,7 +265,8 @@ def _weapon_can_bear(target: Ship, weapon: Dict, friend: Ship, reach: float) -> 
     return 0.0
 
 
-def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: int) -> float:
+def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: int,
+                          end_phases: int = None) -> float:
     """Expected VP the raiding player saves by knocking out the target's weapons
     in one location (owner ruling: what the weapons threaten at the target's
     NEXT shooting phase, weighted by the chance damage control hasn't repaired
@@ -280,7 +281,8 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     from .combat import weapon_in_crit_slot, weapon_disabled_by_crit
     friends = [f for f in gs.get_ships() if f.player == owner and not f.is_destroyed
                and not f.is_disengaged]
-    phases = _end_phases_before_target_shoots(target, gs)
+    # end_phases: given by a strike planned to land later (ai_hazards.strike_timeline)
+    phases = end_phases or _end_phases_before_target_shoots(target, gs)
     total = 0.0
     for w in target.weapons:
         if not weapon_in_crit_slot(w, crit_type) or weapon_disabled_by_crit(target, w):
@@ -298,7 +300,8 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     return total * p_crit_unrepaired(target, gs, phases) if total else 0.0
 
 
-def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int) -> float:
+def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int,
+                      end_phases: int = None) -> float:
     """Expected VP a raid result is worth to the raiding player (before any
     brace save, which scales every result alike). Escorts: 1 damage on 4+.
     Capital ships: the critical it inflicts after the cascade, valued as its
@@ -321,7 +324,7 @@ def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int) -
     if extra and target.hits_remaining <= extra:
         value += ship_value(target, gs) * 0.5          # may finish it off
     if ct in ARMAMENT_CRIT_TYPES:
-        value += armament_threat_value(target, ct, gs, owner)
+        value += armament_threat_value(target, ct, gs, owner, end_phases)
     elif ct == "bridge_smashed":
         value += ship_value(target, gs) * 0.1
     elif ct == "shields_collapse":
