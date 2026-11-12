@@ -672,13 +672,28 @@ def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,
                             inp["armour"], p, f_save, b_save, inp["cap_save"])
 
 
+# Owner: damage sooner beats damage later (the target can dodge, repair, be
+# finished by something else or fire back meanwhile; an earlier kill silences
+# its guns sooner). Each ordnance phase of delay costs this factor.
+PHASE_DISCOUNT = 0.85
+
+
+def phase_weight(k: int) -> float:
+    """Weight of a hit k ordnance phases from now (0 = this phase): x
+    PHASE_DISCOUNT per phase, and x LATER_TURN_WEIGHT from the next game turn
+    on (k >= 2: where the target will be is a guess by then). E.g. 1, 0.85,
+    0.36, 0.31: 2 hits on a side within reach (2 x 0.85) beat 3 on the rear
+    after a loop two phases longer (3 x 0.31)."""
+    return PHASE_DISCOUNT ** k * (LATER_TURN_WEIGHT if k >= 2 else 1.0)
+
+
 def travel_discount(dist: float, speed: float) -> float:
     """Ordnance aimed further away is worth less: the target moves, more
-    turrets, fighters and blast markers on the way. 1 within one move, x0.85
-    per extra move."""
+    turrets, fighters and blast markers on the way. 1 within one move, x
+    PHASE_DISCOUNT per extra move."""
     import math as _m
     moves = max(1, _m.ceil(dist / max(1.0, speed)))
-    return 0.85 ** (moves - 1)
+    return PHASE_DISCOUNT ** (moves - 1)
 
 
 def hull_hits_vp(target: Ship, gs, committed: float, hits: float) -> float:
@@ -1097,9 +1112,7 @@ def torpedo_path_survival(x1, y1, x2, y2, gs, kind: str = "torpedo",
 # or taking a detour so the salvo comes in on a weaker facing (abeam on most
 # Imperial ships, the rear on Ork cruisers) can be worth the longer flight.
 
-# Contact weight by ordnance phase from now: this turn and the enemy's at full
-# weight, the next turn's at LATER_TURN_WEIGHT (it is a guess where the target
-# will be by then)
+# Contact weight by ordnance phase from now: phase_weight (sooner is better)
 APPROACH_TURN_STEPS = (-1.0, -0.5, 0.0, 0.5, 1.0)
 
 
@@ -1135,8 +1148,8 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
     the Armour facing that contact (torpedoes use the facing they hit, s.15),
     after turrets. Friendly ships touched first take hits and cost their VP
     (owner: friendly fire is negative VP), except for boarding torpedoes.
-    Value = VP x path survival x the phase weight (this turn and the enemy's
-    1, the next turn LATER_TURN_WEIGHT) x p_turn per turn made (Leadership-
+    Value = VP x path survival x phase_weight (owner: sooner beats later;
+    1, 0.85, 0.36, 0.31 by ordnance phase) x p_turn per turn made (Leadership-
     guided torpedoes test to turn) x 5/6 per later phase for Tau missiles
     (strength lost on 1s) x 1/2 for boarding torpedoes (raids, as marker_hits).
     `lengths`: move lengths to try (Tau missiles choose 20-40cm each move;
@@ -1145,7 +1158,7 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
     import math as _m
     positions = _predicted_positions(target, our_phase)
     rt = target.base_radius + TORP_CONTACT_HALF_W
-    phase_w = (1.0, 1.0, LATER_TURN_WEIGHT, LATER_TURN_WEIGHT)
+    phase_w = tuple(phase_weight(k) for k in range(4))     # owner: sooner is better
     if turn_now:
         firsts = sorted({round(heading + arc_half * f, 1) for f in (-1, -2 / 3, -1 / 3, 0,
                                                                      1 / 3, 2 / 3, 1)})

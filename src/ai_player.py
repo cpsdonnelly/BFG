@@ -1857,7 +1857,7 @@ class AIPlayer:
         turn and the enemy's (then the longer-range intercept is used)."""
         from .ai_hazards import (enemy_move_samples, seg_first_contact, path_touches,
                                  TORP_CONTACT_HALF_W, DODGE_WEIGHT, torpedo_path_survival,
-                                 LATER_TURN_WEIGHT,
+                                 LATER_TURN_WEIGHT, phase_weight,
                                  torpedo_salvo_hits, added_vp, p_hit, p_sum_at_most)
         from .ordnance import compute_torpedo_launch_exempt
         gs = self.gs
@@ -1936,9 +1936,11 @@ class AIPlayer:
                     return True, added_vp(target, gs, committed.get(target.id, 0.0),
                                           target_hits_now, shields=False)
                 lft, v = left, 0.0
+                w1 = phase_weight(1)           # the enemy's turn: one phase later
                 if lft > 0 and path_touches(path, p1[0], p1[1], rt):
                     hh = torpedo_salvo_hits(lft, target, gs, from_xy)   # it runs into the salvo
-                    v = added_vp(target, gs, committed.get(target.id, 0.0), hh, shields=False)
+                    v = w1 * added_vp(target, gs, committed.get(target.id, 0.0), hh,
+                                      shields=False)
                     lft -= hh
                     hit = True
                 else:
@@ -1957,7 +1959,7 @@ class AIPlayer:
                         v -= added_vp(o, gs, 0.0, hh, shields=False)
                     else:
                         hh = torpedo_salvo_hits(lft, o, gs, from_xy)
-                        v += added_vp(o, gs, committed.get(o.id, 0.0), hh, shields=False)
+                        v += w1 * added_vp(o, gs, committed.get(o.id, 0.0), hh, shields=False)
                         hit = True
                     lft -= hh
                 if hit or lft <= 0:
@@ -1974,15 +1976,19 @@ class AIPlayer:
                 e2 = (ex + mv * math.cos(fh), ey + mv * math.sin(fh))
                 p3 = (p2[0] + speed * c, p2[1] + speed * sn)
                 p4 = (p3[0] + speed * c, p3[1] + speed * sn)
-                if (seg_first_contact(p2[0], p2[1], p3[0], p3[1], ex, ey, rt) is not None
-                        or path_touches([(ex, ey), e2], p3[0], p3[1], rt)
-                        or seg_first_contact(p3[0], p3[1], p4[0], p4[1], e2[0], e2[1], rt)
-                        is not None):
-                    hh = torpedo_salvo_hits(lft, target, gs, from_xy)
-                    v += LATER_TURN_WEIGHT * added_vp(target, gs, committed.get(target.id, 0.0),
-                                                      hh, shields=False)
-                    return LATER_TURN_WEIGHT, v
-                return 0.0, v
+                if seg_first_contact(p2[0], p2[1], p3[0], p3[1], ex, ey, rt) is not None:
+                    k2 = 2                     # our next ordnance phase
+                elif (path_touches([(ex, ey), e2], p3[0], p3[1], rt)
+                      or seg_first_contact(p3[0], p3[1], p4[0], p4[1], e2[0], e2[1], rt)
+                      is not None):
+                    k2 = 3                     # the enemy's next turn
+                else:
+                    return 0.0, v
+                hh = torpedo_salvo_hits(lft, target, gs, from_xy)
+                # phase_weight includes LATER_TURN_WEIGHT from the next turn on
+                v += phase_weight(k2) * added_vp(target, gs, committed.get(target.id, 0.0),
+                                                 hh, shields=False)
+                return LATER_TURN_WEIGHT, v
             outs_n = [outcome(p) for p in normal]
             outs_d = [outcome(p) for p in dodge]
             wts = [getattr(p, "weight", 1.0) for p in normal]

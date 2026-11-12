@@ -73,3 +73,29 @@ def test_salvo_in_flight_turns_for_the_weak_facing():
     gs.add_ordnance(m)
     plan = salvo_approach(m, gs)
     assert plan is not None and plan["armour"] == 4
+
+
+def test_sooner_hits_beat_later_ones():
+    """Owner: 2 hits on the side within reach are worth more than 3 on the rear
+    after a long loop. One discount per ordnance phase (PHASE_DISCOUNT), and the
+    next game turn's uncertainty on top, weight every planner's hits."""
+    from src.ai_hazards import phase_weight, travel_discount, PHASE_DISCOUNT
+    assert phase_weight(0) == 1.0
+    assert [round(phase_weight(k), 2) for k in range(4)] == [1.0, 0.85, 0.36, 0.31]
+    assert 2 * phase_weight(1) > 3 * phase_weight(3)
+    # strikes use the same per-move discount
+    assert travel_discount(50.0, 20.0) == PHASE_DISCOUNT ** 2
+
+
+def test_a_later_contact_is_worth_less():
+    """The same salvo meeting the same facing one ordnance phase later (the
+    target further away) is worth PHASE_DISCOUNT less."""
+    near = make_ship(id="t", player=2, x=20.0, y=0.0, heading=90.0, speed=0, turrets=0,
+                     armor_prow="5+", armor_side="5+", armor_rear="5+", points_value=150)
+    far = make_ship(id="t", player=2, x=50.0, y=0.0, heading=90.0, speed=0, turrets=0,
+                    armor_prow="5+", armor_side="5+", armor_rear="5+", points_value=150)
+    a = approach_plan(0.0, 0.0, 0.0, 30.0, near, make_gs([near]), 1, 6, max_turn=0.0)
+    b = approach_plan(0.0, 0.0, 0.0, 30.0, far, make_gs([far]), 1, 6, max_turn=0.0)
+    from src.ai_hazards import PHASE_DISCOUNT
+    assert a["phase"] == 0 and b["phase"] == 1
+    assert abs(b["value"] - PHASE_DISCOUNT * a["value"]) < 1e-9
