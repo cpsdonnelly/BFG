@@ -43,7 +43,7 @@ session.
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
 does, with the judgement weights to tune; its first part, "Fleet strategy", lists the owner's
-matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-9), "Open questions"
+matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-10), "Open questions"
 (one: where To do 8 goes) and every owner ruling. This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 
@@ -645,7 +645,7 @@ Latest items, newest last:
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
-Next: the rest of CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-7 and 9
+Next: the rest of CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-7, 9 and 10
 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos, the
 AI changes they need and the Tiger Shark ruling). Item 8's place is the one open question;
 item 1 (weight tuning) is on hold.
@@ -798,6 +798,12 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
 9. Smaller "Not yet" notes collected from CLAUDE.md's sections (Auto (best) prompts, bombers
    that re-roll attacks, fleet-list gaps, a Venerable Battle Barge, Rogue Trader / Ork torpedo
    options, end-of-move-only ordnance checks, a few AI cases): CLAUDE.md To do 9.
+10. New (owner notes): AI special orders by expected VP. Orders come before the move, so Lock
+   On is worth it when an enemy WILL or CAN be in arc (best straight move, re-rolled misses);
+   a failed command check ends the turn's orders (s.2), so the AI must prioritise them (gain x
+   pass chance, best first; skip a low-value order that risks the rest); every order valued
+   the same way (Burn Retros vs a hazard, Lock On for hits, Come to New Heading, All Ahead
+   Full, Reload Ordnance). Plan: CLAUDE.md To do 10.
 
 Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
 transcriptions and verify a sample against the booklet yourself.

@@ -482,7 +482,7 @@ covering every raid, Remastered turret suppression per p.82, the optional-rule t
 and the expected-VP AI below (incl. carrier doctrine, strikes valued when they land,
 co-ordinated strikes, the AI's own teleports). Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2, then 3-7 and 9; 8's place in the order is an open question; 1
+Next: the rest of To do 2, then 3-7, 9 and 10; 8's place in the order is an open question; 1
 (weight tuning) is on hold.
 
 ### AI: how it decides (expected VP)
@@ -572,7 +572,9 @@ Movement:
   torpedoes (they launch from the end position: full within one torpedo move, half within two).
 - Explosions (`explosion_position_vp`): keep out of the 3D6cm radius of ships likely to die; a
   ship of ours likely to die ends next to enemies.
-- Burn Retros by expected VP (`_burn_retros_worth_it`); escorts screen the commander's ship for
+- Special orders (today, to be rebuilt by To do 10): Burn Retros by expected VP
+  (`_burn_retros_worth_it`), Lock On when an enemy is in arc now, Reload Ordnance when spent;
+  never All Ahead Full / Come to New Heading. Escorts screen the commander's ship for
   massed turrets (s.29, `_screen_bonus`) only while enemy torpedoes, torpedo bombers, bombers,
   assault boats or mines can reach it (owner: never against fighters alone).
 - Voluntary disengaging (s.37, `_consider_disengage`, `ai_hazards.disengage_gain`): P(pass) x
@@ -861,13 +863,40 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    volley needing a target priority test, hulks that aren't the closest target and Holding the
    Field hulk points, the target turning to show its strongest facing to a turning salvo,
    assault boats and mines in co-ordinated strikes and re-timing a launch to arrive together
-   ("AI: how it decides"); AI special orders by expected VP (today: Burn Retros by hazard
-   value, otherwise Lock On whenever any enemy is in a battery / lance arc and range, else
-   Reload Ordnance when spent; it never chooses All Ahead Full or Come to New Heading, so
-   ramming, closing fast, escaping and sharp turns aren't options yet); the Nova Cannon aims
+   ("AI: how it decides"); AI special orders: see To do 10; the Nova Cannon aims
    at the nearest enemy 30-150cm rather than by expected VP. Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
    Bosses' re-roll pools, secondary commanders and Ordos are in 4; the radiation / flare
    disengage bonus is in 6; the teleport AI's positioning is in 8 j).
+
+10. AI special orders by expected VP (owner notes). Rules: orders are declared in the movement
+   phase before each ship or squadron moves, one at a time (declare, command check, move;
+   s.7), and the first failed command check ends all further checks that turn (s.2); Lock On
+   re-rolls missed battery / lance dice but the ship may not turn; Burn Retros: no minimum
+   move, turn at once, at most half speed, half firepower; Come to New Heading: an extra
+   turn, half firepower (not Ponderous ships); All Ahead Full: +4D6cm, must move it all, no
+   turn, half firepower (ramming, s.12); Reload Ordnance: reloads all ordnance. Today: Burn
+   Retros when the hazard saved beats half the firepower value; otherwise Lock On whenever an
+   enemy is in a battery / lance arc and range NOW (wrong moment: the move comes after the
+   order); otherwise Reload Ordnance when spent; never All Ahead Full or Come to New Heading;
+   ships take their checks in fleet order. Owner notes and plan:
+   a. Lock On is worth it when an enemy WILL or CAN be in arc after the move: value = the
+      best straight move under Lock On (no turn), its guns' expected hits at the next
+      shooting phase against the enemy's predicted positions with missed dice re-rolled,
+      minus the best move without the order (which may turn to bring more guns to bear).
+   b. Every order the same way: its expected-VP gain over the best no-order move, using the
+      moves the order allows: Burn Retros (hazard avoided, holding position or a tight turn),
+      Come to New Heading (two turns: e.g. into a rear arc, 8 g), All Ahead Full (closing for
+      a ram or torpedo reach, escaping, disengaging; 8 h), Reload Ordnance (next turn's
+      launch, as `_hold_bays` values it), each with its firepower cost.
+   c. Prioritise: a failure ends the turn's orders, so the order of the checks matters. Each
+      candidate has a gain g and a pass chance p (Ld, crew modifiers, blast markers / Bridge
+      Smashed, a commander re-roll); take them in the order that maximises the expected total
+      (best first by g x p / (1 - p)), and skip a low-value order whose failure would cost
+      more of the later ones than it gains. Squadrons test once for all their ships.
+   d. Commander re-rolls on a failed check are worth the order plus the later orders the
+      failure would block (`ai_rerolls.should_reroll` should count them).
+   e. Brace for Impact stays a reaction during the enemy's attacks (any time before damage is
+      rolled), with its own value; note that bracing ends Lock On's re-rolls and halves fire.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 
