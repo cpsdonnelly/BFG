@@ -676,6 +676,10 @@ Latest items, newest last:
   before each kind and applies each kind's hits before the next question (hits rolled before
   the brace get no save; hulks still take the volley at once). 1077 tests; brace, fire dialog,
   hulk fire, siege, combined fire, Heavy Gunz, Ork fire, gui and spectator checks pass.
+- Built (To do 2): armament crits are valued over the target's later shooting phases too, up
+  to `CRIT_HORIZON` 3 and the turn limit (two more end phases of repairs each, a turn's more
+  movement in the reach, `phase_weight`); Wings of Fury decisions in the tests are unchanged, a
+  weapon out of reach next phase is now worth a little (`tests/test_raid_reroll_value.py`).
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.
@@ -809,8 +813,7 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    winning, not expected VP alone). Built: arrival
    phase and landing turn, enemy guns on the way, reactive CAP / intercept / fighters in
    flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles. Left:
-   crit values beyond the target's next shooting phase, splitting waves against enemy guns, a
-   risk preference, the expert AI valuing craft in flight, reactive CAP for craft already in
+   splitting waves against enemy guns, a risk preference, the expert AI valuing craft in flight, reactive CAP for craft already in
    flight.
 3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
    Sharks per the owner ruling) and the AI changes they need.

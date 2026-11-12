@@ -74,9 +74,10 @@ def test_weapon_disabled_by_crit_names_and_arcs():
 
 
 def test_port_disable_rerolled_when_no_ally_threatened():
-    # Friend in the port arc but beyond the 45cm battery + the target's 20cm move
+    # Friend in the port arc but beyond the 45cm battery + the target's 20cm move:
+    # worth only a little (it may be in reach a turn later, if not repaired)
     target, gs = _setup(friend_xy=(0.0, 70.0))
-    assert raid_result_value(4, target, gs, 1) == 0.0
+    assert 0.0 < raid_result_value(4, target, gs, 1) < 1.0
     assert best_raid_reroll(4, 4, target, gs, 1) is True
     # Friend in range but in the starboard arc: the port disable threatens nothing
     target, gs = _setup(friend_xy=(0.0, -20.0))
@@ -109,3 +110,22 @@ def test_repairs_halved_by_blast_markers():
     clear = p_crit_unrepaired(target, gs, 1)
     gs.add_blast_marker(make_blast(x=target.x, y=target.y))
     assert abs(p_crit_unrepaired(target, gs, 1) - (5 / 6) ** 4) < 1e-9 and clear < (5 / 6) ** 4
+
+
+def test_crit_valued_over_later_shooting_phases_and_turn_limit():
+    """A silenced weapon counts at the target's later shooting phases too
+    (two more end phases of repairs each, more movement in the reach, the
+    phase_weight discount), but not beyond the game's turn limit."""
+    from src.hit_and_run import armament_threat_value, CRIT_HORIZON
+    target, gs = _setup(friend_xy=(0.0, 70.0))      # out of reach next phase only
+    gs.active_player = 1
+    later = armament_threat_value(target, "port_armament", gs, 1)
+    assert later > 0 and CRIT_HORIZON >= 2
+    gs.turn_limit = gs.turn_number                     # last turn: next phase only
+    assert armament_threat_value(target, "port_armament", gs, 1) == 0.0
+    # in reach next phase: the later phases add to it
+    target, gs = _setup(friend_xy=(0.0, 50.0))
+    gs.active_player = 1
+    full = armament_threat_value(target, "port_armament", gs, 1)
+    gs.turn_limit = gs.turn_number
+    assert 0 < armament_threat_value(target, "port_armament", gs, 1) < full

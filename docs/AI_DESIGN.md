@@ -372,7 +372,7 @@ Each ordnance phase the AI plans fighters across all its carriers:
 - **Expert AI** (Built): simulates 5 turns of both sides moving and shooting, and stops at the
   game's turn limit.
 - **Planned**: the turn-limit risk preference (To do 2: play riskier when behind near the end,
-  safer when ahead); crit values over the turns they last (To do 2); scenario objectives over
+  safer when ahead); crit values over the turns they last (built: up to 3 of the target's shooting phases and the turn limit); scenario objectives over
   the game (To do 7).
 
 ---
@@ -391,6 +391,7 @@ Tuning these is on hold (owner: "keep it in mind, but it is hard work, so leave 
 | Guns | lance | 0.5 | hits per lance |
 | Raids | torpedo in a silenced location | 0.3 | hits per point |
 | Raids | weapon brought to bear after a turn | 0.75 | when valuing an armament crit |
+| Raids | crit horizon | 3 | target shooting phases a silenced weapon is valued over (turn limit cuts it) |
 | Movement | nearest-enemy arc score | 0.3 | beside the focus target |
 | Movement | exposure | 0.5 | of the hits the enemy could focus |
 | Movement | flagship exposure | 0.5 | of the fire that can reach it |

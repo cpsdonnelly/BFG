@@ -196,7 +196,11 @@ ship counts if it is within range + the movement before that phase (the target's
 ours in the two-end-phase case) and in the weapon's arc now (full) or after one turn of the
 target's turn angle (0.75) (`_weapon_can_bear`). A disable that threatens no allied ship then is
 worth nothing and is re-rolled; long-ranged, heavy weapons count most; a location already
-knocked out counts nothing. Escorts: 1
+knocked out counts nothing. Beyond the next phase (To do 2, done): the crit also counts at the
+target's later shooting phases, up to `CRIT_HORIZON` 3 (judgement) and the turn limit, each
+with two more end phases of repairs, a game turn's more movement in the reach (both ships) and
+the `phase_weight` discount (1, 0.36, 0.26), so a weapon out of reach next phase is worth a
+little rather than nothing (`hit_and_run._crit_shooting_phases`). Escorts: 1
 damage on 4+, so Space Marines (+1) re-roll a 1 or 2. Armament crits now also silence the
 AI's weapons (`combat.weapon_disabled_by_crit`, shared with the fire dialogs; it used to be
 UI-only, so the AI kept firing knocked-out weapons).
@@ -469,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1077 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1078 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -526,7 +530,7 @@ All AI choices are in expected VP (`ai_hazards.py`, `ai_rerolls.py`, `waves.py`,
 `ai_player.py`; the expert AI in `lookahead_ai.py`). Weights marked "judgement" are mine;
 tuning them is on hold (owner: keep it in mind, but it is hard work, so leave it for now): re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per battery
 point, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT` 0.5,
-`DODGE_WEIGHT` 0.5, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
+`DODGE_WEIGHT` 0.5, `CRIT_HORIZON` 3 shooting phases, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
 0.5 (scaled by the air balance), `AIR_THREAT_WEIGHT` 0.5, `ENEMY_FIRE_AT_WAVE` 0.5,
 `REACTIVE_CAP_WEIGHT` 0.5, `AIRBORNE_INTERCEPT_WEIGHT` 0.75, CAP free fighters 0.75, the
 disengage and hulk models.
@@ -729,8 +733,8 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    4-turret 6+ example (they land a phase sooner, less time under the target's guns; at equal
    speed the bombers still edge it); an enemy carrier holding loaded fighters 35cm away makes
    our strike land after its guns and CAP, so CAP for our weak friend wins, while from within
-   one bomber move the full wave wins. Still to do here: crit values beyond the next shooting
-   phase, splitting waves against enemy guns, a risk preference, the expert AI valuing craft
+   one bomber move the full wave wins. Crit values beyond the next shooting phase: built
+   (see "Wings of Fury re-rolls"). Still to do here: splitting waves against enemy guns, a risk preference, the expert AI valuing craft
    in flight, reactive CAP for craft already in flight.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,

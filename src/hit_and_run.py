@@ -273,35 +273,65 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
                           end_phases: int = None) -> float:
     """Expected VP the raiding player saves by knocking out the target's weapons
     in one location (owner ruling: what the weapons threaten at the target's
-    NEXT shooting phase, weighted by the chance damage control hasn't repaired
-    the crit by then). Each weapon there scores its expected hits (lances 0.5 a
+    next shooting phase, weighted by the chance damage control hasn't repaired
+    the crit by then; extended to the target's later shooting phases, up to
+    CRIT_HORIZON and the turn limit, each with two more end phases of repairs,
+    a turn's more movement in the reach and the phase_weight discount). Each weapon there scores its expected hits (lances 0.5 a
     die, batteries 0.35, torpedoes 0.3) on the most valuable allied ship it
     can bear on then (`_weapon_can_bear`: in reach = range + the movement
     before that phase, i.e. the target's move, plus ours when the crit lands in
     the target's own turn; in arc now, or after one turn at 0.75). A location
     threatening no allied ship then is worth nothing, so Wings of Fury re-rolls
     it. Weapons already knocked out count nothing."""
-    from .ai_hazards import value_per_hit
+    from .ai_hazards import value_per_hit, phase_weight
     from .combat import weapon_in_crit_slot, weapon_disabled_by_crit
     friends = [f for f in gs.get_ships() if f.player == owner and not f.is_destroyed
                and not f.is_disengaged]
     # end_phases: given by a strike planned to land later (ai_hazards.strike_timeline)
     phases = end_phases or _end_phases_before_target_shoots(target, gs)
+    weapons = [w for w in target.weapons
+               if weapon_in_crit_slot(w, crit_type) and not weapon_disabled_by_crit(target, w)
+               and w.get("weapon_type") in _THREAT_PER_DIE]
+    if not weapons:
+        return 0.0
     total = 0.0
-    for w in target.weapons:
-        if not weapon_in_crit_slot(w, crit_type) or weapon_disabled_by_crit(target, w):
-            continue
-        per_die = {"lance": 0.5, "battery": 0.35, "torpedo": 0.3}.get(w.get("weapon_type"))
-        if per_die is None:
-            continue
-        best = 0.0
-        for f in friends:
-            reach = (target.speed or 0) + ((f.speed or 0) if phases > 1 else 0)
-            wt = _weapon_can_bear(target, w, f, reach)
-            if wt:
-                best = max(best, wt * max(1.0, value_per_hit(f, gs)))
-        total += (w.get("strength") or 0) * per_die * best
-    return total * p_crit_unrepaired(target, gs, phases) if total else 0.0
+    for j in range(_crit_shooting_phases(target, gs, phases)):
+        # the target's j-th shooting phase from now: 2 more end phases of
+        # repairs and a game turn more movement for both sides each time
+        p_left = p_crit_unrepaired(target, gs, phases + 2 * j)
+        if p_left < 0.01:
+            break
+        threat = 0.0
+        for w in weapons:
+            best = 0.0
+            for f in friends:
+                reach = ((target.speed or 0) * (j + 1)
+                         + (f.speed or 0) * (j + (1 if phases > 1 else 0)))
+                wt = _weapon_can_bear(target, w, f, reach)
+                if wt:
+                    best = max(best, wt * max(1.0, value_per_hit(f, gs)))
+            threat += (w.get("strength") or 0) * _THREAT_PER_DIE[w["weapon_type"]] * best
+        total += phase_weight(2 * j) * p_left * threat
+    return total
+
+
+# Expected hits per die / strength point when valuing a silenced weapon
+_THREAT_PER_DIE = {"lance": 0.5, "battery": 0.35, "torpedo": 0.3}
+# Shooting phases a crit is valued over (judgement): later ones count less
+# (phase_weight) and are cut short by repairs and the turn limit
+CRIT_HORIZON = 3
+
+
+def _crit_shooting_phases(target: Ship, gs: GameState, first_end_phases: int) -> int:
+    """How many of the target's shooting phases a crit landing now can still
+    affect: CRIT_HORIZON, cut by the game's turn limit (the target shoots once
+    a game turn; when the crit lands in its own turn it has already fired)."""
+    n = CRIT_HORIZON
+    limit = getattr(gs, "turn_limit", None)
+    if limit:
+        left = limit - gs.turn_number + (1 if first_end_phases <= 1 else 0)
+        n = min(n, max(1, left))
+    return n
 
 
 def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int,
