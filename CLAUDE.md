@@ -487,6 +487,8 @@ Next: the rest of To do 2, then 3-7, 9 and 10; 8's place in the order is an open
 
 ### AI: how it decides (expected VP)
 
+The whole AI, current and planned, in plain language: `docs/AI_DESIGN.md` (keep it in step).
+
 Fleet strategy (owner doctrine): the AI plays its matchup, judging its fleet and each ship
 against the enemy's, on average and ship vs ship. Owner: "do not take these as hard rules, it
 depends on the matchup": every one should come out of the expected-VP values, not a fixed rule.
@@ -885,7 +887,10 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    Field hulk points, the target turning to show its strongest facing to a turning salvo,
    assault boats and mines in co-ordinated strikes and re-timing a launch to arrive together
    ("AI: how it decides"); AI special orders: see To do 10; the Nova Cannon aims
-   at the nearest enemy 30-150cm rather than by expected VP. Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
+   at the nearest enemy 30-150cm rather than by expected VP; deployment by strategy (ships are
+   only grouped for set-up), damage-control repair choices by expected VP (today a fixed
+   priority: fires, engines, the rest), and which blast markers to remove in our end phase.
+   Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
    Bosses' re-roll pools, secondary commanders and Ordos are in 4; the radiation / flare
    disengage bonus is in 6; the teleport AI's positioning is in 8 j).
 
