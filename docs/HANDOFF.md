@@ -101,7 +101,8 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 
 (CLAUDE.md "To do" is the current list; this copy is kept in step with it.)
 
-1. AI, still to do: the option value of keeping bays loaded; fleet focus positioning, next steps (several focus
+1. AI, still to do: a fuller option value of keeping bays loaded (first version: hold
+   while nothing is within three craft moves); fleet focus positioning, next steps (several focus
    targets, torpedo lanes and craft reach in the move score, expert leaf evaluation). Done:
    hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
    positioning (first versions: `fleet_focus_targets`, `_focus_for`, `_exposure_penalty`),
@@ -567,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1025 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1027 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -651,11 +652,14 @@ Latest items, newest last:
   strike values are convex, so one-at-a-time comparisons misjudged them), and enemy carriers
   with loaded bombers / boats in reach of our ships create CAP-only slots
   (`_anticipated_strike_slots`, weight 0.5, judgement: owner feedback welcome).
+  Fighters already on CAP now cover the launched threats closing on their ship first, and
+  carriers keep their bays loaded while no enemy ship is within three moves of their fastest
+  craft and no enemy ordnance is in play (Reload Ordnance needed after a launch, s.15).
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
-Next: CLAUDE.md "To do" item 1 (what is left: keeping bays loaded; fleet focus positioning follow-ups: several focus targets, torpedo lanes /
+Next: CLAUDE.md "To do" item 1 (what is left: a fuller value of keeping bays loaded; fleet focus positioning follow-ups: several focus targets, torpedo lanes /
 craft reach in the move score, expert leaf evaluation; torpedo launch lanes and
 multi-waypoint routes) and 1c (strike planning at arrival time), then items 3-6 (item 3 now
 carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos and the AI

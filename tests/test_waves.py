@@ -489,3 +489,57 @@ def test_full_strike_beats_scattered_cap():
     craft = _pre_cap_launch(0.0)
     assert not any(o.get("cap_ship_id") for o in craft)
     assert sorted(o["ordnance_type"] for o in craft) == ["bomber", "bomber", "fighter", "fighter"]
+
+
+def test_existing_cap_covers_incoming_salvo():
+    """A fighter already on CAP for the carrier intercepts the salvo closing on
+    it (s.26), so no new fighter is held back: every bay left strikes."""
+    from tests.conftest import make_ship, make_gs, DiceStub, make_marker
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    d = find_ship_class("Emperor Class Battleship").to_ship_dict("Emp", 1, ship_id="emp")
+    d.update(x=0.0, y=0.0, heading=0.0, leadership=8)
+    tgt = make_ship(id="t", player=2, x=60.0, y=0.0, turrets=4, armor_side="5+",
+                    armor_prow="5+")
+    gs = make_gs([Ship.from_dict(d), tgt])
+    gs.current_phase = "ordnance"
+    gs.add_ordnance(make_marker(id="torp", ordnance_type="torpedo", owner_player=2,
+                                x=25.0, y=0.0, heading=180.0, speed=30, strength=6))
+    gs.add_ordnance(make_marker(id="cap1", ordnance_type="fighter", owner_player=1,
+                                x=0.0, y=0.0, speed=30, cap_ship_id="emp",
+                                launched_by="emp"))
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai._launch_ship_ordnance(gs.get_ship_by_id("emp"))
+    assert dice._idx == 0
+    new = [o for o in gs.ordnance if o["owner_player"] == 1 and o["id"] != "cap1"]
+    assert not any(o.get("cap_ship_id") for o in new)
+    assert len(new) == 7 and len({o.get("wave_id") for o in new}) == 1   # 8 bays, 1 out (s.15)
+
+
+def test_carrier_keeps_bays_loaded_out_of_reach():
+    """Nothing within three moves of its fastest craft and no enemy ordnance:
+    the carrier keeps its bays loaded (relaunching needs Reload Ordnance, s.15)."""
+    from tests.conftest import make_ship, make_gs, DiceStub
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    for x, launches in ((200.0, False), (60.0, True)):
+        d = find_ship_class("Emperor Class Battleship").to_ship_dict("Emp", 1, ship_id="emp")
+        d.update(x=0.0, y=0.0, heading=0.0, leadership=8)
+        gs = make_gs([Ship.from_dict(d), make_ship(id="t", player=2, x=x, y=0.0)])
+        gs.current_phase = "ordnance"
+        dice = DiceStub([])
+        ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+        ai.difficulty = "normal"
+        ai.run_ordnance_phase()
+        assert dice._idx == 0
+        craft = [o for o in gs.ordnance if o["owner_player"] == 1]
+        assert bool(craft) == launches
+        assert gs.get_ship_by_id("emp").ordnance_loaded_craft != launches
+        held = [str(entry) for entry in gs.log if "keeps its bays loaded" in str(entry)]
+        assert len(held) == (0 if launches else 1)

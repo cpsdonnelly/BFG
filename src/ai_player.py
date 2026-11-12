@@ -1181,6 +1181,7 @@ class AIPlayer:
         if not enemies:
             return
 
+        bays_held = False
         for weapon in ship.weapons:
             wtype = weapon.get("weapon_type", "")
 
@@ -1213,7 +1214,7 @@ class AIPlayer:
                                      kind=kind)
                     ship = gs.get_ship_by_id(ship.id)
 
-            elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
+            elif wtype == "launch_bay" and ship.ordnance_loaded_craft and not bays_held:
                 # All of the ship's bays launch together: launching any craft
                 # means reloading before launching again (s.15)
                 bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
@@ -1228,6 +1229,18 @@ class AIPlayer:
                 else:
                     wanted = multi_role + ("starhawk_bomber", "manta", "bomber")
                 preferred = next((ct for ct in wanted if ct in craft_types), craft_types[0])
+                if not enemy_ord and self.difficulty != "easy":
+                    # Keep the bays loaded (launching means a Reload Ordnance order
+                    # before launching again, s.15) while no enemy ship is within
+                    # three moves of our fastest craft (the strike planner's reach)
+                    # and no enemy ordnance is about to defend against
+                    from .ordnance import craft_stats
+                    fast = max((craft_stats(ct, bays)[1] or 20) for ct in set(craft_types))
+                    if all(ship.distance_to(e) > 3 * fast for e in enemies):
+                        gs.add_log(f"[AI] {ship.name} keeps its bays loaded "
+                                   f"(no enemy within {3 * fast}cm)")
+                        bays_held = True
+                        continue
                 # Craft in play beyond the fleet's bays must go first (s.15)
                 excess = fleet_craft_excess(gs, self.player)
                 if excess:
@@ -1476,14 +1489,27 @@ class AIPlayer:
                 if g <= 0:
                     break
                 slots.append((g, m.x, m.y, guard, m.wave_id or m.id, k))
-        slots += self._anticipated_strike_slots(friends)
+        # Fighters already on CAP for a ship intercept whatever reaches it (s.26):
+        # each takes one of the slots closing on that ship, the most valuable first
+        cap_left = {}
+        for o in gs.ordnance:
+            if o["owner_player"] == self.player and o.get("cap_ship_id"):
+                cap_left[o["cap_ship_id"]] = cap_left.get(o["cap_ship_id"], 0) + 1
+        drop = set()
+        for idx in sorted(range(len(slots)), key=lambda i: -slots[i][0]):
+            guard = slots[idx][3]
+            if guard is not None and cap_left.get(guard.id, 0) > 0:
+                cap_left[guard.id] -= 1
+                drop.add(idx)
+        slots = [t for i, t in enumerate(slots) if i not in drop]
+        slots += self._anticipated_strike_slots(friends, cap_left)
         return slots
 
     # Weight on a strike the enemy hasn't launched yet: it may not launch, may
     # go for another ship, and its wave may lead with a fighter (judgement)
     ANTICIPATED_STRIKE_WEIGHT = 0.5
 
-    def _anticipated_strike_slots(self, friends):
+    def _anticipated_strike_slots(self, friends, cap_left=None):
         """CAP against enemy strikes not launched yet (To do 1): fighters on CAP
         stay with their ship until removed (s.26), so a ship within reach of an
         enemy carrier with loaded bombers / assault boats (its move + the craft's
@@ -1491,7 +1517,8 @@ class AIPlayer:
         removes one squadron (s.19). Value per slot: that squadron's value against
         the ship (waves.bomber_squadron_value / raid_squadron_value), split
         evenly over the ships in that carrier's reach, x ANTICIPATED_STRIKE_WEIGHT.
-        Fighters already on CAP for the ship take the best slots first. Slots are
+        Fighters already on CAP for the ship (`cap_left`: those not already taken
+        by launched threats) take the best slots first. Slots are
         (gain, None, None, guard, key, k): CAP only."""
         from .ordnance import craft_roles, craft_stats, bay_launch_capacity
         from .waves import bomber_squadron_value, raid_squadron_value
@@ -1526,8 +1553,11 @@ class AIPlayer:
         slots = []
         for fid, items in per_ship.items():
             guard = next(f for f in friends if f.id == fid)
-            have = sum(1 for o in gs.ordnance if o["owner_player"] == self.player
-                       and o.get("cap_ship_id") == fid)
+            if cap_left is None:
+                have = sum(1 for o in gs.ordnance if o["owner_player"] == self.player
+                           and o.get("cap_ship_id") == fid)
+            else:
+                have = cap_left.get(fid, 0)     # CAP not taken by launched threats
             gains = sorted((g for g, n in items for _ in range(n)), reverse=True)[have:]
             slots += [(g, None, None, guard, f"pre:{fid}", k) for k, g in enumerate(gains)]
         return slots

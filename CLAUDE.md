@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1025 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1027 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -557,6 +557,8 @@ points to):
   catastrophic damage was never re-rolled.
 - AI CAP vs strikes fleet-wide across carriers (`AIPlayer._plan_fleet_defence`; tests in
   `tests/test_waves.py`): one fighter per salvo from the carrier whose strike loses least.
+- AI: existing CAP counts against launched threats on its ship; carriers keep bays loaded
+  while nothing is within three craft moves (no enemy ordnance about).
 - AI CAP against enemy strikes not yet launched (`_anticipated_strike_slots`) and an exact
   CAP / strike count per carrier (`_best_defence_count`).
 - AI CAP vs strikes per carrier (To do 1, first version): one fighter per incoming salvo / mine
@@ -604,8 +606,13 @@ points to):
    squadron's value against it (`waves.bomber_squadron_value` / `raid_squadron_value`)
    split over the ships in that carrier's reach, x 0.5 (`ANTICIPATED_STRIKE_WEIGHT`,
    judgement: it may not launch, may go elsewhere, may lead with fighters); fighters already
-   on CAP there take the best slots. Still to do here: the option value of keeping bays
-   loaded; existing CAP doesn't yet reduce launched threats' slots; torpedo launch headings aimed down a clear lane and multi-waypoint
+   on CAP there take the best slots. Done: fighters already on CAP for a ship take the
+   most valuable launched-threat slots closing on it first (s.26: CAP intercepts whatever
+   reaches its ship), then the anticipated ones. Done (first version, judgement): carriers
+   keep their bays loaded (relaunching needs Reload Ordnance, s.15) while no enemy ship is
+   within three moves of their fastest craft (the strike planner's reach) and no enemy
+   ordnance is in play. Still to do here: a fuller option value of holding (next turn's
+   launch value vs the Reload Ordnance odds and the special order it costs); torpedo launch headings aimed down a clear lane and multi-waypoint
    routes (`best_route` does one detour). Done: guided salvos use the launcher's real Ld in the
    hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
    Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest
