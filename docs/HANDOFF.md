@@ -34,7 +34,8 @@ session.
   games: `gui_spectator_demo.py normal` (or `expert`), `gui_spectator_orks.py normal`,
   `gui_spectator_sm.py normal`, `gui_ai_check.py` (its
   "Traceback ... boom" is a deliberate crash test). New this session: `torpedo_types_check`,
-  `fleet_list_check`, `wave_check`, `combined_fire_check`.
+  `fleet_list_check`, `wave_check`, `combined_fire_check`; later: `combine_capital_check`,
+  `best_split_check`, `combine_split_check`, `cap_wave_check`, `teleport_ai_check`.
 
 ## Where things stand
 
@@ -597,6 +598,24 @@ Latest items, newest last:
 - Owner: co-ordinate bombers and missiles (turret split, s.28; not against Orks):
   `ai_hazards.turret_split_gain`, planned arrivals in `AIPlayer._ord_arrivals`, scored by both
   the strike planner and torpedo targeting.
+- Owner fleet-strategy notes this stretch (all in CLAUDE.md To do 8, not hard rules: "it
+  depends on the matchup"): crossing the T / both broadsides busy (gun-heavy Imperium, e.g.
+  Lunars), kiting (Chaos, or any fleet that out-ranges and out-moves its enemy on average),
+  Tau prow-on only when the enemy is about to be in range; firepower by range bracket, fleet
+  vs fleet and ship vs ship (brackets 0-15 for Ork Heavy Gunz, unique to Orks; 15-30; 30-45;
+  45-60 for Chaos 60cm guns; 60-150 for artillery such as the Nova Cannon, 30cm minimum; e.g.
+  a Tau Merchant out-guns a Lunar at 30-45cm, not 0-30cm); a speed edge to get out of the
+  enemy's main arcs (e.g. a Lunar's rear); a hit-point edge (Orks) to think about boarding and
+  ramming (the AI plans neither yet); teleport attacks both ways (8 j). First step for all of
+  them: exposure that respects our Armour facing (8 a).
+- Owner checked my understanding of the turret split (s.28): it blocks only the shoot-down roll
+  (one die per turret plus massed, each success removes a squadron or a torpedo); bombers'
+  attacks are still cut by the ship's own turrets (s.20: "still applies even if the defending
+  ship fired its turrets at torpedoes or mines"). So against a high-turret ship bombers gain
+  little from the split; missiles gain most when the turrets go to the bombers.
+- Fixed: the AI's teleport attacks went to the human's dialog in its own end phase; it now
+  raids the eligible target worth most per raid (`tools/gui_checks/teleport_ai_check.py`;
+  teleports are an optional rule, `GameState.rule_teleport`).
 - Spectator checks: expert games get 180s (they took ~75s of the old 90s limit and one run
   under load went over).
 - Owner request: a new To do item 7, scenarios and sub-plots in the engine and the AI (after

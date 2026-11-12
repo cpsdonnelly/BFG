@@ -808,7 +808,8 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- None open.
+- Where To do 8 (matchup-aware manoeuvre) goes in the order: it is listed last for now, after
+  items 2-7; the owner may want it sooner.
 
 Owner ruling (Tiger Sharks, Tau; for To do 3): Tiger Sharks follow the torpedo bomber rules in
 full, except that the salvo they produce is a Tau missile salvo (Xenos, Tiger Shark entry:
