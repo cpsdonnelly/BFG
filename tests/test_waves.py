@@ -447,3 +447,45 @@ def test_fleet_cap_comes_from_the_carrier_losing_least():
     cap = [o for o in craft if o.get("cap_ship_id")]
     assert len(cap) == 1 and cap[0]["launched_by"] == "emp2"
     assert sum(1 for o in craft if o.get("launched_by") == "emp") == 8
+
+
+def _pre_cap_launch(dx, enemy_loaded=True):
+    from tests.conftest import make_ship, make_gs, DiceStub
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    d = find_ship_class("Dictator Class Cruiser").to_ship_dict("D", 1, ship_id="d")
+    d.update(x=dx, y=0.0, heading=0.0, leadership=8)
+    e = find_ship_class("Dictator Class Cruiser").to_ship_dict("E", 2, ship_id="e")
+    e.update(x=35.0, y=0.0, heading=180.0, leadership=8, ordnance_loaded_craft=enemy_loaded)
+    weak = make_ship(id="c", player=1, x=5.0, y=5.0, turrets=1, hits_max=6,
+                     points_value=120, armor_prow="5+", armor_side="5+")
+    gs = make_gs([Ship.from_dict(d), Ship.from_dict(e), weak])
+    gs.current_phase = "ordnance"
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai.run_ordnance_phase()
+    assert dice._idx == 0
+    return [o for o in gs.ordnance if o["owner_player"] == 1 and "torpedo" not in o["ordnance_type"]]
+
+
+def test_cap_against_enemy_strike_not_yet_launched():
+    """CAP stays with its ship (s.26): a 1-turret cruiser within reach of a
+    loaded enemy carrier (its move + bomber speed) gets fighters on CAP when
+    our own strike, from further away, is worth less."""
+    craft = _pre_cap_launch(-20.0)
+    assert craft and all(o.get("cap_ship_id") == "c" for o in craft)
+    # Enemy bays empty: nothing to guard against, the carrier strikes
+    craft = _pre_cap_launch(-20.0, enemy_loaded=False)
+    assert not any(o.get("cap_ship_id") for o in craft)
+    assert {o["ordnance_type"] for o in craft} == {"fighter", "bomber"}
+
+
+def test_full_strike_beats_scattered_cap():
+    """Strike values aren't linear (suppression, crippling): a close full wave
+    can outweigh several CAP slots even when the enemy carrier threatens us."""
+    craft = _pre_cap_launch(0.0)
+    assert not any(o.get("cap_ship_id") for o in craft)
+    assert sorted(o["ordnance_type"] for o in craft) == ["bomber", "bomber", "fighter", "fighter"]

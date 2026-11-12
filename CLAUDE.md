@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1023 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1025 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -557,6 +557,8 @@ points to):
   catastrophic damage was never re-rolled.
 - AI CAP vs strikes fleet-wide across carriers (`AIPlayer._plan_fleet_defence`; tests in
   `tests/test_waves.py`): one fighter per salvo from the carrier whose strike loses least.
+- AI CAP against enemy strikes not yet launched (`_anticipated_strike_slots`) and an exact
+  CAP / strike count per carrier (`_best_defence_count`).
 - AI CAP vs strikes per carrier (To do 1, first version): one fighter per incoming salvo / mine
   / wave squadron that is worth more than the next strike squadron, on CAP or free, the rest
   strike as one wave (before: any enemy ordnance in play made it launch all fighters).
@@ -592,8 +594,18 @@ points to):
    first, go to the carrier losing least, i.e. its last strike squadron's marginal value against
    the fighter's gain, CAP full / free 0.75; `_bay_allocation` then covers only its own
    threats, so one salvo no longer draws a fighter from every carrier in reach). Multi-role
-   carriers still plan alone. Still to do here: the option value of
-   keeping bays loaded, CAP against enemy bomber waves not yet launched; torpedo launch headings aimed down a clear lane and multi-waypoint
+   carriers still plan alone. Strike values aren't linear (fighters suppress turrets, a big
+   wave cripples), so each carrier takes the exact number of defence slots j that maximises
+   strike(n - j) + the j best gains (`AIPlayer._best_defence_count`; the old slot-by-slot
+   greedy misjudged convex strikes), carriers with the weakest strike per squadron first.
+   Done: CAP against enemy strikes not yet launched (`AIPlayer._anticipated_strike_slots`;
+   s.26: CAP stays with its ship): a ship within an enemy carrier's move + its bomber /
+   assault boat speed gets CAP-only slots, one per enemy squadron, each worth that
+   squadron's value against it (`waves.bomber_squadron_value` / `raid_squadron_value`)
+   split over the ships in that carrier's reach, x 0.5 (`ANTICIPATED_STRIKE_WEIGHT`,
+   judgement: it may not launch, may go elsewhere, may lead with fighters); fighters already
+   on CAP there take the best slots. Still to do here: the option value of keeping bays
+   loaded; existing CAP doesn't yet reduce launched threats' slots; torpedo launch headings aimed down a clear lane and multi-waypoint
    routes (`best_route` does one detour). Done: guided salvos use the launcher's real Ld in the
    hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
    Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest

@@ -1402,19 +1402,18 @@ class AIPlayer:
                 opt = self._strike_option(ship, craft_types, k, enemies)
                 cache[k] = (opt[0], opt) if opt else (0.0, None)
             return cache[k][0]
-        k = 0
+        # Strike values are far from linear (fighters suppress turrets, a big
+        # wave cripples), so choose how many slots defend exactly: j maximising
+        # strike(count - j) + the j best threat gains
+        threats = [t for t in threats if t[0] > 0]
+        j = self._best_defence_count(count, [t[0] for t in threats], strike)
         cap, free = {}, 0
-        for _slot in range(count):
-            d = threats[0][0] if threats else 0.0
-            sv = strike(k + 1) - strike(k)
-            if d > 0 and d >= sv:
-                g, kind, sid = threats.pop(0)
-                if kind == "cap":
-                    cap[sid] = cap.get(sid, 0) + 1
-                else:
-                    free += 1
+        for _g, kind, sid in threats[:j]:
+            if kind == "cap":
+                cap[sid] = cap.get(sid, 0) + 1
             else:
-                k += 1
+                free += 1
+        k = count - j
         plan = None
         if k:
             strike(k)
@@ -1430,6 +1429,18 @@ class AIPlayer:
             gs.add_log(f"[AI] {ship.name} keeps {sum(cap.values())} fighter(s) on CAP, "
                        f"{free} free against incoming ordnance")
         return {"strike": plan, "cap": list(cap.items()), "free": free, "fighter": fighter}
+
+    @staticmethod
+    def _best_defence_count(count, gains, strike):
+        """j in 0..min(count, len(gains)) maximising strike(count - j) +
+        sum(gains[:j]) (gains best first); ties keep the strike."""
+        best_j, best_v, acc = 0, strike(count), 0.0
+        for j in range(1, min(count, len(gains)) + 1):
+            acc += gains[j - 1]
+            v = strike(count - j) + acc
+            if v > best_v + 1e-9:
+                best_j, best_v = j, v
+        return best_j
 
     def _threat_slots(self):
         """Enemy ordnance a fighter could meet, one entry per fighter it would
@@ -1465,6 +1476,60 @@ class AIPlayer:
                 if g <= 0:
                     break
                 slots.append((g, m.x, m.y, guard, m.wave_id or m.id, k))
+        slots += self._anticipated_strike_slots(friends)
+        return slots
+
+    # Weight on a strike the enemy hasn't launched yet: it may not launch, may
+    # go for another ship, and its wave may lead with a fighter (judgement)
+    ANTICIPATED_STRIKE_WEIGHT = 0.5
+
+    def _anticipated_strike_slots(self, friends):
+        """CAP against enemy strikes not launched yet (To do 1): fighters on CAP
+        stay with their ship until removed (s.26), so a ship within reach of an
+        enemy carrier with loaded bombers / assault boats (its move + the craft's
+        speed) gains by one fighter per enemy squadron that could come: each
+        removes one squadron (s.19). Value per slot: that squadron's value against
+        the ship (waves.bomber_squadron_value / raid_squadron_value), split
+        evenly over the ships in that carrier's reach, x ANTICIPATED_STRIKE_WEIGHT.
+        Fighters already on CAP for the ship take the best slots first. Slots are
+        (gain, None, None, guard, key, k): CAP only."""
+        from .ordnance import craft_roles, craft_stats, bay_launch_capacity
+        from .waves import bomber_squadron_value, raid_squadron_value
+        gs = self.gs
+        per_ship = {}                    # ship id -> [(value, squadrons)]
+        for e in gs.get_ships():
+            if (e.player == self.player or e.is_destroyed or e.is_disengaged
+                    or not e.ordnance_loaded_craft):
+                continue
+            bays = [w for w in e.weapons if w.get("weapon_type") == "launch_bay"]
+            roles, speed = set(), None
+            for ct in {ct for w in bays for ct in w.get("craft_types", [])}:
+                st = craft_stats(ct, bays)
+                r = set(craft_roles(st[0]))
+                if r - {"fighter"}:
+                    roles |= r
+                    speed = min(speed or 99, st[1] or 20)
+            if not roles:
+                continue
+            n = bay_launch_capacity(e, bays, None)[0]
+            reach = (e.effective_speed or 0) + speed
+            near = [f for f in friends if e.distance_to(f) <= reach]
+            for f in near:
+                v = 0.0
+                if roles & {"bomber"}:
+                    v = bomber_squadron_value(f, gs)
+                if roles & {"assault_boat"} and getattr(gs, "rule_hit_and_run", True):
+                    v = max(v, raid_squadron_value(f, gs, e.player, e.special_rules))
+                g = self.ANTICIPATED_STRIKE_WEIGHT * v / len(near)
+                if g > 0 and n > 0:
+                    per_ship.setdefault(f.id, []).append((g, n))
+        slots = []
+        for fid, items in per_ship.items():
+            guard = next(f for f in friends if f.id == fid)
+            have = sum(1 for o in gs.ordnance if o["owner_player"] == self.player
+                       and o.get("cap_ship_id") == fid)
+            gains = sorted((g for g, n in items for _ in range(n)), reverse=True)[have:]
+            slots += [(g, None, None, guard, f"pre:{fid}", k) for k, g in enumerate(gains)]
         return slots
 
     @staticmethod
@@ -1476,6 +1541,8 @@ class AIPlayer:
         g, x, y, guard, _key, _k = slot
         if guard is not None and carrier.distance_to(guard) <= spd:
             return (g, "cap", guard.id)
+        if x is None:
+            return None                       # a strike not launched yet: CAP only
         if _m.hypot(carrier.x - x, carrier.y - y) <= spd:
             return (0.75 * g, "free", "")
         return None
@@ -1483,10 +1550,10 @@ class AIPlayer:
     def _plan_fleet_defence(self, enemies):
         """Fleet-wide CAP vs strike (To do 1): which carrier covers which
         incoming threat. Every carrier starts with all its bays in its strike;
-        threat slots are then taken best first (a wave's squadrons lead first),
-        each by the carrier that loses least by it: its last strike squadron's
-        marginal value (_strike_option) against what the fighter saves there (CAP
-        full, free 0.75). A slot nobody gains by covering is left. Carriers with
+        carriers with the weakest strike per squadron then take threat slots
+        first, as many as maximise their strike value (_strike_option) plus the
+        fighters' gains (CAP full, free 0.75), best reachable slot first (a
+        wave's squadrons lead first). A slot nobody gains by covering is left. Carriers with
         multi-role or no plain fighters, or nothing loaded, are left out (they
         plan alone). Returns {"carriers": set of ids, "assigned": {id: [(gain,
         kind, guard id)]}}."""
@@ -1521,33 +1588,34 @@ class AIPlayer:
                 opt = self._strike_option(ship, cts, k, enemies) if k else None
                 cache[(i, k)] = opt[0] if opt else 0.0
             return cache[(i, k)]
-        left = [c[2] for c in carriers]
-        # Threats in order; a wave's next squadron only once the one before is taken
         by_key = {}
         for slot in self._threat_slots():
             by_key.setdefault(slot[4], []).append(slot)
-        queues = [sorted(v, key=lambda t: t[5]) for v in by_key.values()]
-        while queues:
-            qi = max(range(len(queues)), key=lambda i: queues[i][0][0])
-            slot = queues[qi].pop(0)
-            best = None
-            for i, (ship, _cts, _n, spd) in enumerate(carriers):
-                if left[i] <= 0:
-                    continue
-                t = self._slot_for(ship, spd, slot)
-                if t is None:
-                    continue
-                net = t[0] - (strike(i, left[i]) - strike(i, left[i] - 1))
-                if best is None or net > best[0]:
-                    best = (net, i, t)
-            if best is None or best[0] < 0:
-                queues.pop(qi)                 # nobody gains by covering it (or more of it)
-                continue
-            _net, i, t = best
-            left[i] -= 1
-            plan["assigned"].setdefault(carriers[i][0].id, []).append(t)
-            if not queues[qi]:
-                queues.pop(qi)
+        queues = {key: sorted(v, key=lambda t: t[5]) for key, v in by_key.items()}
+        # Carriers with the weakest strike per squadron defend first; each takes
+        # the exact number of slots that maximises its own strike + the gains
+        # (_best_defence_count), always the best slot it can reach next (a wave's
+        # squadrons lead first)
+        order = sorted(range(len(carriers)),
+                       key=lambda i: strike(i, carriers[i][2]) / carriers[i][2])
+        for i in order:
+            ship, _cts, n, spd = carriers[i]
+            trial = {key: list(q) for key, q in queues.items()}
+            picks = []
+            while len(picks) < n:
+                heads = [(self._slot_for(ship, spd, q[0]), key)
+                         for key, q in trial.items() if q]
+                heads = [(t, key) for t, key in heads if t and t[0] > 0]
+                if not heads:
+                    break
+                t, key = max(heads, key=lambda h: h[0][0])
+                picks.append((t, key))
+                trial[key].pop(0)
+            jn = self._best_defence_count(n, [t[0] for t, _k in picks],
+                                          lambda k, i=i: strike(i, k))
+            for t, key in picks[:jn]:
+                queues[key].pop(0)
+                plan["assigned"].setdefault(ship.id, []).append(t)
         return plan
 
     def _launch_defence(self, ship: Ship, bays, alloc):
