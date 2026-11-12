@@ -10,7 +10,7 @@ from src.hit_and_run import (
 )
 from src.models import OrdnanceMarker
 
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_ship, make_gs, DiceStub, make_gs_raids
 
 
 # ---------------------------------------------------------------------------
@@ -51,7 +51,7 @@ class TestCheckTeleportEligibility:
             hits_max=6, hits_remaining=5,
             shields_max=0,
         )
-        gs = make_gs([attacker, target])
+        gs = make_gs_raids([attacker, target])
         return attacker, target, gs
 
     def test_crippled_ineligible(self):
@@ -89,7 +89,7 @@ class TestCheckTeleportEligibility:
         attacker = make_ship(id="a", x=0.0, y=0.0)
         target = make_ship(id="t", x=5.0, y=0.0, player=2,
                            hits_max=6, hits_remaining=5, shields_max=2)
-        gs = make_gs([attacker, target])
+        gs = make_gs_raids([attacker, target])
         ok, reason = check_teleport_eligibility(attacker, target, gs)
         assert not ok
         assert "shield" in reason.lower()
@@ -98,7 +98,7 @@ class TestCheckTeleportEligibility:
         attacker = make_ship(id="a", x=0.0, y=0.0, hits_max=4, hits_remaining=4)
         target = make_ship(id="t", x=5.0, y=0.0, player=2,
                            hits_max=8, hits_remaining=8, shields_max=0)
-        gs = make_gs([attacker, target])
+        gs = make_gs_raids([attacker, target])
         ok, reason = check_teleport_eligibility(attacker, target, gs)
         assert not ok
         assert "hits" in reason.lower()
@@ -126,7 +126,7 @@ class TestCheckTeleportEligibility:
 
 class TestResolveRaids:
     def _gs(self, target):
-        return make_gs([target])
+        return make_gs_raids([target])
 
     def test_roll_one_is_failure(self):
         target = make_ship(id="t", player=2)
@@ -214,7 +214,7 @@ class TestRaidRollModifier:
 
 class TestRaidModifierInResolution:
     def _gs(self, target):
-        return make_gs([target])
+        return make_gs_raids([target])
 
     def test_marine_attacker_turns_natural_one_into_a_hit(self):
         # Natural 1 normally fails; +1 marine bonus makes effective 2 → a crit applies.
@@ -253,7 +253,7 @@ class TestRaidModifierInResolution:
 class TestResolveHitAndRun:
     def test_no_brace_crit_applied(self):
         target = make_ship(id="t", player=2, hits_max=8)
-        gs = make_gs([target])
+        gs = make_gs_raids([target])
         marker = _assault_marker()
         dice = DiceStub([6])
         result = resolve_hit_and_run(marker, target, dice, gs, _no_brace)
@@ -263,7 +263,7 @@ class TestResolveHitAndRun:
 
     def test_brace_pass_repels_raid(self):
         target = make_ship(id="t", player=2)
-        gs = make_gs([target])
+        gs = make_gs_raids([target])
         marker = _assault_marker()
         # raid roll=6, repel roll=5 → repelled
         dice = DiceStub([6, 5])
@@ -275,7 +275,7 @@ class TestResolveHitAndRun:
 
     def test_brace_fail_no_repel_crit_applied(self):
         target = make_ship(id="t", player=2, hits_max=8)
-        gs = make_gs([target])
+        gs = make_gs_raids([target])
         marker = _assault_marker()
         dice = DiceStub([6])
         result = resolve_hit_and_run(marker, target, dice, gs, _brace_fail)
@@ -285,7 +285,7 @@ class TestResolveHitAndRun:
 
     def test_result_has_required_keys(self):
         target = make_ship(id="t", player=2)
-        gs = make_gs([target])
+        gs = make_gs_raids([target])
         marker = _assault_marker()
         dice = DiceStub([1])
         result = resolve_hit_and_run(marker, target, dice, gs, _no_brace)
@@ -295,7 +295,7 @@ class TestResolveHitAndRun:
 
     def test_roll_one_no_crit(self):
         target = make_ship(id="t", player=2)
-        gs = make_gs([target])
+        gs = make_gs_raids([target])
         marker = _assault_marker()
         dice = DiceStub([1])
         result = resolve_hit_and_run(marker, target, dice, gs, _no_brace)
@@ -311,7 +311,7 @@ class TestResolveTeleportAttack:
     def test_no_brace_crit_applied(self):
         attacker = make_ship(id="a", x=0.0, y=0.0, player=1)
         target = make_ship(id="t", x=5.0, y=0.0, player=2, hits_max=8)
-        gs = make_gs([attacker, target])
+        gs = make_gs_raids([attacker, target])
         dice = DiceStub([6])
         result = resolve_teleport_attack(attacker, target, dice, gs, _no_brace)
         assert len(result["crits_applied"]) == 1
@@ -319,7 +319,7 @@ class TestResolveTeleportAttack:
     def test_brace_pass_repels(self):
         attacker = make_ship(id="a", x=0.0, y=0.0, player=1)
         target = make_ship(id="t", x=5.0, y=0.0, player=2)
-        gs = make_gs([attacker, target])
+        gs = make_gs_raids([attacker, target])
         dice = DiceStub([6, 5])
         result = resolve_teleport_attack(attacker, target, dice, gs, _brace_pass)
         assert result["repelled"] == 1
@@ -328,7 +328,7 @@ class TestResolveTeleportAttack:
     def test_attacker_name_in_log(self):
         attacker = make_ship(id="a", name="The Terror", x=0.0, y=0.0, player=1)
         target = make_ship(id="t", x=5.0, y=0.0, player=2)
-        gs = make_gs([attacker, target])
+        gs = make_gs_raids([attacker, target])
         dice = DiceStub([1])
         resolve_teleport_attack(attacker, target, dice, gs, _no_brace)
         assert any("The Terror" in entry for entry in gs.log)
@@ -336,7 +336,7 @@ class TestResolveTeleportAttack:
     def test_result_has_required_keys(self):
         attacker = make_ship(id="a", x=0.0, y=0.0, player=1)
         target = make_ship(id="t", x=5.0, y=0.0, player=2)
-        gs = make_gs([attacker, target])
+        gs = make_gs_raids([attacker, target])
         dice = DiceStub([1])
         result = resolve_teleport_attack(attacker, target, dice, gs, _no_brace)
         for key in ("brace_wanted", "brace_passed", "raid_rolls", "crits_applied"):
@@ -345,7 +345,7 @@ class TestResolveTeleportAttack:
     def test_roll_one_no_crit(self):
         attacker = make_ship(id="a", x=0.0, y=0.0, player=1)
         target = make_ship(id="t", x=5.0, y=0.0, player=2)
-        gs = make_gs([attacker, target])
+        gs = make_gs_raids([attacker, target])
         dice = DiceStub([1])
         result = resolve_teleport_attack(attacker, target, dice, gs, _no_brace)
         assert result["failures"] == 1
@@ -364,7 +364,7 @@ class TestRaidsVsSmallTargets:
 
     def test_four_plus_does_one_damage_and_no_crit(self):
         escort = self._escort()
-        gs = make_gs([escort])
+        gs = make_gs_raids([escort])
         dice = DiceStub([4])
         s = resolve_raids(1, escort, False, dice, gs)
         assert dice._idx == 1
@@ -374,21 +374,21 @@ class TestRaidsVsSmallTargets:
 
     def test_three_does_nothing(self):
         escort = self._escort()
-        gs = make_gs([escort])
+        gs = make_gs_raids([escort])
         s = resolve_raids(1, escort, False, DiceStub([3]), gs)
         assert s["damage"] == 0 and s["failures"] == 1
         assert gs.get_ship_by_id("e").hits_remaining == 2
 
     def test_modifier_applies_before_the_four_plus(self):
         escort = self._escort()
-        gs = make_gs([escort])
+        gs = make_gs_raids([escort])
         s = resolve_raids(1, escort, False, DiceStub([3]), gs,
                           attacker_rules=["space_marine_crew"])
         assert s["damage"] == 1
 
     def test_braced_escort_saves_on_four_plus(self):
         escort = self._escort()
-        gs = make_gs([escort])
+        gs = make_gs_raids([escort])
         dice = DiceStub([5, 4])          # raid succeeds, brace save 4+ repels it
         s = resolve_raids(1, escort, True, dice, gs)
         assert dice._idx == 2
@@ -396,7 +396,7 @@ class TestRaidsVsSmallTargets:
 
     def test_escort_with_three_or_more_hits_uses_crit_table(self):
         big = self._escort(hits_max=4)  # e.g. Nicassar Rig
-        gs = make_gs([big])
+        gs = make_gs_raids([big])
         s = resolve_raids(1, big, False, DiceStub([2]), gs)
         assert s["damage"] == 0
         # No weapons on the test ship, so result 2 (dorsal armament) cascades

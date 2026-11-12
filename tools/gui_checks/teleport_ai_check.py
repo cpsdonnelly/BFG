@@ -31,6 +31,7 @@ gs.add_ship(ship("prize", 2, 43.0, 6, 0, 240))
 tc = TurnController(gs, DiceRoller(mode="auto")); tc.start_game()
 gs.ai_player = 1; gs.active_player = 1; gs.current_phase = "end"
 gs.rule_teleport = True        # teleport attacks are an optional rule (off by default)
+gs.rule_hit_and_run = True     # and teleports are raids: both rules needed (owner)
 board = BoardView(root, gs); f = tk.Frame(board.side_panel); f.pack()
 panel = GamePanel(f, tc, board, root)
 LOG = []

@@ -93,6 +93,7 @@ def test_lightning_thrusters_vanguard_on_aaf():
     assert effective_battery_firepower(vg, MACRO) == 3
     target = make_ship(id="t", player=2, hits_max=6, shields_max=0, x=5.0, y=0.0)
     gs = make_gs([vg, target])
+    gs.rule_hit_and_run = True          # teleports are raids (owner)
     assert check_teleport_eligibility(vg, target, gs)[0]
 
 

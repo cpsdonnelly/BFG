@@ -638,11 +638,14 @@ class OrdnancePanel(OrdnanceMovementMixin):
         if not launch_torps:
             # Collect available craft types across contributors
             available_types = set()
+            from .ordnance import craft_type_allowed
             for s in contributors:
                 for w in s.weapons:
                     if w.get("weapon_type") == "launch_bay":
                         for ct in w.get("craft_types", w.get("craft", [])):
-                            available_types.add(ct)
+                            # no assault boats while hit-and-run raids are off (owner)
+                            if craft_type_allowed(ct, [w], self.ctx.gs):
+                                available_types.add(ct)
 
             fleet_bay_cap = self._get_player_bay_capacity(player)
             active_craft = self._count_active_craft(player)
@@ -1324,9 +1327,12 @@ class OrdnancePanel(OrdnanceMovementMixin):
             total_bays = min(total_bays, fleet_remaining)
 
             available_types = set()
+            from .ordnance import craft_type_allowed
             for w in bay_weapons:
                 for ct in w.get("craft_types", w.get("craft", [])):
-                    available_types.add(ct)
+                    # no assault boats while hit-and-run raids are off (owner)
+                    if craft_type_allowed(ct, [w], self.ctx.gs):
+                        available_types.add(ct)
 
             dice_bays = [w for w in bay_weapons if w.get("strength_dice")]
             if dice_bays:

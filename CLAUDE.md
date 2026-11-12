@@ -133,6 +133,15 @@ Cruisers. Ships using rules the engine can't play yet
   (`torpedo_roll:d6_refitted`). Seeking, melta and vortex are one salvo **per ship** per game
   (`Ship.once_torps_used`). Barrage bombs' low-orbit and assault-point rules wait on low orbit.
   Chaos torpedo tubes always carry boarding torpedoes too (`booklet_ships.convert_row`).
+- **The hit-and-run toggle covers every raid (owner):** with `GameState.rule_hit_and_run` off,
+  assault boats, boarding torpedoes and teleport attacks are disabled for the players too.
+  Assault boats (incl. Sharks) aren't offered in the launch dialogs and can't launch
+  (`ordnance.craft_type_allowed`, checked by `launch_attack_craft` and the AI); multi-role
+  craft (Thunderhawks, Gun-Cutters) still launch as fighters / bombers, only their raid mode is
+  off. Boarding torpedoes aren't offered (`torpedo_kind_options`) and a boarding launch fires
+  standard torpedoes (`launch_torpedoes`). Teleports need both `rule_teleport` and
+  `rule_hit_and_run` (`check_teleport_eligibility`, `end_phase_panel`)
+  (`tests/test_raids_toggle.py`; tests that play raids use `conftest.make_gs_raids`).
 - **Attack craft orders (s.18):** each squadron keeps a target (`craft_target_id`: enemy ship,
   enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
@@ -435,7 +444,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1066 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1069 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -462,7 +471,8 @@ Optional rules (owner): when a rule is disabled (Advanced settings: `GameState.r
 off by default: boarding, ramming, teleport, hit-and-run, fighting sunward, solar flares,
 radiation bursts, Remastered turret suppression / spill-over), the AI neither values moves by
 it nor attempts it. Audit: hit-and-run is respected (`_strike_option`, `waves.best_attack_mode`,
-`ai_hazards`); teleport attempts are gated by `end_phase_panel` (`rule_teleport`); boarding,
+`ai_hazards`, and the craft types the AI launches); teleport attempts need `rule_teleport` and
+`rule_hit_and_run` (`check_teleport_eligibility`); boarding,
 ramming and teleport aren't valued anywhere yet, so every new term for them (To do 8 h, j)
 must check its flag; gap: the wave planner and AI value turret suppression the XR way even
 when `rule_turret_suppression_remastered` is on; the celestial-phenomena rules aren't modelled

@@ -1282,7 +1282,10 @@ class AIPlayer:
                 # All of the ship's bays launch together: launching any craft
                 # means reloading before launching again (s.15)
                 bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
-                craft_types = [ct for w in bays for ct in w.get("craft_types", [])]
+                from .ordnance import craft_type_allowed
+                # no assault boats while hit-and-run raids are off (owner)
+                craft_types = [ct for w in bays for ct in w.get("craft_types", [])
+                               if craft_type_allowed(ct, [w], gs)]
                 if not craft_types:
                     continue
                 enemy_ord = [OrdnanceMarker.from_dict(o) for o in gs.ordnance

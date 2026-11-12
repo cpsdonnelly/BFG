@@ -113,8 +113,8 @@ class EndPhasePanel:
 
     def _resolve_teleport_attacks(self):
         """Allow the active player to make teleport attacks during the end phase."""
-        if not self.ctx.gs.rule_teleport:
-            return
+        if not self.ctx.gs.rule_teleport or not self.ctx.gs.rule_hit_and_run:
+            return                 # teleports are raids: both rules needed (owner)
         from .hit_and_run import check_teleport_eligibility, resolve_teleport_attack
         from .movement import attempt_brace
 

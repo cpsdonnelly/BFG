@@ -74,8 +74,12 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
                                 gs: GameState) -> Tuple[bool, str]:
     """
     Check whether attacker can perform a teleport attack against target.
-    Returns (eligible: bool, reason: str).
+    Returns (eligible: bool, reason: str). A teleport attack is a hit-and-run
+    raid (s.31), so it needs hit-and-run raids enabled as well as teleports
+    (owner).
     """
+    if not getattr(gs, "rule_hit_and_run", True):
+        return False, "hit-and-run raids are disabled"
     if attacker.is_crippled:
         return False, f"{attacker.name} is crippled"
 

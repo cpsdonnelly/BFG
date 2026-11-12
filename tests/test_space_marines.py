@@ -1,6 +1,6 @@
 """Space Marine (and Grey Knights) faction rules, Bombardment Cannons."""
 import pytest
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_ship, make_gs, DiceStub, make_gs_raids
 from src.ship_catalog import find_ship_class
 from src.combat import resolve_batteries, apply_damage
 from src.movement import aaf_bonus_dice, resolve_aaf_speed, do_command_check
@@ -51,14 +51,14 @@ def test_bombardment_cannon_hits_on_4_regardless_of_armour():
 
 def test_crits_on_4_plus():
     t = make_ship(id="t", player=2, hits_max=8, shields_max=0)
-    gs = make_gs([t])
+    gs = make_gs_raids([t])
     rolls = [4,          # crit check 4+: crit
              6]          # 2D6 crit table: 6 (Engine Room in this table? any result)
     dice = DiceStub(rolls + [1] * 4)
     r = apply_damage(t, 1, dice, gs, crit_on=4)
     assert len(r["crits"]) == 1
     t2 = make_ship(id="t2", player=2, hits_max=8, shields_max=0)
-    gs2 = make_gs([t2])
+    gs2 = make_gs_raids([t2])
     dice = DiceStub([4])
     assert apply_damage(t2, 1, dice, gs2)["crits"] == [] and dice._idx == 1
 
@@ -94,7 +94,7 @@ def test_teleport_assault_bigger_targets():
     sm = make_ship(id="a", player=1, hits_max=6, x=0.0, y=0.0,
                    special_rules=["space_marine_crew", "teleport_assault"])
     big = make_ship(id="t", player=2, hits_max=12, shields_max=0, x=8.0, y=0.0)
-    gs = make_gs([sm, big])
+    gs = make_gs_raids([sm, big])
     assert check_teleport_eligibility(sm, big, gs)[0]
     plain = make_ship(id="b", player=1, hits_max=6, x=0.0, y=0.0)
     assert not check_teleport_eligibility(plain, big, gs)[0]
@@ -109,7 +109,7 @@ def test_space_marine_raid_modifiers():
 def test_knights_of_titan_rerolls_a_lost_boarding_action():
     gk = make_ship(id="a", player=1, hits_max=8, turrets=2, special_rules=["knights_of_titan"])
     enemy = make_ship(id="t", player=2, hits_max=8, turrets=2)
-    gs = make_gs([gk, enemy])
+    gs = make_gs_raids([gk, enemy])
     rolls = [1, 4,       # 1 vs 4: Grey Knights lose -> re-roll
              6, 2,       # 6 vs 2: attackers win by 4
              1,          # winner crit check (6+): no
@@ -125,7 +125,7 @@ def test_venerable_battle_barge_vp():
                           hits_remaining=0, status="destroyed", special_rules=["venerable"])
     crippled = make_ship(id="v2", player=1, points_value=400, hits_max=12,
                          hits_remaining=6, special_rules=["venerable"])
-    gs = make_gs([destroyed, crippled])
+    gs = make_gs_raids([destroyed, crippled])
     vp = calculate_victory_points(gs)
     assert vp[2]["destroyed"] == 500 and vp[2]["crippled"] == 200
 
@@ -206,7 +206,7 @@ def test_terminator_honour_guard_teleport():
                    special_rules=["space_marine_crew", "teleport_assault",
                                   "terminator_honour_guard"])
     target = make_ship(id="t", player=2, hits_max=8, shields_max=0, x=18.0, y=0.0)
-    gs = make_gs([hg, target])
+    gs = make_gs_raids([hg, target])
     assert teleport_range(hg) == 20 and check_teleport_eligibility(hg, target, gs)[0]
     rolls = [2, 5, 4,      # 3D6: best two are 5 and 4
              ]
@@ -237,7 +237,7 @@ def test_fleet_reroll_offered_on_failed_brace():
     from tests.conftest import make_gs
     from src.movement import attempt_brace
     ship = make_ship(id="s", leadership=7)
-    gs = make_gs([ship])
+    gs = make_gs_raids([ship])
     asked = []
     gs.ld_reroll_hook = lambda sh, label, roll, need: asked.append((label, roll)) or True
     dice = DiceStub([10, 6])                 # fails, re-roll passes

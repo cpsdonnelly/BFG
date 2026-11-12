@@ -1,6 +1,6 @@
 """Boarding torpedoes: one hit-and-run raid per hit (core rules s.31)."""
 import pytest
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_ship, make_gs, DiceStub, make_gs_raids
 from src.models import OrdnanceMarker, OrdnanceType, SpecialOrder
 from src.ordnance import (resolve_torpedo_attack, launch_torpedoes,
                           torpedo_ordnance_type)
@@ -27,7 +27,7 @@ def _no_brace_called(*a):
 
 def test_hits_become_raids_not_damage():
     target = _target()
-    gs = make_gs([target])
+    gs = make_gs_raids([target])
     rolls = [4, 1,          # turrets: one torpedo shot down (Str 4 -> 3)
              5, 2, 6,       # attack vs side armour 5+: two hits
              6, 1]          # raids: Engine Room (+1 damage), failure
@@ -46,7 +46,7 @@ def test_hits_become_raids_not_damage():
 
 def test_target_may_brace_before_raids_are_rolled():
     target = _target(turrets=0)
-    gs = make_gs([target])
+    gs = make_gs_raids([target])
     asked = []
 
     def brace(ship, msg, n_raids):
@@ -66,7 +66,7 @@ def test_target_may_brace_before_raids_are_rolled():
 
 def test_already_braced_target_saves_without_being_asked():
     target = _target(turrets=0, special_order=SpecialOrder.BRACE_FOR_IMPACT.value)
-    gs = make_gs([target])
+    gs = make_gs_raids([target])
     rolls = [5, 1, 1, 1,    # one hit
              6, 5]          # raid succeeds, repelled
     dice = DiceStub(rolls)
@@ -79,7 +79,7 @@ def test_already_braced_target_saves_without_being_asked():
 
 def test_no_hits_no_raids_no_brace_question():
     target = _target(turrets=0)
-    gs = make_gs([target])
+    gs = make_gs_raids([target])
     rolls = [1, 2, 3, 4]
     dice = DiceStub(rolls)
     r = resolve_torpedo_attack(_marker(), target, dice, gs,
@@ -92,7 +92,7 @@ def test_raids_on_small_escort_do_one_damage_on_4_plus():
     # Escorts with fewer than 3 starting hits don't use the Critical Hits table
     target = _target(turrets=0, ship_type="escort", hits_max=2,
                      armor_prow="5+", armor_side="5+")
-    gs = make_gs([target])
+    gs = make_gs_raids([target])
     rolls = [5, 6, 1, 1,    # two hits
              4, 3]          # raids: 4 -> 1 damage, 3 -> no effect
     dice = DiceStub(rolls)
@@ -104,7 +104,7 @@ def test_raids_on_small_escort_do_one_damage_on_4_plus():
 
 def test_launcher_raid_bonus_carries_to_its_boarding_torps():
     target = _target(turrets=0)
-    gs = make_gs([target])
+    gs = make_gs_raids([target])
     rolls = [5, 1, 1, 1,    # one hit
              5]             # raid 5 +1 (Space Marines) = 6: Engine Room
     dice = DiceStub(rolls)
@@ -132,7 +132,7 @@ def test_launch_boarding_torpedoes_carries_launcher_rules():
     ship = make_ship(id="a", player=1, x=50.0, y=50.0,
                      special_rules=["space_marine_crew"],
                      weapons=[{**TORPS, "boarding_torpedoes": True}])
-    gs = make_gs([ship])
+    gs = make_gs_raids([ship])
     m = launch_torpedoes(ship, ship.weapons[0], gs, boarding=True)
     assert m.ordnance_type == OrdnanceType.TORPEDO_BOARDING.value
     assert m.special_rules == ["space_marine_crew"]
@@ -141,7 +141,7 @@ def test_launch_boarding_torpedoes_carries_launcher_rules():
 
 def test_standard_torpedoes_still_do_damage():
     target = _target(turrets=0)
-    gs = make_gs([target])
+    gs = make_gs_raids([target])
     m = _marker()
     m.ordnance_type = OrdnanceType.TORPEDO_STANDARD.value
     rolls = [5, 6, 1, 1]    # two hits = two damage, crit checks only on 6s

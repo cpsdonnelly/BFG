@@ -1471,6 +1471,11 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
     constraint the human launch dialog enforces. Defaults to ship heading.
     """
     torpedo_type = weapon.get("torpedo_type", "standard")
+    if not getattr(game_state, "rule_hit_and_run", True):
+        # Owner: no boarding torpedoes while hit-and-run raids are disabled (each
+        # hit is a raid, s.16 / s.31): a standard salvo instead
+        if boarding or kind == "boarding":
+            boarding, kind = False, ("" if kind == "boarding" else kind)
     o_type = torpedo_ordnance_type(weapon, boarding, kind)
     strength, rolled = torpedo_launch_strength(ship, weapon, dice)
     if rolled is not None:
@@ -1647,9 +1652,25 @@ def mr_attack_mode_ai(target: Ship, gs: Optional[GameState] = None, owner: int =
     return best_attack_mode(target, gs, owner, rules)
 
 
+def craft_type_allowed(craft_type: str, bay_weapons: List[Dict], game_state) -> bool:
+    """Owner: with hit-and-run raids disabled (`rule_hit_and_run` off), assault
+    boats can't be launched (s.22: they only make raids). Multi-role craft that
+    also act as fighters / bombers (Thunderhawks, Gun-Cutters) still launch;
+    only their raid mode is off."""
+    if getattr(game_state, "rule_hit_and_run", True):
+        return True
+    roles = set(craft_roles(craft_stats(craft_type, bay_weapons)[0]))
+    return roles != {"assault_boat"}
+
+
 def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
                         count: int, game_state: GameState) -> List[OrdnanceMarker]:
-    """Create attack craft markers from launch bays."""
+    """Create attack craft markers from launch bays. Assault boats aren't
+    launched while hit-and-run raids are disabled (craft_type_allowed)."""
+    if not craft_type_allowed(craft_type, [weapon], game_state):
+        game_state.add_log(f"{ship.name}: assault boats can't launch (hit-and-run raids "
+                           f"are disabled)")
+        return []
     o_type, speed, resilient = craft_stats(craft_type, [weapon])
 
     markers = []

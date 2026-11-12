@@ -80,6 +80,15 @@ def make_gs(ships=None) -> GameState:
     return gs
 
 
+def make_gs_raids(ships=None) -> GameState:
+    """make_gs with hit-and-run raids enabled (`rule_hit_and_run`, off by
+    default): assault boats, boarding torpedoes and teleport attacks need it
+    (owner: they are raids)."""
+    gs = make_gs(ships)
+    gs.rule_hit_and_run = True
+    return gs
+
+
 def make_marker(**overrides) -> OrdnanceMarker:
     """Build a minimal OrdnanceMarker for testing."""
     base = dict(

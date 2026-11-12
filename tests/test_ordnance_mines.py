@@ -279,10 +279,14 @@ def test_launch_shark_assault_boats_creates_assault_boats():
     # Imperial Navy: Shark assault boats (AB, 30cm)
     ship = make_ship(id="s", x=50, y=50, heading=0, player=1)
     gs = make_gs([ship])
+    gs.rule_hit_and_run = True          # assault boats need hit-and-run raids (owner)
     weapon = {"name": "Port Launch Bays", "weapon_type": "launch_bay", "strength": 2}
     markers = launch_attack_craft(ship, weapon, "shark_assault_boat", 2, gs)
     assert [m.ordnance_type for m in markers] == ["assault_boat", "assault_boat"]
     assert all(m.speed == 30 for m in markers)
+    # with raids disabled they don't launch
+    gs.rule_hit_and_run = False
+    assert launch_attack_craft(ship, weapon, "shark_assault_boat", 2, gs) == []
 
 
 # ── Assault boats are not fighters: they never intercept other ordnance ─────

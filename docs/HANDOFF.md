@@ -466,7 +466,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session log (latest session, newest last; history)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1066 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1069 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -613,6 +613,10 @@ Latest items, newest last:
   attacks are still cut by the ship's own turrets (s.20: "still applies even if the defending
   ship fired its turrets at torpedoes or mines"). So against a high-turret ship bombers gain
   little from the split; missiles gain most when the turrets go to the bombers.
+- Owner: the hit-and-run toggle covers every raid: off, assault boats, boarding torpedoes and
+  teleport attacks are disabled for the players too (`ordnance.craft_type_allowed`,
+  `launch_torpedoes`, `check_teleport_eligibility`; multi-role craft still fly as fighters /
+  bombers). Tests that play raids use `tests/conftest.make_gs_raids`.
 - Owner: a disabled optional rule (e.g. teleport attacks) is neither valued in the AI's moves
   nor attempted. Recorded in CLAUDE.md "AI: how it decides" with an audit: hit-and-run is
   respected; boarding / ramming / teleport aren't valued yet (new terms must check their
