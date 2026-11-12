@@ -43,8 +43,9 @@ session.
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
 does, with the judgement weights to tune; its first part, "Fleet strategy", lists the owner's
-matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-10), "Open questions"
-(one: where To do 8 goes) and every owner ruling. This file keeps the history: owner guidance in their words,
+matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-12), "Open questions"
+(one: where To do 8 goes) and every owner ruling. `docs/AI_DESIGN.md` describes the whole AI,
+built and planned, in plain language (keep it in step with CLAUDE.md). This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 
 ## Earlier in the session (history; all committed and pushed)
@@ -623,7 +624,8 @@ Latest items, newest last:
 - Toggle audit (owner: check the other toggles too): boarding and ramming are gated for
   players and resolved only when on; Fighting Sunward / Solar Flares / Radiation Bursts (s.40)
   aren't built, their toggles do nothing (settings now says "not built yet", To do 6); the
-  Remastered turret-suppression toggle isn't a booklet rule (open question in CLAUDE.md).
+  Remastered turret-suppression toggle isn't a booklet rule (open question then; since
+  answered: keep it and follow p.82, built, see above).
 - Owner: the hit-and-run toggle covers every raid: off, assault boats, boarding torpedoes and
   teleport attacks are disabled for the players too (`ordnance.craft_type_allowed`,
   `launch_torpedoes`, `check_teleport_eligibility`; multi-role craft still fly as fighters /
@@ -631,7 +633,8 @@ Latest items, newest last:
 - Owner: a disabled optional rule (e.g. teleport attacks) is neither valued in the AI's moves
   nor attempted. Recorded in CLAUDE.md "AI: how it decides" with an audit: hit-and-run is
   respected; boarding / ramming / teleport aren't valued yet (new terms must check their
-  flags); gap: Remastered turret suppression isn't followed by the planner (To do 6).
+  flags); gap then: Remastered turret suppression wasn't followed by the planner (since fixed:
+  `waves.wave_split_value` follows the mode).
 - Fixed: the AI's teleport attacks went to the human's dialog in its own end phase; it now
   raids the eligible target worth most per raid (`tools/gui_checks/teleport_ai_check.py`;
   teleports are an optional rule, `GameState.rule_teleport`).
@@ -644,11 +647,37 @@ Latest items, newest last:
   history and points to CLAUDE.md instead of copying it.
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
+- Owner notes on special orders: orders come before the move, so Lock On is worth it when an
+  enemy WILL or CAN be in arc after it; a failed command check ends the turn's orders (s.2), so
+  orders must be prioritised. Recorded as To do 10.
+- Owner: the expert AI (5 turns ahead) must know the turn limit and play riskier when behind
+  near the end, safer when ahead (To do 2); the AI must play every scenario's own win
+  conditions, Domination being only one example of many (To do 7).
+- New `docs/AI_DESIGN.md`: the AI in plain language (values, weapons, movement, targets,
+  fighters, candidates, look-ahead, weights, win conditions, difficulty levels, gaps), sent to
+  the owner.
+- Owner's AI design feedback (file reviewed against the booklet), recorded as To do 11 / 12 and
+  in To do 1 / 10. Checked in code: gunnery values subtract shields; the per-hit value is 0.2 x
+  points / starting hits (doc wording fixed); Ork turrets 5+ and fire at everything; mines home
+  on the layer's enemies, 10cm (gap: the AI's mine hazard ignores turrets). Bombers-lowest-
+  Armour attributed to s.20 (a rule). Brace rules recorded: a failed command check doesn't
+  block Brace; a failed brace blocks that ship until the attacker has finished; decided per
+  weapon, tried once per attacker per turn (owner: fail against a ship's batteries and you
+  can't brace against its lances). Brace has a cost, to be priced (To do 11 c). Weight tuning
+  (CMA-ES, last) and a learned evaluation (after 11) agreed.
+- Fixed: the AI's fire asked the target to brace once per firing ship, so a player who
+  declined against its batteries wasn't asked before its lances; it now asks before each
+  weapon (`AIPlayer._offer_brace(ship, target, weapons)`, `tests/test_brace_timing.py`).
+  1076 tests pass; brace, spectator (normal, Orks, Space Marines), siege, Ork fire, squadron
+  fire and AI GUI checks pass.
+- Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
+  a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
+  replace the 15-degree heading steps; recorded as To do 11 a.
 
-Next: the rest of CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-7, 9 and 10
-(item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos, the
-AI changes they need and the Tiger Shark ruling). Item 8's place is the one open question;
-item 1 (weight tuning) is on hold.
+Next: the rest of CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-7, 9, 10
+and 11 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase
+salvos, the AI changes they need and the Tiger Shark ruling), then 12 (learned evaluation);
+item 1 (weight tuning) last and on hold. Item 8's place is the one open question.
 
 ## Bombers vs assault boats (owner idea, done)
 

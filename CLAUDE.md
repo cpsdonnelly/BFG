@@ -481,7 +481,8 @@ Built so far: every booklet rule section the engine plays (see the sections abov
 blast marker rules, the turret split, waves / CAP / wave planner, the hit-and-run toggle
 covering every raid, Remastered turret suppression per p.82, the optional-rule toggle audit,
 and the expected-VP AI below (incl. carrier doctrine, strikes valued when they land,
-co-ordinated strikes, the AI's own teleports). Not built: Fighting Sunward, Solar Flares,
+co-ordinated strikes, the AI's own teleports, Brace asked before each weapon of AI fire).
+Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
 Next: the rest of To do 2, then 3-7, 9, 10 and 11; 8's place in the order is an open question;
 12 (learned evaluation) after 11; 1 (weight tuning) last and on hold.
@@ -1081,6 +1082,12 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       - Teleports (s.31): not crippled, Lock On / Reload only, target shields down, within
         10cm, no more remaining hits; no escorts or defences under 3 hits; order valuation
         counts the raid given up (To do 10 g).
+      - Mines: the hazard model counts a mine's 8D6 against Armour flat; count the turret
+        roll that cuts it to 4D6 (`ordnance.resolve_mine_contact`; the turret split, s.28,
+        applies: turrets used against craft that phase can't).
+      - Human Fire dialog: it asks the target to brace once for all the weapons fired together
+        in it; the target may decide per weapon (s.7), so ask before each weapon type (or
+        let the firer fire them one at a time) when the target hasn't tried yet.
       - Dust clouds (s.39, XR pp.52-54): ships in contact count as having a blast marker in
         all respects; ordnance moving through tests as for blast markers (owner ruling: XR's
         omission is an oversight, Remastered states it; the AI already matches).
@@ -1175,8 +1182,10 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- Where To do 8 (matchup-aware manoeuvre) goes in the order: it is listed last for now, after
-  items 2-7; the owner may want it sooner.
+- Where To do 8 (matchup-aware manoeuvre) goes in the order: it isn't placed yet (the order
+  runs 2-7, 9, 10, 11, then 12 and 1); the owner may want it sooner. Note that 11 a's
+  target-directed candidates and 11 h both want 8 a (Armour facing) and 8 f (range brackets)
+  built first.
 
 Owner ruling (Tiger Sharks, Tau; for To do 3): Tiger Sharks follow the torpedo bomber rules in
 full, except that the salvo they produce is a Tau missile salvo (Xenos, Tiger Shark entry:
