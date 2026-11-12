@@ -42,7 +42,7 @@ session.
 
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
-does, with the judgement weights to tune), "To do" (agreed order, items 1-8), "Open questions"
+does, with the judgement weights to tune), "To do" (agreed order, items 1-9), "Open questions"
 (one: where To do 8 goes) and every owner ruling. This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 
@@ -644,10 +644,10 @@ Latest items, newest last:
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
-Next: CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-6 (item 3 now
-carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos and the AI
-changes they need, and the Tiger Shark ruling). No open questions. Owner feedback wanted on the AI's judgement weights, e.g. a
-healthy lone cruiser facing three full enemy cruisers disengages under the current model.
+Next: the rest of CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-7 and 9
+(item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos, the
+AI changes they need and the Tiger Shark ruling). Item 8's place is the one open question;
+item 1 (weight tuning) is on hold.
 
 ## Bombers vs assault boats (owner idea, done)
 
@@ -763,14 +763,20 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
 
 1. On hold (owner): tuning the AI's judgement weights (listed in CLAUDE.md's AI section).
    Keep it in mind, but it is hard work, so leave it be until the owner asks.
-2. Strike planning at arrival time (design below, "Ordnance strike planning").
+2. Strike planning at arrival time (design below, "Ordnance strike planning"). Built: arrival
+   phase and landing turn, enemy guns on the way, reactive CAP / intercept / fighters in
+   flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles. Left:
+   crit values beyond the target's next shooting phase, splitting waves against enemy guns, a
+   risk preference, the expert AI valuing craft in flight, reactive CAP for craft already in
+   flight.
 3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
    Sharks per the owner ruling) and the AI changes they need.
 4. Named commanders, Mark of Chaos Undivided, daemonships, Stormbirds, god-fleet boons, Ork
    kustom upgrades / clans, other factions' secondary commanders, Inquisition Ordos.
 5. Unplayable units (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons...).
-6. Smaller gaps (radiation burst / solar flare disengage bonus, Demiurg undo, forced-flee
-   enforcement for humans).
+6. Smaller gaps: Fighting Sunward, Solar Flares and Radiation Bursts (s.40) aren't built
+   (their toggles say "not built yet"), nor their +3 disengage Ld and commander re-roll limit;
+   Demiurg undo doesn't return collected blast markers; forced-flee isn't enforced for humans.
 7. New (owner request): scenarios and sub-plots, engine and AI: the booklet's scenarios
    (`bfgxr/rules/10_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
    Rogue Trader faction sub-plots), then an AI that plays their objectives, not just cruiser
@@ -787,7 +793,10 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    edge (Orks) to think about boarding and ramming (the AI plans neither today), and carrier
    play as discussed (already built), and teleport attacks both ways (CLAUDE.md 8 j; done:
    the AI now decides its own teleports, it used to get the human's dialog). All in
-   CLAUDE.md To do 8 f-j.
+   CLAUDE.md To do 8 f-j. Its place in the order is an open question (listed last for now).
+9. Smaller "Not yet" notes collected from CLAUDE.md's sections (Auto (best) prompts, bombers
+   that re-roll attacks, fleet-list gaps, a Venerable Battle Barge, Rogue Trader / Ork torpedo
+   options, end-of-move-only ordnance checks, a few AI cases): CLAUDE.md To do 9.
 
 Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
 transcriptions and verify a sample against the booklet yourself.

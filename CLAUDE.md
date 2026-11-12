@@ -477,8 +477,13 @@ matched in code, and a reworded note silently drops an option.
 
 Built so far: every booklet rule section the engine plays (see the sections above), the export
 31 "still to do" list, boarding crew bonuses, disengaging incl. forced disengagement, optional
-blast marker rules, the turret split, waves / CAP / wave planner, and the expected-VP AI below.
-Next: To do 2, then 3-7 (1, weight tuning, is on hold).
+blast marker rules, the turret split, waves / CAP / wave planner, the hit-and-run toggle
+covering every raid, Remastered turret suppression per p.82, the optional-rule toggle audit,
+and the expected-VP AI below (incl. carrier doctrine, strikes valued when they land,
+co-ordinated strikes, the AI's own teleports). Not built: Fighting Sunward, Solar Flares,
+Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
+Next: the rest of To do 2, then 3-7 and 9; 8's place in the order is an open question; 1
+(weight tuning) is on hold.
 
 ### AI: how it decides (expected VP)
 
@@ -814,6 +819,22 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    i. Carriers: the carrier doctrine already built (see "AI: how it decides": air supremacy,
       protecting carriers when out-carriered, strikes outside the enemy's umbrella, reactive
       intercept, co-ordinating bombers with missiles) is part of the same matchup picture.
+
+9. Smaller "Not yet" notes from the sections above, collected so none is lost (details in each
+   section): Auto (best) on the Brace prompt, special-order re-rolls and the Vault of
+   Technology chooser ("Auto (best)"); bombers that re-roll their attacks (+1 when suppressed)
+   and resilient squadrons stopping / splitting (Waves); fleet lists: more than one
+   detachment, "no more reserve copies than its own list could field", reserve-only refit rules
+   (Fleet lists); designing a Venerable Battle Barge (Fleet lists); Rogue Trader refitted
+   torpedoes, Deathskulls' half-cost looted torps, Ork zzapp gunz swaps (Torpedo types); attack
+   craft flying straight without a target and torpedo-vs-torpedo collisions checked only at the
+   end of the move (Engine notes); AI: Ork random-firepower batteries in squadron volleys and a
+   volley needing a target priority test, hulks that aren't the closest target and Holding the
+   Field hulk points, the target turning to show its strongest facing to a turning salvo,
+   assault boats and mines in co-ordinated strikes and re-timing a launch to arrive together
+   ("AI: how it decides"). Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
+   Bosses' re-roll pools, secondary commanders and Ordos are in 4; the radiation / flare
+   disengage bonus is in 6; the teleport AI's positioning is in 8 j).
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 
