@@ -472,7 +472,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1049 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1055 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -609,8 +609,17 @@ points to):
    first, then one round of second thoughts; ships that reach no enemy plan against their
    nearest. E.g. four cruisers (about 5 hits each) and two enemies: one finishes a 1-hit
    ship while three go to the other; against two healthy 8-hit cruisers they split 2 / 2
-   (each pair kills its target; all four on one would be overkill). Not yet: the expert
-   AI's leaf evaluation using the same terms.
+   (each pair kills its target; all four on one would be overkill). Done: the expert AI's
+   search (`lookahead_ai`) uses the same terms: battery points 0.35 hits scaled by Armour,
+   lances 0.5 whatever the Armour (it used to roll lances against Armour); each ship fires
+   where its hits add the most VP given the ships before it (`_sim_value`: s.38 thresholds +
+   0.2 a hit; no overkill); loaded torpedoes fire once (target in arc within two torpedo
+   moves, turret kills, no shields); a capital ship killed in the sim explodes at its
+   Catastrophic Damage odds (`explosion_odds`, half / all starting hits as 4+ shots within
+   10.5cm); shields come back each turn; the real table size. Its leaf score is VP banked
+   (destroyed full, crippled 25%) plus next turn's expected VP swing at `LATER_TURN_WEIGHT`,
+   over the total points (was: banked points + a firepower ratio)
+   (`tests/test_lookahead_sim.py`).
    Done: fleet-wide CAP / strike allocation (`AIPlayer._plan_fleet_defence`, each ordnance
    phase: every carrier starts all-strike; threat slots, best first and a wave's squadrons lead
    first, go to the carrier losing least, i.e. its last strike squadron's marginal value against

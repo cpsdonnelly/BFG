@@ -101,8 +101,9 @@ ordnance when worth more than their best ship shot; turret choice by expected hi
 
 (CLAUDE.md "To do" is the current list; this copy is kept in step with it.)
 
-1. AI, still to do: fleet focus positioning, next steps (several focus
-   targets, torpedo lanes and craft reach in the move score, expert leaf evaluation). Done:
+1. AI: the agreed pieces are done (several focus targets, torpedoes in the move score,
+   holding bays by option value, two-waypoint routes, the expert AI's evaluation). Left: tune
+   the judgement weights on the owner's feedback. Done:
    hulk targeting, voluntary disengaging, ordnance focus by expected VP, fleet focus
    positioning (first versions: `fleet_focus_targets`, `_focus_for`, `_exposure_penalty`),
    escorts screening the commander's ship (`_screen_bonus`), prevented damage and explosions in
@@ -567,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1049 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1055 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -684,11 +685,14 @@ Latest items, newest last:
   most VP given the others' (no overkill; a covered kill frees ships for the next target).
 - Holding bays within reach by option value (`AIPlayer._hold_bays`): hold when
   (1 - reload odds) x next turn's launch or CAP value > launching now.
+- Expert AI search uses the normal AI's expected-VP terms (`lookahead_ai`: hit maths, focus
+  without overkill, torpedoes, explosions, shields per turn, real table; leaf = banked VP +
+  next turn's expected swing at LATER_TURN_WEIGHT). Expert spectator games run clean.
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
-Next: CLAUDE.md "To do" item 1 (what is left: expert leaf evaluation) and 1c (strike planning at arrival time), then items 3-6 (item 3 now
+Next: CLAUDE.md "To do" 1c (strike planning at arrival time), then items 3-6 (item 3 now
 carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos and the AI
 changes they need, and the Tiger Shark ruling). No open questions. Owner feedback wanted on the AI's judgement weights, e.g. a
 healthy lone cruiser facing three full enemy cruisers disengages under the current model.

@@ -40,6 +40,11 @@ class SimShip:
     is_destroyed: bool = False
     is_disengaged: bool = False
     armor_rear: str = ""        # third Armour value (front/abeam/rear), if any
+    turrets: int = 0
+    torps_loaded: bool = False
+    base_radius: float = 1.6
+    p_plasma: float = 0.0       # Catastrophic Damage odds when destroyed (s.34)
+    p_warp: float = 0.0
 
     @property
     def is_crippled(self) -> bool:
@@ -59,12 +64,20 @@ class SimShip:
             armor_prow=self.armor_prow, armor_side=self.armor_side,
             weapons=self.weapons,   # shared; weapons don't change during search
             is_destroyed=self.is_destroyed, is_disengaged=self.is_disengaged,
-            armor_rear=self.armor_rear,
+            armor_rear=self.armor_rear, turrets=self.turrets,
+            torps_loaded=self.torps_loaded, base_radius=self.base_radius,
+            p_plasma=self.p_plasma, p_warp=self.p_warp,
         )
 
     @classmethod
     def from_ship(cls, ship: Ship) -> "SimShip":
+        from .ai_hazards import explosion_odds
+        p_plasma, p_warp = explosion_odds(ship)
         return cls(
+            turrets=ship.effective_turrets if hasattr(ship, "effective_turrets") else ship.turrets,
+            torps_loaded=bool(ship.ordnance_loaded_torps) and any(
+                w.get("weapon_type") == "torpedo" for w in ship.weapons),
+            base_radius=ship.base_radius, p_plasma=p_plasma, p_warp=p_warp,
             id=ship.id, player=ship.player, x=ship.x, y=ship.y,
             heading=ship.heading, speed=ship.speed,
             turn_angle=ship.turn_angle, ship_type=ship.ship_type,
@@ -87,17 +100,23 @@ class SimState:
     ships: List[SimShip]
     turn: int
     turn_limit: Optional[int]
+    table_w: float = 120.0
+    table_h: float = 120.0
 
     @classmethod
     def from_gs(cls, gs: GameState) -> "SimState":
         ships = [SimShip.from_ship(Ship.from_dict(s)) for s in gs.ships]
-        return cls(ships=ships, turn=gs.turn_number, turn_limit=gs.turn_limit)
+        return cls(ships=ships, turn=gs.turn_number, turn_limit=gs.turn_limit,
+                   table_w=getattr(gs, "table_width", 120.0) or 120.0,
+                   table_h=getattr(gs, "table_height", 120.0) or 120.0)
 
     def clone(self) -> "SimState":
         return SimState(
             ships=[s.clone() for s in self.ships],
             turn=self.turn,
             turn_limit=self.turn_limit,
+            table_w=self.table_w,
+            table_h=self.table_h,
         )
 
     def alive(self, player: int) -> List[SimShip]:
@@ -113,9 +132,23 @@ class SimState:
 
 # ── Deterministic combat helpers ─────────────────────────────────────────────
 
+def _p_hit(armor: int) -> float:
+    return max(1, 7 - armor) / 6.0 if armor <= 6 else 1 / 6.0
+
+
+def _armor_facing(target: SimShip, x: float, y: float) -> int:
+    arc = target.get_arc(x, y)
+    return parse_armor(target.armor_prow if arc == "front"
+                       else (target.armor_rear or target.armor_side) if arc == "rear"
+                       else target.armor_side)
+
+
 def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
                           target: SimShip) -> float:
-    """Expected hull hits from one weapon (deterministic, no dice)."""
+    """Expected hull hits from one weapon (deterministic, no dice), as the
+    normal AI counts them (ai_hazards): a battery point 0.35 hits against
+    Armour 5+, scaled by the Armour it fires at; a lance 0.5 (4+ whatever the
+    Armour, s.13)."""
     wtype = weapon.get("weapon_type", "")
     if wtype not in ("battery", "lance"):
         return 0.0
@@ -127,42 +160,119 @@ def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
     w_range = weapon.get("range_cm", 0)
     if w_range and dist > w_range:
         return 0.0
-    strength = weapon.get("strength", 1)
-    target_arc = target.get_arc(attacker.x, attacker.y)
-    armor = parse_armor(target.armor_prow if target_arc == "front"
-                        else (target.armor_rear or target.armor_side) if target_arc == "rear"
-                        else target.armor_side)
-    hit_prob = max(0.0, (7 - armor) / 6.0)
-    return strength * hit_prob
+    strength = weapon.get("strength", 1) or 0
+    if wtype == "lance":
+        return strength * 0.5
+    armor = _armor_facing(target, attacker.x, attacker.y)
+    return strength * 0.35 * _p_hit(armor) / _p_hit(5)
 
 
-def _apply_expected_combat(state: SimState, shooter_player: int) -> None:
-    """Apply expected (deterministic) combat damage for one player's shooting."""
-    shooters = state.alive(shooter_player)
-    targets  = state.alive(3 - shooter_player)
-    if not targets:
-        return
-
-    for attacker in shooters:
-        # Pick the target with the highest expected damage (mirrors hard AI)
-        best_target: Optional[SimShip] = None
-        best_dmg = -1.0
-        for t in targets:
-            total = sum(_expected_weapon_hits(attacker, w, t)
-                        for w in attacker.weapons)
-            if total > best_dmg:
-                best_dmg = total
-                best_target = t
-        if best_target is None or best_dmg <= 0:
+def _torpedo_hits(attacker: SimShip, target: SimShip) -> float:
+    """A loaded launcher with the target in its arc and within two torpedo
+    moves: strength less turret kills (4+), each hitting the facing (torpedoes
+    ignore shields, s.15); at a phase's discount when it takes a second move."""
+    from .ai_hazards import phase_weight
+    if not attacker.torps_loaded:
+        return 0.0
+    arc = attacker.get_arc(target.x, target.y)
+    dist = math.hypot(target.x - attacker.x, target.y - attacker.y)
+    total = 0.0
+    for w in attacker.weapons:
+        if w.get("weapon_type") != "torpedo":
             continue
-        # Apply damage: shields absorb first, then hull
-        raw = best_dmg
-        absorbed = min(best_target.shields_remaining, raw)
-        best_target.shields_remaining -= absorbed
-        hull_dmg = raw - absorbed
-        best_target.hits_remaining = max(0, best_target.hits_remaining - hull_dmg)
-        if best_target.hits_remaining <= 0:
-            best_target.is_destroyed = True
+        arcs = w.get("arcs", [])
+        if arcs and arc not in arcs:
+            continue
+        spd = w.get("torpedo_speed", 30) or 30
+        if dist > 2 * spd + target.base_radius:
+            continue
+        left = max(0.0, (w.get("strength") or 0) - 0.5 * target.turrets)
+        h = left * _p_hit(_armor_facing(target, attacker.x, attacker.y))
+        total += h * (1.0 if dist <= spd + target.base_radius else phase_weight(1))
+    return total
+
+
+def _sim_value(t: SimShip, hits_remaining: float) -> float:
+    """VP the enemy scores off `t` at `hits_remaining` (s.38: destroyed full,
+    crippled 25%), plus 0.2 a hit for damage short of a threshold (as
+    ai_hazards.damage_vp)."""
+    pts = t.points_value or 0
+    if hits_remaining <= 0:
+        return float(pts)
+    v = 0.25 * pts if hits_remaining <= t.hits_max // 2 else 0.0
+    per_hit = pts / max(1, t.hits_max)
+    return v + 0.2 * per_hit * (t.hits_max - hits_remaining)
+
+
+def _apply_hits(state: SimState, t: SimShip, hits: float, shields: bool = True) -> None:
+    if shields:
+        absorbed = min(t.shields_remaining, hits)
+        t.shields_remaining -= absorbed
+        hits -= absorbed
+    was_alive = not t.is_destroyed
+    t.hits_remaining = max(0, t.hits_remaining - hits)
+    if t.hits_remaining <= 0:
+        t.is_destroyed = True
+        if was_alive:
+            _explode(state, t)
+
+
+def _explode(state: SimState, dead: SimShip) -> None:
+    """Expected Catastrophic Damage (s.34): a plasma drive overload (half its
+    starting hits) or warp drive implosion (all of them) as 4+ lance shots at
+    every ship within the 3D6cm radius (10.5 on average). No chains."""
+    shots = dead.p_plasma * dead.hits_max / 2 + dead.p_warp * dead.hits_max
+    if shots <= 0:
+        return
+    for s in state.ships:
+        if s is dead or not s.is_alive:
+            continue
+        if math.hypot(s.x - dead.x, s.y - dead.y) - s.base_radius <= 10.5:
+            h = max(0.0, shots * 0.5 - s.shields_remaining)
+            s.shields_remaining = max(0, s.shields_remaining - shots * 0.5)
+            s.hits_remaining = max(0, s.hits_remaining - h)
+            if s.hits_remaining <= 0:
+                s.is_destroyed = True
+
+
+def _apply_expected_combat(state: SimState, shooter_player: int) -> float:
+    """Apply one player's expected shooting (and torpedoes) and return the VP
+    it scored. Owner: focus fire, no overkill - each ship (biggest guns first)
+    fires at the target where its expected hits add the most VP given what
+    the ships before it have done (_sim_value: thresholds, then 0.2 a hit)."""
+    shooters = sorted(state.alive(shooter_player),
+                      key=lambda a: -sum(w.get("strength", 0) or 0 for w in a.weapons))
+    scored = 0.0
+    for attacker in shooters:
+        targets = state.alive(3 - shooter_player)
+        if not targets:
+            break
+        best, best_key = None, None
+        for t in targets:
+            guns = sum(_expected_weapon_hits(attacker, w, t) for w in attacker.weapons)
+            torps = _torpedo_hits(attacker, t)
+            if guns + torps <= 0:
+                continue
+            after = t.hits_remaining - max(0.0, guns - t.shields_remaining) - torps
+            gain = _sim_value(t, after) - _sim_value(t, t.hits_remaining)
+            key = (gain, guns + torps)
+            if best_key is None or key > best_key:
+                best, best_key = (t, guns, torps), key
+        if best is None:
+            continue
+        t, guns, torps = best
+        before = sum(_sim_value(s, s.hits_remaining) for s in state.alive(3 - shooter_player)
+                     ) + sum(s.points_value for s in state.ships
+                             if s.player != shooter_player and s.is_destroyed)
+        _apply_hits(state, t, guns)
+        if torps > 0:
+            _apply_hits(state, t, torps, shields=False)
+            attacker.torps_loaded = False          # no reloads in the search
+        after = sum(_sim_value(s, s.hits_remaining) for s in state.alive(3 - shooter_player)
+                    ) + sum(s.points_value for s in state.ships
+                            if s.player != shooter_player and s.is_destroyed)
+        scored += after - before
+    return scored
 
 
 # ── Move generation ───────────────────────────────────────────────────────────
@@ -284,37 +394,23 @@ def _arc_score_sim(ship: SimShip, fx: float, fy: float, fh: float,
 # ── Evaluation function ───────────────────────────────────────────────────────
 
 def _evaluate(state: SimState, ai_player: int) -> float:
-    """Score state from ai_player's perspective.  Approx range -1..+1."""
+    """Score state from ai_player's perspective, in VP over the total points
+    on the table: VP banked so far (destroyed full, crippled 25%, s.38) plus
+    next turn's expected VP swing (each side's focused, no-overkill shooting
+    from where it stands, _apply_expected_combat) at LATER_TURN_WEIGHT, the
+    weight the normal AI gives the next turn."""
+    from .ai_hazards import LATER_TURN_WEIGHT
     enemy = 3 - ai_player
     total_pts = sum(s.points_value for s in state.ships) or 1
 
-    my_score = sum(s.points_value for s in state.ships
-                   if s.player == enemy and s.is_destroyed)
-    my_score += sum(s.points_value * 0.25 for s in state.ships
-                    if s.player == enemy and s.is_crippled and not s.is_destroyed)
-    en_score = sum(s.points_value for s in state.ships
-                   if s.player == ai_player and s.is_destroyed)
-    en_score += sum(s.points_value * 0.25 for s in state.ships
-                    if s.player == ai_player and s.is_crippled and not s.is_destroyed)
-    vp_diff = (my_score - en_score) / total_pts
-
-    # Tactical bonus: relative firepower
-    def fp(attacker_player: int) -> float:
-        targets = state.alive(3 - attacker_player)
-        if not targets:
-            return 0.0
-        total = 0.0
-        for a in state.alive(attacker_player):
-            nearest = min(targets, key=lambda t: math.hypot(t.x - a.x, t.y - a.y))
-            for w in a.weapons:
-                total += _expected_weapon_hits(a, w, nearest)
-        return total
-
-    my_fp = fp(ai_player)
-    en_fp = fp(enemy)
-    fp_diff = (my_fp - en_fp) / max(1.0, my_fp + en_fp)
-
-    return 0.7 * vp_diff + 0.3 * fp_diff
+    def banked(victim_player):
+        return sum(s.points_value if s.is_destroyed else
+                   (0.25 * s.points_value if s.is_crippled else 0.0)
+                   for s in state.ships if s.player == victim_player)
+    vp_diff = banked(enemy) - banked(ai_player)
+    mine = _apply_expected_combat(state.clone(), ai_player)
+    theirs = _apply_expected_combat(state.clone(), enemy)
+    return (vp_diff + LATER_TURN_WEIGHT * (mine - theirs)) / total_pts
 
 
 # ── Simulate one full turn ────────────────────────────────────────────────────
@@ -325,15 +421,20 @@ def _simulate_turn(state: SimState,
                    enemy_moves: Dict[str, Tuple[float, float]]) -> SimState:
     """Apply one full game turn deterministically and return the new state."""
     s = state.clone()
+    # Shields come back up each turn (blast markers are not tracked here)
+    for ship in s.ships:
+        if ship.is_alive:
+            ship.shields_remaining = ship.shields_max if not ship.is_crippled else \
+                (ship.shields_max + 1) // 2
     # Movement (both sides simultaneously — simpler; ignores interaction)
     for ship in s.ships:
         moves = my_moves if ship.player == ai_player else enemy_moves
         if ship.id in moves and ship.is_alive:
             turn_deg, dist = moves[ship.id]
             _apply_move(ship, turn_deg, dist)
-            # Clamp to table
-            ship.x = max(0.0, min(120.0, ship.x))
-            ship.y = max(0.0, min(120.0, ship.y))
+            # Clamp to the table
+            ship.x = max(0.0, min(s.table_w, ship.x))
+            ship.y = max(0.0, min(s.table_h, ship.y))
     # Combat: AI shoots first, then enemy
     _apply_expected_combat(s, ai_player)
     _apply_expected_combat(s, 3 - ai_player)
