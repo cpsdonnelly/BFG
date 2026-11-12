@@ -458,6 +458,16 @@ point, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT`
 `REACTIVE_CAP_WEIGHT` 0.5, `AIRBORNE_INTERCEPT_WEIGHT` 0.75, CAP free fighters 0.75, the
 disengage and hulk models.
 
+Optional rules (owner): when a rule is disabled (Advanced settings: `GameState.rule_*`, all
+off by default: boarding, ramming, teleport, hit-and-run, fighting sunward, solar flares,
+radiation bursts, Remastered turret suppression / spill-over), the AI neither values moves by
+it nor attempts it. Audit: hit-and-run is respected (`_strike_option`, `waves.best_attack_mode`,
+`ai_hazards`); teleport attempts are gated by `end_phase_panel` (`rule_teleport`); boarding,
+ramming and teleport aren't valued anywhere yet, so every new term for them (To do 8 h, j)
+must check its flag; gap: the wave planner and AI value turret suppression the XR way even
+when `rule_turret_suppression_remastered` is on; the celestial-phenomena rules aren't modelled
+by the AI yet (check their flags when they are).
+
 Values:
 - Two VP scales: gunnery `damage_vp` (s.38 thresholds + 0.2 per hit) for choosing gun / torpedo
   targets; `hull_hits_vp` (full value per hit + thresholds, the raid scale) wherever bomber hits
@@ -650,7 +660,9 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
 5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
    Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
    disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
-6. Smaller gaps: the +3 disengage Ld during a radiation burst / solar flare; undoing a Demiurg
+6. Smaller gaps: the AI values turret suppression the XR way even with
+   `rule_turret_suppression_remastered` on (planner and AI should follow the mode chosen); the
+   +3 disengage Ld during a radiation burst / solar flare; undoing a Demiurg
    move doesn't return collected blast markers; a human player isn't stopped from not fleeing
    after a failed forced disengage (log reminder only).
 7. Scenarios and sub-plots, engine and AI (owner request: the AI must play scenario and sub-plot
@@ -740,7 +752,8 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       and of a ram (s.12 hits both ways, the Leadership test) as move candidates ending in base
       contact / ramming the target, compared with the gun value of the alternatives; Orks also
       get the boarding bonus and Ere We Go speed. Same caveat: it depends on the enemy's hits,
-      turrets, crew and whether contact is reachable.
+      turrets, crew and whether contact is reachable. Only when `rule_boarding` /
+      `rule_ramming` are on (owner: a disabled rule is neither valued nor attempted).
    j. Teleport attacks (owner: be aware of them, both ways). Rules (s.31, `hit_and_run`): in
       its own end phase a ship may teleport-raid one enemy within 10cm (20 with a Space Marine
       honour guard, which also rolls 2D6 / 3D6 keep best), if not crippled, on no special order
@@ -761,7 +774,9 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       (blast markers touching us, the enemy's guns) and we have no more hits than it; keep
       shields up (stay off blast markers), keep distance, or out-hit it; (3) the AI's brace
       against a teleport uses the raid's value, not "fewer than 6 hits"; (4) Ork Soopa
-      Tellyporta and Chaos Terminators' own rules when those options are built.
+      Tellyporta and Chaos Terminators' own rules when those options are built. All of it
+      only when `rule_teleport` is on, for us and for the enemy (owner: a disabled rule is
+      neither valued nor attempted).
    i. Carriers: the carrier doctrine already built (see "AI: how it decides": air supremacy,
       protecting carriers when out-carriered, strikes outside the enemy's umbrella, reactive
       intercept, co-ordinating bombers with missiles) is part of the same matchup picture.

@@ -613,6 +613,10 @@ Latest items, newest last:
   attacks are still cut by the ship's own turrets (s.20: "still applies even if the defending
   ship fired its turrets at torpedoes or mines"). So against a high-turret ship bombers gain
   little from the split; missiles gain most when the turrets go to the bombers.
+- Owner: a disabled optional rule (e.g. teleport attacks) is neither valued in the AI's moves
+  nor attempted. Recorded in CLAUDE.md "AI: how it decides" with an audit: hit-and-run is
+  respected; boarding / ramming / teleport aren't valued yet (new terms must check their
+  flags); gap: Remastered turret suppression isn't followed by the planner (To do 6).
 - Fixed: the AI's teleport attacks went to the human's dialog in its own end phase; it now
   raids the eligible target worth most per raid (`tools/gui_checks/teleport_ai_check.py`;
   teleports are an optional rule, `GameState.rule_teleport`).
