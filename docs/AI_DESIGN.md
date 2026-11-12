@@ -120,7 +120,8 @@ minimum move): up to **15 candidate moves**, each scored as:
 - **Guns that will bear** from the end position on its focus target, plus 0.3 of what bears on
   its nearest enemy; loaded torpedoes count when the target is in the launcher's arc (full
   within one torpedo move, half within two).
-- minus **exposure**: half the hits the enemy could focus on that end position.
+- minus **exposure**: half the hits the enemy could focus on that end position, on the Armour
+  facing each enemy gun would hit.
 - minus **hazards along the whole path**: mines, torpedoes and attack craft, asteroid fields,
   warp rifts, dust clouds and blast markers, each as expected VP lost.
 - minus **flagship danger** for the commander's ship (half the enemy fire that could reach it).
@@ -198,7 +199,9 @@ the ships needed to kill them rather than all piling on one.
 
 ### Matchup-aware manoeuvre (Planned, To do 8; owner ideas, not hard rules)
 
-- **a.** Exposure by Armour facing (prerequisite).
+- **a.** Exposure by Armour facing (prerequisite; **Built**): the enemy's batteries are scored
+  against the Armour they would actually hit at our end heading, so ending prow-on to an enemy
+  broadside with a 6+ prow is half as exposed as showing it a 5+ side (lances hit on 4+ anyway).
 - **b.** Gun-heavy broadside fleets (e.g. Lunars, broadsides that don't overlap): keep both
   broadsides busy, cross the T.
 - **c.** Out-range and out-move the enemy on average (e.g. Chaos): kite in the band where we can

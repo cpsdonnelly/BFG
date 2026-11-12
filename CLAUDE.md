@@ -473,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1087 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1088 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -490,7 +490,7 @@ before each kind of weapon in the Fire dialog, the AI's mine hazard counting tur
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
 Next: the rest of To do 2 (the risk preference in brace and strike choices, the expert AI
-valuing its own craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
+valuing its own craft in flight), then 3-7, 9, 10 and 11 (8 f before 11 a; 8 a is built), 12 (learned
 evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -511,7 +511,8 @@ depends on the matchup": every one should come out of the expected-VP values, no
 - Gun-heavy broadside fleets (Imperium, e.g. Lunars, broadsides that don't overlap): keep both
   broadsides busy, cross the T. Planned: 8 b.
 - Forward-firing ships with the best Armour in front (Tau Protector): show the prow only when
-  the enemy is about to be in range. Planned: 8 d (needs 8 a: exposure by Armour facing).
+  the enemy is about to be in range. Planned: 8 d (its prerequisite 8 a, exposure by Armour
+  facing, is built).
 - Hit-point edge (Orks): think about boarding and ramming (only with those rules on). Planned:
   8 h.
 - Teleport attacks, both launching them and being vulnerable to them (only with teleports and
@@ -578,7 +579,8 @@ Movement:
 - Fleet focus (owner: focus fire, easier targets first): several focus targets
   (`fleet_focus_assignment`: each ship's guns where they add most VP given the others', no
   overkill), planned against with 0.3 x the arc score on the nearest enemy, minus half the hits
-  the enemy could focus on the end position (`_exposure_penalty`, `position_exposure_hits`).
+  the enemy could focus on the end position (`_exposure_penalty`, `position_exposure_hits`,
+  on the Armour facing each enemy would hit, `mount_hits`, To do 8 a).
 - The move score (`_arc_score`) counts in-arc batteries / lances / nova cannon and loaded
   torpedoes (they launch from the end position: full within one torpedo move, half within two).
 - Explosions (`explosion_position_vp`): keep out of the 3D6cm radius of ships likely to die; a
@@ -837,11 +839,14 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    batteries and 60cm prow guns (the Slaughter is fast but 30cm: a brawler, not a kiter); Tau
    Protector speed 20, 6+ prow, railguns / ion cannons all bearing forward (L/F, R/F, F).
    Plan:
-   a. First, a shared prerequisite: exposure should respect our Armour facing.
-      `ai_hazards.position_exposure_hits` / `incoming_hits` count 0.35 hits a battery point
-      whatever side the enemy sees; scale each enemy mount's hits by p_hit of the Armour it
-      would hit (`Ship.armor_vs` from the enemy's position at our end heading). A 6+ prow then
-      really is safer than a 5+ side, which the Tau and crossing-the-T ideas both need.
+   a. First, a shared prerequisite: exposure should respect our Armour facing. Built:
+      `ai_hazards.mount_hits(e, w, t)` (batteries 0.35 a point vs 5+ scaled to the Armour
+      facing the enemy would hit, `Ship.armor_vs` from its position at our end heading; lances
+      0.5 whatever the Armour), used by `position_exposure_hits` and `enemy_fire_plan` (so
+      `incoming_hits`, disengaging and the move score's exposure). Prow-on to an enemy
+      broadside (6+) is half as exposed as side-on (5+) (`tests/test_ai_focus.py`). Not yet:
+      the enemy's next move changing the facing it sees (8 g), our own guns' values by the
+      facing they hit (they use the target's lowest Armour).
    b. Both broadsides busy (gun-heavy Imperium, e.g. Lunars; "crossing the T"): replace the
       move score's single-target arc score with a fleet-aware mount coverage score at the end
       position: each battery / lance mount scores the best expected VP it could add next

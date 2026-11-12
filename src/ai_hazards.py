@@ -632,13 +632,26 @@ def _mount_bears(e: Ship, w: dict, t: Ship) -> bool:
     return False
 
 
+def mount_hits(e: Ship, w: dict, t: Ship) -> float:
+    """Expected hits of enemy `e`'s battery / lance mount `w` on `t` as it
+    stands (its position and heading): batteries 0.35 a firepower point
+    against Armour 5+, scaled to the Armour facing `e` would hit (`armor_vs`
+    from e's position; To do 8 a: a 6+ prow really is safer than a 5+ side);
+    lances 0.5 a lance whatever the Armour (they hit on 4+)."""
+    st = w.get("strength") or 0
+    if w.get("weapon_type") == "lance":
+        return st * 0.5
+    return st * 0.35 * p_hit(t.armor_vs(e.x, e.y)) / p_hit(5)
+
+
 def enemy_fire_plan(gs, player: int) -> dict:
     """Where the enemy's guns are expected to go in its next turn, assuming it
     focuses fire (owner: optimal play concentrates, it doesn't split): each
     enemy battery / lance mount goes wholly to the ship of `player` it adds the
     most expected VP against (`_mount_bears`; 0.35 a battery point, 0.5 a
-    lance; that enemy ship's first mount on a target loses the target's
-    shields), given the hits already planned on it: value per hit up to the
+    lance, scaled to the Armour facing it would hit, mount_hits; that enemy
+    ship's first mount on a target loses the target's shields), given the
+    hits already planned on it: value per hit up to the
     hits it has left, plus half its value times P(those hits finish it).
     Biggest mounts are placed first. Returns {ship id: expected hits}."""
     from .geometry import current_shields
@@ -666,11 +679,12 @@ def enemy_fire_plan(gs, player: int) -> dict:
             if h > 0:
                 mounts.append((h, e, w))
     mounts.sort(key=lambda m: -m[0])
-    for h, e, w in mounts:
+    for _h, e, w in mounts:
         best, best_t, best_dh = 0.0, None, 0.0
         for t in ours:
             if not _mount_bears(e, w, t):
                 continue
+            h = mount_hits(e, w, t)          # on the Armour facing it would hit
             dh = h if (e.id, t.id) in firing else max(0.0, h - shields[t.id])
             gain = value(t, planned[t.id] + dh) - value(t, planned[t.id])
             if gain > best:
@@ -1122,7 +1136,8 @@ def fleet_focus_assignment(gs, player: int) -> dict:
 def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -> float:
     """Expected hits the enemy's guns could put on `ship` if it ended its move
     at (x, y) and the enemy focused on it: every enemy battery / lance mount
-    that could bear there (_mount_bears), less its shields once per enemy."""
+    that could bear there (_mount_bears), on the Armour facing it would hit at
+    our end heading (mount_hits, To do 8 a), less its shields once per enemy."""
     from .geometry import current_shields
     moved = Ship.from_dict({**ship.to_dict(), "x": x, "y": y, "heading": heading})
     shields = current_shields(ship, gs.get_blast_markers())
@@ -1130,7 +1145,7 @@ def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -
     for e in gs.get_ships():
         if e.player == ship.player or e.is_destroyed or e.is_disengaged:
             continue
-        hits = sum((w.get("strength") or 0) * (0.5 if w.get("weapon_type") == "lance" else 0.35)
+        hits = sum(mount_hits(e, w, moved)
                    for w in e.weapons if w.get("weapon_type") in ("battery", "lance")
                    and _mount_bears(e, w, moved))
         total += max(0.0, hits - shields)

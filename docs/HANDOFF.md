@@ -696,6 +696,9 @@ Latest items, newest last:
 - Built (To do 11 b, minimum): the expert AI's root moves pay the normal AI's path-hazard cost
   (`move_hazard_vp`), so it takes a move clear of an asteroid field it would otherwise clip.
   Expert spectator game 76s. 1087 tests.
+- Built (To do 8 a): exposure respects our Armour facing (`ai_hazards.mount_hits`, used by
+  `position_exposure_hits` and `enemy_fire_plan`); prow-on (6+) is half as exposed as side-on
+  (5+) to an enemy broadside. 1088 tests.
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.

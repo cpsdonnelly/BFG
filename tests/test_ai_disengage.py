@@ -109,6 +109,8 @@ def test_disengaging_plays_for_the_win_near_the_end():
     extra by leaving, so for it leaving stays free either way.)"""
     def gain(behind):
         me, gs = _scene(8, n_foes=3)
+        me.heading = 90.0                 # showing its 5+ side to the enemy guns
+        gs.update_ship(me)
         if behind is not None:
             gs.add_ship(make_ship(id="dead", player=1 if behind else 2, x=150.0, y=100.0,
                                   hits_remaining=0, status="destroyed", points_value=200))

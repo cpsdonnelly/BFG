@@ -107,9 +107,30 @@ def test_exposure_is_higher_in_the_enemy_arcs_than_behind():
     from src.ai_hazards import position_exposure_hits
     gs = _fleet()
     me = gs.get_ship_by_id("o0")
+    me.armor_prow = me.armor_side         # same Armour all round: arcs only here
+    gs.update_ship(me)
     beside = position_exposure_hits(me, 35.0, 15.0, 0.0, gs)    # off "hard"'s port side
     behind = position_exposure_hits(me, 60.0, 0.0, 0.0, gs)     # astern of both, far
     assert beside > behind
+
+
+def test_exposure_respects_our_armour_facing():
+    """To do 8 a: the enemy's guns hit the Armour facing they see at our end
+    heading. Ending prow-on to an enemy broadside (6+ prow) is safer than
+    showing it a 5+ side; lances hit on 4+ whatever the Armour."""
+    from src.ai_hazards import position_exposure_hits, mount_hits
+    me = make_ship(id="me", player=1, x=0.0, y=0.0, armor_prow="6+", armor_side="5+",
+                   shields_max=0)
+    foe = make_ship(id="foe", player=2, x=20.0, y=0.0, heading=90.0, shields_max=0,
+                    weapons=[dict(w) for w in GUNS[:2]])          # broadsides only
+    gs = make_gs([me, foe])
+    prow_on = position_exposure_hits(me, 0.0, 0.0, 0.0, gs)       # pointing at it
+    side_on = position_exposure_hits(me, 0.0, 0.0, 90.0, gs)      # showing a side
+    assert 0 < prow_on < side_on
+    assert abs(prow_on / side_on - 0.5) < 1e-9                   # 1/6 vs 2/6 to hit
+    lance = {"name": "Lance", "weapon_type": "lance", "range_cm": 30, "strength": 2,
+             "arcs": ["left", "right", "front"]}
+    assert mount_hits(foe, lance, me) == 1.0
 
 
 def test_escort_screens_the_flagship_against_incoming_ordnance():
