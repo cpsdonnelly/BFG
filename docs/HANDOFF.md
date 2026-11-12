@@ -764,7 +764,10 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
 
 1. On hold (owner): tuning the AI's judgement weights (listed in CLAUDE.md's AI section).
    Keep it in mind, but it is hard work, so leave it be until the owner asks.
-2. Strike planning at arrival time (design below, "Ordnance strike planning"). Built: arrival
+2. Strike planning at arrival time (design below, "Ordnance strike planning"); with it the
+   owner's turn-limit risk preference: the expert AI (5 turns ahead) must know the turn
+   limit and play riskier when behind near the end, safer when ahead (score by the chance of
+   winning, not expected VP alone). Built: arrival
    phase and landing turn, enemy guns on the way, reactive CAP / intercept / fighters in
    flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles. Left:
    crit values beyond the target's next shooting phase, splitting waves against enemy guns, a
@@ -780,8 +783,8 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    Demiurg undo doesn't return collected blast markers; forced-flee isn't enforced for humans.
 7. New (owner request): scenarios and sub-plots, engine and AI: the booklet's scenarios
    (`bfgxr/rules/10_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
-   Rogue Trader faction sub-plots), then an AI that plays their objectives, not just cruiser
-   clash. The engine has only the old generic modes today (`scenario.check_scenario_end`).
+   Rogue Trader faction sub-plots), then an AI that plays their objectives and win conditions,
+   not just cruiser clash (owner: e.g. Domination's objective markers and 10-point race). The engine has only the old generic modes today (`scenario.check_scenario_end`).
    Do items 1-6 first.
 8. New (owner ideas, not hard rules: it depends on the matchup): matchup-aware manoeuvre.
    Crossing the T / both broadsides busy for gun-heavy Imperium fleets, kiting for Chaos (or

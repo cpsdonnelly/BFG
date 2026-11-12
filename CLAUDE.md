@@ -673,7 +673,16 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    ordnance phase the wave lands in, losses on the way (fighters, blast markers, reactive CAP,
    target leaving), enemy guns vs waves (one hit removes a whole wave on 6+, s.25 / s.30) and
    when to split a wave, a risk preference from the game state, the expert AI using the same
-   terms. One function feeds the planner, AI launches, bombers vs assault boats, multi-role
+   terms. Owner: the expert AI thinks 5 turns ahead, so it must be aware of a turn limit: if it
+   is behind and the game is near its end it should play riskier moves (and, by the same
+   logic, play safe when ahead). Its search already stops simulating at the limit
+   (`SimState.is_terminal`), but scores outcomes by expected VP only, which is risk-neutral.
+   Plan: with a turn limit, score by the chance of winning instead: VP margin now plus the
+   expected swing, against its spread over the turns left (e.g. a normal approximation from
+   the shots' variance); behind with few turns left, high-variance moves (closing to brawl,
+   all-in strikes, rams, risky disengage tests not taken) gain; ahead, low-variance ones. The
+   normal AI's re-roll, brace, disengage and strike choices should use the same game-state
+   preference; scenario points (e.g. Domination) count in the margin. One function feeds the planner, AI launches, bombers vs assault boats, multi-role
    attack modes and Wings of Fury. Built: crit-over-time value and the reach model for raids
    (`hit_and_run.armament_threat_value`), the time discount (`phase_weight`), and strikes
    valued when they land (`ai_hazards.strike_timeline`, used by `_strike_option` and
@@ -754,6 +763,16 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    blockade runners, objective ships, planets and assault points, the Vendetta target, keeping
    the flagship above 75% for Fleet Experience, reinforcements surviving, boarding for battle
    plans, Holding the Field, the turn limit). Ask the owner where the booklet is unclear.
+   Owner: the AI must know every scenario's own win conditions, not only VP. E.g. Domination
+   (p.125-126): objective markers that can't be moved or attacked; a player controls one with
+   at least one ship within 15cm of it (marker centre to the ship's stem) and no enemy ship;
+   at the end of each player's own turn they score 1 point per marker controlled; the game ends
+   when a fleet is destroyed or disengages or a player reaches 10 points, and the most points
+   wins. So the AI values control in its move score (holding, contesting, denying markers),
+   races the points against the turn order, and weighs that against ship VP. Likewise each
+   scenario's conditions and end triggers (convoys or blockade runners exiting, planets and
+   assault points, Exterminatus, rescue / escape objectives) and sub-plot objectives feed the
+   same values, normal and expert AI alike (the expert search's leaf score included).
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the
    matchup": each should come out of the expected-VP move score, not a fixed doctrine).
