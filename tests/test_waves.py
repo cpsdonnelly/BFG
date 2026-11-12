@@ -543,3 +543,38 @@ def test_carrier_keeps_bays_loaded_out_of_reach():
         assert gs.get_ship_by_id("emp").ordnance_loaded_craft != launches
         held = [str(entry) for entry in gs.log if "keeps its bays loaded" in str(entry)]
         assert len(held) == (0 if launches else 1)
+
+
+def test_hold_bays_when_reload_odds_are_poor_and_cap_will_be_needed():
+    """Within reach, launching now is worth V_now + p x V_next (Reload Ordnance
+    at Leadership odds p, s.15), holding V_next. Against a hard target whose
+    loaded bays threaten our weak cruiser: with Ld 8 (p 72%) the Emperor
+    launches; with Ld 2 (p 3%) it keeps its bays loaded for the CAP it will
+    need, since it could hardly reload."""
+    from tests.conftest import make_ship, make_gs, DiceStub
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+
+    def run(ld):
+        d = find_ship_class("Emperor Class Battleship").to_ship_dict("Emp", 1, ship_id="emp")
+        d.update(x=-20.0, y=0.0, heading=0.0, leadership=ld)
+        # A hard target to strike (6+ all round, 6 turrets) whose loaded bays
+        # threaten our 1-turret cruiser
+        e = find_ship_class("Dictator Class Cruiser").to_ship_dict("E", 2, ship_id="e")
+        e.update(x=35.0, y=0.0, heading=180.0, leadership=8, turrets=6, armor_prow="6+",
+                 armor_side="6+", armor_rear="6+")
+        weak = make_ship(id="c", player=1, x=5.0, y=5.0, turrets=1, hits_max=6,
+                         points_value=120, armor_prow="5+", armor_side="5+")
+        gs = make_gs([Ship.from_dict(d), Ship.from_dict(e), weak])
+        dice = DiceStub([])
+        ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+        ai.difficulty = "normal"
+        ai._ord_committed = {}
+        s = gs.get_ship_by_id("emp")
+        bays = [w for w in s.weapons if w.get("weapon_type") == "launch_bay"]
+        cts = [c for w in bays for c in w.get("craft_types", [])]
+        return ai._hold_bays(s, bays, cts, ai._live_enemies())
+    assert run(8) == ""
+    assert "reload odds" in run(2)

@@ -472,7 +472,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1048 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1049 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -631,8 +631,17 @@ points to):
    reaches its ship), then the anticipated ones. Done (first version, judgement): carriers
    keep their bays loaded (relaunching needs Reload Ordnance, s.15) while no enemy ship is
    within three moves of their fastest craft (the strike planner's reach) and no enemy
-   ordnance is in play. Still to do here: a fuller option value of holding (next turn's
-   launch value vs the Reload Ordnance odds and the special order it costs). Done:
+   ordnance is in play. Done: the option value of holding within reach
+   (`AIPlayer._hold_bays`): launching now is worth V_now + p x V_next (Reload Ordnance at
+   Leadership odds p, s.15), holding V_next; hold when (1 - p) x V_next > V_now. V_next = the
+   same strike a turn later from a turn closer (`_strike_option(next_turn=True)`: route
+   length less both ships' moves, x `PHASE_DISCOUNT`^2 for the delay) or the CAP the enemy's
+   loaded carriers would call for (`_anticipated_strike_slots`). A turn's closure saves about
+   as much flight as its delay costs, so with fair odds it launches; e.g. an Emperor facing a
+   6-turret 6+ carrier that threatens a weak friend: launch now ~19 VP vs ~33 VP of CAP next
+   turn, holds at Ld 2 and 5, launches at Ld 8. Out of reach the old rule stays (hold while
+   no enemy is within three moves of the fastest craft: long flights face reactive fighters,
+   turrets and guns, which these values don't capture). Done:
    two-waypoint routes (`best_route`: detours of detours, every turn within `max_turn`). Done: torpedo launch lanes (`AIPlayer._torp_lane`):
    of the headings that still meet the target (intercept heading +/- the angle its base and
    the marker's half width subtend) the AI takes the one worth most in expected VP. Owner:

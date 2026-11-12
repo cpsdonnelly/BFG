@@ -1285,15 +1285,9 @@ class AIPlayer:
                     wanted = multi_role + ("starhawk_bomber", "manta", "bomber")
                 preferred = next((ct for ct in wanted if ct in craft_types), craft_types[0])
                 if not enemy_ord and self.difficulty != "easy":
-                    # Keep the bays loaded (launching means a Reload Ordnance order
-                    # before launching again, s.15) while no enemy ship is within
-                    # three moves of our fastest craft (the strike planner's reach)
-                    # and no enemy ordnance is about to defend against
-                    from .ordnance import craft_stats
-                    fast = max((craft_stats(ct, bays)[1] or 20) for ct in set(craft_types))
-                    if all(ship.distance_to(e) > 3 * fast for e in enemies):
-                        gs.add_log(f"[AI] {ship.name} keeps its bays loaded "
-                                   f"(no enemy within {3 * fast}cm)")
+                    held = self._hold_bays(ship, bays, craft_types, enemies)
+                    if held:
+                        gs.add_log(f"[AI] {ship.name} keeps its bays loaded ({held})")
                         bays_held = True
                         continue
                 # Craft in play beyond the fleet's bays must go first (s.15)
@@ -1348,6 +1342,46 @@ class AIPlayer:
                         form_wave(gs, [m.id for m in launched], "close")
                 ship = gs.get_ship_by_id(ship.id)
 
+    def _hold_bays(self, ship: Ship, bays, craft_types, enemies) -> str:
+        """Whether to keep the bays loaded this turn (a reason, or "" to launch).
+        A launch means a Reload Ordnance order before the next one (s.15): a
+        Leadership test, odds p. Launching now is worth V_now + p x V_next,
+        holding V_next, so hold when (1 - p) x V_next > V_now. V_next: the same
+        strike a turn later from a turn closer (_strike_option(next_turn=True),
+        two ordnance phases of PHASE_DISCOUNT), or the CAP the enemy's loaded
+        carriers would call for by then. Out of the strike planner's reach (no
+        enemy within three moves of the fastest craft) the bays are always held.
+        Within reach a turn's closure (both ships' moves) saves about as much
+        flight as a turn's delay costs, so with fair reload odds this rarely
+        holds; it does when the odds are poor and next turn's launch or CAP is
+        worth clearly more."""
+        from .ordnance import craft_stats, bay_launch_capacity
+        from .ai_hazards import p_sum_at_most
+        count = min(bay_launch_capacity(ship, bays, None)[0],
+                    fleet_craft_slots(self.gs, self.player))
+        if count <= 0:
+            return ""
+        # Out of the strike planner's reach (3 moves of the fastest craft): hold.
+        # Craft flying that far face reactive fighters, turrets and guns on the
+        # way and can't fly CAP meanwhile, which the values below don't capture
+        fast = max((craft_stats(ct, bays)[1] or 20) for ct in set(craft_types))
+        if all(ship.distance_to(e) > 3 * fast for e in enemies):
+            return f"no enemy within {3 * fast}cm"
+        now = self._strike_option(ship, craft_types, count, enemies)
+        if now is None:
+            return ""
+        nxt = self._strike_option(ship, craft_types, count, enemies, next_turn=True)
+        v_now, v_next = now[0], (nxt[0] if nxt else 0.0)
+        friends = [s for s in self.gs.get_ships() if s.player == self.player
+                   and not s.is_destroyed and not s.is_disengaged]
+        cap = sorted((t[0] for t in self._anticipated_strike_slots(friends)), reverse=True)
+        v_next = max(v_next, sum(cap[:count]))
+        p = p_sum_at_most(2, min(10, ship.leadership or 8))
+        if (1 - p) * v_next > v_now + 1e-9:
+            return (f"launching now ~{v_now:.0f} VP, next turn ~{v_next:.0f} VP; "
+                    f"reload odds {p:.0%}")
+        return ""
+
     def _wave_split(self, ship: Ship, craft_types, count: int, enemies,
                     defending: bool):
         """[(type, n), ...] for one strike wave (_strike_option) when there are
@@ -1364,7 +1398,8 @@ class AIPlayer:
         self._strike_target = (target.id, ev)
         return plan
 
-    def _strike_option(self, ship: Ship, craft_types, count: int, enemies):
+    def _strike_option(self, ship: Ship, craft_types, count: int, enemies,
+                       next_turn: bool = False):
         """Best strike of `count` squadrons against the nearest enemy ship, in
         expected VP: the wave planner's fighter / bomber split, or all assault
         boats (they ignore Armour, To do 1b). (value, [(type, n)], label,
@@ -1397,14 +1432,23 @@ class AIPlayer:
         # expected VP (bomber hits through damage_vp's thresholds, counting the
         # enemy's actual damage and this phase's other launches; raids by
         # raid_squadron_value), less for targets further away
-        targets = [e for e in enemies if ship.distance_to(e) <= 3 * speed] or [near]
+        def closure(e):
+            # next_turn: the same launch a turn later, each side having moved closer
+            return ((ship.effective_speed or 0) + (e.effective_speed or 0)) if next_turn else 0.0
+        targets = [e for e in enemies
+                   if ship.distance_to(e) - closure(e) <= 3 * speed] or [near]
         options = []
         for target in targets:
             inputs = wave_plan_inputs(target, self.gs)
             p = (7 - (5 if inputs.get("ork") else 4)) / 6.0
-            from .ai_hazards import best_route
+            from .ai_hazards import best_route, travel_discount, PHASE_DISCOUNT
             # craft may fly round obstacles (owner): best of straight line / detours
-            disc = best_route(ship.x, ship.y, target.x, target.y, self.gs, "craft", speed)[0]
+            route = best_route(ship.x, ship.y, target.x, target.y, self.gs, "craft", speed)
+            disc = route[0]
+            if next_turn:
+                # a turn later (two ordnance phases of delay) from a turn closer
+                disc = (route[1] * travel_discount(max(1.0, route[2] - closure(target)), speed)
+                        * PHASE_DISCOUNT ** 2)
             c = committed.get(target.id, 0.0)
             if types:
                 fk, bk, f_save, b_save = types
