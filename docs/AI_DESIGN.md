@@ -39,10 +39,12 @@ anything from the next game turn is also halved because where ships will be is a
 (1.0 now, 0.85 in the enemy's phase, 0.36 and 0.31 next turn). "2 hits on the side within 2
 turns are worth much more than 3 on the rear after a 4-turn loop."
 
-**Risk** (Planned, To do 2): today the AI is risk-neutral (a sure 1 hit equals a 50% chance of
-2). With a turn limit it should score by its **chance of winning**: behind with few turns
-left, gamble (closing to brawl, all-in strikes, rams); ahead, play safe. Scenario points count
-in the margin.
+**Risk** (expert AI built, To do 2): with a turn limit the expert AI scores by its **chance of
+winning**: the VP margin against the spread of the fighting still to come (more fighting, a
+wider spread), so behind with few turns left it gambles (a brawl beats staying out of range)
+and ahead it plays safe. A little expected VP stays in the score so more VP still wins when
+the result is settled. Planned: the same preference in the normal AI's re-roll, brace,
+disengage and strike choices; scenario points in the margin.
 
 **Disabled rules** (Built principle, owner): if an optional rule is switched off (boarding,
 ramming, teleport, hit-and-run...), the AI never values moves by it nor attempts it. With
@@ -425,6 +427,7 @@ Tuning these is on hold (owner: "keep it in mind, but it is hard work, so leave 
 | Air | our free fighter | 0.75 | vs 1.0 on CAP |
 | Reach | strike / torpedo targeting / lead plan | 3 / 3 / 2 moves | |
 | Expert | explosion radius | 10.5cm | 3D6 average |
+| Expert | risk tie-break | 0.1 | expected VP kept in the chance-of-winning score |
 | Expert | depth / beam / variations / time | 5 / 4 / 6 / 2s per ship | |
 
 ---
@@ -433,7 +436,8 @@ Tuning these is on hold (owner: "keep it in mind, but it is hard work, so leave 
 
 - **Victory points** (Built): destroyed, crippled and disengaged ships (s.38) are what the AI's
   values are built from; Holding the Field isn't counted yet.
-- **Turn limit** (Built in the expert search as a horizon; Planned as risk preference, To do 2).
+- **Turn limit** (Built in the expert search as a horizon and as its risk preference; Planned for
+  the normal AI's choices, To do 2).
 - **Scenarios** (Planned, To do 7; owner: "Domination was just one example; there are many
   other scenarios"): the engine today has only old generic modes (kill the admiral, destroy or
   protect a ship, capture an artefact). Every booklet scenario has its own objectives, length

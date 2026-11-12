@@ -686,12 +686,16 @@ Latest items, newest last:
 - Built (To do 2): fighter / bomber strikes may launch as two waves when enemy guns can shoot
   the waiting wave (`AIPlayer._two_wave_value`, `ai_hazards.split_wave_survival`): split vs a
   1-turret target under two gunships, one wave vs 4 turrets or with no guns. 1081 tests.
+- Built (To do 2, owner's turn-limit risk preference): with a turn limit the expert AI's leaf
+  is the chance of winning (`lookahead_ai.win_score`: margin vs the spread of the fighting to
+  come over the turns left, plus a small VP tie-break); behind on the last turn a brawl beats
+  staying out of range, ahead the reverse. Expert spectator game 71s. 1083 tests.
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.
 
-Next: the rest of CLAUDE.md "To do" 2 (left: the risk preference, next up; the expert AI
-valuing craft in flight), then items 3-7, 9, 10
+Next: the rest of CLAUDE.md "To do" 2 (left: the risk preference in the normal AI's choices;
+the expert AI valuing craft in flight), then items 3-7, 9, 10
 and 11 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase
 salvos, the AI changes they need and the Tiger Shark ruling), then 12 (learned evaluation);
 item 1 (weight tuning) last and on hold. Owner: "the order isn't hugely important"; follow
@@ -820,7 +824,8 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    winning, not expected VP alone). Built: arrival
    phase and landing turn, enemy guns on the way, reactive CAP / intercept / fighters in
    flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles. Left:
-   a risk preference, the expert AI valuing craft in flight (wave splitting at launch built).
+   the risk preference in the normal AI's choices, the expert AI valuing craft in flight (wave
+   splitting at launch and the expert's risk preference built).
 3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
    Sharks per the owner ruling) and the AI changes they need.
 4. Named commanders, Mark of Chaos Undivided, daemonships, Stormbirds, god-fleet boons, Ork

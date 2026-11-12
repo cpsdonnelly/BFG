@@ -473,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1081 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1083 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -489,7 +489,8 @@ co-ordinated strikes, splitting a strike into two waves under enemy guns, the AI
 before each kind of weapon in the Fire dialog, the AI's mine hazard counting turrets).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2 (the risk preference, then the expert AI valuing craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
+Next: the rest of To do 2 (the risk preference in the normal AI's choices, the expert AI
+valuing craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
 evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -530,7 +531,7 @@ All AI choices are in expected VP (`ai_hazards.py`, `ai_rerolls.py`, `waves.py`,
 `ai_player.py`; the expert AI in `lookahead_ai.py`). Weights marked "judgement" are mine;
 tuning them is on hold (owner: keep it in mind, but it is hard work, so leave it for now): re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per battery
 point, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT` 0.5,
-`DODGE_WEIGHT` 0.5, `CRIT_HORIZON` 3 shooting phases, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
+`DODGE_WEIGHT` 0.5, `CRIT_HORIZON` 3 shooting phases, `RISK_TIEBREAK` 0.1, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
 0.5 (scaled by the air balance), `AIR_THREAT_WEIGHT` 0.5, `ENEMY_FIRE_AT_WAVE` 0.5,
 `REACTIVE_CAP_WEIGHT` 0.5, `AIRBORNE_INTERCEPT_WEIGHT` 0.75, CAP free fighters 0.75, the
 disengage and hulk models.
@@ -669,7 +670,8 @@ re-rolls and the "Auto (best)" prompts (see above).
 Expert AI (`lookahead_ai`): minimax over a deterministic sim using the same terms (battery 0.35
 scaled by Armour, lances 0.5, focus without overkill, torpedoes once, explosions at their odds,
 shields each turn, the real table); leaf = VP banked + next turn's expected swing at
-`LATER_TURN_WEIGHT`.
+`LATER_TURN_WEIGHT`; with a turn limit, the chance of winning from that margin
+(`win_score`, To do 2).
 
 ### To do (agreed order; detail in docs/HANDOFF.md)
 
@@ -746,7 +748,17 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    turrets: under two gunships vs a 1-turret target it splits, vs 4 turrets or with no guns
    it stays one wave (`tests/test_strike_timeline.py`). Not yet: splitting assault boats or a
    wave already in flight, more than two waves, the turret-split bonus for split waves.
-   Still to do here: a risk preference, the expert AI valuing craft in flight.
+   Risk preference, expert AI: built (`lookahead_ai.win_score`, used by `_evaluate` when the
+   game has a turn limit): the leaf scores the chance of winning, Phi(margin / sigma), where
+   the margin is today's (VP banked + next turn's swing at `LATER_TURN_WEIGHT`) and sigma^2 =
+   turns left x mean ship value x both sides' expected VP a turn (a turn's swing is lumpy: a
+   ship of value V dies or it doesn't, variance about V x its expected VP), floored at 2% of
+   the points; plus `RISK_TIEBREAK` 0.1 x margin / points (judgement) so more VP still wins
+   when the result is settled. Behind on the last turn a brawl beats staying out of range;
+   ahead the reverse; without a turn limit the leaf is expected VP as before
+   (`tests/test_lookahead_sim.py`). Still to do here: the same preference in the normal AI's
+   re-roll, brace, disengage and strike choices, scenario points in the margin (To do 7), the
+   expert AI valuing craft in flight.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
    owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the

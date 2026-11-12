@@ -393,12 +393,38 @@ def _arc_score_sim(ship: SimShip, fx: float, fy: float, fh: float,
 
 # ── Evaluation function ───────────────────────────────────────────────────────
 
+# Risk preference (owner, To do 2): with a turn limit the expert AI scores
+# a position by its chance of winning, not expected VP alone, so behind with
+# few turns left it gambles and ahead it plays safe. RISK_TIEBREAK keeps a
+# little expected VP in the score so the search still prefers more VP when
+# the result is all but settled (judgement).
+RISK_TIEBREAK = 0.1
+
+
+def win_score(margin: float, activity: float, mean_value: float, turns_left: int,
+              total_pts: float) -> float:
+    """Chance of winning from a VP `margin` with `turns_left` game turns to
+    play (normal approximation), plus RISK_TIEBREAK x margin / total_pts. The
+    spread comes from the fighting still to come: a turn's VP swing is lumpy
+    (a ship of value V dies or it doesn't: variance about V x its expected
+    VP), so variance ~ turns left x mean ship value x `activity` (both sides'
+    expected VP a turn). More activity (closing to brawl, all-in strikes)
+    widens the spread: worth it when behind, not when ahead."""
+    import math as _m
+    sigma = _m.sqrt(max(0, turns_left) * max(0.0, mean_value) * max(0.0, activity))
+    sigma = max(sigma, 0.02 * total_pts)        # a floor: the dice never vanish
+    p = 0.5 * (1.0 + _m.erf(margin / (sigma * _m.sqrt(2.0))))
+    return p + RISK_TIEBREAK * margin / (total_pts or 1)
+
+
 def _evaluate(state: SimState, ai_player: int) -> float:
     """Score state from ai_player's perspective, in VP over the total points
     on the table: VP banked so far (destroyed full, crippled 25%, s.38) plus
     next turn's expected VP swing (each side's focused, no-overkill shooting
     from where it stands, _apply_expected_combat) at LATER_TURN_WEIGHT, the
-    weight the normal AI gives the next turn."""
+    weight the normal AI gives the next turn. With a turn limit (owner): the
+    chance of winning from that margin with the turns left (win_score), so the
+    search takes risks when behind near the end and plays safe when ahead."""
     from .ai_hazards import LATER_TURN_WEIGHT
     enemy = 3 - ai_player
     total_pts = sum(s.points_value for s in state.ships) or 1
@@ -410,7 +436,13 @@ def _evaluate(state: SimState, ai_player: int) -> float:
     vp_diff = banked(enemy) - banked(ai_player)
     mine = _apply_expected_combat(state.clone(), ai_player)
     theirs = _apply_expected_combat(state.clone(), enemy)
-    return (vp_diff + LATER_TURN_WEIGHT * (mine - theirs)) / total_pts
+    margin = vp_diff + LATER_TURN_WEIGHT * (mine - theirs)
+    if not state.turn_limit:
+        return margin / total_pts
+    alive = [s.points_value for s in state.ships if s.is_alive]
+    mean_value = sum(alive) / len(alive) if alive else 0.0
+    turns_left = max(0, state.turn_limit - state.turn + 1)
+    return win_score(margin, mine + theirs, mean_value, turns_left, total_pts)
 
 
 # ── Simulate one full turn ────────────────────────────────────────────────────

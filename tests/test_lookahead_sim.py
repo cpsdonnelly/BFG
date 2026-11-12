@@ -90,3 +90,44 @@ def test_leaf_values_staying_out_of_the_enemy_guns():
     safe = make_ship(id="me", player=1, x=0.0, y=0.0, heading=0.0, points_value=150)
     exposed = make_ship(id="me", player=1, x=40.0, y=55.0, heading=0.0, points_value=150)
     assert _evaluate(_state([safe, enemy]), 1) > _evaluate(_state([exposed, enemy]), 1)
+
+
+def test_win_score_gambles_when_behind_and_plays_safe_when_ahead():
+    """Owner (To do 2): with a turn limit the expert AI scores the chance of
+    winning. Behind, more fighting to come (wider spread) is worth more;
+    ahead, less is."""
+    from src.lookahead_ai import win_score
+    behind_quiet = win_score(-100.0, 10.0, 150.0, 1, 1000.0)
+    behind_brawl = win_score(-100.0, 200.0, 150.0, 1, 1000.0)
+    ahead_quiet = win_score(100.0, 10.0, 150.0, 1, 1000.0)
+    ahead_brawl = win_score(100.0, 200.0, 150.0, 1, 1000.0)
+    assert behind_brawl > behind_quiet and ahead_quiet > ahead_brawl
+    # more VP is always better, even when the result is all but settled
+    assert win_score(900.0, 0.0, 150.0, 0, 1000.0) > win_score(800.0, 0.0, 150.0, 0, 1000.0)
+
+
+def _brawl_states(behind: bool):
+    """Our gunship and theirs, alike; a crippled 400pt ship far away puts one
+    side 100 VP behind. Last turn of the game. "brawl": the two gunships
+    broadside to broadside at 20cm; "quiet": out of range of each other."""
+    def scene(close):
+        a = make_ship(id="a", player=1, x=50.0, y=50.0, heading=0.0, shields_max=1,
+                      weapons=[dict(w) for w in GUNS], points_value=150)
+        b = make_ship(id="b", player=2, x=50.0, y=70.0 if close else 115.0, heading=0.0,
+                      shields_max=1, weapons=[dict(w) for w in GUNS], points_value=150)
+        hurt = make_ship(id="h", player=1 if behind else 2, x=170.0, y=5.0, heading=0.0,
+                         hits_remaining=4, points_value=400)
+        return _state([a, b, hurt], {"turn_number": 5, "turn_limit": 5,
+                                     "table_width": 180.0, "table_height": 120.0})
+    return scene(True), scene(False)
+
+
+def test_expert_leaf_takes_the_brawl_only_when_behind_at_the_end():
+    brawl, quiet = _brawl_states(behind=True)
+    assert _evaluate(brawl, 1) > _evaluate(quiet, 1)
+    brawl, quiet = _brawl_states(behind=False)
+    assert _evaluate(quiet, 1) > _evaluate(brawl, 1)
+    # without a turn limit the leaf stays expected VP (the two are about even)
+    brawl, quiet = _brawl_states(behind=True)
+    brawl.turn_limit = quiet.turn_limit = None
+    assert abs(_evaluate(brawl, 1) - _evaluate(quiet, 1)) < 0.02
