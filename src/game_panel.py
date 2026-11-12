@@ -467,9 +467,10 @@ class GamePanel:
                                     padx=8, pady=4)
         rules_frame.pack(fill=tk.X, padx=15, pady=4)
         rule_defs = [
-            ("rule_fighting_sunward",          "Fighting Sunward (double range shifts)"),
-            ("rule_solar_flares",              "Solar Flares"),
-            ("rule_radiation_bursts",          "Radiation Bursts"),
+            # s.40: these three aren't built yet; the boxes have no effect (audit)
+            ("rule_fighting_sunward",          "Fighting Sunward (double range shifts) - not built yet"),
+            ("rule_solar_flares",              "Solar Flares - not built yet"),
+            ("rule_radiation_bursts",          "Radiation Bursts - not built yet"),
             ("rule_boarding",                  "Boarding Actions"),
             ("rule_ramming",                   "Ramming"),
             ("rule_teleport",                  "Teleport Attacks (not Tau)"),

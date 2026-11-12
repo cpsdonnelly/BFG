@@ -42,7 +42,7 @@ session.
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
 does, with the judgement weights to tune), "To do" (agreed order, items 1-8), "Open questions"
-(one: where To do 8 goes in the order) and every owner ruling. This file keeps the history: owner guidance in their words,
+(two: where To do 8 goes; the Remastered turret-suppression toggle) and every owner ruling. This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 
 ## Earlier in the session (history; all committed and pushed)
@@ -613,6 +613,10 @@ Latest items, newest last:
   attacks are still cut by the ship's own turrets (s.20: "still applies even if the defending
   ship fired its turrets at torpedoes or mines"). So against a high-turret ship bombers gain
   little from the split; missiles gain most when the turrets go to the bombers.
+- Toggle audit (owner: check the other toggles too): boarding and ramming are gated for
+  players and resolved only when on; Fighting Sunward / Solar Flares / Radiation Bursts (s.40)
+  aren't built, their toggles do nothing (settings now says "not built yet", To do 6); the
+  Remastered turret-suppression toggle isn't a booklet rule (open question in CLAUDE.md).
 - Owner: the hit-and-run toggle covers every raid: off, assault boats, boarding torpedoes and
   teleport attacks are disabled for the players too (`ordnance.craft_type_allowed`,
   `launch_torpedoes`, `check_teleport_eligibility`; multi-role craft still fly as fighters /
