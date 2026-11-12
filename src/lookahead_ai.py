@@ -411,8 +411,8 @@ def win_score(margin: float, activity: float, mean_value: float, turns_left: int
     expected VP a turn). More activity (closing to brawl, all-in strikes)
     widens the spread: worth it when behind, not when ahead."""
     import math as _m
-    sigma = _m.sqrt(max(0, turns_left) * max(0.0, mean_value) * max(0.0, activity))
-    sigma = max(sigma, 0.02 * total_pts)        # a floor: the dice never vanish
+    from .ai_hazards import outcome_sigma
+    sigma = outcome_sigma(turns_left, mean_value, activity, total_pts)
     p = 0.5 * (1.0 + _m.erf(margin / (sigma * _m.sqrt(2.0))))
     return p + RISK_TIEBREAK * margin / (total_pts or 1)
 

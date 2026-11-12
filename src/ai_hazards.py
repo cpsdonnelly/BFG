@@ -690,6 +690,69 @@ def incoming_hits(ship: Ship, gs) -> float:
     return enemy_fire_plan(gs, ship.player).get(ship.id, 0.0)
 
 
+# ── Risk preference (owner, To do 2) ─────────────────────────────────────────
+# With a turn limit the AI plays for the win, not for expected VP: behind
+# with few turns left it gambles, ahead it plays safe. Choices with uncertain
+# outcomes are compared by their certainty equivalent: the sure VP change
+# worth the same chance of winning (the expert search uses the same spread,
+# lookahead_ai.win_score).
+
+def outcome_sigma(turns_left: int, mean_value: float, activity: float,
+                  total_pts: float) -> float:
+    """Spread of the final VP margin from the fighting still to come: a turn's
+    swing is lumpy (a ship of value V dies or it doesn't: variance about V x
+    its expected VP), so variance ~ turns left x mean ship value x both sides'
+    expected VP a turn (`activity`), floored at 2% of the points on the table
+    (the dice never vanish)."""
+    sigma = math.sqrt(max(0, turns_left) * max(0.0, mean_value) * max(0.0, activity))
+    return max(sigma, 0.02 * (total_pts or 1))
+
+
+def game_risk(gs, player: int):
+    """(margin, sigma) for `player` with a turn limit, else None: the VP margin
+    so far (victory_points, s.38) and the spread of the turns left
+    (outcome_sigma, activity from both fleets' expected hits next shooting
+    phase at each target's value per hit)."""
+    limit = getattr(gs, "turn_limit", None)
+    if not limit:
+        return None
+    from .victory_points import calculate_victory_points
+    vp = calculate_victory_points(gs)
+    enemy = 3 - player
+    margin = vp[player]["total"] - vp[enemy]["total"]
+    ships = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
+    total = sum(s.points_value or 0 for s in gs.get_ships()) or 1
+    mean_value = (sum(s.points_value or 0 for s in ships) / len(ships)) if ships else 0.0
+    by_id = {s.id: s for s in ships}
+    activity = 0.0
+    for side in (player, enemy):
+        for sid, hits in fleet_hits_on(gs, side).items():
+            t = by_id.get(sid)
+            if t is not None:
+                activity += hits * value_per_hit(t, gs)
+    turns_left = max(0, limit - gs.turn_number + 1)
+    return margin, outcome_sigma(turns_left, mean_value, activity, total)
+
+
+def certainty_equivalent(gs, player: int, outcomes) -> float:
+    """The sure VP change worth the same as a gamble `outcomes` [(chance, VP
+    change for `player`)], given the game state: its expected value without a
+    turn limit; with one, the VP change d with P(win | margin + d) equal to the
+    gamble's expected chance of winning (normal approximation, game_risk).
+    Behind, a gamble is worth more than its average; ahead, less."""
+    ev = sum(p * d for p, d in outcomes)
+    risk = game_risk(gs, player)
+    if risk is None:
+        return ev
+    from statistics import NormalDist
+    margin, sigma = risk
+    nd = NormalDist()
+    total_p = sum(p for p, _d in outcomes) or 1.0
+    win = sum(p * nd.cdf((margin + d) / sigma) for p, d in outcomes) / total_p
+    win = min(1 - 1e-12, max(1e-12, win))
+    return sigma * nd.inv_cdf(win) - margin
+
+
 def disengage_gain(ship: Ship, gs, ld: int, contribution: float) -> float:
     """Expected VP gained by trying to disengage now (s.37, VP s.38) instead of
     fighting on for another turn. Staying risks the enemy's next turn
@@ -697,7 +760,9 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float) -> float:
     crippled -> 25%. Leaving concedes 10% (25% if crippled, which a crippled
     ship concedes anyway). Either way the ship's guns are lost this turn (a
     failed test also forbids firing), worth `contribution`.
-    gain = P(pass) x (risk avoided - extra VP conceded) - contribution."""
+    gain = P(pass) x (risk avoided - extra VP conceded) - contribution. With a
+    turn limit the risk is the certainty equivalent of staying (owner: play
+    for the win; certainty_equivalent)."""
     v = ship_value(ship, gs)
     lam = incoming_hits(ship, gs)
     left = max(1, ship.hits_remaining)
@@ -709,6 +774,18 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float) -> float:
             risk += max(0.0, _poisson_at_least(lam, to_cripple) - p_kill) * 0.25 * v
     extra = 0.0 if ship.is_crippled else 0.10 * v
     p_pass = p_sum_at_most(2, ld) if ld > 1 else 0.0
+    if getattr(gs, "turn_limit", None):
+        # Owner: play for the win. Staying is a gamble (destroyed, crippled or
+        # untouched), leaving a sure loss: compared by certainty equivalent,
+        # so a fleet behind near the end fights on and one ahead leaves.
+        p_crip = 0.0
+        if not ship.is_crippled and left - ship.hits_max // 2 > 0:
+            p_crip = max(0.0, _poisson_at_least(lam, left - ship.hits_max // 2) - p_kill)
+        loss_kill = v * (0.75 if ship.is_crippled else 1.0)
+        stay = certainty_equivalent(gs, ship.player, [(p_kill, -loss_kill),
+                                                      (p_crip, -0.25 * v),
+                                                      (1 - p_kill - p_crip, 0.0)])
+        return p_pass * (-extra - stay) - contribution
     return p_pass * (risk - extra) - contribution
 
 

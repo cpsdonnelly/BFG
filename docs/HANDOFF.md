@@ -690,11 +690,14 @@ Latest items, newest last:
   is the chance of winning (`lookahead_ai.win_score`: margin vs the spread of the fighting to
   come over the turns left, plus a small VP tie-break); behind on the last turn a brawl beats
   staying out of range, ahead the reverse. Expert spectator game 71s. 1083 tests.
+- Built (To do 2): the normal AI's risk preference for disengaging and re-rolls
+  (`ai_hazards.game_risk`, `certainty_equivalent`; `ai_rerolls.should_reroll` drops its bars
+  to the lowest on the final turn). 1086 tests.
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.
 
-Next: the rest of CLAUDE.md "To do" 2 (left: the risk preference in the normal AI's choices;
+Next: the rest of CLAUDE.md "To do" 2 (left: the risk preference in brace and strike choices;
 the expert AI valuing craft in flight), then items 3-7, 9, 10
 and 11 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase
 salvos, the AI changes they need and the Tiger Shark ruling), then 12 (learned evaluation);
@@ -824,8 +827,8 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    winning, not expected VP alone). Built: arrival
    phase and landing turn, enemy guns on the way, reactive CAP / intercept / fighters in
    flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles. Left:
-   the risk preference in the normal AI's choices, the expert AI valuing craft in flight (wave
-   splitting at launch and the expert's risk preference built).
+   the risk preference in brace and strike choices, the expert AI valuing craft in flight (wave
+   splitting at launch, the expert's risk preference, risk-aware disengaging and re-rolls built).
 3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
    Sharks per the owner ruling) and the AI changes they need.
 4. Named commanders, Mark of Chaos Undivided, daemonships, Stormbirds, god-fleet boons, Ork

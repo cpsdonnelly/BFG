@@ -81,3 +81,58 @@ def test_focus_fire_moves_on_once_a_target_is_likely_dead():
     other = make_ship(id="o", player=1, x=20.0, y=-2.0, shields_max=0, points_value=180)
     plan = enemy_fire_plan(make_gs([e, weak, other]), 1)
     assert plan["w"] == 2.0 and plan["o"] == 4.0     # one mount finishes it, the rest move on
+
+
+def test_certainty_equivalent_follows_the_game_state():
+    """Owner (To do 2): with a turn limit the AI plays for the win. A gamble is
+    worth more than its average when behind, less when ahead; without a turn
+    limit it is just its average."""
+    from src.ai_hazards import certainty_equivalent
+    gamble = [(0.5, -200.0), (0.5, 0.0)]           # a coin flip on losing a 200pt ship
+    me, gs = _scene(8)
+    assert certainty_equivalent(gs, 1, gamble) == -100.0
+    for behind, sign in ((True, 1), (False, -1)):
+        me, gs = _scene(8)
+        dead = make_ship(id="dead", player=1 if behind else 2, x=150.0, y=100.0,
+                         hits_remaining=0, status="destroyed", points_value=300)
+        gs.add_ship(dead)
+        gs.turn_limit = gs.turn_number
+        ce = certainty_equivalent(gs, 1, gamble)
+        assert sign * (ce - (-100.0)) > 0
+
+
+def test_disengaging_plays_for_the_win_near_the_end():
+    """A healthy ship under heavy guns on the last turn: leaving is a sure 10%,
+    staying a gamble on being crippled or destroyed. Ahead, leaving is worth
+    more (lock the lead in); behind, less (the gamble is worth more than its
+    average); no turn limit sits between. (A crippled ship concedes nothing
+    extra by leaving, so for it leaving stays free either way.)"""
+    def gain(behind):
+        me, gs = _scene(8, n_foes=3)
+        if behind is not None:
+            gs.add_ship(make_ship(id="dead", player=1 if behind else 2, x=150.0, y=100.0,
+                                  hits_remaining=0, status="destroyed", points_value=200))
+            gs.turn_limit = gs.turn_number
+        return disengage_gain(me, gs, ld=8, contribution=5.0)
+    assert gain(False) > gain(None) > gain(True)
+
+
+def test_rerolls_are_not_saved_past_the_last_turn():
+    """The bars that keep a last re-roll for a big swing drop to the lowest on
+    the game's final turn: left-over re-rolls are worth nothing after it. A
+    test worth 20 VP (between the lowest bar and the last re-roll's) keeps the
+    last re-roll two turns from the end and spends it on the final turn."""
+    import src.ai_rerolls as ar
+    me, gs = _scene(8, n_foes=1)
+    assert ar._bar(1) > 20.0 >= ar._bar(9)
+    orig = ar.importance
+    ar.importance = lambda *a, **k: 20.0
+    try:
+        gs.turn_limit = gs.turn_number + 2
+        assert not ar.should_reroll(me, "special order", gs, 1)
+        gs.turn_limit = gs.turn_number
+        assert ar.should_reroll(me, "special order", gs, 1)
+        gs.turn_limit = None
+        assert not ar.should_reroll(me, "special order", gs, 1)
+    finally:
+        ar.importance = orig

@@ -43,8 +43,10 @@ turns are worth much more than 3 on the rear after a 4-turn loop."
 winning**: the VP margin against the spread of the fighting still to come (more fighting, a
 wider spread), so behind with few turns left it gambles (a brawl beats staying out of range)
 and ahead it plays safe. A little expected VP stays in the score so more VP still wins when
-the result is settled. Planned: the same preference in the normal AI's re-roll, brace,
-disengage and strike choices; scenario points in the margin.
+the result is settled. The normal AI uses the same idea (Built) when it decides whether to
+disengage (staying is a gamble, leaving a sure 10%: ahead it leaves more readily, behind less)
+and spends re-rolls freely on the last turn (left-over re-rolls are worth nothing after it).
+Planned: the same preference in brace and strike choices; scenario points in the margin.
 
 **Disabled rules** (Built principle, owner): if an optional rule is switched off (boarding,
 ramming, teleport, hit-and-run...), the AI never values moves by it nor attempts it. With

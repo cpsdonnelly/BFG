@@ -116,4 +116,11 @@ def should_reroll(ship: Ship, label: str, gs, left: int, context: Optional[dict]
         return False
     if commander_in_danger(gs, ship.player):
         return True                                # use them before they're lost
-    return importance(ship, label, gs, context) >= _bar(left)
+    bar = _bar(left)
+    limit = getattr(gs, "turn_limit", None)
+    if limit and gs.turn_number >= limit:
+        # The last game turn (owner: play to the turn limit): re-rolls left
+        # over are worth nothing after it, so the bars that save them for
+        # later turns drop to the lowest (some tests may still come this turn)
+        bar = min(bar, _bar(len(_BAR) + 1))
+    return importance(ship, label, gs, context) >= bar

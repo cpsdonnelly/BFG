@@ -473,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1083 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1086 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -489,7 +489,7 @@ co-ordinated strikes, splitting a strike into two waves under enemy guns, the AI
 before each kind of weapon in the Fire dialog, the AI's mine hazard counting turrets).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2 (the risk preference in the normal AI's choices, the expert AI
+Next: the rest of To do 2 (the risk preference in brace and strike choices, the expert AI
 valuing craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
 evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
@@ -593,8 +593,9 @@ Movement:
   `incoming_hits`: per enemy mount (a port broadside bears on ships on its left, starboard on its
   right, other mounts within their arc after one turn of the ship's own turn angle), the enemy
   focusing fire (`enemy_fire_plan`, owner), a Poisson count; destroyed = full value (75% more if
-  already crippled), newly crippled 25%; leaving concedes 10%. One-turn horizon; escort squadrons
-  and the last turn not special-cased.
+  already crippled), newly crippled 25%; leaving concedes 10%. With a turn limit staying is
+  valued by its certainty equivalent (play for the win, To do 2). One-turn horizon; escort
+  squadrons not special-cased.
 
 Shooting:
 - Targets by marginal expected VP (no overkill), target priority test obeyed; battery values with
@@ -756,9 +757,17 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    the points; plus `RISK_TIEBREAK` 0.1 x margin / points (judgement) so more VP still wins
    when the result is settled. Behind on the last turn a brawl beats staying out of range;
    ahead the reverse; without a turn limit the leaf is expected VP as before
-   (`tests/test_lookahead_sim.py`). Still to do here: the same preference in the normal AI's
-   re-roll, brace, disengage and strike choices, scenario points in the margin (To do 7), the
-   expert AI valuing craft in flight.
+   (`tests/test_lookahead_sim.py`). Normal AI, built: `ai_hazards.game_risk` (margin from
+   `victory_points`, spread from `outcome_sigma`, shared with `win_score`) and
+   `certainty_equivalent(gs, player, outcomes)` (a gamble's sure-VP equivalent: its average
+   without a turn limit; with one, the VP change with the same chance of winning, so worth
+   more than its average when behind, less when ahead). Used by disengaging (staying is a
+   gamble on being crippled or destroyed, leaving a sure 10%: ahead it leaves more readily,
+   behind less; a crippled ship concedes nothing extra by leaving, so it still leaves) and
+   re-rolls (on the final game turn the bars drop to the lowest, 10 VP: left-over re-rolls are
+   worth nothing after it) (`tests/test_ai_disengage.py`). Still to do here: the preference
+   in brace and strike choices and in the guns' value a disengaging ship gives up, scenario
+   points in the margin (To do 7), the expert AI valuing craft in flight.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
    owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the
