@@ -319,8 +319,14 @@ limit), each with more repairs and a bigger discount (Built). Craft already flyi
 re-targeted every ordnance phase with the same interceptors counted, so a wave in flight also
 turns away from an enemy carrier's umbrella (Built).
 
-Planned (To do 2): splitting waves against enemy guns, the risk preference, the expert AI
-valuing craft in flight. (To do 3): torpedo bombers, whose waves become one combined salvo.
+**Two waves or one** (Built): one hit removes a whole wave, but each enemy gun fires at one
+marker, so a strike that must wait under enemy guns may launch as two waves to spread the
+shots. Each wave then faces the turrets alone, suppresses alone and gets half the CAP, so the
+AI splits only when the guns matter more than the turrets (e.g. under two gunships vs a
+1-turret target, not vs 4 turrets).
+
+Planned (To do 2): the risk preference, the expert AI valuing craft in flight; splitting
+assault boats or waves already in flight. (To do 3): torpedo bombers, whose waves become one combined salvo.
 
 ---
 

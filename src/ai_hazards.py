@@ -750,6 +750,19 @@ def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,
                             inp["cap_save"])
 
 
+def split_wave_survival(shots, groups: int = 2) -> list:
+    """Chance each of `groups` waves survives the enemy guns on the way
+    (strike_timeline "shots": one weapon's weighted dice in one shooting
+    phase). One hit removes a whole wave (s.25), but each weapon fires at one
+    marker, so splitting spreads the shots: the biggest go one to each wave in
+    turn (the enemy shares its fire to remove as much as it can)."""
+    load = [0.0] * max(1, groups)
+    for n in sorted(shots or [], reverse=True):
+        i = min(range(len(load)), key=lambda g: load[g])
+        load[i] += n
+    return [(5 / 6) ** (d * ENEMY_FIRE_AT_WAVE) for d in load]
+
+
 def interception_cases(tl: dict) -> list:
     """[(probability, extra interceptors)] a strike meets on the way, from its
     strike_timeline: the target's reactive CAP and other enemy carriers'
@@ -1536,6 +1549,7 @@ def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: 
                and not e.is_disengaged and not e.is_hulk]
     epos = {e.id: _positions_through(e, our_phase, max(k + 1, 1)) for e in enemies}
     dice = 0.0
+    shots = []          # one enemy weapon's shot in one shooting phase: weighted dice
     for j in enemy_js:
         p = tpos[j]
         d = _m.hypot(p.x - x, p.y - y) * route_ratio or 1.0
@@ -1549,7 +1563,10 @@ def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: 
                 if _m.hypot(wx - ep.x, wy - ep.y) > (w.get("range_cm") or 0):
                     continue
                 n = ordnance_fire_dice(ep, w, wx, wy, gs, w.get("strength") or 0)
-                dice += n * (1.0 if check_weapon_in_arc(ep, w, wx, wy) else 0.5)
+                n *= (1.0 if check_weapon_in_arc(ep, w, wx, wy) else 0.5)
+                dice += n
+                if n > 0:
+                    shots.append(n)
     survival = (5 / 6) ** (dice * ENEMY_FIRE_AT_WAVE)
     cap = 0
     # The enemy launches at the end of its shooting phase and moves its ordnance
@@ -1613,6 +1630,7 @@ def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: 
                 break
     landed_ours = (k % 2 == 0) == our_phase
     return {"phase": k, "end_phases": 1 if landed_ours else 2, "survival": survival,
+            "shots": shots,
             "reactive_cap": cap, "reactive_intercept": intercept,
             "airborne_intercept": airborne}
 

@@ -473,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1079 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1081 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -485,12 +485,11 @@ Built so far: every booklet rule section the engine plays (see the sections abov
 blast marker rules, the turret split, waves / CAP / wave planner, the hit-and-run toggle
 covering every raid, Remastered turret suppression per p.82, the optional-rule toggle audit,
 and the expected-VP AI below (incl. carrier doctrine, strikes valued when they land,
-co-ordinated strikes, the AI's own teleports, Brace asked before each weapon of AI fire and
+co-ordinated strikes, splitting a strike into two waves under enemy guns, the AI's own teleports, Brace asked before each weapon of AI fire and
 before each kind of weapon in the Fire dialog, the AI's mine hazard counting turrets).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2 (wave splitting next, then the risk preference and the expert AI
-valuing craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
+Next: the rest of To do 2 (the risk preference, then the expert AI valuing craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
 evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -738,8 +737,16 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    (see "Wings of Fury re-rolls"). Reactive CAP for craft already in flight: built (in-flight
    craft are re-targeted with the same interception cases, `ai_hazards.interception_cases`,
    shared by `_strike_option` and `plan_strike_targets`; `tests/test_ai_air_doctrine.py`).
-   Still to do here: splitting waves against enemy guns, a risk preference, the expert AI valuing craft
-   in flight.
+   Splitting waves against enemy guns: built for fighter / bomber strikes at launch
+   (`AIPlayer._two_wave_value`: one hit removes a whole wave, s.25, but each enemy weapon
+   fires at one marker, so two waves share the shots out, `ai_hazards.split_wave_survival`
+   on `strike_timeline`'s "shots"; each wave then faces the turrets and suppresses alone and
+   gets half the interceptors; outcomes mixed over which waves get through; the launch forms
+   the two waves, `_wave_groups`). Splits when the guns on the way matter more than the
+   turrets: under two gunships vs a 1-turret target it splits, vs 4 turrets or with no guns
+   it stays one wave (`tests/test_strike_timeline.py`). Not yet: splitting assault boats or a
+   wave already in flight, more than two waves, the turret-split bonus for split waves.
+   Still to do here: a risk preference, the expert AI valuing craft in flight.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
    owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the

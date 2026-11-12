@@ -1338,7 +1338,8 @@ class AIPlayer:
                                                             bay, ct, n, gs)
                     if len(launched) > 1:
                         from .waves import form_wave
-                        form_wave(gs, [m.id for m in launched], "close")
+                        for group in self._wave_groups(launched, plan):
+                            form_wave(gs, [m.id for m in group], "close")
                     # Fly at the chosen target; later launches this phase see its hits
                     tgt = getattr(self, "_strike_target", None)
                     if tgt:
@@ -1358,6 +1359,51 @@ class AIPlayer:
                         from .waves import form_wave
                         form_wave(gs, [m.id for m in launched], "close")
                 ship = gs.get_ship_by_id(ship.id)
+
+    def _wave_groups(self, launched, plan):
+        """The launched strike as one wave, or two when the strike planner chose
+        two (`_strike_waves`): each craft type shared out, the first wave
+        taking the odd one."""
+        tgt = getattr(self, "_strike_target", None)
+        counts = tuple(n for _ct, n in plan)
+        key = (tgt[0], *counts) if tgt and len(counts) == 2 else None
+        if not key or self.__dict__.get("_strike_waves", {}).get(key, 1) < 2:
+            return [launched]
+        first, second = [], []
+        by_type = {}
+        for m in launched:
+            by_type.setdefault(m.ordnance_type, []).append(m)
+        for ms in by_type.values():
+            k = len(ms) - len(ms) // 2
+            first += ms[:k]
+            second += ms[k:]
+        return [g for g in (first, second) if g]
+
+    def _two_wave_value(self, tl, caps, wave, target, committed, f, b):
+        """(value, expected hits) of launching f fighters + b bombers as two
+        waves (fighters and bombers shared out, the first wave taking the odd
+        one), or None when it can't help: fewer than two bombers, or fewer than
+        two enemy shots on the way. Each wave survives the guns aimed at it
+        (`split_wave_survival`), faces the turrets alone and gets half the
+        interceptors; outcomes mixed over which waves get through."""
+        from .ai_hazards import split_wave_survival, hull_hits_vp
+        shots = tl.get("shots") or []
+        if b < 2 or len(shots) < 2:
+            return None
+        s1, s2 = split_wave_survival(shots, 2)
+        f1, b1 = f - f // 2, b - b // 2
+        f2, b2 = f // 2, b // 2
+        value = hits = 0.0
+        for w, inp in caps:
+            cap = inp["cap"]
+            _v1, e1 = wave(dict(inp, cap=cap - cap // 2), f1, b1)
+            _v2, e2 = wave(dict(inp, cap=cap // 2), f2, b2)
+            gs = self.gs
+            value += w * (s1 * s2 * hull_hits_vp(target, gs, committed, e1 + e2)
+                          + s1 * (1 - s2) * hull_hits_vp(target, gs, committed, e1)
+                          + (1 - s1) * s2 * hull_hits_vp(target, gs, committed, e2))
+            hits += w * (s1 * e1 + s2 * e2)
+        return value * tl["_disc_no_guns"], hits
 
     def _turret_split_bonus(self, target: Ship, phase: int, fighters: int, bombers: int,
                             f_save: int = 0, b_save: int = 0) -> float:
@@ -1545,6 +1591,7 @@ class AIPlayer:
                         caps = [(w, dict(base_inputs, cap=base_inputs["cap"] + ec))
                                 for w, ec in interception_cases(tl)]
                         disc = route[1] * tl["survival"] * phase_weight(tl["phase"] + offset)
+                        tl = dict(tl, _disc_no_guns=route[1] * phase_weight(tl["phase"] + offset))
                         tls[spd] = (tl, disc, caps)
                 return tls[spd]
 
@@ -1585,12 +1632,21 @@ class AIPlayer:
                         v += hull_hits_vp(target, self.gs, c + ev, syn)
                         ev += syn
                     if best_split is None or v * disc > best_split[0] + 1e-9:
-                        best_split = (v * disc, f, b, ev, tl_s["phase"])
+                        best_split = (v * disc, f, b, ev, tl_s["phase"], 1)
+                    # Two waves instead of one (To do 2): one hit removes a whole
+                    # wave (s.25), but each enemy weapon fires at one marker, so
+                    # splitting spreads the guns; each wave then faces the
+                    # turrets and suppresses alone, and the CAP is shared
+                    two = self._two_wave_value(tl_s, caps, wave, target, c, f, b)
+                    if two and two[0] > best_split[0] + 1e-9:
+                        best_split = (two[0], f, b, two[1], tl_s["phase"], 2)
                 if best_split:
-                    v, f, b, ev, ph = best_split
-                    options.append((v, [(fk, f), (bk, b)], f"{f} fighters + {b} bombers",
-                                    target, ev))
+                    v, f, b, ev, ph, n_waves = best_split
+                    label = f"{f} fighters + {b} bombers" + (" in two waves" if n_waves > 1
+                                                             else "")
+                    options.append((v, [(fk, f), (bk, b)], label, target, ev))
                     self._strike_phase[(target.id, f, b)] = ph
+                    self.__dict__.setdefault("_strike_waves", {})[(target.id, f, b)] = n_waves
             elif bomber:
                 from .waves import best_wave_split
 
