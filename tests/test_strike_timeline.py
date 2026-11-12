@@ -44,3 +44,24 @@ def test_reactive_cap_from_a_loaded_target_carrier():
     # landing in our own phase, before the enemy has an ordnance phase: no reaction
     near = make_ship(id="t", player=2, x=25.0, y=0.0, heading=90.0, speed=0, weapons=[bay])
     assert strike_timeline(0.0, 0.0, 30.0, near, make_gs([near]), 1)["reactive_cap"] == 0
+
+
+def test_reactive_intercept_from_another_carrier():
+    """Owner: reactive intercept is a strategy too. A loaded enemy carrier
+    whose fighters can reach our waiting wave in its ordnance phase launches
+    them at it; out of reach, or unloaded, it can't."""
+    bay = {"name": "Launch Bays", "weapon_type": "launch_bay", "range_cm": 30, "strength": 3,
+           "arcs": [], "craft_types": ["fury_fighter"], "craft_speeds": {"fury_fighter": 30}}
+    t = make_ship(id="t", player=2, x=50.0, y=0.0, heading=90.0, speed=0)
+    carrier = make_ship(id="cv", player=2, x=35.0, y=25.0, heading=90.0, speed=0,
+                        weapons=[bay])
+    tl = strike_timeline(0.0, 0.0, 30.0, t, make_gs([t, carrier]), 1)
+    assert tl["phase"] == 1 and tl["reactive_intercept"] == 3 and tl["reactive_cap"] == 0
+    far = make_ship(id="cv", player=2, x=40.0, y=120.0, heading=90.0, speed=0, weapons=[bay])
+    assert strike_timeline(0.0, 0.0, 30.0, t, make_gs([t, far]), 1)["reactive_intercept"] == 0
+    carrier.ordnance_loaded_craft = False
+    assert strike_timeline(0.0, 0.0, 30.0, t, make_gs([t, carrier]), 1)["reactive_intercept"] == 0
+    # landing in our own phase, before any enemy ordnance phase: no interception
+    near = make_ship(id="t", player=2, x=25.0, y=0.0, heading=90.0, speed=0)
+    cv2 = make_ship(id="cv", player=2, x=20.0, y=20.0, heading=90.0, speed=0, weapons=[bay])
+    assert strike_timeline(0.0, 0.0, 30.0, near, make_gs([near, cv2]), 1)["reactive_intercept"] == 0

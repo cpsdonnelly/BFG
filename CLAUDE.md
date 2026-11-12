@@ -435,7 +435,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1058 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1059 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`). After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
@@ -539,7 +539,8 @@ Ordnance:
 - Strikes (`_strike_option`): every enemy within 3 moves, the planner's fighter / bomber wave
   (`waves.plan_wave_against`) or all assault boats (owner idea: by expected VP,
   `waves.raid_squadron_value`), valued when they land (`strike_timeline`: arrival phase,
-  enemy guns on the way, reactive CAP, the raid's repair window) along the route
+  enemy guns on the way, reactive CAP and reactive intercept by other enemy carriers, the
+  raid's repair window) along the route
   (`best_route`: up to two waypoints round obstacles, AI craft fly them,
   `ordnance.craft_target_point`); craft in flight re-targeted fleet-wide the same way
   (`plan_strike_targets`); multi-role attack mode by `waves.best_attack_mode`.
@@ -579,7 +580,13 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    enemy shooting phase before arrival (Ordnance column, one 6 removes the wave, out of arc at
    half, x `ENEMY_FIRE_AT_WAVE` 0.5, judgement); reactive CAP from a loaded target carrier
    when an enemy ordnance phase comes first, incl. the arrival one (the enemy moves its
-   ordnance first, s.15), at `REACTIVE_CAP_WEIGHT` 0.5 (judgement); `tests/test_strike_timeline.py`).
+   ordnance first, s.15), at `REACTIVE_CAP_WEIGHT` 0.5 (judgement); reactive intercept (owner:
+   "reactive intercept should also be a strategy"): any other loaded enemy carrier whose
+   fighters can reach the waiting wave in an enemy ordnance phase up to arrival
+   (`reactive_intercept`), fed to the planner like CAP (each meets the wave's lead, s.19 /
+   s.25) at the same weight; `tests/test_strike_timeline.py`). Our own side already
+   intercepts reactively: free fighters go at enemy salvos / waves in flight
+   (`_threat_slots`, 0.75), and holding bays counts next turn's defence (`_hold_bays`).
    Effects: faster assault boats now beat a slower fighter / bomber wave in the owner's
    4-turret 6+ example (they land a phase sooner, less time under the target's guns; at equal
    speed the bombers still edge it); an enemy carrier holding loaded fighters 35cm away makes

@@ -1407,7 +1407,10 @@ def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: 
     weapons in range of the wave there, out of arc at half weight, x
     ENEMY_FIRE_AT_WAVE), "reactive_cap": fighter squadrons the target could
     put on CAP before arrival (its own loaded bays, when an enemy ordnance
-    phase comes first)}, or None if the wave can't reach it in `max_phases`."""
+    phase comes first), "reactive_intercept": fighter squadrons other loaded
+    enemy carriers could launch at the waiting wave in an enemy ordnance phase
+    up to arrival (owner: reactive intercept is a strategy too)}, or None if the
+    wave can't reach it in `max_phases`."""
     import math as _m
     from .combat import ordnance_fire_dice, check_weapon_in_arc
     rt = target.base_radius
@@ -1451,6 +1454,34 @@ def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: 
         if any("fighter" in craft_roles(craft_stats(ct, bays)[0])
                for w in bays for ct in w.get("craft_types", [])):
             cap = bay_launch_capacity(target, bays, None)[0]
+    # Reactive intercept (owner: a strategy too): any other loaded enemy carrier
+    # whose fighters can reach the waiting wave in an enemy ordnance phase up to
+    # arrival launches them at it; each meets the wave's lead like CAP (s.19 /
+    # s.25). Fighters move their speed in the phase they launch (s.15)
+    from .ordnance import craft_roles, craft_stats, bay_launch_capacity
+    intercept = 0
+    for e in enemies:
+        if e.id == target.id or not e.ordnance_loaded_craft:
+            continue
+        bays = [w for w in e.weapons if w.get("weapon_type") == "launch_bay"]
+        fspeed = max((craft_stats(ct, bays)[1] or 0) for w in bays
+                     for ct in w.get("craft_types", [])
+                     if "fighter" in craft_roles(craft_stats(ct, bays)[0])) if any(
+            "fighter" in craft_roles(craft_stats(ct, bays)[0])
+            for w in bays for ct in w.get("craft_types", [])) else 0
+        if not fspeed:
+            continue
+        for j in range(0, k + 1):
+            if (j % 2 == 1) != our_phase:
+                continue                       # not an enemy ordnance phase
+            p = tpos[j]
+            d = _m.hypot(p.x - x, p.y - y) * route_ratio or 1.0
+            f = min(1.0, j * speed / d)
+            wx, wy = x + (p.x - x) * f, y + (p.y - y) * f
+            ep = epos[e.id][min(j, len(epos[e.id]) - 1)]
+            if _m.hypot(wx - ep.x, wy - ep.y) <= fspeed:
+                intercept += bay_launch_capacity(e, bays, None)[0]
+                break
     landed_ours = (k % 2 == 0) == our_phase
     return {"phase": k, "end_phases": 1 if landed_ours else 2, "survival": survival,
-            "reactive_cap": cap}
+            "reactive_cap": cap, "reactive_intercept": intercept}

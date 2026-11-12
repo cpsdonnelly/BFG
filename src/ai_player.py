@@ -1471,9 +1471,11 @@ class AIPlayer:
                         tls[spd] = None
                     else:
                         caps = [(1.0, base_inputs)]
-                        if tl["reactive_cap"]:
-                            more = dict(base_inputs,
-                                        cap=base_inputs["cap"] + tl["reactive_cap"])
+                        react = tl["reactive_cap"] + tl.get("reactive_intercept", 0)
+                        if react:
+                            # target CAP and other carriers' interceptors both meet
+                            # the wave's lead first (s.19 / s.25), like CAP
+                            more = dict(base_inputs, cap=base_inputs["cap"] + react)
                             caps = [(1 - REACTIVE_CAP_WEIGHT, base_inputs),
                                     (REACTIVE_CAP_WEIGHT, more)]
                         disc = route[1] * tl["survival"] * phase_weight(tl["phase"] + offset)
