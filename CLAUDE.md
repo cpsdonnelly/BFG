@@ -711,6 +711,34 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       than one with both off one side; a Murder squadron facing Lunars holds the 30-45cm band;
       a Slaughter facing Lunars closes; a Protector ends prow-on when the enemy will reach it
       and is free otherwise. Then AI-vs-AI games for each faction pair.
+   More owner notes (fleet strategy; same caveat: matchup-dependent, not hard rules):
+   f. Firepower by range bracket, on average (fleet vs fleet) and ship vs ship: e.g. a Tau
+      Merchant Starship (6 battery points of railguns, all 45cm and bearing forward; speed 15,
+      6 hits, 5+) out-guns a Lunar (all 30cm: 6 battery points + 2 lances a side, 6 torpedoes
+      forward) at 30-45cm but not at 0-30cm. Plan: a matchup table per pair of ships, the
+      expected VP each does to the other per shooting phase in brackets 0-15 / 15-30 / 30-45 /
+      45-60+ (in-arc mounts, the Gunnery table's range shifts, armour, shields), summed for
+      the fleets; the move score then prefers the bracket where our guns beat theirs, for each
+      ship against what it faces. Kiting (c) is the case where we also out-move them; the
+      Merchant is slower than a Lunar (15 vs 20), so it can't hold the bracket against a
+      Lunar that wants to close: it takes the bracket when it can and positions to delay.
+   g. Speed (and turn angle) edge, on average and ship vs ship: out-moving an enemy, get out
+      of its main fire arcs, e.g. into a Lunar's rear arc where neither broadside nor prow
+      bears. Plan: per enemy, the arcs its mounts can bring to bear after its next move and
+      turn (`_mount_bears` with its own speed and turn angle); with a speed edge, end positions
+      outside all of them score the exposure saved; this is (a)'s exposure looked one enemy move
+      ahead. Without the edge it is mostly unreachable, so the term does nothing.
+   h. Hit-point edge (e.g. Ork cruisers: 10 hits vs a Lunar's 8): think about boarding (s.32)
+      and ramming (s.12). Today the AI never plans either: boarding only happens when ships
+      end in base contact by chance, and no AI move aims for contact. Plan: expected VP of a
+      boarding action (`boarding.troop_rating` both ways, crew bonuses, the s.32 result table)
+      and of a ram (s.12 hits both ways, the Leadership test) as move candidates ending in base
+      contact / ramming the target, compared with the gun value of the alternatives; Orks also
+      get the boarding bonus and Ere We Go speed. Same caveat: it depends on the enemy's hits,
+      turrets, crew and whether contact is reachable.
+   i. Carriers: the carrier doctrine already built (see "AI: how it decides": air supremacy,
+      protecting carriers when out-carriered, strikes outside the enemy's umbrella, reactive
+      intercept, co-ordinating bombers with missiles) is part of the same matchup picture.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

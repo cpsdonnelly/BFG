@@ -744,7 +744,11 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    any fleet that out-ranges and out-moves its enemy on average), Tau prow-on only when the
    enemy is about to be in range. Plan in CLAUDE.md To do 8: first make exposure respect our
    Armour facing, then a fleet-aware per-mount coverage score, a range / speed edge check
-   with a kiting band, and prow-on emerging from the two.
+   with a kiting band, and prow-on emerging from the two. Owner added: firepower by range
+   bracket fleet-wide and ship vs ship (a Tau Merchant out-guns a Lunar at 30-45cm, not at
+   0-30cm), a speed edge to get out of the enemy's main arcs (e.g. a Lunar's rear), a hit-point
+   edge (Orks) to think about boarding and ramming (the AI plans neither today), and carrier
+   play as discussed (already built). All in CLAUDE.md To do 8 f-i.
 
 Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
 transcriptions and verify a sample against the booklet yourself.
