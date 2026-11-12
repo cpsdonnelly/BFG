@@ -736,6 +736,27 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       contact / ramming the target, compared with the gun value of the alternatives; Orks also
       get the boarding bonus and Ere We Go speed. Same caveat: it depends on the enemy's hits,
       turrets, crew and whether contact is reachable.
+   j. Teleport attacks (owner: be aware of them, both ways). Rules (s.31, `hit_and_run`): in
+      its own end phase a ship may teleport-raid one enemy within 10cm (20 with a Space Marine
+      honour guard, which also rolls 2D6 / 3D6 keep best), if not crippled, on no special order
+      but Lock On / Reload Ordnance, the target's shields down, and the target no more
+      remaining hits than it; escorts / defences under 3 hits can't; Tau and Nicassar never.
+      Faction rules: Space Marine Teleport Assault, Ordo honour guards, Chaos Champions /
+      Terminators, Ork Soopa Tellyporta. An optional rule (`GameState.rule_teleport`, off by
+      default). Done: the AI decides its own teleports (it used to get the human's dialog in
+      its end phase): it raids the eligible target worth most per raid
+      (`waves.raid_squadron_value`; `end_phase_panel._resolve_teleport_attacks`;
+      `tools/gui_checks/teleport_ai_check.py`). To do: (1) offence: move teleporters to end
+      within range of a target whose shields our guns will knock down this turn (the shooting
+      planner's shield hits / blast markers), with remaining hits at or below ours, staying
+      uncrippled and off orders other than Lock On / Reload Ordnance; value it at the raid's
+      expected VP in the move score, and choose targets for gunfire that open shields for a
+      teleport; (2) defence: our ships' moves pay the expected raid VP of ending within an
+      enemy teleporter's range after its move when our shields may be down by its end phase
+      (blast markers touching us, the enemy's guns) and we have no more hits than it; keep
+      shields up (stay off blast markers), keep distance, or out-hit it; (3) the AI's brace
+      against a teleport uses the raid's value, not "fewer than 6 hits"; (4) Ork Soopa
+      Tellyporta and Chaos Terminators' own rules when those options are built.
    i. Carriers: the carrier doctrine already built (see "AI: how it decides": air supremacy,
       protecting carriers when out-carriered, strikes outside the enemy's umbrella, reactive
       intercept, co-ordinating bombers with missiles) is part of the same matchup picture.

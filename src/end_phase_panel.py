@@ -146,24 +146,40 @@ class EndPhasePanel:
             if not eligible_targets or attacker.id in teleported:
                 continue
 
-            target_names = ", ".join(
-                f"{t.name} ({attacker.distance_to(t):.0f}cm)"
-                for t in eligible_targets)
-            want = messagebox.askyesno(
-                "Teleport Attack",
-                f"{attacker.name} can teleport against:\n{target_names}\n\n"
-                f"Attempt a teleport attack?")
-            if not want:
-                continue
-
-            # Pick target if multiple eligible
-            if len(eligible_targets) == 1:
-                target = eligible_targets[0]
-            else:
-                target = self.ctx.pick_ship(eligible_targets,
-                                                "Select teleport target")
-                if not target:
+            if self.ctx.is_ai_controlled(attacker.player):
+                # The AI decides for its own ships (it used to get the human's
+                # dialog): a teleport attack costs nothing, so it raids the target
+                # where one raid is worth the most expected VP
+                from .waves import raid_squadron_value
+                gs = self.ctx.gs
+                target, best_v = None, 0.0
+                for t in eligible_targets:
+                    v = raid_squadron_value(t, gs, attacker.player, attacker.special_rules)
+                    if v > best_v:
+                        target, best_v = t, v
+                if target is None:
                     continue
+                self.ctx.log(f"  [AI] {attacker.name} teleports against {target.name} "
+                             f"(about {best_v:.1f} VP a raid)")
+            else:
+                target_names = ", ".join(
+                    f"{t.name} ({attacker.distance_to(t):.0f}cm)"
+                    for t in eligible_targets)
+                want = messagebox.askyesno(
+                    "Teleport Attack",
+                    f"{attacker.name} can teleport against:\n{target_names}\n\n"
+                    f"Attempt a teleport attack?")
+                if not want:
+                    continue
+
+                # Pick target if multiple eligible
+                if len(eligible_targets) == 1:
+                    target = eligible_targets[0]
+                else:
+                    target = self.ctx.pick_ship(eligible_targets,
+                                                "Select teleport target")
+                    if not target:
+                        continue
 
             # Re-fetch both ships to get live state
             attacker = self.ctx.gs.get_ship_by_id(attacker.id)

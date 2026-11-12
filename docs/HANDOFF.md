@@ -748,7 +748,9 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    bracket fleet-wide and ship vs ship (a Tau Merchant out-guns a Lunar at 30-45cm, not at
    0-30cm), a speed edge to get out of the enemy's main arcs (e.g. a Lunar's rear), a hit-point
    edge (Orks) to think about boarding and ramming (the AI plans neither today), and carrier
-   play as discussed (already built). All in CLAUDE.md To do 8 f-i.
+   play as discussed (already built), and teleport attacks both ways (CLAUDE.md 8 j; done:
+   the AI now decides its own teleports, it used to get the human's dialog). All in
+   CLAUDE.md To do 8 f-j.
 
 Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
 transcriptions and verify a sample against the booklet yourself.
