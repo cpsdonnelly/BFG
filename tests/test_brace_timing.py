@@ -72,3 +72,31 @@ def test_asteroid_brace_after_failed_test():
     r = resolve_asteroid_navigation(s, dice, gs)
     assert dice._idx == len(rolls) and calls == [("s", "asteroid_field")]
     assert s.hits_remaining == 7 and s.special_order == "brace_for_impact"
+
+
+def test_ai_fire_asks_brace_before_each_weapon():
+    """s.7: a ship decides separately against each of an attacker's weapons
+    (it may brace against the lances after not bracing against the gunnery),
+    so the AI's fire asks the target before each weapon. Declining against
+    the battery leaves the lance's question open."""
+    from tests.conftest import make_ship, make_gs, DiceStub
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    bat = {"name": "Prow Battery", "weapon_type": "battery", "range_cm": 30, "strength": 2,
+           "arcs": ["front"]}
+    lance = {"name": "Prow Lance", "weapon_type": "lance", "range_cm": 30, "strength": 1,
+             "arcs": ["front"]}
+    a = make_ship(id="a", player=1, x=0.0, y=0.0, heading=0.0,
+                  weapons=[dict(bat), dict(lance)])
+    t = make_ship(id="t", player=2, x=20.0, y=0.0, heading=90.0, shields_max=0)
+    gs = make_gs([a, t])
+    gs.current_phase = "shooting"
+    asked = []
+    rolls = [1, 1]                          # FP2 abeam: 1 battery die, then the lance; both miss
+    dice = DiceStub(rolls)
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai.brace_fn = lambda att, tgt, exp, grp: asked.append((att.id, tgt.id, round(exp, 2)))
+    ai._fire_ship(gs.get_ship_by_id("a"))
+    assert [x[:2] for x in asked] == [("a", "t"), ("a", "t")]
+    assert dice._idx == len(rolls)

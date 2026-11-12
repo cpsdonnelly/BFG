@@ -221,8 +221,8 @@ remaining hits (the commander's ship braces earlier).
   attacks; a ship decides separately against each of an attacker's weapons (it may brace
   against the lances after not bracing against the gunnery) but tries only once per attacker
   per turn: a ship that fails against a ship's macrobatteries can't brace when that ship then
-  fires its lances (the engine enforces this). Gap: when the AI fires, the target is asked once
-  per firing ship, not before each weapon. Planned (To do 11 c): price Brace by what it really costs until the end of the
+  fires its lances (the engine enforces this). When the AI fires, the target is asked before
+  each weapon (Built). Planned (To do 11 c): price Brace by what it really costs until the end of the
   ship's next turn (guns, lances and ordnance halved, halved again if crippled; no special
   orders; no firing at all inside an asteroid field, s.39) against the hits it saves over this
   and every later attack until then; trying now also uses up the one try against this

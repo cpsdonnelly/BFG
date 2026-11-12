@@ -812,8 +812,8 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    Full, Reload Ordnance). Plan: CLAUDE.md To do 10. Brace rules recorded there (10 e): a
    failed command check doesn't block Brace; a failed brace blocks only that ship until the
    attacker has finished; brace is decided per weapon, once per attacker per turn (fail against a ship's batteries
-   and you can't brace against its lances; the engine enforces it; gap: the AI's fire asks the
-   target once per firing ship, not per weapon). Brace has a cost, to be priced (To do 11 c).
+   and you can't brace against its lances; the engine enforces it; the AI's fire now asks the
+   target before each weapon). Brace has a cost, to be priced (To do 11 c).
 11. New (owner's AI design feedback, CLAUDE.md To do 11): checks done (shields in gunnery
    values, the per-hit term, Ork turrets, mine movement; gap: mine hazard ignores turrets);
    movement candidates (turn points, more headings, ~150 candidates, coordination pass);

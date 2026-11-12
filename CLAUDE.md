@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1075 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1076 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -946,11 +946,11 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       lances (owner). Engine (checked): `CombatPanel._brace_before_attack` records a failure in
       `Ship.brace_failed_vs` by attacker key (the attacking ship's id; "asteroid_field", the
       rammer, the exploding ship for `combat.offer_brace`), cleared in the end phase, and asks
-      again after a decline; a passed brace lasts to the end of the ship's next turn. Gap: when
-      the AI fires, `AIPlayer._offer_brace` asks the target once per firing ship (against the
-      total of all its weapons), so a player who declines against its batteries isn't asked
-      again before its lances; it should ask before each weapon until the target has tried. The
-      human Fire dialog asks once for the weapons fired together in it.
+      again after a decline; a passed brace lasts to the end of the ship's next turn. AI fire
+      asks before each weapon (`AIPlayer._offer_brace(ship, target, weapons)`; a squadron
+      volley once with its expected hits), so a player who declines against the batteries is
+      asked again before the lances (`tests/test_brace_timing.py`). The human Fire dialog asks
+      once for the weapons fired together in it.
    f. Command check modifiers (s.6) in every order's pass chance: Enemy Contacts +1 Ld if any
       enemy ship is on special orders, Under Fire -1 with blast markers in contact, Ld 0-10;
       command checks only, not Leadership tests. Both directions matter (our orders make the
