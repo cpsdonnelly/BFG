@@ -469,7 +469,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1076 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1077 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -969,8 +969,8 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    hit on 5+ (`ai_hazards`, `waves`) and fire at everything (`turret_split_gain` gives no
    split gain); mines in the hazard model move 10cm toward the nearest enemy vessel of the
    layer in each ordnance phase (`marker_hits`), and the engine's mines home on the layer's
-   enemies only (`ordnance.move_ordnance`). Gap found: the mine hazard counts 8D6 against
-   Armour flat, ignoring the turret roll that cuts it to 4D6 (`ordnance.resolve_mine_contact`).
+   enemies only (`ordnance.move_ordnance`). Gap found and fixed: the mine hazard counted 8D6 flat,
+   ignoring the turret roll that cuts it to 4D6 (now `ai_hazards.mine_attack_dice`).
    To build:
    a. Movement candidates (owner). Rules for every candidate: capital ships turn right after
       the turning distance (battleships 15cm, cruisers 10cm; s.10, before modifiers), just
@@ -1083,9 +1083,9 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       - Teleports (s.31): not crippled, Lock On / Reload only, target shields down, within
         10cm, no more remaining hits; no escorts or defences under 3 hits; order valuation
         counts the raid given up (To do 10 g).
-      - Mines: the hazard model counts a mine's 8D6 against Armour flat; count the turret
-        roll that cuts it to 4D6 (`ordnance.resolve_mine_contact`; the turret split, s.28,
-        applies: turrets used against craft that phase can't).
+      - Mines (done): the hazard model now counts the turret roll that cuts a mine to 4D6
+        (`ai_hazards.mine_attack_dice`, innate turrets; massed turrets and the s.28 split
+        aren't predicted).
       - Human Fire dialog: it asks the target to brace once for all the weapons fired together
         in it; the target may decide per weapon (s.7), so ask before each weapon type (or
         let the firer fire them one at a time) when the target hasn't tried yet.

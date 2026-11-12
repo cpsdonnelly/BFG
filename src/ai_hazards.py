@@ -6,7 +6,7 @@ dangerous than one torpedo salvo). Threats come from the rules, not invented
 weights, so they compare with each other and with the damage a move lets the
 ship deal:
 
-- mines (s.17): 8D6 against Armour, ignoring shields; a mine moves exactly 10cm
+- mines (s.17): 8D6 against Armour (4D6 if any turret scores 4+), ignoring shields; a mine moves exactly 10cm
   straight at the nearest enemy vessel in every ordnance phase;
 - torpedoes (s.16): their strength in dice against Armour, ignoring shields,
   along their next move; turrets shoot some down first (4+ each);
@@ -92,6 +92,17 @@ def _touches_phenomenon(x, y, r, p) -> bool:
 
 # ── Threats ──────────────────────────────────────────────────────────────────
 
+def mine_attack_dice(ship: Ship) -> float:
+    """Expected dice a mine attacks a ship with (s.17): 8D6, or 4D6 if any of
+    the ship's turrets scores 4+ (Orks 5+), as `ordnance.resolve_mine_contact`
+    rolls it. Innate turrets only (massed turrets depend on who is in base
+    contact when it lands)."""
+    need = 5 if "ork_turrets" in ship.special_rules else 4
+    t = max(0, ship.effective_turrets)
+    p_any = 1.0 - (1.0 - (7 - need) / 6.0) ** t
+    return 8.0 - 4.0 * p_any
+
+
 def _turret_kills(ship: Ship) -> float:
     """Expected torpedoes a ship's turrets shoot down: 4+ each (Orks 5+)."""
     need = 5 if "ork_turrets" in ship.special_rules else 4
@@ -116,7 +127,7 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
         nearest = all(math.hypot(s.x - m.x, s.y - m.y) - s.base_radius >= d_end
                       for s in my_ships if s.id != ship.id)
         if on_path or (d_end <= 20.0 and nearest):
-            h = 8 * ph
+            h = mine_attack_dice(ship) * ph
             return h, f"mine ({h:.1f} hits)"
         return 0.0, ""
     if "torpedo" in otype and otype != "torpedo_bomber":

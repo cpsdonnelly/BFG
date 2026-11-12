@@ -488,8 +488,7 @@ manoeuvre. Its other phases are the normal AI's.
 - **Explosions and ordnance** (gap, To do 11 c): a plasma drive overload also destroys all
   ordnance within its radius, so it shields its neighbours from incoming waves and salvos; the
   explosion values count only the ship damage.
-- **Mines** (gap found in the check): the hazard model counts a mine's 8D6 flat; the turret roll
-  that cuts it to 4D6 isn't counted.
+- **Mines** (fixed): the hazard model counts the turret roll that cuts a mine from 8D6 to 4D6.
 - **Eldar and Necrons** (suggestion, To do 11 g): Eldar (MMS v2.0: two moves, holofields,
   Fragile, turning, own ordnance) and Necrons aren't modelled; the generic AI would misplay them.
 - **Blast marker removal** (gap): the player whose turn it is chooses which D6 blast markers to

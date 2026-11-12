@@ -140,3 +140,15 @@ def test_craft_route_with_two_waypoints():
     v, surv, length, wp = best_route(0.0, 0.0, 60.0, 0.0, gs, "craft", 20.0)
     assert surv == 1.0 and wp is not None
     assert v > best_route(0.0, 0.0, 60.0, 0.0, gs, "craft", 20.0, max_turn=0)[0]
+
+
+def test_mine_hazard_counts_the_turret_roll():
+    """s.17: a mine attacks with 8D6, or 4D6 if any turret scores 4+ (Orks 5+);
+    the hazard model counts the expected dice as the engine rolls them."""
+    from src.ai_hazards import mine_attack_dice
+    none = make_ship(id="n", turrets=0)
+    two = make_ship(id="t", turrets=2)
+    ork = make_ship(id="o", turrets=2, special_rules=["ork_turrets"])
+    assert mine_attack_dice(none) == 8.0
+    assert abs(mine_attack_dice(two) - (8 - 4 * 0.75)) < 1e-9        # 1 - (1/2)^2
+    assert abs(mine_attack_dice(ork) - (8 - 4 * (1 - (2 / 3) ** 2))) < 1e-9
