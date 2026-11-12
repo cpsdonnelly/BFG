@@ -1,0 +1,67 @@
+"""AI torpedo launch lanes (To do 1): the AI aims down the clearest lane that
+still meets its target and never fires through its own ships (standard
+torpedoes attack the first ship they contact, friend or foe, s.15)."""
+import math
+
+from tests.conftest import make_ship, make_gs, DiceStub
+from src.models import Ship, BlastMarker
+from src.ship_catalog import find_ship_class
+from src.ai_player import AIPlayer
+from src.turn_controller import TurnController
+
+
+def _setup(friend_at=None, blast_at=None):
+    d = find_ship_class("Dictator Class Cruiser").to_ship_dict("D", 1, ship_id="d")
+    d.update(x=0.0, y=0.0, heading=0.0, leadership=8, ordnance_loaded_craft=False)
+    ships = [Ship.from_dict(d),
+             make_ship(id="e", player=2, x=40.0, y=0.0, heading=180.0, speed=0,
+                       points_value=150)]
+    if friend_at:
+        ships.append(make_ship(id="f", player=1, x=friend_at[0], y=friend_at[1],
+                               heading=0.0, points_value=100))
+    gs = make_gs(ships)
+    gs.current_phase = "ordnance"
+    if blast_at:
+        gs.add_blast_marker(BlastMarker(id="bm", x=blast_at[0], y=blast_at[1]))
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    return gs, ai, dice
+
+
+def _torps(gs):
+    return [o for o in gs.ordnance if o["owner_player"] == 1 and "torpedo" in o["ordnance_type"]]
+
+
+def test_no_torpedoes_through_a_friendly_ship():
+    gs, ai, dice = _setup(friend_at=(20.0, 0.0))
+    ai.run_ordnance_phase()
+    assert dice._idx == 0
+    assert _torps(gs) == []
+    # Clear lane: it fires
+    gs, ai, dice = _setup()
+    ai.run_ordnance_phase()
+    assert len(_torps(gs)) == 1
+
+
+def test_friend_in_base_contact_is_passed_through():
+    """s.15-16: a launcher fires 'through' a friendly ship in base contact."""
+    gs, ai, dice = _setup(friend_at=(3.0, 0.0))
+    ai.run_ordnance_phase()
+    assert len(_torps(gs)) == 1
+
+
+def test_aim_moves_off_a_blast_marker_on_the_centre_line():
+    gs, ai, _dice = _setup()
+    ship, tgt = gs.get_ship_by_id("d"), gs.get_ship_by_id("e")
+    weapon = next(w for w in ship.weapons if w.get("weapon_type") == "torpedo")
+    h_clear = ai._torpedo_aim_heading(ship, weapon, tgt)
+    gs, ai, _dice = _setup(blast_at=(20.0, -1.0))
+    ship, tgt = gs.get_ship_by_id("d"), gs.get_ship_by_id("e")
+    h, score = ai._torp_lane(ship, weapon, tgt, 0.0, 40.0)
+    assert abs(h_clear) < 1e-6 or abs(h_clear - 360) < 1e-6
+    assert score == 1.0 and 0 < h < 10              # turned a little to port of the marker
+    # The heading still meets the target's base (s.15)
+    from src.geometry import torpedo_first_contact
+    ex, ey = 40.0 * math.cos(math.radians(h)), 40.0 * math.sin(math.radians(h))
+    assert torpedo_first_contact(tgt.x, tgt.y, tgt.base_radius, 0.0, 0.0, ex, ey, h)

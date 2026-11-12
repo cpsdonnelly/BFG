@@ -568,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1027 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1030 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -655,13 +655,14 @@ Latest items, newest last:
   Fighters already on CAP now cover the launched threats closing on their ship first, and
   carriers keep their bays loaded while no enemy ship is within three moves of their fastest
   craft and no enemy ordnance is in play (Reload Ordnance needed after a launch, s.15).
+  Torpedo launch lanes (`AIPlayer._torp_lane`): the AI aims down the clearest heading
+  that still meets the target and never fires through its own ships (s.15).
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
 
 Next: CLAUDE.md "To do" item 1 (what is left: a fuller value of keeping bays loaded; fleet focus positioning follow-ups: several focus targets, torpedo lanes /
-craft reach in the move score, expert leaf evaluation; torpedo launch lanes and
-multi-waypoint routes) and 1c (strike planning at arrival time), then items 3-6 (item 3 now
+craft reach in the move score, expert leaf evaluation; multi-waypoint routes) and 1c (strike planning at arrival time), then items 3-6 (item 3 now
 carries the full torpedo bomber rules incl. combined wave salvos, one-phase salvos and the AI
 changes they need, and the Tiger Shark ruling). No open questions. Owner feedback wanted on the AI's judgement weights, e.g. a
 healthy lone cruiser facing three full enemy cruisers disengages under the current model.

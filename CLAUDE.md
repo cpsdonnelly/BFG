@@ -124,8 +124,9 @@ Cruisers. Ships using rules the engine can't play yet
   discount for the longer path); attack craft turn freely, guided torpedoes only within 45
   degrees, standard ones run straight. Strike targeting uses it, and AI craft really fly the
   detour (`ordnance.craft_target_point` returns the waypoint for AI-owned craft heading for a
-  ship; a human's craft go straight at the target given). Not yet: torpedo launch headings
-  aimed down a clear lane, routes with more than one waypoint.
+  ship; a human's craft go straight at the target given). Torpedo launch headings take the
+  clearest lane to the target and never pass through friendly ships (`AIPlayer._torp_lane`).
+  Not yet: routes with more than one waypoint.
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
 - **Bought torpedo types** (Imperial Navy, Chaos: "+5 per torpedo strength", **capital ships
@@ -469,7 +470,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1027 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1030 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -557,6 +558,7 @@ points to):
   catastrophic damage was never re-rolled.
 - AI CAP vs strikes fleet-wide across carriers (`AIPlayer._plan_fleet_defence`; tests in
   `tests/test_waves.py`): one fighter per salvo from the carrier whose strike loses least.
+- AI torpedo lanes: clearest lane within the hit window, never through its own ships (s.15).
 - AI: existing CAP counts against launched threats on its ship; carriers keep bays loaded
   while nothing is within three craft moves (no enemy ordnance about).
 - AI CAP against enemy strikes not yet launched (`_anticipated_strike_slots`) and an exact
@@ -612,8 +614,15 @@ points to):
    keep their bays loaded (relaunching needs Reload Ordnance, s.15) while no enemy ship is
    within three moves of their fastest craft (the strike planner's reach) and no enemy
    ordnance is in play. Still to do here: a fuller option value of holding (next turn's
-   launch value vs the Reload Ordnance odds and the special order it costs); torpedo launch headings aimed down a clear lane and multi-waypoint
-   routes (`best_route` does one detour). Done: guided salvos use the launcher's real Ld in the
+   launch value vs the Reload Ordnance odds and the special order it costs); multi-waypoint
+   routes (`best_route` does one detour). Done: torpedo launch lanes (`AIPlayer._torp_lane`):
+   of the headings that still meet the target (intercept heading +/- the angle its base and
+   the marker's half width subtend) the AI aims down the one with the best path survival, and
+   never through its own ships (standard torpedoes attack the first ship they contact, friend
+   or foe, s.15; friends in contiguous base contact with the launcher are passed through,
+   boarding torpedoes ignore friends); a target with no friend-free lane isn't fired at
+   (`_best_torp_target`; `tests/test_ai_torpedo_lanes.py`). The path check is a line, so a
+   blast marker the marker's width would clip but the centre line misses isn't counted. Done: guided salvos use the launcher's real Ld in the
    hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
    Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest
    half-speed move along the path, taken when the hazard saved beats half the ship's

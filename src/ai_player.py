@@ -1716,9 +1716,44 @@ class AIPlayer:
             aim_x = target.x + tvx * t
             aim_y = target.y + tvy * t
         desired = math.degrees(math.atan2(aim_y - ship.y, aim_x - ship.x)) % 360
-        diff = signed_angle_diff(desired, ship.heading)
-        diff = max(-45.0, min(45.0, diff))
-        return (ship.heading + diff) % 360
+        return self._torp_lane(ship, weapon, target, desired,
+                               math.hypot(aim_x - ship.x, aim_y - ship.y))[0]
+
+    def _torp_lane(self, ship: Ship, weapon: Dict, target: Ship, desired: float,
+                   dist: float):
+        """(heading, lane score) for a straight salvo aimed at `target`: of the
+        headings that still meet it (the intercept heading +/- the angle its base
+        and the marker's half width subtend, s.15), the one with the best path:
+        survival past blast markers and phenomena (ordnance_path_survival) and
+        never through a friendly ship first (standard torpedoes attack the first
+        ship they contact, friend or foe, s.15; ships in contiguous base contact
+        with the launcher are passed through, boarding torpedoes ignore friends,
+        s.16). Score 0 means every lane hits a friend. Clamped to the 45-degree
+        launch arc either side of the heading."""
+        from .geometry import torpedo_first_contact, TORP_BODY_HALF_W_CM
+        from .ordnance import compute_torpedo_launch_exempt
+        from .ai_hazards import ordnance_path_survival
+        gs = self.gs
+        dist = max(dist, 1.0)
+        window = math.degrees(math.atan((target.base_radius + TORP_BODY_HALF_W_CM) / dist))
+        friendly_ok = weapon.get("torpedo_type") == "boarding"
+        exempt = set(compute_torpedo_launch_exempt(ship, gs))
+        friends = [] if friendly_ok else [
+            f for f in gs.get_ships() if f.player == self.player and f.id not in exempt
+            and not f.is_destroyed and not f.is_disengaged]
+        best = None
+        for frac in (0.0, -0.3, 0.3, -0.6, 0.6, -0.85, 0.85):
+            diff = signed_angle_diff((desired + frac * window) % 360, ship.heading)
+            h = (ship.heading + max(-45.0, min(45.0, diff))) % 360
+            ex = ship.x + dist * math.cos(math.radians(h))
+            ey = ship.y + dist * math.sin(math.radians(h))
+            score = ordnance_path_survival(ship.x, ship.y, ex, ey, gs, "torpedo")
+            if any(torpedo_first_contact(f.x, f.y, f.base_radius, ship.x, ship.y,
+                                         ex, ey, h) for f in friends):
+                score = 0.0
+            if best is None or score > best[1] + 1e-9:
+                best = (h, score)
+        return best
 
     def _best_torp_target(self, ship: Ship, weapon: Dict,
                           enemies: List[Ship]) -> Optional[Ship]:
@@ -1773,6 +1808,10 @@ class AIPlayer:
                 else:
                     surv = straight
                 hits *= surv
+                # Never through our own ships (s.15): the clearest lane, or nothing
+                if self._torp_lane(ship, weapon, e, math.degrees(math.atan2(
+                        e.y - ship.y, e.x - ship.x)) % 360, ship.distance_to(e))[1] <= 0:
+                    return (-1.0, 0.0)
                 px, py = self._predict_ship_pos(e)
                 both = (check_weapon_in_arc(ship, weapon, e.x, e.y)
                         and check_weapon_in_arc(ship, weapon, px, py))
@@ -1780,6 +1819,8 @@ class AIPlayer:
                         * (1.0 if both else 0.6) * travel_discount(ship.distance_to(e), speed),
                         hits)
             best = max(candidates, key=lambda e: score(e)[0])
+            if score(best)[0] < 0:
+                return None                     # every lane runs into a friendly ship
             committed[best.id] = committed.get(best.id, 0.0) + score(best)[1]
             self._ord_committed = committed
             return best
