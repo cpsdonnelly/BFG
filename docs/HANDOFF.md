@@ -41,7 +41,7 @@ session.
 
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
-does, with the judgement weights to tune), "To do" (agreed order, items 1-7), "Open questions"
+does, with the judgement weights to tune), "To do" (agreed order, items 1-8), "Open questions"
 (one: where To do 8 goes in the order) and every owner ruling. This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 
