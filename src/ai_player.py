@@ -1164,9 +1164,10 @@ class AIPlayer:
             tx, ty = target.x, target.y
             if math.hypot(tx - marker.x, ty - marker.y) > (marker.speed or 0) + target.base_radius:
                 from .ai_hazards import enemy_move_samples
-                ends = [p[-1] for p in enemy_move_samples(target)[0]]
-                tx = sum(e[0] for e in ends) / len(ends)
-                ty = sum(e[1] for e in ends) / len(ends)
+                paths = enemy_move_samples(target)[0]
+                wsum = sum(p.weight for p in paths) or 1.0
+                tx = sum(p.weight * p[-1][0] for p in paths) / wsum
+                ty = sum(p.weight * p[-1][1] for p in paths) / wsum
             dx = tx - marker.x
             dy = ty - marker.y
             desired = math.degrees(math.atan2(dy, dx)) % 360
@@ -1817,6 +1818,7 @@ class AIPlayer:
         turn and the enemy's (then the longer-range intercept is used)."""
         from .ai_hazards import (enemy_move_samples, seg_first_contact, path_touches,
                                  TORP_CONTACT_HALF_W, DODGE_WEIGHT, torpedo_path_survival,
+                                 LATER_TURN_WEIGHT,
                                  torpedo_salvo_hits, added_vp, p_hit, p_sum_at_most)
         from .ordnance import compute_torpedo_launch_exempt
         gs = self.gs
@@ -1919,23 +1921,51 @@ class AIPlayer:
                         v += added_vp(o, gs, committed.get(o.id, 0.0), hh, shields=False)
                         hit = True
                     lft -= hh
-                return hit, v
+                if hit or lft <= 0:
+                    return (1.0 if hit else 0.0), v
+                # Missed this turn: the salvo runs on (P2 -> P3 in our next
+                # ordnance phase while the target sits at E, P3 -> P4 in the
+                # enemy's), and the target carries on along its course for a mean
+                # move. A receding target is chased down the lane; an abeam one
+                # that was missed stays missed. Weighted LATER_TURN_WEIGHT: it
+                # sees the salvo coming and the course is a guess
+                fh = (math.atan2(path[-1][1] - path[-2][1], path[-1][0] - path[-2][0])
+                      if len(path) > 1 else math.radians(target.heading))
+                mv = 0.75 * (target.effective_speed or 0)
+                e2 = (ex + mv * math.cos(fh), ey + mv * math.sin(fh))
+                p3 = (p2[0] + speed * c, p2[1] + speed * sn)
+                p4 = (p3[0] + speed * c, p3[1] + speed * sn)
+                if (seg_first_contact(p2[0], p2[1], p3[0], p3[1], ex, ey, rt) is not None
+                        or path_touches([(ex, ey), e2], p3[0], p3[1], rt)
+                        or seg_first_contact(p3[0], p3[1], p4[0], p4[1], e2[0], e2[1], rt)
+                        is not None):
+                    hh = torpedo_salvo_hits(lft, target, gs, from_xy)
+                    v += LATER_TURN_WEIGHT * added_vp(target, gs, committed.get(target.id, 0.0),
+                                                      hh, shields=False)
+                    return LATER_TURN_WEIGHT, v
+                return 0.0, v
             outs_n = [outcome(p) for p in normal]
             outs_d = [outcome(p) for p in dodge]
-            mean_v = sum(v for _h, v in outs_n) / len(outs_n)
-            mean_p = sum(1.0 for hh, _v in outs_n if hh) / len(outs_n)
-            miss_n = [v for hh, v in outs_n if not hh]
-            miss_d = [v for hh, v in outs_d if not hh]
+            wts = [getattr(p, "weight", 1.0) for p in normal]
+            wsum = sum(wts) or 1.0
+            mean_v = sum(w * v for w, (_h, v) in zip(wts, outs_n)) / wsum
+            mean_p = sum(w * hh for w, (hh, _v) in zip(wts, outs_n)) / wsum
+            # A dodge is any move that escapes this turn's hit; the enemy takes the
+            # one worst for us (a later-turn catch still counts, discounted)
+            miss_n = [(v, hh) for hh, v in outs_n if hh < 1.0]
+            miss_d = [(v, hh) for hh, v in outs_d if hh < 1.0]
             if miss_n:
-                dv, dp = min(miss_n), 0.0
+                dv, dp = min(miss_n)
             elif miss_d:
-                dv = p_pass * min(miss_d) + (1 - p_pass) * mean_v
-                dp = 1 - p_pass
+                mv_, mp_ = min(miss_d)
+                dv = p_pass * mv_ + (1 - p_pass) * mean_v
+                dp = p_pass * mp_ + (1 - p_pass) * mean_p
             else:
                 dv, dp = mean_v, 1.0
             value = (1 - DODGE_WEIGHT) * mean_v + DODGE_WEIGHT * dv + base_v
             p_h = (1 - DODGE_WEIGHT) * mean_p + DODGE_WEIGHT * dp
             value *= torpedo_path_survival(ship.x, ship.y, p2[0], p2[1], gs)
+            p_h *= torpedo_path_survival(ship.x, ship.y, p2[0], p2[1], gs)
             if best is None or value > best["value"] + 1e-9:
                 best = {"heading": h, "value": value, "p_hit": p_h, "lost": lost,
                         "hits": torpedo_salvo_hits(strength, target, gs, from_xy)}

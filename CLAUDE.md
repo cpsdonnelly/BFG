@@ -471,7 +471,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1037 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1038 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -643,13 +643,17 @@ points to):
    else by an order at its Leadership odds; a salvo parked within its minimum move ahead can
    only be escaped that way (owner). The heading worth most in expected VP is taken (friendly
    ships are static until our turn, so every one touched on P0 -> P2 costs its damage's VP;
-   other enemies in the lane soak strength, their VP is left to their own plans). Result: a
-   closing target is easiest close in (0.64 vs 0.32 abeam at 40cm, a speed-20 Ld 8 cruiser),
-   about level with abeam near 50cm (its 45-degree turn sidesteps the lane), easier again at
-   60cm; receding hardest (`tests/test_ai_torpedo_lead.py`). Owner: target size matters.
+   other enemies in the lane soak strength, their VP is left to their own plans). A salvo
+   that misses this turn runs on: the target continues its course for a mean move and a
+   catch on the salvo's second turn counts at `LATER_TURN_WEIGHT` 0.5 (judgement; it sees the
+   salvo coming). Sampled moves are weighted 40% holding course, 15% each of the four turns
+   (`MOVE_TURN_WEIGHTS`, judgement). Owner: closing easiest, abeam hardest, receding in
+   between. Result for a speed-20 Ld 8 cruiser: at 40cm closing 0.64, receding 0.34, abeam
+   0.32; from about 45cm a receding ship is out of this turn's reach and only caught on the
+   second turn (0.21 at 50cm vs 0.32 abeam, 0.34 closing) (`tests/test_ai_torpedo_lead.py`). Owner: target size matters.
    Every contact uses the ship's own base (large 60mm, radius 3.0cm, s.4: battleships, 3+
    shields or 10+ hits; small 32mm, 1.6cm) plus the marker's half width, so large bases are
-   easier to hit (abeam at 50cm 0.41 vs 0.32), and a closing battleship, straight for 15cm
+   easier to hit (abeam at 50cm, before the course prior: 0.41 vs 0.32), and a closing battleship, straight for 15cm
    before turning, can't sidestep (0.64 out to 60cm). The hazard maths for enemy torpedoes
    against our own ships uses the same contact width (`marker_hits`). Beyond that reach the intercept
    aim is kept (later turns are too uncertain). Turning salvos (Tau missiles, Ld-guided,

@@ -28,16 +28,36 @@ def _plan(tx, ty, theading, ld=8, speed=20):
     return plan
 
 
-def test_closing_target_easier_than_abeam():
-    """Close in, a closing ship can't avoid the parked salvo without Burn Retros;
-    further out its turn lets it sidestep about as well as an abeam ship's speed
-    spread does (about level near 50cm); at 60cm closing is easier again.
-    Receding targets are the hardest."""
+def test_closing_easiest_then_receding_then_abeam():
+    """Owner: closing is easiest, abeam hardest, receding in between (a
+    receding ship's speed spread lies along the lane, an abeam one's across
+    it). Close in, a closing ship can't avoid the parked salvo without Burn
+    Retros. Further out a receding ship is only caught on the salvo's second
+    turn, which counts at LATER_TURN_WEIGHT."""
     for x in (40.0, 60.0):
         closing, abeam = _plan(x, 0.0, 180.0), _plan(x, 0.0, 90.0)
         assert closing["p_hit"] > abeam["p_hit"] > 0
         assert closing["value"] > abeam["value"]
-    assert _plan(45.0, 0.0, 0.0)["p_hit"] < _plan(45.0, 0.0, 90.0)["p_hit"]
+    for x in (35.0, 40.0):
+        closing, receding, abeam = (_plan(x, 0.0, 180.0), _plan(x, 0.0, 0.0),
+                                    _plan(x, 0.0, 90.0))
+        assert closing["p_hit"] > receding["p_hit"] > abeam["p_hit"]
+
+
+def test_receding_target_caught_on_the_second_turn():
+    """Out of this turn's reach, a receding ship is still chased down the lane:
+    torpedoes move 60cm a turn against its 10-20cm."""
+    from src.ai_hazards import LATER_TURN_WEIGHT
+    plan = _plan(50.0, 0.0, 0.0)
+    assert 0 < plan["p_hit"]
+    import src.ai_hazards as hz
+    old = hz.LATER_TURN_WEIGHT
+    try:
+        hz.LATER_TURN_WEIGHT = 0.0
+        assert _plan(50.0, 0.0, 0.0)["p_hit"] < plan["p_hit"]
+    finally:
+        hz.LATER_TURN_WEIGHT = old
+    assert LATER_TURN_WEIGHT == old
 
 
 def test_abeam_target_is_led():

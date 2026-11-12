@@ -568,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1037 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1038 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -663,8 +663,9 @@ Latest items, newest last:
   (`ai_hazards.enemy_move_samples`: minimum move, turning distance, Burn Retros / AAF dodges)
   and scores each heading over the launch move, the enemy's movement (running into the
   parked salvo) and the enemy's ordnance phase; `DODGE_WEIGHT` 0.5 is judgement (owner
-  feedback welcome). Closing targets are easiest close in, receding hardest, abeam and
-  closing about level near 50cm for a speed-20 cruiser. Torpedo path hazards now use the
+  feedback welcome). Owner: closing easiest, abeam hardest, receding between. Built with a
+  second-turn horizon (`LATER_TURN_WEIGHT` 0.5) and a course prior (`MOVE_TURN_WEIGHTS`: 40%
+  straight, 15% each turn); at 40cm: closing 0.64, receding 0.34, abeam 0.32. Torpedo path hazards now use the
   marker's width (`torpedo_path_survival`). Turning salvos steer ahead of their target.
   Owner: target size; contacts use each ship's base (large bases easier to hit; closing
   battleships, 15cm before turning, can't sidestep), in our aim and in `marker_hits`.

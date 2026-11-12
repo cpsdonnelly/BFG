@@ -990,6 +990,9 @@ def best_route(x1: float, y1: float, x2: float, y2: float, gs, kind: str = "craf
 TORP_CONTACT_HALF_W = 1.25        # half the torpedo marker's width (geometry)
 # Chance a target that could dodge does (it has other aims too): judgement
 DODGE_WEIGHT = 0.5
+# A catch on the salvo's second turn counts at this weight: the target sees it
+# coming and its course after this move is a guess (judgement)
+LATER_TURN_WEIGHT = 0.5
 
 
 def seg_first_contact(x0, y0, x1, y1, cx, cy, radius):
@@ -1027,6 +1030,17 @@ def turn_distance(ship) -> float:
     return 15.0 if ship.ship_type == "battleship" else 10.0
 
 
+class _Path(list):
+    """A sampled move: a polyline with a prior weight."""
+    weight = 1.0
+
+
+# Prior on a sampled normal move: holding course vs each of the four turns
+# (judgement; owner: a receding target sits between closing and abeam, which
+# needs ships to hold course more often than any one turn)
+MOVE_TURN_WEIGHTS = (0.4, 0.15)
+
+
 def enemy_move_samples(ship):
     """Polylines for `ship`'s next movement: (normal, dodge). Normal moves go
     half to full speed, turning up to its turn angle after its turning
@@ -1036,7 +1050,7 @@ def enemy_move_samples(ship):
     spd = ship.effective_speed or 0
     start = (ship.x, ship.y)
     if ship.is_hulk or spd <= 0:
-        return [[start]], []
+        return [_Path([start])], []
     ta = getattr(ship, "turn_angle", 45) or 45
     dt = turn_distance(ship)
 
@@ -1046,16 +1060,17 @@ def enemy_move_samples(ship):
         p1 = (ship.x + first * _m.cos(h), ship.y + first * _m.sin(h))
         rest = dist - first
         if rest <= 0:
-            return [start, p1]
+            return _Path([start, p1])
         h2 = h + _m.radians(turn)
-        return [start, p1, (p1[0] + rest * _m.cos(h2), p1[1] + rest * _m.sin(h2))]
+        return _Path([start, p1, (p1[0] + rest * _m.cos(h2), p1[1] + rest * _m.sin(h2))])
     normal = []
     for d in sorted({spd / 2.0, 0.75 * spd, float(spd)}):
         for turn in (-ta, -ta / 2.0, 0.0, ta / 2.0, ta):
             if turn and d <= dt:
                 continue
             normal.append(poly(d, turn, dt))
-    dodge = [poly(d, turn, 0.0) if d else [start]
+            normal[-1].weight = MOVE_TURN_WEIGHTS[0 if not turn else 1]
+    dodge = [poly(d, turn, 0.0) if d else _Path([start])
              for d in (0.0, spd / 4.0, spd / 2.0) for turn in (-ta, 0.0, ta)
              if d or not turn]
     dodge.append(poly(spd + 14.0, 0.0, spd + 14.0))
