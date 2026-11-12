@@ -200,3 +200,32 @@ def test_bombers_join_the_missiles():
     joined = {t: ai._strike_option(s, cts, 4, [gs.get_ship_by_id(t)])[0] for t in ("a", "b")}
     assert abs(alone["a"] - alone["b"]) < 1e-6
     assert joined["a"] > joined["b"] == alone["b"]
+
+
+def test_wave_in_flight_avoids_the_enemy_umbrella():
+    """Craft already flying are re-targeted with the same interception cases
+    as planned strikes (ai_hazards.interception_cases): reactive CAP from the
+    target, other carriers' launches and fighters already flying. A bomber wave
+    in flight between two equal targets goes for the one outside a loaded
+    enemy carrier's fighter reach."""
+    from tests.conftest import make_marker
+    from src.ai_hazards import plan_strike_targets
+    covered = make_ship(id="covered", player=2, x=50.0, y=20.0, heading=90.0, speed=0,
+                        turrets=2, armor_prow="5+", armor_side="5+", points_value=180)
+    open_ = make_ship(id="open", player=2, x=50.0, y=-20.0, heading=90.0, speed=0,
+                      turrets=2, armor_prow="5+", armor_side="5+", points_value=180)
+    me = make_ship(id="me", player=1, x=-60.0, y=0.0, heading=0.0, speed=0)
+    fbay = {"name": "Launch Bays", "weapon_type": "launch_bay", "range_cm": 30,
+            "strength": 6, "arcs": [], "craft_types": ["fury_fighter"],
+            "craft_speeds": {"fury_fighter": 30}}
+    cv = make_ship(id="cv", player=2, x=40.0, y=25.0, heading=90.0, speed=0,
+                   weapons=[fbay], points_value=150)
+    for with_carrier, expect in ((False, None), (True, "open")):
+        gs = make_gs([me, covered, open_] + ([cv] if with_carrier else []))
+        for i in range(4):
+            gs.add_ordnance(make_marker(id=f"b{i}", ordnance_type="bomber", owner_player=1,
+                                        x=0.0, y=0.0, speed=20, wave_id="w1"))
+        plan = plan_strike_targets(gs, 1)
+        assert set(plan) == {"b0", "b1", "b2", "b3"}
+        if expect:
+            assert set(plan.values()) == {expect}

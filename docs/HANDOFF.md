@@ -680,6 +680,9 @@ Latest items, newest last:
   to `CRIT_HORIZON` 3 and the turn limit (two more end phases of repairs each, a turn's more
   movement in the reach, `phase_weight`); Wings of Fury decisions in the tests are unchanged, a
   weapon out of reach next phase is now worth a little (`tests/test_raid_reroll_value.py`).
+- Built (To do 2): craft already in flight are re-targeted with the same interception cases as
+  planned strikes (reactive CAP, other carriers' launches, fighters flying;
+  `ai_hazards.interception_cases`), so a wave in flight avoids an enemy carrier's umbrella.
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.
@@ -813,8 +816,7 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    winning, not expected VP alone). Built: arrival
    phase and landing turn, enemy guns on the way, reactive CAP / intercept / fighters in
    flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles. Left:
-   splitting waves against enemy guns, a risk preference, the expert AI valuing craft in flight, reactive CAP for craft already in
-   flight.
+   splitting waves against enemy guns, a risk preference, the expert AI valuing craft in flight.
 3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
    Sharks per the owner ruling) and the AI changes they need.
 4. Named commanders, Mark of Chaos Undivided, daemonships, Stormbirds, god-fleet boons, Ork

@@ -473,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1078 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1079 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -734,8 +734,11 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    speed the bombers still edge it); an enemy carrier holding loaded fighters 35cm away makes
    our strike land after its guns and CAP, so CAP for our weak friend wins, while from within
    one bomber move the full wave wins. Crit values beyond the next shooting phase: built
-   (see "Wings of Fury re-rolls"). Still to do here: splitting waves against enemy guns, a risk preference, the expert AI valuing craft
-   in flight, reactive CAP for craft already in flight.
+   (see "Wings of Fury re-rolls"). Reactive CAP for craft already in flight: built (in-flight
+   craft are re-targeted with the same interception cases, `ai_hazards.interception_cases`,
+   shared by `_strike_option` and `plan_strike_targets`; `tests/test_ai_air_doctrine.py`).
+   Still to do here: splitting waves against enemy guns, a risk preference, the expert AI valuing craft
+   in flight.
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
    owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the

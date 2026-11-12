@@ -1507,8 +1507,7 @@ class AIPlayer:
         options = []
         self._strike_phase = {}
         from .ai_hazards import (best_route, phase_weight, strike_timeline,
-                                 REACTIVE_CAP_WEIGHT, AIRBORNE_INTERCEPT_WEIGHT,
-                                 _predicted_positions)
+                                 interception_cases, _predicted_positions)
         for target in targets:
             base_inputs = wave_plan_inputs(target, self.gs)
             # craft may fly round obstacles (owner): best of straight line / detours
@@ -1543,14 +1542,8 @@ class AIPlayer:
                         # like CAP (s.19 / s.25): the target's CAP and other
                         # carriers' launches (REACTIVE_CAP_WEIGHT), fighters
                         # already flying (AIRBORNE_INTERCEPT_WEIGHT); every mix
-                        react = tl["reactive_cap"] + tl.get("reactive_intercept", 0)
-                        air = tl.get("airborne_intercept", 0)
-                        r_cases = ([(REACTIVE_CAP_WEIGHT, react), (1 - REACTIVE_CAP_WEIGHT, 0)]
-                                   if react else [(1.0, 0)])
-                        a_cases = ([(AIRBORNE_INTERCEPT_WEIGHT, air),
-                                    (1 - AIRBORNE_INTERCEPT_WEIGHT, 0)] if air else [(1.0, 0)])
-                        caps = [(pr * pa, dict(base_inputs, cap=base_inputs["cap"] + er + ea))
-                                for pr, er in r_cases for pa, ea in a_cases]
+                        caps = [(w, dict(base_inputs, cap=base_inputs["cap"] + ec))
+                                for w, ec in interception_cases(tl)]
                         disc = route[1] * tl["survival"] * phase_weight(tl["phase"] + offset)
                         tls[spd] = (tl, disc, caps)
                 return tls[spd]

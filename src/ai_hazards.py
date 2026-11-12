@@ -737,15 +737,32 @@ def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy) -> float:
 
 
 def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,
-                      f_save: int = 0, b_save: int = 0) -> float:
+                      f_save: int = 0, b_save: int = 0, extra_cap: int = 0) -> float:
     """Expected bomber hits of a wave on `target` (waves.wave_split_value with
-    the target's turrets, massed turrets, CAP and Armour)."""
+    the target's turrets, massed turrets, CAP (+ `extra_cap` interceptors met
+    on the way) and Armour)."""
     from .waves import wave_plan_inputs, wave_split_value
     inp = wave_plan_inputs(target, gs)
     p = (7 - (5 if inp.get("ork") else 4)) / 6.0
     t = inp["turrets"]
-    return wave_split_value(n_fighters, n_bombers, t, t + inp["massed"], inp["cap"],
-                            inp["armour"], p, f_save, b_save, inp["cap_save"])
+    return wave_split_value(n_fighters, n_bombers, t, t + inp["massed"],
+                            inp["cap"] + extra_cap, inp["armour"], p, f_save, b_save,
+                            inp["cap_save"])
+
+
+def interception_cases(tl: dict) -> list:
+    """[(probability, extra interceptors)] a strike meets on the way, from its
+    strike_timeline: the target's reactive CAP and other enemy carriers'
+    launches (REACTIVE_CAP_WEIGHT), enemy fighters already flying
+    (AIRBORNE_INTERCEPT_WEIGHT); every mix of the two. Each interceptor meets
+    the wave's lead like CAP (s.19 / s.25)."""
+    react = tl.get("reactive_cap", 0) + tl.get("reactive_intercept", 0)
+    air = tl.get("airborne_intercept", 0)
+    r_cases = ([(REACTIVE_CAP_WEIGHT, react), (1 - REACTIVE_CAP_WEIGHT, 0)]
+               if react else [(1.0, 0)])
+    a_cases = ([(AIRBORNE_INTERCEPT_WEIGHT, air), (1 - AIRBORNE_INTERCEPT_WEIGHT, 0)]
+               if air else [(1.0, 0)])
+    return [(pr * pa, er + ea) for pr, er in r_cases for pa, ea in a_cases]
 
 
 # Owner: damage sooner beats damage later (the target can dodge, repair, be
@@ -790,7 +807,8 @@ def plan_strike_targets(gs, player: int) -> dict:
     each wave (or lone squadron) goes to the enemy ship it adds the most to,
     counting what earlier groups are planned to do there, valued when it lands
     (strike_timeline: arrival phase, enemy guns on the way, the raid's repair
-    window). Fighters in a wave follow it. Returns
+    window, every interception case on the way: reactive CAP and intercept,
+    fighters already flying). Fighters in a wave follow it. Returns
     {marker id: target ship id}."""
     import math as _m
     from .models import OrdnanceMarker
@@ -827,13 +845,22 @@ def plan_strike_targets(gs, player: int) -> dict:
             if tl is None:
                 continue
             c = committed.get(e.id, 0.0)
-            hits = strike_group_hits(f, b, e, gs) if b else 0.0
-            v = hull_hits_vp(e, gs, c, hits) if hits else 0.0
+            # every interception case on the way: the target's reactive CAP,
+            # other carriers' launches, fighters already flying (as planned
+            # strikes, _strike_option)
+            cases = interception_cases(tl)
+            hits = v = 0.0
+            if b:
+                for w, ec in cases:
+                    h = strike_group_hits(f, b, e, gs, extra_cap=ec)
+                    hits += w * h
+                    v += w * (hull_hits_vp(e, gs, c, h) if h else 0.0)
             if a or mr:
                 inp = wave_plan_inputs(e, gs)
                 p = (7 - (5 if inp.get("ork") else 4)) / 6.0
                 n = a + len(mr)
-                through = expected_survivors(n, inp["turrets"] + inp["massed"], inp["cap"], p)
+                through = sum(w * expected_survivors(n, inp["turrets"] + inp["massed"],
+                                                     inp["cap"] + ec, p) for w, ec in cases)
                 per = raid_squadron_value(e, gs, player, lead.special_rules or [],
                                           end_phases=tl["end_phases"])
                 if mr and getattr(gs, "rule_hit_and_run", True):
