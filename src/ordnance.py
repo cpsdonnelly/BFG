@@ -781,8 +781,7 @@ def resolve_bomber_interception(bomber_count: int,
 def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
                           dice: DiceRoller, game_state: GameState,
                           suppressed_by_fighter: bool = False,
-                          remastered_fighter_bonus: int = 0,
-                          remastered_bomber_cap: int = 1) -> Dict:
+                          bonus_attacks: int = 0) -> Dict:
     """
     Resolve bomber attack. D6 attacks per squadron vs lowest armor. Bypasses shields.
 
@@ -793,7 +792,9 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
 
     Turret suppression modes:
       XR (default): suppressed_by_fighter=True → exactly 3 attacks, turrets bypassed.
-      Remastered:   remastered_fighter_bonus added to D6 roll, capped at remastered_bomber_cap.
+      Remastered p.82: the wave's fighter bonus (waves.ship_attack_plan "bonus")
+      is added once, as `bonus_attacks`, on top of one bomber's normal D6 -
+      turrets (minimum 0 before the bonus).
     """
     result = {"attacks": 0, "hits": 0, "turret_reduction": 0, "suppressed": False}
 
@@ -824,18 +825,14 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
         mark_turrets_used(target, "craft", game_state)
 
         attack_roll = dice.roll_d6(1, f"Bomber attacks on {target.name}")[0]
-
-        if remastered_fighter_bonus > 0:
-            # Remastered mode: add fighter bonus, cap at total attacking bombers
-            raw = attack_roll + remastered_fighter_bonus
-            total_attacks = max(0, min(raw, remastered_bomber_cap) - turret_reduction)
+        total_attacks = max(0, attack_roll - turret_reduction)
+        if bonus_attacks > 0:
+            # Remastered p.82: the wave's fighters add their attacks on top
+            total_attacks += bonus_attacks
             game_state.add_log(
-                f"  Remastered suppression: roll {attack_roll} "
-                f"+{remastered_fighter_bonus} fighters "
-                f"(cap {remastered_bomber_cap}) - {turret_reduction} turrets "
+                f"  Remastered suppression: roll {attack_roll} - {turret_reduction} "
+                f"turrets + {bonus_attacks} from the wave's fighters "
                 f"= {total_attacks} attacks")
-        else:
-            total_attacks = max(0, attack_roll - turret_reduction)
 
         result["turret_reduction"] = turret_reduction
 

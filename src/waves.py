@@ -152,7 +152,8 @@ def wave_label(ms: List[OrdnanceMarker]) -> str:
 
 
 def ship_attack_plan(group: List[OrdnanceMarker], turret_kills: int,
-                     mr_suppress: Optional[Dict[str, bool]] = None) -> Dict:
+                     mr_suppress: Optional[Dict[str, bool]] = None,
+                     remastered: Optional[bool] = None) -> Dict:
     """How a wave (or a lone squadron) attacking a ship resolves after the
     ship's turrets fire once at it (s.25, s.27).
 
@@ -163,8 +164,37 @@ def ship_attack_plan(group: List[OrdnanceMarker], turret_kills: int,
 
     Returns {"killed": [ids], "attackers": [markers], "suppressors": n,
     "suppressed": set of bomber ids making exactly 3 (4) attacks,
-    "removed_after": [ids of every marker in the group]}."""
+    "removed_after": [ids of every marker in the group],
+    "bonus": Remastered bonus attacks for the wave, "bonus_to": the bomber id
+    that carries them}.
+
+    Remastered mode (`remastered`, default the Advanced setting via
+    optional_rules; owner: follow Remastered p.82 exactly): turrets remove
+    fighters before any other ordnance; each fighter in the wave that reached
+    the ship (CAP-intercepted ones are already gone; shot down by turrets or
+    not) adds +1 attack to the wave's total, capped at the bombers surviving
+    turret fire and only with at least one; the bombers roll their normal
+    D6 - turrets. No fixed 3 attacks in this mode (that is XR, s.27)."""
     mr_suppress = mr_suppress or {}
+    if remastered is None:
+        from .optional_rules import remastered_suppression
+        remastered = remastered_suppression()
+    if remastered:
+        def _is_fighter(m):
+            roles = _roles(m)
+            return set(roles) == {"fighter"} or (mr_suppress.get(m.id) and "bomber" in roles)
+        fighters_in = [m for m in group if _is_fighter(m)]
+        group = fighters_in + [m for m in group if m not in fighters_in]   # turrets take fighters first
+        killed = group[:turret_kills]
+        alive = group[turret_kills:]
+        attackers = [m for m in alive if not _is_fighter(m)
+                     and any(r in _roles(m) for r in ("bomber", "assault_boat"))]
+        bombers = [m for m in attackers if "bomber" in _roles(m)]
+        bonus = min(len(fighters_in), len(bombers)) if bombers else 0
+        return {"killed": [m.id for m in killed], "attackers": attackers,
+                "suppressors": len(fighters_in), "suppressed": set(),
+                "removed_after": [m.id for m in group], "bonus": bonus,
+                "bonus_to": bombers[0].id if bonus else None}
     killed = group[:turret_kills]
     alive = group[turret_kills:]
     suppressors = []
@@ -185,7 +215,7 @@ def ship_attack_plan(group: List[OrdnanceMarker], turret_kills: int,
     suppressed = {m.id for m in bombers[:len(suppressors)]}
     return {"killed": [m.id for m in killed], "attackers": attackers,
             "suppressors": len(suppressors), "suppressed": suppressed,
-            "removed_after": [m.id for m in group]}
+            "removed_after": [m.id for m in group], "bonus": 0, "bonus_to": None}
 
 
 def mr_suppress_candidates(group: List[OrdnanceMarker]) -> List[OrdnanceMarker]:
@@ -285,7 +315,7 @@ def cap_survivors(fighters: int, bombers: int, cap: int, f_save: int = 0,
 
 def wave_split_value(fighters: int, bombers: int, turrets: int, shots: int, cap: int,
                      armour: int, p_turret: float = 0.5, f_save: int = 0,
-                     b_save: int = 0, cap_save: int = 0) -> float:
+                     b_save: int = 0, cap_save: int = 0, remastered: Optional[bool] = None) -> float:
     """Expected hits on a ship from a wave of `fighters` then `bombers` (s.25,
     s.27). Enemy CAP fighters intercept first (cap_survivors; resilient saves
     f_save / b_save / cap_save, 0 = none, s.23); then the turrets roll `shots`
@@ -297,6 +327,9 @@ def wave_split_value(fighters: int, bombers: int, turrets: int, shots: int, cap:
     from math import comb
     if bombers <= 0:
         return 0.0
+    if remastered is None:          # the Advanced setting (Remastered p.82 vs XR s.27)
+        from .optional_rules import remastered_suppression
+        remastered = remastered_suppression()
     ph = max(1, 7 - armour) / 6.0
     plain = sum(max(0, k - turrets) for k in range(1, 7)) / 6.0
     total = 0.0
@@ -307,8 +340,14 @@ def wave_split_value(fighters: int, bombers: int, turrets: int, shots: int, cap:
             lost = min(n, kills)                     # from the front: fighters first
             f_left = max(0, f0 - lost)
             b_left = b0 - max(0, lost - f0)
-            sup = min(f_left, b_left)
-            total += pw * pk * (sup * 3.0 + (b_left - sup) * plain) * ph
+            if remastered:
+                # Remastered p.82: every fighter that reached the ship adds +1
+                # attack to the wave, capped at the surviving bombers
+                bonus = min(f0, b_left) if b_left else 0
+                total += pw * pk * (b_left * plain + bonus) * ph
+            else:
+                sup = min(f_left, b_left)
+                total += pw * pk * (sup * 3.0 + (b_left - sup) * plain) * ph
     return total
 
 

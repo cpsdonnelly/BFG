@@ -35,14 +35,15 @@ session.
   `gui_spectator_sm.py normal`, `gui_ai_check.py` (its
   "Traceback ... boom" is a deliberate crash test). New this session: `torpedo_types_check`,
   `fleet_list_check`, `wave_check`, `combined_fire_check`; later: `combine_capital_check`,
-  `best_split_check`, `combine_split_check`, `cap_wave_check`, `teleport_ai_check`.
+  `best_split_check`, `combine_split_check`, `cap_wave_check`, `teleport_ai_check`,
+  `remastered_suppression_check`.
 
 ## Where things stand
 
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
 does, with the judgement weights to tune), "To do" (agreed order, items 1-8), "Open questions"
-(two: where To do 8 goes; the Remastered turret-suppression toggle) and every owner ruling. This file keeps the history: owner guidance in their words,
+(one: where To do 8 goes) and every owner ruling. This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 
 ## Earlier in the session (history; all committed and pushed)
@@ -466,7 +467,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session log (latest session, newest last; history)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1069 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1075 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -613,6 +614,11 @@ Latest items, newest last:
   attacks are still cut by the ship's own turrets (s.20: "still applies even if the defending
   ship fired its turrets at torpedoes or mines"). So against a high-turret ship bombers gain
   little from the split; missiles gain most when the turrets go to the bombers.
+- Owner ruling: keep the Remastered turret-suppression toggle and follow Remastered p.82
+  exactly (each fighter in the wave +1 attack to the wave's total, capped at surviving bombers,
+  needs one; shot-down fighters still count, CAP-intercepted ones don't; turrets take fighters
+  first; no fixed 3 attacks, that's XR only). Built and tested against p.82's two worked
+  examples; the planner and AI follow the mode (CLAUDE.md owner rulings).
 - Toggle audit (owner: check the other toggles too): boarding and ramming are gated for
   players and resolved only when on; Fighting Sunward / Solar Flares / Radiation Bursts (s.40)
   aren't built, their toggles do nothing (settings now says "not built yet", To do 6); the

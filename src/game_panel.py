@@ -620,6 +620,8 @@ class GamePanel:
             gs.blast_marker_rules = next(k for k, v in blast_labels.items()
                                          if v == blast_var.get())
             set_blast_rules(gs.blast_marker_rules)
+            from .optional_rules import set_suppression_rules
+            set_suppression_rules(gs.rule_turret_suppression_remastered)
             gs.rule_remastered_spillover = spill_var.get()
             # Scenario settings (only if not locked)
             if not locked:
@@ -681,6 +683,8 @@ class GamePanel:
                 self.ctx.gs.restore_from(GameState.load(d))
                 from .optional_rules import set_blast_rules
                 set_blast_rules(self.ctx.gs.blast_marker_rules)
+                from .optional_rules import set_suppression_rules
+                set_suppression_rules(self.ctx.gs.rule_turret_suppression_remastered)
                 self.ctx.dice.mode = self.ctx.gs.dice_mode
                 self.ctx.tc.reset_after_load()
             except Exception as exc:

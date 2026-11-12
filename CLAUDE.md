@@ -149,9 +149,23 @@ Cruisers. Ships using rules the engine can't play yet
   teleport and hit-and-run: above; Remastered blast markers / spill-over: settings mode, read
   by the engine. The AI attempts none of boarding / ramming yet. Fighting Sunward, Solar
   Flares and Radiation Bursts (s.40) are NOT built: their toggles do nothing (the settings
-  dialog now says "not built yet"; To do 6). The "Turret Suppression: Remastered mode" toggle
-  (engine: +1 per fighter on the attack roll, capped at the bombers; from an early commit) is
-  not in the booklet, whose s.27 is the XR rule (open question).
+  dialog now says "not built yet"; To do 6).
+- **Turret suppression, Remastered mode (owner ruling; Remastered p.82 is the source until the
+  booklet adds a "Remastered differs" note to s.27):** the Advanced toggle
+  (`rule_turret_suppression_remastered`, shared with the planner via
+  `optional_rules.set_suppression_rules`) is kept and follows p.82 exactly: each fighter in a
+  wave of bombers attacking a ship adds +1 attack to the wave's total attack run (not +1 to
+  each bomber's roll), whether or not turrets shoot that fighter down; the bonus can't exceed
+  the bombers surviving turret fire and needs at least one; fighters intercepted by defending
+  fighters / CAP add nothing; turrets remove fighters before any other ordnance; bombers still
+  roll D6 - turrets (minimum 0) with the bonus on top. No fixed-attack or re-roll bonus in this
+  mode: "exactly 3 attacks (4 for bombers that re-roll)" is XR only (s.27, XR p.32) and stays
+  the default. Code: `waves.ship_attack_plan(..., remastered)` (fighters first, "bonus" on one
+  bomber), `ordnance.resolve_bomber_attack(bonus_attacks=)`, `waves.wave_split_value` (the
+  wave planner and AI follow the mode). Tests: Remastered's two worked examples (Emperor wave
+  vs a 3-turret Devastation, no CAP, turrets kill three fighters: 3 bombers + 5 fighters ->
+  D6-3 each + 3; 4 + 4 -> D6-3 each + 4) in `tests/test_remastered_suppression.py` and
+  `tools/gui_checks/remastered_suppression_check.py`.
 - **Attack craft orders (s.18):** each squadron keeps a target (`craft_target_id`: enemy ship,
   enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
@@ -454,7 +468,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1069 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1075 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -484,8 +498,8 @@ it nor attempts it. Audit: hit-and-run is respected (`_strike_option`, `waves.be
 `ai_hazards`, and the craft types the AI launches); teleport attempts need `rule_teleport` and
 `rule_hit_and_run` (`check_teleport_eligibility`); boarding,
 ramming and teleport aren't valued anywhere yet, so every new term for them (To do 8 h, j)
-must check its flag; gap: the wave planner and AI value turret suppression the XR way even
-when `rule_turret_suppression_remastered` is on; the celestial-phenomena rules aren't modelled
+must check its flag; the wave planner and AI follow the turret suppression mode (XR / Remastered
+p.82, `waves.wave_split_value`); the celestial-phenomena rules aren't modelled
 by the AI yet (check their flags when they are).
 
 Values:
@@ -682,9 +696,7 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
 6. Smaller gaps: Fighting Sunward, Solar Flares and Radiation Bursts (s.40) aren't built (their
    toggles do nothing; the settings dialog says so), nor the +3 disengage Ld and the
-   commander re-roll limit they bring (s.5, s.37); the AI values turret suppression the XR way even with
-   `rule_turret_suppression_remastered` on (planner and AI should follow the mode chosen); the
-   +3 disengage Ld during a radiation burst / solar flare; undoing a Demiurg
+   commander re-roll limit they bring (s.5, s.37); undoing a Demiurg
    move doesn't return collected blast markers; a human player isn't stopped from not fleeing
    after a failed forced disengage (log reminder only).
 7. Scenarios and sub-plots, engine and AI (owner request: the AI must play scenario and sub-plot
@@ -845,10 +857,6 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- "Turret Suppression: Remastered mode" (an Advanced toggle from an early commit: fighters add
-  +1 each to a bomber's attack roll, capped at the number of bombers) isn't in the booklet,
-  whose turret suppression (s.27) is the XR rule (exactly 3 attacks per surviving fighter).
-  Keep the toggle (and if so, which source and wording?), or remove it?
 - Where To do 8 (matchup-aware manoeuvre) goes in the order: it is listed last for now, after
   items 2-7; the owner may want it sooner.
 

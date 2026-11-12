@@ -530,8 +530,11 @@ class OrdnanceMovementMixin:
                     len(group), s, ships, self.ctx.dice, self.ctx.gs)
                 for msg in p1["log"]:
                     self.ctx.log(msg)
-                plan = ship_attack_plan(group, p1["killed"], mr_suppress)
-                for m in group[:p1["killed"]]:
+                plan = ship_attack_plan(group, p1["killed"], mr_suppress,
+                                        self.ctx.gs.rule_turret_suppression_remastered)
+                by_id = {m.id: m for m in group}
+                for mid in plan["killed"]:      # (Remastered: fighters first)
+                    m = by_id[mid]
                     self.ctx.log(f"  {m.ordnance_type} [{m.id[:8]}] destroyed by turrets")
                     to_remove_after.add(m.id)
                 n_bombers = sum(1 for m in plan["attackers"]
@@ -540,9 +543,16 @@ class OrdnanceMovementMixin:
                     self._wave_plan[m.id] = {"ship": s.id,
                                              "suppressed": m.id in plan["suppressed"],
                                              "fighters": plan["suppressors"],
-                                             "bombers": n_bombers}
+                                             "bombers": n_bombers,
+                                             "bonus": (plan.get("bonus", 0)
+                                                       if m.id == plan.get("bonus_to") else 0)}
+                if plan.get("bonus"):
+                    self.ctx.log(f"  Remastered suppression: {plan['suppressors']} fighter(s) "
+                                 f"in the wave add {plan['bonus']} attack(s) (capped at "
+                                 f"{n_bombers} surviving bomber(s))")
                 if group[0].wave_id:
-                    if plan["suppressors"]:
+                    if plan["suppressors"] and not plan.get("bonus") and \
+                            not self.ctx.gs.rule_turret_suppression_remastered:
                         self.ctx.log(f"  {plan['suppressors']} fighter squadron(s) in the "
                                      f"wave suppress turrets for "
                                      f"{len(plan['suppressed'])} bomber squadron(s)")
@@ -654,24 +664,17 @@ class OrdnanceMovementMixin:
                     self.ctx.log(
                         f"  {marker.ordnance_type} attacks {s.name}!")
 
-                    # Turret suppression by fighters in the same wave (s.27)
-                    suppressing_fighters = plan["fighters"] if (
-                        plan["suppressed"] or self.ctx.gs.rule_turret_suppression_remastered) else 0
-                    total_bombers_on_target = plan["bombers"]
-
-                    if suppressing_fighters > 0:
-                        if self.ctx.gs.rule_turret_suppression_remastered:
-                            # Remastered: fighters add +1 to attack roll,
-                            # capped at total attacking bombers
-                            result = resolve_bomber_attack(
-                                marker, s, self.ctx.dice, self.ctx.gs,
-                                remastered_fighter_bonus=suppressing_fighters,
-                                remastered_bomber_cap=total_bombers_on_target)
-                        else:
-                            # XR default: this bomber gets exactly 3 attacks
-                            result = resolve_bomber_attack(
-                                marker, s, self.ctx.dice, self.ctx.gs,
-                                suppressed_by_fighter=True)
+                    # Turret suppression by fighters in the same wave: XR (s.27)
+                    # exactly 3 attacks for a suppressed bomber; Remastered p.82
+                    # the wave's fighter bonus once, on top of normal attacks
+                    if self.ctx.gs.rule_turret_suppression_remastered:
+                        result = resolve_bomber_attack(
+                            marker, s, self.ctx.dice, self.ctx.gs,
+                            bonus_attacks=plan.get("bonus", 0))
+                    elif plan["suppressed"]:
+                        result = resolve_bomber_attack(
+                            marker, s, self.ctx.dice, self.ctx.gs,
+                            suppressed_by_fighter=True)
                     else:
                         result = resolve_bomber_attack(
                             marker, s, self.ctx.dice, self.ctx.gs)

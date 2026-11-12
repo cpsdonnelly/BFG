@@ -22,6 +22,22 @@ def blast_rules() -> str:
     return _mode
 
 
+_remastered_suppression = False
+
+
+def set_suppression_rules(remastered: bool) -> None:
+    """Turret suppression mode (Advanced settings, `GameState.
+    rule_turret_suppression_remastered`): False = XR (s.27: a surviving fighter
+    gives one bomber exactly 3 attacks), True = Remastered p.82 (each fighter in
+    the wave adds +1 attack to the wave's total, capped at the surviving bombers)."""
+    global _remastered_suppression
+    _remastered_suppression = bool(remastered)
+
+
+def remastered_suppression() -> bool:
+    return _remastered_suppression
+
+
 _ships_source = None
 
 

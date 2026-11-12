@@ -62,6 +62,8 @@ class TurnController:
         self.dice = dice
         from .optional_rules import set_blast_rules, set_ship_source
         set_blast_rules(getattr(game_state, "blast_marker_rules", "standard"))
+        from .optional_rules import set_suppression_rules
+        set_suppression_rules(getattr(game_state, "rule_turret_suppression_remastered", False))
         set_ship_source(game_state.get_ships)
         self.save_dir = save_dir or os.path.join("saves", game_state.game_name)
         self.snapshots_dir = os.path.join(self.save_dir, "snapshots")
