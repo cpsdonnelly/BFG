@@ -514,7 +514,9 @@ manoeuvre. Its other phases are the normal AI's.
 - **Not built engine rules** the AI therefore can't use yet: Fighting Sunward, Solar Flares and
   Radiation Bursts (s.40; To do 6), torpedo bombers and mine launcher swaps (To do 3), several
   units (To do 5).
-- **Open question**: where the matchup-aware manoeuvre work (To do 8) goes in the order.
+- **Order of work** (owner): "the order isn't hugely important"; follow the dependencies
+  (exposure by Armour facing and range brackets, To do 8 a / 8 f, before the target-directed
+  candidates).
 
 **Approach** (owner feedback): compute, don't script. Build exposure by Armour facing (8 a) and
 range brackets (8 f) first and see what behaviour emerges before adding doctrine code (kiting

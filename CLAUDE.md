@@ -484,8 +484,9 @@ and the expected-VP AI below (incl. carrier doctrine, strikes valued when they l
 co-ordinated strikes, the AI's own teleports, Brace asked before each weapon of AI fire).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2, then 3-7, 9, 10 and 11; 8's place in the order is an open question;
-12 (learned evaluation) after 11; 1 (weight tuning) last and on hold.
+Next: the rest of To do 2, then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
+evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
+important; follow the dependencies.
 
 ### AI: how it decides (expected VP)
 
@@ -1182,10 +1183,10 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- Where To do 8 (matchup-aware manoeuvre) goes in the order: it isn't placed yet (the order
-  runs 2-7, 9, 10, 11, then 12 and 1); the owner may want it sooner. Note that 11 a's
-  target-directed candidates and 11 h both want 8 a (Armour facing) and 8 f (range brackets)
-  built first.
+None open. Answered: where To do 8 goes. Owner: "the order isn't hugely important". So follow
+the dependencies: build 8 a (Armour facing) and 8 f (range brackets) before 11 a
+(target-directed candidates) and 11 h, and the rest of 8 with or after them; otherwise the
+listed order is a guide, not a rule (1, weight tuning, stays last and on hold).
 
 Owner ruling (Tiger Sharks, Tau; for To do 3): Tiger Sharks follow the torpedo bomber rules in
 full, except that the salvo they produce is a Tau missile salvo (Xenos, Tiger Shark entry:

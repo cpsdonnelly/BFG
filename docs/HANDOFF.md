@@ -44,7 +44,7 @@ session.
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
 does, with the judgement weights to tune; its first part, "Fleet strategy", lists the owner's
 matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-12), "Open questions"
-(one: where To do 8 goes) and every owner ruling. `docs/AI_DESIGN.md` describes the whole AI,
+(none open now) and every owner ruling. `docs/AI_DESIGN.md` describes the whole AI,
 built and planned, in plain language (keep it in step with CLAUDE.md). This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 
@@ -677,7 +677,9 @@ Latest items, newest last:
 Next: the rest of CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-7, 9, 10
 and 11 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase
 salvos, the AI changes they need and the Tiger Shark ruling), then 12 (learned evaluation);
-item 1 (weight tuning) last and on hold. Item 8's place is the one open question.
+item 1 (weight tuning) last and on hold. Owner: "the order isn't hugely important"; follow
+the dependencies (8 a Armour facing and 8 f range brackets before 11 a's target-directed
+candidates), so item 8 is no longer an open question.
 
 ## Bombers vs assault boats (owner idea, done)
 
