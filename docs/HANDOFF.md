@@ -711,8 +711,9 @@ Latest items, newest last:
   replace the 15-degree heading steps; recorded as To do 11 a.
 
 Next: the rest of CLAUDE.md "To do" 2 (left: the risk preference in brace and strike choices;
-the expert AI valuing craft in flight), then items 3-7, 9, 10
-and 11 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase
+the expert AI valuing its own craft in flight), the rest of 11 a (more goals, refinement,
+the coordination pass; its prerequisites 8 a and 8 f are built), then items 3-7, 9, 10
+and the rest of 11 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase
 salvos, the AI changes they need and the Tiger Shark ruling), then 12 (learned evaluation);
 item 1 (weight tuning) last and on hold. Owner: "the order isn't hugely important"; follow
 the dependencies (8 a Armour facing and 8 f range brackets before 11 a's target-directed

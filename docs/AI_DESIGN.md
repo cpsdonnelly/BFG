@@ -104,8 +104,9 @@ hit-and-run off, assault boats, boarding torpedoes and teleports are off for eve
   at everything, so not against Orks.
 - **Enemy teleporters** (Planned, To do 8 j): stay out of their reach when our shields may be
   down and we don't out-hit them.
-- **Planned (To do 8 a)**: exposure should count which Armour facing the enemy sees (a 6+ prow
-  really is safer than a 5+ side). This is the first building block for the manoeuvre plans.
+- **Armour facing** (Built, To do 8 a): enemy batteries count against the Armour facing they
+  would hit at our end heading, so a 6+ prow really is safer than a 5+ side (lances hit on 4+
+  whatever the Armour). This is the first building block for the manoeuvre plans.
 
 ---
 
@@ -205,7 +206,7 @@ targets together. Each ship's guns go where they add most VP on top of what the 
 do, so one ship finishes a 1-hit enemy while the rest move on, and two healthy targets each get
 the ships needed to kill them rather than all piling on one.
 
-### Matchup-aware manoeuvre (Planned, To do 8; owner ideas, not hard rules)
+### Matchup-aware manoeuvre (To do 8; owner ideas, not hard rules; a and f built, the rest planned)
 
 - **a.** Exposure by Armour facing (prerequisite; **Built**): the enemy's batteries are scored
   against the Armour they would actually hit at our end heading, so ending prow-on to an enemy
@@ -346,8 +347,8 @@ shots. Each wave then faces the turrets alone, suppresses alone and gets half th
 AI splits only when the guns matter more than the turrets (e.g. under two gunships vs a
 1-turret target, not vs 4 turrets).
 
-Planned (To do 2): the risk preference, the expert AI valuing craft in flight; splitting
-assault boats or waves already in flight. (To do 3): torpedo bombers, whose waves become one combined salvo.
+Planned (To do 2): the risk preference in strike choices, the expert AI valuing its own craft
+in flight; splitting assault boats or waves already in flight. (To do 3): torpedo bombers, whose waves become one combined salvo.
 
 ---
 
@@ -384,10 +385,10 @@ Each ordnance phase the AI plans fighters across all its carriers:
   -45 / 0 / +45 per move, 20/30/40cm for Tau missiles), pruned to well under a second.
 - **Strikes**: every enemy within three craft moves x every fighter / bomber split x every
   interception case.
-- **Planned** (To do 11 a): target-directed candidates, about 20 per ship (goals for the top
-  1-3 targets plus a small fallback grid; a denser grid in crowded or hazard-dense fights or
-  small reachable areas), the best few refined by hill-climbing, exposure on the best ~20,
-  then a fleet coordination pass.
+- **Planned** (To do 11 a, the rest): more goals (Armour facing, out of arcs, torpedo lines,
+  raid reach, Lock On next turn, fleet-wide goals), a denser grid in crowded or hazard-dense
+  fights or small reachable areas, the best few refined by hill-climbing, exposure only on the
+  best ~20, then a fleet coordination pass.
 - **Expert AI movement**: for each ship, 9 candidate moves at the root, each followed by a
   minimax search 5 turns deep that tries 6 variations of each side's moves per step and keeps
   the best 4 (alpha-beta pruning), within 2 seconds per ship.
@@ -402,9 +403,10 @@ Each ordnance phase the AI plans fighters across all its carriers:
   phases) ahead with the time discount. Disengaging uses a one-turn horizon.
 - **Expert AI** (Built): simulates 5 turns of both sides moving and shooting, and stops at the
   game's turn limit.
-- **Planned**: the turn-limit risk preference (To do 2: play riskier when behind near the end,
-  safer when ahead); crit values over the turns they last (built: up to 3 of the target's shooting phases and the turn limit); scenario objectives over
-  the game (To do 7).
+- **Built since**: the turn-limit risk preference (the expert's chance-of-winning score, and the
+  normal AI's disengaging and re-rolls); crit values over up to 3 of the target's shooting
+  phases and the turn limit. **Planned**: the risk preference in brace and strike choices
+  (To do 2); scenario objectives over the game (To do 7).
 
 ---
 

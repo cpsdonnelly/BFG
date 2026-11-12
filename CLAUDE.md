@@ -486,11 +486,16 @@ blast marker rules, the turret split, waves / CAP / wave planner, the hit-and-ru
 covering every raid, Remastered turret suppression per p.82, the optional-rule toggle audit,
 and the expected-VP AI below (incl. carrier doctrine, strikes valued when they land,
 co-ordinated strikes, splitting a strike into two waves under enemy guns, the AI's own teleports, Brace asked before each weapon of AI fire and
-before each kind of weapon in the Fire dialog, the AI's mine hazard counting turrets).
+before each kind of weapon in the Fire dialog, the AI's mine hazard counting turrets, crit
+values over later shooting phases, playing for the win under a turn limit (expert search,
+disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
+(8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
+candidates (11 a)).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
 Next: the rest of To do 2 (the risk preference in brace and strike choices, the expert AI
-valuing its own craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f, its prerequisites, are built), 12 (learned
+valuing its own craft in flight), the rest of 11 a (more goals, refinement, the coordination
+pass), then 3-7, 9, 10 and the rest of 11, 12 (learned
 evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
