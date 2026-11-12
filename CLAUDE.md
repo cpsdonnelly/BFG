@@ -512,7 +512,7 @@ depends on the matchup": every one should come out of the expected-VP values, no
   we strike outside their umbrella; reactive intercept; co-ordinated bombers and missiles
   against the turret split (not against Orks). Details below ("Air power", "Strikes",
   "Co-ordinated strikes") and in To do 2.
-- Built ordnance craft: lead targets (closing easiest, abeam hardest, receding between; big
+- Ordnance, built: lead targets (closing easiest, abeam hardest, receding between; big
   bases easier), turning salvos come in on the weakest Armour facing, sooner beats later,
   friendly fire is negative VP; a disabled optional rule is never valued or attempted.
 
