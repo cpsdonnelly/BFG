@@ -435,9 +435,10 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1059 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1062 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
-difficulty: `gui_spectator_demo.py normal` / `expert`). After every new export, diff the built
+difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
+limit). After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -453,7 +454,8 @@ All AI choices are in expected VP (`ai_hazards.py`, `ai_rerolls.py`, `waves.py`,
 tuning them is on hold (owner: keep it in mind, but it is hard work, so leave it for now): re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per battery
 point, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT` 0.5,
 `DODGE_WEIGHT` 0.5, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
-0.5, CAP free fighters 0.75, the disengage and hulk models.
+0.5 (scaled by the air balance), `AIR_THREAT_WEIGHT` 0.5, `ENEMY_FIRE_AT_WAVE` 0.5,
+`REACTIVE_CAP_WEIGHT` 0.5, CAP free fighters 0.75, the disengage and hulk models.
 
 Values:
 - Two VP scales: gunnery `damage_vp` (s.38 thresholds + 0.2 per hit) for choosing gun / torpedo
@@ -463,6 +465,17 @@ Values:
   (`ship_threat_vp`), a cripple halves it; and a kill may explode (`death_explosion_vp`,
   Catastrophic Damage 9-11 plasma / 12 warp, Mercury 3D6, escorts never), good near enemies,
   bad near our own ships.
+- Air power (owner: carrier doctrine). `ship_threat_vp` (so every kill / cripple value)
+  includes a carrier's bays (`bay_threat_vp`): its strike squadrons at a bomber squadron's
+  value against its enemies, plus its fighters denying the enemy's strikes (one squadron
+  each, up to the enemy's launch capacity), x `AIR_THREAT_WEIGHT` 0.5 (judgement). So a
+  carrier-heavy fleet values the enemy's carriers more and its guns and focus go to them (air
+  supremacy); ordnance at a carrier is already discounted by the CAP / intercept it can put up
+  unless its bays are empty (`strike_timeline`). Out-carriered (`air_balance`), the CAP
+  weight on enemy strikes not yet launched rises (`_anticipated_weight`: 0.5 x enemy / our
+  launch capacity, kept to 0.25-0.9) and our carriers' moves pay for ending inside enemy
+  strike reach (`_carrier_exposure`, weighted by the carrier's share of our launch capacity,
+  doubled when the enemy has more) (`tests/test_ai_air_doctrine.py`).
 - Sooner beats later (owner: "2 hits on the side within 2 turns are worth much more than 3 on
   the rear after a 4-turn loop"): `phase_weight(k)` = 0.85 per ordnance phase of delay, x 0.5
   from the next game turn (1, 0.85, 0.36, 0.31); strikes' `travel_discount` shares the factor.

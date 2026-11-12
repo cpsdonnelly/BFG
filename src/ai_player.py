@@ -300,6 +300,7 @@ class AIPlayer:
                 if near is not None and near.id != enemy.id:
                     score += 0.3 * self._arc_score(ship, fx, fy, fh, near)
                 score -= self._exposure_penalty(ship, fx, fy, fh, enemy)
+                score -= self._carrier_exposure(ship, fx, fy, enemy)
                 score += self._screen_bonus(ship, fx, fy, fh, enemy)
                 score += self._explosion_term(ship, fx, fy, enemy)
                 if score > best_score:
@@ -1677,6 +1678,64 @@ class AIPlayer:
     # go for another ship, and its wave may lead with a fighter (judgement)
     ANTICIPATED_STRIKE_WEIGHT = 0.5
 
+    def _anticipated_weight(self) -> float:
+        """ANTICIPATED_STRIKE_WEIGHT scaled by the air balance (owner: carrier
+        doctrine): out-carriered, expect more enemy strikes and fly more CAP /
+        interception; dominant, less (x enemy / our launch capacity, kept to
+        0.5-1.8 times: 0.25-0.9)."""
+        from .ai_hazards import air_balance
+        ours, theirs = air_balance(self.gs, self.player)
+        ratio = theirs / max(1, ours) if theirs else 0.0
+        return self.ANTICIPATED_STRIKE_WEIGHT * max(0.5, min(1.8, ratio)) if theirs else 0.0
+
+    def _carrier_exposure(self, ship: Ship, x: float, y: float, target: Ship) -> float:
+        """Owner: when the enemy has more launch capacity, protect our carriers.
+        The expected VP of enemy strikes that could reach this end position (each
+        loaded enemy carrier with bombers / assault boats within its move + its
+        craft's speed: its squadrons at a bomber squadron's value against this
+        ship, shared over our ships in that reach, x the doctrine weight),
+        counted for carriers only and weighted by the share of our launch
+        capacity this ship carries, doubled when the enemy out-carriers us; in
+        the planner's firepower units."""
+        if self.difficulty == "easy":
+            return 0.0
+        from .ai_hazards import air_balance, value_per_hit, _bays
+        from .ordnance import craft_roles, craft_stats, bay_launch_capacity
+        from .waves import bomber_squadron_value
+        mine = _bays(ship)
+        if not mine:
+            return 0.0
+        ours, theirs = air_balance(self.gs, self.player)
+        if not theirs:
+            return 0.0
+        share = bay_launch_capacity(ship, mine, None)[0] / max(1, ours)
+        doctrine = 2.0 if theirs > ours else 1.0
+        moved = Ship.from_dict({**ship.to_dict(), "x": x, "y": y})
+        friends = [f for f in self.gs.get_ships() if f.player == self.player
+                   and not f.is_destroyed and not f.is_disengaged]
+        vp = 0.0
+        for e in self.gs.get_ships():
+            if (e.player == self.player or e.is_destroyed or e.is_disengaged
+                    or not e.ordnance_loaded_craft):
+                continue
+            bays = _bays(e)
+            strike_speeds = [craft_stats(ct, bays)[1] or 20 for w in bays
+                             for ct in w.get("craft_types", [])
+                             if set(craft_roles(craft_stats(ct, bays)[0])) & {"bomber",
+                                                                              "assault_boat"}]
+            if not strike_speeds:
+                continue
+            reach = (e.effective_speed or 0) + max(strike_speeds)
+            if math.hypot(e.x - x, e.y - y) > reach:
+                continue
+            others = sum(1 for f in friends if f.id != ship.id
+                         and math.hypot(e.x - f.x, e.y - f.y) <= reach)
+            n = bay_launch_capacity(e, bays, None)[0]
+            vp += n * bomber_squadron_value(moved, self.gs) / (1 + others)
+        vp *= self._anticipated_weight() * (1 + share) * doctrine
+        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
+        return vp / per_fp
+
     def _anticipated_strike_slots(self, friends, cap_left=None):
         """CAP against enemy strikes not launched yet (To do 1): fighters on CAP
         stay with their ship until removed (s.26), so a ship within reach of an
@@ -1715,7 +1774,7 @@ class AIPlayer:
                     v = bomber_squadron_value(f, gs)
                 if roles & {"assault_boat"} and getattr(gs, "rule_hit_and_run", True):
                     v = max(v, raid_squadron_value(f, gs, e.player, e.special_rules))
-                g = self.ANTICIPATED_STRIKE_WEIGHT * v / len(near)
+                g = self._anticipated_weight() * v / len(near)
                 if g > 0 and n > 0:
                     per_ship.setdefault(f.id, []).append((g, n))
         slots = []

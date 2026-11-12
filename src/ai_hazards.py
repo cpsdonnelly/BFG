@@ -340,9 +340,10 @@ def _opponent(player: int) -> int:
 
 
 def ship_threat_vp(ship: Ship, gs) -> float:
-    """Expected VP the ship's guns could take off its enemies in their next
-    turn: every battery / lance mount that can bear (`_mount_bears`: in range +
-    its move, facing) at the most valuable enemy it bears on. Killing it
+    """Expected VP the ship could take off its enemies in their next turn: every
+    battery / lance mount that can bear (`_mount_bears`: in range + its move,
+    facing) at the most valuable enemy it bears on, plus its launch bays
+    (`bay_threat_vp`: strikes and the denial of the enemy's). Killing it
     removes this, crippling halves it (s.33: half firepower). Cached per
     position and damage."""
     key = (id(gs), gs.turn_number, gs.current_phase, ship.id, ship.hits_remaining,
@@ -364,8 +365,72 @@ def ship_threat_vp(ship: Ship, gs) -> float:
             h *= 0.5
         best = max((value_per_hit(t, gs) for t in foes if _mount_bears(ship, w, t)), default=0.0)
         total += h * best
+    # its launch bays too (owner: carrier doctrine; already halved when crippled)
+    total += bay_threat_vp(ship, gs)
     _THREAT_CACHE[key] = total
     return total
+
+
+# ── Air power (owner: carrier doctrine) ─────────────────────────────────────
+# A carrier's bays are worth what they can do to us (strikes) and what they
+# deny us (each fighter can stop one of our strike squadrons), so the side with
+# more launch capacity gains by killing the other's carriers (air supremacy),
+# and the side with less protects its carriers and flies more interception.
+
+# Share of a carrier's bays that act in a given turn (it launches, then must
+# Reload Ordnance; it may also hold them back): judgement
+AIR_THREAT_WEIGHT = 0.5
+
+
+def _bays(ship):
+    return [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+
+
+def launch_capacity(gs, player: int) -> int:
+    """Squadrons `player`'s ships in play could launch at once (bay strengths,
+    crippled / braced halved; random bays at their listed strength)."""
+    from .ordnance import bay_launch_capacity
+    return sum(bay_launch_capacity(s, _bays(s), None)[0] for s in gs.get_ships()
+               if s.player == player and not s.is_destroyed and not s.is_disengaged
+               and _bays(s))
+
+
+def air_balance(gs, player: int):
+    """(our launch capacity, the enemy's)."""
+    return launch_capacity(gs, player), launch_capacity(gs, 3 - player)
+
+
+def bay_threat_vp(ship: Ship, gs) -> float:
+    """Expected VP the ship's launch bays are worth to its side per turn
+    (owner: carrier doctrine): its strike squadrons (bomber / assault boat
+    types) at a bomber squadron's value against its enemies' ships on average,
+    plus its fighters denying the enemy's strikes (each stops one squadron, up
+    to the enemy's own launch capacity) at a bomber squadron's value against its
+    own side; x AIR_THREAT_WEIGHT. Killing it removes this, crippling halves
+    the bays (in ship_threat_vp)."""
+    from .ordnance import craft_roles, craft_stats, bay_launch_capacity
+    from .waves import bomber_squadron_value
+    bays = _bays(ship)
+    if not bays:
+        return 0.0
+    n = bay_launch_capacity(ship, bays, None)[0]
+    if n <= 0:
+        return 0.0
+    roles = set()
+    for w in bays:
+        for ct in w.get("craft_types", []):
+            roles |= set(craft_roles(craft_stats(ct, bays)[0]))
+    live = [t for t in gs.get_ships() if not t.is_destroyed and not t.is_disengaged
+            and not t.is_hulk]
+    foes = [t for t in live if t.player != ship.player]
+    own = [t for t in live if t.player == ship.player]
+    v = 0.0
+    if roles & {"bomber", "assault_boat"} and foes:
+        v += n * sum(bomber_squadron_value(t, gs) for t in foes) / len(foes)
+    if "fighter" in roles and own:
+        enemy_cap = launch_capacity(gs, 3 - ship.player)
+        v += min(n, enemy_cap) * sum(bomber_squadron_value(t, gs) for t in own) / len(own)
+    return AIR_THREAT_WEIGHT * v
 
 
 def explosion_odds(ship: Ship):

@@ -72,7 +72,7 @@ if orig_mixed:
 panel._begin_turn1()
 start = time.time()
 phases_seen = set()
-while not panel._game_over and time.time() - start < 90:
+while not panel._game_over and time.time() - start < (180 if difficulty == "expert" else 90):
     root.update()
     phases_seen.add((gs.turn_number, gs.current_phase))
     time.sleep(0.01)
