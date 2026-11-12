@@ -128,23 +128,64 @@ minimum move): up to **15 candidate moves**, each scored as:
   enemy torpedoes, torpedo bombers, bombers, assault boats or mines could reach it (owner: never
   against fighters alone, never when there is nothing to mass against).
 
-**Better candidates** (Planned, To do 11 a; owner, from the design feedback): turn points
-where the rules allow them, not only at the end: a capital ship right after its turning
-distance (battleships 15cm, cruisers 10cm; s.10, before modifiers), just after its minimum move
-(half speed), and at the end. These are separate rules: for a 20cm cruiser both are 10cm, for a
-25cm cruiser 10cm and 12.5cm;
-escorts anywhere, even at the very start; Burn Retros needs no movement before turning; only
-forward movement this phase counts toward the turning distance. More headings for sharp
-turners (every 15 degrees up to the maximum: 45 -> 7 headings, 90 -> 13; any angle up to the
-maximum is legal). An escort turning at the very start reaches places no capital ship can.
-Suggested: a 50% distance (the exact minimum move: ending as short as legally possible often
-keeps a ship out of enemy range; under 5cm a ship counts as Defences on the Gunnery table, s.10,
-which matters for Burn Retros), a budget of about 150 candidates (13 headings x 3 turn points x
-4 distances for a 90-degree cruiser) pruned with the cheap terms (guns that bear, hazards) and
-exposure scored on the best ~20, the extra time going to 90-degree ships and escorts, and a
-coordination pass: today each ship optimises against ships already moved but not those still to
-move, so re-optimise each against everyone's planned end positions (coordinate descent, one or
-two passes), which catches screening and mutual support.
+**Better candidates** (Planned, To do 11 a; owner). The rules every candidate respects: a
+capital ship turns right after its turning distance (battleships 15cm, cruisers 10cm; s.10,
+before modifiers), just after its minimum move (half speed), or at the end. These are separate
+rules: for a 20cm cruiser both are 10cm, for a 25cm cruiser 10cm and 12.5cm. Escorts turn
+anywhere, even at the very start (reaching places no capital ship can); Burn Retros needs no
+movement before turning; only forward movement this phase counts toward the turning distance;
+any angle up to the maximum is legal. Distances run from the minimum move (ending as short as
+legally possible often keeps a ship out of range; under 5cm a ship counts as Defences on the
+Gunnery table, which matters for Burn Retros) to full speed.
+
+**Target-directed candidates** (Planned, owner; replaces the earlier idea of headings every 15
+degrees, about 150 candidates, which survives only as a fallback). Candidates propose, values
+decide. Instead of sampling headings evenly, the AI picks **goals** and solves for the move
+that reaches each one (heading for a point and clamping to the turn limit, or a short search
+over turn point and distance); a goal out of reach gives the closest move as "progress
+towards" it. About 20 candidates instead of ~150, and they land exactly on the narrow
+positions that matter (a 10cm range band, a rear-arc slice, the one heading with two enemies in
+one broadside). Cost grows with targets and goals, not with the turn angle.
+
+- **Per target** (the focus target plus the next one or two by expected VP):
+  bring the best weapons to bear (broadside ships the broadside, Tau and prow-heavy ships the
+  prow); the **range band**: we move and shoot, then the enemy moves up to its speed and shoots,
+  so the safe band is our range >= distance > their range + their speed (Chaos 60cm guns vs
+  Imperial 30cm on 20cm ships: 50-60cm; 45cm guns on 20cm ships have none against 60cm), and
+  without one, the distance where our damage now minus theirs next turn is best; **Armour
+  facing** (closing without firing, prow-on where the prow is best; firing, turn to unmask at
+  the end); **out of its arcs** (its rear or a blind arc, from its predicted position);
+  **torpedo lines** (target in the launcher's arc on a clear lane); teleport, boarding and
+  ramming reach (only when those rules are on); and **Lock On next turn** (no turning allowed,
+  so end pointed so a straight move keeps the target in arc).
+- **Not tied to one target**: two enemies in one broadside or one in each; fleet support
+  (massed turrets with the commander's ship or a carrier, squadron coherency); safety (the
+  tangent past a hazard, out of the most dangerous enemies' arcs); disengaging for crippled
+  ships (toward a phenomenon within 15cm for +3 Ld, or the nearest edge); scenario objectives
+  once scenarios exist.
+- **Fallback grid**: a small even set (straight plus a few headings at the turn limit, at the
+  three turn points, minimum and full distance) for moves no goal predicted; 90-degree ships
+  and special turners get more fallback headings and more variations round each goal (owner:
+  more thinking time beyond the 45-degree baseline).
+- **Efficiency**: goal candidates scored first, cheap terms prune, full exposure on the best
+  ~20, near-duplicates dropped; the expert search tries goal candidates first so alpha-beta
+  prunes more.
+- **When even sampling wins, and the hybrid**: crowded fights, dense hazards or incoming
+  ordnance (the best move is a gap no goal predicts), a small reachable area (slow or crippled
+  ships, Burn Retros), caching (grid end positions can be precomputed per ship class), and
+  goals that are incomplete or wrong. Target-directed wins with few targets, a large reachable
+  area (fast ships, 90-degree turns, escorts) and narrow useful positions, which is most of a
+  game. Per ship per turn: always goals for the top 1-3 targets plus the small grid; a denser
+  grid (goals still in) when goals would outnumber it, hazards are dense or the area is small;
+  then hill-climb the best few with small changes to turn point, angle and distance; anytime
+  order goals -> grid -> refinement within the time budget (also the expert's move ordering);
+  and log which source produced each chosen move: if the grid often wins, a goal is missing or
+  wrong, so fix the goal rather than add samples. The crossover points are to be measured in
+  the engine, not guessed.
+- Needs exposure by Armour facing (8 a) and range brackets (8 f) first: goals b and c come from
+  them. Then a **coordination pass** (suggestion): moves are greedy ship by ship, so re-optimise
+  each against everyone's planned end positions (one or two passes), catching screening and
+  mutual support.
 
 **Fleet focus** (Built, owner: focus fire, easier targets first): the fleet assigns focus
 targets together. Each ship's guns go where they add most VP on top of what the others will
@@ -311,8 +352,10 @@ Each ordnance phase the AI plans fighters across all its carriers:
   -45 / 0 / +45 per move, 20/30/40cm for Tau missiles), pruned to well under a second.
 - **Strikes**: every enemy within three craft moves x every fighter / bomber split x every
   interception case.
-- **Planned** (To do 11 a): about 150 candidates per ship (more turn points and headings),
-  pruned with the cheap terms, exposure on the best ~20, then a fleet coordination pass.
+- **Planned** (To do 11 a): target-directed candidates, about 20 per ship (goals for the top
+  1-3 targets plus a small fallback grid; a denser grid in crowded or hazard-dense fights or
+  small reachable areas), the best few refined by hill-climbing, exposure on the best ~20,
+  then a fleet coordination pass.
 - **Expert AI movement**: for each ship, 9 candidate moves at the root, each followed by a
   minimax search 5 turns deep that tries 6 variations of each side's moves per step and keeps
   the best 4 (alpha-beta pruning), within 2 seconds per ship.

@@ -816,7 +816,9 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    target before each weapon). Brace has a cost, to be priced (To do 11 c).
 11. New (owner's AI design feedback, CLAUDE.md To do 11): checks done (shields in gunnery
    values, the per-hit term, Ork turrets, mine movement; gap: mine hazard ignores turrets);
-   movement candidates (turn points, more headings, ~150 candidates, coordination pass);
+   movement candidates (turn points; owner's later notes: target-directed candidates, goals
+   per target and fleet-wide, a small fallback grid, the hybrid with a denser grid, hill-climbing
+   refinement, a source diagnostic; replaces 15-degree heading steps; coordination pass);
    hazards in the expert AI; Brace priced by its real costs; command check and disengage
    modifiers; plasma explosions destroying ordnance; teleports given up by orders; dust
    clouds; batteries before lances; damage control and blast-marker removal by expected VP;
