@@ -125,7 +125,8 @@ Cruisers. Ships using rules the engine can't play yet
   degrees, standard ones run straight. Strike targeting uses it, and AI craft really fly the
   detour (`ordnance.craft_target_point` returns the waypoint for AI-owned craft heading for a
   ship; a human's craft go straight at the target given). Torpedo launch headings take the
-  lane worth most, friendly fire counted as negative VP (owner; `AIPlayer._torp_lane`).
+  lane worth most, friendly fire counted as negative VP (owner; `AIPlayer._torp_lane`), and
+  straight salvos lead the target from its sampled next move (owner; `_torp_lead_plan`).
   Not yet: routes with more than one waypoint.
 - **Fighta-Bommerz are Fighta-Bommerz:** multi-role fighter + bomber; D3+1 attacks that
   turrets never reduce below 1, and no turret suppression.
@@ -470,7 +471,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1031 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1036 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -558,6 +559,9 @@ points to):
   catastrophic damage was never re-rolled.
 - AI CAP vs strikes fleet-wide across carriers (`AIPlayer._plan_fleet_defence`; tests in
   `tests/test_waves.py`): one fighter per salvo from the carrier whose strike loses least.
+- AI leads torpedo targets from their possible next moves (owner): minimum move, turning
+  distance, Burn Retros / All Ahead Full dodges; a salvo parked inside a ship's minimum move
+  can only be escaped by Burn Retros. Turning salvos steer ahead of their target.
 - AI torpedo lanes: best lane within the hit window by expected VP; friendly fire is negative
   VP (owner): ships hit on the way weaken the salvo (s.15) and our own cost their damage.
 - AI: existing CAP counts against launched threats on its ship; carriers keep bays loaded
@@ -627,7 +631,25 @@ points to):
    survival. Friends in contiguous base contact with the launcher are passed through,
    boarding torpedoes ignore friends (s.16). `_best_torp_target` uses the lane's reduced
    hits on the target and subtracts the friendly loss; it holds fire when the best is a net
-   loss (`tests/test_ai_torpedo_lanes.py`). The path check is a line, so a
+   loss (`tests/test_ai_torpedo_lanes.py`). Torpedo path hazards are checked across the
+   marker's full width (`ai_hazards.torpedo_path_survival`: centre and both edges).
+   Done: leading the target (owner). Straight-running salvos within reach this turn and the
+   enemy's (`AIPlayer._torp_lead_plan`): the salvo moves now (P0 -> P1), sits at P1 while the
+   enemy moves (a ship moving into it is attacked, s.15) and moves to P2 in the enemy's
+   ordnance phase. The target's next move is sampled (`ai_hazards.enemy_move_samples`: half
+   to full speed, one turn after 10cm / 15cm battleships / escorts anywhere, s.10; dodges by
+   Burn Retros, 0 to half speed turning at once, or All Ahead Full +14cm straight, s.7). The
+   enemy dodges with `DODGE_WEIGHT` 0.5 (judgement): by a normal move that misses if any,
+   else by an order at its Leadership odds; a salvo parked within its minimum move ahead can
+   only be escaped that way (owner). The heading worth most in expected VP is taken (friendly
+   ships are static until our turn, so every one touched on P0 -> P2 costs its damage's VP;
+   other enemies in the lane soak strength, their VP is left to their own plans). Result: a
+   closing target is easiest close in (0.64 vs 0.32 abeam at 40cm, a speed-20 Ld 8 cruiser),
+   about level with abeam near 50cm (its 45-degree turn sidesteps the lane), easier again at
+   60cm; receding hardest (`tests/test_ai_torpedo_lead.py`). Beyond that reach the intercept
+   aim is kept (later turns are too uncertain). Turning salvos (Tau missiles, Ld-guided,
+   boarding) keep the intercept launch aim and, in flight, steer for the middle of the
+   target's sampled end positions when it is out of reach this phase (`_steer_guided_missile`). The path check is a line, so a
    blast marker the marker's width would clip but the centre line misses isn't counted. Done: guided salvos use the launcher's real Ld in the
    hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
    Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest

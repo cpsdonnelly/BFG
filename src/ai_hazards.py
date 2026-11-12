@@ -974,3 +974,100 @@ def best_route(x1: float, y1: float, x2: float, y2: float, gs, kind: str = "craf
             if v > best[0] + 1e-9:
                 best = (v, s, length, (wx, wy))
     return best
+
+
+# ── Leading torpedo targets (owner) ─────────────────────────────────────────
+# A straight salvo moves its speed in our ordnance phase, sits there while the
+# enemy moves (a ship moving into it is attacked, s.15) and moves again in the
+# enemy's ordnance phase. Where the target can be by then follows from its
+# movement rules (s.10: at least half speed, straight for 10cm (cruisers) /
+# 15cm (battleships) / 0 (escorts) before its one turn; s.7: Burn Retros drops
+# the minimum and the distance before turning, at most half speed; All Ahead
+# Full adds 4D6cm, no turn).
+
+TORP_CONTACT_HALF_W = 1.25        # half the torpedo marker's width (geometry)
+# Chance a target that could dodge does (it has other aims too): judgement
+DODGE_WEIGHT = 0.5
+
+
+def seg_first_contact(x0, y0, x1, y1, cx, cy, radius):
+    """Fraction t in [0, 1] along (x0, y0)->(x1, y1) where a point first comes
+    within `radius` of (cx, cy), or None."""
+    dx, dy = x1 - x0, y1 - y0
+    fx, fy = x0 - cx, y0 - cy
+    a = dx * dx + dy * dy
+    c = fx * fx + fy * fy - radius * radius
+    if c <= 0:
+        return 0.0
+    if a <= 1e-12:
+        return None
+    b = 2 * (fx * dx + fy * dy)
+    disc = b * b - 4 * a * c
+    if disc < 0:
+        return None
+    t = (-b - disc ** 0.5) / (2 * a)
+    return t if 0.0 <= t <= 1.0 else None
+
+
+def path_touches(path, px, py, radius) -> bool:
+    """True if the polyline `path` passes within `radius` of (px, py)."""
+    if len(path) == 1:
+        return (path[0][0] - px) ** 2 + (path[0][1] - py) ** 2 <= radius * radius
+    return any(seg_first_contact(a[0], a[1], b[0], b[1], px, py, radius) is not None
+               for a, b in zip(path, path[1:]))
+
+
+def turn_distance(ship) -> float:
+    """Straight distance before a turn (s.10): battleships 15cm, other capital
+    ships (all cruisers) 10cm, escorts any point."""
+    if ship.ship_type == "escort":
+        return 0.0
+    return 15.0 if ship.ship_type == "battleship" else 10.0
+
+
+def enemy_move_samples(ship):
+    """Polylines for `ship`'s next movement: (normal, dodge). Normal moves go
+    half to full speed, turning up to its turn angle after its turning
+    distance; dodges need a special order: Burn Retros (0 to half speed, turn
+    at once) or All Ahead Full (straight, +4D6cm: 14 on average)."""
+    import math as _m
+    spd = ship.effective_speed or 0
+    start = (ship.x, ship.y)
+    if ship.is_hulk or spd <= 0:
+        return [[start]], []
+    ta = getattr(ship, "turn_angle", 45) or 45
+    dt = turn_distance(ship)
+
+    def poly(dist, turn, turn_at):
+        h = _m.radians(ship.heading)
+        first = min(dist, turn_at)
+        p1 = (ship.x + first * _m.cos(h), ship.y + first * _m.sin(h))
+        rest = dist - first
+        if rest <= 0:
+            return [start, p1]
+        h2 = h + _m.radians(turn)
+        return [start, p1, (p1[0] + rest * _m.cos(h2), p1[1] + rest * _m.sin(h2))]
+    normal = []
+    for d in sorted({spd / 2.0, 0.75 * spd, float(spd)}):
+        for turn in (-ta, -ta / 2.0, 0.0, ta / 2.0, ta):
+            if turn and d <= dt:
+                continue
+            normal.append(poly(d, turn, dt))
+    dodge = [poly(d, turn, 0.0) if d else [start]
+             for d in (0.0, spd / 4.0, spd / 2.0) for turn in (-ta, 0.0, ta)
+             if d or not turn]
+    dodge.append(poly(spd + 14.0, 0.0, spd + 14.0))
+    return normal, dodge
+
+
+def torpedo_path_survival(x1, y1, x2, y2, gs, kind: str = "torpedo",
+                          half_w: float = TORP_CONTACT_HALF_W) -> float:
+    """ordnance_path_survival for a torpedo marker's full width: the worst of
+    its centre line and its two edges (a field the edge clips still stops it)."""
+    import math as _m
+    d = _m.hypot(x2 - x1, y2 - y1)
+    if d <= 1e-9:
+        return ordnance_path_survival(x1, y1, x2, y2, gs, kind)
+    nx, ny = -(y2 - y1) / d * half_w, (x2 - x1) / d * half_w
+    return min(ordnance_path_survival(x1 + ox, y1 + oy, x2 + ox, y2 + oy, gs, kind)
+               for ox, oy in ((0.0, 0.0), (nx, ny), (-nx, -ny)))

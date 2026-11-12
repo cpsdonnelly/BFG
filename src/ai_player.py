@@ -1158,8 +1158,17 @@ class AIPlayer:
                               target: Optional[Ship]) -> None:
         gs = self.gs
         if target is not None:
-            dx = target.x - marker.x
-            dy = target.y - marker.y
+            # Owner: turning salvos lead too (less than straight ones, since they
+            # steer again): out of reach this phase, head for the middle of where
+            # the target can end its next move (ai_hazards.enemy_move_samples)
+            tx, ty = target.x, target.y
+            if math.hypot(tx - marker.x, ty - marker.y) > (marker.speed or 0) + target.base_radius:
+                from .ai_hazards import enemy_move_samples
+                ends = [p[-1] for p in enemy_move_samples(target)[0]]
+                tx = sum(e[0] for e in ends) / len(ends)
+                ty = sum(e[1] for e in ends) / len(ends)
+            dx = tx - marker.x
+            dy = ty - marker.y
             desired = math.degrees(math.atan2(dy, dx)) % 360
             diff = signed_angle_diff(desired, marker.heading)
             max_t = getattr(marker, "turn_angle", 45)
@@ -1706,7 +1715,18 @@ class AIPlayer:
         short range (time-to-impact → 0, so the aim point is the target's
         current position) and leads the target at long range.
         """
+        if not self._torpedo_turns(ship, weapon):
+            plan = self._torp_lead_plan(ship, weapon, target)
+            if plan is not None:
+                return plan["heading"]
         return self._torp_lane(ship, weapon, target, *self._intercept(ship, weapon, target))[0]
+
+    @staticmethod
+    def _torpedo_turns(ship: Ship, weapon: Dict) -> bool:
+        """Salvos that can turn after launch (Tau missiles, Leadership-guided
+        torpedoes) lead less: they steer (owner). These keep the intercept aim."""
+        return (weapon.get("torpedo_type") in ("guided", "boarding")
+                or "guided" in ship_torpedo_types(ship))
 
     def _torp_lane(self, ship: Ship, weapon: Dict, target: Ship, desired: float,
                    dist: float, strength: Optional[int] = None):
@@ -1726,7 +1746,7 @@ class AIPlayer:
         (s.16). With no `strength` the weapon's is used."""
         from .geometry import torpedo_first_contact, TORP_BODY_HALF_W_CM
         from .ordnance import compute_torpedo_launch_exempt
-        from .ai_hazards import ordnance_path_survival, torpedo_salvo_hits, added_vp, p_hit
+        from .ai_hazards import torpedo_path_survival, torpedo_salvo_hits, added_vp, p_hit
         gs = self.gs
         dist = max(dist, 1.0)
         if strength is None:
@@ -1768,12 +1788,159 @@ class AIPlayer:
                 left -= hits
             if not met:
                 continue                          # this heading misses the target
-            value *= ordnance_path_survival(ship.x, ship.y, ex, ey, gs, "torpedo")
+            value *= torpedo_path_survival(ship.x, ship.y, ex, ey, gs)
             if best is None or value > best[1] + 1e-9:
                 best = (h, value, on_target, lost)
         if best is None:                          # no heading meets it: aim as near as allowed
             diff = signed_angle_diff(desired % 360, ship.heading)
             return ((ship.heading + max(-45.0, min(45.0, diff))) % 360, 0.0, 0.0, 0.0)
+        return best
+
+    def _torp_lead_plan(self, ship: Ship, weapon: Dict, target: Ship,
+                        strength: Optional[int] = None):
+        """Owner: lead the target with straight-running torpedoes from where it
+        can be. The salvo moves its speed now (P0 -> P1), stays at P1 while the
+        enemy moves (a ship moving into it is attacked, s.15) and moves on to P2
+        in the enemy's ordnance phase. The target's next move is sampled
+        (ai_hazards.enemy_move_samples: half to full speed, one turn after its
+        turning distance); it dodges when it can with DODGE_WEIGHT: by a normal
+        move that misses if there is one (so abeam targets, spread across the
+        lane, are hard to hit and closing ones, spread along it, easy), else by
+        Burn Retros / All Ahead Full at its Leadership odds; a salvo parked
+        within its minimum move ahead can only be escaped that way. Friendly
+        ships stay put until our next turn, so every one the salvo touches on
+        P0 -> P2 costs its damage's VP (owner: friendly fire is negative VP);
+        hits weaken the salvo (s.15); other enemies in the lane soak up strength
+        but their VP is left to their own plans. Returns {"heading", "value" (expected VP,
+        path survival included), "p_hit", "hits"} for the best heading in the
+        launch arc, or None when no heading can reach the target within this
+        turn and the enemy's (then the longer-range intercept is used)."""
+        from .ai_hazards import (enemy_move_samples, seg_first_contact, path_touches,
+                                 TORP_CONTACT_HALF_W, DODGE_WEIGHT, torpedo_path_survival,
+                                 torpedo_salvo_hits, added_vp, p_hit, p_sum_at_most)
+        from .ordnance import compute_torpedo_launch_exempt
+        gs = self.gs
+        if strength is None:
+            strength = weapon.get("strength") or 0
+        speed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
+        normal, dodge = enemy_move_samples(target)
+        reach = 2 * speed + target.base_radius + TORP_CONTACT_HALF_W
+        if min(math.hypot(p[-1][0] - ship.x, p[-1][1] - ship.y) for p in normal + dodge) > reach:
+            return None
+        friendly_ok = weapon.get("torpedo_type") == "boarding"
+        exempt = set(compute_torpedo_launch_exempt(ship, gs))
+        friends = [] if friendly_ok else [
+            f for f in gs.get_ships() if f.player == self.player and f.id not in exempt
+            and not f.is_destroyed and not f.is_disengaged]
+        foes = [o for o in gs.get_ships() if o.player != self.player and o.id != target.id
+                and not o.is_destroyed and not o.is_disengaged]
+        committed = getattr(self, "_ord_committed", {})
+        from_xy = (ship.x, ship.y)
+        rt = target.base_radius + TORP_CONTACT_HALF_W
+        p_pass = p_sum_at_most(2, min(10, target.leadership or 8))
+
+        heads = {round(math.degrees(math.atan2(target.y - ship.y, target.x - ship.x)) % 360, 1)}
+        for path in normal + dodge:
+            for pt in path[1:]:
+                heads.add(round(math.degrees(math.atan2(pt[1] - ship.y, pt[0] - ship.x)) % 360, 1))
+        heads.add(round(self._intercept(ship, weapon, target)[0], 1))
+        clamped = set()
+        for h in heads:
+            diff = signed_angle_diff(h, ship.heading)
+            clamped.add(round((ship.heading + max(-45.0, min(45.0, diff))) % 360, 1))
+
+        def friend_hits(seg, left):
+            """Friendly losses (VP) and strength left along a static segment."""
+            hits_on = []
+            for f in friends:
+                t = seg_first_contact(*seg, f.x, f.y, f.base_radius + TORP_CONTACT_HALF_W)
+                if t is not None:
+                    hits_on.append((t, f))
+            return sorted(hits_on, key=lambda c: c[0])
+
+        best = None
+        for h in sorted(clamped):
+            c, sn = math.cos(math.radians(h)), math.sin(math.radians(h))
+            p1 = (ship.x + speed * c, ship.y + speed * sn)
+            p2 = (ship.x + 2 * speed * c, ship.y + 2 * speed * sn)
+            # Launch move: ships where they are now
+            left, base_v, lost = float(strength), 0.0, 0.0
+            hit_now = False
+            seq = [(t, f) for t, f in friend_hits((ship.x, ship.y, p1[0], p1[1]), left)]
+            for o in foes + [target]:
+                t = seg_first_contact(ship.x, ship.y, p1[0], p1[1], o.x, o.y,
+                                      o.base_radius + TORP_CONTACT_HALF_W)
+                if t is not None:
+                    seq.append((t, o))
+            target_hits_now = 0.0
+            for _t, o in sorted(seq, key=lambda c: c[0]):
+                if left <= 0:
+                    break
+                if o.player == self.player:
+                    hh = left * p_hit(o.armor_vs(*from_xy))
+                    loss = added_vp(o, gs, 0.0, hh, shields=False)
+                    base_v -= loss
+                    lost += loss
+                else:
+                    hh = torpedo_salvo_hits(left, o, gs, from_xy)
+                    if o.id == target.id:
+                        hit_now, target_hits_now = True, hh
+                    # other enemies in the lane soak up strength; their VP is
+                    # counted when they are the target (keeps targets distinct)
+                left -= hh
+
+            def outcome(path):
+                """(hit?, value) of this enemy move after the launch move."""
+                if hit_now:
+                    return True, added_vp(target, gs, committed.get(target.id, 0.0),
+                                          target_hits_now, shields=False)
+                lft, v = left, 0.0
+                if lft > 0 and path_touches(path, p1[0], p1[1], rt):
+                    hh = torpedo_salvo_hits(lft, target, gs, from_xy)   # it runs into the salvo
+                    v = added_vp(target, gs, committed.get(target.id, 0.0), hh, shields=False)
+                    lft -= hh
+                    hit = True
+                else:
+                    hit = False
+                ex, ey = path[-1]
+                seq2 = friend_hits((p1[0], p1[1], p2[0], p2[1]), lft)
+                if not hit:
+                    t = seg_first_contact(p1[0], p1[1], p2[0], p2[1], ex, ey, rt)
+                    if t is not None:
+                        seq2.append((t, target))
+                for _t, o in sorted(seq2, key=lambda cc: cc[0]):
+                    if lft <= 0:
+                        break
+                    if o.player == self.player:
+                        hh = lft * p_hit(o.armor_vs(*from_xy))
+                        v -= added_vp(o, gs, 0.0, hh, shields=False)
+                    else:
+                        hh = torpedo_salvo_hits(lft, o, gs, from_xy)
+                        v += added_vp(o, gs, committed.get(o.id, 0.0), hh, shields=False)
+                        hit = True
+                    lft -= hh
+                return hit, v
+            outs_n = [outcome(p) for p in normal]
+            outs_d = [outcome(p) for p in dodge]
+            mean_v = sum(v for _h, v in outs_n) / len(outs_n)
+            mean_p = sum(1.0 for hh, _v in outs_n if hh) / len(outs_n)
+            miss_n = [v for hh, v in outs_n if not hh]
+            miss_d = [v for hh, v in outs_d if not hh]
+            if miss_n:
+                dv, dp = min(miss_n), 0.0
+            elif miss_d:
+                dv = p_pass * min(miss_d) + (1 - p_pass) * mean_v
+                dp = 1 - p_pass
+            else:
+                dv, dp = mean_v, 1.0
+            value = (1 - DODGE_WEIGHT) * mean_v + DODGE_WEIGHT * dv + base_v
+            p_h = (1 - DODGE_WEIGHT) * mean_p + DODGE_WEIGHT * dp
+            value *= torpedo_path_survival(ship.x, ship.y, p2[0], p2[1], gs)
+            if best is None or value > best["value"] + 1e-9:
+                best = {"heading": h, "value": value, "p_hit": p_h, "lost": lost,
+                        "hits": torpedo_salvo_hits(strength, target, gs, from_xy)}
+        if best is None or best["p_hit"] <= 0:
+            return None
         return best
 
     def _intercept(self, ship: Ship, weapon: Dict, target: Ship):
@@ -1823,6 +1990,12 @@ class AIPlayer:
             from .ai_hazards import best_route
 
             def score(e):
+                if not self._torpedo_turns(ship, weapon):
+                    plan = self._torp_lead_plan(ship, weapon, e)
+                    if plan is not None:
+                        # Within this turn and the enemy's: value from where the
+                        # target can move (owner: lead it; dodges counted)
+                        return plan["value"], plan["p_hit"] * plan["hits"]
                 hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y))
                 # Planets / asteroid fields on the way destroy the salvo; blast
                 # markers and dust clouds on a 6 (owner: hazards on the path)

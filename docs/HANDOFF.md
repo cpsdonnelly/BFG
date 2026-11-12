@@ -568,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1031 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1036 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -659,6 +659,13 @@ Latest items, newest last:
   that still meets the target. Owner: friendly fire is negative VP, so each lane counts the
   ships the salvo hits on the way (s.15: it attacks friend or foe and carries on weakened):
   our ships cost their damage's VP; it holds fire when the result is a net loss.
+- Owner: lead torpedo targets. `AIPlayer._torp_lead_plan` samples the target's next move
+  (`ai_hazards.enemy_move_samples`: minimum move, turning distance, Burn Retros / AAF dodges)
+  and scores each heading over the launch move, the enemy's movement (running into the
+  parked salvo) and the enemy's ordnance phase; `DODGE_WEIGHT` 0.5 is judgement (owner
+  feedback welcome). Closing targets are easiest close in, receding hardest, abeam and
+  closing about level near 50cm for a speed-20 cruiser. Torpedo path hazards now use the
+  marker's width (`torpedo_path_survival`). Turning salvos steer ahead of their target.
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.

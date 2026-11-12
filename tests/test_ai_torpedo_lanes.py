@@ -57,14 +57,16 @@ def test_aim_moves_off_a_blast_marker_on_the_centre_line():
     ship, tgt = gs.get_ship_by_id("d"), gs.get_ship_by_id("e")
     weapon = next(w for w in ship.weapons if w.get("weapon_type") == "torpedo")
     h_clear = ai._torpedo_aim_heading(ship, weapon, tgt)
-    gs, ai, _dice = _setup(blast_at=(20.0, -1.0))
+    # 2.5cm off the centre line: the marker's edge (1.25cm) clips it head-on
+    gs, ai, _dice = _setup(blast_at=(20.0, -2.5))
     ship, tgt = gs.get_ship_by_id("d"), gs.get_ship_by_id("e")
     h, value, on_target, lost = ai._torp_lane(ship, weapon, tgt, 0.0, 40.0)
     assert abs(h_clear) < 1e-6 or abs(h_clear - 360) < 1e-6
     assert value > 0 and on_target > 0 and lost == 0
     assert 0 < h < 10                               # turned a little to port of the marker
-    from src.ai_hazards import ordnance_path_survival
-    assert ordnance_path_survival(0.0, 0.0, 70.0, 0.0, gs, "torpedo") < 1.0  # centre line blocked
+    from src.ai_hazards import ordnance_path_survival, torpedo_path_survival
+    assert ordnance_path_survival(0.0, 0.0, 70.0, 0.0, gs, "torpedo") == 1.0  # centre misses
+    assert torpedo_path_survival(0.0, 0.0, 70.0, 0.0, gs) < 1.0   # but the marker's edge hits
     # The heading still meets the target's base (s.15)
     from src.geometry import torpedo_first_contact
     ex, ey = 40.0 * math.cos(math.radians(h)), 40.0 * math.sin(math.radians(h))
