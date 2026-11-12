@@ -117,3 +117,86 @@ def test_strike_outside_the_enemy_carriers_umbrella():
         best, vals = _umbrella_case(airborne)
         assert best[3].id == "open"
         assert vals["covered"] < 0.75 * vals["open"]
+
+
+def _turret_target(sid="t", y=0.0, ork=False):
+    rules = ["ork_turrets"] if ork else []
+    return make_ship(id=sid, player=2, x=25.0, y=y, heading=90.0, speed=0, turrets=4,
+                     armor_prow="5+", armor_side="5+", points_value=180, special_rules=rules)
+
+
+def test_turret_split_gain():
+    """s.28 (owner): turrets fire at craft or at torpedoes in a phase, not both,
+    so a salvo and a bomber wave arriving together gain the smaller of the two
+    turret savings; Ork turrets fire at everything, so no gain."""
+    from src.ai_hazards import turret_split_gain
+    t = _turret_target()
+    gs = make_gs([t])
+    gain = turret_split_gain(t, gs, 5, 2, 2)
+    assert gain > 0
+    assert turret_split_gain(_turret_target(ork=True), make_gs([_turret_target(ork=True)]),
+                             5, 2, 2) == 0.0
+    assert turret_split_gain(t, gs, 5, 2, 0) == 0.0          # no bombers, nothing to split
+
+
+def test_missiles_join_the_bomber_wave():
+    """Owner: co-ordinate bombers and missiles (e.g. a Tau Protector fleet). With a
+    bomber wave due at one of two equal targets this phase, the missiles go for
+    the same one; against Ork turrets the wave gives them no reason to."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    tau_w = {"name": "Gravitic Launcher", "weapon_type": "torpedo", "range_cm": 30,
+             "strength": 5, "arcs": ["front"], "torpedo_type": "guided", "torpedo_speed": 30}
+    for ork in (False, True):
+        me = make_ship(id="me", player=1, x=0.0, y=0.0, heading=0.0, weapons=[dict(tau_w)])
+        a, b = _turret_target("a", 4.0, ork), _turret_target("b", -4.0, ork)
+        gs = make_gs([me, b, a])          # on a tie the first listed ("b") would win
+        dice = DiceStub([])
+        ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+        ai.difficulty = "normal"
+        ai._ord_committed = {}
+        ai._ord_arrivals = {"a": {"craft": [(0, 2, 2, 0, 0)]}}
+        plan_a = ai._approach_for_launch(gs.get_ship_by_id("me"), tau_w, gs.get_ship_by_id("a"))
+        plan_b = ai._approach_for_launch(gs.get_ship_by_id("me"), tau_w, gs.get_ship_by_id("b"))
+        assert plan_a["phase"] == plan_b["phase"] == 0
+        assert abs(plan_a["value"] - plan_b["value"]) < 1e-6            # equal on their own
+        pick = ai._best_torp_target(gs.get_ship_by_id("me"), tau_w, ai._live_enemies())
+        if not ork:
+            assert pick.id == "a"
+            ai._ord_committed = {}
+            ai._craft_due = lambda t: []            # without the split bonus: the tie
+            assert ai._best_torp_target(gs.get_ship_by_id("me"), tau_w,
+                                        ai._live_enemies()).id == "b"
+        ai._ord_arrivals = {}
+        ai._ord_committed = {}
+        if ork:
+            # Orks: the wave makes no difference to the missiles' value
+            from src.ai_hazards import turret_split_gain
+            assert turret_split_gain(gs.get_ship_by_id("a"), gs, 5, 2, 2) == 0.0
+
+
+def test_bombers_join_the_missiles():
+    """The other way round: with missiles launched this phase at one of two
+    equal targets, the carrier's wave is worth more against the same one."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    bay = {"name": "Launch Bays", "weapon_type": "launch_bay", "range_cm": 30, "strength": 4,
+           "arcs": [], "craft_types": ["fury_fighter", "starhawk_bomber"],
+           "craft_speeds": {"fury_fighter": 30, "starhawk_bomber": 20}}
+    me = make_ship(id="me", player=1, x=0.0, y=0.0, heading=0.0, weapons=[bay])
+    a = make_ship(id="a", player=2, x=15.0, y=4.0, heading=90.0, speed=0, turrets=4,
+                  armor_prow="5+", armor_side="5+", points_value=180)
+    b = make_ship(id="b", player=2, x=15.0, y=-4.0, heading=90.0, speed=0, turrets=4,
+                  armor_prow="5+", armor_side="5+", points_value=180)
+    gs = make_gs([me, a, b])
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai._ord_committed = {}
+    cts = bay["craft_types"]
+    s = gs.get_ship_by_id("me")
+    alone = {t: ai._strike_option(s, cts, 4, [gs.get_ship_by_id(t)])[0] for t in ("a", "b")}
+    ai._ord_arrivals = {"a": {"torps": [(0, 5, (0.0, 0.0))]}}
+    joined = {t: ai._strike_option(s, cts, 4, [gs.get_ship_by_id(t)])[0] for t in ("a", "b")}
+    assert abs(alone["a"] - alone["b"]) < 1e-6
+    assert joined["a"] > joined["b"] == alone["b"]

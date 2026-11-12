@@ -1577,3 +1577,32 @@ def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: 
     return {"phase": k, "end_phases": 1 if landed_ours else 2, "survival": survival,
             "reactive_cap": cap, "reactive_intercept": intercept,
             "airborne_intercept": airborne}
+
+
+# ── Coordinated strikes: the turret split (owner) ───────────────────────────
+def turret_split_gain(target: Ship, gs, torp_strength: float, fighters: int, bombers: int,
+                      f_save: int = 0, b_save: int = 0, from_xy=None) -> float:
+    """Extra expected hits when a torpedo / missile salvo and an attack craft
+    wave reach `target` in the same phase (owner; s.28): its turrets fire at
+    attack craft or at torpedoes and mines in a phase, not both, so it saves
+    them for whichever they would stop more of and the other gets through
+    without shoot-down losses. Our gain is the smaller of the two turret
+    savings. (Bombers' attacks are still reduced by turrets either way: only
+    the shoot-down roll is blocked, owner ruling.) Ork turrets fire at
+    everything (ork_turrets): no gain."""
+    from .waves import wave_plan_inputs, wave_split_value
+    if "ork_turrets" in target.special_rules or torp_strength <= 0 or bombers <= 0:
+        return 0.0
+    inp = wave_plan_inputs(target, gs)
+    t, shots = inp["turrets"], inp["turrets"] + inp["massed"]
+    if shots <= 0:
+        return 0.0
+    p = (7 - (5 if inp.get("ork") else 4)) / 6.0
+    xy = from_xy or (target.x - 10.0, target.y)
+    torp_full = torp_strength * p_hit(target.armor_vs(*xy))
+    torp_saved = torp_full - torpedo_salvo_hits(torp_strength, target, gs, xy)
+    craft_saved = (wave_split_value(fighters, bombers, t, 0, inp["cap"], inp["armour"], p,
+                                    f_save, b_save, inp["cap_save"])
+                   - wave_split_value(fighters, bombers, t, shots, inp["cap"], inp["armour"], p,
+                                      f_save, b_save, inp["cap_save"]))
+    return max(0.0, min(torp_saved, craft_saved))

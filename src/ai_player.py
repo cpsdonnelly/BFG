@@ -1180,6 +1180,10 @@ class AIPlayer:
         # actual state (after this turn's shooting) plus what this phase's
         # launches are planned to do (_ord_committed)
         self._ord_committed = {}
+        # Planned arrivals this phase: {target id: {"torps": [(phase, strength, xy)],
+        # "craft": [(phase, fighters, bombers, f_save, b_save)]}} for the turret
+        # split (owner: co-ordinate bombers and missiles, s.28)
+        self._ord_arrivals = {}
         enemies = self._live_enemies()
         self._fleet_defence = (self._plan_fleet_defence(enemies)
                                if enemies and self.difficulty != "easy" else None)
@@ -1268,6 +1272,10 @@ class AIPlayer:
                         for o in gs.ordnance:     # its in-flight turns follow the plan
                             if o["id"] == m.id:
                                 o["torp_target_id"] = target.id
+                        tsp = aim_weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or 30
+                        tph = 0 if ship.distance_to(target) <= tsp + target.base_radius else 1
+                        self.__dict__.setdefault("_ord_arrivals", {}).setdefault(target.id, {}).setdefault(
+                            "torps", []).append((tph, m.strength, (ship.x, ship.y)))
                     ship = gs.get_ship_by_id(ship.id)
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft and not bays_held:
@@ -1343,6 +1351,44 @@ class AIPlayer:
                         form_wave(gs, [m.id for m in launched], "close")
                 ship = gs.get_ship_by_id(ship.id)
 
+    def _turret_split_bonus(self, target: Ship, phase: int, fighters: int, bombers: int,
+                            f_save: int = 0, b_save: int = 0) -> float:
+        """Extra hits a wave of `fighters` + `bombers` gains from torpedoes /
+        missiles planned this phase to reach `target` in the same `phase`
+        (ai_hazards.turret_split_gain; none against Ork turrets)."""
+        from .ai_hazards import turret_split_gain
+        torps = [t for t in getattr(self, "_ord_arrivals", {}).get(target.id, {}).get("torps", [])
+                 if t[0] == phase]
+        if not torps:
+            return 0.0
+        strength = sum(t[1] for t in torps)
+        return turret_split_gain(target, self.gs, strength, fighters, bombers, f_save, b_save,
+                                 torps[0][2])
+
+    def _craft_due(self, target: Ship):
+        """Attack craft due at `target`, as [(phase, fighters, bombers)]: planned
+        this phase (_ord_arrivals) and our craft already flying at it (arrival
+        by ai_hazards.strike_timeline from where they are)."""
+        from .ai_hazards import strike_timeline
+        from .ordnance import craft_roles
+        due = [(c[0], c[1], c[2]) for c in
+               getattr(self, "_ord_arrivals", {}).get(target.id, {}).get("craft", [])]
+        groups = {}
+        for o in self.gs.ordnance:
+            if (o["owner_player"] == self.player and o.get("craft_target_id") == target.id
+                    and not o.get("cap_ship_id")):
+                groups.setdefault(o.get("wave_id") or o["id"], []).append(o)
+        for g in groups.values():
+            f = sum(1 for o in g if craft_roles(o["ordnance_type"]) == ("fighter",))
+            b = sum(1 for o in g if set(craft_roles(o["ordnance_type"])) == {"bomber"})
+            if not b:
+                continue
+            tl = strike_timeline(g[0]["x"], g[0]["y"], min((o.get("speed") or 20) for o in g),
+                                 target, self.gs, self.player)
+            if tl is not None:
+                due.append((tl["phase"], f, b))
+        return due
+
     def _hold_bays(self, ship: Ship, bays, craft_types, enemies) -> str:
         """Whether to keep the bays loaded this turn (a reason, or "" to launch).
         A launch means a Reload Ordnance order before the next one (s.15): a
@@ -1397,7 +1443,19 @@ class AIPlayer:
         self.gs.add_log(f"[AI] {ship.name} wave vs {target.name}: {label} "
                         f"(about {value:.0f} VP)")
         self._strike_target = (target.id, ev)
+        self._note_craft_arrival(target, plan)
         return plan
+
+    def _note_craft_arrival(self, target: Ship, plan) -> None:
+        """Record a planned fighter / bomber wave's arrival phase for the turret
+        split (torpedoes launched later this phase can join it)."""
+        if not plan or len(plan) != 2:
+            return
+        (_fk, f), (_bk, b) = plan
+        ph = getattr(self, "_strike_phase", {}).get((target.id, f, b))
+        if ph is not None and b:
+            self.__dict__.setdefault("_ord_arrivals", {}).setdefault(target.id, {}).setdefault("craft", []).append(
+                (ph, f, b, 0, 0))
 
     def _strike_option(self, ship: Ship, craft_types, count: int, enemies,
                        next_turn: bool = False):
@@ -1439,6 +1497,7 @@ class AIPlayer:
         targets = [e for e in enemies
                    if ship.distance_to(e) - closure(e) <= 3 * speed] or [near]
         options = []
+        self._strike_phase = {}
         from .ai_hazards import (best_route, phase_weight, strike_timeline,
                                  REACTIVE_CAP_WEIGHT, AIRBORNE_INTERCEPT_WEIGHT,
                                  _predicted_positions)
@@ -1515,14 +1574,22 @@ class AIPlayer:
                     got = timeline(spd)
                     if not got:
                         continue
-                    _tl, disc, caps = got
+                    tl_s, disc, caps = got
                     v, ev = mixed(lambda inp, f=f, b=b: wave(inp, f, b), caps)
+                    # Owner: co-ordinate with torpedoes / missiles reaching it in the
+                    # same phase: its turrets can't shoot down both (s.28)
+                    syn = self._turret_split_bonus(target, tl_s["phase"], f, b,
+                                                   f_save, b_save)
+                    if syn:
+                        v += hull_hits_vp(target, self.gs, c + ev, syn)
+                        ev += syn
                     if best_split is None or v * disc > best_split[0] + 1e-9:
-                        best_split = (v * disc, f, b, ev)
+                        best_split = (v * disc, f, b, ev, tl_s["phase"])
                 if best_split:
-                    v, f, b, ev = best_split
+                    v, f, b, ev, ph = best_split
                     options.append((v, [(fk, f), (bk, b)], f"{f} fighters + {b} bombers",
                                     target, ev))
+                    self._strike_phase[(target.id, f, b)] = ph
             elif bomber:
                 from .waves import best_wave_split
 
@@ -1619,6 +1686,7 @@ class AIPlayer:
                 gs.add_log(f"[AI] {ship.name} strike vs {target.name}: {label} "
                            f"(about {value:.0f} VP)")
                 self._strike_target = (target.id, ev)
+                self._note_craft_arrival(target, plan)
             else:
                 free += k                 # nothing to strike with: fighters go free
         if cap or free:
@@ -2282,18 +2350,36 @@ class AIPlayer:
 
             from .ai_hazards import best_route
 
+            def split_bonus(e, phase, hits):
+                """Owner: co-ordinate missiles with bombers reaching `e` in the
+                same phase; its turrets can't shoot down both (s.28)."""
+                from .ai_hazards import turret_split_gain
+                due = [d for d in self._craft_due(e) if d[0] == phase]
+                if not due:
+                    return 0.0
+                f = sum(d[1] for d in due)
+                b = sum(d[2] for d in due)
+                gain = turret_split_gain(e, self.gs, strength, f, b, from_xy=(ship.x, ship.y))
+                return added_vp(e, self.gs, committed.get(e.id, 0.0) + hits, gain,
+                                shields=False) if gain else 0.0
+
+            def phase_of(e):
+                return 0 if ship.distance_to(e) <= speed + e.base_radius else 1
+
             def score(e):
                 if not self._torpedo_turns(ship, weapon):
                     plan = self._torp_lead_plan(ship, weapon, e)
                     if plan is not None:
                         # Within this turn and the enemy's: value from where the
                         # target can move (owner: lead it; dodges counted)
-                        return plan["value"], plan["p_hit"] * plan["hits"]
+                        hits = plan["p_hit"] * plan["hits"]
+                        return plan["value"] + split_bonus(e, phase_of(e), hits), hits
                 else:
                     plan = self._approach_for_launch(ship, weapon, e)
                     if plan is not None:
                         # Turning salvo: best approach, weaker facings included
-                        return plan["value"], plan["hits"]
+                        return (plan["value"] + split_bonus(e, plan["phase"], plan["hits"]),
+                                plan["hits"])
                 hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y))
                 # Planets / asteroid fields on the way destroy the salvo; blast
                 # markers and dust clouds on a 6 (owner: hazards on the path)

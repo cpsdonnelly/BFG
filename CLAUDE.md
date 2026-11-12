@@ -435,7 +435,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1063 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1066 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -558,6 +558,16 @@ Ordnance:
   (`best_route`: up to two waypoints round obstacles, AI craft fly them,
   `ordnance.craft_target_point`); craft in flight re-targeted fleet-wide the same way
   (`plan_strike_targets`); multi-role attack mode by `waves.best_attack_mode`.
+- Co-ordinated strikes (owner, e.g. Tau Protector fleets with missiles and attack craft): turrets
+  fire at craft or at torpedoes / mines in a phase, not both (s.28), so a salvo and a bomber
+  wave reaching one ship in the same phase gain the smaller of the two turret savings
+  (`ai_hazards.turret_split_gain`; bombers' attacks are still reduced by turrets; none
+  against Ork turrets, which fire at everything). The AI records this phase's planned
+  arrivals (`AIPlayer._ord_arrivals`: torpedo phase 0 within one torpedo move, else 1; a wave's
+  `strike_timeline` phase) and both sides score the gain: the strike planner against
+  torpedoes due at its target (`_turret_split_bonus`), torpedo targeting against waves due
+  there, planned or already flying (`_craft_due`) (`tests/test_ai_air_doctrine.py`). Not yet:
+  assault boats and mines in the split, choosing a later launch to match timings.
 - Holding bays (`_hold_bays`): out of reach (nothing within three moves of the fastest craft)
   hold; within reach hold when (1 - Reload Ordnance odds) x next turn's launch or CAP value >
   launching now (rarely, with fair Ld).
