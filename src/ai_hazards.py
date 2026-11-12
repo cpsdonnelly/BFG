@@ -1439,6 +1439,9 @@ ENEMY_FIRE_AT_WAVE = 0.5
 # Chance a loaded enemy carrier puts its fighters on CAP for the target before
 # our wave arrives, when it has an ordnance phase to do it in (judgement)
 REACTIVE_CAP_WEIGHT = 0.5
+# Chance enemy fighters already flying free go for our wave when they can
+# reach it (they need no launch; as our own free fighters, 0.75: judgement)
+AIRBORNE_INTERCEPT_WEIGHT = 0.75
 
 
 def _positions_through(target, our_phase: bool, phases: int):
@@ -1474,8 +1477,9 @@ def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: 
     put on CAP before arrival (its own loaded bays, when an enemy ordnance
     phase comes first), "reactive_intercept": fighter squadrons other loaded
     enemy carriers could launch at the waiting wave in an enemy ordnance phase
-    up to arrival (owner: reactive intercept is a strategy too)}, or None if the
-    wave can't reach it in `max_phases`."""
+    up to arrival (owner: reactive intercept is a strategy too),
+    "airborne_intercept": enemy fighters already flying free that could reach
+    it by then}, or None if the wave can't reach it in `max_phases`."""
     import math as _m
     from .combat import ordnance_fire_dice, check_weapon_in_arc
     rt = target.base_radius
@@ -1547,6 +1551,29 @@ def strike_timeline(x: float, y: float, speed: float, target: Ship, gs, player: 
             if _m.hypot(wx - ep.x, wy - ep.y) <= fspeed:
                 intercept += bay_launch_capacity(e, bays, None)[0]
                 break
+    # Enemy fighters already in flight (free, not on CAP) that can reach the
+    # waiting wave by an enemy ordnance phase up to arrival: they move in every
+    # ordnance phase (s.15) and need no launch (owner: enemy carriers' fighters
+    # threaten our strikes; strike outside their umbrella)
+    from .models import OrdnanceMarker
+    airborne = 0
+    for o in gs.ordnance:
+        if o["owner_player"] == player or o.get("cap_ship_id"):
+            continue
+        m = OrdnanceMarker.from_dict(o)
+        if "fighter" not in craft_roles(m.ordnance_type):
+            continue
+        for j in range(0, k + 1):
+            if (j % 2 == 1) != our_phase:
+                continue
+            p = tpos[j]
+            d = _m.hypot(p.x - x, p.y - y) * route_ratio or 1.0
+            f = min(1.0, j * speed / d)
+            wx, wy = x + (p.x - x) * f, y + (p.y - y) * f
+            if _m.hypot(wx - m.x, wy - m.y) <= (m.speed or 20) * (j + 1):
+                airborne += 1
+                break
     landed_ours = (k % 2 == 0) == our_phase
     return {"phase": k, "end_phases": 1 if landed_ours else 2, "survival": survival,
-            "reactive_cap": cap, "reactive_intercept": intercept}
+            "reactive_cap": cap, "reactive_intercept": intercept,
+            "airborne_intercept": airborne}

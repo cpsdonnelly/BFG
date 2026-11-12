@@ -465,7 +465,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session log (latest session, newest last; history)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1062 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1063 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -590,6 +590,10 @@ Latest items, newest last:
   supremacy (their bays count in `ship_threat_vp` via `bay_threat_vp`: strikes + denial of
   ours); with less, protect our carriers (`_carrier_exposure`) and fly more CAP /
   interception (`_anticipated_weight` scales with the air balance).
+- Owner: enemy carriers threaten our strikes (a smaller air wing playing defence can cut a
+  wave of 8 to 2); strike targets outside their umbrella. `strike_timeline` now also counts
+  enemy fighters already in flight (`airborne_intercept`), the planner mixes every
+  interception case and chooses its split against them.
 - Spectator checks: expert games get 180s (they took ~75s of the old 90s limit and one run
   under load went over).
 - Owner request: a new To do item 7, scenarios and sub-plots in the engine and the AI (after

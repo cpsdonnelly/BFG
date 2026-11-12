@@ -435,7 +435,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1062 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1063 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -455,7 +455,8 @@ tuning them is on hold (owner: keep it in mind, but it is hard work, so leave it
 point, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT` 0.5,
 `DODGE_WEIGHT` 0.5, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
 0.5 (scaled by the air balance), `AIR_THREAT_WEIGHT` 0.5, `ENEMY_FIRE_AT_WAVE` 0.5,
-`REACTIVE_CAP_WEIGHT` 0.5, CAP free fighters 0.75, the disengage and hulk models.
+`REACTIVE_CAP_WEIGHT` 0.5, `AIRBORNE_INTERCEPT_WEIGHT` 0.75, CAP free fighters 0.75, the
+disengage and hulk models.
 
 Values:
 - Two VP scales: gunnery `damage_vp` (s.38 thresholds + 0.2 per hit) for choosing gun / torpedo
@@ -597,7 +598,15 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    "reactive intercept should also be a strategy"): any other loaded enemy carrier whose
    fighters can reach the waiting wave in an enemy ordnance phase up to arrival
    (`reactive_intercept`), fed to the planner like CAP (each meets the wave's lead, s.19 /
-   s.25) at the same weight; `tests/test_strike_timeline.py`). Our own side already
+   s.25) at the same weight; enemy fighters already flying free that can reach the waiting wave
+   by an enemy ordnance phase (they move in every ordnance phase and need no launch,
+   `airborne_intercept`, `AIRBORNE_INTERCEPT_WEIGHT` 0.75, judgement); the planner mixes every
+   interception case and picks the fighter / bomber split against them;
+   `tests/test_strike_timeline.py`). Owner: a fleet with less launch capacity can still neuter
+   one with more (6 interceptors cut a wave of 8 to 2, turrets take more), so enemy carriers
+   threaten our strikes and striking outside their umbrella is a strategy: a target within an
+   enemy carrier's fighter reach is worth much less (23.6 VP vs 42.6 in the open in
+   `tests/test_ai_air_doctrine.py`), so the strike goes to the open one. Our own side already
    intercepts reactively: free fighters go at enemy salvos / waves in flight
    (`_threat_slots`, 0.75), and holding bays counts next turn's defence (`_hold_bays`).
    Effects: faster assault boats now beat a slower fighter / bomber wave in the owner's

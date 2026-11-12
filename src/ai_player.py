@@ -1406,7 +1406,7 @@ class AIPlayer:
         boats (they ignore Armour, To do 1b). (value, [(type, n)], label,
         target), or None when the bays can't strike (multi-role craft use the
         s.24 / s.27 choices; no bombers or boats)."""
-        from .waves import (split_craft_types, wave_plan_inputs, plan_wave_against,
+        from .waves import (split_craft_types, wave_plan_inputs,
                             expected_survivors, raid_squadron_value)
         from .ordnance import craft_roles, craft_stats
         if count < 1 or not enemies:
@@ -1440,7 +1440,8 @@ class AIPlayer:
                    if ship.distance_to(e) - closure(e) <= 3 * speed] or [near]
         options = []
         from .ai_hazards import (best_route, phase_weight, strike_timeline,
-                                 REACTIVE_CAP_WEIGHT, _predicted_positions)
+                                 REACTIVE_CAP_WEIGHT, AIRBORNE_INTERCEPT_WEIGHT,
+                                 _predicted_positions)
         for target in targets:
             base_inputs = wave_plan_inputs(target, self.gs)
             # craft may fly round obstacles (owner): best of straight line / detours
@@ -1471,14 +1472,18 @@ class AIPlayer:
                     if tl is None:
                         tls[spd] = None
                     else:
-                        caps = [(1.0, base_inputs)]
+                        # Interceptors on the way, each meeting the wave's lead
+                        # like CAP (s.19 / s.25): the target's CAP and other
+                        # carriers' launches (REACTIVE_CAP_WEIGHT), fighters
+                        # already flying (AIRBORNE_INTERCEPT_WEIGHT); every mix
                         react = tl["reactive_cap"] + tl.get("reactive_intercept", 0)
-                        if react:
-                            # target CAP and other carriers' interceptors both meet
-                            # the wave's lead first (s.19 / s.25), like CAP
-                            more = dict(base_inputs, cap=base_inputs["cap"] + react)
-                            caps = [(1 - REACTIVE_CAP_WEIGHT, base_inputs),
-                                    (REACTIVE_CAP_WEIGHT, more)]
+                        air = tl.get("airborne_intercept", 0)
+                        r_cases = ([(REACTIVE_CAP_WEIGHT, react), (1 - REACTIVE_CAP_WEIGHT, 0)]
+                                   if react else [(1.0, 0)])
+                        a_cases = ([(AIRBORNE_INTERCEPT_WEIGHT, air),
+                                    (1 - AIRBORNE_INTERCEPT_WEIGHT, 0)] if air else [(1.0, 0)])
+                        caps = [(pr * pa, dict(base_inputs, cap=base_inputs["cap"] + er + ea))
+                                for pr, er in r_cases for pa, ea in a_cases]
                         disc = route[1] * tl["survival"] * phase_weight(tl["phase"] + offset)
                         tls[spd] = (tl, disc, caps)
                 return tls[spd]
@@ -1493,21 +1498,30 @@ class AIPlayer:
             c = committed.get(target.id, 0.0)
             if types:
                 fk, bk, f_save, b_save = types
-                f, b, _ev = plan_wave_against(count, base_inputs, f_save, b_save)
 
-                def wave(inp, f=f, b=b):
+                def wave(inp, f=0, b=0):
                     from .waves import wave_split_value
                     t = inp["turrets"]
                     pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
                     ev = wave_split_value(f, b, t, t + inp["massed"], inp["cap"],
                                           inp["armour"], pp, f_save, b_save, inp["cap_save"])
                     return hull_hits_vp(target, self.gs, c, ev), ev
-                spd = min((stats[k][1] or 20) for k, n in ((fk, f), (bk, b)) if n) if f + b else 20
-                got = timeline(spd)
-                if got:
+                # The split against every interception case on the way (owner:
+                # expected interceptors meet the lead, so our fighters may lead)
+                best_split = None
+                for f in range(count + 1):
+                    b = count - f
+                    spd = min((stats[k][1] or 20) for k, n in ((fk, f), (bk, b)) if n)
+                    got = timeline(spd)
+                    if not got:
+                        continue
                     _tl, disc, caps = got
-                    v, ev = mixed(wave, caps)
-                    options.append((v * disc, [(fk, f), (bk, b)], f"{f} fighters + {b} bombers",
+                    v, ev = mixed(lambda inp, f=f, b=b: wave(inp, f, b), caps)
+                    if best_split is None or v * disc > best_split[0] + 1e-9:
+                        best_split = (v * disc, f, b, ev)
+                if best_split:
+                    v, f, b, ev = best_split
+                    options.append((v, [(fk, f), (bk, b)], f"{f} fighters + {b} bombers",
                                     target, ev))
             elif bomber:
                 from .waves import best_wave_split

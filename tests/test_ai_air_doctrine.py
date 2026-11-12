@@ -72,3 +72,48 @@ def test_out_carriered_the_ai_protects_its_carrier_and_flies_more_cap():
     assert inside > even._carrier_exposure(mine, 10.0, 0.0, tgt) > 0 and outside == 0.0
     # gun ships carry no carrier-protection term
     assert weak._carrier_exposure(_gun_cruiser("g", 1, 0.0), 10.0, 0.0, tgt) == 0.0
+
+
+def _umbrella_case(airborne=False):
+    from tests.conftest import make_marker
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    d = find_ship_class("Emperor Class Battleship").to_ship_dict("Emp", 1, ship_id="emp")
+    d.update(x=0.0, y=0.0, heading=0.0, leadership=8)
+    emp = Ship.from_dict(d)
+    covered = make_ship(id="covered", player=2, x=50.0, y=20.0, heading=90.0, speed=0,
+                        turrets=2, armor_prow="5+", armor_side="5+", points_value=180)
+    open_ = make_ship(id="open", player=2, x=50.0, y=-20.0, heading=90.0, speed=0,
+                      turrets=2, armor_prow="5+", armor_side="5+", points_value=180)
+    ships = [emp, covered, open_]
+    if not airborne:
+        fbay = {"name": "Launch Bays", "weapon_type": "launch_bay", "range_cm": 30,
+                "strength": 6, "arcs": [], "craft_types": ["fury_fighter"],
+                "craft_speeds": {"fury_fighter": 30}}
+        ships.append(make_ship(id="cv", player=2, x=40.0, y=25.0, heading=90.0, speed=0,
+                               weapons=[fbay], points_value=150))
+    gs = make_gs(ships)
+    if airborne:
+        for i in range(6):
+            gs.add_ordnance(make_marker(id=f"f{i}", ordnance_type="fighter", owner_player=2,
+                                        x=40.0, y=55.0, speed=30))
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai.difficulty = "normal"
+    ai._ord_committed = {}
+    s = gs.get_ship_by_id("emp")
+    cts = [c for w in s.weapons if w.get("weapon_type") == "launch_bay"
+           for c in w.get("craft_types", [])]
+    foes = [gs.get_ship_by_id("covered"), gs.get_ship_by_id("open")]
+    vals = {t.id: ai._strike_option(s, cts, 8, [t])[0] for t in foes}
+    return ai._strike_option(s, cts, 8, foes), vals
+
+
+def test_strike_outside_the_enemy_carriers_umbrella():
+    """Owner: a fleet with less launch capacity can still neuter one with more
+    (6 interceptors cut a wave of 8 to 2, and turrets take more): enemy carriers
+    threaten our strikes, so strike targets outside their fighters' reach."""
+    for airborne in (False, True):
+        best, vals = _umbrella_case(airborne)
+        assert best[3].id == "open"
+        assert vals["covered"] < 0.75 * vals["open"]
