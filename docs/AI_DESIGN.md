@@ -468,10 +468,11 @@ Tuning these is on hold (owner: "keep it in mind, but it is hard work, so leave 
 
 Planned (To do 11 i, suggestion): Easy chooses by a softmax on expected value with a temperature,
 so its mistakes look human rather than random; Hard gets the coordination pass or tuned weights.
-The expert AI should see hazards (To do 11 b): today expert movement is the one decision made
-without hazard pricing, so it can fly into an asteroid field (Ld test or D6 damage, s.39) or
-through blast markers. At least add the path-hazard cost at the root and in its evaluation;
-better, expected values at chance points or a few sampled dice. The wider candidate sampling
+The expert AI now pays the normal AI's path-hazard cost for each move it chooses between
+(Built, To do 11 b): mines, torpedoes and attack craft in flight, asteroid fields, warp rifts,
+clouds and blast markers, so it no longer drives into an asteroid field it can avoid. Deeper in
+its search it still sees no terrain or ordnance; planned: hazards there too, and expected
+values at chance points or a few sampled dice. The wider candidate sampling
 (To do 11 a) matters for the expert too: on a continuous table it can only choose among the
 moves it samples. Later (To do 12, owner:
 low priority) a learned evaluation for its search: position features (material, threat both
@@ -483,8 +484,8 @@ what it does to ships, never by where it lies, and trained on varied random set-
 It replaces only the expert's leaf; the normal AI keeps its heuristics.
 
 Hard currently plays like Normal. The expert AI replaces only movement; its simulation is
-dice-free and leaves out attack craft, hazards and blast markers, so its strength is long-range
-manoeuvre. Its other phases are the normal AI's.
+dice-free and leaves out attack craft, hazards and blast markers (only its first move pays for
+hazards), so its strength is long-range manoeuvre. Its other phases are the normal AI's.
 
 ---
 

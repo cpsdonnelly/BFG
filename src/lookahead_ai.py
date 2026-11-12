@@ -548,6 +548,8 @@ class LookaheadAI(AIPlayer):
         state = SimState.from_gs(self.gs)
         best_cmds = None
         best_score = -_INF
+        from .ai_hazards import move_hazard_vp
+        vp_scale = self._vp_to_score(state)
 
         for turn_mult, speed_frac in _TURN_FRACS:
             turn_deg = ta * turn_mult
@@ -570,6 +572,13 @@ class LookaheadAI(AIPlayer):
                                     {ship.id: (turn_deg, dist)}, enemy_moves)
             score = _minimax(next_s, self.DEPTH - 1, -_INF, _INF,
                              False, self.player, deadline, self)
+            # Hazards on the way (To do 11 b): the search's sim has no ordnance
+            # or terrain, so the root move pays the normal AI's path-hazard
+            # cost (mines, torpedoes, attack craft in flight, asteroid fields,
+            # warp rifts, clouds, blast markers) in the search's score units
+            fx, fy, _fh = self._simulate_final_pos(ship, turn_deg, dist)
+            path = self._simulate_path(ship, turn_deg, dist)
+            score -= vp_scale * move_hazard_vp(ship, (fx, fy), path, self.gs, order)["vp"]
 
             if score > best_score:
                 best_score = score
@@ -579,6 +588,26 @@ class LookaheadAI(AIPlayer):
                 break  # time's up; use best found so far
 
         return best_cmds or super()._plan_move_toward(ship, enemy, order, aaf_bonus)
+
+    def _vp_to_score(self, state: SimState) -> float:
+        return _vp_scale_for(state, self.gs, self.player)
+
+
+def _vp_scale_for(state: SimState, gs, player: int) -> float:
+    """Score units per VP for the root's hazard cost: _evaluate's units (VP
+    over the points on the table); with a turn limit, the slope of win_score
+    at the current margin (a VP matters most when the game is close)."""
+    import math as _m
+    total = sum(s.points_value for s in state.ships) or 1
+    if not state.turn_limit:
+        return 1.0 / total
+    from .ai_hazards import game_risk
+    risk = game_risk(gs, player)
+    if risk is None:
+        return 1.0 / total
+    margin, sigma = risk
+    density = _m.exp(-0.5 * (margin / sigma) ** 2) / (sigma * _m.sqrt(2 * _m.pi))
+    return density + RISK_TIEBREAK / total
 
 
 def _cmds_for_move(ship: Ship, turn_deg: float, dist: float,

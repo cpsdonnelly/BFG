@@ -473,7 +473,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1086 pass; all GUI checks pass
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1087 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -490,7 +490,7 @@ before each kind of weapon in the Fire dialog, the AI's mine hazard counting tur
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
 Next: the rest of To do 2 (the risk preference in brace and strike choices, the expert AI
-valuing craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
+valuing its own craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
 evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -672,7 +672,7 @@ Expert AI (`lookahead_ai`): minimax over a deterministic sim using the same term
 scaled by Armour, lances 0.5, focus without overkill, torpedoes once, explosions at their odds,
 shields each turn, the real table); leaf = VP banked + next turn's expected swing at
 `LATER_TURN_WEIGHT`; with a turn limit, the chance of winning from that margin
-(`win_score`, To do 2).
+(`win_score`, To do 2); root moves pay the path-hazard cost (To do 11 b).
 
 ### To do (agreed order; detail in docs/HANDOFF.md)
 
@@ -767,7 +767,8 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    re-rolls (on the final game turn the bars drop to the lowest, 10 VP: left-over re-rolls are
    worth nothing after it) (`tests/test_ai_disengage.py`). Still to do here: the preference
    in brace and strike choices and in the guns' value a disengaging ship gives up, scenario
-   points in the margin (To do 7), the expert AI valuing craft in flight.
+   points in the margin (To do 7), the expert AI valuing its own craft in flight (enemy
+   craft in flight already cost its root moves, To do 11 b).
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
    owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the
@@ -1096,7 +1097,13 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    b. Expert AI hazards (suggestion, high): it plans movement without hazards, so it can fly
       into an asteroid field (Ld test or D6 damage, s.39) or through blast markers. Minimum: the
       path-hazard cost at the root and in its evaluation; better: expected values at chance
-      points, or sampled dice.
+      points, or sampled dice. Root part built: each root move pays `move_hazard_vp` along its
+      path (mines, torpedoes, attack craft in flight, asteroid fields, warp rifts, clouds, blast
+      markers) in the search's units (per point on the table; with a turn limit the slope of
+      the chance of winning at the current margin, `lookahead_ai._vp_scale_for`); a test
+      shows the expert taking a move clear of an asteroid field it would otherwise clip
+      (`tests/test_lookahead_sim.py`). Still to do: hazards deeper in the search (the sim has
+      no terrain or ordnance), chance points or sampled dice.
    c. Rule effects missing from valuations:
       - Price Brace instead of the 1/4-of-hits rule (owner: the feedback is right that Brace
         has a cost). Gain: 4+ saves on hull hits from this attack and every later attack until

@@ -131,3 +131,47 @@ def test_expert_leaf_takes_the_brawl_only_when_behind_at_the_end():
     brawl, quiet = _brawl_states(behind=True)
     brawl.turn_limit = quiet.turn_limit = None
     assert abs(_evaluate(brawl, 1) - _evaluate(quiet, 1)) < 0.02
+
+
+def test_expert_root_moves_pay_the_path_hazards():
+    """To do 11 b: the expert search's sim has no terrain or ordnance, so each
+    root move pays the normal AI's path-hazard cost. Closing on a harmless
+    target, the expert's best move with nothing in the way clips an asteroid
+    field placed there; with the field on the table it picks a move clear of
+    it (and without the cost it would not)."""
+    from tests.conftest import make_phenomenon, DiceStub
+    from src.ai_hazards import move_hazard_vp
+    from src.lookahead_ai import LookaheadAI
+    from src.turn_controller import TurnController
+    field = make_phenomenon("asteroid_field", x=60.0, y=60.0, width=4.0, height=4.0)
+
+    def scene(with_field, cost=True):
+        me = make_ship(id="me", player=1, x=40.0, y=60.0, heading=0.0, speed=20,
+                       weapons=[dict(w) for w in GUNS], points_value=180, turrets=0)
+        foe = make_ship(id="foe", player=2, x=100.0, y=60.0, heading=180.0, speed=0,
+                        weapons=[], points_value=180)
+        gs = make_gs([me, foe])
+        gs.table_width, gs.table_height = 180.0, 120.0
+        if with_field:
+            gs.phenomena = [field.to_dict()]
+        dice = DiceStub([])
+        ai = LookaheadAI(1, TurnController(gs, dice), gs, dice)
+        ai.difficulty = "expert"
+        ai.DEPTH, ai.TIME_BUDGET = 2, 5.0
+        if not cost:
+            ai._vp_to_score = lambda st: 0.0
+        ship = gs.get_ship_by_id("me")
+        cmds = ai._plan_move_toward(ship, gs.get_ship_by_id("foe"), "", 0)
+        return ai, ship, cmds
+
+    def risk(ai, ship, cmds):
+        gs = make_gs([ship])
+        gs.phenomena = [field.to_dict()]
+        turn = sum((c.value if c.action == "turn_left" else -c.value)
+                   for c in cmds if c.action.startswith("turn"))
+        dist = sum(c.value for c in cmds if c.action == "forward")
+        fx, fy, _ = ai._simulate_final_pos(ship, turn, dist)
+        return move_hazard_vp(ship, (fx, fy), ai._simulate_path(ship, turn, dist), gs, "")["vp"]
+    assert risk(*scene(False)) > 0               # its best move would clip the field
+    assert risk(*scene(True, cost=False)) > 0    # blind to it without the cost
+    assert risk(*scene(True)) == 0.0             # with the cost: a move clear of it
