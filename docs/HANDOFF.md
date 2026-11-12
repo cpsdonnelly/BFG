@@ -42,7 +42,8 @@ session.
 
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
-does, with the judgement weights to tune), "To do" (agreed order, items 1-9), "Open questions"
+does, with the judgement weights to tune; its first part, "Fleet strategy", lists the owner's
+matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-9), "Open questions"
 (one: where To do 8 goes) and every owner ruling. This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 

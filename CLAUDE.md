@@ -487,6 +487,35 @@ Next: the rest of To do 2, then 3-7 and 9; 8's place in the order is an open que
 
 ### AI: how it decides (expected VP)
 
+Fleet strategy (owner doctrine): the AI plays its matchup, judging its fleet and each ship
+against the enemy's, on average and ship vs ship. Owner: "do not take these as hard rules, it
+depends on the matchup": every one should come out of the expected-VP values, not a fixed rule.
+- Firepower by range bracket (0-15 Ork Heavy Gunz, 15-30, 30-45, 45-60 Chaos long guns,
+  60-150 artillery such as the Nova Cannon): fight in the bracket where our guns beat theirs
+  (e.g. a Tau Merchant out-guns a Lunar at 30-45cm, not at 0-30cm). Planned: To do 8 f.
+- Speed (and turn angle) edge: out-moving the enemy, get out of its main fire arcs (e.g. into a
+  Lunar's rear arc). Planned: 8 g.
+- Out-range and out-move it on average (Chaos): kite, holding the band where we can fire and it
+  can't. Planned: 8 c.
+- Gun-heavy broadside fleets (Imperium, e.g. Lunars, broadsides that don't overlap): keep both
+  broadsides busy, cross the T. Planned: 8 b.
+- Forward-firing ships with the best Armour in front (Tau Protector): show the prow only when
+  the enemy is about to be in range. Planned: 8 d (needs 8 a: exposure by Armour facing).
+- Hit-point edge (Orks): think about boarding and ramming (only with those rules on). Planned:
+  8 h.
+- Teleport attacks, both launching them and being vulnerable to them (only with teleports and
+  hit-and-run on). The AI now decides its own teleports; positioning and defence planned: 8 j.
+- Air power, built: a carrier-heavy fleet goes after the enemy's carriers with its guns (air
+  supremacy; ordnance at them is likely intercepted unless they are spread too thin or just
+  launched); an out-carriered fleet protects its carriers and flies CAP / interception; a
+  smaller air wing can still neuter a larger one, so enemy carriers threaten our strikes and
+  we strike outside their umbrella; reactive intercept; co-ordinated bombers and missiles
+  against the turret split (not against Orks). Details below ("Air power", "Strikes",
+  "Co-ordinated strikes") and in To do 2.
+- Built ordnance craft: lead targets (closing easiest, abeam hardest, receding between; big
+  bases easier), turning salvos come in on the weakest Armour facing, sooner beats later,
+  friendly fire is negative VP; a disabled optional rule is never valued or attempted.
+
 All AI choices are in expected VP (`ai_hazards.py`, `ai_rerolls.py`, `waves.py`, `AIPlayer` in
 `ai_player.py`; the expert AI in `lookahead_ai.py`). Weights marked "judgement" are mine;
 tuning them is on hold (owner: keep it in mind, but it is hard work, so leave it for now): re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per battery
