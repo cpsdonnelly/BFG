@@ -429,7 +429,8 @@ class AIPlayer:
 
     def _arc_score(self, ship: Ship, final_x: float, final_y: float,
                    final_heading: float, target: Ship) -> float:
-        """Score total in-arc weapon strength from a hypothetical end position."""
+        """Score total in-arc weapon strength from a hypothetical end position
+        (loaded torpedoes too: they launch from there)."""
         dx = target.x - final_x
         dy = target.y - final_y
         dist = math.sqrt(dx * dx + dy * dy)
@@ -447,6 +448,23 @@ class AIPlayer:
 
         score = 0.0
         for weapon in ship.weapons:
+            if weapon.get("weapon_type") == "torpedo":
+                # Torpedoes launch from where the ship ends its move (s.15), within
+                # the launcher's arc: worth their strength within one torpedo move,
+                # half within two (the lead plan's reach), nothing unloaded. A
+                # torpedo hits about as often as a firepower point does
+                if not ship.ordnance_loaded_torps:
+                    continue
+                arcs = weapon.get("arcs", [])
+                if arcs and arc not in arcs:
+                    continue
+                tspeed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
+                strength = weapon.get("strength") or 0
+                if dist <= tspeed + target.base_radius:
+                    score += strength
+                elif dist <= 2 * tspeed + target.base_radius:
+                    score += 0.5 * strength
+                continue
             if weapon.get("weapon_type") not in ("battery", "lance", "nova_cannon"):
                 continue
             arcs = weapon.get("arcs", [])

@@ -53,6 +53,8 @@ def test_ai_tau_move_score_counts_every_forward_mount():
     dice = DiceStub([])
     ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
     total = sum(w["strength"] for w in tau.weapons if w["weapon_type"] in ("battery", "lance"))
+    # its loaded gravitic launcher counts too, the target being within one move
+    total += sum(w["strength"] for w in tau.weapons if w["weapon_type"] == "torpedo")
     assert ai._arc_score(tau, 0.0, 0.0, 0.0, t) == total
 
 

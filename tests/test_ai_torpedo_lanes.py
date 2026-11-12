@@ -96,3 +96,24 @@ def test_friendly_fire_is_negative_vp():
     ai.run_ordnance_phase()
     assert dice._idx == 0
     assert len(_torps(gs)) == 1
+
+
+def test_move_score_counts_loaded_torpedoes_in_arc():
+    """Torpedoes launch from where the ship ends its move: an end position with
+    the target ahead and in torpedo reach scores the launcher; unloaded, or
+    with the target abeam, it doesn't."""
+    from src.ai_player import AIPlayer
+    torp = {"name": "Prow Torpedoes", "weapon_type": "torpedo", "range_cm": 30,
+            "strength": 6, "arcs": ["front"], "torpedo_type": "standard", "torpedo_speed": 30}
+    me = make_ship(id="me", player=1, x=0.0, y=0.0, weapons=[dict(torp)])
+    me.ordnance_loaded_torps = True
+    tgt = make_ship(id="t", player=2, x=40.0, y=0.0)
+    gs = make_gs([me, tgt])
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ahead = ai._arc_score(me, 0.0, 0.0, 0.0, tgt)           # 40cm: within two moves
+    abeam = ai._arc_score(me, 0.0, 0.0, 90.0, tgt)
+    near = ai._arc_score(me, 15.0, 0.0, 0.0, tgt)           # 25cm: within one move
+    assert (abeam, ahead, near) == (0.0, 3.0, 6.0)
+    me.ordnance_loaded_torps = False
+    assert ai._arc_score(me, 15.0, 0.0, 0.0, tgt) == 0.0
