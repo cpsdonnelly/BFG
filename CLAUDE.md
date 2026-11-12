@@ -471,7 +471,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1043 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1045 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -667,8 +667,8 @@ points to):
    missiles 20 / 30 / 40cm a move on the first two moves), against the target where it will
    be each phase (`_predicted_positions`: weighted mean of its sampled moves). Each path's
    first contact rolls against the facing it hits (a ship that moves onto the waiting salvo
-   takes it on the side it leads with), after turrets; value x path survival x phase weight
-   (next turn `LATER_TURN_WEIGHT`) x the Leadership odds per turn for Ld-guided torpedoes x 5/6
+   takes it on the side it leads with), after turrets; value x path survival x
+   `phase_weight` x the Leadership odds per turn for Ld-guided torpedoes x 5/6
    per later phase for Tau missiles x 1/2 for boarding torpedoes; friendly ships touched first
    cost their damage's VP (not boarding). Ties: earlier hit, then nearest the bearing. Used for
    the launch heading and target choice (`AIPlayer._approach_for_launch`), recorded on the
@@ -678,7 +678,15 @@ points to):
    suggest the nearest enemy). E.g. an Ork-style 6+/5+/4+ cruiser abeam: the planner comes
    round to the 4+ rear (18.9 VP vs 9.6 for the best salvo that never turns, 5+ side); one
    closing on the launcher can only be met on its prow (`tests/test_ai_armour_approach.py`).
-   Not yet: the target turning to show its strongest facing. Done: guided salvos use the launcher's real Ld in the
+   Not yet: the target turning to show its strongest facing.
+   Owner: sooner beats later ("2 hits on the side within 2 turns are worth much more than 3
+   on the rear after a 4-turn loop"). One time discount for every ordnance planner:
+   `ai_hazards.phase_weight(k)` = `PHASE_DISCOUNT` 0.85 per ordnance phase of delay, x
+   `LATER_TURN_WEIGHT` from the next game turn on (1, 0.85, 0.36, 0.31), used by
+   `approach_plan` and the lead plan (`_torp_lead_plan`: the enemy's phase 0.85, the next turn
+   0.36 / 0.31); strikes' `travel_discount` uses the same factor per move. Hit chances
+   (`p_hit`) stay probabilities; only values are discounted. The planners look two game turns
+   ahead, so long loops are never on the table. Done: guided salvos use the launcher's real Ld in the
    hazard maths (`ai_hazards.guided_turn_chance`; a launcher out of play can't guide); Burn
    Retros by expected VP (`AIPlayer._burn_retros_worth_it`: safest normal move vs safest
    half-speed move along the path, taken when the hazard saved beats half the ship's

@@ -568,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1043 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1045 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -675,6 +675,9 @@ Latest items, newest last:
   phase weights, Ld odds, Tau strength loss), used at launch (`_approach_for_launch`),
   recorded on the salvo (`torp_target_id`) and followed in flight (`salvo_approach`,
   `ordnance_movement._ai_salvo_turn`, `_steer_guided_missile`). Under 25ms a plan.
+- Owner: sooner beats later. `ai_hazards.phase_weight(k)` (0.85 per ordnance phase, x 0.5 from
+  the next game turn: 1, 0.85, 0.36, 0.31) weights hits in `approach_plan` and the lead plan;
+  `travel_discount` shares `PHASE_DISCOUNT`.
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.
