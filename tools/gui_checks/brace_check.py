@@ -68,4 +68,33 @@ print("   rolls in order:", dice.labels[:3])
 check(ASKED and "p1" in ASKED[0][1], "player asked about the AI attack")
 check("brace" in dice.labels[0], "brace test before the AI's to-hit roll")
 root.destroy()
+print("3. Batteries then lances: declined against the batteries, asked again before the lances")
+ASKED.clear()
+ANSWERS = [False, True]
+def _ask2(title, msg, **k):
+    ASKED.append((title, msg)); return ANSWERS.pop(0) if ANSWERS else True
+messagebox.askyesno = _ask2
+root, gs, panel = setup()
+LANCE = {"name": "Port Lance", "weapon_type": "lance", "strength": 2, "range_cm": 30,
+         "arcs": ["front", "left", "right"]}
+att = gs.get_ship_by_id("p1"); att.weapons = [dict(LANCE), dict(GUN)]; gs.update_ship(att)
+att, tgt = gs.get_ship_by_id("p1"), gs.get_ship_by_id("p2")
+dlg = _FireDialog(panel.combat, att, [tgt], None, False, False, [], [(0, LANCE), (1, GUN)])
+dlg.run(); root.update()
+for wa in dlg.weapon_assignments:
+    wa[3].set(dlg.target_options_per_weapon[wa[0]][0])
+dice = Dice([5] * 60); panel.ctx.dice = dice; panel.combat.ctx.dice = dice; dlg.ctx = panel.ctx
+dlg._fire_all()
+labels = [l.lower() for l in dice.labels]
+print("   rolls in order:", dice.labels[:6])
+check(len(ASKED) == 2, "asked twice (before the batteries, then before the lances)")
+ib = next((i for i, l in enumerate(labels) if "batter" in l), -1)
+ibr = next((i for i, l in enumerate(labels) if "brace" in l), -1)
+il = next((i for i, l in enumerate(labels) if "lance" in l), -1)
+check(-1 < ib < ibr < il, "batteries rolled, then the brace test, then the lances")
+check(gs.get_ship_by_id("p2").special_order == "brace_for_impact", "target braced for the lances")
+saves = sum(1 for l in labels if "brace save" in l)
+check(saves == 2, f"saves only for the 2 lance hits, none for the battery hits rolled before (got {saves})")
+root.destroy()
+messagebox.askyesno = _ask
 print("RESULT:", "ALL OK" if not failures else f"FAILURES: {failures}")

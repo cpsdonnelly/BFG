@@ -41,6 +41,11 @@ class _Tooltip:
 # Private dialog controller
 # ---------------------------------------------------------------------------
 
+# Fire order within one ship's volley: batteries, then lances, then the nova
+# cannon (the target is asked about bracing before each kind, s.7)
+_FIRE_ORDER = {"battery": 0, "lance": 1, "nova_cannon": 2}
+
+
 class _FireDialog:
     """Controller for the fire-weapons dialog."""
 
@@ -322,12 +327,20 @@ class _FireDialog:
             target = self._resolve_target(weapon, target_var.get())
             if target is not None:
                 self._volley_targets[w_idx] = self._check_target_priority(weapon, target)
-        # 2. Targets decide on Brace for Impact before any combat rolls (s.7)
-        self._braced = self._brace_targets()
+        # 2. Targets decide on Brace for Impact before any combat rolls (s.7),
+        # separately against each kind of weapon (they may brace against the
+        # lances after not bracing against the batteries, but try only once per
+        # attacker per turn). Batteries fire first: their shield hits place
+        # blast markers that lances ignore.
+        self._braced = {}
+        self._brace_targets(("battery",))
         # 3. Roll
         siege_done = self._fire_siege_cannons(all_damage, fired_weapon_indices)
 
-        for w_idx, weapon, enabled, target_var, str_var, avail_str in self.weapon_assignments:
+        asked_kinds = {"battery"}
+        for w_idx, weapon, enabled, target_var, str_var, avail_str in sorted(
+                self.weapon_assignments, key=lambda a: _FIRE_ORDER.get(
+                    a[1].get("weapon_type", ""), 9)):
             if not enabled.get() or w_idx in siege_done:
                 continue
             target = self._volley_targets.get(w_idx)
@@ -337,6 +350,10 @@ class _FireDialog:
 
             weapon_actually_fired = True
             wtype = weapon.get("weapon_type", "")
+            if wtype in _FIRE_ORDER and wtype not in asked_kinds:
+                asked_kinds.add(wtype)
+                self._apply_volley_damage(all_damage, final=False)
+                self._brace_targets((wtype,))
             phenomena = self.ctx.gs.get_phenomena()
             if wtype in ("battery", "lance"):
                 pool, mode, err = weapon_fire_pool(
@@ -393,7 +410,8 @@ class _FireDialog:
                 self._log(f"  {sr.description}")
                 if sr.hits > 0:
                     all_damage.setdefault(target.id, []).append(
-                        (sr.hits, "battery", target, weapon.get("crit_on", 6)))
+                        (sr.hits, "battery", target, weapon.get("crit_on", 6),
+                         self._braced.get(target.id, False)))
 
             elif wtype == "lance":
                 sr = resolve_lances(self.attacker, target, fire_weapon,
@@ -401,7 +419,8 @@ class _FireDialog:
                 self._log(f"  {sr.description}")
                 if sr.hits > 0:
                     all_damage.setdefault(target.id, []).append(
-                        (sr.hits, "lance", target, weapon.get("crit_on", 6)))
+                        (sr.hits, "lance", target, weapon.get("crit_on", 6),
+                         self._braced.get(target.id, False)))
 
             elif wtype == "nova_cannon":
                 dist_to = self.attacker.distance_to(target)
@@ -458,39 +477,56 @@ class _FireDialog:
             if weapon_actually_fired:
                 fired_weapon_indices.append((w_idx, fire_str, avail_str))
 
-        # Apply accumulated damage
-        for target_id, hit_list in all_damage.items():
+        self._apply_volley_damage(all_damage)
+        self._record_fired(fired_weapon_indices)
+        self.dialog.destroy()
+        self.ctx.board.redraw()
+
+    def _apply_volley_damage(self, all_damage, final=True):
+        """Apply the hits rolled so far, then clear them (each kind of weapon's
+        hits are applied before the target decides on bracing against the next,
+        so hits rolled before it braced get no save, s.7). Hulks don't brace:
+        until `final` their hits wait, so a hulk takes the whole volley at once."""
+        for target_id, hit_list in list(all_damage.items()):
             # Hits that crit on 4+ (bombardment cannons) are applied separately;
             # a hulk takes the whole volley at once (one re-roll per attacking
             # ship, s.34)
             tgt0 = self.ctx.gs.get_ship_by_id(target_id)
             if tgt0 is not None and tgt0.status in ("drifting_hulk", "burning_hulk"):
-                hit_list = [(sum(h for h, _, _, _ in hit_list), "battery", tgt0, 6)]
-            for crit_on in sorted({c for _, _, _, c in hit_list}, reverse=True):
-                total = sum(h for h, _, _, c in hit_list if c == crit_on)
+                if not final:
+                    continue
+                hit_list = [(sum(e[0] for e in hit_list), "battery", tgt0, 6,
+                             self._braced.get(target_id, False))]
+            # Hits rolled before the target braced get no save (s.7): each
+            # batch keeps the brace state it was rolled under (unbraced first)
+            batches = sorted({(e[3], e[4]) for e in hit_list},
+                             key=lambda cb: (cb[1], -cb[0]))
+            for crit_on, was_braced in batches:
+                total = sum(e[0] for e in hit_list if (e[3], e[4]) == (crit_on, was_braced))
                 target = self.ctx.gs.get_ship_by_id(target_id)
                 if not target or (target.is_destroyed and not target.is_hulk):
                     continue
                 self._log(f"  >> {target.name}: {total} total hits"
-                          + (f" (crits on {crit_on}+)" if crit_on != 6 else ""))
+                          + (f" (crits on {crit_on}+)" if crit_on != 6 else "")
+                          + (" (braced)" if was_braced else ""))
                 self.panel._apply_hits_to_target(self.attacker, target, total, self._log,
-                                                 crit_on=crit_on,
-                                                 braced=self._braced.get(target.id, False))
+                                                 crit_on=crit_on, braced=was_braced)
+            del all_damage[target_id]
 
-        self._record_fired(fired_weapon_indices)
-        self.dialog.destroy()
-        self.ctx.board.redraw()
-
-    def _brace_targets(self) -> dict:
-        """Ask each target (one test per squadron) whether it braces against
-        this ship's volley, before anything is rolled. Returns {ship id: braced}
-        for every ship that may take hits."""
-        braced, asked = {}, set()
+    def _brace_targets(self, kinds=("battery", "lance", "nova_cannon")) -> dict:
+        """Ask each target of this ship's weapons of `kinds` (one test per
+        squadron) whether it braces, before those weapons roll anything (s.7).
+        A target that declined earlier in the volley is asked again; one that
+        failed or is braced isn't (`_brace_before_attack`). Merges into and
+        returns self._braced, {ship id: braced}."""
+        braced = getattr(self, "_braced", None)
+        if braced is None:
+            braced = self._braced = {}
+        asked = set()
         by_target = {}
         for w_idx, weapon, *_ in self.weapon_assignments:
             t = self._volley_targets.get(w_idx)
-            if t is None or weapon.get("weapon_type") not in ("battery", "lance",
-                                                               "nova_cannon"):
+            if t is None or weapon.get("weapon_type") not in kinds:
                 continue
             by_target.setdefault(t.id, (t, []))[1].append(weapon)
         for t, weapons in by_target.values():
@@ -557,7 +593,8 @@ class _FireDialog:
             for res, crit_on, wtype in ((m_res, 6, "battery"), (b_res, 4, "battery")):
                 if res.hits:
                     all_damage.setdefault(target.id, []).append(
-                        (res.hits, wtype, target, crit_on))
+                        (res.hits, wtype, target, crit_on,
+                         self._braced.get(target.id, False)))
         return done
 
     def _record_fired(self, fired_weapon_indices):

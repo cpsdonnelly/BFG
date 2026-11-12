@@ -670,6 +670,12 @@ Latest items, newest last:
   weapon (`AIPlayer._offer_brace(ship, target, weapons)`, `tests/test_brace_timing.py`).
   1076 tests pass; brace, spectator (normal, Orks, Space Marines), siege, Ork fire, squadron
   fire and AI GUI checks pass.
+- Fixed: the AI's mine hazard counted 8D6 flat; it now counts the turret roll that cuts a mine
+  to 4D6 (`ai_hazards.mine_attack_dice`). The player's Fire dialog asked the target once for
+  all weapons fired together; it now fires batteries, then lances, then the nova cannon, asks
+  before each kind and applies each kind's hits before the next question (hits rolled before
+  the brace get no save; hulks still take the volley at once). 1077 tests; brace, fire dialog,
+  hulk fire, siege, combined fire, Heavy Gunz, Ork fire, gui and spectator checks pass.
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.

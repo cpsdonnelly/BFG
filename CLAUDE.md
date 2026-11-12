@@ -481,7 +481,8 @@ Built so far: every booklet rule section the engine plays (see the sections abov
 blast marker rules, the turret split, waves / CAP / wave planner, the hit-and-run toggle
 covering every raid, Remastered turret suppression per p.82, the optional-rule toggle audit,
 and the expected-VP AI below (incl. carrier doctrine, strikes valued when they land,
-co-ordinated strikes, the AI's own teleports, Brace asked before each weapon of AI fire).
+co-ordinated strikes, the AI's own teleports, Brace asked before each weapon of AI fire and
+before each kind of weapon in the Fire dialog, the AI's mine hazard counting turrets).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
 Next: the rest of To do 2, then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
@@ -951,8 +952,11 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       again after a decline; a passed brace lasts to the end of the ship's next turn. AI fire
       asks before each weapon (`AIPlayer._offer_brace(ship, target, weapons)`; a squadron
       volley once with its expected hits), so a player who declines against the batteries is
-      asked again before the lances (`tests/test_brace_timing.py`). The human Fire dialog asks
-      once for the weapons fired together in it.
+      asked again before the lances (`tests/test_brace_timing.py`). The human Fire dialog fires
+      batteries, then lances, then the nova cannon (`combat_dialog._FIRE_ORDER`) and asks the
+      targets before each kind; each kind's hits are applied before the next question, so hits
+      rolled before the target braced get no save (a hulk still takes the whole volley at once;
+      `_apply_volley_damage`, `tools/gui_checks/brace_check.py` case 3).
    f. Command check modifiers (s.6) in every order's pass chance: Enemy Contacts +1 Ld if any
       enemy ship is on special orders, Under Fire -1 with blast markers in contact, Ld 0-10;
       command checks only, not Leadership tests. Both directions matter (our orders make the
@@ -1086,9 +1090,8 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       - Mines (done): the hazard model now counts the turret roll that cuts a mine to 4D6
         (`ai_hazards.mine_attack_dice`, innate turrets; massed turrets and the s.28 split
         aren't predicted).
-      - Human Fire dialog: it asks the target to brace once for all the weapons fired together
-        in it; the target may decide per weapon (s.7), so ask before each weapon type (or
-        let the firer fire them one at a time) when the target hasn't tried yet.
+      - Human Fire dialog (done): asks before each kind of weapon (batteries, lances, nova
+        cannon), see To do 10 e.
       - Dust clouds (s.39, XR pp.52-54): ships in contact count as having a blast marker in
         all respects; ordnance moving through tests as for blast markers (owner ruling: XR's
         omission is an oversight, Remastered states it; the AI already matches).
