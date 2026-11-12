@@ -471,7 +471,7 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (latest session; details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1036 pass; all GUI checks pass. After every new export, diff the built
+Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1037 pass; all GUI checks pass. After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
@@ -646,7 +646,12 @@ points to):
    other enemies in the lane soak strength, their VP is left to their own plans). Result: a
    closing target is easiest close in (0.64 vs 0.32 abeam at 40cm, a speed-20 Ld 8 cruiser),
    about level with abeam near 50cm (its 45-degree turn sidesteps the lane), easier again at
-   60cm; receding hardest (`tests/test_ai_torpedo_lead.py`). Beyond that reach the intercept
+   60cm; receding hardest (`tests/test_ai_torpedo_lead.py`). Owner: target size matters.
+   Every contact uses the ship's own base (large 60mm, radius 3.0cm, s.4: battleships, 3+
+   shields or 10+ hits; small 32mm, 1.6cm) plus the marker's half width, so large bases are
+   easier to hit (abeam at 50cm 0.41 vs 0.32), and a closing battleship, straight for 15cm
+   before turning, can't sidestep (0.64 out to 60cm). The hazard maths for enemy torpedoes
+   against our own ships uses the same contact width (`marker_hits`). Beyond that reach the intercept
    aim is kept (later turns are too uncertain). Turning salvos (Tau missiles, Ld-guided,
    boarding) keep the intercept launch aim and, in flight, steer for the middle of the
    target's sampled end positions when it is out of reach this phase (`_steer_guided_missile`). The path check is a line, so a

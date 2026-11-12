@@ -79,3 +79,24 @@ def test_turning_salvo_steers_ahead_of_its_target():
     ai._steer_guided_missile(m, gs.get_ship_by_id("t"))
     h = OrdnanceMarker.from_dict(gs.ordnance[0]).heading
     assert 5.0 < h < 45.0              # turned towards +y, ahead of the target
+
+
+def _plan_base(tx, theading, base, ship_type="cruiser"):
+    me = make_ship(id="me", player=1, x=0.0, y=0.0, heading=0.0, weapons=[dict(TORP)])
+    tgt = make_ship(id="t", player=2, x=tx, y=0.0, heading=theading, speed=20, leadership=8,
+                    armor_prow="5+", armor_side="5+", points_value=150, base_size=base,
+                    ship_type=ship_type)
+    gs = make_gs([me, tgt])
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    ai._ord_committed = {}
+    return ai._torp_lead_plan(gs.get_ship_by_id("me"), TORP, gs.get_ship_by_id("t"))["p_hit"]
+
+
+def test_large_bases_are_easier_to_hit():
+    """Owner: large bases (60mm, s.4: battleships, 3+ shields or 10+ hits) are
+    bigger torpedo targets; battleships also turn only after 15cm (s.10), so a
+    closing one can't sidestep the lane."""
+    for x, h in ((50.0, 90.0), (60.0, 90.0), (50.0, 180.0), (60.0, 180.0)):
+        assert _plan_base(x, h, "large") > _plan_base(x, h, "small")
+    assert _plan_base(60.0, 180.0, "large", "battleship") > _plan_base(60.0, 180.0, "large")

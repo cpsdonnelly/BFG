@@ -568,7 +568,7 @@ Tau re-roll costs and the Ork Boss rules match what was built.
 
 ## Session end state (latest)
 
-All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1036 tests pass,
+All work committed and pushed on `claude/battlefleet-gothic-simulator-3sUkl`; 1037 tests pass,
 `flake8 --select=E9,F src/` clean, all GUI checks pass.
 
 Latest items, newest last:
@@ -666,6 +666,8 @@ Latest items, newest last:
   feedback welcome). Closing targets are easiest close in, receding hardest, abeam and
   closing about level near 50cm for a speed-20 cruiser. Torpedo path hazards now use the
   marker's width (`torpedo_path_survival`). Turning salvos steer ahead of their target.
+  Owner: target size; contacts use each ship's base (large bases easier to hit; closing
+  battleships, 15cm before turning, can't sidestep), in our aim and in `marker_hits`.
   The spectator GUI checks take a difficulty argument (`... gui_spectator_demo.py normal`).
 - Design notes from the owner discussion: "Bombers vs assault boats" and "Ordnance strike
   planning" below.

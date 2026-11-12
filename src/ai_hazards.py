@@ -130,7 +130,9 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
         rad = math.radians(heading)
         reach = torpedo_reach(m)
         ex, ey = m.x + reach * math.cos(rad), m.y + reach * math.sin(rad)
-        if on_path or _seg_dist(end[0], end[1], m.x, m.y, ex, ey) <= r + 1.0:
+        # contact: the ship's base (large bases are easier to hit) plus the
+        # marker's half width
+        if on_path or _seg_dist(end[0], end[1], m.x, m.y, ex, ey) <= r + TORP_CONTACT_HALF_W:
             return h, f"torpedoes S{m.strength} ({h:.1f} hits)"
         # Guided salvos (s.16) may turn up to 45 degrees before they move: the
         # whole cone in reach is at risk, weighted by the chance they turn
