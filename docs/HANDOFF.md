@@ -687,7 +687,8 @@ Latest items, newest last:
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.
 
-Next: the rest of CLAUDE.md "To do" 2 (strike planning at arrival time), then items 3-7, 9, 10
+Next: the rest of CLAUDE.md "To do" 2 (left: splitting waves against enemy guns, next up; the
+risk preference; the expert AI valuing craft in flight), then items 3-7, 9, 10
 and 11 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase
 salvos, the AI changes they need and the Tiger Shark ruling), then 12 (learned evaluation);
 item 1 (weight tuning) last and on hold. Owner: "the order isn't hugely important"; follow

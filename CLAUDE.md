@@ -489,7 +489,8 @@ co-ordinated strikes, the AI's own teleports, Brace asked before each weapon of 
 before each kind of weapon in the Fire dialog, the AI's mine hazard counting turrets).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2, then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
+Next: the rest of To do 2 (wave splitting next, then the risk preference and the expert AI
+valuing craft in flight), then 3-7, 9, 10 and 11 (8 a and 8 f before 11 a), 12 (learned
 evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 

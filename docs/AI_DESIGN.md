@@ -314,10 +314,13 @@ a smaller air wing can still cut a wave of 8 down to 2, so **strike outside the 
 umbrella**). It chooses the fighter / bomber split against all that, or all assault boats when
 raids are worth more (owner idea: boats ignore Armour), and multi-role craft pick bomber or
 raid mode the same way. Faster craft that land a phase sooner can win on that alone.
+A raid's crit is valued over up to three of the target's shooting phases (fewer near the turn
+limit), each with more repairs and a bigger discount (Built). Craft already flying are
+re-targeted every ordnance phase with the same interceptors counted, so a wave in flight also
+turns away from an enemy carrier's umbrella (Built).
 
-Planned (To do 2): crit values beyond the target's next shooting phase, splitting waves
-against enemy guns, reactive CAP for craft already flying, the risk preference. (To do 3):
-torpedo bombers, whose waves become one combined salvo.
+Planned (To do 2): splitting waves against enemy guns, the risk preference, the expert AI
+valuing craft in flight. (To do 3): torpedo bombers, whose waves become one combined salvo.
 
 ---
 
