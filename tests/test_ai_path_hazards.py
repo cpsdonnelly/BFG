@@ -121,3 +121,22 @@ def test_attack_craft_in_dust_destroyed_on_a_six():
     dice = DiceStub(rolls)
     assert check_ordnance_vs_phenomena(m, [dust], dice) == (False, "")
     assert dice._idx == len(rolls)
+
+
+def test_craft_route_with_two_waypoints():
+    """A field behind a field: every one-waypoint detour round the first still
+    crosses one of the second pair, so the route goes round both (two
+    waypoints); craft re-plan each move and follow it."""
+    from src.ai_hazards import best_route, ordnance_path_survival
+    gs = make_gs([])
+    for i, (fx, fy) in enumerate(((20.0, 0.0), (40.0, 3.0), (40.0, -3.0))):
+        gs.add_phenomenon(make_phenomenon("asteroid_field", x=fx, y=fy, width=4.0,
+                                          height=4.0, id=f"a{i}"))
+    assert len(gs.get_phenomena()) == 3
+    for w in ((25.0, 5.0), (25.0, -5.0), (15.0, 5.0), (15.0, -5.0)):
+        one = (ordnance_path_survival(0.0, 0.0, w[0], w[1], gs, "craft")
+               * ordnance_path_survival(w[0], w[1], 60.0, 0.0, gs, "craft"))
+        assert one < 1.0
+    v, surv, length, wp = best_route(0.0, 0.0, 60.0, 0.0, gs, "craft", 20.0)
+    assert surv == 1.0 and wp is not None
+    assert v > best_route(0.0, 0.0, 60.0, 0.0, gs, "craft", 20.0, max_turn=0)[0]

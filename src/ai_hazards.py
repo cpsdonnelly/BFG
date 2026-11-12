@@ -965,31 +965,47 @@ def _harmful_obstacles(x1, y1, x2, y2, gs, kind: str):
 def best_route(x1: float, y1: float, x2: float, y2: float, gs, kind: str = "craft",
                speed: float = 20.0, max_turn: float = None):
     """Owner: attack craft (and, within their turns, torpedoes that can turn)
-    may fly round obstacles. The best of the straight line and two-leg detours
-    via a waypoint just outside each harmful obstacle on it, scored by
+    may fly round obstacles. The best of the straight line, detours via a
+    waypoint just outside each harmful obstacle on it, and detours of those
+    detours (an obstacle on either leg gets its own waypoints, so a field
+    behind a field is flown round too: two waypoints at most), scored by
     ordnance_path_survival x travel_discount(length). Attack craft turn freely
-    (max_turn None); turning torpedoes only where the detour's turn is at most
+    (max_turn None); turning torpedoes only where every turn is at most
     `max_turn` degrees; standard torpedoes pass max_turn=0 (straight only).
-    Returns (value 0-1, survival, length, waypoint or None)."""
+    Returns (value 0-1, survival, length, first waypoint or None); craft
+    re-plan every move, so they follow the rest of the route as they go."""
     import math as _m
-    direct_len = _m.hypot(x2 - x1, y2 - y1)
-    surv = ordnance_path_survival(x1, y1, x2, y2, gs, kind)
-    best = (surv * travel_discount(direct_len, speed), surv, direct_len, None)
+
+    def score(pts):
+        if max_turn is not None:
+            for a, b, c in zip(pts, pts[1:], pts[2:]):
+                h1 = _m.degrees(_m.atan2(b[1] - a[1], b[0] - a[0]))
+                h2 = _m.degrees(_m.atan2(c[1] - b[1], c[0] - b[0]))
+                if abs((h2 - h1 + 180) % 360 - 180) > max_turn:
+                    return None
+        surv, length = 1.0, 0.0
+        for a, b in zip(pts, pts[1:]):
+            surv *= ordnance_path_survival(a[0], a[1], b[0], b[1], gs, kind)
+            length += _m.hypot(b[0] - a[0], b[1] - a[1])
+        return surv * travel_discount(length, speed), surv, length
+
+    start, end = (x1, y1), (x2, y2)
+    v, surv, length = score([start, end])
+    best = (v, surv, length, None)
     if surv >= 1.0 or max_turn == 0:
         return best
-    for group in _harmful_obstacles(x1, y1, x2, y2, gs, kind):
-        for wx, wy in group:
-            if max_turn is not None:
-                a1 = _m.degrees(_m.atan2(wy - y1, wx - x1))
-                a2 = _m.degrees(_m.atan2(y2 - wy, x2 - wx))
-                if abs((a2 - a1 + 180) % 360 - 180) > max_turn:
-                    continue
-            s = (ordnance_path_survival(x1, y1, wx, wy, gs, kind)
-                 * ordnance_path_survival(wx, wy, x2, y2, gs, kind))
-            length = _m.hypot(wx - x1, wy - y1) + _m.hypot(x2 - wx, y2 - wy)
-            v = s * travel_discount(length, speed)
-            if v > best[0] + 1e-9:
-                best = (v, s, length, (wx, wy))
+
+    def waypoints(a, b):
+        return [w for group in _harmful_obstacles(a[0], a[1], b[0], b[1], gs, kind)
+                for w in group]
+    for w1 in waypoints(start, end):
+        routes = [[start, w1, end]]
+        routes += [[start, w1, w2, end] for w2 in waypoints(w1, end)]
+        routes += [[start, w0, w1, end] for w0 in waypoints(start, w1)]
+        for pts in routes:
+            r = score(pts)
+            if r is not None and r[0] > best[0] + 1e-9:
+                best = (r[0], r[1], r[2], pts[1])
     return best
 
 
