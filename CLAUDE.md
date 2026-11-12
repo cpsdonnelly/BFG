@@ -941,10 +941,16 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       that ship, and only until the attacker (ship, squadron or ordnance marker) has finished
       all its attacks; other ships may still brace. A ship decides separately against each of
       an attacker's weapons (it may brace against the lances after not bracing against the
-      gunnery) but attempts only once per attacker per turn. Engine today:
-      `CombatPanel._brace_before_attack` keeps `Ship.brace_failed_vs` (attacker keys, cleared
-      in the end phase) and asks again after a decline; still to check that the Fire dialog
-      and AI fire ask before each weapon, not once per firing ship.
+      gunnery) but attempts only once per attacker per turn: once per hazard, so a ship that
+      fails to brace against a ship's macrobatteries can't brace when that ship then fires its
+      lances (owner). Engine (checked): `CombatPanel._brace_before_attack` records a failure in
+      `Ship.brace_failed_vs` by attacker key (the attacking ship's id; "asteroid_field", the
+      rammer, the exploding ship for `combat.offer_brace`), cleared in the end phase, and asks
+      again after a decline; a passed brace lasts to the end of the ship's next turn. Gap: when
+      the AI fires, `AIPlayer._offer_brace` asks the target once per firing ship (against the
+      total of all its weapons), so a player who declines against its batteries isn't asked
+      again before its lances; it should ask before each weapon until the target has tried. The
+      human Fire dialog asks once for the weapons fired together in it.
    f. Command check modifiers (s.6) in every order's pass chance: Enemy Contacts +1 Ld if any
       enemy ship is on special orders, Under Fire -1 with blast markers in contact, Ld 0-10;
       command checks only, not Leadership tests. Both directions matter (our orders make the
@@ -983,8 +989,13 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       path-hazard cost at the root and in its evaluation; better: expected values at chance
       points, or sampled dice.
    c. Rule effects missing from valuations:
-      - Price Brace instead of the 1/4-of-hits rule: its costs until the end of the ship's
-        next turn (gunnery, lances and ordnance halved, halved again if crippled; no special
+      - Price Brace instead of the 1/4-of-hits rule (owner: the feedback is right that Brace
+        has a cost). Gain: 4+ saves on hull hits from this attack and every later attack until
+        the end of the ship's next turn. Because a ship tries only once per attacker, trying
+        now also spends the chance against that attacker's later weapons: a failed test leaves
+        its lances unbraceable too, while declining now keeps that option, so try against the
+        weapon (or the point in the attack) where the expected saving is worth most. Costs
+        until the end of the ship's next turn (gunnery, lances and ordnance halved, halved again if crippled; no special
         orders; no firing at all inside an asteroid field, s.39); saves only for hits past
         shields; drop the fixed commander bias (the commander's ship should still brace
         earlier because its loss is worth more, but that comes out of the values).

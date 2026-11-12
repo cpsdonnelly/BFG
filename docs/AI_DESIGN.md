@@ -220,10 +220,14 @@ remaining hits (the commander's ship braces earlier).
   later; a failed brace blocks only that ship until that attacker has finished all its
   attacks; a ship decides separately against each of an attacker's weapons (it may brace
   against the lances after not bracing against the gunnery) but tries only once per attacker
-  per turn. Planned (To do 11 c): price Brace by what it really costs until the end of the
+  per turn: a ship that fails against a ship's macrobatteries can't brace when that ship then
+  fires its lances (the engine enforces this). Gap: when the AI fires, the target is asked once
+  per firing ship, not before each weapon. Planned (To do 11 c): price Brace by what it really costs until the end of the
   ship's next turn (guns, lances and ordnance halved, halved again if crippled; no special
-  orders; no firing at all inside an asteroid field, s.39) against the hits it saves (only
-  hits past shields), instead of the fixed quarter-of-hits rule and the commander bias (the
+  orders; no firing at all inside an asteroid field, s.39) against the hits it saves over this
+  and every later attack until then; trying now also uses up the one try against this
+  attacker's later weapons, so a failure leaves its lances unbraceable (saves count only for
+  hits past shields). This replaces the fixed quarter-of-hits rule and the commander bias (the
   commander's ship should still brace earlier, because its loss is worth more, but that comes
   out of the values).
 
@@ -349,7 +353,7 @@ Tuning these is on hold (owner: "keep it in mind, but it is hard work, so leave 
 | Movement | screening | 0.5 | of a turret shot per threat, up to 3 |
 | Movement | carrier exposure when out-carriered | x2 | |
 | Orders | Burn Retros | 0.5 | hazard saved must beat half the firepower value |
-| Orders | brace | 1/4 | of remaining hits in expected damage |
+| Orders | brace | 1/4 | of remaining hits in expected damage (to be replaced by pricing its cost, To do 11 c) |
 | Re-rolls | bars | 45 / 25 / 15 / 10 VP | to spend the last / 2nd / 3rd / further re-roll |
 | Disengage | concession | 10% | of the ship's value |
 | Disengage | already crippled | +75% | extra loss if destroyed |
