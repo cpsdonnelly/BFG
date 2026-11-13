@@ -136,6 +136,8 @@ class AAPanelMixin:
         if ph == "end":
             ai = self._aa_ai(1 if self.ctx.is_ai_controlled(1) else 2)
             with self._auto_dice_if(all(self.ctx.is_ai_controlled(p) for p in (1, 2))):
+                from .aa_turn import resolve_pending_rams
+                resolve_pending_rams(gs, self.ctx.dice, self.ctx.check_destruction)
                 self._resolve_end_phase_auto(ai)
             for p in (1, 2):
                 gs.active_player = p

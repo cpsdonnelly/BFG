@@ -139,3 +139,19 @@ def test_system1_forcing_spends_a_reroll_and_dice_off():
     assert gs.get_ship_by_id("b0").rerolls_remaining == 0
     # nobody can pay any more: no forcing
     assert aa.force_first({1: "a0"}, DiceStub([])) is None
+
+
+def test_rams_lock_both_ships_and_resolve_in_the_end_phase():
+    from src.aa_turn import defer_ram, resolve_pending_rams, is_locked
+    gs, tc, aa = _game()
+    assert defer_ram(gs, "a0", "b0") is False                # IGOUGO: resolve now
+    aa.start_game()
+    assert defer_ram(gs, "a0", "b0") is True
+    assert is_locked(gs.get_ship_by_id("a0")) and is_locked(gs.get_ship_by_id("b0"))
+    aa.advance()                                             # pending survives the phases
+    assert gs.aa_state["pending_rams"] == [["a0", "b0"]]
+    from src.dice import DiceRoller
+    hit = []
+    out = resolve_pending_rams(gs, DiceRoller(mode="auto"), on_hit=lambda s: hit.append(s.id))
+    assert len(out) == 1 and gs.aa_state["pending_rams"] == []
+    assert sorted(hit) == ["a0", "b0"]                       # destruction checks for both

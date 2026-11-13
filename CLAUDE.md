@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1199 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1200 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1555,8 +1555,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (each forcing player spends a re-roll; both: 2D6 + the fleet's best Ld, ties re-rolled),
    `PhaseScheduler.force`; humans are asked at the start of each shooting / movement phase
    (`AAPanelMixin._aa_offer_forcing`); the AI never forces yet. Not yet: a character's
-   ship-only re-roll forcing only that ship; ramming resolved in the end phase (it still resolves during the move); locked
-   ships enforced for humans.
+   ship-only re-roll forcing only that ship; locked ships enforced for humans. Rams built:
+   in AA a ram that connects is deferred (`aa_turn.defer_ram`: both ships locked, kept in
+   `gs.aa_state["pending_rams"]`) and resolved at the start of the end phase
+   (`resolve_pending_rams`), for the AI and humans alike; IGOUGO resolves at once (s.12).
    Game window built (`src/aa_panel.py`, `AAPanelMixin` on GamePanel): Advanced settings pick
    the turn system (IGOUGO / AA, before the game starts) and the order system, phase order and
    launch phase; after deployment `_aa_begin` runs `AATurn` (`_aa_step`): command orders, the

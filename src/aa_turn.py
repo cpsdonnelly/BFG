@@ -93,7 +93,8 @@ class AATurn:
     def _begin_phase(self) -> None:
         ph = self.phase
         self.gs.current_phase = "ordnance" if ph.startswith("ordnance") else ph
-        self.gs.aa_state = {"round": self.round, "phase": ph}
+        pending = (self.gs.aa_state or {}).get("pending_rams", [])
+        self.gs.aa_state = {"round": self.round, "phase": ph, "pending_rams": pending}
         for sd in self.gs.ships:
             sd["turrets_used_vs"] = ""            # s.28: the split lasts one phase
         self.scheduler = None
@@ -217,3 +218,44 @@ def is_locked(ship) -> bool:
     """A ship that can't act this AA round: it declared a boarding action or
     is the target of one (or is still grappled from a drawn one)."""
     return bool(ship.has_boarded or ship.is_grappled or getattr(ship, "aa_locked", False))
+
+
+def defer_ram(gs, rammer_id: str, target_id: str) -> bool:
+    """AA (the AA notes, from ABFG): a ram that connects locks both ships the
+    instant it happens (no further move, fire or launch this round) and is
+    resolved in the end phase. Returns True when deferred (AA), False in
+    IGOUGO, where the caller resolves it at once (s.12)."""
+    if getattr(gs, "turn_system", "igougo") != "aa":
+        return False
+    st = dict(gs.aa_state or {})
+    st["pending_rams"] = list(st.get("pending_rams", [])) + [[rammer_id, target_id]]
+    gs.aa_state = st
+    for sid in (rammer_id, target_id):
+        s = gs.get_ship_by_id(sid)
+        if s is not None:
+            s.aa_locked = True
+            gs.update_ship(s)
+    gs.add_log("[AA] the ram resolves in the end phase; both ships are locked")
+    return True
+
+
+def resolve_pending_rams(gs, dice, on_hit=None) -> list:
+    """The AA end phase: resolve every deferred ram (combat.resolve_ram), in the
+    order declared; `on_hit(ship)` after each (destruction checks)."""
+    from .combat import resolve_ram
+    out = []
+    st = dict(gs.aa_state or {})
+    for rid, tid in st.get("pending_rams", []):
+        r, t = gs.get_ship_by_id(rid), gs.get_ship_by_id(tid)
+        if r is None or t is None or r.is_destroyed or t.is_destroyed:
+            continue
+        gs.add_log(f"[AA] {r.name} rams {t.name} (end phase)")
+        out.append(resolve_ram(r, t, dice, gs))
+        if on_hit is not None:
+            for sid in (tid, rid):
+                s = gs.get_ship_by_id(sid)
+                if s is not None:
+                    on_hit(s)
+    st["pending_rams"] = []
+    gs.aa_state = st
+    return out

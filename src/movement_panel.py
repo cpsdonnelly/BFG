@@ -320,9 +320,11 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 if line_passes_near(start_x, start_y, ship.x, ship.y,
                                     ram_target.x, ram_target.y, threshold):
                     self.ctx.log(f"  {ship.name} rams {ram_target.name}!")
-                    resolve_ram(ship, ram_target, self.ctx.dice, self.ctx.gs)
-                    self.ctx.check_destruction(ram_target)
-                    self.ctx.check_destruction(ship)
+                    from .aa_turn import defer_ram
+                    if not defer_ram(self.ctx.gs, ship.id, ram_target.id):
+                        resolve_ram(ship, ram_target, self.ctx.dice, self.ctx.gs)
+                        self.ctx.check_destruction(ram_target)
+                        self.ctx.check_destruction(ship)
                     self.ctx.board.redraw()
                 else:
                     self.ctx.log(f"  {ship.name} missed the ram — {ram_target.name} not contacted")

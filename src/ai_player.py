@@ -610,6 +610,12 @@ class AIPlayer:
                 start[0], start[1], ship.x, ship.y, target.x, target.y,
                 ship.base_radius + target.base_radius):
             gs.add_log(f"[AI] {ship.name} rams {target.name}!")
+            from .aa_turn import defer_ram
+            if defer_ram(gs, ship.id, target.id):
+                ship = gs.get_ship_by_id(ship.id)
+                ship.ramming_target_id = None
+                gs.update_ship(ship)
+                return
             resolve_ram(ship, target, self.dice, gs)
             for sid in (target.id, ship.id):
                 s2 = gs.get_ship_by_id(sid)
