@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1193 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1195 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1539,6 +1539,16 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    shooting / movement phase setting `gs.active_player` to the side activating, `advance` to
    the next phase and round, ordnance cadence (`may_move_ordnance` / `record_ordnance_move`,
    markers carry `aa_round_placed` / `aa_moves`) and `launch_allowed` (`tests/test_aa_turn.py`).
+   AI side built (`ai_player`): `aa_command_phase` (every ship's order declared and tested
+   before anything moves; `_issue_order` split out of `_move_ship`, `_movement_setup` out of
+   `run_movement_phase`), `aa_phase_start`, `aa_move_unit` / `aa_shoot_unit` (one unit, a
+   squadron's volley first: `_squadron_volleys(only=)`), `aa_pick_unit` by `aa_unit_value`
+   (shooting: the best shot in reach now first; movement: the unit with least in reach first,
+   so engaged ships move after seeing the enemy) and `aa_choose_first` (shooting: take it when
+   our best shot beats the enemy's; movement: give it away); first forms, judgement, to
+   confirm with the owner (`tests/test_aa_ai.py`). Not yet: Brace as a command-phase order for
+   the AI (it never declares Brace there) and switching off the reactive Brace prompts in AA;
+   passing; System 1 forcing.
    Still to do: the AA round (Command,
    Ordnance A, Shooting, Movement, Ordnance B, End) in the turn controller and the UI, Brace
    as a command-phase order, ordnance 1 / 2 moves, boarding and ramming locked on

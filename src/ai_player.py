@@ -177,7 +177,21 @@ class AIPlayer:
         my_ships = [s for s in gs.player_ships(self.player)
                     if not s.is_destroyed and not s.is_disengaged
                     and s.id not in tc.ships_moved]
+        my_ships = self._movement_setup(my_ships)
+        for ship in my_ships:
+            self._move_ship(ship)
+        self._order_plan = None
+        self._planned_ends = {}
+        if self.difficulty != "easy":
+            for ship in my_ships:
+                self._consider_disengage(gs.get_ship_by_id(ship.id))
 
+    def _movement_setup(self, my_ships, orders: bool = True):
+        """The movement phase's fleet-wide plans: the enemy's likely focus and
+        our hits per enemy (explosions), the fleet focus targets, the order
+        plan (when `orders`) and the coordination pass. Returns the ships in
+        coordinated move order."""
+        gs = self.gs
         # Explosion risk / opportunity for this phase's moves (owner): where the
         # enemy is likely to focus, and what our guns can put on each enemy
         self._enemy_plan, self._our_hits = {}, {}
@@ -209,15 +223,107 @@ class AIPlayer:
         self._planned_ends = {}
         if self.difficulty != "easy":
             my_ships = self._coordinated_order(my_ships)
-            self._plan_orders(my_ships)
+            if orders:
+                self._plan_orders(my_ships)
             self._planned_ends = self._coordination_plan(my_ships)
-        for ship in my_ships:
-            self._move_ship(ship)
+        return my_ships
+
+    # --- Alternate activation (To do 13; aa_turn.AATurn drives these) -------
+    def aa_command_phase(self) -> None:
+        """AA command phase: every ship's special order is declared and tested
+        here, before anything moves (the AA notes), valued as in the movement
+        phase; the order plan's skip rule still applies (a failed check ends
+        this player's later checks this round)."""
+        gs, tc = self.gs, self.tc
+        tc.command_check_failed = False          # each player's own checks (s.2)
+        ships = [s for s in gs.player_ships(self.player)
+                 if not s.is_destroyed and not s.is_disengaged]
+        ships = self._movement_setup(ships)
+        self._aa_aaf = {}
+        for ship in ships:
+            order, aaf = self._issue_order(gs.get_ship_by_id(ship.id))
+            if aaf:
+                self._aa_aaf[ship.id] = aaf
         self._order_plan = None
-        self._planned_ends = {}
+        self._aa_orders_done = True
+
+    def aa_phase_start(self, phase: str) -> None:
+        """Fleet-wide plans at the start of an AA shooting / movement phase."""
+        if phase == "shooting":
+            self._committed = {}
+            self._volley_fired = set()
+        elif phase == "movement":
+            ships = [s for s in self.gs.player_ships(self.player)
+                     if not s.is_destroyed and not s.is_disengaged]
+            self._movement_setup(ships, orders=False)
+
+    def aa_move_unit(self, ship_ids) -> None:
+        """Move one AA unit (a ship, or an escort squadron's ships)."""
+        gs = self.gs
+        for sid in ship_ids:
+            s = gs.get_ship_by_id(sid)
+            if s is not None and not s.is_destroyed and not s.is_disengaged:
+                self._move_ship(s)
         if self.difficulty != "easy":
-            for ship in my_ships:
-                self._consider_disengage(gs.get_ship_by_id(ship.id))
+            for sid in ship_ids:
+                self._consider_disengage(gs.get_ship_by_id(sid))
+
+    def aa_shoot_unit(self, ship_ids) -> None:
+        """Fire one AA unit: its squadron volley first (s.8), then each ship."""
+        gs, tc = self.gs, self.tc
+        ships = [gs.get_ship_by_id(i) for i in ship_ids]
+        ships = [s for s in ships if s is not None]
+        if self.difficulty != "easy" and ships and ships[0].squadron_id and len(ships) > 1:
+            self._squadron_volleys(only=ships[0].squadron_id)
+        for ship in ships:
+            ship = gs.get_ship_by_id(ship.id)
+            if ship.is_destroyed or ship.is_disengaged or ship.has_fired or ship.has_boarded:
+                continue
+            self._fire_ship(ship)
+            ship = gs.get_ship_by_id(ship.id)
+            if not ship.has_fired:
+                ship.has_fired = True
+                gs.update_ship(ship)
+            tc.mark_ship_fired(ship.id)
+
+    def aa_unit_value(self, phase: str, unit) -> float:
+        """How much acting with `unit` now is worth, for choosing which unit to
+        activate on a draw (first form, judgement): in shooting, the guns that
+        bear now on their best target, at that target's value a hit (fire the
+        best shot before return fire can remove it); in movement, minus that
+        (a unit with little in reach loses least by committing early, so the
+        ones with the most to gain move later, after seeing the enemy move)."""
+        from .ai_hazards import value_per_hit
+        best = 0.0
+        for sid in unit.ship_ids:
+            s = self.gs.get_ship_by_id(sid)
+            if s is None or s.is_destroyed:
+                continue
+            for e in self._live_enemies():
+                v = self._arc_score(s, s.x, s.y, s.heading, e, guns_only=True,
+                                    in_range_only=True) * 0.35 * value_per_hit(e, self.gs)
+                best = max(best, v)
+        return best if phase == "shooting" else -best
+
+    def aa_pick_unit(self, phase: str, units):
+        """The unit to activate on a draw of our colour."""
+        return max(units, key=lambda u: self.aa_unit_value(phase, u))
+
+    def aa_choose_first(self, phase: str, opponent_best: float = 0.0) -> bool:
+        """System 3's choice, as edge holder: take the phase's first
+        activation? Shooting: yes when our best unit's shot is worth more than
+        letting the enemy's best go first; movement: no when the enemy still
+        has units to move (acting late lets us see it commit). First form,
+        judgement; flagged for the owner (the notes: value both, don't
+        hard-code)."""
+        if phase == "shooting":
+            ours = [self.aa_unit_value("shooting", u) for u in self._aa_units("shooting")]
+            return (max(ours) if ours else 0.0) >= opponent_best
+        return False
+
+    def _aa_units(self, phase):
+        from .aa_round import phase_units
+        return phase_units(self.gs, self.player, phase)
 
     def _ships_at(self, ends):
         """Context manager: our ships in `ends` ({id: (x, y, heading)}) stand at
@@ -329,9 +435,20 @@ class AIPlayer:
 
     def _move_ship(self, ship: Ship):
         gs = self.gs
-        tc = self.tc
 
-        # Attempt a special order (skip on easy or if check already failed)
+        if getattr(self, "_aa_orders_done", False):
+            # AA: orders were declared in the command phase
+            order = ship.special_order or ""
+            aaf_bonus = getattr(self, "_aa_aaf", {}).get(ship.id, 0)
+        else:
+            order, aaf_bonus = self._issue_order(ship)
+            ship = gs.get_ship_by_id(ship.id)
+        self._move_ship_planned(ship, order, aaf_bonus)
+
+    def _issue_order(self, ship: Ship):
+        """Choose and test this ship's special order (the movement phase in
+        IGOUGO, the command phase in AA). Returns (order in force, AAF bonus)."""
+        gs, tc = self.gs, self.tc
         order = ""
         aaf_bonus = 0
         if self.difficulty != "easy" and not tc.command_check_failed:
@@ -368,7 +485,10 @@ class AIPlayer:
                     order = ship.special_order or ""
         else:
             order = ship.special_order or ""
+        return order, aaf_bonus
 
+    def _move_ship_planned(self, ship: Ship, order: str, aaf_bonus: int):
+        gs, tc = self.gs, self.tc
         enemy = self._nearest_enemy(ship)
         self._move_nearest = enemy
         focus = self._focus_for(ship)
@@ -1872,7 +1992,7 @@ class AIPlayer:
             if sr.hits > 0:
                 self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id)
 
-    def _squadron_volleys(self):
+    def _squadron_volleys(self, only: Optional[str] = None):
         """Shooting by Squadrons for the AI (s.8, combat.plan_squadron_volley):
         each AI squadron of 2+ ships combines its batteries into one volley
         when that rolls at least as many dice as firing them separately. The
@@ -1887,7 +2007,8 @@ class AIPlayer:
         squads = {}
         for s in gs.player_ships(self.player):
             if (s.squadron_id and not s.is_destroyed and not s.is_disengaged
-                    and not s.has_fired and not s.disengage_failed_this_turn):
+                    and not s.has_fired and not s.disengage_failed_this_turn
+                    and (only is None or s.squadron_id == only)):
                 squads.setdefault(s.squadron_id, []).append(s)
         bms, phen, all_ships = gs.get_blast_markers(), gs.get_phenomena(), gs.get_ships()
         for members in squads.values():
