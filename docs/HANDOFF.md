@@ -803,6 +803,16 @@ Tests: 1183 pass; spectator games (normal, expert, Orks, Space Marines) pass.
 Owner (latest): don't start learned evaluation (To do 12) or weight tuning (To do 1) until
 told to; when started, the experimental ML-driven AI stays separate and never replaces the
 current AI.
+AA progress (after "go"): `src/aa_round.py` (settings, scheduler for all three systems),
+`src/aa_turn.py` (`AATurn` round driver; GameState `turn_system` / `aa_settings` / `aa_state`)
+and the AI's per-unit entry points (`aa_command_phase`, `aa_phase_start`, `aa_move_unit`,
+`aa_shoot_unit`, `aa_pick_unit`, `aa_choose_first`) are built and tested (1195 pass). Still to
+do: GamePanel wiring (an AA option in the settings / new-game dialog, a phase flow that walks
+`AATurn`, human activations by clicking a ship of the side to act, AI activations, the
+ordnance phases A / B calling the ordnance movement with `may_move_ordnance`, launches only in
+`launch_allowed`, both end phases), Brace as a command-phase order (reactive prompts off in
+AA), boarding / ramming locked on declaration and resolved in the end phase, passing for the
+AI, System 1 forcing, then the experiments.
 Next: To do 13's AA round (turn controller, UI, AI). Read docs/AA_ORDER_SYSTEMS_NOTES.md
 (the source) and docs/AA_ACTIVATION_NOTES.md ("Discussion summary" and "Later decisions");
 `src/activation.py` has the core. Open choices there become settings (`AAConfig`), not
