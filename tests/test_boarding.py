@@ -17,7 +17,8 @@ from tests.conftest import make_ship, make_gs, DiceStub
 class TestTroopRating:
     def test_full_health_includes_turrets(self):
         s = make_ship(hits_remaining=8, turrets=2)
-        assert troop_rating(s) == 10  # 8 + 2
+        assert troop_rating(s, defending=True) == 10  # 8 + 2 (the defender adds turrets)
+        assert troop_rating(s) == 8                   # an attacker does not (s.32)
 
     def test_grappled_excludes_turrets(self):
         s = make_ship(hits_remaining=8, turrets=2)
@@ -26,7 +27,7 @@ class TestTroopRating:
     def test_damaged_ship(self):
         # crippled (4 of 8): its current turrets, 3 halved rounding up = 2 (owner ruling)
         s = make_ship(hits_remaining=4, turrets=3)
-        assert troop_rating(s) == 6
+        assert troop_rating(s, defending=True) == 6
         assert troop_rating(s, grappled=True) == 4
 
     def test_zero_hits_remaining(self):
@@ -250,8 +251,9 @@ class TestResolveBoarding:
 
     def test_draw_sets_grapple_flag(self):
         attacker, target, gs = self._pair()
-        # Equal rolls, equal troop ratings → draw
-        dice = DiceStub([3, 3] + [1] * 20)
+        # Troops 8 v 10 (only the defender adds its turrets, s.32): the
+        # defender's +1 makes 4 v 3 a draw
+        dice = DiceStub([4, 3] + [1] * 20)
         result = resolve_boarding([attacker], target, dice, gs)
         assert result["grapple"] is True
         assert result["damage"] == 0
@@ -281,9 +283,9 @@ class TestResolveBoarding:
         a2 = make_ship(id="a2", name="A2", hits_remaining=4, hits_max=4, turrets=1, player=1)
         target = make_ship(id="t", name="Target", hits_remaining=6, hits_max=8, turrets=2, player=2)
         gs = make_gs([a1, a2, target])
-        # Combined attacker rating = (4+1) + (4+1) = 10; target = 6+2 = 8 → attacker +1 bonus
-        # Roll: a=1, d=1 → a_total=1+0+1=2; d_total=1+0+0=1 → attacker wins
-        dice = DiceStub([1, 1] + [1] * 20)
+        # Combined attacker rating = 4 + 4 = 8 (attackers add no turrets, s.32);
+        # target = 6 + 2 = 8: no bonus either way. Roll 2 v 1: attacker wins
+        dice = DiceStub([2, 1] + [1] * 20)
         result = resolve_boarding([a1, a2], target, dice, gs)
         assert result["winner"] == "attacker"
 
@@ -326,7 +328,7 @@ class TestCrewDamageBonus:
         attacker = make_ship(id="a", name="Marine", hits_remaining=8, hits_max=8,
                              turrets=2, player=1, special_rules=["space_marine_crew"])
         target = make_ship(id="t", name="Target", hits_remaining=8, hits_max=8,
-                           turrets=2, player=2)
+                           turrets=0, player=2)      # troops 8 v 8
         gs = make_gs([attacker, target])
         dice = DiceStub([3, 3] + [1] * 20)  # tie roll
         result = resolve_boarding([attacker], target, dice, gs)
@@ -361,7 +363,7 @@ class TestBoardedEscorts:
         cruiser = make_ship(id="c", player=2, hits_max=8, hits_remaining=1, turrets=4, x=5.0)
         gs = make_gs([escort, cruiser])
         rolls = (
-            [6, 5]   # escort 6 +2 (cruiser crippled) = 8 vs 5 +1 (troops 3 vs 2) = 6: diff 2
+            [6, 3]   # escort 6 +2 (cruiser crippled) = 8 vs 3 +3 (troops 3 vs 1) = 6: diff 2
             + [5]    # winner crit check 5+: passes -> 1 damage to the escort
             + [1]    # loser crit check 4+: fails
         )

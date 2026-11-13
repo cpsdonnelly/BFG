@@ -454,6 +454,51 @@ COMMANDERS = {
 ORK_BOSSES = [("Warboss", 40), ("Big Mek", 40), ("Freebooter Kaptin", 30)]
 ORK_TITLES = [("Big Boss", 1, 20), ("Mega Boss", 2, 40)]
 
+# Ork kustom upgrades (Xenos p.56; Green Tide list costs): each once per
+# character, on the commander's vessel; a Boss or Nob gets one, a Big Boss one
+# more, a Mega Boss two more (`kustom_count_errors`).
+ORK_KUSTOMS = [
+    ("Extra Turrets", 20, "+2 Turrets (max 6).", {"stat_delta": {"turrets": 2},
+                                                   "stat_max": {"turrets": 6}}),
+    ("Extra Power Field", 20, "+1 Shields.", {"stat_delta": {"shields_max": 1}}),
+    ("Mad Meks", 20, "Repairs critical damage on 4+ instead of 6.",
+     {"add_special_rules": ["mad_meks"]}),
+    ("Mega Armoured Boarding Parties", 15, "Crew damage bonus +2; +1 to its hit-and-run "
+     "raids; enemy raids on it -1.", {"add_special_rules": ["mega_armoured_boarders"]}),
+    ("Grot Riggers", 15, "+1 Ld on Reload Ordnance.", {"add_special_rules": ["grot_riggers"]}),
+    ("More Dakka!", 10, "Once per turn re-roll one weapon's random firepower / strength "
+     "(not modelled yet).", {"add_special_rules": ["more_dakka"]}),
+    ("Soopa Tellyporta", 10, "Teleport attack range 30cm (capital ships only).",
+     {"add_special_rules": ["soopa_tellyporta"]}),
+]
+
+
+def ork_kustom_options(row: dict, commander_names: List[str]) -> List[Dict]:
+    from .booklet_ships import _ship_type
+    capital = _ship_type(row) in ("cruiser", "battleship")
+    out = []
+    for name, cost, desc, effect in ORK_KUSTOMS:
+        if name == "Soopa Tellyporta" and not capital:
+            continue
+        out.append({"name": f"Kustom: {name}", "description": f"+{cost}pts. {desc}",
+                    "points_cost": cost, "effect": effect,
+                    "restrictions": ["requires_any:" + "|".join(commander_names)]})
+    return out
+
+
+def kustom_count_errors(chosen: List[str]) -> List[str]:
+    """A Boss or Nob grants one kustom upgrade, a Big Boss title one more, a
+    Mega Boss two more (Green Tide list)."""
+    n = sum(1 for c in chosen if c.startswith("Kustom: "))
+    if not n:
+        return []
+    allowed = 1 if any(c.startswith("Ork ") for c in chosen) else 0
+    allowed += 1 if "Boss title: Big Boss" in chosen else 0
+    allowed += 2 if "Boss title: Mega Boss" in chosen else 0
+    return [] if n <= allowed else [f"{n} kustom upgrades but only {allowed} allowed "
+                                    f"(one per Boss or Nob, +1 Big Boss, +2 Mega Boss)."]
+
+
 # Necron commanders (Xenos p.50-51): Harvest fleet Monuments, Dynasty fleet
 # Necron Lords; each comes with one free re-roll; more cost 25 (one) / 75 (two).
 # Owner ruling (update 55): the Obelisk has no Ld of its own, so its ship rolls
@@ -551,9 +596,30 @@ def fleet_commander_options(row: dict) -> List[Dict]:
                  "points_cost": cost,
                  "effect": {"add_special_rules": ["fleet_commander"]
                             + (["ld_bonus:1"] if n == "Freebooter Kaptin" else [])
-                            + (["warboss"] if n == "Warboss" else []),   # doubles troops
+                            + (["warboss"] if n == "Warboss" else [])    # doubles troops
+                            + (["big_mek"] if n == "Big Mek" else []),   # +1 repair die
                             "flagship": True},
                  "restrictions": ["group:fleet_commander"]} for n, cost in ORK_BOSSES]
+        opts.append({"name": "Ork Nob", "description": "Secondary commander, 20pts (up to two "
+                     "per 500pts): no bonus of his own; may buy one kustom upgrade.",
+                     "points_cost": 20, "effect": {"add_special_rules": ["ork_nob"]},
+                     "restrictions": ["group:fleet_commander"]})
+        opts += ork_kustom_options(row, names + ["Ork Nob"])
+        # Da Ork Clanz (Green Tide list): a Boss backed by a clan for +50% of
+        # his cost, its bonus on his own vessel (the ships under his further
+        # authority aren't tracked yet). Built: Goffs (ram tests always pass,
+        # turrets added in boarding actions they start), Evil Sunz (+2D6cm on
+        # All Ahead Full). Not yet: Bad Moons, Deathskulls, Blood Axes,
+        # Snakebites (assault points, To do 7).
+        for clan, key, text in (("Goffs", "goffs", "always pass the ram Leadership test; add "
+                                 "turrets to troop rating in boarding actions they start"),
+                                ("Evil Sunz", "evil_sunz", "an extra +2D6cm on All Ahead Full")):
+            for boss, bcost in ORK_BOSSES:
+                opts.append({"name": f"Clan: {clan} ({boss})",
+                             "description": f"+{bcost // 2}pts (+50% of the {boss}): {text}.",
+                             "points_cost": bcost // 2,
+                             "effect": {"add_special_rules": [f"clan:{key}", key]},
+                             "restrictions": ["group:ork_clan", f"requires:Ork {boss}"]})
         opts += [{"name": f"Boss title: {t}",
                   "description": f"+{cost}pts: {r} fleet commander re-roll{'s' if r > 1 else ''}.",
                   "points_cost": cost, "effect": {"rerolls": r},
@@ -1004,6 +1070,7 @@ def ship_option_errors(entry, chosen: List[str]) -> List[str]:
     for names in groups.values():
         if len(names) > 1:
             errors.append(f"Choose only one of: {', '.join(names)}.")
+    errors += kustom_count_errors(chosen)
     return errors
 
 

@@ -49,7 +49,10 @@ from .combat import uses_crit_table
 
 
 def teleport_range(ship: Ship) -> int:
-    """10cm (s.31); honour guards double it (Space Marine Teleport Assault)."""
+    """10cm (s.31); honour guards double it (Space Marine Teleport Assault);
+    an Ork Soopa Tellyporta makes it 30cm."""
+    if "soopa_tellyporta" in ship.special_rules:
+        return 30
     honour_guard = ("terminator_honour_guard" in ship.special_rules
                     or "veteran_honour_guard" in ship.special_rules)
     return 20 if honour_guard else 10
@@ -119,9 +122,11 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
 # to the raid result; defender penalties are subtracted from the attacker's roll.
 _RAID_ATTACK_BONUS = {
     "space_marine_crew": 1,  # Space Marine boarders / ordnance: +1 to raid results
+    "mega_armoured_boarders": 1,   # Ork Mega Armoured Boarding Parties
 }
 _RAID_DEFENSE_PENALTY = {
     "space_marine_crew": 1,  # raids against a Space Marine ship: -1 to the roll
+    "mega_armoured_boarders": 1,
 }
 
 

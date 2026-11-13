@@ -577,6 +577,9 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if slaanesh_penalty(ship, gs):
         ld -= 1
         mods.append("Mark of Slaanesh -1")
+    if order == SpecialOrder.RELOAD_ORDNANCE.value and "grot_riggers" in ship.special_rules:
+        ld += 1
+        mods.append("Grot Riggers +1")
     if enemy_on_special:
         # Cobra improved sensor array: +2 instead of +1
         bonus = 2 if "improved_sensor_array" in ship.special_rules else 1
@@ -642,6 +645,8 @@ def aaf_bonus_dice(ship: Ship) -> int:
               or "fleet_support" in ship.special_rules) else 4
     n += sum(1 for r in ("improved_thrusters", "sigils_of_quickening")
              if r in ship.special_rules)
+    if "clan:evil_sunz" in ship.special_rules:
+        n += 2                         # Evil Sunz: an extra +2D6cm on All Ahead Full
     if "secondary_reactors" in ship.special_rules:
         n += 2                         # Secondary Reactors: +2D6cm (Advanced Engines)
     return n

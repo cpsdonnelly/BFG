@@ -36,7 +36,16 @@ def troop_rating(ship: Ship, grappled: bool = False, defending: bool = False) ->
         base = (base + 1) // 2
     # Owner ruling: its CURRENT innate turrets (halved rounding up when crippled,
     # s.33; after Fleet Defence Turrets' -2), never massed turrets
-    t = 0 if grappled else ship.effective_turrets
+    # s.32: only the DEFENDING vessel adds its turrets ("with the defending
+    # vessel adding its turrets"); Goffs add theirs in boarding actions they
+    # initiate (escorts +1 at most). Locked (grappled) ships add none.
+    t = 0
+    if not grappled:
+        if defending:
+            t = ship.effective_turrets
+        elif "clan:goffs" in ship.special_rules:
+            t = min(1, ship.effective_turrets) if ship.ship_type == "escort" \
+                else ship.effective_turrets
     return base + t
 
 
@@ -61,6 +70,7 @@ _CREW_DAMAGE_BONUSES = {
     "space_marine_crew": 2,  # Space Marines (and Chaos Space Marine crews): +2
     "chaos_crew": 1,         # Chaos: +1
     "ork_crew": 1,           # Orks: +1
+    "mega_armoured_boarders": 2,   # Ork kustom upgrade: crew damage bonus +2
 }
 
 

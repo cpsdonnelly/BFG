@@ -169,6 +169,9 @@ def apply_upgrade_effect(d: dict, effect: dict) -> None:
         for stat, delta in effect["stat_delta"].items():
             if stat in d:
                 d[stat] += delta
+    for stat, most in effect.get("stat_max", {}).items():
+        if stat in d:
+            d[stat] = min(d[stat], most)
     d.update(effect.get("set", {}))
     if effect.get("rerolls"):
         d["rerolls_remaining"] = max(d["rerolls_remaining"], effect["rerolls"])

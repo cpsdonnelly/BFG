@@ -240,9 +240,10 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                     if ram_target:
                         from .combat import ram_ld_dice
                         n_dice = ram_ld_dice(ship.ship_type, ram_target.ship_type)
-                        rolls = self.ctx.dice.roll_d6(n_dice, "ram command check")
+                        goffs = "goffs" in ship.special_rules   # always pass (Goffs)
+                        rolls = [] if goffs else self.ctx.dice.roll_d6(n_dice, "ram command check")
                         total = sum(rolls)
-                        if total <= ship.leadership:
+                        if goffs or total <= ship.leadership:
                             ship.ramming_target_id = ram_target.id
                             self.ctx.gs.update_ship(ship)
                             self.ctx.log(

@@ -110,8 +110,9 @@ def test_knights_of_titan_rerolls_a_lost_boarding_action():
     gk = make_ship(id="a", player=1, hits_max=8, turrets=2, special_rules=["knights_of_titan"])
     enemy = make_ship(id="t", player=2, hits_max=8, turrets=2)
     gs = make_gs_raids([gk, enemy])
-    rolls = [1, 4,       # 1 vs 4: Grey Knights lose -> re-roll
-             6, 2,       # 6 vs 2: attackers win by 4
+    # troops 8 v 10 (only the defender adds turrets): the defender's +1
+    rolls = [1, 4,       # 1 vs 5: Grey Knights lose -> re-roll
+             6, 1,       # 6 vs 2: attackers win by 4
              1,          # winner crit check (6+): no
              1]          # loser crit check (2+): no
     dice = DiceStub(rolls)

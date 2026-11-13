@@ -98,7 +98,8 @@ until their faction rules are built (`booklet_ships.UNBUILT_FACTION_RULES`, To d
   still reduced by turrets after they fired at torpedoes / mines. A ship touched by both kinds
   in one phase chooses (`ordnance.choose_turret_target`: AI by expected hits saved, a human via
   `GameState.turret_choice_hook`). Orks (`ork_turrets`) hit on 5+ and fire at everything
-  (Xenos, Turret Defences). Not yet: the Ork commander's Extra Turrets (4+).
+  (Xenos, Turret Defences). The kustom Extra Turrets is +2 Turrets (max 6) on ordinary ships
+  (built); "hit on 4+" is the Ork Space Hulk's version (not playable yet).
 - **Bombers always attack the lowest Armour value** (a rule, s.20; the owner asked for it to be
   applied everywhere), whatever side they come from:
   the engine (`ordnance.resolve_bomber_attack`), the wave planner / "Best split"
@@ -484,7 +485,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1157 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1160 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -858,9 +859,16 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    of Ld on average (judgement); not yet offered before plain Leadership tests; Stormbird
    gunships, `booklet_options.STORMBIRDS`: on a Chaos Space Marine vessel, no cost given, the
    bays carry only Stormbirds (multi-role, as Thunderhawks: 4+, 20cm) at half strength each,
-   rounding up, and exclude torpedo bombers), Ork kustom upgrades / clans (incl. the Ork
-   commander's Extra Turrets: 4+), the rest of the secondary commanders (Ork Nobz, Veteran
-   Bond-Captains, Inquisitors; built: Elite Daemonhunters, Elite Captains, Bond-Captains, the
+   rounding up, and exclude torpedo bombers), Ork kustom upgrades / clans (built:
+   `booklet_options.ORK_KUSTOMS` on a Boss's or Nob's ship, one each, Big Boss +1, Mega Boss +2
+   (`kustom_count_errors`): Extra Turrets +2 max 6, Extra Power Field +1 shield, Mad Meks
+   repairs on 4+, Mega Armoured Boarding Parties (crew +2, raids +1, enemy raids -1), Grot
+   Riggers +1 Ld on Reload, Soopa Tellyporta 30cm (capital ships), More Dakka offered but not
+   modelled; the Ork Nob (20); a Big Mek's extra repair die; clans Goffs (ram tests pass,
+   turrets in boarding actions they start) and Evil Sunz (+2D6cm AAF) at +50% of the Boss,
+   on his own ship only; not yet: Bad Moons, Deathskulls, Blood Axes, Snakebites, More Dakka,
+   the Big Mek's hit restore, Nobz per 500pts, clan authority over further ships), the rest of
+   the secondary commanders (Veteran Bond-Captains, Inquisitors; built: Elite Daemonhunters, Elite Captains, Bond-Captains, the
    Grey Knights Grand Master, see "Engine notes"), Inquisition Ordos.
 5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
    Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
@@ -1505,6 +1513,9 @@ rather than touch a third ship).
   speed, Ld, shooting, ordnance). Build Remastered's spill-over limit as a separate
   Remastered option, not the XR default.
 
+- **Troop rating: only the defender adds turrets** (s.32, "with the defending vessel adding
+  its turrets"; fixed this session: attackers used to add theirs too). Goffs add theirs in
+  boarding actions they start (`boarding.troop_rating(..., defending=)`).
 - **Troop rating, crippled defender (implemented):** it adds its CURRENT turrets, halved
   rounding up when crippled (s.33; the drawn-combat rule says "remaining turrets"). Order:
   remaining hits, any doubling / halving, then current innate turrets (crippled-halved, after

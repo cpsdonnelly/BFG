@@ -70,7 +70,7 @@ def test_mark_effects_khorne_nurgle_and_chaos_boarding_bonus():
     from src.boarding import troop_rating, _crew_damage_bonus
     from src.ship_catalog import find_ship_class
     k = make_ship(hits_remaining=6, turrets=2, special_rules=["mark:khorne", "chaos_crew"])
-    assert troop_rating(k) == 14 and _crew_damage_bonus(k) == 1
+    assert troop_rating(k, defending=True) == 14 and _crew_damage_bonus(k) == 1
     csm = make_ship(special_rules=["chaos_crew", "space_marine_crew"])
     assert _crew_damage_bonus(csm) == 2                      # largest bonus only
     nicassar = make_ship(hits_remaining=5, turrets=0, special_rules=["frail_crew"])
@@ -117,13 +117,13 @@ def test_csm_crew_uses_the_astartes_table_or_adds_one_to_a_commander():
 def test_troop_rating_turrets_after_doubling_no_massed():
     from src.boarding import troop_rating
     k = make_ship(hits_max=8, hits_remaining=6, turrets=4, special_rules=["mark:khorne"])
-    assert troop_rating(k) == 6 * 2 + 4       # turrets added after the doubling
+    assert troop_rating(k, defending=True) == 6 * 2 + 4   # turrets added after the doubling
 
 
 def test_troop_rating_uses_current_turrets_after_fdt_and_crippling():
     from src.boarding import troop_rating
     # 8 hits, crippled at 4; Fleet Defence Turrets took 2 off 5 -> 3, crippled -> 2
     s = make_ship(hits_max=8, hits_remaining=4, turrets=3, special_rules=["fleet_defence_turrets"])
-    assert troop_rating(s) == 4 + 2
+    assert troop_rating(s, defending=True) == 4 + 2
     k = make_ship(hits_max=8, hits_remaining=4, turrets=4, special_rules=["mark:khorne"])
-    assert troop_rating(k) == 4 * 2 + 2       # doubled hits, then halved turrets, no massed
+    assert troop_rating(k, defending=True) == 4 * 2 + 2   # doubled hits, halved turrets, no massed
