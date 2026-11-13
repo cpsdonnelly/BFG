@@ -120,8 +120,11 @@ for p in (1, 2):
                         + 4 * (idx // 4))]
             s_.x, s_.y = pos[0]
             s_.heading = 0.0 if s_.x < gs.table_width / 2 else 180.0
-            if scenario in ("line_breaker", "space_assault", "confrontation", "convoy_matched"):
+            if scenario in ("line_breaker", "space_assault", "confrontation", "convoy_matched",
+                            "chance_encounter"):
                 s_.heading = 270.0 if p == 1 else 90.0
+            if scenario == "cruiser_clash":
+                s_.heading = 270.0 if z.y_min > gs.table_height / 2 else 90.0
             if scenario == "planet_strike":
                 s_.heading = 0.0 if p == 1 else 180.0
                 if "immobile" in s_.special_rules:
@@ -136,7 +139,7 @@ for p in (1, 2):
 for p in (1, 2):
     assert not sc.division_errors(gs, p), sc.division_errors(gs, p)
 assert not sc.force_errors(gs), sc.force_errors(gs)
-gs.first_player = sc.first_player(gs)
+gs.first_player = sc.first_player(gs) or sc.first_turn_chooser(gs) or 1
 dice = DiceRoller(mode=gs.dice_mode)
 print('Leadership:', roll_starting_leadership(gs, dice, ai_dice=DiceRoller(mode='auto'))[:3])
 tc = TurnController(gs, dice)
@@ -177,9 +180,15 @@ print(f"[{scenario} {system}] dice popups: {len(popups)}; error dialogs: "
 print(f"[{scenario} {system}] dice mode after game: {dice.mode}")
 aa_log = [l for l in gs.log if "[AA]" in l]
 print(f"[{scenario} {system}] result: {game_over[0][1] if game_over else None}")
+if scenario == "cruiser_clash":
+    print(f"[{scenario} {system}] damage points: {sc.damage_points(gs, 1)} - "
+          f"{sc.damage_points(gs, 2)}")
+if scenario == "chance_encounter":
+    print(f"[{scenario} {system}] result by the scenario: {sc.chance_result(gs)}; "
+          f"exits {gs.scenario_state.get('exits')}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
-                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Sub-plot", "holds position", "DISENGAG", "off the table",
+                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Sub-plot", "holds position", "DISENGAG", "off the table",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "

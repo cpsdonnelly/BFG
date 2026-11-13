@@ -610,7 +610,8 @@ class GamePanel(AAPanelMixin):
         tk.Label(mode_row, text="Scenario:", font=("Consolas", 8), width=14,
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
-                      "protect_ship", "capture_artefact", "confrontation", "line_breaker", "ambush",
+                      "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
+                      "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
                       "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
@@ -1123,10 +1124,26 @@ class GamePanel(AAPanelMixin):
         """Called by DeploymentPanel when all ships are placed."""
         tc = self.ctx.tc
         gs = self.ctx.gs
-        from .scenarios import first_player as _scenario_first
+        from .scenarios import first_player as _scenario_first, first_turn_chooser
+        chooser = first_turn_chooser(gs)
         if _scenario_first(gs):
             gs.first_player = _scenario_first(gs)
             self.ctx.log(f"First turn: player {gs.first_player} (the scenario's attacker)")
+        elif chooser:
+            # The scenario lets one player choose (Chance Encounter: the defender)
+            from .first_turn import ai_moves_first
+            best = ai_moves_first(gs, chooser)
+            if self.ctx.is_ai_controlled(chooser):
+                first = best
+            else:
+                from .choice_dialog import choose
+                first = choose(self.ctx.root, "First Turn",
+                               f"Player {chooser}: the scenario lets you choose. Move first "
+                               f"or second?", [("Move first", True), ("Move second", False)],
+                               best)
+            gs.first_player = chooser if first else 3 - chooser
+            self.ctx.log(f"First turn: player {chooser} chooses to move "
+                         f"{'first' if first else 'second'}")
         else:
             self._first_turn_roll_off()
         tc.start_game()
@@ -1608,6 +1625,15 @@ class GamePanel(AAPanelMixin):
                 reason_text += (f"\n{name}: {br['result']} (sub-plot {br['sub_plot']} "
                                 f"{'achieved' if br['objective'] else 'failed'}; "
                                 f"renown {br['renown']:+d})")
+        if gs.scenario_mode == "cruiser_clash":
+            from .scenarios import damage_points
+            reason_text += (f"\nCruiser Clash damage points: {damage_points(gs, 1)} - "
+                            f"{damage_points(gs, 2)}")
+        if gs.scenario_mode == "chance_encounter" and winner is not None:
+            from .scenarios import chance_flagship
+            flag = chance_flagship(gs)
+            if flag is not None and flag.is_destroyed and winner != gs.scenario_attacker:
+                reason_text += "\nThe attacking flagship is destroyed: a heroic victory!"
         if gs.scenario_mode == "domination":
             from .scenarios import points
             pts = points(gs)

@@ -416,6 +416,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("kill_admiral",      "Kill the Admiral (destroy enemy flagship)"),
         ("destroy_ship",      "Destroy / Protect a Ship"),
         ("capture_artefact",  "Capture the Artefact"),
+        ("cruiser_clash",     "Cruiser Clash (booklet p.84: 8 turns, damage points)"),
+        ("chance_encounter",  "Chance Encounter (booklet p.88: stop the flagship, 6 turns)"),
         ("confrontation",     "Confrontation (booklet p.117: attacker first, VP)"),
         ("line_breaker",      "Line Breaker (booklet p.118: defence platforms)"),
         ("ambush",            "Ambush (booklet p.119: defender caught unawares)"),

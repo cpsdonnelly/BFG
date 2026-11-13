@@ -21,6 +21,20 @@ DOMINATION_TARGET = 10      # ...the game ends when a player has 10 objective po
 
 # key -> booklet facts the engine plays
 SCENARIOS: Dict[str, Dict] = {
+    "cruiser_clash": {
+        "name": "Cruiser Clash (XR p.84)",
+        "first_turn": "roll_off",
+        "end": "fleet_gone",
+        "victory": "damage_points",
+        "game_turns": 8,
+    },
+    "chance_encounter": {
+        "name": "Chance Encounter (XR p.88)",
+        "first_turn": "defender_choice",
+        "end": "fleet_gone",
+        "victory": "chance_encounter",
+        "game_turns": 6,
+    },
     "confrontation": {
         "name": "Confrontation (XR p.117)",
         "first_turn": "attacker",
@@ -90,6 +104,25 @@ def first_player(gs) -> Optional[int]:
     if sc and sc.get("first_turn") == "defender":
         return 3 - gs.scenario_attacker
     return None
+
+
+def first_turn_chooser(gs) -> Optional[int]:
+    """The player the scenario lets choose to go first or second (Chance
+    Encounter: the defender), or None."""
+    sc = SCENARIOS.get(getattr(gs, "scenario_mode", ""))
+    if sc and sc.get("first_turn") == "defender_choice":
+        return defender(gs)
+    return None
+
+
+def game_turn_limit(gs) -> Optional[int]:
+    """The scenario's game length as `GameState.turn_limit` (which counts
+    player turns in IGOUGO, rounds in alternate activation)."""
+    sc = SCENARIOS.get(getattr(gs, "scenario_mode", ""))
+    n = sc.get("game_turns") if sc else None
+    if not n:
+        return None
+    return n if getattr(gs, "turn_system", "igougo") == "aa" else 2 * n
 
 
 def defender(gs) -> int:
@@ -228,6 +261,20 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
             gs.add_log(f"[Rescue] the defending flagship is {flag.name}")
     elif mode == "convoy_matched":
         gs.scenario_state = {"had_cargo": cargo_on_table(gs, defender(gs)) > 0}
+    elif mode == "cruiser_clash":
+        # One player rolls a D6: 1-3 they set up in Fleet A (the top zone),
+        # 4-6 in Fleet B (reading: player 1 rolls)
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        r = dice.roll_d6(1, "Cruiser Clash: player 1's zone (1-3 Fleet A, 4-6 Fleet B)")[0]
+        gs.scenario_state = {"fleet_a": 1 if r <= 3 else 2}
+        gs.add_log(f"[Cruiser Clash] player {gs.scenario_state['fleet_a']} sets up in Fleet A")
+    elif mode == "chance_encounter":
+        flag = chance_flagship(gs)
+        gs.scenario_state = {"flagship": flag.id if flag else None}
+        if flag is not None:
+            gs.add_log(f"[Chance Encounter] the attacking flagship is {flag.name}")
     elif mode == "planet_strike":
         # A large planet centred between the long edges, its far side exactly
         # 45cm from the defender's short edge (the right one); no other planets
@@ -242,6 +289,21 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
         gs.add_log("[Planet Strike] a large planet 45cm from the defender's short edge")
     elif mode in SCENARIOS:
         gs.scenario_state = {"started": True}
+    limit = game_turn_limit(gs)
+    if limit:
+        gs.turn_limit = limit           # the scenario's game length
+
+
+def chance_flagship(gs):
+    """Chance Encounter: the attacker's flagship (the one carrying the fleet
+    commander; reading: without one marked, its dearest ship)."""
+    sid = (gs.scenario_state or {}).get("flagship")
+    if sid:
+        return gs.get_ship_by_id(sid)
+    ships = [s for s in gs.get_ships() if s.player == gs.scenario_attacker
+             and not s.is_destroyed]
+    flag = next((s for s in ships if s.is_flagship), None)
+    return flag or max(ships, key=lambda s: s.points_value, default=None)
 
 
 def rescue_flagship(gs):
@@ -264,6 +326,12 @@ def fixed_placements(gs) -> Dict[str, Tuple[float, float, float]]:
         flag = rescue_flagship(gs)
         if flag is not None:
             return {flag.id: (gs.table_width / 2.0, gs.table_height / 2.0, 180.0)}
+    if getattr(gs, "scenario_mode", "") == "chance_encounter":
+        flag = chance_flagship(gs)
+        if flag is not None:
+            # on the centre line of the attacker's long edge (the top), 10cm in,
+            # facing the defender (reading: facing straight down the table)
+            return {flag.id: (gs.table_width / 2.0, gs.table_height - 10.0, 270.0)}
     if getattr(gs, "scenario_mode", "") == "space_assault":
         st = space_station(gs)
         if st is not None:
@@ -433,6 +501,16 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
                  3 - att_p: [(w - 45, 0, 0, 0),
                              (max(0.0, px - well), max(0.0, w - px - well),
                               max(0.0, h - py - well), max(0.0, py - well))]}
+    elif mode == "cruiser_clash":
+        # Fleet A and B: 90cm wide, centred on each long edge, 30cm deep
+        side = (w - 90.0) / 2.0
+        a = (gs.scenario_state or {}).get("fleet_a", 1)
+        rects = {a: [(side, side, 0, h - 30)], 3 - a: [(side, side, h - 30, 0)]}
+    elif mode == "chance_encounter":
+        # Attacker: 60cm wide, centred on the top edge, 30cm deep; defender
+        # within 30cm of the bottom edge
+        side = (w - 60.0) / 2.0
+        rects = {att_p: [(side, side, 0, h - 30)], 3 - att_p: [(0, 0, h - 30, 0)]}
     elif mode == "convoy_matched":
         # Defender (and its convoy) within 30cm of the bottom edge; attacker
         # between 15 and 45cm of the top edge
@@ -462,6 +540,15 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     squadron excepted)."""
     errs: List[str] = []
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "cruiser_clash" and group:
+        # Every ship faces the opposite long table edge
+        top = (gs.scenario_state or {}).get("fleet_a", 1) == group[0].player
+        want = 270.0 if top else 90.0
+        for s_, h in zip(group, headings):
+            if abs((h - want + 180.0) % 360.0 - 180.0) > 0.5:
+                errs.append(f"Cruiser Clash: {s_.name} must face the opposite long edge "
+                            f"(heading {want:g})")
+        return errs
     if mode == "line_breaker" and group and group[0].player == defender(gs):
         w, h = gs.table_width, gs.table_height
         for s_, (x, y) in zip(group, positions):
@@ -656,6 +743,41 @@ def record_exit(gs, ship) -> None:
     gs.scenario_state = st
 
 
+def damage_points(gs, player: int) -> int:
+    """Cruiser Clash: 1 point per point of damage inflicted on enemy ships,
+    +1 per crippled enemy ship or +3 per destroyed one (not both)."""
+    pts = 0
+    for s in gs.get_ships():
+        if s.player == player:
+            continue
+        pts += min(s.hits_max, s.hits_max - max(0, s.hits_remaining))
+        if s.is_destroyed:
+            pts += 3
+        elif s.damage_crippled:
+            pts += 1
+    return pts
+
+
+def chance_result(gs) -> Optional[int]:
+    """Chance Encounter: the defender wins if the attacker's flagship is
+    crippled (or destroyed: a heroic victory); the attacker wins if the
+    flagship and at least one other capital ship disengaged off the
+    defender's long edge (the bottom) and the flagship isn't crippled.
+    Reading: neither, a draw."""
+    flag = chance_flagship(gs)
+    if flag is None:
+        return None
+    if flag.is_destroyed or flag.damage_crippled:
+        return defender(gs)
+    exits = (gs.scenario_state or {}).get("exits", {})
+    out = [sid for sid, e in exits.items() if e == "bottom"
+           and (s := gs.get_ship_by_id(sid)) is not None
+           and s.player == gs.scenario_attacker and s.ship_type != "escort"]
+    if flag.id in out and len(out) >= 2:
+        return gs.scenario_attacker
+    return None
+
+
 def line_breaker_won(gs) -> bool:
     """The attacker has destroyed every defence platform and moved at least
     one capital ship off the defender's long edge (the bottom one)."""
@@ -715,6 +837,17 @@ def vp_bonus(gs, result: Dict) -> None:
         att = gs.scenario_attacker
         result[att]["scenario"] = result[att].get("scenario", 0) + flag.points_value
         result[att]["details"].append(f"Rescue: {flag.name} destroyed: +{flag.points_value} VP")
+
+
+def cripple_bonus_vp(gs, ship) -> float:
+    """Extra VP-equivalent the scenario puts on crippling `ship` (destroying
+    it counts too): Chance Encounter's attacking flagship, whose crippling wins
+    the game for the defender (judgement: half the points on the table)."""
+    if getattr(gs, "scenario_mode", "") == "chance_encounter":
+        flag = chance_flagship(gs)
+        if flag is not None and flag.id == ship.id:
+            return 0.5 * table_points(gs)
+    return 0.0
 
 
 def kill_bonus_vp(gs, ship) -> float:
@@ -968,6 +1101,11 @@ def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
         return points_winner(gs)
     if sc and sc["victory"] == "line_breaker":
         return gs.scenario_attacker if line_breaker_won(gs) else defender(gs)
+    if sc and sc["victory"] == "damage_points":
+        a, b = damage_points(gs, 1), damage_points(gs, 2)
+        return None if a == b else (1 if a > b else 2)
+    if sc and sc["victory"] == "chance_encounter":
+        return chance_result(gs)
     if sc and sc["victory"] == "planet_strike":
         st = gs.scenario_state or {}
         if st.get("strike_winner"):

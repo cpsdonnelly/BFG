@@ -953,12 +953,19 @@ class AIPlayer:
         on the table in proportion to the way covered towards it, all of it
         for a move that leaves the table there. In move-score units."""
         gs = self.gs
-        if (gs.scenario_mode != "line_breaker" or ship.player != gs.scenario_attacker
+        if (gs.scenario_mode not in ("line_breaker", "chance_encounter")
+                or ship.player != gs.scenario_attacker
                 or ship.ship_type == "escort" or self.difficulty == "easy"):
             return 0.0
-        from .scenarios import is_platform, defender
-        if any(not s.is_destroyed for s in gs.get_ships()
-               if s.player == defender(gs) and is_platform(s)):
+        from .scenarios import is_platform, defender, chance_flagship
+        if gs.scenario_mode == "chance_encounter":
+            # Chance Encounter: the flagship (uncrippled) and one more capital
+            # ship off the defender's long edge win
+            flag = chance_flagship(gs)
+            if flag is None or flag.damage_crippled:
+                return 0.0
+        elif any(not s.is_destroyed for s in gs.get_ships()
+                 if s.player == defender(gs) and is_platform(s)):
             return 0.0
         from .ai_hazards import value_per_hit
         win = self.BREAKTHROUGH_WEIGHT * sum(s.points_value for s in gs.get_ships())

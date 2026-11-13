@@ -541,7 +541,14 @@ def damage_vp(target: Ship, gs, mean_hits: float) -> float:
     to_cripple = rem - target.hits_max // 2
     p_crip = 0.0 if target.is_crippled or to_cripple <= 0 else poisson_at_least(mean_hits, to_cripple)
     from .scenarios import kill_bonus_vp
-    base = (p_kill * (v + kill_bonus_vp(gs, target)) + max(0.0, p_crip - p_kill) * v * 0.25
+    from .scenarios import cripple_bonus_vp
+    crip_bonus = cripple_bonus_vp(gs, target)
+    if crip_bonus and not target.damage_crippled:
+        p_c = poisson_at_least(mean_hits, max(1, rem - target.hits_max // 2))
+        crip_bonus *= max(p_c, p_kill)
+    else:
+        crip_bonus = 0.0
+    base = crip_bonus + (p_kill * (v + kill_bonus_vp(gs, target)) + max(0.0, p_crip - p_kill) * v * 0.25
             + min(mean_hits, rem) * value_per_hit(target, gs) * 0.2)
     if p_kill <= 0 and p_crip <= 0:
         return base

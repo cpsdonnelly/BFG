@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1268 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1270 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1121,9 +1121,23 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    `SUBPLOT_WEIGHT` 0.1 x the points on the table, judgement) through
    `scenarios.kill_bonus_vp` into `damage_vp` and `disengage_gain`
    (`tests/test_subplots.py`; `gui_spectator_scenario.py igougo confrontation subplots`).
-   Not yet: racing the 10 against the turn order, Planet Strike's planetary defence
-   budget (+20%) and "extra assault points" ships, Orbit Lost, the raids and battles, the rest
-   of the sub-plots, the Ambush attacker's half-points limit (fleet building), Line Breaker's
+   Introductory scenarios built: Cruiser Clash (p.84: Fleet A / B zones 90cm wide centred on
+   the long edges, a D6 for which (reading: player 1 rolls), every ship facing the opposite
+   edge (`placement_errors`), first turn by the usual roll-off, eight turns each
+   (`game_turn_limit` sets `GameState.turn_limit` for any scenario with `game_turns`: player
+   turns in IGOUGO, rounds in AA), won on damage points (`damage_points`: a point per damage,
+   +1 crippled or +3 destroyed), not VP) and Chance Encounter (p.88: the attacker's flagship
+   placed 10cm in from the centre of its long edge facing the defender (`chance_flagship`,
+   reading: its dearest ship without a commander marked), the attacker's zone 60cm wide, six
+   turns, the defender chooses to go first or second (`first_turn_chooser`, AI by
+   `ai_moves_first`); the defender wins when the flagship is crippled (destroyed: heroic, shown
+   in the game-over dialog), the attacker when the uncrippled flagship and another capital ship
+   left off the defender's edge (`chance_result`; reading: otherwise a draw); AI:
+   `cripple_bonus_vp` (half the points on the table, judgement) in `damage_vp` and
+   `_breakthrough` for the attacker's capital ships). Not yet: racing the 10 against the turn
+   order, Planet Strike's planetary defence budget (+20%) and "extra assault points" ships,
+   Orbit Lost, The Bait (reinforcements entering), the raids and battles, the rest of the
+   sub-plots, Cruiser Clash's alternating deployment and forces limits, the Ambush attacker's half-points limit (fleet building), Line Breaker's
    "platforms can't squadron".
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the

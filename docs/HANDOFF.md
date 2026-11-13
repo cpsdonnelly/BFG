@@ -913,6 +913,12 @@ crippled ship counts its whole points for Extended Duty / No Quarter; a draw doe
 main mission; Navigational Hazards are placed at random away from the deployment edges;
 Eldar 3 / Necrons 4 / Rogue Traders alone 2 as attack ratings until their lists exist.
 
+Then: Cruiser Clash and Chance Encounter (CLAUDE.md To do 7). Readings to confirm: player 1
+rolls for the Cruiser Clash zones and deployment is sequential, not alternating; Chance
+Encounter with neither side's condition met is a draw; its flagship faces straight down the
+table. Watch: in plain games the AI still disengages readily (Cruiser Clash's damage points
+don't charge it for leaving).
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

@@ -661,3 +661,64 @@ def test_attack_ratings():
     # A Rogue Trader detachment doesn't change its fleet's rating
     gs2.add_ship(make_ship(id="rt", player=2, faction="rogue_traders", points_value=50))
     assert sc.attack_rating(gs2, 2) == 2
+
+
+# --- Cruiser Clash, Chance Encounter ------------------------------------------------
+
+def test_cruiser_clash_zones_facing_length_and_damage_points():
+    a = make_ship(id="a", player=1, hits_max=8, hits_remaining=8)
+    b = make_ship(id="b", player=2, hits_max=8, hits_remaining=8)
+    gs = _gs([a, b], mode="cruiser_clash")
+    dice = DiceStub([5])                        # player 1 sets up in Fleet B
+    sc.setup_scenario(gs, dice)
+    assert dice._idx == 1 and gs.scenario_state["fleet_a"] == 2
+    assert gs.turn_limit == 16                  # eight turns each
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[2].contains(90, 110) and not zones[2].contains(30, 110)
+    assert zones[1].contains(90, 10) and not zones[1].contains(140, 10)
+    assert sc.placement_errors(gs, [a], [(90.0, 10.0)], [90.0], []) == []
+    assert sc.placement_errors(gs, [a], [(90.0, 10.0)], [45.0], [])
+    assert sc.placement_errors(gs, [b], [(90.0, 110.0)], [270.0], []) == []
+    assert sc.first_player(gs) is None and sc.first_turn_chooser(gs) is None
+    # 5 damage and crippled: 6 points; destroyed: its 8 hits + 3
+    b2 = gs.get_ship_by_id("b")
+    b2.hits_remaining = 3
+    gs.update_ship(b2)
+    assert sc.damage_points(gs, 1) == 6 and sc.damage_points(gs, 2) == 0
+    b2.hits_remaining, b2.status = 0, "destroyed"
+    gs.update_ship(b2)
+    assert sc.damage_points(gs, 1) == 11
+    assert sc.winner_at_end(gs, lambda g: None) == 1
+
+
+def test_chance_encounter_flagship_choice_and_victory():
+    from src.ai_hazards import damage_vp
+    flag = make_ship(id="f", player=1, is_flagship=True, points_value=500, hits_max=12,
+                     hits_remaining=12)
+    other = make_ship(id="o", player=1, points_value=180)
+    dfn = make_ship(id="d", player=2, points_value=200)
+    gs = _gs([flag, other, dfn], mode="chance_encounter")
+    sc.setup_scenario(gs)
+    assert gs.turn_limit == 12
+    assert sc.fixed_placements(gs) == {"f": (90.0, 110.0, 270.0)}
+    assert sc.first_turn_chooser(gs) == 2 and sc.first_player(gs) is None
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[1].contains(90, 100) and not zones[1].contains(40, 100)
+    assert zones[2].contains(40, 10)
+    assert sc.chance_result(gs) is None                     # nothing yet: a draw
+    # The AI values crippling the flagship far above its points
+    f = gs.get_ship_by_id("f")
+    gs2 = _gs([make_ship(**{**f.to_dict()}), make_ship(id="d", player=2)], mode="standard")
+    assert damage_vp(f, gs, 6.0) > damage_vp(gs2.get_ship_by_id("f"), gs2, 6.0) + 100
+    # Flagship and another capital ship off the bottom edge: the attacker wins
+    for sid in ("f", "o"):
+        s = gs.get_ship_by_id(sid)
+        s.x, s.y = 90.0, -2.0
+        s.is_disengaged, s.status = True, "disengaged"
+        gs.update_ship(s)
+        sc.record_exit(gs, s)
+    assert sc.chance_result(gs) == 1
+    f = gs.get_ship_by_id("f")
+    f.hits_remaining = 5                                    # crippled: the defender wins
+    gs.update_ship(f)
+    assert sc.chance_result(gs) == 2
