@@ -90,7 +90,8 @@ def _god_list(key: str, name: str, ship: str, rival: str, boons: str) -> Dict:
         "key": key, "faction": "chaos", "name": name,
         # only their own god's Mark (+15); CSM crews on any capital ship;
         # Terminators on battleships and grand cruisers with CSM
-        "list_options": [f"Mark of {god}", "Chaos Space Marine crew", "Chaos Terminators"],
+        "list_options": [f"Mark of {god}", "Chaos Space Marine crew", "Chaos Terminators",
+                         f"Boon of {god}:"],
         "chaos_options": {"marks_need": "leader_or_csm", "terminators": True},
         "sections": _chaos_core_sections(
             dict(_CRUSADE_BS, **{ship: _DEDICATED[ship]}), {ship: 1}) + [

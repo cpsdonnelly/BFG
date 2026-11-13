@@ -164,6 +164,16 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
         "grapple": bool,            # True if combat was a draw
       }
     """
+    # Plague Fleet of Nurgle, Plague Arks: a ship that boards or is boarded
+    # by one suffers an automatic Plague critical (a Fire critical)
+    from .combat import add_fire_crits
+    sides = [(attackers, [target]), ([target], attackers)]
+    for plaguers, victims in sides:
+        if any("plague_ark" in p.special_rules for p in plaguers):
+            for v in victims:
+                if "plague_ark" not in v.special_rules:
+                    add_fire_crits(v, 1, gs)
+                    gs.add_log(f"  Plague Ark: {v.name} suffers a Plague critical (Fire)")
     # Troop ratings
     a_rating = sum(troop_rating(a, a.is_grappled) for a in attackers)
     # Pack Hunter Protocols: +1 per escort / vanguard boarding a larger ship

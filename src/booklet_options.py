@@ -873,10 +873,37 @@ def chaos_options(row: dict) -> List[Dict]:
                       "each launch bay's strength is halved (rounding up).", 0,
                       {"set_craft": {"stormbird": 20}, "halve_bays": True},
                       ["group:chaos_craft"] + need)]
-    return marks + csm + storm
+    return marks + csm + storm + god_boon_options(row)
 
 
 STORMBIRDS = "Stormbird gunships"
+
+# God-fleet boons (07_chaos.md; offered only in that god's fleet list,
+# "Boon of <god>:"). Built: Veil of Lust, Siren's Summon, Miasma of Pestilence
+# (its gunnery part), Plague Arks. Not yet: Miasma's ordnance part, the
+# Berzerker Tide, Warp Beasts, Strands of Fortune.
+GOD_BOONS = [
+    ("Slaanesh", "Veil of Lust", 20, None, "veil_of_lust",
+     "enemies firing gunnery at it suffer an automatic right column shift"),
+    ("Slaanesh", "Siren's Summon", 25, 2, "sirens_summon",
+     "enemy vessels within 15cm cannot use special orders or take Leadership tests "
+     "(a forced test fails)"),
+    ("Nurgle", "Miasma of Pestilence", 10, None, "miasma",
+     "enemies within 15cm gain no left column shift against it"),
+    ("Nurgle", "Plague Arks", 5, 3, "plague_ark",
+     "a ship that boards or is boarded by it suffers an automatic Plague (Fire) critical"),
+]
+
+
+def god_boon_options(row: dict) -> List[Dict]:
+    out = []
+    for god, name, cost, most, rule, text in GOD_BOONS:
+        restr = [f"requires:Mark of {god}"] + ([f"fleet_max:{most}"] if most else [])
+        if most is None:
+            restr.append("fleet_unique")
+        out.append(_opt(f"Boon of {god}: {name}", f"+{cost}pts. {text}.", cost,
+                        {"add_special_rules": [rule]}, restr))
+    return out
 
 
 def _built_in_csm(row: dict) -> List[str]:

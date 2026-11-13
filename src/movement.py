@@ -551,6 +551,12 @@ def slaanesh_penalty(ship: Ship, gs) -> int:
     return 0
 
 
+def _sirens_summon(ship: Ship, gs) -> bool:
+    return any(s.player != ship.player and "sirens_summon" in s.special_rules
+               and not s.is_destroyed and not s.is_disengaged
+               and ship.distance_to(s) <= 15.0 for s in gs.get_ships())
+
+
 def do_command_check(ship: Ship, order: str, dice: DiceRoller,
                      enemy_on_special: bool = False,
                      in_blast: bool = False, gs=None) -> dict:
@@ -571,6 +577,11 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
                 ship.leadership = fresh.leadership
     ld = ship.leadership
     mods = []
+    if gs is not None and _sirens_summon(ship, gs):
+        # Siren's Summon (Pleasure Fleet of Slaanesh): no special orders or
+        # Leadership tests within 15cm of it; a forced test fails
+        return {"passed": False, "roll": 0, "needed": 0,
+                "mods": ["Siren's Summon: no orders or Leadership tests"]}
     if in_blast:
         ld -= 1
         mods.append("Under Fire -1")

@@ -95,6 +95,13 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     if "targeting_matrix" in ship.special_rules:
         shifts -= 1
 
+    # Pleasure Fleet of Slaanesh, Veil of Lust: an automatic right shift
+    if "veil_of_lust" in target_ship.special_rules:
+        shifts += 1
+    # Plague Fleet of Nurgle, Miasma of Pestilence: no left shift within 15cm
+    if "miasma" in target_ship.special_rules and dist < 15:
+        shifts += rng
+
     # Advanced Shields (Mechanicus Gift): a right shift while its shields are up
     if ("advanced_shields" in target_ship.special_rules
             and current_shields(target_ship, blast_markers or []) > 0):

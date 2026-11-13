@@ -485,7 +485,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1160 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1164 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -852,7 +852,12 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    aimed by the lead / approach planner, Chaos "not if Stormbird gunships taken"
    (Stormbirds, To do 4), the Explorer's Bor'kan price.
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), daemonships, god-fleet boons
-   (built: Mark of Chaos Undivided, `src/chaos_undivided.py`: on the Warmaster's / Lord's
+   (built: `booklet_options.GOD_BOONS`, only in their god's fleet list, needing that Mark:
+   Veil of Lust (gunnery at it shifts right), Siren's Summon (0-2: enemy ships within 15cm
+   fail every command check, Brace included; plain Leadership tests not yet), Miasma of
+   Pestilence (no left shift within 15cm; its ordnance part not yet), Plague Arks (0-3: a
+   Fire critical on the other side of a boarding action); not yet: the Berzerker Tide, Warp
+   Beasts, Strands of Fortune; also built: Mark of Chaos Undivided, `src/chaos_undivided.py`: on the Warmaster's / Lord's
    ship, 25pts; once per game before a command check the fleet takes its Ld until the end of
    that player's turn, Ld changes meanwhile kept; `GameState.undivided_hook`, a human is asked
    with "Auto (best)", the AI uses it when the test gains 0.25 pass chance or the fleet a point
