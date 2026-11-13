@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1183 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1189 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1523,7 +1523,15 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    formula (`pairs`, `edge_share`), `Bag` (draws, the System 3 choice spending a die, extra
    dice, passing) and System 1's `fixed_order` with its tie-breaks. Tests reproduce all nine
    check values, a Monte Carlo of `Bag` matches them within 0.02, and initiative / bands /
-   fixed order are checked (`tests/test_activation.py`). Still to do: the AA round (Command,
+   fixed order are checked (`tests/test_activation.py`). Second slice built (`src/aa_round.py`,
+   pure logic): `AARoundConfig` (the open items as settings: `phase_order` shoot_first /
+   move_first, `launch_phase`, ordnance `first_turn_moves` 1 / `later_moves` 2,
+   `brace_in_command_phase`), `ordnance_moves`, `EdgeTracker` (the recompute triggers),
+   `phase_units` (shooting dice only for units with guns) and `PhaseScheduler` (one shooting /
+   movement phase in any of the three systems: `next()` gives (player, unit) in System 1 or
+   (player, None) in the bags, `activated`, `can_decline` / `decline` for passing, the System 3
+   choice asked of the edge holder each phase via `choose_first`); a Monte Carlo of the
+   scheduler matches `edge_share` (`tests/test_aa_round.py`). Still to do: the AA round (Command,
    Ordnance A, Shooting, Movement, Ordnance B, End) in the turn controller and the UI, Brace
    as a command-phase order, ordnance 1 / 2 moves, boarding and ramming locked on
    declaration, forcing an activation (System 1), the AI's AA choices by expected VP, and the
