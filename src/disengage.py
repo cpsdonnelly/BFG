@@ -59,6 +59,15 @@ def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState) 
     if blocked:
         return {"success": False, "roll": 0, "needed": 0, "modifiers": [blocked],
                 "blocked": True, "ships": [s.id for s in ships]}
+    if all("necron" in s.special_rules for s in ships):
+        # Without a Trace (Xenos p.40): the squadron vanishes, no test
+        for s in ships:
+            s.is_disengaged, s.status = True, "disengaged"
+            s.must_disengage_tested_turn = gs.turn_number
+            gs.update_ship(s)
+        gs.add_log(f"Squadron {ships[0].squadron_id} phases out (Without a Trace)")
+        return {"success": True, "roll": 0, "needed": 0, "modifiers": ["Without a Trace"],
+                "ships": [s.id for s in ships]}
 
     # Siren's Summon: a member within 15cm of it can't take the test, so the
     # best-placed member is chosen among the others; none left, the test fails
@@ -256,6 +265,14 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
         if len(mates) > 1:
             return squadron_disengage_test(mates, dice, gs)
 
+    if "necron" in ship.special_rules:
+        # Without a Trace (Xenos p.40): no Leadership check, the vessel vanishes
+        ship.is_disengaged = True
+        ship.status = "disengaged"
+        gs.update_ship(ship)
+        gs.add_log(f"{ship.name} phases out (Without a Trace)")
+        return {"success": True, "roll": 0, "needed": 0,
+                "modifiers": ["Without a Trace"], "ships": [ship.id]}
     from .movement import sirens_summon
     if sirens_summon(ship, gs):
         gs.add_log(f"{ship.name} can't take a disengage test (Siren's Summon)")

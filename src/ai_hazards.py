@@ -841,6 +841,8 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
             risk += max(0.0, _poisson_at_least(lam, to_cripple) - p_kill) * 0.25 * v
     extra = 0.0 if ship.is_crippled else 0.10 * v
     p_pass = p_sum_at_most(2, ld) if ld > 1 else 0.0
+    if "necron" in ship.special_rules:
+        p_pass = 1.0                       # Without a Trace: no test needed
     from .movement import sirens_summon
     if sirens_summon(ship, gs):
         p_pass = 0.0                       # Siren's Summon: no Leadership tests

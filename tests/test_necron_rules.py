@@ -198,3 +198,19 @@ def test_awakening_alert_and_double_vp():
     c.status = "destroyed"
     gs.update_ship(c)
     assert calculate_vp(gs)[2]["destroyed"] == 550             # awake: double
+
+
+def test_without_a_trace_disengages_without_a_test():
+    from tests.conftest import make_ship, make_gs
+    from src.disengage import attempt_disengage, squadron_disengage_test
+    n = make_ship(id="n", player=1, special_rules=["necron", "reactive_hull:5", "necron_awake"])
+    e1 = make_ship(id="e1", player=1, ship_type="escort", squadron_id="q",
+                   special_rules=["necron", "reactive_hull:6"])
+    e2 = make_ship(id="e2", player=1, ship_type="escort", squadron_id="q",
+                   special_rules=["necron", "reactive_hull:6"])
+    gs = make_gs([n, e1, e2])
+    dice = DiceStub([])
+    assert attempt_disengage(gs.get_ship_by_id("n"), dice, gs)["success"] and dice._idx == 0
+    assert gs.get_ship_by_id("n").is_disengaged
+    r = squadron_disengage_test([gs.get_ship_by_id("e1"), gs.get_ship_by_id("e2")], dice, gs)
+    assert r["success"] and dice._idx == 0
