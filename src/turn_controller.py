@@ -64,6 +64,9 @@ class TurnController:
         set_blast_rules(getattr(game_state, "blast_marker_rules", "standard"))
         from .optional_rules import set_suppression_rules
         set_suppression_rules(getattr(game_state, "rule_turret_suppression_remastered", False))
+        from .optional_rules import set_sunward
+        set_sunward(getattr(game_state, "rule_fighting_sunward", False),
+                    getattr(game_state, "sunward_edge", "north"))
         set_ship_source(game_state.get_ships)
         self.save_dir = save_dir or os.path.join("saves", game_state.game_name)
         self.snapshots_dir = os.path.join(self.save_dir, "snapshots")
@@ -247,6 +250,9 @@ class TurnController:
             self.command_check_failed = False
             # Remove previous special orders (except Brace)
             self._clear_previous_orders()
+            # s.40: solar flares and radiation bursts at the start of each turn
+            from .celestial import start_of_turn as _celestial_start
+            _celestial_start(self.gs, self.dice)
             for s in self.gs.get_ships():
                 if (s.player == self.gs.active_player and s.must_flee
                         and not s.is_destroyed and not s.is_disengaged):
@@ -277,6 +283,8 @@ class TurnController:
             # Mark of Chaos Undivided lasts until the end of the turn
             from .chaos_undivided import end_turn as _undivided_end
             _undivided_end(self.gs, self.gs.active_player)
+            from .celestial import end_of_turn as _celestial_end
+            _celestial_end(self.gs, self.gs.active_player)
         if current == "ordnance":
             # Torpedo bomber salvos have limited fuel (s.21)
             from .ordnance import remove_spent_salvos
@@ -558,7 +566,8 @@ class TurnController:
         commander's own when `ship` is his ship or in his squadron."""
         holder = self._own_reroll_holder(ship)
         own = holder.own_rerolls if holder else 0
-        return own + self._commander_rerolls(player) + self._war_host_rerolls(player, ship)
+        fleet = 0 if self._radiation_blocks(player, ship) else self._commander_rerolls(player)
+        return own + fleet + self._war_host_rerolls(player, ship)
 
     def _war_host_rerolls(self, player: int, ship: Optional[Ship]) -> int:
         """Demiurg War Host re-rolls: usable by any Demiurg vessel, not lost
@@ -580,6 +589,17 @@ class TurnController:
         if flagship.is_destroyed:
             return 0
         return flagship.rerolls_remaining
+
+    def _radiation_blocks(self, player: int, ship) -> bool:
+        """s.40: during a radiation burst fleet commanders may only use their
+        re-rolls for their own ship or squadron."""
+        from .celestial import radiation_active
+        if ship is None or not radiation_active(self.gs):
+            return False
+        flag = self.get_flagship(player)
+        if flag is None or ship.id == flag.id:
+            return False
+        return not (flag.squadron_id and ship.squadron_id == flag.squadron_id)
 
     def use_fleet_reroll(self, player: int, ship: Optional[Ship] = None) -> bool:
         """
@@ -612,6 +632,10 @@ class TurnController:
                 return False
         if flagship.is_destroyed:
             return False                 # the commander is lost with his ship
+        if self._radiation_blocks(player, ship):
+            self.gs.add_log("Radiation burst: the fleet commander's re-rolls are only for "
+                            "his own ship or squadron this turn")
+            return False
 
 
         flagship.rerolls_remaining -= 1

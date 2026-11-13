@@ -150,8 +150,7 @@ until their faction rules are built (`booklet_ships.UNBUILT_FACTION_RULES`, To d
   declared on All Ahead Full when on, and only a declared ram resolves (`movement_panel`);
   teleport and hit-and-run: above; Remastered blast markers / spill-over: settings mode, read
   by the engine. The AI attempts none of boarding / ramming yet. Fighting Sunward, Solar
-  Flares and Radiation Bursts (s.40) are NOT built: their toggles do nothing (the settings
-  dialog now says "not built yet"; To do 6).
+  Flares and Radiation Bursts (s.40) are built (`src/celestial.py`, To do 6).
 - **Turret suppression, Remastered mode (owner ruling; Remastered p.82 is the source until the
   booklet adds a "Remastered differs" note to s.27):** the Advanced toggle
   (`rule_turret_suppression_remastered`, shared with the planner via
@@ -450,7 +449,7 @@ Owner rulings (fleet lists, export 15):
 - Disengaging (s.37): escort squadrons test together; Forced Disengagement (Ld 1 or less) and
   Demiurg Mercenaries test at the end of movement (`disengage.forced_disengage_tests`); a ship
   that fails gets `Ship.must_flee` (AI `_plan_flee`; voluntary AI disengaging: see "AI: how it
-  decides"). Not yet: the +3 during a radiation burst or solar flare.
+  decides"). The +3 applies anywhere during a radiation burst or the turn of a solar flare.
 
 ### Torpedo types (s.16): owner rulings
 
@@ -483,7 +482,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1132 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1135 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -501,8 +500,7 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: Fighting Sunward, Solar Flares,
-Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
+Not built: scenarios / sub-plots, and the To do items below.
 Next: the rest of 11 a (goal f with 8 h / 8 j, safety goals, the full
 coordination pass), then 4-7, 9, 10 (3 built) and the rest of 11, 12 (learned
 evaluation) after 11, 13 (alternate activation, optional ruleset; notes and PDF in `docs/`), 14 (Eldar, Necrons), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
@@ -861,9 +859,20 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
 5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
    Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
    disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
-6. Smaller gaps: Fighting Sunward, Solar Flares and Radiation Bursts (s.40) aren't built (their
-   toggles do nothing; the settings dialog says so), nor the +3 disengage Ld and the
-   commander re-roll limit they bring (s.5, s.37). Done: undoing a Demiurg move returns the
+6. Smaller gaps, done: s.40 (`src/celestial.py`): Fighting Sunward doubles the range column
+   shifts of gunnery fired at a target in the sunward abeam arc (compass parallel to the
+   sunward edge; `optional_rules.set_sunward`, read by `combat.get_column_shifts`, so the AI
+   counts it); Solar Flares (a 6 on any die at the start of a turn, once per game: a blast
+   marker on every ship's sunward side, an unshielded ship takes one hit, crit on 4+, each
+   ordnance marker removed on 4+); Radiation Bursts (5+ on any die, one a turn: every ship -D6
+   Ld for the turn, given back in the end phase; fleet commanders' re-rolls only for their own
+   ship or squadron, `TurnController._radiation_blocks`); the +3 disengage Ld anywhere during a
+   burst or the flare's turn. Demiurg vessels are immune. Readings to confirm: a toggle on
+   means the battle is where the effect applies; the phenomena table isn't rolled, so
+   `GameState.solar_flare_dice` / `radiation_burst_dice` (1 each) stand for the flares and
+   bursts it would generate; the re-roll limit is applied to every re-roll during a burst, not
+   only command checks; the AI doesn't plan around flares / bursts yet (the sunward shift it
+   does count). Also done: undoing a Demiurg move returns the
    blast markers it collected (`TurnController.undo_ship_movement`); a human's ship that
    failed a forced disengage test must move its full speed and end within 2cm of the best
    simple move towards the nearest edge (`disengage.flee_move_errors`, checked by the move

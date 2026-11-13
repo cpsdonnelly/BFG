@@ -63,12 +63,17 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     dist = ship.distance_to(target_ship)
     shifts = 0
 
-    # Range modifiers (Dark Age Plasma Batteries: no shift beyond 30cm)
+    # Range modifiers (Dark Age Plasma Batteries: no shift beyond 30cm).
+    # Fighting Sunward (s.40): firing towards the sunward edge doubles them
+    from .optional_rules import sunward_edge
+    edge = sunward_edge()
+    from .celestial import is_sunward
+    rng = 2 if edge and is_sunward(ship, target_ship, edge) else 1
     if dist < 15:
-        shifts -= 1  # left shift (better)
+        shifts -= rng  # left shift (better)
     elif (dist > 30 and not (weapon and dark_age_batteries(ship, weapon))
           and "fraal_targeting" not in ship.special_rules):     # Fra'al targeting matrix
-        shifts += 1  # right shift (worse)
+        shifts += rng  # right shift (worse)
 
     # Siege Cannons: macrobatteries fired on their own shift right
     if weapon:

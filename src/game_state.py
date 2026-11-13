@@ -61,6 +61,14 @@ class GameState:
     blast_marker_rules: str = "standard"  # s.11: standard | modern | remastered (optional_rules)
     rule_remastered_spillover: bool = False  # s.11 Remastered: one round's markers touch <= 2 ships
     rule_remastered_escort_vp: bool = False  # Remastered p.121 escort squadron VP (XR default)
+    # s.40 celestial effects (src/celestial.py)
+    solar_flare_dice: int = 1
+    radiation_burst_dice: int = 1
+    solar_flare_done: bool = False
+    solar_flare_turn: Optional[List[int]] = None
+    radiation_level: int = 0
+    radiation_turn: Optional[List[int]] = None
+    radiation_deltas: Dict = field(default_factory=dict)
     # Mark of Chaos Undivided (once per game per player): players who have used
     # it, and the boost in force {player: {"turn": n, "deltas": {ship id: +Ld}}}
     undivided_used: List[int] = field(default_factory=list)
@@ -168,6 +176,13 @@ class GameState:
             "artefact_carrier_id": self.artefact_carrier_id,
             "artefact_owner": self.artefact_owner,
             "undivided_used": list(self.undivided_used),
+            "solar_flare_dice": self.solar_flare_dice,
+            "radiation_burst_dice": self.radiation_burst_dice,
+            "solar_flare_done": self.solar_flare_done,
+            "solar_flare_turn": self.solar_flare_turn,
+            "radiation_level": self.radiation_level,
+            "radiation_turn": self.radiation_turn,
+            "radiation_deltas": self.radiation_deltas,
             "undivided_boost": self.undivided_boost,
             "timestamp": time.time(),
         }

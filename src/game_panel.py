@@ -494,9 +494,9 @@ class GamePanel:
         rules_frame.pack(fill=tk.X, padx=15, pady=4)
         rule_defs = [
             # s.40: these three aren't built yet; the boxes have no effect (audit)
-            ("rule_fighting_sunward",          "Fighting Sunward (double range shifts) - not built yet"),
-            ("rule_solar_flares",              "Solar Flares - not built yet"),
-            ("rule_radiation_bursts",          "Radiation Bursts - not built yet"),
+            ("rule_fighting_sunward",          "Fighting Sunward (double range shifts, s.40)"),
+            ("rule_solar_flares",              "Solar Flares (s.40)"),
+            ("rule_radiation_bursts",          "Radiation Bursts (s.40)"),
             ("rule_boarding",                  "Boarding Actions"),
             ("rule_ramming",                   "Ramming"),
             ("rule_teleport",                  "Teleport Attacks (not Tau)"),
@@ -653,6 +653,8 @@ class GamePanel:
             from .optional_rules import set_suppression_rules
             set_suppression_rules(gs.rule_turret_suppression_remastered)
             gs.rule_remastered_spillover = spill_var.get()
+            from .optional_rules import set_sunward
+            set_sunward(gs.rule_fighting_sunward, gs.sunward_edge)
             gs.rule_remastered_escort_vp = esc_vp_var.get()
             # Scenario settings (only if not locked)
             if not locked:
@@ -716,6 +718,8 @@ class GamePanel:
                 set_blast_rules(self.ctx.gs.blast_marker_rules)
                 from .optional_rules import set_suppression_rules
                 set_suppression_rules(self.ctx.gs.rule_turret_suppression_remastered)
+                from .optional_rules import set_sunward
+                set_sunward(self.ctx.gs.rule_fighting_sunward, self.ctx.gs.sunward_edge)
                 self.ctx.dice.mode = self.ctx.gs.dice_mode
                 self.ctx.tc.reset_after_load()
             except Exception as exc:

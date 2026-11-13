@@ -173,7 +173,13 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
         total_mod += blast_count
         modifiers.append(f"+{blast_count} Ld (blast markers within 5cm)")
 
-    # Celestial phenomena within 15cm: +3 Ld
+    # Celestial phenomena within 15cm: +3 Ld (anywhere during a radiation
+    # burst or solar flare, s.37 / s.40)
+    from .celestial import radiation_active, flare_now
+    if radiation_active(gs) or flare_now(gs):
+        total_mod += 3
+        modifiers.append("+3 Ld (radiation burst / solar flare)")
+        phenomena = []
     for p in phenomena:
         # Measured to the phenomenon's edge: a planet's circle, else its rectangle
         if "planet" in p.phenomenon_type and p.radius > 0:

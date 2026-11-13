@@ -93,3 +93,15 @@ def blast_gunnery_shift(firer, target, line_shift: int, blast_markers, ships=Non
     if _mode == "remastered":
         contact = contact or in_blast_contact(firer, blast_markers, ships)
     return max(line_shift, 1 if contact else 0)
+
+
+_sunward_edge = None          # set when Fighting Sunward (s.40) is on
+
+
+def set_sunward(enabled: bool, edge: str = "north") -> None:
+    global _sunward_edge
+    _sunward_edge = edge if enabled else None
+
+
+def sunward_edge():
+    return _sunward_edge
