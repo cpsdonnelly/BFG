@@ -7,7 +7,9 @@ GUNS = [{"name": "Port", "weapon_type": "battery", "range_cm": 30, "strength": 8
 
 def test_warp_rift_is_worth_the_last_reroll_minor_order_is_not():
     s = make_ship(id="s", player=1, points_value=200, hits_max=8)
-    gs = make_gs([s])
+    # a 1500pt game (the scale the bars are set for, ai_rerolls._bar)
+    gs = make_gs([s, make_ship(id="r1", player=1, x=300.0, y=300.0, points_value=1300),
+                  make_ship(id="r2", player=2, x=-300.0, y=-300.0, points_value=1500)])
     assert should_reroll(s, "warp rift navigation", gs, 1)
     assert not should_reroll(s, "come_to_new_heading", gs, 1)
     assert not should_reroll(s, "come_to_new_heading", gs, 3)
@@ -52,3 +54,13 @@ def test_ai_obeys_target_priority():
     ai2 = AIPlayer(1, TurnController(gs2, dice2), gs2, dice2)
     t2 = ai2._pick_target(gs2.get_ship_by_id("a"), gun, [gs2.get_ship_by_id("n"), gs2.get_ship_by_id("w")])
     assert dice2._idx == 1 and t2.id == "w"
+
+
+def test_bars_scale_with_the_points_on_the_table():
+    """To do 11 f: the bars are set for a 1500pt game and scale with it."""
+    from src.ai_rerolls import _bar
+    big = make_gs([make_ship(id="a", player=1, points_value=3000),
+                   make_ship(id="b", player=2, points_value=3000)])
+    std = make_gs([make_ship(id="a", player=1, points_value=1500),
+                   make_ship(id="b", player=2, points_value=1500)])
+    assert _bar(1, std) == _bar(1) and _bar(1, big) == 2 * _bar(1)

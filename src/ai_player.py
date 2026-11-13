@@ -500,6 +500,16 @@ class AIPlayer:
             if score > best_score:
                 best_score, best_src = score, src
                 best_cmds = self._move_cmds(ship, turn_deg, dist, turn_at)
+        if scored and self.difficulty == "easy":
+            # To do 11 i: Easy picks by softmax on the move score (temperature
+            # EASY_TEMPERATURE, judgement), so it errs like a person: usually a
+            # good move, sometimes a worse one, never at random
+            top = max(sc for sc, _c in scored)
+            weights = [math.exp((sc - top) / self.EASY_TEMPERATURE) for sc, _c in scored]
+            pick = random.choices(range(len(scored)), weights=weights)[0]
+            turn_deg, dist, turn_at, src = scored[pick][1]
+            self._last_move_source = src + " (easy)"
+            return self._move_cmds(ship, turn_deg, dist, turn_at)
         if scored and self.difficulty != "easy":
             # Refine the best few (To do 11 a, coarse-to-fine)
             valid = self._candidate_validator(ship, order, aaf_bonus)
@@ -541,6 +551,7 @@ class AIPlayer:
         return score
 
     COVERAGE_WEIGHT = 0.5    # judgement: a mount busy on another enemy vs the target
+    EASY_TEMPERATURE = 2.0   # judgement: Easy's softmax temperature (move-score units)
     KITE_WEIGHT = 0.5        # judgement: the band bonus, a share of the guns that bear
 
     @staticmethod

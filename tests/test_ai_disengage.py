@@ -126,6 +126,8 @@ def test_rerolls_are_not_saved_past_the_last_turn():
     last re-roll two turns from the end and spends it on the final turn."""
     import src.ai_rerolls as ar
     me, gs = _scene(8, n_foes=1)
+    ar_orig_ref = ar.BAR_REFERENCE_POINTS
+    ar.BAR_REFERENCE_POINTS = sum(s.points_value for s in gs.get_ships()) / 2.0 or 1.0
     assert ar._bar(1) > 20.0 >= ar._bar(9)
     orig = ar.importance
     ar.importance = lambda *a, **k: 20.0
@@ -138,6 +140,7 @@ def test_rerolls_are_not_saved_past_the_last_turn():
         assert not ar.should_reroll(me, "special order", gs, 1)
     finally:
         ar.importance = orig
+        ar.BAR_REFERENCE_POINTS = ar_orig_ref
 
 
 def test_brace_follows_the_game_state_risk_preference():

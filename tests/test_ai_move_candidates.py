@@ -261,3 +261,21 @@ def test_ram_dead_ahead_only_with_ramming_on():
     assert gs.get_ship_by_id(lunar.id).hits_remaining < lunar.hits_max
     assert gs.get_ship_by_id(ork.id).ramming_target_id is None
     assert isinstance(o, _S)
+
+
+def test_easy_moves_are_softmax_choices():
+    """To do 11 i: Easy samples moves by softmax on their value: legal, mostly
+    good, not always the best."""
+    import random
+    random.seed(4)
+    me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    foe = _ship("Lunar Class Cruiser", 2, 110.0, 80.0, 180.0)
+    ai, gs = _ai([me, foe])
+    ai.difficulty = "easy"
+    seen = set()
+    for _ in range(15):
+        cmds = ai._plan_move_toward(me, foe, "", 0)
+        res = validate_movement(me, cmds, "", table_width=180.0, table_height=120.0)
+        assert not res.errors
+        seen.add((round(res.final_x, 1), round(res.final_y, 1)))
+    assert len(seen) > 1

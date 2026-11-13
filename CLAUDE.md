@@ -484,7 +484,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1147 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1149 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1338,8 +1338,9 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       turning; escorts don't repair; the fixed order stays as the fallback); blast marker
       removal as s.36 states it; first-turn policy (s.2: the roll-off winner chooses to move
       first or second) alongside deployment.
-   f. Scale-free re-roll bars (suggestion): the 45 / 25 / 15 / 10 VP bars as a fraction of fleet
-      points or points in play.
+   f. Built: scale-free re-roll bars (`ai_rerolls._bar(left, gs)`: the 45 / 25 / 15 / 10 VP
+      bars set for a 1500pt game, `BAR_REFERENCE_POINTS`, scaled by one fleet's worth of the
+      points on the table, at least a quarter).
    g. Faction behaviour (suggestion): Eldar (MMS v2.0: two moves, holofields, Fragile, turning,
       own ordnance) and Necrons aren't modelled; the generic AI would misplay them.
    h. Compute, don't script (suggestion): build To do 8 a and 8 f first and see what emerges
@@ -1347,8 +1348,11 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       enemy's reach, prow-on when the prow is the best-armoured facing); matchup weights only
       as functions of measured features (To do 1), so one tuning run covers lists it never
       saw.
-   i. Difficulty (suggestion): Easy chooses by softmax on expected value with a temperature
-      (human-like mistakes); Hard gets the coordination pass or tuned weights.
+   i. Built for movement: Easy picks its move by softmax on the move score
+      (`EASY_TEMPERATURE` 2.0, judgement). Not yet: softmax in Easy's targets / orders; Hard's
+      coordination pass or tuned weights. Difficulty (suggestion): Easy chooses by softmax on
+      expected value with a temperature (human-like mistakes); Hard gets the coordination pass
+      or tuned weights.
    Claude's view (not an owner ruling): expected value of the work is rules completeness >
    candidate generation > search with dice > learned evaluation > weight tuning (fairly
    confident of the order, not of the size of each gain); tuning only improves the AI within

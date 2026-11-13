@@ -27,8 +27,21 @@ from .models import Ship
 _BAR = {1: 45.0, 2: 25.0, 3: 15.0}
 
 
-def _bar(left: int) -> float:
-    return _BAR.get(left, 10.0)
+BAR_REFERENCE_POINTS = 1500.0   # the fleet size the bars were set for (judgement)
+
+
+def _bar(left: int, gs=None) -> float:
+    """The importance a failed test needs before spending one of `left`
+    re-rolls, scale-free (To do 11 f): the VP bars set for a 1500pt game,
+    scaled by the points on the table (both fleets, halved: one fleet's
+    worth), never below a quarter of them."""
+    base = _BAR.get(left, 10.0)
+    if gs is None:
+        return base
+    pts = sum(s.points_value or 0 for s in gs.get_ships()) / 2.0
+    if pts <= 0:
+        return base
+    return base * max(0.25, pts / BAR_REFERENCE_POINTS)
 
 
 def commander_in_danger(gs, player: int) -> bool:
@@ -132,11 +145,11 @@ def should_reroll(ship: Ship, label: str, gs, left: int, context: Optional[dict]
         return False
     if commander_in_danger(gs, ship.player):
         return True                                # use them before they're lost
-    bar = _bar(left)
+    bar = _bar(left, gs)
     limit = getattr(gs, "turn_limit", None)
     if limit and gs.turn_number >= limit:
         # The last game turn (owner: play to the turn limit): re-rolls left
         # over are worth nothing after it, so the bars that save them for
         # later turns drop to the lowest (some tests may still come this turn)
-        bar = min(bar, _bar(len(_BAR) + 1))
+        bar = min(bar, _bar(len(_BAR) + 1, gs))
     return importance(ship, label, gs, context) >= bar
