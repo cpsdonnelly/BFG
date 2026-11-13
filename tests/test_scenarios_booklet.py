@@ -843,3 +843,83 @@ def test_rearguard_reserves_alert_and_placement():
     sc.arrivals(gs, 2)
     d0 = gs.get_ship_by_id("d0")
     assert d0.x < 5 and d0.heading == 0.0 and not d0.is_disengaged
+
+
+# --- Alien Intervention, Surprise Attack -----------------------------------------------
+
+def test_alien_intervention_allies_arrive_by_turn():
+    nav = make_ship(id="n", player=2, faction="imperial_navy_gothic", points_value=300)
+    ally = make_ship(id="al", player=2, faction="tau_kororvesh", points_value=100)
+    att = make_ship(id="a", player=1)
+    gs = _gs([nav, ally, att], mode="alien_intervention")
+    sc.setup_scenario(gs)
+    assert sc.is_reserve(gs.get_ship_by_id("al")) and not sc.is_reserve(gs.get_ship_by_id("n"))
+    assert any(p.id == "scenario_planet" for p in gs.get_phenomena()) and gs.turn_limit == 16
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[2].contains(90, 60) and not zones[2].contains(50, 60)
+    assert zones[1].contains(10, 60) and zones[1].contains(170, 60)
+    assert not zones[1].contains(30, 60)
+    # The defender's first turn: nothing; its second turn needs 4+
+    gs.active_player, gs.turn_number = 2, 2
+    dice = DiceStub([])
+    sc.turn_start(gs, dice)
+    assert dice._idx == 0 and sc.is_reserve(gs.get_ship_by_id("al"))
+    gs.turn_number = 4                                   # game turn 2
+    dice = DiceStub([3])
+    sc.turn_start(gs, dice)
+    assert dice._idx == 1 and sc.is_reserve(gs.get_ship_by_id("al"))
+    gs.turn_number = 6                                   # game turn 3: 3+
+    sc.turn_start(gs, DiceStub([3]))
+    al = gs.get_ship_by_id("al")
+    assert not sc.is_reserve(al) and al.y > 115 and al.heading == 270.0
+    # First turn: the attacker's 2D6 against the defender's D6
+    dice = DiceStub([5, 5, 7, 2])                        # tie re-rolled, then 7 v 2
+    assert sc.roll_for_choice(gs, dice) == 1 and dice._idx == 4
+
+
+def test_surprise_attack_standby_rules():
+    from src.turn_controller import TurnController
+    from src.ai_player import AIPlayer
+    from src.hit_and_run import check_teleport_eligibility
+    d = [make_ship(id=f"d{i}", player=2, points_value=p, leadership=7)
+         for i, p in enumerate((300, 200, 100))]
+    att = make_ship(id="a", player=1, x=5.0, y=60.0)
+    gs = _gs(d + [att], mode="surprise_attack")
+    sc.setup_scenario(gs, DiceStub([1]))                 # D3 = 1 unit on full alert
+    assert gs.scenario_state["standby"] == ["d1", "d2"]
+    pl = next(p for p in gs.get_phenomena() if p.id == "scenario_planet")
+    assert pl.phenomenon_type == "planet_medium"          # 600pts
+    d1 = gs.get_ship_by_id("d1")
+    assert sc.on_standby(gs, d1) and not sc.on_standby(gs, gs.get_ship_by_id("d0"))
+    # standby within 15cm of the planet, abeam (tangential)
+    ok = sc.placement_errors(gs, [d1], [(pl.x + 10.0, pl.y)], [90.0], [])
+    bad = sc.placement_errors(gs, [d1], [(pl.x + 10.0, pl.y)], [0.0], [])
+    far = sc.placement_errors(gs, [d1], [(pl.x + 30.0, pl.y)], [90.0], [])
+    assert ok == [] and bad and far
+    gs.active_player = 2
+    tc = TurnController(gs, DiceStub([]))
+    assert {s.id for s in tc.get_unmoved_ships()} == {"d0"}
+    assert {s.id for s in tc.get_unfired_ships()} == {"d0"}
+    ok, why = check_teleport_eligibility(d1, att, gs)
+    assert not ok
+    # The AI leaves standby ships where they are
+    for i, s in enumerate(gs.get_ships()):
+        if s.player == 2:
+            s.x, s.y = pl.x + 10 + 4 * i, pl.y
+            gs.update_ship(s)
+    AIPlayer(2, tc, gs, DiceStub([3] * 50)).run_movement_phase()
+    assert gs.get_ship_by_id("d1").x == pl.x + 10 + 4
+    # Defender's turn start: Ld tests (d1 passes with 7, d2 fails with 8)
+    gs.turn_number = 2
+    dice = DiceStub([7, 8])
+    sc.turn_start(gs, dice)
+    assert dice._idx == 2 and gs.scenario_state["standby"] == ["d2"]
+    assert sc.orders_forbidden(gs, gs.get_ship_by_id("d1"))     # no orders this turn
+    gs.turn_number = 4
+    assert sc.orders_forbidden(gs, gs.get_ship_by_id("d1")) is None
+
+
+def test_line_of_sight_of_zero_length_doesnt_divide_by_zero():
+    from src.los import _line_intersects_circle
+    assert _line_intersects_circle(5.0, 5.0, 5.0, 5.0, 0.0, 0.0, 10.0)
+    assert not _line_intersects_circle(50.0, 5.0, 50.0, 5.0, 0.0, 0.0, 10.0)

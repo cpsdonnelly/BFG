@@ -107,6 +107,8 @@ def _line_intersects_circle(x1, y1, x2, y2, cx, cy, r) -> bool:
     a = dx * dx + dy * dy
     b = 2 * (fx * dx + fy * dy)
     c = fx * fx + fy * fy - r * r
+    if a <= 1e-12:
+        return c <= 0          # a zero-length line: blocked only if the point is inside
 
     discriminant = b * b - 4 * a * c
     if discriminant < 0:

@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1274 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1277 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1163,7 +1163,27 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    yet: entering along the long edges after turn 1 (up to 30cm a turn), choosing the
    reinforcements / the pursued unit in the set-up dialogs, Navigate the Storm (ships lost in
    rifts), the narrative Convoy (contact markers, deadfall torpedoes), Destroy the Docks
-   (orbital mines, random arrival rolls). Not yet: racing the 10 against the turn
+   (orbital mines, random arrival rolls). Battles built: Alien Intervention (p.103: the
+   defender's ships of a faction other than its main one are the alien allies, in reserve,
+   arriving as one fleet from a long edge (reading: the top) on a D6 from the defender's 2nd
+   game turn, 4+ / 3+ / 2+ / 2+ / automatic on turns 2-6; a planet near the centre (reading:
+   medium); defender within 30cm of the centre line, facing one way and 10cm apart; attacker
+   within 20cm of either short edge; first turn by the attacker's 2D6 against the defender's
+   D6, `roll_for_choice`; eight turns; VP; not yet: the drifting hulk near the centre) and
+   Surprise Attack (p.104: a planet at the centre sized by the defender's points; D3 units on
+   full alert (reading: its dearest unless chosen) more than 30cm from the edges, the rest on
+   standby within 15cm of the planet and abeam of it; standby ships don't move, shoot, launch
+   or teleport (`on_standby`: `TurnController.get_unmoved_ships / get_unfired_ships`, the AI's
+   movement / shooting / ordnance loops, `launch_attack_craft`, the human launch dialogs,
+   `check_teleport_eligibility`) but may brace; at the start of each defender turn each
+   standby unit tests Ld (a squadron once on its best Ld, reading) to go on full alert, then
+   no special orders that turn; the attacker comes on from one edge; VP). Scenario rolls for
+   an AI player at turn start are automatic (`_dice_for`; in "mixed" dice mode the human was
+   asked to roll for the AI). Fixed on the way: a zero-length line of sight against a planet
+   divided by zero (`los._line_intersects_circle`), which crashed an AI ordnance phase. Not
+   yet: Exterminatus! and Planetary Assault (the low orbit table), Escalating Engagement
+   (contact markers), Fleet Engagement (formations and set-ups A-D), the defenders' extra
+   planetary defence points. Not yet: racing the 10 against the turn
    order, Planet Strike's planetary defence budget (+20%) and "extra assault points" ships,
    Orbit Lost, The Bait (reinforcements entering), the raids and battles, the rest of the
    sub-plots, Cruiser Clash's alternating deployment and forces limits, the Ambush attacker's half-points limit (fleet building), Line Breaker's

@@ -931,6 +931,11 @@ and the reinforcements are picked automatically for now (dearest unit within 250
 units up to a quarter); the sunward edge is the left one; the AI brings reinforcements on at
 once.
 
+Then: Alien Intervention and Surprise Attack. Readings to confirm: the alien allies are the
+defender's ships of a second faction and arrive from the top edge; the planet sizes / places;
+Surprise Attack's full-alert units are the dearest; standby is "within 15cm of the planet's
+edge, heading tangential within 10 degrees". Fixed: a zero-length LOS division by zero.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

@@ -74,7 +74,7 @@ class AATurn:
     def _start_round(self) -> None:
         self.tracker.turn_start(self.gs)
         from .scenarios import turn_start as _scenario_turn_start
-        _scenario_turn_start(self.gs)
+        _scenario_turn_start(self.gs, self.tc.dice)
         self.command_check_failed = {1: False, 2: False}
         keep = self.gs.active_player
         for p in (1, 2):

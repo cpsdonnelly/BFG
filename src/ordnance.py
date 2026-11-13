@@ -1818,6 +1818,10 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
                         count: int, game_state: GameState) -> List[OrdnanceMarker]:
     """Create attack craft markers from launch bays. Assault boats aren't
     launched while hit-and-run raids are disabled (craft_type_allowed)."""
+    from .scenarios import on_standby
+    if on_standby(game_state, ship):
+        game_state.add_log(f"{ship.name} is on standby: no launches")
+        return []
     if not craft_type_allowed(craft_type, [weapon], game_state):
         game_state.add_log(f"{ship.name}: assault boats can't launch (hit-and-run raids "
                            f"are disabled)")

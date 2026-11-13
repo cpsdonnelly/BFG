@@ -180,7 +180,12 @@ class AIPlayer:
         my_ships = [s for s in gs.player_ships(self.player)
                     if not s.is_destroyed and not s.is_disengaged
                     and s.id not in tc.ships_moved]
-        # Immobile defences (Support Assets) never move: only their orders
+        # Immobile defences (Support Assets) never move: only their orders;
+        # Surprise Attack's ships on standby neither move nor take orders
+        from .scenarios import on_standby
+        for s in [s for s in my_ships if on_standby(gs, s)]:
+            tc.mark_ship_moved(s.id)
+        my_ships = [s for s in my_ships if not on_standby(gs, s)]
         for s in [s for s in my_ships if "immobile" in s.special_rules]:
             self._move_ship(s)
         my_ships = [s for s in my_ships if "immobile" not in s.special_rules]
@@ -284,9 +289,13 @@ class AIPlayer:
     def aa_move_unit(self, ship_ids) -> None:
         """Move one AA unit (a ship, or an escort squadron's ships)."""
         from .aa_turn import is_locked
+        from .scenarios import on_standby
         gs = self.gs
         for sid in ship_ids:
             s = gs.get_ship_by_id(sid)
+            if s is not None and on_standby(gs, s):
+                self.tc.mark_ship_moved(s.id)
+                continue
             if s is not None and not s.is_destroyed and not s.is_disengaged:
                 if is_locked(s):
                     gs.add_log(f"[AA] {s.name} is locked in a boarding action: no move")
@@ -2317,10 +2326,13 @@ class AIPlayer:
         self._volley_fired = set()          # (ship id, weapon index) used in a squadron volley
         if self.difficulty != "easy":
             self._squadron_volleys()
+        from .scenarios import on_standby
         for ship in gs.player_ships(self.player):
             if ship.is_destroyed or ship.is_disengaged or ship.has_fired:
                 continue
             if ship.has_boarded:                 # boarding: no firing this turn (s.32)
+                continue
+            if on_standby(gs, ship):             # Surprise Attack: on standby
                 continue
             self._fire_ship(ship)
             ship = gs.get_ship_by_id(ship.id)
@@ -2898,9 +2910,12 @@ class AIPlayer:
         enemies = self._live_enemies()
         self._fleet_defence = (self._plan_fleet_defence(enemies)
                                if enemies and self.difficulty != "easy" else None)
+        from .scenarios import on_standby
         for ship in gs.player_ships(self.player):
             if ship.is_destroyed or ship.is_disengaged or ship.has_boarded or ship.aa_locked:
                 continue                          # boarding: no launches (s.32)
+            if on_standby(gs, ship):
+                continue                          # Surprise Attack: on standby
             self._launch_ship_ordnance(ship)
         self._fleet_defence = None
 

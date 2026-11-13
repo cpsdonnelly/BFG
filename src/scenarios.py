@@ -12,6 +12,7 @@ position here is measured from a table edge or the centre, as the diagrams
 dimension it, so a different table size keeps the same distances.
 
 Readings to confirm with the owner are marked "reading"."""
+import math
 from typing import Dict, List, Optional, Tuple
 
 from .deployment import DeploymentZone
@@ -61,6 +62,19 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "vp",
         "game_turns": 8,
+    },
+    "alien_intervention": {
+        "name": "Alien Intervention (XR p.103)",
+        "first_turn": "roll_2d6_vs_d6",
+        "end": "fleet_gone",
+        "victory": "vp",
+        "game_turns": 8,
+    },
+    "surprise_attack": {
+        "name": "Surprise Attack (XR p.104)",
+        "first_turn": "attacker",
+        "end": "fleet_gone",
+        "victory": "vp",
     },
     "confrontation": {
         "name": "Confrontation (XR p.117)",
@@ -149,6 +163,57 @@ def _to_reserve(sd: Dict) -> None:
     sd["is_disengaged"] = True
 
 
+def _main_faction(gs, player: int) -> Optional[str]:
+    pts: Dict[str, int] = {}
+    for s in gs.get_ships():
+        if s.player == player and s.faction != "support_assets":
+            pts[s.faction] = pts.get(s.faction, 0) + (s.points_value or 0)
+    return max(pts, key=pts.get) if pts else None
+
+
+def _place_planet(gs, kind: str, r: float, x: float, y: float) -> None:
+    from .models import Phenomenon
+    gs.phenomena = [p for p in gs.phenomena if p.get("id") != "scenario_planet"]
+    gs.add_phenomenon(Phenomenon(id="scenario_planet", phenomenon_type=kind, x=x, y=y,
+                                 width=2 * r, height=2 * r, radius=r))
+
+
+# --- Surprise Attack: standby -------------------------------------------------------
+
+def on_standby(gs, ship) -> bool:
+    """Surprise Attack: a defending ship still on standby can't move, shoot,
+    launch ordnance, board or teleport (it may brace, repair and use its
+    turrets against ordnance)."""
+    if getattr(gs, "scenario_mode", "") != "surprise_attack":
+        return False
+    return _group_key(ship) in (gs.scenario_state or {}).get("standby", [])
+
+
+def _standby_tests(gs, dice) -> None:
+    """At the start of the defender's turn each ship or squadron on standby
+    takes a Leadership test (a squadron once, on its best Ld, reading); a
+    pass puts it on full alert, acting normally but without special orders
+    that turn."""
+    if dice is None or (getattr(gs, "turn_system", "igougo") != "aa"
+                        and gs.active_player != defender(gs)):
+        return
+    st = dict(gs.scenario_state or {})
+    keep, alerted = [], dict(st.get("alerted", {}))
+    for key in st.get("standby", []):
+        ships = [s for s in gs.get_ships() if _group_key(s) == key and not s.is_destroyed]
+        if not ships:
+            continue
+        ld = max(s.leadership for s in ships)
+        roll = dice.roll_2d6(f"Surprise Attack: {ships[0].name} goes to full alert (Ld {ld})")
+        if roll <= ld:
+            alerted[key] = gs.turn_number
+            gs.add_log(f"[Surprise Attack] {ships[0].name} goes to full alert (rolled {roll})")
+        else:
+            keep.append(key)
+    st["standby"], st["alerted"] = keep, alerted
+    gs.scenario_state = st
+
+
 def is_reserve(ship) -> bool:
     return getattr(ship, "status", "") == RESERVE
 
@@ -183,6 +248,8 @@ def entry_edge(gs) -> Optional[str]:
     the pursued ship (the right one), Rearguard Attack the sunward table edge
     (the left one, as the diagram draws it)."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "alien_intervention":
+        return (gs.scenario_state or {}).get("ally_edge", "top")
     return {"the_bait": "right", "rearguard": "left"}.get(mode)
 
 
@@ -196,25 +263,52 @@ def place_arrival(gs, ships, index: int = 0) -> None:
     while True:
         y0 = h / 2.0 + ((-1) ** off) * 8.0 * ((off + 1) // 2)
         pts = [(y0 + 4.0 * i) for i in range(len(ships))]
-        x = (ships[0].base_radius + 0.1) if edge == "left" else (w - ships[0].base_radius - 0.1)
-        if all((o.x - x) ** 2 + (o.y - y) ** 2 >= 25.0 for o in occupied for y in pts) \
+        r = ships[0].base_radius + 0.1
+        if edge in ("top", "bottom"):
+            # along a long edge: the stack runs along x, the ships at the edge
+            line = [(w / 2.0 + (yy - h / 2.0) * 1.0, (h - r) if edge == "top" else r)
+                    for yy in pts]
+        else:
+            x = r if edge == "left" else (w - r)
+            line = [(x, max(5.0, min(h - 5.0, yy))) for yy in pts]
+        if all((o.x - px) ** 2 + (o.y - py) ** 2 >= 25.0 for o in occupied for px, py in line) \
                 or off > 20:
             break
         off += 1
-    for s, y in zip(ships, pts):
-        s.x, s.y = x, max(5.0, min(h - 5.0, y))
-        s.heading = 0.0 if edge == "left" else 180.0
+    facing = {"left": 0.0, "right": 180.0, "top": 270.0, "bottom": 90.0}[edge]
+    for s, (px, py) in zip(ships, line):
+        s.x, s.y = px, py
+        s.heading = facing
         s.status = "active"
         s.is_disengaged = False
         gs.update_ship(s)
 
 
-def arrivals(gs, player: int, wants=None) -> List[str]:
+def arrivals(gs, player: int, wants=None, dice=None) -> List[str]:
     """Reinforcements may enter on any turn, including the first: offer each
     of `player`'s reserve units; `wants(ship names) -> bool` decides (a
     human's prompt; None or an AI: they all come on at once, judgement).
     Returns the names that arrived."""
     came = []
+    if getattr(gs, "scenario_mode", "") == "alien_intervention":
+        # The alien fleet comes as one: a D6 from the defender's 2nd turn on
+        # (2: 4+, 3: 3+, 4-5: 2+, 6: automatic), the whole fleet from one
+        # long edge (reading: game turns)
+        game_turn = gs.turn_number if getattr(gs, "turn_system", "igougo") == "aa" \
+            else (gs.turn_number + 1) // 2
+        need = {2: 4, 3: 3, 4: 2, 5: 2}.get(game_turn, 1 if game_turn >= 6 else None)
+        if need is None or dice is None:
+            return came
+        if need > 1:
+            r = dice.roll_d6(1, f"Alien reinforcements (turn {game_turn}: {need}+)")[0]
+            if r < need:
+                gs.add_log(f"[Alien Intervention] the allies don't arrive (rolled {r})")
+                return came
+        ships = [s for us in reserve_units(gs, player).values() for s in us]
+        place_arrival(gs, ships)
+        names = ", ".join(s.name for s in ships)
+        gs.add_log(f"[Reinforcements] arriving from the {entry_edge(gs)} edge: {names}")
+        return [names]
     for i, (_k, ships) in enumerate(sorted(reserve_units(gs, player).items())):
         names = ", ".join(s.name for s in ships)
         if wants is not None and not wants(names):
@@ -229,7 +323,18 @@ def _group_key(ship) -> str:
     return ship.squadron_id if (ship.ship_type == "escort" and ship.squadron_id) else ship.id
 
 
-def turn_start(gs) -> None:
+def _dice_for(gs, player: int, dice):
+    """An AI-controlled player's scenario rolls are made automatically (in
+    "mixed" dice mode the human isn't asked to roll for the AI)."""
+    if dice is None:
+        return None
+    if getattr(gs, "ai_spectator", False) or getattr(gs, "ai_player", None) == player:
+        from .dice import DiceRoller
+        return DiceRoller(mode="auto")
+    return dice
+
+
+def turn_start(gs, dice=None) -> None:
     """At the start of each turn: reinforcements may arrive (The Bait,
     Rearguard Attack: the player whose turn it is, both players in an
     alternate-activation round), and The Raiders' / Rearguard's defender gets
@@ -241,7 +346,10 @@ def turn_start(gs) -> None:
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
         for p in players:
             if reserve_units(gs, p):
-                arrivals(gs, p, (lambda names, p=p: hook(p, names)) if hook else None)
+                arrivals(gs, p, (lambda names, p=p: hook(p, names)) if hook else None,
+                         _dice_for(gs, p, dice))
+    if mode == "surprise_attack":
+        _standby_tests(gs, _dice_for(gs, defender(gs), dice))
     if mode not in ("raiders", "rearguard"):
         return
     st = dict(gs.scenario_state or {})
@@ -256,6 +364,19 @@ def turn_start(gs) -> None:
         st["alert_restored"] = True
         gs.scenario_state = st
         gs.add_log("[The Raiders] the defender is fully alert again (+1 Ld)")
+
+
+def roll_for_choice(gs, dice) -> Optional[int]:
+    """Alien Intervention: the attacker rolls 2D6, the defender 1D6; the
+    higher total chooses to go first or second (reading: ties re-rolled)."""
+    sc = SCENARIOS.get(getattr(gs, "scenario_mode", ""))
+    if not sc or sc.get("first_turn") != "roll_2d6_vs_d6":
+        return None
+    while True:
+        a = dice.roll_2d6("Attacker's roll for the first turn (2D6)")
+        d = dice.roll_d6(1, "Defender's roll for the first turn (D6)")[0]
+        if a != d:
+            return gs.scenario_attacker if a > d else defender(gs)
 
 
 def first_turn_chooser(gs) -> Optional[int]:
@@ -453,6 +574,37 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                              "reserve_units": sorted(chosen)}
         gs.add_log(f"[Rearguard] reinforcements: {sorted(chosen)}; the defender is at -1 Ld "
                    f"for {n} turn(s)")
+    elif mode == "alien_intervention":
+        # The defender's allies of convenience (ships of another faction than
+        # its main one) are the alien reinforcements; a planet within 30cm of
+        # the centre (reading: medium, just below the centre as drawn)
+        main = _main_faction(gs, defender(gs))
+        for sd in gs.ships:
+            if sd["player"] == defender(gs) and sd.get("faction") not in (main, "support_assets"):
+                _to_reserve(sd)
+        _place_planet(gs, "planet_medium", 5.0, gs.table_width / 2.0, gs.table_height / 2.0 - 15.0)
+        gs.scenario_state = {"ally_edge": "top"}
+        gs.add_log("[Alien Intervention] the defender's allies wait off the table")
+    elif mode == "surprise_attack":
+        # A planet at the centre sized by the battle; D3 of the defender's
+        # ships / squadrons on full alert (reading: its dearest units unless
+        # chosen), the rest on standby
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        pts = sum(s.points_value for s in gs.get_ships() if s.player == defender(gs))
+        kind, r = (("planet_small", 3.0) if pts <= 500 else
+                   ("planet_medium", 5.0) if pts <= 1500 else ("planet_large", 8.0))
+        _place_planet(gs, kind, r, gs.table_width / 2.0, gs.table_height / 2.0)
+        n = (dice.roll_d6(1, "Surprise Attack: units on full alert (D3)")[0] + 1) // 2
+        units: Dict[str, int] = {}
+        for sd in gs.ships:
+            if sd["player"] == defender(gs):
+                units[_group_key_d(sd)] = units.get(_group_key_d(sd), 0) + sd.get("points_value", 0)
+        alert = sorted(units, key=units.get, reverse=True)[:n]
+        gs.scenario_state = {"standby": sorted(k for k in units if k not in alert),
+                             "alerted": {}}
+        gs.add_log(f"[Surprise Attack] on full alert: {alert}; the rest on standby")
     elif mode == "raiders":
         # The defender's reduced state of alert: -1 Ld for the first D6 turns
         if dice is None:
@@ -733,6 +885,20 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         rects = {3 - att_p: [(30, 30, 30, 30)],
                  att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
                          (w - e, 0, 0, 0)]}
+    elif mode == "alien_intervention":
+        # Defender within 30cm of the centre line (a 60cm strip); attacker
+        # within 20cm of either short edge
+        rects = {3 - att_p: [(w / 2.0 - 30, w / 2.0 - 30, 0, 0)],
+                 att_p: [(0, w - 20, 0, 0), (w - 20, 0, 0, 0)]}
+    elif mode == "surprise_attack":
+        # Defender: full-alert units more than 30cm from the edges, standby
+        # ones within 15cm of the planet (placement_errors); the attacker
+        # moves on from one table edge of its choice (reading: deploys within
+        # 3cm of it, as The Raiders)
+        e = 3.0
+        rects = {3 - att_p: [(30, 30, 30, 30)],
+                 att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
+                         (w - e, 0, 0, 0)]}
     elif mode == "the_bait":
         # The pursued ship at the centre (fixed_placements); the pursuers more
         # than 60cm behind it (towards the left short edge)
@@ -790,6 +956,34 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     if mode == "raiders" and group:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
+        return errs
+    if mode == "alien_intervention" and group and group[0].player == defender(gs):
+        return _same_facing_apart(gs, group, positions, headings, placed, 10.0,
+                                  "Alien Intervention")
+    if mode == "surprise_attack" and group:
+        if group[0].player == gs.scenario_attacker:
+            # one table edge for the whole attacking fleet
+            def edge_of(x, y):
+                return min((("left", x), ("right", gs.table_width - x), ("bottom", y),
+                            ("top", gs.table_height - y)), key=lambda t: t[1])[0]
+            mine = [s for s in placed if s.player == group[0].player]
+            if mine:
+                e0 = edge_of(mine[0].x, mine[0].y)
+                if any(edge_of(x, y) != e0 for x, y in positions):
+                    errs.append(f"Surprise Attack: the whole fleet comes on from the {e0} edge")
+            return errs
+        if on_standby(gs, group[0]):
+            pl = next((p for p in gs.get_phenomena() if p.id == "scenario_planet"), None)
+            for s_, (x, y), hd in zip(group, positions, headings):
+                if pl is None:
+                    break
+                d = ((x - pl.x) ** 2 + (y - pl.y) ** 2) ** 0.5
+                if d > pl.radius + 15.0:
+                    errs.append(f"Surprise Attack: {s_.name} on standby within 15cm of the planet")
+                radial = math.degrees(math.atan2(y - pl.y, x - pl.x))
+                off = abs((hd - radial + 180.0) % 180.0 - 90.0)
+                if off > 10.0:
+                    errs.append(f"Surprise Attack: {s_.name} on standby abeam of the planet")
         return errs
     if mode == "rearguard" and group and group[0].player == defender(gs):
         # every defending ship faces the sunward (left) edge, 10cm apart
@@ -864,6 +1058,22 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     return errs
 
 
+def _same_facing_apart(gs, group, positions, headings, placed, apart: float,
+                       label: str) -> List[str]:
+    errs = []
+    others = [s for s in placed if s.player == group[0].player
+              and not (group[0].squadron_id and s.squadron_id == group[0].squadron_id)]
+    for s in others:
+        if any(abs((h - s.heading + 180.0) % 360.0 - 180.0) > 0.5 for h in headings):
+            errs.append(f"{label}: every defending ship faces the same way as {s.name}")
+            break
+    for s in others:
+        if any((x - s.x) ** 2 + (y - s.y) ** 2 < apart * apart for x, y in positions):
+            errs.append(f"{label}: at least {apart:g}cm from {s.name}")
+            break
+    return errs
+
+
 def _raiders_defender_errors(gs, group, positions, headings, placed) -> List[str]:
     """The Raiders: every defending ship faces the same table edge (one of the
     four edge directions) and each ship or squadron is 20cm from the others."""
@@ -924,12 +1134,24 @@ def auto_positions(gs, group, zone, placed, index: int):
         cx = lo + gs.table_width / 6.0
         cy = gs.table_height - 15.0 - 10.0 * (n_here % 4)
         return [(cx - 6.0 + 4.0 * i, cy) for i in range(len(group))]
-    if mode in ("raiders", "rearguard") and group and group[0].player == gs.scenario_attacker:
+    if mode == "surprise_attack" and group and on_standby(gs, group[0]):
+        pl = next((p for p in gs.get_phenomena() if p.id == "scenario_planet"), None)
+        if pl is not None:
+            k = sum(1 for s in placed if on_standby(gs, s))
+            out = []
+            for i in range(len(group)):
+                a = math.radians(40.0 * (k + i))
+                rr = pl.radius + 8.0
+                out.append((pl.x + rr * math.cos(a), pl.y + rr * math.sin(a)))
+            return out
+    if mode in ("raiders", "rearguard", "surprise_attack") and group \
+            and group[0].player == gs.scenario_attacker:
         r = zone.rects()[0]
         cx = (r.x_min + r.x_max) / 2.0 - 8.0 * index
         y = r.y_max - max(s_.base_radius for s_ in group) - 0.1      # base on the table
         return [(cx + 4.0 * i, y) for i in range(len(group))]
-    if mode in ("ambush", "raiders", "rearguard") and group and group[0].player == defender(gs):
+    if mode in ("ambush", "raiders", "rearguard", "surprise_attack", "alien_intervention") \
+            and group and group[0].player == defender(gs):
         others = [s for s in placed if s.player == defender(gs)]
         y = zone.y_min + 5.0
         while y <= zone.y_max:
@@ -994,6 +1216,9 @@ def orders_forbidden(gs, ship) -> Optional[str]:
     if why:
         return why
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "surprise_attack" and ship.player == defender(gs):
+        if (gs.scenario_state or {}).get("alerted", {}).get(_group_key(ship)) == gs.turn_number:
+            return "Surprise Attack: just on full alert, no special orders this turn"
     if ship.player != defender(gs) or not _in_defenders_first_turn(gs):
         return None
     if mode == "ambush":

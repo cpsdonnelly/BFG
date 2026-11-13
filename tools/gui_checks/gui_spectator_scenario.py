@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import time
+import math
 import tkinter as tk
 from tkinter import messagebox
 
@@ -94,6 +95,8 @@ if scenario == "planet_strike":
     for k in range(-(-pts // 200)):
         gs.add_ship(cat("Heavy Transport", 1, 20 + k, 0.0, 0.0))
     gs.add_ship(cat("Orbital Weapons Platform", 2, 30, 0.0, 0.0))
+if scenario == "alien_intervention":
+    gs.add_ship(cat("Protector Cruiser", 2, 40, 0.0, 0.0))     # the alien allies
 if scenario == "convoy_matched":
     pts = sum(s_.points_value for s_ in gs.get_ships() if s_.player == 2)
     for k in range(-(-pts // 100)):
@@ -136,7 +139,14 @@ for p in (1, 2):
                 s_.heading = 180.0
             if scenario == "the_bait" and p == 1:
                 s_.heading = 0.0
-            if scenario in ("raiders", "rearguard") and p == 1:
+            if scenario == "alien_intervention":
+                s_.heading = 0.0 if s_.x < gs.table_width / 2 else 180.0
+                if p == 2:
+                    s_.heading = 90.0
+            if scenario == "surprise_attack" and p == 2 and sc.on_standby(gs, s_):
+                pl_ = next(q for q in gs.get_phenomena() if q.id == "scenario_planet")
+                s_.heading = (math.degrees(math.atan2(s_.y - pl_.y, s_.x - pl_.x)) + 90) % 360
+            if scenario in ("raiders", "rearguard", "surprise_attack") and p == 1:
                 s_.heading = 90.0 if s_.y < gs.table_height / 2 else 270.0   # onto the table
             if scenario == "blockade_run":
                 s_.heading = 90.0 if p == 1 else 270.0
@@ -196,7 +206,7 @@ if scenario == "chance_encounter":
           f"exits {gs.scenario_state.get('exits')}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
-                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Raiders", "Blockade", "broke through", "Reinforcements", "Bait", "Rearguard", "Sub-plot", "holds position", "DISENGAG", "off the table",
+                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Raiders", "Blockade", "broke through", "Reinforcements", "Bait", "Rearguard", "Alien", "Surprise", "Sub-plot", "holds position", "DISENGAG", "off the table",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "

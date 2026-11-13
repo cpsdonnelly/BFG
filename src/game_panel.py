@@ -612,7 +612,8 @@ class GamePanel(AAPanelMixin):
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
-                      "the_bait", "raiders", "blockade_run", "rearguard", "confrontation", "line_breaker", "ambush",
+                      "the_bait", "raiders", "blockade_run", "rearguard", "alien_intervention",
+                      "surprise_attack", "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
                       "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
@@ -1138,7 +1139,9 @@ class GamePanel(AAPanelMixin):
         tc = self.ctx.tc
         gs = self.ctx.gs
         from .scenarios import first_player as _scenario_first, first_turn_chooser
-        chooser = first_turn_chooser(gs)
+        from .scenarios import roll_for_choice
+        from .dice import DiceRoller
+        chooser = first_turn_chooser(gs) or roll_for_choice(gs, DiceRoller(mode="auto"))
         if _scenario_first(gs):
             gs.first_player = _scenario_first(gs)
             self.ctx.log(f"First turn: player {gs.first_player} (the scenario's attacker)")

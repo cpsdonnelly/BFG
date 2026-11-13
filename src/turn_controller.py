@@ -49,6 +49,12 @@ class ActionRecord:
         return ar
 
 
+
+def _standby(gs, ship) -> bool:
+    from .scenarios import on_standby
+    return on_standby(gs, ship)
+
+
 class TurnController:
     """
     Manages game flow: phases, turn order, snapshots, and action recording.
@@ -291,7 +297,7 @@ class TurnController:
             self._necron_awakening(self.gs.active_player)
             # Booklet scenarios' start-of-turn effects (The Raiders' alert)
             from .scenarios import turn_start as _scenario_turn_start
-            _scenario_turn_start(self.gs)
+            _scenario_turn_start(self.gs, self.dice)
             # s.40: solar flares and radiation bursts at the start of each turn
             from .celestial import start_of_turn as _celestial_start
             _celestial_start(self.gs, self.dice)
@@ -787,13 +793,15 @@ class TurnController:
         return [s for s in self.gs.player_ships(self.gs.active_player)
                 if (not s.is_destroyed and not s.is_disengaged
                     and s.id not in self.ships_moved and self._aa_ok(s)
-                    and "immobile" not in s.special_rules)]   # defences never move
+                    and "immobile" not in s.special_rules       # defences never move
+                    and not _standby(self.gs, s))]              # Surprise Attack
 
     def get_unfired_ships(self) -> List[Ship]:
         """Get active player ships that haven't fired yet."""
         return [s for s in self.gs.player_ships(self.gs.active_player)
                 if (not s.is_destroyed and not s.is_disengaged
-                    and s.id not in self.ships_fired and self._aa_ok(s))]
+                    and s.id not in self.ships_fired and self._aa_ok(s)
+                    and not _standby(self.gs, s))]
 
     def mark_ship_moved(self, ship_id: str):
         self.ships_moved.append(ship_id)

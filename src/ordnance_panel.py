@@ -463,8 +463,10 @@ class OrdnancePanel(OrdnanceMovementMixin):
             and not s.get("is_grappled", False)
         ]
         # Keep only ships with loaded ordnance (torps or craft)
+        from .scenarios import on_standby
         eligible = [s for s in all_active
-                    if s.ordnance_loaded_torps or s.ordnance_loaded_craft]
+                    if (s.ordnance_loaded_torps or s.ordnance_loaded_craft)
+                    and not on_standby(self.ctx.gs, s)]
         if not eligible:
             messagebox.showinfo("No Ordnance", "No ships with loaded ordnance.")
             return
@@ -988,9 +990,10 @@ class OrdnancePanel(OrdnanceMovementMixin):
                       and not s.get("is_disengaged", False)
                       and not s.get("has_boarded", False)
                       and not s.get("is_grappled", False)]
+        from .scenarios import on_standby
         launchers = [s for s in all_active
-                     if s.ordnance_loaded_torps or s.ordnance_loaded_craft
-                     or s.ordnance_loaded_mines]
+                     if (s.ordnance_loaded_torps or s.ordnance_loaded_craft
+                         or s.ordnance_loaded_mines) and not on_standby(self.ctx.gs, s)]
         if not launchers:
             messagebox.showinfo("No Ordnance", "No ships with loaded ordnance")
             return
