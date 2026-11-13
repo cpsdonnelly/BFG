@@ -206,15 +206,73 @@ class AIPlayer:
                                   for e, v in groups.items())
                 gs.add_log(f"[AI] focus targets: {names}")
         self._order_plan = None
+        self._planned_ends = {}
         if self.difficulty != "easy":
             my_ships = self._coordinated_order(my_ships)
             self._plan_orders(my_ships)
+            self._planned_ends = self._coordination_plan(my_ships)
         for ship in my_ships:
             self._move_ship(ship)
         self._order_plan = None
+        self._planned_ends = {}
         if self.difficulty != "easy":
             for ship in my_ships:
                 self._consider_disengage(gs.get_ship_by_id(ship.id))
+
+    def _ships_at(self, ends):
+        """Context manager: our ships in `ends` ({id: (x, y, heading)}) stand at
+        those positions while planning, then go back where they were."""
+        import contextlib
+        gs = self.gs
+
+        @contextlib.contextmanager
+        def cm():
+            saved = []
+            try:
+                for sid, (x, y, h) in ends.items():
+                    sh = gs.get_ship_by_id(sid)
+                    if sh is None or sh.is_destroyed or sh.is_disengaged:
+                        continue
+                    saved.append((sid, sh.x, sh.y, sh.heading))
+                    sh.x, sh.y, sh.heading = x, y, h
+                    gs.update_ship(sh)
+                yield
+            finally:
+                for sid, x, y, h in saved:
+                    sh = gs.get_ship_by_id(sid)
+                    if sh is not None:
+                        sh.x, sh.y, sh.heading = x, y, h
+                        gs.update_ship(sh)
+        return cm()
+
+    def _coordination_plan(self, ships: List[Ship]):
+        """The coordination pass's first sweep (To do 11 a, suggestion): each
+        ship's move planned in move order with the ships before it at their
+        planned ends (the greedy plan), with no special order. The real moves
+        are then planned with the ships still to move at these ends, so each
+        sees where the others mean to go (one round of coordinate descent).
+        {ship id: (x, y, heading)}; uses the normal planner even for the expert
+        (its search plans the real move). Only for fleets of two or more."""
+        ends = {}
+        if len(ships) < 2:
+            return ends
+        for ship in ships:
+            sh = self.gs.get_ship_by_id(ship.id)
+            if sh is None or sh.must_flee:
+                continue
+            with self._ships_at(dict(ends)):
+                enemy = self._nearest_enemy(sh)
+                if enemy is None:
+                    continue
+                prev = getattr(self, "_move_nearest", None)
+                self._move_nearest = enemy
+                enemy = self._focus_for(sh) or enemy
+                try:
+                    cmds = AIPlayer._plan_move_toward(self, sh, enemy, "", 0)
+                finally:
+                    self._move_nearest = prev
+            ends[sh.id] = self._cmds_end(sh, cmds)
+        return ends
 
     @staticmethod
     def _coordinated_order(ships: List[Ship]) -> List[Ship]:
@@ -320,9 +378,15 @@ class AIPlayer:
             commands = self._plan_flee(ship, order, aaf_bonus)
         else:
             commands = None
-        commands = commands or (self._plan_move_toward(ship, enemy, order, aaf_bonus)
-                    if enemy else
-                    self._forward_commands(ship, order, aaf_bonus, fraction=0.6))
+        if commands is None and enemy is not None:
+            # Coordination pass (To do 11 a): plan against where the ships still
+            # to move are planned to end, not where they stand
+            pending = {sid: end for sid, end in (getattr(self, "_planned_ends", None)
+                                                  or {}).items()
+                       if sid != ship.id and sid not in tc.ships_moved}
+            with self._ships_at(pending):
+                commands = self._plan_move_toward(ship, enemy, order, aaf_bonus)
+        commands = commands or self._forward_commands(ship, order, aaf_bonus, fraction=0.6)
 
         start = (ship.x, ship.y)
         executed = self._try_execute(ship, commands, order, aaf_bonus)

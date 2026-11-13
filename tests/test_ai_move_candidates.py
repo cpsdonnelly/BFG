@@ -395,3 +395,25 @@ def test_safety_goal_goes_round_an_asteroid_field():
             h += c.value if c.action == "turn_left" else -c.value
     assert not any(_line_intersects_rect(a[0], a[1], b[0], b[1], 76, 56, 84, 64)
                    for a, b in zip(pts, pts[1:]))
+
+
+def test_coordination_pass_plans_every_ship_and_restores_positions():
+    """To do 11 a (coordination pass): a first sweep plans each ship in move
+    order with those before it at their planned ends; the real moves are then
+    planned with the ships still to move at those ends. Planning never moves
+    a ship for good."""
+    a = _ship("Lunar Class Cruiser", 1, 60.0, 50.0, 0.0)
+    b = _ship("Lunar Class Cruiser", 1, 60.0, 70.0, 0.0, 1)
+    e = _ship("Lunar Class Cruiser", 2, 120.0, 60.0, 180.0)
+    ai, gs = _ai([a, b, e])
+    ends = ai._coordination_plan([gs.get_ship_by_id(a.id), gs.get_ship_by_id(b.id)])
+    assert set(ends) == {a.id, b.id}
+    for sid in ends:
+        sh = gs.get_ship_by_id(sid)
+        assert (sh.x, sh.y) in ((60.0, 50.0), (60.0, 70.0))       # nothing moved
+        assert math.hypot(ends[sid][0] - sh.x, ends[sid][1] - sh.y) <= sh.speed + 1e-6
+    with ai._ships_at({b.id: (90.0, 90.0, 45.0)}):
+        assert (gs.get_ship_by_id(b.id).x, gs.get_ship_by_id(b.id).y) == (90.0, 90.0)
+    assert (gs.get_ship_by_id(b.id).x, gs.get_ship_by_id(b.id).y) == (60.0, 70.0)
+    ai.run_movement_phase()                       # the whole phase still plays
+    assert all(gs.get_ship_by_id(s).x != 60.0 for s in (a.id, b.id))

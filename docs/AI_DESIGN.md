@@ -154,8 +154,10 @@ prow-on to where the target will be, into its rear arc, guns on a second enemy, 
 commander's ship), the best three refined by small changes to angle, distance and turn point,
 ships moving in support order (the commander's ship first, escorts last), and the expert's
 root using the same candidates, best first. About 35 candidates and 40ms a ship. Still to
-come: torpedo-lane, raid-reach and Lock-On goals, a denser grid in crowded fights, and the
-full coordination pass.
+come: raid-reach goals. Built since: Lock-On-next, a denser grid in crowded fights, safety
+(tangents past hazards), disengaging from the end position, Come to New Heading's two-turn
+moves, and one round of the coordination pass (every ship planned once, then each real move
+planned with the ships still to move at their planned ends).
 
 **Target-directed candidates** (Planned in full, owner; replaces the earlier idea of headings every 15
 degrees, about 150 candidates, which survives only as a fallback). Candidates propose, values
@@ -202,9 +204,9 @@ one broadside). Cost grows with targets and goals, not with the turn angle.
   wrong, so fix the goal rather than add samples. The crossover points are to be measured in
   the engine, not guessed.
 - Needs exposure by Armour facing (8 a) and range brackets (8 f) first: goals b and c come from
-  them. Then a **coordination pass** (suggestion): moves are greedy ship by ship, so re-optimise
-  each against everyone's planned end positions (one or two passes), catching screening and
-  mutual support.
+  them. Then a **coordination pass** (suggestion; one round built): moves are greedy ship by
+  ship, so re-optimise each against everyone's planned end positions (one or two passes),
+  catching screening and mutual support.
 
 **Fleet focus** (Built, owner: focus fire, easier targets first): the fleet assigns focus
 targets together. Each ship's guns go where they add most VP on top of what the others will
