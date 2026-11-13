@@ -485,7 +485,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1167 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1168 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -881,7 +881,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    the Big Mek's hit restore, Nobz per 500pts, clan authority over further ships), the rest of
    the secondary commanders (Veteran Bond-Captains, Inquisitors; built: Elite Daemonhunters, Elite Captains, Bond-Captains, the
    Grey Knights Grand Master, see "Engine notes"), Inquisition Ordos.
-5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
+5. Unplayable units (Zzapp Gunz built: lances hitting on 5+, `hits_on`, their random
+   firepower rolled on D6s so a rolled 1 puts a blast marker at the stern once a turn,
+   `combat._zzapp_firepower`; the AI values lances by `ai_hazards.lance_p`; the Slamblasta is
+   playable now): Kustom Kannon, special movement (Nicassar Caravan, Kroot
    Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
    disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
 6. Smaller gaps, done: s.40 (`src/celestial.py`): Fighting Sunward doubles the range column

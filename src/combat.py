@@ -188,8 +188,27 @@ def roll_dice_value(text: str, dice: DiceRoller, label: str = "") -> int:
     return max(0, total + int(add or 0))
 
 
+def _zzapp_firepower(attacker: Ship, weapon: Dict, dice: DiceRoller, gs) -> int:
+    """Zzapp Gunz' random firepower (Ork weapons): rolled with D6s so the
+    actual dice are seen (a D3 is a D6 halved, rounding up); a 1 on any of
+    them puts a blast marker in contact with the ship's rear arc, once a turn."""
+    n, sides, add = _DICE_EXPR.match(weapon["strength_dice"].replace(" ", "").upper()).groups()
+    raw = dice.roll_d6(int(n or 1), f"{attacker.name} {weapon['name']} ({weapon['strength_dice']})")
+    total = sum(raw) if sides == "6" else sum((r + 1) // 2 for r in raw)
+    if 1 in raw and gs is not None:
+        done = gs.__dict__.setdefault("_zzapp_blast", set())
+        key = (gs.turn_number, attacker.id)
+        if key not in done:
+            done.add(key)
+            back = math.radians(attacker.heading + 180)
+            _place_shield_impacts(attacker, 1, gs, origin=(attacker.x + 50 * math.cos(back),
+                                                           attacker.y + 50 * math.sin(back)))
+            gs.add_log(f"  {attacker.name}'s zzapp gunz overload: a blast marker at its stern")
+    return max(0, total + int(add or 0))
+
+
 def weapon_fire_pool(attacker: Ship, weapon: Dict, w_idx: int, target_dist: float,
-                     dice: DiceRoller) -> Tuple[int, Optional[str], Optional[str]]:
+                     dice: DiceRoller, gs=None) -> Tuple[int, Optional[str], Optional[str]]:
     """Firepower/strength available to this weapon for a shot at a target
     target_dist away: (pool, range_mode, error).
 
@@ -214,6 +233,8 @@ def weapon_fire_pool(attacker: Ship, weapon: Dict, w_idx: int, target_dist: floa
                              f"fire at the far target first (worse firepower is shared).")
         return remaining, mode, None
     if weapon.get("strength_dice"):
+        if weapon.get("zzapp"):
+            return _zzapp_firepower(attacker, weapon, dice, gs), None, None
         return roll_dice_value(weapon["strength_dice"], dice,
                                f"{attacker.name} {weapon['name']}"), None, None
     if close is not None:
@@ -534,19 +555,20 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
         result.description = f"{weapon['name']}: no strength available"
         return result
 
-    # Lances hit on 4+ regardless of armor
+    # Lances hit on 4+ regardless of armor (Ork Zzapp Gunz on 5+)
+    need = weapon.get("hits_on", 4)
     result.dice_rolled = dice.roll_d6(
-        strength, f"{attacker.name} lances vs {target.name} (need 4+)")
+        strength, f"{attacker.name} lances vs {target.name} (need {need}+)")
 
-    result.hits = sum(1 for d in result.dice_rolled if d >= 4)
+    result.hits = sum(1 for d in result.dice_rolled if d >= need)
 
     # Lock On rerolls
     if lock_on and result.hits < strength:
-        misses = [d for d in result.dice_rolled if d < 4]
+        misses = [d for d in result.dice_rolled if d < need]
         if misses:
             result.reroll_dice = dice.roll_d6(
                 len(misses), f"{attacker.name} Lock On lance rerolls")
-            extra_hits = sum(1 for d in result.reroll_dice if d >= 4)
+            extra_hits = sum(1 for d in result.reroll_dice if d >= need)
             result.hits += extra_hits
 
     result.description = (
@@ -734,7 +756,7 @@ def expected_hits(attacker: Ship, weapon: Dict, target: Ship, gs=None) -> float:
     don't use the gunnery table, so blast markers don't affect them."""
     wtype = weapon.get("weapon_type", "")
     if wtype == "lance":
-        return weapon.get("strength", 0) * 0.5
+        return weapon.get("strength", 0) * (7 - (weapon.get("hits_on") or 4)) / 6.0
     if wtype != "battery":
         return 0.0
     fp = effective_battery_firepower(attacker, weapon, target)

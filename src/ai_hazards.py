@@ -46,6 +46,11 @@ def p_sum_at_least(n_dice: int, target: int) -> float:
     return 1.0 - p_sum_at_most(n_dice, target - 1)
 
 
+def lance_p(w: dict) -> float:
+    """A lance die's chance to hit: 4+ (Ork Zzapp Gunz 5+, `hits_on`)."""
+    return (7 - (w.get("hits_on") or 4)) / 6.0
+
+
 def p_hit(armour: int) -> float:
     """One die against Armour N+ (a 6 always hits)."""
     return max(1, 7 - armour) / 6.0
@@ -395,7 +400,7 @@ def ship_threat_vp(ship: Ship, gs) -> float:
         wt = w.get("weapon_type")
         if wt not in ("battery", "lance"):
             continue
-        h = (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35)
+        h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35)
         if ship.is_crippled:
             h *= 0.5
         best = max((value_per_hit(t, gs) for t in foes if _mount_bears(ship, w, t)), default=0.0)
@@ -687,7 +692,7 @@ def mount_hits(e: Ship, w: dict, t: Ship) -> float:
     lances 0.5 a lance whatever the Armour (they hit on 4+)."""
     st = w.get("strength") or 0
     if w.get("weapon_type") == "lance":
-        return st * 0.5
+        return st * lance_p(w)
     return st * 0.35 * p_hit(t.armor_vs(e.x, e.y)) / p_hit(5)
 
 
@@ -722,7 +727,7 @@ def enemy_fire_plan(gs, player: int) -> dict:
             wt = w.get("weapon_type")
             if wt not in ("battery", "lance"):
                 continue
-            h = (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35)
+            h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35)
             if h > 0:
                 mounts.append((h, e, w))
     mounts.sort(key=lambda m: -m[0])
@@ -1090,7 +1095,7 @@ def fleet_hits_on(gs, player: int) -> Dict[str, float]:
                 wt = w.get("weapon_type")
                 if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
                     continue
-                hits += (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35 * armour_factor)
+                hits += (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
         out[e.id] = hits
     return out
 
@@ -1161,7 +1166,7 @@ def fleet_focus_targets(gs, player: int) -> list:
                 wt = w.get("weapon_type")
                 if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
                     continue
-                h = (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35 * armour_factor)
+                h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
                 hits += h
         if hits > 0:
             ranked.append((added_vp(e, gs, 0.0, hits), e))
@@ -1180,7 +1185,7 @@ def _ship_hits_on(s: Ship, e: Ship) -> float:
         wt = w.get("weapon_type")
         if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
             continue
-        hits += (w.get("strength") or 0) * (0.5 if wt == "lance" else 0.35 * armour_factor)
+        hits += (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
     return hits
 
 

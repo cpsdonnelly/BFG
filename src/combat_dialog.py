@@ -358,7 +358,7 @@ class _FireDialog:
             if wtype in ("battery", "lance"):
                 pool, mode, err = weapon_fire_pool(
                     self.attacker, weapon, w_idx,
-                    self.attacker.distance_to(target), self.ctx.dice)
+                    self.attacker.distance_to(target), self.ctx.dice, self.ctx.gs)
                 if err:
                     self._log(f"  {err}")
                     continue

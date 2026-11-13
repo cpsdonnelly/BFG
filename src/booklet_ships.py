@@ -56,6 +56,8 @@ WEAPON_TYPES = {
     "Macrobatteries": "battery", "Macrobattery": "battery",
     "Railguns": "battery", "Railgun": "battery",
     "Lances": "lance", "Lance": "lance",
+    # Ork Zzapp Gunz: lances hitting on 5+ (Ork weapons, Xenos)
+    "Zzapp Gunz": "lance",
     "Ion Cannons": "lance", "Ion Cannon": "lance",
     "Cutting Beam": "lance",          # Demiurg: FP1+ (1 + collected blast markers, max 8)
     # Nekulli Whip: "The whisperlance cannon follows the rules for lances"
@@ -74,6 +76,7 @@ WEAPON_TYPES = {
 WEAPON_RULES = {
     "Bombardment Cannon": {"hits_on": 4, "crit_on": 4},
     "Killkannon": {"hits_on": 4, "crit_on": 4},
+    "Zzapp Gunz": {"hits_on": 5, "zzapp": True},
     "Cutting Beam": {"cutting_beam": True},
 }
 

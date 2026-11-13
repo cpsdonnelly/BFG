@@ -1513,7 +1513,7 @@ class AIPlayer:
             if wtype in ("battery", "lance"):
                 # Firepower fixed when fired: random values rolled, Heavy Gunz by range
                 pool, _mode, _err = weapon_fire_pool(
-                    ship, weapon, w_idx, ship.distance_to(target), self.dice)
+                    ship, weapon, w_idx, ship.distance_to(target), self.dice, gs)
                 if weapon.get("strength_dice"):
                     gs.add_log(f"[AI] {ship.name} {weapon['name']}: rolled "
                                f"{weapon['strength_dice']} = {pool}")

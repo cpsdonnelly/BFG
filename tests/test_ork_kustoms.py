@@ -41,3 +41,19 @@ def test_grot_riggers_help_reload():
     s = make_ship(leadership=6, special_rules=["grot_riggers"])
     res = do_command_check(s, "reload_ordnance", DiceStub([7]))
     assert res["passed"] and res["needed"] == 7
+
+
+def test_zzapp_gunz_hit_on_5_and_overload_on_a_rolled_1():
+    from src.combat import resolve_lances, weapon_fire_pool
+    z = {"name": "Prow Zzapp Gunz", "weapon_type": "lance", "range_cm": 45, "strength": 5,
+         "strength_dice": "D3+3", "hits_on": 5, "zzapp": True, "arcs": ["front"]}
+    s = make_ship(id="o", player=1, x=0.0, y=0.0, heading=0.0, weapons=[z])
+    t = make_ship(id="t", player=2, x=20.0, y=0.0)
+    gs = make_gs([s, t])
+    dice = DiceStub([1])                       # the D3 die shows a 1: firepower 1+3
+    pool, _m, _e = weapon_fire_pool(gs.get_ship_by_id("o"), z, 0, 20.0, dice, gs)
+    assert pool == 4 and len(gs.blast_markers) == 1
+    weapon_fire_pool(gs.get_ship_by_id("o"), z, 0, 20.0, DiceStub([1]), gs)
+    assert len(gs.blast_markers) == 1          # once a turn
+    sr = resolve_lances(s, t, dict(z, strength=4), DiceStub([4, 5, 6, 3]))
+    assert sr.hits == 2

@@ -212,7 +212,7 @@ def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
         return 0.0
     strength = weapon.get("strength", 1) or 0
     if wtype == "lance":
-        return strength * 0.5
+        return strength * (7 - (weapon.get("hits_on") or 4)) / 6.0
     armor = _armor_facing(target, attacker.x, attacker.y)
     return strength * 0.35 * _p_hit(armor) / _p_hit(5)
 
