@@ -878,14 +878,15 @@ class AIPlayer:
             return exit_term          # the scenario's own exit (scored by the scenario)
         return cache[key] / units
 
-    BOMBARD_WEIGHT = 0.5         # judgement: winning Planet Strike ~ half the points on the table
+    from .scenarios import BOMBARD_WEIGHT  # noqa: E402 (judgement, shared)
 
     def bombard_point_vp(self) -> float:
         """Planet Strike (To do 7): a bombardment point in VP. The table runs
         from 6 (6+ to win) to 31 (an automatic win), so a point is about a
         25th of the game: judgement, `BOMBARD_WEIGHT` x the points on the
         table / 25."""
-        return self.BOMBARD_WEIGHT * sum(s.points_value for s in self.gs.get_ships()) / 25.0
+        from .scenarios import bombard_point_vp, table_points
+        return bombard_point_vp(table_points(self.gs))
 
     def _bombard_hold_value(self, ship: Ship) -> float:
         """Planet Strike: an attacking ship in base contact with the planet
@@ -987,16 +988,15 @@ class AIPlayer:
         progress = max(0.0, ship.x - x) / max(1.0, ship.x)
         return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
 
-    OBJECTIVE_POINT_WEIGHT = 0.5   # judgement: 10 objective points ~ half the fleets' worth
+    from .scenarios import OBJECTIVE_POINT_WEIGHT  # noqa: E402 (judgement, shared)
     OBJECTIVE_DENIAL = 0.5         # judgement: contesting an enemy-held marker
 
     def objective_point_vp(self) -> float:
         """Domination (To do 7): an objective point in VP. The game is won on
         points, 10 ending it, so a point is a tenth of the game: judgement,
         `OBJECTIVE_POINT_WEIGHT` x the points on the table / (2 x 10)."""
-        from .scenarios import DOMINATION_TARGET
-        total = sum(s.points_value for s in self.gs.get_ships()) or 1000
-        return self.OBJECTIVE_POINT_WEIGHT * total / (2.0 * DOMINATION_TARGET)
+        from .scenarios import domination_point_vp, table_points
+        return domination_point_vp(table_points(self.gs))
 
     def _objective_stake(self, ship: Ship) -> float:
         """Domination (To do 7): what leaving the table gives up in VP terms,

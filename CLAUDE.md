@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1259 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1261 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -499,8 +499,7 @@ matched in code, and a reworded note silently drops an option.
 
 Latest work (HANDOFF, "Session after booklet zip 13", the AA and Eldar parts): alternate
 activation plays end to end in the game window (all three systems, AI and humans; To do 13)
-and Eldar MMS v2.0 are playable (To do 14). Before that, in the same session: To do 2 (but
-scenario points), 3, 6 done; large parts of 4, 5, 8, 9, 10, 11 and the first slice of 13 built
+and Eldar MMS v2.0 are playable (To do 14). Before that, in the same session: To do 2, 3, 6 done; large parts of 4, 5, 8, 9, 10, 11 and the first slice of 13 built
 (each item below says what). Fixed: attackers no longer add turrets to troop rating (s.32).
 Readings to confirm with the owner are listed in HANDOFF and in To do 3 / 6.
 Later in that session (HANDOFF, same section, "Then"): Miasma's ordnance part; Siren's Summon
@@ -509,6 +508,10 @@ disengage tests within 15cm are treated as blocked, no failure penalty); To do 1
 Ordnance and Come to New Heading by value (10 is done but e's small Brace items); To do 11 a's
 safety goals, disengaging valued at the end position and one coordination round. Known limit:
 the expert's root moves under Come to New Heading are one-turn only.
+Then (HANDOFF, same section, "scenarios"): Necrons playable (To do 14), and To do 7's
+matched-play set: all nine short scenarios built for the engine and the AI, with immobile
+defences, the Space Station crit table and transport capacity; scenario points in the margin
+(To do 2 done); two general AI fixes (off-table moves priced as disengaging, edge traps).
 
 Built so far: every booklet rule section the engine plays (see the sections above), the export
 31 "still to do" list, boarding crew bonuses, disengaging incl. forced disengagement, optional
@@ -521,8 +524,8 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: most scenarios (the nine matched-play scenarios are, To do 7: Confrontation, Line Breaker, Ambush, Convoy, Space Assault, Rescue, Warp Storm, Planet Strike, Domination) and sub-plots, and the To do items below.
-Next (largest first): 7 (scenarios / sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
+Not built: the narrative scenarios (raids, battles, set pieces; the nine matched-play ones are built, To do 7) and sub-plots, and the To do items below.
+Next (largest first): 7 (the raids and battles, sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
@@ -853,8 +856,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    each sim turn and resolved on contact as `marker_hits` counts it (`_resolve_ordnance`), and
    counted in the leaf's swing while still flying (`_ordnance_swing`), so the enemy's moves in
    the search dodge it; the enemy's ordnance stays a root-move cost (To do 11 b) to avoid
-   counting it twice (`tests/test_lookahead_sim.py`). Still to do here: scenario points in the
-   margin (To do 7).
+   counting it twice (`tests/test_lookahead_sim.py`). Scenario points in the margin: built
+   (Domination and Planet Strike, see To do 7). To do 2 is done.
 3. Mines and torpedo bombers (built this session; s.17, s.21, owner rulings).
    Mines: the swap "up to two cruisers [or battlecruisers / heavy cruisers] may replace all
    of their launch bays with mine launchers, +5 per bay" (`booklet_options.mine_launcher_options`,
@@ -1081,8 +1084,20 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    position from which every minimum move next turn leaves the table pays that at
    `PHASE_DISCOUNT` (`_edge_trap_penalty`); before, ships could wander off the edge.
    `TurnController._clear_previous_orders` now resets the per-turn movement tracking
-   (alternate activation had nothing resetting it). Not yet: the expert search's leaf counting
-   Domination points, racing the 10 against the turn order, Planet Strike's planetary defence
+   (alternate activation had nothing resetting it). Scenario points in the margin (To do 2's
+   last item): `scenarios.scenario_margin_vp` (Domination points and Planet Strike
+   bombardment as VP: `domination_point_vp`, `bombard_point_vp`, the weights now shared in
+   `scenarios`) is added to `ai_hazards.game_risk`'s margin (so the certainty equivalents,
+   re-roll bars and disengaging play for the scenario's win), and the expert search's leaf
+   (`lookahead_ai._scenario_margin`, `SimState.scenario` from `scenarios.sim_scenario`): points
+   banked plus, at `LATER_TURN_WEIGHT`, the markers each side holds where its ships stand / the
+   attacker's hits touching the planet. Attack ratings (p.78): `scenarios.attack_rating`
+   (the main faction's by points; Grey Knights banisher 3, 2 when more than half isn't Grey
+   Knights; Rogue Trader / Inquisition detachments change nothing; readings: Eldar 3 and
+   Necrons 4 until their fleet lists exist, Rogue Traders alone 2) and `roll_attack_ratings`
+   (best die, then the next; out of dice loses; full tie re-rolled), chosen in setup as
+   "Attack ratings (roll)" (`GameState.attacker_by_rating`, rolled in
+   `GamePanel._start_game`). Not yet: racing the 10 against the turn order, Planet Strike's planetary defence
    budget (+20%) and "extra assault points" ships, Orbit Lost, the raids and battles, sub-plots, attack ratings, the Ambush
    attacker's half-points limit (fleet building), Line Breaker's "platforms can't squadron".
 

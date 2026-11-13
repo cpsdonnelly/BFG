@@ -28,7 +28,7 @@ def _apply_rules(gs, setup):
                  "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
                  "rule_turret_suppression_remastered", "allow_movement_pass",
                  "turn_limit", "ftl_available_turn", "scenario_mode",
-                 "scenario_attacker", "artefact_submode",
+                 "scenario_attacker", "attacker_by_rating", "artefact_submode",
                  "ai_player", "ai_difficulty", "ai_spectator"):
         if key in setup:
             setattr(gs, key, setup[key])
@@ -454,6 +454,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
                    value="1", font=("Consolas", 7)).pack(side=tk.LEFT)
     tk.Radiobutton(att_row, text="Player 2", variable=scenario_attacker_var,
                    value="2", font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(att_row, text="Attack ratings (roll)", variable=scenario_attacker_var,
+                   value="rating", font=("Consolas", 7)).pack(side=tk.LEFT)
 
     # AI opponent
     ai_frame = tk.LabelFrame(dialog, text="AI Opponent", font=("Consolas", 9, "bold"),
@@ -489,7 +491,9 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ftl = ftl_turn_var.get().strip()
         rules["ftl_available_turn"] = int(ftl) if ftl.isdigit() else None
         rules["scenario_mode"] = scenario_var.get()
-        rules["scenario_attacker"] = int(scenario_attacker_var.get())
+        att = scenario_attacker_var.get()
+        rules["attacker_by_rating"] = att == "rating"
+        rules["scenario_attacker"] = 1 if att == "rating" else int(att)
         rules["artefact_submode"] = artefact_submode_var.get()
         # In carrier_escape mode, enforce FTL charge of at least 3 if not set
         if (rules["scenario_mode"] == "capture_artefact"

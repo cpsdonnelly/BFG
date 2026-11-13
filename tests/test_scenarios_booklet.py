@@ -608,3 +608,56 @@ def test_ai_prices_moves_off_the_table_and_edge_traps():
     res = validate_movement(lu, cmds, "", table_width=180.0, table_height=120.0)
     ex, ey = res.path[-1]
     assert 0 < ey and ai._edge_trap_penalty(lu, ex, ey, res.final_heading, foe) == 0
+
+
+def test_scenario_points_count_in_the_margin_and_the_expert_leaf():
+    """To do 2: Domination's points (and Planet Strike's bombardment) count
+    in the margin the AI plays for, and in the expert search's leaf."""
+    from src.ai_hazards import game_risk
+    from src.lookahead_ai import SimState, _evaluate
+    a = make_ship(id="a", player=1, x=30.0, y=60.0, points_value=200)
+    e = make_ship(id="e", player=2, x=150.0, y=100.0, points_value=200)
+    gs = _gs([a, e])
+    gs.turn_limit = 10
+    base = game_risk(gs, 1)[0]
+    gs.scenario_state["points"] = {"1": 4, "2": 1}
+    assert game_risk(gs, 1)[0] == pytest.approx(
+        base + 3 * sc.domination_point_vp(sc.table_points(gs)))
+    assert sc.scenario_margin_vp(gs, 2) == -sc.scenario_margin_vp(gs, 1)
+    # The leaf: holding a marker is worth more than not
+    gs.turn_limit = None
+    on = _evaluate(SimState.from_gs(gs), 1)
+    a2 = gs.get_ship_by_id("a")
+    a2.x, a2.y = 30.0, 100.0                       # 40cm from every marker
+    gs.update_ship(a2)
+    off = _evaluate(SimState.from_gs(gs), 1)
+    assert on > off
+    # Planet Strike bombardment counts for the attacker, against the defender
+    gs2 = _gs([make_ship(id="b", player=1, points_value=100),
+               make_ship(id="d", player=2, points_value=100)], mode="planet_strike")
+    sc.setup_scenario(gs2)
+    gs2.scenario_state["bombardment"] = 10
+    assert sc.scenario_margin_vp(gs2, 1) > 0 > sc.scenario_margin_vp(gs2, 2)
+
+
+def test_attack_ratings():
+    navy = _cat("Lunar Class Cruiser", 1, "lu")
+    orks = _cat("Kill Kroozer", 2, "kk") if __import__("src.ship_catalog", fromlist=["x"]
+                                                         ).find_ship_class("Kill Kroozer") \
+        else make_ship(id="kk", player=2, faction="orks", points_value=155)
+    gs = _gs([navy, orks, _cat("Orbital Weapons Platform", 1, "pl")], mode="ambush")
+    assert sc.attack_rating(gs, 1) == 2 and sc.attack_rating(gs, 2) == 3
+    # Best die first, then the next; running out of dice loses
+    dice = DiceStub([6, 3, 6, 5, 1])          # P1: 6,3  P2: 6,5,1
+    assert sc.roll_attack_ratings(gs, dice) == 2 and dice._idx == 5
+    dice = DiceStub([6, 5, 6, 5, 4])          # 6,5 v 6,5,4: player 1 runs out
+    assert sc.roll_attack_ratings(gs, dice) == 2
+    dice = DiceStub([2, 6, 5, 4, 3])          # P1 6,2 v P2 5,4,3
+    assert sc.roll_attack_ratings(gs, dice) == 1
+    # Equal ratings, equal dice: roll again
+    gs2 = _gs([navy, make_ship(id="c", player=2, faction="chaos", points_value=100)])
+    dice = DiceStub([4, 2, 4, 2, 6, 1, 3, 1])
+    assert sc.roll_attack_ratings(gs2, dice) == 1 and dice._idx == 8
+    # A Rogue Trader detachment doesn't change its fleet's rating
+    gs2.add_ship(make_ship(id="rt", player=2, faction="rogue_traders", points_value=50))
+    assert sc.attack_rating(gs2, 2) == 2

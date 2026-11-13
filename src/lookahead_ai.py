@@ -141,6 +141,7 @@ class SimState:
     table_w: float = 120.0
     table_h: float = 120.0
     ordnance: List[SimOrdnance] = field(default_factory=list)
+    scenario: Dict = field(default_factory=dict)   # scenarios.sim_scenario
 
     @classmethod
     def from_gs(cls, gs: GameState, ord_player: int = 0) -> "SimState":
@@ -154,10 +155,11 @@ class SimState:
                     o = SimOrdnance.from_marker(m)
                     if o is not None:
                         ords.append(o)
+        from .scenarios import sim_scenario
         return cls(ships=ships, turn=gs.turn_number, turn_limit=gs.turn_limit,
                    table_w=getattr(gs, "table_width", 120.0) or 120.0,
                    table_h=getattr(gs, "table_height", 120.0) or 120.0,
-                   ordnance=ords)
+                   ordnance=ords, scenario=sim_scenario(gs))
 
     def clone(self) -> "SimState":
         return SimState(
@@ -167,6 +169,7 @@ class SimState:
             table_w=self.table_w,
             table_h=self.table_h,
             ordnance=[o.clone() for o in self.ordnance],
+            scenario=self.scenario,          # read-only in the search
         )
 
     def alive(self, player: int) -> List[SimShip]:
@@ -564,12 +567,43 @@ def _evaluate(state: SimState, ai_player: int) -> float:
         mine += _ordnance_swing(state, ai_player)
     theirs = _apply_expected_combat(state.clone(), enemy)
     margin = vp_diff + LATER_TURN_WEIGHT * (mine - theirs)
+    margin += _scenario_margin(state, ai_player)
     if not state.turn_limit:
         return margin / total_pts
     alive = [s.points_value for s in state.ships if s.is_alive]
     mean_value = sum(alive) / len(alive) if alive else 0.0
     turns_left = max(0, state.turn_limit - state.turn + 1)
     return win_score(margin, mine + theirs, mean_value, turns_left, total_pts)
+
+
+def _scenario_margin(state: SimState, player: int) -> float:
+    """Scenario points in the leaf (To do 2 / 7): Domination's points banked
+    plus, at LATER_TURN_WEIGHT, the markers each side controls where its ships
+    stand (the next scoring); Planet Strike's bombardment banked plus the
+    attacker's ships touching the planet (their hits) at LATER_TURN_WEIGHT.
+    In VP for `player`."""
+    from .ai_hazards import LATER_TURN_WEIGHT
+    sc = state.scenario or {}
+    mode = sc.get("mode")
+    if mode == "domination":
+        from .scenarios import CONTROL_RANGE
+        held = {1: 0, 2: 0}
+        for mx, my in sc["objectives"]:
+            near = {s.player for s in state.ships if s.is_alive
+                    and (s.x - mx) ** 2 + (s.y - my) ** 2 <= CONTROL_RANGE ** 2}
+            if len(near) == 1:
+                held[near.pop()] += 1
+        pts = sc["points"]
+        diff = (pts[player] - pts[3 - player]) + LATER_TURN_WEIGHT * (held[player] - held[3 - player])
+        return diff * sc["point_vp"]
+    if mode == "planet_strike" and sc.get("planet"):
+        px, py, pr = sc["planet"]
+        att = sc["attacker"]
+        touching = sum(s.hits_remaining for s in state.alive(att)
+                       if math.hypot(s.x - px, s.y - py) <= pr + s.base_radius + 0.2)
+        b = sc["bombard"] + LATER_TURN_WEIGHT * touching
+        return (1 if player == att else -1) * b * sc["point_vp"]
+    return 0.0
 
 
 def _ordnance_swing(state: SimState, player: int) -> float:

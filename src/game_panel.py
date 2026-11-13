@@ -1067,6 +1067,12 @@ class GamePanel(AAPanelMixin):
         self.start_btn.config(state=tk.DISABLED)
         from .scenarios import is_booklet_scenario, setup_scenario
         if is_booklet_scenario(self.ctx.gs) and not self.ctx.gs.scenario_state:
+            if getattr(self.ctx.gs, "attacker_by_rating", False):
+                from .scenarios import roll_attack_ratings
+                from .dice import DiceRoller
+                self.ctx.gs.scenario_attacker = roll_attack_ratings(
+                    self.ctx.gs, DiceRoller(mode="auto"))
+                self.ctx.log(self.ctx.gs.log[-1])
             setup_scenario(self.ctx.gs)       # e.g. the Domination deployment D6
             from .scenarios import force_errors
             errs = force_errors(self.ctx.gs)

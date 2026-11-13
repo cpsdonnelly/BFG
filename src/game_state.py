@@ -42,6 +42,7 @@ class GameState:
     ftl_available_turn: Optional[int] = None   # None = FTL always available
     scenario_mode: str = "standard"            # standard | kill_admiral | destroy_ship | capture_artefact
     scenario_attacker: int = 1                 # player who is "attacker" in asymmetric modes
+    attacker_by_rating: bool = False           # booklet scenarios: roll attack ratings (p.78)
     objective_ship_id: Optional[str] = None    # target ship for destroy/protect modes
     artefact_submode: str = "race"             # race | carrier_escape
     artefact_token_pos: Optional[Tuple[float, float]] = None  # board pos when uncarried
@@ -181,6 +182,7 @@ class GameState:
             "ftl_available_turn": self.ftl_available_turn,
             "scenario_mode": self.scenario_mode,
             "scenario_attacker": self.scenario_attacker,
+            "attacker_by_rating": self.attacker_by_rating,
             "objective_ship_id": self.objective_ship_id,
             "artefact_submode": self.artefact_submode,
             "artefact_token_pos": list(self.artefact_token_pos) if self.artefact_token_pos else None,

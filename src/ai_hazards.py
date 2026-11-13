@@ -787,6 +787,8 @@ def game_risk(gs, player: int):
     vp = calculate_victory_points(gs)
     enemy = 3 - player
     margin = vp[player]["total"] - vp[enemy]["total"]
+    from .scenarios import scenario_margin_vp
+    margin += scenario_margin_vp(gs, player)     # e.g. Domination points (To do 2)
     ships = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
     total = sum(s.points_value or 0 for s in gs.get_ships()) or 1
     mean_value = (sum(s.points_value or 0 for s in ships) / len(ships)) if ships else 0.0

@@ -96,6 +96,59 @@ def defender(gs) -> int:
     return 3 - gs.scenario_attacker
 
 
+# --- Attack ratings (p.78) --------------------------------------------------------
+# Faction -> attack rating (the booklet's table and faction fleet lists).
+# Readings (no fleet list recorded on the ships): Eldar 3 (Craftworld; Corsair
+# lists are 4), Necrons 4 (Harvest; Dynasty 3), Space Marines 3 (Dominion with
+# allies of convenience 2).
+ATTACK_RATINGS = {
+    "imperial_navy_gothic": 2, "chaos": 2, "adeptus_mechanicus": 2, "tau_kororvesh": 2,
+    "space_marines": 3, "orks": 3, "eldar": 3, "necrons": 4,
+}
+
+
+def attack_rating(gs, player: int) -> int:
+    """A fleet's attack rating: its main faction's (by points). Inquisition
+    fleets: a Grey Knights banisher fleet 3, 2 when more than half its ships
+    aren't Grey Knights (p.84); a Rogue Trader or Inquisition detachment
+    doesn't change the fleet it joins; support assets don't count. Reading: a
+    fleet of Rogue Traders alone has 2."""
+    ships = [s for s in gs.get_ships() if s.player == player]
+    pts: Dict[str, int] = {}
+    for s in ships:
+        if s.faction != "support_assets":
+            pts[s.faction] = pts.get(s.faction, 0) + (s.points_value or 0)
+    main = [f for f in pts if f not in ("rogue_traders", "inquisition_grey_knights")]
+    if main:
+        return ATTACK_RATINGS.get(max(main, key=pts.get), 2)
+    if "inquisition_grey_knights" in pts:
+        inq = [s for s in ships if s.faction == "inquisition_grey_knights"]
+        gk = sum(1 for s in inq if "knights_of_titan" in s.special_rules)
+        return 3 if gk * 2 >= len([s for s in ships if s.faction != "support_assets"]) else 2
+    return 2
+
+
+def roll_attack_ratings(gs, dice) -> int:
+    """Each player rolls D6s equal to the fleet's attack rating; the best die
+    wins, ties compare the next highest and so on, and a player who runs out
+    of dice loses; a complete tie is rolled again. Returns the attacker."""
+    r = {p: attack_rating(gs, p) for p in (1, 2)}
+    while True:
+        rolls = {p: sorted(dice.roll_d6(r[p], f"Player {p} attack rating ({r[p]}D6)"),
+                           reverse=True) for p in (1, 2)}
+        for a, b in zip(rolls[1], rolls[2]):
+            if a != b:
+                win = 1 if a > b else 2
+                break
+        else:
+            if len(rolls[1]) == len(rolls[2]):
+                continue                         # still tied: roll again
+            win = 1 if len(rolls[1]) > len(rolls[2]) else 2
+        gs.add_log(f"[Scenario] attack ratings: player 1 {rolls[1]}, player 2 "
+                   f"{rolls[2]}: player {win} attacks")
+        return win
+
+
 # --- Deployment zones and objective markers -------------------------------------
 
 def _rect(player, w, h, left, right, top, bottom, label) -> DeploymentZone:
@@ -843,6 +896,58 @@ def points_winner(gs) -> Optional[int]:
     if pts[1] == pts[2]:
         return None
     return 1 if pts[1] > pts[2] else 2
+
+
+# --- AI: scenario points as VP ---------------------------------------------------
+OBJECTIVE_POINT_WEIGHT = 0.5    # judgement: 10 Domination points ~ half the points on the table
+BOMBARD_WEIGHT = 0.5            # judgement: winning Planet Strike ~ half the points on the table
+
+
+def table_points(gs) -> float:
+    return float(sum(s.points_value for s in gs.get_ships()) or 1000)
+
+
+def domination_point_vp(total: float) -> float:
+    """A Domination objective point in VP: a tenth of the game (judgement)."""
+    return OBJECTIVE_POINT_WEIGHT * total / (2.0 * DOMINATION_TARGET)
+
+
+def bombard_point_vp(total: float) -> float:
+    """A Planet Strike bombardment point in VP: about a 25th of the game,
+    the table running from 6 (6+) to 31 (automatic) (judgement)."""
+    return BOMBARD_WEIGHT * total / 25.0
+
+
+def scenario_margin_vp(gs, player: int) -> float:
+    """The scenario points banked so far, as VP for `player` (To do 2: the
+    margin the AI plays for counts them): Domination's objective points,
+    Planet Strike's bombardment points (the attacker's)."""
+    mode = getattr(gs, "scenario_mode", "")
+    if mode == "domination":
+        pts = points(gs)
+        return (pts[player] - pts[3 - player]) * domination_point_vp(table_points(gs))
+    if mode == "planet_strike":
+        b = (gs.scenario_state or {}).get("bombardment", 0)
+        sign = 1 if player == gs.scenario_attacker else -1
+        return sign * b * bombard_point_vp(table_points(gs))
+    return 0.0
+
+
+def sim_scenario(gs) -> Dict:
+    """What the expert search's leaf needs about the scenario (lookahead_ai):
+    Domination's markers, points and point value; Planet Strike's planet,
+    bombardment and point value."""
+    mode = getattr(gs, "scenario_mode", "")
+    if mode == "domination":
+        return {"mode": mode, "objectives": objectives(gs), "points": points(gs),
+                "point_vp": domination_point_vp(table_points(gs))}
+    if mode == "planet_strike":
+        pl = strike_planet(gs)
+        return {"mode": mode, "attacker": gs.scenario_attacker,
+                "bombard": (gs.scenario_state or {}).get("bombardment", 0),
+                "planet": (pl.x, pl.y, pl.radius) if pl else None,
+                "point_vp": bombard_point_vp(table_points(gs))}
+    return {}
 
 
 def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
