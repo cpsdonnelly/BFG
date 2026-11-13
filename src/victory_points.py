@@ -42,7 +42,8 @@ def calculate_victory_points(gs: GameState) -> Dict:
         if s.squadron_id and s.ship_type == "escort":
             if s.squadron_id not in scored_squadron_ids:
                 scored_squadron_ids.add(s.squadron_id)
-                _score_squadron(squadrons[s.squadron_id], opponent, result)
+                _score_squadron(squadrons[s.squadron_id], opponent, result,
+                                getattr(gs, "rule_remastered_escort_vp", False))
             continue
 
         # Venerable Battle Barges (Space Marines): 50% of cost if crippled,
@@ -126,12 +127,19 @@ def calculate_victory_points(gs: GameState) -> Dict:
     return result
 
 
-def _score_squadron(squadron: List[Ship], opponent: int, result: Dict):
+def _score_squadron(squadron: List[Ship], opponent: int, result: Dict,
+                    remastered: bool = False):
     """Score an escort squadron once, as a single unit.
 
     A squadron earns exactly one result, never a mix: destroyed (every ship)
     = full points; crippled (at least half its ships destroyed, rounding up)
     = 25%; scattered (not crippled, every surviving ship disengaged) = 10%.
+
+    Remastered option (p.121, `GameState.rule_remastered_escort_vp`): only a
+    squadron destroyed entirely scores its value; no 25% for a crippled
+    squadron left on the table; disengaged, 25% of the whole squadron's value
+    if crippled before leaving, else 10% ("total points value" read as the full
+    original squadron: unconfirmed).
     """
     total_pts = sum(s.points_value for s in squadron)
     total_ships = len(squadron)
@@ -144,8 +152,18 @@ def _score_squadron(squadron: List[Ship], opponent: int, result: Dict):
         result[opponent]["destroyed"] += total_pts
         result[opponent]["details"].append(
             f"Squadron destroyed ({name}): +{total_pts} VP")
+        return
+    if remastered:
+        if not (disengaged and destroyed + disengaged == total_ships):
+            return                       # on the table: nothing (Remastered)
+        crippled = destroyed >= (total_ships + 1) // 2
+        vp = max(1, total_pts // 4) if crippled else max(1, total_pts // 10)
+        result[opponent]["disengaged"] += vp
+        result[opponent]["details"].append(
+            f"Squadron disengaged{' crippled' if crippled else ''} ({name}): +{vp} VP")
+        return
 
-    elif destroyed >= (total_ships + 1) // 2:
+    if destroyed >= (total_ships + 1) // 2:
         vp = max(1, total_pts // 4)
         result[opponent]["crippled"] += vp
         result[opponent]["details"].append(

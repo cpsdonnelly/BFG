@@ -1020,17 +1020,15 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
    Bosses' re-roll pools, secondary commanders and Ordos are in 4; the radiation / flare
    disengage bonus is in 6; the teleport AI's positioning is in 8 j).
-   Remastered escort squadron VP, a new Remastered option beside the other Remastered toggles
-   (Remastered PDF p.121 and its Victory Points summary; `bfgxr/notes/Remastered_rulings_for_engine.md`):
-   destruction: "Each destroyed escort earns its value in victory points provided the entire
-   escort squadron is destroyed", and no 25% award for a crippled escort squadron left on the
-   table (Remastered's crippled award is for capital ships only); disengaged: 25% of total
-   points value if crippled before disengaging, else 10%, an escort squadron being crippled
-   once it has lost half its ships, rounding up; "total points value" most likely means the
-   full original squadron (unconfirmed: flag it). AI in this mode: a crippled escort squadron
-   shouldn't disengage unless it is likely to be wiped out, and only the last ship's death pays
-   the enemy. XR (the default) is unchanged: a squadron with half or more lost scores 25% at the
-   end, on or off the table.
+   Remastered escort squadron VP: built as an Advanced checkbox
+   (`GameState.rule_remastered_escort_vp`, `victory_points._score_squadron(..., remastered)`;
+   Remastered PDF p.121): only a squadron destroyed entirely scores; nothing for a crippled
+   squadron left on the table; disengaged, 25% of the whole squadron's value if crippled (half
+   its ships lost, rounding up) before leaving, else 10% ("total points value" read as the
+   full original squadron: unconfirmed). AI (`ai_hazards._remastered_escort_terms` in
+   `disengage_gain`): staying risks the squadron's value only if every survivor dies, leaving
+   concedes 25% / 10%, so a crippled squadron stays unless it is likely to be wiped out. XR,
+   the default, is unchanged (`tests/test_remastered_escort_vp.py`).
 
 10. AI special orders by expected VP (owner notes). Rules: orders are declared in the movement
    phase before each ship or squadron moves, one at a time (declare, command check, move;

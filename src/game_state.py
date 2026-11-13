@@ -60,6 +60,7 @@ class GameState:
     contact_margin_cm: float = 0.2  # wiggle room added to base contact distance checks
     blast_marker_rules: str = "standard"  # s.11: standard | modern | remastered (optional_rules)
     rule_remastered_spillover: bool = False  # s.11 Remastered: one round's markers touch <= 2 ships
+    rule_remastered_escort_vp: bool = False  # Remastered p.121 escort squadron VP (XR default)
     # Mark of Chaos Undivided (once per game per player): players who have used
     # it, and the boost in force {player: {"turn": n, "deltas": {ship id: +Ld}}}
     undivided_used: List[int] = field(default_factory=list)
@@ -156,6 +157,7 @@ class GameState:
             "contact_margin_cm": self.contact_margin_cm,
             "blast_marker_rules": self.blast_marker_rules,
             "rule_remastered_spillover": self.rule_remastered_spillover,
+            "rule_remastered_escort_vp": self.rule_remastered_escort_vp,
             "turn_limit": self.turn_limit,
             "ftl_available_turn": self.ftl_available_turn,
             "scenario_mode": self.scenario_mode,

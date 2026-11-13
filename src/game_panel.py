@@ -535,6 +535,10 @@ class GamePanel:
         tk.Checkbutton(adv_frame, text="Remastered spill-over limit (one round's blast markers "
                        "touch at most the target and one other ship)",
                        variable=spill_var, font=("Consolas", 8)).pack(anchor=tk.W)
+        esc_vp_var = tk.BooleanVar(value=getattr(gs, "rule_remastered_escort_vp", False))
+        tk.Checkbutton(adv_frame, text="Remastered escort squadron VP (p.121: only a whole "
+                       "squadron destroyed scores; disengaged 25% if crippled, else 10%)",
+                       variable=esc_vp_var, font=("Consolas", 8)).pack(anchor=tk.W)
 
         camp_frame = tk.LabelFrame(dialog, text="Campaign / Scenario", font=("Consolas", 9, "bold"),
                                    padx=8, pady=4)
@@ -649,6 +653,7 @@ class GamePanel:
             from .optional_rules import set_suppression_rules
             set_suppression_rules(gs.rule_turret_suppression_remastered)
             gs.rule_remastered_spillover = spill_var.get()
+            gs.rule_remastered_escort_vp = esc_vp_var.get()
             # Scenario settings (only if not locked)
             if not locked:
                 gs.scenario_mode = scen_var.get()

@@ -808,6 +808,22 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
             risk += max(0.0, _poisson_at_least(lam, to_cripple) - p_kill) * 0.25 * v
     extra = 0.0 if ship.is_crippled else 0.10 * v
     p_pass = p_sum_at_most(2, ld) if ld > 1 else 0.0
+    esc = _remastered_escort_terms(ship, gs, lam)
+    if esc is not None:
+        # Remastered escort VP (p.121): staying risks VP only if the whole
+        # squadron dies; leaving concedes 25% of the squadron (crippled) or 10%
+        p_wipe, v_sq, crippled = esc
+        risk = p_wipe * v_sq
+        extra = (0.25 if crippled else 0.10) * v_sq
+        if getattr(gs, "turn_limit", None):
+            fire = fire_outcomes or [(1.0, contribution)]
+            dmg = [(p_wipe, -v_sq), (1 - p_wipe, 0.0)]
+            stay = certainty_equivalent(gs, ship.player,
+                                        [(q1 * q2, d1 + d2) for q1, d1 in dmg for q2, d2 in fire])
+            go = certainty_equivalent(gs, ship.player,
+                                      [(p_pass, -extra)] + [((1 - p_pass) * q, d) for q, d in dmg])
+            return go - stay
+        return p_pass * (risk - extra) - contribution
     if getattr(gs, "turn_limit", None):
         # Owner: play for the win. Staying is a gamble (destroyed, crippled or
         # untouched), leaving a sure loss: compared by certainty equivalent,
@@ -827,6 +843,23 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
                                   [(p_pass, -extra)] + [((1 - p_pass) * q, d) for q, d in dmg])
         return go - stay
     return p_pass * (risk - extra) - contribution
+
+
+def _remastered_escort_terms(ship: Ship, gs, lam: float):
+    """(P(the whole squadron dies next enemy turn), the squadron's value,
+    crippled?) for an escort in a squadron under the Remastered escort VP
+    option, else None. Each surviving member dies with the chance this ship
+    does (`lam` hits on it; independence assumed)."""
+    if not getattr(gs, "rule_remastered_escort_vp", False) or ship.ship_type != "escort" \
+            or not ship.squadron_id:
+        return None
+    sq = [s for s in gs.get_ships() if s.squadron_id == ship.squadron_id
+          and s.player == ship.player]
+    alive = [s for s in sq if not s.is_destroyed and not s.is_disengaged]
+    dead = sum(1 for s in sq if s.is_destroyed or s.hits_remaining <= 0)
+    p_one = _poisson_at_least(lam, max(1, ship.hits_remaining))
+    v_sq = sum(ship_value(s, gs) for s in sq)
+    return p_one ** max(1, len(alive)), v_sq, dead >= (len(sq) + 1) // 2
 
 
 def added_vp(target: Ship, gs, committed: float, hits: float, shields: bool = True) -> float:
