@@ -813,7 +813,22 @@ ordnance phases A / B calling the ordnance movement with `may_move_ordnance`, la
 `launch_allowed`, both end phases), Brace as a command-phase order (reactive prompts off in
 AA), boarding / ramming locked on declaration and resolved in the end phase, passing for the
 AI, System 1 forcing, then the experiments.
-Next: To do 13's AA round (turn controller, UI, AI). Read docs/AA_ORDER_SYSTEMS_NOTES.md
+AA, later in the same run (all pushed, 1200 tests): GamePanel plays AA (`src/aa_panel.py`;
+Advanced settings: turn system, order system, phase order, launch phase, System 1 forcing),
+AI-vs-AI in all three systems (`tools/gui_checks/gui_spectator_aa.py <mode>`) and a human
+against the AI (`tools/gui_checks/aa_human_check.py`); Brace as a command-phase order (no
+reactive prompts in AA), boarding and rams lock both ships with rams resolved in the end
+phase, AI passing in movement, System 1 forcing (humans; the AI doesn't force), a human
+activation limited to one unit. First-form AI choices flagged for the owner: unit order on a
+draw (shooting: best shot now; movement: least engaged first), the System 3 choice (take it in
+shooting, give it away in movement), passing (movement only, while the enemy has units left),
+command-phase Brace by `brace_value` on the round's incoming fire. AA AI uses the normal AI
+even when the game is set to expert.
+Experiments: the PDF's Appendix B fleets are Imperial (Armageddon Sector) against Eldar
+(MMS Corsair), so they wait on To do 14 (Eldar); an Imperial-only escort-splitting run is
+possible now but isn't the owner's matchup. Each AA spectator game takes ~75-80s through
+the GUI, so a batch needs a headless runner or a long background run.
+Next: To do 14 (Eldar unblocks the AA experiments), 7 (scenarios), the rest of 4 / 5. Read docs/AA_ORDER_SYSTEMS_NOTES.md
 (the source) and docs/AA_ACTIVATION_NOTES.md ("Discussion summary" and "Later decisions");
 `src/activation.py` has the core. Open choices there become settings (`AAConfig`), not
 decisions. Notes for GUI checks: `gui_spectator_*.py` need a difficulty argument

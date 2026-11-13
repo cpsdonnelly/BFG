@@ -520,8 +520,9 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
 Not built: scenarios / sub-plots, and the To do items below.
-Next (largest first): To do 13's game-flow wiring (the AA round in the turn controller and
-UI, AI choices), 7 (scenarios / sub-plots), 14 (Eldar, Necrons), the rest of 4 (daemonships:
+Next (largest first): 14 (Eldar, Necrons; Eldar unblocks To do 13's experiments, whose
+fleets are Imperial vs Eldar), 7 (scenarios / sub-plots), To do 13's remaining bits (the
+experiments, a headless runner for them, the expert AI per unit), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
 Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
 Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (deeper expert
