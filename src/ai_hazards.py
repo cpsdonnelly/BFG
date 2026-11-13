@@ -2071,3 +2071,21 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
                 total -= hull_hits_vp(attacker, gs, 0.0, -diff) + p_lose_crit * vph_a
                 total += p_win_crit * vph_t
     return total / 36.0
+
+
+def ram_vp(rammer: Ship, target: Ship, gs) -> float:
+    """Expected VP of a ram that connects (s.12; To do 8 h), as
+    combat.resolve_ram resolves it from the rammer's current position: the
+    rammer's starting hits in D6 against the Armour of the facing it strikes,
+    the target's starting hits back (half, rounding up, unless front to front
+    or a defence) against the rammer's prow Armour; shields stop neither."""
+    from .models import Arc
+    t_arc = target.get_arc_for_bearing(target.bearing_to(rammer.x, rammer.y))
+    t_armour = target.armor_for_arc(t_arc)
+    r_arc = rammer.get_arc_for_bearing(rammer.bearing_to(target.x, target.y))
+    head_on = t_arc == Arc.FRONT and r_arc == Arc.FRONT
+    back = target.hits_max if (head_on or target.ship_type == "defense") else \
+        (target.hits_max + 1) // 2
+    dealt = rammer.hits_max * p_hit(t_armour)
+    taken = back * p_hit(rammer.armor_prow_value)
+    return hull_hits_vp(target, gs, 0.0, dealt) - hull_hits_vp(rammer, gs, 0.0, taken)

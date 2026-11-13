@@ -234,3 +234,30 @@ def test_ork_boards_a_crippled_lunar_only_with_boarding_on():
     gs.update_ship(o)
     ai._consider_boarding(gs.get_ship_by_id(o.id))
     assert gs.get_ship_by_id(o.id).boarding_target_id == t.id
+
+
+def test_ram_dead_ahead_only_with_ramming_on():
+    """To do 8 h: on All Ahead Full an Ork kroozer declares a ram on the enemy
+    dead ahead, and the ram resolves as it moves through; off, nothing."""
+    from src.models import Ship as _S
+    ork = _ship("Kill Kroozer", 1, 40.0, 60.0, 0.0)
+    lunar = _ship("Lunar Class Cruiser", 2, 60.0, 60.0, 90.0)       # side-on, 20cm ahead
+    ai, gs = _ai([ork, lunar])
+    o = gs.get_ship_by_id(ork.id)
+    assert ai._ram_candidate(o) is None
+    gs.rule_ramming = True
+    cand = ai._ram_candidate(o)
+    assert cand is not None and cand[1].id == lunar.id
+    from tests.conftest import DiceStub
+    ai.dice = DiceStub([3, 3])                        # same size: 2D6 = 6, passes Ld 8
+    ai._declare_ram(o)
+    o = gs.get_ship_by_id(ork.id)
+    assert o.ramming_target_id == lunar.id
+    hits = [6] * o.hits_max + [1] * ((lunar.hits_max + 1) // 2)
+    ai.dice = DiceStub(hits + [1] * 20)
+    o.x = 80.0
+    gs.update_ship(o)
+    ai._resolve_ram(gs.get_ship_by_id(ork.id), (40.0, 60.0))
+    assert gs.get_ship_by_id(lunar.id).hits_remaining < lunar.hits_max
+    assert gs.get_ship_by_id(ork.id).ramming_target_id is None
+    assert isinstance(o, _S)

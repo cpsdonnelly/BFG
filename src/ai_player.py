@@ -285,6 +285,8 @@ class AIPlayer:
                     ship = gs.get_ship_by_id(ship.id)
                     order = ship.special_order or ""
                     if order == SpecialOrder.ALL_AHEAD_FULL.value:
+                        self._declare_ram(ship)      # before the speed roll (s.12)
+                        ship = gs.get_ship_by_id(ship.id)
                         aaf_bonus = self._aaf_bonus(ship)
                 else:
                     gs.add_log(f"[AI] {ship.name}: {chosen} failed")
@@ -322,13 +324,88 @@ class AIPlayer:
                     if enemy else
                     self._forward_commands(ship, order, aaf_bonus, fraction=0.6))
 
+        start = (ship.x, ship.y)
         executed = self._try_execute(ship, commands, order, aaf_bonus)
         if executed:
             ship = gs.get_ship_by_id(ship.id)
             gs.add_log(f"[AI] {ship.name} moved to ({ship.x:.0f},{ship.y:.0f})")
+        self._resolve_ram(gs.get_ship_by_id(ship.id), start)
         self._consider_boarding(gs.get_ship_by_id(ship.id))
 
         tc.mark_ship_moved(ship.id)
+
+    def _ram_candidate(self, ship: Ship):
+        """(net VP, target) of the best ram from here (s.12): an enemy dead
+        ahead on the straight All Ahead Full line (lateral offset within the
+        two bases) and within the move even with the lowest bonus roll, its
+        `ram_vp` at the chance of passing the ram's Leadership test (1D6 / 2D6 /
+        3D6 by size). None if nothing is worth ramming or ramming is off."""
+        from .ai_hazards import ram_vp, p_sum_at_most
+        from .combat import ram_ld_dice
+        from .movement import aaf_bonus_dice
+        if self.difficulty == "easy" or not getattr(self.gs, "rule_ramming", False):
+            return None
+        reach = (ship.speed or 0) + aaf_bonus_dice(ship)       # every die a 1
+        h = math.radians(ship.heading)
+        best = None
+        for e in self._live_enemies():
+            dx, dy = e.x - ship.x, e.y - ship.y
+            along = dx * math.cos(h) + dy * math.sin(h)
+            side = abs(-dx * math.sin(h) + dy * math.cos(h))
+            if along <= 0 or along - e.base_radius > reach or \
+                    side > ship.base_radius + e.base_radius:
+                continue
+            n = ram_ld_dice(ship.ship_type, e.ship_type)
+            p = p_sum_at_most(n, ship.leadership) if "goffs" not in ship.special_rules else 1.0
+            v = p * ram_vp(ship, e, self.gs)
+            if v > 0 and (best is None or v > best[0]):
+                best = (v, e)
+        return best
+
+    def _declare_ram(self, ship: Ship) -> None:
+        """On All Ahead Full, before the speed roll: declare a ram on the best
+        target dead ahead and take the Leadership test (s.12; 8 h)."""
+        from .combat import ram_ld_dice
+        cand = self._ram_candidate(ship)
+        if cand is None:
+            return
+        target = cand[1]
+        n = ram_ld_dice(ship.ship_type, target.ship_type)
+        if "goffs" in ship.special_rules:
+            passed, total = True, 0
+        else:
+            total = sum(self.dice.roll_d6(n, f"{ship.name} ram Leadership test ({n}D6)"))
+            passed = total <= ship.leadership
+        if passed:
+            ship.ramming_target_id = target.id
+            self.gs.update_ship(ship)
+            self.gs.add_log(f"[AI] {ship.name} declares a ram on {target.name}")
+        else:
+            self.gs.add_log(f"[AI] {ship.name} ram on {target.name} fails its Leadership "
+                            f"test ({n}D6 = {total})")
+
+    def _resolve_ram(self, ship: Optional[Ship], start) -> None:
+        """After the move: a declared ram connects if the path touched the
+        target's base (combat.resolve_ram); then it is cleared."""
+        if ship is None or not ship.ramming_target_id:
+            return
+        from .geometry import line_passes_near
+        from .combat import resolve_ram
+        gs = self.gs
+        target = gs.get_ship_by_id(ship.ramming_target_id)
+        if target is not None and not target.is_destroyed and line_passes_near(
+                start[0], start[1], ship.x, ship.y, target.x, target.y,
+                ship.base_radius + target.base_radius):
+            gs.add_log(f"[AI] {ship.name} rams {target.name}!")
+            resolve_ram(ship, target, self.dice, gs)
+            for sid in (target.id, ship.id):
+                s2 = gs.get_ship_by_id(sid)
+                if s2 is not None:
+                    self._resolve_kill(s2)
+        ship = gs.get_ship_by_id(ship.id)
+        if ship is not None:
+            ship.ramming_target_id = None
+            gs.update_ship(ship)
 
     def _boarding_gain(self, ship: Ship, enemy: Ship) -> float:
         """A boarding action's expected VP (ai_hazards.boarding_vp) less what the
@@ -1242,6 +1319,10 @@ class AIPlayer:
         if free is None or fast is None:
             cache[key] = 0.0
             return 0.0
+        ram = self._ram_candidate(ship)
+        if ram is not None:
+            from .ai_hazards import value_per_hit
+            fast += ram[0] / (0.35 * max(1.0, value_per_hit(enemy, self.gs)))
         if "ere_we_go" in ship.special_rules:
             p = 1.0
         else:
