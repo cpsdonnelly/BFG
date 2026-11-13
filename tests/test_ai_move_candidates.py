@@ -305,3 +305,28 @@ def test_reload_by_value_against_lock_on():
     far = _ship("Lunar Class Cruiser", 2, 175.0, 115.0, 180.0)
     ai3, gs3 = _ai([me, far])
     assert ai3._reload_value(gs3.get_ship_by_id(me.id)) == 0.0
+
+
+def test_come_to_new_heading_two_turns():
+    """To do 10 b: Come to New Heading gives a second turn at half firepower.
+    A Tau Protector (90-degree turns, guns forward) with an enemy close behind
+    turns twice to bring its prow round; a Lunar with the enemy abeam doesn't.
+    Every two-turn move is legal under the order."""
+    me = _ship("Protector Class Cruiser", 1, 60.0, 60.0, 0.0)
+    behind = _ship("Lunar Class Cruiser", 2, 20.0, 62.0, 0.0)
+    ai, gs = _ai([me, behind])
+    me = gs.get_ship_by_id(me.id)
+    assert ai._ctnh_gain(me) > 0
+    assert ai._pick_special_order(me) == SpecialOrder.COME_TO_NEW_HEADING.value
+    o = SpecialOrder.COME_TO_NEW_HEADING.value
+    moves = ai._ctnh_moves(me, behind)
+    assert moves
+    for _sc, cmds, _src in moves:
+        assert not validate_movement(me, cmds, o, table_width=180, table_height=120).errors
+    cmds = ai._plan_move_toward(me, behind, o, 0)
+    assert sum(c.action.startswith("turn") for c in cmds) == 2
+    assert ai._last_move_source.startswith("come to new heading")
+    lunar = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    abeam = _ship("Lunar Class Cruiser", 2, 75.0, 82.0, 0.0)
+    ai2, gs2 = _ai([lunar, abeam])
+    assert ai2._pick_special_order(gs2.get_ship_by_id(lunar.id)) != o

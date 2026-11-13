@@ -262,8 +262,10 @@ the ship's firepower is worth; otherwise Lock On or All Ahead Full by the value 
 each allows (the target in arc after the move), against Reload Ordnance valued as next turn's
 launch (a strike or CAP for spent bays, the salvo's expected hits for spent torpedoes), all in
 expected VP; with nothing better a spent ship reloads (it costs no firepower). Each ship's
-order is skipped when its failure would block more valuable later orders. Never Come to New
-Heading yet. Brace for Impact is a reaction, priced
+order is skipped when its failure would block more valuable later orders. Come to New Heading
+is valued the same way: its two-turn moves (a first leg and turn, then a normal one-turn move)
+at half firepower against the best free move, so a forward-firing ship with a 90-degree turn
+and an enemy close behind turns twice. Brace for Impact is a reaction, priced
 (built): the VP its 4+ saves are expected to keep (this attack and enemies still to fire)
 against half the ship's fire until the end of its next turn, at the command check's odds; with a
 turn limit both by certainty equivalent (ahead it braces more readily). The commander's ship

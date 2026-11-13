@@ -489,6 +489,12 @@ class AIPlayer:
         """Choose the move worth most against `enemy` (the move score below)
         among the candidates of `_move_candidates` (To do 11 a: an even grid
         plus target-directed goals)."""
+        if order == SpecialOrder.COME_TO_NEW_HEADING.value:
+            ctnh = self._ctnh_moves(ship, enemy)
+            if ctnh:
+                sc, cmds, src = max(ctnh, key=lambda t: t[0])
+                self._last_move_source = src
+                return cmds
         best_cmds: Optional[List[MoveCommand]] = None
         best_score = -1.0
         best_src = None
@@ -1230,6 +1236,8 @@ class AIPlayer:
             g = max(0.0, self._lock_on_gain(ship)) / max(p, 1e-9) * 0.35 * vph
         elif order == SpecialOrder.ALL_AHEAD_FULL.value:
             g = max(0.0, self._aaf_gain(ship)) / max(p, 1e-9) * 0.35 * vph
+        elif order == SpecialOrder.COME_TO_NEW_HEADING.value:
+            g = max(0.0, self._ctnh_gain(ship)) / max(p, 1e-9) * 0.35 * vph
         elif order == SpecialOrder.BURN_RETROS.value:
             g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
         elif order == SpecialOrder.RELOAD_ORDNANCE.value:
@@ -1260,14 +1268,17 @@ class AIPlayer:
             # (To do 10 b): the gun gains at 0.35 hits a point at the target's
             # value a hit, the reload at next turn's launch (_reload_value)
             lock, aaf = self._lock_on_gain(ship), self._aaf_gain(ship)
-            if max(lock, aaf) > 0:
+            ctnh = self._ctnh_gain(ship)
+            if max(lock, aaf, ctnh) > 0:
                 from .ai_hazards import value_per_hit
                 target = self._focus_for(ship) or self._nearest_enemy(ship)
                 vph = value_per_hit(target, self.gs) if target else 0.0
-                gun_vp = max(lock, aaf) * 0.35 * vph
+                gun_vp = max(lock, aaf, ctnh) * 0.35 * vph
                 if not (self._ordnance_spent(ship) and self._reload_value(ship) > gun_vp):
-                    return (SpecialOrder.LOCK_ON.value if lock >= aaf
-                            else SpecialOrder.ALL_AHEAD_FULL.value)
+                    if lock >= aaf and lock >= ctnh:
+                        return SpecialOrder.LOCK_ON.value
+                    return (SpecialOrder.ALL_AHEAD_FULL.value if aaf >= ctnh
+                            else SpecialOrder.COME_TO_NEW_HEADING.value)
 
         # Reload if ordnance spent (it costs no firepower, so nothing better
         # to do means reload)
@@ -1417,6 +1428,96 @@ class AIPlayer:
             p = p_sum_at_most(2, min(10, ld))
         cache[key] = p * (fast - free)
         return cache[key]
+
+    def _ctnh_moves(self, ship: Ship, enemy: Ship):
+        """Come to New Heading moves (To do 10 b): two turns, each after the
+        minimum distance before turning (s.10). Built as a first leg (that
+        distance, then a turn of half or all the turn angle either way) and a
+        normal one-turn candidate from there (`_move_candidates` on the ship at
+        the end of the first leg, with the speed left). [(score, commands,
+        source)], scored by the move score from the first leg's end (judgement:
+        hazards on the first leg aren't counted)."""
+        from .movement import MIN_TURN_DISTANCE, get_effective_speed as _ges
+        o = SpecialOrder.COME_TO_NEW_HEADING.value
+        if get_max_turns(o, ship) < 2 or not ship.turn_angle:
+            return []
+        min_spd, max_spd = _ges(ship, o, 0)
+        m = float(MIN_TURN_DISTANCE.get(ship.ship_type, 0))
+        if max_spd < m + 1:
+            return []
+        ta = ship.turn_angle
+        out = []
+        for t1 in (-ta, -ta / 2, ta / 2, ta):
+            h = math.radians(ship.heading)
+            leg = Ship.from_dict(ship.to_dict())
+            leg.x, leg.y = ship.x + m * math.cos(h), ship.y + m * math.sin(h)
+            leg.heading = (ship.heading + t1) % 360
+            leg.speed = max_spd - m
+            first = ([MoveCommand("forward", m)] if m > 0 else []) + \
+                [MoveCommand("turn_left" if t1 > 0 else "turn_right", abs(t1))]
+            for c in self._move_candidates(leg, enemy, "", 0):
+                td, dist, tat = c[:3]
+                if m + dist < min_spd - 1e-9:
+                    continue
+                if abs(td) > 0.5 and (tat is None or tat < m - 1e-9):
+                    continue                      # the second turn needs m again
+                sc = self._move_score(leg, enemy, "", td, dist, tat)
+                cmds = first + self._move_cmds(leg, td, dist, tat)
+                out.append((sc, cmds, "come to new heading (" + c[3] + ")",
+                            self._simulate_final_pos(leg, td, dist, tat)))
+        return [t[:3] for t in out] if out else []
+
+    def _ctnh_gain(self, ship: Ship) -> float:
+        """Come to New Heading's value in move-score units: the best two-turn
+        move, with what it brings to bear in range halved (s.7: half
+        firepower), minus the best move without an order, at the pass chance.
+        Ponderous ships can't (s.7)."""
+        from .ai_hazards import p_sum_at_most
+        if self.difficulty == "easy" or not ship.speed:
+            return 0.0
+        key = ("ctnh", ship.id, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1),
+               ship.hits_remaining, self.gs.turn_number, len(self.gs.ordnance))
+        cache = self.__dict__.setdefault("_lock_cache", {})
+        if key in cache:
+            return cache[key]
+        enemy = self._focus_for(ship) or self._nearest_enemy(ship)
+        if enemy is None or get_max_turns(SpecialOrder.COME_TO_NEW_HEADING.value, ship) < 2:
+            cache[key] = 0.0
+            return 0.0
+        prev = getattr(self, "_move_nearest", None)
+        self._move_nearest = self._nearest_enemy(ship)
+        try:
+            free = max((self._move_score(ship, enemy, "", *c[:3])
+                        for c in self._move_candidates(ship, enemy, "", 0)), default=None)
+            best = None
+            for sc, cmds, _src in self._ctnh_moves(ship, enemy):
+                fx, fy, fh = self._cmds_end(ship, cmds)
+                v = sc - 0.5 * self._arc_score(ship, fx, fy, fh, enemy, in_range_only=True)
+                best = v if best is None else max(best, v)
+        finally:
+            self._move_nearest = prev
+        if free is None or best is None:
+            cache[key] = 0.0
+            return 0.0
+        ld = ship.leadership + (1 if any(
+            e.player != ship.player and e.special_order not in ("none", "")
+            and not e.is_destroyed for e in self.gs.get_ships()) else 0)
+        cache[key] = p_sum_at_most(2, min(10, ld)) * (best - free)
+        return cache[key]
+
+    @staticmethod
+    def _cmds_end(ship: Ship, cmds):
+        """(x, y, heading) at the end of a list of move commands."""
+        x, y, h = ship.x, ship.y, ship.heading
+        for c in cmds:
+            if c.action == "forward":
+                x += c.value * math.cos(math.radians(h))
+                y += c.value * math.sin(math.radians(h))
+            elif c.action == "turn_left":
+                h = (h + c.value) % 360
+            elif c.action == "turn_right":
+                h = (h - c.value) % 360
+        return x, y, h
 
     def _lock_on_gain_uncached(self, ship: Ship) -> float:
         from .ai_hazards import p_sum_at_most
