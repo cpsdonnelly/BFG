@@ -828,7 +828,11 @@ Experiments: the PDF's Appendix B fleets are Imperial (Armageddon Sector) agains
 (MMS Corsair), so they wait on To do 14 (Eldar); an Imperial-only escort-splitting run is
 possible now but isn't the owner's matchup. Each AA spectator game takes ~75-80s through
 the GUI, so a batch needs a headless runner or a long background run.
-Next: To do 14 (Eldar unblocks the AA experiments), 7 (scenarios), the rest of 4 / 5. Read docs/AA_ORDER_SYSTEMS_NOTES.md
+Eldar started: `src/eldar.py` (speeds by the sun, MMS two-move validation, order limits,
+holofield shift / save, Fragile), tested, not wired in (CLAUDE.md To do 14 lists the next
+steps and the readings to confirm: the 45-degree sun aspect, crippled -5cm on every speed).
+Next: the rest of To do 14 (Eldar wiring: catalog, combat, movement, ordnance, crits, UI, AI;
+then Necrons), which unblocks the AA experiments; 7 (scenarios); the rest of 4 / 5. Read docs/AA_ORDER_SYSTEMS_NOTES.md
 (the source) and docs/AA_ACTIVATION_NOTES.md ("Discussion summary" and "Later decisions");
 `src/activation.py` has the core. Open choices there become settings (`AAConfig`), not
 decisions. Notes for GUI checks: `gui_spectator_*.py` need a difficulty argument
