@@ -364,3 +364,34 @@ def test_crippled_ship_values_disengaging_near_a_phenomenon():
     far = _ship("Lunar Class Cruiser", 2, 170.0, 110.0, 180.0)
     ai2, gs2 = _ai([me2, far])
     assert ai2._disengage_spot(gs2.get_ship_by_id(me2.id), 30.0, 20.0, 0.0, far) == 0.0
+
+
+def test_safety_goal_goes_round_an_asteroid_field():
+    """To do 11 a goal 3 (safety): tangents past a hazard ahead. A Cobra with
+    an asteroid field dead ahead on its way to the enemy is offered the
+    points either side of it and takes a move that clears it."""
+    from src.models import Phenomenon
+    from src.los import _line_intersects_rect
+    me = _ship("Cobra Class Destroyer", 1, 60.0, 60.0, 0.0)
+    e = _ship("Lunar Class Cruiser", 2, 130.0, 60.0, 180.0)
+    ai, gs = _ai([me, e])
+    gs.add_phenomenon(Phenomenon(id="a", phenomenon_type="asteroid_field", x=80.0, y=60.0,
+                                 width=8.0, height=8.0))
+    me = gs.get_ship_by_id(me.id)
+    ai._move_nearest = e
+    goals = ai._safety_goals(me, 30.0)
+    assert len(goals) == 2 and all(src == "safety" for _p, src in goals)
+    assert any(c[3] == "safety" for c in ai._move_candidates(me, e, "", 0))
+    cmds = ai._plan_move_toward(me, e, "", 0)
+    assert not validate_movement(me, cmds, "", table_width=180, table_height=120).errors
+    x, y, h = me.x, me.y, me.heading
+    pts = [(x, y)]
+    for c in cmds:
+        if c.action == "forward":
+            x += c.value * math.cos(math.radians(h))
+            y += c.value * math.sin(math.radians(h))
+            pts.append((x, y))
+        else:
+            h += c.value if c.action == "turn_left" else -c.value
+    assert not any(_line_intersects_rect(a[0], a[1], b[0], b[1], 76, 56, 84, 64)
+                   for a, b in zip(pts, pts[1:]))

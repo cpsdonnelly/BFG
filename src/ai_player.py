@@ -822,6 +822,7 @@ class AIPlayer:
                          and f.id != ship.id), None)
             if flag is not None:
                 goals.append(((flag.x, flag.y), "support"))
+        goals += self._safety_goals(ship, max_spd)
         for (gx, gy), src in goals:
             self._head_for(ship, gx, gy, points, min_spd, max_spd, ta, add, src)
         # g: Lock On next turn forbids turning, so end pointed for a straight
@@ -855,6 +856,39 @@ class AIPlayer:
                 for d in sorted({min_spd, (min_spd + max_spd) / 2, max_spd}):
                     for p in sorted(points):
                         add(t, d, p, "dense grid")
+        return out
+
+    def _safety_goals(self, ship: Ship, max_spd: float):
+        """To do 11 a goal 3 (safety): the tangents past a hazard. For the (up
+        to three) nearest hazards ahead within this move's reach (asteroid
+        fields, warp rifts, gas / dust clouds, enemy ordnance markers, blast
+        markers), a point either side of it, clear of it by the ship's base and
+        3cm, at the hazard's distance along the line to it; the move score's
+        path hazards decide whether going round is worth it."""
+        r = math.radians
+        hx, hy = math.cos(r(ship.heading)), math.sin(r(ship.heading))
+        haz = []
+        for ph in self.gs.get_phenomena():
+            if ph.phenomenon_type in ("asteroid_field", "warp_rift", "gas_dust_cloud"):
+                haz.append((ph.x, ph.y, math.hypot(ph.width, ph.height) / 2))
+        for o in self.gs.ordnance:
+            if o.get("owner_player") != self.player:
+                haz.append((o["x"], o["y"], 2.0))
+        for b in self.gs.get_blast_markers():
+            haz.append((b.x, b.y, 2.5))
+        ahead = []
+        for x, y, rad in haz:
+            dx, dy = x - ship.x, y - ship.y
+            d = math.hypot(dx, dy)
+            if d - rad > max_spd + ship.base_radius or (dx * hx + dy * hy) <= 0:
+                continue
+            ahead.append((d, x, y, rad))
+        out = []
+        for d, x, y, rad in sorted(ahead)[:3]:
+            ux, uy = (x - ship.x) / max(d, 1e-9), (y - ship.y) / max(d, 1e-9)
+            off = rad + ship.base_radius + 3.0
+            for sgn in (1, -1):
+                out.append(((x - sgn * uy * off, y + sgn * ux * off), "safety"))
         return out
 
     def _head_for(self, ship: Ship, gx: float, gy: float, points, min_spd: float,

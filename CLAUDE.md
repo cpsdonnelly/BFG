@@ -486,7 +486,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1181 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1182 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -514,7 +514,7 @@ Next (largest first): To do 13's game-flow wiring (the AA round in the turn cont
 UI, AI choices), 7 (scenarios / sub-plots), 14 (Eldar, Necrons), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
 Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
-Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (safety goals, the
+Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (the
 full coordination pass, deeper expert hazards), 10 e (Brace's remaining bits), 12 (learned evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -1333,9 +1333,11 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       grid (hybrid b: a quarter of the turn angle steps at three distances and every turn
       point when two or more enemy markers / phenomena are within the move + 30cm or blast
       markers within the move). Goal e (torpedo lanes) is covered for prow launchers by
-      prow-on (the torpedo planner picks the lane at launch). Not yet: goal f (teleport /
-      boarding / ramming reach, with 8 h / 8 j), the safety (hazard tangents) goal of 3
-      (disengaging: built as a move-score term, `_disengage_spot`, below), pruning by cheap terms (not needed at ~40ms a ship), the full
+      prow-on (the torpedo planner picks the lane at launch). Also built: goal 3's safety
+      (`_safety_goals`: for the three nearest hazards ahead in reach, a point either side
+      clear by the base and 3cm, flown by `_head_for`) and disengaging (`_disengage_spot`, a
+      move-score term, see 11 c). Not yet: goal f (teleport /
+      boarding / ramming reach, with 8 h / 8 j), pruning by cheap terms (not needed at ~40ms a ship), the full
       coordination pass (re-optimising each against everyone's planned end positions) below.
       Then a coordination pass over the fleet (suggestion): moves are greedy in fleet order, so
       each ship ignores ships still to move; re-optimise each against everyone's planned end

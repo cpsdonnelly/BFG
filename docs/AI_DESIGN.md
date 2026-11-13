@@ -179,7 +179,7 @@ one broadside). Cost grows with targets and goals, not with the turn angle.
   so end pointed so a straight move keeps the target in arc).
 - **Not tied to one target**: two enemies in one broadside or one in each; fleet support
   (massed turrets with the commander's ship or a carrier, squadron coherency); safety (the
-  tangent past a hazard, out of the most dangerous enemies' arcs); disengaging for crippled
+  tangent past a hazard, built: `_safety_goals`; out of the most dangerous enemies' arcs); disengaging for crippled
   ships (toward a phenomenon within 15cm for +3 Ld, or the nearest edge); scenario objectives
   once scenarios exist.
 - **Fallback grid**: a small even set (straight plus a few headings at the turn limit, at the
