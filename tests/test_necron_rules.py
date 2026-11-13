@@ -253,3 +253,25 @@ def test_star_pulse_generator():
     sleepy = gs.get_ship_by_id("n")
     sleepy.special_rules = ["necron", "reactive_hull:5"]           # conserving power
     assert "error" in resolve_star_pulse(sleepy, gs, DiceStub([]))
+
+
+def test_portals_raid_like_teleports():
+    from tests.conftest import make_ship, make_gs_raids
+    from src.hit_and_run import check_teleport_eligibility, portal_raid_count
+    portal = {"name": "Portals", "weapon_type": "portal", "range_cm": 10, "strength": 3,
+              "arcs": []}
+    n = make_ship(id="n", player=1, x=50.0, y=50.0, hits_max=8, weapons=[dict(portal)],
+                  special_rules=["necron", "reactive_hull:5", "necron_awake"])
+    big = make_ship(id="b", player=2, x=58.0, y=50.0, hits_max=12, shields_max=0)
+    gs = make_gs_raids([n, big])
+    ok, why = check_teleport_eligibility(gs.get_ship_by_id("n"), gs.get_ship_by_id("b"), gs)
+    assert ok, why                                          # more hits than us: allowed
+    assert portal_raid_count(gs.get_ship_by_id("n")) == 3
+    s = gs.get_ship_by_id("n")
+    s.special_order = "all_ahead_full"                      # allowed, but halved down
+    assert portal_raid_count(s) == 1
+    s.special_rules = ["necron", "reactive_hull:5"]         # also conserving power: 0
+    assert portal_raid_count(s) == 0
+    far = make_ship(id="f", player=2, x=75.0, y=50.0, shields_max=0)
+    gs.add_ship(far)
+    assert not check_teleport_eligibility(gs.get_ship_by_id("n"), gs.get_ship_by_id("f"), gs)[0]

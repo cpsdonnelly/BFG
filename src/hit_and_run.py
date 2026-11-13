@@ -48,6 +48,25 @@ from .geometry import current_shields
 from .combat import uses_crit_table
 
 
+def portal_weapon(ship: Ship):
+    """A Necron ship's portals (they replace its teleport attack), or None."""
+    return next((w for w in ship.weapons if w.get("weapon_type") == "portal"), None)
+
+
+def portal_raid_count(ship: Ship) -> int:
+    """Portal attacks this end phase: the profile's strength, halved like direct
+    fire for crippling (power conservation included) and for All Ahead Full,
+    Burn Retros, Come to New Heading or Brace for Impact, rounding down
+    (Xenos p.40)."""
+    from .necrons import portal_strength
+    w = portal_weapon(ship)
+    if w is None:
+        return 0
+    halvings = int(ship.is_crippled) + int(ship.special_order in (
+        "all_ahead_full", "burn_retros", "come_to_new_heading", "brace_for_impact"))
+    return portal_strength(w.get("strength") or 0, halvings)
+
+
 def teleport_range(ship: Ship) -> int:
     """10cm (s.31); honour guards double it (Space Marine Teleport Assault);
     an Ork Soopa Tellyporta makes it 30cm."""
@@ -83,6 +102,24 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
     """
     if not getattr(gs, "rule_hit_and_run", True):
         return False, "hit-and-run raids are disabled"
+    portal = portal_weapon(attacker)
+    if portal is not None:
+        # Necron portals: resolved like teleport attacks, but against targets with
+        # more hits too, and while crippled or on special orders (Xenos p.40)
+        if portal_raid_count(attacker) <= 0:
+            return False, f"{attacker.name}'s portals are at strength 0"
+        dist = attacker.distance_to(target)
+        rng = portal.get("range_cm") or 10
+        if dist > rng:
+            return False, f"{target.name} is {dist:.1f}cm away (portals {rng}cm)"
+        shields = current_shields(target, gs.get_blast_markers())
+        if shields > 0:
+            return False, f"{target.name} has {shields} shield(s) still up"
+        if attacker.ship_type == "escort" and target.hits_max > 6:
+            # Jackal Raider: "may perform portal attacks against ships with 6 hits
+            # or less" (reading: starting hits)
+            return False, f"{attacker.name} may portal only ships of 6 hits or less"
+        return True, ""
     if attacker.is_crippled:
         return False, f"{attacker.name} is crippled"
 
@@ -573,7 +610,10 @@ def resolve_teleport_attack(attacker: Ship, target: Ship,
             gs.add_log(f"  {target.name} brace FAILED — no repel rolls")
 
     chosen = teleport_raid_rolls(attacker, dice, target.name)
-    summary = resolve_raids(len(chosen) if chosen else 1, target, brace_passed, dice, gs,
+    count = len(chosen) if chosen else 1
+    if portal_weapon(attacker) is not None:
+        count, chosen = portal_raid_count(attacker), None
+    summary = resolve_raids(count, target, brace_passed, dice, gs,
                             source_name=f"{attacker.name} teleporters",
                             attacker_rules=attacker.special_rules,
                             preset_rolls=chosen)

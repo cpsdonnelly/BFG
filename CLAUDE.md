@@ -491,7 +491,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1225 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1226 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1709,7 +1709,14 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    generator built: `combat.resolve_star_pulse` (one roll per non-Necron ship within 20cm vs
    its nearest Armour, a normal hit each (reading: shields apply), enemy ordnance within 20cm
    destroyed on 4+ each; not crippled / conserving or on orders but Lock On); fired by the AI
-   whenever a target is in reach and from the Fire dialog ("any target"). Next: the rest of
+   whenever a target is in reach and from the Fire dialog ("any target"). Portals built:
+   `hit_and_run.portal_weapon` / `portal_raid_count` (the profile's strength halved for
+   crippling incl. power conservation and for AAF / Burn Retros / Come to New Heading / Brace,
+   rounding down) and `check_teleport_eligibility` (portal range, shields down, no hits limit,
+   crippled / orders allowed; escorts (the Jackal) only against ships of 6 starting hits or
+   less, reading); `resolve_teleport_attack` makes that many raids; same toggles as
+   teleports (reading: Remastered says portals aren't teleports in the normal manner). Not
+   yet: Bloodswarm Nanoscarabs (+1, Dynasty). Next: the rest of
    the combat / movement / end-phase wiring (the nightmare field (no profile carries one; a
    Dynasty / Monument item), star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
    complex / pylon / Deathseed rules and their craft, the Necron crit table, Without a
