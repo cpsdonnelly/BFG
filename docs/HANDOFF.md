@@ -768,6 +768,25 @@ cruisers aren't "cruisers" for the mine swap; the Bastion pays +5 a bay for its 
 Stormbird bays halved each (rounding up); s.40 toggles stand for the battle being in range of
 the effect and one flare / burst die each; the burst's re-roll limit applies to every re-roll.
 GUI checks now answer Brace and order re-roll prompts by replacing `choice_dialog.yes_no`.
+Later in the same session:
+- To do 4: Ork kustom upgrades, the Nob, Big Mek repair die, Goffs / Evil Sunz; god-fleet
+  boons (Veil of Lust, Siren's Summon, Miasma's gunnery part, Plague Arks); named commanders
+  (Rath, Abaddon, Kor'O'Mesme).
+- To do 5: Zzapp Gunz, Kustom Kannon, the Planet Killer's Armageddon Gun (Slamblasta, Hammer
+  and Planet Killer now playable).
+- Rules fix: only the defender adds turrets to troop rating (s.32); ten boarding tests that
+  encoded the old behaviour were corrected.
+- AI: lance values use each weapon's hit roll (`ai_hazards.lance_p`).
+Known gaps flagged in CLAUDE.md beside each item: Armageddon reload malfunction (the command
+check keeps only its total, so doubles can't be seen), More Dakka / Bad Moons / Deathskulls /
+Blood Axes / Snakebites, Abaddon's "You Have Failed Me", Rath's random refits, the Miasma
+ordnance part, Siren's Summon against plain Leadership tests, Warp Beasts / Berzerker Tide /
+Strands of Fortune, daemonships (the next big rules item: they touch every targeting and
+ordnance path), the AA round wiring. In ordinary games the AI rarely gets the chance to board
+or ram (no contact or dead-ahead target arose in the Ork spectator runs with both rules on);
+the mechanics are unit-tested.
+Tests at the end: 1172 pass; every GUI check passed in the last full run (the later
+Armageddon / Kustom Kannon changes were checked with the checks they touch).
 
 ## Bombers vs assault boats (owner idea, done)
 

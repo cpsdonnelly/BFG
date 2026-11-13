@@ -582,3 +582,16 @@ finds degenerate strategies in the rules as well as in the AI.
 Possible gaps in this plan worth the owner's view: deployment strategy, damage-control choices,
 blast-marker removal, whether Hard should differ from Normal, and how much the expert AI should
 think (its 2 seconds per ship and its simplified simulation).
+
+---
+
+## Update after booklet zip 13 (summary; CLAUDE.md has the detail)
+
+Built since the sections above were written: priced Brace with the game-state risk preference;
+strikes and the guns a disengaging ship gives up valued by certainty equivalent; the expert
+simulating its own ordnance in flight and using the normal AI's move candidates; more movement
+goals, hill-climbing, the support move order, Easy's softmax moves; Lock On and All Ahead Full
+by value with the check-order risk; both broadsides busy, kiting, teleport offence / defence,
+boarding and ramming (only with those rules on); torpedo bombers, mines, the Nova Cannon,
+Armageddon Gun and Kustom Kannon by value; repairs and blast marker removal by value; the
+first-turn choice; scale-free re-roll bars; lances valued by their hit roll.

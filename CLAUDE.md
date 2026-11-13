@@ -251,9 +251,9 @@ re-rolls only from a title (Big Boss 1 +20, Mega Boss 2 +40). Each list's `comma
 (`fleet_lists._attach_commanders`): required for more than 750 pts (see below),
 Explorator 1000+, Green Tide one Boss at 500+ and at most one per 500pts, a Rogue Trader
 detachment always; a Tau Custodian needs a Kor'O. Secondary commanders: see "Not yet
-matching the booklet" (commander re-rolls). Not yet: several Ork Bosses' re-rolls (the
-engine keeps one re-roll pool, on the flagship), kustom upgrades, clans, named commanders
-(Lord Admiral Rath, Abaddon, Kor'O'Mesme...). Export 31 settled it: a commander is required
+matching the booklet" (commander re-rolls). Kustom upgrades, two clans and the named
+commanders are built (To do 4). Not yet: several Ork Bosses' re-rolls (the engine keeps one
+re-roll pool, on the flagship). Export 31 settled it: a commander is required
 for a fleet of **more than 750 points** (core s.5; `required_at` 751), except where a list says
 otherwise (Banisher "at least 750", Explorator "1000+", Green Tide "500+"). Owner ruling,
 booklet updates 33-34: commander re-rolls (fleet and secondary) are lost on Bridge Smashed
@@ -474,8 +474,9 @@ Owner rulings (fleet lists, export 15):
   one free re-roll, +1 / +2 re-rolls for 25 / 50pts). The booklet now has two Inquisition
   lists (Ordo Malleus Banisher Fleet, Inquisitorial Fleet Detachment) whose options differ
   (Inferno needs an Ordo Hereticus Inquisitor, so not in the Banisher list); the fleet
-  lists enforce that (`list_options`). Not yet: Ordos (a ship may not mix Ordo upgrades), Grand Master, Inquisitors, Elite Daemonhunters/Captains, retinues, honour guards,
-  Blessing of Chaos.
+  lists enforce that (`list_options`). Grand Master, Elite Daemonhunters / Captains built (To
+  do 4). Not yet: Ordos (a ship may not mix Ordo upgrades), the detachment's Inquisitors,
+  retinues, honour guards, Blessing of Chaos.
 - Not yet: Rogue Trader refitted
   torpedoes (no Rogue Trader ship in the roster has torpedoes), Deathskulls' half-cost looted
   torps, the Ork zzapp gunz swaps. The Ork torpedo launcha swaps (Terror Ship, Kill Kroozer
@@ -492,6 +493,11 @@ limit). After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
+Session after zip 13 (all pushed; HANDOFF "Session after booklet zip 13"): To do 2 (but
+scenario points), 3, 6 done; large parts of 4, 5, 8, 9, 10, 11 and the first slice of 13 built
+(each item below says what). Fixed: attackers no longer add turrets to troop rating (s.32).
+Readings to confirm with the owner are listed in HANDOFF and in To do 3 / 6.
+
 Built so far: every booklet rule section the engine plays (see the sections above), the export
 31 "still to do" list, boarding crew bonuses, disengaging incl. forced disengagement, optional
 blast marker rules, the turret split, waves / CAP / wave planner, the hit-and-run toggle
@@ -504,9 +510,13 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
 Not built: scenarios / sub-plots, and the To do items below.
-Next: the rest of 11 a (goal f with 8 h / 8 j, safety goals, the full
-coordination pass), then 4-7, 9, 10 (3 built) and the rest of 11, 12 (learned
-evaluation) after 11, 13 (alternate activation, optional ruleset; notes and PDF in `docs/`), 14 (Eldar, Necrons), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
+Next (largest first): To do 13's game-flow wiring (the AA round in the turn controller and
+UI, AI choices), 7 (scenarios / sub-plots), 14 (Eldar, Necrons), the rest of 4 (daemonships:
+off-table start, warp translation, spectral state touching every targeting / ordnance path;
+Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
+Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (safety goals, the
+full coordination pass, deeper expert hazards), 10's Come to New Heading and Reload by value,
+12 (learned evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
 ### AI: how it decides (expected VP)
@@ -519,20 +529,21 @@ depends on the matchup": every one should come out of the expected-VP values, no
 - Firepower by range bracket (0-15 Ork Heavy Gunz, 15-30, 30-45, 45-60 Chaos long guns,
   60-150 artillery such as the Nova Cannon): fight in the bracket where our guns beat theirs
   (e.g. a Tau Merchant out-guns a Lunar at 30-45cm, not at 0-30cm). The matchup table is
-  built (To do 8 f); using it in movement is planned (11 a, 8 c).
+  built (To do 8 f) and used by the range-band move goal (11 a).
 - Speed (and turn angle) edge: out-moving the enemy, get out of its main fire arcs (e.g. into a
-  Lunar's rear arc). Planned: 8 g.
+  Lunar's rear arc). Mostly covered by the rear-arc goal and exposure allowing the enemy a
+  turn (8 g).
 - Out-range and out-move it on average (Chaos): kite, holding the band where we can fire and it
-  can't. Planned: 8 c.
+  can't. Built, first form (`_kite_bonus`, 8 c).
 - Gun-heavy broadside fleets (Imperium, e.g. Lunars, broadsides that don't overlap): keep both
-  broadsides busy, cross the T. Planned: 8 b.
+  broadsides busy, cross the T. Built, first form (`_mount_coverage`, 8 b).
 - Forward-firing ships with the best Armour in front (Tau Protector): show the prow only when
   the enemy is about to be in range. Planned: 8 d (its prerequisite 8 a, exposure by Armour
   facing, is built).
-- Hit-point edge (Orks): think about boarding and ramming (only with those rules on). Planned:
-  8 h.
+- Hit-point edge (Orks): boarding and ramming, only with those rules on: built (8 h).
 - Teleport attacks, both launching them and being vulnerable to them (only with teleports and
-  hit-and-run on). The AI now decides its own teleports; positioning and defence planned: 8 j.
+  hit-and-run on). Built: its own teleports, positioning for them and defence against them
+  (8 j); not yet choosing gunfire to open shields for a teleport.
 - Air power, built: a carrier-heavy fleet goes after the enemy's carriers with its guns (air
   supremacy; ordnance at them is likely intercepted unless they are spread too thin or just
   launched); an out-carriered fleet protects its carriers and flies CAP / interception; a
@@ -562,8 +573,8 @@ it nor attempts it. Audit: hit-and-run is respected (`_strike_option`, `waves.be
 check their flags (`_boarding_reach`, `_consider_boarding`, `_teleport_reach`,
 `_teleport_exposure`, `_teleport_given_up`) and ramming checks `rule_ramming`
 (`_ram_candidate`); the wave planner and AI follow the turret suppression mode (XR / Remastered
-p.82, `waves.wave_split_value`); the celestial-phenomena rules aren't modelled
-by the AI yet (check their flags when they are).
+p.82, `waves.wave_split_value`); of the s.40 effects the AI counts only Fighting Sunward's
+shifts (through `get_column_shifts`), not flares / bursts (check their flags when it does).
 
 Values:
 - Two VP scales: gunnery `damage_vp` (s.38 thresholds + 0.2 x points / starting hits per hit; checked) for choosing gun / torpedo
@@ -600,10 +611,11 @@ Movement:
   on the Armour facing each enemy would hit, `mount_hits`, To do 8 a).
 - The move score (`_arc_score`) counts in-arc batteries / lances / nova cannon and loaded
   torpedoes (they launch from the end position: full within one torpedo move, half within two).
-- Candidates (To do 11 a, first slice): the even grid plus turn points (after the turning
-  distance, after the minimum move, at the end; escorts and Burn Retros also at the start) and
-  two goals against the target, guns to bear and the winning range bracket
-  (`_move_candidates`).
+- Candidates (To do 11 a): the even grid plus turn points, goals (guns to bear, range band,
+  prow-on, rear arc, second target, escort support, Lock On next, boarding reach), a denser grid
+  when crowded, hill-climbing of the best three, ships moving in support order; Easy picks by
+  softmax (`_move_candidates`, `_refine_move`, `_coordinated_order`). The move score also has
+  both broadsides busy (8 b), kiting (8 c), teleport reach / exposure (8 j) and boarding (8 h).
 - Explosions (`explosion_position_vp`): keep out of the 3D6cm radius of ships likely to die; a
   ship of ours likely to die ends next to enemies.
 - Special orders (To do 10, partly rebuilt): Burn Retros by expected VP
@@ -626,8 +638,9 @@ Movement:
   right, other mounts within their arc after one turn of the ship's own turn angle), the enemy
   focusing fire (`enemy_fire_plan`, owner), a Poisson count; destroyed = full value (75% more if
   already crippled), newly crippled 25%; leaving concedes 10%. With a turn limit staying is
-  valued by its certainty equivalent (play for the win, To do 2). One-turn horizon; escort
-  squadrons not special-cased.
+  valued by its certainty equivalent (play for the win, To do 2), as are the guns given up.
+  One-turn horizon; escort squadrons are special-cased only under the Remastered escort VP
+  option.
 
 Shooting:
 - Targets by marginal expected VP (no overkill), target priority test obeyed; battery values with
@@ -641,6 +654,8 @@ Shooting:
   commander's ship braces earlier because it is worth double while it has re-rolls (no fixed
   bias). Not modelled: losing special orders while braced, the engine doesn't stop a braced
   ship firing inside an asteroid field (s.39), so neither does the AI.
+- Fire order: each ship fires batteries, then other weapons, then lances (11 d); boarded ships
+  don't fire or launch; the Armageddon Gun and Kustom Kannon are fired by value.
 - Squadron volleys (s.8, `_squadron_volleys`): one `plan_squadron_volley` per squadron when it
   rolls at least as many dice as firing separately, at the best target that is every
   contributor's nearest valid target; aspect by `best_aspect_choice`. Batteries only. Not yet:
@@ -715,7 +730,8 @@ Expert AI (`lookahead_ai`): minimax over a deterministic sim using the same term
 scaled by Armour, lances 0.5, focus without overkill, torpedoes once, explosions at their odds,
 shields each turn, the real table, its own ordnance in flight); leaf = VP banked + next turn's expected swing at
 `LATER_TURN_WEIGHT`; with a turn limit, the chance of winning from that margin
-(`win_score`, To do 2); root moves pay the path-hazard cost (To do 11 b).
+(`win_score`, To do 2); root moves are the normal AI's candidates, best first, at most
+`ROOT_MOVES` 12, and pay the path-hazard cost (To do 11 b); lances valued by their hit roll.
 
 ### To do (agreed order; detail in docs/HANDOFF.md)
 
