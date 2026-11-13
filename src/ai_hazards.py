@@ -330,6 +330,13 @@ def move_hazard_vp(ship: Ship, end: Point, path: Sequence[Point], gs,
 
 # ── Targeting by expected VP ─────────────────────────────────────────────────
 
+def poisson_pmf(mean: float, k: int) -> float:
+    """P(X = k) for X ~ Poisson(mean)."""
+    if mean <= 0:
+        return 1.0 if k == 0 else 0.0
+    return math.exp(-mean + k * math.log(mean) - math.lgamma(k + 1))
+
+
 def poisson_at_least(mean: float, k: int) -> float:
     """P(X >= k) for X ~ Poisson(mean): a stand-in for the spread of hits."""
     if k <= 0:
@@ -767,7 +774,8 @@ def certainty_equivalent(gs, player: int, outcomes) -> float:
     return sigma * nd.inv_cdf(win) - margin
 
 
-def disengage_gain(ship: Ship, gs, ld: int, contribution: float) -> float:
+def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
+                   fire_outcomes=None) -> float:
     """Expected VP gained by trying to disengage now (s.37, VP s.38) instead of
     fighting on for another turn. Staying risks the enemy's next turn
     (incoming_hits as a Poisson count): destroyed -> the full value, newly
@@ -796,10 +804,16 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float) -> float:
         if not ship.is_crippled and left - ship.hits_max // 2 > 0:
             p_crip = max(0.0, _poisson_at_least(lam, left - ship.hits_max // 2) - p_kill)
         loss_kill = v * (0.75 if ship.is_crippled else 1.0)
-        stay = certainty_equivalent(gs, ship.player, [(p_kill, -loss_kill),
-                                                      (p_crip, -0.25 * v),
-                                                      (1 - p_kill - p_crip, 0.0)])
-        return p_pass * (-extra - stay) - contribution
+        dmg = [(p_kill, -loss_kill), (p_crip, -0.25 * v), (1 - p_kill - p_crip, 0.0)]
+        # The guns given up are a gamble too (To do 2): staying is both
+        # gambles together; trying gives a sure -extra on a pass and the damage
+        # without firing on a failure (a failed test forbids firing, s.37)
+        fire = fire_outcomes or [(1.0, contribution)]
+        stay = certainty_equivalent(gs, ship.player,
+                                    [(q1 * q2, d1 + d2) for q1, d1 in dmg for q2, d2 in fire])
+        go = certainty_equivalent(gs, ship.player,
+                                  [(p_pass, -extra)] + [((1 - p_pass) * q, d) for q, d in dmg])
+        return go - stay
     return p_pass * (risk - extra) - contribution
 
 

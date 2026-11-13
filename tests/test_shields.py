@@ -80,9 +80,9 @@ def test_teleport_refused_while_a_shield_is_still_up():
 
 
 def test_ai_brace_sees_collapsed_shields():
-    target = make_ship(id="t", player=2, shields_max=2, hits_max=8,
+    target = make_ship(id="t", player=2, shields_max=2, hits_max=8, points_value=150,
                        critical_damage=list(COLLAPSED))
-    # 2 hits straight to hull >= 8/4 threshold -> brace
+    # 2 hits straight to hull; bracing costs a gunless ship nothing -> brace
     assert ai_should_brace(make_gs_raids([target]), target, incoming_hits=2) is True
 
 

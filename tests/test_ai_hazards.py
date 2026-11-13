@@ -82,14 +82,20 @@ def test_commanders_ship_counts_its_exposure_and_braces_earlier():
     far = ai._position_penalty(-60.0, 0.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (-60.0, 0.0)])
     other = ai._position_penalty(20.0, 0.0, gs.get_ship_by_id("p"), [(0.0, 0.0), (20.0, 0.0)])
     assert near > far and near > other
-    # 12 hits, 2 shields, 4 hits incoming (2 hull): the flagship braces (12/6), a
-    # plain ship doesn't (12/4); the foe is out of range, so no follow-on fire
+    # Priced brace (To do 11 c): 5 hits at 2 shields; bracing halves each ship's
+    # fire next turn (a foe 20cm off), but the commander's ship is worth double
+    # while it has re-rolls to lose, so it braces and the plain ship doesn't
+    g6 = {"name": "Guns", "weapon_type": "battery", "range_cm": 30, "strength": 6,
+          "arcs": ["left", "right", "front"]}
     f2 = make_ship(id="c2", player=1, x=0.0, y=0.0, is_flagship=True, rerolls_remaining=1,
-                   hits_max=12, hits_remaining=12, shields_max=2)
-    p2 = make_ship(id="p2", player=1, x=0.0, y=0.0, hits_max=12, hits_remaining=12, shields_max=2)
-    gs2 = make_gs([f2, p2])
-    assert ai_should_brace(gs2, gs2.get_ship_by_id("c2"), 4)
-    assert not ai_should_brace(gs2, gs2.get_ship_by_id("p2"), 4)
+                   hits_max=8, hits_remaining=8, shields_max=2, points_value=150, weapons=[g6])
+    p2 = make_ship(id="p2", player=1, x=0.0, y=10.0, hits_max=8, hits_remaining=8,
+                   shields_max=2, points_value=150, weapons=[g6])
+    foe2 = make_ship(id="e2", player=2, x=20.0, y=0.0, points_value=200, hits_max=8)
+    gs2 = make_gs([f2, p2, foe2])
+    gs2.active_player = 2
+    assert ai_should_brace(gs2, gs2.get_ship_by_id("c2"), 5)
+    assert not ai_should_brace(gs2, gs2.get_ship_by_id("p2"), 5)
 
 
 def test_fighters_go_for_the_most_dangerous_ordnance():

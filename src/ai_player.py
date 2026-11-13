@@ -32,55 +32,105 @@ from .ordnance import (launch_torpedoes, launch_attack_craft,
                        TORPEDO_SPEED_DEFAULT)
 
 
-def ai_should_brace(gs: GameState, target: Ship,
-                    incoming_hits: int, attacker: Ship = None) -> bool:
-    """
-    Decide whether an AI-controlled ship should attempt Brace For Impact.
-
-    incoming_hits: already-rolled hits (post-armor) from the current volley.
-    Brace if expected total hull damage (current volley + follow-on fire
-    from other unfired enemies in arc/range/LoS) >= hits_remaining / 4.
-    """
+def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
+                     attacker: Ship = None) -> float:
+    """Expected hull hits the brace would face: the current volley past shields
+    plus follow-on fire from enemies that haven't fired yet (the attacker's
+    other weapons included)."""
     shields = current_shields(target, gs.get_blast_markers())
     current_hull = max(0, incoming_hits - shields)
     shields_left = max(0, shields - incoming_hits)
-
     future_hull = 0.0
     phenomena = gs.get_phenomena()
     blast_markers = gs.get_blast_markers()
-
     for enemy in gs.get_ships():
-        if enemy.player == target.player:
-            continue
-        if enemy.is_destroyed or enemy.is_disengaged:
+        if enemy.player == target.player or enemy.is_destroyed or enemy.is_disengaged:
             continue
         # Include the current attacker (may have more weapons); skip others
         # that have already fully fired this phase.
         if enemy.has_fired and (attacker is None or enemy.id != attacker.id):
             continue
         for weapon in enemy.weapons:
-            wtype = weapon.get("weapon_type", "")
-            if wtype not in ("battery", "lance"):
+            if weapon.get("weapon_type", "") not in ("battery", "lance"):
                 continue
             if not check_weapon_in_arc(enemy, weapon, target.x, target.y):
                 continue
             if not check_weapon_in_range(enemy, weapon, target.x, target.y):
                 continue
-            los = check_los_clear(enemy, target, phenomena, blast_markers)
-            if not los.get("clear", True):
+            if not check_los_clear(enemy, target, phenomena, blast_markers).get("clear", True):
                 continue
-            strength = weapon.get("strength", 1)
             armor_num = target.armor_vs(enemy.x, enemy.y)
-            hit_prob = max(0.0, (7 - armor_num) / 6.0)
-            expected = strength * hit_prob
-            net = max(0.0, expected - shields_left)
-            future_hull += net
+            expected = weapon.get("strength", 1) * max(0.0, (7 - armor_num) / 6.0)
+            future_hull += max(0.0, expected - shields_left)
             shields_left = max(0.0, shields_left - expected)
+    return current_hull + future_hull
 
-    # The commander's ship braces earlier: losing it costs its re-rolls and its
-    # commander's VP too (owner guidance; booklet updates 33-34)
-    share = 6.0 if (target.is_flagship and target.rerolls_remaining > 0) else 4.0
-    return (current_hull + future_hull) >= target.hits_remaining / share
+
+def brace_value(gs: GameState, target: Ship, incoming_hits: int,
+                attacker: Ship = None) -> float:
+    """Expected VP (risk-adjusted) of trying Brace for Impact now (s.7; To do
+    11 c, priced instead of a fixed share of the hits left). Gain: a 4+ save on
+    every hull hit from here to the end of the ship's next turn (hits ~ Poisson,
+    braced Poisson at half); the loss of k hits is the ship's value if
+    destroyed, a quarter if newly crippled, plus its next turn of fire lost
+    (all of it / half), plus a little per hit (damage_vp's terms). Cost if it
+    passes: half its fire until the end of its next turn (`ship_threat_vp`),
+    twice when the brace comes in
+    its own turn before it has fired. With a turn limit both choices are valued
+    by their certainty equivalents (To do 2: ahead, a ship braces more readily,
+    as a brace narrows the spread; behind, less). Pass chance: the command
+    check with Under Fire / Enemy Contacts (s.6)."""
+    from .ai_hazards import (p_sum_at_most, ship_value, ship_threat_vp,
+                             certainty_equivalent, poisson_pmf)
+    from .geometry import count_blast_markers_touching
+    hull = _brace_hull_hits(gs, target, incoming_hits, attacker)
+    if hull <= 0:
+        return 0.0
+    v = ship_value(target, gs)
+    threat = ship_threat_vp(target, gs)
+    rem = max(1, target.hits_remaining)
+    to_cripple = rem - target.hits_max // 2
+    vph = v / max(1, target.hits_max)
+
+    def loss(k):
+        if k >= rem:
+            return v + (threat * (2.0 if target.is_crippled else 1.0))
+        out = 0.2 * vph * k
+        if not target.is_crippled and to_cripple > 0 and k >= to_cripple:
+            out += 0.25 * v + 0.5 * threat
+        return out
+
+    def dist(mean):
+        kmax = rem + 1
+        pts = [(poisson_pmf(mean, k), -loss(k)) for k in range(kmax)]
+        tail = 1.0 - sum(p for p, _ in pts)
+        pts.append((max(0.0, tail), -loss(kmax)))
+        return pts
+
+    ld = target.leadership
+    if count_blast_markers_touching(target, gs.get_blast_markers()) > 0:
+        ld -= 1
+    if any(s.player != target.player and not s.is_destroyed and not s.is_disengaged
+           and s.special_order not in ("none", "") for s in gs.get_ships()):
+        ld += 2 if "improved_sensor_array" in target.special_rules else 1
+    ld = max(0, min(10, ld))
+    p = p_sum_at_most(2, ld) if ld > 1 else 0.0
+    cost = 0.5 * threat
+    if gs.active_player == target.player and not target.has_fired:
+        cost *= 2.0
+    plain = dist(hull)
+    braced = ([(p * q, d - cost) for q, d in dist(hull / 2.0)]
+              + [((1 - p) * q, d) for q, d in plain])
+    player = target.player
+    return certainty_equivalent(gs, player, braced) - certainty_equivalent(gs, player, plain)
+
+
+def ai_should_brace(gs: GameState, target: Ship,
+                    incoming_hits: int, attacker: Ship = None) -> bool:
+    """Decide whether an AI-controlled ship should attempt Brace For Impact:
+    when its priced value is positive (`brace_value`). incoming_hits: hits
+    from the current volley before shields."""
+    return brace_value(gs, target, incoming_hits, attacker) > 0.0
 
 
 class AIPlayer:
@@ -152,7 +202,7 @@ class AIPlayer:
         crippled ships about to be destroyed. Escort squadrons and ships already
         made to flee are left to the existing rules."""
         from .ai_hazards import disengage_gain
-        from .ai_rerolls import firepower_swing
+        from .ai_rerolls import firepower_outcomes
         from .disengage import get_disengage_ld_modifiers, attempt_disengage, _ftl_blocked
         gs = self.gs
         if (ship is None or ship.is_destroyed or ship.is_disengaged
@@ -166,7 +216,8 @@ class AIPlayer:
         if _ftl_blocked(ship, gs):
             return
         ld = get_disengage_ld_modifiers(ship, gs)["effective_ld"]
-        gain = disengage_gain(ship, gs, ld, firepower_swing(ship, gs))
+        ev_fire, fire_outs = firepower_outcomes(ship, gs)
+        gain = disengage_gain(ship, gs, ld, ev_fire, fire_outs)
         if gain <= 0:
             return
         gs.add_log(f"[AI] {ship.name} tries to disengage (Ld {ld}; worth about "
@@ -1714,12 +1765,27 @@ class AIPlayer:
                 return tls[spd]
 
             def mixed(fn, caps):
-                """fn(inputs) -> (value, ev) mixed over the reactive-CAP cases."""
+                """fn(inputs) -> (value, ev, cases) mixed over the reactive-CAP
+                cases; cases [(weight, value)] for risk_value."""
                 v = e = 0.0
+                vals = []
                 for w, inp in caps:
                     a, b = fn(inp)
                     v, e = v + w * a, e + w * b
-                return v, e
+                    vals.append((w, a))
+                return v, e, vals
+
+            def risk_value(vals, disc, tl_x):
+                """The strike as a gamble (To do 2, risk preference): it gets
+                past the enemy guns on the way (survival) or not, and meets
+                each interception case; its certainty equivalent for the game
+                state (certainty_equivalent: its expected value, v x disc,
+                without a turn limit; behind, gambles are worth more)."""
+                from .ai_hazards import certainty_equivalent
+                rest = tl_x.get("_disc_no_guns") or disc
+                surv = min(1.0, disc / rest) if rest else 0.0
+                outs = [(w * surv, a * rest) for w, a in vals] + [(1.0 - surv, 0.0)]
+                return certainty_equivalent(self.gs, self.player, outs)
             c = committed.get(target.id, 0.0)
             if types:
                 fk, bk, f_save, b_save = types
@@ -1741,16 +1807,19 @@ class AIPlayer:
                     if not got:
                         continue
                     tl_s, disc, caps = got
-                    v, ev = mixed(lambda inp, f=f, b=b: wave(inp, f, b), caps)
+                    v, ev, vals = mixed(lambda inp, f=f, b=b: wave(inp, f, b), caps)
                     # Owner: co-ordinate with torpedoes / missiles reaching it in the
                     # same phase: its turrets can't shoot down both (s.28)
                     syn = self._turret_split_bonus(target, tl_s["phase"], f, b,
                                                    f_save, b_save)
                     if syn:
-                        v += hull_hits_vp(target, self.gs, c + ev, syn)
+                        sv = hull_hits_vp(target, self.gs, c + ev, syn)
+                        v += sv
                         ev += syn
-                    if best_split is None or v * disc > best_split[0] + 1e-9:
-                        best_split = (v * disc, f, b, ev, tl_s["phase"], 1)
+                        vals = [(w, a + sv) for w, a in vals]
+                    rv = risk_value(vals, disc, tl_s)
+                    if best_split is None or rv > best_split[0] + 1e-9:
+                        best_split = (rv, f, b, ev, tl_s["phase"], 1)
                     # Two waves instead of one (To do 2): one hit removes a whole
                     # wave (s.25), but each enemy weapon fires at one marker, so
                     # splitting spreads the guns; each wave then faces the
@@ -1778,8 +1847,9 @@ class AIPlayer:
                 got = timeline(stats[bomber][1] or 20)
                 if got:
                     _tl, disc, caps = got
-                    v, ev = mixed(bombers, caps)
-                    options.append((v * disc, [(bomber, count)], f"{count} bombers", target, ev))
+                    v, ev, vals = mixed(bombers, caps)
+                    options.append((risk_value(vals, disc, _tl), [(bomber, count)],
+                                    f"{count} bombers", target, ev))
             got = timeline(stats[boat][1] or 20) if boat else None
             if got:
                 tl, disc, caps = got
@@ -1792,8 +1862,9 @@ class AIPlayer:
                                                  inp["cap"], pp, stats[boat][2] or 0,
                                                  inp["cap_save"])
                     return through * raid, 0.0
-                v, _e = mixed(boats, caps)
-                options.append((v * disc, [(boat, count)], f"{count} assault boats", target, 0.0))
+                v, _e, vals = mixed(boats, caps)
+                options.append((risk_value(vals, disc, tl), [(boat, count)],
+                                f"{count} assault boats", target, 0.0))
         if not options:
             return None
         value, plan, label, target, ev = max(options, key=lambda o: o[0])

@@ -53,10 +53,11 @@ def commander_in_danger(gs, player: int) -> bool:
     return threat >= flag.hits_remaining
 
 
-def firepower_swing(ship: Ship, gs) -> float:
-    """Expected VP the ship's direct fire can take off its best target in reach
-    (P(kill) x value + P(cripple) x a quarter of it)."""
-    best = 0.0
+def firepower_outcomes(ship: Ship, gs):
+    """The ship's direct fire at its best target in reach as a gamble:
+    (expected VP, [(chance, VP)]): it destroys it, cripples it or neither, plus
+    a little per hit (firepower_swing is the expected VP)."""
+    best = (0.0, [(1.0, 0.0)])
     for e in gs.get_ships():
         if e.player == ship.player or e.is_destroyed or e.is_disengaged:
             continue
@@ -77,8 +78,20 @@ def firepower_swing(ship: Ship, gs) -> float:
         p_kill = min(1.0, hits / rem)
         to_cripple = rem - e.hits_max // 2
         p_cripple = 0.0 if e.is_crippled or to_cripple <= 0 else min(1.0, hits / to_cripple)
-        best = max(best, p_kill * v + p_cripple * v * 0.25 + hits * value_per_hit(e, gs) * 0.2)
+        per_hit = hits * value_per_hit(e, gs) * 0.2
+        ev = p_kill * v + p_cripple * v * 0.25 + per_hit
+        if ev > best[0]:
+            pc = max(0.0, min(1.0 - p_kill, p_cripple - p_kill))
+            outs = [(p_kill, v + per_hit), (pc, 0.25 * v + per_hit),
+                    (max(0.0, 1.0 - p_kill - pc), per_hit)]
+            best = (ev, outs)
     return best
+
+
+def firepower_swing(ship: Ship, gs) -> float:
+    """Expected VP the ship's direct fire can take off its best target in reach
+    (P(kill) x value + P(cripple) x a quarter of it)."""
+    return firepower_outcomes(ship, gs)[0]
 
 
 def importance(ship: Ship, label: str, gs, context: Optional[dict] = None) -> float:

@@ -495,10 +495,9 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 candidates (11 a)).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2 (the risk preference in brace and strike choices, the expert AI
-valuing its own craft in flight), the rest of 11 a (more goals, refinement, the coordination
+Next: the rest of To do 2 (the expert AI valuing its own craft in flight), the rest of 11 a (more goals, refinement, the coordination
 pass), then 3-7, 9, 10 and the rest of 11, 12 (learned
-evaluation) after 11, 13 (alternate activation, optional ruleset; needs the AA notes and PDF), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
+evaluation) after 11, 13 (alternate activation, optional ruleset; notes and PDF in `docs/`), 14 (Eldar, Necrons), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
 ### AI: how it decides (expected VP)
@@ -614,7 +613,15 @@ Movement:
 Shooting:
 - Targets by marginal expected VP (no overkill), target priority test obeyed; battery values with
   column shifts (`combat.expected_hits(..., gs)`); weapons knocked out by armament crits never
-  fire (`combat.weapon_disabled_by_crit`); the commander's ship braces earlier.
+  fire (`combat.weapon_disabled_by_crit`). Brace is priced (`ai_player.brace_value`, To do 11 c):
+  4+ saves on the expected hull hits from this attack and enemies still to fire (Poisson, the
+  loss of k hits = destroyed / newly crippled value incl. its next turn of fire, plus a little a
+  hit) against half its fire to the end of its next turn (`ship_threat_vp`, doubled in its own
+  turn before it fires), at the command check's odds (Under Fire, Enemy Contacts); both choices
+  by certainty equivalent, so ahead near the end it braces more readily, behind less. The
+  commander's ship braces earlier because it is worth double while it has re-rolls (no fixed
+  bias). Not modelled: losing special orders while braced, the engine doesn't stop a braced
+  ship firing inside an asteroid field (s.39), so neither does the AI.
 - Squadron volleys (s.8, `_squadron_volleys`): one `plan_squadron_volley` per squadron when it
   rolls at least as many dice as firing separately, at the best target that is every
   contributor's nearest valid target; aspect by `best_aspect_choice`. Batteries only. Not yet:
@@ -779,10 +786,15 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    gamble on being crippled or destroyed, leaving a sure 10%: ahead it leaves more readily,
    behind less; a crippled ship concedes nothing extra by leaving, so it still leaves) and
    re-rolls (on the final game turn the bars drop to the lowest, 10 VP: left-over re-rolls are
-   worth nothing after it) (`tests/test_ai_disengage.py`). Still to do here: the preference
-   in brace and strike choices and in the guns' value a disengaging ship gives up, scenario
-   points in the margin (To do 7), the expert AI valuing its own craft in flight (enemy
-   craft in flight already cost its root moves, To do 11 b).
+   worth nothing after it) (`tests/test_ai_disengage.py`). Brace (`brace_value`, both choices
+   by certainty equivalent), strikes (`_strike_option`'s `risk_value`: the strike gets past the
+   guns on the way or not and meets each interception case; two-wave values and in-flight
+   re-targeting still use the expected value) and the guns a disengaging ship gives up
+   (`ai_rerolls.firepower_outcomes`: a kill / cripple / neither gamble; staying is it and the
+   damage gamble together) use it too (`tests/test_ai_disengage.py`,
+   `tests/test_strike_timeline.py`). Still to do here: scenario points in the margin (To do
+   7), the expert AI valuing its own craft in flight (enemy craft in flight already cost its
+   root moves, To do 11 b).
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
    owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the
@@ -1161,7 +1173,10 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
       no terrain or ordnance), chance points or sampled dice.
    c. Rule effects missing from valuations:
       - Price Brace instead of the 1/4-of-hits rule (owner: the feedback is right that Brace
-        has a cost). Gain: 4+ saves on hull hits from this attack and every later attack until
+        has a cost). Built (`ai_player.brace_value`, see "Shooting"); not yet: trying
+        against the attacker's weapon where the saving is worth most rather than the first
+        one asked about (today greedy: each question counts the attacker's other weapons),
+        the special orders a braced ship can't take. Gain: 4+ saves on hull hits from this attack and every later attack until
         the end of the ship's next turn. Because a ship tries only once per attacker, trying
         now also spends the chance against that attacker's later weapons: a failed test leaves
         its lances unbraceable too, while declining now keeps that option, so try against the

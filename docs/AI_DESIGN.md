@@ -255,9 +255,11 @@ non-crippled ship that disengages gives 10% ("Enemies Scattered", s.38).
 **Built today** (basic): Burn Retros when the safest half-speed move saves more hazard than half
 the ship's firepower is worth; otherwise Lock On whenever an enemy is in a battery / lance arc
 and range now; otherwise Reload Ordnance when ordnance is spent; it stops when a command check
-fails. Never All Ahead Full or Come to New Heading. Brace for Impact is a reaction: when the
-expected hull damage from the attack plus enemies still to fire reaches a quarter of its
-remaining hits (the commander's ship braces earlier).
+fails. Never All Ahead Full or Come to New Heading. Brace for Impact is a reaction, priced
+(built): the VP its 4+ saves are expected to keep (this attack and enemies still to fire)
+against half the ship's fire until the end of its next turn, at the command check's odds; with a
+turn limit both by certainty equivalent (ahead it braces more readily). The commander's ship
+braces earlier only because it is worth more.
 
 **Planned (To do 10, owner notes)**:
 
@@ -405,8 +407,8 @@ Each ordnance phase the AI plans fighters across all its carriers:
   game's turn limit.
 - **Built since**: the turn-limit risk preference (the expert's chance-of-winning score, and the
   normal AI's disengaging and re-rolls); crit values over up to 3 of the target's shooting
-  phases and the turn limit. **Planned**: the risk preference in brace and strike choices
-  (To do 2); scenario objectives over the game (To do 7).
+  phases and the turn limit; the risk preference in brace, strike choices and the guns a
+  disengaging ship gives up. **Planned**: scenario objectives over the game (To do 7).
 
 ---
 

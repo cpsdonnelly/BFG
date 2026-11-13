@@ -78,7 +78,7 @@ def test_split_wave_survival_spreads_the_guns():
     assert split_wave_survival([], 2) == [1.0, 1.0]
 
 
-def _split_scene(guns, turrets):
+def _split_scene(guns, turrets, side=None):
     from tests.conftest import DiceStub
     from src.models import Ship
     from src.ship_catalog import find_ship_class
@@ -92,7 +92,12 @@ def _split_scene(guns, turrets):
     for i, (x, y, h) in enumerate([(30.0, 15.0, 0.0), (30.0, -15.0, 180.0)][:guns]):
         ships.append(make_ship(id=f"g{i}", player=2, x=x, y=y, heading=h, speed=0,
                                weapons=[dict(w) for w in GUNS]))
+    if side:          # a destroyed ship puts player 1 ahead or behind
+        ships.append(make_ship(id="dead", player=2 if side == "ahead" else 1, x=300.0,
+                               y=300.0, points_value=200, hits_remaining=0, status="destroyed"))
     gs = make_gs(ships)
+    if side:
+        gs.turn_limit, gs.turn_number = 3, 3
     dice = DiceStub([])
     ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
     ai.difficulty = "normal"
@@ -121,3 +126,13 @@ def test_strike_splits_into_two_waves_under_enemy_guns():
     ms = [make_marker(id=f"m{i}", ordnance_type="bomber") for i in range(8)]
     groups = ai._wave_groups(ms, plan)
     assert [len(g) for g in groups] == [4, 4]
+
+
+def test_strike_value_follows_the_risk_preference():
+    """To do 2: a strike under enemy guns is a gamble (it gets through or it
+    doesn't); on the last turn it is worth more to the side behind and less to
+    the side ahead than its expected value."""
+    even = _split_scene(guns=2, turrets=4)[1][0]
+    ahead = _split_scene(guns=2, turrets=4, side="ahead")[1][0]
+    behind = _split_scene(guns=2, turrets=4, side="behind")[1][0]
+    assert ahead < even < behind

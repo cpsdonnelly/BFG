@@ -138,3 +138,47 @@ def test_rerolls_are_not_saved_past_the_last_turn():
         assert not ar.should_reroll(me, "special order", gs, 1)
     finally:
         ar.importance = orig
+
+
+def test_brace_follows_the_game_state_risk_preference():
+    """To do 2: a brace narrows the spread of the damage taken. On the last turn
+    the side ahead braces where the even game wouldn't; the side behind doesn't
+    where the even game would."""
+    from src.ai_player import brace_value
+    gun = {"name": "Guns", "weapon_type": "battery", "range_cm": 30, "strength": 6,
+           "arcs": ["left", "right", "front"]}
+
+    def value(side, hits):
+        p2 = make_ship(id="p2", player=1, x=0.0, y=10.0, hits_max=8, hits_remaining=8,
+                       shields_max=2, points_value=150, weapons=[gun])
+        foe = make_ship(id="e", player=2, x=20.0, y=0.0, points_value=200, hits_max=8)
+        ships = [p2, foe]
+        if side:
+            ships.append(make_ship(id="d", player=2 if side == "ahead" else 1, x=200.0,
+                                   y=200.0, points_value=150, hits_max=8, hits_remaining=0,
+                                   status="destroyed"))
+        gs = make_gs(ships)
+        gs.active_player = 2
+        if side:
+            gs.turn_limit, gs.turn_number = 4, 4
+        return brace_value(gs, gs.get_ship_by_id("p2"), hits)
+
+    assert value(None, 5) < 0 < value("ahead", 5)
+    assert value("behind", 6) < 0 < value(None, 6)
+
+
+def test_guns_given_up_by_disengaging_are_a_gamble_too():
+    """To do 2: the guns a disengaging ship gives up are a gamble (a kill or
+    nothing). Behind on the last turn, a long-shot kill keeps it fighting more
+    than a sure gain of the same average; ahead, less."""
+    def gain(behind, outs):
+        me, gs = _scene(8, n_foes=3)
+        me.heading = 90.0
+        gs.update_ship(me)
+        gs.add_ship(make_ship(id="dead", player=1 if behind else 2, x=150.0, y=100.0,
+                              hits_remaining=0, status="destroyed", points_value=200))
+        gs.turn_limit = gs.turn_number
+        return disengage_gain(gs.get_ship_by_id(me.id), gs, 8, 30.0, outs)
+    sure, shot = [(1.0, 30.0)], [(0.2, 150.0), (0.8, 0.0)]
+    assert gain(True, shot) < gain(True, sure)
+    assert gain(False, shot) > gain(False, sure)

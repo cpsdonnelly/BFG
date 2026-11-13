@@ -13,11 +13,11 @@ def test_brace_decision_absorbs_hits_with_shields():
 
 
 def test_brace_decision_counts_blast_markers_against_shields():
-    target = make_ship(id="t", player=2, shields_max=2, hits_max=8)
+    target = make_ship(id="t", player=2, shields_max=2, hits_max=8, points_value=150)
     gs = make_gs([target])
     gs.add_blast_marker(BlastMarker(id="bm1", x=0.0, y=0.0))
     gs.add_blast_marker(BlastMarker(id="bm2", x=0.0, y=0.0, heading=60.0))
-    # Both shields knocked down -> 2 hull hits >= 8/4 threshold -> brace
+    # Both shields knocked down -> 2 hull hits, and bracing costs a gunless ship nothing
     assert ai_should_brace(gs, target, incoming_hits=2) is True
 
 
