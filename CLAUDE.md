@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1261 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1268 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -524,8 +524,8 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: the narrative scenarios (raids, battles, set pieces; the nine matched-play ones are built, To do 7) and sub-plots, and the To do items below.
-Next (largest first): 7 (the raids and battles, sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
+Not built: the narrative scenarios (raids, battles, set pieces; the nine matched-play ones are built, To do 7) and the rest of the sub-plots, and the To do items below.
+Next (largest first): 7 (the raids and battles, the rest of the sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
@@ -1097,9 +1097,34 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    Necrons 4 until their fleet lists exist, Rogue Traders alone 2) and `roll_attack_ratings`
    (best die, then the next; out of dice loses; full tie re-rolled), chosen in setup as
    "Attack ratings (roll)" (`GameState.attacker_by_rating`, rolled in
-   `GamePanel._start_game`). Not yet: racing the 10 against the turn order, Planet Strike's planetary defence
-   budget (+20%) and "extra assault points" ships, Orbit Lost, the raids and battles, sub-plots, attack ratings, the Ambush
-   attacker's half-points limit (fleet building), Line Breaker's "platforms can't squadron".
+   `GamePanel._start_game`). Sub-plots, first slice (7 b, `src/subplots.py`): with the
+   setup option "Sub-plots" (`GameState.rule_subplots`) each player, the attacker first,
+   rolls one before deployment (`GamePanel._roll_subplots`; D6 table, D6 entry; nominations
+   asked of a human with "Auto (best)", the AI nominates the dearest ship), kept in
+   `GameState.subplots`. Effects built: Gunnery Practice / Extended Duty command check
+   modifiers (`command_check_modifier` in `movement.do_command_check`), Extended Duty's D3
+   damage, Meteor Storm's crits, Fresh Captain's -1 Ld, Surprise Attack (the enemy's
+   `orders_forbidden` for D3 game turns, reading: both players' turns), Secret Intelligence's
+   extra re-roll, Experimental Ship's improvement / side effect (contradictions re-rolled),
+   Navigational Hazards' clouds / asteroid field (reading: placed at random away from the long
+   edges), Hit and Run's 2D6 turns, Enemy Plans' search roll on boarding a capital ship
+   (`record_boarding` in `boarding.resolve_boarding`) and Secret Intelligence's raid
+   (`record_raid` in `hit_and_run.resolve_raids`). Objectives judged at the end
+   (`objective_met`; readings: Extended Duty / No Quarter count a crippled ship's whole
+   points, a draw isn't a won main mission) and the battle result with renown in the game-over
+   dialog (`battle_result`: Heroic Victory / Victory / Heroic Defeat / Miserable Defeat). Not
+   built (flagged `unbuilt` when rolled): Blood Bond's +1 Ld, Fleet Experience's borrowed Ld,
+   Signaling Problems' re-roll limit (their objectives are judged), Unexpected Help's
+   reinforcements and the Decoy (can't be met), Fresh Captain's objective (kills aren't
+   credited to ships); faction sub-plots. AI, first form: `subplots.kill_bonus_vp` (a
+   Vendetta target, our Desperate Mission / Experimental Ship, a Fleet Experience flagship:
+   `SUBPLOT_WEIGHT` 0.1 x the points on the table, judgement) through
+   `scenarios.kill_bonus_vp` into `damage_vp` and `disengage_gain`
+   (`tests/test_subplots.py`; `gui_spectator_scenario.py igougo confrontation subplots`).
+   Not yet: racing the 10 against the turn order, Planet Strike's planetary defence
+   budget (+20%) and "extra assault points" ships, Orbit Lost, the raids and battles, the rest
+   of the sub-plots, the Ambush attacker's half-points limit (fleet building), Line Breaker's
+   "platforms can't squadron".
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the
    matchup": each should come out of the expected-VP move score, not a fixed doctrine).

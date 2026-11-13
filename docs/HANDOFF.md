@@ -906,6 +906,13 @@ ships could drift off an edge. `gui_spectator_scenario.py <igougo|aa> <scenario>
 of them (DUMP_LOG=<file> writes the game log). Next in To do 7: the raids and battles
 (longer, with planets, low orbit, attack ratings), sub-plots, and the expert AI's leaf.
 
+Then: scenario points in the AI's margin and the expert leaf (To do 2 done), attack ratings,
+and sub-plots' first slice (`src/subplots.py`; CLAUDE.md To do 7 lists what is built and what
+is flagged `unbuilt`). Readings to confirm: Surprise Attack's D3 turns are game turns; a
+crippled ship counts its whole points for Extended Duty / No Quarter; a draw doesn't win the
+main mission; Navigational Hazards are placed at random away from the deployment edges;
+Eldar 3 / Necrons 4 / Rogue Traders alone 2 as attack ratings until their lists exist.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

@@ -64,6 +64,7 @@ def cat(name, player, i, x, y, sq=""):
 gs.table_width, gs.table_height = 180.0, 120.0
 scenario = sys.argv[2] if len(sys.argv) > 2 else "ambush"
 gs.scenario_mode = scenario
+gs.rule_subplots = "subplots" in sys.argv
 gs.scenario_attacker = 1
 gs.turn_limit = 12
 from src import scenarios as sc
@@ -154,6 +155,7 @@ orig_mixed = DiceRoller._mixed_input if hasattr(DiceRoller, "_mixed_input") else
 if orig_mixed:
     DiceRoller._mixed_input = lambda self, *a, **k: (popups.append(1), orig_mixed(self, *a, **k))[1]
 
+panel._roll_subplots()
 panel._begin_turn1()
 start = time.time()
 phases_seen = set()
@@ -177,7 +179,7 @@ aa_log = [l for l in gs.log if "[AA]" in l]
 print(f"[{scenario} {system}] result: {game_over[0][1] if game_over else None}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
-                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "holds position", "DISENGAG", "off the table",
+                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Sub-plot", "holds position", "DISENGAG", "off the table",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "

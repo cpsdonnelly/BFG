@@ -652,6 +652,11 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if slaanesh_penalty(ship, gs):
         ld -= 1
         mods.append("Mark of Slaanesh -1")
+    from .subplots import command_check_modifier
+    sp_mod = command_check_modifier(ship, order)
+    if sp_mod:
+        ld += sp_mod
+        mods.append(f"sub-plot {sp_mod:+d}")
     if order == SpecialOrder.RELOAD_ORDNANCE.value and "grot_riggers" in ship.special_rules:
         ld += 1
         mods.append("Grot Riggers +1")

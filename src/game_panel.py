@@ -1079,6 +1079,7 @@ class GamePanel(AAPanelMixin):
             if errs:
                 messagebox.showwarning("Scenario forces", "\n".join(errs))
             self.ctx.board.redraw()
+        self._roll_subplots()
         from .deployment_panel import DeploymentPanel
         DeploymentPanel(
             parent_frame=self.parent,
@@ -1088,6 +1089,35 @@ class GamePanel(AAPanelMixin):
             on_complete=self._begin_turn1,
             mode="sequential",
         )
+
+    def _roll_subplots(self):
+        """Sub-plots (p.80): with the rule on, each player (the attacker
+        first) rolls one before deployment; nominations are asked of a human
+        owner (the AI nominates the dearest ship)."""
+        gs = self.ctx.gs
+        if not getattr(gs, "rule_subplots", False) or gs.subplots:
+            return
+        from .subplots import generate, apply_setup
+        from .dice import DiceRoller
+        first = gs.scenario_attacker if gs.scenario_mode != "standard" else 1
+        for p in (first, 3 - first):
+            ai = self.ctx.is_ai_controlled(p)
+            dice = DiceRoller(mode="auto") if ai else self.ctx.dice
+            sp = generate(gs, p, dice)
+            if ai:
+                chooser = None
+            else:
+                from .choice_dialog import choose
+
+                def chooser(cands, prompt):
+                    if not cands:
+                        return None
+                    best = max(cands, key=lambda s: s.points_value)
+                    return choose(self.root, "Sub-plot", prompt,
+                                  [(c.name, c) for c in cands], best)
+            for line in apply_setup(gs, p, sp, dice, chooser):
+                self.ctx.log(f"[Sub-plot] {line}")
+        self.ctx.board.redraw()
 
     def _begin_turn1(self):
         """Called by DeploymentPanel when all ships are placed."""
@@ -1570,6 +1600,14 @@ class GamePanel(AAPanelMixin):
             "convoy_gone": "Convoy: no transport capacity left on the table.",
             "breakthrough": "Line Breaker: the platforms are destroyed and the attacker broke through.",
         }.get(reason, "")
+        from .subplots import battle_result
+        for p in (1, 2):
+            br = battle_result(gs, p, winner)
+            if br:
+                name = gs.player1_name if p == 1 else gs.player2_name
+                reason_text += (f"\n{name}: {br['result']} (sub-plot {br['sub_plot']} "
+                                f"{'achieved' if br['objective'] else 'failed'}; "
+                                f"renown {br['renown']:+d})")
         if gs.scenario_mode == "domination":
             from .scenarios import points
             pts = points(gs)

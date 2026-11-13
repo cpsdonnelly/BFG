@@ -26,7 +26,7 @@ def _apply_rules(gs, setup):
     """Apply optional rule settings from setup dict to GameState."""
     for key in ("rule_fighting_sunward", "rule_solar_flares", "rule_radiation_bursts",
                  "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
-                 "rule_turret_suppression_remastered", "allow_movement_pass",
+                 "rule_turret_suppression_remastered", "rule_subplots", "allow_movement_pass",
                  "turn_limit", "ftl_available_turn", "scenario_mode",
                  "scenario_attacker", "attacker_by_rating", "artefact_submode",
                  "ai_player", "ai_difficulty", "ai_spectator"):
@@ -360,6 +360,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("hit_and_run", "Hit and Run Raids", False),
         ("turret_suppression_remastered",
          "Turret Suppression: Remastered mode (default: XR — fighters give 3 fixed attacks)", False),
+        ("subplots", "Sub-plots (booklet p.80: each player rolls one)", False),
     ]
     for key, label, default in rules_list:
         var = tk.BooleanVar(value=default)

@@ -165,6 +165,10 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
         "grapple": bool,            # True if combat was a draw
       }
     """
+    # Sub-plots: Enemy Plans and Secret Intelligence (src/subplots.py)
+    if attackers:
+        from .subplots import record_boarding
+        record_boarding(gs, attackers[0].player, target, dice)
     # Plague Fleet of Nurgle, Plague Arks: a ship that boards or is boarded
     # by one suffers an automatic Plague critical (a Fire critical)
     from .combat import add_fire_crits

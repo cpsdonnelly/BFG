@@ -83,6 +83,10 @@ class GameState:
     # Booklet scenarios (src/scenarios.py): e.g. Domination's layout, objective
     # markers and points
     scenario_state: Dict = field(default_factory=dict)
+    # Sub-plots (src/subplots.py, p.80-82): rule_subplots rolls one for each
+    # player before deployment; subplots holds them {"1": {...}, "2": {...}}
+    rule_subplots: bool = False
+    subplots: Dict = field(default_factory=dict)
     undivided_used: List[int] = field(default_factory=list)
     undivided_boost: Dict = field(default_factory=dict)
 
@@ -194,6 +198,8 @@ class GameState:
             "aa_settings": dict(self.aa_settings),
             "aa_state": dict(self.aa_state),
             "scenario_state": dict(self.scenario_state),
+            "rule_subplots": self.rule_subplots,
+            "subplots": dict(self.subplots),
             "undivided_used": list(self.undivided_used),
             "solar_flare_dice": self.solar_flare_dice,
             "radiation_burst_dice": self.radiation_burst_dice,

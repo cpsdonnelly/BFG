@@ -461,6 +461,9 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         "damage": int,               # damage to escorts/small targets (no crits)
       }
     """
+    # Sub-plots: Secret Intelligence (a hit-and-run attack on the nominated ship)
+    from .subplots import record_raid
+    record_raid(gs, 3 - target.player, target)
     summary = {
         "raid_rolls": [],
         "failures": 0,

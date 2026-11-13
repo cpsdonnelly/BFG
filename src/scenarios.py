@@ -596,6 +596,10 @@ def orders_forbidden(gs, ship) -> Optional[str]:
     """Why `ship` may not go on special orders now (Brace included), or None.
     Ambush: no defending ship during the defender's first turn. Rescue: the
     defending flagship during the defender's first turn."""
+    from .subplots import orders_forbidden as _subplot_forbidden
+    why = _subplot_forbidden(gs, ship)
+    if why:
+        return why
     mode = getattr(gs, "scenario_mode", "")
     if ship.player != defender(gs) or not _in_defenders_first_turn(gs):
         return None
@@ -720,6 +724,12 @@ def kill_bonus_vp(gs, ship) -> float:
     attacker can only win with them all destroyed (judgement: each worth the
     defender's points / platforms). Used by the AI's damage and disengage
     values."""
+    from .subplots import kill_bonus_vp as _subplot_bonus
+    sub = _subplot_bonus(gs, ship)
+    return sub + _scenario_kill_bonus(gs, ship)
+
+
+def _scenario_kill_bonus(gs, ship) -> float:
     mode = getattr(gs, "scenario_mode", "")
     if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
         return 100.0        # a convoy ship escaping would give the defender 100
