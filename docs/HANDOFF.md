@@ -849,6 +849,9 @@ Heroes, Void Dragon, Ghostships, Dying Race, bombers' re-roll and fighters' save
 holofields against non-lance direct attacks, Superstructure Damaged, a second prow crit, the
 AI's lance values ignoring the holofield save, Come to New Heading's extra turn in the AI's
 MMS moves, the move dialog's MMS help, the five either/or ships and the one without a cost.
+Necrons started: `src/necrons.py` (reactive hulls and Brace, alert levels and awakening,
+power conservation, the inertialess drive, the weapons' core rules), tested, not wired in
+(CLAUDE.md To do 14 lists the next steps and the readings).
 Export gap to report: Eldar keel launch bays come out unparsed (see "Booklet export bug").
 Notes for GUI checks: `gui_spectator_demo.py` / `_orks` / `_sm` need `normal` / `expert`;
 `gui_spectator_aa.py <mode> [shoot_first|move_first]`; `gui_spectator_eldar.py igougo|aa`;

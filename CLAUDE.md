@@ -491,7 +491,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1212 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1215 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1658,7 +1658,19 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    Also still open from the slices above: Eldar bombers re-rolling attack dice, fighters' 4+
    save per wave, holofields against non-lance direct attacks, Superstructure Damaged, a
    second prow crit, the five either/or ships and the one without a points cost.
-   Next: Necrons (`bfgxr/rules/09_necrons.md`), then the Eldar gaps above.
+   Necrons, first slice built (`src/necrons.py`, pure logic, not wired in yet): reactive
+   hulls (`parse_reactive_hull` "RH 4+", `hull_save` 2+ when braced, `armour_when_braced` 4+,
+   hulks 4+), no Reload Ordnance but the tomb complex, Deadly Awakening (`starting_alert`:
+   1, +2 when the enemy has more points on the table, +1 per hostile special (reading: each,
+   max 5); `AlertTracker` +1 per unsaved hit or raid; `AWAKEN_LD` 10 / 9 / 8 / 7 / none;
+   `conserving_power` capital ships act crippled but for scoring; awakened ships double VP),
+   the inertialess drive (AAF + D6x10cm, a turn per full 20cm, reading), the weapons' core
+   (fields only uncrippled and off orders but Lock On, ordnance within 20cm destroyed on 4+
+   each, the nightmare field's Ld test, one star pulse roll per ship within 20cm, particle
+   whip 6s bypass shields, lightning arcs always "closing", portals halved rounding down and
+   free of the hits limit) (`tests/test_necron_rules.py`). Next: the catalog (Necron weapons,
+   RH, `necron` rule), combat / movement / end-phase wiring, the Necron crit table, Without a
+   Trace (auto-disengage, firing at own hulks), the AI, then the Eldar gaps above.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 
