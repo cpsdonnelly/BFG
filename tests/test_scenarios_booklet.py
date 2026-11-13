@@ -440,3 +440,68 @@ def test_space_assault_station_placement_and_vp():
     vp = calculate_victory_points(gs)
     assert vp[1]["total"] == 150 + 250 and vp[2]["total"] == 0
     assert sc.kill_bonus_vp(gs, s) == 500.0
+
+
+# --- Convoy (matched play) -----------------------------------------------------
+
+def test_transport_capacity_from_the_catalog():
+    ht = _cat("Heavy Transport", 2, "ht")
+    fc = _cat("Fast Clipper", 2, "fc")
+    ec = _cat("Escort Carrier", 2, "ec")
+    ct = _cat("Conventional Transport", 2, "ct")
+    assert sc.transport(ht) == 2 and sc.transport(fc) == 0.5 and sc.transport(ct) == 1
+    assert ct.points_value == 0 and not fc.weapons        # Free; unarmed but playable
+    assert sc.transport(ec) == 0 and sc.transport(ec, building=True) == 1
+    ht.hits_remaining = 3                                 # crippled: halved
+    assert sc.transport(ht) == 1
+    assert not sc.is_convoy(_cat("Lunar Class Cruiser", 2, "lu"))
+
+
+def test_convoy_set_up_requirements_end_and_vp():
+    from src.victory_points import calculate_victory_points
+    lunar = _cat("Lunar Class Cruiser", 2, "lu")             # 180pts: 2 capacity
+    c1 = _cat("Conventional Transport", 2, "c1")
+    c2 = _cat("Heavy Transport", 2, "c2")
+    att = _cat("Slaughter Class Cruiser", 1, "sl")
+    gs = _gs([lunar, c1, c2, att], mode="convoy_matched")
+    sc.setup_scenario(gs)
+    assert sc.force_errors(gs)                               # 3 capacity, needs 2
+    c2 = gs.get_ship_by_id("c2")
+    gs.ships = [d for d in gs.ships if d["id"] != "c2"]
+    gs.add_ship(_cat("Conventional Transport", 2, "c3"))
+    assert not sc.force_errors(gs)
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[2].contains(90, 20) and zones[1].contains(90, 90)
+    assert not zones[1].contains(90, 110) and not zones[1].contains(90, 70)
+    assert sc.first_player(gs) == 2
+    # c1 escapes off the top: +100 to the defender; c3 leaves by a test:
+    # destroyed + 50 for the attacker (its cost is 0)
+    c1 = gs.get_ship_by_id("c1")
+    c1.x, c1.y = 90.0, 121.0
+    c1.is_disengaged, c1.status = True, "disengaged"
+    gs.update_ship(c1)
+    sc.record_exit(gs, c1)
+    assert check_game_over(gs) is None                       # c3 still carries cargo
+    c3 = gs.get_ship_by_id("c3")
+    c3.is_disengaged, c3.status = True, "disengaged"
+    gs.update_ship(c3)
+    vp = calculate_victory_points(gs)
+    assert vp[2]["total"] == 100 and vp[1]["total"] == 50
+    res = check_game_over(gs)
+    assert res["reason"] == "convoy_gone" and res["winner"] == 2
+
+
+def test_ai_convoy_ship_runs_for_the_far_edge():
+    from src.ai_player import AIPlayer
+    from src.movement import validate_movement
+    from src.turn_controller import TurnController
+    ht = _cat("Heavy Transport", 2, "ht", 90.0, 20.0, 0.0)     # facing along the edge
+    att = _cat("Slaughter Class Cruiser", 1, "sl", 30.0, 100.0, 270.0)
+    gs = _gs([ht, att], mode="convoy_matched")
+    sc.setup_scenario(gs)
+    ai = AIPlayer(2, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai.difficulty = "normal"
+    cmds = ai._plan_move_toward(ht, att, "", 0)
+    res = validate_movement(ht, cmds, "", table_width=180.0, table_height=120.0)
+    assert res.path[-1][1] > 23.0        # turns north as far as it can (10cm, then 45 degrees)
+    assert ai._objective_stake(ht) > 100

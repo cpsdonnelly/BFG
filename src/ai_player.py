@@ -800,7 +800,31 @@ class AIPlayer:
         score += self._objective_term(ship, fx, fy, enemy)
         score += self._rescue_escape(ship, fx, fy, enemy)
         score += self._breakthrough(ship, fx, fy, enemy)
+        score += self._convoy_run(ship, fx, fy, enemy)
         return score
+
+    CONVOY_RUN_WEIGHT = 0.5      # judgement: the share of its points a convoy ship saves by escaping
+
+    def _convoy_run(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """Convoy (To do 7): a convoy ship moving off the attacker's long edge
+        (the top) gives the defender 100 VP and saves its own points, so its
+        moves gain 100 + `CONVOY_RUN_WEIGHT` x its points in proportion to the
+        way covered towards that edge, all of it for leaving there. In
+        move-score units."""
+        gs = self.gs
+        if gs.scenario_mode != "convoy_matched" or self.difficulty == "easy":
+            return 0.0
+        from .scenarios import is_convoy, transport, defender
+        if ship.player != defender(gs) or not is_convoy(ship) or transport(ship) <= 0:
+            return 0.0
+        from .ai_hazards import value_per_hit
+        h = gs.table_height
+        g = 100.0 + self.CONVOY_RUN_WEIGHT * ship.points_value
+        if y + ship.base_radius > h:
+            progress = 1.0
+        else:
+            progress = max(0.0, y - ship.y) / max(1.0, h - ship.y)
+        return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
 
     BREAKTHROUGH_WEIGHT = 0.5    # judgement: winning Line Breaker ~ half the points on the table
 
@@ -865,8 +889,12 @@ class AIPlayer:
         most 1) for each of our turns left (to the turn limit, or until a
         player could reach 10 at that rate), at `objective_point_vp`.
         Judgement, first form."""
-        from .scenarios import objectives, points, DOMINATION_TARGET
+        from .scenarios import objectives, points, DOMINATION_TARGET, is_convoy, defender
         gs = self.gs
+        if (gs.scenario_mode == "convoy_matched" and is_convoy(ship)
+                and ship.player == defender(gs)):
+            # Convoy: leaving except off the attacker's edge counts as destroyed, +50
+            return 100.0 + ship.points_value + 50.0
         if (gs.scenario_mode == "line_breaker" and ship.player == gs.scenario_attacker
                 and ship.ship_type != "escort"):
             # Line Breaker: the attacker wins only by breaking through with a

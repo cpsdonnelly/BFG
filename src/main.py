@@ -418,6 +418,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("confrontation",     "Confrontation (booklet p.117: attacker first, VP)"),
         ("line_breaker",      "Line Breaker (booklet p.118: defence platforms)"),
         ("ambush",            "Ambush (booklet p.119: defender caught unawares)"),
+        ("convoy_matched",    "Convoy (booklet p.120: escort the convoy off the far edge)"),
         ("space_assault",     "Space Assault (booklet p.121: space station)"),
         ("rescue",            "Rescue (booklet p.122: defending flagship at the centre)"),
         ("warp_storm",        "Warp Storm (booklet p.123: corner divisions)"),

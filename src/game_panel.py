@@ -611,7 +611,7 @@ class GamePanel(AAPanelMixin):
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "confrontation", "line_breaker", "ambush",
-                      "space_assault", "rescue", "warp_storm", "domination"]
+                      "convoy_matched", "space_assault", "rescue", "warp_storm", "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
         scen_cb = ttk.Combobox(mode_row, textvariable=scen_var, values=scen_modes,
                                 state="disabled" if locked else "readonly", width=22,
@@ -1560,6 +1560,7 @@ class GamePanel(AAPanelMixin):
             "artefact_escaped": "Artefact carrier escaped the field!",
             "artefact_lost": "Artefact carrier destroyed — artefact lost!",
             "objective_points": f"Objective points reached 10 ({detail}).",
+            "convoy_gone": "Convoy: no transport capacity left on the table.",
             "breakthrough": "Line Breaker: the platforms are destroyed and the attacker broke through.",
         }.get(reason, "")
         if gs.scenario_mode == "domination":

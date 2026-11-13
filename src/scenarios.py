@@ -57,6 +57,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "vp",
     },
+    "convoy_matched": {
+        "name": "Convoy (XR p.120, matched play)",
+        "first_turn": "defender",
+        "end": "fleet_gone_or_no_cargo",
+        "victory": "vp",
+    },
     "domination": {
         "name": "Domination (XR p.125-126)",
         "first_turn": "attacker",
@@ -161,6 +167,8 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
         gs.scenario_state = {"flagship": flag.id if flag else None}
         if flag is not None:
             gs.add_log(f"[Rescue] the defending flagship is {flag.name}")
+    elif mode == "convoy_matched":
+        gs.scenario_state = {"had_cargo": cargo_on_table(gs, defender(gs)) > 0}
     elif mode in SCENARIOS:
         gs.scenario_state = {"started": True}
 
@@ -202,6 +210,37 @@ def is_platform(ship) -> bool:
     return any(ship.ship_class.startswith(p) for p in PLATFORMS)
 
 
+def transport(ship, building: bool = False) -> float:
+    """A convoy ship's transport capacity (Support Assets p.64): halved while
+    crippled for ships larger than an escort; escort carriers and Q-ships
+    count only when assembling the fleet (`building`)."""
+    cap = next((float(r.split(":")[1]) for r in ship.special_rules
+                if r.startswith("transport:")), 0.0)
+    if building:
+        return cap
+    if "transport_build_only" in ship.special_rules:
+        return 0.0
+    if ship.ship_type != "escort" and ship.damage_crippled:
+        cap /= 2.0
+    return cap
+
+
+def is_convoy(ship) -> bool:
+    return any(r.startswith("transport:") for r in ship.special_rules)
+
+
+def cargo_on_table(gs, player: int) -> float:
+    return sum(transport(s) for s in gs.get_ships() if s.player == player and is_convoy(s)
+               and not s.is_destroyed and not s.is_disengaged)
+
+
+def scores_normally(gs, ship) -> bool:
+    """False for ships the scenario scores itself (vp_bonus): Convoy's convoy
+    ships."""
+    return not (getattr(gs, "scenario_mode", "") == "convoy_matched" and is_convoy(ship)
+                and ship.player == defender(gs))
+
+
 def space_station(gs):
     return next((s for s in gs.get_ships() if s.player == defender(gs)
                  and s.ship_class.startswith("Space Station")), None)
@@ -220,6 +259,18 @@ def force_errors(gs) -> List[str]:
         if have < need:
             return [f"Line Breaker: the defender needs {need} defence platforms "
                     f"({pts}pts), has {have}"]
+    if mode == "convoy_matched":
+        convoy = [s for s in ships if is_convoy(s)]
+        pts = sum(s.points_value for s in ships if not is_convoy(s))
+        need = -(-pts // 100)
+        have = sum(transport(s, building=True) for s in convoy)
+        errs = []
+        if abs(have - need) > 1e-9:
+            errs.append(f"Convoy: the defender needs exactly {need} transport capacity "
+                        f"({pts}pts), has {have:g}")
+        if not any(transport(s) > 0 for s in convoy):
+            errs.append("Convoy: at least one convoy ship whose capacity counts in the game")
+        return errs
     if mode == "space_assault":
         n = sum(1 for s in ships if s.ship_class.startswith("Space Station"))
         if n != 1:
@@ -259,6 +310,10 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         # Defender within 30cm of the bottom edge (the station is placed by the
         # scenario, 30cm in and centred); attacker within 30cm of the top
         rects = {3 - att_p: [(0, 0, h - 30, 0)], att_p: [(0, 0, 0, h - 30)]}
+    elif mode == "convoy_matched":
+        # Defender (and its convoy) within 30cm of the bottom edge; attacker
+        # between 15 and 45cm of the top edge
+        rects = {3 - att_p: [(0, 0, h - 30, 0)], att_p: [(0, 0, 15, h - 45)]}
     elif mode == "domination":
         layout = (gs.scenario_state or {}).get("layout")
         if not layout:
@@ -482,6 +537,31 @@ def vp_bonus(gs, result: Dict) -> None:
     Rescue: the attacker +100% of the defending flagship's cost if it is
     destroyed at the end of the game. Space Assault: 250 to the attacker if
     the space station is destroyed, else 250 to the defender."""
+    if getattr(gs, "scenario_mode", "") == "convoy_matched":
+        # Each convoy ship moving off the attacker's long edge (the top) gives
+        # the defender 100 VP instead of counting for the attacker; leaving
+        # any other way counts as destroyed and gives the attacker +50.
+        # Reading: convoy ships are scored one by one, not as squadrons
+        exits = (gs.scenario_state or {}).get("exits", {})
+        att, dfn = gs.scenario_attacker, defender(gs)
+        for c in gs.get_ships():
+            if c.player != dfn or not is_convoy(c):
+                continue
+            pts = c.points_value
+            if c.is_disengaged and exits.get(c.id) == "top":
+                vp, who, why = 100, dfn, "escaped"
+            elif c.is_disengaged:
+                vp, who, why = pts + 50, att, "left the board (destroyed)"
+            elif c.is_destroyed:
+                vp, who, why = pts, att, "destroyed"
+            elif c.damage_crippled:
+                vp, who, why = max(1, pts // 4) if pts else 0, att, "crippled"
+            else:
+                continue
+            if vp:
+                result[who]["scenario"] = result[who].get("scenario", 0) + vp
+                result[who]["details"].append(f"Convoy: {c.name} {why}: +{vp} VP")
+        return
     if getattr(gs, "scenario_mode", "") == "space_assault":
         st = space_station(gs)
         if st is None:
@@ -509,6 +589,8 @@ def kill_bonus_vp(gs, ship) -> float:
     defender's points / platforms). Used by the AI's damage and disengage
     values."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
+        return 100.0        # a convoy ship escaping would give the defender 100
     if mode == "space_assault" and ship.ship_class.startswith("Space Station") \
             and ship.player == defender(gs):
         return 500.0
@@ -621,6 +703,12 @@ def check_end(gs) -> Optional[dict]:
     """Booklet scenario game-end and victory (scenario.check_game_over's
     contract). Fleet-gone checks stay in check_game_over."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "convoy_matched":
+        st = gs.scenario_state or {}
+        if st.get("had_cargo") and cargo_on_table(gs, defender(gs)) <= 0:
+            from .scenario import vp_winner
+            return {"winner": vp_winner(gs), "reason": "convoy_gone",
+                    "detail": "no transport capacity left on the table"}
     if mode == "line_breaker" and line_breaker_won(gs):
         return {"winner": gs.scenario_attacker, "reason": "breakthrough",
                 "detail": "the line is broken"}

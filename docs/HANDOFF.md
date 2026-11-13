@@ -892,6 +892,11 @@ Orbit Lost does nothing without a planet; Line Breaker's defender edge is the bo
 capital ship off it after every platform is gone wins at once. Watch: the normal AI still
 disengages healthy ships readily in plain VP games (To do 1 territory, weights on hold).
 
+Fourth slice: transport capacity and the matched-play Convoy (`convoy_matched`). Readings to
+confirm: the capacity requirement counts the defender's points without its convoy ships;
+convoy ships are scored one by one (squadron crippling doesn't apply to them); a convoy ship
+destroyed in battle gives its cost only (the +50 is for leaving the board another way).
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

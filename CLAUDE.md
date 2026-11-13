@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1252 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1255 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -521,7 +521,7 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: most scenarios (Confrontation, Line Breaker, Ambush, Space Assault, Rescue, Warp Storm and Domination are, To do 7) and sub-plots, and the To do items below.
+Not built: most scenarios (Confrontation, Line Breaker, Ambush, Convoy (matched), Space Assault, Rescue, Warp Storm and Domination are, To do 7) and sub-plots, and the To do items below.
 Next (largest first): 7 (scenarios / sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
@@ -1048,9 +1048,22 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    points / platforms, judgement) and the station's 500 (the 250 swing both ways);
    `_breakthrough` pulls attacking capital ships to the bottom edge once the platforms are
    gone (`BREAKTHROUGH_WEIGHT` 0.5, judgement) and `_objective_stake` keeps them from
-   disengaging. Not yet: the expert search's leaf counting Domination points, racing the 10
-   against the turn order, Convoy / Planet Strike (convoys, transport capacity, planets placed
-   by the scenario), Orbit Lost, the raids and battles, sub-plots, attack ratings, the Ambush
+   disengaging. Fourth slice built: convoy ships' transport capacity (`booklet_ships.
+   transport_capacity` from the notes of convoy ships only: `transport:<n>`, and
+   `transport_build_only` for escort carriers / Q-ships; the Fast Clipper (unarmed) and the
+   free Conventional Transport are playable; `scenarios.transport` halves it for crippled
+   ships larger than escorts) and the matched-play Convoy (`convoy_matched`, p.120: defender
+   and convoy within 30cm of the bottom edge, attacker 15-45cm from the top, defender first;
+   `force_errors` wants exactly one capacity per 100pts or portion of the defender's other
+   ships (reading: convoy ships' own points excluded) and one ship whose capacity counts in
+   play; the game ends when no capacity is left on the table; convoy ships are scored by
+   `vp_bonus`, not the normal VP (`scores_normally`): off the top edge +100 to the defender,
+   leaving any other way their cost + 50 to the attacker, destroyed their cost, crippled 25%
+   (reading: one by one, not as squadrons)). AI: `_convoy_run` (convoy ships head for the top
+   edge, 100 + `CONVOY_RUN_WEIGHT` 0.5 x their points, judgement), they never take disengage
+   tests (`_objective_stake`), and the attacker's kill bonus of 100 a convoy ship. Not yet:
+   the expert search's leaf counting Domination points, racing the 10 against the turn order,
+   Planet Strike (planets placed by the scenario, bombardment points), Orbit Lost, the raids and battles, sub-plots, attack ratings, the Ambush
    attacker's half-points limit (fleet building), Line Breaker's "platforms can't squadron".
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the

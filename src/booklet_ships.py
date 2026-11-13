@@ -348,6 +348,20 @@ def faction_special_rules(row: dict) -> List[str]:
     return rules
 
 
+def transport_capacity(notes: str):
+    """Convoy ships' transport capacity from the notes ("Transport capacity
+    2", "½ transport capacity", "Convoy ship (transport capacity 8)"), as
+    (capacity, counts for scenario requirements only), or None."""
+    m = re.search(r"(?:[Tt]ransport capacity (\d+|½))|(?:(½) transport capacity)", notes or "")
+    if not m:
+        return None
+    raw = m.group(1) or m.group(2)
+    cap = 0.5 if raw == "½" else float(raw)
+    build_only = bool(re.search(r"scenario (?:requirements )?only|does not count for sc",
+                                notes))
+    return cap, build_only
+
+
 def _has_built_in_thrusters(notes: str) -> bool:
     """+D6cm on All Ahead Full built into the profile (Improved Thrusters,
     Sigils of Quickening...), not offered as a refit for points."""
@@ -381,9 +395,12 @@ def convert_row(row: dict) -> dict:
     elif row.get("speed_cm") is None or row.get("turn_deg") is None:
         problems.append(f"special movement ({row.get('speed_raw')}, "
                         f"{row.get('turn_raw')}) not modelled yet")
-    if row.get("points") is None:
+    transport = transport_capacity(notes0) if (
+        "Convoy ship" in notes0 or row.get("roster_group") == "Convoy Ships") else None
+    if row.get("points") is None and not (transport and row.get("points_raw") == "Free"):
         problems.append(f"points cost '{row.get('points_raw')}' is not a fixed number")
-    if not row["weapons"]:
+    if not row["weapons"] and not (transport and ship_type in ("escort", "cruiser")):
+        # unarmed convoy ships (Fast Clipper) are playable; their cargo is the point
         problems.append(f"no weapon profile ({row.get('armament_raw')})")
     if row["faction"] in UNBUILT_FACTION_RULES:
         problems.append(UNBUILT_FACTION_RULES[row["faction"]])
@@ -502,6 +519,11 @@ def convert_row(row: dict) -> dict:
         special_rules += ["eldar_mms", "fragile"] + (["holofield"] if holo is not None else [])
         if eldar_speeds:
             special_rules.append("eldar_speeds:" + "/".join(str(v) for v in eldar_speeds))
+    if transport:
+        cap, build_only = transport
+        special_rules.append(f"transport:{cap:g}")
+        if build_only:
+            special_rules.append("transport_build_only")   # counts for fleet building only
     if immobile:
         # Immobile defences (Support Assets, Rulebook p.61-62): they never move
         special_rules.append("immobile")

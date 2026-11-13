@@ -32,11 +32,12 @@ def calculate_victory_points(gs: GameState) -> Dict:
     # Score each ship/squadron
     scored_squadron_ids = set()
 
+    from .scenarios import scores_normally
     for s in ships:
         opponent = 2 if s.player == 1 else 1
         pts = s.points_value
-        if pts <= 0:
-            continue
+        if pts <= 0 or not scores_normally(gs, s):
+            continue            # (convoy ships in Convoy are scored by vp_bonus)
 
         # Skip escorts that are part of a squadron (handled below)
         if s.squadron_id and s.ship_type == "escort":

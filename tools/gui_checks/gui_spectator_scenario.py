@@ -75,6 +75,9 @@ if scenario == "ambush":
     chs = chs[:2]                       # the attacker has half the points
 if scenario == "line_breaker":
     imp = imp[:3] + ["Orbital Weapons Platform"] * 3 + ["Orbital Defence Laser Platform"] * 2
+if scenario == "convoy_matched":
+    # 3 warships (180 + 185? the list's costs) -> capacity by the points; filled below
+    imp = imp[:2]
 if scenario == "space_assault":
     imp = imp[:3] + ["Space Station", "Orbital Weapons Platform"]
 for p, names in ((1, chs), (2, imp)):
@@ -85,6 +88,12 @@ for p, names in ((1, chs), (2, imp)):
         if s_.speed == 0:
             s_.heading = 90.0
         gs.add_ship(s_)
+if scenario == "convoy_matched":
+    pts = sum(s_.points_value for s_ in gs.get_ships() if s_.player == 2)
+    for k in range(-(-pts // 100)):
+        c = cat("Conventional Transport", 2, 10 + k, 0.0, 0.0)
+        c.squadron_id = "convoy_a" if k < 3 else "convoy_b"
+        gs.add_ship(c)
 sc.setup_scenario(gs)
 fixed = sc.fixed_placements(gs)
 zones = {z.player: z for z in sc.deployment_zones(gs)}
@@ -103,7 +112,7 @@ for p in (1, 2):
                         r.y_min + 5 + 6 * (idx // 4))]
             s_.x, s_.y = pos[0]
             s_.heading = 0.0 if s_.x < gs.table_width / 2 else 180.0
-            if scenario in ("line_breaker", "space_assault", "confrontation"):
+            if scenario in ("line_breaker", "space_assault", "confrontation", "convoy_matched"):
                 s_.heading = 270.0 if p == 1 else 90.0
             if scenario == "ambush" and p == 2:
                 s_.heading = 90.0
@@ -153,7 +162,7 @@ aa_log = [l for l in gs.log if "[AA]" in l]
 print(f"[{scenario} {system}] result: {game_over[0][1] if game_over else None}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
-                             "Space Assault", "Station", "Platform",
+                             "Space Assault", "Station", "Platform", "Convoy:", "Transport",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "
