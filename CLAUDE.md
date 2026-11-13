@@ -604,9 +604,15 @@ Movement:
   (`_move_candidates`).
 - Explosions (`explosion_position_vp`): keep out of the 3D6cm radius of ships likely to die; a
   ship of ours likely to die ends next to enemies.
-- Special orders (today, to be rebuilt by To do 10): Burn Retros by expected VP
-  (`_burn_retros_worth_it`), Lock On when an enemy is in arc now, Reload Ordnance when spent;
-  never All Ahead Full / Come to New Heading. Escorts screen the commander's ship for
+- Special orders (To do 10, partly rebuilt): Burn Retros by expected VP
+  (`_burn_retros_worth_it`); Lock On by value (`_lock_on_gain`, 10 a: the best straight move
+  under Lock On with its batteries / lances counted `LOCK_ON_GAIN` 0.5 more, minus the best
+  move that may turn, at the check's pass chance; the target is the one the move plans
+  against); Reload Ordnance when spent; never All Ahead Full / Come to New Heading. Check
+  order (10 c): `_plan_orders` values every ship's order at the start of the phase
+  (`_order_value`: VP gain, pass chance with Enemy Contacts / Under Fire) and
+  `_choose_special_order` skips an order when p x g < (1 - p) x the later orders' expected
+  gain (a failed check ends the later ones, s.2). Escorts screen the commander's ship for
   massed turrets (s.29, `_screen_bonus`) only while enemy torpedoes, torpedo bombers, bombers,
   assault boats or mines can reach it (owner: never against fighters alone).
 - Voluntary disengaging (s.37, `_consider_disengage`, `ai_hazards.disengage_gain`): P(pass) x
@@ -1042,6 +1048,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    enemy is in a battery / lance arc and range NOW (wrong moment: the move comes after the
    order); otherwise Reload Ordnance when spent; never All Ahead Full or Come to New Heading;
    ships take their checks in fleet order. Owner notes and plan:
+   Built so far: a (`_lock_on_gain`), c (`_plan_orders`, the skip rule; not yet re-ordering
+   the checks, which would break the support move order), f's modifiers in the pass chance.
    a. Lock On is worth it when an enemy WILL or CAN be in arc after the move: value = the
       best straight move under Lock On (no turn), its guns' expected hits at the next
       shooting phase against the enemy's predicted positions with missed dice re-rolled,

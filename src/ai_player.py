@@ -190,10 +190,13 @@ class AIPlayer:
                 names = ", ".join(f"{gs.get_ship_by_id(e).name} ({len(v)})"
                                   for e, v in groups.items())
                 gs.add_log(f"[AI] focus targets: {names}")
+        self._order_plan = None
         if self.difficulty != "easy":
             my_ships = self._coordinated_order(my_ships)
+            self._plan_orders(my_ships)
         for ship in my_ships:
             self._move_ship(ship)
+        self._order_plan = None
         if self.difficulty != "easy":
             for ship in my_ships:
                 self._consider_disengage(gs.get_ship_by_id(ship.id))
@@ -784,9 +787,10 @@ class AIPlayer:
                 ship.y + total_dist * math.sin(r(h1)), h1)
 
     def _arc_score(self, ship: Ship, final_x: float, final_y: float,
-                   final_heading: float, target: Ship) -> float:
+                   final_heading: float, target: Ship, guns_only: bool = False) -> float:
         """Score total in-arc weapon strength from a hypothetical end position
-        (loaded torpedoes too: they launch from there)."""
+        (loaded torpedoes too: they launch from there). guns_only: batteries
+        and lances only (what Lock On re-rolls)."""
         dx = target.x - final_x
         dy = target.y - final_y
         dist = math.sqrt(dx * dx + dy * dy)
@@ -804,6 +808,8 @@ class AIPlayer:
 
         score = 0.0
         for weapon in ship.weapons:
+            if guns_only and weapon.get("weapon_type") not in ("battery", "lance"):
+                continue
             if weapon.get("weapon_type") == "torpedo":
                 # Torpedoes launch from where the ship ends its move (s.15), within
                 # the launcher's arc: worth their strength within one torpedo move,
@@ -957,22 +963,85 @@ class AIPlayer:
         return [MoveCommand("forward", dist)]
 
     def _choose_special_order(self, ship: Ship) -> Optional[str]:
+        """The ship's order, or None when trying it isn't worth the risk to
+        the orders still to come (To do 10 c): the first failed command check
+        ends every later check this turn (s.2), so an order with gain g and
+        pass chance p is tried only if p x g beats (1 - p) x the expected gain
+        of the later ships' orders (planned at the start of the phase,
+        `_order_plan`)."""
+        order = self._pick_special_order(ship)
+        plan = getattr(self, "_order_plan", None)
+        if order is None or not plan or ship.id not in plan.get("seq", []):
+            return order
+        _o, g, p = self._order_value(ship, order)
+        seq = plan["seq"]
+        later = sum(pp * gg for sid in seq[seq.index(ship.id) + 1:]
+                    for _oo, gg, pp in [plan["orders"].get(sid, (None, 0.0, 0.0))])
+        if g > 0 and p * g < (1 - p) * later:
+            self.gs.add_log(f"[AI] {ship.name}: skips {order} (worth {p * g:.1f} VP, risks "
+                            f"{(1 - p) * later:.1f} VP of later orders)")
+            return None
+        return order
+
+    def _plan_orders(self, ships: List[Ship]) -> None:
+        """At the start of the movement phase: each ship's order and its value
+        (`_order_value`) in move order, for `_choose_special_order`."""
+        orders = {}
+        for s in ships:
+            o = self._pick_special_order(s)
+            if o:
+                orders[s.id] = self._order_value(s, o)
+        self._order_plan = {"seq": [s.id for s in ships], "orders": orders}
+
+    def _order_value(self, ship: Ship, order: str):
+        """(order, gain in VP, pass chance) (To do 10 b-c, f): Lock On's move
+        gain at 0.35 hits a firepower point at the target's value a hit; Burn
+        Retros the hazard it saves less half the firepower; Reload Ordnance
+        next turn's launch (judgement: half a hit a torpedo / squadron at the
+        nearest enemy's value a hit). Pass chance: the command check (Ld,
+        Enemy Contacts +1, Under Fire -1, s.6)."""
+        from .ai_hazards import p_sum_at_most, value_per_hit
+        from .geometry import count_blast_markers_touching
+        ld = ship.leadership
+        if any(e.player != ship.player and e.special_order not in ("none", "")
+               and not e.is_destroyed for e in self.gs.get_ships()):
+            ld += 1
+        if count_blast_markers_touching(ship, self.gs.get_blast_markers()) > 0:
+            ld -= 1
+        p = p_sum_at_most(2, max(0, min(10, ld)))
+        target = self._focus_for(ship) or self._nearest_enemy(ship)
+        vph = value_per_hit(target, self.gs) if target else 0.0
+        if order == SpecialOrder.LOCK_ON.value:
+            g = max(0.0, self._lock_on_gain(ship)) / max(p, 1e-9) * 0.35 * vph
+        elif order == SpecialOrder.BURN_RETROS.value:
+            g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
+        elif order == SpecialOrder.RELOAD_ORDNANCE.value:
+            n = sum(w.get("strength", 0) for w in ship.weapons
+                    if w.get("weapon_type") in ("torpedo", "launch_bay", "mine_launcher"))
+            g = 0.5 * n * vph
+        else:
+            g = 0.0
+        return order, g, p
+
+    def _pick_special_order(self, ship: Ship) -> Optional[str]:
         """Pick the most tactically useful special order for this ship."""
         # Burn Retros when it avoids more hazard than it costs (expected VP)
         if self._burn_retros_worth_it(ship):
             return SpecialOrder.BURN_RETROS.value
 
-        # Lock On if an enemy is in a battery or lance arc+range
-        enemies = self._live_enemies()
-        for enemy in enemies:
-            for weapon in ship.weapons:
-                if weapon.get("weapon_type") not in ("battery", "lance"):
-                    continue
-                if (check_weapon_in_arc(ship, weapon, enemy.x, enemy.y) and
-                        check_weapon_in_range(ship, weapon, enemy.x, enemy.y)):
-                    if self.difficulty == "hard":
+        # Lock On (To do 10 a): worth it when an enemy WILL be in arc after
+        # the move, valued against the best move that may turn
+        if self.difficulty == "easy":
+            enemies = self._live_enemies()
+            for enemy in enemies:
+                for weapon in ship.weapons:
+                    if weapon.get("weapon_type") not in ("battery", "lance"):
+                        continue
+                    if (check_weapon_in_arc(ship, weapon, enemy.x, enemy.y) and
+                            check_weapon_in_range(ship, weapon, enemy.x, enemy.y)):
                         return SpecialOrder.LOCK_ON.value
-                    return SpecialOrder.LOCK_ON.value
+        elif self._lock_on_gain(ship) > 0:
+            return SpecialOrder.LOCK_ON.value
 
         # Reload if ordnance spent
         has_torps = any(w.get("weapon_type") == "torpedo" for w in ship.weapons)
@@ -984,6 +1053,54 @@ class AIPlayer:
             return SpecialOrder.RELOAD_ORDNANCE.value
 
         return None
+
+    LOCK_ON_GAIN = 0.5      # re-rolled misses: lances exactly +50%, batteries about that
+
+    def _lock_on_gain(self, ship: Ship) -> float:
+        """Lock On's value in move-score units (To do 10 a): the best straight
+        move under Lock On (it may not turn; s.7), its guns that bear on the
+        target counted LOCK_ON_GAIN more (missed dice re-rolled), minus the
+        best move without the order (which may turn to bring guns to bear),
+        at the command check's pass chance (a failed check moves normally, so
+        it costs nothing here; what it blocks for later ships is To do 10 c).
+        The target is the one the move will plan against (focus, else the
+        nearest enemy)."""
+        key = (ship.id, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1),
+               ship.hits_remaining, self.gs.turn_number, len(self.gs.ordnance))
+        cache = self.__dict__.setdefault("_lock_cache", {})
+        if key not in cache:
+            if len(cache) > 200:
+                cache.clear()
+            cache[key] = self._lock_on_gain_uncached(ship)
+        return cache[key]
+
+    def _lock_on_gain_uncached(self, ship: Ship) -> float:
+        from .ai_hazards import p_sum_at_most
+        if not any(w.get("weapon_type") in ("battery", "lance") for w in ship.weapons):
+            return 0.0
+        enemy = self._focus_for(ship) or self._nearest_enemy(ship)
+        if enemy is None:
+            return 0.0
+        prev = getattr(self, "_move_nearest", None)
+        self._move_nearest = self._nearest_enemy(ship)
+        try:
+            free = max((self._move_score(ship, enemy, "", *c[:3])
+                        for c in self._move_candidates(ship, enemy, "", 0)), default=None)
+            lock = SpecialOrder.LOCK_ON.value
+            locked = max((self._move_score(ship, enemy, lock, *c[:3])
+                          + self.LOCK_ON_GAIN * self._arc_score(
+                              ship, *self._simulate_final_pos(ship, *c[:3]), enemy,
+                              guns_only=True)
+                          for c in self._move_candidates(ship, enemy, lock, 0)), default=None)
+        finally:
+            self._move_nearest = prev
+        if free is None or locked is None:
+            return 0.0
+        ld = ship.leadership
+        if any(s.player != ship.player and s.special_order not in ("none", "")
+               and not s.is_destroyed for s in self.gs.get_ships()):
+            ld += 1                                   # Enemy Contacts (s.6)
+        return p_sum_at_most(2, min(10, ld)) * (locked - free)
 
     def _safest_move_vp(self, ship: Ship, order: str) -> float:
         """The least hazard (ai_hazards.move_hazard_vp, along the path) of the
@@ -1022,6 +1139,7 @@ class AIPlayer:
         if saved <= 0:
             return False
         cost = 0.5 * firepower_swing(ship, self.gs)
+        self.__dict__.setdefault("_retros_saved", {})[ship.id] = max(0.0, saved - cost)
         if saved > cost:
             self.gs.add_log(f"[AI] {ship.name}: Burn Retros avoids about {saved:.0f} VP of "
                             f"hazards (costs about {cost:.0f})")

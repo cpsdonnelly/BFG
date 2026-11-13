@@ -138,3 +138,37 @@ def test_lock_on_goal_and_dense_grid_when_crowded():
         res = validate_movement(me, ai._move_cmds(me, turn_deg, dist, turn_at), "",
                                 table_width=180.0, table_height=120.0)
         assert not res.errors
+
+
+def test_lock_on_when_guns_will_bear_after_a_straight_move():
+    """To do 10 a: Lock On when the target will be in arc after the move it
+    allows (straight on), not merely now. A Lunar with an enemy abeam within
+    range keeps it on the beam moving straight: Lock On. With the enemy dead
+    ahead, the broadsides only bear after a turn, which Lock On forbids: no."""
+    me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    abeam = _ship("Lunar Class Cruiser", 2, 75.0, 82.0, 0.0)
+    ai, gs = _ai([me, abeam])
+    assert ai._lock_on_gain(me) > 0
+    assert ai._choose_special_order(me) == SpecialOrder.LOCK_ON.value
+    ahead = _ship("Lunar Class Cruiser", 2, 100.0, 60.0, 180.0)
+    ai2, _ = _ai([me, ahead])
+    assert ai2._lock_on_gain(me) <= 0
+
+
+def test_low_value_order_skipped_when_it_risks_later_orders():
+    """To do 10 c: a failed check ends later checks (s.2). A ship whose order
+    is worth little and likely to fail skips it when a valuable order comes
+    after it."""
+    me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    later = _ship("Lunar Class Cruiser", 1, 60.0, 30.0, 0.0, 1)
+    foe = _ship("Lunar Class Cruiser", 2, 75.0, 82.0, 0.0)
+    ai, gs = _ai([me, later, foe])
+    me = gs.get_ship_by_id(me.id)
+    me.leadership = 5
+    gs.update_ship(me)
+    ai._order_plan = {"seq": [me.id, later.id],
+                      "orders": {later.id: ("lock_on", 500.0, 0.9)}}
+    assert ai._pick_special_order(gs.get_ship_by_id(me.id)) == SpecialOrder.LOCK_ON.value
+    assert ai._choose_special_order(gs.get_ship_by_id(me.id)) is None
+    ai._order_plan = {"seq": [me.id, later.id], "orders": {}}
+    assert ai._choose_special_order(gs.get_ship_by_id(me.id)) == SpecialOrder.LOCK_ON.value
