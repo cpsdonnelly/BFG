@@ -525,7 +525,8 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
 
     # Check for off-table (involuntary disengage)
     if check_off_table(ship, gs.table_width, gs.table_height):
-        from .scenarios import off_table_destroyed
+        from .scenarios import off_table_destroyed, record_exit
+        record_exit(gs, ship)
         if off_table_destroyed(gs, ship):
             ship.status = "destroyed"
             ship.hits_remaining = 0

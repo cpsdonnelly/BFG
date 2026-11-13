@@ -28,7 +28,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   `src/booklet_ships.py`: all 11 factions, 212 booklet ships plus 17 designed Venerable Strike
 Cruisers. Eldar (MMS v2.0) are playable (18 of 24 ships) and so are Necrons (the six mobile
 ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the gaps. Ships using rules the engine can't play yet
-  (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons...) are
+  (special movement, fortress weapons...; immobile defences are playable) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
   ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
 
@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1247 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1252 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -521,7 +521,7 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: most scenarios (Confrontation, Ambush, Rescue, Warp Storm and Domination are, To do 7) and sub-plots, and the To do items below.
+Not built: most scenarios (Confrontation, Line Breaker, Ambush, Space Assault, Rescue, Warp Storm and Domination are, To do 7) and sub-plots, and the To do items below.
 Next (largest first): 7 (scenarios / sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
@@ -1026,11 +1026,32 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    flagship's kill bonus in `damage_vp` and `disengage_gain` (`kill_bonus_vp`), the flagship
    heading for its edge when leaving is worth it (`_rescue_escape`), Warp Storm's warp loss in
    `disengage_gain` (`warp_loss_chance`). `tools/gui_checks/gui_spectator_scenario.py
-   igougo|aa ambush|rescue|warp_storm|confrontation`. Not yet: the expert search's leaf
-   counting Domination points, racing the 10 against the turn order, Line Breaker / Convoy /
-   Space Assault / Planet Strike (support assets, convoys, transport capacity, planets placed
-   by the scenario), the raids and battles, sub-plots, attack ratings, the Ambush attacker's
-   half-points limit (fleet building).
+   igougo|aa ambush|rescue|warp_storm|confrontation|line_breaker|space_assault`. Third
+   slice built: immobile defences (Support Assets p.61-62: the five "Immobile" high orbit
+   defences, the dormant Blackstone Fortress and the Tau Security Orbital / Orbital City are
+   playable, `immobile` rule from `booklet_ships.convert_row`, speed 0; they never move
+   (`TurnController.get_unmoved_ships`, the AI marks them moved), take no All Ahead Full / Burn
+   Retros / Come to New Heading, never disengage (reading), all-round torpedo launchers aim
+   any way (`ordnance.launch_torpedoes`); Ld 7 as fleet support; the Space Station Critical
+   Hits table for high orbit defences with 3+ starting hits, `tables.SPACE_STATION_CRITICAL_HITS`
+   with `space_station_crits`: lances / main armament / ordnance bays out
+   (`weapon_disabled_by_crit`, cascading when there is nothing to hit), reactors halving
+   shields and turrets (`Ship.effective_shields / effective_turrets`), fire, shields collapse,
+   hull breach, bulkhead collapse; Orbit Lost has no effect yet, no planet to fall to).
+   Line Breaker (p.118: defender's long edge the bottom one, its fleet within 60cm, its
+   platforms more than 30cm from every edge, 15cm apart and outside phenomena; attacker within
+   15cm of the top; `force_errors` warns unless the defender has one platform per 200pts or
+   portion; ends when every platform is destroyed and an attacking capital ship has moved off
+   the bottom edge (`record_exit` / `line_breaker_won`), otherwise the defender wins) and Space
+   Assault (p.121: the station placed 30cm from the defender's edge, centred; +250 VP to the
+   attacker if destroyed, else to the defender). AI: platforms' kill bonus (the defender's
+   points / platforms, judgement) and the station's 500 (the 250 swing both ways);
+   `_breakthrough` pulls attacking capital ships to the bottom edge once the platforms are
+   gone (`BREAKTHROUGH_WEIGHT` 0.5, judgement) and `_objective_stake` keeps them from
+   disengaging. Not yet: the expert search's leaf counting Domination points, racing the 10
+   against the turn order, Convoy / Planet Strike (convoys, transport capacity, planets placed
+   by the scenario), Orbit Lost, the raids and battles, sub-plots, attack ratings, the Ambush
+   attacker's half-points limit (fleet building), Line Breaker's "platforms can't squadron".
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the
    matchup": each should come out of the expected-VP move score, not a fixed doctrine).

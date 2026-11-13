@@ -373,8 +373,11 @@ def convert_row(row: dict) -> dict:
     from .eldar import parse_speeds, parse_holofield
     eldar_speeds = parse_speeds(row.get("speed_raw")) if row["faction"] == "Eldar" else None
     holo = parse_holofield(row.get("shields_raw")) if row["faction"] == "Eldar" else None
-    if eldar_speeds:
-        pass                          # MMS movement (src/eldar.py)
+    notes0 = row.get("notes") or ""
+    immobile = (ship_type == "defense" and row.get("speed_raw") == "-"
+                and (notes0.startswith("Immobile") or row["name"] == "Blackstone Fortress"))
+    if eldar_speeds or immobile:
+        pass                          # MMS movement (src/eldar.py); immobile defences
     elif row.get("speed_cm") is None or row.get("turn_deg") is None:
         problems.append(f"special movement ({row.get('speed_raw')}, "
                         f"{row.get('turn_raw')}) not modelled yet")
@@ -499,6 +502,11 @@ def convert_row(row: dict) -> dict:
         special_rules += ["eldar_mms", "fragile"] + (["holofield"] if holo is not None else [])
         if eldar_speeds:
             special_rules.append("eldar_speeds:" + "/".join(str(v) for v in eldar_speeds))
+    if immobile:
+        # Immobile defences (Support Assets, Rulebook p.61-62): they never move
+        special_rules.append("immobile")
+        if (row.get("roster_group") or "").startswith("High Orbit") and (row.get("hits") or 0) >= 3:
+            special_rules.append("space_station_crits")   # Appendix 3
     if re.search(r"\+5D6cm on All Ahead Full instead of \+3D6cm", notes):
         special_rules.append("aaf_5d6")      # Fast Clipper
 

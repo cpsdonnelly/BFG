@@ -165,8 +165,27 @@ NECRON_CRITICAL_HITS = {
 }
 
 
+# Space Station Critical Hits (Appendix 3, Rulebook p.62): high orbit
+# defences with 3 or more starting hits
+SPACE_STATION_CRITICAL_HITS = {
+    2:  {"name": "Lances Damaged", "extra_damage": 0, "crit_type": "station_lances", "repairable": True},
+    3:  {"name": "Lances Damaged", "extra_damage": 0, "crit_type": "station_lances", "repairable": True},
+    4:  {"name": "Main Armament Damaged", "extra_damage": 0, "crit_type": "station_batteries", "repairable": True},
+    5:  {"name": "Ordnance Bays Hit", "extra_damage": 0, "crit_type": "station_bays", "repairable": True},
+    6:  {"name": "Reactors Damaged", "extra_damage": 1, "crit_type": "station_reactors", "repairable": True},
+    7:  {"name": "Fire!", "extra_damage": 0, "crit_type": "fire", "repairable": True},
+    8:  {"name": "Orbit Lost", "extra_damage": 1, "crit_type": "orbit_lost", "repairable": True},
+    9:  {"name": "Orbit Lost", "extra_damage": 1, "crit_type": "orbit_lost", "repairable": True},
+    10: {"name": "Shields Collapse", "extra_damage": 0, "crit_type": "shields_collapse", "repairable": False},
+    11: {"name": "Hull Breach", "extra_damage": "D3", "crit_type": "hull_breach", "repairable": False},
+    12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
+}
+
+
 def crit_table_for(ship) -> dict:
     """The critical hits table a ship rolls on (Appendix 3 / 5)."""
+    if "space_station_crits" in (getattr(ship, "special_rules", None) or []):
+        return SPACE_STATION_CRITICAL_HITS
     if "eldar_mms" in (getattr(ship, "special_rules", None) or []):
         return ELDAR_CRITICAL_HITS
     if "necron" in (getattr(ship, "special_rules", None) or []):

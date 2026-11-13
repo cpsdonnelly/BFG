@@ -1619,6 +1619,8 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
 
     if heading is None:
         launch_heading = ship.heading
+    elif len(set(weapon.get("arcs") or []) & {"front", "left", "right", "rear"}) == 4:
+        launch_heading = heading % 360       # an all-round launcher (Orbital Torpedo Launcher)
     else:
         diff = signed_angle_diff(heading, ship.heading)
         diff = max(-45.0, min(45.0, diff))

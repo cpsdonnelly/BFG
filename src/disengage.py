@@ -162,6 +162,8 @@ def forced_disengage_tests(gs: GameState, dice: DiceRoller, player: int) -> List
 def _ftl_blocked(ship: Ship, gs: GameState) -> Optional[str]:
     """Reason a ship can't disengage yet in an FTL-charging scenario, or None.
     Booklet scenarios too (scenarios.disengage_forbidden: Ambush, Rescue)."""
+    if "immobile" in ship.special_rules:
+        return "immobile defences can't disengage"
     from .scenarios import disengage_forbidden
     why = disengage_forbidden(gs, ship)
     if why:

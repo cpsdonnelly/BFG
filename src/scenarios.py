@@ -45,6 +45,18 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "vp",
     },
+    "line_breaker": {
+        "name": "Line Breaker (XR p.118)",
+        "first_turn": "attacker",
+        "end": "fleet_gone_or_breakthrough",
+        "victory": "line_breaker",
+    },
+    "space_assault": {
+        "name": "Space Assault (XR p.121)",
+        "first_turn": "attacker",
+        "end": "fleet_gone",
+        "victory": "vp",
+    },
     "domination": {
         "name": "Domination (XR p.125-126)",
         "first_turn": "attacker",
@@ -173,7 +185,46 @@ def fixed_placements(gs) -> Dict[str, Tuple[float, float, float]]:
         flag = rescue_flagship(gs)
         if flag is not None:
             return {flag.id: (gs.table_width / 2.0, gs.table_height / 2.0, 180.0)}
+    if getattr(gs, "scenario_mode", "") == "space_assault":
+        st = space_station(gs)
+        if st is not None:
+            # exactly 30cm from the defender's edge, equidistant from the short edges
+            return {st.id: (gs.table_width / 2.0, 30.0, 90.0)}
     return {}
+
+
+PLATFORMS = ("Orbital Weapons Platform", "Orbital Defence Laser Platform",
+             "Orbital Torpedo Launcher")
+
+
+def is_platform(ship) -> bool:
+    """Line Breaker's defence platforms (Support Assets)."""
+    return any(ship.ship_class.startswith(p) for p in PLATFORMS)
+
+
+def space_station(gs):
+    return next((s for s in gs.get_ships() if s.player == defender(gs)
+                 and s.ship_class.startswith("Space Station")), None)
+
+
+def force_errors(gs) -> List[str]:
+    """The scenario's force requirements (checked at set-up, warnings only):
+    Line Breaker one defence platform per 200pts or portion thereof of the
+    defender's fleet; Space Assault a single space station."""
+    mode = getattr(gs, "scenario_mode", "")
+    ships = [s for s in gs.get_ships() if s.player == defender(gs)]
+    if mode == "line_breaker":
+        pts = sum(s.points_value for s in ships)
+        need = -(-pts // 200)
+        have = sum(1 for s in ships if is_platform(s))
+        if have < need:
+            return [f"Line Breaker: the defender needs {need} defence platforms "
+                    f"({pts}pts), has {have}"]
+    if mode == "space_assault":
+        n = sum(1 for s in ships if s.ship_class.startswith("Space Station"))
+        if n != 1:
+            return [f"Space Assault: the defender must include a single space station ({n})"]
+    return []
 
 
 def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
@@ -198,6 +249,16 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         # bottom-left and top-right, defender top-left and bottom-right
         rects = {att_p: [(0, w - 30, h - 30, 0), (w - 30, 0, 0, h - 30)],
                  3 - att_p: [(0, w - 30, 0, h - 30), (w - 30, 0, h - 30, 0)]}
+    elif mode == "line_breaker":
+        # The defender's long edge is the bottom one (y = 0): its fleet within
+        # 60cm of it, its platforms more than 30cm from every edge
+        # (placement_errors tells them apart); the attacker within 15cm of the top
+        rects = {3 - att_p: [(0, 0, h - 60, 0), (30, 30, 30, 30)],
+                 att_p: [(0, 0, 0, h - 15)]}
+    elif mode == "space_assault":
+        # Defender within 30cm of the bottom edge (the station is placed by the
+        # scenario, 30cm in and centred); attacker within 30cm of the top
+        rects = {3 - att_p: [(0, 0, h - 30, 0)], att_p: [(0, 0, 0, h - 30)]}
     elif mode == "domination":
         layout = (gs.scenario_state or {}).get("layout")
         if not layout:
@@ -222,7 +283,22 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     direction and is at least 20cm from any other ship or squadron (its own
     squadron excepted)."""
     errs: List[str] = []
-    if getattr(gs, "scenario_mode", "") != "ambush" or not group:
+    mode = getattr(gs, "scenario_mode", "")
+    if mode == "line_breaker" and group and group[0].player == defender(gs):
+        w, h = gs.table_width, gs.table_height
+        for s_, (x, y) in zip(group, positions):
+            if is_platform(s_):
+                if min(x, y, w - x, h - y) <= 30.0:
+                    errs.append(f"Line Breaker: {s_.name} more than 30cm from every edge")
+                for o in placed:
+                    if is_platform(o) and (o.x - x) ** 2 + (o.y - y) ** 2 <= 15.0 ** 2:
+                        errs.append(f"Line Breaker: platforms more than 15cm apart ({o.name})")
+                if any(_in_phenomenon(x, y, p) for p in gs.get_phenomena()):
+                    errs.append(f"Line Breaker: {s_.name} not within a celestial phenomenon")
+            elif y > 60.0:
+                errs.append(f"Line Breaker: {s_.name} within 60cm of the defender's edge")
+        return errs
+    if mode != "ambush" or not group:
         return errs
     if group[0].player != defender(gs):
         return errs
@@ -241,11 +317,34 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     return errs
 
 
+def _in_phenomenon(x: float, y: float, p) -> bool:
+    """A point inside a celestial phenomenon's area (planets by radius, the
+    rest by their rectangle, as the map editor draws them)."""
+    if "planet" in p.phenomenon_type and p.radius > 0:
+        return (x - p.x) ** 2 + (y - p.y) ** 2 <= p.radius ** 2
+    return abs(x - p.x) <= p.width / 2 and abs(y - p.y) <= p.height / 2
+
+
 def auto_positions(gs, group, zone, placed, index: int):
     """Scenario-aware automatic placement, or None for the default: Warp
     Storm alternates its divisions' corners; Ambush spaces the defender's
     groups 25cm apart."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "line_breaker" and group and group[0].player == defender(gs):
+        rects = zone.rects()
+        r = rects[1] if is_platform(group[0]) else rects[0]
+        others = [s for s in placed if s.player == defender(gs)]
+        y = r.y_min + (2.0 if is_platform(group[0]) else 5.0)
+        while y <= r.y_max:
+            x = r.x_min + 5.0
+            while x <= r.x_max:
+                pts = [(x + 4.0 * i, y) for i in range(len(group))]
+                if not placement_errors(gs, group, pts, [90.0] * len(group), others) and all(
+                        (px - s.x) ** 2 + (py - s.y) ** 2 >= 6.0 ** 2
+                        for px, py in pts for s in others):
+                    return pts
+                x += 16.0
+            y += 8.0
     if mode == "warp_storm":
         r = zone.rects()[index % len(zone.rects())]
         cx, cy = (r.x_min + r.x_max) / 2, (r.y_min + r.y_max) / 2
@@ -346,10 +445,52 @@ def off_table_destroyed(gs, ship) -> bool:
     return max(over, key=over.get) != "left"
 
 
+def exit_edge(gs, ship) -> str:
+    """The table edge a ship has moved off (the one it is furthest past)."""
+    r = ship.base_radius
+    over = {"left": r - ship.x, "right": ship.x + r - gs.table_width,
+            "bottom": r - ship.y, "top": ship.y + r - gs.table_height}
+    return max(over, key=over.get)
+
+
+def record_exit(gs, ship) -> None:
+    """A ship moved off the table: remember the edge (Line Breaker's
+    breakthrough is a capital ship off the defender's long edge)."""
+    if not is_booklet_scenario(gs):
+        return
+    st = dict(gs.scenario_state or {})
+    exits = dict(st.get("exits", {}))
+    exits[ship.id] = exit_edge(gs, ship)
+    st["exits"] = exits
+    gs.scenario_state = st
+
+
+def line_breaker_won(gs) -> bool:
+    """The attacker has destroyed every defence platform and moved at least
+    one capital ship off the defender's long edge (the bottom one)."""
+    plats = [s for s in gs.get_ships() if s.player == defender(gs) and is_platform(s)]
+    if any(not s.is_destroyed for s in plats):
+        return False
+    exits = (gs.scenario_state or {}).get("exits", {})
+    return any(edge == "bottom" and (s := gs.get_ship_by_id(sid)) is not None
+               and s.player == gs.scenario_attacker and s.ship_type != "escort"
+               for sid, edge in exits.items())
+
+
 def vp_bonus(gs, result: Dict) -> None:
     """Scenario victory points added to calculate_victory_points' result.
     Rescue: the attacker +100% of the defending flagship's cost if it is
-    destroyed at the end of the game."""
+    destroyed at the end of the game. Space Assault: 250 to the attacker if
+    the space station is destroyed, else 250 to the defender."""
+    if getattr(gs, "scenario_mode", "") == "space_assault":
+        st = space_station(gs)
+        if st is None:
+            return
+        p = gs.scenario_attacker if st.is_destroyed else defender(gs)
+        result[p]["scenario"] = result[p].get("scenario", 0) + 250
+        result[p]["details"].append(f"Space Assault: station "
+                                    f"{'destroyed' if st.is_destroyed else 'survives'}: +250 VP")
+        return
     if getattr(gs, "scenario_mode", "") != "rescue":
         return
     sid = (gs.scenario_state or {}).get("flagship")
@@ -362,7 +503,19 @@ def vp_bonus(gs, result: Dict) -> None:
 
 def kill_bonus_vp(gs, ship) -> float:
     """Extra VP the scenario gives the enemy for destroying `ship` (Rescue's
-    flagship: +100% of its cost). Used by the AI's damage and disengage values."""
+    flagship: +100% of its cost; Space Assault's station: the 250 the attacker
+    gains and the 250 the defender loses). Line Breaker's platforms: the
+    attacker can only win with them all destroyed (judgement: each worth the
+    defender's points / platforms). Used by the AI's damage and disengage
+    values."""
+    mode = getattr(gs, "scenario_mode", "")
+    if mode == "space_assault" and ship.ship_class.startswith("Space Station") \
+            and ship.player == defender(gs):
+        return 500.0
+    if mode == "line_breaker" and is_platform(ship) and ship.player == defender(gs):
+        ds = [s for s in gs.get_ships() if s.player == defender(gs)]
+        n = max(1, sum(1 for s in ds if is_platform(s)))
+        return sum(s.points_value for s in ds) / n
     if (getattr(gs, "scenario_mode", "") == "rescue"
             and ship.id == (gs.scenario_state or {}).get("flagship")):
         return float(ship.points_value or 0)
@@ -468,6 +621,9 @@ def check_end(gs) -> Optional[dict]:
     """Booklet scenario game-end and victory (scenario.check_game_over's
     contract). Fleet-gone checks stay in check_game_over."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "line_breaker" and line_breaker_won(gs):
+        return {"winner": gs.scenario_attacker, "reason": "breakthrough",
+                "detail": "the line is broken"}
     if mode == "domination":
         pts = points(gs)
         if max(pts.values()) >= DOMINATION_TARGET:
@@ -489,4 +645,6 @@ def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
     sc = SCENARIOS.get(getattr(gs, "scenario_mode", ""))
     if sc and sc["victory"] == "objective_points":
         return points_winner(gs)
+    if sc and sc["victory"] == "line_breaker":
+        return gs.scenario_attacker if line_breaker_won(gs) else defender(gs)
     return vp_winner_fn(gs)

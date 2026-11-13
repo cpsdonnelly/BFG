@@ -610,8 +610,8 @@ class GamePanel(AAPanelMixin):
         tk.Label(mode_row, text="Scenario:", font=("Consolas", 8), width=14,
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
-                      "protect_ship", "capture_artefact", "confrontation", "ambush", "rescue",
-                      "warp_storm", "domination"]
+                      "protect_ship", "capture_artefact", "confrontation", "line_breaker", "ambush",
+                      "space_assault", "rescue", "warp_storm", "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
         scen_cb = ttk.Combobox(mode_row, textvariable=scen_var, values=scen_modes,
                                 state="disabled" if locked else "readonly", width=22,
@@ -1067,6 +1067,10 @@ class GamePanel(AAPanelMixin):
         from .scenarios import is_booklet_scenario, setup_scenario
         if is_booklet_scenario(self.ctx.gs) and not self.ctx.gs.scenario_state:
             setup_scenario(self.ctx.gs)       # e.g. the Domination deployment D6
+            from .scenarios import force_errors
+            errs = force_errors(self.ctx.gs)
+            if errs:
+                messagebox.showwarning("Scenario forces", "\n".join(errs))
             self.ctx.board.redraw()
         from .deployment_panel import DeploymentPanel
         DeploymentPanel(
@@ -1556,6 +1560,7 @@ class GamePanel(AAPanelMixin):
             "artefact_escaped": "Artefact carrier escaped the field!",
             "artefact_lost": "Artefact carrier destroyed — artefact lost!",
             "objective_points": f"Objective points reached 10 ({detail}).",
+            "breakthrough": "Line Breaker: the platforms are destroyed and the attacker broke through.",
         }.get(reason, "")
         if gs.scenario_mode == "domination":
             from .scenarios import points

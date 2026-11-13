@@ -1167,6 +1167,14 @@ def weapon_disabled_by_crit(ship: Ship, weapon: Dict) -> bool:
         return True
     if weapon.get("particle_whip") and "power_flow" in crits:
         return True
+    # Space Station crits (Appendix 3): lances, the weapon batteries, ordnance
+    wt = weapon.get("weapon_type")
+    if "station_lances" in crits and wt == "lance":
+        return True
+    if "station_batteries" in crits and wt == "battery":
+        return True
+    if "station_bays" in crits and wt in ("launch_bay", "torpedo", "mine_launcher"):
+        return True
     return any(weapon_in_crit_slot(weapon, c.get("crit_type", ""))
                for c in ship.critical_damage)
 
@@ -1830,7 +1838,8 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
     """
     # Armament crit types (in table order by roll value)
     ARMAMENT_CRITS = {"dorsal_armament", "starboard_armament",
-                      "port_armament", "prow_armament", "keel_armament"}
+                      "port_armament", "prow_armament", "keel_armament",
+                      "station_lances", "station_batteries", "station_bays"}
     from .tables import crit_table_for
     table = crit_table_for(ship)
 

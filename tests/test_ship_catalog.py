@@ -159,7 +159,11 @@ def test_every_playable_ship_has_complete_stats():
     for f in list_factions():
         for e in get_faction_ships(f):
             assert e.ship_type in ("battleship", "cruiser", "escort", "defense"), e.ship_class
-            assert e.speed > 0 and e.turn_angle > 0 and e.hits_max > 0, e.ship_class
+            if "immobile" in e.special_rules:      # defences that never move
+                assert e.speed == 0 and e.ship_type == "defense", e.ship_class
+            else:
+                assert e.speed > 0 and e.turn_angle > 0, e.ship_class
+            assert e.hits_max > 0, e.ship_class
             assert e.armor_prow.endswith("+") and e.armor_side.endswith("+"), e.ship_class
             assert e.weapons, e.ship_class
 

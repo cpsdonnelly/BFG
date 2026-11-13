@@ -180,6 +180,10 @@ class AIPlayer:
         my_ships = [s for s in gs.player_ships(self.player)
                     if not s.is_destroyed and not s.is_disengaged
                     and s.id not in tc.ships_moved]
+        # Immobile defences (Support Assets) never move: only their orders
+        for s in [s for s in my_ships if "immobile" in s.special_rules]:
+            self._move_ship(s)
+        my_ships = [s for s in my_ships if "immobile" not in s.special_rules]
         my_ships = self._movement_setup(my_ships)
         for ship in my_ships:
             self._move_ship(ship)
@@ -290,7 +294,9 @@ class AIPlayer:
                 self._move_ship(s)
         if self.difficulty != "easy":
             for sid in ship_ids:
-                self._consider_disengage(gs.get_ship_by_id(sid))
+                s = gs.get_ship_by_id(sid)
+                if s is not None and "immobile" not in s.special_rules:
+                    self._consider_disengage(s)
 
     def aa_shoot_unit(self, ship_ids) -> None:
         """Fire one AA unit: its squadron volley first (s.8), then each ship."""
@@ -446,6 +452,8 @@ class AIPlayer:
         from .ai_rerolls import firepower_outcomes
         from .disengage import get_disengage_ld_modifiers, attempt_disengage, _ftl_blocked
         gs = self.gs
+        if ship is not None and "immobile" in ship.special_rules:
+            return
         if (ship is None or ship.is_destroyed or ship.is_disengaged
                 or getattr(ship, "must_flee", False) or ship.status != "active"):
             return
@@ -522,6 +530,9 @@ class AIPlayer:
 
     def _move_ship_planned(self, ship: Ship, order: str, aaf_bonus: int):
         gs, tc = self.gs, self.tc
+        if "immobile" in ship.special_rules:
+            tc.mark_ship_moved(ship.id)       # immobile defences never move
+            return
         enemy = self._nearest_enemy(ship)
         self._move_nearest = enemy
         focus = self._focus_for(ship)
@@ -788,7 +799,29 @@ class AIPlayer:
         score += self._disengage_spot(ship, fx, fy, fh, enemy)
         score += self._objective_term(ship, fx, fy, enemy)
         score += self._rescue_escape(ship, fx, fy, enemy)
+        score += self._breakthrough(ship, fx, fy, enemy)
         return score
+
+    BREAKTHROUGH_WEIGHT = 0.5    # judgement: winning Line Breaker ~ half the points on the table
+
+    def _breakthrough(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """Line Breaker (To do 7): once every defence platform is destroyed the
+        attacker wins by moving a capital ship off the defender's long edge
+        (y = 0), so its capital ships gain `BREAKTHROUGH_WEIGHT` x the points
+        on the table in proportion to the way covered towards it, all of it
+        for a move that leaves the table there. In move-score units."""
+        gs = self.gs
+        if (gs.scenario_mode != "line_breaker" or ship.player != gs.scenario_attacker
+                or ship.ship_type == "escort" or self.difficulty == "easy"):
+            return 0.0
+        from .scenarios import is_platform, defender
+        if any(not s.is_destroyed for s in gs.get_ships()
+               if s.player == defender(gs) and is_platform(s)):
+            return 0.0
+        from .ai_hazards import value_per_hit
+        win = self.BREAKTHROUGH_WEIGHT * sum(s.points_value for s in gs.get_ships())
+        progress = 1.0 if y - ship.base_radius < 0 else max(0.0, ship.y - y) / max(1.0, ship.y)
+        return win * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
 
     def _rescue_escape(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
         """Rescue (To do 7): the sabotaged flagship can only disengage by
@@ -826,12 +859,23 @@ class AIPlayer:
 
     def _objective_stake(self, ship: Ship) -> float:
         """Domination (To do 7): what leaving the table gives up in VP terms,
+        (Line Breaker: an attacking capital ship's share of the breakthrough),
         the objective points this ship would help score for the rest of the
         game: its share of the markers (markers / our ships on the table, at
         most 1) for each of our turns left (to the turn limit, or until a
         player could reach 10 at that rate), at `objective_point_vp`.
         Judgement, first form."""
         from .scenarios import objectives, points, DOMINATION_TARGET
+        gs = self.gs
+        if (gs.scenario_mode == "line_breaker" and ship.player == gs.scenario_attacker
+                and ship.ship_type != "escort"):
+            # Line Breaker: the attacker wins only by breaking through with a
+            # capital ship, so each one leaving gives up its share of that
+            caps = [s for s in gs.get_ships() if s.player == ship.player
+                    and s.ship_type != "escort" and not s.is_destroyed
+                    and not s.is_disengaged]
+            return (self.BREAKTHROUGH_WEIGHT * sum(s.points_value for s in gs.get_ships())
+                    / max(1, len(caps)))
         objs = objectives(self.gs)
         if not objs or self.gs.scenario_mode != "domination":
             return 0.0

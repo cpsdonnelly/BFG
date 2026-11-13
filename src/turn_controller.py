@@ -423,6 +423,12 @@ class TurnController:
         if why:
             result["error"] = why
             return result
+        if "immobile" in ship.special_rules and order in (
+                SpecialOrder.ALL_AHEAD_FULL.value, SpecialOrder.BURN_RETROS.value,
+                SpecialOrder.COME_TO_NEW_HEADING.value):
+            result["error"] = ("Defences can't use All Ahead Full, Burn Retros or Come to "
+                               "New Heading (Support Assets)")
+            return result
 
         if (order == SpecialOrder.ALL_AHEAD_FULL.value and any(
                 c.get("crit_type") == "inertialess_drive" for c in ship.critical_damage)):
@@ -770,7 +776,8 @@ class TurnController:
         """Get ships belonging to active player that haven't moved yet."""
         return [s for s in self.gs.player_ships(self.gs.active_player)
                 if (not s.is_destroyed and not s.is_disengaged
-                    and s.id not in self.ships_moved and self._aa_ok(s))]
+                    and s.id not in self.ships_moved and self._aa_ok(s)
+                    and "immobile" not in s.special_rules)]   # defences never move
 
     def get_unfired_ships(self) -> List[Ship]:
         """Get active player ships that haven't fired yet."""

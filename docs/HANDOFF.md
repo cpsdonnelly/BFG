@@ -885,6 +885,13 @@ defender's dearest capital ship, it can't take a Leadership-test disengage, and 
 defender's short edge is the left one; Warp Storm's divisions may differ by one capital ship
 and one escort squadron, a squadron returning from the warp tests once on its best Ld.
 
+Third slice: immobile defences (orbital platforms, space station, orbital dock, dormant
+Blackstone Fortress, Tau orbitals) with the Space Station Critical Hits table, then Line
+Breaker and Space Assault (CLAUDE.md To do 7). Readings to confirm: defences can't disengage;
+Orbit Lost does nothing without a planet; Line Breaker's defender edge is the bottom one and a
+capital ship off it after every platform is gone wins at once. Watch: the normal AI still
+disengages healthy ships readily in plain VP games (To do 1 territory, weights on hold).
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

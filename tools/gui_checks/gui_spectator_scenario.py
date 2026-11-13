@@ -73,11 +73,17 @@ chs = ["Slaughter Class Cruiser", "Carnage Class Cruiser", "Murder Class Cruiser
        "Infidel Class Raider"]
 if scenario == "ambush":
     chs = chs[:2]                       # the attacker has half the points
+if scenario == "line_breaker":
+    imp = imp[:3] + ["Orbital Weapons Platform"] * 3 + ["Orbital Defence Laser Platform"] * 2
+if scenario == "space_assault":
+    imp = imp[:3] + ["Space Station", "Orbital Weapons Platform"]
 for p, names in ((1, chs), (2, imp)):
     for i, n in enumerate(names):
         s_ = cat(n, p, i, 0.0, 0.0)
         if p == 2 and i == 0:
             s_.is_flagship = True
+        if s_.speed == 0:
+            s_.heading = 90.0
         gs.add_ship(s_)
 sc.setup_scenario(gs)
 fixed = sc.fixed_placements(gs)
@@ -97,6 +103,8 @@ for p in (1, 2):
                         r.y_min + 5 + 6 * (idx // 4))]
             s_.x, s_.y = pos[0]
             s_.heading = 0.0 if s_.x < gs.table_width / 2 else 180.0
+            if scenario in ("line_breaker", "space_assault", "confrontation"):
+                s_.heading = 270.0 if p == 1 else 90.0
             if scenario == "ambush" and p == 2:
                 s_.heading = 90.0
             idx += 1
@@ -105,6 +113,7 @@ for p in (1, 2):
         gs.update_ship(s_)
 for p in (1, 2):
     assert not sc.division_errors(gs, p), sc.division_errors(gs, p)
+assert not sc.force_errors(gs), sc.force_errors(gs)
 gs.first_player = sc.first_player(gs)
 dice = DiceRoller(mode=gs.dice_mode)
 print('Leadership:', roll_starting_leadership(gs, dice, ai_dice=DiceRoller(mode='auto'))[:3])
@@ -144,6 +153,7 @@ aa_log = [l for l in gs.log if "[AA]" in l]
 print(f"[{scenario} {system}] result: {game_over[0][1] if game_over else None}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
+                             "Space Assault", "Station", "Platform",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "

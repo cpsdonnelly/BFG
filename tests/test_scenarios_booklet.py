@@ -319,3 +319,124 @@ def test_ai_values_for_rescue_and_warp_storm():
     storm = disengage_gain(gs.get_ship_by_id("s"), gs, 9, 0.0)
     assert sc.warp_loss_chance(gs, s) == pytest.approx(21 / 36)
     assert storm < calm
+
+
+# --- Immobile defences, Line Breaker, Space Assault ---------------------------
+
+def _cat(name, player, sid, x=0.0, y=0.0, h=90.0):
+    from src.models import Ship
+    from src.ship_catalog import find_ship_class
+    d = find_ship_class(name).to_ship_dict(name, player, ship_id=sid)
+    d.update(x=x, y=y, heading=h, leadership=d.get("leadership") or 8)
+    return Ship.from_dict(d)
+
+
+def test_immobile_defences_never_move_or_take_movement_orders():
+    from src.ai_player import AIPlayer
+    from src.disengage import attempt_disengage
+    from src.turn_controller import TurnController
+    st = _cat("Space Station", 1, "st", 90.0, 30.0)
+    assert "immobile" in st.special_rules and "space_station_crits" in st.special_rules
+    assert st.leadership == 7 and st.speed == 0
+    foe = _cat("Lunar Class Cruiser", 2, "lu", 90.0, 100.0, 270.0)
+    gs = _gs([st, foe], mode="standard")
+    gs.active_player = 1
+    tc = TurnController(gs, DiceStub([3]))
+    assert tc.get_unmoved_ships() == []
+    for order in ("all_ahead_full", "burn_retros", "come_to_new_heading"):
+        assert "error" in tc.issue_special_order(gs.get_ship_by_id("st"), order)
+    dice = DiceStub([2])
+    assert attempt_disengage(gs.get_ship_by_id("st"), dice, gs).get("blocked")
+    ai = AIPlayer(1, tc, gs, DiceStub([3, 3, 3, 3]))
+    ai.run_movement_phase()
+    s2 = gs.get_ship_by_id("st")
+    assert (s2.x, s2.y, s2.heading) == (90.0, 30.0, 90.0)
+    assert "st" in tc.ships_moved
+    # Platforms are immobile too; a Lunar isn't
+    assert "immobile" in _cat("Orbital Weapons Platform", 1, "p").special_rules
+    assert "immobile" not in foe.special_rules
+
+
+def test_space_station_critical_hits():
+    from src.combat import _resolve_crit_cascade, weapon_disabled_by_crit
+    from src.tables import crit_table_for, SPACE_STATION_CRITICAL_HITS
+    st = _cat("Space Station", 1, "st")
+    assert crit_table_for(st) is SPACE_STATION_CRITICAL_HITS
+    assert crit_table_for(_cat("Orbital Weapons Platform", 1, "p")) is not \
+        SPACE_STATION_CRITICAL_HITS                       # 2 hits: the normal table
+    lances = [w for w in st.weapons if w["weapon_type"] == "lance"][0]
+    guns = [w for w in st.weapons if w["weapon_type"] == "battery"][0]
+    bays = [w for w in st.weapons if w["weapon_type"] == "launch_bay"][0]
+    st.critical_damage = [{"crit_type": "station_lances"}]
+    assert weapon_disabled_by_crit(st, lances) and not weapon_disabled_by_crit(st, guns)
+    st.critical_damage = [{"crit_type": "station_batteries"}, {"crit_type": "station_bays"}]
+    assert weapon_disabled_by_crit(st, guns) and weapon_disabled_by_crit(st, bays)
+    st.critical_damage = [{"crit_type": "station_reactors"}]
+    assert st.effective_shields == 1 and st.effective_turrets == 2
+    # The Orbital Dock has no lances: the crit cascades up to Main Armament
+    dock = _cat("Orbital Dock", 1, "dk")
+    gs = _gs([dock], mode="standard")
+    assert _resolve_crit_cascade(2, dock, gs)["crit_type"] == "station_batteries"
+
+
+def test_line_breaker_zones_placement_victory_and_ai_values():
+    from src.ai_hazards import damage_vp
+    plats = [_cat("Orbital Weapons Platform", 2, f"p{i}") for i in range(2)]
+    lunar = _cat("Lunar Class Cruiser", 2, "lu")
+    att = _cat("Slaughter Class Cruiser", 1, "sl", 90.0, 110.0, 270.0)
+    gs = _gs(plats + [lunar, att], mode="line_breaker")
+    sc.setup_scenario(gs)
+    assert not sc.force_errors(gs)                # 240pts: 2 platforms needed
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[1].contains(90, 110) and not zones[1].contains(90, 100)
+    assert zones[2].contains(90, 50) and zones[2].contains(90, 80)
+    p = gs.get_ship_by_id("p0")
+    assert sc.placement_errors(gs, [p], [(90.0, 60.0)], [90.0], []) == []
+    assert sc.placement_errors(gs, [p], [(20.0, 60.0)], [90.0], [])       # near an edge
+    assert sc.placement_errors(gs, [lunar], [(90.0, 80.0)], [90.0], [])   # beyond 60cm
+    placed = [_cat("Orbital Weapons Platform", 2, "q", 95.0, 60.0)]
+    assert sc.placement_errors(gs, [p], [(90.0, 60.0)], [90.0], placed)   # 15cm apart
+    # AI: a platform carries a kill bonus for the attacker
+    assert sc.kill_bonus_vp(gs, p) > 0 and sc.kill_bonus_vp(gs, lunar) == 0
+    assert damage_vp(p, gs, 3.0) > damage_vp(p, _gs(plats, mode="standard"), 3.0)
+    # Not won while a platform stands, even after a capital ship leaves
+    a = gs.get_ship_by_id("sl")
+    a.x, a.y = 90.0, -2.0
+    sc.record_exit(gs, a)
+    assert gs.scenario_state["exits"]["sl"] == "bottom"
+    assert not sc.line_breaker_won(gs)
+    for q in plats:
+        q = gs.get_ship_by_id(q.id)
+        q.hits_remaining, q.status = 0, "destroyed"
+        gs.update_ship(q)
+    assert sc.line_breaker_won(gs)
+    res = check_game_over(gs)
+    assert res["winner"] == 1 and res["reason"] == "breakthrough"
+
+
+def test_line_breaker_platform_count():
+    plats = [_cat("Orbital Weapons Platform", 2, f"p{i}") for i in range(1)]
+    gs = _gs(plats + [_cat("Lunar Class Cruiser", 2, "lu")], mode="line_breaker")
+    # 210pts or portion thereof: 2 platforms needed, 1 taken
+    assert sc.force_errors(gs)
+    gs.add_ship(_cat("Orbital Weapons Platform", 2, "p9"))
+    assert not sc.force_errors(gs)
+
+
+def test_space_assault_station_placement_and_vp():
+    from src.victory_points import calculate_victory_points
+    st = _cat("Space Station", 2, "st")
+    att = _cat("Lunar Class Cruiser", 1, "lu")
+    gs = _gs([st, att], mode="space_assault")
+    sc.setup_scenario(gs)
+    assert not sc.force_errors(gs)
+    assert sc.fixed_placements(gs) == {"st": (90.0, 30.0, 90.0)}
+    assert sc.first_player(gs) == 1
+    vp = calculate_victory_points(gs)
+    assert vp[2]["total"] == 250 and vp[1]["total"] == 0
+    s = gs.get_ship_by_id("st")
+    s.hits_remaining, s.status = 0, "destroyed"
+    gs.update_ship(s)
+    vp = calculate_victory_points(gs)
+    assert vp[1]["total"] == 150 + 250 and vp[2]["total"] == 0
+    assert sc.kill_bonus_vp(gs, s) == 500.0

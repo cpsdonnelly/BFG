@@ -358,6 +358,8 @@ class Ship:
         for c in self.critical_damage:
             if c.get("crit_type") == "shields_collapse":
                 return 0
+        if any(c.get("crit_type") == "station_reactors" for c in self.critical_damage):
+            s = (s + 1) // 2           # Space Station Reactors Damaged: halved, round up
         return s
 
     @property
@@ -367,6 +369,8 @@ class Ship:
         t = self.turrets
         if self.is_crippled:
             t = self.crippled_value(t)
+        if any(c.get("crit_type") == "station_reactors" for c in self.critical_damage):
+            t = (t + 1) // 2           # Space Station Reactors Damaged: halved, round up
         return t
 
     def has_armament_slot(self, crit_type: str) -> bool:
@@ -381,6 +385,10 @@ class Ship:
         }
         if crit_type == "keel_armament":
             return any("keel" in (w.get("name") or "").lower() for w in self.weapons)
+        station = {"station_lances": ("lance",), "station_batteries": ("battery",),
+                   "station_bays": ("launch_bay", "torpedo", "mine_launcher")}
+        if crit_type in station:
+            return any(w.get("weapon_type") in station[crit_type] for w in self.weapons)
         if crit_type not in slot_to_arcs:
             return True  # non-armament crits always apply
 
