@@ -72,6 +72,11 @@ class GameState:
     # Mark of Chaos Undivided (once per game per player): players who have used
     # it, and the boost in force {player: {"turn": n, "deltas": {ship id: +Ld}}}
     first_player: int = 1        # s.2: who moves first (the roll-off winner's choice)
+    # Alternate activation (To do 13, optional, outside the booklet): "igougo" (the
+    # booklet's turns) or "aa"; aa_settings holds the AARoundConfig fields
+    turn_system: str = "igougo"
+    aa_settings: Dict = field(default_factory=dict)
+    aa_state: Dict = field(default_factory=dict)
     undivided_used: List[int] = field(default_factory=list)
     undivided_boost: Dict = field(default_factory=dict)
 
@@ -177,6 +182,9 @@ class GameState:
             "artefact_carrier_id": self.artefact_carrier_id,
             "artefact_owner": self.artefact_owner,
             "first_player": self.first_player,
+            "turn_system": self.turn_system,
+            "aa_settings": dict(self.aa_settings),
+            "aa_state": dict(self.aa_state),
             "undivided_used": list(self.undivided_used),
             "solar_flare_dice": self.solar_flare_dice,
             "radiation_burst_dice": self.radiation_burst_dice,
