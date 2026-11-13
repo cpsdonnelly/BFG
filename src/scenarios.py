@@ -27,6 +27,24 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",            # one fleet disengages or is destroyed
         "victory": "vp",
     },
+    "ambush": {
+        "name": "Ambush (XR p.119)",
+        "first_turn": "attacker",
+        "end": "fleet_gone",
+        "victory": "vp",
+    },
+    "rescue": {
+        "name": "Rescue (XR p.122)",
+        "first_turn": "defender",
+        "end": "fleet_gone",
+        "victory": "vp",
+    },
+    "warp_storm": {
+        "name": "Warp Storm (XR p.123)",
+        "first_turn": "attacker",
+        "end": "fleet_gone",
+        "victory": "vp",
+    },
     "domination": {
         "name": "Domination (XR p.125-126)",
         "first_turn": "attacker",
@@ -45,7 +63,13 @@ def first_player(gs) -> Optional[int]:
     sc = SCENARIOS.get(getattr(gs, "scenario_mode", ""))
     if sc and sc.get("first_turn") == "attacker":
         return gs.scenario_attacker
+    if sc and sc.get("first_turn") == "defender":
+        return 3 - gs.scenario_attacker
     return None
+
+
+def defender(gs) -> int:
+    return 3 - gs.scenario_attacker
 
 
 # --- Deployment zones and objective markers -------------------------------------
@@ -110,8 +134,46 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                              "objectives": [[round(x, 3), round(y, 3)] for x, y in obj],
                              "points": {"1": 0, "2": 0}}
         gs.add_log(f"[Domination] deployment {layout}: {len(obj)} objective markers")
+    elif mode == "ambush":
+        # The defender is caught unawares: no ordnance loaded (as if expended),
+        # Reload Ordnance needed before launching or firing any
+        for sd in gs.ships:
+            if sd["player"] == defender(gs):
+                sd["ordnance_loaded_torps"] = False
+                sd["ordnance_loaded_craft"] = False
+                sd["ordnance_loaded_mines"] = False
+        gs.scenario_state = {"ambush": True}
+        gs.add_log("[Ambush] the defender starts with no ordnance loaded")
+    elif mode == "rescue":
+        flag = rescue_flagship(gs)
+        gs.scenario_state = {"flagship": flag.id if flag else None}
+        if flag is not None:
+            gs.add_log(f"[Rescue] the defending flagship is {flag.name}")
     elif mode in SCENARIOS:
-        gs.scenario_state = {}
+        gs.scenario_state = {"started": True}
+
+
+def rescue_flagship(gs):
+    """Rescue: the defender's fleet commander's capital ship. Reading: without
+    a flagship marked, the defender's most expensive capital ship."""
+    sid = (gs.scenario_state or {}).get("flagship")
+    if sid:
+        return gs.get_ship_by_id(sid)
+    caps = [s for s in gs.get_ships() if s.player == defender(gs)
+            and s.ship_type != "escort" and not s.is_destroyed]
+    flag = next((s for s in caps if s.is_flagship), None)
+    return flag or max(caps, key=lambda s: s.points_value, default=None)
+
+
+def fixed_placements(gs) -> Dict[str, Tuple[float, float, float]]:
+    """Ships the scenario places itself (not deployed by the player): Rescue's
+    flagship at the exact centre, pointing at the defender's short edge (the
+    left edge, x = 0, here)."""
+    if getattr(gs, "scenario_mode", "") == "rescue":
+        flag = rescue_flagship(gs)
+        if flag is not None:
+            return {flag.id: (gs.table_width / 2.0, gs.table_height / 2.0, 180.0)}
+    return {}
 
 
 def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
@@ -123,6 +185,19 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
     if mode == "confrontation":
         # Attacker within 30cm of a long table edge, defender the opposite one
         rects = {att_p: [(0, 0, 0, h - 30)], 3 - att_p: [(0, 0, h - 30, 0)]}
+    elif mode == "ambush":
+        # Defender more than 30cm from every edge; attacker within 30cm of any
+        rects = {3 - att_p: [(30, 30, 30, 30)],
+                 att_p: [(0, 0, h - 30, 0), (0, 0, 0, h - 30), (0, w - 30, 0, 0),
+                         (w - 30, 0, 0, 0)]}
+    elif mode == "rescue":
+        # The defender's short edge is the left one (x = 0), the attacker's the right
+        rects = {3 - att_p: [(0, w - 30, 0, 0)], att_p: [(w - 30, 0, 0, 0)]}
+    elif mode == "warp_storm":
+        # Two divisions each in opposite corners (30cm squares): attacker
+        # bottom-left and top-right, defender top-left and bottom-right
+        rects = {att_p: [(0, w - 30, h - 30, 0), (w - 30, 0, 0, h - 30)],
+                 3 - att_p: [(0, w - 30, 0, h - 30), (w - 30, 0, h - 30, 0)]}
     elif mode == "domination":
         layout = (gs.scenario_state or {}).get("layout")
         if not layout:
@@ -139,6 +214,204 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         main.extra = rs[1:]
         zones.append(main)
     return zones
+
+
+def placement_errors(gs, group, positions, headings, placed) -> List[str]:
+    """Scenario deployment rules beyond the zone (DeploymentState's
+    extra_check). Ambush: every defending ship and squadron faces the same
+    direction and is at least 20cm from any other ship or squadron (its own
+    squadron excepted)."""
+    errs: List[str] = []
+    if getattr(gs, "scenario_mode", "") != "ambush" or not group:
+        return errs
+    if group[0].player != defender(gs):
+        return errs
+    others = [s for s in placed if s.player == defender(gs)
+              and not (group[0].squadron_id and s.squadron_id == group[0].squadron_id)]
+    for s in others:
+        for h in headings:
+            if abs((h - s.heading + 180.0) % 360.0 - 180.0) > 1e-6:
+                errs.append(f"Ambush: every defending ship faces the same direction "
+                            f"({s.name} faces {s.heading:g})")
+                break
+        for (x, y) in positions:
+            if (x - s.x) ** 2 + (y - s.y) ** 2 < 20.0 ** 2:
+                errs.append(f"Ambush: at least 20cm from {s.name}")
+                break
+    return errs
+
+
+def auto_positions(gs, group, zone, placed, index: int):
+    """Scenario-aware automatic placement, or None for the default: Warp
+    Storm alternates its divisions' corners; Ambush spaces the defender's
+    groups 25cm apart."""
+    mode = getattr(gs, "scenario_mode", "")
+    if mode == "warp_storm":
+        r = zone.rects()[index % len(zone.rects())]
+        cx, cy = (r.x_min + r.x_max) / 2, (r.y_min + r.y_max) / 2
+        return [(cx + 5.0 * (i % 3) - 5.0, cy + 5.0 * (i // 3)) for i in range(len(group))]
+    if mode == "ambush" and group and group[0].player == defender(gs):
+        others = [s for s in placed if s.player == defender(gs)]
+        y = zone.y_min + 5.0
+        while y <= zone.y_max:
+            x = zone.x_min + 5.0
+            while x <= zone.x_max:
+                pts = [(x + 4.0 * i, y) for i in range(len(group))]
+                if all(zone.contains(px, py) for px, py in pts) and all(
+                        (px - s.x) ** 2 + (py - s.y) ** 2 >= 21.0 ** 2
+                        for px, py in pts for s in others):
+                    return pts
+                x += 25.0
+            y += 25.0
+    return None
+
+
+def division_errors(gs, player: int) -> List[str]:
+    """Warp Storm: the two divisions (one per corner) as close to the same
+    number of capital ships and escort squadrons as possible (a difference of
+    at most one of each, reading)."""
+    if getattr(gs, "scenario_mode", "") != "warp_storm":
+        return []
+    zone = next((z for z in deployment_zones(gs) if z.player == player), None)
+    if zone is None:
+        return []
+    caps, sqs = [0, 0], [set(), set()]
+    for s in gs.get_ships():
+        if s.player != player:
+            continue
+        i = next((k for k, r in enumerate(zone.rects())
+                  if r.x_min <= s.x <= r.x_max and r.y_min <= s.y <= r.y_max), None)
+        if i is None:
+            continue
+        if s.ship_type == "escort" and s.squadron_id:
+            sqs[i].add(s.squadron_id)
+        else:
+            caps[i] += 1
+    errs = []
+    if abs(caps[0] - caps[1]) > 1:
+        errs.append(f"capital ships {caps[0]} v {caps[1]}")
+    if abs(len(sqs[0]) - len(sqs[1])) > 1:
+        errs.append(f"escort squadrons {len(sqs[0])} v {len(sqs[1])}")
+    return errs
+
+
+# --- Special rules during the game -------------------------------------------
+
+def _in_defenders_first_turn(gs) -> bool:
+    """Up to the end of the defender's first turn. Reading: the attacker's
+    turn before it counts too (the defender is caught unawares; a Brace in
+    the attacker's first turn would last into the defender's turn)."""
+    first = 1 if getattr(gs, "turn_system", "igougo") == "aa" or \
+        gs.first_player == defender(gs) else 2
+    return gs.turn_number <= first
+
+
+def orders_forbidden(gs, ship) -> Optional[str]:
+    """Why `ship` may not go on special orders now (Brace included), or None.
+    Ambush: no defending ship during the defender's first turn. Rescue: the
+    defending flagship during the defender's first turn."""
+    mode = getattr(gs, "scenario_mode", "")
+    if ship.player != defender(gs) or not _in_defenders_first_turn(gs):
+        return None
+    if mode == "ambush":
+        return "Ambush: the defender is caught unawares (no special orders in its first turn)"
+    if mode == "rescue" and ship.id == (gs.scenario_state or {}).get("flagship"):
+        return "Rescue: the sabotaged flagship takes no special orders in its first turn"
+    return None
+
+
+def disengage_forbidden(gs, ship) -> Optional[str]:
+    """Why `ship` may not take a disengage test, or None. Ambush: no defending
+    ship in the defender's first turn. Rescue: the flagship may only
+    disengage by moving off the defender's short edge (reading: no Leadership
+    test to disengage)."""
+    mode = getattr(gs, "scenario_mode", "")
+    if mode == "ambush" and ship.player == defender(gs) and _in_defenders_first_turn(gs):
+        return "Ambush: the defender may not disengage in its first turn"
+    if mode == "rescue" and ship.id == (gs.scenario_state or {}).get("flagship"):
+        return "Rescue: the flagship can only disengage off the defender's short edge"
+    return None
+
+
+def off_table_destroyed(gs, ship) -> bool:
+    """Rescue: the flagship moving off any edge but the defender's short edge
+    (the left edge, x = 0) is destroyed instead of disengaging."""
+    if getattr(gs, "scenario_mode", "") != "rescue":
+        return False
+    if ship.id != (gs.scenario_state or {}).get("flagship"):
+        return False
+    r = ship.base_radius
+    over = {"left": r - ship.x, "right": ship.x + r - gs.table_width,
+            "bottom": r - ship.y, "top": ship.y + r - gs.table_height}
+    return max(over, key=over.get) != "left"
+
+
+def vp_bonus(gs, result: Dict) -> None:
+    """Scenario victory points added to calculate_victory_points' result.
+    Rescue: the attacker +100% of the defending flagship's cost if it is
+    destroyed at the end of the game."""
+    if getattr(gs, "scenario_mode", "") != "rescue":
+        return
+    sid = (gs.scenario_state or {}).get("flagship")
+    flag = gs.get_ship_by_id(sid) if sid else None
+    if flag is not None and flag.is_destroyed:
+        att = gs.scenario_attacker
+        result[att]["scenario"] = result[att].get("scenario", 0) + flag.points_value
+        result[att]["details"].append(f"Rescue: {flag.name} destroyed: +{flag.points_value} VP")
+
+
+def kill_bonus_vp(gs, ship) -> float:
+    """Extra VP the scenario gives the enemy for destroying `ship` (Rescue's
+    flagship: +100% of its cost). Used by the AI's damage and disengage values."""
+    if (getattr(gs, "scenario_mode", "") == "rescue"
+            and ship.id == (gs.scenario_state or {}).get("flagship")):
+        return float(ship.points_value or 0)
+    return 0.0
+
+
+def warp_loss_chance(gs, ship) -> float:
+    """Warp Storm: the chance a ship that disengages is lost in the warp at
+    the end of the game (2D6 over its Ld). 0 in other scenarios."""
+    if getattr(gs, "scenario_mode", "") != "warp_storm":
+        return 0.0
+    ld = ship.leadership
+    ways = sum(1 for a in range(1, 7) for b in range(1, 7) if a + b > ld)
+    return ways / 36.0
+
+
+def end_of_game(gs, dice) -> bool:
+    """Rolls the scenario makes when the game ends, once. Warp Storm: each
+    ship or squadron that disengaged takes a Leadership test (2D6 against its
+    Ld; a squadron once); those that fail are lost in the warp and count as
+    destroyed. Returns True when anything changed."""
+    if getattr(gs, "scenario_mode", "") != "warp_storm":
+        return False
+    st = dict(gs.scenario_state or {})
+    if st.get("ended"):
+        return False
+    st["ended"] = True
+    gs.scenario_state = st
+    changed = False
+    groups: Dict[str, list] = {}
+    for s in gs.get_ships():
+        if s.is_disengaged and not s.is_destroyed:
+            key = s.squadron_id if (s.ship_type == "escort" and s.squadron_id) else s.id
+            groups.setdefault(key, []).append(s)
+    for members in groups.values():
+        ld = max(m.leadership for m in members)
+        roll = dice.roll_2d6(f"Warp Storm: {members[0].name} returns through the warp (Ld {ld})")
+        if roll > ld:
+            for m in members:
+                m.is_disengaged = False
+                m.status = "destroyed"
+                m.hits_remaining = 0
+                gs.update_ship(m)
+            gs.add_log(f"[Warp Storm] {members[0].name} is lost in the warp (rolled {roll} "
+                       f"v Ld {ld}): destroyed")
+            changed = True
+        else:
+            gs.add_log(f"[Warp Storm] {members[0].name} escapes the warp (rolled {roll} v Ld {ld})")
+    return changed
 
 
 # --- Domination: control and scoring --------------------------------------------

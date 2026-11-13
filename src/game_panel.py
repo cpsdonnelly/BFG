@@ -610,7 +610,8 @@ class GamePanel(AAPanelMixin):
         tk.Label(mode_row, text="Scenario:", font=("Consolas", 8), width=14,
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
-                      "protect_ship", "capture_artefact", "confrontation", "domination"]
+                      "protect_ship", "capture_artefact", "confrontation", "ambush", "rescue",
+                      "warp_storm", "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
         scen_cb = ttk.Combobox(mode_row, textvariable=scen_var, values=scen_modes,
                                 state="disabled" if locked else "readonly", width=22,
@@ -1594,6 +1595,14 @@ class GamePanel(AAPanelMixin):
     def _declare_game_over(self, result) -> bool:
         if not result:
             return False
+        # Rolls the scenario makes when the game ends (Warp Storm's warp tests)
+        from .scenarios import end_of_game, winner_at_end
+        from .scenario import vp_winner
+        from .dice import DiceRoller
+        dice = DiceRoller(mode="auto") if all(self.ctx.is_ai_controlled(p) for p in (1, 2)) \
+            else self.ctx.dice
+        if end_of_game(self.ctx.gs, dice) and result.get("reason") != "objective_points":
+            result = {**result, "winner": winner_at_end(self.ctx.gs, vp_winner)}
         self._game_over = True
         self.ctx.log("=== GAME OVER ===")
         self._show_game_over_dialog(

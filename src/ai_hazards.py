@@ -540,7 +540,8 @@ def damage_vp(target: Ship, gs, mean_hits: float) -> float:
     p_kill = poisson_at_least(mean_hits, rem)
     to_cripple = rem - target.hits_max // 2
     p_crip = 0.0 if target.is_crippled or to_cripple <= 0 else poisson_at_least(mean_hits, to_cripple)
-    base = (p_kill * v + max(0.0, p_crip - p_kill) * v * 0.25
+    from .scenarios import kill_bonus_vp
+    base = (p_kill * (v + kill_bonus_vp(gs, target)) + max(0.0, p_crip - p_kill) * v * 0.25
             + min(mean_hits, rem) * value_per_hit(target, gs) * 0.2)
     if p_kill <= 0 and p_crip <= 0:
         return base
@@ -834,12 +835,18 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
     lam = incoming_hits(ship, gs)
     left = max(1, ship.hits_remaining)
     p_kill = _poisson_at_least(lam, left)
-    risk = p_kill * v * (0.75 if ship.is_crippled else 1.0)
+    from .scenarios import kill_bonus_vp, warp_loss_chance
+    bonus = kill_bonus_vp(gs, ship)
+    risk = p_kill * (v * (0.75 if ship.is_crippled else 1.0) + bonus)
     if not ship.is_crippled:
         to_cripple = left - ship.hits_max // 2
         if to_cripple > 0:
             risk += max(0.0, _poisson_at_least(lam, to_cripple) - p_kill) * 0.25 * v
     extra = 0.0 if ship.is_crippled else 0.10 * v
+    # Warp Storm: a ship that leaves may be lost in the warp at the end (the
+    # full value instead of the 10% / 25% it concedes)
+    q_warp = warp_loss_chance(gs, ship)
+    extra += q_warp * v * (0.75 if ship.is_crippled else 0.90)
     p_pass = p_sum_at_most(2, ld) if ld > 1 else 0.0
     if "necron" in ship.special_rules:
         p_pass = 1.0                       # Without a Trace: no test needed
@@ -869,7 +876,7 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
         p_crip = 0.0
         if not ship.is_crippled and left - ship.hits_max // 2 > 0:
             p_crip = max(0.0, _poisson_at_least(lam, left - ship.hits_max // 2) - p_kill)
-        loss_kill = v * (0.75 if ship.is_crippled else 1.0)
+        loss_kill = v * (0.75 if ship.is_crippled else 1.0) + bonus
         dmg = [(p_kill, -loss_kill), (p_crip, -0.25 * v), (1 - p_kill - p_crip, 0.0)]
         # The guns given up are a gamble too (To do 2): staying is both
         # gambles together; trying gives a sure -extra on a pass and the damage

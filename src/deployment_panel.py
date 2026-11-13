@@ -71,14 +71,24 @@ class DeploymentPanel:
         self.on_complete = on_complete
         self.mode = mode
 
+        # Ships the scenario places itself (Rescue's flagship) aren't deployed
+        from .scenarios import deployment_zones, fixed_placements, placement_errors
+        fixed = fixed_placements(gs)
+        for sd in gs.ships:
+            if sd["id"] in fixed:
+                sd["x"], sd["y"], sd["heading"] = fixed[sd["id"]]
         # Load ships from GameState
-        p1_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 1]
-        p2_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 2]
+        p1_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 1
+                    and s["id"] not in fixed]
+        p2_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 2
+                    and s["id"] not in fixed]
 
-        from .scenarios import deployment_zones
         self.zones = (deployment_zones(gs)
                       or get_default_zones(gs.table_width, gs.table_height))
-        self.state = DeploymentState(p1_ships, p2_ships, self.zones, mode=mode)
+        self.state = DeploymentState(
+            p1_ships, p2_ships, self.zones, mode=mode,
+            extra_check=lambda g, pos, hd, placed: placement_errors(gs, g, pos, hd, placed))
+        self.state.placed_ships.extend(Ship.from_dict(s) for s in gs.ships if s["id"] in fixed)
 
         # Track sub-placement within the current group
         self._pending_positions: List[Tuple[float, float]] = []
@@ -390,7 +400,10 @@ class DeploymentPanel:
                 break
             p = self.state.active_player
             zone = self.state.zones[p]
-            positions = self._find_auto_positions(group, zone)
+            from .scenarios import auto_positions
+            positions = (auto_positions(self.gs, group, zone, self.state.placed_ships,
+                                        self.state.next_idx[p])
+                         or self._find_auto_positions(group, zone))
             headings = [0.0 if p == 1 else 180.0] * len(group)
             ok, errors = self.state.place_group(positions, headings)
             if not ok:
@@ -449,6 +462,14 @@ class DeploymentPanel:
     # ── Completion ────────────────────────────────────────────────────────────
 
     def _finish(self):
+        from .scenarios import division_errors
+        for p in (1, 2):
+            errs = division_errors(self.gs, p)
+            if errs:
+                messagebox.showwarning(
+                    "Warp Storm divisions",
+                    f"Player {p}'s two divisions should be as close to the same size as "
+                    f"possible: " + ", ".join(errs), parent=self.root)
         self.board.canvas.delete("deploy_zone")
         self.board.canvas.delete("deploy_pending")
         # Restore original canvas click handler

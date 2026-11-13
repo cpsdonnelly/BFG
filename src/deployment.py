@@ -175,7 +175,11 @@ class DeploymentState:
         p2_ships: List[Ship],
         zones: List[DeploymentZone],
         mode: str = "sequential",
+        extra_check=None,
     ):
+        """extra_check(group, positions, headings, placed ships) -> [errors]:
+        a scenario's deployment rules beyond the zone (scenarios.placement_errors)."""
+        self.extra_check = extra_check
         self.zones: Dict[int, DeploymentZone] = {z.player: z for z in zones}
         self.mode = mode
 
@@ -232,6 +236,10 @@ class DeploymentState:
             group, positions, zone, self.placed_ships)
         if not ok:
             return False, errors
+        if self.extra_check is not None:
+            errors = self.extra_check(group, positions, headings, self.placed_ships)
+            if errors:
+                return False, errors
 
         for ship, (x, y), heading in zip(group, positions, headings):
             ship.x = x

@@ -416,6 +416,9 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("destroy_ship",      "Destroy / Protect a Ship"),
         ("capture_artefact",  "Capture the Artefact"),
         ("confrontation",     "Confrontation (booklet p.117: attacker first, VP)"),
+        ("ambush",            "Ambush (booklet p.119: defender caught unawares)"),
+        ("rescue",            "Rescue (booklet p.122: defending flagship at the centre)"),
+        ("warp_storm",        "Warp Storm (booklet p.123: corner divisions)"),
         ("domination",        "Domination (booklet p.125: objectives, 10 points)"),
     ]
     for val, lbl in scenario_options:

@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1240 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1247 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -521,7 +521,7 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: most scenarios (Confrontation and Domination are, To do 7) and sub-plots, and the To do items below.
+Not built: most scenarios (Confrontation, Ambush, Rescue, Warp Storm and Domination are, To do 7) and sub-plots, and the To do items below.
 Next (largest first): 7 (scenarios / sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
@@ -1005,8 +1005,32 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    three nearest markers, and `_objective_stake` against voluntary disengaging (its share of
    the markers for the turns left); a point = `OBJECTIVE_POINT_WEIGHT` 0.5 x the points on the
    table / 20 VP. `tools/gui_checks/gui_spectator_domination.py igougo|aa [layout]` plays an
-   AI-vs-AI Domination game to game over. Not yet: the expert search's leaf counting points,
-   racing the 10 against the turn order, the other scenarios and sub-plots, attack ratings.
+   AI-vs-AI Domination game to game over. Second slice built: Ambush (XR p.119: defender
+   more than 30cm from every edge, every defending ship / squadron facing one way and 20cm
+   from the others, `placement_errors` via `DeploymentState(extra_check=)`; attacker within
+   30cm of any edge; the defender starts unloaded (`setup_scenario`); no special orders, Brace
+   or disengaging for the defender until the end of its first turn, `orders_forbidden` /
+   `disengage_forbidden` in `TurnController.issue_special_order` / `can_issue_special_order`,
+   `movement.attempt_brace`, `combat.offer_brace`, `CombatPanel._brace_before_attack`,
+   `ai_should_brace` and `disengage._ftl_blocked`; reading: the attacker's first turn counts
+   too, the defender is caught unawares), Rescue (p.122: defender's short edge = the left one;
+   the flagship, or the dearest capital ship when none is marked (reading), placed by the
+   scenario at the centre facing that edge, `fixed_placements`; no orders in the defender's
+   first turn; it may only disengage off that edge (reading: no Leadership-test disengage),
+   off any other edge it is destroyed, `off_table_destroyed` in `movement.execute_movement`;
+   the attacker +100% of its cost if destroyed, `vp_bonus` in `calculate_victory_points`),
+   Warp Storm (p.123: 30cm corner squares, attacker bottom-left / top-right; `division_errors`
+   warns at the end of deployment when the divisions differ by more than one capital ship or
+   escort squadron (reading); at game end each disengaged ship or squadron tests Ld once, a
+   failure is destroyed, `end_of_game` from `GamePanel._declare_game_over`). AI: the Rescue
+   flagship's kill bonus in `damage_vp` and `disengage_gain` (`kill_bonus_vp`), the flagship
+   heading for its edge when leaving is worth it (`_rescue_escape`), Warp Storm's warp loss in
+   `disengage_gain` (`warp_loss_chance`). `tools/gui_checks/gui_spectator_scenario.py
+   igougo|aa ambush|rescue|warp_storm|confrontation`. Not yet: the expert search's leaf
+   counting Domination points, racing the 10 against the turn order, Line Breaker / Convoy /
+   Space Assault / Planet Strike (support assets, convoys, transport capacity, planets placed
+   by the scenario), the raids and battles, sub-plots, attack ratings, the Ambush attacker's
+   half-points limit (fleet building).
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the
    matchup": each should come out of the expected-VP move score, not a fixed doctrine).

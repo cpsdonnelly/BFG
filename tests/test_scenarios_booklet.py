@@ -160,3 +160,162 @@ def test_ai_moves_onto_an_objective_marker():
     res = validate_movement(me, cmds, "", table_width=180.0, table_height=120.0)
     ex2, ey2 = res.path[-1]
     assert math.hypot(ex2 - 30.0, ey2 - 60.0) > 15.0
+
+
+# --- Ambush, Rescue, Warp Storm ------------------------------------------------
+
+def test_ambush_zones_unloaded_ordnance_and_no_orders_or_disengaging():
+    from src.disengage import attempt_disengage
+    from src.turn_controller import TurnController
+    d = make_ship(id="d", player=2, x=90.0, y=60.0, leadership=10)
+    a = make_ship(id="a", player=1, x=10.0, y=60.0)
+    gs = _gs([a, d], mode="ambush")
+    sc.setup_scenario(gs)
+    d = gs.get_ship_by_id("d")
+    assert not (d.ordnance_loaded_torps or d.ordnance_loaded_craft or d.ordnance_loaded_mines)
+    assert gs.get_ship_by_id("a").ordnance_loaded_torps
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[2].contains(90, 60) and not zones[2].contains(20, 60)
+    for x, y in ((10, 60), (170, 60), (90, 10), (90, 110)):
+        assert zones[1].contains(x, y)
+    assert not zones[1].contains(90, 60)
+    assert sc.first_player(gs) == 1
+    gs.first_player = 1
+    # Turns 1 (attacker) and 2 (defender): no orders, Brace or disengaging
+    tc = TurnController(gs, DiceStub([1]))
+    for turn in (1, 2):
+        gs.turn_number = turn
+        gs.active_player = 2
+        assert sc.orders_forbidden(gs, d)
+        assert "error" in tc.issue_special_order(d, "lock_on")
+        dice = DiceStub([1])
+        res = attempt_disengage(d, dice, gs)
+        assert res.get("blocked") and dice._idx == 0
+    gs.turn_number = 3
+    assert sc.orders_forbidden(gs, d) is None and sc.disengage_forbidden(gs, d) is None
+    assert sc.orders_forbidden(gs, a) is None
+
+
+def test_ambush_placement_rules():
+    gs = _gs([], mode="ambush")
+    placed = [make_ship(id="p", player=2, x=60.0, y=60.0, heading=90.0)]
+    g = [make_ship(id="q", player=2)]
+    assert sc.placement_errors(gs, g, [(90.0, 60.0)], [90.0], placed) == []
+    assert sc.placement_errors(gs, g, [(90.0, 60.0)], [0.0], placed)       # facing
+    assert sc.placement_errors(gs, g, [(75.0, 60.0)], [90.0], placed)      # 15cm apart
+    # Its own squadron may be closer; the attacker isn't bound
+    sq = [make_ship(id="r", player=2, squadron_id="s")]
+    placed2 = [make_ship(id="p2", player=2, x=60.0, y=60.0, heading=90.0, squadron_id="s")]
+    assert sc.placement_errors(gs, sq, [(65.0, 60.0)], [90.0], placed2) == []
+    assert sc.placement_errors(gs, [make_ship(id="z", player=1)], [(65.0, 60.0)], [0.0],
+                               placed) == []
+    zone = {z.player: z for z in sc.deployment_zones(gs)}[2]
+    pos = sc.auto_positions(gs, g, zone, placed, 1)
+    assert pos and all(zone.contains(*p) for p in pos)
+    assert sc.placement_errors(gs, g, pos, [90.0], placed) == []
+
+
+def test_rescue_flagship_placement_orders_edges_and_vp():
+    from src.movement import execute_movement  # noqa: F401  (import check)
+    from src.victory_points import calculate_victory_points
+    flag = make_ship(id="f", player=2, is_flagship=True, points_value=200)
+    other = make_ship(id="o", player=2, points_value=300)
+    att = make_ship(id="a", player=1, points_value=100)
+    gs = _gs([flag, other, att], mode="rescue")
+    sc.setup_scenario(gs)
+    assert gs.scenario_state["flagship"] == "f"
+    assert sc.fixed_placements(gs) == {"f": (90.0, 60.0, 180.0)}
+    assert sc.first_player(gs) == 2
+    gs.first_player = 2
+    gs.turn_number = 1
+    f = gs.get_ship_by_id("f")
+    assert sc.orders_forbidden(gs, f) and sc.orders_forbidden(gs, other) is None
+    gs.turn_number = 2
+    assert sc.orders_forbidden(gs, f) is None
+    assert sc.disengage_forbidden(gs, f)                  # only off its own edge
+    f.x, f.y = -1.0, 60.0
+    assert not sc.off_table_destroyed(gs, f)              # the defender's (left) edge
+    f.x, f.y = 181.0, 60.0
+    assert sc.off_table_destroyed(gs, f)
+    f.x, f.y = 90.0, 121.0
+    assert sc.off_table_destroyed(gs, f)
+    # Destroyed: the attacker scores its cost twice (destroyed + 100%)
+    f.hits_remaining, f.status = 0, "destroyed"
+    gs.update_ship(f)
+    vp = calculate_victory_points(gs)
+    assert vp[1]["total"] == 400
+
+
+def test_rescue_flagship_off_the_wrong_edge_is_destroyed():
+    from src.movement import MoveCommand, execute_movement, validate_movement
+    flag = make_ship(id="f", player=2, is_flagship=True, x=175.0, y=60.0, heading=0.0)
+    gs = _gs([flag, make_ship(id="a", player=1)], mode="rescue")
+    sc.setup_scenario(gs)
+    cmds = [MoveCommand("forward", 10.0)]
+    res = validate_movement(flag, cmds, "", table_width=180.0, table_height=120.0)
+    execute_movement(flag, res, gs)
+    f = gs.get_ship_by_id("f")
+    assert f.is_destroyed and not f.is_disengaged
+
+
+def test_rescue_with_no_flagship_marked_uses_the_dearest_capital_ship():
+    gs = _gs([make_ship(id="c", player=2, points_value=150),
+              make_ship(id="b", player=2, points_value=365),
+              make_ship(id="e", player=2, points_value=400, ship_type="escort", squadron_id="s")],
+             mode="rescue")
+    sc.setup_scenario(gs)
+    assert gs.scenario_state["flagship"] == "b"
+
+
+def test_warp_storm_corners_divisions_and_warp_tests():
+    a1 = make_ship(id="a1", player=1, x=10.0, y=10.0, leadership=7)
+    a2 = make_ship(id="a2", player=1, x=170.0, y=110.0, leadership=7)
+    d1 = make_ship(id="d1", player=2, x=10.0, y=110.0, leadership=8)
+    d2 = make_ship(id="d2", player=2, x=170.0, y=10.0, leadership=8)
+    gs = _gs([a1, a2, d1, d2], mode="warp_storm")
+    sc.setup_scenario(gs)
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[1].contains(10, 10) and zones[1].contains(170, 110)
+    assert zones[2].contains(10, 110) and zones[2].contains(170, 10)
+    assert not zones[1].contains(90, 60)
+    assert sc.division_errors(gs, 1) == [] and sc.division_errors(gs, 2) == []
+    a2 = gs.get_ship_by_id("a2")
+    a2.x, a2.y = 15.0, 15.0
+    a3 = make_ship(id="a3", player=1, x=20.0, y=5.0)
+    gs.update_ship(a2)
+    gs.add_ship(a3)
+    assert sc.division_errors(gs, 1)               # 3 v 0 capital ships
+    # End of game: disengaged ships test Ld; a failure is destroyed
+    for sid in ("a1", "d1"):
+        s = gs.get_ship_by_id(sid)
+        s.is_disengaged, s.status = True, "disengaged"
+        gs.update_ship(s)
+    dice = DiceStub([9, 8])        # a1 fails Ld 7, d1 passes Ld 8
+    assert sc.end_of_game(gs, dice) and dice._idx == 2
+    assert gs.get_ship_by_id("a1").is_destroyed
+    assert gs.get_ship_by_id("d1").is_disengaged
+    assert not sc.end_of_game(gs, DiceStub([]))    # once
+
+
+def test_ai_values_for_rescue_and_warp_storm():
+    from src.ai_hazards import damage_vp, disengage_gain
+    flag = make_ship(id="f", player=2, is_flagship=True, points_value=200, hits_remaining=1)
+    att = make_ship(id="a", player=1, points_value=100, x=20.0, y=0.0)
+    gs = _gs([flag, att], mode="rescue")
+    sc.setup_scenario(gs)
+    rescue = damage_vp(gs.get_ship_by_id("f"), gs, 3.0)
+    gs.scenario_mode = "confrontation"
+    plain = damage_vp(gs.get_ship_by_id("f"), gs, 3.0)
+    assert rescue > plain + 150          # +100% of 200 at P(kill) ~0.95
+    # Warp Storm: leaving risks being lost in the warp, so it is worth less
+    s = make_ship(id="s", player=2, points_value=200, leadership=6, hits_remaining=2,
+                  x=0.0, y=0.0)
+    e = make_ship(id="e", player=1, points_value=200, x=10.0, y=0.0,
+                  weapons=[{"name": "B", "weapon_type": "battery", "strength": 12,
+                            "range": 30, "arcs": ["front", "left", "right", "rear"]}])
+    gs = _gs([s, e], mode="confrontation")
+    calm = disengage_gain(gs.get_ship_by_id("s"), gs, 9, 0.0)
+    gs.scenario_mode = "warp_storm"
+    storm = disengage_gain(gs.get_ship_by_id("s"), gs, 9, 0.0)
+    assert sc.warp_loss_chance(gs, s) == pytest.approx(21 / 36)
+    assert storm < calm

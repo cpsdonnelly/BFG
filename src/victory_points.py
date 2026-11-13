@@ -120,12 +120,17 @@ def calculate_victory_points(gs: GameState) -> Dict:
         result[2]["details"].append(
             f"Holding the field: +{hulk_vp} VP from hulks")
 
+    # Scenario victory points (src/scenarios.py, e.g. Rescue's flagship)
+    from .scenarios import vp_bonus
+    vp_bonus(gs, result)
+
     # Totals
     for p in [1, 2]:
         result[p]["total"] = (result[p]["destroyed"] +
                                result[p]["crippled"] +
                                result[p]["disengaged"] +
-                               result[p]["holding_field"])
+                               result[p]["holding_field"] +
+                               result[p].get("scenario", 0))
 
     return result
 

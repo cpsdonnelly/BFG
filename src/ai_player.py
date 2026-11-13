@@ -145,6 +145,9 @@ def ai_should_brace(gs: GameState, target: Ship,
     """Decide whether an AI-controlled ship should attempt Brace For Impact:
     when its priced value is positive (`brace_value`). incoming_hits: hits
     from the current volley before shields."""
+    from .scenarios import orders_forbidden
+    if orders_forbidden(gs, target):
+        return False
     return brace_value(gs, target, incoming_hits, attacker) > 0.0
 
 
@@ -784,7 +787,31 @@ class AIPlayer:
         score += self._explosion_term(ship, fx, fy, enemy)
         score += self._disengage_spot(ship, fx, fy, fh, enemy)
         score += self._objective_term(ship, fx, fy, enemy)
+        score += self._rescue_escape(ship, fx, fy, enemy)
         return score
+
+    def _rescue_escape(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """Rescue (To do 7): the sabotaged flagship can only disengage by
+        moving off the defender's short edge (x = 0), so when leaving is worth
+        it (disengage_gain with a sure pass: the risk of staying, its doubled
+        value, against the 10% conceded) the move gains that much in
+        proportion to the way covered towards the edge. In move-score units."""
+        gs = self.gs
+        if (gs.scenario_mode != "rescue" or self.difficulty == "easy"
+                or ship.id != (gs.scenario_state or {}).get("flagship")):
+            return 0.0
+        from .ai_hazards import disengage_gain, value_per_hit
+        from .ai_rerolls import firepower_outcomes
+        cache = self.__dict__.setdefault("_rescue_cache", {})
+        key = (ship.id, gs.turn_number, ship.hits_remaining)
+        if key not in cache:
+            ev, outs = firepower_outcomes(ship, gs)
+            cache[key] = max(0.0, disengage_gain(ship, gs, 12, ev, outs))
+        g = cache[key]
+        if g <= 0:
+            return 0.0
+        progress = max(0.0, ship.x - x) / max(1.0, ship.x)
+        return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
 
     OBJECTIVE_POINT_WEIGHT = 0.5   # judgement: 10 objective points ~ half the fleets' worth
     OBJECTIVE_DENIAL = 0.5         # judgement: contesting an enemy-held marker

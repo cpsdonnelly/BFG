@@ -742,6 +742,9 @@ def offer_brace(game_state: GameState, ship: Ship, attacker_key: str,
     from .aa_turn import brace_is_reactive
     if not brace_is_reactive(game_state):
         return False                # AA: Brace is a command-phase order
+    from .scenarios import orders_forbidden
+    if orders_forbidden(game_state, fresh):
+        return False
     return bool(hook(fresh, attacker_key, attacker_name, expected))
 
 

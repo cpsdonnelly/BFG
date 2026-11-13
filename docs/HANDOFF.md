@@ -877,6 +877,14 @@ Space Assault, Rescue, Warp Storm, Planet Strike) need support assets, convoys, 
 capacity and planets placed by the scenario; then the raids and battles, sub-plots, attack
 ratings.
 
+Second slice: Ambush, Rescue and Warp Storm (CLAUDE.md To do 7 has the detail;
+`gui_spectator_scenario.py igougo|aa <scenario>` plays them). Readings to confirm: Ambush's
+"no special orders / disengaging in the defender's first turn" also covers the attacker's
+turn before it (Brace included); Rescue's flagship without a commander marked is the
+defender's dearest capital ship, it can't take a Leadership-test disengage, and the
+defender's short edge is the left one; Warp Storm's divisions may differ by one capital ship
+and one escort squadron, a squadron returning from the warp tests once on its best Ld.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

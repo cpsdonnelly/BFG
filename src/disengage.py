@@ -160,7 +160,12 @@ def forced_disengage_tests(gs: GameState, dice: DiceRoller, player: int) -> List
 
 
 def _ftl_blocked(ship: Ship, gs: GameState) -> Optional[str]:
-    """Reason a ship can't disengage yet in an FTL-charging scenario, or None."""
+    """Reason a ship can't disengage yet in an FTL-charging scenario, or None.
+    Booklet scenarios too (scenarios.disengage_forbidden: Ambush, Rescue)."""
+    from .scenarios import disengage_forbidden
+    why = disengage_forbidden(gs, ship)
+    if why:
+        return why
     if gs.ftl_available_turn and gs.turn_number < gs.ftl_available_turn:
         reason = f"FTL not charged until turn {gs.ftl_available_turn}"
         if gs.scenario_mode == "capture_artefact" and gs.artefact_submode == "carrier_escape":

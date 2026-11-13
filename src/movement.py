@@ -525,6 +525,13 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
 
     # Check for off-table (involuntary disengage)
     if check_off_table(ship, gs.table_width, gs.table_height):
+        from .scenarios import off_table_destroyed
+        if off_table_destroyed(gs, ship):
+            ship.status = "destroyed"
+            ship.hits_remaining = 0
+            gs.update_ship(ship)
+            gs.add_log(f"{ship.name} moved off the wrong table edge: destroyed (Rescue)")
+            return
         process_involuntary_disengage(ship, gs, dice)
         return
 
@@ -680,6 +687,11 @@ def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
     preserve the previous special order, set BFI, record the turn it was set,
     and persist the ship. Returns the command-check result dict.
     """
+    from .scenarios import orders_forbidden
+    why = orders_forbidden(gs, ship)
+    if why:
+        gs.add_log(f"{ship.name} can't Brace for Impact: {why}")
+        return {"passed": False, "roll": 0, "needed": 0, "forbidden": why}
     # A command check, so Under Fire and Enemy Contacts apply (s.6)
     in_blast = count_blast_markers_touching(ship, gs.get_blast_markers()) > 0
     enemy_on_special = any(

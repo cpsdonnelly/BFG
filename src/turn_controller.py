@@ -404,6 +404,9 @@ class TurnController:
             return False
         if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
             return False  # Brace persists, can't override with another order
+        from .scenarios import orders_forbidden
+        if orders_forbidden(self.gs, ship):
+            return False
         return True
 
     def issue_special_order(self, ship: Ship, order: str) -> Dict:
@@ -414,6 +417,12 @@ class TurnController:
         from .movement import do_command_check
 
         result = {"success": False, "order": order, "roll": 0, "needed": 0}
+
+        from .scenarios import orders_forbidden
+        why = orders_forbidden(self.gs, ship)
+        if why:
+            result["error"] = why
+            return result
 
         if (order == SpecialOrder.ALL_AHEAD_FULL.value and any(
                 c.get("crit_type") == "inertialess_drive" for c in ship.critical_damage)):

@@ -225,6 +225,9 @@ class CombatPanel(CombatDialogMixin):
         from .aa_turn import brace_is_reactive
         if not brace_is_reactive(self.ctx.gs):
             return False            # AA: Brace is a command-phase order
+        from .scenarios import orders_forbidden
+        if orders_forbidden(self.ctx.gs, target):
+            return False            # e.g. Ambush: the defender is caught unawares
         if self.ctx.is_ai_controlled(target.player):
             from .ai_player import ai_should_brace
             want = ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker)
