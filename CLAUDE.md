@@ -491,7 +491,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1219 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1220 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1681,8 +1681,15 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    whips built: `resolve_lances` records `ShotResult.bypass_hits` (6s, re-rolls included; no
    holofield save on them) and `apply_damage(bypass_hits=)` keeps them off the shields; the AI
    (`_apply_hits_to`), the Fire dialog (a 6th element in its damage entries) and
-   `CombatPanel._apply_hits_to_target` pass them on. Next: the rest of the combat / movement /
-   end-phase wiring (the nightmare field, star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
+   `CombatPanel._apply_hits_to_target` pass them on. Critical hits built:
+   `tables.NECRON_CRITICAL_HITS` (with `ld_loss`, applied each time and never removed, in
+   `roll_critical_hit`'s effects), main capacitors / power flow silencing lightning arcs /
+   whips (`weapon_disabled_by_crit`), main drive no turns (`get_max_turns`; Eldar Mast Lines
+   now there too), impulse power -5cm (`Ship.effective_speed`), inertialess drive refusing All
+   Ahead Full and Necrons refusing Reload Ordnance (`TurnController.issue_special_order`,
+   the tomb complex excepted). Not yet: port / starboard relays (target-dependent: weapons
+   can't fire at targets in that arc), monument damaged blocking re-rolls and the nightmare
+   field. Next: the rest of the combat / movement / end-phase wiring (the nightmare field, star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
    complex / pylon / Deathseed rules and their craft, the Necron crit table, Without a
    Trace (auto-disengage, firing at own hulks), the AI, then the Eldar gaps above.
 

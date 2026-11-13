@@ -113,3 +113,34 @@ def test_particle_whip_sixes_bypass_shields():
     dice = DiceStub([1])
     out = apply_damage(gs.get_ship_by_id("t"), sr.hits, dice, gs, bypass_hits=sr.bypass_hits)
     assert out["shield_hits"] == 1 and out["hull_hits"] == 1 and dice._idx == 1
+
+
+def test_necron_critical_hits():
+    from tests.conftest import make_ship, make_gs
+    from src.combat import _resolve_crit_cascade, weapon_disabled_by_crit, roll_critical_hit
+    from src.movement import get_max_turns
+    from src.turn_controller import TurnController
+    n = make_ship(id="n", player=1, leadership=8, speed=30,
+                  special_rules=["necron", "reactive_hull:5"])
+    gs = make_gs([n])
+    assert _resolve_crit_cascade(10, gs.get_ship_by_id("n"), gs)["crit_type"] == "command_core"
+    s = gs.get_ship_by_id("n")
+    dice = DiceStub([10])                             # 2D6 = 10: command core, -3 Ld
+    roll_critical_hit(s, dice, gs)
+    assert s.leadership == 5 and s.critical_damage[-1]["crit_type"] == "command_core"
+    arc = {"name": "Lightning Arc", "weapon_type": "battery", "lightning_arc": True}
+    whip = {"name": "Particle Whip", "weapon_type": "lance", "particle_whip": True}
+    s = gs.get_ship_by_id("n")
+    s.critical_damage = [{"crit_type": "main_capacitors"}]
+    assert weapon_disabled_by_crit(s, arc) and not weapon_disabled_by_crit(s, whip)
+    s.critical_damage = [{"crit_type": "power_flow"}]
+    assert weapon_disabled_by_crit(s, arc) and weapon_disabled_by_crit(s, whip)
+    s.critical_damage = [{"crit_type": "main_drive"}]
+    assert get_max_turns("", s) == 0
+    s.critical_damage = [{"crit_type": "impulse_power"}]
+    assert s.effective_speed == 25
+    s.critical_damage = [{"crit_type": "inertialess_drive"}]
+    gs.update_ship(s)
+    tc = TurnController(gs, DiceStub([]))
+    assert "Inertialess" in tc.issue_special_order(gs.get_ship_by_id("n"), "all_ahead_full")["error"]
+    assert "Reload" in tc.issue_special_order(gs.get_ship_by_id("n"), "reload_ordnance")["error"]

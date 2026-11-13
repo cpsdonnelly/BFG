@@ -332,6 +332,8 @@ class Ship:
             for c in self.critical_damage)
         if has_thrusters_crit:
             spd -= 10
+        if any(c.get("crit_type") == "impulse_power" for c in self.critical_damage):
+            spd -= 5                         # Necron Impulse Power Disrupted
         if self.is_crippled and "emergency_energy_reserves" in self.special_rules:
             spd = max(spd, min(15, self.speed))      # can't drop below 15cm
         return max(0, spd)

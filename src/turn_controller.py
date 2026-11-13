@@ -381,6 +381,14 @@ class TurnController:
 
         result = {"success": False, "order": order, "roll": 0, "needed": 0}
 
+        if (order == SpecialOrder.ALL_AHEAD_FULL.value and any(
+                c.get("crit_type") == "inertialess_drive" for c in ship.critical_damage)):
+            result["error"] = "Inertialess Drive Damaged: no All Ahead Full until repaired"
+            return result
+        if order == SpecialOrder.RELOAD_ORDNANCE.value and "necron" in ship.special_rules \
+                and "tomb_complex" not in ship.special_rules:
+            result["error"] = "Necron ships may not use Reload Ordnance (Xenos p.39)"
+            return result
         if order == SpecialOrder.BURN_RETROS.value and "eldar_mms" in ship.special_rules:
             result["error"] = "Eldar may not use Burn Retros (MMS p.3)"
             return result

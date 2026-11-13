@@ -148,10 +148,29 @@ ELDAR_CRITICAL_HITS = {
 }
 
 
+# Necron Critical Hits Table (Appendix 3, Xenos p.41); "ld_loss" is a Leadership
+# penalty applied each time, never removed during the game (even when repaired)
+NECRON_CRITICAL_HITS = {
+    2:  {"name": "Port Power Relays Damaged", "extra_damage": 0, "crit_type": "port_relays", "repairable": True},
+    3:  {"name": "Starboard Power Relays Damaged", "extra_damage": 0, "crit_type": "starboard_relays", "repairable": True},
+    4:  {"name": "Main Capacitors Damaged", "extra_damage": 0, "crit_type": "main_capacitors", "repairable": True},
+    5:  {"name": "Power Flow Disrupted", "extra_damage": 0, "crit_type": "power_flow", "repairable": True},
+    6:  {"name": "Main Drive Damaged", "extra_damage": 0, "crit_type": "main_drive", "repairable": True, "ld_loss": 1},
+    7:  {"name": "Impulse Power Disrupted", "extra_damage": 0, "crit_type": "impulse_power", "repairable": True, "ld_loss": 1},
+    8:  {"name": "Inertialess Drive Damaged", "extra_damage": 0, "crit_type": "inertialess_drive", "repairable": True, "ld_loss": 1},
+    9:  {"name": "Monument Damaged", "extra_damage": 0, "crit_type": "monument", "repairable": True, "ld_loss": 2},
+    10: {"name": "Command Core Damaged", "extra_damage": 0, "crit_type": "command_core", "repairable": True, "ld_loss": 3},
+    11: {"name": "Power Surge", "extra_damage": "D3", "crit_type": "power_surge", "repairable": False, "ld_loss": 2},
+    12: {"name": "Power Core Ruptured", "extra_damage": "D6", "crit_type": "power_core", "repairable": False, "ld_loss": 2},
+}
+
+
 def crit_table_for(ship) -> dict:
     """The critical hits table a ship rolls on (Appendix 3 / 5)."""
     if "eldar_mms" in (getattr(ship, "special_rules", None) or []):
         return ELDAR_CRITICAL_HITS
+    if "necron" in (getattr(ship, "special_rules", None) or []):
+        return NECRON_CRITICAL_HITS
     return CRITICAL_HITS
 
 

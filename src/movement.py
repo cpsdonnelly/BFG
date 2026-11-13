@@ -170,7 +170,8 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
     """How many turns can this ship make?"""
     # Engine Room Damaged: no turns at all until repaired
     for crit in ship.critical_damage:
-        if crit.get("crit_type") == "engine_room":
+        # Engine Room Damaged; Necron Main Drive Damaged / Eldar Mast Lines Severed
+        if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines"):
             return 0
     if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
         # Lightning Thrusters: vanguard cruisers may turn up to 45 degrees on AAF

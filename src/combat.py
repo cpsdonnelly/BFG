@@ -1051,6 +1051,9 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
         game_state.add_log(f"  Extra damage: {extra} HP")
         if target.hits_remaining <= 0:
             return True
+    if crit_data.get("ld_loss"):
+        # Necron crits: a Leadership penalty each time, never removed in the game
+        target.leadership = max(1, target.leadership - crit_data["ld_loss"])
     if crit_data["crit_type"] == "infinity_circuit":
         target.leadership = max(1, target.leadership - 1)     # Eldar: -1 Ld per hit
     if crit_data["crit_type"] == "holofield_destroyed":
@@ -1145,6 +1148,13 @@ def weapon_disabled_by_crit(ship: Ship, weapon: Dict) -> bool:
     Ordnance after firing in either mode.)"""
     if weapon.get("kustom_kannon") and weapon.get("weapon_type") == "battery" \
             and not ship.ordnance_loaded_torps:
+        return True
+    crits = {c.get("crit_type") for c in ship.critical_damage}
+    # Necron crits (Appendix 3): main capacitors silence lightning arcs, power
+    # flow disrupted both lightning arcs and particle whips
+    if weapon.get("lightning_arc") and crits & {"main_capacitors", "power_flow"}:
+        return True
+    if weapon.get("particle_whip") and "power_flow" in crits:
         return True
     return any(weapon_in_crit_slot(weapon, c.get("crit_type", ""))
                for c in ship.critical_damage)
