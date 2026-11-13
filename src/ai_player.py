@@ -1893,8 +1893,9 @@ class AIPlayer:
         expected VP from hazards (asteroids, warp rifts, mines, torpedoes, blast
         markers...) than the safest half-speed move, by more than the order
         costs: special orders halve the ship's firepower this turn, worth half
-        what its guns can take off the best target (ai_rerolls.firepower_swing)."""
-        if self.difficulty == "easy":
+        what its guns can take off the best target (ai_rerolls.firepower_swing).
+        Eldar may not use Burn Retros (MMS p.3)."""
+        if self.difficulty == "easy" or "eldar_mms" in ship.special_rules:
             return False
         from .ai_rerolls import firepower_swing
         normal = self._safest_move_vp(ship, "")

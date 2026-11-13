@@ -99,8 +99,10 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
     num_dice = 3 if on_aaf else 2
     ld = ship.leadership
 
-    # Shadow Engines: escort squadrons automatically pass to navigate asteroids
-    if ship.ship_type == "escort" and "chapter_tactic:shadow_engines" in ship.special_rules:
+    # Shadow Engines: escort squadrons automatically pass to navigate asteroids;
+    # so do Eldar escorts (MMS p.3)
+    if ship.ship_type == "escort" and ("chapter_tactic:shadow_engines" in ship.special_rules
+                                       or "eldar_mms" in ship.special_rules):
         gs.add_log(f"  {ship.name} navigates the asteroid field (Shadow Engines)")
         return {"passed": True, "roll": 0, "needed": ld, "damage": 0}
 
@@ -120,7 +122,8 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
     # Escorts can re-roll on failure
     if siren:
         pass
-    elif not passed and ship.ship_type == "escort":
+    elif not passed and (ship.ship_type == "escort" or "eldar_mms" in ship.special_rules):
+        # escorts may re-roll; so do Eldar capital ships (MMS p.3)
         gs.add_log(f"  {ship.name} failed but escorts may re-roll")
         roll2 = sum(dice.roll_d6(num_dice,
             f"{ship.name} asteroid re-roll ({num_dice}D6 vs Ld {ld})"))
@@ -188,8 +191,11 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
     """
     Resolve a ship entering a warp rift.
     3D6 Ld test. Pass: reposition 2D6x10cm away. Fail: lost in warp.
+    Eldar (MMS p.3) test at -2 Ld (Slaanesh), and once lost come home only on a
+    3+ (permanently lost on 1-2).
     """
-    ld = ship.leadership
+    eldar = "eldar_mms" in ship.special_rules
+    ld = ship.leadership - (2 if eldar else 0)
     from .movement import fleet_reroll_offered, sirens_summon
     siren = sirens_summon(ship, gs)
     if siren:
@@ -236,7 +242,9 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
             f"  {ship.name} LOST IN THE WARP! "
             f"(rolled {roll} vs Ld {ld})")
         # Post-game: D6: 1=destroyed, 2-6=disengaged
-        result["post_game_note"] = "Roll D6 after game: 1=destroyed permanently, 2-6=temporarily lost"
+        result["post_game_note"] = (
+            "Roll D6 after game: 1-2=lost permanently, 3-6=temporarily lost (Eldar)" if eldar
+            else "Roll D6 after game: 1=destroyed permanently, 2-6=temporarily lost")
 
     return result
 
@@ -251,6 +259,10 @@ def resolve_gas_dust_contact(ship: Ship, dice: DiceRoller,
     result = {"speed_penalty": 5, "damage": 0}
     if "demiurg_commerce" in ship.special_rules:
         return {"speed_penalty": 0, "damage": 0}      # Absorber fields: immune
+    if "eldar_mms" in ship.special_rules:
+        # Eldar suffer no movement penalties for celestial phenomena (MMS p.3);
+        # the cloud's other effects (as a blast marker) still apply
+        result["speed_penalty"] = 0
 
     # Shieldless means no shields at all or collapsed, not merely knocked down
     if ship.effective_shields == 0:

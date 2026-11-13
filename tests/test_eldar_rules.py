@@ -206,3 +206,26 @@ def test_eldar_critical_hits_table():
     s.critical_damage = [{"crit_type": "mainsail_scarred"}]
     assert not validate_movement(s, [MoveCommand("forward", 22)], "",
                                  table_width=180, table_height=120).valid     # 25 - 5
+
+
+def test_eldar_orders_and_phenomena():
+    from tests.conftest import make_ship, make_gs
+    from src.turn_controller import TurnController
+    from src.movement import aaf_bonus_dice
+    from src.terrain_effects import (resolve_asteroid_navigation, resolve_warp_rift_navigation,
+                                     resolve_gas_dust_contact)
+    esc = make_ship(id="e", player=1, ship_type="escort", leadership=8,
+                    special_rules=["eldar_mms", "fragile"])
+    cap = make_ship(id="c", player=1, leadership=8, special_rules=["eldar_mms", "fragile"])
+    gs = make_gs([esc, cap])
+    tc = TurnController(gs, DiceStub([]))
+    assert "Burn Retros" in tc.issue_special_order(gs.get_ship_by_id("c"), "burn_retros")["error"]
+    assert aaf_bonus_dice(gs.get_ship_by_id("c")) == 5
+    assert resolve_gas_dust_contact(gs.get_ship_by_id("c"), DiceStub([]), gs)["speed_penalty"] == 0
+    dice = DiceStub([])
+    assert resolve_asteroid_navigation(gs.get_ship_by_id("e"), dice, gs)["passed"] and dice._idx == 0
+    dice = DiceStub([6, 6, 1, 1])                   # 12 fails Ld 8, the re-roll 2 passes
+    assert resolve_asteroid_navigation(gs.get_ship_by_id("c"), dice, gs)["passed"]
+    dice = DiceStub([3, 2, 2])                      # 7 vs Ld 8 - 2 = 6: lost
+    r = resolve_warp_rift_navigation(gs.get_ship_by_id("c"), dice, gs)
+    assert not r["passed"] and r["needed"] == 6 and "3-6" in r["post_game_note"]

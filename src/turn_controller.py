@@ -381,6 +381,9 @@ class TurnController:
 
         result = {"success": False, "order": order, "roll": 0, "needed": 0}
 
+        if order == SpecialOrder.BURN_RETROS.value and "eldar_mms" in ship.special_rules:
+            result["error"] = "Eldar may not use Burn Retros (MMS p.3)"
+            return result
         if not self.can_issue_special_order(ship):
             result["error"] = "Cannot issue orders (check already failed or ship braced)"
             return result
