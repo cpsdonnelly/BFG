@@ -26,9 +26,8 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
   `src/booklet_ships.py`: all 11 factions, 212 booklet ships plus 17 designed Venerable Strike
-Cruisers. Eldar (MMS v2.0) are playable (18 of 24 ships; To do 14 lists the gaps); Necrons
-(export 13) are listed but unsupported until their rules are built
-(`booklet_ships.UNBUILT_FACTION_RULES`, To do 14). Ships using rules the engine can't play yet
+Cruisers. Eldar (MMS v2.0) are playable (18 of 24 ships) and so are Necrons (the six mobile
+ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the gaps. Ships using rules the engine can't play yet
   (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons...) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
   ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
@@ -523,9 +522,9 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
 Not built: scenarios / sub-plots, and the To do items below.
-Next (largest first): Necrons (To do 14), 7 (scenarios / sub-plots), To do 13's remaining
+Next (largest first): 7 (scenarios / sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
-AI per unit), the Eldar gaps (To do 14), the rest of 4 (daemonships:
+AI per unit), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
 Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
 Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (deeper expert
@@ -1591,8 +1590,7 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    human command phase offering only orders.
 
 14. Eldar and Necrons (export 13, CHANGES updates 48-49, 51-52): Eldar are built and playable
-   (below); Necron ships are in the catalog but unsupported (`booklet_ships.UNBUILT_FACTION_RULES`;
-   the parser also flags Necron weapons).
+   (below); Necrons are built and playable too (below, after the Eldar).
    Eldar use the fan MMS v2.0 rules (`bfgxr/rules/08_eldar.md`, replacing XR's Eldar): three
    speeds by the sun (sun / away / abeam) and two moves, holofields ("2+H" shields), Fragile
    (crits on 5+), Natural Spacefarers (+1 Ld, the Eldar column), turrets +1 to hit, their own
@@ -1716,7 +1714,16 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    crippled / orders allowed; escorts (the Jackal) only against ships of 6 starting hits or
    less, reading); `resolve_teleport_attack` makes that many raids; same toggles as
    teleports (reading: Remastered says portals aren't teleports in the normal manner). Not
-   yet: Bloodswarm Nanoscarabs (+1, Dynasty). Next: the rest of
+   yet: Bloodswarm Nanoscarabs (+1, Dynasty). Necrons are PLAYABLE now (off
+   `UNBUILT_FACTION_RULES`; the six mobile ships; ground defences and Deathseed mines stay
+   unsupported for their own reasons); AI-vs-AI Necrons against Imperial Navy plays to game
+   over in IGOUGO and AA (`tools/gui_checks/gui_spectator_necron.py igougo|aa`). Gaps still
+   open: the nightmare field (no profile has one), lightning arcs splitting fire between
+   arcs, port / starboard relay crits, monument damaged, firing on own hulks, reinforcements
+   awake, phasing out when hulked as conserving, the ground defences / Deathseed / their
+   craft, Dynasty upgrades, the Reaper / Shroud / Dirge special rules, the Harvest and Dynasty
+   fleet lists, the AI's Necron play (it values guns as usual and never plans around power
+   conservation or alert levels). Next (old list, now partly done): the rest of
    the combat / movement / end-phase wiring (the nightmare field (no profile carries one; a
    Dynasty / Monument item), star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
    complex / pylon / Deathseed rules and their craft, the Necron crit table, Without a

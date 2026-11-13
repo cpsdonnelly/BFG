@@ -37,8 +37,8 @@ FACTIONS: Dict[str, Tuple[str, str, str]] = {
 UNBUILT_FACTION_RULES = {
     # Eldar (MMS v2.0) are playable now (src/eldar.py); their remaining gaps are
     # listed in CLAUDE.md To do 14
-    "Necrons": "Necron rules (reactive hulls, Without a Trace, Necron weapons, "
-               "Necron crits...) not built yet",
+    # Necrons are playable too (src/necrons.py); the ground defences and Deathseed
+    # mines stay unsupported for their own reasons (no movement / profile)
 }
 
 # Appendix 4 - Leadership Tables: D6 roll -> Leadership, per column.

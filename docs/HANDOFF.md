@@ -849,9 +849,14 @@ Heroes, Void Dragon, Ghostships, Dying Race, bombers' re-roll and fighters' save
 holofields against non-lance direct attacks, Superstructure Damaged, a second prow crit, the
 AI's lance values ignoring the holofield save, Come to New Heading's extra turn in the AI's
 MMS moves, the move dialog's MMS help, the five either/or ships and the one without a cost.
-Necrons started: `src/necrons.py` (reactive hulls and Brace, alert levels and awakening,
-power conservation, the inertialess drive, the weapons' core rules), tested, not wired in
-(CLAUDE.md To do 14 lists the next steps and the readings).
+Necrons then built and made playable (all pushed, 1226 tests): `src/necrons.py`, the catalog
+(reactive hulls, lightning arcs, particle whips, star pulse generators, portals), reactive
+hull saves and braced / hulk Armour 4+, lightning arcs vs closing, particle whip bypass, the
+Necron crit table, immunities and 4+ repairs, power conservation / alert levels / awakening /
+double VP, Without a Trace, the inertialess drive, the star pulse generator (engine, AI, Fire
+dialog), portals; `tools/gui_checks/gui_spectator_necron.py igougo|aa`. Gaps and readings in
+CLAUDE.md To do 14 (alert per hit, inertialess turn every 20cm, star pulse hits stopped by
+shields, Jackal's 6 hits as starting hits, portals under the teleport toggles).
 Export gap to report: Eldar keel launch bays come out unparsed (see "Booklet export bug").
 Notes for GUI checks: `gui_spectator_demo.py` / `_orks` / `_sm` need `normal` / `expert`;
 `gui_spectator_aa.py <mode> [shoot_first|move_first]`; `gui_spectator_eldar.py igougo|aa`;

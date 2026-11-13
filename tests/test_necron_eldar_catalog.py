@@ -1,5 +1,5 @@
 """Export 13: Eldar (MMS v2.0, update 49) and Necrons (update 48) in the catalog.
-Eldar are playable (MMS v2.0); Necrons are listed but unsupported until their rules are built."""
+Eldar (MMS v2.0) and Necrons are playable; Necron ground defences are not."""
 from src.ship_catalog import find_ship_class, get_faction_ships
 from src.booklet_options import ship_option_errors
 
@@ -13,8 +13,11 @@ def test_eldar_and_necron_ships_are_listed_but_unsupported():
     playable = [e for e in eldar if not e.unsupported]
     assert len(playable) >= 18
     assert not any(any("MMS" in r for r in e.unsupported) for e in eldar)
-    assert all(any("Necron rules" in r for r in e.unsupported) for e in necrons)
-    assert not get_faction_ships("necrons")          # nothing playable yet
+    # Necron ships are playable now; the ground defences and Deathseed mines aren't
+    mobile = [e for e in necrons if not e.unsupported]
+    assert {e.ship_class for e in mobile} >= {"Cairn Class Tombship", "Scythe Class Harvest Ship",
+                                               "Jackal Class Raider", "Dirge Class Raider"}
+    assert len(get_faction_ships("necrons")) == 6        # the six mobile ships
 
 
 def test_leadership_columns():
