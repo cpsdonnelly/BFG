@@ -1571,9 +1571,13 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (`aa_turn.brace_is_reactive`, checked by `CombatPanel._brace_before_attack` and
    `combat.offer_brace`); humans get "Brace for Impact" in the command phase's order dialog and
    the AI declares it there when `brace_value` against the round's `incoming_hits` is positive
-   (`_aa_brace_worth_it`). Not yet: a human command phase that only offers orders (the order
-   button is shown; the IGOUGO checks on orders still apply), limiting a human activation to
-   one unit.
+   (`_aa_brace_worth_it`). A human activation is limited to one
+   unit (`TurnController.aa_allowed`, read by `get_unmoved_ships` / `get_unfired_ships` and
+   the Fire dialog; `AAPanelMixin._aa_unit_filter`: any unit not yet activated until one of its
+   ships moves or fires, then only that unit); `tools/gui_checks/aa_human_check.py` plays a
+   human against the AI through command, launch and activation steps. Not yet: a human
+   command phase that only offers orders (the order button is shown; the IGOUGO checks on
+   orders still apply).
    Still to do: the AA round (Command,
    Ordnance A, Shooting, Movement, Ordnance B, End) in the turn controller and the UI, Brace
    as a command-phase order, ordnance 1 / 2 moves, boarding and ramming locked on

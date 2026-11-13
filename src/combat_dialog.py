@@ -730,6 +730,7 @@ class CombatDialogMixin:
             if has_unfired:
                 ships_with_weapons.append(s)
 
+        ships_with_weapons = [s for s in ships_with_weapons if self.ctx.tc._aa_ok(s)]
         if not ships_with_weapons:
             messagebox.showinfo("No Ships", "All ships have fired all weapons")
             return

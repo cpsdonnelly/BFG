@@ -703,17 +703,24 @@ class TurnController:
 
         return result
 
+    # Alternate activation: during a human's activation only the ships of the
+    # unit being activated may act (set by AAPanelMixin; None otherwise)
+    aa_allowed = None
+
+    def _aa_ok(self, s) -> bool:
+        return self.aa_allowed is None or self.aa_allowed(s)
+
     def get_unmoved_ships(self) -> List[Ship]:
         """Get ships belonging to active player that haven't moved yet."""
         return [s for s in self.gs.player_ships(self.gs.active_player)
                 if (not s.is_destroyed and not s.is_disengaged
-                    and s.id not in self.ships_moved)]
+                    and s.id not in self.ships_moved and self._aa_ok(s))]
 
     def get_unfired_ships(self) -> List[Ship]:
         """Get active player ships that haven't fired yet."""
         return [s for s in self.gs.player_ships(self.gs.active_player)
                 if (not s.is_destroyed and not s.is_disengaged
-                    and s.id not in self.ships_fired)]
+                    and s.id not in self.ships_fired and self._aa_ok(s))]
 
     def mark_ship_moved(self, ship_id: str):
         self.ships_moved.append(ship_id)

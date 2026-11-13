@@ -131,6 +131,7 @@ class AAPanelMixin:
                 return self._aa_after(150)
             self._aa_acted_before = (set(self.ctx.tc.ships_moved), set(self.ctx.tc.ships_fired))
             self._aa_named = key
+            self.ctx.tc.aa_allowed = self._aa_unit_filter(p, key)
             return self._aa_wait((ph, p), f"activate one unit ({ph}), then End Phase")
         if ph == "end":
             ai = self._aa_ai(1 if self.ctx.is_ai_controlled(1) else 2)
@@ -168,6 +169,23 @@ class AAPanelMixin:
         if requests:
             self.aa.force_first(requests, self.ctx.dice)
 
+    def _aa_unit_filter(self, player: int, key):
+        """Which ships a human may act with during this activation: the named
+        unit (System 1), else any unit not yet activated until one of its
+        ships has moved or fired, then only that unit."""
+        def allowed(ship):
+            units = self.aa.remaining_units(player)
+            if key:
+                units = [u for u in units if u.key == key]
+            moved0, fired0 = self._aa_acted_before
+            tc = self.ctx.tc
+            acted = (set(tc.ships_moved) - moved0) | (set(tc.ships_fired) - fired0)
+            started = [u for u in units if set(u.ship_ids) & acted]
+            if started:
+                units = started[:1]
+            return any(ship.id in u.ship_ids for u in units)
+        return allowed
+
     def _aa_wait(self, what, text: str) -> None:
         self._aa_waiting = what
         self.ctx.gs.active_player = what[1]
@@ -182,6 +200,7 @@ class AAPanelMixin:
             return
         ph, p = self._aa_waiting
         self._aa_waiting = None
+        self.ctx.tc.aa_allowed = None
         if ph in ACTIVATION_PHASES:
             moved0, fired0 = self._aa_acted_before
             tc = self.ctx.tc
