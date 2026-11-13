@@ -497,6 +497,12 @@ Session after zip 13 (all pushed; HANDOFF "Session after booklet zip 13"): To do
 scenario points), 3, 6 done; large parts of 4, 5, 8, 9, 10, 11 and the first slice of 13 built
 (each item below says what). Fixed: attackers no longer add turrets to troop rating (s.32).
 Readings to confirm with the owner are listed in HANDOFF and in To do 3 / 6.
+Later in that session (HANDOFF, same section, "Then"): Miasma's ordnance part; Siren's Summon
+against plain Leadership tests (reading to confirm: an escort squadron's off-table / forced
+disengage tests within 15cm are treated as blocked, no failure penalty); To do 10's Reload
+Ordnance and Come to New Heading by value (10 is done but e's small Brace items); To do 11 a's
+safety goals, disengaging valued at the end position and one coordination round. Known limit:
+the expert's root moves under Come to New Heading are one-turn only.
 
 Built so far: every booklet rule section the engine plays (see the sections above), the export
 31 "still to do" list, boarding crew bonuses, disengaging incl. forced disengagement, optional
@@ -515,8 +521,11 @@ UI, AI choices), 7 (scenarios / sub-plots), 14 (Eldar, Necrons), the rest of 4 (
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
 Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
 Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (deeper expert
-hazards, more coordination rounds), 10 e (Brace's remaining bits), 12 (learned evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
-important; follow the dependencies.
+hazards, more coordination rounds, two-turn root moves for the expert under Come to New
+Heading), 10 e (Brace's remaining bits), 12 (learned evaluation) after 11, 1 (weight tuning)
+last and on hold. Owner: the order isn't hugely important; follow the dependencies. For 13,
+the AA notes leave several choices open (shooting vs movement order, the launch ordnance
+phase, end-phase cadence): build them as settings, never settle them for the owner.
 
 ### AI: how it decides (expected VP)
 

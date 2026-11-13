@@ -800,6 +800,12 @@ Then ("go" after the brief update), all pushed:
   (`_disengage_spot`), one round of the coordination pass (`_coordination_plan`, `_ships_at`).
   The expert's root moves under Come to New Heading stay one-turn (not yet two).
 Tests: 1183 pass; spectator games (normal, expert, Orks, Space Marines) pass.
+Next: To do 13's AA round (turn controller, UI, AI). Read docs/AA_ORDER_SYSTEMS_NOTES.md
+(the source) and docs/AA_ACTIVATION_NOTES.md ("Discussion summary" and "Later decisions");
+`src/activation.py` has the core. Open choices there become settings (`AAConfig`), not
+decisions. Notes for GUI checks: `gui_spectator_*.py` need a difficulty argument
+(`normal` / `expert`); a GUI check that drives ordnance contacts calls
+`panel.ordnance._resolve_ship_contacts` (OrdnancePanel holds the mixin).
 
 ## Bombers vs assault boats (owner idea, done)
 
