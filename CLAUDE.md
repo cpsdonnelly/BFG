@@ -486,7 +486,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1172 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1174 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -877,7 +877,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (built: `booklet_options.GOD_BOONS`, only in their god's fleet list, needing that Mark:
    Veil of Lust (gunnery at it shifts right), Siren's Summon (0-2: enemy ships within 15cm
    fail every command check, Brace included; plain Leadership tests not yet), Miasma of
-   Pestilence (no left shift within 15cm; its ordnance part not yet), Plague Arks (0-3: a
+   Pestilence (no left shift within 15cm; ordnance attacking it destroyed on a 6 as
+   through blast markers, `ordnance_movement._resolve_ship_contacts`; the AI counts it and the
+   Modern / Remastered blast-contact roll via `ai_hazards.attack_survival` in `best_route` and
+   the torpedo planners; `tools/gui_checks/miasma_check.py`), Plague Arks (0-3: a
    Fire critical on the other side of a boarding action); not yet: the Berzerker Tide, Warp
    Beasts, Strands of Fortune; also built: Mark of Chaos Undivided, `src/chaos_undivided.py`: on the Warmaster's / Lord's
    ship, 25pts; once per game before a command check the fleet takes its Ld until the end of

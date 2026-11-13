@@ -770,7 +770,7 @@ the effect and one flare / burst die each; the burst's re-roll limit applies to 
 GUI checks now answer Brace and order re-roll prompts by replacing `choice_dialog.yes_no`.
 Later in the same session:
 - To do 4: Ork kustom upgrades, the Nob, Big Mek repair die, Goffs / Evil Sunz; god-fleet
-  boons (Veil of Lust, Siren's Summon, Miasma's gunnery part, Plague Arks); named commanders
+  boons (Veil of Lust, Siren's Summon, Miasma (gunnery and ordnance), Plague Arks); named commanders
   (Rath, Abaddon, Kor'O'Mesme).
 - To do 5: Zzapp Gunz, Kustom Kannon, the Planet Killer's Armageddon Gun (Slamblasta, Hammer
   and Planet Killer now playable).
@@ -779,8 +779,7 @@ Later in the same session:
 - AI: lance values use each weapon's hit roll (`ai_hazards.lance_p`).
 Known gaps flagged in CLAUDE.md beside each item: Armageddon reload malfunction (the command
 check keeps only its total, so doubles can't be seen), More Dakka / Bad Moons / Deathskulls /
-Blood Axes / Snakebites, Abaddon's "You Have Failed Me", Rath's random refits, the Miasma
-ordnance part, Siren's Summon against plain Leadership tests, Warp Beasts / Berzerker Tide /
+Blood Axes / Snakebites, Abaddon's "You Have Failed Me", Rath's random refits, Siren's Summon against plain Leadership tests, Warp Beasts / Berzerker Tide /
 Strands of Fortune, daemonships (the next big rules item: they touch every targeting and
 ordnance path), the AA round wiring. In ordinary games the AI rarely gets the chance to board
 or ram (no contact or dead-ahead target arose in the Ork spectator runs with both rules on);

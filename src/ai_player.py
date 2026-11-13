@@ -2411,7 +2411,8 @@ class AIPlayer:
         for target in targets:
             base_inputs = wave_plan_inputs(target, self.gs)
             # craft may fly round obstacles (owner): best of straight line / detours
-            route = best_route(ship.x, ship.y, target.x, target.y, self.gs, "craft", speed)
+            route = best_route(ship.x, ship.y, target.x, target.y, self.gs, "craft", speed,
+                               target=target)
             ratio = max(1.0, route[2] / max(1.0, ship.distance_to(target)))
             # Valued when it lands (To do 2): the arrival phase (phase_weight),
             # enemy guns on the way, reactive CAP, the raid's repair window
@@ -3118,7 +3119,8 @@ class AIPlayer:
         (s.16). With no `strength` the weapon's is used."""
         from .geometry import torpedo_first_contact, TORP_BODY_HALF_W_CM
         from .ordnance import compute_torpedo_launch_exempt
-        from .ai_hazards import torpedo_path_survival, torpedo_salvo_hits, added_vp, p_hit
+        from .ai_hazards import (torpedo_path_survival, torpedo_salvo_hits, added_vp, p_hit,
+                                 attack_survival)
         gs = self.gs
         dist = max(dist, 1.0)
         if strength is None:
@@ -3160,7 +3162,7 @@ class AIPlayer:
                 left -= hits
             if not met:
                 continue                          # this heading misses the target
-            value *= torpedo_path_survival(ship.x, ship.y, ex, ey, gs)
+            value *= torpedo_path_survival(ship.x, ship.y, ex, ey, gs) * attack_survival(target, gs)
             if best is None or value > best[1] + 1e-9:
                 best = (h, value, on_target, lost)
         if best is None:                          # no heading meets it: aim as near as allowed
@@ -3187,7 +3189,7 @@ class AIPlayer:
         path survival included), "p_hit", "hits"} for the best heading in the
         launch arc, or None when no heading can reach the target within this
         turn and the enemy's (then the longer-range intercept is used)."""
-        from .ai_hazards import (enemy_move_samples, seg_first_contact, path_touches,
+        from .ai_hazards import (attack_survival, enemy_move_samples, seg_first_contact, path_touches,
                                  TORP_CONTACT_HALF_W, DODGE_WEIGHT, torpedo_path_survival,
                                  LATER_TURN_WEIGHT, phase_weight,
                                  torpedo_salvo_hits, added_vp, p_hit, p_sum_at_most)
@@ -3341,8 +3343,9 @@ class AIPlayer:
                 dv, dp = mean_v, 1.0
             value = (1 - DODGE_WEIGHT) * mean_v + DODGE_WEIGHT * dv + base_v
             p_h = (1 - DODGE_WEIGHT) * mean_p + DODGE_WEIGHT * dp
-            value *= torpedo_path_survival(ship.x, ship.y, p2[0], p2[1], gs)
-            p_h *= torpedo_path_survival(ship.x, ship.y, p2[0], p2[1], gs)
+            at_t = attack_survival(target, gs)    # Miasma / blast contact
+            value *= torpedo_path_survival(ship.x, ship.y, p2[0], p2[1], gs) * at_t
+            p_h *= torpedo_path_survival(ship.x, ship.y, p2[0], p2[1], gs) * at_t
             if best is None or value > best["value"] + 1e-9:
                 best = {"heading": h, "value": value, "p_hit": p_h, "lost": lost,
                         "hits": torpedo_salvo_hits(strength, target, gs, from_xy)}
@@ -3433,15 +3436,15 @@ class AIPlayer:
                 # Tau missiles (weapon "guided") always; Leadership-guided torpedoes
                 # (bought type) at the launcher's Ld odds; standard ones run straight
                 straight = best_route(ship.x, ship.y, e.x, e.y, self.gs, "torpedo",
-                                      speed, max_turn=0)[1]
+                                      speed, max_turn=0, target=e)[1]
                 if weapon.get("torpedo_type") == "guided":
                     surv = best_route(ship.x, ship.y, e.x, e.y, self.gs, "torpedo", 40.0,
-                                      max_turn=45.0)[1]
+                                      max_turn=45.0, target=e)[1]
                 elif "guided" in ship_torpedo_types(ship):
                     from .ai_hazards import p_sum_at_most
                     p_ld = p_sum_at_most(2, min(10, ship.leadership or 8))
                     turned = best_route(ship.x, ship.y, e.x, e.y, self.gs, "torpedo",
-                                        speed, max_turn=45.0)[1]
+                                        speed, max_turn=45.0, target=e)[1]
                     surv = p_ld * turned + (1 - p_ld) * straight
                 else:
                     surv = straight

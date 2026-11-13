@@ -1034,7 +1034,7 @@ def plan_strike_targets(gs, player: int) -> dict:
         for e in enemies:
             # Valued when it lands (To do 2): arrival phase, enemy guns on the way,
             # the raid's repair window; routes round obstacles (owner)
-            route = best_route(lead.x, lead.y, e.x, e.y, gs, "craft", speed)
+            route = best_route(lead.x, lead.y, e.x, e.y, gs, "craft", speed, target=e)
             d = _m.hypot(e.x - lead.x, e.y - lead.y) or 1.0
             tl = strike_timeline(lead.x, lead.y, speed, e, gs, player,
                                  max(1.0, route[2] / d), gs.active_player == player)
@@ -1324,8 +1324,25 @@ def _harmful_obstacles(x1, y1, x2, y2, gs, kind: str):
     return out
 
 
+def attack_survival(target, gs) -> float:
+    """Chance ordnance survives the moment it attacks `target`, as
+    ordnance_movement._resolve_ship_contacts rolls it: destroyed on a 6 when
+    the target has Miasma of Pestilence (Nurgle boon: ordnance attacking it
+    counts as passing through blast markers), or under the Modern / Remastered
+    blast marker rules when the target is in contact with blast markers."""
+    if target is None:
+        return 1.0
+    if "miasma" in (getattr(target, "special_rules", None) or []):
+        return 5 / 6
+    from .optional_rules import blast_rules, in_blast_contact
+    if blast_rules() != "standard" and in_blast_contact(target, gs.get_blast_markers(),
+                                                         gs.get_ships()):
+        return 5 / 6
+    return 1.0
+
+
 def best_route(x1: float, y1: float, x2: float, y2: float, gs, kind: str = "craft",
-               speed: float = 20.0, max_turn: float = None):
+               speed: float = 20.0, max_turn: float = None, target=None):
     """Owner: attack craft (and, within their turns, torpedoes that can turn)
     may fly round obstacles. The best of the straight line, detours via a
     waypoint just outside each harmful obstacle on it, and detours of those
@@ -1337,6 +1354,7 @@ def best_route(x1: float, y1: float, x2: float, y2: float, gs, kind: str = "craf
     Returns (value 0-1, survival, length, first waypoint or None); craft
     re-plan every move, so they follow the rest of the route as they go."""
     import math as _m
+    at_target = attack_survival(target, gs)    # Miasma / blast contact at the target
 
     def score(pts):
         if max_turn is not None:
@@ -1345,7 +1363,7 @@ def best_route(x1: float, y1: float, x2: float, y2: float, gs, kind: str = "craf
                 h2 = _m.degrees(_m.atan2(c[1] - b[1], c[0] - b[0]))
                 if abs((h2 - h1 + 180) % 360 - 180) > max_turn:
                     return None
-        surv, length = 1.0, 0.0
+        surv, length = at_target, 0.0
         for a, b in zip(pts, pts[1:]):
             surv *= ordnance_path_survival(a[0], a[1], b[0], b[1], gs, kind)
             length += _m.hypot(b[0] - a[0], b[1] - a[1])
@@ -1354,7 +1372,7 @@ def best_route(x1: float, y1: float, x2: float, y2: float, gs, kind: str = "craf
     start, end = (x1, y1), (x2, y2)
     v, surv, length = score([start, end])
     best = (v, surv, length, None)
-    if surv >= 1.0 or max_turn == 0:
+    if surv >= at_target or max_turn == 0:
         return best
 
     def waypoints(a, b):

@@ -412,10 +412,17 @@ class OrdnanceMovementMixin:
 
         # Optional Modern / Remastered blast markers (s.11): ordnance attacking a
         # ship in contact with blast markers is treated as moving through them
-        # (destroyed on a 6); a wave rolls once
+        # (destroyed on a 6); a wave rolls once. Miasma of Pestilence (Nurgle boon):
+        # all ordnance attacking the ship counts as passing through blast markers,
+        # whatever the blast marker rules
         from .optional_rules import blast_rules, in_blast_contact
         from .ordnance import check_ordnance_vs_blast_contact
-        if blast_rules() != "standard":
+        modern = blast_rules() != "standard"
+
+        def through_blast(s, bms):
+            return "miasma" in s.special_rules or (modern and in_blast_contact(s, bms, ships))
+
+        if modern or any("miasma" in s.special_rules for s in ships):
             bms = self.ctx.gs.get_blast_markers()
             rolled, gone = set(), set()
             for m in [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance]:
@@ -424,15 +431,17 @@ class OrdnanceMovementMixin:
                         or (mover is not None and m.owner_player != mover)):
                     continue
                 hit = next((s for s in ships if not s.is_destroyed and s.player != m.owner_player
-                            and touching(m, s) and in_blast_contact(s, bms, ships)), None)
+                            and touching(m, s) and through_blast(s, bms)), None)
                 if hit is None:
                     continue
                 rolled.add(key)
                 if check_ordnance_vs_blast_contact(self.ctx.dice):
                     gone.update(o["id"] for o in self.ctx.gs.ordnance
                                 if (o.get("wave_id") or o["id"]) == key)
+                    why = ("Miasma of Pestilence" if "miasma" in hit.special_rules
+                           else "its blast markers")
                     self.ctx.log(f"  {m.ordnance_type} attacking {hit.name} destroyed by "
-                                 f"its blast markers")
+                                 f"{why}")
             if gone:
                 self.ctx.gs.ordnance = [o for o in self.ctx.gs.ordnance if o["id"] not in gone]
                 skip_ids = frozenset(skip_ids) | gone
