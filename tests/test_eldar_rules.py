@@ -127,3 +127,26 @@ def test_phantom_lances_and_fragile():
     dice = DiceStub([5])                              # 5 is a crit for a Fragile ship
     out = apply_damage(gs.get_ship_by_id("t"), 1, dice, gs, ignores_shields=True)
     assert out["hull_hits"] == 1 and len(out["crits"]) == 1
+
+
+def test_eldar_turrets_stealth_and_torpedo_rerolls():
+    from src.ordnance import turret_hit_on, resolve_torpedo_attack
+    from src.models import OrdnanceMarker
+    from src.game_state import GameState
+    from tests.conftest import make_ship
+    plain = make_ship(id="p", player=2)
+    eldar_ship = make_ship(id="e", player=2, special_rules=["eldar_mms"])
+    ork = make_ship(id="o", player=2, special_rules=["ork_turrets"])
+    stealthy = OrdnanceMarker(id="m", ordnance_type="torpedo_standard", owner_player=1,
+                              launched_by="x", special_rules=["eldar_mms"])
+    assert turret_hit_on(plain) == 4 and turret_hit_on(eldar_ship) == 3
+    assert turret_hit_on(plain, stealthy) == 6 and turret_hit_on(ork, stealthy) == 6
+    assert turret_hit_on(eldar_ship, stealthy) == 5
+    # Eldar torpedoes re-roll misses: S2 at a 5+ target with no turrets
+    gs = GameState()
+    t = make_ship(id="t", player=2, x=10.0, y=0.0, turrets=0)
+    gs.add_ship(t)
+    stealthy.strength, stealthy.x, stealthy.y = 2, 0.0, 0.0
+    dice = DiceStub([5, 2, 6, 1, 1])     # one hit, one miss re-rolled to a hit; two crit checks
+    r = resolve_torpedo_attack(stealthy, gs.get_ship_by_id("t"), dice, gs)
+    assert r["hits"] == 2 and dice._idx == 5

@@ -536,7 +536,8 @@ class OrdnanceMovementMixin:
                         self.ctx.log(f"  {len(mr_suppress)} multi-role squadron(s) suppress "
                                      f"{s.name}'s turrets instead of attacking")
                 p1 = resolve_bomber_interception(
-                    len(group), s, ships, self.ctx.dice, self.ctx.gs)
+                    len(group), s, ships, self.ctx.dice, self.ctx.gs,
+                    marker=group[0] if group else None)
                 for msg in p1["log"]:
                     self.ctx.log(msg)
                 plan = ship_attack_plan(group, p1["killed"], mr_suppress,

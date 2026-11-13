@@ -453,9 +453,23 @@ def torpedo_may_attack(marker: OrdnanceMarker, ship: Ship,
     return last is None or game_state.turn_number - last >= 2
 
 
-def turret_hit_on(ship: Ship) -> int:
-    """Turrets hit ordnance on 4+ (s.28); Ork turrets on 5+ (Xenos, Turret Defences)."""
-    return 5 if "ork_turrets" in ship.special_rules else 4
+def turret_hit_on(ship: Ship, marker=None) -> int:
+    """Turrets hit ordnance on 4+ (s.28); Ork turrets on 5+ (Xenos, Turret
+    Defences). Eldar (MMS p.4): their turrets +1 to hit; Eldar ordnance is
+    stealthy, -2 to be hit by enemy turrets ("usually only hitting on a 6+";
+    reading: never worse than 6+)."""
+    need = 5 if "ork_turrets" in ship.special_rules else 4
+    if "eldar_mms" in (ship.special_rules or []):
+        need -= 1
+    if marker is not None and is_eldar_ordnance(marker):
+        need += 2
+    return max(2, min(6, need))
+
+
+def is_eldar_ordnance(marker) -> bool:
+    """Markers carry their launcher's special rules, so Eldar ordnance has
+    `eldar_mms` (stealth, torpedoes re-rolling misses)."""
+    return "eldar_mms" in (getattr(marker, "special_rules", None) or [])
 
 
 def turrets_blocked(ship: Ship, kind: str) -> bool:
@@ -559,7 +573,7 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         turrets = 0
 
     if turrets > 0:
-        need = turret_hit_on(target)
+        need = turret_hit_on(target, marker)
         turret_rolls = dice.roll_d6(turrets, f"{target.name} turrets vs torpedoes ({need}+)")
         turret_kills = sum(1 for d in turret_rolls if d >= need)
         result["turret_kills"] = turret_kills
@@ -579,6 +593,11 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         result["remaining_strength"],
         f"Torpedoes vs {target.name} (need {armor}+)")
     result["hits"] = sum(1 for d in attack_rolls if d >= armor)
+    misses = len(attack_rolls) - result["hits"]
+    if misses and is_eldar_ordnance(marker):
+        # Eldar torpedoes must re-roll misses (MMS p.4)
+        result["hits"] += sum(1 for d in dice.roll_d6(
+            misses, f"Eldar torpedoes re-roll misses (need {armor}+)") if d >= armor)
 
     # Torpedoes that scored hits are spent; the rest pass through and keep moving.
     result["remaining_strength"] = max(0, result["remaining_strength"] - result["hits"])
@@ -706,7 +725,7 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
         turrets = 0
 
     if turrets > 0:
-        need = turret_hit_on(ship)
+        need = turret_hit_on(ship, marker)
         turret_rolls = dice.roll_d6(
             turrets, f"{ship.name} turrets vs mine (any {need}+ reduces to 4D6)")
         mark_turrets_used(ship, "torp", game_state)
@@ -742,7 +761,7 @@ def resolve_bomber_interception(bomber_count: int,
                                  target: Ship,
                                  all_ships: List[Ship],
                                  dice: DiceRoller,
-                                 game_state: GameState) -> Dict:
+                                 game_state: GameState, marker=None) -> Dict:
     """
     Phase 1 turret interception: the target ship (plus massed turret bonus from
     non-crippled allies in base contact) fires at an incoming wave of attacking
@@ -765,7 +784,7 @@ def resolve_bomber_interception(bomber_count: int,
         return {"killed": 0, "log": [f"  {target.name} turrets already used vs "
                                      f"torpedoes / mines this phase: no shots at the attack craft"]}
 
-    need = turret_hit_on(target)
+    need = turret_hit_on(target, marker)
     rolls = dice.roll_d6(
         turrets,
         f"Phase 1 interception: {target.name} vs {bomber_count} attack craft ({need}+)")
