@@ -95,6 +95,13 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     if "targeting_matrix" in ship.special_rules:
         shifts -= 1
 
+    # Eldar (MMS p.4): holofields force a right shift, not under 15cm; Eldar
+    # weapons batteries gain a left shift
+    if "holofield" in target_ship.special_rules and dist >= 15:
+        shifts += 1
+    if weapon and weapon.get("eldar_battery"):
+        shifts -= 1
+
     # Pleasure Fleet of Slaanesh, Veil of Lust: an automatic right shift
     if "veil_of_lust" in target_ship.special_rules:
         shifts += 1
@@ -560,6 +567,14 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
     result.dice_rolled = dice.roll_d6(
         strength, f"{attacker.name} lances vs {target.name} (need {need}+)")
 
+    if weapon.get("pulsar") or weapon.get("phantom"):
+        result.hits = _eldar_lance_hits(attacker, target, weapon, result, dice, need,
+                                        lock_on)
+        result.hits -= _holofield(attacker, target, result.hits, dice)
+        result.description = (f"{weapon['name']}: Str {strength} vs {target.name} = "
+                              f"{result.hits} hits")
+        return result
+
     result.hits = sum(1 for d in result.dice_rolled if d >= need)
 
     # Lock On rerolls
@@ -571,11 +586,54 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
             extra_hits = sum(1 for d in result.reroll_dice if d >= need)
             result.hits += extra_hits
 
+    result.hits -= _holofield(attacker, target, result.hits, dice)
     result.description = (
         f"{weapon['name']}: Str {strength} lances vs {target.name} "
         f"(4+) = {result.hits} hits")
 
     return result
+
+
+def _holofield(attacker: Ship, target: Ship, hits: int, dice: DiceRoller) -> int:
+    """Eldar holofields (MMS p.4) against lances and other direct attacks off
+    the gunnery table: a save per hit by range (5+ beyond 30cm, 6+ at 15-30cm,
+    none under 15cm); a saved hit is thwarted (no blast marker, no damage)."""
+    if hits <= 0 or "holofield" not in (target.special_rules or []):
+        return 0
+    from .eldar import holofield_saves
+    return holofield_saves(dice, hits, attacker.distance_to(target),
+                           f"{target.name} holofield")
+
+
+def _eldar_lance_hits(attacker: Ship, target: Ship, weapon: Dict, result, dice: DiceRoller,
+                      need: int, lock_on: bool) -> int:
+    """Pulsar lances (MMS p.4): a hit gives another attack, and a second hit a
+    third (at most three hits a shot); on Lock On only the first miss is
+    re-rolled. Phantom lances: 1 hit on a 4 or 5, 2 on a 6 (Lock On re-rolls
+    misses as usual)."""
+    if weapon.get("phantom"):
+        def value(d):
+            return 2 if d >= 6 else (1 if d >= need else 0)
+        hits = sum(value(d) for d in result.dice_rolled)
+        misses = [d for d in result.dice_rolled if d < need]
+        if lock_on and misses:
+            result.reroll_dice = dice.roll_d6(len(misses), f"{attacker.name} Lock On re-rolls")
+            hits += sum(value(d) for d in result.reroll_dice)
+        return hits
+    hits = 0
+    rerolled = False
+    for d in result.dice_rolled:
+        if d < need and lock_on and not rerolled:
+            rerolled = True
+            d = dice.roll_d6(1, f"{attacker.name} Lock On re-roll (first miss)")[0]
+        if d < need:
+            continue
+        hits += 1
+        for _k in range(2):                  # the follow-up attacks
+            if dice.roll_d6(1, f"{attacker.name} pulsar follow-up (need {need}+)")[0] < need:
+                break
+            hits += 1
+    return hits
 
 
 def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
@@ -798,6 +856,9 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     }
 
     remaining_hits = hits
+    # Eldar are Fragile (MMS p.4): critical hits on 5+ (Ghostships excepted)
+    from .eldar import crit_threshold
+    crit_on = min(crit_on, crit_threshold(target))
     summary["attacker_key"] = attacker_key
 
     if not ignores_shields:

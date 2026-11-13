@@ -68,3 +68,62 @@ def test_eldar_catalog_stats():
     assert any(w.get("eldar_battery") for w in shadow["weapons"])
     assert any(w.get("eldar_torpedo") for w in shadow["weapons"])
     assert any("MMS" in u for u in e.unsupported)
+
+
+def _eldar_pair(dist=40.0):
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from tests.conftest import make_ship
+    e = Ship.from_dict(find_ship_class("Eclipse Class Cruiser").to_ship_dict("Eclipse Class Cruiser", 1,
+                                                                             ship_id="ecl"))
+    e.x, e.y, e.heading = 0.0, 0.0, 0.0
+    t = make_ship(id="t", player=2, x=dist, y=0.0, special_rules=["holofield", "fragile"])
+    return e, t
+
+
+def test_holofield_and_eldar_battery_shifts():
+    from src.combat import get_column_shifts
+    from tests.conftest import make_ship
+    shooter = make_ship(id="s", player=1, x=0.0, y=0.0)
+    far = make_ship(id="f", player=2, x=20.0, y=0.0, special_rules=["holofield"])
+    near = make_ship(id="n", player=2, x=10.0, y=0.0, special_rules=["holofield"])
+    plain = make_ship(id="p", player=2, x=20.0, y=0.0)
+    assert get_column_shifts(shooter, far, []) == get_column_shifts(shooter, plain, []) + 1
+    assert get_column_shifts(shooter, near, []) == -1           # within 15cm: no holofield
+    assert get_column_shifts(shooter, plain, [], weapon={"eldar_battery": True}) == \
+        get_column_shifts(shooter, plain, []) - 1
+
+
+def test_pulsar_chain_and_holofield_save():
+    from src.combat import resolve_lances
+    e, t = _eldar_pair(40.0)
+    lance = {"name": "Prow Pulsar Lance", "weapon_type": "lance", "strength": 2, "pulsar": True,
+             "range_cm": 30}
+    # dice 5 (hit) -> follow-ups 4 (hit), 2 (stop); 3 (miss); holofield 5+ at 40cm: 5, 1
+    dice = DiceStub([5, 3, 4, 2, 5, 1])
+    r = resolve_lances(e, t, lance, dice)
+    assert r.hits == 1 and dice._idx == 6           # 2 hits, one thwarted
+    # third hit caps the chain: 6 -> 6, 6 (3 hits), second die 1; no holofield target
+    t.special_rules = []
+    dice = DiceStub([6, 1, 6, 6])
+    assert resolve_lances(e, t, lance, dice).hits == 3 and dice._idx == 4
+    # Lock On re-rolls only the first miss: 1 (re-roll 5 -> follow-up 1), 2 stays a miss
+    dice = DiceStub([1, 2, 5, 1])
+    assert resolve_lances(e, t, lance, dice, lock_on=True).hits == 1 and dice._idx == 4
+
+
+def test_phantom_lances_and_fragile():
+    from src.combat import resolve_lances, apply_damage
+    from src.game_state import GameState
+    e, t = _eldar_pair(10.0)                         # within 15cm: no holofield save
+    t.special_rules = []
+    lance = {"name": "Prow Phantom Lance", "weapon_type": "lance", "strength": 3, "phantom": True}
+    dice = DiceStub([6, 4, 3])
+    assert resolve_lances(e, t, lance, dice).hits == 3 and dice._idx == 3
+    gs = GameState()
+    t.shields_max = 0
+    t.special_rules = ["fragile"]
+    gs.add_ship(t)
+    dice = DiceStub([5])                              # 5 is a crit for a Fragile ship
+    out = apply_damage(gs.get_ship_by_id("t"), 1, dice, gs, ignores_shields=True)
+    assert out["hull_hits"] == 1 and len(out["crits"]) == 1

@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1204 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1207 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1620,7 +1620,14 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    `eldar_bomber` / `vampire_assault_boat` (plain fighter / bomber / assault boat stats so far);
    the non-Eldar catalog is unchanged (diffed). Still unsupported: the five Craftworld ships
    with either/or armament, one with no points cost, and all of them until the rules are wired.
-   Next: combat and movement wiring, Eldar ordnance and turrets, the critical hits table, the move dialog and
+   Combat built (`combat`): holofields' right shift (`get_column_shifts`, not under 15cm) and
+   save against lances (`_holofield`, in `resolve_lances`: a saved hit is thwarted), Eldar
+   weapons batteries' left shift, pulsars (`_eldar_lance_hits`; reading to confirm: each
+   die that hits gives up to two follow-up attacks, at most three hits a die; Lock On re-rolls
+   only the first miss), phantom lances (1 hit on 4-5, 2 on 6), Fragile crits on 5+ in
+   `apply_damage` (a weapon's own lower crit roll still wins). Not yet: holofields against
+   other direct non-gunnery attacks besides lances.
+   Next: movement wiring, Eldar ordnance and turrets, the critical hits table, the move dialog and
    the AI's MMS moves.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
