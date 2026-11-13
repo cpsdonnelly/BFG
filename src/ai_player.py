@@ -710,6 +710,12 @@ class AIPlayer:
         """Choose the move worth most against `enemy` (the move score below)
         among the candidates of `_move_candidates` (To do 11 a: an even grid
         plus target-directed goals)."""
+        if "eldar_mms" in ship.special_rules:
+            moves = self._eldar_moves(ship, enemy, order, aaf_bonus)
+            if moves:
+                sc, cmds, src = max(moves, key=lambda t: t[0])
+                self._last_move_source = src
+                return cmds
         if order == SpecialOrder.COME_TO_NEW_HEADING.value:
             ctnh = self._ctnh_moves(ship, enemy)
             if ctnh:
@@ -1763,6 +1769,63 @@ class AIPlayer:
                 out.append((sc, cmds, "come to new heading (" + c[3] + ")",
                             self._simulate_final_pos(leg, td, dist, tat)))
         return [t[:3] for t in out] if out else []
+
+    def _eldar_moves(self, ship: Ship, enemy: Ship, order: str, aaf_bonus: int):
+        """Eldar MMS moves (To do 14; MMS p.3): two legs, each a turn on the
+        spot then a move up to the speed for the new heading, no minimum. A
+        grid of first turns and lengths, second turns and lengths (no turns on
+        Lock On / All Ahead Full, AAF's bonus on the first leg; Come to New
+        Heading's extra turn not used yet), each scored by the move score from
+        the end of the first leg (its own path hazards not counted, judgement).
+        Only legal moves (`movement.validate_movement`). [(score, commands,
+        source)]."""
+        from . import eldar
+        from .movement import validate_movement
+        speeds = eldar.ship_speeds(ship) or (ship.speed,) * 3
+        crits = [c.get("crit_type") for c in ship.critical_damage]
+        cut = 5 * crits.count("mainsail_scarred") + (5 if ship.is_crippled else 0)
+        no_turn = order in (SpecialOrder.LOCK_ON.value, SpecialOrder.ALL_AHEAD_FULL.value) \
+            or "mast_lines" in crits
+        ta = 0 if no_turn else ship.turn_angle
+        turns = sorted({0.0, -ta, -ta / 2, ta / 2, ta})
+        one_move = "mainsail_shredded" in crits
+        edge = eldar.sunward_edge()
+        bonus = aaf_bonus if order == SpecialOrder.ALL_AHEAD_FULL.value else 0
+        out = []
+        kw = dict(special_order=order, aaf_bonus=aaf_bonus,
+                  blast_markers=self.gs.get_blast_markers(),
+                  table_width=self.gs.table_width, table_height=self.gs.table_height)
+        r = math.radians
+        for t1 in turns:
+            h1 = (ship.heading + t1) % 360
+            cap1 = max(0.0, eldar.speed_for(speeds, h1, edge) - cut) + bonus
+            for d1 in sorted({cap1 / 2, cap1}):
+                x1 = ship.x + d1 * math.cos(r(h1))
+                y1 = ship.y + d1 * math.sin(r(h1))
+                for t2 in ([0.0] if one_move else turns):
+                    h2 = (h1 + t2) % 360
+                    cap2 = 0.0 if one_move else max(0.0, eldar.speed_for(speeds, h2, edge) - cut)
+                    for d2 in sorted({0.0, cap2 / 2, cap2}):
+                        if one_move and d2:
+                            continue
+                        leg = Ship.from_dict(ship.to_dict())
+                        leg.x, leg.y, leg.heading = x1, y1, h2
+                        cmds = []
+                        if t1:
+                            cmds.append(MoveCommand("turn_left" if t1 > 0 else "turn_right",
+                                                    abs(t1)))
+                        if d1:
+                            cmds.append(MoveCommand("forward", d1))
+                        if t2 and d2:
+                            cmds.append(MoveCommand("turn_left" if t2 > 0 else "turn_right",
+                                                    abs(t2)))
+                        if d2:
+                            cmds.append(MoveCommand("forward", d2))
+                        if not cmds or not validate_movement(ship, cmds, **kw).valid:
+                            continue
+                        sc = self._move_score(leg, enemy, order, 0.0, max(d2, 0.01), None)
+                        out.append((sc, cmds, "eldar mms"))
+        return out
 
     def _ctnh_gain(self, ship: Ship) -> float:
         """Come to New Heading's value in move-score units: the best two-turn

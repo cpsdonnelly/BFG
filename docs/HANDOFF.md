@@ -835,8 +835,15 @@ the GUI, so a batch needs a headless runner or a long background run.
 Eldar started: `src/eldar.py` (speeds by the sun, MMS two-move validation, order limits,
 holofield shift / save, Fragile), tested, not wired in (CLAUDE.md To do 14 lists the next
 steps and the readings to confirm: the 45-degree sun aspect, crippled -5cm on every speed).
-Next: the rest of To do 14 (Eldar wiring: catalog, combat, movement, ordnance, crits, UI, AI;
-then Necrons), which unblocks the AA experiments; 7 (scenarios); the rest of 4 / 5. Read docs/AA_ORDER_SYSTEMS_NOTES.md
+Eldar then wired in and made playable (all pushed, 1212 tests): catalog, holofields, Eldar
+batteries, pulsar / phantom lances, Fragile, turrets and stealthy ordnance, torpedo re-rolls,
+the Eldar crit table, MMS movement in the engine and the AI, AAF 5D6, no Burn Retros, the
+phenomena rules; AI-vs-AI Eldar vs Imperial plays in IGOUGO and AA
+(`tools/gui_checks/gui_spectator_eldar.py`). Readings to confirm are in CLAUDE.md To do 14
+(sun aspect, crippled speeds, pulsar chains per die, stealth floor 6+, no blast marker speed
+loss for Eldar moves yet).
+Next: Necrons (To do 14), the AA experiments (now possible with Eldar; Appendix B's lists
+need Eldar fleet lists or hand-built fleets), 7 (scenarios), the rest of 4 / 5. Read docs/AA_ORDER_SYSTEMS_NOTES.md
 (the source) and docs/AA_ACTIVATION_NOTES.md ("Discussion summary" and "Later decisions");
 `src/activation.py` has the core. Open choices there become settings (`AAConfig`), not
 decisions. Notes for GUI checks: `gui_spectator_*.py` need a difficulty argument

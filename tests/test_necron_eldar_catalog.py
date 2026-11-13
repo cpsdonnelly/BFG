@@ -1,5 +1,5 @@
 """Export 13: Eldar (MMS v2.0, update 49) and Necrons (update 48) in the catalog.
-Their faction rules aren't built, so every ship is listed but unsupported."""
+Eldar are playable (MMS v2.0); Necrons are listed but unsupported until their rules are built."""
 from src.ship_catalog import find_ship_class, get_faction_ships
 from src.booklet_options import ship_option_errors
 
@@ -8,7 +8,11 @@ def test_eldar_and_necron_ships_are_listed_but_unsupported():
     eldar = get_faction_ships("eldar", include_unsupported=True)
     necrons = get_faction_ships("necrons", include_unsupported=True)
     assert len(eldar) == 24 and len(necrons) == 10
-    assert all(any("MMS" in r for r in e.unsupported) for e in eldar)
+    # Eldar MMS v2.0 rules are built: the ships are playable except those with
+    # either/or armament or no fixed points cost
+    playable = [e for e in eldar if not e.unsupported]
+    assert len(playable) >= 18
+    assert not any(any("MMS" in r for r in e.unsupported) for e in eldar)
     assert all(any("Necron rules" in r for r in e.unsupported) for e in necrons)
     assert not get_faction_ships("necrons")          # nothing playable yet
 

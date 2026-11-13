@@ -26,8 +26,9 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
   `src/booklet_ships.py`: all 11 factions, 212 booklet ships plus 17 designed Venerable Strike
-Cruisers. Eldar (MMS v2.0) and Necrons (export 13) are listed but every ship is unsupported
-until their faction rules are built (`booklet_ships.UNBUILT_FACTION_RULES`, To do 14). Ships using rules the engine can't play yet
+Cruisers. Eldar (MMS v2.0) are playable (18 of 24 ships; To do 14 lists the gaps); Necrons
+(export 13) are listed but unsupported until their rules are built
+(`booklet_ships.UNBUILT_FACTION_RULES`, To do 14). Ships using rules the engine can't play yet
   (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons...) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
   ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
@@ -490,7 +491,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1210 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1212 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1643,7 +1644,19 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    at the order, celestial phenomena immunity and asteroid / warp rift rules, the move dialog's
    MMS help, the AI's MMS move candidates (it uses its normal candidates, which are legal MMS
    moves when within speed), Kinship / Heroes, fleet lists, the five either/or ships.
-   Next: the rest of the movement wiring, Eldar ordnance and turrets, the critical hits table, the move dialog and
+   Also built: Eldar AAF +5D6 (`aaf_bonus_dice`), Burn Retros refused
+   (`TurnController.issue_special_order`; the AI never values it), clouds don't slow them,
+   escorts pass asteroid tests and capital ships re-roll failures, warp rifts at -2 Ld with the
+   3+ way home; the AI's MMS moves (`AIPlayer._eldar_moves`: a grid of first turn / length and
+   second turn / length, legal by `validate_movement`, scored from the first leg's end; ~135
+   moves, ~30ms a ship). Eldar are PLAYABLE now (removed from `UNBUILT_FACTION_RULES`; 18 of 24
+   ships; the rest have either/or armament or no points cost); AI-vs-AI Eldar against Imperial
+   Navy plays to game over in IGOUGO and AA (`tools/gui_checks/gui_spectator_eldar.py
+   igougo|aa`). Gaps still open (listed above, plus): Eldar fleet lists (Corsair, Craftworld;
+   they play with "No fleet list"), Kinship and Heroes, the Void Dragon, Ghostships, the
+   optional Dying Race, the AI's lance values ignoring the holofield save, Come to New Heading's
+   extra turn in the AI's MMS moves, the move dialog's MMS help.
+   Next: Necrons, then the Eldar gaps above, Eldar ordnance and turrets, the critical hits table, the move dialog and
    the AI's MMS moves.
 
 ### Owner rulings: answers to the open questions (implemented, tested)

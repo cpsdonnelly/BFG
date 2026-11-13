@@ -54,7 +54,7 @@ def test_holofields_and_fragile():
 def test_eldar_catalog_stats():
     """The catalog reads the MMS profiles: three speeds (max as the speed), the
     holofield as the shields, Fragile / holofield / MMS rules, Eldar weapon
-    flags and keel launch bays. Still unsupported until the rules are wired."""
+    flags and keel launch bays."""
     from src.ship_catalog import find_ship_class
     e = find_ship_class("Eclipse Class Cruiser")
     d = e.to_ship_dict("Eclipse Class Cruiser", 1)
@@ -67,7 +67,7 @@ def test_eldar_catalog_stats():
     shadow = find_ship_class("Shadow Class Cruiser").to_ship_dict("s", 1)
     assert any(w.get("eldar_battery") for w in shadow["weapons"])
     assert any(w.get("eldar_torpedo") for w in shadow["weapons"])
-    assert any("MMS" in u for u in e.unsupported)
+    assert not e.unsupported                          # playable now
 
 
 def _eldar_pair(dist=40.0):
@@ -229,3 +229,30 @@ def test_eldar_orders_and_phenomena():
     dice = DiceStub([3, 2, 2])                      # 7 vs Ld 8 - 2 = 6: lost
     r = resolve_warp_rift_navigation(gs.get_ship_by_id("c"), dice, gs)
     assert not r["passed"] and r["needed"] == 6 and "3-6" in r["post_game_note"]
+
+
+def test_ai_plans_legal_mms_moves():
+    from tests.test_ai_move_candidates import _ai
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.movement import validate_movement
+    from src.eldar import set_sunward_edge
+    set_sunward_edge("north")
+
+    def mk(n, p, x, y, h):
+        d = find_ship_class(n).to_ship_dict(n, p, ship_id=f"{n[:4]}{p}")
+        d.update(x=x, y=y, heading=h, leadership=8)
+        return Ship.from_dict(d)
+    me = mk("Eclipse Class Cruiser", 1, 40.0, 60.0, 0.0)
+    foe = mk("Lunar Class Cruiser", 2, 120.0, 60.0, 180.0)
+    ai, gs = _ai([me, foe])
+    me = gs.get_ship_by_id(me.id)
+    moves = ai._eldar_moves(me, foe, "", 0)
+    assert moves
+    for _sc, cmds, _src in moves:
+        assert validate_movement(me, cmds, "", table_width=180, table_height=120).valid
+    cmds = ai._plan_move_toward(me, foe, "", 0)
+    assert ai._last_move_source == "eldar mms"
+    assert sum(c.action.startswith("turn") for c in cmds) <= 2
+    locked = ai._eldar_moves(me, foe, "lock_on", 0)
+    assert locked and all(not c.action.startswith("turn") for _s, cs, _r in locked for c in cs)

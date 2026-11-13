@@ -35,8 +35,8 @@ FACTIONS: Dict[str, Tuple[str, str, str]] = {
 # Factions whose own rules the engine doesn't play yet: every ship is listed
 # but greyed out (CLAUDE.md To do 14).
 UNBUILT_FACTION_RULES = {
-    "Eldar": "Eldar MMS v2.0 rules (three speeds, two moves, holofields, Fragile...) "
-             "not built yet",
+    # Eldar (MMS v2.0) are playable now (src/eldar.py); their remaining gaps are
+    # listed in CLAUDE.md To do 14
     "Necrons": "Necron rules (reactive hulls, Without a Trace, Necron weapons, "
                "Necron crits...) not built yet",
 }
