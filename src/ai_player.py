@@ -554,7 +554,49 @@ class AIPlayer:
         score += self._boarding_reach(ship, fx, fy, enemy)
         score += self._screen_bonus(ship, fx, fy, fh, enemy)
         score += self._explosion_term(ship, fx, fy, enemy)
+        score += self._disengage_spot(ship, fx, fy, fh, enemy)
         return score
+
+    def _disengage_spot(self, ship: Ship, x: float, y: float, h: float, enemy: Ship) -> float:
+        """To do 11 a goal 3 / 11 c (disengaging): the test is taken at the end
+        of this move (s.37), so a ship likely to try it values end positions
+        where the test is easier (+3 for a celestial phenomenon within 15cm, +1
+        per blast marker within 5cm, -1 per enemy and enemy ordnance marker within
+        15cm) and the risk of staying is what it is from there: the move gains
+        max(0, disengage_gain) at the end position, in move-score units (0.35
+        hits a point at the target's value a hit). Only for ships that could
+        gain by trying from somewhere (checked at the current position with
+        the best modifier, +3), and not escorts in a squadron (they test
+        together) or ships already made to flee."""
+        from .ai_hazards import disengage_gain, value_per_hit
+        from .ai_rerolls import firepower_outcomes
+        from .disengage import get_disengage_ld_modifiers, _ftl_blocked
+        if self.difficulty == "easy" or ship.must_flee or ship.status != "active":
+            return 0.0
+        if ship.ship_type == "escort" and ship.squadron_id:
+            return 0.0
+        gs = self.gs
+        cache = self.__dict__.setdefault("_dis_cache", {})
+        key = (ship.id, gs.turn_number, ship.hits_remaining)
+        if key not in cache:
+            ok = False
+            if not _ftl_blocked(ship, gs):
+                ev, outs = firepower_outcomes(ship, gs)
+                best_ld = min(10, get_disengage_ld_modifiers(ship, gs)["effective_ld"] + 3)
+                ok = disengage_gain(ship, gs, best_ld, ev, outs) > 0
+                cache[key] = (ok, ev, outs)
+            else:
+                cache[key] = (False, 0.0, None)
+        ok, ev, outs = cache[key]
+        if not ok:
+            return 0.0
+        moved = Ship.from_dict(ship.to_dict())
+        moved.x, moved.y, moved.heading = x, y, h
+        ld = get_disengage_ld_modifiers(moved, gs)["effective_ld"]
+        g = disengage_gain(moved, gs, ld, ev, outs)
+        if g <= 0:
+            return 0.0
+        return g / (0.35 * max(1.0, value_per_hit(enemy, gs)))
 
     COVERAGE_WEIGHT = 0.5    # judgement: a mount busy on another enemy vs the target
     EASY_TEMPERATURE = 2.0   # judgement: Easy's softmax temperature (move-score units)

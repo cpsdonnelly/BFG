@@ -251,8 +251,10 @@ Mercenaries make it flee for the nearest edge.
 Planned (To do 11 c): every modifier of the test (s.37, XR p.38): +1 Ld per blast marker within
 5cm, +3 once for a celestial phenomenon within 15cm (anywhere during a radiation burst or solar
 flare), -1 per enemy within 15cm, enemy ordnance markers included; Ld max 10. A failed test
-means no firing, launching or orders but Brace for the rest of the turn. Suggested: when a ship
-is crippled or likely to disengage, value positions near phenomena before it tries. A
+means no firing, launching or orders but Brace for the rest of the turn. Built: the test comes
+at the end of the move, so a ship likely to try it values each end position by what trying from
+there would gain (its Ld modifiers and the fire it faces there), e.g. ending next to a dust
+cloud for +3, weighed against its guns. A
 non-crippled ship that disengages gives 10% ("Enemies Scattered", s.38).
 
 ### Special orders

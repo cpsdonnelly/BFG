@@ -330,3 +330,37 @@ def test_come_to_new_heading_two_turns():
     abeam = _ship("Lunar Class Cruiser", 2, 75.0, 82.0, 0.0)
     ai2, gs2 = _ai([lunar, abeam])
     assert ai2._pick_special_order(gs2.get_ship_by_id(lunar.id)) != o
+
+
+def test_crippled_ship_values_disengaging_near_a_phenomenon():
+    """To do 11 a goal 3 / 11 c: the disengage test is taken at the end of the
+    move (s.37), +3 Ld within 15cm of a celestial phenomenon. For a crippled
+    Lunar (Ld 6) under three enemy cruisers, a move ending within 15cm of a
+    dust cloud scores more with the cloud there than without, by the better
+    disengage chance (the move score still weighs it against its guns)."""
+    from src.models import Phenomenon
+    from src.disengage import get_disengage_ld_modifiers
+    me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    me.hits_remaining, me.leadership = 3, 6
+    foes = [_ship("Lunar Class Cruiser", 2, 95.0, 40.0 + 15 * i, 180.0, i) for i in range(3)]
+    ai, gs = _ai([me] + foes)
+    me = gs.get_ship_by_id(me.id)
+    ai._move_nearest = foes[0]
+    cand = (45.0, 15.0, 10.0)                      # turn towards the cloud
+    x, y, h = ai._simulate_final_pos(me, *cand)
+    before = ai._move_score(me, foes[1], "", *cand)
+    spot0 = ai._disengage_spot(me, x, y, h, foes[1])
+    assert spot0 > 0                                # worth trying even here
+    gs.add_phenomenon(Phenomenon(id="c", phenomenon_type="gas_dust_cloud", x=74.0, y=82.0,
+                                 width=10.0, height=10.0))
+    moved = Ship.from_dict(me.to_dict())
+    moved.x, moved.y = x, y
+    assert get_disengage_ld_modifiers(moved, gs)["effective_ld"] == 9
+    spot1 = ai._disengage_spot(me, x, y, h, foes[1])
+    assert spot1 > spot0
+    assert abs(ai._move_score(me, foes[1], "", *cand) - before - (spot1 - spot0)) < 1e-6
+    # a healthy ship far from any danger doesn't care
+    me2 = _ship("Lunar Class Cruiser", 1, 20.0, 20.0, 0.0)
+    far = _ship("Lunar Class Cruiser", 2, 170.0, 110.0, 180.0)
+    ai2, gs2 = _ai([me2, far])
+    assert ai2._disengage_spot(gs2.get_ship_by_id(me2.id), 30.0, 20.0, 0.0, far) == 0.0

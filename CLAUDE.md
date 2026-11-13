@@ -486,7 +486,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1180 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1181 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1334,8 +1334,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       point when two or more enemy markers / phenomena are within the move + 30cm or blast
       markers within the move). Goal e (torpedo lanes) is covered for prow launchers by
       prow-on (the torpedo planner picks the lane at launch). Not yet: goal f (teleport /
-      boarding / ramming reach, with 8 h / 8 j), the safety (hazard tangents) and
-      disengaging goals of 3, pruning by cheap terms (not needed at ~40ms a ship), the full
+      boarding / ramming reach, with 8 h / 8 j), the safety (hazard tangents) goal of 3
+      (disengaging: built as a move-score term, `_disengage_spot`, below), pruning by cheap terms (not needed at ~40ms a ship), the full
       coordination pass (re-optimising each against everyone's planned end positions) below.
       Then a coordination pass over the fleet (suggestion): moves are greedy in fleet order, so
       each ship ignores ships still to move; re-optimise each against everyone's planned end
@@ -1370,8 +1370,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
         within 5cm, +3 once for a celestial phenomenon within 15cm (anywhere during a
         radiation burst or solar flare), -1 per enemy within 15cm, enemy ordnance markers
         included; Ld max 10. A failed test: no firing, launching or orders but Brace for the
-        rest of that turn. Suggestion: when a ship is crippled or likely to disengage, value
-        positions near phenomena before it tries. VP for a non-crippled disengaged ship: 10%
+        rest of that turn. Built: a ship that could gain by trying from somewhere values each
+        end position by max(0, `disengage_gain`) there, with the Ld modifiers and incoming fire at
+        that position (`_disengage_spot` in the move score; the test is taken at the end of the
+        move, s.37), so a crippled ship weighs moving next to a phenomenon against its guns. VP for a non-crippled disengaged ship: 10%
         ("Enemies Scattered", s.38). Check `disengage_gain` uses every modifier.
       - Disengage modifiers (checked): blast markers +1, phenomena / bursts / flares +3, -1
         per enemy ship and enemy ordnance marker within 15cm, Slaanesh -1, max 10.
