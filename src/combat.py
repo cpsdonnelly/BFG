@@ -880,6 +880,20 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
         summary["blast_markers_placed"] = shield_absorb
         remaining_hits -= shield_absorb
 
+    # Necron reactive hulls (Xenos p.40): a save on each hit wherever a Brace
+    # save could be used, 6+ / 5+ / 4+ by hull size, 2+ when braced (replacing
+    # Brace's usual 4+)
+    rh = next((int(r.split(":", 1)[1]) for r in target.special_rules
+               if r.startswith("reactive_hull:")), None)
+    if rh is not None and remaining_hits > 0:
+        from .necrons import hull_save
+        need = hull_save(rh, target_braced)
+        rolls = dice.roll_d6(remaining_hits, f"{target.name} reactive hull save ({need}+)")
+        saves = sum(1 for r in rolls if r >= need)
+        summary["brace_saves"] = saves
+        remaining_hits -= saves
+        target_braced = False             # its save replaces Brace's
+
     # Brace saves (4+ per HULL hit only, not shield hits)
     if target_braced and remaining_hits > 0:
         saves = 0

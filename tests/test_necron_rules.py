@@ -58,3 +58,25 @@ def test_necron_catalog():
     assert kinds["Star Pulse Generator"]["weapon_type"] == "star_pulse"
     assert kinds["Portals"]["weapon_type"] == "portal" and kinds["Portals"]["strength"] == 3
     assert any("Necron rules" in u for u in e.unsupported)
+
+
+def test_reactive_hull_saves_and_braced_armour():
+    from tests.conftest import make_ship
+    from src.combat import apply_damage
+    from src.game_state import GameState
+    gs = GameState()
+    t = make_ship(id="n", player=2, shields_max=0, hits_max=8,
+                  special_rules=["necron", "reactive_hull:5"])
+    gs.add_ship(t)
+    # 3 hits: saves on 5+ (5, 2, 6) -> 1 hull hit, then its crit check (1)
+    dice = DiceStub([5, 2, 6, 1])
+    out = apply_damage(gs.get_ship_by_id("n"), 3, dice, gs)
+    assert out["brace_saves"] == 2 and out["hull_hits"] == 1 and dice._idx == 4
+    # braced: 2+ instead (2, 1) -> 1 hull hit, crit check (1); Armour drops to 4+
+    dice = DiceStub([2, 1, 1])
+    out = apply_damage(gs.get_ship_by_id("n"), 2, dice, gs, target_braced=True)
+    assert out["brace_saves"] == 1 and dice._idx == 3
+    n = gs.get_ship_by_id("n")
+    assert n.armor_vs(n.x + 10, n.y) == 6
+    n.special_order = "brace_for_impact"
+    assert n.armor_vs(n.x + 10, n.y) == 4

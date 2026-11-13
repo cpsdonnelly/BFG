@@ -279,6 +279,12 @@ class Ship:
         compass): prow armour from the front quadrant, rear armour (if the
         ship has three values) from the rear, side armour otherwise."""
         a = getattr(arc, "value", arc)
+        if "necron" in self.special_rules:
+            # Necrons (Xenos p.40): bracing compromises their stealth, and so
+            # does becoming a hulk (Without a Trace): Armour 4+
+            if (self.special_order == "brace_for_impact"
+                    or self.status in ("drifting_hulk", "burning_hulk")):
+                return 4
         if a == "front":
             return self.armor_prow_value
         if a == "rear":
