@@ -74,6 +74,8 @@ class GameState:
     first_player: int = 1        # s.2: who moves first (the roll-off winner's choice)
     # Alternate activation (To do 13, optional, outside the booklet): "igougo" (the
     # booklet's turns) or "aa"; aa_settings holds the AARoundConfig fields
+    # Necron Deadly Awakening: {player: alert level} (src/necrons.py)
+    necron_alert: Dict = field(default_factory=dict)
     turn_system: str = "igougo"
     aa_settings: Dict = field(default_factory=dict)
     aa_state: Dict = field(default_factory=dict)
@@ -183,6 +185,7 @@ class GameState:
             "artefact_owner": self.artefact_owner,
             "first_player": self.first_player,
             "turn_system": self.turn_system,
+            "necron_alert": dict(self.necron_alert),
             "aa_settings": dict(self.aa_settings),
             "aa_state": dict(self.aa_state),
             "undivided_used": list(self.undivided_used),

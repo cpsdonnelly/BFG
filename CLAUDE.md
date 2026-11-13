@@ -491,7 +491,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1221 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1222 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1691,8 +1691,17 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    can't fire at targets in that arc), monument damaged blocking re-rolls and the nightmare
    field. Immunities built: no blast marker slowing (`blast_markers_to_slow`), damage
    (`_blast_marker_damage`) or Under Fire penalty (`do_command_check`), no gas cloud effects,
-   solar flare / radiation immunity (`celestial._immune`), repairs on 4+ (`end_phase`). Next:
-   the rest of the combat / movement / end-phase wiring (the nightmare field, star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
+   solar flare / radiation immunity (`celestial._immune`), repairs on 4+ (`end_phase`).
+   Deadly Awakening built: `Ship.is_crippled` includes a Necron capital ship conserving power
+   (escorts never; `Ship.damage_crippled` is the damage-only check, which `victory_points`
+   now uses, so scoring ignores power conservation); `GameState.necron_alert` {player: level}
+   starts at `necrons.starting_alert` (points on the table) and rises in `apply_damage` by each
+   unsaved hit from a roll (reading: per hit, max 5); `TurnController._necron_awakening` at
+   the start of each Necron movement phase awakens ships meeting the threshold (Ld, +1 for
+   Enemy Contacts), marking `necron_awake`; awakened ships and their hulks score double
+   (`victory_points`). Not yet: reinforcements arriving awake, conserving ships phasing out
+   when hulked, the +1 per hostile Space Hulk / Planet Killer / Blackstone. Next: the rest of
+   the combat / movement / end-phase wiring (the nightmare field, star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
    complex / pylon / Deathseed rules and their craft, the Necron crit table, Without a
    Trace (auto-disengage, firing at own hulks), the AI, then the Eldar gaps above.
 

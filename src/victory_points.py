@@ -64,6 +64,9 @@ def calculate_victory_points(gs: GameState) -> Dict:
                 entry = find_ship_class(s.ship_class)
                 base = entry.points_cost if entry else pts
                 destroyed_vp = pts + max(0, higher - base)
+        # Awakened Necron capital ships (and their hulks) are worth double VP
+        if "necron_awake" in s.special_rules:
+            destroyed_vp, crippled_vp = destroyed_vp * 2, crippled_vp * 2
 
         # Capital ships and solo escorts
         if s.status == "destroyed" or s.hits_remaining <= 0:
@@ -80,21 +83,21 @@ def calculate_victory_points(gs: GameState) -> Dict:
             result[opponent]["details"].append(
                 f"{s.name} hulked: +{pts} VP")
 
-        elif s.is_disengaged and not s.is_crippled:
+        elif s.is_disengaged and not s.damage_crippled:
             # Non-crippled disengaged: 10% points
             vp = max(1, pts // 10)
             result[opponent]["disengaged"] += vp
             result[opponent]["details"].append(
                 f"{s.name} disengaged (scattered): +{vp} VP")
 
-        elif s.is_disengaged and s.is_crippled:
+        elif s.is_disengaged and s.damage_crippled:
             # Crippled and disengaged: 25% (crippled value)
             vp = crippled_vp
             result[opponent]["crippled"] += vp
             result[opponent]["details"].append(
                 f"{s.name} disengaged crippled: +{vp} VP")
 
-        elif s.is_crippled:
+        elif s.damage_crippled:
             # Crippled on table: 25% points
             vp = crippled_vp
             result[opponent]["crippled"] += vp

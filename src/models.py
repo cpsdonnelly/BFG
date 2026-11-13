@@ -250,6 +250,17 @@ class Ship:
 
     @property
     def is_crippled(self):
+        """Crippled for play: by damage, or a Necron capital ship conserving
+        power (Deadly Awakening: crippled for all purposes but scoring)."""
+        if self.damage_crippled:
+            return True
+        return ("necron" in self.special_rules and self.ship_type != "escort"
+                and "necron_awake" not in self.special_rules and self.hits_remaining > 0
+                and self.status == "active")
+
+    @property
+    def damage_crippled(self):
+        """Crippled by damage (half its hits or fewer left): what scoring uses."""
         return self.hits_remaining <= self.hits_max // 2 and self.hits_remaining > 0
 
     @property

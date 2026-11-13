@@ -946,6 +946,14 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
     # Apply hull damage
     summary["hull_hits"] = max(0, remaining_hits)
+    if remaining_hits > 0 and "necron" in target.special_rules and rolled_to_hit:
+        # Escalating Threat: an unsaved hit from an enemy ship or ordnance raises
+        # the Necron fleet's alert level (max 5)
+        from .necrons import MAX_ALERT
+        al = dict(getattr(game_state, "necron_alert", None) or {})
+        key = str(target.player)
+        al[key] = min(MAX_ALERT, al.get(key, 1) + remaining_hits)   # reading: each hit
+        game_state.necron_alert = al
 
     # Owner ruling: a hulk that takes at least one point of damage rolls on
     # the Catastrophic Damage table again (no critical hits on a hulk)

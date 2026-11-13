@@ -239,6 +239,35 @@ class TurnController:
         self.save_snapshot("t1_start")
         self.record_action("game_start", description="Game begins")
 
+    def _necron_awakening(self, player: int) -> None:
+        """Each Necron capital ship conserving power whose Ld, with the modifiers
+        of its command checks (Enemy Contacts), meets the alert level's
+        threshold awakens for the rest of the game (Xenos p.39)."""
+        from .necrons import AWAKEN_LD, starting_alert
+        mine = [s for s in self.gs.get_ships() if s.player == player
+                and "necron" in s.special_rules and s.ship_type != "escort"
+                and not s.is_destroyed and not s.is_disengaged]
+        if not mine:
+            return
+        al = dict(self.gs.necron_alert or {})
+        key = str(player)
+        if key not in al:
+            def worth(p):
+                return sum(s.points_value or 0 for s in self.gs.get_ships()
+                           if s.player == p and not s.is_destroyed)
+            al[key] = starting_alert(worth(3 - player), worth(player))
+            self.gs.necron_alert = al
+        need = AWAKEN_LD[al[key]]
+        contacts = any(e.player != player and e.special_order not in ("none", "")
+                       and not e.is_destroyed for e in self.gs.get_ships())
+        for s in mine:
+            if "necron_awake" in s.special_rules:
+                continue
+            if s.leadership + (1 if contacts else 0) >= need:
+                s.special_rules = list(s.special_rules) + ["necron_awake"]
+                self.gs.update_ship(s)
+                self.gs.add_log(f"{s.name} awakens (alert level {al[key]}: Ld {need}+)")
+
     def begin_phase(self, phase: str):
         """Start a new phase."""
         self.gs.current_phase = phase
@@ -258,6 +287,8 @@ class TurnController:
                 if sd["player"] == self.gs.active_player and "abaddon" in sd.get(
                         "special_rules", []) and sd.get("status") == "active":
                     sd["rerolls_remaining"] = 1
+            # Necron Deadly Awakening (Xenos p.39): at the start of each Necron turn
+            self._necron_awakening(self.gs.active_player)
             # s.40: solar flares and radiation bursts at the start of each turn
             from .celestial import start_of_turn as _celestial_start
             _celestial_start(self.gs, self.dice)

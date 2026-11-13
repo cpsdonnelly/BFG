@@ -121,7 +121,7 @@ def test_necron_critical_hits():
     from src.movement import get_max_turns
     from src.turn_controller import TurnController
     n = make_ship(id="n", player=1, leadership=8, speed=30,
-                  special_rules=["necron", "reactive_hull:5"])
+                  special_rules=["necron", "reactive_hull:5", "necron_awake"])
     gs = make_gs([n])
     assert _resolve_crit_cascade(10, gs.get_ship_by_id("n"), gs)["crit_type"] == "command_core"
     s = gs.get_ship_by_id("n")
@@ -168,3 +168,33 @@ def test_necron_immunities_and_repairs():
                           "description": "Impulse Power Disrupted"}]
     info = get_repair_info(s, DiceStub([4, 5, 1, 1, 1, 1, 1, 1]), gs)
     assert info["sixes"] == 2
+
+
+def test_awakening_alert_and_double_vp():
+    from tests.conftest import make_ship, make_gs
+    from src.turn_controller import TurnController
+    from src.combat import apply_damage
+    from src.victory_points import calculate_victory_points as calculate_vp
+    cap = make_ship(id="c", player=1, leadership=8, hits_max=8, points_value=275, shields_max=0,
+                    special_rules=["necron", "reactive_hull:5"])
+    esc = make_ship(id="e", player=1, ship_type="escort", hits_max=2, points_value=60,
+                    special_rules=["necron", "reactive_hull:6"])
+    foe = make_ship(id="f", player=2, points_value=300)
+    gs = make_gs([cap, esc, foe])
+    tc = TurnController(gs, DiceStub([]))
+    assert gs.get_ship_by_id("c").is_crippled and not gs.get_ship_by_id("c").damage_crippled
+    assert not gs.get_ship_by_id("e").is_crippled              # escorts never conserve power
+    gs.active_player = 1
+    tc._necron_awakening(1)
+    # enemy has more points on the table (300 > 335? no): alert 1 -> Ld 10 needed
+    assert gs.necron_alert["1"] == 1 and "necron_awake" not in gs.get_ship_by_id("c").special_rules
+    # two unsaved hits (saves 1, 2 fail; crit checks 1, 1) raise the alert to 3: Ld 8+ awakens
+    apply_damage(gs.get_ship_by_id("c"), 2, DiceStub([1, 2, 1, 1]), gs)
+    assert gs.necron_alert["1"] == 3
+    tc._necron_awakening(1)
+    c = gs.get_ship_by_id("c")
+    assert "necron_awake" in c.special_rules and not c.is_crippled
+    c.hits_remaining = 0
+    c.status = "destroyed"
+    gs.update_ship(c)
+    assert calculate_vp(gs)[2]["destroyed"] == 550             # awake: double
