@@ -80,3 +80,18 @@ def test_reactive_hull_saves_and_braced_armour():
     assert n.armor_vs(n.x + 10, n.y) == 6
     n.special_order = "brace_for_impact"
     assert n.armor_vs(n.x + 10, n.y) == 4
+
+
+def test_lightning_arcs_fire_as_against_closing_targets():
+    from tests.conftest import make_ship
+    from src.combat import _battery_orientation, get_column_shifts
+    shooter = make_ship(id="s", player=1, x=0.0, y=0.0, heading=0.0)
+    # a target to the side, moving away: abeam / moving away for ordinary batteries
+    tgt = make_ship(id="t", player=2, x=20.0, y=0.0, heading=0.0, special_rules=["holofield"])
+    arc = {"weapon_type": "battery", "lightning_arc": True}
+    assert _battery_orientation(shooter, tgt, arc, "capital") == "closing"
+    assert _battery_orientation(shooter, tgt, {"weapon_type": "battery"}, "capital") != "closing"
+    assert _battery_orientation(shooter, tgt, arc, "defense") != "closing"
+    # and they ignore the holofield's right shift
+    assert get_column_shifts(shooter, tgt, [], weapon=arc) == \
+        get_column_shifts(shooter, tgt, [], weapon={"weapon_type": "battery"}) - 1

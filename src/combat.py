@@ -97,8 +97,9 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
 
     # Eldar (MMS p.4): holofields force a right shift, not under 15cm; Eldar
     # weapons batteries gain a left shift
-    if "holofield" in target_ship.special_rules and dist >= 15:
-        shifts += 1
+    if ("holofield" in target_ship.special_rules and dist >= 15
+            and not (weapon and weapon.get("lightning_arc"))):
+        shifts += 1                    # lightning arcs ignore holofields' gunnery effects
     if weapon and weapon.get("eldar_battery"):
         shifts -= 1
 
@@ -291,6 +292,15 @@ def effective_battery_firepower(attacker: Ship, weapon: Dict,
     return fp
 
 
+def _battery_orientation(attacker: Ship, target: Ship, weapon: Optional[Dict],
+                         target_type: str) -> str:
+    """The target's aspect on the Gunnery table. Necron lightning arcs (Xenos
+    p.40) treat every non-defence target as closing."""
+    if weapon and weapon.get("lightning_arc") and target_type != "defense":
+        return "closing"
+    return attacker.get_target_orientation(target)
+
+
 def gunnery_target_type(ship: Ship) -> str:
     """Gunnery table target type for a ship: capital, escort or defense.
 
@@ -323,8 +333,8 @@ def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
     # Determine target type for gunnery table
     target_type = gunnery_target_type(target)
 
-    # Determine orientation
-    target_orientation = attacker.get_target_orientation(target)
+    # Determine orientation (Necron lightning arcs: every non-defence target closing)
+    target_orientation = _battery_orientation(attacker, target, weapon, target_type)
 
     # Get column and shifts
     column = get_gunnery_column(target_type, target_orientation)
@@ -822,7 +832,8 @@ def expected_hits(attacker: Ship, weapon: Dict, target: Ship, gs=None) -> float:
         return 0.0
     fp = effective_battery_firepower(attacker, weapon, target)
     column = get_gunnery_column(gunnery_target_type(target),
-                                attacker.get_target_orientation(target))
+                                _battery_orientation(attacker, target, weapon,
+                                                     gunnery_target_type(target)))
     shifts = 0
     if gs is not None:
         shifts = get_column_shifts(attacker, target, gs.get_blast_markers(),

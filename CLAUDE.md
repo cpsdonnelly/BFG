@@ -491,7 +491,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1217 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1218 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1675,7 +1675,11 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    weapon types; other factions unchanged (diffed); every Necron ship still unsupported.
    Reactive hulls built: `combat.apply_damage` rolls the save on every hull hit (2+ braced,
    replacing Brace's 4+), and `Ship.armor_for_arc` gives a braced or hulked Necron ship 4+
-   Armour. Next: the rest of the combat / movement / end-phase wiring (the weapons, power conservation and awakening in the turn, the inertialess AAF), the tomb
+   Armour. Lightning arcs built: `combat._battery_orientation` (every non-defence target
+   closing, in `resolve_batteries` and `expected_hits`), no holofield right shift. Not yet:
+   splitting a lightning arc's firepower between arcs, the squadron-volley path. Next: the rest
+   of the combat / movement / end-phase wiring (particle whip 6s bypassing shields where lance
+   hits are applied, the nightmare field, star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
    complex / pylon / Deathseed rules and their craft, the Necron crit table, Without a
    Trace (auto-disengage, firing at own hulks), the AI, then the Eldar gaps above.
 
