@@ -495,7 +495,7 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 candidates (11 a)).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of 11 a (goals e-g, the denser grid, pruning, the full
+Next: the rest of 11 a (goal f with 8 h / 8 j, safety goals, the full
 coordination pass), then 3-7, 9, 10 and the rest of 11, 12 (learned
 evaluation) after 11, 13 (alternate activation, optional ruleset; notes and PDF in `docs/`), 14 (Eldar, Necrons), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
@@ -1170,11 +1170,15 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       capital ships, escorts last, squadrons together, so supporters plan against where the
       supported end); the expert search's root uses the candidates, best first by the move
       score, at most `ROOT_MOVES` 12 (judgement). About 32-37 candidates, ~40ms a ship with
-      refinement. Not yet: goals e (torpedo lanes), f (teleport / boarding / ramming reach,
-      with 8 h / 8 j), g (Lock On next turn) and the safety / disengaging goals of 3; the
-      denser grid for crowded / hazardous cases; pruning by cheap terms; the full
-      coordination pass (re-optimising each against everyone's planned end positions)
-      below.
+      refinement. Also built: goal g ("lock on next": the end heading that keeps guns on the
+      target's position after two of its moves from a straight move at speed) and the denser
+      grid (hybrid b: a quarter of the turn angle steps at three distances and every turn
+      point when two or more enemy markers / phenomena are within the move + 30cm or blast
+      markers within the move). Goal e (torpedo lanes) is covered for prow launchers by
+      prow-on (the torpedo planner picks the lane at launch). Not yet: goal f (teleport /
+      boarding / ramming reach, with 8 h / 8 j), the safety (hazard tangents) and
+      disengaging goals of 3, pruning by cheap terms (not needed at ~40ms a ship), the full
+      coordination pass (re-optimising each against everyone's planned end positions) below.
       Then a coordination pass over the fleet (suggestion): moves are greedy in fleet order, so
       each ship ignores ships still to move; re-optimise each against everyone's planned end
       positions (coordinate descent, one or two passes), which catches screening and mutual

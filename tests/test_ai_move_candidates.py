@@ -117,3 +117,24 @@ def test_supported_ships_move_first():
              make_ship(id="f", player=1, is_flagship=True)]
     order = [s.id for s in AIPlayer._coordinated_order(ships)]
     assert order == ["f", "cv", "c", "e1", "e2"]
+
+
+def test_lock_on_goal_and_dense_grid_when_crowded():
+    """Goal g (pointed for a straight Lock On move next turn) is always offered;
+    the denser grid only when enemy ordnance or terrain crowds the area; every
+    candidate stays legal."""
+    from tests.conftest import make_marker
+    me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    foe = _ship("Lunar Class Cruiser", 2, 110.0, 80.0, 180.0)
+    ai, gs = _ai([me, foe])
+    srcs = {c[3] for c in ai._move_candidates(me, foe, "", 0)}
+    assert "lock on next" in srcs and "dense grid" not in srcs
+    for i, (x, y) in enumerate([(70.0, 75.0), (75.0, 45.0)]):
+        gs.add_ordnance(make_marker(id=f"t{i}", ordnance_type="torpedo_standard",
+                                    owner_player=2, x=x, y=y, heading=180.0))
+    cands = ai._move_candidates(me, foe, "", 0)
+    assert any(c[3] == "dense grid" for c in cands)
+    for turn_deg, dist, turn_at, _src in cands:
+        res = validate_movement(me, ai._move_cmds(me, turn_deg, dist, turn_at), "",
+                                table_width=180.0, table_height=120.0)
+        assert not res.errors

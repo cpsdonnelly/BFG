@@ -559,6 +559,37 @@ class AIPlayer:
                 goals.append(((flag.x, flag.y), "support"))
         for (gx, gy), src in goals:
             self._head_for(ship, gx, gy, points, min_spd, max_spd, ta, add, src)
+        # g: Lock On next turn forbids turning, so end pointed for a straight
+        # move: guns to bear on where the target will be after its next two
+        # moves, from our end position moved straight on at speed
+        far = _predicted_positions(enemy, True)[3]
+        spd = ship.speed or 0
+        for p in sorted(points):
+            d = max_spd
+            if d < p:
+                continue
+
+            def lock_score(a, d=d, p=p):
+                x, y, hh = self._simulate_final_pos(ship, a, d, p)
+                rx = x + spd * math.cos(math.radians(hh))
+                ry = y + spd * math.sin(math.radians(hh))
+                return self._arc_score(ship, rx, ry, hh, far)
+            add(max(angles, key=lock_score), d, p, "lock on next")
+        # Denser grid (hybrid b) when enemy ordnance or terrain crowds the
+        # reachable area: the best move may be a gap no goal predicts
+        reach = max_spd + 30.0
+        crowded = sum(1 for o in self.gs.ordnance if o.get("owner_player") != self.player
+                      and math.hypot(o["x"] - ship.x, o["y"] - ship.y) <= reach)
+        crowded += sum(1 for ph in self.gs.get_phenomena()
+                       if math.hypot(ph.x - ship.x, ph.y - ship.y) <= reach)
+        crowded += sum(1 for b in self.gs.get_blast_markers()
+                       if math.hypot(b.x - ship.x, b.y - ship.y) <= max_spd)
+        if crowded >= 2:
+            fine = [ta * k / 4 for k in range(-4, 5)]
+            for t in fine:
+                for d in sorted({min_spd, (min_spd + max_spd) / 2, max_spd}):
+                    for p in sorted(points):
+                        add(t, d, p, "dense grid")
         return out
 
     def _head_for(self, ship: Ship, gx: float, gy: float, points, min_spd: float,
