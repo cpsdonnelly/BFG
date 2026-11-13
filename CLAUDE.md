@@ -484,7 +484,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1153 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1157 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1435,6 +1435,17 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    band table or open item for the owner. Not part of System 1 here unless asked: ABFG's
    end-phase damage, 1-2-2-1 ordnance, Carry On / Disengage orders, orders tested on
    activation.
+   First slice built (`src/activation.py`, no game-flow wiring yet): `AAConfig` (order mode,
+   System 3 default; capital squadrons as one unit or not; recompute trigger; `allow_pass`;
+   the band table), `units` / `initiative` / `fleet_mean` / `edge` / `band`, the edge-share
+   formula (`pairs`, `edge_share`), `Bag` (draws, the System 3 choice spending a die, extra
+   dice, passing) and System 1's `fixed_order` with its tie-breaks. Tests reproduce all nine
+   check values, a Monte Carlo of `Bag` matches them within 0.02, and initiative / bands /
+   fixed order are checked (`tests/test_activation.py`). Still to do: the AA round (Command,
+   Ordnance A, Shooting, Movement, Ordnance B, End) in the turn controller and the UI, Brace
+   as a command-phase order, ordnance 1 / 2 moves, boarding and ramming locked on
+   declaration, forcing an activation (System 1), the AI's AA choices by expected VP, and the
+   experiments.
 
 14. Eldar and Necrons (export 13, CHANGES updates 48-49, 51-52): both factions' ships are in
    the catalog but unsupported (`booklet_ships.UNBUILT_FACTION_RULES`; the parser also flags
