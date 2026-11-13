@@ -172,3 +172,17 @@ def test_low_value_order_skipped_when_it_risks_later_orders():
     assert ai._choose_special_order(gs.get_ship_by_id(me.id)) is None
     ai._order_plan = {"seq": [me.id, later.id], "orders": {}}
     assert ai._choose_special_order(gs.get_ship_by_id(me.id)) == SpecialOrder.LOCK_ON.value
+
+
+def test_all_ahead_full_when_far_and_lock_on_only_for_guns_that_fire():
+    """To do 10 b: an Ork kroozer far from the enemy goes All Ahead Full (it
+    passes automatically, and nothing would fire this turn anyway); in reach
+    it Locks On. Lock On counts only guns in range after the move."""
+    me = _ship("Kill Kroozer", 1, 40.0, 60.0, 0.0)
+    far = _ship("Lunar Class Cruiser", 2, 130.0, 60.0, 180.0)
+    ai, gs = _ai([me, far])
+    assert ai._lock_on_gain(me) == 0.0
+    assert ai._pick_special_order(me) == SpecialOrder.ALL_AHEAD_FULL.value
+    near = _ship("Lunar Class Cruiser", 2, 90.0, 60.0, 180.0)
+    ai2, _ = _ai([me, near])
+    assert ai2._pick_special_order(me) == SpecialOrder.LOCK_ON.value

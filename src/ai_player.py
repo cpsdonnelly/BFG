@@ -794,7 +794,8 @@ class AIPlayer:
                 ship.y + total_dist * math.sin(r(h1)), h1)
 
     def _arc_score(self, ship: Ship, final_x: float, final_y: float,
-                   final_heading: float, target: Ship, guns_only: bool = False) -> float:
+                   final_heading: float, target: Ship, guns_only: bool = False,
+                   in_range_only: bool = False) -> float:
         """Score total in-arc weapon strength from a hypothetical end position
         (loaded torpedoes too: they launch from there). guns_only: batteries
         and lances only (what Lock On re-rolls)."""
@@ -843,7 +844,7 @@ class AIPlayer:
             w_range  = weapon.get("range_cm", 0)
             if w_range == 0 or dist <= w_range:
                 score += strength
-            else:
+            elif not in_range_only:
                 score += strength * (w_range / dist) * 0.5  # closing bonus
         return score
 
@@ -1020,6 +1021,8 @@ class AIPlayer:
         vph = value_per_hit(target, self.gs) if target else 0.0
         if order == SpecialOrder.LOCK_ON.value:
             g = max(0.0, self._lock_on_gain(ship)) / max(p, 1e-9) * 0.35 * vph
+        elif order == SpecialOrder.ALL_AHEAD_FULL.value:
+            g = max(0.0, self._aaf_gain(ship)) / max(p, 1e-9) * 0.35 * vph
         elif order == SpecialOrder.BURN_RETROS.value:
             g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
         elif order == SpecialOrder.RELOAD_ORDNANCE.value:
@@ -1047,8 +1050,11 @@ class AIPlayer:
                     if (check_weapon_in_arc(ship, weapon, enemy.x, enemy.y) and
                             check_weapon_in_range(ship, weapon, enemy.x, enemy.y)):
                         return SpecialOrder.LOCK_ON.value
-        elif self._lock_on_gain(ship) > 0:
-            return SpecialOrder.LOCK_ON.value
+        else:
+            lock, aaf = self._lock_on_gain(ship), self._aaf_gain(ship)
+            if max(lock, aaf) > 0:
+                return (SpecialOrder.LOCK_ON.value if lock >= aaf
+                        else SpecialOrder.ALL_AHEAD_FULL.value)
 
         # Reload if ordnance spent
         has_torps = any(w.get("weapon_type") == "torpedo" for w in ship.weapons)
@@ -1081,6 +1087,52 @@ class AIPlayer:
             cache[key] = self._lock_on_gain_uncached(ship)
         return cache[key]
 
+    def _aaf_gain(self, ship: Ship) -> float:
+        """All Ahead Full's value in move-score units (To do 10 b): the best
+        straight move at full speed plus the expected bonus (4D6, 14cm; Orks
+        3D6 and their automatic pass), with everything it brings to bear
+        halved (s.7: half firepower), minus the best move without an order,
+        at the pass chance. Its uses (closing, escaping hazards and guns,
+        reaching torpedo range) come out of the move score. Not yet: ramming
+        and disengaging plans (8 h)."""
+        from .ai_hazards import p_sum_at_most
+        from .movement import aaf_bonus_dice
+        if self.difficulty == "easy" or not ship.speed:
+            return 0.0
+        key = ("aaf", ship.id, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1),
+               ship.hits_remaining, self.gs.turn_number, len(self.gs.ordnance))
+        cache = self.__dict__.setdefault("_lock_cache", {})
+        if key in cache:
+            return cache[key]
+        enemy = self._focus_for(ship) or self._nearest_enemy(ship)
+        if enemy is None:
+            return 0.0
+        bonus = int(round(3.5 * aaf_bonus_dice(ship)))
+        aaf_o = SpecialOrder.ALL_AHEAD_FULL.value
+        prev = getattr(self, "_move_nearest", None)
+        self._move_nearest = self._nearest_enemy(ship)
+        try:
+            free = max((self._move_score(ship, enemy, "", *c[:3])
+                        for c in self._move_candidates(ship, enemy, "", 0)), default=None)
+            fast = max((self._move_score(ship, enemy, aaf_o, *c[:3])
+                        - 0.5 * self._arc_score(ship, *self._simulate_final_pos(ship, *c[:3]),
+                                                enemy, in_range_only=True)
+                        for c in self._move_candidates(ship, enemy, aaf_o, bonus)), default=None)
+        finally:
+            self._move_nearest = prev
+        if free is None or fast is None:
+            cache[key] = 0.0
+            return 0.0
+        if "ere_we_go" in ship.special_rules:
+            p = 1.0
+        else:
+            ld = ship.leadership + (1 if any(
+                e.player != ship.player and e.special_order not in ("none", "")
+                and not e.is_destroyed for e in self.gs.get_ships()) else 0)
+            p = p_sum_at_most(2, min(10, ld))
+        cache[key] = p * (fast - free)
+        return cache[key]
+
     def _lock_on_gain_uncached(self, ship: Ship) -> float:
         from .ai_hazards import p_sum_at_most
         if not any(w.get("weapon_type") in ("battery", "lance") for w in ship.weapons):
@@ -1097,7 +1149,7 @@ class AIPlayer:
             locked = max((self._move_score(ship, enemy, lock, *c[:3])
                           + self.LOCK_ON_GAIN * self._arc_score(
                               ship, *self._simulate_final_pos(ship, *c[:3]), enemy,
-                              guns_only=True)
+                              guns_only=True, in_range_only=True)
                           for c in self._move_candidates(ship, enemy, lock, 0)), default=None)
         finally:
             self._move_nearest = prev
