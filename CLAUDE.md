@@ -149,7 +149,7 @@ until their faction rules are built (`booklet_ships.UNBUILT_FACTION_RULES`, To d
   (`end_phase_panel._resolve_boarding_actions`) both check it; ramming (`rule_ramming`): only
   declared on All Ahead Full when on, and only a declared ram resolves (`movement_panel`);
   teleport and hit-and-run: above; Remastered blast markers / spill-over: settings mode, read
-  by the engine. The AI attempts none of boarding / ramming yet. Fighting Sunward, Solar
+  by the engine. The AI boards (To do 8 h) only with `rule_boarding` on; it doesn't ram yet. Fighting Sunward, Solar
   Flares and Radiation Bursts (s.40) are built (`src/celestial.py`, To do 6).
 - **Turret suppression, Remastered mode (owner ruling; Remastered p.82 is the source until the
   booklet adds a "Remastered differs" note to s.27):** the Advanced toggle
@@ -557,9 +557,10 @@ off by default: boarding, ramming, teleport, hit-and-run, fighting sunward, sola
 radiation bursts, Remastered turret suppression / spill-over), the AI neither values moves by
 it nor attempts it. Audit: hit-and-run is respected (`_strike_option`, `waves.best_attack_mode`,
 `ai_hazards`, and the craft types the AI launches); teleport attempts need `rule_teleport` and
-`rule_hit_and_run` (`check_teleport_eligibility`); boarding,
-ramming and teleport aren't valued anywhere yet, so every new term for them (To do 8 h, j)
-must check its flag; the wave planner and AI follow the turret suppression mode (XR / Remastered
+`rule_hit_and_run` (`check_teleport_eligibility`); boarding (8 h) and teleport (8 j) terms
+check their flags (`_boarding_reach`, `_consider_boarding`, `_teleport_reach`,
+`_teleport_exposure`, `_teleport_given_up`); ramming isn't valued yet (check `rule_ramming`
+when it is); the wave planner and AI follow the turret suppression mode (XR / Remastered
 p.82, `waves.wave_split_value`); the celestial-phenomena rules aren't modelled
 by the AI yet (check their flags when they are).
 
@@ -998,7 +999,16 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       turn (`_mount_bears` with its own speed and turn angle); with a speed edge, end positions
       outside all of them score the exposure saved; this is (a)'s exposure looked one enemy move
       ahead. Without the edge it is mostly unreachable, so the term does nothing.
-   h. Hit-point edge (e.g. Ork cruisers: 10 hits vs a Lunar's 8): think about boarding (s.32)
+   h. Boarding built (ramming not yet): `ai_hazards.boarding_vp` (both D6s enumerated with
+      resolve_boarding's modifiers: troop ratings, crew bonuses, crippled / orders / blast
+      markers; the loser's damage by `hull_hits_vp`, crits by the s.32 table at a hit's value,
+      judgement; grapples count nothing), `_boarding_gain` (that less the guns' value given
+      up), a "board" move goal (base contact on our side of the target), `_boarding_reach` in
+      the move score, `_consider_boarding` declaring after the move, and boarded ships
+      neither fire nor launch (s.32); all only with `rule_boarding` on. Not yet: rams (s.12,
+      on All Ahead Full), combined boarding by several ships, Knights of Titan / Mechanicus
+      re-rolls in the value.
+      Hit-point edge (e.g. Ork cruisers: 10 hits vs a Lunar's 8): think about boarding (s.32)
       and ramming (s.12). Today the AI never plans either: boarding only happens when ships
       end in base contact by chance, and no AI move aims for contact. Plan: expected VP of a
       boarding action (`boarding.troop_rating` both ways, crew bonuses, the s.32 result table)

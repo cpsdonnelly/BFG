@@ -212,3 +212,25 @@ def test_long_ranged_fast_ship_kites_a_brawler():
     slaughter = _ship("Slaughter Class Cruiser", 1, 40.0, 60.0, 0.0)
     ai2, _ = _ai([slaughter, lunar])
     assert not ai2.range_speed_edge(slaughter, lunar)
+
+
+def test_ork_boards_a_crippled_lunar_only_with_boarding_on():
+    """To do 8 h: with the boarding rule on, an Ork kroozer's moves include
+    base contact with its target, a move ending there gains the boarding
+    action's value, and in contact it declares one; off, none of it."""
+    ork = _ship("Kill Kroozer", 1, 60.0, 60.0, 0.0)
+    lunar = _ship("Lunar Class Cruiser", 2, 80.0, 60.0, 180.0)
+    ai, gs = _ai([ork, lunar])
+    lun = gs.get_ship_by_id(lunar.id)
+    lun.hits_remaining = 3
+    gs.update_ship(lun)
+    o, t = gs.get_ship_by_id(ork.id), gs.get_ship_by_id(lunar.id)
+    assert not any(c[3] == "board" for c in ai._move_candidates(o, t, "", 0))
+    assert ai._boarding_reach(o, 76.0, 60.0, t) == 0.0
+    gs.rule_boarding = True
+    assert any(c[3] == "board" for c in ai._move_candidates(o, t, "", 0))
+    assert ai._boarding_reach(o, t.x - t.base_radius - o.base_radius, 60.0, t) > 0
+    o.x = t.x - t.base_radius - o.base_radius
+    gs.update_ship(o)
+    ai._consider_boarding(gs.get_ship_by_id(o.id))
+    assert gs.get_ship_by_id(o.id).boarding_target_id == t.id

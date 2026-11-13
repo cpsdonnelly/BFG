@@ -2029,3 +2029,45 @@ def repair_value(ship: Ship, crit: dict, gs) -> float:
     if ct == "bridge_smashed":
         return 0.1 * ship_value(ship, gs)
     return 0.05 * ship_value(ship, gs)
+
+
+BOARD_CRITS = {1: (5, 5), 2: (5, 4), 3: (6, 3), 4: (6, 2)}   # s.32 (winner, loser)
+
+
+def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
+    """Expected VP for the attacker's side of a boarding action now (s.32;
+    To do 8 h): both D6 rolls enumerated with the modifiers resolve_boarding
+    uses (troop ratings, crew bonuses, crippled / special orders / blast
+    markers); the loser takes the difference in damage (hull_hits_vp: full
+    value a hit, thresholds), each side's crit chance by the result table at a
+    hit's value each (judgement), a draw (grapple) counts nothing. Knights of
+    Titan and Mechanicus re-rolls aren't counted."""
+    from .boarding import (troop_rating, _troop_advantage_bonus, _crew_damage_bonus,
+                           _get_ship_modifier)
+    a_rating = troop_rating(attacker, attacker.is_grappled)
+    d_rating = troop_rating(target, target.is_grappled, defending=True)
+    a_bonus = _get_ship_modifier(target, gs) + _troop_advantage_bonus(a_rating, d_rating) \
+        + _crew_damage_bonus(attacker)
+    d_bonus = _get_ship_modifier(attacker, gs) + _troop_advantage_bonus(d_rating, a_rating) \
+        + _crew_damage_bonus(target)
+    vph_a, vph_t = value_per_hit(attacker, gs), value_per_hit(target, gs)
+
+    def p_at_least(t):
+        return 1.0 if t is None or t <= 1 else max(0.0, (7 - t) / 6.0)
+
+    total = 0.0
+    for a in range(1, 7):
+        for d in range(1, 7):
+            diff = (a + a_bonus) - (d + d_bonus)
+            if diff == 0:
+                continue
+            win, lose = BOARD_CRITS.get(min(abs(diff), 5), (None, 0))
+            p_win_crit = 0.0 if win is None else p_at_least(win)
+            p_lose_crit = 1.0 if lose == 0 else p_at_least(lose)
+            if diff > 0:
+                total += hull_hits_vp(target, gs, 0.0, diff) + p_lose_crit * vph_t
+                total -= p_win_crit * vph_a
+            else:
+                total -= hull_hits_vp(attacker, gs, 0.0, -diff) + p_lose_crit * vph_a
+                total += p_win_crit * vph_t
+    return total / 36.0

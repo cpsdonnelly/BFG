@@ -326,8 +326,43 @@ class AIPlayer:
         if executed:
             ship = gs.get_ship_by_id(ship.id)
             gs.add_log(f"[AI] {ship.name} moved to ({ship.x:.0f},{ship.y:.0f})")
+        self._consider_boarding(gs.get_ship_by_id(ship.id))
 
         tc.mark_ship_moved(ship.id)
+
+    def _boarding_gain(self, ship: Ship, enemy: Ship) -> float:
+        """A boarding action's expected VP (ai_hazards.boarding_vp) less what the
+        ship gives up: it may not fire or launch ordnance this turn (s.32),
+        worth its guns' value (`ai_rerolls.firepower_swing`)."""
+        from .ai_hazards import boarding_vp
+        from .ai_rerolls import firepower_swing
+        if "nicassar" in " ".join(ship.special_rules) or "frail_crew" in ship.special_rules:
+            return 0.0                    # Nicassar never initiate boarding
+        return boarding_vp(ship, enemy, self.gs) - firepower_swing(ship, self.gs)
+
+    def _consider_boarding(self, ship: Optional[Ship]) -> None:
+        """To do 8 h: after moving, declare a boarding action against the enemy
+        in base contact where it is worth most, when its value beats the fire
+        given up. Only with the boarding rule on (owner)."""
+        gs = self.gs
+        if (ship is None or self.difficulty == "easy" or not getattr(gs, "rule_boarding", False)
+                or ship.has_boarded or ship.is_grappled or ship.is_destroyed):
+            return
+        from .boarding import ships_in_base_contact
+        best = None
+        for e in self._live_enemies():
+            if e.status in ("drifting_hulk", "burning_hulk") or not ships_in_base_contact(ship, e):
+                continue
+            g = self._boarding_gain(ship, e)
+            if g > 0 and (best is None or g > best[0]):
+                best = (g, e)
+        if best is None:
+            return
+        ship.boarding_target_id = best[1].id
+        ship.has_boarded = True
+        gs.update_ship(ship)
+        gs.add_log(f"[AI] {ship.name} declares a boarding action against {best[1].name} "
+                   f"(worth about {best[0]:.0f} VP)")
 
     def _try_execute(self, ship: Ship, commands: List[MoveCommand],
                      order: str, aaf_bonus: int) -> bool:
@@ -423,6 +458,7 @@ class AIPlayer:
         score -= self._carrier_exposure(ship, fx, fy, enemy)
         score -= self._teleport_exposure(ship, fx, fy, enemy)
         score += self._teleport_reach(ship, fx, fy, enemy, order)
+        score += self._boarding_reach(ship, fx, fy, enemy)
         score += self._screen_bonus(ship, fx, fy, fh, enemy)
         score += self._explosion_term(ship, fx, fy, enemy)
         return score
@@ -636,6 +672,13 @@ class AIPlayer:
                         best = max(angles, key=lambda a: self._arc_score(
                             ship, *self._simulate_final_pos(ship, a, d, p), o))
                         add(best, d, p, "second target")
+        # f: boarding reach (8 h), only with the boarding rule on: the point in
+        # base contact with the target on our side of it
+        if getattr(self.gs, "rule_boarding", False) and self.difficulty != "easy":
+            d0 = ship.distance_to(enemy) or 1.0
+            k = (enemy.base_radius + ship.base_radius) / d0
+            goals.append(((enemy.x - (enemy.x - ship.x) * k, enemy.y - (enemy.y - ship.y) * k),
+                          "board"))
         # 3: fleet support, an escort to the commander's ship (massed turrets)
         if ship.ship_type == "escort":
             flag = next((f for f in self.gs.get_ships() if f.player == self.player
@@ -1315,6 +1358,8 @@ class AIPlayer:
         for ship in gs.player_ships(self.player):
             if ship.is_destroyed or ship.is_disengaged or ship.has_fired:
                 continue
+            if ship.has_boarded:                 # boarding: no firing this turn (s.32)
+                continue
             self._fire_ship(ship)
             ship = gs.get_ship_by_id(ship.id)
             if not ship.has_fired:
@@ -1839,8 +1884,8 @@ class AIPlayer:
         self._fleet_defence = (self._plan_fleet_defence(enemies)
                                if enemies and self.difficulty != "easy" else None)
         for ship in gs.player_ships(self.player):
-            if ship.is_destroyed or ship.is_disengaged:
-                continue
+            if ship.is_destroyed or ship.is_disengaged or ship.has_boarded:
+                continue                          # boarding: no launches (s.32)
             self._launch_ship_ordnance(ship)
         self._fleet_defence = None
 
@@ -2583,6 +2628,24 @@ class AIPlayer:
         if vp <= 0:
             return 0.0
         return vp / (0.35 * max(1.0, value_per_hit(target, gs)))
+
+    def _boarding_reach(self, ship: Ship, x: float, y: float, target: Ship) -> float:
+        """To do 8 h: an end position in base contact with an enemy gains the
+        boarding action's net value (`_boarding_gain`), in the planner's
+        firepower units. Only with the boarding rule on (owner)."""
+        if self.difficulty == "easy" or not getattr(self.gs, "rule_boarding", False):
+            return 0.0
+        from .geometry import BASE_CONTACT_MARGIN_CM
+        from .ai_hazards import value_per_hit
+        import dataclasses
+        at = dataclasses.replace(ship, x=x, y=y)
+        best = 0.0
+        for e in self._live_enemies():
+            if math.hypot(e.x - x, e.y - y) <= e.base_radius + ship.base_radius + BASE_CONTACT_MARGIN_CM:
+                best = max(best, self._boarding_gain(at, e))
+        if best <= 0:
+            return 0.0
+        return best / (0.35 * max(1.0, value_per_hit(target, self.gs)))
 
     def _teleport_reach(self, ship: Ship, x: float, y: float, target: Ship,
                         order: str = "") -> float:
