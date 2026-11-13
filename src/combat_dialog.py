@@ -429,7 +429,7 @@ class _FireDialog:
                 if sr.hits > 0:
                     all_damage.setdefault(target.id, []).append(
                         (sr.hits, "lance", target, weapon.get("crit_on", 6),
-                         self._braced.get(target.id, False)))
+                         self._braced.get(target.id, False), sr.bypass_hits))
 
             elif wtype == "armageddon_gun":
                 from .combat import resolve_armageddon_gun
@@ -527,6 +527,8 @@ class _FireDialog:
                              key=lambda cb: (cb[1], -cb[0]))
             for crit_on, was_braced in batches:
                 total = sum(e[0] for e in hit_list if (e[3], e[4]) == (crit_on, was_braced))
+                bypass = sum(e[5] for e in hit_list
+                             if len(e) > 5 and (e[3], e[4]) == (crit_on, was_braced))
                 target = self.ctx.gs.get_ship_by_id(target_id)
                 if not target or (target.is_destroyed and not target.is_hulk):
                     continue
@@ -534,7 +536,8 @@ class _FireDialog:
                           + (f" (crits on {crit_on}+)" if crit_on != 6 else "")
                           + (" (braced)" if was_braced else ""))
                 self.panel._apply_hits_to_target(self.attacker, target, total, self._log,
-                                                 crit_on=crit_on, braced=was_braced)
+                                                 crit_on=crit_on, braced=was_braced,
+                                                 bypass_hits=bypass)
             del all_damage[target_id]
 
     def _brace_targets(self, kinds=("battery", "lance", "nova_cannon")) -> dict:

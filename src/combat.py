@@ -29,6 +29,7 @@ class ShotResult:
         self.brace_saves = 0
         self.description = ""
         self.hits_by_ship: Dict[str, int] = {}  # ship_id → hits for squadron fire
+        self.bypass_hits = 0     # hits that ignore shields (Necron particle whips' 6s)
 
 
 
@@ -596,7 +597,12 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
             extra_hits = sum(1 for d in result.reroll_dice if d >= need)
             result.hits += extra_hits
 
-    result.hits -= _holofield(attacker, target, result.hits, dice)
+    if weapon.get("particle_whip"):
+        # 6s bypass shields and holofields (anything but Brace)
+        result.bypass_hits = sum(1 for d in list(result.dice_rolled) + list(result.reroll_dice)
+                                 if d == 6)
+    result.hits -= _holofield(attacker, target, result.hits - getattr(result, "bypass_hits", 0),
+                              dice)
     result.description = (
         f"{weapon['name']}: Str {strength} lances vs {target.name} "
         f"(4+) = {result.hits} hits")
@@ -851,7 +857,8 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  attacker_key: str = "",
                  origin: Optional[Tuple[float, float]] = None,
                  auto_crit: bool = False,
-                 rolled_to_hit: bool = True) -> Dict:
+                 rolled_to_hit: bool = True,
+                 bypass_hits: int = 0) -> Dict:
     """
     Apply hits to a ship, handling shields, damage, crits. auto_crit: every
     hull hit is a critical hit, with no D6 check (vortex torpedoes).
@@ -872,6 +879,9 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
     crit_on = min(crit_on, crit_threshold(target))
     summary["attacker_key"] = attacker_key
 
+    # Necron particle whips (Xenos p.40): hits scored on a 6 bypass the shields
+    bypass = max(0, min(bypass_hits, remaining_hits))
+    remaining_hits -= bypass
     if not ignores_shields:
         available_shields = current_shields(target, game_state.get_blast_markers())
         # Overloaded Shield Capacitors (Advanced Shields): after the enemy rolls
@@ -890,6 +900,7 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
         summary["shield_hits"] = shield_absorb
         summary["blast_markers_placed"] = shield_absorb
         remaining_hits -= shield_absorb
+    remaining_hits += bypass
 
     # Necron reactive hulls (Xenos p.40): a save on each hit wherever a Brace
     # save could be used, 6+ / 5+ / 4+ by hull size, 2+ when braced (replacing

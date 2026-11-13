@@ -268,7 +268,8 @@ class CombatPanel(CombatDialogMixin):
     def _apply_hits_to_target(self, attacker: Ship, target: Ship,
                               total_hits: int, log_fn,
                               crit_on: int = 6,
-                              braced: Optional[bool] = None) -> Tuple[int, bool]:
+                              braced: Optional[bool] = None,
+                              bypass_hits: int = 0) -> Tuple[int, bool]:
         """apply_damage, crits, and destruction check for one volley. braced:
         the target's Brace for Impact decision, taken before the attack was
         rolled (s.7); None falls back to asking now (older callers).
@@ -322,7 +323,8 @@ class CombatPanel(CombatDialogMixin):
 
         dmg = apply_damage(target, total_hits, self.ctx.dice, self.ctx.gs,
                            target_braced=brace, crit_on=crit_on,
-                           attacker_key=attacker.id, origin=(attacker.x, attacker.y))
+                           attacker_key=attacker.id, origin=(attacker.x, attacker.y),
+                           bypass_hits=bypass_hits)
         log_fn(f"     Shields: {dmg['shield_hits']}, "
                f"Hull: {dmg['hull_hits']}, "
                f"Saves: {dmg['brace_saves']}")

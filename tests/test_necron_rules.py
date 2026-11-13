@@ -95,3 +95,21 @@ def test_lightning_arcs_fire_as_against_closing_targets():
     # and they ignore the holofield's right shift
     assert get_column_shifts(shooter, tgt, [], weapon=arc) == \
         get_column_shifts(shooter, tgt, [], weapon={"weapon_type": "battery"}) - 1
+
+
+def test_particle_whip_sixes_bypass_shields():
+    from tests.conftest import make_ship
+    from src.combat import resolve_lances, apply_damage
+    from src.game_state import GameState
+    gs = GameState()
+    a = make_ship(id="a", player=1, x=0.0, y=0.0)
+    t = make_ship(id="t", player=2, x=20.0, y=0.0, shields_max=2, hits_max=8)
+    gs.add_ship(a); gs.add_ship(t)
+    whip = {"name": "Particle Whip", "weapon_type": "lance", "strength": 3, "particle_whip": True}
+    dice = DiceStub([6, 4, 1])
+    sr = resolve_lances(a, gs.get_ship_by_id("t"), whip, dice)
+    assert sr.hits == 2 and sr.bypass_hits == 1 and dice._idx == 3
+    # 2 hits, 1 bypassing: the other goes into a shield; one hull hit, its crit check (1)
+    dice = DiceStub([1])
+    out = apply_damage(gs.get_ship_by_id("t"), sr.hits, dice, gs, bypass_hits=sr.bypass_hits)
+    assert out["shield_hits"] == 1 and out["hull_hits"] == 1 and dice._idx == 1

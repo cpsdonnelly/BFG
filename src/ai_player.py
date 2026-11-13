@@ -2091,7 +2091,8 @@ class AIPlayer:
             gs.add_log(f"[AI] {ship.name} → {target.name}: "
                        f"{weapon['name']} {sr.hits} hit(s)")
             if sr.hits > 0:
-                self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id)
+                self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id,
+                                    bypass_hits=sr.bypass_hits)
 
     def _squadron_volleys(self, only: Optional[str] = None):
         """Shooting by Squadrons for the AI (s.8, combat.plan_squadron_volley):
@@ -2248,7 +2249,7 @@ class AIPlayer:
         return {i for i, _ in macro + bc_ok}
 
     def _apply_hits_to(self, target: Ship, hits: int, crit_on: int = 6,
-                       attacker_key: str = ""):
+                       attacker_key: str = "", bypass_hits: int = 0):
         """Apply hits from AI fire, then resolve the ship's destruction if it died.
         Returns (unused hits, destroyed) for squadron hit allocation."""
         t = self.gs.get_ship_by_id(target.id)
@@ -2259,7 +2260,7 @@ class AIPlayer:
         src = self.gs.get_ship_by_id(attacker_key) if attacker_key else None
         dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced,
                            crit_on=crit_on, attacker_key=attacker_key,
-                           origin=(src.x, src.y) if src else None)
+                           origin=(src.x, src.y) if src else None, bypass_hits=bypass_hits)
         self._log_damage(t, dmg)
         self._resolve_kill(t)
         return dmg["unused_hits"], dmg["destroyed"]
