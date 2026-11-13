@@ -485,7 +485,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1169 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1172 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -886,9 +886,16 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    `combat._zzapp_firepower`; the AI values lances by `ai_hazards.lance_p`; the Slamblasta is
    playable now; Kustom Kannon built too: the Hammer Battlekroozer's prow weapon is an FP6
    killkannon (4+ to hit and crit) or a D6+2 salvo sharing one load, so firing either needs
-   Reload Ordnance, `kustom_kannon`, `combat.spend_kustom_kannon`; the Hammer is playable): special movement (Nicassar Caravan, Kroot
+   Reload Ordnance, `kustom_kannon`, `combat.spend_kustom_kannon`; the Hammer is playable;
+   the Planet Killer's Armageddon Gun built: `combat.resolve_armageddon_gun`, the template
+   swept 90cm straight from the stem, D6 hits under the hole, 1 under the template, shields
+   apply, ordnance removed, stopped by planets / asteroid fields with D6 blast markers, not
+   while crippled / AAF / Burn Retros / braced, Reload Ordnance recharges it
+   (`armageddon_spent`); Fire dialog and AI (`_armageddon_value`);
+   `tools/gui_checks/armageddon_check.py`; not yet: the reload roll's double / double-6
+   malfunction (the command check keeps only the total) and exterminating planets): special movement (Nicassar Caravan, Kroot
    Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
-   disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
+   disruptor cannon, Man O' War configuration.
 6. Smaller gaps, done: s.40 (`src/celestial.py`): Fighting Sunward doubles the range column
    shifts of gunnery fired at a target in the sunward abeam arc (compass parallel to the
    sunward edge; `optional_rules.set_sunward`, read by `combat.get_column_shifts`, so the AI

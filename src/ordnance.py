@@ -1303,6 +1303,10 @@ def reload_ship_ordnance(ship: Ship) -> List[str]:
     if has_mines and not ship.ordnance_loaded_mines:
         ship.ordnance_loaded_mines = True
         reloaded.append("mines")
+    if "armageddon_spent" in ship.special_rules:
+        # the Planet Killer's Armageddon Gun recharges on Reload Ordnance
+        ship.special_rules = [r for r in ship.special_rules if r != "armageddon_spent"]
+        reloaded.append("the Armageddon Gun")
     if reloaded:
         return [f"{ship.name}: Reload Ordnance — reloaded {' & '.join(reloaded)}"]
     if has_torps or has_bays or has_mines:

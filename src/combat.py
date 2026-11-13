@@ -1749,3 +1749,92 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
     return None  # cascaded off the top of the table
 
 
+
+
+ARMAGEDDON_RANGE = 90.0
+
+
+def armageddon_ready(ship: Ship) -> Optional[str]:
+    """None if the Planet Killer's Armageddon Gun may fire now, else why not:
+    not crippled, not on All Ahead Full / Burn Retros / Brace, loaded."""
+    if ship.is_crippled:
+        return "the Planet Killer is crippled"
+    if ship.special_order in (SpecialOrder.ALL_AHEAD_FULL.value, SpecialOrder.BURN_RETROS.value,
+                              SpecialOrder.BRACE_FOR_IMPACT.value):
+        return "it is on All Ahead Full, Burn Retros or Brace for Impact"
+    if "armageddon_broken" in ship.special_rules:
+        return "the gun has shut down for the battle"
+    if "armageddon_spent" in ship.special_rules:
+        return "it needs Reload Ordnance"
+    return None
+
+
+def armageddon_path(ship: Ship, gs) -> Tuple[float, float, float, float, bool]:
+    """(x0, y0, x1, y1, blocked): the template's centre track from the ship's
+    stem straight ahead 90cm, stopping where it first meets a phenomenon that
+    blocks line of sight (planets, moons, asteroid fields)."""
+    from .los import check_los
+    h = math.radians(ship.heading)
+    x0 = ship.x + ship.base_radius * math.cos(h)
+    y0 = ship.y + ship.base_radius * math.sin(h)
+    phen = gs.get_phenomena()
+    step, d = 0.5, 0.0
+    while d < ARMAGEDDON_RANGE:
+        nd = min(ARMAGEDDON_RANGE, d + step)
+        ax, ay = x0 + d * math.cos(h), y0 + d * math.sin(h)
+        bx, by = x0 + nd * math.cos(h), y0 + nd * math.sin(h)
+        if not check_los(ax, ay, bx, by, phen).get("clear", True):
+            return x0, y0, ax, ay, True
+        d = nd
+    return x0, y0, x0 + d * math.cos(h), y0 + d * math.sin(h), False
+
+
+def resolve_armageddon_gun(ship: Ship, gs, dice: DiceRoller) -> Dict:
+    """The Planet Killer's Armageddon Gun (07_chaos.md): the nova cannon
+    template moved 90cm straight ahead from the stem. A ship whose base the
+    centre hole passes over takes D6 hits, any other the template crosses 1;
+    shields apply; ordnance it touches is removed; blocked, it stops and
+    leaves D6 blast markers at the contact point. It then needs Reload
+    Ordnance (`armageddon_spent`). Returns {"hits": {ship id: n}, "blocked",
+    "path"} or {"error"}. Not yet: the double / double-6 malfunction on the
+    reload roll, exterminating planets (To do 7)."""
+    from .geometry import (NOVA_CANNON_TEMPLATE_RADIUS_CM as TR,
+                           NOVA_CANNON_CENTER_HOLE_RADIUS_CM as CR)
+    from .models import BlastMarker
+    why = armageddon_ready(ship)
+    if why:
+        return {"error": why}
+    x0, y0, x1, y1, blocked = armageddon_path(ship, gs)
+
+    def seg(px, py):
+        dx, dy = x1 - x0, y1 - y0
+        L = dx * dx + dy * dy
+        t = 0.0 if L == 0 else max(0.0, min(1.0, ((px - x0) * dx + (py - y0) * dy) / L))
+        return math.hypot(px - (x0 + t * dx), py - (y0 + t * dy))
+    hits = {}
+    for s in gs.get_ships():
+        if s.id == ship.id or s.is_destroyed or s.is_disengaged:
+            continue
+        d = seg(s.x, s.y)
+        if d <= s.base_radius + CR:
+            hits[s.id] = dice.roll_d6(1, f"Armageddon Gun: centre over {s.name} (D6 hits)")[0]
+        elif d <= s.base_radius + TR:
+            hits[s.id] = 1
+    gs.ordnance = [o for o in gs.ordnance if seg(o["x"], o["y"]) > TR + 1.0]
+    if blocked:
+        n = dice.roll_d6(1, "Armageddon Gun blocked: D6 blast markers")[0]
+        import random as _r
+        for i in range(n):
+            gs.add_blast_marker(BlastMarker(id=f"armageddon_{_r.randint(0, 99999)}_{i}",
+                                            x=x1 + (i - n / 2) * 1.0, y=y1))
+    for sid, n in hits.items():
+        t = gs.get_ship_by_id(sid)
+        apply_damage(t, n, dice, gs, target_braced=t.special_order
+                     == SpecialOrder.BRACE_FOR_IMPACT.value, attacker_key=ship.id,
+                     origin=(x0, y0))
+    fresh = gs.get_ship_by_id(ship.id)
+    fresh.special_rules = list(fresh.special_rules) + ["armageddon_spent"]
+    gs.update_ship(fresh)
+    gs.add_log(f"{ship.name} fires the Armageddon Gun"
+               + (" (blocked)" if blocked else "") + f": {len(hits)} ship(s) hit")
+    return {"hits": hits, "blocked": blocked, "path": (x0, y0, x1, y1)}

@@ -43,7 +43,7 @@ class _Tooltip:
 
 # Fire order within one ship's volley: batteries, then lances, then the nova
 # cannon (the target is asked about bracing before each kind, s.7)
-_FIRE_ORDER = {"battery": 0, "lance": 1, "nova_cannon": 2}
+_FIRE_ORDER = {"battery": 0, "lance": 1, "nova_cannon": 2, "armageddon_gun": 3}
 
 
 class _FireDialog:
@@ -134,6 +134,12 @@ class _FireDialog:
             elif wtype == "nova_cannon":
                 desc = "Nova Cannon 30-150cm [front]"
                 avail_str = 1
+            elif wtype == "armageddon_gun":
+                from .combat import armageddon_ready
+                why = armageddon_ready(attacker)
+                desc = ("Armageddon Gun: 90cm straight ahead (any target)"
+                        + (f" [cannot fire: {why}]" if why else ""))
+                avail_str = 1
             else:
                 desc = weapon["name"]
 
@@ -143,7 +149,7 @@ class _FireDialog:
 
             # "all" fires the whole pool; a number splits it (s.13 Splitting Fire)
             str_var = tk.StringVar(value="all" if pool_later else str(avail_str))
-            if wtype != "nova_cannon" and (avail_str > 1 or pool_later):
+            if wtype not in ("nova_cannon", "armageddon_gun") and (avail_str > 1 or pool_later):
                 tk.Label(row, text="Fire:", font=("Consolas", 8)).pack(side=tk.LEFT)
                 tk.Entry(row, textvariable=str_var, width=3,
                          font=("Consolas", 9)).pack(side=tk.LEFT, padx=2)
@@ -424,6 +430,21 @@ class _FireDialog:
                     all_damage.setdefault(target.id, []).append(
                         (sr.hits, "lance", target, weapon.get("crit_on", 6),
                          self._braced.get(target.id, False)))
+
+            elif wtype == "armageddon_gun":
+                from .combat import resolve_armageddon_gun
+                res = resolve_armageddon_gun(self.attacker, self.ctx.gs, self.ctx.dice)
+                if "error" in res:
+                    self._log(f"  Armageddon Gun: {res['error']}")
+                    weapon_actually_fired = False
+                else:
+                    for sid, n in res["hits"].items():
+                        hs = self.ctx.gs.get_ship_by_id(sid)
+                        if hs is not None:
+                            self._log(f"  Armageddon Gun hits {hs.name}: {n} hit(s)")
+                            self.ctx.check_destruction(hs)
+                    if res["blocked"]:
+                        self._log("  Armageddon Gun blocked: blast markers at the obstacle")
 
             elif wtype == "nova_cannon":
                 dist_to = self.attacker.distance_to(target)

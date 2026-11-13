@@ -1269,7 +1269,8 @@ class AIPlayer:
         has_mines = any(w.get("weapon_type") == "mine_launcher" for w in ship.weapons)
         if ((has_torps and not ship.ordnance_loaded_torps) or
                 (has_bays and not ship.ordnance_loaded_craft) or
-                (has_mines and not ship.ordnance_loaded_mines)):
+                (has_mines and not ship.ordnance_loaded_mines) or
+                "armageddon_spent" in ship.special_rules):
             return SpecialOrder.RELOAD_ORDNANCE.value
 
         return None
@@ -1488,6 +1489,15 @@ class AIPlayer:
 
             if wtype == "nova_cannon":
                 self._fire_nova_cannon(ship, enemies, weapon)
+                continue
+            if wtype == "armageddon_gun":
+                if self._armageddon_value(ship) > 0:
+                    from .combat import resolve_armageddon_gun
+                    for sid in resolve_armageddon_gun(ship, gs, self.dice).get("hits", {}):
+                        t = gs.get_ship_by_id(sid)
+                        if t is not None:
+                            self._resolve_kill(t)
+                    ship = gs.get_ship_by_id(ship.id)
                 continue
 
             # Shoot an incoming mine / salvo / wave instead, when that's worth more
@@ -1727,6 +1737,31 @@ class AIPlayer:
             resolve_catastrophic(t, self.dice, self.gs)
 
     NOVA_FRIEND_CLEARANCE = 12.0    # cm from the aim point (judgement: scatter + template)
+
+    def _armageddon_value(self, ship: Ship) -> float:
+        """Expected VP of firing the Armageddon Gun now: along its track, 3.5
+        hits on ships under the centre hole and 1 on those the template
+        crosses, past shields (`added_vp`), enemies for us and friends against."""
+        from .combat import armageddon_ready, armageddon_path
+        from .ai_hazards import added_vp
+        from .geometry import (NOVA_CANNON_TEMPLATE_RADIUS_CM as TR,
+                               NOVA_CANNON_CENTER_HOLE_RADIUS_CM as CR)
+        if armageddon_ready(ship):
+            return 0.0
+        x0, y0, x1, y1, _b = armageddon_path(ship, self.gs)
+        dx, dy = x1 - x0, y1 - y0
+        L = dx * dx + dy * dy
+        v = 0.0
+        for s in self.gs.get_ships():
+            if s.id == ship.id or s.is_destroyed or s.is_disengaged:
+                continue
+            t = 0.0 if L == 0 else max(0.0, min(1.0, ((s.x - x0) * dx + (s.y - y0) * dy) / L))
+            d = math.hypot(s.x - (x0 + t * dx), s.y - (y0 + t * dy))
+            h = 3.5 if d <= s.base_radius + CR else (1.0 if d <= s.base_radius + TR else 0.0)
+            if h:
+                g = added_vp(s, self.gs, 0.0, h)
+                v += g if s.player != self.player else -g
+        return v
 
     def _fire_nova_cannon(self, ship: Ship, enemies: List[Ship], weapon: Dict = None):
         """The Nova Cannon (s.14) at the enemy in arc and 30-150cm where its

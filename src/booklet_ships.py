@@ -165,6 +165,11 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
                     problems: List[str]) -> List[dict]:
     if w["kind"] == "gravitic_hooks":
         return []   # tow escorts into battle: fleet building only, no battle effect
+    if w.get("name") == "Armageddon Gun":
+        # The Planet Killer: a template swept 90cm straight ahead
+        # (combat.resolve_armageddon_gun)
+        return [{"name": "Armageddon Gun", "weapon_type": "armageddon_gun",
+                 "range_cm": w.get("range_max_cm") or 90, "strength": 0, "arcs": ["front"]}]
     if w.get("name") == "Kustom Kannon":
         # Hammer Battlekroozer: fires as an FP6 killkannon or launches S D6+2
         # torps, one mode per turn, reloaded by Reload Ordnance after either
