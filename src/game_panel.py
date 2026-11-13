@@ -611,7 +611,8 @@ class GamePanel(AAPanelMixin):
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "confrontation", "line_breaker", "ambush",
-                      "convoy_matched", "space_assault", "rescue", "warp_storm", "domination"]
+                      "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
+                      "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
         scen_cb = ttk.Combobox(mode_row, textvariable=scen_var, values=scen_modes,
                                 state="disabled" if locked else "readonly", width=22,

@@ -533,6 +533,12 @@ class AIPlayer:
         if "immobile" in ship.special_rules:
             tc.mark_ship_moved(ship.id)       # immobile defences never move
             return
+        if order == SpecialOrder.BURN_RETROS.value and self._bombard_hold_value(ship) > 0:
+            # Planet Strike: hold position over the planet (Burn Retros, no
+            # minimum move) to score bombardment points at the end of the turn
+            gs.add_log(f"[AI] {ship.name} holds position over the planet")
+            tc.mark_ship_moved(ship.id)
+            return
         enemy = self._nearest_enemy(ship)
         self._move_nearest = enemy
         focus = self._focus_for(ship)
@@ -781,8 +787,13 @@ class AIPlayer:
         of those on the nearest enemy), minus hazards and flagship danger on
         the way, exposure, carrier exposure, plus screening and explosions."""
         fx, fy, fh = self._simulate_final_pos(ship, turn_deg, dist, turn_at)
+        r = ship.base_radius
+        if fx - r < 0 or fy - r < 0 or fx + r > self.gs.table_width \
+                or fy + r > self.gs.table_height:
+            return self._off_table_score(ship, fx, fy, enemy)
         path = self._simulate_path(ship, turn_deg, dist, turn_at)
-        score = (self._arc_score(ship, fx, fy, fh, enemy)
+        trap = self._edge_trap_penalty(ship, fx, fy, fh, enemy)
+        score = (-trap + self._arc_score(ship, fx, fy, fh, enemy)
                  - self._position_penalty(fx, fy, ship, path, order, enemy))
         near = getattr(self, "_move_nearest", None)
         if near is not None and near.id != enemy.id:
@@ -801,7 +812,113 @@ class AIPlayer:
         score += self._rescue_escape(ship, fx, fy, enemy)
         score += self._breakthrough(ship, fx, fy, enemy)
         score += self._convoy_run(ship, fx, fy, enemy)
+        score += self._bombard_approach(ship, fx, fy, enemy)
         return score
+
+    def _edge_trap_penalty(self, ship: Ship, x: float, y: float, h: float,
+                           enemy: Ship) -> float:
+        """An end position from which every move next turn leaves the table
+        (the minimum move straight on, or turning the full angle either way
+        after the turning distance, all ending off it) is a disengage next
+        turn: it costs what leaving loses (`_off_table_score` when that is
+        negative) at `PHASE_DISCOUNT`. Burn Retros might save it, at its
+        command check's odds, which isn't counted (judgement). Immobile and
+        escorts (they turn anywhere) excepted. In move-score units."""
+        if ship.ship_type == "escort" or "immobile" in ship.special_rules:
+            return 0.0
+        from .movement import MIN_TURN_DISTANCE
+        gs = self.gs
+        r = ship.base_radius
+        lo = max(1.0, (ship.speed or 0) / 2.0)
+        td = min(lo, MIN_TURN_DISTANCE.get(ship.ship_type, 10))
+        ta = math.radians(ship.turn_angle or 0)
+
+        def off(px, py):
+            return px - r < 0 or py - r < 0 or px + r > gs.table_width or py + r > gs.table_height
+        hr = math.radians(h)
+        for turn in (0.0, ta, -ta):
+            mx, my = x + td * math.cos(hr), y + td * math.sin(hr)
+            h2 = hr + turn
+            ex, ey = mx + (lo - td) * math.cos(h2), my + (lo - td) * math.sin(h2)
+            if not off(mx, my) and not off(ex, ey):
+                return 0.0
+        leave = self._off_table_score(ship, x, y, enemy)
+        from .ai_hazards import PHASE_DISCOUNT
+        return max(0.0, -leave) * PHASE_DISCOUNT
+
+    def _off_table_score(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """A move ending off the table disengages the ship (s.37: no test):
+        worth what a sure disengage is (`disengage_gain` at a certain pass:
+        the risk of staying avoided, less the 10% conceded and its guns), less
+        what the scenario loses by it (`_objective_stake`), plus what the
+        scenario gives for that edge (Convoy, Rescue, Line Breaker). Rescue's
+        flagship off any other edge is destroyed. Before this, the move score
+        priced an off-table end as if the ship were still there. In
+        move-score units."""
+        from .ai_hazards import disengage_gain, value_per_hit, ship_value
+        from .ai_rerolls import firepower_outcomes
+        from .scenarios import off_table_destroyed
+        gs = self.gs
+        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        moved = Ship.from_dict(ship.to_dict())
+        moved.x, moved.y = x, y
+        if off_table_destroyed(gs, moved):
+            return -2.0 * ship_value(ship, gs) / units
+        cache = self.__dict__.setdefault("_leave_cache", {})
+        key = (ship.id, gs.turn_number, ship.hits_remaining)
+        if key not in cache:
+            if "immobile" in ship.special_rules:
+                cache[key] = -1e6
+            else:
+                ev, outs = firepower_outcomes(ship, gs)
+                cache[key] = disengage_gain(ship, gs, 12, ev, outs) - self._objective_stake(ship)
+        exit_term = (self._rescue_escape(ship, x, y, enemy) + self._breakthrough(ship, x, y, enemy)
+                     + self._convoy_run(ship, x, y, enemy))
+        if exit_term > 0:
+            return exit_term          # the scenario's own exit (scored by the scenario)
+        return cache[key] / units
+
+    BOMBARD_WEIGHT = 0.5         # judgement: winning Planet Strike ~ half the points on the table
+
+    def bombard_point_vp(self) -> float:
+        """Planet Strike (To do 7): a bombardment point in VP. The table runs
+        from 6 (6+ to win) to 31 (an automatic win), so a point is about a
+        25th of the game: judgement, `BOMBARD_WEIGHT` x the points on the
+        table / 25."""
+        return self.BOMBARD_WEIGHT * sum(s.points_value for s in self.gs.get_ships()) / 25.0
+
+    def _bombard_hold_value(self, ship: Ship) -> float:
+        """Planet Strike: an attacking ship in base contact with the planet
+        that holds position all turn scores its remaining hits plus transport
+        capacity. Its value in VP (0 when it can't)."""
+        gs = self.gs
+        if gs.scenario_mode != "planet_strike" or ship.player != gs.scenario_attacker:
+            return 0.0
+        from .scenarios import in_planet_contact, bombardment_points
+        if not in_planet_contact(gs, ship):
+            return 0.0
+        return bombardment_points(gs, ship) * self.bombard_point_vp()
+
+    def _bombard_approach(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """Planet Strike: the attacker's ships close on the planet; ending in
+        base contact sets up next turn's bombardment (half its value,
+        judgement), and short of it they gain in proportion to the way
+        covered. In move-score units."""
+        gs = self.gs
+        if (gs.scenario_mode != "planet_strike" or ship.player != gs.scenario_attacker
+                or self.difficulty == "easy"):
+            return 0.0
+        from .scenarios import strike_planet, bombardment_points
+        pl = strike_planet(gs)
+        if pl is None:
+            return 0.0
+        from .ai_hazards import value_per_hit
+        reach = pl.radius + ship.base_radius + 0.2
+        d0 = max(0.0, math.hypot(ship.x - pl.x, ship.y - pl.y) - reach)
+        d1 = max(0.0, math.hypot(x - pl.x, y - pl.y) - reach)
+        full = 0.5 * bombardment_points(gs, ship) * self.bombard_point_vp()
+        progress = 1.0 if d1 <= 0 else max(0.0, d0 - d1) / max(1.0, d0)
+        return full * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
 
     CONVOY_RUN_WEIGHT = 0.5      # judgement: the share of its points a convoy ship saves by escaping
 
@@ -895,6 +1012,14 @@ class AIPlayer:
                 and ship.player == defender(gs)):
             # Convoy: leaving except off the attacker's edge counts as destroyed, +50
             return 100.0 + ship.points_value + 50.0
+        if gs.scenario_mode == "planet_strike" and ship.player != gs.scenario_attacker:
+            # Planet Strike: the attacker wins outright by holding the field, so
+            # each defending ship leaving gives up its share of keeping it
+            mine = [s for s in gs.get_ships() if s.player == ship.player
+                    and not s.is_destroyed and not s.is_disengaged
+                    and "immobile" not in s.special_rules]
+            return (self.BOMBARD_WEIGHT * sum(s.points_value for s in gs.get_ships())
+                    / max(1, len(mine)))
         if (gs.scenario_mode == "line_breaker" and ship.player == gs.scenario_attacker
                 and ship.ship_type != "escort"):
             # Line Breaker: the attacker wins only by breaking through with a
@@ -2134,6 +2259,14 @@ class AIPlayer:
         if self.difficulty == "easy" or "eldar_mms" in ship.special_rules:
             return False
         from .ai_rerolls import firepower_swing
+        hold = self._bombard_hold_value(ship)
+        if hold > 0:
+            cost = 0.5 * firepower_swing(ship, self.gs) + self._teleport_given_up(ship)
+            self.__dict__.setdefault("_retros_saved", {})[ship.id] = max(0.0, hold - cost)
+            if hold > cost:
+                self.gs.add_log(f"[AI] {ship.name}: Burn Retros to hold over the planet "
+                                f"(bombardment worth about {hold:.0f} VP)")
+                return True
         normal = self._safest_move_vp(ship, "")
         retros = self._safest_move_vp(ship, SpecialOrder.BURN_RETROS.value)
         saved = normal - retros

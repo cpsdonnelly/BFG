@@ -505,3 +505,106 @@ def test_ai_convoy_ship_runs_for_the_far_edge():
     res = validate_movement(ht, cmds, "", table_width=180.0, table_height=120.0)
     assert res.path[-1][1] > 23.0        # turns north as far as it can (10cm, then 45 degrees)
     assert ai._objective_stake(ht) > 100
+
+
+# --- Planet Strike ---------------------------------------------------------------
+
+def test_planet_strike_planet_zones_and_requirements():
+    att = _cat("Lunar Class Cruiser", 1, "lu")
+    tr = _cat("Heavy Transport", 1, "ht")
+    dfn = _cat("Slaughter Class Cruiser", 2, "sl")
+    plat = _cat("Orbital Weapons Platform", 2, "pl")
+    gs = _gs([att, tr, dfn, plat], mode="planet_strike")
+    gs.add_phenomenon(__import__("src.models", fromlist=["Phenomenon"]).Phenomenon(
+        id="old", phenomenon_type="planet_small", x=50.0, y=50.0, radius=3.0))
+    sc.setup_scenario(gs)
+    pl = sc.strike_planet(gs)
+    assert [p.id for p in gs.get_phenomena() if "planet" in p.phenomenon_type] == ["strike_planet"]
+    assert pl.phenomenon_type == "planet_large" and pl.y == 60.0
+    assert 180.0 - (pl.x - pl.radius) == 45.0       # the far side 45cm from the edge
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[1].contains(10, 60) and not zones[1].contains(40, 60)
+    assert zones[2].contains(170, 10) and zones[2].contains(pl.x - 30, 60)
+    # Platforms in the gravity well, ships within 45cm of the edge
+    assert sc.placement_errors(gs, [plat], [(pl.x - 30.0, 60.0)], [90.0], []) == []
+    assert sc.placement_errors(gs, [plat], [(pl.x - 30.0, 20.0)], [90.0], [])
+    assert sc.placement_errors(gs, [dfn], [(pl.x - 30.0, 60.0)], [90.0], [])
+    # 180pts of warships: 2 capacity needed, a heavy transport carries 2
+    assert sc.force_errors(gs) == []
+    assert sc.first_player(gs) == 1
+
+
+def test_planet_strike_bombardment_and_victory():
+    pl_x = 180.0 - 45.0 + 8.0
+    att = _cat("Lunar Class Cruiser", 1, "lu", pl_x - 8.0 - 1.0, 60.0)   # touching the planet
+    tr = _cat("Heavy Transport", 1, "ht", pl_x, 60.0 + 9.0)
+    far = _cat("Gothic Class Cruiser", 1, "go", 20.0, 60.0)
+    dfn = _cat("Slaughter Class Cruiser", 2, "sl", 170.0, 10.0)
+    gs = _gs([att, tr, far, dfn], mode="planet_strike")
+    sc.setup_scenario(gs)
+    assert sc.in_planet_contact(gs, gs.get_ship_by_id("lu"))
+    assert not sc.in_planet_contact(gs, gs.get_ship_by_id("go"))
+    t = gs.get_ship_by_id("ht")
+    t.distance_moved_this_turn = 5.0          # moved: no points
+    gs.update_ship(t)
+    assert sc.score_end_of_turn(gs, 1) == 8   # the Lunar: 8 hits, no transport
+    assert sc.score_end_of_turn(gs, 2) == 0   # only the attacker bombards
+    t = gs.get_ship_by_id("ht")
+    t.distance_moved_this_turn = 0.0
+    gs.update_ship(t)
+    assert sc.score_end_of_turn(gs, 1) == 8 + 6 + 2
+    assert gs.scenario_state["bombardment"] == 24
+    assert [sc.strike_need(p) for p in (0, 5, 6, 12, 20, 24, 30, 31)] == \
+        [None, None, 6, 5, 4, 3, 2, 1]
+    # The defender still holds ships: a 3+ roll decides it
+    dice = DiceStub([2])
+    assert sc.end_of_game(gs, dice) and dice._idx == 1
+    assert sc.winner_at_end(gs, lambda g: None) == 2
+    assert not sc.end_of_game(gs, DiceStub([]))
+    # Holding the field wins outright
+    gs.scenario_state = {"bombardment": 0}
+    d = gs.get_ship_by_id("sl")
+    d.hits_remaining, d.status = 0, "destroyed"
+    gs.update_ship(d)
+    sc.end_of_game(gs, DiceStub([]))
+    assert sc.winner_at_end(gs, lambda g: None) == 1
+
+
+def test_ai_holds_over_the_planet():
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    pl_x = 180.0 - 45.0 + 8.0
+    lu = _cat("Lunar Class Cruiser", 1, "lu", pl_x - 9.0, 60.0, 0.0)
+    dfn = _cat("Slaughter Class Cruiser", 2, "sl", 170.0, 10.0)
+    gs = _gs([lu, dfn], mode="planet_strike")
+    sc.setup_scenario(gs)
+    gs.active_player = 1
+    tc = TurnController(gs, DiceStub([2]))            # passes the Burn Retros check
+    ai = AIPlayer(1, tc, gs, DiceStub([2, 2, 2]))
+    assert ai._bombard_hold_value(gs.get_ship_by_id("lu")) > 0
+    ai.run_movement_phase()
+    s = gs.get_ship_by_id("lu")
+    assert s.special_order == "burn_retros" and (s.x, s.y) == (pl_x - 9.0, 60.0)
+    assert sc.score_end_of_turn(gs, 1) == 8
+
+
+def test_ai_prices_moves_off_the_table_and_edge_traps():
+    """A healthy ship's move ending off the table is a disengage (the 10%
+    conceded and its guns lost), and one ending pointed at an edge it can't
+    avoid next turn costs nearly as much."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    lu = _cat("Lunar Class Cruiser", 1, "lu", 127.0, 15.0, 220.0)
+    foe = _cat("Slaughter Class Cruiser", 2, "sl", 60.0, 80.0, 270.0)
+    gs = _gs([lu, foe], mode="standard")
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai.difficulty = "normal"
+    assert ai._off_table_score(lu, 120.0, -1.0, foe) < 0
+    assert ai._edge_trap_penalty(lu, 127.0, 4.4, 220.0, foe) > 0
+    assert ai._edge_trap_penalty(lu, 90.0, 60.0, 220.0, foe) == 0
+    assert ai._edge_trap_penalty(lu, 127.0, 4.4, 40.0, foe) == 0     # pointing inwards
+    cmds = ai._plan_move_toward(lu, foe, "", 0)
+    from src.movement import validate_movement
+    res = validate_movement(lu, cmds, "", table_width=180.0, table_height=120.0)
+    ex, ey = res.path[-1]
+    assert 0 < ey and ai._edge_trap_penalty(lu, ex, ey, res.final_heading, foe) == 0

@@ -88,6 +88,11 @@ for p, names in ((1, chs), (2, imp)):
         if s_.speed == 0:
             s_.heading = 90.0
         gs.add_ship(s_)
+if scenario == "planet_strike":
+    pts = sum(s_.points_value for s_ in gs.get_ships() if s_.player == 1)
+    for k in range(-(-pts // 200)):
+        gs.add_ship(cat("Heavy Transport", 1, 20 + k, 0.0, 0.0))
+    gs.add_ship(cat("Orbital Weapons Platform", 2, 30, 0.0, 0.0))
 if scenario == "convoy_matched":
     pts = sum(s_.points_value for s_ in gs.get_ships() if s_.player == 2)
     for k in range(-(-pts // 100)):
@@ -108,12 +113,19 @@ for p in (1, 2):
             pos = sc.auto_positions(gs, [s_], z, placed, idx)
             if pos is None:
                 r = z.rects()[0]
-                pos = [(r.x_min + 5 + (idx * 9) % max(1.0, r.x_max - r.x_min - 10),
-                        r.y_min + 5 + 6 * (idx // 4))]
+                cx, cy = (r.x_min + r.x_max) / 2, (r.y_min + r.y_max) / 2
+                pos = [(cx + 10 * ((idx % 4) - 1.5) * (1 if r.x_max - r.x_min > 40 else 0.3),
+                        cy + 10 * ((idx % 4) - 1.5) * (0.3 if r.x_max - r.x_min > 40 else 1)
+                        + 4 * (idx // 4))]
             s_.x, s_.y = pos[0]
             s_.heading = 0.0 if s_.x < gs.table_width / 2 else 180.0
             if scenario in ("line_breaker", "space_assault", "confrontation", "convoy_matched"):
                 s_.heading = 270.0 if p == 1 else 90.0
+            if scenario == "planet_strike":
+                s_.heading = 0.0 if p == 1 else 180.0
+                if "immobile" in s_.special_rules:
+                    pl = sc.strike_planet(gs)
+                    s_.x, s_.y = pl.x - 20.0, pl.y + 15.0
             if scenario == "ambush" and p == 2:
                 s_.heading = 90.0
             idx += 1
@@ -150,6 +162,9 @@ while not panel._game_over and time.time() - start < 240:
     phases_seen.add((gs.turn_number, gs.current_phase))
     time.sleep(0.01)
 
+import os
+if os.environ.get("DUMP_LOG"):
+    open(os.environ["DUMP_LOG"], "w").write("\n".join(gs.log))
 hp = {s.id: s.hits_remaining for s in gs.get_ships()}
 print(f"[{scenario} {system}] game over={panel._game_over} after {time.time()-start:.1f}s, "
       f"reached turn {gs.turn_number}, phases visited={len(phases_seen)}")
@@ -162,7 +177,7 @@ aa_log = [l for l in gs.log if "[AA]" in l]
 print(f"[{scenario} {system}] result: {game_over[0][1] if game_over else None}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
-                             "Space Assault", "Station", "Platform", "Convoy:", "Transport",
+                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "holds position", "DISENGAG", "off the table",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "

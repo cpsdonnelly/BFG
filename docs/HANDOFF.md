@@ -897,6 +897,15 @@ confirm: the capacity requirement counts the defender's points without its convo
 convoy ships are scored one by one (squadron crippling doesn't apply to them); a convoy ship
 destroyed in battle gives its cost only (the +50 is for leaving the board another way).
 
+Fifth slice: Planet Strike, which completes the nine matched-play scenarios. Readings to
+confirm: existing planets are removed; the attacker needs at least (not exactly) the
+transport capacity; "stationary" means no distance moved (turning on the spot allowed). Two
+general AI fixes came out of the scenario games: off-table end positions are priced as a sure
+disengage and edge traps (every move next turn leaves the table) are penalised; before, AI
+ships could drift off an edge. `gui_spectator_scenario.py <igougo|aa> <scenario>` plays any
+of them (DUMP_LOG=<file> writes the game log). Next in To do 7: the raids and battles
+(longer, with planets, low orbit, attack ratings), sub-plots, and the expert AI's leaf.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

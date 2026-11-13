@@ -373,6 +373,13 @@ class TurnController:
                 self.gs.ships[i]["previous_order"] = SpecialOrder.NONE.value
                 # Reset per-turn flags
                 self.gs.ships[i]["moved_this_turn"] = False
+                # (the movement panel resets these too; alternate activation
+                # has no panel phase start, and Planet Strike's bombardment
+                # reads them at the end of the turn)
+                self.gs.ships[i]["distance_moved_this_turn"] = 0.0
+                self.gs.ships[i]["turns_used_this_turn"] = 0
+                self.gs.ships[i]["net_rotation_this_turn"] = 0.0
+                self.gs.ships[i]["distance_since_last_turn"] = 0.0
                 self.gs.ships[i]["collected_blast_markers"] = 0   # unused markers are lost
                 self.gs.ships[i]["has_fired"] = False
                 self.gs.ships[i]["disengage_failed_this_turn"] = False

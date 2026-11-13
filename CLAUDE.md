@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1255 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1259 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -521,7 +521,7 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: most scenarios (Confrontation, Line Breaker, Ambush, Convoy (matched), Space Assault, Rescue, Warp Storm and Domination are, To do 7) and sub-plots, and the To do items below.
+Not built: most scenarios (the nine matched-play scenarios are, To do 7: Confrontation, Line Breaker, Ambush, Convoy, Space Assault, Rescue, Warp Storm, Planet Strike, Domination) and sub-plots, and the To do items below.
 Next (largest first): 7 (scenarios / sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
@@ -1061,9 +1061,29 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    leaving any other way their cost + 50 to the attacker, destroyed their cost, crippled 25%
    (reading: one by one, not as squadrons)). AI: `_convoy_run` (convoy ships head for the top
    edge, 100 + `CONVOY_RUN_WEIGHT` 0.5 x their points, judgement), they never take disengage
-   tests (`_objective_stake`), and the attacker's kill bonus of 100 a convoy ship. Not yet:
-   the expert search's leaf counting Domination points, racing the 10 against the turn order,
-   Planet Strike (planets placed by the scenario, bombardment points), Orbit Lost, the raids and battles, sub-plots, attack ratings, the Ambush
+   tests (`_objective_stake`), and the attacker's kill bonus of 100 a convoy ship. Fifth
+   slice built: Planet Strike (p.124: `setup_scenario` places a large planet (radius 8)
+   centred between the long edges with its far side 45cm from the defender's short edge (the
+   right one) and removes other planets (reading); attacker within 30cm of the left edge,
+   defender within 45cm of the right one, its defences in the gravity well; `force_errors`
+   wants the attacker to carry at least one transport capacity per 100pts or portion of its
+   warships (reading: "at least"); at the end of the attacker's turn each attacking ship that
+   moved no distance (reading: turning on the spot allowed) and touches the planet scores its
+   remaining hits + transport capacity (`score_end_of_turn`, `in_planet_contact`); at game
+   end the attacker holding the field wins, else the D6 table (`strike_need`, rolled in
+   `end_of_game`, `winner_at_end`)). AI: Burn Retros to hold over the planet when the
+   bombardment (`_bombard_hold_value`, a point = `BOMBARD_WEIGHT` 0.5 x the points on the
+   table / 25, judgement) beats half its guns, then no move; `_bombard_approach` closes on the
+   planet; the defender's ships count keeping the field in `_objective_stake`. General AI fixes
+   found by these games: a move ending off the table is now priced as the sure disengage it is
+   (`_off_table_score`: `disengage_gain` at a certain pass less the scenario stake, or the
+   scenario's own exit value; Rescue's flagship off the wrong edge is destroyed), and an end
+   position from which every minimum move next turn leaves the table pays that at
+   `PHASE_DISCOUNT` (`_edge_trap_penalty`); before, ships could wander off the edge.
+   `TurnController._clear_previous_orders` now resets the per-turn movement tracking
+   (alternate activation had nothing resetting it). Not yet: the expert search's leaf counting
+   Domination points, racing the 10 against the turn order, Planet Strike's planetary defence
+   budget (+20%) and "extra assault points" ships, Orbit Lost, the raids and battles, sub-plots, attack ratings, the Ambush
    attacker's half-points limit (fleet building), Line Breaker's "platforms can't squadron".
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the

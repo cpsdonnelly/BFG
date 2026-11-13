@@ -63,6 +63,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone_or_no_cargo",
         "victory": "vp",
     },
+    "planet_strike": {
+        "name": "Planet Strike (XR p.124)",
+        "first_turn": "attacker",
+        "end": "fleet_gone",
+        "victory": "planet_strike",
+    },
     "domination": {
         "name": "Domination (XR p.125-126)",
         "first_turn": "attacker",
@@ -169,6 +175,18 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
             gs.add_log(f"[Rescue] the defending flagship is {flag.name}")
     elif mode == "convoy_matched":
         gs.scenario_state = {"had_cargo": cargo_on_table(gs, defender(gs)) > 0}
+    elif mode == "planet_strike":
+        # A large planet centred between the long edges, its far side exactly
+        # 45cm from the defender's short edge (the right one); no other planets
+        # (reading: planets already placed are removed)
+        from .models import Phenomenon
+        r = 8.0
+        gs.phenomena = [p for p in gs.phenomena if "planet" not in p.get("phenomenon_type", "")]
+        gs.add_phenomenon(Phenomenon(id="strike_planet", phenomenon_type="planet_large",
+                                     x=gs.table_width - 45.0 + r, y=gs.table_height / 2.0,
+                                     width=2 * r, height=2 * r, radius=r))
+        gs.scenario_state = {"bombardment": 0}
+        gs.add_log("[Planet Strike] a large planet 45cm from the defender's short edge")
     elif mode in SCENARIOS:
         gs.scenario_state = {"started": True}
 
@@ -241,6 +259,38 @@ def scores_normally(gs, ship) -> bool:
                 and ship.player == defender(gs))
 
 
+def strike_planet(gs):
+    return next((p for p in gs.get_phenomena() if p.id == "strike_planet"), None)
+
+
+def in_planet_contact(gs, ship) -> bool:
+    """Base contact with Planet Strike's planet marker."""
+    pl = strike_planet(gs)
+    if pl is None:
+        return False
+    margin = getattr(gs, "contact_margin_cm", 0.2)
+    return ((ship.x - pl.x) ** 2 + (ship.y - pl.y) ** 2
+            <= (pl.radius + ship.base_radius + margin) ** 2)
+
+
+def bombardment_points(gs, ship) -> float:
+    """What a ship scores for holding position over the planet: its remaining
+    hits plus its total transport capacity."""
+    return ship.hits_remaining + transport(ship)
+
+
+# Planet Strike's table: bombardment points -> the D6 the attacker needs
+# (None: the defender wins automatically, 1: the attacker wins automatically)
+STRIKE_TABLE = ((5, None), (10, 6), (15, 5), (20, 4), (25, 3), (30, 2))
+
+
+def strike_need(points_: float) -> Optional[int]:
+    for top, need in STRIKE_TABLE:
+        if points_ <= top:
+            return need
+    return 1
+
+
 def space_station(gs):
     return next((s for s in gs.get_ships() if s.player == defender(gs)
                  and s.ship_class.startswith("Space Station")), None)
@@ -259,6 +309,15 @@ def force_errors(gs) -> List[str]:
         if have < need:
             return [f"Line Breaker: the defender needs {need} defence platforms "
                     f"({pts}pts), has {have}"]
+    if mode == "planet_strike":
+        att = [s for s in gs.get_ships() if s.player == gs.scenario_attacker]
+        pts = sum(s.points_value for s in att if not is_convoy(s))
+        need = -(-pts // 100)
+        have = sum(transport(s, building=True) for s in att if is_convoy(s))
+        if have < need:
+            return [f"Planet Strike: the attacker needs {need} transport capacity "
+                    f"({pts}pts), has {have:g}"]
+        return []
     if mode == "convoy_matched":
         convoy = [s for s in ships if is_convoy(s)]
         pts = sum(s.points_value for s in ships if not is_convoy(s))
@@ -310,6 +369,17 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         # Defender within 30cm of the bottom edge (the station is placed by the
         # scenario, 30cm in and centred); attacker within 30cm of the top
         rects = {3 - att_p: [(0, 0, h - 30, 0)], att_p: [(0, 0, 0, h - 30)]}
+    elif mode == "planet_strike":
+        # Attacker within 30cm of the left short edge; defender within 45cm of
+        # the right one, where the planet is (its defences in the gravity well,
+        # the extra rect, placement_errors tells them apart)
+        pl = strike_planet(gs)
+        well = pl.gravity_well_radius if pl else 38.0
+        px, py = (pl.x, pl.y) if pl else (w - 37.0, h / 2.0)
+        rects = {att_p: [(0, w - 30, 0, 0)],
+                 3 - att_p: [(w - 45, 0, 0, 0),
+                             (max(0.0, px - well), max(0.0, w - px - well),
+                              max(0.0, h - py - well), max(0.0, py - well))]}
     elif mode == "convoy_matched":
         # Defender (and its convoy) within 30cm of the bottom edge; attacker
         # between 15 and 45cm of the top edge
@@ -352,6 +422,15 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
                     errs.append(f"Line Breaker: {s_.name} not within a celestial phenomenon")
             elif y > 60.0:
                 errs.append(f"Line Breaker: {s_.name} within 60cm of the defender's edge")
+        return errs
+    if mode == "planet_strike" and group and group[0].player == defender(gs):
+        pl = strike_planet(gs)
+        for s_, (x, y) in zip(group, positions):
+            if "immobile" in s_.special_rules:
+                if pl and (x - pl.x) ** 2 + (y - pl.y) ** 2 > pl.gravity_well_radius ** 2:
+                    errs.append(f"Planet Strike: {s_.name} within the planet's gravity well")
+            elif x < gs.table_width - 45.0:
+                errs.append(f"Planet Strike: {s_.name} within 45cm of the defender's edge")
         return errs
     if mode != "ambush" or not group:
         return errs
@@ -619,6 +698,30 @@ def end_of_game(gs, dice) -> bool:
     ship or squadron that disengaged takes a Leadership test (2D6 against its
     Ld; a squadron once); those that fail are lost in the warp and count as
     destroyed. Returns True when anything changed."""
+    if getattr(gs, "scenario_mode", "") == "planet_strike":
+        # Planet Strike: the attacker holding the field wins; otherwise a D6
+        # on the bombardment table decides the invasion
+        st = dict(gs.scenario_state or {})
+        if st.get("strike_winner"):
+            return False
+        from .victory_points import _holds_field
+        pts = st.get("bombardment", 0)
+        need = strike_need(pts)
+        if _holds_field(gs.scenario_attacker, gs.get_ships()):
+            win = gs.scenario_attacker
+        elif need is None:
+            win = defender(gs)
+        elif need == 1:
+            win = gs.scenario_attacker
+        else:
+            roll = dice.roll_d6(1, f"Planet Strike invasion ({pts:g} bombardment points: "
+                                   f"{need}+)")[0]
+            win = gs.scenario_attacker if roll >= need else defender(gs)
+            gs.add_log(f"[Planet Strike] invasion roll {roll} (needs {need}+)")
+        st["strike_winner"] = win
+        gs.scenario_state = st
+        gs.add_log(f"[Planet Strike] player {win} wins ({pts:g} bombardment points)")
+        return True
     if getattr(gs, "scenario_mode", "") != "warp_storm":
         return False
     st = dict(gs.scenario_state or {})
@@ -686,6 +789,21 @@ def score_end_of_turn(gs, player: int) -> int:
     TurnController.end_phase; alternate activation calls that for each player
     in the round's end phase, so both score once a round (reading, outside the
     booklet)."""
+    if getattr(gs, "scenario_mode", "") == "planet_strike":
+        if player != gs.scenario_attacker:
+            return 0
+        got = 0.0
+        for sh in gs.get_ships():
+            if (sh.player == player and not sh.is_destroyed and not sh.is_disengaged
+                    and (sh.distance_moved_this_turn or 0.0) <= 1e-9
+                    and in_planet_contact(gs, sh)):
+                got += bombardment_points(gs, sh)
+        if got:
+            st = dict(gs.scenario_state or {})
+            st["bombardment"] = st.get("bombardment", 0) + got
+            gs.scenario_state = st
+            gs.add_log(f"[Planet Strike] bombardment +{got:g}: {st['bombardment']:g} points")
+        return got
     if getattr(gs, "scenario_mode", "") != "domination":
         return 0
     n = controlled(gs, player)
@@ -735,4 +853,17 @@ def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
         return points_winner(gs)
     if sc and sc["victory"] == "line_breaker":
         return gs.scenario_attacker if line_breaker_won(gs) else defender(gs)
+    if sc and sc["victory"] == "planet_strike":
+        st = gs.scenario_state or {}
+        if st.get("strike_winner"):
+            return st["strike_winner"]
+        from .victory_points import _holds_field
+        if _holds_field(gs.scenario_attacker, gs.get_ships()):
+            return gs.scenario_attacker
+        need = strike_need(st.get("bombardment", 0))
+        if need is None:
+            return defender(gs)
+        if need == 1:
+            return gs.scenario_attacker
+        return None                       # decided by end_of_game's roll
     return vp_winner_fn(gs)

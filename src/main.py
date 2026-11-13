@@ -422,6 +422,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("space_assault",     "Space Assault (booklet p.121: space station)"),
         ("rescue",            "Rescue (booklet p.122: defending flagship at the centre)"),
         ("warp_storm",        "Warp Storm (booklet p.123: corner divisions)"),
+        ("planet_strike",     "Planet Strike (booklet p.124: bombard the planet)"),
         ("domination",        "Domination (booklet p.125: objectives, 10 points)"),
     ]
     for val, lbl in scenario_options:
