@@ -173,6 +173,15 @@ class TurnController:
                         self.gs.ships[i]["net_rotation_this_turn"] = 0.0
                         self.gs.ships[i]["crossed_blast_this_turn"] = False
                         self.gs.ships[i]["distance_since_last_turn"] = 0.0
+                        # Demiurg absorber fields: blast markers collected on the
+                        # undone move go back on the table
+                        back = self.gs.__dict__.get("_bm_collected", {}).pop(
+                            (self.gs.turn_number, ship_id), [])
+                        if back:
+                            have = {b["id"] for b in self.gs.blast_markers}
+                            self.gs.blast_markers += [b for b in back if b["id"] not in have]
+                            self.gs.ships[i]["collected_blast_markers"] = old_ship_data.get(
+                                "collected_blast_markers", 0)
                         if ship_id in self.ships_moved:
                             self.ships_moved.remove(ship_id)
                         return True

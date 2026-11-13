@@ -126,6 +126,10 @@ def collect_blast_markers(ship: Ship, gs: GameState, path=None) -> int:
              if any(math.hypot(bm.x - px, bm.y - py) <= reach for px, py in dense)]
     if taken:
         ids = {bm.id for bm in taken}
+        # kept so an undone move can put them back (TurnController.undo_ship_movement)
+        log = gs.__dict__.setdefault("_bm_collected", {})
+        log.setdefault((gs.turn_number, ship.id), []).extend(
+            b for b in gs.blast_markers if b["id"] in ids)
         gs.blast_markers = [b for b in gs.blast_markers if b["id"] not in ids]
         ship.collected_blast_markers += len(taken)
         gs.add_log(f"{ship.name} collects {len(taken)} blast marker(s) "

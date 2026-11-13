@@ -274,3 +274,49 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
             f"No firing or orders this turn!")
 
     return result
+
+
+def _edge_dist(x: float, y: float, gs) -> float:
+    return min(x, y, gs.table_width - x, gs.table_height - y)
+
+
+def flee_move_errors(ship, result, gs, order: str = "", aaf_bonus: int = 0,
+                     tolerance: float = 2.0):
+    """A ship that failed a forced disengage test (`must_flee`, s.37: "must
+    attempt to disengage or move off of the closest table edge (if
+    possible)") moves as fast as possible towards the nearest table edge.
+    Errors for a human's move that doesn't: shorter than its full speed, or
+    ending more than `tolerance` cm further from the nearest edge than the
+    best simple move (straight, or one turn of up to its turn angle after the
+    turning distance) would. Disengaging instead is done with its own button."""
+    from .movement import (get_effective_speed, validate_movement, MoveCommand,
+                           MIN_TURN_DISTANCE)
+    if not getattr(ship, "must_flee", False):
+        return []
+    _, max_spd = get_effective_speed(ship, order, aaf_bonus)
+    left = max(0.0, max_spd - (ship.distance_moved_this_turn or 0.0))
+    errs = []
+    if result.total_distance < left - 0.05:
+        errs.append(f"{ship.name} failed a forced disengage test: it must move its full "
+                    f"{left:g}cm towards the nearest table edge (or try to disengage).")
+    td = min(MIN_TURN_DISTANCE.get(ship.ship_type, 0), left)
+    best = None
+    cands = [[MoveCommand("forward", left)]]
+    for turn in ("turn_left", "turn_right"):
+        for ang in (ship.turn_angle, ship.turn_angle / 2):
+            cmds = ([MoveCommand("forward", td)] if td else []) + [MoveCommand(turn, ang)]
+            if left - td > 0:
+                cmds.append(MoveCommand("forward", left - td))
+            cands.append(cmds)
+    for cmds in cands:
+        r = validate_movement(ship, cmds, special_order=order, aaf_bonus=aaf_bonus,
+                              blast_markers=gs.get_blast_markers(),
+                              table_width=gs.table_width, table_height=gs.table_height,
+                              distance_already_moved=ship.distance_moved_this_turn or 0.0)
+        if r.valid:
+            d = _edge_dist(r.final_x, r.final_y, gs)
+            best = d if best is None else min(best, d)
+    if best is not None and _edge_dist(result.final_x, result.final_y, gs) > best + tolerance:
+        errs.append(f"{ship.name} failed a forced disengage test: it must head for the "
+                    f"nearest table edge (a move ending {best:.1f}cm from it is possible).")
+    return errs

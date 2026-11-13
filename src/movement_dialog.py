@@ -368,6 +368,11 @@ class _MoveShipDialog:
         if not result.valid:
             messagebox.showerror("Invalid Movement", "\n".join(result.errors))
             return
+        from .disengage import flee_move_errors
+        flee = flee_move_errors(self.ship, result, self.ctx.gs, self.order, self.aaf_bonus)
+        if flee:
+            messagebox.showerror("Must Flee", "\n".join(flee))
+            return
         execute_movement(self.ship, result, self.ctx.gs, self.ctx.dice)
         self.panel._resolve_post_move_terrain(
             self.ship.id, self.order == SpecialOrder.ALL_AHEAD_FULL.value)
@@ -712,6 +717,11 @@ class _MoveSquadronDialog:
                 messagebox.showerror(
                     "Invalid Movement",
                     f"{s.name}:\n" + "\n".join(res.errors))
+                return
+            from .disengage import flee_move_errors
+            flee = flee_move_errors(s, res, self.ctx.gs, order, aaf)
+            if flee:
+                messagebox.showerror("Must Flee", "\n".join(flee))
                 return
             results[s.id] = res
 

@@ -87,6 +87,11 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 blast_already_crossed=ship.crossed_blast_this_turn)
             if not result.valid:
                 return  # path became invalid between preview and release — discard
+            from .disengage import flee_move_errors
+            flee = flee_move_errors(ship, result, self.ctx.gs, order, aaf_bonus)
+            if flee:
+                messagebox.showerror("Must Flee", "\n".join(flee))
+                return
             execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
             self._resolve_post_move_terrain(ship.id, order == "all_ahead_full")
 

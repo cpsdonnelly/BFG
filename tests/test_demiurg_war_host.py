@@ -143,3 +143,25 @@ def test_demiurg_hired_reserves():
     assert not has(fleet_list_errors("navy_gothic", own + hired, 800), "Reserves")
     hired += rows(BASTION, list_key="reserve:demiurg_hired")
     assert has(fleet_list_errors("navy_gothic", own + hired, 1100), "Reserves")
+
+
+def test_undoing_a_demiurg_move_returns_its_blast_markers():
+    """To do 6: an undone move puts back the blast markers it collected."""
+    from src.models import BlastMarker
+    from src.movement import collect_blast_markers
+    from src.turn_controller import TurnController
+    from tests.conftest import DiceStub
+    d = make_ship(id="d", player=1, x=0.0, y=0.0, special_rules=["demiurg_commerce"])
+    gs = make_gs([d])
+    gs.add_blast_marker(BlastMarker(id="a", x=5.0, y=0.0))
+    tc = TurnController(gs, DiceStub([]))
+    tc._save_phase_start()
+    ship = gs.get_ship_by_id("d")
+    assert collect_blast_markers(ship, gs, [(0.0, 0.0), (10.0, 0.0)]) == 1
+    ship.x = 10.0
+    gs.update_ship(ship)
+    tc.ships_moved.append("d") if isinstance(tc.ships_moved, list) else tc.ships_moved.add("d")
+    assert not gs.blast_markers
+    assert tc.undo_ship_movement("d")
+    assert [b["id"] for b in gs.blast_markers] == ["a"]
+    assert gs.get_ship_by_id("d").collected_blast_markers == 0

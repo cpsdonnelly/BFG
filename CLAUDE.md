@@ -483,7 +483,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1130 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1132 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -863,9 +863,11 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.
 6. Smaller gaps: Fighting Sunward, Solar Flares and Radiation Bursts (s.40) aren't built (their
    toggles do nothing; the settings dialog says so), nor the +3 disengage Ld and the
-   commander re-roll limit they bring (s.5, s.37); undoing a Demiurg
-   move doesn't return collected blast markers; a human player isn't stopped from not fleeing
-   after a failed forced disengage (log reminder only).
+   commander re-roll limit they bring (s.5, s.37). Done: undoing a Demiurg move returns the
+   blast markers it collected (`TurnController.undo_ship_movement`); a human's ship that
+   failed a forced disengage test must move its full speed and end within 2cm of the best
+   simple move towards the nearest edge (`disengage.flee_move_errors`, checked by the move
+   dialogs and drag moves; disengaging stays its own button).
 7. Scenarios and sub-plots, engine and AI (owner request: the AI must play scenario and sub-plot
    games, not just cruiser clash; after items 1-6). The engine has only the old generic modes
    (`scenario.check_scenario_end`: kill the admiral, destroy / protect a ship, capture an
