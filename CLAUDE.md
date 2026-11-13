@@ -483,7 +483,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1099 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1130 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -608,7 +608,10 @@ Movement:
   (`_burn_retros_worth_it`); Lock On by value (`_lock_on_gain`, 10 a: the best straight move
   under Lock On with its batteries / lances counted `LOCK_ON_GAIN` 0.5 more, minus the best
   move that may turn, at the check's pass chance; the target is the one the move plans
-  against); Reload Ordnance when spent; never All Ahead Full / Come to New Heading. Check
+  against; only guns in range after the move count); All Ahead Full by value (`_aaf_gain`,
+  10 b: the best straight move at full speed + the expected bonus, guns in range halved,
+  minus the best free move; Orks pass automatically), the higher of the two; Reload Ordnance
+  when spent; never Come to New Heading (its two turns aren't in the candidates). Check
   order (10 c): `_plan_orders` values every ship's order at the start of the phase
   (`_order_value`: VP gain, pass chance with Enemy Contacts / Under Fire) and
   `_choose_special_order` skips an order when p x g < (1 - p) x the later orders' expected
@@ -1052,7 +1055,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    the checks, which would break the support move order), d (a failed check's re-roll counts
    the later orders it unblocks, `importance(..., {"blocked_orders_vp"})`), f's modifiers in
    the pass chance, g (Burn Retros pays half the best teleport raid in reach,
-   `_teleport_given_up`). Not yet: b's All Ahead Full / Come to New Heading moves, e.
+   `_teleport_given_up`), b's All Ahead Full (`_aaf_gain`). Not yet: Come to New Heading
+   (two turns), Reload Ordnance by value rather than whenever spent, e.
    a. Lock On is worth it when an enemy WILL or CAN be in arc after the move: value = the
       best straight move under Lock On (no turn), its guns' expected hits at the next
       shooting phase against the enemy's predicted positions with missed dice re-rolled,
