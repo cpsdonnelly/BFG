@@ -85,10 +85,15 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
                     logs.append(f"  Repaired: {c['description']}")
                     break
     else:
-        # Auto mode: repair in priority order (fire first, then engine, then others)
+        # Auto mode: the repairs worth most expected VP (To do 11 e,
+        # ai_hazards.repair_value); the fixed priority (fire first, then
+        # engine, then the rest) breaks ties and is the fallback
         priority = ["fire", "engine_room", "thrusters_damaged",
                      "shields_collapse", "dorsal_armament", "port_armament",
                      "starboard_armament", "prow_armament", "bridge_smashed"]
+        from .ai_hazards import repair_value
+        vals = {id(c): repair_value(ship, c, gs) for c in ship.critical_damage
+                if c.get("repairable", False)}
         for _ in range(repairs_available):
             best = None
             best_priority = 999
@@ -100,6 +105,8 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
                     p = priority.index(ct)
                 except ValueError:
                     p = 100
+                if vals:
+                    p = -vals.get(id(c), 0.0) * 1000 + p   # value first, then priority
                 if p < best_priority:
                     best_priority = p
                     best = c
@@ -186,10 +193,25 @@ def remove_blast_markers(gs: GameState, dice: DiceRoller) -> List[str]:
     roll = dice.roll_d6(1, "Blast marker removal (remove this many)")
     num_remove = min(roll[0], len(free_markers))
 
-    # Remove first N free markers
-    removed_ids = set()
-    for i in range(num_remove):
-        removed_ids.add(free_markers[i].id)
+    # Which ones (To do 9): the player whose turn it is removes those that
+    # hinder its own ships most and its enemies least, judged by how near
+    # each marker is to the ships that may run into it next turn (within a
+    # ship's speed + 10cm: speed loss, shields down, gunnery shifts, s.11)
+    player = gs.active_player
+
+    def hindrance(bm):
+        score = 0.0
+        for s in ships:
+            if s.is_destroyed or s.is_disengaged:
+                continue
+            reach = (s.speed or 0) + 10.0
+            d = math.hypot(bm.x - s.x, bm.y - s.y)
+            if d <= reach:
+                w = 1.0 - d / reach
+                score += w if s.player == player else -w
+        return score
+    ranked = sorted(free_markers, key=hindrance, reverse=True)
+    removed_ids = {bm.id for bm in ranked[:num_remove]}
 
     gs.blast_markers = [bm for bm in gs.blast_markers
                         if bm.get("id") not in removed_ids]

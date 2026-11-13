@@ -28,3 +28,10 @@ def choose(root, title: str, text: str, options, best):
     win.grab_set()
     root.wait_window(win)
     return result["v"]
+
+
+def yes_no(root, title: str, text: str, best: bool) -> bool:
+    """A yes / no question with the "Auto (best)" button (owner request):
+    `best` is what the AI's expected-value logic would answer. GUI checks
+    replace this function to answer it."""
+    return bool(choose(root, title, text, [("Yes", True), ("No", False)], best))

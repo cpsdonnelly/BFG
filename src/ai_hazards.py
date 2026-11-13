@@ -1993,3 +1993,39 @@ def torpedo_bomber_target(gs, group, player: int):
         if best is None or v > best[0]:
             best = (v, e)
     return best
+
+
+ARMAMENT_CRITS = ("dorsal_armament", "port_armament", "starboard_armament", "prow_armament")
+
+
+def repair_value(ship: Ship, crit: dict, gs) -> float:
+    """Expected VP of repairing one critical hit now (damage control, s.36;
+    To do 11 e). Fire: the hit it would cost each end phase it burns
+    (judgement: 1.5 hits at the ship's value a hit). Armament: what those
+    weapons threaten at the next shooting phases (hit_and_run.
+    armament_threat_value, the raid model, from the enemy's side). Shields
+    collapsed: the enemy's expected hits next turn its shields would stop.
+    Engines / thrusters / bridge (judgement): a share of its guns' value
+    (`ai_rerolls.firepower_swing`: 0.3 / 0.2) or of its value (0.1)."""
+    from .ai_rerolls import firepower_swing
+    ct = crit.get("crit_type", "")
+    vph = value_per_hit(ship, gs)
+    if ct == "fire":
+        return 1.5 * vph
+    if ct in ARMAMENT_CRITS:
+        # valued as if repaired: the raid model counts a location already
+        # knocked out as worth nothing
+        import dataclasses
+        from .hit_and_run import armament_threat_value
+        fixed = dataclasses.replace(ship, critical_damage=[
+            c for c in ship.critical_damage if c is not crit])
+        return armament_threat_value(fixed, ct, gs, 3 - ship.player)
+    if ct == "shields_collapse":
+        return min(ship.shields_max, incoming_hits(ship, gs)) * vph
+    if ct == "engine_room":
+        return 0.3 * firepower_swing(ship, gs)
+    if ct == "thrusters_damaged":
+        return 0.2 * firepower_swing(ship, gs)
+    if ct == "bridge_smashed":
+        return 0.1 * ship_value(ship, gs)
+    return 0.05 * ship_value(ship, gs)

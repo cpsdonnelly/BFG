@@ -102,7 +102,8 @@ def test_nova_cannon_hits_are_absorbed_by_shields(tmp_path):
     from src.ai_player import AIPlayer
     from src.turn_controller import TurnController
     firer = make_ship(id="n", player=1, x=0.0, y=0.0)
-    target = make_ship(id="t", player=2, x=40.0, y=0.0, shields_max=2, hits_max=8)
+    target = make_ship(id="t", player=2, x=40.0, y=0.0, shields_max=2, hits_max=8,
+                       points_value=150)
     gs = make_gs([firer, target])
     rolls = [
         1,      # scatter die: hit, template stays on the target
@@ -116,3 +117,29 @@ def test_nova_cannon_hits_are_absorbed_by_shields(tmp_path):
 
     assert dice._idx == len(rolls)
     assert gs.get_ship_by_id("t").hits_remaining == 7
+
+
+def test_ai_nova_aims_by_value_and_spares_friends(tmp_path):
+    """To do 9: the AI's Nova Cannon picks the target worth most, not the
+    nearest, and never one with our own ship next to it."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    nova = {"name": "Prow Nova Cannon", "weapon_type": "nova_cannon", "range_cm": 150,
+            "min_range_cm": 30, "strength": 0, "arcs": ["front"]}
+    firer = make_ship(id="n", player=1, x=0.0, y=0.0, weapons=[nova])
+    cheap = make_ship(id="c", player=2, x=40.0, y=0.0, points_value=40, hits_max=8)
+    rich = make_ship(id="r", player=2, x=70.0, y=5.0, points_value=300, hits_max=8,
+                     hits_remaining=2)
+    gs = make_gs([firer, cheap, rich])
+    dice = DiceStub([1, 3, 1])
+    ai = AIPlayer(1, TurnController(gs, dice, save_dir=str(tmp_path)), gs, dice)
+    ai._fire_nova_cannon(gs.get_ship_by_id("n"), [gs.get_ship_by_id("c"),
+                         gs.get_ship_by_id("r")], nova)
+    assert gs.get_ship_by_id("r").hits_remaining < 2
+    # a friend next to the only target: hold fire
+    gs2 = make_gs([firer, make_ship(id="c", player=2, x=40.0, y=0.0, points_value=150),
+                   make_ship(id="f", player=1, x=45.0, y=0.0, points_value=150)])
+    d2 = DiceStub([])
+    ai2 = AIPlayer(1, TurnController(gs2, d2, save_dir=str(tmp_path)), gs2, d2)
+    ai2._fire_nova_cannon(gs2.get_ship_by_id("n"), [gs2.get_ship_by_id("c")], nova)
+    assert d2._idx == 0

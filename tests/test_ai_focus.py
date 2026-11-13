@@ -186,3 +186,30 @@ def test_several_focus_targets_split_once_a_kill_is_covered():
     far = make_ship(id="far", player=1, x=-300.0, y=0.0, weapons=[dict(w) for w in GUNS])
     gs2 = make_gs(ours + [far, dying, fresh])
     assert "far" not in fleet_focus_assignment(gs2, 1)
+
+
+def test_batteries_fire_before_lances(tmp_path):
+    """To do 11 d: shield hits leave blast markers that shift later batteries,
+    never lances, so a ship fires its batteries first."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    from src.dice import DiceRoller
+    L = {"name": "Prow Lance", "weapon_type": "lance", "range_cm": 30, "strength": 2,
+         "arcs": ["front"]}
+    B = {"name": "Prow Battery", "weapon_type": "battery", "range_cm": 30, "strength": 6,
+         "arcs": ["front"]}
+    s = make_ship(id="s", player=1, x=0.0, y=0.0, heading=0.0, weapons=[L, B], points_value=100)
+    t = make_ship(id="t", player=2, x=20.0, y=0.0, points_value=200, shields_max=2, hits_max=8)
+    gs = make_gs([s, t])
+    d = DiceRoller(mode="auto")
+    ai = AIPlayer(1, TurnController(gs, d, save_dir=str(tmp_path)), gs, d)
+    ai.difficulty = "normal"
+    order = []
+    real = ai._offer_brace
+
+    def spy(ship, target, weapons=None, expected=None):
+        order.extend(w["name"] for w in (weapons or []))
+        return real(ship, target, weapons, expected)
+    ai._offer_brace = spy
+    ai.run_shooting_phase()
+    assert order[:2] == ["Prow Battery", "Prow Lance"], order

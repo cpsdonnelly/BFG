@@ -181,8 +181,9 @@ Wings of Fury raid re-rolls (`hit_and_run.best_raid_reroll`, below), Mark of Tze
 enemy), the turret split (`ordnance.choose_turret_target`) and multi-role turret suppression
 (`waves.best_mr_suppress`), multi-role attack mode (`waves.best_attack_mode`). GUI checks that answer these prompts must stub `choose`.
 The Combine Squadron Fire aspect choice defaults to "Best for expected hits" (shown beside
-it). Not yet: the Brace prompt, special-order re-rolls (special_orders_ui), Vault of
-Technology's chooser.
+it). The Brace prompt has it too (`choice_dialog.yes_no` with `ai_should_brace`; GUI checks
+that answer Brace replace `choice_dialog.yes_no`). Not yet: special-order re-rolls
+(special_orders_ui), Vault of Technology's chooser.
 
 Wings of Fury re-rolls (owner guidance): re-roll when a fresh D6 is worth more on average than
 the result in hand (`raid_result_value`, in expected VP, using the crit after the cascade,
@@ -482,7 +483,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1135 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1140 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -645,6 +646,9 @@ Shooting:
   re-rolled catastrophic damage among enemy ships beats the best ship shot. Not counted: Holding
   the Field hulk points, hulks that aren't the closest target.
 - Ships shoot incoming ordnance when worth more than their best ship shot.
+- Nova Cannon (`_fire_nova_cannon`): the enemy in arc and 30-150cm where its expected hits
+  (`nova_expected_hits`, shields still stop them) add most VP given this phase's fire; never
+  at a target with one of our ships within `NOVA_FRIEND_CLEARANCE` 12cm (judgement).
 
 Ordnance:
 - Torpedo targets (`_best_torp_target`) by expected VP after turrets and path survival, counting
@@ -1022,8 +1026,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       intercept, co-ordinating bombers with missiles) is part of the same matchup picture.
 
 9. Smaller "Not yet" notes from the sections above, collected so none is lost (details in each
-   section): Auto (best) on the Brace prompt, special-order re-rolls and the Vault of
-   Technology chooser ("Auto (best)"); bombers that re-roll their attacks (+1 when suppressed)
+   section): Auto (best) on special-order re-rolls and the Vault of Technology chooser
+   ("Auto (best)"; the Brace prompt has it); bombers that re-roll their attacks (+1 when suppressed)
    and resilient squadrons stopping / splitting (Waves); fleet lists: more than one
    detachment, "no more reserve copies than its own list could field", reserve-only refit rules
    (Fleet lists); designing a Venerable Battle Barge (Fleet lists); Rogue Trader refitted
@@ -1033,10 +1037,15 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    volley needing a target priority test, hulks that aren't the closest target and Holding the
    Field hulk points, the target turning to show its strongest facing to a turning salvo,
    assault boats and mines in co-ordinated strikes and re-timing a launch to arrive together
-   ("AI: how it decides"); AI special orders: see To do 10; the Nova Cannon aims
-   at the nearest enemy 30-150cm rather than by expected VP; deployment by strategy (ships are
-   only grouped for set-up), damage-control repair choices by expected VP (today a fixed
-   priority: fires, engines, the rest), and which blast markers to remove in our end phase.
+   ("AI: how it decides"); AI special orders: see To do 10; deployment by strategy (ships are
+   only grouped for set-up). Built: which blast markers the player whose turn it is removes
+   (`end_phase.remove_blast_markers`: those nearest its own ships' next moves and furthest
+   from the enemy's, within a ship's speed + 10cm, judgement);
+   damage-control repairs by expected VP when no choice is given (`ai_hazards.repair_value`
+   in `end_phase.resolve_damage_control`: a fire 1.5 hits, armament the threat of its weapons
+   as if repaired (`armament_threat_value`), collapsed shields the enemy's expected hits they
+   would stop, engines / thrusters / bridge judgement shares; the fixed order breaks ties;
+   `tests/test_repair_value.py`).
    Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
    Bosses' re-roll pools, secondary commanders and Ordos are in 4; the radiation / flare
    disengage bonus is in 6; the teleport AI's positioning is in 8 j).
@@ -1282,7 +1291,9 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       - Dust clouds (s.39, XR pp.52-54): ships in contact count as having a blast marker in
         all respects; ordnance moving through tests as for blast markers (owner ruling: XR's
         omission is an oversight, Remastered states it; the AI already matches).
-   d. Shooting order (suggestion): against shielded targets fire batteries before lances
+   d. Built for each ship's own weapons (`run_shooting_phase` fires batteries, then other
+      weapons, then lances); not yet across the fleet's ships or for teleports (8 j).
+      Shooting order (suggestion): against shielded targets fire batteries before lances
       (shield-hit blast markers shift later batteries; lances aren't affected); knocking
       shields down also opens teleports (To do 8 j).
    e. End phase and pre-game: damage control by expected VP (s.36, XR p.35: a D6 per remaining

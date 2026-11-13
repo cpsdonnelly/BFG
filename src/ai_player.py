@@ -1259,7 +1259,12 @@ class AIPlayer:
         siege_done = self._fire_siege_cannons(ship, enemies, lock_on, blast_markers,
                                               phenomena, all_ships)
 
-        for w_idx, weapon in enumerate(ship.weapons):
+        # Batteries before lances (To do 11 d): the blast markers that hits on
+        # shields leave shift later batteries right but never lances (s.11)
+        order = sorted(enumerate(ship.weapons),
+                       key=lambda iw: {"battery": 0, "lance": 2}.get(
+                           iw[1].get("weapon_type", ""), 1))
+        for w_idx, weapon in order:
             wtype = weapon.get("weapon_type", "")
             if wtype in ("torpedo", "launch_bay", "mine_launcher") or w_idx in siege_done:
                 continue
@@ -1269,7 +1274,7 @@ class AIPlayer:
                 continue                        # already fired in its squadron's volley
 
             if wtype == "nova_cannon":
-                self._fire_nova_cannon(ship, enemies)
+                self._fire_nova_cannon(ship, enemies, weapon)
                 continue
 
             # Shoot an incoming mine / salvo / wave instead, when that's worth more
@@ -1505,17 +1510,38 @@ class AIPlayer:
             from .combat import resolve_catastrophic
             resolve_catastrophic(t, self.dice, self.gs)
 
-    def _fire_nova_cannon(self, ship: Ship, enemies: List[Ship]):
+    NOVA_FRIEND_CLEARANCE = 12.0    # cm from the aim point (judgement: scatter + template)
+
+    def _fire_nova_cannon(self, ship: Ship, enemies: List[Ship], weapon: Dict = None):
+        """The Nova Cannon (s.14) at the enemy in arc and 30-150cm where its
+        expected hits (`ai_hazards.nova_expected_hits`: direct hit or scatter by
+        range, shields still stop them) add the most VP given this phase's
+        other fire (`added_vp`, To do 9); never at a target with one of our
+        ships within `NOVA_FRIEND_CLEARANCE` of it (a scatter could land on it)."""
         from .combat import resolve_nova_cannon
+        from .ai_hazards import nova_expected_hits, added_vp
         gs = self.gs
-        # Pick centroid of enemy cluster for nova shot
         if not enemies:
             return
-        target = min(enemies,
-                     key=lambda s: math.sqrt((s.x - ship.x)**2 + (s.y - ship.y)**2))
-        dist = math.sqrt((target.x - ship.x)**2 + (target.y - ship.y)**2)
-        if dist < 30 or dist > 150:
+        friends = [f for f in gs.player_ships(self.player)
+                   if f.id != ship.id and not f.is_destroyed and not f.is_disengaged]
+        committed = getattr(self, "_committed", {}) or {}
+        best = None
+        for e in enemies:
+            dist = math.hypot(e.x - ship.x, e.y - ship.y)
+            if dist < 30 or dist > 150:
+                continue
+            if weapon is not None and not check_weapon_in_arc(ship, weapon, e.x, e.y):
+                continue
+            if any(math.hypot(f.x - e.x, f.y - e.y) <= self.NOVA_FRIEND_CLEARANCE
+                   for f in friends):
+                continue
+            v = added_vp(e, gs, committed.get(e.id, 0.0), nova_expected_hits(dist, e))
+            if best is None or v > best[0]:
+                best = (v, e)
+        if best is None or best[0] <= 0:
             return
+        target = best[1]
         self._offer_brace(ship, target)          # before the scatter roll (s.7)
         nc = resolve_nova_cannon(ship, target.x, target.y, self.dice, gs)
         if "error" in nc:
