@@ -188,7 +188,8 @@ def test_booklet_ships_without_options_have_no_upgrades():
         get_ship_class("imperial_navy_gothic", "Lunar Cruiser")) if u.name not in cmd} == {
         "Torpedoes", "Refit", "Commander", "Strategic Commander (+1 Ld, max 9)",
         "Strategic Commander", "Veteran Captain (+1 Ld, max 10)", "Veteran Captain",
-        "Space Marine Captain", "Veteran honour guard (Space Marine Captain)"}
+        "Space Marine Captain", "Veteran honour guard (Space Marine Captain)",
+        "Lord Admiral Rath (Ld 10)"}
 
 
 def test_old_defense_spelling_still_resolves():

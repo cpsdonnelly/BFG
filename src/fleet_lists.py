@@ -117,7 +117,7 @@ NAVY_LISTS = [
                       "delta": {"turrets": 1}},
      # Secondary commanders are 0-3 Veteran Captains; any Navy capital ship may buy
      # Fleet Defence Turrets (Mechanicus Gifts)
-     "list_options": ["Veteran Captain", "Refit: Fleet Defence Turrets"],
+     "list_options": ["Veteran Captain", "Refit: Fleet Defence Turrets", "Lord Admiral Rath"],
      "list_excludes": ["Strategic Commander"],
      "unenforced": list(_NAVY_UNENFORCED) + [
          "Lord Admiral Rath (Ld10) 150 at 1500+pts (The Pride of Bakka's random refits) "

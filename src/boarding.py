@@ -30,7 +30,8 @@ def troop_rating(ship: Ship, grappled: bool = False, defending: bool = False) ->
     if ship.hits_remaining <= 0:
         return 0
     base = ship.hits_remaining
-    if "mark:khorne" in ship.special_rules or "warboss" in ship.special_rules:
+    if ("mark:khorne" in ship.special_rules or "warboss" in ship.special_rules
+            or "doubles_troops" in ship.special_rules):     # Abaddon's Bringers of Despair
         base *= 2
     if "kor_vattra" in ship.special_rules or ("frail_crew" in ship.special_rules and defending):
         base = (base + 1) // 2
@@ -199,8 +200,10 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
     a_roll = dice.roll_d6(1, "boarding attacker roll")[0]
     d_roll = dice.roll_d6(1, "boarding defender roll")[0]
 
+    # Lord Admiral Rath, Inspiring Presence: +1 defending against boarding
+    d_rath = 1 if "inspiring_presence" in target.special_rules else 0
     a_total = a_roll + a_mod + a_troop_bonus + a_crew
-    d_total = d_roll + d_mod + d_troop_bonus + d_crew
+    d_total = d_roll + d_mod + d_troop_bonus + d_crew + d_rath
 
     # Grey Knights, Knights of Titan: re-roll any boarding action involving a
     # friendly Grey Knights ship; the second result stands. Re-rolled when the
@@ -213,7 +216,7 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
         a_roll = dice.roll_d6(1, "boarding attacker re-roll")[0]
         d_roll = dice.roll_d6(1, "boarding defender re-roll")[0]
         a_total = a_roll + a_mod + a_troop_bonus + a_crew
-        d_total = d_roll + d_mod + d_troop_bonus + d_crew
+        d_total = d_roll + d_mod + d_troop_bonus + d_crew + d_rath
 
     gs.add_log(
         f"  Boarding: {'+'.join(a.name for a in attackers)} vs {target.name}")

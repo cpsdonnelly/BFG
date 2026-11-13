@@ -251,6 +251,11 @@ class TurnController:
             self.command_check_failed = False
             # Remove previous special orders (except Brace)
             self._clear_previous_orders()
+            # Abaddon's Supreme Leadership: one re-roll a turn, never saved
+            for sd in self.gs.ships:
+                if sd["player"] == self.gs.active_player and "abaddon" in sd.get(
+                        "special_rules", []) and sd.get("status") == "active":
+                    sd["rerolls_remaining"] = 1
             # s.40: solar flares and radiation bursts at the start of each turn
             from .celestial import start_of_turn as _celestial_start
             _celestial_start(self.gs, self.dice)

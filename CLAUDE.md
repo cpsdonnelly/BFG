@@ -485,7 +485,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1164 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1167 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -851,7 +851,13 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    enemy's ordnance phase (the AI fires in its own; a player can fire in either), the salvo
    aimed by the lead / approach planner, Chaos "not if Stormbird gunships taken"
    (Stormbirds, To do 4), the Explorer's Bor'kan price.
-4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), daemonships, god-fleet boons
+4. Named commanders (built, `booklet_options.NAMED_COMMANDERS`: Lord Admiral Rath, Bakka
+   list only, Ld 10, 150, two free re-rolls, +1 defending in boarding; Warmaster Abaddon, 13th
+   Black Crusade only, Ld 10, 195, one re-roll a turn never saved (reset in
+   `TurnController.begin_phase`), free CSM crew and Terminators, troop rating doubled;
+   Kor'O'Mesme, Tau, Ld 9, 110, two free re-rolls; not yet: Rath's random refits and bought
+   re-rolls, his battleship placement and the 1500 / 1000pt minimums, Abaddon's "You Have
+   Failed Me", O'Mesme's crew skills, the Dominus Astra / Se'arle O'Mesme ships), daemonships, god-fleet boons
    (built: `booklet_options.GOD_BOONS`, only in their god's fleet list, needing that Mark:
    Veil of Lust (gunnery at it shifts right), Siren's Summon (0-2: enemy ships within 15cm
    fail every command check, Brace included; plain Leadership tests not yet), Miasma of

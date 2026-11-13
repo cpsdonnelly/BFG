@@ -568,6 +568,32 @@ def secondary_commander_options(faction: str) -> List[Dict]:
     return opts
 
 
+# Named commanders (To do 4). Lord Admiral Rath (Bakka, 1500+pts, list-gated):
+# Ld 10, 150, two free re-rolls (Command Genius), +1 defending in boarding
+# (Inspiring Presence); not yet: The Pride of Bakka's random refits, buying more
+# re-rolls. Abaddon (13th Black Crusade, 1000+pts): Ld 10, 195, one re-roll each
+# turn that isn't saved (`abaddon`, reset by the turn controller), a free Chaos
+# Space Marine crew and Terminators, his retinue doubling the troop rating; not
+# yet: "You Have Failed Me...". Kor'O'Mesme (any Tau list): Ld 9, 110, two free
+# re-rolls; not yet: Superior Pilots / Improved Logic Engines (crew skills).
+NAMED_COMMANDERS = {
+    "Imperial Navy": [("Lord Admiral Rath (Ld 10)", 10, 150, 2, ["inspiring_presence"])],
+    "Chaos": [("Warmaster Abaddon (Ld 10)", 10, 195, 1,
+               ["abaddon", "csm_crew", "space_marine_crew", "teleport_assault",
+                "terminator_honour_guard", "doubles_troops"])],
+    "Tau & Allies": [("Kor'O'Mesme (Ld 9)", 9, 110, 2, [])],
+}
+
+
+def named_commander_options(faction: str) -> List[Dict]:
+    return [{"name": n, "description": f"Named fleet commander, {cost}pts: Ld {ld}, "
+             f"{rr} free re-roll{'s' if rr > 1 else ''}.", "points_cost": cost,
+             "effect": {"set": {"leadership": ld, "leadership_table": ""}, "rerolls": rr,
+                        "add_special_rules": ["fleet_commander"] + rules, "flagship": True},
+             "restrictions": ["fleet_unique", "group:fleet_commander"]}
+            for n, ld, cost, rr, rules in NAMED_COMMANDERS.get(faction, [])]
+
+
 def commander_names(faction_rule: str) -> List[str]:
     if faction_rule == "Orks":
         return [f"Ork {n}" for n, _ in ORK_BOSSES]
@@ -633,6 +659,7 @@ def fleet_commander_options(row: dict) -> List[Dict]:
         return []
     tiers, free, extra = COMMANDERS[faction]
     names = commander_names(faction)
+    named = named_commander_options(faction)
     opts = [{"name": f"{n} (Ld {ld})",
              "description": f"Fleet commander, {cost}pts: Ld {ld}"
                             + (f", {free} free re-roll." if free else "."),
@@ -648,7 +675,7 @@ def fleet_commander_options(row: dict) -> List[Dict]:
               "points_cost": cost, "effect": {"rerolls": free + k},
               "restrictions": ["group:commander_rerolls", "requires_any:" + "|".join(names)]}
              for k, cost in enumerate(extra, start=1)]
-    return opts
+    return opts + named
 
 
 # ── Imperial Navy profile refits (bfgxr/rules/01_imperial-navy.md roster notes) ──

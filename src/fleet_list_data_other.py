@@ -141,7 +141,7 @@ CHAOS_LISTS = [
      ],
      "reserves": ["chaos_incursion", "chaos_renegades"],
      "reserve_excludes": ["Chaos Space Hulk"],
-     "list_options": ["Mark of ", "Chaos Space Marine crew"],
+     "list_options": ["Mark of ", "Chaos Space Marine crew", "Warmaster Abaddon"],
      "chaos_options": {"marks_unique": True},
      "unenforced": list(_CHAOS_UNENFORCED) + list(_CRUSADE_UNENFORCED) + [
          "A Chaos Space Hulk, if taken, must be the fleet flagship."]},
