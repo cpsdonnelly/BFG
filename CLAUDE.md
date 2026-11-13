@@ -182,8 +182,8 @@ enemy), the turret split (`ordnance.choose_turret_target`) and multi-role turret
 (`waves.best_mr_suppress`), multi-role attack mode (`waves.best_attack_mode`). GUI checks that answer these prompts must stub `choose`.
 The Combine Squadron Fire aspect choice defaults to "Best for expected hits" (shown beside
 it). The Brace prompt has it too (`choice_dialog.yes_no` with `ai_should_brace`; GUI checks
-that answer Brace replace `choice_dialog.yes_no`). Not yet: special-order re-rolls
-(special_orders_ui), Vault of Technology's chooser.
+that answer Brace replace `choice_dialog.yes_no`), and so do the special-order re-roll prompts
+(`special_orders_ui`, `should_reroll`). Not yet: Vault of Technology's chooser.
 
 Wings of Fury re-rolls (owner guidance): re-roll when a fresh D6 is worth more on average than
 the result in hand (`raid_result_value`, in expected VP, using the crit after the cascade,
@@ -1026,8 +1026,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       intercept, co-ordinating bombers with missiles) is part of the same matchup picture.
 
 9. Smaller "Not yet" notes from the sections above, collected so none is lost (details in each
-   section): Auto (best) on special-order re-rolls and the Vault of Technology chooser
-   ("Auto (best)"; the Brace prompt has it); bombers that re-roll their attacks (+1 when suppressed)
+   section): Auto (best) on the Vault of Technology chooser (the Brace and special-order
+   re-roll prompts have it); bombers that re-roll their attacks (+1 when suppressed)
    and resilient squadrons stopping / splitting (Waves); fleet lists: more than one
    detachment, "no more reserve copies than its own list could field", reserve-only refit rules
    (Fleet lists); designing a Venerable Battle Barge (Fleet lists); Rogue Trader refitted
