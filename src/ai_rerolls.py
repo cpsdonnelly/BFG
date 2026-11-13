@@ -120,6 +120,9 @@ def importance(ship: Ship, label: str, gs, context: Optional[dict] = None) -> fl
         score = v * 0.05
     if ship.is_flagship:
         score *= 1.5
+    # To do 10 d: a failed movement-phase command check also ends every later
+    # check this turn (s.2), so its re-roll is worth the orders it unblocks
+    score += context.get("blocked_orders_vp", 0.0)
     return score
 
 

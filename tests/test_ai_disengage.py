@@ -182,3 +182,28 @@ def test_guns_given_up_by_disengaging_are_a_gamble_too():
     sure, shot = [(1.0, 30.0)], [(0.2, 150.0), (0.8, 0.0)]
     assert gain(True, shot) < gain(True, sure)
     assert gain(False, shot) > gain(False, sure)
+
+
+def test_order_reroll_counts_the_orders_it_unblocks():
+    """To do 10 d: a re-roll of a failed command check is worth the orders the
+    failure would block for the rest of the turn."""
+    import src.ai_rerolls as ar
+    me, gs = _scene(8, n_foes=1)
+    base = ar.importance(me, "reload_ordnance", gs)
+    assert ar.importance(me, "reload_ordnance", gs, {"blocked_orders_vp": 30.0}) == base + 30.0
+
+
+def test_burn_retros_counts_the_teleport_it_gives_up():
+    """To do 10 g: Burn Retros gives up the end-phase teleport (s.31), only
+    when teleports and raids are on."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    me = make_ship(id="m", player=1, x=0.0, y=0.0, hits_max=8, hits_remaining=8,
+                   special_rules=["teleport_assault", "space_marine_crew"], points_value=150)
+    foe = make_ship(id="f", player=2, x=12.0, y=0.0, hits_max=8, hits_remaining=6,
+                    points_value=180)
+    gs = make_gs([me, foe])
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    assert ai._teleport_given_up(gs.get_ship_by_id("m")) == 0.0
+    gs.rule_teleport = gs.rule_hit_and_run = True
+    assert ai._teleport_given_up(gs.get_ship_by_id("m")) > 0.0

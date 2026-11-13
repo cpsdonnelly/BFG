@@ -1049,7 +1049,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    order); otherwise Reload Ordnance when spent; never All Ahead Full or Come to New Heading;
    ships take their checks in fleet order. Owner notes and plan:
    Built so far: a (`_lock_on_gain`), c (`_plan_orders`, the skip rule; not yet re-ordering
-   the checks, which would break the support move order), f's modifiers in the pass chance.
+   the checks, which would break the support move order), d (a failed check's re-roll counts
+   the later orders it unblocks, `importance(..., {"blocked_orders_vp"})`), f's modifiers in
+   the pass chance, g (Burn Retros pays half the best teleport raid in reach,
+   `_teleport_given_up`). Not yet: b's All Ahead Full / Come to New Heading moves, e.
    a. Lock On is worth it when an enemy WILL or CAN be in arc after the move: value = the
       best straight move under Lock On (no turn), its guns' expected hits at the next
       shooting phase against the enemy's predicted positions with missed dice re-rolled,

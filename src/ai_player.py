@@ -276,7 +276,14 @@ class AIPlayer:
                     ship = gs.get_ship_by_id(ship.id)
                     from .ai_rerolls import should_reroll
                     left = tc.get_fleet_rerolls(ship.player, ship)
-                    if left and should_reroll(ship, chosen, gs, left):
+                    plan = getattr(self, "_order_plan", None) or {}
+                    seq = plan.get("seq", [])
+                    blocked = sum(pp * gg for sid in (seq[seq.index(ship.id) + 1:]
+                                                      if ship.id in seq else [])
+                                  for _oo, gg, pp in [plan.get("orders", {}).get(
+                                      sid, (None, 0.0, 0.0))])
+                    if left and should_reroll(ship, chosen, gs, left,
+                                              {"blocked_orders_vp": blocked}):
                         rr = tc.attempt_reroll_command_check(ship, chosen)
                         gs.add_log(f"[AI] {ship.name}: re-roll for {chosen} "
                                    f"{'passed' if rr.get('success') else 'failed'}")
@@ -1124,6 +1131,28 @@ class AIPlayer:
                 best = vp if best is None else min(best, vp)
         return best or 0.0
 
+    def _teleport_given_up(self, ship: Ship) -> float:
+        """To do 10 g: an order other than Lock On / Reload Ordnance gives up
+        this turn's end-phase teleport raid (s.31). Its value: the best raid on
+        an enemy within teleport range plus the ship's move (waves.
+        raid_squadron_value), at half (judgement: the target's shields must be
+        down and it must have no more hits left than this ship). Nothing when
+        teleports or hit-and-run raids are off (owner), or the ship can't."""
+        gs = self.gs
+        if not (getattr(gs, "rule_teleport", False) and getattr(gs, "rule_hit_and_run", False)):
+            return 0.0
+        if "teleport_assault" not in ship.special_rules or ship.is_crippled:
+            return 0.0
+        from .hit_and_run import teleport_range
+        from .waves import raid_squadron_value
+        reach = teleport_range(ship) + (ship.effective_speed or 0)
+        best = 0.0
+        for e in self._live_enemies():
+            if ship.distance_to(e) <= reach + e.base_radius and \
+                    e.hits_remaining <= ship.hits_remaining:
+                best = max(best, raid_squadron_value(e, gs, self.player, ship.special_rules))
+        return 0.5 * best
+
     def _burn_retros_worth_it(self, ship: Ship) -> bool:
         """Burn Retros (s.7: half speed) when the safest normal move risks more
         expected VP from hazards (asteroids, warp rifts, mines, torpedoes, blast
@@ -1138,7 +1167,7 @@ class AIPlayer:
         saved = normal - retros
         if saved <= 0:
             return False
-        cost = 0.5 * firepower_swing(ship, self.gs)
+        cost = 0.5 * firepower_swing(ship, self.gs) + self._teleport_given_up(ship)
         self.__dict__.setdefault("_retros_saved", {})[ship.id] = max(0.0, saved - cost)
         if saved > cost:
             self.gs.add_log(f"[AI] {ship.name}: Burn Retros avoids about {saved:.0f} VP of "
