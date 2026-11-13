@@ -38,22 +38,13 @@ def _apply_rules(gs, setup):
 
 
 def _choose_gift(root, ship_dict) -> int:
-    """Vault of Technology rolled a 6: the owner picks one of Gifts 1-5."""
+    """Vault of Technology rolled a 6: the owner picks one of Gifts 1-5, with
+    the "Auto (best)" button taking the AI's pick (Advanced Shields)."""
     from src.booklet_options import MECHANICUS_GIFTS
-    choice = {"n": 4}
-    win = tk.Toplevel(root)
-    win.title("Vault of Technology")
-    tk.Label(win, text=f"{ship_dict['name']} rolled a 6: choose a Gift", padx=12,
-             pady=8).pack()
-    for n, name, _, _ in MECHANICUS_GIFTS[:5]:
-        def pick(n=n):
-            choice["n"] = n
-            win.destroy()
-        tk.Button(win, text=f"{n}. {name}", width=32, command=pick).pack(padx=12, pady=2)
-    win.transient(root)
-    win.grab_set()
-    root.wait_window(win)
-    return choice["n"]
+    from src.choice_dialog import choose
+    opts = [(f"{n}. {name}", n) for n, name, _, _ in MECHANICUS_GIFTS[:5]]
+    return choose(root, "Vault of Technology",
+                  f"{ship_dict['name']} rolled a 6: choose a Gift", opts, 4) or 4
 
 
 def _load_fleet_checked(path: str, player: int, root):
