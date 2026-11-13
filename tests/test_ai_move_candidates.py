@@ -186,3 +186,15 @@ def test_all_ahead_full_when_far_and_lock_on_only_for_guns_that_fire():
     near = _ship("Lunar Class Cruiser", 2, 90.0, 60.0, 180.0)
     ai2, _ = _ai([me, near])
     assert ai2._pick_special_order(me) == SpecialOrder.LOCK_ON.value
+
+
+def test_position_with_an_enemy_off_each_beam_scores_both_broadsides():
+    """To do 8 b: a Lunar between two enemies, one off each beam, keeps both
+    broadsides busy; with both enemies off one side only one bears."""
+    me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    port = _ship("Lunar Class Cruiser", 2, 60.0, 80.0, 0.0, 1)
+    stbd = _ship("Lunar Class Cruiser", 2, 60.0, 40.0, 0.0, 2)
+    ai, gs = _ai([me, port, stbd])
+    both = ai._mount_coverage(me, 60.0, 60.0, 0.0, port)
+    one_side = ai._mount_coverage(me, 60.0, 100.0, 0.0, port)   # both off the starboard side
+    assert both > 0 and one_side == 0

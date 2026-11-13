@@ -76,6 +76,8 @@ errors.clear()
 w._save_fleet()
 saved = json.load(open(out))
 from src.fleet_builder import fleet_list_to_ships
+import src.choice_dialog as _cd_yn
+_cd_yn.yes_no = lambda root, title, text, best: messagebox.askyesno(title, text)
 ships = fleet_list_to_ships(saved, 1)
 bb = ships[0]; sc = ships[1]
 print("   barge:", bb["leadership"], bb["leadership_table"], bb["rerolls_remaining"], bb["is_flagship"], bb["points_value"])

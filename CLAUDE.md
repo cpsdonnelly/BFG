@@ -484,7 +484,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1140 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1144 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -929,7 +929,11 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       broadside (6+) is half as exposed as side-on (5+) (`tests/test_ai_focus.py`). Not yet:
       the enemy's next move changing the facing it sees (8 g), our own guns' values by the
       facing they hit (they use the target's lowest Armour).
-   b. Both broadsides busy (gun-heavy Imperium, e.g. Lunars; "crossing the T"): replace the
+   b. Built, first form: `_mount_coverage` adds `COVERAGE_WEIGHT` 0.5 (judgement) x the
+      battery / lance strength at the end position that can't bear on the target but can on
+      another enemy in arc and range (now, not yet their predicted positions); squadrons
+      don't plan one heading together yet.
+      Both broadsides busy (gun-heavy Imperium, e.g. Lunars; "crossing the T"): replace the
       move score's single-target arc score with a fleet-aware mount coverage score at the end
       position: each battery / lance mount scores the best expected VP it could add next
       shooting phase among enemies in its arc and range (the enemy's predicted positions,
@@ -1009,7 +1013,18 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       default). Done: the AI decides its own teleports (it used to get the human's dialog in
       its end phase): it raids the eligible target worth most per raid
       (`waves.raid_squadron_value`; `end_phase_panel._resolve_teleport_attacks`;
-      `tools/gui_checks/teleport_ai_check.py`). To do: (1) offence: move teleporters to end
+      `tools/gui_checks/teleport_ai_check.py`). Also done: (2) defence, `_teleport_exposure`
+      (a move ending within an enemy teleporter's range + its move, when we have no more
+      hits left than it, pays the raid's expected VP x the chance our shields are down:
+      certain with blast markers at the end point covering them, else
+      `TELEPORT_SHIELDS_DOWN` 0.3, judgement); (3) the brace against a teleport,
+      `ai_should_brace_vs_raid` (half the raid's value saved vs half the ship's fire); (1)
+      offence, first part, `_teleport_reach` (a teleporter's move gains the best raid within
+      its teleport range of the end point, on targets with no more hits left than it, x the
+      chance their shields are down: 1 if down, 0.6 if our fleet's guns this turn should put
+      at least that many hits on it, else 0.1, judgement; only off orders other than Lock On
+      / Reload). Still to do in (1): choosing gunfire targets to open shields for a teleport.
+      Original plan: (1) offence: move teleporters to end
       within range of a target whose shields our guns will knock down this turn (the shooting
       planner's shield hits / blast markers), with remaining hits at or below ours, staying
       uncrippled and off orders other than Lock On / Reload Ordnance; value it at the raid's

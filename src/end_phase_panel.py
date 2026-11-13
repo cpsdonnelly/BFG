@@ -193,8 +193,9 @@ class EndPhasePanel:
                         f"  {target_ship.name} already braced — saves apply automatically")
                     return True, True
                 if self.ctx.is_ai_controlled(target_ship.player):
-                    # Teleport = single raid: only brace if low on hull
-                    if target_ship.hits_remaining < 6:
+                    # Priced by the raid's value (To do 8 j (3))
+                    from .ai_player import ai_should_brace_vs_raid
+                    if ai_should_brace_vs_raid(self.ctx.gs, target_ship, attacker):
                         check = attempt_brace(target_ship, self.ctx.gs,
                                               self.ctx.dice)
                         self.ctx.log(

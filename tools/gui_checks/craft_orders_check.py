@@ -2,6 +2,8 @@ import os, sys, tempfile, tkinter as tk
 from tkinter import messagebox
 sys.path.insert(0, "/home/user/BFG"); os.chdir(tempfile.mkdtemp())
 from src.models import Ship, OrdnanceMarker
+import src.choice_dialog as _cd_yn
+_cd_yn.yes_no = lambda root, title, text, best: messagebox.askyesno(title, text)
 from src.game_state import GameState
 from src.dice import DiceRoller
 from src.turn_controller import TurnController

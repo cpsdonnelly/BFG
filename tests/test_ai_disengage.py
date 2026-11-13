@@ -207,3 +207,49 @@ def test_burn_retros_counts_the_teleport_it_gives_up():
     assert ai._teleport_given_up(gs.get_ship_by_id("m")) == 0.0
     gs.rule_teleport = gs.rule_hit_and_run = True
     assert ai._teleport_given_up(gs.get_ship_by_id("m")) > 0.0
+
+
+def test_moves_pay_for_ending_in_enemy_teleport_reach():
+    """To do 8 j (2): with teleports on, ending within an enemy teleporter's
+    reach costs the raid's expected VP; with them off, nothing."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    me = make_ship(id="m", player=1, x=0.0, y=0.0, hits_max=8, hits_remaining=6,
+                   shields_max=1, points_value=180)
+    sm = make_ship(id="sm", player=2, x=30.0, y=0.0, hits_max=8, hits_remaining=8, speed=25,
+                   special_rules=["teleport_assault", "space_marine_crew"], points_value=150)
+    gs = make_gs([me, sm])
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai.difficulty = "normal"
+    m, e = gs.get_ship_by_id("m"), gs.get_ship_by_id("sm")
+    assert ai._teleport_exposure(m, 10.0, 0.0, e) == 0.0
+    gs.rule_teleport = gs.rule_hit_and_run = True
+    near, far = ai._teleport_exposure(m, 10.0, 0.0, e), ai._teleport_exposure(m, -60.0, 0.0, e)
+    assert near > 0 and far == 0.0
+
+
+def test_brace_against_a_teleport_is_priced_by_the_raid():
+    from src.ai_player import ai_should_brace_vs_raid
+    sm = make_ship(id="sm", player=2, special_rules=["teleport_assault", "space_marine_crew"])
+    gunless = make_ship(id="g", player=1, hits_max=8, hits_remaining=8, points_value=200)
+    gs = make_gs([gunless, sm])
+    assert ai_should_brace_vs_raid(gs, gs.get_ship_by_id("g"), gs.get_ship_by_id("sm"))
+
+
+def test_teleporter_values_ending_in_reach_of_an_unshielded_target():
+    """To do 8 j (1): a Space Marine ship's move gains the raid it could make
+    in our end phase, only with teleports and raids on."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    sm = make_ship(id="sm", player=1, x=0.0, y=0.0, hits_max=8, hits_remaining=8,
+                   special_rules=["teleport_assault", "space_marine_crew"], points_value=150)
+    foe = make_ship(id="f", player=2, x=30.0, y=0.0, hits_max=8, hits_remaining=6,
+                    shields_max=0, points_value=200)
+    gs = make_gs([sm, foe])
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai.difficulty = "normal"
+    s, f = gs.get_ship_by_id("sm"), gs.get_ship_by_id("f")
+    assert ai._teleport_reach(s, 22.0, 0.0, f) == 0.0
+    gs.rule_teleport = gs.rule_hit_and_run = True
+    assert ai._teleport_reach(s, 22.0, 0.0, f) > 0 == ai._teleport_reach(s, 0.0, 0.0, f)
+    assert ai._teleport_reach(s, 22.0, 0.0, f, "burn_retros") == 0.0

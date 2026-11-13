@@ -125,6 +125,21 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
     return certainty_equivalent(gs, player, braced) - certainty_equivalent(gs, player, plain)
 
 
+def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
+                            raids: int = 1) -> bool:
+    """Brace against a teleport attack (To do 8 j (3)): a passed brace saves
+    the raid on 4+ (half its expected VP, waves.raid_squadron_value), for half
+    the ship's fire to the end of its next turn (ship_threat_vp), at the
+    command check's odds; the pass chance cancels out, so brace when the
+    saving beats the cost."""
+    from .waves import raid_squadron_value
+    from .ai_hazards import ship_threat_vp
+    saving = 0.5 * raids * raid_squadron_value(target, gs, attacker.player,
+                                               attacker.special_rules)
+    cost = 0.5 * ship_threat_vp(target, gs)
+    return saving > cost
+
+
 def ai_should_brace(gs: GameState, target: Ship,
                     incoming_hits: int, attacker: Ship = None) -> bool:
     """Decide whether an AI-controlled ship should attempt Brace For Impact:
@@ -402,11 +417,44 @@ class AIPlayer:
         near = getattr(self, "_move_nearest", None)
         if near is not None and near.id != enemy.id:
             score += 0.3 * self._arc_score(ship, fx, fy, fh, near)
+        score += self.COVERAGE_WEIGHT * self._mount_coverage(ship, fx, fy, fh, enemy)
         score -= self._exposure_penalty(ship, fx, fy, fh, enemy)
         score -= self._carrier_exposure(ship, fx, fy, enemy)
+        score -= self._teleport_exposure(ship, fx, fy, enemy)
+        score += self._teleport_reach(ship, fx, fy, enemy, order)
         score += self._screen_bonus(ship, fx, fy, fh, enemy)
         score += self._explosion_term(ship, fx, fy, enemy)
         return score
+
+    COVERAGE_WEIGHT = 0.5    # judgement: a mount busy on another enemy vs the target
+
+    def _mount_coverage(self, ship: Ship, x: float, y: float, h: float,
+                        target: Ship) -> float:
+        """To do 8 b (both broadsides busy): the battery / lance strength at the
+        end position that can't bear on the target but can on another enemy
+        (in arc and range), so a position with an enemy off each beam beats one
+        with both off one side; crossing the T comes out of this and the
+        Armour-facing exposure (8 a). Mounts knocked out by crits don't count."""
+        if self.difficulty == "easy":
+            return 0.0
+        others = [e for e in self._live_enemies() if e.id != target.id]
+        if not others:
+            return 0.0
+        import dataclasses
+        at = dataclasses.replace(ship, x=x, y=y, heading=h)
+        total = 0.0
+        for w in ship.weapons:
+            if w.get("weapon_type") not in ("battery", "lance"):
+                continue
+            if weapon_disabled_by_crit(ship, w):
+                continue
+            if check_weapon_in_arc(at, w, target.x, target.y) and \
+                    check_weapon_in_range(at, w, target.x, target.y):
+                continue
+            if any(check_weapon_in_arc(at, w, e.x, e.y) and check_weapon_in_range(at, w, e.x, e.y)
+                   for e in others):
+                total += w.get("strength", 0) or 0
+        return total
 
     @staticmethod
     def _move_cmds(ship: Ship, turn_deg: float, dist: float,
@@ -2471,6 +2519,81 @@ class AIPlayer:
         ours, theirs = air_balance(self.gs, self.player)
         ratio = theirs / max(1, ours) if theirs else 0.0
         return self.ANTICIPATED_STRIKE_WEIGHT * max(0.5, min(1.8, ratio)) if theirs else 0.0
+
+    TELEPORT_SHIELDS_DOWN = 0.3   # judgement: chance enemy guns drop our shields first
+
+    def _teleport_exposure(self, ship: Ship, x: float, y: float, target: Ship) -> float:
+        """To do 8 j (2), defence: ending within an enemy teleporter's reach
+        (teleport range + its move) risks its end-phase raid (s.31) when our
+        shields may be down by then (certain if blast markers at the end point
+        already cover them, else TELEPORT_SHIELDS_DOWN) and we have no more hits
+        left than it. The raid's expected VP (waves.raid_squadron_value), in the
+        planner's firepower units. Nothing unless teleports and hit-and-run
+        raids are on (owner)."""
+        gs = self.gs
+        if self.difficulty == "easy" or not (getattr(gs, "rule_teleport", False)
+                                             and getattr(gs, "rule_hit_and_run", False)):
+            return 0.0
+        if ship.ship_type == "escort" and ship.hits_max < 3:
+            return 0.0
+        from .hit_and_run import teleport_range
+        from .waves import raid_squadron_value
+        from .ai_hazards import blast_markers_at, value_per_hit
+        from .geometry import current_shields
+        vp = 0.0
+        for e in self._live_enemies():
+            if "teleport_assault" not in e.special_rules or e.is_crippled:
+                continue
+            if ship.hits_remaining > e.hits_remaining:
+                continue
+            if math.hypot(e.x - x, e.y - y) > teleport_range(e) + (e.effective_speed or 0):
+                continue
+            shields = current_shields(ship, gs.get_blast_markers())
+            down = 1.0 if blast_markers_at(ship, (x, y), gs) >= shields else \
+                self.TELEPORT_SHIELDS_DOWN
+            vp += down * raid_squadron_value(ship, gs, e.player, e.special_rules)
+        if vp <= 0:
+            return 0.0
+        return vp / (0.35 * max(1.0, value_per_hit(target, gs)))
+
+    def _teleport_reach(self, ship: Ship, x: float, y: float, target: Ship,
+                        order: str = "") -> float:
+        """To do 8 j (1), offence: a teleporter (s.31: not crippled, on no order
+        but Lock On / Reload Ordnance) ending within teleport range of an enemy
+        with no more hits left than it gains the best raid there (waves.
+        raid_squadron_value) x the chance the target's shields are down in our
+        end phase: 1 if they already are, 0.6 if our fleet's guns this turn
+        are expected to put at least that many hits on it (`_our_hits`), else
+        0.1 (judgement), in the planner's firepower units. Nothing unless
+        teleports and hit-and-run raids are on (owner)."""
+        gs = self.gs
+        if self.difficulty == "easy" or not (getattr(gs, "rule_teleport", False)
+                                             and getattr(gs, "rule_hit_and_run", False)):
+            return 0.0
+        if "teleport_assault" not in ship.special_rules or ship.is_crippled:
+            return 0.0
+        if order not in ("", "none", SpecialOrder.LOCK_ON.value,
+                         SpecialOrder.RELOAD_ORDNANCE.value):
+            return 0.0
+        from .hit_and_run import teleport_range
+        from .waves import raid_squadron_value
+        from .ai_hazards import value_per_hit
+        from .geometry import current_shields
+        ours = getattr(self, "_our_hits", {}) or {}
+        best = 0.0
+        for e in self._live_enemies():
+            if e.hits_remaining > ship.hits_remaining:
+                continue
+            if e.ship_type == "escort" and e.hits_max < 3:
+                continue
+            if math.hypot(e.x - x, e.y - y) > teleport_range(ship) + e.base_radius:
+                continue
+            sh = current_shields(e, gs.get_blast_markers())
+            p = 1.0 if sh <= 0 else (0.6 if ours.get(e.id, 0.0) >= sh else 0.1)
+            best = max(best, p * raid_squadron_value(e, gs, self.player, ship.special_rules))
+        if best <= 0:
+            return 0.0
+        return best / (0.35 * max(1.0, value_per_hit(target, gs)))
 
     def _carrier_exposure(self, ship: Ship, x: float, y: float, target: Ship) -> float:
         """Owner: when the enemy has more launch capacity, protect our carriers.
