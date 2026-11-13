@@ -498,7 +498,9 @@ limit). After every new export, diff the built
 catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
 matched in code, and a reworded note silently drops an option.
 
-Session after zip 13 (all pushed; HANDOFF "Session after booklet zip 13"): To do 2 (but
+Latest work (HANDOFF, "Session after booklet zip 13", the AA and Eldar parts): alternate
+activation plays end to end in the game window (all three systems, AI and humans; To do 13)
+and Eldar MMS v2.0 are playable (To do 14). Before that, in the same session: To do 2 (but
 scenario points), 3, 6 done; large parts of 4, 5, 8, 9, 10, 11 and the first slice of 13 built
 (each item below says what). Fixed: attackers no longer add turrets to troop rating (s.32).
 Readings to confirm with the owner are listed in HANDOFF and in To do 3 / 6.
@@ -521,9 +523,9 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
 Not built: scenarios / sub-plots, and the To do items below.
-Next (largest first): 14 (Eldar, Necrons; Eldar unblocks To do 13's experiments, whose
-fleets are Imperial vs Eldar), 7 (scenarios / sub-plots), To do 13's remaining bits (the
-experiments, a headless runner for them, the expert AI per unit), the rest of 4 (daemonships:
+Next (largest first): Necrons (To do 14), 7 (scenarios / sub-plots), To do 13's remaining
+bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
+AI per unit), the Eldar gaps (To do 14), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
 Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
 Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (deeper expert
@@ -1582,15 +1584,15 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    human against the AI through command, launch and activation steps. Not yet: a human
    command phase that only offers orders (the order button is shown; the IGOUGO checks on
    orders still apply).
-   Still to do: the AA round (Command,
-   Ordnance A, Shooting, Movement, Ordnance B, End) in the turn controller and the UI, Brace
-   as a command-phase order, ordnance 1 / 2 moves, boarding and ramming locked on
-   declaration, forcing an activation (System 1), the AI's AA choices by expected VP, and the
-   experiments.
+   Still to do: the experiments (they need the PDF's Appendix B fleets: Imperial Armageddon
+   Sector against Eldar Corsair lists, so Eldar fleet lists or hand-built fleets, and a faster
+   runner than the ~80s GUI game), the AI forcing activations, the expert AI per unit, a
+   character's ship-only re-roll forcing only that ship, locked ships enforced for humans, a
+   human command phase offering only orders.
 
-14. Eldar and Necrons (export 13, CHANGES updates 48-49, 51-52): both factions' ships are in
-   the catalog but unsupported (`booklet_ships.UNBUILT_FACTION_RULES`; the parser also flags
-   "Weapons Battery", Pulsar / Phantom Lances, Eldar torpedoes and craft, Necron weapons).
+14. Eldar and Necrons (export 13, CHANGES updates 48-49, 51-52): Eldar are built and playable
+   (below); Necron ships are in the catalog but unsupported (`booklet_ships.UNBUILT_FACTION_RULES`;
+   the parser also flags Necron weapons).
    Eldar use the fan MMS v2.0 rules (`bfgxr/rules/08_eldar.md`, replacing XR's Eldar): three
    speeds by the sun (sun / away / abeam) and two moves, holofields ("2+H" shields), Fragile
    (crits on 5+), Natural Spacefarers (+1 Ld, the Eldar column), turrets +1 to hit, their own
@@ -1640,10 +1642,7 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    `crit_table_for` in the crit cascade (keel armament as a weapon slot, infinity circuit -1 Ld,
    holofield destroyed, mast lines no turns, mainsail scarred -5cm each speed per hit, mainsail
    shredded one move). Not yet: Superstructure Damaged's 3+ roll on turning, a second prow crit
-   destroying port / starboard weaponry, Eldar AAF +5D6 in the speed roll, Burn Retros refused
-   at the order, celestial phenomena immunity and asteroid / warp rift rules, the move dialog's
-   MMS help, the AI's MMS move candidates (it uses its normal candidates, which are legal MMS
-   moves when within speed), Kinship / Heroes, fleet lists, the five either/or ships.
+   destroying port / starboard weaponry.
    Also built: Eldar AAF +5D6 (`aaf_bonus_dice`), Burn Retros refused
    (`TurnController.issue_special_order`; the AI never values it), clouds don't slow them,
    escorts pass asteroid tests and capital ships re-roll failures, warp rifts at -2 Ld with the
@@ -1656,8 +1655,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    they play with "No fleet list"), Kinship and Heroes, the Void Dragon, Ghostships, the
    optional Dying Race, the AI's lance values ignoring the holofield save, Come to New Heading's
    extra turn in the AI's MMS moves, the move dialog's MMS help.
-   Next: Necrons, then the Eldar gaps above, Eldar ordnance and turrets, the critical hits table, the move dialog and
-   the AI's MMS moves.
+   Also still open from the slices above: Eldar bombers re-rolling attack dice, fighters' 4+
+   save per wave, holofields against non-lance direct attacks, Superstructure Damaged, a
+   second prow crit, the five either/or ships and the one without a points cost.
+   Next: Necrons (`bfgxr/rules/09_necrons.md`), then the Eldar gaps above.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

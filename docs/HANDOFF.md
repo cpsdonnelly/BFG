@@ -843,12 +843,18 @@ phenomena rules; AI-vs-AI Eldar vs Imperial plays in IGOUGO and AA
 (sun aspect, crippled speeds, pulsar chains per die, stealth floor 6+, no blast marker speed
 loss for Eldar moves yet).
 Next: Necrons (To do 14), the AA experiments (now possible with Eldar; Appendix B's lists
-need Eldar fleet lists or hand-built fleets), 7 (scenarios), the rest of 4 / 5. Read docs/AA_ORDER_SYSTEMS_NOTES.md
-(the source) and docs/AA_ACTIVATION_NOTES.md ("Discussion summary" and "Later decisions");
-`src/activation.py` has the core. Open choices there become settings (`AAConfig`), not
-decisions. Notes for GUI checks: `gui_spectator_*.py` need a difficulty argument
-(`normal` / `expert`); a GUI check that drives ordnance contacts calls
-`panel.ordnance._resolve_ship_contacts` (OrdnancePanel holds the mixin).
+need Eldar fleet lists or hand-built fleets), 7 (scenarios), the rest of 4 / 5.
+Eldar gaps still open (CLAUDE.md To do 14): fleet lists (Corsair, Craftworld), Kinship and
+Heroes, Void Dragon, Ghostships, Dying Race, bombers' re-roll and fighters' save per wave,
+holofields against non-lance direct attacks, Superstructure Damaged, a second prow crit, the
+AI's lance values ignoring the holofield save, Come to New Heading's extra turn in the AI's
+MMS moves, the move dialog's MMS help, the five either/or ships and the one without a cost.
+Export gap to report: Eldar keel launch bays come out unparsed (see "Booklet export bug").
+Notes for GUI checks: `gui_spectator_demo.py` / `_orks` / `_sm` need `normal` / `expert`;
+`gui_spectator_aa.py <mode> [shoot_first|move_first]`; `gui_spectator_eldar.py igougo|aa`;
+`aa_human_check.py` (stubs `choice_dialog.choose`); a GUI check that drives ordnance
+contacts calls `panel.ordnance._resolve_ship_contacts` (OrdnancePanel holds the mixin). AA
+reference: docs/AA_ORDER_SYSTEMS_NOTES.md (the source) and docs/AA_ACTIVATION_NOTES.md.
 
 ## Bombers vs assault boats (owner idea, done)
 
