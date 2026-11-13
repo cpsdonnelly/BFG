@@ -706,6 +706,10 @@ Latest items, newest last:
 - Built (To do 11 a, first slice): turn points, a 50% distance, and the guns-to-bear and
   range-band goals in `AIPlayer._move_candidates`; every candidate validated by the engine.
   1096 tests; normal, Ork, Space Marine and expert spectator games pass.
+- Owner notes on alternate activation (optional ruleset, not the booklet): three selectable
+  activation-order systems, System 3 (adjusted bag) the default; recorded as CLAUDE.md To do
+  13, notes kept in `docs/AA_ACTIVATION_NOTES.md`. The edge-share check values reproduce from
+  the notes' formula. The AA working notes and the draft PDF aren't in the repo (asked for).
 - Owner notes on movement: target-directed candidate moves (goals per target and fleet-wide,
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.
@@ -892,6 +896,9 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    clouds; batteries before lances; damage control and blast-marker removal by expected VP;
    first-turn choice; scale-free re-roll bars; Eldar / Necrons; compute, don't script;
    softmax Easy.
+13. New (owner draft): alternate activation as an optional ruleset, three selectable
+   order systems (System 3 default), the AI choosing by expected VP, then the owner's
+   experiments (CLAUDE.md To do 13; `docs/AA_ACTIVATION_NOTES.md`).
 12. New (owner: do it, low priority, after 11): a learned evaluation for the expert search
    (features, self-play data, fit / play / refit; CLAUDE.md To do 12).
 

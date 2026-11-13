@@ -496,7 +496,7 @@ Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
 Next: the rest of To do 2 (the risk preference in brace and strike choices, the expert AI
 valuing its own craft in flight), the rest of 11 a (more goals, refinement, the coordination
 pass), then 3-7, 9, 10 and the rest of 11, 12 (learned
-evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
+evaluation) after 11, 13 (alternate activation, optional ruleset; needs the AA notes and PDF), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
 ### AI: how it decides (expected VP)
@@ -1229,6 +1229,47 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    after To do 11 a-c (rules fixes, candidates, expert hazards): games under wrong rules or a
    cramped move set teach wrong values.
 
+13. Alternate activation (AA), an optional ruleset outside the booklet (owner draft; full notes
+   in `docs/AA_ACTIVATION_NOTES.md`, keep them as the source). The booklet stays IGOUGO: never
+   put AA into the booklet export or `bfgxr/rules/*.md`. Build three activation-order systems
+   as selectable options, all fully playable by humans and the AI, none hard-coded:
+   `order_mode` = `fixed_initiative` (System 1, ABFG v0.3: shooting in initiative order highest
+   first, movement inverse; ties by Ld, admiral's Ld, fleet strategy rating, a dice-off;
+   optional forcing an activation with a re-roll), `bag` (System 2: one die per unit per
+   phase, drawn at random, the drawn side picks which unit) and `bag_adjusted` (System 3, the
+   DEFAULT selection: owner slightly favours it but hasn't committed; Systems 1 and 2 are not
+   stubs, he wants to play and compare all three). Shared definitions: a unit is a capital
+   ship or an escort squadron (capital squadrons as one unit configurable; ABFG uses the
+   highest Ld and highest hits); unit initiative = Ld - starting hits + 10 (escort squadrons:
+   their one Ld and the sum of starting hits; fixed-Ld ships their fixed Ld; a Necron Obelisk
+   ship its rolled Ld); fleet mean to one decimal; the gap and the edge holder; recompute
+   trigger configurable (`start_only`, `on_unit_destroyed`, `abfg_turn_start` with Ld changes
+   and -1 per crippled ship), never from current hits. System 3 band table (thresholds and
+   rates configurable): gap < 0.5 plain bag; 0.5 to < 1.5 the edge holder chooses which side
+   takes each phase's first activation; 1.5 to < 3 choice + ceil(units / 3) extra dice; >= 3
+   choice + ceil(units / 2); "units" is the edge holder's own count. The chosen side activates
+   without a draw and removes one of its own dice (every activation spends a die); extra dice
+   give no extra activations; passing (`allow_pass`, default on) while a side has more dice
+   than units left. The common AA framework (from the AA working notes, NOT in the repo; ask
+   the owner for them and the PDF `BFGXR_Alternate_Activation_Draft.pdf`): per-phase bags; the
+   round Command, Ordnance A, Shooting, Movement, Ordnance B, End; Brace as a command-phase
+   order; ordnance 1 move on its first turn, then 2; Eldar use MMS; boarding and ramming lock
+   on declaration and resolve in the end phase. Items the notes leave open stay open and
+   configurable (shooting-before-movement order, end-phase cadence, "turn = round"). The AI
+   values its new choices by expected VP (who goes first each phase, passing, which unit to
+   activate on a draw; acting early usually pays in shooting, late in movement: value both,
+   don't hard-code). Unit tests: the edge-share formula (pairs(e, k, i)) and its check values
+   (5 v 6: k=0 0.00, k=1 0.14, k=2 0.25, k=3 0.33, choice 0.20 / 0.33 / 0.50 for k=0/1/3;
+   10 v 12 k=5 0.31; 15 v 18 k=8 0.33; all reproduced from the formula), and a Monte Carlo of
+   the engine's bag (AI never passing in shooting) matching them. Experiments after AA works
+   and after the play-quality AI tasks (rules fixes, movement candidates, To do 11 a-c): escort
+   splitting (pairs vs 3-4s vs 6s under System 3; are pairs dominant?), edge size (System 2 vs
+   3 vs 3 one band higher), the value of going second in movement, System 1 vs 3 on the
+   owner's 13 matchups (PDF Appendix B); report win rate and VP margin; never settle a system,
+   band table or open item for the owner. Not part of System 1 here unless asked: ABFG's
+   end-phase damage, 1-2-2-1 ordnance, Carry On / Disengage orders, orders tested on
+   activation.
+
 ### Owner rulings: answers to the open questions (implemented, tested)
 
 All implemented: Fleet Defence Turrets (a crippled ship gives no +1, `ordnance.get_massed_turret_bonus`);
@@ -1271,7 +1312,12 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-None open. Answered: where To do 8 goes. Owner: "the order isn't hugely important". So follow
+- AA (To do 13): the AA working notes (`BFGXR_AltActivation_Notes.md`) and the draft PDF
+  (`BFGXR_Alternate_Activation_Draft.pdf`, test fleets in Appendix B, results in section 4)
+  aren't in the repo; needed before building the framework and the experiments. Also where AA
+  sits in the order (owner: the order isn't hugely important).
+
+Otherwise none open. Answered: where To do 8 goes. Owner: "the order isn't hugely important". So follow
 the dependencies: build 8 a (Armour facing) and 8 f (range brackets) before 11 a
 (target-directed candidates) and 11 h, and the rest of 8 with or after them; otherwise the
 listed order is a guide, not a rule (1, weight tuning, stays last and on hold).
