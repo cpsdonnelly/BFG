@@ -76,6 +76,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "vp",
     },
+    "fleet_engagement": {
+        "name": "Fleet Engagement (XR p.108-109)",
+        "first_turn": "roll_off",
+        "end": "fleet_gone",
+        "victory": "vp",
+    },
     "confrontation": {
         "name": "Confrontation (XR p.117)",
         "first_turn": "attacker",
@@ -379,6 +385,113 @@ def roll_for_choice(gs, dice) -> Optional[int]:
             return gs.scenario_attacker if a > d else defender(gs)
 
 
+# --- Fleet Engagement: formations and set-ups A-D ------------------------------------
+FORMATIONS = ("sphere", "wedge", "cross")
+# (your formation, the opponent's) -> the possible results for you:
+# (set-up, your role) with role "atk" / "def" / "either" (wedge v wedge: the
+# chooser picks) / None (set-up B: no roles)
+_FORMATION_TABLE = {
+    ("sphere", "sphere"): [("B", None)],
+    ("sphere", "wedge"): [("A", "atk"), ("C", "atk")],
+    ("sphere", "cross"): [("A", "atk"), ("D", "atk")],
+    ("wedge", "sphere"): [("A", "def"), ("C", "def")],
+    ("wedge", "wedge"): [("D", "atk"), ("D", "def")],
+    ("wedge", "cross"): [("B", None)],
+    ("cross", "sphere"): [("A", "def"), ("D", "def")],
+    ("cross", "wedge"): [("B", None)],
+    ("cross", "cross"): [("B", None)],
+}
+
+
+def formation_bonus(gs, player: int) -> int:
+    """+1 each for the fleet with the fastest ship, the best commander (by
+    Ld) and the most escorts (reading: a tie gives neither the bonus)."""
+    def stat(p, f):
+        return f([s for s in gs.get_ships() if s.player == p and not s.is_disengaged
+                  or s.player == p and is_reserve(s)])
+    fast = {p: stat(p, lambda ss: max((s.speed for s in ss), default=0)) for p in (1, 2)}
+    ld = {p: stat(p, lambda ss: max((s.leadership for s in ss if s.is_flagship),
+                                    default=max((s.leadership for s in ss), default=0)))
+          for p in (1, 2)}
+    esc = {p: stat(p, lambda ss: sum(1 for s in ss if s.ship_type == "escort")) for p in (1, 2)}
+    o = 3 - player
+    return sum(1 for d in (fast, ld, esc) if d[player] > d[o])
+
+
+def resolve_formations(gs, f1: str, f2: str, dice, choose=None) -> Dict:
+    """Compare the two secret formations (p.108): the result set-up and
+    who attacks. Where two results are possible each player rolls a D6 +
+    `formation_bonus` (ties re-rolled, reading); the winner chooses from the
+    results for its own formation (`choose(player, options) -> option`;
+    default: the first). Set-up B has no attacker: the chooser (or player 1)
+    takes the bottom zone (reading). Stored in `gs.scenario_state`."""
+    forms = {1: f1, 2: f2}
+    opts = {p: _FORMATION_TABLE[(forms[p], forms[3 - p])] for p in (1, 2)}
+    chooser = 1
+    if len(opts[1]) > 1:
+        while True:
+            r = {p: dice.roll_d6(1, f"Fleet Engagement: player {p}'s set-up roll")[0]
+                 + formation_bonus(gs, p) for p in (1, 2)}
+            if r[1] != r[2]:
+                chooser = 1 if r[1] > r[2] else 2
+                break
+    pick = (choose or (lambda p, o: o[0]))(chooser, opts[chooser])
+    setup, role = pick
+    if role == "atk":
+        attacker = chooser
+    elif role == "def":
+        attacker = 3 - chooser
+    else:
+        attacker = chooser                       # set-up B: the chooser's fleet below
+    gs.scenario_attacker = attacker
+    st = {"formations": {"1": f1, "2": f2}, "setup": setup, "chooser": chooser}
+    gs.scenario_state = st
+    gs.add_log(f"[Fleet Engagement] formations {f1} v {f2}: set-up {setup}, "
+               f"player {attacker} {'attacks' if setup != 'B' else 'deploys below'}")
+    return st
+
+
+def _fe_rects(gs):
+    """Fleet Engagement's zones: [(player, (left, right, top, bottom), heading)]
+    in the diagram frame (top = y at the table height)."""
+    w, h = gs.table_width, gs.table_height
+    st = gs.scenario_state or {}
+    a = gs.scenario_attacker
+    d = 3 - a
+    s = st.get("setup")
+    if s == "A":
+        return [(d, (w / 2 - 30, w / 2 - 30, 0, h - 30), 270.0),
+                (a, (0, w - 30, 0, 0), 45.0),
+                (a, (30, 30, h - 30, 0), 90.0),
+                (a, (w - 30, 0, 0, 0), 135.0)]
+    if s == "B":
+        x0 = w / 2 - 67.5
+        top = [(d, (x0 + 45 * i, w - x0 - 45 * (i + 1), 0, h - 30), 0.0) for i in range(3)]
+        bot = [(a, (x0 + 45 * i, w - x0 - 45 * (i + 1), h - 30, 0), 180.0) for i in range(3)]
+        return top + bot
+    if s == "C":
+        return [(d, (w / 2 - 30, w / 2 - 30, 0, h - 45), 270.0),
+                (a, (0, w - 30, 0, 0), 90.0),
+                (a, (w - 30, 0, 0, 0), 90.0)]
+    if s == "D":
+        return [(d, (45, 45, 0, h - 30), 270.0)] + \
+            [(a, (w / 3 * i, w - w / 3 * (i + 1), h - 30, 0), 90.0) for i in range(3)]
+    return []
+
+
+def fe_division_at(gs, player: int, x: float, y: float):
+    """The Fleet Engagement division (index, heading) containing a point."""
+    w, h = gs.table_width, gs.table_height
+    i = 0
+    for p, (left, right, top, bottom), hd in _fe_rects(gs):
+        if p != player:
+            continue
+        if left <= x <= w - right and bottom <= y <= h - top:
+            return i, hd
+        i += 1
+    return None
+
+
 def first_turn_chooser(gs) -> Optional[int]:
     """The player the scenario lets choose to go first or second (Chance
     Encounter: the defender), or None."""
@@ -574,6 +687,16 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                              "reserve_units": sorted(chosen)}
         gs.add_log(f"[Rearguard] reinforcements: {sorted(chosen)}; the defender is at -1 Ld "
                    f"for {n} turn(s)")
+    elif mode == "fleet_engagement":
+        # The formations are chosen before set-up (GamePanel asks a human and
+        # picks at random for the AI, judgement: the three beat each other in
+        # a circle); without them, random formations here
+        if not (gs.scenario_state or {}).get("setup"):
+            import random
+            if dice is None:
+                from .dice import DiceRoller
+                dice = DiceRoller(mode="auto")
+            resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
     elif mode == "alien_intervention":
         # The defender's allies of convenience (ships of another faction than
         # its main one) are the alien reinforcements; a planet within 30cm of
@@ -885,6 +1008,12 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         rects = {3 - att_p: [(30, 30, 30, 30)],
                  att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
                          (w - e, 0, 0, 0)]}
+    elif mode == "fleet_engagement":
+        if not (gs.scenario_state or {}).get("setup"):
+            return None
+        rects = {1: [], 2: []}
+        for p, r, _hd in _fe_rects(gs):
+            rects[p].append(r)
     elif mode == "alien_intervention":
         # Defender within 30cm of the centre line (a 60cm strip); attacker
         # within 20cm of either short edge
@@ -956,6 +1085,14 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     if mode == "raiders" and group:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
+        return errs
+    if mode == "fleet_engagement" and group:
+        # each ship faces its division's approach arrow
+        for s_, (x, y), hd in zip(group, positions, headings):
+            div = fe_division_at(gs, group[0].player, x, y)
+            if div is not None and abs((hd - div[1] + 180.0) % 360.0 - 180.0) > 1.0:
+                errs.append(f"Fleet Engagement: {s_.name} faces its division's arrow "
+                            f"(heading {div[1]:g})")
         return errs
     if mode == "alien_intervention" and group and group[0].player == defender(gs):
         return _same_facing_apart(gs, group, positions, headings, placed, 10.0,
@@ -1107,6 +1244,14 @@ def auto_positions(gs, group, zone, placed, index: int):
     Storm alternates its divisions' corners; Ambush spaces the defender's
     groups 25cm apart."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "fleet_engagement" and group:
+        # round-robin over the player's divisions, so each gets a unit
+        r = zone.rects()[index % len(zone.rects())]
+        n = sum(1 for s in placed if s.player == group[0].player
+                and r.x_min <= s.x <= r.x_max and r.y_min <= s.y <= r.y_max)
+        cx, cy = (r.x_min + r.x_max) / 2.0, (r.y_min + r.y_max) / 2.0
+        return [(cx - 6.0 + 4.0 * i + 9.0 * (n % 3) - 9.0, cy + 7.0 * (n // 3))
+                for i in range(len(group))]
     if mode == "line_breaker" and group and group[0].player == defender(gs):
         rects = zone.rects()
         r = rects[1] if is_platform(group[0]) else rects[0]
@@ -1164,6 +1309,30 @@ def auto_positions(gs, group, zone, placed, index: int):
                     return pts
                 x += 25.0
             y += 25.0
+    return None
+
+
+def fe_division_errors(gs, player: int) -> List[str]:
+    """Fleet Engagement: at least one ship or squadron in each division."""
+    if getattr(gs, "scenario_mode", "") != "fleet_engagement":
+        return []
+    n = sum(1 for p, _r, _h in _fe_rects(gs) if p == player)
+    used = {fe_division_at(gs, player, s.x, s.y)[0] for s in gs.get_ships()
+            if s.player == player and not s.is_disengaged
+            and fe_division_at(gs, player, s.x, s.y) is not None}
+    missing = [i + 1 for i in range(n) if i not in used]
+    return [f"Fleet Engagement: nothing deployed in division(s) {missing}"] if missing else []
+
+
+def auto_heading(gs, player: int, x: float, y: float) -> Optional[float]:
+    """The heading a scenario requires at a deployment point (Fleet
+    Engagement's arrows, Cruiser Clash's facing), or None."""
+    mode = getattr(gs, "scenario_mode", "")
+    if mode == "fleet_engagement":
+        div = fe_division_at(gs, player, x, y)
+        return div[1] if div else None
+    if mode == "cruiser_clash":
+        return 270.0 if y > gs.table_height / 2 else 90.0
     return None
 
 

@@ -405,7 +405,9 @@ class DeploymentPanel:
             positions = (auto_positions(self.gs, group, zone, self.state.placed_ships,
                                         self.state.next_idx[p])
                          or self._find_auto_positions(group, zone))
-            headings = [0.0 if p == 1 else 180.0] * len(group)
+            from .scenarios import auto_heading
+            headings = [auto_heading(self.gs, p, x, y) or (0.0 if p == 1 else 180.0)
+                        for x, y in positions]
             ok, errors = self.state.place_group(positions, headings)
             if not ok:
                 messagebox.showerror(
@@ -463,9 +465,9 @@ class DeploymentPanel:
     # ── Completion ────────────────────────────────────────────────────────────
 
     def _finish(self):
-        from .scenarios import division_errors
+        from .scenarios import division_errors, fe_division_errors
         for p in (1, 2):
-            errs = division_errors(self.gs, p)
+            errs = division_errors(self.gs, p) + fe_division_errors(self.gs, p)
             if errs:
                 messagebox.showwarning(
                     "Warp Storm divisions",

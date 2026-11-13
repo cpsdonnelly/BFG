@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1277 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1278 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1182,8 +1182,17 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    asked to roll for the AI). Fixed on the way: a zero-length line of sight against a planet
    divided by zero (`los._line_intersects_circle`), which crashed an AI ordnance phase. Not
    yet: Exterminatus! and Planetary Assault (the low orbit table), Escalating Engagement
-   (contact markers), Fleet Engagement (formations and set-ups A-D), the defenders' extra
-   planetary defence points. Not yet: racing the 10 against the turn
+   (contact markers), the defenders' extra planetary defence points. Fleet Engagement built
+   (p.108-109: each player's secret formation (a human from a dialog, the AI at random,
+   judgement: they beat each other in a circle) through the table to a set-up and roles
+   (`resolve_formations`; two results: a D6 + `formation_bonus` (fastest ship, best commander,
+   most escorts, +1 each; reading: ties give no bonus, tied rolls are re-rolled), the winner
+   choosing from its own formation's results; set-up B has no attacker: the chooser's fleet
+   deploys below, reading); set-ups A-D transcribed edge-relative (`_fe_rects`, divisions with
+   their approach arrows); every ship faces its division's arrow (`placement_errors`,
+   `fe_division_at`, `auto_heading` also used by the deployment panel's auto-place) and every
+   division needs a unit (`fe_division_errors`, warned at the end of deployment); roll-off for
+   the first turn; VP; not yet: the alternating deployment by a roll). Not yet: racing the 10 against the turn
    order, Planet Strike's planetary defence budget (+20%) and "extra assault points" ships,
    Orbit Lost, The Bait (reinforcements entering), the raids and battles, the rest of the
    sub-plots, Cruiser Clash's alternating deployment and forces limits, the Ambush attacker's half-points limit (fleet building), Line Breaker's

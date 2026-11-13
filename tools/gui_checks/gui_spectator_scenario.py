@@ -146,6 +146,9 @@ for p in (1, 2):
             if scenario == "surprise_attack" and p == 2 and sc.on_standby(gs, s_):
                 pl_ = next(q for q in gs.get_phenomena() if q.id == "scenario_planet")
                 s_.heading = (math.degrees(math.atan2(s_.y - pl_.y, s_.x - pl_.x)) + 90) % 360
+            hd_ = sc.auto_heading(gs, p, s_.x, s_.y)
+            if hd_ is not None:
+                s_.heading = hd_
             if scenario in ("raiders", "rearguard", "surprise_attack") and p == 1:
                 s_.heading = 90.0 if s_.y < gs.table_height / 2 else 270.0   # onto the table
             if scenario == "blockade_run":
@@ -156,6 +159,7 @@ for p in (1, 2):
         gs.update_ship(s_)
 for p in (1, 2):
     assert not sc.division_errors(gs, p), sc.division_errors(gs, p)
+    assert not sc.fe_division_errors(gs, p), sc.fe_division_errors(gs, p)
 assert not sc.force_errors(gs), sc.force_errors(gs)
 gs.first_player = sc.first_player(gs) or sc.first_turn_chooser(gs) or 1
 dice = DiceRoller(mode=gs.dice_mode)
@@ -206,7 +210,7 @@ if scenario == "chance_encounter":
           f"exits {gs.scenario_state.get('exits')}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
-                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Raiders", "Blockade", "broke through", "Reinforcements", "Bait", "Rearguard", "Alien", "Surprise", "Sub-plot", "holds position", "DISENGAG", "off the table",
+                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Raiders", "Blockade", "broke through", "Reinforcements", "Bait", "Rearguard", "Alien", "Surprise", "Fleet Engagement", "Sub-plot", "holds position", "DISENGAG", "off the table",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "

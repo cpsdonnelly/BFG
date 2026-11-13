@@ -613,7 +613,7 @@ class GamePanel(AAPanelMixin):
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
                       "the_bait", "raiders", "blockade_run", "rearguard", "alien_intervention",
-                      "surprise_attack", "confrontation", "line_breaker", "ambush",
+                      "surprise_attack", "fleet_engagement", "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
                       "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
@@ -1076,6 +1076,8 @@ class GamePanel(AAPanelMixin):
                 self.ctx.gs.scenario_attacker = roll_attack_ratings(
                     self.ctx.gs, DiceRoller(mode="auto"))
                 self.ctx.log(self.ctx.gs.log[-1])
+            if self.ctx.gs.scenario_mode == "fleet_engagement":
+                self._fleet_engagement_formations()
             setup_scenario(self.ctx.gs)       # e.g. the Domination deployment D6
             from .scenarios import force_errors
             errs = force_errors(self.ctx.gs)
@@ -1092,6 +1094,34 @@ class GamePanel(AAPanelMixin):
             on_complete=self._begin_turn1,
             mode="sequential",
         )
+
+    def _fleet_engagement_formations(self):
+        """Fleet Engagement (p.108): each player secretly picks a formation (a
+        human from a dialog; the AI at random, judgement), then the set-up
+        and roles follow from the table and a roll (scenarios)."""
+        import random
+        from .scenarios import FORMATIONS, resolve_formations
+        from .choice_dialog import choose
+        from .dice import DiceRoller
+        gs = self.ctx.gs
+        forms = {}
+        for p in (1, 2):
+            if self.ctx.is_ai_controlled(p):
+                forms[p] = random.choice(FORMATIONS)
+            else:
+                forms[p] = choose(self.root, "Fleet Engagement",
+                                  f"Player {p}: choose your fleet's formation (secret)",
+                                  [(f.title(), f) for f in FORMATIONS], "wedge")
+
+        def pick(player, options):
+            if self.ctx.is_ai_controlled(player):
+                return options[0]
+            labels = [(f"Set-up {s}" + (f" as {'attacker' if r == 'atk' else 'defender'}"
+                                        if r else ""), (s, r)) for s, r in options]
+            return choose(self.root, "Fleet Engagement", f"Player {player}: you choose the "
+                          f"set-up", labels, options[0])
+        resolve_formations(gs, forms[1], forms[2], DiceRoller(mode="auto"), pick)
+        self.ctx.log(gs.log[-1])
 
     def _reserve_hook(self, player, names) -> bool:
         """Scenario reinforcements (The Bait, Rearguard Attack) may enter this

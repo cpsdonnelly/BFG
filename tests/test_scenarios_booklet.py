@@ -923,3 +923,35 @@ def test_line_of_sight_of_zero_length_doesnt_divide_by_zero():
     from src.los import _line_intersects_circle
     assert _line_intersects_circle(5.0, 5.0, 5.0, 5.0, 0.0, 0.0, 10.0)
     assert not _line_intersects_circle(50.0, 5.0, 50.0, 5.0, 0.0, 0.0, 10.0)
+
+
+# --- Fleet Engagement -------------------------------------------------------------------
+
+def test_fleet_engagement_formations_setups_and_arrows():
+    a = make_ship(id="a", player=1, speed=25)
+    b = make_ship(id="b", player=2, speed=20)
+    gs = _gs([a, b], mode="fleet_engagement")
+    # sphere v cross: two results; player 1 (fastest ship, +1) wins the roll
+    dice = DiceStub([3, 3])
+    st = sc.resolve_formations(gs, "sphere", "cross", dice)
+    assert dice._idx == 2 and st["chooser"] == 1
+    assert st["setup"] == "A" and gs.scenario_attacker == 1     # A (Atk) for sphere
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[2].contains(90, 110) and not zones[2].contains(40, 110)
+    assert zones[1].contains(10, 60) and zones[1].contains(90, 10) and zones[1].contains(170, 60)
+    assert sc.fe_division_at(gs, 1, 10, 60) == (0, 45.0)
+    assert sc.fe_division_at(gs, 1, 170, 60) == (2, 135.0)
+    assert sc.placement_errors(gs, [a], [(10.0, 60.0)], [45.0], []) == []
+    assert sc.placement_errors(gs, [a], [(10.0, 60.0)], [90.0], [])
+    # Every division needs a unit
+    gs.update_ship(type(a).from_dict({**gs.get_ship_by_id("a").to_dict(), "x": 10.0, "y": 60.0}))
+    assert sc.fe_division_errors(gs, 1)
+    # A human chooser may take the other result; wedge v cross is set-up B outright
+    st = sc.resolve_formations(gs, "sphere", "cross", DiceStub([1, 4]),
+                               lambda p, o: o[1])
+    assert st["chooser"] == 2 and st["setup"] == "D" and gs.scenario_attacker == 1
+    st = sc.resolve_formations(gs, "wedge", "cross", DiceStub([]))
+    assert st["setup"] == "B"
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[gs.scenario_attacker].contains(90, 10)
+    assert sc.auto_heading(gs, 3 - gs.scenario_attacker, 90, 110) == 0.0

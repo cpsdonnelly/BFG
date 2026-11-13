@@ -936,6 +936,10 @@ defender's ships of a second faction and arrive from the top edge; the planet si
 Surprise Attack's full-alert units are the dearest; standby is "within 15cm of the planet's
 edge, heading tangential within 10 degrees". Fixed: a zero-length LOS division by zero.
 
+Then: Fleet Engagement. Readings to confirm: set-up A's defender zone is the 60cm centre box
+only (the two 30cm boxes beside it are left empty); set-up B gives the chooser the bottom
+zone; formation bonuses go to neither side on a tie; the AI picks its formation at random.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),
