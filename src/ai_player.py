@@ -190,11 +190,38 @@ class AIPlayer:
                 names = ", ".join(f"{gs.get_ship_by_id(e).name} ({len(v)})"
                                   for e, v in groups.items())
                 gs.add_log(f"[AI] focus targets: {names}")
+        if self.difficulty != "easy":
+            my_ships = self._coordinated_order(my_ships)
         for ship in my_ships:
             self._move_ship(ship)
         if self.difficulty != "easy":
             for ship in my_ships:
                 self._consider_disengage(gs.get_ship_by_id(ship.id))
+
+    @staticmethod
+    def _coordinated_order(ships: List[Ship]) -> List[Ship]:
+        """Move order for fleet coordination (To do 11 a, a first step towards
+        the coordination pass): the ships others support move first, so the
+        supporters plan against where they end: the commander's ship, then
+        carriers, other capital ships, escorts last (they screen, s.29).
+        Squadrons stay together (a squadron goes at its earliest member's
+        place); otherwise fleet order."""
+        def rank(s):
+            if s.is_flagship:
+                return 0
+            if any(w.get("weapon_type") == "launch_bay" for w in s.weapons):
+                return 1
+            return 3 if s.ship_type == "escort" else 2
+        group_rank = {}
+        for s in ships:
+            if s.squadron_id:
+                group_rank[s.squadron_id] = min(group_rank.get(s.squadron_id, 9), rank(s))
+        first = {}
+        for i, s in enumerate(ships):
+            first.setdefault(s.squadron_id or s.id, i)
+        return sorted(ships, key=lambda s: (group_rank.get(s.squadron_id, rank(s))
+                                            if s.squadron_id else rank(s),
+                                            first[s.squadron_id or s.id]))
 
     def _consider_disengage(self, ship: Optional[Ship]):
         """Voluntary disengagement (s.37) at the end of movement when it is worth
@@ -328,11 +355,25 @@ class AIPlayer:
         best_cmds: Optional[List[MoveCommand]] = None
         best_score = -1.0
         best_src = None
-        for turn_deg, dist, turn_at, src in self._move_candidates(ship, enemy, order, aaf_bonus):
+        scored = []
+        for cand in self._move_candidates(ship, enemy, order, aaf_bonus):
+            turn_deg, dist, turn_at, src = cand
             score = self._move_score(ship, enemy, order, turn_deg, dist, turn_at)
+            scored.append((score, cand))
             if score > best_score:
                 best_score, best_src = score, src
                 best_cmds = self._move_cmds(ship, turn_deg, dist, turn_at)
+        if scored and self.difficulty != "easy":
+            # Refine the best few (To do 11 a, coarse-to-fine)
+            valid = self._candidate_validator(ship, order, aaf_bonus)
+            scored.sort(key=lambda x: -x[0])
+            for sc, cand in scored[:3]:
+                if not valid(*cand[:3]):
+                    continue
+                ref, rs = self._refine_move(ship, enemy, order, aaf_bonus, cand, sc, valid)
+                if rs > best_score + 1e-9:
+                    best_score, best_src = rs, ref[3] + " (" + cand[3] + ")"
+                    best_cmds = self._move_cmds(ship, ref[0], ref[1], ref[2])
         self._last_move_source = best_src            # diagnostic (11 a e)
         if best_cmds is None:
             min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
@@ -374,6 +415,28 @@ class AIPlayer:
         if dist - t > 0:
             cmds.append(MoveCommand("forward", dist - t))
         return cmds
+
+    def _candidate_validator(self, ship: Ship, order: str, aaf_bonus: int):
+        """valid(turn_deg, dist, turn_at): the same limits `_move_candidates`
+        applies (speed, turn angle, turning distance)."""
+        from .movement import MIN_TURN_DISTANCE
+        from .models import SpecialOrder
+        min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
+        max_t = get_max_turns(order, ship)
+        min_td = 0 if order == SpecialOrder.BURN_RETROS.value else \
+            MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        ta = ship.turn_angle if max_t > 0 else 0
+
+        def valid(turn_deg, dist, turn_at):
+            if dist < 1 or dist < min_spd - 1e-9 or dist > max_spd + 1e-9:
+                return False
+            if abs(turn_deg) > 0.5:
+                if abs(turn_deg) > ta + 1e-9 or turn_at is None:
+                    return False
+                if turn_at < min_td - 1e-9 or turn_at > dist + 1e-9:
+                    return False
+            return True
+        return valid
 
     def _move_candidates(self, ship: Ship, enemy: Ship, order: str, aaf_bonus: int):
         """[(turn_deg, dist, turn_at, source)] (To do 11 a, owner):
@@ -454,7 +517,7 @@ class AIPlayer:
         if band is not None:
             span = max(0.0, max_spd - min_spd)
             n = max(1, int(span))
-            for a, p in best_heads + [(t, None) for t in turns]:
+            for a, p in best_heads + [(t, None) for t in turns]:  # noqa: B007
                 cands = [min_spd + span * k / n for k in range(n + 1)]
                 cands = [d for d in cands if p is None or d >= p]
                 if not cands:
@@ -463,7 +526,86 @@ class AIPlayer:
                     *(lambda q: (q[0] - enemy.x, q[1] - enemy.y))(
                         self._simulate_final_pos(ship, a, dd, p))) - band))
                 add(a, d, p, "range band")
+        # Point goals (To do 11 a, goals c / d / 3): head for a point, turning at
+        # each turn point by the angle that points at it (clamped to the turn
+        # angle), ending on it or as close as the move allows ("progress
+        # towards" when out of reach this turn)
+        from .ai_hazards import _predicted_positions
+        nxt = _predicted_positions(enemy, True)[1]
+        goals = [((nxt.x, nxt.y), "prow-on")]          # c: closing prow-on
+        h = math.radians(nxt.heading)
+        behind = max(10.0, min(30.0, band or 15.0))
+        # d: out of the target's arcs, into its rear (from its predicted end)
+        goals.append(((nxt.x - behind * math.cos(h), nxt.y - behind * math.sin(h)),
+                      "rear arc"))
+        # a second target: guns to bear on the next nearest enemy too
+        others = sorted((e for e in self.gs.get_ships() if e.player != self.player
+                         and not e.is_destroyed and not e.is_disengaged
+                         and e.id != enemy.id), key=lambda e: ship.distance_to(e))
+        if others:
+            o = others[0]
+            for p in sorted(points):
+                for d in (min_spd, max_spd):
+                    if d >= p:
+                        best = max(angles, key=lambda a: self._arc_score(
+                            ship, *self._simulate_final_pos(ship, a, d, p), o))
+                        add(best, d, p, "second target")
+        # 3: fleet support, an escort to the commander's ship (massed turrets)
+        if ship.ship_type == "escort":
+            flag = next((f for f in self.gs.get_ships() if f.player == self.player
+                         and f.is_flagship and not f.is_destroyed and not f.is_disengaged
+                         and f.id != ship.id), None)
+            if flag is not None:
+                goals.append(((flag.x, flag.y), "support"))
+        for (gx, gy), src in goals:
+            self._head_for(ship, gx, gy, points, min_spd, max_spd, ta, add, src)
         return out
+
+    def _head_for(self, ship: Ship, gx: float, gy: float, points, min_spd: float,
+                  max_spd: float, ta: float, add, src: str) -> None:
+        """Add the candidate per turn point that ends nearest (gx, gy): go
+        straight to the turn point, turn towards the goal (clamped to the turn
+        angle), then on for the distance left to it (within the move's
+        limits)."""
+        r = math.radians
+        for p in sorted(points):
+            if p > max_spd:
+                continue
+            px = ship.x + p * math.cos(r(ship.heading))
+            py = ship.y + p * math.sin(r(ship.heading))
+            want = math.degrees(math.atan2(gy - py, gx - px))
+            turn = signed_angle_diff(want, ship.heading)
+            turn = max(-ta, min(ta, turn))
+            rest = math.hypot(gx - px, gy - py)
+            d = max(min_spd, min(max_spd, p + rest))
+            add(turn, d, p, src)
+
+    def _refine_move(self, ship: Ship, enemy: Ship, order: str, aaf_bonus: int,
+                     start, start_score: float, valid):
+        """Coarse-to-fine (To do 11 a, hybrid c): hill-climb a candidate with
+        small changes to turn angle, distance and turn point until no change
+        scores better (at most 12 steps). `valid(turn, dist, turn_at)` keeps
+        every step legal. Returns (candidate, score)."""
+        best, best_s = start, start_score
+        steps = [(5, 0, 0), (-5, 0, 0), (0, 2, 0), (0, -2, 0), (0, 0, 2), (0, 0, -2),
+                 (2, 0, 0), (-2, 0, 0), (0, 1, 0), (0, -1, 0)]
+        for _ in range(12):
+            improved = False
+            t0, d0, p0, _src = best
+            for dt, dd, dp in steps:
+                cand = (t0 + dt, d0 + dd, None if p0 is None else p0 + dp)
+                if abs(cand[0]) <= 0.5:
+                    cand = (0.0, cand[1], None)
+                elif cand[2] is None:
+                    continue
+                if not valid(*cand):
+                    continue
+                sc = self._move_score(ship, enemy, order, *cand)
+                if sc > best_s + 1e-9:
+                    best, best_s, improved = (cand[0], cand[1], cand[2], "refined"), sc, True
+            if not improved:
+                break
+        return best, best_s
 
     def _range_band(self, ship: Ship, enemy: Ship) -> Optional[float]:
         """The middle of the range bracket where `ship` beats `enemy` most in

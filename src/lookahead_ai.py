@@ -679,12 +679,12 @@ class LookaheadAI(AIPlayer):
 
     DEPTH = 5
     TIME_BUDGET = 2.0  # seconds per ship decision
+    ROOT_MOVES = 12    # root candidates searched, best first by the move score
 
     def _plan_move_toward(self, ship: Ship, enemy: Ship,
                           order: str, aaf_bonus: int) -> List[MoveCommand]:
         """Override: choose move using minimax search rather than greedy heuristic."""
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
-        ta = ship.turn_angle
         deadline = time.monotonic() + self.TIME_BUDGET
 
         state = SimState.from_gs(self.gs, ord_player=self.player)
@@ -693,38 +693,36 @@ class LookaheadAI(AIPlayer):
         from .ai_hazards import move_hazard_vp
         vp_scale = self._vp_to_score(state)
 
-        for turn_mult, speed_frac in _TURN_FRACS:
-            turn_deg = ta * turn_mult
-            dist = max(min_spd, int(max_spd * speed_frac))
-            if dist < 1:
-                continue
-            min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
-            if abs(turn_deg) > 0.5 and min_td > 0 and dist <= min_td:
-                continue
-
-            # Apply this candidate move to a clone and start search
+        # Root moves: the normal AI's candidates (To do 11 a: grid, turn points,
+        # goals), best first by its move score so alpha-beta and the time
+        # budget spend their effort on the likeliest moves; at most ROOT_MOVES
+        cands = []
+        for c in self._move_candidates(ship, enemy, order, aaf_bonus):
+            cands.append((self._move_score(ship, enemy, order, *c[:3]), c))
+        cands.sort(key=lambda x: -x[0])
+        for _normal, (turn_deg, dist, turn_at, _src) in cands[:self.ROOT_MOVES]:
             candidate = state.clone()
             sim_ship = next((s for s in candidate.ships if s.id == ship.id), None)
             if sim_ship is None:
                 continue
-            _apply_move(sim_ship, turn_deg, dist)
+            fx, fy, fh = self._simulate_final_pos(ship, turn_deg, dist, turn_at)
+            sim_ship.x, sim_ship.y, sim_ship.heading = fx, fy, fh
 
             enemy_moves = _generate_best_moves(candidate, 3 - self.player, self)
-            next_s = _simulate_turn(candidate, self.player,
-                                    {ship.id: (turn_deg, dist)}, enemy_moves)
+            next_s = _simulate_turn(candidate, self.player, {}, enemy_moves)
             score = _minimax(next_s, self.DEPTH - 1, -_INF, _INF,
                              False, self.player, deadline, self)
-            # Hazards on the way (To do 11 b): the search's sim has no ordnance
-            # or terrain, so the root move pays the normal AI's path-hazard
-            # cost (mines, torpedoes, attack craft in flight, asteroid fields,
-            # warp rifts, clouds, blast markers) in the search's score units
-            fx, fy, _fh = self._simulate_final_pos(ship, turn_deg, dist)
-            path = self._simulate_path(ship, turn_deg, dist)
+            # Hazards on the way (To do 11 b): the search's sim has no terrain
+            # and only our own ordnance, so the root move pays the normal AI's
+            # path-hazard cost (mines, torpedoes, attack craft in flight,
+            # asteroid fields, warp rifts, clouds, blast markers) in the
+            # search's score units
+            path = self._simulate_path(ship, turn_deg, dist, turn_at)
             score -= vp_scale * move_hazard_vp(ship, (fx, fy), path, self.gs, order)["vp"]
 
             if score > best_score:
                 best_score = score
-                best_cmds = _cmds_for_move(ship, turn_deg, dist, order)
+                best_cmds = self._move_cmds(ship, turn_deg, dist, turn_at)
 
             if time.monotonic() > deadline:
                 break  # time's up; use best found so far

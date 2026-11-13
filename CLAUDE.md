@@ -495,8 +495,8 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 candidates (11 a)).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of 11 a (more goals, refinement, the coordination
-pass), then 3-7, 9, 10 and the rest of 11, 12 (learned
+Next: the rest of 11 a (goals e-g, the denser grid, pruning, the full
+coordination pass), then 3-7, 9, 10 and the rest of 11, 12 (learned
 evaluation) after 11, 13 (alternate activation, optional ruleset; notes and PDF in `docs/`), 14 (Eldar, Necrons), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -1157,11 +1157,24 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       (range band: the distance along those headings ending nearest the middle of the bracket
       where the ship beats the target most, `_range_band` from `bracket_matchup`, none when it
       wins nowhere). Every candidate passes `movement.validate_movement` and the simulator
-      ends where the engine does (`tests/test_ai_move_candidates.py`); about 30-65 candidates
-      and 3-8ms a ship; `_last_move_source` records which source won (diagnostic e). Not yet:
-      goals c-g and 3, hill-climbing refinement, the denser grid for crowded / hazardous
-      cases, pruning by cheap terms, the coordination pass, the expert search using the
-      candidates.
+      ends where the engine does (`tests/test_ai_move_candidates.py`); `_last_move_source`
+      records which source won (diagnostic e). Second slice built: point goals
+      (`_head_for`: per turn point, turn towards a point clamped to the turn angle, on for the
+      distance left, "progress towards" when out of reach): c prow-on to the target's
+      predicted position, d into its rear arc (behind its predicted end, the range band
+      clamped to 10-30cm), a second target (guns to bear on the next nearest enemy), 3 fleet
+      support (an escort to the commander's ship); hill-climbing refinement of the best three
+      (`_refine_move`: +-5 / 2 degrees, +-2 / 1cm, turn point +-2cm, legal by
+      `_candidate_validator`, at most 12 steps; it stops right at a hazard's modelled edge);
+      a coordination order (`_coordinated_order`: the commander's ship, carriers, other
+      capital ships, escorts last, squadrons together, so supporters plan against where the
+      supported end); the expert search's root uses the candidates, best first by the move
+      score, at most `ROOT_MOVES` 12 (judgement). About 32-37 candidates, ~40ms a ship with
+      refinement. Not yet: goals e (torpedo lanes), f (teleport / boarding / ramming reach,
+      with 8 h / 8 j), g (Lock On next turn) and the safety / disengaging goals of 3; the
+      denser grid for crowded / hazardous cases; pruning by cheap terms; the full
+      coordination pass (re-optimising each against everyone's planned end positions)
+      below.
       Then a coordination pass over the fleet (suggestion): moves are greedy in fleet order, so
       each ship ignores ships still to move; re-optimise each against everyone's planned end
       positions (coordinate descent, one or two passes), which catches screening and mutual

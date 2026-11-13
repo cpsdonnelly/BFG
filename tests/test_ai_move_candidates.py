@@ -70,3 +70,50 @@ def test_range_band_goal_aims_for_the_winning_bracket():
     big = _ship("Emperor Class Battleship", 2, 140.0, 60.0, 180.0)
     ai2, _ = _ai([weak, big])
     assert ai2._range_band(weak, big) is None or ai2._range_band(weak, big) > 0
+
+
+def test_point_goals_and_refinement():
+    """Goals c / d / 3 (To do 11 a): prow-on, into the target's rear arc, a
+    second target, an escort to the commander's ship; the planner refines the
+    best candidates and its moves stay legal."""
+    import random
+    me = _ship("Cobra Class Destroyer", 1, 60.0, 60.0, 0.0)
+    flag = _ship("Lunar Class Cruiser", 1, 40.0, 80.0, 0.0, 1)
+    flag.is_flagship = True
+    foe = _ship("Lunar Class Cruiser", 2, 85.0, 70.0, 180.0)
+    foe2 = _ship("Lunar Class Cruiser", 2, 100.0, 30.0, 180.0, 2)
+    ai, gs = _ai([me, flag, foe, foe2])
+    srcs = {c[3] for c in ai._move_candidates(me, foe, "", 0)}
+    assert {"prow-on", "rear arc", "second target", "support"} <= srcs
+    # a rear-arc candidate ends behind the target's predicted position
+    from src.ai_hazards import _predicted_positions
+    nxt = _predicted_positions(foe, True)[1]
+    rear = [c for c in ai._move_candidates(me, foe, "", 0) if c[3] == "rear arc"]
+    ends = [ai._simulate_final_pos(me, c[0], c[1], c[2]) for c in rear]
+    assert any(nxt.get_target_arc(x, y) == "rear" for x, y, _h in ends)
+    rng = random.Random(3)
+    for _ in range(12):
+        name = rng.choice(["Lunar Class Cruiser", "Cobra Class Destroyer",
+                           "Emperor Class Battleship"])
+        me = _ship(name, 1, rng.uniform(40, 140), rng.uniform(30, 90), rng.uniform(0, 360))
+        foe = _ship("Lunar Class Cruiser", 2, rng.uniform(40, 140), rng.uniform(30, 90),
+                    rng.uniform(0, 360))
+        ai, gs = _ai([me, foe])
+        order = rng.choice(["", SpecialOrder.BURN_RETROS.value])
+        cmds = ai._plan_move_toward(me, foe, order, 0)
+        res = validate_movement(me, cmds, order, table_width=180.0, table_height=120.0)
+        assert not res.errors, (name, order, ai._last_move_source, res.errors)
+
+
+def test_supported_ships_move_first():
+    """Coordination (To do 11 a): the commander's ship, then carriers, other
+    capital ships, escorts last; squadrons stay together."""
+    from tests.conftest import make_ship
+    bay = {"name": "Bays", "weapon_type": "launch_bay", "strength": 2, "arcs": []}
+    ships = [make_ship(id="e1", player=1, ship_type="escort", squadron_id="sq"),
+             make_ship(id="c", player=1),
+             make_ship(id="e2", player=1, ship_type="escort", squadron_id="sq"),
+             make_ship(id="cv", player=1, weapons=[bay]),
+             make_ship(id="f", player=1, is_flagship=True)]
+    order = [s.id for s in AIPlayer._coordinated_order(ships)]
+    assert order == ["f", "cv", "c", "e1", "e2"]

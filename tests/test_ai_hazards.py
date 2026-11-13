@@ -52,7 +52,10 @@ def test_planner_steers_out_of_a_torpedo_line():
     from src.movement import validate_movement
     r = validate_movement(gs.get_ship_by_id("s"), cmds, "", table_width=gs.table_width,
                           table_height=gs.table_height)
-    assert r.valid and abs(r.final_x - 60.0) > 3.0       # doesn't end in the salvo's path
+    # doesn't end in the salvo's path (its base plus the marker's half width)
+    from src.ai_hazards import TORP_CONTACT_HALF_W
+    contact = gs.get_ship_by_id("s").base_radius + TORP_CONTACT_HALF_W
+    assert r.valid and abs(r.final_x - 60.0) > contact
 
 
 def test_targeting_prefers_a_kill_and_avoids_overkill():

@@ -143,9 +143,10 @@ def test_expert_root_moves_pay_the_path_hazards():
     from src.ai_hazards import move_hazard_vp
     from src.lookahead_ai import LookaheadAI
     from src.turn_controller import TurnController
-    field = make_phenomenon("asteroid_field", x=60.0, y=60.0, width=4.0, height=4.0)
+    field = None
 
     def scene(with_field, cost=True):
+        nonlocal field
         me = make_ship(id="me", player=1, x=40.0, y=60.0, heading=0.0, speed=20,
                        weapons=[dict(w) for w in GUNS], points_value=180, turrets=0)
         foe = make_ship(id="foe", player=2, x=100.0, y=60.0, heading=180.0, speed=0,
@@ -158,21 +159,30 @@ def test_expert_root_moves_pay_the_path_hazards():
         ai = LookaheadAI(1, TurnController(gs, dice), gs, dice)
         ai.difficulty = "expert"
         ai.DEPTH, ai.TIME_BUDGET = 2, 5.0
+        ai.ROOT_MOVES = 999          # every candidate: the ordering (which counts
+        #                              hazards) mustn't filter the moves here
         if not cost:
             ai._vp_to_score = lambda st: 0.0
+            # the root ordering (normal move score) sees hazards too; blind it
+            ai._position_penalty = lambda *a, **k: 0.0
         ship = gs.get_ship_by_id("me")
         cmds = ai._plan_move_toward(ship, gs.get_ship_by_id("foe"), "", 0)
         return ai, ship, cmds
 
     def risk(ai, ship, cmds):
+        nonlocal field
+        from src.movement import validate_movement
         gs = make_gs([ship])
         gs.phenomena = [field.to_dict()]
-        turn = sum((c.value if c.action == "turn_left" else -c.value)
-                   for c in cmds if c.action.startswith("turn"))
-        dist = sum(c.value for c in cmds if c.action == "forward")
-        fx, fy, _ = ai._simulate_final_pos(ship, turn, dist)
-        return move_hazard_vp(ship, (fx, fy), ai._simulate_path(ship, turn, dist), gs, "")["vp"]
-    assert risk(*scene(False)) > 0               # its best move would clip the field
+        res = validate_movement(ship, cmds, "", table_width=180.0, table_height=120.0)
+        path = list(res.path)
+        return move_hazard_vp(ship, path[-1], path, gs, "")["vp"]
+    # the field goes where its best move ends without one, so that move clips it
+    from src.movement import validate_movement
+    ai0, ship0, cmds0 = scene(False)
+    end = validate_movement(ship0, cmds0, "", table_width=180.0, table_height=120.0).path[-1]
+    field = make_phenomenon("asteroid_field", x=end[0], y=end[1], width=4.0, height=4.0)
+    assert risk(ai0, ship0, cmds0) > 0           # its best move would clip the field
     assert risk(*scene(True, cost=False)) > 0    # blind to it without the cost
     assert risk(*scene(True)) == 0.0             # with the cost: a move clear of it
 

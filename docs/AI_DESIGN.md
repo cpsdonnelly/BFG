@@ -149,8 +149,13 @@ minimum move or at the end of its move, escorts and Burn Retros at the very star
 (minimum move) distance; on top of the old grid come two goals against its target: the end
 heading that brings the most guns to bear (searched every 5 degrees) and the distance that
 lands in the range bracket where it beats the target most (from the matchup table). Every
-candidate is checked against the movement rules. About 30-65 candidates a ship, a few
-milliseconds. The other goals, refinement and the coordination pass are still to come.
+candidate is checked against the movement rules. **Second slice built**: more goals (closing
+prow-on to where the target will be, into its rear arc, guns on a second enemy, an escort to the
+commander's ship), the best three refined by small changes to angle, distance and turn point,
+ships moving in support order (the commander's ship first, escorts last), and the expert's
+root using the same candidates, best first. About 35 candidates and 40ms a ship. Still to
+come: torpedo-lane, raid-reach and Lock-On goals, a denser grid in crowded fights, and the
+full coordination pass.
 
 **Target-directed candidates** (Planned in full, owner; replaces the earlier idea of headings every 15
 degrees, about 150 candidates, which survives only as a fallback). Candidates propose, values
@@ -388,11 +393,12 @@ Each ordnance phase the AI plans fighters across all its carriers:
   -45 / 0 / +45 per move, 20/30/40cm for Tau missiles), pruned to well under a second.
 - **Strikes**: every enemy within three craft moves x every fighter / bomber split x every
   interception case.
-- **Planned** (To do 11 a, the rest): more goals (Armour facing, out of arcs, torpedo lines,
-  raid reach, Lock On next turn, fleet-wide goals), a denser grid in crowded or hazard-dense
-  fights or small reachable areas, the best few refined by hill-climbing, exposure only on the
-  best ~20, then a fleet coordination pass.
-- **Expert AI movement**: for each ship, 9 candidate moves at the root, each followed by a
+- **Planned** (To do 11 a, the rest): torpedo-line, raid-reach and Lock-On goals, a denser
+  grid in crowded or hazard-dense fights or small reachable areas, exposure only on the best
+  ~20, then the full fleet coordination pass (built: Armour-facing and rear-arc goals,
+  hill-climbing, the support move order).
+- **Expert AI movement**: for each ship, up to 12 of the normal AI's candidates at the root
+  (best first), each followed by a
   minimax search 5 turns deep that tries 6 variations of each side's moves per step and keeps
   the best 4 (alpha-beta pruning), within 2 seconds per ship.
 
