@@ -53,6 +53,7 @@ class AATurn:
         self.tracker: Optional[EdgeTracker] = None
         self.scheduler: Optional[PhaseScheduler] = None
         self.command_check_failed: Dict[int, bool] = {1: False, 2: False}
+        self.ord_moves: Dict[str, Dict[int, int]] = {}
 
     # --- round structure ---------------------------------------------------
     @property
@@ -146,16 +147,17 @@ class AATurn:
     # --- ordnance cadence ----------------------------------------------------
     def may_move_ordnance(self, marker: Dict) -> bool:
         """Ordnance moves `first_turn_moves` times in its first round on the
-        board, `later_moves` afterwards, one move per ordnance phase."""
+        board, `later_moves` afterwards, one move per ordnance phase. Moves are
+        counted here by marker id (markers are rebuilt from dicts, so extra
+        fields wouldn't survive)."""
         launched = marker.get("aa_round_placed", marker.get("launched_turn", self.round))
-        used = (marker.get("aa_moves") or {}).get(str(self.round), 0)
+        used = self.ord_moves.get(marker.get("id"), {}).get(self.round, 0)
         return used < ordnance_moves(launched, self.round, self.cfg)
 
-    @staticmethod
-    def record_ordnance_move(marker: Dict, rnd: int) -> None:
-        moves = dict(marker.get("aa_moves") or {})
-        moves[str(rnd)] = moves.get(str(rnd), 0) + 1
-        marker["aa_moves"] = moves
+    def record_ordnance_move(self, marker: Dict, rnd: int = None) -> None:
+        rnd = self.round if rnd is None else rnd
+        moves = self.ord_moves.setdefault(marker.get("id"), {})
+        moves[rnd] = moves.get(rnd, 0) + 1
 
     def launch_allowed(self) -> bool:
         """New ordnance is launched in the configured ordnance phase."""

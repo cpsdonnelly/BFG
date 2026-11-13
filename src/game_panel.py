@@ -11,9 +11,10 @@ from .movement_panel import MovementPanel
 from .combat_panel import CombatPanel
 from .ordnance_panel import OrdnancePanel
 from .end_phase_panel import EndPhasePanel
+from .aa_panel import AAPanelMixin
 
 
-class GamePanel:
+class GamePanel(AAPanelMixin):
     """
     Controls panel for running the game turn-by-turn.
     Attaches to an existing Tk frame (the side panel of BoardView).
@@ -396,7 +397,11 @@ class GamePanel:
             w.pack_forget()
 
         phase = gs.current_phase
-        if phase == "movement":
+        if phase == "command":                 # alternate activation's orders
+            self.order_btn.pack(pady=2)
+            self.end_phase_btn.pack(pady=5)
+            self.vp_btn.pack(pady=2)
+        elif phase == "movement":
             self.order_btn.pack(pady=2)
             self.move_btn.pack(pady=2)
             self.move_squad_btn.pack(pady=2)
@@ -561,6 +566,34 @@ class GamePanel:
         tk.Checkbutton(adv_frame, text="Remastered escort squadron VP (p.121: only a whole "
                        "squadron destroyed scores; disengaged 25% if crippled, else 10%)",
                        variable=esc_vp_var, font=("Consolas", 8)).pack(anchor=tk.W)
+        # Alternate activation (To do 13, optional, outside the booklet): chosen
+        # before the game starts; the open framework items are settings too
+        aa_row = tk.Frame(adv_frame)
+        aa_row.pack(anchor=tk.W)
+        tk.Label(aa_row, text="Turn system:", font=("Consolas", 8)).pack(side=tk.LEFT)
+        aa_labels = {"igougo": "IGOUGO (booklet)", "aa": "Alternate activation (draft)"}
+        aa_var = tk.StringVar(value=aa_labels.get(getattr(gs, "turn_system", "igougo")))
+        started = gs.current_phase != "setup"
+        ttk.Combobox(aa_row, textvariable=aa_var, values=list(aa_labels.values()),
+                     state="disabled" if started else "readonly", width=26,
+                     font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        aa_set = dict(getattr(gs, "aa_settings", {}) or {})
+        aa_modes = {"bag_adjusted": "System 3: adjusted bag", "bag": "System 2: bag",
+                    "fixed_initiative": "System 1: fixed initiative"}
+        aa_mode_var = tk.StringVar(value=aa_modes[aa_set.get("order_mode", "bag_adjusted")])
+        aa_row2 = tk.Frame(adv_frame)
+        aa_row2.pack(anchor=tk.W)
+        ttk.Combobox(aa_row2, textvariable=aa_mode_var, values=list(aa_modes.values()),
+                     state="disabled" if started else "readonly", width=26,
+                     font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        aa_order_var = tk.StringVar(value=aa_set.get("phase_order", "shoot_first"))
+        ttk.Combobox(aa_row2, textvariable=aa_order_var, values=["shoot_first", "move_first"],
+                     state="disabled" if started else "readonly", width=12,
+                     font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        aa_launch_var = tk.StringVar(value=aa_set.get("launch_phase", "ordnance_b"))
+        ttk.Combobox(aa_row2, textvariable=aa_launch_var, values=["ordnance_b", "ordnance_a"],
+                     state="disabled" if started else "readonly", width=11,
+                     font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
 
         camp_frame = tk.LabelFrame(dialog, text="Campaign / Scenario", font=("Consolas", 9, "bold"),
                                    padx=8, pady=4)
@@ -678,6 +711,14 @@ class GamePanel:
             from .optional_rules import set_sunward
             set_sunward(gs.rule_fighting_sunward, gs.sunward_edge)
             gs.rule_remastered_escort_vp = esc_vp_var.get()
+            if not started:
+                inv = {v: k for k, v in aa_labels.items()}
+                gs.turn_system = inv.get(aa_var.get(), "igougo")
+                minv = {v: k for k, v in aa_modes.items()}
+                gs.aa_settings = {**aa_set, "order_mode": minv.get(aa_mode_var.get(),
+                                                                    "bag_adjusted"),
+                                  "phase_order": aa_order_var.get(),
+                                  "launch_phase": aa_launch_var.get()}
             # Scenario settings (only if not locked)
             if not locked:
                 gs.scenario_mode = scen_var.get()
@@ -1033,6 +1074,10 @@ class GamePanel:
         gs = self.ctx.gs
         self._first_turn_roll_off()
         tc.start_game()
+        if self._aa_on():
+            # Alternate activation (To do 13): the AA driver runs the rounds
+            self._aa_begin()
+            return
         tc.begin_phase("movement")
         with self._auto_dice_if(self._is_ai_turn()):
             self.movement._process_movement_phase_start()
@@ -1108,6 +1153,10 @@ class GamePanel:
         prompts aimed at a human player and the interactive end phase.
         """
         if self._game_over:
+            return
+        if self._aa_on() and self.aa is not None:
+            if not from_ai:
+                self._aa_end_button()
             return
         gs = self.ctx.gs
         tc = self.ctx.tc

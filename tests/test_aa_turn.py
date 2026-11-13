@@ -83,8 +83,8 @@ def test_orders_and_brace_cleared_at_the_new_round():
 def test_ordnance_cadence_and_launch_phase():
     gs, tc, aa = _game()
     aa.start_game()
-    new = {"aa_round_placed": 1}
-    old = {"aa_round_placed": 0}
+    new = {"id": "n", "aa_round_placed": 1}
+    old = {"id": "o", "aa_round_placed": 0}
     assert aa.may_move_ordnance(new)
     aa.record_ordnance_move(new, 1)
     assert not aa.may_move_ordnance(new)          # one move on its first round

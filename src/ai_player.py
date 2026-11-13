@@ -2445,6 +2445,8 @@ class AIPlayer:
         # "craft": [(phase, fighters, bombers, f_save, b_save)]}} for the turret
         # split (owner: co-ordinate bombers and missiles, s.28)
         self._ord_arrivals = {}
+        if getattr(self, "aa_no_launch", False):
+            return                    # AA: launches happen in the other ordnance phase
         enemies = self._live_enemies()
         self._fleet_defence = (self._plan_fleet_defence(enemies)
                                if enemies and self.difficulty != "easy" else None)

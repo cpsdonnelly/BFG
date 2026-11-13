@@ -1549,6 +1549,18 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    confirm with the owner (`tests/test_aa_ai.py`). Not yet: Brace as a command-phase order for
    the AI (it never declares Brace there) and switching off the reactive Brace prompts in AA;
    passing; System 1 forcing.
+   Game window built (`src/aa_panel.py`, `AAPanelMixin` on GamePanel): Advanced settings pick
+   the turn system (IGOUGO / AA, before the game starts) and the order system, phase order and
+   launch phase; after deployment `_aa_begin` runs `AATurn` (`_aa_step`): command orders, the
+   ordnance phases (each side's AI `run_ordnance_phase` with `aa_no_launch` outside the launch
+   phase, then `_resolve_ordnance_movement` with the cadence hook `OrdnancePanel.aa_turn`),
+   activations one unit at a time (AI by `aa_pick_unit`; a human acts with the usual buttons
+   and presses End Phase, the unit being the ship / squadron that moved or fired), the end
+   phase for both players. AI activations use the normal AI even at expert (no per-unit
+   search yet). `tools/gui_checks/gui_spectator_aa.py <mode> [shoot_first|move_first]` plays
+   an AI-vs-AI AA game to game over (all three systems pass, ~75-80s). Not yet: a human
+   command phase that only offers orders (the order button is shown; the IGOUGO checks on
+   orders still apply), limiting a human activation to one unit, Brace prompts in AA.
    Still to do: the AA round (Command,
    Ordnance A, Shooting, Movement, Ordnance B, End) in the turn controller and the UI, Brace
    as a command-phase order, ordnance 1 / 2 moves, boarding and ramming locked on

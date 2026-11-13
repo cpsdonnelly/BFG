@@ -829,6 +829,12 @@ class OrdnanceMovementMixin:
                 marker = OrdnanceMarker.from_dict(o_dict)
                 if marker.owner_player != mover:
                     continue
+                aa = getattr(self, "aa_turn", None)
+                if aa is not None:
+                    # Alternate activation: 1 move on its first round, then 2
+                    if not aa.may_move_ordnance(o_dict):
+                        continue
+                    aa.record_ordnance_move(o_dict)
                 if marker.wave_id:
                     # A wave moves as one marker, at its slowest squadron's
                     # speed, with one blast marker roll (s.25)
