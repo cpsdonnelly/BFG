@@ -257,10 +257,13 @@ non-crippled ship that disengages gives 10% ("Enemies Scattered", s.38).
 
 ### Special orders
 
-**Built today** (basic): Burn Retros when the safest half-speed move saves more hazard than half
-the ship's firepower is worth; otherwise Lock On whenever an enemy is in a battery / lance arc
-and range now; otherwise Reload Ordnance when ordnance is spent; it stops when a command check
-fails. Never All Ahead Full or Come to New Heading. Brace for Impact is a reaction, priced
+**Built today**: Burn Retros when the safest half-speed move saves more hazard than half
+the ship's firepower is worth; otherwise Lock On or All Ahead Full by the value of the move
+each allows (the target in arc after the move), against Reload Ordnance valued as next turn's
+launch (a strike or CAP for spent bays, the salvo's expected hits for spent torpedoes), all in
+expected VP; with nothing better a spent ship reloads (it costs no firepower). Each ship's
+order is skipped when its failure would block more valuable later orders. Never Come to New
+Heading yet. Brace for Impact is a reaction, priced
 (built): the VP its 4+ saves are expected to keep (this attack and enemies still to fire)
 against half the ship's fire until the end of its next turn, at the command check's odds; with a
 turn limit both by certainty equivalent (ahead it braces more readily). The commander's ship

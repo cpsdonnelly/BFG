@@ -279,3 +279,29 @@ def test_easy_moves_are_softmax_choices():
         assert not res.errors
         seen.add((round(res.final_x, 1), round(res.final_y, 1)))
     assert len(seen) > 1
+
+
+def test_reload_by_value_against_lock_on():
+    """To do 10 b: Reload Ordnance is valued as next turn's launch and weighed
+    against Lock On in expected VP. A Lunar with spent torpedoes and an enemy
+    abeam Locks On (its broadsides are worth more than one strength-6 salvo a
+    turn on); with nothing worth Locking On for it reloads."""
+    me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    abeam = _ship("Lunar Class Cruiser", 2, 75.0, 82.0, 0.0)
+    ai, gs = _ai([me, abeam])
+    me = gs.get_ship_by_id(me.id)
+    me.ordnance_loaded_torps = False
+    gs.update_ship(me)
+    rv = ai._reload_value(me)
+    assert rv > 0
+    from src.ai_hazards import value_per_hit
+    gun_vp = ai._lock_on_gain(me) * 0.35 * value_per_hit(abeam, gs)
+    want = SpecialOrder.LOCK_ON.value if gun_vp >= rv else SpecialOrder.RELOAD_ORDNANCE.value
+    assert ai._pick_special_order(me) == want
+    ahead = _ship("Lunar Class Cruiser", 2, 100.0, 60.0, 180.0)
+    ai2, gs2 = _ai([me, ahead])
+    assert ai2._pick_special_order(gs2.get_ship_by_id(me.id)) == SpecialOrder.RELOAD_ORDNANCE.value
+    # a far enemy out of torpedo reach: nothing to gain next turn, still reloads
+    far = _ship("Lunar Class Cruiser", 2, 175.0, 115.0, 180.0)
+    ai3, gs3 = _ai([me, far])
+    assert ai3._reload_value(gs3.get_ship_by_id(me.id)) == 0.0

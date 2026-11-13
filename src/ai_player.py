@@ -1233,9 +1233,7 @@ class AIPlayer:
         elif order == SpecialOrder.BURN_RETROS.value:
             g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
         elif order == SpecialOrder.RELOAD_ORDNANCE.value:
-            n = sum(w.get("strength", 0) for w in ship.weapons
-                    if w.get("weapon_type") in ("torpedo", "launch_bay", "mine_launcher"))
-            g = 0.5 * n * vph
+            g = self._reload_value(ship)
         else:
             g = 0.0
         return order, g, p
@@ -1258,22 +1256,97 @@ class AIPlayer:
                             check_weapon_in_range(ship, weapon, enemy.x, enemy.y)):
                         return SpecialOrder.LOCK_ON.value
         else:
+            # Lock On / All Ahead Full against Reload Ordnance, all in expected VP
+            # (To do 10 b): the gun gains at 0.35 hits a point at the target's
+            # value a hit, the reload at next turn's launch (_reload_value)
             lock, aaf = self._lock_on_gain(ship), self._aaf_gain(ship)
             if max(lock, aaf) > 0:
-                return (SpecialOrder.LOCK_ON.value if lock >= aaf
-                        else SpecialOrder.ALL_AHEAD_FULL.value)
+                from .ai_hazards import value_per_hit
+                target = self._focus_for(ship) or self._nearest_enemy(ship)
+                vph = value_per_hit(target, self.gs) if target else 0.0
+                gun_vp = max(lock, aaf) * 0.35 * vph
+                if not (self._ordnance_spent(ship) and self._reload_value(ship) > gun_vp):
+                    return (SpecialOrder.LOCK_ON.value if lock >= aaf
+                            else SpecialOrder.ALL_AHEAD_FULL.value)
 
-        # Reload if ordnance spent
-        has_torps = any(w.get("weapon_type") == "torpedo" for w in ship.weapons)
-        has_bays  = any(w.get("weapon_type") == "launch_bay" for w in ship.weapons)
-        has_mines = any(w.get("weapon_type") == "mine_launcher" for w in ship.weapons)
-        if ((has_torps and not ship.ordnance_loaded_torps) or
-                (has_bays and not ship.ordnance_loaded_craft) or
-                (has_mines and not ship.ordnance_loaded_mines) or
-                "armageddon_spent" in ship.special_rules):
+        # Reload if ordnance spent (it costs no firepower, so nothing better
+        # to do means reload)
+        if self._ordnance_spent(ship):
             return SpecialOrder.RELOAD_ORDNANCE.value
 
         return None
+
+    @staticmethod
+    def _ordnance_spent(ship: Ship) -> bool:
+        has = {w.get("weapon_type") for w in ship.weapons}
+        return (("torpedo" in has and not ship.ordnance_loaded_torps)
+                or ("launch_bay" in has and not ship.ordnance_loaded_craft)
+                or ("mine_launcher" in has and not ship.ordnance_loaded_mines)
+                or "armageddon_spent" in ship.special_rules)
+
+    def _reload_value(self, ship: Ship) -> float:
+        """Expected VP of Reload Ordnance (To do 10 b): next turn's launch from
+        each spent launcher. Bays: the strike planner's strike a turn on
+        (`_strike_option(next_turn=True)`) or the CAP enemy strikes would call
+        for, whichever is more; torpedoes: the salvo's expected hits on the
+        nearest enemy it could reach (two torpedo moves and its move) on the
+        Armour it shows, at its value a hit, discounted to next turn
+        (`phase_weight(2)`); mines half a hit a launcher at the nearest enemy
+        within 60cm (judgement); the Armageddon Gun its value from here."""
+        from .ai_hazards import p_hit, value_per_hit, phase_weight
+        enemies = self._live_enemies()
+        if not enemies:
+            return 0.0
+        v = 0.0
+        if not ship.ordnance_loaded_craft:
+            bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+            if bays:
+                from .ordnance import craft_type_allowed, bay_launch_capacity
+                craft_types = [ct for w in bays for ct in w.get("craft_types", [])
+                               if craft_type_allowed(ct, [w], self.gs)]
+                count = min(bay_launch_capacity(ship, bays, None)[0],
+                            fleet_craft_slots(self.gs, self.player))
+                if craft_types and count > 0:
+                    try:
+                        nxt = self._strike_option(ship, craft_types, count, enemies,
+                                                  next_turn=True)
+                    except Exception:
+                        nxt = None
+                    bv = nxt[0] if nxt else 0.0
+                    friends = [s for s in self.gs.get_ships() if s.player == self.player
+                               and not s.is_destroyed and not s.is_disengaged]
+                    cap = sorted((t[0] for t in self._anticipated_strike_slots(friends)),
+                                 reverse=True)
+                    v += max(bv, sum(cap[:count]))
+        if not ship.ordnance_loaded_torps:
+            for w in ship.weapons:
+                if w.get("weapon_type") != "torpedo":
+                    continue
+                st = w.get("strength") or 0
+                if isinstance(st, str):
+                    from .combat import dice_value_average
+                    st = dice_value_average(st)
+                speed = w.get("torpedo_speed") or 30
+                reach = [e for e in enemies
+                         if ship.distance_to(e) <= 2 * speed + ship.speed + e.base_radius]
+                if not reach or st <= 0:
+                    continue
+                e = min(reach, key=ship.distance_to)
+                v += st * p_hit(e.armor_vs(ship.x, ship.y)) * value_per_hit(e, self.gs) \
+                    * phase_weight(2)
+        if not ship.ordnance_loaded_mines:
+            near = [e for e in enemies if ship.distance_to(e) <= 60.0 + e.base_radius]
+            if near:
+                e = min(near, key=ship.distance_to)
+                n = sum(w.get("strength", 1) or 1 for w in ship.weapons
+                        if w.get("weapon_type") == "mine_launcher")
+                v += 0.5 * n * value_per_hit(e, self.gs)
+        if "armageddon_spent" in ship.special_rules:
+            try:
+                v += max(0.0, self._armageddon_value(ship))
+            except Exception:
+                pass
+        return v
 
     LOCK_ON_GAIN = 0.5      # re-rolled misses: lances exactly +50%, batteries about that
 

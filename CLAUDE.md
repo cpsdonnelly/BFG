@@ -486,7 +486,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1178 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1179 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -515,7 +515,7 @@ UI, AI choices), 7 (scenarios / sub-plots), 14 (Eldar, Necrons), the rest of 4 (
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
 Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
 Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (safety goals, the
-full coordination pass, deeper expert hazards), 10's Come to New Heading and Reload by value,
+full coordination pass, deeper expert hazards), 10's Come to New Heading,
 12 (learned evaluation) after 11, 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -1166,7 +1166,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    the later orders it unblocks, `importance(..., {"blocked_orders_vp"})`), f's modifiers in
    the pass chance, g (Burn Retros pays half the best teleport raid in reach,
    `_teleport_given_up`), b's All Ahead Full (`_aaf_gain`). Not yet: Come to New Heading
-   (two turns), Reload Ordnance by value rather than whenever spent, e.
+   (two turns), e. Built: Reload Ordnance by value (`_reload_value`: next turn's strike or CAP
+   for spent bays, the salvo's expected hits on the nearest enemy in reach for torpedoes at
+   `phase_weight(2)`, mines half a hit a launcher, the Armageddon Gun; weighed against Lock On /
+   All Ahead Full in VP; with nothing better a spent ship still reloads, it costs no firepower).
    a. Lock On is worth it when an enemy WILL or CAN be in arc after the move: value = the
       best straight move under Lock On (no turn), its guns' expected hits at the next
       shooting phase against the enemy's predicted positions with missed dice re-rolled,
