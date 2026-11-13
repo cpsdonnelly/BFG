@@ -786,6 +786,20 @@ or ram (no contact or dead-ahead target arose in the Ork spectator runs with bot
 the mechanics are unit-tested.
 Tests at the end: 1172 pass; every GUI check passed in the last full run (the later
 Armageddon / Kustom Kannon changes were checked with the checks they touch).
+Then ("go" after the brief update), all pushed:
+- Miasma of Pestilence's ordnance part (ordnance attacking it dies on a 6, any blast marker
+  rules); the AI's ordnance values count it and the Modern / Remastered blast-contact roll
+  (`ai_hazards.attack_survival`); `tools/gui_checks/miasma_check.py`.
+- Siren's Summon against plain Leadership tests: voluntary disengage tests can't be taken
+  (`blocked`; a squadron tests from a member outside 15cm), forced ones fail (asteroids, warp
+  rifts, guided torpedo control, Heed the Machine Spirit); the AI's disengage value knows.
+  Reading to confirm: an escort squadron's off-table / forced tests are `blocked` too.
+- To do 10: Reload Ordnance by value (`_reload_value`) and Come to New Heading by value
+  (`_ctnh_moves` two-leg moves, `_ctnh_gain`); only 10 e's small Brace items remain.
+- To do 11 a: safety goals (hazard tangents), disengaging valued at the end position
+  (`_disengage_spot`), one round of the coordination pass (`_coordination_plan`, `_ships_at`).
+  The expert's root moves under Come to New Heading stay one-turn (not yet two).
+Tests: 1183 pass; spectator games (normal, expert, Orks, Space Marines) pass.
 
 ## Bombers vs assault boats (owner idea, done)
 
