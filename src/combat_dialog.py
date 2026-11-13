@@ -43,7 +43,8 @@ class _Tooltip:
 
 # Fire order within one ship's volley: batteries, then lances, then the nova
 # cannon (the target is asked about bracing before each kind, s.7)
-_FIRE_ORDER = {"battery": 0, "lance": 1, "nova_cannon": 2, "armageddon_gun": 3}
+_FIRE_ORDER = {"battery": 0, "lance": 1, "nova_cannon": 2, "armageddon_gun": 3,
+               "star_pulse": 4}
 
 
 class _FireDialog:
@@ -140,6 +141,9 @@ class _FireDialog:
                 desc = ("Armageddon Gun: 90cm straight ahead (any target)"
                         + (f" [cannot fire: {why}]" if why else ""))
                 avail_str = 1
+            elif wtype == "star_pulse":
+                desc = "Star Pulse Generator: every non-Necron ship within 20cm (any target)"
+                avail_str = 1
             else:
                 desc = weapon["name"]
 
@@ -149,7 +153,8 @@ class _FireDialog:
 
             # "all" fires the whole pool; a number splits it (s.13 Splitting Fire)
             str_var = tk.StringVar(value="all" if pool_later else str(avail_str))
-            if wtype not in ("nova_cannon", "armageddon_gun") and (avail_str > 1 or pool_later):
+            if wtype not in ("nova_cannon", "armageddon_gun", "star_pulse") and (
+                    avail_str > 1 or pool_later):
                 tk.Label(row, text="Fire:", font=("Consolas", 8)).pack(side=tk.LEFT)
                 tk.Entry(row, textvariable=str_var, width=3,
                          font=("Consolas", 9)).pack(side=tk.LEFT, padx=2)
@@ -430,6 +435,19 @@ class _FireDialog:
                     all_damage.setdefault(target.id, []).append(
                         (sr.hits, "lance", target, weapon.get("crit_on", 6),
                          self._braced.get(target.id, False), sr.bypass_hits))
+
+            elif wtype == "star_pulse":
+                from .combat import resolve_star_pulse
+                res = resolve_star_pulse(self.attacker, self.ctx.gs, self.ctx.dice)
+                if "error" in res:
+                    self._log(f"  Star pulse: {res['error']}")
+                    weapon_actually_fired = False
+                else:
+                    for sid in res["hits"]:
+                        hs = self.ctx.gs.get_ship_by_id(sid)
+                        if hs is not None:
+                            self._log(f"  Star pulse hits {hs.name}")
+                            self.ctx.check_destruction(hs)
 
             elif wtype == "armageddon_gun":
                 from .combat import resolve_armageddon_gun

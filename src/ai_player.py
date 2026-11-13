@@ -2026,6 +2026,18 @@ class AIPlayer:
             if wtype == "nova_cannon":
                 self._fire_nova_cannon(ship, enemies, weapon)
                 continue
+            if wtype == "star_pulse":
+                from .combat import resolve_star_pulse
+                from .necrons import field_usable, FIELD_RANGE
+                if field_usable(ship.is_crippled, ship.special_order or "") and any(
+                        "necron" not in t.special_rules and ship.distance_to(t)
+                        <= FIELD_RANGE + t.base_radius for t in enemies):
+                    for sid in resolve_star_pulse(ship, gs, self.dice).get("hits", {}):
+                        t = gs.get_ship_by_id(sid)
+                        if t is not None:
+                            self._resolve_kill(t)
+                    ship = gs.get_ship_by_id(ship.id)
+                continue
             if wtype == "armageddon_gun":
                 if self._armageddon_value(ship) > 0:
                     from .combat import resolve_armageddon_gun

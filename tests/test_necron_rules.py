@@ -231,3 +231,25 @@ def test_inertialess_all_ahead_full():
              MoveCommand("forward", 55)]
     assert not validate_movement(n, early, "all_ahead_full", aaf_bonus=40,
                                  table_width=180, table_height=120).valid
+
+
+def test_star_pulse_generator():
+    from tests.conftest import make_ship, make_gs
+    from src.combat import resolve_star_pulse
+    from src.models import OrdnanceMarker
+    n = make_ship(id="n", player=1, x=50.0, y=50.0,
+                  special_rules=["necron", "reactive_hull:5", "necron_awake"])
+    near = make_ship(id="a", player=2, x=60.0, y=50.0, shields_max=0, armor_side="5+",
+                     armor_prow="5+")
+    far = make_ship(id="b", player=2, x=100.0, y=50.0)
+    gs = make_gs([n, near, far])
+    gs.ordnance.append(OrdnanceMarker(id="t", ordnance_type="torpedo_standard", owner_player=2,
+                                      launched_by="b", x=55.0, y=50.0).to_dict())
+    # star pulse vs "a" (5+): 6 hits, crit check 1; ordnance 4+: 5 -> destroyed
+    dice = DiceStub([6, 1, 5])
+    out = resolve_star_pulse(gs.get_ship_by_id("n"), gs, dice)
+    assert out["hits"] == {"a": 1} and out["ordnance_destroyed"] == 1 and dice._idx == 3
+    assert gs.get_ship_by_id("a").hits_remaining == gs.get_ship_by_id("a").hits_max - 1
+    sleepy = gs.get_ship_by_id("n")
+    sleepy.special_rules = ["necron", "reactive_hull:5"]           # conserving power
+    assert "error" in resolve_star_pulse(sleepy, gs, DiceStub([]))

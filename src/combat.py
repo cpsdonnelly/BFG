@@ -1965,3 +1965,38 @@ def resolve_armageddon_gun(ship: Ship, gs, dice: DiceRoller) -> Dict:
     gs.add_log(f"{ship.name} fires the Armageddon Gun"
                + (" (blocked)" if blocked else "") + f": {len(hits)} ship(s) hit")
     return {"hits": hits, "blocked": blocked, "path": (x0, y0, x1, y1)}
+
+
+
+def resolve_star_pulse(ship: Ship, gs, dice: DiceRoller) -> Dict:
+    """A Necron star pulse generator (Xenos p.40): a single roll to hit
+    against the nearest Armour of each non-Necron ship within 20cm, and every
+    enemy ordnance marker within 20cm destroyed on 4+ (each one, waves
+    included). Not while crippled (power conservation counts) or on any order
+    but Lock On. Hits are applied as normal hits (reading: shields stop them).
+    Returns {"hits": {ship id: 1}, "ordnance_destroyed": n} or {"error": ...}."""
+    from .necrons import field_usable, FIELD_RANGE, star_pulse_hits, field_ordnance_kills
+    if not field_usable(ship.is_crippled, ship.special_order or ""):
+        return {"error": "a star pulse generator can't fire while crippled or on special "
+                         "orders other than Lock On"}
+    targets = [t for t in gs.get_ships() if "necron" not in t.special_rules
+               and not t.is_destroyed and not t.is_disengaged
+               and ship.distance_to(t) <= FIELD_RANGE + t.base_radius]
+    out = {"hits": {}, "ordnance_destroyed": 0}
+    rolls = star_pulse_hits(dice, [t.armor_vs(ship.x, ship.y) for t in targets])
+    for t, hit in zip(targets, rolls):
+        if hit:
+            fresh = gs.get_ship_by_id(t.id)
+            apply_damage(fresh, 1, dice, gs, attacker_key=ship.id, origin=(ship.x, ship.y))
+            gs.update_ship(fresh)
+            out["hits"][t.id] = 1
+            gs.add_log(f"{ship.name} star pulse hits {t.name}")
+    import math as _m
+    near = [o for o in gs.ordnance if o.get("owner_player") != ship.player
+            and _m.hypot(o["x"] - ship.x, o["y"] - ship.y) <= FIELD_RANGE]
+    gone = {m["id"] for m in field_ordnance_kills(dice, near, f"{ship.name} star pulse")}
+    if gone:
+        gs.ordnance = [o for o in gs.ordnance if o["id"] not in gone]
+        out["ordnance_destroyed"] = len(gone)
+        gs.add_log(f"{ship.name} star pulse destroys {len(gone)} ordnance marker(s)")
+    return out
