@@ -779,7 +779,7 @@ Later in the same session:
 - AI: lance values use each weapon's hit roll (`ai_hazards.lance_p`).
 Known gaps flagged in CLAUDE.md beside each item: Armageddon reload malfunction (the command
 check keeps only its total, so doubles can't be seen), More Dakka / Bad Moons / Deathskulls /
-Blood Axes / Snakebites, Abaddon's "You Have Failed Me", Rath's random refits, Siren's Summon against plain Leadership tests, Warp Beasts / Berzerker Tide /
+Blood Axes / Snakebites, Abaddon's "You Have Failed Me", Rath's random refits, Warp Beasts / Berzerker Tide /
 Strands of Fortune, daemonships (the next big rules item: they touch every targeting and
 ordnance path), the AA round wiring. In ordinary games the AI rarely gets the chance to board
 or ram (no contact or dead-ahead target arose in the Ork spectator runs with both rules on);

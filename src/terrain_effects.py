@@ -104,14 +104,23 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
         gs.add_log(f"  {ship.name} navigates the asteroid field (Shadow Engines)")
         return {"passed": True, "roll": 0, "needed": ld, "damage": 0}
 
-    roll = sum(dice.roll_d6(num_dice,
-        f"{ship.name} asteroid navigation ({num_dice}D6 vs Ld {ld})"))
-    passed = roll <= ld
+    from .movement import sirens_summon
+    siren = sirens_summon(ship, gs)
+    if siren:
+        # Siren's Summon: a forced Leadership test fails (no re-rolls)
+        gs.add_log(f"  {ship.name} fails asteroid navigation (Siren's Summon)")
+        roll, passed = 0, False
+    else:
+        roll = sum(dice.roll_d6(num_dice,
+            f"{ship.name} asteroid navigation ({num_dice}D6 vs Ld {ld})"))
+        passed = roll <= ld
 
     result = {"passed": passed, "roll": roll, "needed": ld, "damage": 0}
 
     # Escorts can re-roll on failure
-    if not passed and ship.ship_type == "escort":
+    if siren:
+        pass
+    elif not passed and ship.ship_type == "escort":
         gs.add_log(f"  {ship.name} failed but escorts may re-roll")
         roll2 = sum(dice.roll_d6(num_dice,
             f"{ship.name} asteroid re-roll ({num_dice}D6 vs Ld {ld})"))
@@ -181,10 +190,16 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
     3D6 Ld test. Pass: reposition 2D6x10cm away. Fail: lost in warp.
     """
     ld = ship.leadership
-    roll = sum(dice.roll_d6(3, f"{ship.name} warp rift navigation (3D6 vs Ld {ld})"))
-    passed = roll <= ld
-    from .movement import fleet_reroll_offered
-    if not passed and fleet_reroll_offered(gs, ship, "warp rift navigation", roll, ld):
+    from .movement import fleet_reroll_offered, sirens_summon
+    siren = sirens_summon(ship, gs)
+    if siren:
+        # Siren's Summon: a forced Leadership test fails
+        gs.add_log(f"  {ship.name} fails warp rift navigation (Siren's Summon)")
+        roll, passed = 0, False
+    else:
+        roll = sum(dice.roll_d6(3, f"{ship.name} warp rift navigation (3D6 vs Ld {ld})"))
+        passed = roll <= ld
+    if not passed and not siren and fleet_reroll_offered(gs, ship, "warp rift navigation", roll, ld):
         roll = sum(dice.roll_d6(3, f"{ship.name} warp rift fleet re-roll (3D6 vs Ld {ld})"))
         passed = roll <= ld
 

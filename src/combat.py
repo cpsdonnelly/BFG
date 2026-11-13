@@ -829,8 +829,10 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller,
         failed = remaining_hits - saves
         from .chapter_tactics import machine_spirit_ship
         key = attacker_key or "?"
+        from .movement import sirens_summon
         if (failed > 0 and machine_spirit_ship(target)
-                and key not in (target.machine_spirit_used_vs or [])):
+                and key not in (target.machine_spirit_used_vs or [])
+                and not sirens_summon(target, game_state)):
             target.machine_spirit_used_vs = list(target.machine_spirit_used_vs or []) + [key]
             ld_roll = dice.roll_2d6(f"{target.name} Heed the Machine Spirit (Ld 7)")
             if ld_roll <= 7:

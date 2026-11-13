@@ -552,9 +552,17 @@ def slaanesh_penalty(ship: Ship, gs) -> int:
 
 
 def _sirens_summon(ship: Ship, gs) -> bool:
+    """Siren's Summon (Pleasure Fleet of Slaanesh): an enemy vessel within 15cm
+    of a Siren's Summon ship can't use special orders or take any Leadership
+    test (Brace included); a test it is forced to take fails."""
+    if gs is None or ship is None:
+        return False
     return any(s.player != ship.player and "sirens_summon" in s.special_rules
                and not s.is_destroyed and not s.is_disengaged
                and ship.distance_to(s) <= 15.0 for s in gs.get_ships())
+
+
+sirens_summon = _sirens_summon
 
 
 def do_command_check(ship: Ship, order: str, dice: DiceRoller,

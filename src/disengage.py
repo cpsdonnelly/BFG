@@ -60,7 +60,20 @@ def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState) 
         return {"success": False, "roll": 0, "needed": 0, "modifiers": [blocked],
                 "blocked": True, "ships": [s.id for s in ships]}
 
-    best_ship, best = max(((s, get_disengage_ld_modifiers(s, gs)) for s in ships),
+    # Siren's Summon: a member within 15cm of it can't take the test, so the
+    # best-placed member is chosen among the others; none left, the test fails
+    from .movement import sirens_summon
+    able = [s for s in ships if not sirens_summon(s, gs)]
+    if not able:
+        for s in ships:
+            s.must_disengage_tested_turn = gs.turn_number
+            gs.update_ship(s)
+        gs.add_log(f"Squadron {ships[0].squadron_id} can't take a disengage test "
+                   f"(Siren's Summon)")
+        return {"success": False, "roll": 0, "needed": 0, "blocked": True,
+                "modifiers": ["Siren's Summon: no Leadership tests"],
+                "ships": [s.id for s in ships]}
+    best_ship, best = max(((s, get_disengage_ld_modifiers(s, gs)) for s in able),
                           key=lambda pair: pair[1]["effective_ld"])
     ld = best["effective_ld"]
     roll = dice.roll_2d6(
@@ -242,6 +255,12 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
                  and s.player == ship.player and not s.is_destroyed and not s.is_disengaged]
         if len(mates) > 1:
             return squadron_disengage_test(mates, dice, gs)
+
+    from .movement import sirens_summon
+    if sirens_summon(ship, gs):
+        gs.add_log(f"{ship.name} can't take a disengage test (Siren's Summon)")
+        return {"success": False, "roll": 0, "needed": 0, "blocked": True,
+                "modifiers": ["Siren's Summon: no Leadership tests"], "ships": [ship.id]}
 
     ld_info = get_disengage_ld_modifiers(ship, gs)
     ld = ld_info["effective_ld"]

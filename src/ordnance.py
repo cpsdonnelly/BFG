@@ -370,7 +370,13 @@ def guided_control(marker: OrdnanceMarker, game_state: GameState, dice: DiceRoll
         logs.append("  Guided torpedoes: the launching ship is gone; they can't turn")
         return None, logs
 
+    from .movement import sirens_summon
+
     def test(ship, label):
+        if sirens_summon(ship, game_state):
+            # Siren's Summon: no Leadership tests within 15cm of it
+            logs.append(f"  {ship.name} can't take the {label} test (Siren's Summon)")
+            return 99                          # counts as failed
         roll = dice.roll_2d6(f"{ship.name} {label} (Ld {ship.leadership})")
         if roll > ship.leadership and reroll_fn is not None and reroll_fn(ship.player, ship, roll):
             logs.append(f"  {ship.name} rolled {roll}: fleet re-roll")
