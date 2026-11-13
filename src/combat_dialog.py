@@ -408,6 +408,9 @@ class _FireDialog:
                     phenomena, self.ctx.gs.ships,
                     no_column_shifts=self.in_asteroid_field)
                 self._log(f"  {sr.description}")
+                if weapon.get("kustom_kannon"):
+                    from .combat import spend_kustom_kannon
+                    spend_kustom_kannon(self.attacker, weapon, self.ctx.gs)
                 if sr.hits > 0:
                     all_damage.setdefault(target.id, []).append(
                         (sr.hits, "battery", target, weapon.get("crit_on", 6),

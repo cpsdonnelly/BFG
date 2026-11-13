@@ -165,6 +165,17 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
                     problems: List[str]) -> List[dict]:
     if w["kind"] == "gravitic_hooks":
         return []   # tow escorts into battle: fleet building only, no battle effect
+    if w.get("name") == "Kustom Kannon":
+        # Hammer Battlekroozer: fires as an FP6 killkannon or launches S D6+2
+        # torps, one mode per turn, reloaded by Reload Ordnance after either
+        # (its notes); both share the torpedo load (`kustom_kannon`)
+        rng = w.get("range_max_cm") or 30
+        return [{"name": "Prow Kustom Kannon", "weapon_type": "battery", "range_cm": rng,
+                 "strength": 6, "arcs": ["front"], "hits_on": 4, "crit_on": 4,
+                 "kustom_kannon": True},
+                {"name": "Prow Kustom Kannon Torps", "weapon_type": "torpedo", "range_cm": 30,
+                 "strength": 5, "strength_dice": "D6+2", "arcs": ["front"],
+                 "torpedo_type": "standard", "torpedo_speed": 30, "kustom_kannon": True}]
     if w["kind"] == "unparsed":
         m = re.match(r"Dorsal Modular Launch Bays S(\d+) or S(\d+) Torps", w["raw"])
         if m:

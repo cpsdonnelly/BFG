@@ -57,3 +57,16 @@ def test_zzapp_gunz_hit_on_5_and_overload_on_a_rolled_1():
     assert len(gs.blast_markers) == 1          # once a turn
     sr = resolve_lances(s, t, dict(z, strength=4), DiceStub([4, 5, 6, 3]))
     assert sr.hits == 2
+
+
+def test_kustom_kannon_one_mode_per_load():
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.combat import weapon_disabled_by_crit, spend_kustom_kannon
+    h = Ship.from_dict(find_ship_class("Hammer Battlekroozer").to_ship_dict("H", 1, ship_id="h"))
+    gun = next(w for w in h.weapons if w["name"] == "Prow Kustom Kannon")
+    gs = make_gs([h])
+    assert not weapon_disabled_by_crit(h, gun)
+    spend_kustom_kannon(h, gun, gs)
+    h2 = gs.get_ship_by_id("h")
+    assert not h2.ordnance_loaded_torps and weapon_disabled_by_crit(h2, gun)

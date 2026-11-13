@@ -127,13 +127,13 @@ def test_ork_ships_listed_with_reasons_when_not_playable():
     # Gunz, Heavy Gunz, random values, three Armour values and Fighta-Bommerz
     assert sorted(e.ship_class for e in get_faction_ships("orks")) == [
         "Basha Lite Kroozer", "Brute Ramship", "Dethdeala (0-1)", "Gorbag's Revenge (0-1)",
-        "Grunt Assault Ship", "Kill Kroozer", "Kroolboy (0-1)",
+        "Grunt Assault Ship", "Hammer Battlekroozer", "Kill Kroozer", "Kroolboy (0-1)",
         "Onslaught Attack Ship", "Ravager Attack Ship", "Savage Gunship", "Slamblasta (0-1)",
         "Terror Ship"]
     orks = get_faction_ships("orks", include_unsupported=True)
     assert len(orks) == 15
     blocked = [e for e in orks if not e.playable]
-    assert len(blocked) == 3 and all(e.unsupported for e in blocked)
+    assert len(blocked) == 2 and all(e.unsupported for e in blocked)
     reasons = {r for e in orks for r in e.unsupported}
     assert "Zzapp Gunz not modelled yet" not in reasons    # built: lances on 5+ (To do 5)
     assert not any("variable firepower" in r or "launch bay strength" in r

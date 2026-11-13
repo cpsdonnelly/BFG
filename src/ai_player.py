@@ -1535,6 +1535,9 @@ class AIPlayer:
                 sr = resolve_batteries(ship, target, weapon, self.dice,
                                        blast_markers, lock_on=lock_on,
                                        phenomena=phenomena, all_ships=all_ships)
+                if weapon.get("kustom_kannon"):
+                    from .combat import spend_kustom_kannon
+                    spend_kustom_kannon(ship, weapon, gs)
             elif wtype == "lance":
                 sr = resolve_lances(ship, target, weapon, self.dice,
                                     lock_on=lock_on)

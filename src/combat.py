@@ -1033,9 +1033,23 @@ def weapon_in_crit_slot(weapon: Dict, crit_type: str) -> bool:
 
 
 def weapon_disabled_by_crit(ship: Ship, weapon: Dict) -> bool:
-    """Is this weapon out of action because of an armament critical hit?"""
+    """Is this weapon out of action because of an armament critical hit? (Also
+    a Kustom Kannon's gun mode once its shared load is spent: it needs Reload
+    Ordnance after firing in either mode.)"""
+    if weapon.get("kustom_kannon") and weapon.get("weapon_type") == "battery" \
+            and not ship.ordnance_loaded_torps:
+        return True
     return any(weapon_in_crit_slot(weapon, c.get("crit_type", ""))
                for c in ship.critical_damage)
+
+
+def spend_kustom_kannon(ship: Ship, weapon: Dict, game_state) -> None:
+    """After its gun mode fires, the Kustom Kannon must be reloaded (the torps
+    mode unloads it by launching)."""
+    if weapon.get("kustom_kannon") and weapon.get("weapon_type") == "battery":
+        fresh = game_state.get_ship_by_id(ship.id) or ship
+        fresh.ordnance_loaded_torps = False
+        game_state.update_ship(fresh)
 
 
 def _torpedo_crit_location(ship: Ship) -> set:
