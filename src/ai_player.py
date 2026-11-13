@@ -418,6 +418,7 @@ class AIPlayer:
         if near is not None and near.id != enemy.id:
             score += 0.3 * self._arc_score(ship, fx, fy, fh, near)
         score += self.COVERAGE_WEIGHT * self._mount_coverage(ship, fx, fy, fh, enemy)
+        score += self._kite_bonus(ship, fx, fy, fh, enemy)
         score -= self._exposure_penalty(ship, fx, fy, fh, enemy)
         score -= self._carrier_exposure(ship, fx, fy, enemy)
         score -= self._teleport_exposure(ship, fx, fy, enemy)
@@ -427,6 +428,33 @@ class AIPlayer:
         return score
 
     COVERAGE_WEIGHT = 0.5    # judgement: a mount busy on another enemy vs the target
+    KITE_WEIGHT = 0.5        # judgement: the band bonus, a share of the guns that bear
+
+    @staticmethod
+    def _gun_reach(s: Ship) -> float:
+        return max([w.get("range_cm") or 0 for w in s.weapons
+                    if w.get("weapon_type") in ("battery", "lance")] or [0])
+
+    def range_speed_edge(self, ship: Ship, enemy: Ship) -> bool:
+        """To do 8 c: we out-range the enemy's guns and are at least as fast."""
+        return (self._gun_reach(ship) > self._gun_reach(enemy)
+                and (ship.effective_speed or 0) >= (enemy.effective_speed or 0))
+
+    def _kite_bonus(self, ship: Ship, x: float, y: float, h: float, enemy: Ship) -> float:
+        """To do 8 c (kiting): with a range and speed edge, an end position
+        where our guns reach the target but its guns can't reach us even after
+        its next move (distance in (its range + its speed, our range]) earns
+        KITE_WEIGHT x the guns that bear there. No edge (a brawler such as the
+        Slaughter): nothing, so it closes as before. Owner: not a hard rule;
+        it adds to the move score's values."""
+        if self.difficulty == "easy" or not self.range_speed_edge(ship, enemy):
+            return 0.0
+        d = math.hypot(enemy.x - x, enemy.y - y)
+        theirs = self._gun_reach(enemy) + (enemy.effective_speed or 0)
+        if not (theirs < d <= self._gun_reach(ship)):
+            return 0.0
+        return self.KITE_WEIGHT * self._arc_score(ship, x, y, h, enemy, guns_only=True,
+                                                  in_range_only=True)
 
     def _mount_coverage(self, ship: Ship, x: float, y: float, h: float,
                         target: Ship) -> float:

@@ -484,7 +484,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1144 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1145 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -942,7 +942,11 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       of (a) + (b): across the enemy's line of advance our broadsides bear while only its prow
       guns bear back on us. Cost: per candidate move x mounts x enemies (cheap). Squadrons
       should plan together (one heading for the squadron, s.8).
-   c. Kiting (Chaos and other long-range / fast fleets): a matchup check, `range_speed_edge`:
+   c. Built, first form: `range_speed_edge` (longer gun reach and at least the enemy's
+      speed) and `_kite_bonus` (`KITE_WEIGHT` 0.5 x the guns that bear, judgement, at end
+      positions in (its range + its speed, our range]); not yet: the table edge and turning
+      to keep a broadside on a closing enemy. Kiting (Chaos and other long-range / fast
+      fleets): a matchup check, `range_speed_edge`:
       our guns' firepower-weighted range and speed vs the enemy's (on average, per owner). With
       an edge, the move score prefers end positions where we can fire next shooting phase but
       the enemy, after its own move, mostly can't (distance in (enemy range + enemy move, our

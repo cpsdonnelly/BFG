@@ -198,3 +198,17 @@ def test_position_with_an_enemy_off_each_beam_scores_both_broadsides():
     both = ai._mount_coverage(me, 60.0, 60.0, 0.0, port)
     one_side = ai._mount_coverage(me, 60.0, 100.0, 0.0, port)   # both off the starboard side
     assert both > 0 and one_side == 0
+
+
+def test_long_ranged_fast_ship_kites_a_brawler():
+    """To do 8 c: a Murder (speed 25, 45-60cm guns) facing a Lunar (20cm, 30cm
+    guns) gains in the 50-60cm band; a Slaughter (30cm guns) has no edge."""
+    lunar = _ship("Lunar Class Cruiser", 2, 120.0, 60.0, 180.0)
+    murder = _ship("Murder Class Cruiser", 1, 40.0, 60.0, 0.0)
+    ai, gs = _ai([murder, lunar])
+    assert ai.range_speed_edge(murder, lunar)
+    assert ai._kite_bonus(murder, 65.0, 60.0, 0.0, lunar) > 0          # 55cm away
+    assert ai._kite_bonus(murder, 95.0, 60.0, 0.0, lunar) == 0.0       # 25cm: in its reach
+    slaughter = _ship("Slaughter Class Cruiser", 1, 40.0, 60.0, 0.0)
+    ai2, _ = _ai([slaughter, lunar])
+    assert not ai2.range_speed_edge(slaughter, lunar)
