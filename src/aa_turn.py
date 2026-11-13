@@ -144,6 +144,32 @@ class AATurn:
                 self.tracker.unit_destroyed(self.gs)
                 break
 
+    def force_first(self, requests: Dict[int, str], dice) -> Optional[int]:
+        """System 1 forcing (`allow_forcing`): at the start of the shooting or
+        movement phase each requesting player spends a re-roll to make one
+        ship (friendly or enemy) activate first. Both forcing: a dice-off,
+        2D6 + the highest Ld in each fleet, re-rolled on a tie. Returns the
+        winning player (None if nobody forced)."""
+        if not requests or self.scheduler is None or self.scheduler.mode != "fixed_initiative":
+            return None
+        paid = {p: k for p, k in requests.items() if self.tc.use_fleet_reroll(p)}
+        if not paid:
+            return None
+        winner = next(iter(paid))
+        if len(paid) == 2:
+            best = {p: max((s.leadership for s in self.gs.get_ships()
+                            if s.player == p and not s.is_destroyed), default=0)
+                    for p in paid}
+            while True:
+                r = {p: dice.roll_2d6(f"Player {p} forcing dice-off (2D6 + Ld {best[p]})")
+                     + best[p] for p in paid}
+                if r[1] != r[2]:
+                    winner = 1 if r[1] > r[2] else 2
+                    break
+        self.scheduler.force(paid[winner])
+        self.gs.add_log(f"[AA] player {winner} forces {paid[winner]} to activate first")
+        return winner
+
     # --- ordnance cadence ----------------------------------------------------
     def may_move_ordnance(self, marker: Dict) -> bool:
         """Ordnance moves `first_turn_moves` times in its first round on the

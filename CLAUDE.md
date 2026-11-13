@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1198 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1199 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1550,8 +1550,12 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    decline while the enemy has units left to move; shooting never; judgement, to confirm).
    Boarding locks built: `aa_turn.lock_boarding` (on declaration, AA only) marks the target
    `Ship.aa_locked`; `is_locked` stops the AI moving, firing or launching a boarder / boarded
-   ship that round (cleared each round); resolution stays in the end phase. Not yet: System 1
-   forcing; ramming resolved in the end phase (it still resolves during the move); locked
+   ship that round (cleared each round); resolution stays in the end phase. System 1 forcing built
+   (`AAConfig.allow_forcing`, off by default, Advanced settings checkbox): `AATurn.force_first`
+   (each forcing player spends a re-roll; both: 2D6 + the fleet's best Ld, ties re-rolled),
+   `PhaseScheduler.force`; humans are asked at the start of each shooting / movement phase
+   (`AAPanelMixin._aa_offer_forcing`); the AI never forces yet. Not yet: a character's
+   ship-only re-roll forcing only that ship; ramming resolved in the end phase (it still resolves during the move); locked
    ships enforced for humans.
    Game window built (`src/aa_panel.py`, `AAPanelMixin` on GamePanel): Advanced settings pick
    the turn system (IGOUGO / AA, before the game starts) and the order system, phase order and

@@ -22,6 +22,7 @@ class AAConfig:
     capital_squadrons_as_one: bool = False      # notes' numbers assume separate units
     recompute: str = "start_only"
     allow_pass: bool = True                     # proposed, not yet confirmed
+    allow_forcing: bool = False                 # System 1's optional forcing (ABFG)
     # System 3 band table: (gap at least, choice, extra dice divisor or None)
     bands: List[Tuple[float, bool, Optional[int]]] = field(default_factory=lambda: [
         (0.5, True, None), (1.5, True, 3), (3.0, True, 2)])

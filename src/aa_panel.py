@@ -104,6 +104,7 @@ class AAPanelMixin:
                     if self.ctx.is_ai_controlled(p):
                         self._aa_ai(p).aa_phase_start(ph)
                 self._aa_phase_started = True
+                self._aa_offer_forcing(ph)
             nxt = self.aa.next_activation()
             if nxt is None:
                 return self._aa_next_phase()
@@ -139,6 +140,33 @@ class AAPanelMixin:
                 gs.active_player = p
                 self.ctx.tc.end_phase()
             return self._aa_next_phase()
+
+    def _aa_offer_forcing(self, ph: str) -> None:
+        """System 1 forcing (`allow_forcing`): each human with a re-roll may
+        make one ship activate first. The AI doesn't force yet (judgement:
+        not valued)."""
+        cfg = self.aa.cfg.activation
+        if cfg.order_mode != "fixed_initiative" or not cfg.allow_forcing:
+            return
+        from tkinter import messagebox
+        requests = {}
+        for p in (1, 2):
+            if self.ctx.is_ai_controlled(p) or self.ctx.tc.get_fleet_rerolls(p) <= 0:
+                continue
+            if not messagebox.askyesno("Force an activation",
+                                       f"Player {p}: spend a re-roll to make one ship "
+                                       f"(yours or the enemy's) activate first this {ph} phase?"):
+                continue
+            ships = [s for s in self.ctx.gs.get_ships() if not s.is_destroyed
+                     and not s.is_disengaged]
+            pick = self.ctx.pick_ship(ships, "Ship to activate first")
+            if pick is not None:
+                unit = next((u for us in self.aa.scheduler.eligible.values() for u in us
+                             if pick.id in u.ship_ids), None)
+                if unit is not None:
+                    requests[p] = unit.key
+        if requests:
+            self.aa.force_first(requests, self.ctx.dice)
 
     def _aa_wait(self, what, text: str) -> None:
         self._aa_waiting = what

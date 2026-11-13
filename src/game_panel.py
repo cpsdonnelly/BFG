@@ -590,6 +590,10 @@ class GamePanel(AAPanelMixin):
         ttk.Combobox(aa_row2, textvariable=aa_order_var, values=["shoot_first", "move_first"],
                      state="disabled" if started else "readonly", width=12,
                      font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        aa_force_var = tk.BooleanVar(value=aa_set.get("allow_forcing", False))
+        tk.Checkbutton(adv_frame, text="AA System 1: allow forcing an activation with a re-roll",
+                       variable=aa_force_var, font=("Consolas", 8),
+                       state=tk.DISABLED if started else tk.NORMAL).pack(anchor=tk.W)
         aa_launch_var = tk.StringVar(value=aa_set.get("launch_phase", "ordnance_b"))
         ttk.Combobox(aa_row2, textvariable=aa_launch_var, values=["ordnance_b", "ordnance_a"],
                      state="disabled" if started else "readonly", width=11,
@@ -718,7 +722,8 @@ class GamePanel(AAPanelMixin):
                 gs.aa_settings = {**aa_set, "order_mode": minv.get(aa_mode_var.get(),
                                                                     "bag_adjusted"),
                                   "phase_order": aa_order_var.get(),
-                                  "launch_phase": aa_launch_var.get()}
+                                  "launch_phase": aa_launch_var.get(),
+                                  "allow_forcing": aa_force_var.get()}
             # Scenario settings (only if not locked)
             if not locked:
                 gs.scenario_mode = scen_var.get()

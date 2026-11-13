@@ -119,3 +119,23 @@ def test_boarding_locks_both_ships_in_aa():
             _run_phase(aa, gs)
         aa.advance()
     assert not is_locked(gs.get_ship_by_id("b0"))
+
+
+def test_system1_forcing_spends_a_reroll_and_dice_off():
+    """System 1's optional forcing (ABFG): a re-roll makes one ship, friendly or
+    enemy, activate first; both forcing -> 2D6 + the fleet's best Ld."""
+    gs, tc, aa = _game({"order_mode": "fixed_initiative", "allow_forcing": True})
+    for sid in ("a0", "b0"):
+        s = gs.get_ship_by_id(sid)
+        s.is_flagship, s.rerolls_remaining = True, 1
+        gs.update_ship(s)
+    aa.start_game()
+    aa.advance(); aa.advance()                           # shooting
+    assert aa.phase == "shooting"
+    # player 1 (Ld 8) and player 2 (Ld 7) both force; 2D6 rolls 6 v 9: 14 v 16
+    winner = aa.force_first({1: "a1", 2: "b2"}, DiceStub([6, 9]))
+    assert winner == 2 and aa.next_activation() == (2, "b2")
+    assert gs.get_ship_by_id("a0").rerolls_remaining == 0      # both paid
+    assert gs.get_ship_by_id("b0").rerolls_remaining == 0
+    # nobody can pay any more: no forcing
+    assert aa.force_first({1: "a0"}, DiceStub([])) is None

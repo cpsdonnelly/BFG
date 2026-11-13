@@ -116,6 +116,16 @@ class PhaseScheduler:
             self._pending = first
             self.log.append(f"player {first} takes the first activation (edge choice)")
 
+    def force(self, unit_key: str) -> None:
+        """System 1 forcing (optional, ABFG): this unit, friendly or enemy,
+        activates first this phase."""
+        if self.mode != "fixed_initiative":
+            raise ValueError("forcing is a System 1 option")
+        u = next(u for u in self.order if u.key == unit_key)
+        self.order.remove(u)
+        self.order.insert(0, u)
+        self.log.append(f"unit {unit_key} is forced to activate first")
+
     def remaining(self, player: int) -> List[Unit]:
         return [u for u in self.eligible.get(player, []) if u.key not in self.done[player]]
 
