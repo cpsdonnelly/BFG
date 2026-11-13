@@ -264,6 +264,10 @@ class TurnController:
             # Escort squadrons that lost a ship off the table keep trying to leave
             from .disengage import forced_disengage_tests
             forced_disengage_tests(self.gs, self.dice, self.gs.active_player)
+        if current == "end":
+            # Mark of Chaos Undivided lasts until the end of the turn
+            from .chaos_undivided import end_turn as _undivided_end
+            _undivided_end(self.gs, self.gs.active_player)
         if current == "ordnance":
             # Torpedo bomber salvos have limited fuel (s.21)
             from .ordnance import remove_spent_salvos

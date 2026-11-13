@@ -558,6 +558,13 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if order == SpecialOrder.ALL_AHEAD_FULL.value and "ere_we_go" in ship.special_rules:
         return {"passed": True, "roll": 0, "needed": ship.leadership,
                 "mods": ["'Ere We Go! (automatic pass)"]}
+    if gs is not None:
+        # Mark of Chaos Undivided: before a command check (07_chaos.md)
+        from .chaos_undivided import offer as _undivided
+        if _undivided(gs, ship, order):
+            fresh = gs.get_ship_by_id(ship.id)
+            if fresh is not None:
+                ship.leadership = fresh.leadership
     ld = ship.leadership
     mods = []
     if in_blast:

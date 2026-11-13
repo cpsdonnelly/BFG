@@ -706,6 +706,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "fighta_bommer": "Fighta-Bommerz (fighter/bomber, D3+1 attacks)",
                 "torpedo_bomber": "Torpedo Bombers (fire a S2 salvo)",
                 "tiger_shark": "Tiger Sharks (missile salvo, 4+ resilient)",
+                "stormbird": "Stormbirds (fighter/bomber/assault, 4+ resilient)",
             }
             for ct in sorted(available_types):
                 row = tk.Frame(comp_frame)
@@ -1378,6 +1379,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "fighta_bommer": "Fighta-Bommerz (fighter/bomber, D3+1 attacks)",
                 "torpedo_bomber": "Torpedo Bombers (fire a S2 salvo)",
                 "tiger_shark": "Tiger Sharks (missile salvo, 4+ resilient)",
+                "stormbird": "Stormbirds (fighter/bomber/assault, 4+ resilient)",
             }
             composition_vars = {}
             comp_frame = tk.Frame(bay_frame)

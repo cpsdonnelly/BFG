@@ -60,6 +60,10 @@ class GameState:
     contact_margin_cm: float = 0.2  # wiggle room added to base contact distance checks
     blast_marker_rules: str = "standard"  # s.11: standard | modern | remastered (optional_rules)
     rule_remastered_spillover: bool = False  # s.11 Remastered: one round's markers touch <= 2 ships
+    # Mark of Chaos Undivided (once per game per player): players who have used
+    # it, and the boost in force {player: {"turn": n, "deltas": {ship id: +Ld}}}
+    undivided_used: List[int] = field(default_factory=list)
+    undivided_boost: Dict = field(default_factory=dict)
 
     # Collections
     ships: List[Dict] = field(default_factory=list)
@@ -161,6 +165,8 @@ class GameState:
             "artefact_token_pos": list(self.artefact_token_pos) if self.artefact_token_pos else None,
             "artefact_carrier_id": self.artefact_carrier_id,
             "artefact_owner": self.artefact_owner,
+            "undivided_used": list(self.undivided_used),
+            "undivided_boost": self.undivided_boost,
             "timestamp": time.time(),
         }
 

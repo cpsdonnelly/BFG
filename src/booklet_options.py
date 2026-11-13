@@ -781,6 +781,12 @@ def chaos_options(row: dict) -> List[Dict]:
                       dict({"add_special_rules": [f"mark:{god}"]},
                            **({"stat_delta": {"hits_max": 1}} if god == "nurgle" else {})),
                       ["group:chaos_mark"]) for god, text in CHAOS_MARKS.items()]
+        marks.append(_opt("Mark of Chaos Undivided", "+25pts (the Warmaster's or Lord's "
+                          "ship). Once per game, before a Leadership test or command check, "
+                          "the whole fleet may use this ship's Leadership until the end of "
+                          "the turn.", 25, {"add_special_rules": ["mark:undivided"]},
+                          ["group:chaos_mark",
+                           "requires_any:" + "|".join(commander_names("Chaos"))]))
     csm = [] if "csm_crew" in _built_in_csm(row) else [
         _opt(CSM_CREW, "+35pts. Space Marine boarding, hit-and-run and teleport rules (instead "
              "of the Chaos crew bonus); Leadership on the Astartes table, or +1 to a "
@@ -788,7 +794,23 @@ def chaos_options(row: dict) -> List[Dict]:
              {"add_special_rules": ["csm_crew", "space_marine_crew", "teleport_assault"]}),
         _opt(CHAOS_TERMINATORS, "+25pts. Teleport attacks roll 3D6 and use the best two.", 25,
              {"add_special_rules": ["terminator_honour_guard"]}, [f"requires:{CSM_CREW}"])]
-    return marks + csm
+    # Stormbird gunships (07_chaos.md): any Chaos Space Marine vessel may
+    # replace its attack craft with Stormbirds (multi-role fighter / bomber /
+    # assault boat, 4+ resilient, 20cm), halving its launch capacity (rounding
+    # up; each bay halved, as the owner ruled for Venerable Strike Cruiser
+    # hangars); it may launch no other type, so no torpedo bombers
+    storm = []
+    if any(w.get("kind") == "launch_bays" for w in row.get("weapons", [])):
+        need = [] if "csm_crew" in _built_in_csm(row) else [f"requires:{CSM_CREW}"]
+        storm = [_opt(STORMBIRDS, "No cost given. Stormbird gunships (multi-role fighter / "
+                      "bomber / assault boat, 4+ resilient, 20cm) replace its attack craft; "
+                      "each launch bay's strength is halved (rounding up).", 0,
+                      {"set_craft": {"stormbird": 20}, "halve_bays": True},
+                      ["group:chaos_craft"] + need)]
+    return marks + csm + storm
+
+
+STORMBIRDS = "Stormbird gunships"
 
 
 def _built_in_csm(row: dict) -> List[str]:
@@ -903,7 +925,9 @@ def torpedo_bomber_options(row: dict) -> List[Dict]:
         opts.append(_opt("Attack craft: torpedo bombers", f"+{cost}pts. Its launch bays may "
                          "also launch torpedo bombers (20cm), which fire a strength-2 salvo "
                          "per squadron instead of attacking.", cost,
-                         {"add_craft": {"torpedo_bomber": 20}}))
+                         {"add_craft": {"torpedo_bomber": 20}},
+                         # Chaos: "not if Stormbird gunships taken"
+                         ["group:chaos_craft"] if "Stormbird" in notes else []))
     m = re.search(r"(?:Mantas to|replace Mantas with|replace Manta bombers with) Tiger Shark "
                   r"drone carriers \+(\d+)pts", notes)
     if m:

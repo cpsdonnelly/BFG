@@ -52,6 +52,7 @@ class GamePanel:
         tc.gs.brace_hook = self._brace_hook
         tc.gs.raid_reroll_hook = self._raid_reroll_hook
         tc.gs.ld_reroll_hook = self._ld_reroll_hook
+        tc.gs.undivided_hook = self._undivided_hook
         tc.gs.crit_reroll_hook = self._crit_reroll_hook
         tc.gs.turret_choice_hook = self._turret_choice_hook
         tc.gs.mr_suppress_hook = self._mr_suppress_hook
@@ -288,6 +289,24 @@ class GamePanel:
         from .choice_dialog import choose
         return choose(self.ctx.root, "Mark of Tzeentch", f"Player {player}: {text}",
                       [("Re-roll", True), ("Keep", False)], best)
+
+    def _undivided_hook(self, ship, leader, label):
+        """GameState.undivided_hook: Mark of Chaos Undivided, once per game
+        before a Leadership test or command check. A human owner is asked
+        ("Auto (best)" is the AI's rule); the AI decides for its own fleet.
+        Main thread only."""
+        import threading
+        from .chaos_undivided import ai_wants_undivided
+        best = ai_wants_undivided(self.ctx.gs, ship, leader, label)
+        if (threading.current_thread() is not threading.main_thread()
+                or self.ctx.is_ai_controlled(ship.player)):
+            return best
+        from .choice_dialog import choose
+        return choose(self.ctx.root, "Mark of Chaos Undivided",
+                      f"{ship.name} is about to test Leadership ({label}, Ld {ship.leadership}). "
+                      f"Use the Mark of Chaos Undivided now (once per game): the whole fleet "
+                      f"uses {leader.name}'s Ld {leader.leadership} until the end of the turn?",
+                      [("Use it", True), ("Not now", False)], best)
 
     def _ld_reroll_hook(self, ship, label, roll, needed):
         """GameState.ld_reroll_hook: a failed Leadership test may use a fleet

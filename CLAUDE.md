@@ -837,8 +837,15 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    enemy's ordnance phase (the AI fires in its own; a player can fire in either), the salvo
    aimed by the lead / approach planner, Chaos "not if Stormbird gunships taken"
    (Stormbirds, To do 4), the Explorer's Bor'kan price.
-4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
-   daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
+4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), daemonships, god-fleet boons
+   (built: Mark of Chaos Undivided, `src/chaos_undivided.py`: on the Warmaster's / Lord's
+   ship, 25pts; once per game before a command check the fleet takes its Ld until the end of
+   that player's turn, Ld changes meanwhile kept; `GameState.undivided_hook`, a human is asked
+   with "Auto (best)", the AI uses it when the test gains 0.25 pass chance or the fleet a point
+   of Ld on average (judgement); not yet offered before plain Leadership tests; Stormbird
+   gunships, `booklet_options.STORMBIRDS`: on a Chaos Space Marine vessel, no cost given, the
+   bays carry only Stormbirds (multi-role, as Thunderhawks: 4+, 20cm) at half strength each,
+   rounding up, and exclude torpedo bombers), Ork kustom upgrades / clans (incl. the Ork
    commander's Extra Turrets: 4+), the rest of the secondary commanders (Ork Nobz, Veteran
    Bond-Captains, Inquisitors; built: Elite Daemonhunters, Elite Captains, Bond-Captains, the
    Grey Knights Grand Master, see "Engine notes"), Inquisition Ordos.

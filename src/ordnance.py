@@ -1632,6 +1632,9 @@ CRAFT_STATS = {
     "thunderhawk": (OrdnanceType.THUNDERHAWK.value, 20, 4),
     "gun_cutter": (OrdnanceType.GUN_CUTTER.value, 20, 4),
     "fighta_bommer": (OrdnanceType.FIGHTA_BOMMER.value, 25, 0),
+    # Chaos Stormbird gunships: multi-role fighter / bomber / assault boat, 4+
+    # resilient, 20cm, like Thunderhawks (07_chaos.md)
+    "stormbird": (OrdnanceType.THUNDERHAWK.value, 20, 4),
     # Torpedo bombers (s.21): bombers against other ordnance, never attack
     # ships; they fire a strength-2 salvo instead. Tiger Sharks (Tau, owner
     # ruling): 4+ resilient, and their salvo is a Tau missile salvo
