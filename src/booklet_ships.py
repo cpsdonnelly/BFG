@@ -75,7 +75,10 @@ WEAPON_TYPES = {
     # phantom lances (lances with their own hit rules), torpedoes (re-roll misses)
     "Weapons Battery": "battery", "Pulsar Lance": "lance", "Phantom Lance": "lance",
     "Torpedoes": "torpedo",
+    # Necrons (Xenos p.40): lightning arcs are weapons batteries, particle whips lances
+    "Lightning Arc": "battery", "Particle Whip": "lance",
 }
+_NECRON_WEAPON_FLAGS = {"Lightning Arc": "lightning_arc", "Particle Whip": "particle_whip"}
 _ELDAR_WEAPON_FLAGS = {"Weapons Battery": "eldar_battery", "Pulsar Lance": "pulsar",
                        "Phantom Lance": "phantom", "Torpedoes": "eldar_torpedo"}
 # Eldar craft (MMS p.4): fighters, bombers and (Vampire) assault boats with their own
@@ -395,7 +398,32 @@ def convert_row(row: dict) -> dict:
     rows_w = row["weapons"]
     if row["faction"] == "Eldar":
         rows_w = [_eldar_bays(w) for w in rows_w]
+    necron_extra = []
+    if row["faction"] == "Necrons":
+        keep = []
+        for w in rows_w:
+            raw = (w.get("raw") or "")
+            pm = re.match(r"Portals? (\d+)cm S(\d+)", raw)
+            if w.get("name") in ("Portals", "Portal") or pm:
+                pm = pm or re.match(r"Portals? (\d+)cm S(\d+)", raw)
+                # Portals replace the teleport attack (src/necrons.py): not a gun
+                necron_extra.append({"name": "Portals", "weapon_type": "portal",
+                                     "range_cm": int(pm.group(1)) if pm else 10,
+                                     "strength": int(pm.group(2)) if pm else
+                                     (w.get("value_int") or 1), "arcs": []})
+            elif raw.startswith("Star Pulse Generator"):
+                necron_extra.append({"name": "Star Pulse Generator", "weapon_type": "star_pulse",
+                                     "range_cm": 20, "strength": 1, "arcs": []})
+            else:
+                keep.append(w)
+        rows_w = keep
     weapons = [d for w in rows_w for d in _convert_weapon(w, craft_map, problems)]
+    weapons += necron_extra
+    if row["faction"] == "Necrons":
+        for d in weapons:
+            for k, flag in _NECRON_WEAPON_FLAGS.items():
+                if k in d.get("name", ""):
+                    d[flag] = True
     if row["faction"] == "Eldar":
         for d in weapons:
             src = next((k for k in _ELDAR_WEAPON_FLAGS if d.get("name", "").endswith(k)
@@ -462,6 +490,10 @@ def convert_row(row: dict) -> dict:
             special_rules.append(f"demiurg_vp:{vp.group(1)}")   # Demiurg VP
         if "modular" in (row.get("armament_raw") or "").lower():
             special_rules.append("modular_bays")
+    if row["faction"] == "Necrons":
+        from .necrons import parse_reactive_hull
+        rh = parse_reactive_hull(row.get("shields_raw"))
+        special_rules += ["necron"] + ([f"reactive_hull:{rh}"] if rh else [])
     if row["faction"] == "Eldar":
         # MMS v2.0 faction rules (src/eldar.py); Ghostships keep 6+ crits
         special_rules += ["eldar_mms", "fragile"] + (["holofield"] if holo is not None else [])

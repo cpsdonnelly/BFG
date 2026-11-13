@@ -42,3 +42,19 @@ def test_inertialess_drive_and_weapons():
     dice = DiceStub([6, 4, 2])
     assert necrons.particle_whip(dice, 3) == (2, 1)
     assert necrons.portal_strength(3, 1) == 1 and necrons.portal_strength(4, 2) == 1
+
+
+def test_necron_catalog():
+    """Necron profiles read: no shields, the reactive hull save as a rule,
+    lightning arcs (batteries) and particle whips (lances) flagged, star pulse
+    generators and portals as their own weapon types. Still unsupported."""
+    from src.ship_catalog import find_ship_class
+    e = find_ship_class("Scythe Class Harvest Ship")
+    d = e.to_ship_dict("s", 1)
+    assert d["shields_max"] == 0 and {"necron", "reactive_hull:5"} <= set(d["special_rules"])
+    kinds = {w["name"]: w for w in d["weapons"]}
+    assert kinds["Lightning Arc"]["weapon_type"] == "battery" and kinds["Lightning Arc"]["lightning_arc"]
+    assert kinds["Particle Whip"]["weapon_type"] == "lance" and kinds["Particle Whip"]["particle_whip"]
+    assert kinds["Star Pulse Generator"]["weapon_type"] == "star_pulse"
+    assert kinds["Portals"]["weapon_type"] == "portal" and kinds["Portals"]["strength"] == 3
+    assert any("Necron rules" in u for u in e.unsupported)
