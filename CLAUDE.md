@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1200 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1203 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1601,6 +1601,20 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    critical hits table, Monuments and Necron Lords (the commanders are built, see the Obelisk
    ruling), the Harvest and Dynasty fleet lists (attack ratings 4 / 3), planetary defences
    (Tomb Complex, Pylon, Deathseed mines). The AI then needs each faction's play (To do 11 g).
+   First Eldar slice built (`src/eldar.py`, pure logic, not wired in yet): `parse_speeds`
+   ("10/15/20" = into the sun / away / abeam, the rules' order), `parse_holofield` ("2+H"),
+   `sun_aspect` / `speed_for` (reading to confirm: within 45 degrees of straight towards the
+   sunward edge is into the sun, within 45 of the opposite away, else abeam, exactly 45
+   abeam), `validate_mms_move` (two legs, each a turn on the spot up to the turn angle then a
+   move up to that heading's speed, no minimum; Lock On / AAF no turns, AAF +5D6 to one move,
+   Come to New Heading one extra turn after the second move, no Burn Retros; reading:
+   crippled -5cm on every speed), `mms_end`, holofields (`holofield_gunnery_shift`: one right
+   shift, none under 15cm; `holofield_save`: 5+ beyond 30cm, 6+ at 15-30cm, none under 15cm,
+   stops the blast marker) and Fragile (`crit_threshold` 5, Ghostships 6)
+   (`tests/test_eldar_rules.py`). Next: the catalog (speeds, holofields, Fragile, the Eldar Ld
+   column, Eldar weapons: Weapons Battery left shift, pulsars, phantom lances), combat and
+   movement wiring, Eldar ordnance and turrets, the critical hits table, the move dialog and
+   the AI's MMS moves.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 
