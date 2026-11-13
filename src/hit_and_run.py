@@ -175,9 +175,10 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
         gs.add_log(f"  Raid: {crit_data['name']}")
     if target.hits_remaining > 0:
         # Unused melta / vortex torpedoes in a hit launcher explode (s.16)
-        from .combat import torpedo_launcher_crit
+        from .combat import torpedo_launcher_crit, mine_launcher_crit
         before = target.hits_remaining
-        torpedo_launcher_crit(target, crit_data["crit_type"], dice, gs)
+        if not mine_launcher_crit(target, crit_data["crit_type"], dice, gs):
+            torpedo_launcher_crit(target, crit_data["crit_type"], dice, gs)
         extra += before - target.hits_remaining
 
     from .combat import demiurg_leadership

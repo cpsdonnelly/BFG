@@ -1625,6 +1625,16 @@ class AIPlayer:
                             "torps", []).append((tph, m.strength, (ship.x, ship.y)))
                     ship = gs.get_ship_by_id(ship.id)
 
+            elif wtype == "mine_launcher" and ship.ordnance_loaded_mines:
+                # Mines (s.17) home 10cm on the nearest enemy vessel in every
+                # ordnance phase and stay active until destroyed: lay them when
+                # an enemy is within three turns' reach (20cm a turn), where
+                # they can still find it
+                from .ordnance import lay_mines
+                if any(ship.distance_to(e) <= 60.0 + e.base_radius for e in enemies):
+                    lay_mines(ship, weapon, gs)
+                    ship = gs.get_ship_by_id(ship.id)
+
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft and not bays_held:
                 # All of the ship's bays launch together: launching any craft
                 # means reloading before launching again (s.15)

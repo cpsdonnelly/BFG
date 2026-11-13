@@ -1244,6 +1244,44 @@ def combined_exempt(launchers: List[Ship], game_state: GameState) -> List[str]:
     return sorted(chain)
 
 
+def mine_launch_strength(ship: Ship, weapon: Dict) -> int:
+    """Mines a launcher lays now (s.17: one per launcher a turn), halved
+    (rounding up) when crippled and again when braced, as all ordnance (s.15)."""
+    n = weapon.get("strength", 0) or 0
+    if ship.is_crippled:
+        n = ship.crippled_value(n)
+    if ship.special_order == "brace_for_impact":
+        n = (n + 1) // 2
+    return n
+
+
+def lay_mines(ship: Ship, weapon: Dict, gs: GameState) -> List[OrdnanceMarker]:
+    """Launch one mine per mine launcher (s.17) at the end of the shooting
+    phase, placed on the ship's base; they move 10cm towards the nearest enemy
+    vessel in every ordnance phase. Unloads the ship (mark_launched). Returns
+    the markers."""
+    import random as _rng
+    fresh = gs.get_ship_by_id(ship.id) or ship
+    if not fresh.ordnance_loaded_mines:
+        return []
+    n = mine_launch_strength(fresh, weapon)
+    exempt = compute_torpedo_launch_exempt(fresh, gs)
+    out = []
+    for i in range(n):
+        m = OrdnanceMarker(
+            id=f"mine_{fresh.id}_{gs.turn_number}_{i}_{_rng.randint(0, 9999)}",
+            ordnance_type=OrdnanceType.MINE_FIELD.value, owner_player=fresh.player,
+            launched_by=fresh.id, x=fresh.x + (i - n / 2) * 1.5, y=fresh.y,
+            heading=fresh.heading, strength=1, speed=weapon.get("mine_speed", 10),
+            launched_turn=gs.turn_number, launch_exempt_ships=list(exempt))
+        gs.add_ordnance(m)
+        out.append(m)
+    fresh.mark_launched("mines")
+    gs.update_ship(fresh)
+    gs.add_log(f"{fresh.name} lays {n} mine(s)")
+    return out
+
+
 def reload_ship_ordnance(ship: Ship) -> List[str]:
     """Reload a ship's ordnance (Reload Ordnance order effect).
 

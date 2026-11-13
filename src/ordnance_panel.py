@@ -1251,34 +1251,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
                          font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=5)
 
                 def _lay_mines(w=mw, effective_str=mine_str):
-                    import random as _rng
-                    from .ordnance import compute_torpedo_launch_exempt
-                    spd = w.get("mine_speed", 10)
-                    exempt = compute_torpedo_launch_exempt(ship, self.ctx.gs)
-                    for i in range(effective_str):
-                        # Each mine launcher fires one independent mine marker
-                        marker = OrdnanceMarker(
-                            id=f"mine_{ship.id}_{self.ctx.gs.turn_number}_{i}_{_rng.randint(0,9999)}",
-                            ordnance_type=OrdnanceType.MINE_FIELD.value,
-                            owner_player=ship.player,
-                            launched_by=ship.id,
-                            x=ship.x + (i - effective_str / 2) * 1.5,
-                            y=ship.y,
-                            heading=ship.heading,
-                            strength=1,
-                            speed=spd,
-                            launched_turn=self.ctx.gs.turn_number,
-                            launch_exempt_ships=list(exempt),
-                        )
-                        self.ctx.gs.add_ordnance(marker)
-
-                    ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
-                    if ship_fresh:
-                        ship_fresh.ordnance_loaded_mines = False
-                        self.ctx.gs.update_ship(ship_fresh)
-
-                    self.ctx.log(
-                        f"{ship.name} launches {effective_str} mine(s)")
+                    from .ordnance import lay_mines
+                    lay_mines(ship, w, self.ctx.gs)
+                    self.ctx.log(f"{ship.name} launches {effective_str} mine(s)")
                     dialog.destroy()
                     self.ctx.board.redraw()
 

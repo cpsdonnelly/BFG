@@ -293,13 +293,18 @@ class Ship:
         return min(self.armor_prow_value, self.armor_side_value, self.armor_rear_value)
 
     def mark_launched(self, kind: str) -> None:
-        """A ship has launched torpedoes ("torps") or attack craft ("craft").
-        A Demiurg Bastion's modular bays carry one or the other each ordnance
-        phase (owner ruling), so launching either uses both up."""
-        if kind == "torps" or "modular_bays" in self.special_rules:
+        """A ship has launched torpedoes ("torps"), attack craft ("craft") or
+        mines ("mines"). A Demiurg Bastion's modular bays carry one or the
+        other each ordnance phase (owner ruling), and mines are a third mode of
+        the same bays when bought (Xenos, Bastion), so launching any uses all
+        of them up."""
+        modular = "modular_bays" in self.special_rules
+        if kind == "torps" or modular:
             self.ordnance_loaded_torps = False
-        if kind == "craft" or "modular_bays" in self.special_rules:
+        if kind == "craft" or modular:
             self.ordnance_loaded_craft = False
+        if kind == "mines" or modular:
+            self.ordnance_loaded_mines = False
 
     def crippled_value(self, value: int) -> int:
         """A shield, turret or weapon value while crippled: half, rounding up;

@@ -924,7 +924,22 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
                 return True
         else:
             target.leadership = max(1, target.leadership - 3)
+    if mine_launcher_crit(target, crit_data["crit_type"], dice, game_state):
+        return True
     return torpedo_launcher_crit(target, crit_data["crit_type"], dice, game_state, summary)
+
+
+def mine_launcher_crit(target: Ship, crit_type: str, dice: DiceRoller,
+                       game_state: GameState) -> bool:
+    """s.17: a ship whose mine launchers' location suffers critical damage
+    takes an extra D3 damage as some mines explode. True if reduced to 0."""
+    if not any(w.get("weapon_type") == "mine_launcher" and weapon_in_crit_slot(w, crit_type)
+               for w in target.weapons):
+        return False
+    n = dice.roll_d3(f"{target.name} mines explode in their launchers (D3)")
+    game_state.add_log(f"  {target.name}'s mines explode: {n} extra damage")
+    target.hits_remaining = max(0, target.hits_remaining - n)
+    return target.hits_remaining <= 0
 
 
 def _tzeentch_reroll(target: Ship, roll: int, crit_data: Optional[Dict],

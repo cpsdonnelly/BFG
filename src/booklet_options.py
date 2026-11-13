@@ -775,7 +775,84 @@ def demiurg_war_host_options(row: dict) -> List[Dict]:
                  ["group:war_host_rerolls"]) for n, cost in ((1, 25), (2, 75))]
 
 
+# Mine launcher swaps (s.17; each fleet list's upgrades): "up to two cruisers
+# [or battlecruisers / or heavy cruisers] in the fleet may replace all of their
+# launch bays with mine launchers for +5 points per bay replaced". The roster
+# groups each list's wording names; Tau: any cruiser that isn't a light
+# cruiser ("up to two cruisers ... regardless of faction"). One mine launcher
+# per launch bay (strength), in the same location.
+MINE_SWAP_GROUPS = {
+    "Imperial Navy": ("Cruisers", "Battlecruisers"),
+    "Adeptus Mechanicus": ("Cruisers",),
+    "Space Marines": ("Cruisers",),
+    "Inquisition & Grey Knights": ("Cruisers",),
+    "Chaos": ("Cruisers", "Heavy Cruisers"),
+}
+MINE_SWAP = "Mine launchers (replace all launch bays)"
+
+
+def mine_launcher_options(row: dict) -> List[Dict]:
+    bays = [w for w in row.get("weapons", []) if w.get("kind") == "launch_bays"]
+    modular = "Modular Launch Bays" in (row.get("armament_raw") or "")
+    if not bays and not modular:
+        return []
+    fac = row.get("faction")
+    rules = row.get("faction_rules") or []
+    group = row.get("roster_group") or ""
+    name = row["name"]
+    if "Demiurg" in group or "Bastion" in name:
+        if "Bastion" not in name:
+            return []
+        # Bastion: mines become a third mode of its modular bays (launch
+        # strength equal to its attack craft), keeping the bays
+        cost = 5 * 2
+        return [_opt(MINE_SWAP, f"+{cost}pts: mines as a third mode of the modular bays "
+                     "(strength 2; one mode per turn).", cost,
+                     {"add_weapons": [{"name": "Dorsal Mine Launchers",
+                                       "weapon_type": "mine_launcher", "strength": 2,
+                                       "range_cm": 0, "arcs": ["left", "front", "right"],
+                                       "mine_speed": 10}]},
+                     ["fleet_max:2"])]
+    if fac == "Tau & Allies":
+        if _ship_type_of(row) != "cruiser" or "Light" in name:
+            return []
+    elif fac not in MINE_SWAP_GROUPS or group not in MINE_SWAP_GROUPS[fac]:
+        return []
+    if fac == "Space Marines" and not rules:
+        return []
+    side_name = {"port": "Port", "stbd": "Starboard", "prow": "Prow", "dorsal": "Dorsal"}
+    arcs_for = {"Port": ["left"], "Starboard": ["right"], "Prow": ["front"],
+                "Dorsal": ["left", "front", "right"]}
+    removed, added, total = [], [], 0
+    for w in bays:
+        loc = (w.get("location") or "").title()
+        for bay in w["bays"]:
+            try:
+                n = int(bay["strength"])
+            except (TypeError, ValueError):
+                return []                 # random-strength bays (Orks): not offered
+            side = side_name.get(bay.get("side") or "", "")
+            removed.append(f"{side} Launch Bays".strip())
+            where = side or loc or "Dorsal"
+            added.append({"name": f"{where} Mine Launchers", "weapon_type": "mine_launcher",
+                          "strength": n, "range_cm": 0, "arcs": arcs_for.get(where, ["front"]),
+                          "mine_speed": 10})
+            total += n
+    cost = 5 * total
+    return [_opt(MINE_SWAP, f"+{cost}pts (5 per bay): {total} mine launcher"
+                 f"{'s' if total > 1 else ''} instead of the launch bays; up to two ships "
+                 "in the fleet.", cost,
+                 {"remove_weapons": sorted(set(removed)), "add_weapons": added},
+                 ["fleet_max:2"])]
+
+
 def options_for(row: dict) -> List[Dict]:
+    """Every option for one booklet ship (_options_for) plus the mine launcher
+    swap its fleet lists allow."""
+    return _options_for(row) + mine_launcher_options(row)
+
+
+def _options_for(row: dict) -> List[Dict]:
     """Options for one booklet ship: Space Marine and Inquisition options,
     torpedo types and refits, and each faction's fleet commander."""
     rules = row.get("faction_rules") or []
