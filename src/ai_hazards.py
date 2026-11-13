@@ -41,6 +41,11 @@ def p_sum_at_most(n_dice: int, target: int) -> float:
     return hits / 6 ** n_dice
 
 
+def p_sum_at_least(n_dice: int, target: int) -> float:
+    """P(sum of n D6 >= target)."""
+    return 1.0 - p_sum_at_most(n_dice, target - 1)
+
+
 def p_hit(armour: int) -> float:
     """One die against Armour N+ (a 6 always hits)."""
     return max(1, 7 - armour) / 6.0
@@ -491,8 +496,31 @@ def death_explosion_vp(ship: Ship, gs, player: int, at=None) -> float:
     if not pp and not pw:
         return 0.0
     centre = at or (ship.x, ship.y)
-    return (pp * explosion_vp(centre, ship.hits_max // 2, gs, player, ship.id)
+    return (pp * (explosion_vp(centre, ship.hits_max // 2, gs, player, ship.id)
+                  + plasma_ordnance_vp(centre, gs, player))
             + pw * explosion_vp(centre, ship.hits_max, gs, player, ship.id))
+
+
+def plasma_ordnance_vp(centre, gs, player: int) -> float:
+    """A plasma drive overload destroys all ordnance within its 3D6cm radius
+    (Appendix 5, 9-11; To do 11 c): for `player`, the threat of the enemy's
+    markers removed (marker_threat_vp) minus what our own removed markers would
+    have done (their threat to the enemy), each at the chance the radius
+    (3D6, mean 10.5) reaches it."""
+    total = 0.0
+    for o in gs.ordnance:
+        m = OrdnanceMarker.from_dict(o)
+        if m.cap_ship_id:
+            continue
+        d = math.hypot(m.x - centre[0], m.y - centre[1])
+        p = p_sum_at_least(3, math.ceil(d)) if d > 3 else 1.0
+        if p <= 0:
+            continue
+        if m.owner_player == player:
+            total -= p * marker_threat_vp(m, gs, _opponent(player))
+        else:
+            total += p * marker_threat_vp(m, gs, player)
+    return total
 
 
 def damage_vp(target: Ship, gs, mean_hits: float) -> float:

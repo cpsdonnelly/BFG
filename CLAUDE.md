@@ -484,7 +484,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1149 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1150 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1312,7 +1312,12 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
         rest of that turn. Suggestion: when a ship is crippled or likely to disengage, value
         positions near phenomena before it tries. VP for a non-crippled disengaged ship: 10%
         ("Enemies Scattered", s.38). Check `disengage_gain` uses every modifier.
-      - Plasma drive overload (Appendix 5, 9-11): lance shots at half starting hits at every
+      - Disengage modifiers (checked): blast markers +1, phenomena / bursts / flares +3, -1
+        per enemy ship and enemy ordnance marker within 15cm, Slaanesh -1, max 10.
+      - Plasma drive overload: built, `ai_hazards.plasma_ordnance_vp` in
+        `death_explosion_vp` (enemy markers removed count for us, ours against us, each at
+        P(3D6 reaches it)).
+        Plasma drive overload (Appendix 5, 9-11): lance shots at half starting hits at every
         ship within 3D6cm AND all ordnance within the radius destroyed, so an explosion
         protects its neighbours from incoming waves and salvos; `explosion_vp` counts the
         ship damage only.

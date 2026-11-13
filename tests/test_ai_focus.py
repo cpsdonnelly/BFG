@@ -213,3 +213,18 @@ def test_batteries_fire_before_lances(tmp_path):
     ai._offer_brace = spy
     ai.run_shooting_phase()
     assert order[:2] == ["Prow Battery", "Prow Lance"], order
+
+
+def test_plasma_overload_also_removes_ordnance_near_it():
+    """To do 11 c: a plasma drive overload destroys all ordnance in its 3D6cm
+    radius, so killing a ship next to an enemy salvo bound for our ship is
+    worth more; next to our own salvo, less."""
+    from src.ai_hazards import plasma_ordnance_vp
+    mine = make_ship(id="m", player=1, x=0.0, y=0.0, points_value=200, hits_max=8)
+    foe = make_ship(id="f", player=2, x=40.0, y=0.0, points_value=200, hits_max=8)
+    gs = make_gs([mine, foe])
+    gs.add_ordnance(make_marker(id="t", ordnance_type="torpedo_standard", owner_player=2,
+                                x=30.0, y=0.0, heading=180.0, strength=6, speed=30.0))
+    assert plasma_ordnance_vp((32.0, 0.0), gs, 1) > 0
+    assert plasma_ordnance_vp((32.0, 0.0), gs, 2) < 0
+    assert plasma_ordnance_vp((150.0, 150.0), gs, 1) == 0
