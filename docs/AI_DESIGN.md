@@ -349,8 +349,9 @@ shots. Each wave then faces the turrets alone, suppresses alone and gets half th
 AI splits only when the guns matter more than the turrets (e.g. under two gunships vs a
 1-turret target, not vs 4 turrets).
 
-Planned (To do 2): the risk preference in strike choices, the expert AI valuing its own craft
-in flight; splitting assault boats or waves already in flight. (To do 3): torpedo bombers, whose waves become one combined salvo.
+Built since: the risk preference in strike choices, the expert AI valuing its own craft in
+flight (its search moves our torpedoes and bombers and the enemy's moves dodge them). Planned:
+splitting assault boats or waves already in flight. (To do 3): torpedo bombers, whose waves become one combined salvo.
 
 ---
 

@@ -96,19 +96,68 @@ class SimShip:
 
 
 @dataclass
+class SimOrdnance:
+    """One of the searching player's ordnance markers in flight (To do 2: the
+    expert values its own craft in flight). Torpedoes fly straight; attack
+    craft fly at their target (or the nearest enemy). The enemy's ordnance
+    isn't simulated: the root's path-hazard cost already counts it."""
+    owner: int
+    kind: str                 # "torpedo" or "craft"
+    otype: str
+    x: float
+    y: float
+    heading: float
+    speed: float
+    strength: int = 0
+    target_id: str = ""
+
+    def clone(self) -> "SimOrdnance":
+        return SimOrdnance(self.owner, self.kind, self.otype, self.x, self.y,
+                           self.heading, self.speed, self.strength, self.target_id)
+
+    @classmethod
+    def from_marker(cls, m: dict) -> Optional["SimOrdnance"]:
+        otype = m.get("ordnance_type", "")
+        if m.get("cap_ship_id") or otype in ("mine_field", "torpedo_bomber"):
+            return None
+        if "torpedo" in otype:
+            kind = "torpedo"
+        elif otype in ("bomber", "manta", "thunderhawk", "fighta_bommer", "gun_cutter",
+                       "assault_boat") or "bomber" in otype or "assault" in otype:
+            kind = "craft"
+        else:
+            return None                # fighters don't attack ships
+        target = m.get("craft_target_id") or m.get("torp_target_id") or ""
+        return cls(m.get("owner_player", 0), kind, otype, m.get("x", 0.0), m.get("y", 0.0),
+                   m.get("heading", 0.0), m.get("speed", 30.0) or 30.0,
+                   m.get("strength", 0) or 0, target)
+
+
+@dataclass
 class SimState:
     ships: List[SimShip]
     turn: int
     turn_limit: Optional[int]
     table_w: float = 120.0
     table_h: float = 120.0
+    ordnance: List[SimOrdnance] = field(default_factory=list)
 
     @classmethod
-    def from_gs(cls, gs: GameState) -> "SimState":
+    def from_gs(cls, gs: GameState, ord_player: int = 0) -> "SimState":
+        """ord_player: whose ordnance in flight to simulate (the searching
+        player's; 0 = none)."""
         ships = [SimShip.from_ship(Ship.from_dict(s)) for s in gs.ships]
+        ords = []
+        if ord_player:
+            for m in getattr(gs, "ordnance", []) or []:
+                if m.get("owner_player") == ord_player:
+                    o = SimOrdnance.from_marker(m)
+                    if o is not None:
+                        ords.append(o)
         return cls(ships=ships, turn=gs.turn_number, turn_limit=gs.turn_limit,
                    table_w=getattr(gs, "table_width", 120.0) or 120.0,
-                   table_h=getattr(gs, "table_height", 120.0) or 120.0)
+                   table_h=getattr(gs, "table_height", 120.0) or 120.0,
+                   ordnance=ords)
 
     def clone(self) -> "SimState":
         return SimState(
@@ -117,6 +166,7 @@ class SimState:
             turn_limit=self.turn_limit,
             table_w=self.table_w,
             table_h=self.table_h,
+            ordnance=[o.clone() for o in self.ordnance],
         )
 
     def alive(self, player: int) -> List[SimShip]:
@@ -190,6 +240,81 @@ def _torpedo_hits(attacker: SimShip, target: SimShip) -> float:
         h = left * _p_hit(_armor_facing(target, attacker.x, attacker.y))
         total += h * (1.0 if dist <= spd + target.base_radius else phase_weight(1))
     return total
+
+
+TORP_CONTACT = 1.5          # the marker's half width (ai_hazards.TORP_CONTACT_HALF_W)
+
+
+def _seg_point(px, py, ax, ay, bx, by) -> float:
+    dx, dy = bx - ax, by - ay
+    L = dx * dx + dy * dy
+    t = 0.0 if L == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / L))
+    return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+
+
+def _ordnance_hits(o: SimOrdnance, t: SimShip) -> float:
+    """Expected hits a marker does on contact, as the normal AI's hazard model
+    counts them (ai_hazards.marker_hits): torpedoes strength less turret kills
+    (4+) on the facing they hit (boarding torpedoes half: raids, Tau missiles
+    5/6); bombers D6 attacks less one per turret on the lowest Armour (s.20);
+    assault boats half a hit past the turrets."""
+    if o.kind == "torpedo":
+        left = max(0.0, o.strength - 0.5 * t.turrets)
+        h = left * _p_hit(_armor_facing(t, o.x, o.y))
+        if "boarding" in o.otype:
+            h *= 0.5
+        if o.otype == "torpedo_guided":
+            h *= 5 / 6
+        return h
+    if "assault" in o.otype or o.otype == "gun_cutter":
+        return 0.5 * max(0.0, 1 - 0.5 * t.turrets / 2)
+    lowest = min(parse_armor(a) for a in (t.armor_prow, t.armor_side, t.armor_rear or
+                                          t.armor_side))
+    return sum(max(0, k - t.turrets) for k in range(1, 7)) / 6.0 * _p_hit(lowest)
+
+
+def _resolve_ordnance(state: SimState, player: int) -> None:
+    """Move `player`'s ordnance through a game turn's two ordnance phases (it
+    moves in both players', s.15) and attack: a torpedo salvo the first enemy
+    ship its path touches, then it is spent; attack craft their target (or the
+    nearest enemy) if they reach it, else they close on it. Hits go straight
+    to the hull (ordnance ignores shields, s.15)."""
+    keep = []
+    for o in state.ordnance:
+        if o.owner != player:
+            keep.append(o)
+            continue
+        enemies = state.alive(3 - player)
+        if not enemies:
+            continue
+        reach = 2 * o.speed
+        if o.kind == "torpedo":
+            rad = math.radians(o.heading)
+            ex, ey = o.x + reach * math.cos(rad), o.y + reach * math.sin(rad)
+            hit = None
+            for t in enemies:
+                if _seg_point(t.x, t.y, o.x, o.y, ex, ey) <= t.base_radius + TORP_CONTACT:
+                    d = math.hypot(t.x - o.x, t.y - o.y)
+                    if hit is None or d < hit[0]:
+                        hit = (d, t)
+            if hit:
+                _apply_hits(state, hit[1], _ordnance_hits(o, hit[1]), shields=False)
+                continue
+            o.x, o.y = ex, ey
+            if 0 <= o.x <= state.table_w and 0 <= o.y <= state.table_h:
+                keep.append(o)
+            continue
+        t = next((s for s in enemies if s.id == o.target_id), None)
+        if t is None:
+            t = min(enemies, key=lambda s: math.hypot(s.x - o.x, s.y - o.y))
+        d = math.hypot(t.x - o.x, t.y - o.y)
+        if d <= reach + t.base_radius:
+            _apply_hits(state, t, _ordnance_hits(o, t), shields=False)
+            continue
+        o.x += (t.x - o.x) * reach / d
+        o.y += (t.y - o.y) * reach / d
+        keep.append(o)
+    state.ordnance = keep
 
 
 def _sim_value(t: SimShip, hits_remaining: float) -> float:
@@ -435,6 +560,8 @@ def _evaluate(state: SimState, ai_player: int) -> float:
                    for s in state.ships if s.player == victim_player)
     vp_diff = banked(enemy) - banked(ai_player)
     mine = _apply_expected_combat(state.clone(), ai_player)
+    if any(o.owner == ai_player for o in state.ordnance):
+        mine += _ordnance_swing(state, ai_player)
     theirs = _apply_expected_combat(state.clone(), enemy)
     margin = vp_diff + LATER_TURN_WEIGHT * (mine - theirs)
     if not state.turn_limit:
@@ -443,6 +570,19 @@ def _evaluate(state: SimState, ai_player: int) -> float:
     mean_value = sum(alive) / len(alive) if alive else 0.0
     turns_left = max(0, state.turn_limit - state.turn + 1)
     return win_score(margin, mine + theirs, mean_value, turns_left, total_pts)
+
+
+def _ordnance_swing(state: SimState, player: int) -> float:
+    """VP `player`'s ordnance in flight scores next turn (the leaf's swing)."""
+    enemy = 3 - player
+    s = state.clone()
+
+    def worth(st):
+        return sum(_sim_value(x, x.hits_remaining) for x in st.alive(enemy)) + sum(
+            x.points_value for x in st.ships if x.player == enemy and x.is_destroyed)
+    before = worth(s)
+    _resolve_ordnance(s, player)
+    return worth(s) - before
 
 
 # ── Simulate one full turn ────────────────────────────────────────────────────
@@ -467,9 +607,11 @@ def _simulate_turn(state: SimState,
             # Clamp to the table
             ship.x = max(0.0, min(s.table_w, ship.x))
             ship.y = max(0.0, min(s.table_h, ship.y))
-    # Combat: AI shoots first, then enemy
+    # Combat: AI shoots first, then enemy; then our ordnance in flight
     _apply_expected_combat(s, ai_player)
     _apply_expected_combat(s, 3 - ai_player)
+    if s.ordnance:
+        _resolve_ordnance(s, ai_player)
     s.turn += 1
     return s
 
@@ -545,7 +687,7 @@ class LookaheadAI(AIPlayer):
         ta = ship.turn_angle
         deadline = time.monotonic() + self.TIME_BUDGET
 
-        state = SimState.from_gs(self.gs)
+        state = SimState.from_gs(self.gs, ord_player=self.player)
         best_cmds = None
         best_score = -_INF
         from .ai_hazards import move_hazard_vp

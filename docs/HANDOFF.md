@@ -732,8 +732,7 @@ Latest items, newest last:
   a small fallback grid, the hybrid with a denser grid, hill-climbing, a source diagnostic)
   replace the 15-degree heading steps; recorded as To do 11 a.
 
-Next: the rest of CLAUDE.md "To do" 2 (left: the risk preference in brace and strike choices;
-the expert AI valuing its own craft in flight), the rest of 11 a (more goals, refinement,
+Next (To do 2 done this session apart from scenario points, which wait on To do 7): the rest of 11 a (more goals, refinement,
 the coordination pass; its prerequisites 8 a and 8 f are built), then items 3-7, 9, 10
 and the rest of 11 (item 3 carries the full torpedo bomber rules incl. combined wave salvos, one-phase
 salvos, the AI changes they need and the Tiger Shark ruling), then 12 (learned evaluation);
@@ -862,9 +861,9 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    limit and play riskier when behind near the end, safer when ahead (score by the chance of
    winning, not expected VP alone). Built: arrival
    phase and landing turn, enemy guns on the way, reactive CAP / intercept / fighters in
-   flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles. Left:
-   the risk preference in brace and strike choices, the expert AI valuing craft in flight (wave
-   splitting at launch, the expert's risk preference, risk-aware disengaging and re-rolls built).
+   flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles, wave
+   splitting at launch, the expert's risk preference, risk-aware disengaging, re-rolls, brace
+   and strikes, the expert valuing its own craft in flight. Left: scenario points (To do 7).
 3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
    Sharks per the owner ruling) and the AI changes they need.
 4. Named commanders, Mark of Chaos Undivided, daemonships, Stormbirds, god-fleet boons, Ork

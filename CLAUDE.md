@@ -495,7 +495,7 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 candidates (11 a)).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
-Next: the rest of To do 2 (the expert AI valuing its own craft in flight), the rest of 11 a (more goals, refinement, the coordination
+Next: the rest of 11 a (more goals, refinement, the coordination
 pass), then 3-7, 9, 10 and the rest of 11, 12 (learned
 evaluation) after 11, 13 (alternate activation, optional ruleset; notes and PDF in `docs/`), 14 (Eldar, Necrons), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
@@ -691,7 +691,7 @@ re-rolls and the "Auto (best)" prompts (see above).
 
 Expert AI (`lookahead_ai`): minimax over a deterministic sim using the same terms (battery 0.35
 scaled by Armour, lances 0.5, focus without overkill, torpedoes once, explosions at their odds,
-shields each turn, the real table); leaf = VP banked + next turn's expected swing at
+shields each turn, the real table, its own ordnance in flight); leaf = VP banked + next turn's expected swing at
 `LATER_TURN_WEIGHT`; with a turn limit, the chance of winning from that margin
 (`win_score`, To do 2); root moves pay the path-hazard cost (To do 11 b).
 
@@ -792,9 +792,14 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    re-targeting still use the expected value) and the guns a disengaging ship gives up
    (`ai_rerolls.firepower_outcomes`: a kill / cripple / neither gamble; staying is it and the
    damage gamble together) use it too (`tests/test_ai_disengage.py`,
-   `tests/test_strike_timeline.py`). Still to do here: scenario points in the margin (To do
-   7), the expert AI valuing its own craft in flight (enemy craft in flight already cost its
-   root moves, To do 11 b).
+   `tests/test_strike_timeline.py`). The expert AI values its own ordnance in flight:
+   `lookahead_ai.SimOrdnance` (the searching player's torpedoes, bombers and assault boats;
+   fighters, mines, CAP and torpedo bombers left out), moved through both ordnance phases of
+   each sim turn and resolved on contact as `marker_hits` counts it (`_resolve_ordnance`), and
+   counted in the leaf's swing while still flying (`_ordnance_swing`), so the enemy's moves in
+   the search dodge it; the enemy's ordnance stays a root-move cost (To do 11 b) to avoid
+   counting it twice (`tests/test_lookahead_sim.py`). Still to do here: scenario points in the
+   margin (To do 7).
 3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
    mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
    owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the

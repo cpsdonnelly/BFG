@@ -175,3 +175,28 @@ def test_expert_root_moves_pay_the_path_hazards():
     assert risk(*scene(False)) > 0               # its best move would clip the field
     assert risk(*scene(True, cost=False)) > 0    # blind to it without the cost
     assert risk(*scene(True)) == 0.0             # with the cost: a move clear of it
+
+
+def test_expert_values_its_own_ordnance_in_flight():
+    """To do 2: our salvo in flight is part of the expert's search. It hits an
+    enemy that stays in its path (both ordnance phases of the turn), misses one
+    that moves out of it, and the leaf counts it while it is still flying."""
+    from src.models import OrdnanceMarker
+    from src.lookahead_ai import _ordnance_swing
+    us = make_ship(id="u", player=1, x=0.0, y=60.0, heading=0.0, points_value=200)
+    foe = make_ship(id="f", player=2, x=50.0, y=0.0, heading=90.0, speed=20,
+                    points_value=200, hits_max=8, armor_side="5+", armor_prow="6+")
+    gs = make_gs([us, foe])
+    salvo = OrdnanceMarker(id="t1", ordnance_type="torpedo_standard", owner_player=1,
+                           launched_by="u", x=10.0, y=0.0, heading=0.0, strength=6, speed=30)
+    gs.add_ordnance(salvo)
+    st = SimState.from_gs(gs, ord_player=1)
+    assert len(st.ordnance) == 1 and not SimState.from_gs(gs).ordnance
+    assert _ordnance_swing(st, 1) > 0
+    assert _evaluate(st, 1) > _evaluate(SimState.from_gs(gs), 1)
+    stays = _simulate_turn(st, 1, {}, {"f": (0.0, 1)})
+    assert next(s for s in stays.ships if s.id == "f").hits_remaining < 8 and not stays.ordnance
+    dodges = _simulate_turn(st, 1, {}, {"f": (0.0, 20)})
+    assert next(s for s in dodges.ships if s.id == "f").hits_remaining == 8
+    # the enemy's ordnance isn't simulated (the root's hazard cost counts it)
+    assert not SimState.from_gs(gs, ord_player=2).ordnance
