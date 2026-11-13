@@ -98,3 +98,24 @@ def test_ordnance_cadence_and_launch_phase():
         assert not aa.launch_allowed()
         aa.advance()
     assert aa.launch_allowed()
+
+
+def test_boarding_locks_both_ships_in_aa():
+    """AA notes: boarding locks both ships on declaration (no move, fire or
+    launch this round) and resolves in the end phase; IGOUGO marks only the
+    boarder. Locks clear at the next round."""
+    from src.aa_turn import lock_boarding, is_locked
+    gs, tc, aa = _game()
+    lock_boarding(gs, "a0", "b0")
+    assert not is_locked(gs.get_ship_by_id("b0"))          # IGOUGO: unchanged
+    aa.start_game()
+    a = gs.get_ship_by_id("a0")
+    a.has_boarded, a.boarding_target_id = True, "b0"
+    gs.update_ship(a)
+    lock_boarding(gs, "a0", "b0")
+    assert is_locked(gs.get_ship_by_id("a0")) and is_locked(gs.get_ship_by_id("b0"))
+    for _ in range(6):
+        if aa.phase in ("shooting", "movement"):
+            _run_phase(aa, gs)
+        aa.advance()
+    assert not is_locked(gs.get_ship_by_id("b0"))

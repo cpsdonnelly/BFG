@@ -172,3 +172,22 @@ def brace_is_reactive(gs) -> bool:
     if getattr(gs, "turn_system", "igougo") != "aa":
         return True
     return not config_from(gs).brace_in_command_phase
+
+
+def lock_boarding(gs, boarder_id: str, target_id: str) -> None:
+    """AA (the AA notes, from ABFG): a boarding action locks both ships the
+    instant it is declared: neither moves, fires nor launches for the rest of
+    the round, and it resolves in the end phase (as IGOUGO's does). In IGOUGO
+    only the boarder is marked (s.32); the target's own turn comes later."""
+    if getattr(gs, "turn_system", "igougo") != "aa":
+        return
+    t = gs.get_ship_by_id(target_id)
+    if t is not None:
+        t.aa_locked = True
+        gs.update_ship(t)
+
+
+def is_locked(ship) -> bool:
+    """A ship that can't act this AA round: it declared a boarding action or
+    is the target of one (or is still grappled from a drawn one)."""
+    return bool(ship.has_boarded or ship.is_grappled or getattr(ship, "aa_locked", False))

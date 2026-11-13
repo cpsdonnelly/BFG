@@ -104,3 +104,10 @@ def test_brace_is_a_command_phase_order_in_aa():
         far.x = 175.0
         gs.update_ship(far)
     assert not ai._aa_brace_worth_it(gs.get_ship_by_id(me.id))
+
+
+def test_ai_passes_only_in_movement_while_the_enemy_has_units_left():
+    gs = make_gs([_ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)])
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    assert ai.aa_decline("movement", 2) and not ai.aa_decline("movement", 0)
+    assert not ai.aa_decline("shooting", 3)

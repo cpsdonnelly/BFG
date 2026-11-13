@@ -229,6 +229,7 @@ class Ship:
     boarding_target_id: Optional[str] = None  # declared during movement
     has_boarded: bool = False                  # blocks fire and ordnance same turn
     is_grappled: bool = False                  # draw — ship cannot move/fire/ordnance
+    aa_locked: bool = False                    # AA: target of a boarding action this round
     grappled_with_id: Optional[str] = None    # peer ship in the grapple
 
     # Admiral/commander

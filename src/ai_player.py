@@ -276,10 +276,14 @@ class AIPlayer:
 
     def aa_move_unit(self, ship_ids) -> None:
         """Move one AA unit (a ship, or an escort squadron's ships)."""
+        from .aa_turn import is_locked
         gs = self.gs
         for sid in ship_ids:
             s = gs.get_ship_by_id(sid)
             if s is not None and not s.is_destroyed and not s.is_disengaged:
+                if is_locked(s):
+                    gs.add_log(f"[AA] {s.name} is locked in a boarding action: no move")
+                    continue
                 self._move_ship(s)
         if self.difficulty != "easy":
             for sid in ship_ids:
@@ -294,7 +298,8 @@ class AIPlayer:
             self._squadron_volleys(only=ships[0].squadron_id)
         for ship in ships:
             ship = gs.get_ship_by_id(ship.id)
-            if ship.is_destroyed or ship.is_disengaged or ship.has_fired or ship.has_boarded:
+            from .aa_turn import is_locked
+            if ship.is_destroyed or ship.is_disengaged or ship.has_fired or is_locked(ship):
                 continue
             self._fire_ship(ship)
             ship = gs.get_ship_by_id(ship.id)
@@ -321,6 +326,13 @@ class AIPlayer:
                                     in_range_only=True) * 0.35 * value_per_hit(e, self.gs)
                 best = max(best, v)
         return best if phase == "shooting" else -best
+
+    def aa_decline(self, phase: str, enemy_left: int) -> bool:
+        """Passing (allow_pass): decline a draw of our colour? Movement: yes
+        while the enemy still has units to move (moving later sees them
+        commit); shooting: never (firing early removes return fire). First
+        form, judgement, to confirm with the owner."""
+        return phase == "movement" and enemy_left > 0
 
     def aa_pick_unit(self, phase: str, units):
         """The unit to activate on a draw of our colour."""
@@ -639,6 +651,8 @@ class AIPlayer:
         ship.boarding_target_id = best[1].id
         ship.has_boarded = True
         gs.update_ship(ship)
+        from .aa_turn import lock_boarding
+        lock_boarding(gs, ship.id, best[1].id)
         gs.add_log(f"[AI] {ship.name} declares a boarding action against {best[1].name} "
                    f"(worth about {best[0]:.0f} VP)")
 
@@ -2468,7 +2482,7 @@ class AIPlayer:
         self._fleet_defence = (self._plan_fleet_defence(enemies)
                                if enemies and self.difficulty != "easy" else None)
         for ship in gs.player_ships(self.player):
-            if ship.is_destroyed or ship.is_disengaged or ship.has_boarded:
+            if ship.is_destroyed or ship.is_disengaged or ship.has_boarded or ship.aa_locked:
                 continue                          # boarding: no launches (s.32)
             self._launch_ship_ordnance(ship)
         self._fleet_defence = None

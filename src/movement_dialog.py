@@ -791,6 +791,8 @@ class MovementDialogMixin:
             ship.boarding_target_id = board_target.id
             ship.has_boarded = True
             self.ctx.gs.update_ship(ship)
+            from .aa_turn import lock_boarding
+            lock_boarding(self.ctx.gs, ship.id, board_target.id)
             self.ctx.log(
                 f"{ship.name} declares boarding action against {board_target.name}!")
 

@@ -110,6 +110,10 @@ class AAPanelMixin:
             p, key = nxt
             if self.ctx.is_ai_controlled(p):
                 ai = self._aa_ai(p)
+                if (key is None and self.aa.can_decline(p)
+                        and ai.aa_decline(ph, len(self.aa.remaining_units(3 - p)))):
+                    self.aa.decline(p)
+                    return self._aa_after(100)
                 units = self.aa.remaining_units(p)
                 unit = next((u for u in units if u.key == key), None) if key else \
                     ai.aa_pick_unit(ph, units)
