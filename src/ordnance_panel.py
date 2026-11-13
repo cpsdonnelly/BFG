@@ -78,6 +78,41 @@ class OrdnancePanel(OrdnanceMovementMixin):
             self._recall_craft_dialog(player, must_remove=excess)
         return fleet_craft_excess(self.ctx.gs, player) == 0
 
+    def _fire_torpedo_bombers_dialog(self):
+        """s.21: at the start of an ordnance phase, torpedo bomber squadrons
+        launched on an earlier turn may each be replaced by a strength-2 salvo
+        (a wave combines them) facing any direction; it is removed at the end
+        of the phase. For each wave the player picks the enemy ship to aim at,
+        or holds; "Auto (best)" picks what the AI would."""
+        from .ordnance import torpedo_bomber_groups, fire_torpedo_bombers
+        from .ai_hazards import torpedo_bomber_target
+        from .choice_dialog import choose
+        gs = self.ctx.gs
+        players = [p for p in (1, 2) if not self.ctx.is_ai_controlled(p)]
+        groups = [(p, g) for p in players for g in torpedo_bomber_groups(gs, p)]
+        if not groups:
+            messagebox.showinfo("No Torpedo Bombers", "No torpedo bombers can fire: they "
+                                "fire from the ordnance phase after the turn they launch.")
+            return
+        for p, g in groups:
+            lead = g[0]
+            opts = [(f"{e.name} ({math.hypot(e.x - lead.x, e.y - lead.y):.1f}cm)", e.id)
+                    for e in gs.get_ships() if e.player != p and not e.is_destroyed
+                    and not e.is_disengaged]
+            opts.append(("Hold (don't fire)", ""))
+            best = torpedo_bomber_target(gs, g, p)
+            pick = choose(self.ctx.root, "Torpedo Bombers",
+                          f"{len(g)} torpedo bomber squadron(s): fire a strength "
+                          f"{2 * len(g)} salvo at which ship?", opts,
+                          best[1].id if best and best[0] > 0 else "")
+            if not pick:
+                continue
+            t = gs.get_ship_by_id(pick)
+            heading = math.degrees(math.atan2(t.y - lead.y, t.x - lead.x))
+            fire_torpedo_bombers(gs, [m.id for m in g], heading)
+            self.ctx.log(f"Torpedo bombers fire at {t.name}")
+        self.ctx.board.redraw()
+
     def _craft_orders_dialog(self):
         """Give attack craft squadrons a target: an enemy ship, an enemy ordnance
         marker or a friendly ship to escort. Each time ordnance moves, a squadron
@@ -669,6 +704,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "thunderhawk": "Thunderhawks (fighter/bomber/assault, 4+ resilient)",
                 "gun_cutter": "Gun-Cutters (fighter/assault, 4+ resilient)",
                 "fighta_bommer": "Fighta-Bommerz (fighter/bomber, D3+1 attacks)",
+                "torpedo_bomber": "Torpedo Bombers (fire a S2 salvo)",
+                "tiger_shark": "Tiger Sharks (missile salvo, 4+ resilient)",
             }
             for ct in sorted(available_types):
                 row = tk.Frame(comp_frame)
@@ -1339,6 +1376,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "thunderhawk": "Thunderhawks (fighter/bomber/assault, 4+ resilient)",
                 "gun_cutter": "Gun-Cutters (fighter/assault, 4+ resilient)",
                 "fighta_bommer": "Fighta-Bommerz (fighter/bomber, D3+1 attacks)",
+                "torpedo_bomber": "Torpedo Bombers (fire a S2 salvo)",
+                "tiger_shark": "Tiger Sharks (missile salvo, 4+ resilient)",
             }
             composition_vars = {}
             comp_frame = tk.Frame(bay_frame)

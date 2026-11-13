@@ -1523,6 +1523,9 @@ class AIPlayer:
                     or self._nearest_enemy_to(marker.x, marker.y)
                 self._steer_guided_missile(marker, target)
 
+        # Torpedo bombers launched on an earlier turn fire their salvos (s.21)
+        self._fire_torpedo_bombers()
+
         # Launch new ordnance. Targets are chosen by expected VP from the enemy's
         # actual state (after this turn's shooting) plus what this phase's
         # launches are planned to do (_ord_committed)
@@ -1539,6 +1542,28 @@ class AIPlayer:
                 continue
             self._launch_ship_ordnance(ship)
         self._fleet_defence = None
+
+    def _fire_torpedo_bombers(self):
+        """At the start of the ordnance phase, each torpedo bomber wave (or
+        lone squadron) fires its salvo (2 a squadron, s.21) at the enemy ship
+        within this phase's salvo move where it does most expected VP, aimed
+        straight at it (ships don't move in the ordnance phase); it holds when
+        none is in reach (the salvo is removed at the end of the phase)."""
+        from .ordnance import torpedo_bomber_groups, fire_torpedo_bombers
+        from .ai_hazards import torpedo_bomber_target
+        for group in torpedo_bomber_groups(self.gs, self.player):
+            lead = group[0]
+            best = torpedo_bomber_target(self.gs, group, self.player)
+            if best is None or best[0] <= 0:
+                continue
+            e = best[1]
+            heading = math.degrees(math.atan2(e.y - lead.y, e.x - lead.x))
+            salvo = fire_torpedo_bombers(self.gs, [m.id for m in group], heading)
+            if salvo is not None:
+                for o in self.gs.ordnance:
+                    if o["id"] == salvo.id:
+                        o["torp_target_id"] = e.id
+                self.gs.add_log(f"[AI] torpedo bombers fire at {e.name}")
 
     def _steer_guided_missile(self, marker: OrdnanceMarker,
                               target: Optional[Ship]) -> None:
@@ -1887,11 +1912,12 @@ class AIPlayer:
                      if set(craft_roles(st[0])) == {"assault_boat"}), None)
         if not getattr(self.gs, "rule_hit_and_run", True):
             boat = None
-        if not bomber and not boat:
+        tb = next((ct for ct, st in stats.items() if st[0] == "torpedo_bomber"), None)
+        if not bomber and not boat and not tb:
             return None
         from .ai_hazards import hull_hits_vp
         committed = getattr(self, "_ord_committed", {})
-        speed = min((stats[ct][1] or 20) for ct in (bomber, boat) if ct)
+        speed = min((stats[ct][1] or 20) for ct in (bomber, boat, tb) if ct)
         near = min(enemies, key=lambda e: ship.distance_to(e))
         # Owner: focus on the easiest, most valuable targets in reach, by
         # expected VP (bomber hits through damage_vp's thresholds, counting the
@@ -2048,6 +2074,28 @@ class AIPlayer:
                 v, _e, vals = mixed(boats, caps)
                 options.append((risk_value(vals, disc, tl), [(boat, count)],
                                 f"{count} assault boats", target, 0.0))
+            got = timeline(stats[tb][1] or 20) if tb else None
+            if got:
+                # Torpedo bombers (s.21): the squadrons that get past the
+                # interceptors fire a salvo of 2 each (Tiger Sharks: Tau
+                # missiles, 5/6 of it through), which the target's turrets
+                # shoot at (4+ each), on the facing it hits; they never meet
+                # the turrets as craft
+                tl, disc, caps = got
+                from .ai_hazards import p_hit as _ph
+                tiger = tb == "tiger_shark"
+
+                def tbs(inp):
+                    pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                    through = expected_survivors(count, 0, inp["cap"], pp, stats[tb][2] or 0,
+                                                 inp["cap_save"])
+                    strength = 2 * through * (5 / 6 if tiger else 1.0)
+                    hits = max(0.0, strength - 0.5 * inp["turrets"]) * _ph(
+                        target.armor_vs(ship.x, ship.y))
+                    return hull_hits_vp(target, self.gs, c, hits), hits
+                v, ev, vals = mixed(tbs, caps)
+                options.append((risk_value(vals, disc, tl), [(tb, count)],
+                                f"{count} torpedo bombers", target, ev))
         if not options:
             return None
         value, plan, label, target, ev = max(options, key=lambda o: o[0])

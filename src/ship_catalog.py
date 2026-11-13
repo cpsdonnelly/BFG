@@ -142,6 +142,15 @@ def apply_upgrade_effect(d: dict, effect: dict) -> None:
                 w["craft_types"] = list(w.get("craft_types", [])) + [ctype]
                 w["craft_speeds"] = {**w.get("craft_speeds", {}), ctype: speed}
                 w["craft_speed"] = max(w["craft_speeds"].values())
+    for old, (new, speed) in effect.get("swap_craft", {}).items():
+        # one craft type replaced by another in every launch bay (Tiger Sharks)
+        for w in d["weapons"]:
+            if w.get("weapon_type") == "launch_bay" and old in w.get("craft_types", []):
+                w["craft_types"] = [new if c == old else c for c in w["craft_types"]]
+                sp = {k: v for k, v in w.get("craft_speeds", {}).items() if k != old}
+                sp[new] = speed
+                w["craft_speeds"] = sp
+                w["craft_speed"] = max(sp.values())
     if "add_weapon" in effect:
         d["weapons"].append(effect["add_weapon"].copy())
     d["weapons"] += [w.copy() for w in effect.get("add_weapons", [])]

@@ -14,6 +14,7 @@ ship_catalog turns into an UpgradeEntry:
                  "sc_variant"     Strike Cruiser Variant: up to half the fleet's
                                   strike cruisers (round down) may take any
 """
+import re
 from typing import Dict, List
 
 from .chapter_tactics import TACTICS
@@ -567,8 +568,7 @@ def _opt(name, desc, cost, effect, restrictions=()):
 def navy_refit_options(row: dict) -> List[Dict]:
     """The refits printed in Imperial Navy profiles. Each is matched on its note
     text, so a reworded export drops the option instead of keeping a stale one.
-    Torpedo bomber purchases ("TB 20cm +Npts") wait on torpedo bombers firing
-    their salvo (s.21); they aren't offered."""
+    Torpedo bomber purchases are torpedo_bomber_options."""
     notes = row.get("notes") or ""
     opts: List[Dict] = []
     torps_from = ""                   # option names that give the ship torpedoes
@@ -846,10 +846,37 @@ def mine_launcher_options(row: dict) -> List[Dict]:
                  ["fleet_max:2"])]
 
 
+def torpedo_bomber_options(row: dict) -> List[Dict]:
+    """Torpedo bomber purchases (s.21): "Attack craft: TB 20cm +Npts" (Navy,
+    Mechanicus, Chaos profiles) lets the launch bays also carry torpedo
+    bombers; Tau "Mantas to / replace Mantas with Tiger Shark drone carriers
+    +Npts" swaps the Mantas for Tiger Sharks (torpedo bombers firing Tau missile
+    salvos, 4+ resilient, 20cm; owner ruling). Not yet: Chaos "not if Stormbird
+    gunships taken" (Stormbirds aren't built), the Explorer's cheaper price with
+    the Bor'kan Configuration (not built)."""
+    notes = row.get("notes") or ""
+    opts = []
+    m = re.search(r"TB 20cm \+(\d+)pts", notes)
+    if m:
+        cost = int(m.group(1))
+        opts.append(_opt("Attack craft: torpedo bombers", f"+{cost}pts. Its launch bays may "
+                         "also launch torpedo bombers (20cm), which fire a strength-2 salvo "
+                         "per squadron instead of attacking.", cost,
+                         {"add_craft": {"torpedo_bomber": 20}}))
+    m = re.search(r"(?:Mantas to|replace Mantas with|replace Manta bombers with) Tiger Shark "
+                  r"drone carriers \+(\d+)pts", notes)
+    if m:
+        cost = int(m.group(1))
+        opts.append(_opt("Tiger Shark drone carriers", f"+{cost}pts. Tiger Sharks (torpedo "
+                         "bombers firing Tau missile salvos, 4+ resilient, 20cm) instead of "
+                         "the Mantas.", cost, {"swap_craft": {"manta": ["tiger_shark", 20]}}))
+    return opts
+
+
 def options_for(row: dict) -> List[Dict]:
     """Every option for one booklet ship (_options_for) plus the mine launcher
-    swap its fleet lists allow."""
-    return _options_for(row) + mine_launcher_options(row)
+    swap its fleet lists allow and torpedo bomber purchases."""
+    return _options_for(row) + mine_launcher_options(row) + torpedo_bomber_options(row)
 
 
 def _options_for(row: dict) -> List[Dict]:

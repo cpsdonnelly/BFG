@@ -150,6 +150,18 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
         if p_reach > 0 and _in_turn_cone(m, end, r):
             return h * p_reach, f"turning torpedoes S{m.strength} ({h * p_reach:.1f} hits)"
         return 0.0, ""
+    if otype == "torpedo_bomber":
+        # s.21: from the ordnance phase after launch each squadron may become a
+        # strength-2 salvo facing any direction (so the lowest Armour, judgement:
+        # the enemy picks the facing), fired from up to a salvo move away; a
+        # wave combines them, so the turret kills are shared out per squadron
+        tiger = "tiger_shark" in (m.special_rules or [])
+        salvo = 40.0 if tiger else 30.0
+        if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + salvo + r:
+            h = max(0.0, 2.0 - 0.5 * _turret_kills(ship)) * p_hit(ship.lowest_armor_value)
+            h *= 5 / 6 if tiger else 1.0
+            return h, f"torpedo bombers ({h:.1f} hits)"
+        return 0.0, ""
     # attack craft that may reach the ship before it moves again
     if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + r:
         if "bomber" in otype or otype in ("manta", "thunderhawk", "fighta_bommer"):
@@ -1923,3 +1935,28 @@ def fleet_bracket_table(gs, player: int) -> List[Tuple[Tuple[float, float], floa
 def best_bracket(table) -> Tuple[float, float]:
     """The bracket where our expected VP beats theirs by most."""
     return max(table, key=lambda r: r[1] - r[2])[0]
+
+
+def torpedo_bomber_target(gs, group, player: int):
+    """(VP, ship) for a torpedo bomber wave's salvo this phase (s.21: 2 a
+    squadron; Tiger Sharks a Tau missile salvo, 40cm, 5/6 of it through): the
+    enemy ship within the salvo's move where it does most expected VP (turret
+    kills 4+ each, the facing it hits; ships don't move in the ordnance phase),
+    or None when none is in reach. Shared by the AI and the "Auto (best)"
+    choice."""
+    from .ordnance import TORPEDO_SPEED_DEFAULT
+    lead = group[0]
+    tiger = "tiger_shark" in lead.special_rules
+    reach = 40.0 if tiger else float(TORPEDO_SPEED_DEFAULT)
+    strength = 2 * len(group) * (5 / 6 if tiger else 1.0)
+    best = None
+    for e in gs.get_ships():
+        if e.player == player or e.is_destroyed or e.is_disengaged:
+            continue
+        if math.hypot(e.x - lead.x, e.y - lead.y) > reach + e.base_radius:
+            continue
+        hits = max(0.0, strength - 0.5 * e.effective_turrets) * p_hit(e.armor_vs(lead.x, lead.y))
+        v = hull_hits_vp(e, gs, 0.0, hits)
+        if best is None or v > best[0]:
+            best = (v, e)
+    return best

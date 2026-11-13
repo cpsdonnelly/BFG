@@ -1494,6 +1494,77 @@ def short_burn_fuel_checks(game_state: GameState, dice: DiceRoller,
     return logs
 
 
+TORPEDO_BOMBER_SALVO = 2          # strength per squadron (s.21)
+
+
+def torpedo_bomber_groups(game_state: GameState, player: int) -> List[List[OrdnanceMarker]]:
+    """The player's torpedo bomber squadrons that may fire now (s.21: at the
+    start of any ordnance phase after the turn they were launched), grouped by
+    wave (a wave combines its salvos like ships in base contact); a lone
+    squadron is its own group. Lead first."""
+    tbs = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance
+           if o.get("owner_player") == player
+           and o.get("ordnance_type") == OrdnanceType.TORPEDO_BOMBER.value
+           and o.get("launched_turn", 0) < game_state.turn_number]
+    groups, seen = [], set()
+    for m in tbs:
+        if m.id in seen:
+            continue
+        if m.wave_id:
+            g = sorted((w for w in tbs if w.wave_id == m.wave_id), key=lambda w: w.wave_order)
+        else:
+            g = [m]
+        seen |= {w.id for w in g}
+        groups.append(g)
+    return groups
+
+
+def fire_torpedo_bombers(game_state: GameState, marker_ids: List[str],
+                         heading: float) -> Optional[OrdnanceMarker]:
+    """Replace torpedo bomber squadrons (one wave, or a lone squadron) with one
+    salvo of strength 2 each, at the lead's position, facing `heading` (any
+    direction, s.21). It has limited fuel: removed at the end of this
+    ordnance phase (`remove_spent_salvos`). Tiger Sharks fire a Tau missile
+    salvo (owner ruling: 20-40cm that phase, no strength loss since it never
+    survives to a later phase); other torpedo bombers a standard salvo."""
+    ms = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance if o["id"] in marker_ids
+          and o.get("ordnance_type") == OrdnanceType.TORPEDO_BOMBER.value]
+    if not ms:
+        return None
+    ms.sort(key=lambda m: m.wave_order)
+    lead = ms[0]
+    tiger = "tiger_shark" in lead.special_rules
+    salvo = OrdnanceMarker(
+        id=f"tbsalvo_{lead.id}_{game_state.turn_number}",
+        ordnance_type=(OrdnanceType.TORPEDO_GUIDED.value if tiger
+                       else OrdnanceType.TORPEDO_STANDARD.value),
+        owner_player=lead.owner_player, launched_by=lead.launched_by,
+        x=lead.x, y=lead.y, heading=heading,
+        strength=TORPEDO_BOMBER_SALVO * len(ms),
+        speed=40.0 if tiger else float(TORPEDO_SPEED_DEFAULT),
+        launched_turn=game_state.turn_number,
+        can_turn=tiger, turn_angle=45 if tiger else 0,
+        special_rules=["limited_fuel"] + (["tau_missile"] if tiger else []))
+    ids = {m.id for m in ms}
+    game_state.ordnance = [o for o in game_state.ordnance if o["id"] not in ids]
+    from .waves import tidy_waves
+    tidy_waves(game_state)                 # the rest of the wave stays a wave
+    game_state.add_ordnance(salvo)
+    game_state.add_log(f"{len(ms)} torpedo bomber squadron(s) fire a strength "
+                       f"{salvo.strength} {'missile ' if tiger else ''}salvo")
+    return salvo
+
+
+def remove_spent_salvos(game_state: GameState) -> List[str]:
+    """End of an ordnance phase: torpedo bomber salvos run out of fuel (s.21)."""
+    gone = [o for o in game_state.ordnance if "limited_fuel" in (o.get("special_rules") or [])]
+    if gone:
+        game_state.ordnance = [o for o in game_state.ordnance
+                               if "limited_fuel" not in (o.get("special_rules") or [])]
+        game_state.add_log(f"{len(gone)} torpedo bomber salvo(s) run out of fuel")
+    return [o["id"] for o in gone]
+
+
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
                      heading: Optional[float] = None,
                      boarding: bool = False,
@@ -1561,6 +1632,11 @@ CRAFT_STATS = {
     "thunderhawk": (OrdnanceType.THUNDERHAWK.value, 20, 4),
     "gun_cutter": (OrdnanceType.GUN_CUTTER.value, 20, 4),
     "fighta_bommer": (OrdnanceType.FIGHTA_BOMMER.value, 25, 0),
+    # Torpedo bombers (s.21): bombers against other ordnance, never attack
+    # ships; they fire a strength-2 salvo instead. Tiger Sharks (Tau, owner
+    # ruling): 4+ resilient, and their salvo is a Tau missile salvo
+    "torpedo_bomber": (OrdnanceType.TORPEDO_BOMBER.value, 20, 0),
+    "tiger_shark": (OrdnanceType.TORPEDO_BOMBER.value, 20, 4),
 }
 
 # What each attack craft type can act as. Multi-role craft follow the rules of
@@ -1724,7 +1800,8 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
             heading=ship.heading, speed=speed,
             launched_turn=game_state.turn_number,
             resilient_save=resilient,
-            special_rules=list(ship.special_rules),
+            special_rules=list(ship.special_rules) + (
+                ["tiger_shark"] if craft_type == "tiger_shark" else []),
         )
         markers.append(marker)
         game_state.add_ordnance(marker)

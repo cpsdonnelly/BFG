@@ -173,6 +173,11 @@ class GamePanel:
             command=self.ordnance._craft_orders_dialog,
             bg="#445566", fg="white", font=("Consolas", 9), width=25)
 
+        self.fire_tb_btn = tk.Button(
+            self.btn_frame, text="Fire Torpedo Bombers",
+            command=self.ordnance._fire_torpedo_bombers_dialog,
+            bg="#554466", fg="white", font=("Consolas", 9), width=25)
+
         self.move_missile_btn = tk.Button(
             self.btn_frame, text="Move Tau Missiles",
             command=self.ordnance._move_tau_missiles_dialog,
@@ -345,7 +350,8 @@ class GamePanel:
                   self.combine_fire_btn, self.target_squad_btn, self.fire_ord_btn,
                   self.launch_btn, self.combine_ord_btn, self.end_phase_btn,
                   self.undo_btn, self.start_btn, self.disengage_btn,
-                  self.move_missile_btn, self.craft_orders_btn, self.vp_btn):
+                  self.move_missile_btn, self.craft_orders_btn, self.vp_btn,
+                  self.fire_tb_btn):
             w.pack_forget()
 
         phase = gs.current_phase
@@ -368,6 +374,7 @@ class GamePanel:
             self.launch_btn.pack(pady=2)
             self.combine_ord_btn.pack(pady=2)
             self.craft_orders_btn.pack(pady=2)
+            self.fire_tb_btn.pack(pady=2)
             self.move_missile_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
@@ -380,7 +387,7 @@ class GamePanel:
                   self.combine_fire_btn, self.target_squad_btn, self.fire_ord_btn,
                   self.launch_btn, self.combine_ord_btn, self.end_phase_btn,
                   self.undo_btn, self.disengage_btn, self.move_missile_btn,
-                  self.craft_orders_btn):
+                  self.craft_orders_btn, self.fire_tb_btn):
             w.config(state=state)
 
         if self._game_over:

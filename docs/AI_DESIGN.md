@@ -356,7 +356,7 @@ AI splits only when the guns matter more than the turrets (e.g. under two gunshi
 
 Built since: the risk preference in strike choices, the expert AI valuing its own craft in
 flight (its search moves our torpedoes and bombers and the enemy's moves dodge them). Planned:
-splitting assault boats or waves already in flight. (To do 3): torpedo bombers, whose waves become one combined salvo.
+splitting assault boats or waves already in flight. Built (To do 3): torpedo bombers as a strike option (the squadrons that get past interceptors fire 2 each), fired at the ship in salvo reach worth most, and counted in the hazard model as a salvo; mines laid when an enemy is within three turns.
 
 ---
 
@@ -558,7 +558,7 @@ hazards), so its strength is long-range manoeuvre. Its other phases are the norm
 - **Transparency**: the AI writes its reasons to the log ("[AI] ... strike vs X: 2 fighters + 2
   bombers (about 21 VP)", "keeps its bays loaded (...)").
 - **Not built engine rules** the AI therefore can't use yet: Fighting Sunward, Solar Flares and
-  Radiation Bursts (s.40; To do 6), torpedo bombers and mine launcher swaps (To do 3), several
+  Radiation Bursts (s.40; To do 6), several
   units (To do 5).
 - **Order of work** (owner): "the order isn't hugely important"; follow the dependencies
   (exposure by Armour facing and range brackets, To do 8 a / 8 f, before the target-directed

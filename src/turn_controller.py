@@ -264,6 +264,10 @@ class TurnController:
             # Escort squadrons that lost a ship off the table keep trying to leave
             from .disengage import forced_disengage_tests
             forced_disengage_tests(self.gs, self.dice, self.gs.active_player)
+        if current == "ordnance":
+            # Torpedo bomber salvos have limited fuel (s.21)
+            from .ordnance import remove_spent_salvos
+            remove_spent_salvos(self.gs)
         label = f"t{self.gs.turn_number}_{current}_end"
         self.save_snapshot(label)
         self.save_actions_log()

@@ -496,7 +496,7 @@ candidates (11 a)).
 Not built: Fighting Sunward, Solar Flares,
 Radiation Bursts (s.40), scenarios / sub-plots, and the To do items below.
 Next: the rest of 11 a (goal f with 8 h / 8 j, safety goals, the full
-coordination pass), then 3-7, 9, 10 and the rest of 11, 12 (learned
+coordination pass), then 4-7, 9, 10 (3 built) and the rest of 11, 12 (learned
 evaluation) after 11, 13 (alternate activation, optional ruleset; notes and PDF in `docs/`), 14 (Eldar, Necrons), 1 (weight tuning) last and on hold. Owner: the order isn't hugely
 important; follow the dependencies.
 
@@ -800,24 +800,35 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    the search dodge it; the enemy's ordnance stays a root-move cost (To do 11 b) to avoid
    counting it twice (`tests/test_lookahead_sim.py`). Still to do here: scenario points in the
    margin (To do 7).
-3. Mine launcher swaps (Navy, Space Marine, Chaos, Tau lists; the Bastion's mines as a third
-   mode), torpedo bomber purchases and torpedo bombers firing their salvo (s.21). Rules (s.21,
-   owner): torpedo bombers are bombers against other ordnance but can't attack ships; at the
-   start of any ordnance phase after their launch turn a squadron may be replaced by a
-   strength-2 salvo facing any direction, removed at the end of that phase ("limited fuel": one
-   move only); a wave combines its salvos like a squadron in base contact (owner: "a wave of 4
-   torpedo bombers becomes a wave of 8 missiles"). Tiger Sharks: see the owner ruling below.
-   Then the AI: `ai_hazards.marker_hits` (a torpedo bomber wave threatens one salvo of 2 x its
-   squadrons, any facing, within its reach; today it counts them as bombers), fighter allocation
-   (one fighter removes the whole combined salvo, s.19), strike planning (torpedo bombers vs
-   bombers). Who has them (owner corrected an incomplete list; "Attack craft: TB 20cm +Npts"
-   options): Imperial Navy (Marauders) Emperor +80, Oberon +80, Exorcist +60, Mars +40,
-   Dominion +40, Dictator +40; Adeptus Mechanicus Emperor +80, Oberon +40, Dictator +40; Chaos
-   ("not if Stormbird gunships taken") Despoiler +80, Desecrator +40, Retaliator +60, Nephilim
-   +40, Styx +60, Hecate +40, Devastation +40, Scion of Prospero +90, Wage of Sin +60, Terminus
-   Est +70; Tau Tiger Shark drone carriers (replacing Mantas on many Tau ships, and the Orbital
-   City's defence module). None is offered by the fleet builder yet (`booklet_options` note,
-   l.532); Orks, Space Marines, Inquisition and Rogue Traders list none.
+3. Mines and torpedo bombers (built this session; s.17, s.21, owner rulings).
+   Mines: the swap "up to two cruisers [or battlecruisers / heavy cruisers] may replace all
+   of their launch bays with mine launchers, +5 per bay" (`booklet_options.mine_launcher_options`,
+   `MINE_SWAP_GROUPS` by each list's wording: Navy Cruisers / Battlecruisers, Mechanicus,
+   Space Marine and Inquisition Cruisers, Chaos Cruisers / Heavy Cruisers, Tau any cruiser
+   but light cruisers; one launcher per bay in the bay's location; `fleet_max:2`); the
+   Bastion gains mines as a third mode of its modular bays (strength 2, +10, `mark_launched`
+   unloads all three modes); `ordnance.lay_mines` (one per launcher, halved crippled /
+   braced) for the launch dialog and the AI; a crit to the launchers' location deals D3 extra
+   damage (`combat.mine_launcher_crit`, raids too). The AI lays its mines when an enemy is
+   within 60cm (three turns at 20cm). Readings to confirm: light cruisers aren't
+   "cruisers" here; the Bastion pays +5 a bay for the third mode; Rogue Trader men o' war
+   (not built) aren't offered. Torpedo bombers: "Attack craft: TB 20cm +Npts" adds the
+   `torpedo_bomber` craft to the bays, Tau "Tiger Shark drone carriers +Npts" swaps the
+   Mantas for `tiger_shark` (`booklet_options.torpedo_bomber_options`, `swap_craft`); they
+   never attack ships (`attacks_ships` False), are intercepted like bombers, and from the
+   ordnance phase after their launch turn a wave (or lone squadron) is replaced by one salvo
+   of 2 a squadron facing any direction (`ordnance.torpedo_bomber_groups`,
+   `fire_torpedo_bombers`; Tiger Sharks a Tau missile salvo, 20-40cm), removed at the end of
+   that ordnance phase (`remove_spent_salvos`, `TurnController.end_phase`). Players: "Fire
+   Torpedo Bombers" in the ordnance phase (target per wave or hold, "Auto (best)",
+   `tools/gui_checks/torpedo_bomber_check.py`). AI: strike option "torpedo bombers"
+   (`_strike_option`: survivors of the interceptors fire 2 each, turrets 4+ each on the
+   facing), fires at the start of its ordnance phase at the ship in salvo reach worth most
+   (`ai_hazards.torpedo_bomber_target`); the hazard model counts a salvo of 2 a squadron on
+   the lowest Armour within craft move + salvo move (`marker_hits`). Not yet: firing in the
+   enemy's ordnance phase (the AI fires in its own; a player can fire in either), the salvo
+   aimed by the lead / approach planner, Chaos "not if Stormbird gunships taken"
+   (Stormbirds, To do 4), the Explorer's Bor'kan price.
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
    daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
    commander's Extra Turrets: 4+), other factions' secondary commanders, Inquisition Ordos.
