@@ -192,8 +192,16 @@ def _validate_eldar(ship: Ship, commands, special_order: str, aaf_bonus: int,
     staged moves and no blast marker speed loss (to confirm with the owner)."""
     from . import eldar
     speeds = eldar.ship_speeds(ship) or (ship.speed, ship.speed, ship.speed)
+    crits = [c.get("crit_type") for c in ship.critical_damage]
+    # Eldar critical hits (Appendix 3): Mainsail Scarred -5cm on each speed per hit,
+    # Mast Lines Severed no turns, Mainsail Shredded one move a phase
+    cut = 5 * crits.count("mainsail_scarred")
+    speeds = tuple(max(0, v - cut) for v in speeds)
+    turn_limit = 0 if "mast_lines" in crits else ship.turn_angle
     legs, extra = eldar.commands_to_legs(commands)
-    for e in eldar.validate_mms_move(speeds, ship.heading, ship.turn_angle, legs,
+    if "mainsail_shredded" in crits and len(legs) > 1:
+        result.add_error("Mainsail Shredded: one move this phase")
+    for e in eldar.validate_mms_move(speeds, ship.heading, turn_limit, legs,
                                      special_order or "", eldar.sunward_edge(),
                                      aaf_bonus, extra, ship.is_crippled):
         result.add_error(e)

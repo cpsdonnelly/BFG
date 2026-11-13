@@ -175,3 +175,34 @@ def test_engine_validates_eldar_moves():
     igougo = [MoveCommand("forward", 10), MoveCommand("turn_left", 30),
               MoveCommand("forward", 10)]
     assert validate_movement(e, igougo, "", table_width=180, table_height=120).valid
+
+
+def test_eldar_critical_hits_table():
+    """Eldar roll on their own table (Appendix 3): keel armament, infinity
+    circuit -1 Ld, holofields destroyed, sail damage limiting the move."""
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.combat import _resolve_crit_cascade, weapon_disabled_by_crit
+    from src.movement import validate_movement, MoveCommand
+    from src.game_state import GameState
+    from src.eldar import set_sunward_edge
+    set_sunward_edge("north")
+    gs = GameState()
+    s = Ship.from_dict(find_ship_class("Shadow Class Cruiser").to_ship_dict("s", 1, ship_id="s"))
+    gs.add_ship(s)
+    assert _resolve_crit_cascade(3, s, gs)["crit_type"] == "keel_armament"
+    assert _resolve_crit_cascade(9, s, gs)["crit_type"] == "holofield_destroyed"
+    s.critical_damage = [{"crit_type": "keel_armament"}]
+    keel = next(w for w in s.weapons if "Keel" in w["name"])
+    prow = next(w for w in s.weapons if "Prow" in w["name"])
+    assert weapon_disabled_by_crit(s, keel) and not weapon_disabled_by_crit(s, prow)
+    s.x, s.y, s.heading = 50.0, 50.0, 0.0                  # abeam: 25cm
+    two = [MoveCommand("forward", 10), MoveCommand("turn_left", 20), MoveCommand("forward", 5)]
+    assert validate_movement(s, two, "", table_width=180, table_height=120).valid
+    s.critical_damage = [{"crit_type": "mainsail_shredded"}]
+    assert not validate_movement(s, two, "", table_width=180, table_height=120).valid
+    s.critical_damage = [{"crit_type": "mast_lines"}]
+    assert not validate_movement(s, two, "", table_width=180, table_height=120).valid
+    s.critical_damage = [{"crit_type": "mainsail_scarred"}]
+    assert not validate_movement(s, [MoveCommand("forward", 22)], "",
+                                 table_width=180, table_height=120).valid     # 25 - 5

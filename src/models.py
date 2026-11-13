@@ -360,6 +360,8 @@ class Ship:
             "port_armament": "left",
             "prow_armament": "front",
         }
+        if crit_type == "keel_armament":
+            return any("keel" in (w.get("name") or "").lower() for w in self.weapons)
         if crit_type not in slot_to_arcs:
             return True  # non-armament crits always apply
 

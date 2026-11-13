@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1208 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1210 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1631,8 +1631,19 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    carry the launcher's rules, `is_eldar_ordnance`) stealth -2 (reading: never worse than
    6+), used against torpedoes, mines and attack craft; Eldar torpedoes re-roll misses. Not yet:
    Eldar bombers re-rolling attack dice, fighters' 4+ save per wave and first interceptions,
-   the AI's hazard / strike maths for stealthy ordnance.
-   Next: movement wiring, Eldar ordnance and turrets, the critical hits table, the move dialog and
+   the AI's hazard / strike maths for stealthy ordnance. Movement built: `movement.validate_movement`
+   sends Eldar ships to `_validate_eldar` (MMS legs from the commands, `eldar.commands_to_legs`;
+   an IGOUGO "move, turn, move" is two legs; speeds by `eldar.sunward_edge()`, registered from
+   `GameState.sunward_edge` by the TurnController; first form: no staged moves, no blast marker
+   speed loss, to confirm). Critical hits built: `tables.ELDAR_CRITICAL_HITS` /
+   `crit_table_for` in the crit cascade (keel armament as a weapon slot, infinity circuit -1 Ld,
+   holofield destroyed, mast lines no turns, mainsail scarred -5cm each speed per hit, mainsail
+   shredded one move). Not yet: Superstructure Damaged's 3+ roll on turning, a second prow crit
+   destroying port / starboard weaponry, Eldar AAF +5D6 in the speed roll, Burn Retros refused
+   at the order, celestial phenomena immunity and asteroid / warp rift rules, the move dialog's
+   MMS help, the AI's MMS move candidates (it uses its normal candidates, which are legal MMS
+   moves when within speed), Kinship / Heroes, fleet lists, the five either/or ships.
+   Next: the rest of the movement wiring, Eldar ordnance and turrets, the critical hits table, the move dialog and
    the AI's MMS moves.
 
 ### Owner rulings: answers to the open questions (implemented, tested)

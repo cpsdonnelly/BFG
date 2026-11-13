@@ -131,6 +131,30 @@ CRITICAL_HITS = {
     12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
 }
 
+# Eldar Critical Hits Table (Appendix 3, MMS p.5): all Corsair and Craftworld
+# Eldar vessels
+ELDAR_CRITICAL_HITS = {
+    2:  {"name": "Infinity Circuit Damaged", "extra_damage": 0, "crit_type": "infinity_circuit", "repairable": True},
+    3:  {"name": "Keel Armament Damaged", "extra_damage": 0, "crit_type": "keel_armament", "repairable": True},
+    4:  {"name": "Prow Armament Damaged", "extra_damage": 0, "crit_type": "prow_armament", "repairable": True},
+    5:  {"name": "Mast Lines Severed", "extra_damage": 0, "crit_type": "mast_lines", "repairable": True},
+    6:  {"name": "Mainsail Scarred", "extra_damage": 0, "crit_type": "mainsail_scarred", "repairable": True},
+    7:  {"name": "Superstructure Damaged", "extra_damage": 1, "crit_type": "superstructure", "repairable": True},
+    8:  {"name": "Mainsail Shredded", "extra_damage": 0, "crit_type": "mainsail_shredded", "repairable": True},
+    9:  {"name": "Holofield Generators Destroyed", "extra_damage": 1, "crit_type": "holofield_destroyed", "repairable": False},
+    10: {"name": "Shields Collapse", "extra_damage": 1, "crit_type": "shields_collapse", "repairable": False},
+    11: {"name": "Hull Breach", "extra_damage": "D3", "crit_type": "hull_breach", "repairable": False},
+    12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
+}
+
+
+def crit_table_for(ship) -> dict:
+    """The critical hits table a ship rolls on (Appendix 3 / 5)."""
+    if "eldar_mms" in (getattr(ship, "special_rules", None) or []):
+        return ELDAR_CRITICAL_HITS
+    return CRITICAL_HITS
+
+
 # Boarding Action Results Table
 # diff: score difference between winner and loser
 # winner_crit: minimum 1D6 roll for winner to suffer a crit (None = no crit check)

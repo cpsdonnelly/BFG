@@ -5,7 +5,7 @@ import re
 from typing import List, Dict, Tuple, Optional
 from .models import Ship, BlastMarker, Arc, SpecialOrder
 from .game_state import GameState
-from .tables import (lookup_gunnery_dice, get_gunnery_column, CRITICAL_HITS,
+from .tables import (lookup_gunnery_dice, get_gunnery_column, CRITICAL_HITS,  # noqa: F401 (re-exported)
                      lookup_catastrophic)
 from .dice import DiceRoller
 from .geometry import (current_shields,
@@ -1015,6 +1015,10 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
         game_state.add_log(f"  Extra damage: {extra} HP")
         if target.hits_remaining <= 0:
             return True
+    if crit_data["crit_type"] == "infinity_circuit":
+        target.leadership = max(1, target.leadership - 1)     # Eldar: -1 Ld per hit
+    if crit_data["crit_type"] == "holofield_destroyed":
+        target.special_rules = [r for r in target.special_rules if r != "holofield"]
     if crit_data["crit_type"] == "bridge_smashed":
         if "demiurg_commerce" in target.special_rules:
             # Demiurg: one extra point of damage instead of -3 Ld
@@ -1082,7 +1086,8 @@ def weapon_in_crit_slot(weapon: Dict, crit_type: str) -> bool:
     name = (weapon.get("name") or "").lower()
     arcs = weapon.get("arcs") or []
     word = {"dorsal_armament": "dorsal", "port_armament": "port",
-            "starboard_armament": "starboard", "prow_armament": "prow"}.get(crit_type)
+            "starboard_armament": "starboard", "prow_armament": "prow",
+            "keel_armament": "keel"}.get(crit_type)
     if word is None:
         return False
     if word in name:
@@ -1768,11 +1773,13 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
     """
     # Armament crit types (in table order by roll value)
     ARMAMENT_CRITS = {"dorsal_armament", "starboard_armament",
-                      "port_armament", "prow_armament"}
+                      "port_armament", "prow_armament", "keel_armament"}
+    from .tables import crit_table_for
+    table = crit_table_for(ship)
 
     test_roll = roll_2d6
     while test_roll <= 12:
-        crit_data = CRITICAL_HITS.get(test_roll)
+        crit_data = table.get(test_roll)
         if crit_data is None:
             test_roll += 1
             continue
@@ -1808,7 +1815,7 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
         # This crit can apply
         if test_roll != roll_2d6:
             game_state.add_log(
-                f"  Crit cascaded from {CRITICAL_HITS[roll_2d6]['name']} "
+                f"  Crit cascaded from {table[roll_2d6]['name']} "
                 f"to {crit_data['name']}")
         return crit_data
 
