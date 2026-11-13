@@ -484,7 +484,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1150 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1153 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1342,7 +1342,12 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
       1 hit per end phase; a weapon is worth its next turn of fire if it will bear; an engine crit what is lost by not
       turning; escorts don't repair; the fixed order stays as the fallback); blast marker
       removal as s.36 states it; first-turn policy (s.2: the roll-off winner chooses to move
-      first or second) alongside deployment.
+      first or second) alongside deployment. Built: damage control and blast marker removal
+      by value (see To do 9), the first-turn roll-off (`src/first_turn.py`,
+      `GamePanel._first_turn_roll_off` after deployment, `GameState.first_player`; ties
+      re-rolled, AI players roll automatically; the AI moves first when its gun reach + speed
+      covers the gap between the fleets, judgement; a human winner gets "Auto (best)").
+      Not yet: deployment by strategy.
    f. Built: scale-free re-roll bars (`ai_rerolls._bar(left, gs)`: the 45 / 25 / 15 / 10 VP
       bars set for a 1500pt game, `BAR_REFERENCE_POINTS`, scaled by one fleet's worth of the
       points on the table, at least a quarter).

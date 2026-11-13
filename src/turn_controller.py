@@ -232,7 +232,8 @@ class TurnController:
         """Initialize the game, save first snapshot."""
         self.gs.turn_number = 1
         self.gs.current_phase = "movement"
-        self.gs.active_player = 1  # determined by scenario or coin toss
+        # s.2: the roll-off winner's choice (GamePanel._first_turn_roll_off)
+        self.gs.active_player = getattr(self.gs, "first_player", 1) or 1
         self.save_snapshot("t1_start")
         self.record_action("game_start", description="Game begins")
 

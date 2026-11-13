@@ -290,6 +290,28 @@ class GamePanel:
         return choose(self.ctx.root, "Mark of Tzeentch", f"Player {player}: {text}",
                       [("Re-roll", True), ("Keep", False)], best)
 
+    def _first_turn_roll_off(self):
+        """s.2 First turn: roll off; the winner moves first or second (the AI
+        by first_turn.ai_moves_first, a human asked with "Auto (best)")."""
+        from .first_turn import roll_off, ai_moves_first
+        from .dice import DiceRoller
+        gs = self.ctx.gs
+        auto = DiceRoller(mode="auto")
+        winner, (a, b) = roll_off(auto if self.ctx.is_ai_controlled(1) else self.ctx.dice,
+                                  auto if self.ctx.is_ai_controlled(2) else self.ctx.dice)
+        best = ai_moves_first(gs, winner)
+        if self.ctx.is_ai_controlled(winner):
+            first = best
+        else:
+            from .choice_dialog import choose
+            first = choose(self.ctx.root, "First Turn",
+                           f"Roll-off: player 1 rolled {a}, player 2 rolled {b}. "
+                           f"Player {winner} wins: move first or second?",
+                           [("Move first", True), ("Move second", False)], best)
+        gs.first_player = winner if first else 3 - winner
+        self.ctx.log(f"First turn: player {winner} wins the roll-off ({a} v {b}) and "
+                     f"chooses to move {'first' if first else 'second'}")
+
     def _undivided_hook(self, ship, leader, label):
         """GameState.undivided_hook: Mark of Chaos Undivided, once per game
         before a Leadership test or command check. A human owner is asked
@@ -1009,6 +1031,7 @@ class GamePanel:
         """Called by DeploymentPanel when all ships are placed."""
         tc = self.ctx.tc
         gs = self.ctx.gs
+        self._first_turn_roll_off()
         tc.start_game()
         tc.begin_phase("movement")
         with self._auto_dice_if(self._is_ai_turn()):
