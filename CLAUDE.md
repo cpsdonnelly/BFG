@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1272 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1274 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1145,7 +1145,25 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    six turns; the attacker's ships off the blockader's (top) edge score their points, a
    quarter if crippled, on top of the normal VP; AI `_exit_value` / `_convoy_run` pull its
    ships to that edge and `_objective_stake` keeps them from disengaging by a test). The AI's
-   off-table moves now count a scenario exit only off that scenario's own edge. Not yet: racing the 10 against the turn
+   off-table moves now count a scenario exit only off that scenario's own edge.
+   Reinforcements built (`scenarios`: reserve ships have status `reserve` and
+   `is_disengaged`, so everything ignores them until they arrive; `ships_alive` counts them,
+   VP never scores them (reading: reinforcements that never arrive score nothing), deployment
+   skips them; `turn_start` offers each reserve unit at the start of its player's turn (both
+   players each AA round) through `GameState.reserve_hook` (GamePanel: the AI brings them on
+   at once, judgement; a human gets "Enter now / Wait"); `place_arrival` puts them at the
+   scenario's `entry_edge`, facing in, and they move normally that turn). Built on it: The
+   Bait (p.86: the pursued ship or squadron, reading: the defender's dearest unit within 250pts
+   unless chosen, at the centre facing the right short edge; the rest of the defender's fleet
+   in reserve entering from that edge; pursuers more than 60cm behind it; defender first; VP)
+   and Rearguard Attack (p.97: reading: the defender's cheapest units until 25% of its points
+   are reinforcements, entering from the sunward edge, the left one as drawn; the defender
+   more than 30cm from the long edges and 60cm from the sunward edge, facing it, 10cm apart;
+   the attacker on from any edge as The Raiders; -1 Ld for D6 turns; eight turns; VP). Not
+   yet: entering along the long edges after turn 1 (up to 30cm a turn), choosing the
+   reinforcements / the pursued unit in the set-up dialogs, Navigate the Storm (ships lost in
+   rifts), the narrative Convoy (contact markers, deadfall torpedoes), Destroy the Docks
+   (orbital mines, random arrival rolls). Not yet: racing the 10 against the turn
    order, Planet Strike's planetary defence budget (+20%) and "extra assault points" ships,
    Orbit Lost, The Bait (reinforcements entering), the raids and battles, the rest of the
    sub-plots, Cruiser Clash's alternating deployment and forces limits, the Ambush attacker's half-points limit (fleet building), Line Breaker's

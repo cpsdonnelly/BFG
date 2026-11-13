@@ -779,3 +779,67 @@ def test_blockade_run_thirds_and_breakthrough_vp():
     # a1 uncrippled 200, a2 crippled 50; the blockader still scores them as
     # disengaged (10% and 25%)
     assert vp[1]["total"] == 250 and vp[2]["total"] == 20 + 50
+
+
+# --- Reinforcements: The Bait, Rearguard Attack ---------------------------------------
+
+def test_the_bait_reserves_arrive_and_score_nothing_until_then():
+    from src.turn_controller import TurnController
+    from src.victory_points import calculate_victory_points
+    flee = make_ship(id="fl", player=2, points_value=180)
+    big = make_ship(id="bg", player=2, points_value=365)
+    e1 = make_ship(id="e1", player=2, ship_type="escort", squadron_id="s", points_value=40)
+    e2 = make_ship(id="e2", player=2, ship_type="escort", squadron_id="s", points_value=40)
+    att = make_ship(id="at", player=1, points_value=200, x=10.0, y=60.0)
+    gs = _gs([flee, big, e1, e2, att], mode="the_bait")
+    sc.setup_scenario(gs)
+    assert gs.scenario_state["fleeing"] == "fl"                 # dearest unit within 250
+    assert sc.is_reserve(gs.get_ship_by_id("bg")) and sc.is_reserve(gs.get_ship_by_id("e1"))
+    assert not sc.is_reserve(gs.get_ship_by_id("fl"))
+    assert sc.fixed_placements(gs) == {"fl": (90.0, 60.0, 0.0)}
+    assert sc.first_player(gs) == 2
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[1].contains(25, 60) and not zones[1].contains(35, 60)
+    vp = calculate_victory_points(gs)
+    assert vp[1]["total"] == 0                                  # reserves aren't "scattered"
+    # The defender's turn: the hook takes the first unit offered and declines the next
+    gs.active_player = 2
+    asked = []
+    gs.reserve_hook = lambda p, names: (asked.append(names), len(asked) == 1)[1]
+    tc = TurnController(gs, DiceStub([3]))
+    tc.begin_phase("movement")
+    arrived = [s for s in gs.get_ships() if s.player == 2 and not sc.is_reserve(s)]
+    assert len(asked) == 2 and len(arrived) == 2
+    came = next(s for s in arrived if s.id != "fl")
+    assert came.x > 175 and came.heading == 180.0 and came.status == "active"
+    assert came.id in [s.id for s in tc.get_unmoved_ships()]   # it moves this turn
+    # Escorts still in reserve keep the fleet alive
+    for s in gs.get_ships():
+        if s.player == 2 and not sc.is_reserve(s):
+            s.hits_remaining, s.status = 0, "destroyed"
+            gs.update_ship(s)
+    assert check_game_over(gs) is None
+    gs.reserve_hook = None
+    sc.turn_start(gs)
+    assert not sc.reserve_units(gs, 2)
+
+
+def test_rearguard_reserves_alert_and_placement():
+    ships = [make_ship(id=f"d{i}", player=2, points_value=p, leadership=8)
+             for i, p in enumerate((100, 150, 200, 250))]
+    gs = _gs(ships + [make_ship(id="a", player=1)], mode="rearguard")
+    sc.setup_scenario(gs, DiceStub([3]))
+    # 700pts: the cheapest units until a quarter (175): 100 + 150
+    assert gs.scenario_state["reserve_units"] == ["d0", "d1"]
+    assert sc.is_reserve(gs.get_ship_by_id("d1")) and not sc.is_reserve(gs.get_ship_by_id("d2"))
+    assert gs.get_ship_by_id("d2").leadership == 7 and gs.turn_limit == 16
+    assert sc.entry_edge(gs) == "left"
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[2].contains(70, 60) and not zones[2].contains(50, 60) \
+        and not zones[2].contains(70, 20)
+    d2 = gs.get_ship_by_id("d2")
+    assert sc.placement_errors(gs, [d2], [(100.0, 60.0)], [180.0], []) == []
+    assert sc.placement_errors(gs, [d2], [(100.0, 60.0)], [0.0], [])
+    sc.arrivals(gs, 2)
+    d0 = gs.get_ship_by_id("d0")
+    assert d0.x < 5 and d0.heading == 0.0 and not d0.is_disengaged

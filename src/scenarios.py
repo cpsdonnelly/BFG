@@ -49,6 +49,19 @@ SCENARIOS: Dict[str, Dict] = {
         "victory": "vp",
         "game_turns": 6,
     },
+    "the_bait": {
+        "name": "The Bait (XR p.86)",
+        "first_turn": "defender",
+        "end": "fleet_gone",
+        "victory": "vp",
+    },
+    "rearguard": {
+        "name": "Rearguard Attack (XR p.97)",
+        "first_turn": "attacker",
+        "end": "fleet_gone",
+        "victory": "vp",
+        "game_turns": 8,
+    },
     "confrontation": {
         "name": "Confrontation (XR p.117)",
         "first_turn": "attacker",
@@ -120,14 +133,116 @@ def first_player(gs) -> Optional[int]:
     return None
 
 
+def _group_key_d(sd: Dict) -> str:
+    return sd["squadron_id"] if (sd.get("ship_type") == "escort" and sd.get("squadron_id")) \
+        else sd["id"]
+
+
+# --- Reinforcements (The Bait, Rearguard Attack) ------------------------------------
+RESERVE = "reserve"
+
+
+def _to_reserve(sd: Dict) -> None:
+    """Hold a ship off the table as a reinforcement: everything that ignores
+    disengaged ships ignores it until it arrives."""
+    sd["status"] = RESERVE
+    sd["is_disengaged"] = True
+
+
+def is_reserve(ship) -> bool:
+    return getattr(ship, "status", "") == RESERVE
+
+
+def bait_unit(gs) -> Optional[str]:
+    """The Bait: the pursued ship or squadron (worth up to 250pts). Kept in
+    scenario_state when chosen; otherwise (reading) the defender's dearest
+    unit within 250pts, or its cheapest."""
+    st = gs.scenario_state or {}
+    if st.get("fleeing"):
+        return st["fleeing"]
+    units: Dict[str, int] = {}
+    for sd in gs.ships:
+        if sd["player"] == defender(gs):
+            units[_group_key_d(sd)] = units.get(_group_key_d(sd), 0) + sd.get("points_value", 0)
+    if not units:
+        return None
+    fits = [k for k, v in units.items() if v <= 250]
+    return max(fits, key=units.get) if fits else min(units, key=units.get)
+
+
+def reserve_units(gs, player: int) -> Dict[str, list]:
+    out: Dict[str, list] = {}
+    for s in gs.get_ships():
+        if s.player == player and is_reserve(s):
+            out.setdefault(_group_key(s), []).append(s)
+    return out
+
+
+def entry_edge(gs) -> Optional[str]:
+    """The edge reinforcements enter from: The Bait the short edge in front of
+    the pursued ship (the right one), Rearguard Attack the sunward table edge
+    (the left one, as the diagram draws it)."""
+    mode = getattr(gs, "scenario_mode", "")
+    return {"the_bait": "right", "rearguard": "left"}.get(mode)
+
+
+def place_arrival(gs, ships, index: int = 0) -> None:
+    """Put an arriving unit on the table at the entry edge, facing in, stacked
+    along the edge from its middle (each later unit further along)."""
+    edge = entry_edge(gs)
+    w, h = gs.table_width, gs.table_height
+    occupied = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
+    off = 0
+    while True:
+        y0 = h / 2.0 + ((-1) ** off) * 8.0 * ((off + 1) // 2)
+        pts = [(y0 + 4.0 * i) for i in range(len(ships))]
+        x = (ships[0].base_radius + 0.1) if edge == "left" else (w - ships[0].base_radius - 0.1)
+        if all((o.x - x) ** 2 + (o.y - y) ** 2 >= 25.0 for o in occupied for y in pts) \
+                or off > 20:
+            break
+        off += 1
+    for s, y in zip(ships, pts):
+        s.x, s.y = x, max(5.0, min(h - 5.0, y))
+        s.heading = 0.0 if edge == "left" else 180.0
+        s.status = "active"
+        s.is_disengaged = False
+        gs.update_ship(s)
+
+
+def arrivals(gs, player: int, wants=None) -> List[str]:
+    """Reinforcements may enter on any turn, including the first: offer each
+    of `player`'s reserve units; `wants(ship names) -> bool` decides (a
+    human's prompt; None or an AI: they all come on at once, judgement).
+    Returns the names that arrived."""
+    came = []
+    for i, (_k, ships) in enumerate(sorted(reserve_units(gs, player).items())):
+        names = ", ".join(s.name for s in ships)
+        if wants is not None and not wants(names):
+            continue
+        place_arrival(gs, ships, i)
+        came.append(names)
+        gs.add_log(f"[Reinforcements] arriving from the {entry_edge(gs)} edge: {names}")
+    return came
+
+
 def _group_key(ship) -> str:
     return ship.squadron_id if (ship.ship_type == "escort" and ship.squadron_id) else ship.id
 
 
 def turn_start(gs) -> None:
-    """At the start of each turn: The Raiders' defender gets its Ld back after
-    its D6 turns of reduced alert (reading: game turns, both players' turns)."""
-    if getattr(gs, "scenario_mode", "") != "raiders":
+    """At the start of each turn: reinforcements may arrive (The Bait,
+    Rearguard Attack: the player whose turn it is, both players in an
+    alternate-activation round), and The Raiders' / Rearguard's defender gets
+    its Ld back after its D6 turns of reduced alert (reading: game turns, both
+    players' turns)."""
+    mode = getattr(gs, "scenario_mode", "")
+    if entry_edge(gs):
+        hook = getattr(gs, "reserve_hook", None)
+        players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
+        for p in players:
+            if reserve_units(gs, p):
+                arrivals(gs, p, (lambda names, p=p: hook(p, names)) if hook else None)
+    if mode not in ("raiders", "rearguard"):
         return
     st = dict(gs.scenario_state or {})
     n = st.get("alert_turns")
@@ -298,6 +413,46 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
             gs.add_log(f"[Rescue] the defending flagship is {flag.name}")
     elif mode == "convoy_matched":
         gs.scenario_state = {"had_cargo": cargo_on_table(gs, defender(gs)) > 0}
+    elif mode == "the_bait":
+        # The pursued ship or squadron (chosen, or the AI's pick) stays; the
+        # defender's other ships are reinforcements
+        flee = bait_unit(gs)
+        for sd in gs.ships:
+            if sd["player"] == defender(gs) and _group_key_d(sd) != flee:
+                _to_reserve(sd)
+        gs.scenario_state = {"fleeing": flee}
+        gs.add_log(f"[The Bait] the pursued unit is {flee}; the rest are reinforcements")
+    elif mode == "rearguard":
+        # At least 25% of the defender's points are reinforcements (reading:
+        # the cheapest ships / squadrons first, until a quarter is reached),
+        # and the defender's reduced alert as in The Raiders
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        units: Dict[str, int] = {}
+        for sd in gs.ships:
+            if sd["player"] == defender(gs) and "immobile" not in sd.get("special_rules", []):
+                units[_group_key_d(sd)] = units.get(_group_key_d(sd), 0) + sd.get("points_value", 0)
+        total = sum(units.values())
+        chosen, got = set(gs.scenario_state.get("reserve_units", []) if gs.scenario_state
+                          else []), 0
+        if not chosen:
+            for k, v in sorted(units.items(), key=lambda kv: kv[1]):
+                if got * 4 >= total:
+                    break
+                chosen.add(k)
+                got += v
+        for sd in gs.ships:
+            if sd["player"] == defender(gs) and _group_key_d(sd) in chosen:
+                _to_reserve(sd)
+        n = dice.roll_d6(1, "Rearguard Attack: turns of reduced alert (D6)")[0]
+        for sd in gs.ships:
+            if sd["player"] == defender(gs) and sd.get("leadership"):
+                sd["leadership"] = max(1, sd["leadership"] - 1)
+        gs.scenario_state = {"alert_turns": n, "alert_restored": False,
+                             "reserve_units": sorted(chosen)}
+        gs.add_log(f"[Rearguard] reinforcements: {sorted(chosen)}; the defender is at -1 Ld "
+                   f"for {n} turn(s)")
     elif mode == "raiders":
         # The defender's reduced state of alert: -1 Ld for the first D6 turns
         if dice is None:
@@ -389,6 +544,12 @@ def fixed_placements(gs) -> Dict[str, Tuple[float, float, float]]:
         flag = rescue_flagship(gs)
         if flag is not None:
             return {flag.id: (gs.table_width / 2.0, gs.table_height / 2.0, 180.0)}
+    if getattr(gs, "scenario_mode", "") == "the_bait":
+        flee = (gs.scenario_state or {}).get("fleeing")
+        ships = [s for s in gs.get_ships() if _group_key(s) == flee]
+        # at the centre, facing the right short edge (squadron members stacked)
+        return {s.id: (gs.table_width / 2.0, gs.table_height / 2.0 + 4.0 * i, 0.0)
+                for i, s in enumerate(ships)}
     if getattr(gs, "scenario_mode", "") == "chance_encounter":
         flag = chance_flagship(gs)
         if flag is not None:
@@ -572,6 +733,17 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         rects = {3 - att_p: [(30, 30, 30, 30)],
                  att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
                          (w - e, 0, 0, 0)]}
+    elif mode == "the_bait":
+        # The pursued ship at the centre (fixed_placements); the pursuers more
+        # than 60cm behind it (towards the left short edge)
+        rects = {att_p: [(0, w / 2.0 + 60.0, 0, 0)], 3 - att_p: [(w / 2.0 - 1, w / 2.0 - 1, 0, 0)]}
+    elif mode == "rearguard":
+        # Defender at least 30cm from the long edges and 60cm from the sunward
+        # (left) edge; the attacker moves on from any edge (as The Raiders)
+        e = 3.0
+        rects = {3 - att_p: [(60, 0, 30, 30)],
+                 att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
+                         (w - e, 0, 0, 0)]}
     elif mode == "blockade_run":
         # Attacker within 15cm of its (bottom) edge; blockaders not within 60cm
         # of it, in the third of the table their D6 gave (placement_errors)
@@ -618,6 +790,18 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     if mode == "raiders" and group:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
+        return errs
+    if mode == "rearguard" and group and group[0].player == defender(gs):
+        # every defending ship faces the sunward (left) edge, 10cm apart
+        for s_, h in zip(group, headings):
+            if abs((h - 180.0 + 180.0) % 360.0 - 180.0) > 0.5:
+                errs.append(f"Rearguard Attack: {s_.name} must face the sunward edge (180)")
+        others = [s for s in placed if s.player == group[0].player
+                  and not (group[0].squadron_id and s.squadron_id == group[0].squadron_id)]
+        for s in others:
+            if any((x - s.x) ** 2 + (y - s.y) ** 2 < 100.0 for x, y in positions):
+                errs.append(f"Rearguard Attack: at least 10cm from {s.name}")
+                break
         return errs
     if mode == "blockade_run" and group and group[0].player == defender(gs):
         third = (gs.scenario_state or {}).get("thirds", {}).get(_group_key(group[0]))
@@ -740,12 +924,12 @@ def auto_positions(gs, group, zone, placed, index: int):
         cx = lo + gs.table_width / 6.0
         cy = gs.table_height - 15.0 - 10.0 * (n_here % 4)
         return [(cx - 6.0 + 4.0 * i, cy) for i in range(len(group))]
-    if mode == "raiders" and group and group[0].player == gs.scenario_attacker:
+    if mode in ("raiders", "rearguard") and group and group[0].player == gs.scenario_attacker:
         r = zone.rects()[0]
         cx = (r.x_min + r.x_max) / 2.0 - 8.0 * index
         y = r.y_max - max(s_.base_radius for s_ in group) - 0.1      # base on the table
         return [(cx + 4.0 * i, y) for i in range(len(group))]
-    if mode in ("ambush", "raiders") and group and group[0].player == defender(gs):
+    if mode in ("ambush", "raiders", "rearguard") and group and group[0].player == defender(gs):
         others = [s for s in placed if s.player == defender(gs)]
         y = zone.y_min + 5.0
         while y <= zone.y_max:

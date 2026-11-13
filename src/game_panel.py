@@ -57,6 +57,7 @@ class GamePanel(AAPanelMixin):
         tc.gs.crit_reroll_hook = self._crit_reroll_hook
         tc.gs.turret_choice_hook = self._turret_choice_hook
         tc.gs.mr_suppress_hook = self._mr_suppress_hook
+        tc.gs.reserve_hook = self._reserve_hook
 
         self._game_over = False
         self._ai_thinking = False   # expert AI search running on a worker thread
@@ -611,7 +612,7 @@ class GamePanel(AAPanelMixin):
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
-                      "raiders", "blockade_run", "confrontation", "line_breaker", "ambush",
+                      "the_bait", "raiders", "blockade_run", "rearguard", "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
                       "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
@@ -1090,6 +1091,18 @@ class GamePanel(AAPanelMixin):
             on_complete=self._begin_turn1,
             mode="sequential",
         )
+
+    def _reserve_hook(self, player, names) -> bool:
+        """Scenario reinforcements (The Bait, Rearguard Attack) may enter this
+        turn: the AI brings them on at once (judgement); a human is asked."""
+        import threading
+        if self.ctx.is_ai_controlled(player) or \
+                threading.current_thread() is not threading.main_thread():
+            return True
+        from .choice_dialog import choose
+        return choose(self.root, "Reinforcements",
+                      f"Player {player}: bring {names} on from the table edge this turn?",
+                      [("Enter now", True), ("Wait", False)], True)
 
     def _roll_subplots(self):
         """Sub-plots (p.80): with the rule on, each player (the attacker

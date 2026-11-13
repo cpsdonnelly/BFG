@@ -36,8 +36,8 @@ def calculate_victory_points(gs: GameState) -> Dict:
     for s in ships:
         opponent = 2 if s.player == 1 else 1
         pts = s.points_value
-        if pts <= 0 or not scores_normally(gs, s):
-            continue            # (convoy ships in Convoy are scored by vp_bonus)
+        if pts <= 0 or not scores_normally(gs, s) or s.status == "reserve":
+            continue            # (reinforcements that never arrived score nothing, reading)            # (convoy ships in Convoy are scored by vp_bonus)
 
         # Skip escorts that are part of a squadron (handled below)
         if s.squadron_id and s.ship_type == "escort":

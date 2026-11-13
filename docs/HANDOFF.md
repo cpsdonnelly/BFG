@@ -925,6 +925,12 @@ D6 turns of reduced alert are game turns; Blockade Run's breakthrough bonus is p
 (escorts one by one). Next raids: Convoy (the narrative one, p.94), Rearguard Attack, Navigate
 the Storm, Destroy the Docks.
 
+Then: reinforcements (reserve ships entering from a scenario edge) with The Bait and Rearguard
+Attack on top. Readings to confirm: unarrived reinforcements score nothing; the pursued unit
+and the reinforcements are picked automatically for now (dearest unit within 250pts; cheapest
+units up to a quarter); the sunward edge is the left one; the AI brings reinforcements on at
+once.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

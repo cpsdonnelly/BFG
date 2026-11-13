@@ -72,7 +72,7 @@ imp = ["Lunar Class Cruiser", "Gothic Class Cruiser", "Dominator Class Cruiser",
        "Dauntless Class Light Cruiser"]
 chs = ["Slaughter Class Cruiser", "Carnage Class Cruiser", "Murder Class Cruiser",
        "Infidel Class Raider"]
-if scenario in ("ambush", "raiders", "blockade_run"):
+if scenario in ("ambush", "raiders", "blockade_run", "rearguard"):
     chs = chs[:2]                       # the attacker has half the points
 if scenario == "line_breaker":
     imp = imp[:3] + ["Orbital Weapons Platform"] * 3 + ["Orbital Defence Laser Platform"] * 2
@@ -107,7 +107,7 @@ placed = []
 for p in (1, 2):
     z = zones[p]
     idx = 0
-    for s_ in [x for x in gs.get_ships() if x.player == p]:
+    for s_ in [x for x in gs.get_ships() if x.player == p and not sc.is_reserve(x)]:
         if s_.id in fixed:
             s_.x, s_.y, s_.heading = fixed[s_.id]
         else:
@@ -132,7 +132,11 @@ for p in (1, 2):
                     s_.x, s_.y = pl.x - 20.0, pl.y + 15.0
             if scenario in ("ambush", "raiders") and p == 2:
                 s_.heading = 90.0
-            if scenario == "raiders" and p == 1:
+            if scenario == "rearguard" and p == 2:
+                s_.heading = 180.0
+            if scenario == "the_bait" and p == 1:
+                s_.heading = 0.0
+            if scenario in ("raiders", "rearguard") and p == 1:
                 s_.heading = 90.0 if s_.y < gs.table_height / 2 else 270.0   # onto the table
             if scenario == "blockade_run":
                 s_.heading = 90.0 if p == 1 else 270.0
@@ -192,7 +196,7 @@ if scenario == "chance_encounter":
           f"exits {gs.scenario_state.get('exits')}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
-                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Raiders", "Blockade", "broke through", "Sub-plot", "holds position", "DISENGAG", "off the table",
+                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Raiders", "Blockade", "broke through", "Reinforcements", "Bait", "Rearguard", "Sub-plot", "holds position", "DISENGAG", "off the table",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "

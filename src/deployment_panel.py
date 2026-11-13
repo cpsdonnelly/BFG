@@ -78,10 +78,11 @@ class DeploymentPanel:
             if sd["id"] in fixed:
                 sd["x"], sd["y"], sd["heading"] = fixed[sd["id"]]
         # Load ships from GameState
+        # (reinforcements held in reserve aren't deployed either)
         p1_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 1
-                    and s["id"] not in fixed]
+                    and s["id"] not in fixed and s.get("status") != "reserve"]
         p2_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 2
-                    and s["id"] not in fixed]
+                    and s["id"] not in fixed and s.get("status") != "reserve"]
 
         self.zones = (deployment_zones(gs)
                       or get_default_zones(gs.table_width, gs.table_height))

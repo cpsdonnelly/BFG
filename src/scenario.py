@@ -14,9 +14,11 @@ ARTEFACT_PICKUP_RADIUS_CM = 5.0
 
 
 def ships_alive(gs: GameState, player: int) -> bool:
+    """Ships still on the table, or reinforcements still to come."""
     return any(
         s for s in gs.get_ships()
-        if s.player == player and not s.is_destroyed and not s.is_disengaged
+        if s.player == player and not s.is_destroyed
+        and (not s.is_disengaged or s.status == "reserve")
     )
 
 
