@@ -1,6 +1,6 @@
 {
  "source_document": "BFGXR_XR_Companion.docx",
- "ship_count": 178,
+ "ship_count": 212,
  "ships": [
   {
    "faction": "Imperial Navy",
@@ -14684,6 +14684,2817 @@
     }
    ],
    "notes": "Unique; flagship only if most expensive. Free Mark of Khorne. Improved Thrusters (+D6cm on All Ahead Full); always has CSM + Terminator crew, re-rolls boarding; Defiant Rage when crippled. Full rules: see Chaos Ship Special Rules"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Void Stalker Class Battleship",
+   "hull_type": "Battleship",
+   "points": 470,
+   "points_raw": "470",
+   "hits": 10,
+   "hits_raw": "10",
+   "base": "60mm",
+   "speed_cm": null,
+   "speed_raw": "10/15/20",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "3+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 4,
+   "turrets_raw": "4",
+   "armament_raw": "Prow Pulsar Lance 45cm FP2 (L/F); Prow Pulsar Lance 45cm FP2 (R/F); Keel Weapons Battery 45cm FP8 (L/F/R); Keel Torpedoes 30cm S4 (F); Prow Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 45cm FP2 (L/F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Pulsar Lance 45cm FP2 (R/F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "R",
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Weapons Battery 45cm FP8 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "8",
+     "value_int": 8,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Torpedoes 30cm S4 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)",
+     "group": null,
+     "kind": "launch_bays",
+     "location": "Prow",
+     "name": "Launch Bays",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "4",
+       "raw": "S4"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Darkstar ASF",
+       "speed_cm": 30
+      },
+      {
+       "type": "Eagle BMR",
+       "speed_cm": 20
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "0-1 per 1000pts. May add Vampire Raiders (AB 30cm) to its launch bays +10pts"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Supernova Class Grand Cruiser",
+   "hull_type": "Cruiser",
+   "points": 270,
+   "points_raw": "270",
+   "hits": 8,
+   "hits_raw": "8",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/15/20",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Prow Pulsar Lance 45cm FP3 (F); Keel Pulsar Lance 30cm FP2 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 45cm FP3 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Pulsar Lance 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "0-1 per 2 attack cruisers or light cruisers"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Eclipse Class Cruiser",
+   "hull_type": "Cruiser",
+   "points": 260,
+   "points_raw": "260",
+   "hits": 6,
+   "hits_raw": "6",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Pulsar Lance 30cm FP2 (F); Keel Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    }
+   ],
+   "notes": null
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Shadow Class Cruiser",
+   "hull_type": "Cruiser",
+   "points": 230,
+   "points_raw": "230",
+   "hits": 6,
+   "hits_raw": "6",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Weapons Battery 30cm FP12 (F); Keel Torpedoes 30cm S4 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Weapons Battery 30cm FP12 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Torpedoes 30cm S4 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": null
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Aurora Class Light Cruiser",
+   "hull_type": "Cruiser",
+   "points": 140,
+   "points_raw": "140",
+   "hits": 4,
+   "hits_raw": "4",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "15/20/30",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Pulsar Lance 30cm FP2 (F); Keel Torpedoes 30cm S4 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Torpedoes 30cm S4 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": null
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Solaris Class Light Cruiser",
+   "hull_type": "Cruiser",
+   "points": 125,
+   "points_raw": "125",
+   "hits": 4,
+   "hits_raw": "4",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "15/20/30",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Weapons Battery 45cm FP10 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Weapons Battery 45cm FP10 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "10",
+     "value_int": 10,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Extra sensors negate any column shift for long range firing"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Hellebore Class Frigate",
+   "hull_type": "Escort",
+   "points": 75,
+   "points_raw": "75",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "15/20/30",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Pulsar Lance 30cm FP1 (F); Prow Weapons Battery 30cm FP2 (F); Keel Launch Bay S1 (Darkstar ASF 30cm)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Weapons Battery 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Launch Bay S1 (Darkstar ASF 30cm)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    }
+   ],
+   "notes": "May take mines +5pts, totally replacing its ordnance (mines do not benefit from stealth). May swap its launch bay for S2 torpedoes at no cost"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Aconite Class Frigate",
+   "hull_type": "Escort",
+   "points": 60,
+   "points_raw": "60",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "15/20/30",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Weapons Battery 30cm FP5 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Weapons Battery 30cm FP5 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "5",
+     "value_int": 5,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": null
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Nightshade Class Destroyer",
+   "hull_type": "Escort",
+   "points": 50,
+   "points_raw": "50",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "20/25/30",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 4,
+    "front_note": null,
+    "other": 4
+   },
+   "armour_raw": "4+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Prow Weapons Battery 30cm FP1 (F); Keel Torpedoes 30cm S2 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Weapons Battery 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Torpedoes 30cm S2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": null
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Corsair Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Hemlock Class Destroyer",
+   "hull_type": "Escort",
+   "points": 50,
+   "points_raw": "50",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "20/25/30",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 4,
+    "front_note": null,
+    "other": 4
+   },
+   "armour_raw": "4+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Keel Pulsar Lance 30cm FP1 (F)",
+   "weapons": [
+    {
+     "raw": "Keel Pulsar Lance 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Cannot initiate boarding actions. A ship that boards a Hemlock gains +1 in addition to any other modifiers"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Battleships and Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Wyrm Class Battleship",
+   "hull_type": "Battleship",
+   "points": 470,
+   "points_raw": "470",
+   "hits": 10,
+   "hits_raw": "10",
+   "base": "60mm",
+   "speed_cm": null,
+   "speed_raw": "10/15/20",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "3+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 4,
+   "turrets_raw": "4",
+   "armament_raw": "Port Pulsar Lance 45cm FP2 (F); Starboard Pulsar Lance 45cm FP2 (F); Prow Weapons Battery 45cm FP16 (F); Keel Torpedoes 30cm S4 (F); Keel Torpedoes 30cm S4 (F)",
+   "weapons": [
+    {
+     "raw": "Port Pulsar Lance 45cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Port",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Starboard Pulsar Lance 45cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Starboard",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Weapons Battery 45cm FP16 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "16",
+     "value_int": 16,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Torpedoes 30cm S4 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Torpedoes 30cm S4 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "May replace both keel torpedo launchers with two pulsar lances (45cm, Front) at no cost (loses eight torpedoes, gains two pulsar lances); alternatively may purchase boarding torpedoes +10pts"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Battleships and Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Void Dragon Class Grand Cruiser",
+   "hull_type": "Cruiser",
+   "points": 320,
+   "points_raw": "320",
+   "hits": 8,
+   "hits_raw": "8",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Port Pulsar Lance 30cm FP1 (F); Starboard Pulsar Lance 30cm FP1 (F); Prow Weapons Battery 30cm FP16 (F); Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
+   "weapons": [
+    {
+     "raw": "Port Pulsar Lance 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Port",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Starboard Pulsar Lance 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Starboard",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Weapons Battery 30cm FP16 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "16",
+     "value_int": 16,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    }
+   ],
+   "notes": "Requires a High Admiral (Craftworld) or a Hero (Corsair). Counts as belonging to the parent fleet for reserves. Counts as a Dragonship but does not require Wraithships"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Battleships and Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Dragonship Class Battle Cruiser",
+   "hull_type": "Cruiser",
+   "points": 270,
+   "points_raw": "270",
+   "hits": 6,
+   "hits_raw": "6",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Prow: Weapons Battery 30cm FP12 (F) or Pulsar Lance 30cm FP3 (F). Keel: Torpedoes 30cm S8 (F) or Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm)",
+   "weapons": [],
+   "notes": "Launch bays may add Vampire AB +10pts; torpedoes may be boarding torpedoes +10pts. Names: pulsar + torpedoes Thunder Dragon; batteries + bays River Dragon; batteries + torpedoes Mountain Dragon; pulsar + bays Sky Dragon"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Battleships and Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Wraithship Class Attack Cruiser",
+   "hull_type": "Cruiser",
+   "points": 180,
+   "points_raw": "180",
+   "hits": 6,
+   "hits_raw": "6",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow: Weapons Battery 30cm FP8 (F) or Pulsar Lance 30cm FP2 (F). Keel: Torpedoes 30cm S4 (F) or Launch Bays S2 (Nightwing ASF 30cm, Phoenix BMR 20cm)",
+   "weapons": [],
+   "notes": null
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Battleships and Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Ghost Dragon (Ghostship)",
+   "hull_type": "Cruiser",
+   "points": 270,
+   "points_raw": "270",
+   "hits": 6,
+   "hits_raw": "6",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Prow Weapons Battery 30cm FP12 (F) and Keel Weapons Battery 30cm FP8 (F); or Prow Pulsar Lance 30cm FP3 (F) and Keel Weapons Battery 30cm FP8 (F)",
+   "weapons": [],
+   "notes": "Ghostship (see Eldar Ship Special Rules)"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Battleships and Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Ghost Wraith (Ghostship)",
+   "hull_type": "Cruiser",
+   "points": 180,
+   "points_raw": "180",
+   "hits": 6,
+   "hits_raw": "6",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Weapons Battery 30cm FP8 (F) and Keel Weapons Battery 30cm FP4 (F); or Prow Pulsar Lance 30cm FP2 (F) and Keel Weapons Battery 30cm FP4 (F)",
+   "weapons": [],
+   "notes": "Ghostship (see Eldar Ship Special Rules)"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Shadowhunter Class Destroyer",
+   "hull_type": "Escort",
+   "points": 45,
+   "points_raw": "45",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "20/25/35",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 4,
+    "front_note": null,
+    "other": 4
+   },
+   "armour_raw": "4+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Prow: Weapons Battery 30cm FP3 (F) or Phantom Lance 30cm FP1 (F)",
+   "weapons": [],
+   "notes": "Its direct fire on ordnance hits on 4+ rather than 6+"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Specials",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Bahzhakhain (Biel-Tan)",
+   "hull_type": "Cruiser",
+   "points": 575,
+   "points_raw": "575",
+   "hits": 8,
+   "hits_raw": "8",
+   "base": "60mm",
+   "speed_cm": null,
+   "speed_raw": "20/25/30",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "3+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Prow Pulsar Lance 30cm FP2 (F); Prow Torpedoes 30cm S8 (F); Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Torpedoes 30cm S8 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "8",
+     "value_int": 8,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    }
+   ],
+   "notes": "0-1, Dragonship, fleets over 1000pts only. Extra +1 boarding, aspect warriors, Ld10, 1 re-roll for every Dragonship with aspect warriors (including the Bahzhakhain)"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Specials",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Wild Serpent (Saim-Hann)",
+   "hull_type": "Battleship",
+   "points": 485,
+   "points_raw": "485",
+   "hits": 10,
+   "hits_raw": "10",
+   "base": "60mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "3+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Prow Pulsar Lance 45cm FP1 (L/F); Prow Pulsar Lance 45cm FP1 (R/F); Prow Torpedoes 30cm S4 (F); Keel Weapons Battery 30cm FP10 (L/F/R); Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 45cm FP1 (L/F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Pulsar Lance 45cm FP1 (R/F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "R",
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Torpedoes 30cm S4 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Weapons Battery 30cm FP10 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "10",
+     "value_int": 10,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    }
+   ],
+   "notes": "0-1, Dragonship, fleets over 1000pts only. Aspect warriors (same effect), Ld10, 1 re-roll, crew skill 6 (Elite Command Crew, see Appendix 2)"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Specials",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Flame of Asuryan (Iyanden)",
+   "hull_type": "Cruiser",
+   "points": 450,
+   "points_raw": "450",
+   "hits": 8,
+   "hits_raw": "8",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "20/25/30",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "2+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Port Pulsar Lance 30cm FP1 (F); Starboard Pulsar Lance 30cm FP1 (F); Prow Weapons Battery 30cm FP16 (F); Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
+   "weapons": [
+    {
+     "raw": "Port Pulsar Lance 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Port",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Starboard Pulsar Lance 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Starboard",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Weapons Battery 30cm FP16 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "16",
+     "value_int": 16,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    }
+   ],
+   "notes": "0-1, Dragonship; any Corsair or Craftworld Iyanden fleet, in place of a Dragonship or Void Dragon. Aspect warriors, Ld10, 2 re-rolls. Elite command crew (see Appendix 2)"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Specials",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Shadow Point (Ulthwé)",
+   "hull_type": "Cruiser",
+   "points": 550,
+   "points_raw": "550",
+   "hits": 8,
+   "hits_raw": "8",
+   "base": "60mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/25",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "3+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Prow Pulsar Lance 30cm FP2 (F); Keel Pulsar Lance 30cm FP1 (F); Prow Weapons Battery 30cm FP12 (F); Keel Torpedoes 30cm S4 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Pulsar Lance 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Prow Weapons Battery 30cm FP12 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Torpedoes 30cm S4 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Torpedoes",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "S",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "0-1, Dragonship, fleets over 1000pts only. Ld10, 1 re-roll per turn; the re-roll is lost if the infinity circuit is smashed"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Craftworld Specials",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Sword of Eldanesh (Alaitoc)",
+   "hull_type": "Escort",
+   "points": 80,
+   "points_raw": "80",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/20/30",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Pulsar Lance 45cm FP1 (F); Dorsal Weapons Battery 45cm FP2 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Pulsar Lance 45cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Dorsal Weapons Battery 45cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Dorsal",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "0-1, any size fleet. Cannot be squadroned with other escorts, and so forgoes the requirement to be in an escort squadron"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Eldar Miscellaneous",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Eldar Transport",
+   "hull_type": "Escort",
+   "points": null,
+   "points_raw": "-",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "10/15/15",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "1+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Dorsal Weapons Battery 30cm FP2 (F)",
+   "weapons": [
+    {
+     "raw": "Dorsal Weapons Battery 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Dorsal",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "No points given"
+  },
+  {
+   "faction": "Eldar",
+   "source": "MMS p.3-28",
+   "roster_group": "Eldar Miscellaneous",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Haven Class Spire",
+   "hull_type": "Defence",
+   "points": 200,
+   "points_raw": "200",
+   "hits": 10,
+   "hits_raw": "10",
+   "base": "60mm",
+   "speed_cm": null,
+   "speed_raw": "5/5/5",
+   "turn_deg": 360,
+   "turn_raw": "360°",
+   "shields": null,
+   "shields_raw": "4+H",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 4,
+   "turrets_raw": "4",
+   "armament_raw": "Pulsar Lance 30cm FP3 (All Round); Weapons Battery 45cm FP12 (All Round); Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)",
+   "weapons": [
+    {
+     "raw": "Pulsar Lance 30cm FP3 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Pulsar Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Weapons Battery 45cm FP12 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)",
+     "group": null,
+     "kind": "launch_bays",
+     "location": null,
+     "name": "Launch Bays",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "4",
+       "raw": "S4"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Darkstar ASF",
+       "speed_cm": 30
+      },
+      {
+       "type": "Eagle BMR",
+       "speed_cm": 20
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Even though it can move, it counts as a regular defence for removing blast markers in the end phase"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Battleships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Cairn Class Tombship",
+   "hull_type": "Battleship",
+   "points": 500,
+   "points_raw": "500",
+   "hits": 12,
+   "hits_raw": "12",
+   "base": "60mm",
+   "speed_cm": 20,
+   "speed_raw": "20cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "RH 4+",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": 4,
+   "turrets_raw": "4",
+   "armament_raw": "Lightning Arc 30cm FP20 (L/F/R); Particle Whip 45cm FP6 (L/F/R); Star Pulse Generator 20cm (area effect); Portals 10cm S4 (All Round)",
+   "weapons": [
+    {
+     "raw": "Lightning Arc 30cm FP20 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lightning Arc",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "20",
+     "value_int": 20,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Particle Whip 45cm FP6 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Particle Whip",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "6",
+     "value_int": 6,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Star Pulse Generator 20cm (area effect)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    },
+    {
+     "raw": "Portals 10cm S4 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Portals",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 10,
+     "stat": "S",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Ponderous (no Come to New Heading)"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Reaper Class Grand Harvest Ship",
+   "hull_type": "Cruiser",
+   "points": 355,
+   "points_raw": "355",
+   "hits": 10,
+   "hits_raw": "10",
+   "base": "32mm",
+   "speed_cm": 25,
+   "speed_raw": "25cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "RH 5+",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": 4,
+   "turrets_raw": "4",
+   "armament_raw": "Lightning Arc 30cm FP12 (L/F/R); Particle Whip 45cm FP5 (L/F/R); Star Pulse Generator 20cm (area effect); Portals 10cm S3 (All Round)",
+   "weapons": [
+    {
+     "raw": "Lightning Arc 30cm FP12 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lightning Arc",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Particle Whip 45cm FP5 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Particle Whip",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "5",
+     "value_int": 5,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Star Pulse Generator 20cm (area effect)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    },
+    {
+     "raw": "Portals 10cm S3 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Portals",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 10,
+     "stat": "S",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Nebuloscope pylons (see Necron Ship Special Rules). Dynasty fleet only"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Scythe Class Harvest Ship",
+   "hull_type": "Cruiser",
+   "points": 275,
+   "points_raw": "275",
+   "hits": 8,
+   "hits_raw": "8",
+   "base": "32mm",
+   "speed_cm": 30,
+   "speed_raw": "30cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "RH 5+",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Lightning Arc 30cm FP8 (L/R); Particle Whip 45cm FP4 (L/F/R); Star Pulse Generator 20cm (area effect); Portals 10cm S3 (All Round)",
+   "weapons": [
+    {
+     "raw": "Lightning Arc 30cm FP8 (L/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lightning Arc",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "8",
+     "value_int": 8,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Particle Whip 45cm FP4 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Particle Whip",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Star Pulse Generator 20cm (area effect)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    },
+    {
+     "raw": "Portals 10cm S3 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Portals",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 10,
+     "stat": "S",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": null
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Shroud Class Light Cruiser",
+   "hull_type": "Cruiser",
+   "points": 155,
+   "points_raw": "155",
+   "hits": 4,
+   "hits_raw": "4",
+   "base": "32mm",
+   "speed_cm": 30,
+   "speed_raw": "30cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "RH 5+",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Lightning Arc 30cm FP10 (L/F/R); Portals 10cm S1 (All Round)",
+   "weapons": [
+    {
+     "raw": "Lightning Arc 30cm FP10 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lightning Arc",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "10",
+     "value_int": 10,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Portals 10cm S1 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Portals",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 10,
+     "stat": "S",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Negative energy veil; nebuloscope pylons; Dynasty special refits (see Necron Ship Special Rules)"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Jackal Class Raider",
+   "hull_type": "Escort",
+   "points": 60,
+   "points_raw": "60",
+   "hits": 2,
+   "hits_raw": "2",
+   "base": "32mm",
+   "speed_cm": 40,
+   "speed_raw": "40cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "RH 6+",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Lightning Arc 30cm FP4 (F); Portal 10cm S1 (All Round)",
+   "weapons": [
+    {
+     "raw": "Lightning Arc 30cm FP4 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lightning Arc",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "4",
+     "value_int": 4,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Portal 10cm S1 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Portal",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 10,
+     "stat": "S",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "ordnance",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Although it is an escort, may perform portal attacks against ships with 6 hits or less"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Dirge Class Raider",
+   "hull_type": "Escort",
+   "points": 40,
+   "points_raw": "40",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 50,
+   "speed_raw": "50cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "RH 6+",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Lightning Arc 30cm FP3 (F)",
+   "weapons": [
+    {
+     "raw": "Lightning Arc 30cm FP3 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lightning Arc",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "May be used as a convoy or system ship (see Necron Ship Special Rules)"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Planetary Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Necron Tomb Complex",
+   "hull_type": "Ground",
+   "points": 175,
+   "points_raw": "175",
+   "hits": null,
+   "hits_raw": "Special",
+   "base": "Special",
+   "speed_cm": null,
+   "speed_raw": "-",
+   "turn_deg": null,
+   "turn_raw": "-",
+   "shields": null,
+   "shields_raw": "RH 4+",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Lightning Arc 30cm FP10 (All Round); Launch Bays S6 (Night Scythes AB 30cm, Doom Scythes BMR 20cm, Night Shrouds TB 20cm)",
+   "weapons": [
+    {
+     "raw": "Lightning Arc 30cm FP10 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lightning Arc",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "10",
+     "value_int": 10,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Launch Bays S6 (Night Scythes AB 30cm, Doom Scythes BMR 20cm, Night Shrouds TB 20cm)",
+     "group": null,
+     "kind": "launch_bays",
+     "location": null,
+     "name": "Launch Bays",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "6",
+       "raw": "S6"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Night Scythes AB",
+       "speed_cm": 30
+      },
+      {
+       "type": "Doom Scythes BMR",
+       "speed_cm": 20
+      },
+      {
+       "type": "Night Shrouds TB",
+       "speed_cm": 20
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "0-1. Ld 7. Cannot be destroyed. Rules: see Necron Ship Special Rules"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Planetary Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Necron Pylon",
+   "hull_type": "Ground",
+   "points": 25,
+   "points_raw": "25",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "-",
+   "turn_deg": null,
+   "turn_raw": "-",
+   "shields": null,
+   "shields_raw": "RH 6+",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "Particle Whip 45cm FP3 (L/F/R)",
+   "weapons": [
+    {
+     "raw": "Particle Whip 45cm FP3 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Particle Whip",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Ground facility; may overlap a tomb complex"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Planetary Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Deathseed Minefield",
+   "hull_type": null,
+   "points": 50,
+   "points_raw": "50",
+   "hits": null,
+   "hits_raw": "",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "-",
+   "turn_deg": null,
+   "turn_raw": "-",
+   "shields": null,
+   "shields_raw": "-",
+   "armour": null,
+   "armour_raw": "-",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "",
+   "weapons": [],
+   "notes": "Area terrain-defence; generates deathseed mines. Rules: see Necron Ship Special Rules"
+  },
+  {
+   "faction": "Necrons",
+   "source": "Xenos p.38-51",
+   "roster_group": "Planetary Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Necrons"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Deathseed Mine",
+   "hull_type": null,
+   "points": 5,
+   "points_raw": "5",
+   "hits": null,
+   "hits_raw": "",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "-",
+   "turn_deg": null,
+   "turn_raw": "-",
+   "shields": null,
+   "shields_raw": "-",
+   "armour": null,
+   "armour_raw": "-",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "",
+   "weapons": [],
+   "notes": "Ignores shields. Rules: see Necron Ship Special Rules"
   },
   {
    "faction": "Orks",

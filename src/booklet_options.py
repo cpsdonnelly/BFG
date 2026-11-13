@@ -414,6 +414,42 @@ COMMANDERS = {
 ORK_BOSSES = [("Warboss", 40), ("Big Mek", 40), ("Freebooter Kaptin", 30)]
 ORK_TITLES = [("Big Boss", 1, 20), ("Mega Boss", 2, 40)]
 
+# Necron commanders (Xenos p.50-51): Harvest fleet Monuments, Dynasty fleet
+# Necron Lords; each comes with one free re-roll; more cost 25 (one) / 75 (two).
+# Owner ruling (update 55): the Obelisk has no Ld of its own, so its ship rolls
+# Ld as normal (Appendix 4), but it still has the Monument's free re-roll.
+# (name, Ld or None, cost, ship classes it may go on or None for any capital ship)
+NECRON_COMMANDERS = [
+    ("Monument: Obelisk", None, 0, None),
+    ("Monument: Monolith", 9, 50, ("Cairn Class Tombship", "Scythe Class Harvest Ship")),
+    ("Monument: Sepulchre", 10, 75, ("Cairn Class Tombship",)),
+    ("Necron Lord: Overlord", 9, 50, None),
+    ("Necron Lord: Nemesor", 10, 75, None),
+]
+NECRON_EXTRA_REROLLS = [25, 75]
+
+
+def necron_commander_options(row: dict) -> List[Dict]:
+    name = row["name"]
+    tiers = [t for t in NECRON_COMMANDERS if t[3] is None or name in t[3]]
+    names = [n for n, *_ in tiers]
+    opts = []
+    for n, ld, cost, _ in tiers:
+        effect = {"rerolls": 1, "add_special_rules": ["fleet_commander"], "flagship": True}
+        if ld is not None:
+            effect["set"] = {"leadership": ld, "leadership_table": ""}
+        opts.append({"name": n,
+                     "description": f"Fleet commander, {cost}pts: "
+                                    + (f"Ld {ld}" if ld else "no Ld of its own (the ship rolls "
+                                       "Ld as normal)") + ", 1 free re-roll.",
+                     "points_cost": cost, "effect": effect,
+                     "restrictions": ["fleet_unique", "group:fleet_commander"]})
+    opts += [{"name": f"Commander: {k} extra re-roll{'s' if k > 1 else ''}",
+              "description": f"{cost}pts.", "points_cost": cost, "effect": {"rerolls": 1 + k},
+              "restrictions": ["group:commander_rerolls", "requires_any:" + "|".join(names)]}
+             for k, cost in enumerate(NECRON_EXTRA_REROLLS, start=1)]
+    return opts
+
 
 # Secondary commanders (s.5): +Ld (or a fixed Ld) and re-rolls usable only
 # for their own ship or squadron (`own_rerolls`). (name, Ld effect, cost,
@@ -482,6 +518,8 @@ def fleet_commander_options(row: dict) -> List[Dict]:
                   "restrictions": ["group:boss_title", "requires_any:" + "|".join(names)]}
                  for t, r, cost in ORK_TITLES]
         return opts
+    if "Necrons" in rules:
+        return necron_commander_options(row)
     faction = next((f for f in COMMANDERS if f in rules), None)
     if faction is None:
         return []

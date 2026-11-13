@@ -42,7 +42,7 @@ Some fleets are intrinsically better than others at launching attacks and pickin
 | Orks | 3 |
 | Corsair Eldar | 4 |
 | Dark Eldar | 4 |
-| Necrons | 4 |
+| Necrons | 4 (Dynasty 3) |
 | The Inquisition | \* |
 | Rogue Traders | \* |
 
@@ -343,7 +343,7 @@ The following are some recommended flagship vessels for different factions to us
 | Tyranid Fleets | Proteus Class Hive Ship |
 | Necron Fleets | Cairn Class Tomb Ship |
 | Tau Empire Fleets | Kroot Warsphere (w/ extra hits added) |
-| Eldar Fleets | Void Stalker or Wyrm Battleship (w/ refits) |
+| Eldar Fleets | Void Stalker or Wyrm Battleship |
 | Space Marine Fleets | Battle Barge (w/ refits) |
 | Other Fleets | Activated Blackstone Fortress |
 

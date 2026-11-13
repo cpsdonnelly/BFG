@@ -179,7 +179,7 @@ def main(docx, out_dir):
         if b[0] == 'h':
             group_notes = []
             if b[1] == 1:
-                m = re.match(r'^(.*?)\s+((?:Imperium|Xenos|Rulebook) p\.[\d\-, ]+)$', b[2])
+                m = re.match(r'^(.*?)\s+((?:Imperium|Xenos|Rulebook|MMS) p\.[\d\-, ]+)$', b[2])
                 faction, source = (m.group(1), m.group(2)) if m else (b[2], None)
         if b[0] == 'p':
             if is_label(b[1]): label, group_notes = b[1], []

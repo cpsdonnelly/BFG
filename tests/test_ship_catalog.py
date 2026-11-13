@@ -16,8 +16,8 @@ def _weapon(entry, name):
 
 # ── Factions ─────────────────────────────────────────────────────────────────
 
-def test_all_nine_booklet_factions_present():
-    assert len(list_factions()) == 9
+def test_all_eleven_booklet_factions_present():
+    assert len(list_factions()) == 11
     assert "imperial_navy_gothic" in list_factions()      # id kept for saved fleets
     assert "tau_kororvesh" in list_factions()
 
@@ -25,7 +25,7 @@ def test_all_nine_booklet_factions_present():
 def test_every_booklet_ship_is_in_the_catalog():
     entries = [e for f in list_factions() for e in get_faction_ships(f, include_unsupported=True)]
     designed = [e for e in entries if e.ship_class.startswith("Venerable Strike Cruiser (")]
-    assert len(entries) - len(designed) == len(BOOKLET) == 178
+    assert len(entries) - len(designed) == len(BOOKLET) == 212
     assert len(designed) == 17          # every non-unique Navy / Chaos GC, BC and heavy cruiser
 
 

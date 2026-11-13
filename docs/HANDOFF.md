@@ -43,7 +43,7 @@ session.
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
 does, with the judgement weights to tune; its first part, "Fleet strategy", lists the owner's
-matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-12), "Open questions"
+matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-14), "Open questions"
 (none open now) and every owner ruling. `docs/AI_DESIGN.md` describes the whole AI,
 built and planned, in plain language (keep it in step with CLAUDE.md). This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
@@ -273,7 +273,25 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
 - `ships.json` `profile_from` is still cut off for the three Grey Knights escorts
   ("Space Marine Nova (p", "... Gladius (p", "... Hunter (p"). The game doesn't use the field.
 
-## Booklet zip 12 (updates 44-45, installed last)
+## Booklet zip 13 (updates 46-55, installed last)
+
+Installed per the zip's HANDOFF_README. Catalog diff (stats, rules, weapons, options, notes,
+Ld table, unsupported of every entry): the 195 existing entries are unchanged; 34 new ones,
+Eldar 24 (MMS v2.0, update 49) and Necrons 10 (update 48), all unsupported
+(`booklet_ships.UNBUILT_FACTION_RULES` plus the parser's own reasons: "Weapons Battery",
+Pulsar / Phantom Lances, Eldar torpedoes, Necron weapons, three-speed movement, points "-" for
+the Eldar Transport). Update 46 (Man O' War prow lances FP3) is in the Man O' War
+configuration text, which isn't built (To do 5), so no entry changed. Update 47 (space hulk
+rules) likewise (To do 5). Rules files renumbered (Eldar 08, Necrons 09, Orks 10, Tau 11,
+scenarios 12, campaigns 13, appendices 14-20); no code opens them by name, docstrings and
+CLAUDE.md updated. Built: the factions (Eldar roll the Eldar column; Necrons Default, since
+Appendix 4 has no Necron column although the owner ruling says "Necron column"), the Necron
+commanders with the Obelisk ruling (`booklet_options.NECRON_COMMANDERS`). AA files now in
+`docs/`: the order-systems notes moved to `docs/AA_ORDER_SYSTEMS_NOTES.md`, the working notes
+are `docs/AA_ACTIVATION_NOTES.md` (the path the zip's readme names), the draft PDF beside them.
+CLAUDE.md: To do 9 has the Remastered escort squadron VP option, To do 14 is Eldar and Necrons.
+
+## Booklet zip 12 (updates 44-45)
 
 Catalog diff: only the Citadel's base (now 60mm, large). Done: the Expedition's Bastion is 255
 (was 225); Demiurg Hired Reserves (`fleet_lists.DEMIURG_HIRED`, a reserve-only list of Bastion
@@ -856,7 +874,7 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    (their toggles say "not built yet"), nor their +3 disengage Ld and commander re-roll limit;
    Demiurg undo doesn't return collected blast markers; forced-flee isn't enforced for humans.
 7. New (owner request): scenarios and sub-plots, engine and AI: the booklet's scenarios
-   (`bfgxr/rules/10_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
+   (`bfgxr/rules/12_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
    Rogue Trader faction sub-plots), then an AI that plays their objectives and win conditions,
    not just cruiser clash (owner: Domination's objective markers and 10-point race are just one
    example; there are many other scenarios, and the AI must handle each one's conditions). The engine has only the old generic modes today (`scenario.check_scenario_end`).

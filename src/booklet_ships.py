@@ -26,6 +26,19 @@ FACTIONS: Dict[str, Tuple[str, str, str]] = {
     "Chaos": ("chaos", "Chaos", "Default"),
     "Orks": ("orks", "Orks", "Orks"),
     "Tau & Allies": ("tau_kororvesh", "Tau & Allies", "Default"),
+    # Export 13 (updates 48-49). Appendix 4 has no Necron column ("factions not
+    # listed use Default"); Eldar use the Eldar column (Default +1).
+    "Eldar": ("eldar", "Eldar", "Eldar"),
+    "Necrons": ("necrons", "Necrons", "Default"),
+}
+
+# Factions whose own rules the engine doesn't play yet: every ship is listed
+# but greyed out (CLAUDE.md To do 14).
+UNBUILT_FACTION_RULES = {
+    "Eldar": "Eldar MMS v2.0 rules (three speeds, two moves, holofields, Fragile...) "
+             "not built yet",
+    "Necrons": "Necron rules (reactive hulls, Without a Trace, Necron weapons, "
+               "Necron crits...) not built yet",
 }
 
 # Appendix 4 - Leadership Tables: D6 roll -> Leadership, per column.
@@ -310,6 +323,8 @@ def convert_row(row: dict) -> dict:
         problems.append(f"points cost '{row.get('points_raw')}' is not a fixed number")
     if not row["weapons"]:
         problems.append(f"no weapon profile ({row.get('armament_raw')})")
+    if row["faction"] in UNBUILT_FACTION_RULES:
+        problems.append(UNBUILT_FACTION_RULES[row["faction"]])
 
     if row["faction"] == "Imperial Navy":
         craft_map = dict(_IN_CRAFT)

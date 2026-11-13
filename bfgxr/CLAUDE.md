@@ -29,11 +29,12 @@ rules/        one Markdown file per top-level section of the booklet
                               Shields & Blast Markers (11), Ramming (12), Ordnance (15),
                               Hit-and-Run Raids (31), Boarding Actions (32) and the rest;
                               grep the '## N.' headings for the full list
-  01_imperial-navy.md ... 09_tau-allies.md
+  01_imperial-navy.md ... 11_tau-allies.md
                               faction rules, ship rosters, special rules, fleet lists
-  10_scenarios.md             scenarios, with deployment maps
-  11_campaigns.md
-  12-18_appendix-*.md         campaign tables, refits, damage tables, leadership,
+                              (08_eldar.md uses the fan Eldar MMS v2.0 rules; 09_necrons.md)
+  12_scenarios.md             scenarios, with deployment maps
+  13_campaigns.md
+  14-20_appendix-*.md         campaign tables, refits, damage tables, leadership,
                               special orders, gunnery table
   media/                      scenario deployment maps, special-order icons
   _index.txt                  file -> section title list (regenerated)
@@ -43,6 +44,14 @@ data/
   weapons.csv                 one row per weapon entry, flattened
   parse_report.md             what could not be parsed and is kept as raw text only
 CHANGES.md                    what changed since the first export, newest update last
+notes/                        design notes for the simulator (not booklet rules):
+  AI_DESIGN_feedback.md       review of AI_DESIGN.md: 12 prioritised tasks, ML plan
+  AI_movement_target_directed_candidates.md   owner's movement-candidate design (supersedes task 2b)
+  AA_activation_order_notes_for_Claude_Code.md   alternate activation: build all three ordering
+                              systems; owner slightly favours System 3 (default)
+  BFGXR_Alternate_Activation_Draft.pdf   owner-facing AA draft with all the numbers
+  BFGXR_AltActivation_Notes.md           AA working notes (framework, open items)
+  Remastered_rulings_for_engine.md       Remastered turret suppression and escort VP scoring
 source/                       copy of the .docx this export was built from
 tools/                        the export scripts
 ```
@@ -70,6 +79,20 @@ Ciarán has ruled on these. They override any reading of the rule text alone. `C
 - **Nova cannon centre hole:** D6 hits instead of the single hit (update 30).
 - **Combining torpedoes:** they don't hit ships in contiguous base contact with the combining
   group (update 31).
+- **Tiger Shark salvos** (update 53): Tiger Sharks follow the torpedo bomber rules in full except
+  that the salvo is a Tau missile salvo. At the start of any ordnance phase after launch, a
+  squadron may be replaced by a strength-2 missile salvo placed facing any direction (a wave may
+  combine salvos). It uses a torpedo marker and moves 20-40cm that phase (player's choice); the
+  missile 45° turn is redundant. It is removed at the end of the ordnance phase in which it is
+  fired, so the Tau missile strength-loss roll never applies. 4+ resilient, speed 20cm, treated
+  as bombers versus other ordnance.
+- **Ordnance in gas/dust clouds** (update 55): ordnance, attack craft included, moving through a gas or
+  dust cloud tests as if moving through a blast marker (destroyed on a 6; seeking torpedoes on 5+;
+  Thunderhawks exempt as for blast markers). XR's description says clouds "may destroy ordnance" but its
+  Effects rule names only ships; Ciarán rules that an oversight, matching Remastered. Booklet wording is
+  still pending.
+- **Necron Obelisk** (update 55): it has no Ld of its own. The ship it is assigned to rolls for Ld as
+  normal, and as a Monument it still gets one free re-roll and may buy more.
 
 ## Ship data: `data/ships.json`
 

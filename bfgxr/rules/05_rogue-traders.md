@@ -92,7 +92,7 @@ A Man O' War is assembled from the options below, paying both points and (where 
 
 **Prow Weapon.** A man o' war may choose one of the following options:
 
-- Prow Lances (Brig only) 25pts, 1 Fortune (30cm S3, F).
+- Prow Lances (Brig only) 25pts, 1 Fortune (30cm FP3, F).
 
 - Prow Macrobatteries (non-Brig) 25pts (60cm FP6, L/F/R; not with 6+ Prow Armour).
 

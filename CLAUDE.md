@@ -18,15 +18,16 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   Damage & Critical Hits (33), Catastrophic Damage (34). `bfgxr/CHANGES.md` lists what each
   export changed (read it after every new export: it flags renamed fields and spelling changes).
   Sections are numbered in `bfgxr/rules/00_core-rules.md`.
-- Victory points: core section 38 and the "Victory Points" part of `bfgxr/rules/10_scenarios.md`
+- Victory points: core section 38 and the "Victory Points" part of `bfgxr/rules/12_scenarios.md`
   give the same rules: Destroyed, Crippled, Scattered (disengaged) and Holding the Field.
 - Squadrons (s.8) include Maneuvering Squadrons and Shooting at Squadrons (target aspect, hit
   allocation nearest-first, critical damage applied before a ship counts as destroyed).
 - `data/rules_cheatsheet.txt` and `data/*.csv` (plus the copies in the repo root) are an
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
-  `src/booklet_ships.py`: all 9 factions, 178 booklet ships plus 17 designed Venerable Strike
-Cruisers. Ships using rules the engine can't play yet
+  `src/booklet_ships.py`: all 11 factions, 212 booklet ships plus 17 designed Venerable Strike
+Cruisers. Eldar (MMS v2.0) and Necrons (export 13) are listed but every ship is unsupported
+until their faction rules are built (`booklet_ships.UNBUILT_FACTION_RULES`, To do 14). Ships using rules the engine can't play yet
   (Zzapp Gunz, Kustom Kannon, special movement, fortress weapons...) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
   ("Gothic Class Cruiser") still resolve. Saved fleets keep their saved stats.
@@ -473,7 +474,8 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 12 (CHANGES.md update 45). Tests: 1096 pass; all GUI checks pass
+Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1099 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -813,7 +815,7 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
 7. Scenarios and sub-plots, engine and AI (owner request: the AI must play scenario and sub-plot
    games, not just cruiser clash; after items 1-6). The engine has only the old generic modes
    (`scenario.check_scenario_end`: kill the admiral, destroy / protect a ship, capture an
-   artefact); none of the booklet's scenarios (`bfgxr/rules/10_scenarios.md`: Cruiser Clash, The
+   artefact); none of the booklet's scenarios (`bfgxr/rules/12_scenarios.md`: Cruiser Clash, The
    Bait, Chance Encounter, The Raiders, Blockade Run, Convoy, Rearguard Attack, Navigate the
    Storm, Destroy the Docks, Exterminatus!, Alien Intervention, Surprise Attack, Planetary
    Assault, Escalating Engagement, Fleet Engagement, the campaign set pieces and the newer
@@ -973,6 +975,17 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    Items already in 2-8 aren't repeated here (Ork Extra Turrets, Ork
    Bosses' re-roll pools, secondary commanders and Ordos are in 4; the radiation / flare
    disengage bonus is in 6; the teleport AI's positioning is in 8 j).
+   Remastered escort squadron VP, a new Remastered option beside the other Remastered toggles
+   (Remastered PDF p.121 and its Victory Points summary; `bfgxr/notes/Remastered_rulings_for_engine.md`):
+   destruction: "Each destroyed escort earns its value in victory points provided the entire
+   escort squadron is destroyed", and no 25% award for a crippled escort squadron left on the
+   table (Remastered's crippled award is for capital ships only); disengaged: 25% of total
+   points value if crippled before disengaging, else 10%, an escort squadron being crippled
+   once it has lost half its ships, rounding up; "total points value" most likely means the
+   full original squadron (unconfirmed: flag it). AI in this mode: a crippled escort squadron
+   shouldn't disengage unless it is likely to be wiped out, and only the last ship's death pays
+   the enemy. XR (the default) is unchanged: a squadron with half or more lost scores 25% at the
+   end, on or off the table.
 
 10. AI special orders by expected VP (owner notes). Rules: orders are declared in the movement
    phase before each ship or squadron moves, one at a time (declare, command check, move;
@@ -1229,8 +1242,11 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    after To do 11 a-c (rules fixes, candidates, expert hazards): games under wrong rules or a
    cramped move set teach wrong values.
 
-13. Alternate activation (AA), an optional ruleset outside the booklet (owner draft; full notes
-   in `docs/AA_ACTIVATION_NOTES.md`, keep them as the source). The booklet stays IGOUGO: never
+13. Alternate activation (AA), an optional ruleset outside the booklet (owner draft; the
+   order-systems notes are `docs/AA_ORDER_SYSTEMS_NOTES.md`, keep them as the source; the AA
+   working notes are `docs/AA_ACTIVATION_NOTES.md`, whose "Idea A" is superseded by the three
+   systems; the draft is `docs/BFGXR_Alternate_Activation_Draft.pdf`, 91 matchups in Appendix
+   B incl. escort builds, results in section 4 and Appendix C). The booklet stays IGOUGO: never
    put AA into the booklet export or `bfgxr/rules/*.md`. Build three activation-order systems
    as selectable options, all fully playable by humans and the AI, none hard-coded:
    `order_mode` = `fixed_initiative` (System 1, ABFG v0.3: shooting in initiative order highest
@@ -1250,8 +1266,8 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    choice + ceil(units / 2); "units" is the edge holder's own count. The chosen side activates
    without a draw and removes one of its own dice (every activation spends a die); extra dice
    give no extra activations; passing (`allow_pass`, default on) while a side has more dice
-   than units left. The common AA framework (from the AA working notes, NOT in the repo; ask
-   the owner for them and the PDF `BFGXR_Alternate_Activation_Draft.pdf`): per-phase bags; the
+   than units left. The common AA framework (from the AA working notes, `docs/AA_ACTIVATION_NOTES.md`):
+   per-phase bags; the
    round Command, Ordnance A, Shooting, Movement, Ordnance B, End; Brace as a command-phase
    order; ordnance 1 move on its first turn, then 2; Eldar use MMS; boarding and ramming lock
    on declaration and resolve in the end phase. Items the notes leave open stay open and
@@ -1265,10 +1281,25 @@ shields each turn, the real table); leaf = VP banked + next turn's expected swin
    and after the play-quality AI tasks (rules fixes, movement candidates, To do 11 a-c): escort
    splitting (pairs vs 3-4s vs 6s under System 3; are pairs dominant?), edge size (System 2 vs
    3 vs 3 one band higher), the value of going second in movement, System 1 vs 3 on the
-   owner's 13 matchups (PDF Appendix B); report win rate and VP margin; never settle a system,
+   owner's matchups (PDF Appendix B, now 91 incl. escort builds); report win rate and VP margin; never settle a system,
    band table or open item for the owner. Not part of System 1 here unless asked: ABFG's
    end-phase damage, 1-2-2-1 ordnance, Carry On / Disengage orders, orders tested on
    activation.
+
+14. Eldar and Necrons (export 13, CHANGES updates 48-49, 51-52): both factions' ships are in
+   the catalog but unsupported (`booklet_ships.UNBUILT_FACTION_RULES`; the parser also flags
+   "Weapons Battery", Pulsar / Phantom Lances, Eldar torpedoes and craft, Necron weapons).
+   Eldar use the fan MMS v2.0 rules (`bfgxr/rules/08_eldar.md`, replacing XR's Eldar): three
+   speeds by the sun (sun / away / abeam) and two moves, holofields ("2+H" shields), Fragile
+   (crits on 5+), Natural Spacefarers (+1 Ld, the Eldar column), turrets +1 to hit, their own
+   special orders, ordnance and critical hits table (Appendix 3), Kinship and Heroes, the
+   Corsair and Craftworld fleet lists. The speeds need a sun direction (Fighting Sunward, To do 6, also has one). Necrons
+   (`bfgxr/rules/09_necrons.md`): reactive hulls ("RH 4+"), Deadly Awakening, Without a Trace
+   (auto-disengage, firing on own hulks, hulks 4+ Armour), Necron weapons (nightmare field,
+   star pulse generator, particle whip, lightning arc, portals), Dynasty upgrades, the Necron
+   critical hits table, Monuments and Necron Lords (the commanders are built, see the Obelisk
+   ruling), the Harvest and Dynasty fleet lists (attack ratings 4 / 3), planetary defences
+   (Tomb Complex, Pylon, Deathseed mines). The AI then needs each faction's play (To do 11 g).
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 
@@ -1284,6 +1315,14 @@ registers the ships); Remastered spill-over limit as its own Advanced checkbox
 shooting in a phase touches at most the target and one other ship; markers overlap each other
 rather than touch a third ship).
 
+- **Necron Obelisk (update 55):** it has no Ld of its own. The ship it is assigned to rolls Ld
+  as normal (Appendix 4 has no Necron column, so the Default one: "factions not listed use
+  Default"), and as a Monument it still gets one free re-roll and may buy more (Necron fleet
+  list, Xenos p.50). Built in the fleet builder: `booklet_options.NECRON_COMMANDERS` (Obelisk,
+  Monolith Ld 9, Sepulchre Ld 10, Overlord Ld 9, Nemesor Ld 10; one free re-roll, +1 for 25, +2
+  for 75); the Obelisk keeps the ship's `leadership_table`, so `roll_starting_leadership` rolls
+  it (`tests/test_necron_eldar_catalog.py`). To do 13 uses this for AA initiative. Not yet: the
+  Harvest / Dynasty fleet lists (which commanders each allows), Monument damaged crits.
 - **Fleet Defence Turrets:** the gift reduces the ship's own Turrets by 2 and gives +1
   MASSED turret to all allied ships within 15cm, including itself (massed limit +3). It does
   not raise innate turrets. Crippling halves only the innate value (rounding up); the massed
@@ -1312,12 +1351,8 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- AA (To do 13): the AA working notes (`BFGXR_AltActivation_Notes.md`) and the draft PDF
-  (`BFGXR_Alternate_Activation_Draft.pdf`, test fleets in Appendix B, results in section 4)
-  aren't in the repo; needed before building the framework and the experiments. Also where AA
-  sits in the order (owner: the order isn't hugely important).
-
-Otherwise none open. Answered: where To do 8 goes. Owner: "the order isn't hugely important". So follow
+None open. Answered: the AA notes and draft PDF are now in `docs/` (To do 13); where AA sits
+in the order follows the dependencies (its experiments come after 11 a-c). Answered: where To do 8 goes. Owner: "the order isn't hugely important". So follow
 the dependencies: build 8 a (Armour facing) and 8 f (range brackets) before 11 a
 (target-directed candidates) and 11 h, and the rest of 8 with or after them; otherwise the
 listed order is a guide, not a rule (1, weight tuning, stays last and on hold).

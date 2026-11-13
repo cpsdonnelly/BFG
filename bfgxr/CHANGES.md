@@ -707,3 +707,124 @@ follows the Demiurg rule: points cost normally, 300 if the opposing fleet includ
   together, with no other vessels, as system ships.
 The booklet is now 190 pages: everything from the Demiurg table (p.115) on moved one page later
 (Scenarios 120, Campaigns 164, Appendices 1-7 at 176/178/183/186/187/188/189). Cross-references updated.
+
+# Forty-sixth update: Man O' War prow lances
+
+Man O' War configuration: Prow Lances (Brig only) are 30cm FP3 (was written S3), per the lance firepower ruling.
+
+# Forty-seventh update: space hulk rules restored from the omissions check
+
+- Ork Space Hulk: pirate base rule added (campaign; replaces the planet in Planetary Assault or
+  Exterminatus; bought from fleet/planetary defence points, not on the registry; attacker wins
+  automatically if it is destroyed; Orks may still buy low orbit defences).
+- Chaos and Ork space hulk critical hits: penalties to random values are included in the roll
+  (results of 0 or less count as 0; if no non-zero result is possible the characteristic is reduced
+  to zero and takes no further penalties); a result that cannot be applied is re-rolled.
+
+# Forty-eighth update: Necron faction added
+
+New Necrons section (Xenos p.38-51) between Chaos and Orks, matching the sourcebook order:
+- Faction rules: leadership and special orders (All Ahead Full inertialess drive, Brace 2+ reactive save
+  with Armour 4+, Lock On, no Reload Ordnance), Reactive Hulls, Deadly Awakening (power conservation and
+  phase-out, alert levels and the awakening table, double VP for awakened ships, reinforcements awake),
+  Without a Trace (auto-disengage, firing on own hulks, hulks 4+ Armour), Necron weapons (nightmare
+  field, star pulse generator, particle whip, lightning arc, portals), Dynasty upgrades, critical hits
+  and campaign repair points. Remastered notes (p.64, p.92) kept separate.
+- Starting alert level is 1: author ruling (Discord), footnoted; the sourcebook gives none.
+- Ship tables: Cairn Tombship, Reaper Grand Harvest Ship, Scythe Harvest Ship, Shroud Light Cruiser,
+  Jackal and Dirge Raiders, plus planetary defences (Tomb Complex, Pylon, Deathseed Minefield and Mine).
+  The Sh column holds the reactive hull save as "RH 4+" etc. Portals keep S (the rules speak of portal
+  strength); particle whips use FP, including the Shroud refits.
+- Necron Ship Special Rules and the Harvest and Dynasty fleet lists (attack ratings 4 and 3). The
+  Obelisk monument has no Ld, as printed. Commander re-rolls are tied to the monument (Xenos change log).
+- Appendix 3: Necron Critical Hits Table (2D6, Xenos p.41) added after Chaos; intro sentence updated.
+- Scenarios Attack Ratings table: Necrons now "4 (Dynasty 3)".
+The booklet is now 198 pages: Orks 108, Tau & Allies 118, Scenarios 128, Campaigns 172, Appendices 1-7
+at 184/186/191/195/196/197/198. TOC and internal cross-references updated.
+
+# Forty-ninth update: Eldar faction added (MMS v2.0)
+
+New Eldar section (heading "Eldar   MMS p.3-28") between Chaos and Necrons, built from the fan Eldar MMS
+v2.0 rules, which Ships of the Xenos allows as a complete replacement for XR's Eldar (Xenos p.19).
+XR's own Eldar rules (Xenos pp.14-37, move-shoot-move) are not used.
+- Faction rules: movement (three speeds by sun facing, turn at the start of each move, two moves per
+  movement phase), special orders, Natural Spacefarers (+1 Ld, the existing Appendix 4 Eldar column),
+  celestial phenomena, Fragile (crits on 5+), Kinship and Heroes, holofields, turrets +1 to hit, ordnance,
+  gunnery left shift, pulsars, phantom lances, optional Dying Race, commanders and upgrades.
+- Ship tables: Corsair battleship/cruisers/escorts, Craftworld battleships/cruisers/escorts, the five
+  named Craftworld specials, Eldar Transport and Haven Spire. Spd column holds the three speeds
+  (sun/away/abeam); Sh column "2+H" = shields plus holofield.
+- Eldar Ship Special Rules (Void Dragon, Ghostships, Iyanden fleet rules, craftworld fleet guidelines
+  marked as not rules) and the Corsair and Craftworld fleet lists.
+- Appendix 3: Eldar Critical Hits Table (MMS p.5) added between Chaos and Necrons; intro updated.
+- Suggested flagships: Eldar entry no longer says "(w/ refits)".
+- Export: parse_ships.py now recognises "MMS p." in faction headings.
+The booklet is now 207 pages: Necrons 108, Orks 116, Tau & Allies 126, Scenarios 136, Campaigns 180,
+Appendices 1-7 at 192/194/199/203/204/205/206. TOC and internal cross-references updated.
+
+# Fiftieth update: check of the Necron and Eldar additions
+
+Every ship profile, fleet list entry and crit table row in the two new sections was re-checked against
+Ships of the Xenos pp.39-51 and Eldar MMS v2.0; all match. Prose was checked for source wording:
+- Necron Reload Ordnance now uses the source sentences ("Necron attack craft are usually only deployed for
+  surface engagements. Likewise, Necrons do not use torpedoes at all. Thus, Necron ships may not use Reload
+  Ordnance special orders, as they have no need to do so.").
+- Eldar Farseers now reads "three extra Farseers, purchased at 15 points, in your fleet" as in MMS p.22.
+- Layout: a column break keeps the Necron alert level table whole at the top of p.109 (it had split
+  across pp.108-109).
+
+# Fifty-first update: removed wording not in the sources
+
+- Necron Without a Trace "Scoring" line now follows the change log exactly: "Necron escorts are scored
+  normally for all disengagement conditions, and the VP flowchart for capital ships has been removed
+  (Xenos change log, p.127)". The previous wording claimed all disengaged Necron ships score normally.
+- Eldar Transport Notes: removed "(used where a scenario provides transports)", which was not in MMS.
+- Haven Class Spire Notes: removed "Corsair base."
+
+# Fifty-second update: Eldar fixes and agenda
+
+- Bahzhakhain: "Port Pulsar Lance" corrected to "Prow Pulsar Lance" (MMS typo; it fires Front, and XR
+  Xenos p.36 prints Prow).
+- Flame of Asuryan and Wild Serpent notes now point to Appendix 2 for the Elite Command Crew crew skill.
+- Agenda (not done yet): after Dark Eldar and Tyranids are added, a full pass noting every rule conflict
+  between XR and Remastered (XR has priority). Eldar XR-vs-MMS conflict notes (MMS has priority) are drafted
+  in eldar_xr_conflicts_draft.md, awaiting approval.
+
+# Fifty-third update: Tiger Shark ruling
+
+Ciarán's ruling on the open Tiger Shark question, added to CLAUDE.md "Standing rulings". Basis: the
+Xenos Tiger Shark entry says they "follow the rules for torpedo bombers, except that they produce missile
+salvos… rather than normal torpedoes"; the torpedo bomber rule (XR Rulebook p.31) says the salvo "has
+limited fuel and must be removed at the end of the phase in which it is fired". So the salvo moves as a
+Tau missile salvo (20-40cm, player's choice; the 45° turn is redundant because the salvo is placed facing
+any direction) and is removed at the end of that ordnance phase. The Tau missile strength-loss roll
+applies only to salvos launched on a previous turn, so it never applies. Close this question wherever it
+is recorded as open. No booklet text changed.
+
+# Fifty-fourth update: simulator design notes
+
+New `notes/` folder (simulator design, not booklet rules; the booklet and `rules/` are unchanged):
+- `AI_DESIGN_feedback.md`: review of AI_DESIGN.md against the rules. 12 tasks in priority order: rules
+  corrections first, weight tuning (CMA-ES) last. The owner wants both ML approaches (learned evaluation
+  and weight tuning), both at low priority.
+- `AI_movement_target_directed_candidates.md`: the owner's move-candidate design (goals per target, an
+  even-sampling fallback, and a hybrid). It supersedes the 15-degree heading steps in feedback task 2b.
+- `AA_activation_order_notes_for_Claude_Code.md`, with `BFGXR_Alternate_Activation_Draft.pdf` and
+  `BFGXR_AltActivation_Notes.md`: build all three AA activation-order systems (fixed initiative order
+  from ABFG, the vanilla bag, and the bag with initiative adjustment), each fully playable. The owner
+  slightly favours System 3; make it the default without treating it as decided. AA stays out of the
+  booklet.
+- `Remastered_rulings_for_engine.md`: Remastered turret suppression (p.82), to fix the existing toggle,
+  and Remastered escort squadron VP scoring.
+
+# Fifty-fifth update: two standing rulings, superseded markers
+
+- Added to CLAUDE.md "Standing rulings":
+  - ordnance in gas/dust clouds tests as for blast markers (owner rules XR's omission an oversight);
+  - the Necron Obelisk's ship rolls Ld as normal and keeps Monument re-rolls.
+
+  Neither is in the booklet text yet.
+- Marked superseded parts in `notes/`:
+  - Idea A in the July AA working notes (replaced by System 3);
+  - task 2b's 15-degree heading sampling in AI_DESIGN_feedback.md (replaced by the target-directed
+    movement note).
