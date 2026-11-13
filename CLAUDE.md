@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1203 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1204 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1611,9 +1611,16 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    crippled -5cm on every speed), `mms_end`, holofields (`holofield_gunnery_shift`: one right
    shift, none under 15cm; `holofield_save`: 5+ beyond 30cm, 6+ at 15-30cm, none under 15cm,
    stops the blast marker) and Fragile (`crit_threshold` 5, Ghostships 6)
-   (`tests/test_eldar_rules.py`). Next: the catalog (speeds, holofields, Fragile, the Eldar Ld
-   column, Eldar weapons: Weapons Battery left shift, pulsars, phantom lances), combat and
-   movement wiring, Eldar ordnance and turrets, the critical hits table, the move dialog and
+   (`tests/test_eldar_rules.py`). Catalog slice built (`booklet_ships`): Eldar speed = the
+   highest of the three, `eldar_speeds:<sun>/<away>/<abeam>` and `eldar_mms` / `fragile` /
+   `holofield` special rules, shields from "N+H", weapons batteries / pulsar / phantom lances /
+   torpedoes typed with flags (`eldar_battery`, `pulsar`, `phantom`, `eldar_torpedo`), keel
+   launch bays read from the export's unparsed text (`_eldar_bays`; an export gap to report:
+   the parser doesn't know the Keel location), Eldar craft types `eldar_fighter` /
+   `eldar_bomber` / `vampire_assault_boat` (plain fighter / bomber / assault boat stats so far);
+   the non-Eldar catalog is unchanged (diffed). Still unsupported: the five Craftworld ships
+   with either/or armament, one with no points cost, and all of them until the rules are wired.
+   Next: combat and movement wiring, Eldar ordnance and turrets, the critical hits table, the move dialog and
    the AI's MMS moves.
 
 ### Owner rulings: answers to the open questions (implemented, tested)

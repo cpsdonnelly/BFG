@@ -1650,6 +1650,12 @@ CRAFT_STATS = {
     # ruling): 4+ resilient, and their salvo is a Tau missile salvo
     "torpedo_bomber": (OrdnanceType.TORPEDO_BOMBER.value, 20, 0),
     "tiger_shark": (OrdnanceType.TORPEDO_BOMBER.value, 20, 4),
+    # Eldar (MMS p.4): Darkstar / Nightwing fighters, Eagle / Phoenix bombers,
+    # Vampire assault boats (30cm). Their own rules (stealth against turrets,
+    # bombers re-rolling, fighters' save per wave) aren't applied yet (To do 14)
+    "eldar_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
+    "eldar_bomber": (OrdnanceType.BOMBER.value, 20, 0),
+    "vampire_assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
 }
 
 # What each attack craft type can act as. Multi-role craft follow the rules of

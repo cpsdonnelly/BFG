@@ -71,7 +71,16 @@ WEAPON_TYPES = {
     # from them succeed on 4+ instead of 6 (WEAPON_RULES)
     "Bombardment Cannon": "battery", "Killkannon": "battery",
     "Nova Cannon": "nova_cannon",
+    # Eldar (MMS v2.0): weapons batteries (a left column shift), pulsar and
+    # phantom lances (lances with their own hit rules), torpedoes (re-roll misses)
+    "Weapons Battery": "battery", "Pulsar Lance": "lance", "Phantom Lance": "lance",
+    "Torpedoes": "torpedo",
 }
+_ELDAR_WEAPON_FLAGS = {"Weapons Battery": "eldar_battery", "Pulsar Lance": "pulsar",
+                       "Phantom Lance": "phantom", "Torpedoes": "eldar_torpedo"}
+# Eldar craft (MMS p.4): fighters, bombers and (Vampire) assault boats with their own
+# rules, so their own types: Darkstar / Nightwing fighters, Eagle / Phoenix bombers
+_ELDAR_CRAFT = {"ASF": "eldar_fighter", "BMR": "eldar_bomber", "AB": "vampire_assault_boat"}
 
 WEAPON_RULES = {
     "Bombardment Cannon": {"hits_on": 4, "crit_on": 4},
@@ -159,6 +168,29 @@ def gravitic_hook_rules(row: dict) -> List[str]:
         n = int(m.group(1)) * (len(w.get("sides") or []) if "each" in w["capacity"] else 1)
         out.append(f"hooks:{(m.group(2) or 'any').lower()}:{n}")
     return out
+
+
+def _eldar_bays(w: dict) -> dict:
+    """Eldar keel launch bays the export leaves unparsed ("Keel Launch Bays S4
+    (Darkstar ASF 30cm, Eagle BMR 20cm)"): read them as a launch_bays entry.
+    (An export gap to report: the parser doesn't know the Keel location.)"""
+    if w.get("kind") == "launch_bays":
+        # "Darkstar ASF" -> "ASF": the Eldar names their craft, the code is what counts
+        return {**w, "craft": [{**c, "type": (c.get("type") or "").split()[-1]}
+                               for c in w.get("craft") or []]}
+    if w.get("kind") != "unparsed":
+        return w
+    m = re.fullmatch(r"(?:(\w+) )?Launch Bays? S(\d+) \((.+)\)", w.get("raw", "").strip())
+    if not m:
+        return w
+    craft = []
+    for part in m.group(3).split(","):
+        cm = re.fullmatch(r"\s*(?:\w+ )?(ASF|BMR|AB) (\d+)cm\s*", part)
+        if cm:
+            craft.append({"type": cm.group(1), "speed_cm": int(cm.group(2))})
+    return {"kind": "launch_bays", "raw": w["raw"], "location": m.group(1),
+            "bays": [{"side": None, "strength": int(m.group(2))}], "craft": craft,
+            "stat": "S", "parsed": True}
 
 
 def _convert_weapon(w: dict, craft_map: Dict[str, str],
@@ -335,7 +367,12 @@ def convert_row(row: dict) -> dict:
     armour = _armour(row)
     if not armour:
         problems.append(f"armour profile {row.get('armour_raw')} not modelled yet")
-    if row.get("speed_cm") is None or row.get("turn_deg") is None:
+    from .eldar import parse_speeds, parse_holofield
+    eldar_speeds = parse_speeds(row.get("speed_raw")) if row["faction"] == "Eldar" else None
+    holo = parse_holofield(row.get("shields_raw")) if row["faction"] == "Eldar" else None
+    if eldar_speeds:
+        pass                          # MMS movement (src/eldar.py)
+    elif row.get("speed_cm") is None or row.get("turn_deg") is None:
         problems.append(f"special movement ({row.get('speed_raw')}, "
                         f"{row.get('turn_raw')}) not modelled yet")
     if row.get("points") is None:
@@ -349,11 +386,22 @@ def convert_row(row: dict) -> dict:
         craft_map = dict(_IN_CRAFT)
     elif row["faction"] == "Tau & Allies" and "demiurg" not in (row.get("roster_group") or "").lower():
         craft_map = dict(_TAU_CRAFT)
+    elif row["faction"] == "Eldar":
+        craft_map = dict(_ELDAR_CRAFT)
     else:
         craft_map = {}
     if row["faction"] in MR_CRAFT:
         craft_map["MR"] = MR_CRAFT[row["faction"]]
-    weapons = [d for w in row["weapons"] for d in _convert_weapon(w, craft_map, problems)]
+    rows_w = row["weapons"]
+    if row["faction"] == "Eldar":
+        rows_w = [_eldar_bays(w) for w in rows_w]
+    weapons = [d for w in rows_w for d in _convert_weapon(w, craft_map, problems)]
+    if row["faction"] == "Eldar":
+        for d in weapons:
+            src = next((k for k in _ELDAR_WEAPON_FLAGS if d.get("name", "").endswith(k)
+                        or k in d.get("name", "")), None)
+            if src:
+                d[_ELDAR_WEAPON_FLAGS[src]] = True
     if "Chaos" in (row.get("faction_rules") or []):
         # Chaos: "any vessel with torpedo tubes is armed with both ordinary and
         # boarding torpedoes"
@@ -414,6 +462,11 @@ def convert_row(row: dict) -> dict:
             special_rules.append(f"demiurg_vp:{vp.group(1)}")   # Demiurg VP
         if "modular" in (row.get("armament_raw") or "").lower():
             special_rules.append("modular_bays")
+    if row["faction"] == "Eldar":
+        # MMS v2.0 faction rules (src/eldar.py); Ghostships keep 6+ crits
+        special_rules += ["eldar_mms", "fragile"] + (["holofield"] if holo is not None else [])
+        if eldar_speeds:
+            special_rules.append("eldar_speeds:" + "/".join(str(v) for v in eldar_speeds))
     if re.search(r"\+5D6cm on All Ahead Full instead of \+3D6cm", notes):
         special_rules.append("aaf_5d6")      # Fast Clipper
 
@@ -422,9 +475,9 @@ def convert_row(row: dict) -> dict:
         "faction": faction_id,
         "ship_type": ship_type or "cruiser",
         "base_size": "large" if row.get("base") == "60mm" else "small",
-        "speed": row.get("speed_cm") or 0,
+        "speed": (max(eldar_speeds) if eldar_speeds else row.get("speed_cm") or 0),
         "turn_angle": row.get("turn_deg") or 0,
-        "shields_max": row.get("shields") or 0,
+        "shields_max": (holo if holo is not None else row.get("shields") or 0),
         "armor_prow": armour[0] if armour else "",
         "armor_side": armour[1] if armour else "",
         "armor_rear": armour[2] if armour else "",

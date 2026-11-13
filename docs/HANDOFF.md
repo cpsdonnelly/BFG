@@ -273,6 +273,10 @@ re-rolls included; the flagship counts double while the fleet still has re-rolls
 - `ships.json` `profile_from` is still cut off for the three Grey Knights escorts
   ("Space Marine Nova (p", "... Gladius (p", "... Hunter (p"). The game doesn't use the field.
 
+- Eldar keel launch bays ("Keel Launch Bays S4 (Darkstar ASF 30cm, ...)") come out
+  `unparsed`: the parser doesn't know the Keel location (the engine reads them from the raw
+  text, `booklet_ships._eldar_bays`).
+
 ## Booklet zip 13 (updates 46-55, installed last)
 
 Installed per the zip's HANDOFF_README. Catalog diff (stats, rules, weapons, options, notes,

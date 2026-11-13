@@ -49,3 +49,22 @@ def test_holofields_and_fragile():
     assert eldar.crit_threshold(S()) == 5
     S.special_rules = ["fragile", "ghostship"]
     assert eldar.crit_threshold(S()) == 6
+
+
+def test_eldar_catalog_stats():
+    """The catalog reads the MMS profiles: three speeds (max as the speed), the
+    holofield as the shields, Fragile / holofield / MMS rules, Eldar weapon
+    flags and keel launch bays. Still unsupported until the rules are wired."""
+    from src.ship_catalog import find_ship_class
+    e = find_ship_class("Eclipse Class Cruiser")
+    d = e.to_ship_dict("Eclipse Class Cruiser", 1)
+    assert d["speed"] == 25 and d["shields_max"] == 2 and d["turn_angle"] == 45
+    assert {"eldar_mms", "fragile", "holofield", "eldar_speeds:10/20/25"} <= set(d["special_rules"])
+    lance = next(w for w in d["weapons"] if w["weapon_type"] == "lance")
+    bays = next(w for w in d["weapons"] if w["weapon_type"] == "launch_bay")
+    assert lance.get("pulsar") and bays["craft_types"] == ["eldar_fighter", "eldar_bomber"]
+    assert bays["strength"] == 4
+    shadow = find_ship_class("Shadow Class Cruiser").to_ship_dict("s", 1)
+    assert any(w.get("eldar_battery") for w in shadow["weapons"])
+    assert any(w.get("eldar_torpedo") for w in shadow["weapons"])
+    assert any("MMS" in u for u in e.unsupported)
