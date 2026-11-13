@@ -222,6 +222,9 @@ class CombatPanel(CombatDialogMixin):
             return False
         if target.is_destroyed or target.status != "active":
             return False
+        from .aa_turn import brace_is_reactive
+        if not brace_is_reactive(self.ctx.gs):
+            return False            # AA: Brace is a command-phase order
         if self.ctx.is_ai_controlled(target.player):
             from .ai_player import ai_should_brace
             want = ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker)

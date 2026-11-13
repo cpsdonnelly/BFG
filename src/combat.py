@@ -665,6 +665,9 @@ def offer_brace(game_state: GameState, ship: Ship, attacker_key: str,
     hook = getattr(game_state, "brace_hook", None)
     if hook is None or fresh.status != "active" or fresh.is_destroyed:
         return False
+    from .aa_turn import brace_is_reactive
+    if not brace_is_reactive(game_state):
+        return False                # AA: Brace is a command-phase order
     return bool(hook(fresh, attacker_key, attacker_name, expected))
 
 

@@ -240,12 +240,29 @@ class AIPlayer:
                  if not s.is_destroyed and not s.is_disengaged]
         ships = self._movement_setup(ships)
         self._aa_aaf = {}
+        from .aa_turn import brace_is_reactive
         for ship in ships:
-            order, aaf = self._issue_order(gs.get_ship_by_id(ship.id))
+            ship = gs.get_ship_by_id(ship.id)
+            if not brace_is_reactive(gs) and self._aa_brace_worth_it(ship):
+                res = tc.issue_special_order(ship, SpecialOrder.BRACE_FOR_IMPACT.value)
+                gs.add_log(f"[AI] {ship.name}: Brace for Impact "
+                           f"{'passed' if res.get('success') else 'failed'} (command phase)")
+                continue
+            order, aaf = self._issue_order(ship)
             if aaf:
                 self._aa_aaf[ship.id] = aaf
         self._order_plan = None
         self._aa_orders_done = True
+
+    def _aa_brace_worth_it(self, ship: Ship) -> bool:
+        """AA command-phase Brace (a prediction, not a reaction): priced as the
+        reactive Brace is (`brace_value`) against the hits the enemy can bring
+        on this ship over the round (`incoming_hits`, the threat model)."""
+        from .ai_hazards import incoming_hits
+        if self.difficulty == "easy" or ship.status != "active":
+            return False
+        lam = incoming_hits(ship, self.gs)
+        return lam > 0 and brace_value(self.gs, ship, int(round(lam))) > 0.0
 
     def aa_phase_start(self, phase: str) -> None:
         """Fleet-wide plans at the start of an AA shooting / movement phase."""

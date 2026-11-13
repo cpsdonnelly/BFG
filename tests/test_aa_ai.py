@@ -70,3 +70,37 @@ def test_unit_values_favour_shots_now_and_late_moves():
     ua, uf = Unit(1, [a.id], 8, 8), Unit(1, [far.id], 8, 8)
     assert ai.aa_pick_unit("shooting", [uf, ua]).key == a.id      # the shot in reach now
     assert ai.aa_pick_unit("movement", [ua, uf]).key == far.id    # the engaged ship waits
+
+
+def test_brace_is_a_command_phase_order_in_aa():
+    """AA notes: Brace is declared in the command phase, so no reactive
+    prompts; the AI declares it there when its priced value is positive."""
+    from src.aa_turn import brace_is_reactive
+    from src.combat import offer_brace
+    me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
+    me.hits_remaining = 4                     # crippled, under three enemy cruisers
+    foes = [_ship("Lunar Class Cruiser", 2, 75.0, 75.0 + 5 * i, 180.0, i) for i in range(3)]
+    gs = make_gs([me] + foes)
+    assert brace_is_reactive(gs)
+    gs.turn_system = "aa"
+    assert not brace_is_reactive(gs)
+    asked = []
+    gs.brace_hook = lambda *a: asked.append(a) or True
+    assert offer_brace(gs, gs.get_ship_by_id(me.id), "x", "x", 3.0) is False and not asked
+    gs.aa_settings = {"brace_in_command_phase": False}
+    assert brace_is_reactive(gs)
+    gs.aa_settings = {}
+    dice = DiceRoller(mode="auto")
+    tc = TurnController(gs, dice)
+    ai = AIPlayer(1, tc, gs, dice)
+    ai.difficulty = "normal"
+    assert ai._aa_brace_worth_it(gs.get_ship_by_id(me.id))
+    safe = gs.get_ship_by_id(me.id)
+    safe.x, safe.y = 5.0, 5.0                  # out of every enemy's reach
+    safe.hits_remaining = 8
+    gs.update_ship(safe)
+    for f in foes:
+        far = gs.get_ship_by_id(f.id)
+        far.x = 175.0
+        gs.update_ship(far)
+    assert not ai._aa_brace_worth_it(gs.get_ship_by_id(me.id))

@@ -163,3 +163,12 @@ class AATurn:
         """New ordnance is launched in the configured ordnance phase."""
         return self.phase == self.cfg.launch_phase
 
+
+
+def brace_is_reactive(gs) -> bool:
+    """IGOUGO: Brace for Impact is declared when attacked (s.7). AA with
+    `brace_in_command_phase` (the AA notes' decision): it is a command-phase
+    order only, so no reactive prompts."""
+    if getattr(gs, "turn_system", "igougo") != "aa":
+        return True
+    return not config_from(gs).brace_in_command_phase

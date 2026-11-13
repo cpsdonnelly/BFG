@@ -106,6 +106,11 @@ class SpecialOrderMixin:
             ("Reload Ordnance", SpecialOrder.RELOAD_ORDNANCE.value),
         ]
 
+        # Alternate activation: Brace is a command-phase order (To do 13)
+        from .aa_turn import brace_is_reactive
+        if not brace_is_reactive(self.ctx.gs):
+            orders.append(("Brace for Impact", SpecialOrder.BRACE_FOR_IMPACT.value))
+
         # Filter out CtNH for ponderous ships
         if "ponderous" in ship.special_rules:
             orders = [(n, v) for n, v in orders
