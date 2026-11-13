@@ -919,6 +919,12 @@ Encounter with neither side's condition met is a draw; its flagship faces straig
 table. Watch: in plain games the AI still disengages readily (Cruiser Clash's damage points
 don't charge it for leaving).
 
+Then: The Raiders and Blockade Run. Readings to confirm: The Raiders' attacker deploys at
+an edge instead of moving on from off the table (the engine has no off-table entry yet); its
+D6 turns of reduced alert are game turns; Blockade Run's breakthrough bonus is per ship
+(escorts one by one). Next raids: Convoy (the narrative one, p.94), Rearguard Attack, Navigate
+the Storm, Destroy the Docks.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

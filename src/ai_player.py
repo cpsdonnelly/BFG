@@ -872,8 +872,12 @@ class AIPlayer:
             else:
                 ev, outs = firepower_outcomes(ship, gs)
                 cache[key] = disengage_gain(ship, gs, 12, ev, outs) - self._objective_stake(ship)
-        exit_term = (self._rescue_escape(ship, x, y, enemy) + self._breakthrough(ship, x, y, enemy)
-                     + self._convoy_run(ship, x, y, enemy))
+        # Only the scenario's own exit edge counts as its exit
+        from .scenarios import exit_edge
+        edge = exit_edge(gs, moved)
+        exit_term = ((self._rescue_escape(ship, x, y, enemy) if edge == "left" else 0.0)
+                     + (self._breakthrough(ship, x, y, enemy) if edge == "bottom" else 0.0)
+                     + (self._convoy_run(ship, x, y, enemy) if edge == "top" else 0.0))
         if exit_term > 0:
             return exit_term          # the scenario's own exit (scored by the scenario)
         return cache[key] / units
@@ -923,6 +927,22 @@ class AIPlayer:
 
     CONVOY_RUN_WEIGHT = 0.5      # judgement: the share of its points a convoy ship saves by escaping
 
+    def _exit_value(self, ship: Ship) -> float:
+        """VP a ship gains by leaving off the top edge (the scenario's exit):
+        Convoy's convoy ships (100 + `CONVOY_RUN_WEIGHT` x their points);
+        Blockade Run's attackers (their points, a quarter if crippled, less
+        the 10% the enemy still scores for a disengaged ship)."""
+        gs = self.gs
+        from .scenarios import is_convoy, transport, defender
+        if gs.scenario_mode == "convoy_matched":
+            if ship.player == defender(gs) and is_convoy(ship) and transport(ship) > 0:
+                return 100.0 + self.CONVOY_RUN_WEIGHT * ship.points_value
+            return 0.0
+        if gs.scenario_mode == "blockade_run" and ship.player == gs.scenario_attacker:
+            p = ship.points_value
+            return (p // 4 if ship.damage_crippled else p) - 0.1 * p
+        return 0.0
+
     def _convoy_run(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
         """Convoy (To do 7): a convoy ship moving off the attacker's long edge
         (the top) gives the defender 100 VP and saves its own points, so its
@@ -930,14 +950,13 @@ class AIPlayer:
         way covered towards that edge, all of it for leaving there. In
         move-score units."""
         gs = self.gs
-        if gs.scenario_mode != "convoy_matched" or self.difficulty == "easy":
+        if self.difficulty == "easy":
             return 0.0
-        from .scenarios import is_convoy, transport, defender
-        if ship.player != defender(gs) or not is_convoy(ship) or transport(ship) <= 0:
+        g = self._exit_value(ship)
+        if g <= 0:
             return 0.0
         from .ai_hazards import value_per_hit
         h = gs.table_height
-        g = 100.0 + self.CONVOY_RUN_WEIGHT * ship.points_value
         if y + ship.base_radius > h:
             progress = 1.0
         else:
@@ -1015,6 +1034,8 @@ class AIPlayer:
         Judgement, first form."""
         from .scenarios import objectives, points, DOMINATION_TARGET, is_convoy, defender
         gs = self.gs
+        if gs.scenario_mode == "blockade_run" and ship.player == gs.scenario_attacker:
+            return max(0.0, self._exit_value(ship))  # leaving by a test gives up the bonus
         if (gs.scenario_mode == "convoy_matched" and is_convoy(ship)
                 and ship.player == defender(gs)):
             # Convoy: leaving except off the attacker's edge counts as destroyed, +50

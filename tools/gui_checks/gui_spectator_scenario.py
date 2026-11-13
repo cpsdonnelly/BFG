@@ -72,7 +72,7 @@ imp = ["Lunar Class Cruiser", "Gothic Class Cruiser", "Dominator Class Cruiser",
        "Dauntless Class Light Cruiser"]
 chs = ["Slaughter Class Cruiser", "Carnage Class Cruiser", "Murder Class Cruiser",
        "Infidel Class Raider"]
-if scenario == "ambush":
+if scenario in ("ambush", "raiders", "blockade_run"):
     chs = chs[:2]                       # the attacker has half the points
 if scenario == "line_breaker":
     imp = imp[:3] + ["Orbital Weapons Platform"] * 3 + ["Orbital Defence Laser Platform"] * 2
@@ -130,8 +130,12 @@ for p in (1, 2):
                 if "immobile" in s_.special_rules:
                     pl = sc.strike_planet(gs)
                     s_.x, s_.y = pl.x - 20.0, pl.y + 15.0
-            if scenario == "ambush" and p == 2:
+            if scenario in ("ambush", "raiders") and p == 2:
                 s_.heading = 90.0
+            if scenario == "raiders" and p == 1:
+                s_.heading = 90.0 if s_.y < gs.table_height / 2 else 270.0   # onto the table
+            if scenario == "blockade_run":
+                s_.heading = 90.0 if p == 1 else 270.0
             idx += 1
         assert z.contains(s_.x, s_.y) or s_.id in fixed, (s_.name, s_.x, s_.y)
         placed.append(s_)
@@ -188,7 +192,7 @@ if scenario == "chance_encounter":
           f"exits {gs.scenario_state.get('exits')}")
 for l in gs.log:
     if any(k in l for k in ("[Ambush]", "[Rescue]", "[Warp Storm]", "Rescue:", "caught unawares",
-                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Sub-plot", "holds position", "DISENGAG", "off the table",
+                             "Space Assault", "Station", "Platform", "Convoy:", "Transport", "Planet Strike", "Cruiser Clash", "Chance Encounter", "Raiders", "Blockade", "broke through", "Sub-plot", "holds position", "DISENGAG", "off the table",
                              "isengag")):
         print("  LOG", l)
 print(f"[{scenario} {system}] AA log lines: {len(aa_log)}; phases: "

@@ -611,7 +611,7 @@ class GamePanel(AAPanelMixin):
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
-                      "confrontation", "line_breaker", "ambush",
+                      "raiders", "blockade_run", "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
                       "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)

@@ -289,6 +289,9 @@ class TurnController:
                     sd["rerolls_remaining"] = 1
             # Necron Deadly Awakening (Xenos p.39): at the start of each Necron turn
             self._necron_awakening(self.gs.active_player)
+            # Booklet scenarios' start-of-turn effects (The Raiders' alert)
+            from .scenarios import turn_start as _scenario_turn_start
+            _scenario_turn_start(self.gs)
             # s.40: solar flares and radiation bursts at the start of each turn
             from .celestial import start_of_turn as _celestial_start
             _celestial_start(self.gs, self.dice)

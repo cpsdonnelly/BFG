@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1270 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1272 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1134,7 +1134,18 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    in the game-over dialog), the attacker when the uncrippled flagship and another capital ship
    left off the defender's edge (`chance_result`; reading: otherwise a draw); AI:
    `cripple_bonus_vp` (half the points on the table, judgement) in `damage_vp` and
-   `_breakthrough` for the attacker's capital ships). Not yet: racing the 10 against the turn
+   `_breakthrough` for the attacker's capital ships). Raids built: The Raiders (p.91:
+   defender more than 30cm from every edge, every ship facing the same table edge and 20cm
+   from the other ships / squadrons; the attacker "moves on from any edge" (reading: it
+   deploys within 3cm of any edge, facing onto the table); attacker first; the defender at -1
+   Ld for the first D6 game turns, given back by `scenarios.turn_start` from
+   `TurnController.begin_phase` / `AATurn._start_round`; eight turns; VP) and Blockade Run
+   (p.92: a D6 per blockading ship or squadron for its third of the table, more than 60cm from
+   the attacker's edge; attacker within 15cm of the bottom edge; roll-off for the first turn;
+   six turns; the attacker's ships off the blockader's (top) edge score their points, a
+   quarter if crippled, on top of the normal VP; AI `_exit_value` / `_convoy_run` pull its
+   ships to that edge and `_objective_stake` keeps them from disengaging by a test). The AI's
+   off-table moves now count a scenario exit only off that scenario's own edge. Not yet: racing the 10 against the turn
    order, Planet Strike's planetary defence budget (+20%) and "extra assault points" ships,
    Orbit Lost, The Bait (reinforcements entering), the raids and battles, the rest of the
    sub-plots, Cruiser Clash's alternating deployment and forces limits, the Ambush attacker's half-points limit (fleet building), Line Breaker's

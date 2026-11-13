@@ -722,3 +722,60 @@ def test_chance_encounter_flagship_choice_and_victory():
     f.hits_remaining = 5                                    # crippled: the defender wins
     gs.update_ship(f)
     assert sc.chance_result(gs) == 2
+
+
+# --- The Raiders, Blockade Run -------------------------------------------------------
+
+def test_raiders_set_up_alert_and_placement():
+    from src.turn_controller import TurnController
+    d1 = make_ship(id="d1", player=2, leadership=8)
+    a1 = make_ship(id="a1", player=1, leadership=8)
+    gs = _gs([a1, d1], mode="raiders")
+    sc.setup_scenario(gs, DiceStub([2]))            # two turns of reduced alert
+    assert gs.turn_limit == 16 and gs.get_ship_by_id("d1").leadership == 7
+    assert gs.get_ship_by_id("a1").leadership == 8
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[1].contains(1, 60) and zones[1].contains(90, 119) and not zones[1].contains(90, 60)
+    assert zones[2].contains(90, 60) and not zones[2].contains(20, 60)
+    p = [make_ship(id="p", player=2, x=60.0, y=60.0, heading=90.0)]
+    assert sc.placement_errors(gs, [d1], [(100.0, 60.0)], [90.0], p) == []
+    assert sc.placement_errors(gs, [d1], [(100.0, 60.0)], [45.0], p)      # not an edge
+    assert sc.placement_errors(gs, [d1], [(100.0, 60.0)], [0.0], p)       # another edge
+    assert sc.placement_errors(gs, [d1], [(70.0, 60.0)], [90.0], p)       # under 20cm
+    tc = TurnController(gs, DiceStub([3]))
+    gs.turn_number = 4
+    sc.turn_start(gs)
+    assert gs.get_ship_by_id("d1").leadership == 7
+    gs.turn_number = 5
+    tc.begin_phase("movement")
+    assert gs.get_ship_by_id("d1").leadership == 8
+    sc.turn_start(gs)
+    assert gs.get_ship_by_id("d1").leadership == 8                         # once
+
+
+def test_blockade_run_thirds_and_breakthrough_vp():
+    from src.victory_points import calculate_victory_points
+    b1 = make_ship(id="b1", player=2, points_value=100)
+    e1 = make_ship(id="e1", player=2, ship_type="escort", squadron_id="s", points_value=40)
+    e2 = make_ship(id="e2", player=2, ship_type="escort", squadron_id="s", points_value=40)
+    a1 = make_ship(id="a1", player=1, points_value=200)
+    a2 = make_ship(id="a2", player=1, points_value=200, hits_remaining=3)
+    gs = _gs([b1, e1, e2, a1, a2], mode="blockade_run")
+    dice = DiceStub([5, 2])                         # b1 third 3, the squadron third 1
+    sc.setup_scenario(gs, dice)
+    assert dice._idx == 2 and gs.turn_limit == 12
+    assert gs.scenario_state["thirds"] == {"b1": 3, "s": 1}
+    assert sc.placement_errors(gs, [b1], [(150.0, 100.0)], [0.0], []) == []
+    assert sc.placement_errors(gs, [b1], [(30.0, 100.0)], [0.0], [])
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[2].contains(30, 61) and not zones[2].contains(30, 59)
+    assert zones[1].contains(30, 10) and not zones[1].contains(30, 20)
+    for sid in ("a1", "a2"):
+        s = gs.get_ship_by_id(sid)
+        s.x, s.y, s.is_disengaged, s.status = 90.0, 122.0, True, "disengaged"
+        gs.update_ship(s)
+        sc.record_exit(gs, s)
+    vp = calculate_victory_points(gs)
+    # a1 uncrippled 200, a2 crippled 50; the blockader still scores them as
+    # disengaged (10% and 25%)
+    assert vp[1]["total"] == 250 and vp[2]["total"] == 20 + 50

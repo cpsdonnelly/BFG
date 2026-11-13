@@ -35,6 +35,20 @@ SCENARIOS: Dict[str, Dict] = {
         "victory": "chance_encounter",
         "game_turns": 6,
     },
+    "raiders": {
+        "name": "The Raiders (XR p.91)",
+        "first_turn": "attacker",
+        "end": "fleet_gone",
+        "victory": "vp",
+        "game_turns": 8,
+    },
+    "blockade_run": {
+        "name": "Blockade Run (XR p.92)",
+        "first_turn": "roll_off",
+        "end": "fleet_gone",
+        "victory": "vp",
+        "game_turns": 6,
+    },
     "confrontation": {
         "name": "Confrontation (XR p.117)",
         "first_turn": "attacker",
@@ -104,6 +118,29 @@ def first_player(gs) -> Optional[int]:
     if sc and sc.get("first_turn") == "defender":
         return 3 - gs.scenario_attacker
     return None
+
+
+def _group_key(ship) -> str:
+    return ship.squadron_id if (ship.ship_type == "escort" and ship.squadron_id) else ship.id
+
+
+def turn_start(gs) -> None:
+    """At the start of each turn: The Raiders' defender gets its Ld back after
+    its D6 turns of reduced alert (reading: game turns, both players' turns)."""
+    if getattr(gs, "scenario_mode", "") != "raiders":
+        return
+    st = dict(gs.scenario_state or {})
+    n = st.get("alert_turns")
+    if not n or st.get("alert_restored"):
+        return
+    limit = n if getattr(gs, "turn_system", "igougo") == "aa" else 2 * n
+    if gs.turn_number > limit:
+        for sd in gs.ships:
+            if sd["player"] == defender(gs) and sd.get("leadership"):
+                sd["leadership"] = min(10, sd["leadership"] + 1)
+        st["alert_restored"] = True
+        gs.scenario_state = st
+        gs.add_log("[The Raiders] the defender is fully alert again (+1 Ld)")
 
 
 def first_turn_chooser(gs) -> Optional[int]:
@@ -261,6 +298,32 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
             gs.add_log(f"[Rescue] the defending flagship is {flag.name}")
     elif mode == "convoy_matched":
         gs.scenario_state = {"had_cargo": cargo_on_table(gs, defender(gs)) > 0}
+    elif mode == "raiders":
+        # The defender's reduced state of alert: -1 Ld for the first D6 turns
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        n = dice.roll_d6(1, "The Raiders: turns of reduced alert (D6)")[0]
+        for sd in gs.ships:
+            if sd["player"] == defender(gs) and sd.get("leadership"):
+                sd["leadership"] = max(1, sd["leadership"] - 1)
+        gs.scenario_state = {"alert_turns": n, "alert_restored": False}
+        gs.add_log(f"[The Raiders] the defender is at -1 Ld for {n} turn(s)")
+    elif mode == "blockade_run":
+        # A D6 for each blockading ship or squadron: which third it deploys in
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        thirds = {}
+        for s in gs.get_ships():
+            if s.player != defender(gs):
+                continue
+            key = _group_key(s)
+            if key not in thirds:
+                r = dice.roll_d6(1, f"Blockade Run: {s.name}'s area (D6)")[0]
+                thirds[key] = (r + 1) // 2           # 1-2 left, 3-4 middle, 5-6 right
+        gs.scenario_state = {"thirds": thirds}
+        gs.add_log(f"[Blockade Run] blockade areas: {thirds}")
     elif mode == "cruiser_clash":
         # One player rolls a D6: 1-3 they set up in Fleet A (the top zone),
         # 4-6 in Fleet B (reading: player 1 rolls)
@@ -501,6 +564,18 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
                  3 - att_p: [(w - 45, 0, 0, 0),
                              (max(0.0, px - well), max(0.0, w - px - well),
                               max(0.0, h - py - well), max(0.0, py - well))]}
+    elif mode == "raiders":
+        # Defender more than 30cm from every edge; the attacker moves on from
+        # any edge on its first turn (reading: it deploys touching an edge,
+        # within a base of it, facing onto the table)
+        e = 3.0
+        rects = {3 - att_p: [(30, 30, 30, 30)],
+                 att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
+                         (w - e, 0, 0, 0)]}
+    elif mode == "blockade_run":
+        # Attacker within 15cm of its (bottom) edge; blockaders not within 60cm
+        # of it, in the third of the table their D6 gave (placement_errors)
+        rects = {att_p: [(0, 0, h - 15, 0)], 3 - att_p: [(0, 0, 0, 60)]}
     elif mode == "cruiser_clash":
         # Fleet A and B: 90cm wide, centred on each long edge, 30cm deep
         side = (w - 90.0) / 2.0
@@ -540,6 +615,20 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     squadron excepted)."""
     errs: List[str] = []
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "raiders" and group:
+        if group[0].player == defender(gs):
+            return _raiders_defender_errors(gs, group, positions, headings, placed)
+        return errs
+    if mode == "blockade_run" and group and group[0].player == defender(gs):
+        third = (gs.scenario_state or {}).get("thirds", {}).get(_group_key(group[0]))
+        if third:
+            lo = (third - 1) * gs.table_width / 3.0
+            hi = third * gs.table_width / 3.0
+            for s_, (x, _y) in zip(group, positions):
+                if not lo <= x <= hi:
+                    errs.append(f"Blockade Run: {s_.name} deploys in third {third} "
+                                f"({lo:g}-{hi:g}cm)")
+        return errs
     if mode == "cruiser_clash" and group:
         # Every ship faces the opposite long table edge
         top = (gs.scenario_state or {}).get("fleet_a", 1) == group[0].player
@@ -591,6 +680,26 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     return errs
 
 
+def _raiders_defender_errors(gs, group, positions, headings, placed) -> List[str]:
+    """The Raiders: every defending ship faces the same table edge (one of the
+    four edge directions) and each ship or squadron is 20cm from the others."""
+    errs = []
+    for s_, h in zip(group, headings):
+        if min(abs((h - a + 180.0) % 360.0 - 180.0) for a in (0, 90, 180, 270)) > 0.5:
+            errs.append(f"The Raiders: {s_.name} must face a table edge")
+    others = [s for s in placed if s.player == group[0].player
+              and not (group[0].squadron_id and s.squadron_id == group[0].squadron_id)]
+    for s in others:
+        if any(abs((h - s.heading + 180.0) % 360.0 - 180.0) > 0.5 for h in headings):
+            errs.append(f"The Raiders: every defending ship faces the same edge as {s.name}")
+            break
+    for s in others:
+        if any((x - s.x) ** 2 + (y - s.y) ** 2 < 400.0 for x, y in positions):
+            errs.append(f"The Raiders: at least 20cm from {s.name}")
+            break
+    return errs
+
+
 def _in_phenomenon(x: float, y: float, p) -> bool:
     """A point inside a celestial phenomenon's area (planets by radius, the
     rest by their rectangle, as the map editor draws them)."""
@@ -623,7 +732,20 @@ def auto_positions(gs, group, zone, placed, index: int):
         r = zone.rects()[index % len(zone.rects())]
         cx, cy = (r.x_min + r.x_max) / 2, (r.y_min + r.y_max) / 2
         return [(cx + 5.0 * (i % 3) - 5.0, cy + 5.0 * (i // 3)) for i in range(len(group))]
-    if mode == "ambush" and group and group[0].player == defender(gs):
+    if mode == "blockade_run" and group and group[0].player == defender(gs):
+        third = (gs.scenario_state or {}).get("thirds", {}).get(_group_key(group[0]), 2)
+        lo = (third - 1) * gs.table_width / 3.0
+        n_here = sum(1 for s in placed if s.player == group[0].player
+                     and lo <= s.x <= lo + gs.table_width / 3.0)
+        cx = lo + gs.table_width / 6.0
+        cy = gs.table_height - 15.0 - 10.0 * (n_here % 4)
+        return [(cx - 6.0 + 4.0 * i, cy) for i in range(len(group))]
+    if mode == "raiders" and group and group[0].player == gs.scenario_attacker:
+        r = zone.rects()[0]
+        cx = (r.x_min + r.x_max) / 2.0 - 8.0 * index
+        y = r.y_max - max(s_.base_radius for s_ in group) - 0.1      # base on the table
+        return [(cx + 4.0 * i, y) for i in range(len(group))]
+    if mode in ("ambush", "raiders") and group and group[0].player == defender(gs):
         others = [s for s in placed if s.player == defender(gs)]
         y = zone.y_min + 5.0
         while y <= zone.y_max:
@@ -819,6 +941,18 @@ def vp_bonus(gs, result: Dict) -> None:
             if vp:
                 result[who]["scenario"] = result[who].get("scenario", 0) + vp
                 result[who]["details"].append(f"Convoy: {c.name} {why}: +{vp} VP")
+        return
+    if getattr(gs, "scenario_mode", "") == "blockade_run":
+        # The attacker's ships off the blockader's (top) edge: 100% of their
+        # points, 25% if crippled (an escort squadron as a unit, reading: by
+        # its ships that escaped)
+        exits = (gs.scenario_state or {}).get("exits", {})
+        att = gs.scenario_attacker
+        for c in gs.get_ships():
+            if c.player == att and c.is_disengaged and exits.get(c.id) == "top":
+                vp = c.points_value if not c.damage_crippled else c.points_value // 4
+                result[att]["scenario"] = result[att].get("scenario", 0) + vp
+                result[att]["details"].append(f"Blockade Run: {c.name} broke through: +{vp} VP")
         return
     if getattr(gs, "scenario_mode", "") == "space_assault":
         st = space_station(gs)
