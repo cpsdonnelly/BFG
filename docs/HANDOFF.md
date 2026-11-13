@@ -740,6 +740,35 @@ item 1 (weight tuning) last and on hold. Owner: "the order isn't hugely importan
 the dependencies (8 a Armour facing and 8 f range brackets before 11 a's target-directed
 candidates), so item 8 is no longer an open question.
 
+### Session after booklet zip 13 ("keep going until you finish all tasks")
+
+All committed and pushed; CLAUDE.md holds the detail of each. In order:
+- Zip 13 installed (Eldar, Necrons, Necron commanders, AA docs, the Remastered escort VP option).
+- To do 2 finished but scenario points: priced Brace with the risk preference, strikes and the
+  guns a disengaging ship gives up by certainty equivalent, the expert simulating its own
+  ordnance in flight.
+- To do 11 a: more goals (prow-on, rear arc, second target, escort support, Lock On next turn,
+  boarding reach), hill-climbing, the denser grid, the support move order, the expert root
+  using the candidates.
+- To do 3 done: mine launcher swaps, mines laid by the AI, launcher crits; torpedo bombers and
+  Tiger Sharks (purchases, salvos, limited fuel, player button, AI).
+- To do 4 parts: Grand Master, Elite Daemonhunters / Captains, Bond-Captains, Mark of Chaos
+  Undivided, Stormbirds.
+- To do 6 done: Demiurg undo, forced fleeing enforced, s.40 (Sunward, flares, bursts).
+- To do 9 / 11: Auto (best) on every prompt (Brace, order re-rolls, Vault), Nova Cannon,
+  repairs and blast marker removal by value, batteries before lances, scale-free re-roll bars,
+  Easy softmax moves, the plasma overload's ordnance value, the first-turn roll-off.
+- To do 10: Lock On and All Ahead Full by value, check-order risk, re-rolls counting blocked
+  orders, Burn Retros paying the lost teleport.
+- To do 8: both broadsides busy, kiting, teleport offence / defence / brace, boarding and
+  ramming.
+- To do 13: the activation-order core (`src/activation.py`), check values reproduced.
+Readings flagged for the owner: Necrons roll Default Ld (no Necron column in Appendix 4); light
+cruisers aren't "cruisers" for the mine swap; the Bastion pays +5 a bay for its mine mode;
+Stormbird bays halved each (rounding up); s.40 toggles stand for the battle being in range of
+the effect and one flare / burst die each; the burst's re-roll limit applies to every re-roll.
+GUI checks now answer Brace and order re-roll prompts by replacing `choice_dialog.yes_no`.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),
