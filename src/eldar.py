@@ -11,6 +11,18 @@ from typing import List, Optional, Tuple
 
 SUN, AWAY, ABEAM = "sun", "away", "abeam"
 
+# The battle's sunward edge (GameState.sunward_edge; set by the TurnController),
+# which Eldar speeds depend on whether or not Fighting Sunward is played
+_SUNWARD = {"edge": "north"}
+
+
+def set_sunward_edge(edge: str) -> None:
+    _SUNWARD["edge"] = edge or "north"
+
+
+def sunward_edge() -> str:
+    return _SUNWARD["edge"]
+
 # Compass bearing of each sunward edge in the engine's frame (x right, y up;
 # celestial.SUN_ANGLE uses the same convention)
 _SUN_ANGLE = {"north": 90.0, "south": 270.0, "east": 0.0, "west": 180.0}
@@ -148,3 +160,34 @@ def crit_threshold(ship) -> int:
     if "fragile" in rules and "ghostship" not in rules:
         return FRAGILE_CRIT_ON
     return 6
+
+
+def ship_speeds(ship) -> Optional[Tuple[int, int, int]]:
+    for r in getattr(ship, "special_rules", None) or []:
+        if r.startswith("eldar_speeds:"):
+            return parse_speeds(r.split(":", 1)[1])
+    return None
+
+
+def commands_to_legs(commands):
+    """MoveCommands -> ([(turn, distance)] legs, extra turn): a turn starts a
+    leg, forward moves add to it; a turn after the second leg's move is Come to
+    New Heading's extra turn. Left turns are positive."""
+    legs, extra = [], 0.0
+    cur_turn, cur_dist, moved = 0.0, 0.0, False
+    for c in commands:
+        if c.action in ("turn_left", "turn_right"):
+            signed = c.value if c.action == "turn_left" else -c.value
+            if moved:
+                legs.append((cur_turn, cur_dist))
+                cur_turn, cur_dist, moved = signed, 0.0, False
+            else:
+                cur_turn += signed
+        elif c.action == "forward":
+            cur_dist += c.value
+            moved = True
+    if moved or cur_turn:
+        legs.append((cur_turn, cur_dist))
+    if len(legs) == 3 and legs[2][1] == 0:
+        extra = legs.pop()[0]
+    return legs, extra

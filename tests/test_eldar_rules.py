@@ -150,3 +150,28 @@ def test_eldar_turrets_stealth_and_torpedo_rerolls():
     dice = DiceStub([5, 2, 6, 1, 1])     # one hit, one miss re-rolled to a hit; two crit checks
     r = resolve_torpedo_attack(stealthy, gs.get_ship_by_id("t"), dice, gs)
     assert r["hits"] == 2 and dice._idx == 5
+
+
+def test_engine_validates_eldar_moves():
+    """movement.validate_movement uses MMS for Eldar ships: turn on the spot,
+    move, turn, move, each move capped by its heading's speed (sunward edge
+    north). An IGOUGO-style 'move, turn, move' is two legs too."""
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship
+    from src.movement import validate_movement, MoveCommand
+    from src.eldar import set_sunward_edge
+    set_sunward_edge("north")
+    e = Ship.from_dict(find_ship_class("Eclipse Class Cruiser").to_ship_dict("e", 1, ship_id="e"))
+    e.x, e.y, e.heading = 50.0, 50.0, 0.0              # abeam: 25cm
+    ok = [MoveCommand("turn_left", 45), MoveCommand("forward", 25),
+          MoveCommand("turn_right", 45), MoveCommand("forward", 25)]
+    r = validate_movement(e, ok, "", table_width=180, table_height=120)
+    assert r.valid, r.errors
+    assert abs(r.total_distance - 50) < 1e-9 and len(r.path) == 3
+    into_sun = [MoveCommand("turn_left", 45), MoveCommand("turn_left", 45),
+                MoveCommand("forward", 12)]                # heading 90: into the sun, 10cm
+    assert not validate_movement(e, into_sun, "", table_width=180, table_height=120).valid
+    assert not validate_movement(e, [MoveCommand("forward", 5)], "burn_retros").valid
+    igougo = [MoveCommand("forward", 10), MoveCommand("turn_left", 30),
+              MoveCommand("forward", 10)]
+    assert validate_movement(e, igougo, "", table_width=180, table_height=120).valid

@@ -62,6 +62,8 @@ class TurnController:
         self.dice = dice
         from .optional_rules import set_blast_rules, set_ship_source
         set_blast_rules(getattr(game_state, "blast_marker_rules", "standard"))
+        from .eldar import set_sunward_edge
+        set_sunward_edge(getattr(game_state, "sunward_edge", "north"))
         from .optional_rules import set_suppression_rules
         set_suppression_rules(getattr(game_state, "rule_turret_suppression_remastered", False))
         from .optional_rules import set_sunward

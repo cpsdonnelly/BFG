@@ -185,6 +185,36 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
     return 1
 
 
+def _validate_eldar(ship: Ship, commands, special_order: str, aaf_bonus: int,
+                    result: "MovementResult", table_width: float, table_height: float):
+    """Eldar MMS v2.0 movement (src/eldar.py): two moves, each a turn on the
+    spot then a move up to the speed for the new heading. First form: no
+    staged moves and no blast marker speed loss (to confirm with the owner)."""
+    from . import eldar
+    speeds = eldar.ship_speeds(ship) or (ship.speed, ship.speed, ship.speed)
+    legs, extra = eldar.commands_to_legs(commands)
+    for e in eldar.validate_mms_move(speeds, ship.heading, ship.turn_angle, legs,
+                                     special_order or "", eldar.sunward_edge(),
+                                     aaf_bonus, extra, ship.is_crippled):
+        result.add_error(e)
+    import math as _m
+    x, y, h = ship.x, ship.y, ship.heading
+    result.path.append((x, y))
+    for turn, dist in legs:
+        h = (h + turn) % 360.0
+        x += dist * _m.cos(_m.radians(h))
+        y += dist * _m.sin(_m.radians(h))
+        result.path.append((x, y))
+    h = (h + extra) % 360.0
+    result.final_x, result.final_y, result.final_heading = x, y, h
+    result.total_distance = sum(d for _t, d in legs)
+    result.turns_used = sum(1 for t, _d in legs if t) + (1 if extra else 0)
+    result.counts_as_defense = result.total_distance < 5
+    if not (0 <= x <= table_width and 0 <= y <= table_height):
+        result.add_warning("the move ends off the table")
+    return result
+
+
 def validate_movement(ship: Ship, commands: List[MoveCommand],
                       special_order: str, aaf_bonus: int = 0,
                       blast_markers: List[BlastMarker] = None,
@@ -205,6 +235,9 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     """
     result = MovementResult()
     blast_markers = blast_markers or []
+    if "eldar_mms" in (ship.special_rules or []):
+        return _validate_eldar(ship, commands, special_order, aaf_bonus, result,
+                               table_width, table_height)
 
     # Current position tracking
     cx, cy = ship.x, ship.y
