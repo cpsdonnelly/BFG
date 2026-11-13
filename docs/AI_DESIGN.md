@@ -432,6 +432,10 @@ Each ordnance phase the AI plans fighters across all its carriers:
 
 Tuning these is on hold (owner: "keep it in mind, but it is hard work, so leave it for now").
 
+**Owner ruling (learned evaluation and weight tuning):** don't start either until the owner
+says so. When they start, the experimental ML-driven AI is kept separate: it never replaces
+the current AI, whose normal and expert players and weights stay as they are.
+
 | Area | Weight | Value | Meaning |
 |---|---|---|---|
 | Values | damage short of a threshold | 0.2 | x points / starting hits, per hit (180pt 8-hit cruiser: 4.5 VP) |
