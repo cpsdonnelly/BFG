@@ -800,6 +800,9 @@ Then ("go" after the brief update), all pushed:
   (`_disengage_spot`), one round of the coordination pass (`_coordination_plan`, `_ships_at`).
   The expert's root moves under Come to New Heading stay one-turn (not yet two).
 Tests: 1183 pass; spectator games (normal, expert, Orks, Space Marines) pass.
+Owner (latest): don't start learned evaluation (To do 12) or weight tuning (To do 1) until
+told to; when started, the experimental ML-driven AI stays separate and never replaces the
+current AI.
 Next: To do 13's AA round (turn controller, UI, AI). Read docs/AA_ORDER_SYSTEMS_NOTES.md
 (the source) and docs/AA_ACTIVATION_NOTES.md ("Discussion summary" and "Later decisions");
 `src/activation.py` has the core. Open choices there become settings (`AAConfig`), not

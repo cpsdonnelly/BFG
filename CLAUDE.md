@@ -34,6 +34,10 @@ until their faction rules are built (`booklet_ships.UNBUILT_FACTION_RULES`, To d
 
 ### Owner rulings
 
+- **Learned evaluation and weight tuning (To do 12 and 1), owner:** don't start either until
+  the owner says so. When they start, the experimental ML-driven AI stays separate: it never
+  replaces the current AI (its own AI class / difficulty option, the existing normal and
+  expert AIs and their weights left as they are).
 - **Leadership is rolled at game start** (Appendix 4, faction column; escort squadrons roll once
   and share it). Booklet ships carry `leadership_table` and Ld 0 until then.
 - **Upgrades:** the old hand-written upgrades were removed. Booklet refits, options and fleet
@@ -522,8 +526,8 @@ off-table start, warp translation, spectral state touching every targeting / ord
 Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
 Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (deeper expert
 hazards, more coordination rounds, two-turn root moves for the expert under Come to New
-Heading), 10 e (Brace's remaining bits), 12 (learned evaluation) after 11, 1 (weight tuning)
-last and on hold. Owner: the order isn't hugely important; follow the dependencies. For 13,
+Heading), 10 e (Brace's remaining bits), 12 (learned evaluation) and 1 (weight tuning) only when the owner says
+so, kept separate from the current AI (see Owner rulings). Owner: the order isn't hugely important; follow the dependencies. For 13,
 the AA notes leave several choices open (shooting vs movement order, the launch ordnance
 phase, end-phase cadence): build them as settings, never settle them for the owner.
 
@@ -744,7 +748,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
 
 ### To do (agreed order; detail in docs/HANDOFF.md)
 
-1. On hold (owner): tuning the AI's judgement weights (listed in "AI: how it decides"). Keep
+1. On hold until the owner says to start (owner); when built, kept separate from the current
+   AI, never replacing it: tuning the AI's judgement weights (listed in "AI: how it decides"). Keep
    it in mind, but it is hard work, so leave it be for now: don't retune them unless the
    owner asks. Example worth a look later: a lone healthy cruiser facing three full enemy
    cruisers disengages under the current model. Owner (AI design feedback): do it, but as
@@ -1445,7 +1450,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    its structure and must be redone after every structural change.
 
 12. Learned evaluation for the expert search (owner: do it; low priority, after To do 11,
-   and only after its a-c). Supervised fitting of position features to game outcomes.
+   and only after its a-c). On hold until the owner says to start; when built, an experimental
+   ML-driven AI kept separate from the current AI, never replacing it. Supervised fitting of position features to game outcomes.
    Features: material, threat both ways, relative geometry (no absolute coordinates),
    ordnance in flight, tempo, state, and terrain by what it does to ships (hazard cost of
    reachable moves, cloud / blast contact, distance to the nearest phenomenon and the table
