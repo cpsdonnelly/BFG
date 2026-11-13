@@ -173,6 +173,8 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
         # Engine Room Damaged; Necron Main Drive Damaged / Eldar Mast Lines Severed
         if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines"):
             return 0
+    if special_order == SpecialOrder.ALL_AHEAD_FULL.value and "necron" in ship.special_rules:
+        return 99      # inertialess drive: a turn for every 20cm (validate_movement)
     if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
         # Lightning Thrusters: vanguard cruisers may turn up to 45 degrees on AAF
         from .chapter_tactics import lightning_vanguard
@@ -264,6 +266,10 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     turn_cap = (min(ship.turn_angle, 45)
                 if special_order == SpecialOrder.ALL_AHEAD_FULL.value else ship.turn_angle)
     min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
+    if special_order == SpecialOrder.ALL_AHEAD_FULL.value and "necron" in ship.special_rules:
+        # Inertialess drive (Xenos p.39): a turn for every 20cm travelled
+        # (reading: each turn after a further 20cm)
+        min_turn_dist = 20
 
     # Burn Retros: no minimum distance before turning
     if special_order == SpecialOrder.BURN_RETROS.value:
@@ -720,6 +726,10 @@ def squadron_aaf_bonuses(ships: List[Ship], dice: DiceRoller) -> dict:
     number (s.7). Returns {ship id: bonus}."""
     if not ships:
         return {}
+    if all("necron" in s.special_rules for s in ships):
+        from .necrons import inertialess_extra
+        b = inertialess_extra(dice.roll_d6(1, "Squadron inertialess drive (D6 x 10cm)")[0])
+        return {s.id: b for s in ships}
     n = max(aaf_bonus_dice(s) for s in ships)
     rolls = sorted(dice.roll_d6(n, f"Squadron All Ahead Full speed bonus ({n}D6)"),
                    reverse=True)
@@ -728,6 +738,10 @@ def squadron_aaf_bonuses(ships: List[Ship], dice: DiceRoller) -> dict:
 
 def resolve_aaf_speed(ship: Ship, dice: DiceRoller) -> int:
     """Roll the All Ahead Full bonus speed (aaf_bonus_dice D6s)."""
+    if "necron" in ship.special_rules:
+        # Inertialess drive (Xenos p.39): D6 x 10cm instead of the usual bonus
+        from .necrons import inertialess_extra
+        return inertialess_extra(dice.roll_d6(1, f"{ship.name} inertialess drive (D6 x 10cm)")[0])
     n = aaf_bonus_dice(ship)
     results = dice.roll_d6(n, f"{ship.name} All Ahead Full speed bonus ({n}D6)")
     return sum(results)

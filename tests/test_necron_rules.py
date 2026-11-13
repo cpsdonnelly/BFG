@@ -214,3 +214,20 @@ def test_without_a_trace_disengages_without_a_test():
     assert gs.get_ship_by_id("n").is_disengaged
     r = squadron_disengage_test([gs.get_ship_by_id("e1"), gs.get_ship_by_id("e2")], dice, gs)
     assert r["success"] and dice._idx == 0
+
+
+def test_inertialess_all_ahead_full():
+    from tests.conftest import make_ship
+    from src.movement import resolve_aaf_speed, validate_movement, MoveCommand
+    n = make_ship(id="n", player=1, speed=25, heading=0.0, x=10.0, y=60.0,
+                  special_rules=["necron", "reactive_hull:5", "necron_awake"])
+    dice = DiceStub([4])
+    assert resolve_aaf_speed(n, dice) == 40 and dice._idx == 1
+    ok = [MoveCommand("forward", 20), MoveCommand("turn_left", 45), MoveCommand("forward", 20),
+          MoveCommand("turn_right", 45), MoveCommand("forward", 25)]
+    assert validate_movement(n, ok, "all_ahead_full", aaf_bonus=40,
+                             table_width=180, table_height=120).valid
+    early = [MoveCommand("forward", 10), MoveCommand("turn_left", 45),
+             MoveCommand("forward", 55)]
+    assert not validate_movement(n, early, "all_ahead_full", aaf_bonus=40,
+                                 table_width=180, table_height=120).valid

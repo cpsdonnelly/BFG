@@ -1702,7 +1702,8 @@ class AIPlayer:
         enemy = self._focus_for(ship) or self._nearest_enemy(ship)
         if enemy is None:
             return 0.0
-        bonus = int(round(3.5 * aaf_bonus_dice(ship)))
+        bonus = (35 if "necron" in ship.special_rules          # inertialess: D6 x 10cm
+                 else int(round(3.5 * aaf_bonus_dice(ship))))
         aaf_o = SpecialOrder.ALL_AHEAD_FULL.value
         prev = getattr(self, "_move_nearest", None)
         self._move_nearest = self._nearest_enemy(ship)

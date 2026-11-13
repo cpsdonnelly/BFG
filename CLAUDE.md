@@ -491,7 +491,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1223 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1224 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1703,8 +1703,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    when hulked, the +1 per hostile Space Hulk / Planet Killer / Blackstone. Without a Trace
    built: `disengage.attempt_disengage` / `squadron_disengage_test` let Necron ships vanish
    with no test; the AI's `disengage_gain` uses a pass chance of 1. Not yet: firing at their
-   own hulks after a target priority check. Next: the rest of the combat / movement /
-   end-phase wiring (the nightmare field, star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
+   own hulks after a target priority check. Inertialess drive built: `resolve_aaf_speed` /
+   `squadron_aaf_bonuses` roll D6 x 10cm for Necrons, `get_max_turns` allows turns on AAF and
+   `validate_movement` needs 20cm before each (reading); the AI expects +35cm. Next: the rest
+   of the combat / movement / end-phase wiring (the nightmare field, star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
    complex / pylon / Deathseed rules and their craft, the Necron crit table, Without a
    Trace (auto-disengage, firing at own hulks), the AI, then the Eldar gaps above.
 
