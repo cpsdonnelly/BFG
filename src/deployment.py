@@ -17,7 +17,7 @@ at a time, starting with Player 2 (loser of roll-off) by convention.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Tuple
 
 from .models import Ship
@@ -38,9 +38,17 @@ class DeploymentZone:
     x_max: float
     y_max: float
     label: str = ""
+    # Further rectangles of the same zone (L-shaped scenario zones, e.g.
+    # Domination 3); `contains` accepts any of them
+    extra: list = field(default_factory=list)
 
     def contains(self, x: float, y: float) -> bool:
-        return self.x_min <= x <= self.x_max and self.y_min <= y <= self.y_max
+        if self.x_min <= x <= self.x_max and self.y_min <= y <= self.y_max:
+            return True
+        return any(r.contains(x, y) for r in self.extra)
+
+    def rects(self) -> list:
+        return [self] + list(self.extra)
 
 
 def get_default_zones(table_width: float, table_height: float) -> List[DeploymentZone]:

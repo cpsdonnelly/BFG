@@ -456,6 +456,7 @@ class AIPlayer:
         ld = get_disengage_ld_modifiers(ship, gs)["effective_ld"]
         ev_fire, fire_outs = firepower_outcomes(ship, gs)
         gain = disengage_gain(ship, gs, ld, ev_fire, fire_outs)
+        gain -= self._objective_stake(ship)
         if gain <= 0:
             return
         gs.add_log(f"[AI] {ship.name} tries to disengage (Ld {ld}; worth about "
@@ -782,7 +783,74 @@ class AIPlayer:
         score += self._screen_bonus(ship, fx, fy, fh, enemy)
         score += self._explosion_term(ship, fx, fy, enemy)
         score += self._disengage_spot(ship, fx, fy, fh, enemy)
+        score += self._objective_term(ship, fx, fy, enemy)
         return score
+
+    OBJECTIVE_POINT_WEIGHT = 0.5   # judgement: 10 objective points ~ half the fleets' worth
+    OBJECTIVE_DENIAL = 0.5         # judgement: contesting an enemy-held marker
+
+    def objective_point_vp(self) -> float:
+        """Domination (To do 7): an objective point in VP. The game is won on
+        points, 10 ending it, so a point is a tenth of the game: judgement,
+        `OBJECTIVE_POINT_WEIGHT` x the points on the table / (2 x 10)."""
+        from .scenarios import DOMINATION_TARGET
+        total = sum(s.points_value for s in self.gs.get_ships()) or 1000
+        return self.OBJECTIVE_POINT_WEIGHT * total / (2.0 * DOMINATION_TARGET)
+
+    def _objective_stake(self, ship: Ship) -> float:
+        """Domination (To do 7): what leaving the table gives up in VP terms,
+        the objective points this ship would help score for the rest of the
+        game: its share of the markers (markers / our ships on the table, at
+        most 1) for each of our turns left (to the turn limit, or until a
+        player could reach 10 at that rate), at `objective_point_vp`.
+        Judgement, first form."""
+        from .scenarios import objectives, points, DOMINATION_TARGET
+        objs = objectives(self.gs)
+        if not objs or self.gs.scenario_mode != "domination":
+            return 0.0
+        ours = [s for s in self.gs.get_ships() if s.player == self.player
+                and not s.is_destroyed and not s.is_disengaged]
+        share = min(1.0, len(objs) / max(1, len(ours)))
+        lead = max(points(self.gs).values())
+        left = math.ceil((DOMINATION_TARGET - lead) / max(1.0, len(objs) / 2.0))
+        if self.gs.turn_limit:
+            left = min(left, max(0, (self.gs.turn_limit - self.gs.turn_number) // 2 + 1))
+        return share * max(0, left) * self.objective_point_vp()
+
+    def _objective_term(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """Domination (To do 7): we score at the end of our own turn for every
+        marker we control then, so this ship's end position is worth the
+        markers it wins us (alone in range, or the only side there) plus
+        `OBJECTIVE_DENIAL` of each enemy-held marker it contests (the enemy
+        scores at the end of its turn, after it moves: judgement). Ships still
+        to move stand at their planned ends (the coordination pass). A small
+        pull towards the nearest marker we don't hold, within two moves, gives
+        ships out of reach a direction. In move-score units (VP / 0.35 x the
+        target's value a hit)."""
+        from .scenarios import objectives, controller, CONTROL_RANGE
+        from .ai_hazards import value_per_hit
+        objs = objectives(self.gs)
+        if not objs or self.gs.scenario_mode != "domination":
+            return 0.0
+        ships = [s for s in self.gs.get_ships() if s.id != ship.id]
+        moved = Ship.from_dict(ship.to_dict())
+        moved.x, moved.y = x, y
+        gain = 0.0
+        pull = 0.0
+        reach = 2.0 * max(1.0, ship.speed or 0) + CONTROL_RANGE
+        for m in objs:
+            before = controller(self.gs, m, ships)
+            after = controller(self.gs, m, ships + [moved])
+            if after == self.player and before != self.player:
+                gain += 1.0
+            elif before == 3 - self.player and after is None:
+                gain += self.OBJECTIVE_DENIAL
+            if before != self.player:
+                d = math.hypot(m[0] - x, m[1] - y)
+                if CONTROL_RANGE < d < reach:
+                    pull = max(pull, 0.25 * (1.0 - (d - CONTROL_RANGE) / reach))
+        vp = (gain + pull) * self.objective_point_vp()
+        return vp / (0.35 * max(1.0, value_per_hit(enemy, self.gs)))
 
     def _disengage_spot(self, ship: Ship, x: float, y: float, h: float, enemy: Ship) -> float:
         """To do 11 a goal 3 / 11 c (disengaging): the test is taken at the end
@@ -1050,6 +1118,11 @@ class AIPlayer:
             if flag is not None:
                 goals.append(((flag.x, flag.y), "support"))
         goals += self._safety_goals(ship, max_spd)
+        # To do 7: scenario objectives (Domination markers), the three nearest
+        from .scenarios import objectives as _scenario_objectives
+        objs = sorted(_scenario_objectives(self.gs),
+                      key=lambda m: math.hypot(m[0] - ship.x, m[1] - ship.y))[:3]
+        goals += [((mx, my), "objective") for mx, my in objs]
         for (gx, gy), src in goals:
             self._head_for(ship, gx, gy, points, min_spd, max_spd, ta, add, src)
         # g: Lock On next turn forbids turning, so end pointed for a straight

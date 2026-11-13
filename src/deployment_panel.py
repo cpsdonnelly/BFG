@@ -75,7 +75,9 @@ class DeploymentPanel:
         p1_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 1]
         p2_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 2]
 
-        self.zones = get_default_zones(gs.table_width, gs.table_height)
+        from .scenarios import deployment_zones
+        self.zones = (deployment_zones(gs)
+                      or get_default_zones(gs.table_width, gs.table_height))
         self.state = DeploymentState(p1_ships, p2_ships, self.zones, mode=mode)
 
         # Track sub-placement within the current group
@@ -180,13 +182,16 @@ class DeploymentPanel:
         canvas = self.board.canvas
         canvas.delete("deploy_zone")
         for zone in self.zones:
+            color = _ZONE_COLORS.get(zone.player, "#AAAAAA")
+            for r in zone.rects():
+                rx0, ry0 = self.board.cm_to_screen(r.x_min, r.y_min)
+                rx1, ry1 = self.board.cm_to_screen(r.x_max, r.y_max)
+                canvas.create_rectangle(
+                    rx0, min(ry0, ry1), rx1, max(ry0, ry1),
+                    outline=color, width=2, dash=(6, 3),
+                    tags="deploy_zone")
             x0, y0 = self.board.cm_to_screen(zone.x_min, zone.y_min)
             x1, y1 = self.board.cm_to_screen(zone.x_max, zone.y_max)
-            color = _ZONE_COLORS.get(zone.player, "#AAAAAA")
-            canvas.create_rectangle(
-                x0, min(y0, y1), x1, max(y0, y1),
-                outline=color, width=2, dash=(6, 3),
-                tags="deploy_zone")
             canvas.create_text(
                 (x0 + x1) / 2, (y0 + y1) / 2,
                 text=zone.label,

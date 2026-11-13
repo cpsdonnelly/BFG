@@ -415,6 +415,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("kill_admiral",      "Kill the Admiral (destroy enemy flagship)"),
         ("destroy_ship",      "Destroy / Protect a Ship"),
         ("capture_artefact",  "Capture the Artefact"),
+        ("confrontation",     "Confrontation (booklet p.117: attacker first, VP)"),
+        ("domination",        "Domination (booklet p.125: objectives, 10 points)"),
     ]
     for val, lbl in scenario_options:
         tk.Radiobutton(scen_frame, text=lbl, variable=scenario_var, value=val,

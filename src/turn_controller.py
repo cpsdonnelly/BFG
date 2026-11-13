@@ -319,6 +319,9 @@ class TurnController:
             from .disengage import forced_disengage_tests
             forced_disengage_tests(self.gs, self.dice, self.gs.active_player)
         if current == "end":
+            # Booklet scenarios scoring at the end of a player's turn (Domination)
+            from .scenarios import score_end_of_turn
+            score_end_of_turn(self.gs, self.gs.active_player)
             # Mark of Chaos Undivided lasts until the end of the turn
             from .chaos_undivided import end_turn as _undivided_end
             _undivided_end(self.gs, self.gs.active_player)

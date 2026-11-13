@@ -37,21 +37,29 @@ def check_game_over(gs: GameState) -> Optional[dict]:
     objectives). Returns {'winner': int|None, 'reason': str, 'detail': str}
     if the game is over, else None.
     """
+    from .scenarios import is_booklet_scenario, winner_at_end
+    booklet = is_booklet_scenario(gs)
     # Turn limit
     if gs.turn_limit and gs.turn_number > gs.turn_limit:
-        return {"winner": vp_winner(gs), "reason": "turn_limit", "detail": ""}
+        return {"winner": winner_at_end(gs, vp_winner), "reason": "turn_limit", "detail": ""}
 
-    # All ships gone
-    if not ships_alive(gs, 1):
-        return {"winner": 2, "reason": "no_ships", "detail": ""}
-    if not ships_alive(gs, 2):
-        return {"winner": 1, "reason": "no_ships", "detail": ""}
+    # All ships gone: a booklet scenario that ends "when one fleet disengages or
+    # is destroyed" is won on its own victory conditions (VP, objective points)
+    for p in (1, 2):
+        if not ships_alive(gs, p):
+            if booklet:
+                return {"winner": winner_at_end(gs, vp_winner), "reason": "no_ships",
+                        "detail": f"player {p}'s fleet is gone"}
+            return {"winner": 3 - p, "reason": "no_ships", "detail": ""}
 
     return check_scenario_end(gs)
 
 
 def check_scenario_end(gs: GameState) -> Optional[dict]:
     """Scenario-specific win conditions. Same return contract as check_game_over."""
+    from .scenarios import is_booklet_scenario, check_end
+    if is_booklet_scenario(gs):
+        return check_end(gs)
     if gs.scenario_mode == "kill_admiral":
         for ship in gs.get_ships():
             if ship.is_flagship and ship.is_destroyed:

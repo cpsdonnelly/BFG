@@ -79,6 +79,9 @@ class GameState:
     turn_system: str = "igougo"
     aa_settings: Dict = field(default_factory=dict)
     aa_state: Dict = field(default_factory=dict)
+    # Booklet scenarios (src/scenarios.py): e.g. Domination's layout, objective
+    # markers and points
+    scenario_state: Dict = field(default_factory=dict)
     undivided_used: List[int] = field(default_factory=list)
     undivided_boost: Dict = field(default_factory=dict)
 
@@ -188,6 +191,7 @@ class GameState:
             "necron_alert": dict(self.necron_alert),
             "aa_settings": dict(self.aa_settings),
             "aa_state": dict(self.aa_state),
+            "scenario_state": dict(self.scenario_state),
             "undivided_used": list(self.undivided_used),
             "solar_flare_dice": self.solar_flare_dice,
             "radiation_burst_dice": self.radiation_burst_dice,

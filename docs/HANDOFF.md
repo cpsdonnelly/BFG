@@ -864,6 +864,19 @@ Notes for GUI checks: `gui_spectator_demo.py` / `_orks` / `_sm` need `normal` / 
 contacts calls `panel.ordnance._resolve_ship_contacts` (OrdnancePanel holds the mixin). AA
 reference: docs/AA_ORDER_SYSTEMS_NOTES.md (the source) and docs/AA_ACTIVATION_NOTES.md.
 
+### Then: scenarios, first slice (To do 7)
+
+`src/scenarios.py`: Confrontation and Domination (engine, deployment, board, game end, AI move
+score, disengage stake); see CLAUDE.md To do 7 for the detail. Readings to confirm: hulks
+don't hold Domination markers; in AA both players score at the end of each round; the
+Domination diagrams (180 x 120cm) are kept edge-relative on other table sizes; the objective
+point's VP weight is judgement. AI-vs-AI Domination games play to game over (layouts 1, 3,
+5); scores stay low (4-4 over 14 player turns in one game), so the AI's objective play is a
+first form. Next in To do 7: the other matched-play scenarios (Line Breaker, Ambush, Convoy,
+Space Assault, Rescue, Warp Storm, Planet Strike) need support assets, convoys, transport
+capacity and planets placed by the scenario; then the raids and battles, sub-plots, attack
+ratings.
+
 ## Bombers vs assault boats (owner idea, done)
 
 When a carrier can launch bombers and assault boats (or multi-role craft pick an attack mode),

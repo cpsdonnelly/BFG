@@ -610,7 +610,7 @@ class GamePanel(AAPanelMixin):
         tk.Label(mode_row, text="Scenario:", font=("Consolas", 8), width=14,
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
-                      "protect_ship", "capture_artefact"]
+                      "protect_ship", "capture_artefact", "confrontation", "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
         scen_cb = ttk.Combobox(mode_row, textvariable=scen_var, values=scen_modes,
                                 state="disabled" if locked else "readonly", width=22,
@@ -1063,6 +1063,10 @@ class GamePanel(AAPanelMixin):
     def _start_game(self):
         """Launch the deployment phase, then begin Turn 1 Movement."""
         self.start_btn.config(state=tk.DISABLED)
+        from .scenarios import is_booklet_scenario, setup_scenario
+        if is_booklet_scenario(self.ctx.gs) and not self.ctx.gs.scenario_state:
+            setup_scenario(self.ctx.gs)       # e.g. the Domination deployment D6
+            self.ctx.board.redraw()
         from .deployment_panel import DeploymentPanel
         DeploymentPanel(
             parent_frame=self.parent,
@@ -1077,7 +1081,12 @@ class GamePanel(AAPanelMixin):
         """Called by DeploymentPanel when all ships are placed."""
         tc = self.ctx.tc
         gs = self.ctx.gs
-        self._first_turn_roll_off()
+        from .scenarios import first_player as _scenario_first
+        if _scenario_first(gs):
+            gs.first_player = _scenario_first(gs)
+            self.ctx.log(f"First turn: player {gs.first_player} (the scenario's attacker)")
+        else:
+            self._first_turn_roll_off()
         tc.start_game()
         if self._aa_on():
             # Alternate activation (To do 13): the AA driver runs the rounds
@@ -1545,7 +1554,12 @@ class GamePanel(AAPanelMixin):
             "objective_destroyed": f"Objective ship destroyed ({detail}).",
             "artefact_escaped": "Artefact carrier escaped the field!",
             "artefact_lost": "Artefact carrier destroyed — artefact lost!",
+            "objective_points": f"Objective points reached 10 ({detail}).",
         }.get(reason, "")
+        if gs.scenario_mode == "domination":
+            from .scenarios import points
+            pts = points(gs)
+            reason_text += f"\nDomination objective points: {pts[1]} - {pts[2]}"
 
         # Build the game-over dialog
         dialog = tk.Toplevel(self.root)

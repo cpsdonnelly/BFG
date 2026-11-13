@@ -593,6 +593,7 @@ class BoardView:
         self._draw_wave_labels()
         self._draw_ships()
         self._draw_artefact_marker()
+        self._draw_scenario_objectives()
         self._draw_persistent_rulers()
         self._draw_snap_indicator()
         if self.show_arcs_ship_id:
@@ -602,6 +603,31 @@ class BoardView:
             sel = self.gs.get_ship_by_id(self.selected_ship_id)
             if sel:
                 self._show_ship_info(sel)
+
+    def _draw_scenario_objectives(self):
+        """Booklet scenario objective markers (Domination): a ring of the 15cm
+        control range, coloured by the player controlling it."""
+        gs = self.gs
+        if gs.scenario_mode != "domination":
+            return
+        from .scenarios import objectives, controller, points, CONTROL_RANGE
+        ships = gs.get_ships()
+        cols = {1: gs.player1_color, 2: gs.player2_color}
+        for i, m in enumerate(objectives(gs)):
+            sx, sy = self.cm_to_screen(*m)
+            own = controller(gs, m, ships)
+            col = cols.get(own, "#DDDDDD")
+            rr = CONTROL_RANGE * self.scale
+            self.canvas.create_oval(sx - rr, sy - rr, sx + rr, sy + rr, outline=col,
+                                    dash=(3, 4), width=1)
+            self.canvas.create_oval(sx - 6, sy - 6, sx + 6, sy + 6, outline="#FFFFFF",
+                                    fill=col, width=2)
+            self.canvas.create_text(sx, sy + 14, text=f"OBJ {i + 1}", fill="#FFFFFF",
+                                    font=("Consolas", 7))
+        pts = points(gs)
+        self.canvas.create_text(self.margin + 4, self.margin + 4, anchor="nw",
+                                text=f"Domination: P1 {pts[1]}  P2 {pts[2]}  (10 wins)",
+                                fill="#FFD700", font=("Consolas", 9, "bold"))
 
     def _draw_artefact_marker(self):
         gs = self.gs

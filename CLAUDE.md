@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1226 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1240 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -521,7 +521,7 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: scenarios / sub-plots, and the To do items below.
+Not built: most scenarios (Confrontation and Domination are, To do 7) and sub-plots, and the To do items below.
 Next (largest first): 7 (scenarios / sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
@@ -985,6 +985,28 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    scenario's conditions and end triggers (convoys or blockade runners exiting, planets and
    assault points, Exterminatus, rescue / escape objectives) and sub-plot objectives feed the
    same values, normal and expert AI alike (the expert search's leaf score included).
+   First slice built (`src/scenarios.py`, pure logic; the old generic modes stay in
+   `scenario.py`, both chosen by `GameState.scenario_mode`): the registry (`SCENARIOS`: first
+   turn, game end, victory), Confrontation (attacker / defender zones 30cm from the long
+   edges, attacker first, VP) and Domination (the six D6 deployment diagrams transcribed edge-
+   relative, `_domination_layout`, incl. Domination 3's L-shaped zones (`DeploymentZone.extra`);
+   `setup_scenario` rolls the D6 before deployment (`GamePanel._start_game`) into
+   `GameState.scenario_state`; `controller` (a ship's stem within 15cm, no enemy; reading:
+   hulks, destroyed and disengaged ships hold nothing); `score_end_of_turn` from
+   `TurnController.end_phase` (AA scores both players in the round's end phase, reading);
+   `check_end` at 10 points; a fleet gone or the turn limit decided by points
+   (`winner_at_end`, `scenario.check_game_over`). Deployment zones and the attacker's first
+   turn are used by the game (`deployment_panel`, `_begin_turn1`); the board draws the markers,
+   their 15cm ring in the controller's colour and the score; setup and in-game settings offer
+   both (`tests/test_scenarios_booklet.py`). AI (first form, judgement): `_objective_term` in
+   the move score (markers this ship's end position wins us at the end of our turn, plus
+   `OBJECTIVE_DENIAL` 0.5 for contesting an enemy-held one, a small pull towards markers within
+   two moves; ships still to move at their planned ends), "objective" point goals for the
+   three nearest markers, and `_objective_stake` against voluntary disengaging (its share of
+   the markers for the turns left); a point = `OBJECTIVE_POINT_WEIGHT` 0.5 x the points on the
+   table / 20 VP. `tools/gui_checks/gui_spectator_domination.py igougo|aa [layout]` plays an
+   AI-vs-AI Domination game to game over. Not yet: the expert search's leaf counting points,
+   racing the 10 against the turn order, the other scenarios and sub-plots, attack ratings.
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the
    matchup": each should come out of the expected-VP move score, not a fixed doctrine).
