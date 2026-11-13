@@ -259,7 +259,8 @@ _INQ_LORD = "Ordo Malleus Inquisitor Lord (Ld 10)"
 INQ_LISTS = [
     {"key": "inq_banisher", "faction": "inquisition_grey_knights",
      "name": "Ordo Malleus Banisher Fleet (Imperium p.109)",
-     "commander": {"options": [_INQ_LORD], "required_at": 750},
+     "commander": {"options": [_INQ_LORD, "Grey Knights Grand Master (Ld 10)"],
+                   "required_at": 750},
      "sections": [
          {"name": "Battleship", "max": 1,
           "class_min_points": {"Grey Knights Battle Barge": 1000},
@@ -272,13 +273,19 @@ INQ_LISTS = [
                     "Grey Knights Hunter Destroyer": 40, "Inquisitorial Firestorm Frigate": 35,
                     "Inquisitorial Sword Frigate": 35, "Inquisitorial Cobra Destroyer": 30}},
      ],
-     "class_needs_option": {"Inquisitorial Cruiser": (3, [_INQ_LORD])},
+     "class_needs_option": {
+         "Inquisitorial Cruiser": (3, [_INQ_LORD]),
+         # a Grey Knights battle barge needs a Grand Master; more than three
+         # Grey Knights strike cruisers a Grey Knights commander
+         "Grey Knights Battle Barge": (0, ["Grey Knights Grand Master (Ld 10)"]),
+         "Grey Knights Strike Cruiser": (3, ["Grey Knights Grand Master (Ld 10)",
+                                             "Elite Daemonhunter: Grey Knights Brother-Captain (Ld 9)"])},
      "reserves": [],
-     "list_options": ["Vortex Torpedoes"],
+     "list_options": ["Vortex Torpedoes", "Elite Daemonhunter:", "Grey Knights Grand Master"],
      "unenforced": [
-         "The Grey Knights Grand Master, Elite Daemonhunters, honour guards and retinues are "
-         "not in the fleet builder yet; a Grey Knights battle barge needs a Grand Master and "
-         "more than three Grey Knights strike cruisers need a Grey Knights commander.",
+         "Honour guards, retinues and the Grand Master's Paladins are not in the fleet "
+         "builder yet; Elite Daemonhunters on escort squadrons aren't offered (capital ships "
+         "only); the Master Daemonhunter's battleship placement isn't checked.",
          "Inquisitorial battleships (any non-unique Navy battleship, with an Inquisitor Lord) "
          "aren't offered yet.",
          "Blessing of Chaos, sub-plots: not modelled. No detachments, reserves or allies."]},
@@ -295,8 +302,9 @@ INQ_LISTS = [
          {"name": "Grey Knights Strike Cruisers", "max": 3, "per_points": 500, "or_part": True,
           "ships": {"Grey Knights Strike Cruiser": 165}},
      ],
-     "list_options": ["Inferno Torpedoes", "Vortex Torpedoes"],
+     "list_options": ["Inferno Torpedoes", "Vortex Torpedoes", "Elite Captain"],
      "unenforced": [
+         "Elite Captains need a fleet led by an Inquisitor (not checked).",
          "1-3 Inquisitors (each of one Ordo) must be included; only the Inquisitor Lord option "
          "is in the fleet builder so far. Ordo upgrades need an Inquisitor of that Ordo; a ship "
          "can't take upgrades from more than one Ordo.",

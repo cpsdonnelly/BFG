@@ -248,6 +248,10 @@ def ork_launcha_options(row: dict) -> List[Dict]:
 
 
 INQ_LORD = "Ordo Malleus Inquisitor Lord (Ld 10)"
+GK_GRAND_MASTER = "Grey Knights Grand Master (Ld 10)"
+GK_BROTHER_CAPTAIN = "Elite Daemonhunter: Grey Knights Brother-Captain (Ld 9)"
+INQ_ELITE_DH = "Elite Daemonhunter: Ordo Malleus Inquisitor (Ld 9)"
+INQ_ELITE_CAPTAIN = "Elite Captain (+1 Ld, max 9)"
 INQ_TORPS = "Refit: launch bays to Torpedo Salvo"
 
 
@@ -281,7 +285,9 @@ def inquisition_options(row: dict) -> List[Dict]:
                                        "torpedo_type": "standard", "torpedo_speed": 30,
                                        "boarding_torpedoes": True}}},
         ]
-    capital = row.get("hits") and row.get("hits") > 1 and "Grey Knights" not in name
+    # capital ships, Grey Knights ones included (a Master Daemonhunter rides a
+    # battleship or battle barge if one is present)
+    capital = bool(row.get("hits") and row.get("hits") > 1)
     if capital:
         opts.append({"name": INQ_LORD,
                      "description": "Fleet commander (Banisher Fleet), 75pts: Ld 10, one free "
@@ -291,12 +297,45 @@ def inquisition_options(row: dict) -> List[Dict]:
                                 "rerolls": 1,
                                 "add_special_rules": ["fleet_commander"], "flagship": True},
                      "restrictions": ["fleet_unique"]})
+        # Banisher Fleet's other Master Daemonhunter (Imperium p.109): a Grey
+        # Knights Grand Master, Ld 10, 75pts, one free re-roll and up to two
+        # more (25 / 50). Not yet: the Grey Knight Paladins that accompany him
+        opts.append({"name": GK_GRAND_MASTER,
+                     "description": "Fleet commander (Banisher Fleet), 75pts: Ld 10, one free "
+                                    "re-roll (Grey Knight Paladins: not modelled yet).",
+                     "points_cost": 75,
+                     "effect": {"set": {"leadership": 10, "leadership_table": ""},
+                                "rerolls": 1,
+                                "add_special_rules": ["fleet_commander"], "flagship": True},
+                     "restrictions": ["fleet_unique", "group:fleet_commander"]})
         opts += [{"name": f"Inquisitor Lord: {n} extra re-roll{'s' if n > 1 else ''}",
                   "description": f"{n} more fleet commander re-roll{'s' if n > 1 else ''} "
                                  f"({25 * n}pts).",
                   "points_cost": 25 * n, "effect": {"rerolls": 1 + n},
-                  "restrictions": ["group:inq_rerolls", f"requires:{INQ_LORD}"]}
+                  "restrictions": ["group:inq_rerolls",
+                                   f"requires_any:{INQ_LORD}|{GK_GRAND_MASTER}"]}
                  for n in (1, 2)]
+        # Secondary commanders. Banisher Fleet: 0-3 Elite Daemonhunters, Ld 9,
+        # 30pts, one free re-roll for their own ship or squadron. Fleet
+        # Detachment (a fleet led by an Inquisitor): 0-3 Elite Captains, +1 Ld
+        # (max 9), 30pts, may buy one re-roll +15 for their own ship / squadron
+        for nm in (GK_BROTHER_CAPTAIN, INQ_ELITE_DH):
+            opts.append({"name": nm, "description": "Secondary commander, 30pts: Ld 9 and "
+                         "one free re-roll for this ship or its squadron (0-3 in the fleet).",
+                         "points_cost": 30,
+                         "effect": {"set": {"leadership": 9, "leadership_table": "",
+                                            "own_rerolls": 1},
+                                    "add_special_rules": ["secondary_commander"]},
+                         "restrictions": ["group:fleet_commander",
+                                          "fleet_max_group:elite_daemonhunter:3"]})
+        opts.append({"name": INQ_ELITE_CAPTAIN, "description": "Secondary commander, 30pts "
+                     "(0-3 in the fleet).", "points_cost": 30,
+                     "effect": {"add_special_rules": ["ld_bonus:1:9", "secondary_commander"]},
+                     "restrictions": ["group:fleet_commander", "fleet_max:3"]})
+        opts.append({"name": "Elite Captain: re-roll", "description": "+15pts: one re-roll for "
+                     "this ship or its squadron only.", "points_cost": 15,
+                     "effect": {"set": {"own_rerolls": 1}},
+                     "restrictions": [f"requires:{INQ_ELITE_CAPTAIN}"]})
     torp_needs = [] if has_torps else ([f"requires:{INQ_TORPS}"] if name == "Inquisitorial Cruiser"
                                        else None)
     if torp_needs is not None:
@@ -459,6 +498,8 @@ SECONDARY = {
     "Imperial Navy": ("Strategic Commander (+1 Ld, max 9)", "ld_bonus:1:9", 30, 3, 15),
     "Chaos": ("Aspiring Champion (+1 Ld, max 9)", "ld_bonus:1:9", 30, None, 15),
     "Adeptus Mechanicus": ("Magos Explorator (Ld 8)", 8, 25, 3, None),
+    # Rogue Trader Fleet Detachment (list-gated): Fortune isn't modelled
+    "Rogue Traders": ("Bond-Captain (+1 Ld, max 8)", "ld_bonus:1:8", 10, 3, 15),
 }
 
 
@@ -900,7 +941,7 @@ def _options_for(row: dict) -> List[Dict]:
         opts = refitted_torpedo_options(row)
         if "Adeptus Mechanicus" in rules:
             opts += mechanicus_gift_options(row)       # Tech-Priest Enginseers
-    elif "Inquisition & Grey Knights" in rules:
+    elif "Inquisition & Grey Knights" in rules or "Grey Knights" in rules:
         return inquisition_options(row)
     if "demiurg" in (row.get("roster_group") or "").lower() and \
             _ship_type_of(row) in ("cruiser", "battleship"):
@@ -961,6 +1002,10 @@ def fleet_option_errors(rows: List[tuple], total_points: int = 0) -> List[str]:
     for e, n, r in restr:
         if r.startswith("fleet_max:"):
             capped.setdefault(n, [int(r.split(":")[1]), 0])[1] += 1
+        elif r.startswith("fleet_max_group:"):
+            # several options sharing one fleet-wide limit (Elite Daemonhunters)
+            _tag, key, most = r.split(":")
+            capped.setdefault(key.replace("_", " "), [int(most), 0])[1] += 1
     for n, (most, c) in capped.items():
         if c > most:
             errors.append(f"At most {most} ships may take {n} ({c} chosen).")

@@ -436,9 +436,17 @@ Owner rulings (fleet lists, export 15):
   Magos Explorator (Ld 8, 25, 0-3). They share the commander option group (one commander of
   any kind per ship); `ld_bonus:1:9` is added after the starting Ld roll; their re-roll is
   `Ship.own_rerolls`, usable only for that ship or its squadron and spent before the fleet
-  commander's (`TurnController.get_fleet_rerolls / use_fleet_reroll(player, ship)`). Not yet:
-  other factions' secondaries (Elite Captains / Daemonhunters, Ork Nobz, Bond-Captains,
-  Space Marine Captains), per-Boss re-roll pools for several Ork Bosses.
+  commander's (`TurnController.get_fleet_rerolls / use_fleet_reroll(player, ship)`). Also built (To do 4):
+  Inquisition Elite Daemonhunters (Banisher Fleet, Grey Knights Brother-Captain or Ordo Malleus
+  Inquisitor, Ld 9, 30, one free own re-roll, 0-3 together: `fleet_max_group:`) and Elite
+  Captains (Inquisitorial Fleet Detachment, +1 Ld max 9, 30, 0-3, re-roll +15), Rogue Trader
+  Bond-Captains (Fleet Detachment, +1 Ld max 8, 10, 0-3, re-roll +15; Fortune not modelled),
+  the Grey Knights Grand Master (Banisher fleet commander, Ld 10, 75, one free re-roll, +1 / +2
+  for 25 / 50; a Grey Knights battle barge needs him, more than three Grey Knights strike
+  cruisers need him or a Brother-Captain). Grey Knights ships now get the Inquisition options.
+  Not yet: Elite Daemonhunters on escort squadrons, Ork Nobz (they grant kustom upgrades),
+  Veteran Bond-Captains (need men o' war), the Fleet Detachment's 1-3 Inquisitors, the Grand
+  Master's Paladins, per-Boss re-roll pools for several Ork Bosses.
 - Disengaging (s.37): escort squadrons test together; Forced Disengagement (Ld 1 or less) and
   Demiurg Mercenaries test at the end of movement (`disengage.forced_disengage_tests`); a ship
   that fails gets `Ship.must_flee` (AI `_plan_flee`; voluntary AI disengaging: see "AI: how it
@@ -831,7 +839,9 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (Stormbirds, To do 4), the Explorer's Bor'kan price.
 4. Named commanders (Lord Admiral Rath, Abaddon, Kor'O'Mesme), Mark of Chaos Undivided,
    daemonships, Stormbirds, god-fleet boons, Ork kustom upgrades / clans (incl. the Ork
-   commander's Extra Turrets: 4+), other factions' secondary commanders, Inquisition Ordos.
+   commander's Extra Turrets: 4+), the rest of the secondary commanders (Ork Nobz, Veteran
+   Bond-Captains, Inquisitors; built: Elite Daemonhunters, Elite Captains, Bond-Captains, the
+   Grey Knights Grand Master, see "Engine notes"), Inquisition Ordos.
 5. Unplayable units: Zzapp Gunz, Kustom Kannon, special movement (Nicassar Caravan, Kroot
    Warsphere, Space Hulk), fortress weapons (Ramilies, Fortress-Monastery), Pthuxutl
    disruptor cannon, Man O' War configuration, Planet Killer's Armageddon gun.

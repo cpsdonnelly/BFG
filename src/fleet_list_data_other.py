@@ -342,6 +342,7 @@ RT_LISTS = [
                             "chaos_black_crusade", "chaos_renegades", "chaos_slaanesh",
                             "chaos_nurgle", "chaos_khorne", "chaos_tzeentch",
                             "orks_green_tide", "tau_empire", "tau_demiurg_war_host"],
+     "list_options": ["Bond-Captain"],
      "sections": [dict(s, ships=dict(s["ships"])) for s in _RT_CONVOY] + [
          {"name": "Xenos Cutters", "ships": dict(_XENOS_CUTTERS)},
      ],
