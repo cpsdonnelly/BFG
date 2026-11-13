@@ -25,7 +25,9 @@ def is_sunward(shooter, target, edge: str) -> bool:
 
 
 def _immune(s) -> bool:
-    return "demiurg_commerce" in s.special_rules
+    """Demiurg absorber fields; Necron reactive hulls are immune to the Ld and
+    damage penalties of solar flares and radiation (Xenos p.40)."""
+    return "demiurg_commerce" in s.special_rules or "necron" in s.special_rules
 
 
 def radiation_active(gs) -> bool:

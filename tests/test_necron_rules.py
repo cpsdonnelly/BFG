@@ -144,3 +144,27 @@ def test_necron_critical_hits():
     tc = TurnController(gs, DiceStub([]))
     assert "Inertialess" in tc.issue_special_order(gs.get_ship_by_id("n"), "all_ahead_full")["error"]
     assert "Reload" in tc.issue_special_order(gs.get_ship_by_id("n"), "reload_ordnance")["error"]
+
+
+def test_necron_immunities_and_repairs():
+    from tests.conftest import make_ship, make_gs
+    from src.movement import blast_markers_to_slow, do_command_check, _blast_marker_damage
+    from src.terrain_effects import resolve_gas_dust_contact
+    from src.celestial import _immune
+    from src.end_phase import get_repair_info
+    n = make_ship(id="n", player=1, leadership=8, shields_max=0,
+                  special_rules=["necron", "reactive_hull:5"])
+    gs = make_gs([n])
+    s = gs.get_ship_by_id("n")
+    assert blast_markers_to_slow(s) > 100 and _immune(s)
+    assert not _blast_marker_damage(s, gs, DiceStub([]))
+    assert resolve_gas_dust_contact(s, DiceStub([]), gs)["speed_penalty"] == 0
+    # Under Fire doesn't apply: 8 passes on Ld 8
+    assert do_command_check(s, "lock_on", DiceStub([8]), in_blast=True, gs=gs)["passed"]
+    # repairs on 4+: 8 hits -> 8 dice, two crits; 4 and 5 repair
+    s.critical_damage = [{"crit_type": "main_drive", "repairable": True,
+                          "description": "Main Drive Damaged"},
+                         {"crit_type": "impulse_power", "repairable": True,
+                          "description": "Impulse Power Disrupted"}]
+    info = get_repair_info(s, DiceStub([4, 5, 1, 1, 1, 1, 1, 1]), gs)
+    assert info["sixes"] == 2

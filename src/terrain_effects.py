@@ -257,8 +257,8 @@ def resolve_gas_dust_contact(ship: Ship, dice: DiceRoller,
     shieldless ships take 1 damage on D6=6.
     """
     result = {"speed_penalty": 5, "damage": 0}
-    if "demiurg_commerce" in ship.special_rules:
-        return {"speed_penalty": 0, "damage": 0}      # Absorber fields: immune
+    if "demiurg_commerce" in ship.special_rules or "necron" in ship.special_rules:
+        return {"speed_penalty": 0, "damage": 0}      # Absorber fields / Necrons: immune
     if "eldar_mms" in ship.special_rules:
         # Eldar suffer no movement penalties for celestial phenomena (MMS p.3);
         # the cloud's other effects (as a blast marker) still apply

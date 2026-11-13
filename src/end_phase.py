@@ -64,7 +64,7 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
         return logs
 
     # Ork kustom upgrades: Mad Meks repair on 4+; a Big Mek rolls an extra D6
-    need = 4 if "mad_meks" in ship.special_rules else 6
+    need = 4 if ("mad_meks" in ship.special_rules or "necron" in ship.special_rules) else 6  # Necrons: 4+
     if "big_mek" in ship.special_rules:
         num_dice += 1
     rolls = dice.roll_d6(num_dice, f"{ship.name} damage control ({need}+ to repair)")
@@ -143,7 +143,7 @@ def get_repair_info(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
         return {"sixes": 0, "repairable": [], "num_dice": 0}
 
     # Ork kustom upgrades: Mad Meks repair on 4+; a Big Mek rolls an extra D6
-    need = 4 if "mad_meks" in ship.special_rules else 6
+    need = 4 if ("mad_meks" in ship.special_rules or "necron" in ship.special_rules) else 6  # Necrons: 4+
     if "big_mek" in ship.special_rules:
         num_dice += 1
     rolls = dice.roll_d6(num_dice, f"{ship.name} damage control ({need}+ to repair)")

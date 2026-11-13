@@ -104,8 +104,8 @@ def blast_markers_to_slow(ship: Ship) -> int:
     """Blast markers a ship must touch at once to be slowed: 1, or 2 for battle
     barges with the Tactical Reserves Chapter tactic."""
     from .chapter_tactics import tactical_reserves_barge
-    if "demiurg_commerce" in ship.special_rules:
-        return 10 ** 6                 # Absorber fields: never slowed by blast markers
+    if "demiurg_commerce" in ship.special_rules or "necron" in ship.special_rules:
+        return 10 ** 6       # Absorber fields / Necron reactive hulls: never slowed
     return 2 if tactical_reserves_barge(ship) else 1
 
 
@@ -564,8 +564,8 @@ def _blast_marker_damage(ship: Ship, gs: GameState, dice: DiceRoller) -> bool:
     """Core rules s.11: a ship with no shields, or permanently disabled ones,
     that moves through blast markers takes 1 damage on a D6 roll of 6 (once
     per move). Returns True if the ship was destroyed."""
-    if ship.effective_shields > 0:
-        return False
+    if ship.effective_shields > 0 or "necron" in ship.special_rules:
+        return False             # Necrons: immune to blast marker damage (Xenos p.40)
     roll = dice.roll_d6(1, f"{ship.name} through blast markers, no shields (6 = 1 damage)")[0]
     if roll != 6:
         return False
@@ -632,7 +632,7 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
         # Leadership tests within 15cm of it; a forced test fails
         return {"passed": False, "roll": 0, "needed": 0,
                 "mods": ["Siren's Summon: no orders or Leadership tests"]}
-    if in_blast:
+    if in_blast and "necron" not in ship.special_rules:   # Necrons: no blast marker Ld penalty
         ld -= 1
         mods.append("Under Fire -1")
     if slaanesh_penalty(ship, gs):
