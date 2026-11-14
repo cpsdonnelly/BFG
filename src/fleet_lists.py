@@ -637,6 +637,19 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
         mine = by_list.get(fl["key"], [])
         errors += _list_errors(fl, mine, points_limit, rows)
 
+    # Mine launcher swap on a light cruiser: only where its list places it in
+    # the Cruisers category (update 58, sign-off answer 49)
+    for r in rows:
+        if any(u.startswith("Mine launchers") for u in r.get("upgrades", [])) \
+                and "Light Cruiser" in r["entry"].ship_class:
+            lk = r.get("list") or main_key
+            lk = lk.split(":", 1)[1] if lk.startswith("reserve:") else lk
+            sec = section_of(LISTS.get(lk, main), r["entry"].ship_class) or {}
+            if sec.get("name") != "Cruisers":
+                errors.append(f"{r['entry'].ship_class}: mine launchers only for up to two "
+                              f"cruisers; this list places it under "
+                              f"{sec.get('name', 'another category')}.")
+
     # Ships not in any of the fleet's lists
     known = {main_key} | {d["key"] for d in dets}
     for key, rs in by_list.items():

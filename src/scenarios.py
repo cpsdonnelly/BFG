@@ -596,15 +596,21 @@ def defender(gs) -> int:
 ATTACK_RATINGS = {
     "imperial_navy_gothic": 2, "chaos": 2, "adeptus_mechanicus": 2, "tau_kororvesh": 2,
     "space_marines": 3, "orks": 3, "eldar": 3, "necrons": 4,
+    "dark_eldar": 4, "tyranids": 2,
 }
+# Factions with more than one list rated differently (sign-off answer 44):
+# Corsair Eldar 4 / Craftworld 3, Necron Harvest 4 / Dynasty 3. Without a
+# list the first value above stands (reading: Craftworld 3, Harvest 4).
+LIST_ATTACK_RATINGS = {"corsair": 4, "craftworld": 3, "harvest": 4, "dynasty": 3}
 
 
 def attack_rating(gs, player: int) -> int:
     """A fleet's attack rating: its main faction's (by points). Inquisition
     fleets: a Grey Knights banisher fleet 3, 2 when more than half its ships
     aren't Grey Knights (p.84); a Rogue Trader or Inquisition detachment
-    doesn't change the fleet it joins; support assets don't count. Reading: a
-    fleet of Rogue Traders alone has 2."""
+    doesn't change the fleet it joins; support assets don't count. A fleet of
+    Rogue Traders alone has 3 (both their lists). Tyranids' Pheromone Rage (3)
+    waits for the Tyranid rules."""
     ships = [s for s in gs.get_ships() if s.player == player]
     pts: Dict[str, int] = {}
     for s in ships:
@@ -612,11 +618,18 @@ def attack_rating(gs, player: int) -> int:
             pts[s.faction] = pts.get(s.faction, 0) + (s.points_value or 0)
     main = [f for f in pts if f not in ("rogue_traders", "inquisition_grey_knights")]
     if main:
-        return ATTACK_RATINGS.get(max(main, key=pts.get), 2)
+        top = max(main, key=pts.get)
+        lists = {(getattr(s, "fleet_list", "") or "").lower() for s in ships if s.faction == top}
+        for key, rating in LIST_ATTACK_RATINGS.items():
+            if any(key in fl for fl in lists):
+                return rating
+        return ATTACK_RATINGS.get(top, 2)
     if "inquisition_grey_knights" in pts:
         inq = [s for s in ships if s.faction == "inquisition_grey_knights"]
         gk = sum(1 for s in inq if "knights_of_titan" in s.special_rules)
         return 3 if gk * 2 >= len([s for s in ships if s.faction != "support_assets"]) else 2
+    if "rogue_traders" in pts:
+        return 3            # both Rogue Trader lists say "Attack rating 3"
     return 2
 
 

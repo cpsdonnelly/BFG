@@ -540,6 +540,16 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         if crit:
             summary["crits_applied"].append(crit)
 
+    # Necron Escalating Threat: a hit-and-run raid on any Necron vessel,
+    # escorts included, raises the alert level (update 59; reading: each raid
+    # that takes effect, max 5)
+    landed = summary["damage"] + len(summary["crits_applied"])
+    if landed and "necron" in target.special_rules:
+        from .necrons import MAX_ALERT
+        al = dict(getattr(gs, "necron_alert", None) or {})
+        key = str(target.player)
+        al[key] = min(MAX_ALERT, al.get(key, 1) + landed)
+        gs.necron_alert = al
     return summary
 
 

@@ -256,3 +256,28 @@ def test_ai_plans_legal_mms_moves():
     assert sum(c.action.startswith("turn") for c in cmds) <= 2
     locked = ai._eldar_moves(me, foe, "lock_on", 0)
     assert locked and all(not c.action.startswith("turn") for _s, cs, _r in locked for c in cs)
+
+
+def test_eldar_slowed_by_blast_markers():
+    """Sign-off answer 58: MMS has no blast marker exemption. -5cm from the
+    first touch, on that move and the later one."""
+    from src.ship_catalog import find_ship_class
+    from src.models import Ship, BlastMarker
+    from src.movement import validate_movement, MoveCommand
+    from src.eldar import set_sunward_edge
+    set_sunward_edge("north")
+    e = Ship.from_dict(find_ship_class("Eclipse Class Cruiser").to_ship_dict("e", 1, ship_id="e"))
+    e.x, e.y, e.heading = 50.0, 50.0, 0.0              # abeam: 25cm a move
+    bm = [BlastMarker(id="b", x=65.0, y=50.0)]
+    full = [MoveCommand("forward", 25)]
+    r = validate_movement(e, full, "", blast_markers=bm, table_width=180, table_height=120)
+    assert not r.valid and r.crossed_blast_markers
+    assert validate_movement(e, [MoveCommand("forward", 20)], "", blast_markers=bm,
+                             table_width=180, table_height=120).valid
+    # the second move is slowed too
+    two = [MoveCommand("forward", 20), MoveCommand("turn_left", 45),
+           MoveCommand("forward", 25)]
+    assert not validate_movement(e, two, "", blast_markers=bm,
+                                 table_width=180, table_height=120).valid
+    # without markers the full move is fine
+    assert validate_movement(e, full, "", table_width=180, table_height=120).valid

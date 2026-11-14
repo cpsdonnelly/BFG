@@ -64,3 +64,17 @@ def test_forced_navigation_tests_fail():
     gs3 = _gs(_ship("a", 1, 50.0), _ship("s", 2, 60.0, ["sirens_summon"]))
     r3 = resolve_warp_rift_navigation(gs3.get_ship_by_id("a"), DiceStub([1]), gs3)
     assert r3["passed"] is False
+
+
+def test_forced_disengage_fails_with_its_normal_result():
+    """Sign-off answer 50: a forced test (Leadership 1 or less) within 15cm
+    fails: no firing, and the ship must flee next turn."""
+    from src.disengage import forced_disengage_tests
+    a = _ship("a", 1, 50.0)
+    a.leadership = 1
+    gs = _gs(a, _ship("s", 2, 60.0, ["sirens_summon"]))
+    dice = DiceStub([])
+    r = forced_disengage_tests(gs, dice, 1)
+    assert r[0]["success"] is False and not r[0].get("blocked") and dice._idx == 0
+    a = gs.get_ship_by_id("a")
+    assert a.disengage_failed_this_turn and a.must_flee and not a.is_disengaged

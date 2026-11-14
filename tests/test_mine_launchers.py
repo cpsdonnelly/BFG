@@ -71,3 +71,20 @@ def test_ai_lays_mines_when_an_enemy_is_in_reach():
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
     ai._launch_ship_ordnance(gs.get_ship_by_id("m"))
     assert len(gs.ordnance) == 2
+
+
+def test_light_cruisers_take_mines_only_in_a_cruisers_category():
+    """Update 58 / sign-off answer 49: a light cruiser counts as a cruiser when
+    its list places it in the Cruisers category."""
+    from src.fleet_lists import fleet_list_errors
+    defiant = find_ship_class("Defiant Light Cruiser")
+    assert any(u.name == MINE_SWAP for u in defiant.upgrades_available)
+    ok = [{"entry": defiant, "upgrades": [MINE_SWAP], "list": "navy_armageddon"}]
+    assert not [e for e in fleet_list_errors("navy_armageddon", ok, 500)
+                if "mine launchers" in e]
+    mech = find_ship_class("Mechanicus Defiant Light Cruiser")
+    bad = [{"entry": mech, "upgrades": [MINE_SWAP], "list": "navy_bakka"}]
+    assert [e for e in fleet_list_errors("navy_bakka", bad, 500) if "mine launchers" in e]
+    # the Eldar hybrid option (update 58): Corsair cruisers
+    assert any(u.name == MINE_SWAP for u in find_ship_class("Eclipse Class Cruiser")
+               .upgrades_available)

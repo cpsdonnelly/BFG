@@ -661,6 +661,10 @@ def test_attack_ratings():
     # A Rogue Trader detachment doesn't change its fleet's rating
     gs2.add_ship(make_ship(id="rt", player=2, faction="rogue_traders", points_value=50))
     assert sc.attack_rating(gs2, 2) == 2
+    # Sign-off answer 44: Rogue Traders alone 3, Dark Eldar 4, Tyranids 2
+    gs3 = _gs([make_ship(id="r", player=1, faction="rogue_traders", points_value=50),
+               make_ship(id="de", player=2, faction="dark_eldar", points_value=50)])
+    assert sc.attack_rating(gs3, 1) == 3 and sc.attack_rating(gs3, 2) == 4
 
 
 # --- Cruiser Clash, Chance Encounter ------------------------------------------------

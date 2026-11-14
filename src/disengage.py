@@ -39,16 +39,20 @@ def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = 
     gs.add_log(f"  Squadron {ship.squadron_id} lost {ship.name} off the table: "
                f"the rest of the squadron must attempt to disengage")
     if dice is not None:
-        squadron_disengage_test(rest, dice, gs)
+        squadron_disengage_test(rest, dice, gs, forced=True)
 
 
-def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState) -> Dict:
+def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState,
+                            forced: bool = False) -> Dict:
     """One disengage test for an escort squadron (s.8, s.37).
 
     Owner ruling: the Leadership modifiers are those of the best-placed member
     (the highest resulting Leadership). Pass: the whole squadron disengages.
     Fail: none of it may fire, launch ordnance or use special orders (except
-    Brace) for the rest of the turn.
+    Brace) for the rest of the turn. `forced` (a member left the table,
+    Forced Disengagement, Demiurg mercenaries): under Siren's Summon a forced
+    test fails with its normal result (sign-off answer 50); a voluntary one
+    is just blocked.
     """
     ships = [gs.get_ship_by_id(s.id) for s in ships]
     ships = [s for s in ships if s and not s.is_destroyed and not s.is_disengaged]
@@ -76,7 +80,16 @@ def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState) 
     if not able:
         for s in ships:
             s.must_disengage_tested_turn = gs.turn_number
+            if forced:
+                s.disengage_failed_this_turn = True
+                s.has_fired = True
             gs.update_ship(s)
+        if forced:
+            gs.add_log(f"Squadron {ships[0].squadron_id} fails its forced disengage test "
+                       f"(Siren's Summon)")
+            return {"success": False, "roll": 0, "needed": 0,
+                    "modifiers": ["Siren's Summon: forced test fails"],
+                    "ships": [s.id for s in ships]}
         gs.add_log(f"Squadron {ships[0].squadron_id} can't take a disengage test "
                    f"(Siren's Summon)")
         return {"success": False, "roll": 0, "needed": 0, "blocked": True,
@@ -141,12 +154,12 @@ def forced_disengage_tests(gs: GameState, dice: DiceRoller, player: int) -> List
     for members in squadrons.values():
         mates = [m for m in gs.get_ships() if m.squadron_id == members[0].squadron_id
                  and m.player == player and not m.is_destroyed and not m.is_disengaged]
-        results.append(squadron_disengage_test(mates, dice, gs))
+        results.append(squadron_disengage_test(mates, dice, gs, forced=True))
     for s in singles:
         gs.add_log(f"{s.name} must attempt to disengage"
                    + (" (Demiurg mercenaries)" if mercenary_must_disengage(s, gs)
                       else " (Leadership 1 or less)"))
-        results.append(attempt_disengage(s, dice, gs))
+        results.append(attempt_disengage(s, dice, gs, forced=True))
         fresh = gs.get_ship_by_id(s.id)
         fresh.must_disengage_tested_turn = gs.turn_number
         gs.update_ship(fresh)
@@ -254,7 +267,8 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
     }
 
 
-def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
+def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState,
+                      forced: bool = False) -> Dict:
     """
     Attempt voluntary disengagement at end of movement phase.
     Returns dict with success status and details.
@@ -270,7 +284,7 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
         mates = [s for s in gs.get_ships() if s.squadron_id == ship.squadron_id
                  and s.player == ship.player and not s.is_destroyed and not s.is_disengaged]
         if len(mates) > 1:
-            return squadron_disengage_test(mates, dice, gs)
+            return squadron_disengage_test(mates, dice, gs, forced=forced)
 
     if "necron" in ship.special_rules:
         # Without a Trace (Xenos p.40): no Leadership check, the vessel vanishes
@@ -281,6 +295,14 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
         return {"success": True, "roll": 0, "needed": 0,
                 "modifiers": ["Without a Trace"], "ships": [ship.id]}
     from .movement import sirens_summon
+    if sirens_summon(ship, gs) and forced:
+        # Sign-off answer 50: a forced test fails with its normal result
+        ship.disengage_failed_this_turn = True
+        ship.has_fired = True
+        gs.update_ship(ship)
+        gs.add_log(f"{ship.name} fails its forced disengage test (Siren's Summon)")
+        return {"success": False, "roll": 0, "needed": 0,
+                "modifiers": ["Siren's Summon: forced test fails"], "ships": [ship.id]}
     if sirens_summon(ship, gs):
         gs.add_log(f"{ship.name} can't take a disengage test (Siren's Summon)")
         return {"success": False, "roll": 0, "needed": 0, "blocked": True,

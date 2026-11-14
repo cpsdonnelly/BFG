@@ -275,3 +275,22 @@ def test_portals_raid_like_teleports():
     far = make_ship(id="f", player=2, x=75.0, y=50.0, shields_max=0)
     gs.add_ship(far)
     assert not check_teleport_eligibility(gs.get_ship_by_id("n"), gs.get_ship_by_id("f"), gs)[0]
+
+
+def test_escort_hits_and_raids_raise_the_alert():
+    """Update 59: unsaved hits and raids on any Necron vessel, escorts included,
+    raise the alert level; escorts never awaken."""
+    from tests.conftest import make_ship, make_gs
+    from src.combat import apply_damage
+    from src.hit_and_run import resolve_raids
+    esc = make_ship(id="e", player=1, ship_type="escort", hits_max=2, points_value=60,
+                    shields_max=0, special_rules=["necron", "reactive_hull:6"])
+    cap = make_ship(id="c", player=1, hits_max=8, points_value=275, shields_max=0,
+                    special_rules=["necron", "reactive_hull:6"])
+    gs = make_gs([esc, cap, make_ship(id="f", player=2)])
+    gs.necron_alert = {"1": 1}
+    apply_damage(gs.get_ship_by_id("e"), 1, DiceStub([2]), gs)       # save fails
+    assert gs.necron_alert["1"] == 2
+    # a raid on the escort: 5 -> 1 damage (4+ vs a small target)
+    resolve_raids(1, gs.get_ship_by_id("e"), False, DiceStub([5]), gs)
+    assert gs.necron_alert["1"] == 3

@@ -189,10 +189,12 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
 
 
 def _validate_eldar(ship: Ship, commands, special_order: str, aaf_bonus: int,
-                    result: "MovementResult", table_width: float, table_height: float):
+                    result: "MovementResult", table_width: float, table_height: float,
+                    blast_markers=None):
     """Eldar MMS v2.0 movement (src/eldar.py): two moves, each a turn on the
     spot then a move up to the speed for the new heading. First form: no
-    staged moves and no blast marker speed loss (to confirm with the owner)."""
+    staged moves. Blast markers slow it like any ship (sign-off answer 58):
+    -5cm from the first touch, on that move and the later one."""
     from . import eldar
     speeds = eldar.ship_speeds(ship) or (ship.speed, ship.speed, ship.speed)
     crits = [c.get("crit_type") for c in ship.critical_damage]
@@ -204,9 +206,30 @@ def _validate_eldar(ship: Ship, commands, special_order: str, aaf_bonus: int,
     legs, extra = eldar.commands_to_legs(commands)
     if "mainsail_shredded" in crits and len(legs) > 1:
         result.add_error("Mainsail Shredded: one move this phase")
+    slowed_at = None
+    markers = blast_markers or []
+    if markers:
+        need = blast_markers_to_slow(ship)
+        reach = BLAST_MARKER_RADIUS_CM + ship.base_radius
+        if count_blast_markers_touching(ship, markers) >= need:
+            slowed_at = (0, 0.0)
+        else:
+            import math as _mm
+            x0, y0, h0 = ship.x, ship.y, ship.heading
+            for i, (turn, dist) in enumerate(legs):
+                h0 = (h0 + turn) % 360.0
+                x1 = x0 + dist * _mm.cos(_mm.radians(h0))
+                y1 = y0 + dist * _mm.sin(_mm.radians(h0))
+                d = _first_multi_contact(x0, y0, x1, y1, markers, reach, need)
+                if d is not None:
+                    slowed_at = (i, d)
+                    break
+                x0, y0 = x1, y1
+    if slowed_at is not None:
+        result.crossed_blast_markers = True
     for e in eldar.validate_mms_move(speeds, ship.heading, turn_limit, legs,
                                      special_order or "", eldar.sunward_edge(),
-                                     aaf_bonus, extra, ship.is_crippled):
+                                     aaf_bonus, extra, ship.is_crippled, slowed_at):
         result.add_error(e)
     import math as _m
     x, y, h = ship.x, ship.y, ship.heading
@@ -248,7 +271,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     blast_markers = blast_markers or []
     if "eldar_mms" in (ship.special_rules or []):
         return _validate_eldar(ship, commands, special_order, aaf_bonus, result,
-                               table_width, table_height)
+                               table_width, table_height, blast_markers)
 
     # Current position tracking
     cx, cy = ship.x, ship.y

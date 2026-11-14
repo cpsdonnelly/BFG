@@ -73,14 +73,19 @@ def order_allowed(order: str) -> bool:
 def validate_mms_move(speeds: Tuple[int, int, int], start_heading: float, turn_limit: float,
                       legs: List[Tuple[float, float]], order: str = "",
                       sunward_edge: str = "north", aaf_bonus: float = 0.0,
-                      extra_turn: float = 0.0, crippled: bool = False) -> List[str]:
+                      extra_turn: float = 0.0, crippled: bool = False,
+                      slowed_at: Optional[Tuple[int, float]] = None) -> List[str]:
     """Check an Eldar move (MMS p.3): up to two legs, each a turn on the spot
     (up to the ship's turn angle) then a move of any length up to the speed
     for the new heading; no minimum move. Lock On: no turns; All Ahead Full:
     no turns, +aaf_bonus (5D6cm, rolled by the caller) to one leg; Come to New
     Heading: one extra turn after the second move (`extra_turn`); Burn Retros
     not allowed. Crippled: -5cm on every speed (the core rule, reading).
-    legs: [(turn degrees, signed; distance cm)]. Returns the errors."""
+    legs: [(turn degrees, signed; distance cm)]. Returns the errors.
+    slowed_at: (leg index, cm into that leg) where the ship first touches a
+    blast marker (sign-off answer 58: MMS has no blast marker exemption):
+    -5cm from that point (s.11 owner ruling: with nothing left it stops where
+    it first touches) and on every later move."""
     errs = []
     if not order_allowed(order):
         errs.append("Eldar may not use Burn Retros")
@@ -97,6 +102,10 @@ def validate_mms_move(speeds: Tuple[int, int, int], start_heading: float, turn_l
                 errs.append(f"move {i + 1}: turn {abs(turn):g} exceeds {turn_limit:g} degrees")
         h = (h + turn) % 360.0
         cap = speed_for(speeds, h, sunward_edge) - (5 if crippled else 0)
+        if slowed_at is not None and i == slowed_at[0]:
+            cap = max(slowed_at[1], cap - 5)
+        elif slowed_at is not None and i > slowed_at[0]:
+            cap = max(0, cap - 5)
         if dist > cap + bonus_left + 1e-9:
             errs.append(f"move {i + 1}: {dist:g}cm exceeds {cap:g}cm "
                         f"({sun_aspect(h, sunward_edge)})")

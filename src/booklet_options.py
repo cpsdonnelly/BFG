@@ -970,7 +970,14 @@ MINE_SWAP_GROUPS = {
     "Space Marines": ("Cruisers",),
     "Inquisition & Grey Knights": ("Cruisers",),
     "Chaos": ("Cruisers", "Heavy Cruisers"),
+    # Eldar "Booklet Hybrid Options (from XR)" (update 58, Xenos pp.33-34):
+    # up to two cruisers, +5 per bay; mines don't benefit from stealth
+    "Eldar": ("Corsair Cruisers",),
 }
+# Light cruisers count as cruisers when their fleet list places them in its
+# Cruisers category (update 58, sign-off answer 49): offered here, checked
+# against the chosen list in fleet_lists.fleet_list_errors
+LIGHT_CRUISER_GROUPS = {"Imperial Navy": "Light Cruisers", "Adeptus Mechanicus": "Light Cruisers"}
 MINE_SWAP = "Mine launchers (replace all launch bays)"
 
 
@@ -999,7 +1006,8 @@ def mine_launcher_options(row: dict) -> List[Dict]:
     if fac == "Tau & Allies":
         if _ship_type_of(row) != "cruiser" or "Light" in name:
             return []
-    elif fac not in MINE_SWAP_GROUPS or group not in MINE_SWAP_GROUPS[fac]:
+    elif fac not in MINE_SWAP_GROUPS or (group not in MINE_SWAP_GROUPS[fac]
+                                         and LIGHT_CRUISER_GROUPS.get(fac) != group):
         return []
     if fac == "Space Marines" and not rules:
         return []
