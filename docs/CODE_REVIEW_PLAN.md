@@ -113,6 +113,9 @@ fleets on one side are fine: a side can field ships of several factions.
 
 ## 2. Performance (measured first, the biggest wins)
 
+Progress: steps 1 and 2 below are done (and `Ship.to_dict` / `from_dict` made cheaper). The
+headless runner (`tools/headless_runner.py`) is built. CLAUDE.md To do 16 has the numbers.
+
 [measured] AI movement phase, 4 v 4: ~40% of the time is `ai_hazards.ship_bracket_raw`, whose
 `Ship.to_dict()` → `dataclasses.asdict` deep copies dominate. Overall, `asdict` + `from_dict`
 are over half the phase.

@@ -54,7 +54,7 @@ class AAPanelMixin:
 
     def _aa_after(self, ms: int) -> None:
         epoch = self._ai_epoch
-        self.root.after(ms, lambda: self._aa_step(epoch))
+        self.root.after(self._pace(ms), lambda: self._aa_step(epoch))
 
     def _aa_step(self, epoch=None) -> None:
         """Run the current AA step until a human has to act."""

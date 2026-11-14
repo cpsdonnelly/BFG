@@ -1435,9 +1435,16 @@ class GamePanel(AAPanelMixin):
 
     # ── AI phase automation ───────────────────────────────────────────────────
 
+    # Fast mode (the headless runner, tools/headless_runner.py; or BFG_FAST=1):
+    # no pacing pauses between AI phases, the AI's worker polled every 1ms
+    FAST = bool(os.environ.get("BFG_FAST"))
+
+    def _pace(self, ms: int) -> int:
+        return 1 if self.FAST else ms
+
     def _schedule_ai_phase(self, delay_ms: int):
         epoch = self._ai_epoch
-        self.root.after(delay_ms, lambda: self._run_ai_phase(epoch))
+        self.root.after(self._pace(delay_ms), lambda: self._run_ai_phase(epoch))
 
     def _ai_callback_stale(self, epoch: int) -> bool:
         """True if a load or game over happened since this AI callback was queued."""
@@ -1485,7 +1492,7 @@ class GamePanel(AAPanelMixin):
 
             def _poll():
                 if worker.is_alive():
-                    self.root.after(100, _poll)
+                    self.root.after(self._pace(100), _poll)
                     return
                 if "error" not in outcome:
                     # Main thread: ordnance the AI's ships ran into attacks them
@@ -1503,7 +1510,7 @@ class GamePanel(AAPanelMixin):
             self._update_phase_display()
             worker = threading.Thread(target=_do_movement, daemon=True)
             worker.start()
-            self.root.after(100, _poll)
+            self.root.after(self._pace(100), _poll)
             return
 
         try:
@@ -1530,7 +1537,7 @@ class GamePanel(AAPanelMixin):
         def advance():
             if not self._ai_callback_stale(epoch):
                 self._end_phase(from_ai=True)
-        self.root.after(300, advance)
+        self.root.after(self._pace(300), advance)
 
     def _report_ai_error(self, phase: str, exc: Exception):
         """An AI failure ends the AI's phase instead of freezing the game."""

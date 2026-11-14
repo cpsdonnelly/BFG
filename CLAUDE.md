@@ -2338,12 +2338,26 @@ Done: To do 2, 3, 6; most of 7.
    Fleet Engagement's AI formation pick by `random` (an AI choice: seeded with the AI's
    choices in To do 17), the ~8 "0.35 per point" estimates still reading the truncated
    average (To do 18's `mount_expected_hits`).
-16. Performance and a headless runner (plan section 2): cache `ship_bracket_raw` /
-   `bracket_matchup` per phase; arc tests on (x, y, heading) without Ship copies; a per-phase
-   snapshot for the move score's terms and one hits matrix for the focus loops; later cheaper
-   `Ship` copies (shallow copy instead of `asdict`). Re-profile each step. A headless
-   multiprocess AI-vs-AI runner (no Tk) reporting games per hour, win rates and VP margins;
-   To do 13's experiments, 20's cross-checks and 12 / 1 all use it.
+16. Performance and a headless runner (plan section 2). Done so far:
+   - `ai_hazards.ship_bracket_hits` cached by both ships' state;
+   - shallow `dataclasses.replace` copies for the AI's trial positions and
+     `ship_bracket_raw`;
+   - `Ship.to_dict` copies plain data without `asdict`'s checks, and `Ship.from_dict` fills
+     a complete dict directly (it shares lists exactly as `cls(**d)` did);
+   - result: an AI movement phase (4 v 4) 0.85s -> ~0.47s cold, the test suite 8.3s -> ~6s.
+   Headless runner built: `tools/headless_runner.py` (under `xvfb-run`). It plays many
+   AI-vs-AI games in parallel processes, the real GamePanel in fast mode (`BFG_FAST`,
+   `GamePanel._pace`: no pacing pauses; the board isn't drawn), and reports each game
+   (winner, VP, turns, seconds), win rates, the mean VP margin and games per hour.
+   - Measured: ~400 games an hour on 4 cores (the demo fleets, 12 player turns, ~29s a
+     game).
+   - The demo Navy fleet beat the demo Tau fleet in 4 of 4 games in IGOUGO: a matchup worth
+     a look in To do 13's experiments.
+   Still to do:
+   - a per-phase snapshot for the move score's terms (`gs.get_ships()` rebuilt ~4 times a
+     candidate, now the largest share) and one hits matrix for the three focus loops;
+   - the runner without a display (the game flow out of the Tk panels, with To do 18);
+   - seeded AI choices (with To do 17) so games repeat exactly.
 17. Recording and replay (plan section 6): a game seed and every roll saved in order;
    structured events for every decision (move commands, orders, weapon / target, launches,
    craft orders, brace, re-rolls, prompts) recorded at the engine API for humans and the AI
