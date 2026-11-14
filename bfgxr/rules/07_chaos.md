@@ -26,7 +26,7 @@
 
 **Chaos Space Marines** (taken by capital ships; uses the Space Marine faction rules):
 
-**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.203); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
+**Veterans of the Long War:** use the Astartes column of the Leadership Tables (Appendix 4, p.230); a Warmaster or Lord instead adds +1 to a fixed Leadership (max 10).
 
 **Champions of the Dark Gods:** use the Space Marine boarding, hit-and-run, planetary-assault, and teleport-assault rules (battleships count as battle barges, other ships as strike cruisers; the honour guard uses Chaos Terminators). This replaces the normal Chaos crew bonus.
 
@@ -163,7 +163,7 @@ A Chaos fleet of any size may include one, and it must be the flagship. It canno
 
 **Damage:** counts as a defence for gunnery and ramming, but is not a support or planetary-defence unit. Never crippled; it functions until completely destroyed.
 
-**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.200), not the normal table; results cannot be repaired, and no characteristic is reduced below zero, but apply as much of each penalty as possible. A penalty to a random value (such as FP 2D6+6) is included in the roll, treating results of zero or less as zero; if no non-zero result is possible, the characteristic counts as reduced to zero and takes no further penalties. If a result cannot be applied, repeat the table's process until a valid result is found.
+**Critical hits:** use the Chaos Space Hulk Critical Hits table (p.224), not the normal table; results cannot be repaired, and no characteristic is reduced below zero, but apply as much of each penalty as possible. A penalty to a random value (such as FP 2D6+6) is included in the roll, treating results of zero or less as zero; if no non-zero result is possible, the characteristic counts as reduced to zero and takes no further penalties. If a result cannot be applied, repeat the table's process until a valid result is found.
 
 **Catastrophic damage:** at 0 damage, roll on the Catastrophic Damage table: drifting and blazing hulk results are unchanged (including any required movement); a plasma drive overload tears it apart into an asteroid field D3x5cm by D3x5cm (no damage to nearby ships); a warp drive implosion replaces it with a warp rift (ships caught are affected immediately).
 

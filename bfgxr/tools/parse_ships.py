@@ -51,7 +51,7 @@ WEAPON = re.compile(
     r'(?P<perq>\s+\(per quadrant\))?'
     r'(?P<arcs>(?:,?\s*\([^)]*\))*)$')
 BAYS = re.compile(
-    r'^(?P<loc>(?:Prow|Dorsal)\s+)?Launch Bays\s+'
+    r'^(?P<loc>(?:Prow|Dorsal|Keel)\s+)?(?P<lname>Launch Bays?)\s+'
     r'(?P<mounts>(?:(?:prow|port|stbd|dorsal)\s+)?S ?[0-9D+]+(?:\s\+\s(?:(?:prow|port|stbd|dorsal)\s+)?S ?[0-9D+]+)*)'
     r'\s+\((?P<craft>[^)]*)\)$')
 HOOKS = re.compile(r'^(?P<loc>Dorsal\s+)?Gravitic Hooks(?P<sides> port \+ stbd)? \((?P<cap>[^)]*)\)$')
@@ -86,9 +86,9 @@ def parse_weapon(seg, group=None):
         for c in m.group('craft').split(', '):
             cm = re.match(r'^(.*?)\s+(\d+)cm$', c)
             craft.append({'type': cm.group(1), 'speed_cm': int(cm.group(2))} if cm else {'type': c, 'speed_cm': None})
-        w.update(kind='launch_bays', location=(m.group('loc') or '').strip() or None, name='Launch Bays',
+        w.update(kind='launch_bays', location=(m.group('loc') or '').strip() or None, name=m.group('lname'),
                  stat='S', category='ordnance', bays=mounts, craft=craft)
-        back = (f"{w['location'] + ' ' if w['location'] else ''}Launch Bays "
+        back = (f"{w['location'] + ' ' if w['location'] else ''}{m.group('lname')} "
                 + ' + '.join(x['raw'] for x in mounts) + f" ({m.group('craft')})")
         w['parsed'] = back == seg
         return w
@@ -169,7 +169,7 @@ def faction_rules(faction, notes):
             elif faction == 'Space Marines': rules = []
             break
     m = re.search(r'(?:Shares a profile with|Identical to|Reprint of|Commandeered from) the ([^.;,]+?)(?: profile)?(?=[.;,]|$)', n)
-    return {'faction_rules': rules, 'faction_rules_basis': basis, 'profile_from': m.group(1) if m else None}
+    return {'faction_rules': rules, 'faction_rules_basis': basis, 'profile_from': re.sub(r'\s*\(p?$', '', m.group(1)) if m else None}
 
 def main(docx, out_dir):
     os.makedirs(out_dir, exist_ok=True)

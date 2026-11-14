@@ -7,16 +7,18 @@ Unified rules-and-roster companion: core rules, then the faction sections (rules
 05_rogue-traders.md	Rogue Traders (Imperium p.110-129)
 06_support-assets.md	Support Assets (Rulebook p.61-75)
 07_chaos.md	Chaos (Imperium p.23-53)
-08_eldar.md	Eldar (MMS p.3-28)
-09_necrons.md	Necrons (Xenos p.38-51)
-10_orks.md	Orks (Xenos p.58-73)
-11_tau-allies.md	Tau & Allies (Xenos p.77-101)
-12_scenarios.md	Scenarios
-13_campaigns.md	Campaigns
-14_appendix-1-campaign-tables.md	Appendix 1 - Campaign Tables
-15_appendix-2-refits-and-crew-skills.md	Appendix 2 - Refits and Crew Skills
-16_appendix-3-special-damage-tables.md	Appendix 3 - Special Damage Tables
-17_appendix-4-leadership-tables.md	Appendix 4 - Leadership Tables
-18_appendix-5-default-damage-tables.md	Appendix 5 - Default Damage Tables
-19_appendix-6-special-orders.md	Appendix 6 - Special Orders
-20_appendix-7-gunnery-table.md	Appendix 7 - Gunnery Table
+08_dark-eldar.md	Dark Eldar (Xenos p.2-13)
+09_eldar.md	Eldar (MMS p.3-28)
+10_necrons.md	Necrons (Xenos p.38-51)
+11_orks.md	Orks (Xenos p.58-73)
+12_tau-allies.md	Tau & Allies (Xenos p.77-101)
+13_tyranids.md	Tyranids (Xenos p.104-120)
+14_scenarios.md	Scenarios
+15_campaigns.md	Campaigns
+16_appendix-1-campaign-tables.md	Appendix 1 - Campaign Tables
+17_appendix-2-refits-and-crew-skills.md	Appendix 2 - Refits and Crew Skills
+18_appendix-3-special-damage-tables.md	Appendix 3 - Special Damage Tables
+19_appendix-4-leadership-tables.md	Appendix 4 - Leadership Tables
+20_appendix-5-default-damage-tables.md	Appendix 5 - Default Damage Tables
+21_appendix-6-special-orders.md	Appendix 6 - Special Orders
+22_appendix-7-gunnery-table.md	Appendix 7 - Gunnery Table

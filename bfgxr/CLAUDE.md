@@ -29,12 +29,13 @@ rules/        one Markdown file per top-level section of the booklet
                               Shields & Blast Markers (11), Ramming (12), Ordnance (15),
                               Hit-and-Run Raids (31), Boarding Actions (32) and the rest;
                               grep the '## N.' headings for the full list
-  01_imperial-navy.md ... 11_tau-allies.md
+  01_imperial-navy.md ... 13_tyranids.md
                               faction rules, ship rosters, special rules, fleet lists
-                              (08_eldar.md uses the fan Eldar MMS v2.0 rules; 09_necrons.md)
-  12_scenarios.md             scenarios, with deployment maps
-  13_campaigns.md
-  14-20_appendix-*.md         campaign tables, refits, damage tables, leadership,
+                              (08_dark-eldar.md; 09_eldar.md uses the fan Eldar MMS v2.0
+                              rules; 10_necrons.md; 13_tyranids.md)
+  14_scenarios.md             scenarios, with deployment maps
+  15_campaigns.md
+  16-22_appendix-*.md         campaign tables, refits, damage tables, leadership,
                               special orders, gunnery table
   media/                      scenario deployment maps, special-order icons
   _index.txt                  file -> section title list (regenerated)
@@ -52,6 +53,9 @@ notes/                        design notes for the simulator (not booklet rules)
   BFGXR_Alternate_Activation_Draft.pdf   owner-facing AA draft with all the numbers
   BFGXR_AltActivation_Notes.md           AA working notes (framework, open items)
   Remastered_rulings_for_engine.md       Remastered turret suppression and escort VP scoring
+  OWNER_SIGNOFF_answers.md   booklet-side answers to the simulator's OWNER_SIGNOFF.md
+  AI_terrain_and_learning_questions.md   terrain rule checks, missing move terms, learned-eval
+                              features, luck-adjusted fitness, game-count estimates
 source/                       copy of the .docx this export was built from
 tools/                        the export scripts
 ```
@@ -93,6 +97,18 @@ Ciarán has ruled on these. They override any reading of the rule text alone. `C
   still pending.
 - **Necron Obelisk** (update 55): it has no Ld of its own. The ship it is assigned to rolls for Ld as
   normal, and as a Monument it still gets one free re-roll and may buy more.
+- **Necron Deadly Awakening applies to capital ships only** (update 59; Xenos p.41, easily missed).
+  Only capital ships start conserving power (crippled for all purposes except scoring, phase out
+  instead of becoming hulks), awaken, and are worth double VP once awake. Necron escorts operate
+  normally all game at normal VP. An unsaved hit (or hit-and-run raid) on **any** Necron vessel,
+  escorts included, still raises the alert level.
+- **Light cruisers in "per N cruisers" limits** (update 58): a light cruiser counts as a cruiser when
+  the fleet list places it in its Cruisers category (e.g. the Dark Eldar Succubus counts towards the
+  Mortalis one-per-three-cruisers limit). A light cruiser listed as a type of cruiser is different from
+  one listed in a separate class and list of ships; only the latter doesn't count. Applies to every
+  faction.
+- **Tyranid weapons** (update 58): massive claws and feeder tendrils use Strength, not FP. The Proteus
+  hive ship's type is Defence, as printed (it moves as a battleship).
 
 ## Ship data: `data/ships.json`
 

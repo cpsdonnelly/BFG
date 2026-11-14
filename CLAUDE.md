@@ -18,7 +18,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   Damage & Critical Hits (33), Catastrophic Damage (34). `bfgxr/CHANGES.md` lists what each
   export changed (read it after every new export: it flags renamed fields and spelling changes).
   Sections are numbered in `bfgxr/rules/00_core-rules.md`.
-- Victory points: core section 38 and the "Victory Points" part of `bfgxr/rules/12_scenarios.md`
+- Victory points: core section 38 and the "Victory Points" part of `bfgxr/rules/14_scenarios.md`
   give the same rules: Destroyed, Crippled, Scattered (disengaged) and Holding the Field.
 - Squadrons (s.8) include Maneuvering Squadrons and Shooting at Squadrons (target aspect, hit
   allocation nearest-first, critical damage applied before a ship counts as destroyed).
@@ -38,6 +38,14 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   the owner says so. When they start, the experimental ML-driven AI stays separate: it never
   replaces the current AI (its own AI class / difficulty option, the existing normal and
   expert AIs and their weights left as they are).
+- **Necron Deadly Awakening is for capital ships only** (update 59): only capital ships conserve
+  power, awaken and score double; escorts act normally at normal VP, but an unsaved hit or raid
+  on any Necron vessel, escorts included, raises the alert level.
+- **Light cruisers in "per N cruisers" limits** (update 58): a light cruiser counts as a cruiser
+  when its fleet list places it in the Cruisers category (e.g. the Corsair Aurora / Solaris, the
+  Dark Eldar Succubus); one in a separate light cruiser class / list doesn't.
+- **Tyranid weapons** (update 58): massive claws and feeder tendrils use Strength, not FP; the
+  Proteus hive ship is a Defence (it moves as a battleship).
 - **Leadership is rolled at game start** (Appendix 4, faction column; escort squadrons roll once
   and share it). Booklet ships carry `leadership_table` and Ld 0 until then.
 - **Upgrades:** the old hand-written upgrades were removed. Booklet refits, options and fleet
@@ -489,8 +497,13 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1288 pass; all GUI checks pass
+Booklet installed: zip 14 (CHANGES.md update 60; Dark Eldar and Tyranids added, listed but
+unsupported until their faction rules are built; rules files renumbered again: Dark Eldar 08,
+Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`, campaigns 15,
+the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
+Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
+convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
+playable). Tests: 1288 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -969,7 +982,7 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
 7. Scenarios and sub-plots, engine and AI (owner request: the AI must play scenario and sub-plot
    games, not just cruiser clash; after items 1-6). The engine has only the old generic modes
    (`scenario.check_scenario_end`: kill the admiral, destroy / protect a ship, capture an
-   artefact); none of the booklet's scenarios (`bfgxr/rules/12_scenarios.md`: Cruiser Clash, The
+   artefact); none of the booklet's scenarios (`bfgxr/rules/14_scenarios.md`: Cruiser Clash, The
    Bait, Chance Encounter, The Raiders, Blockade Run, Convoy, Rearguard Attack, Navigate the
    Storm, Destroy the Docks, Exterminatus!, Alien Intervention, Surprise Attack, Planetary
    Assault, Escalating Engagement, Fleet Engagement, the campaign set pieces and the newer
@@ -1930,12 +1943,12 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
 
 14. Eldar and Necrons (export 13, CHANGES updates 48-49, 51-52): Eldar are built and playable
    (below); Necrons are built and playable too (below, after the Eldar).
-   Eldar use the fan MMS v2.0 rules (`bfgxr/rules/08_eldar.md`, replacing XR's Eldar): three
+   Eldar use the fan MMS v2.0 rules (`bfgxr/rules/09_eldar.md`, replacing XR's Eldar): three
    speeds by the sun (sun / away / abeam) and two moves, holofields ("2+H" shields), Fragile
    (crits on 5+), Natural Spacefarers (+1 Ld, the Eldar column), turrets +1 to hit, their own
    special orders, ordnance and critical hits table (Appendix 3), Kinship and Heroes, the
    Corsair and Craftworld fleet lists. The speeds need a sun direction (Fighting Sunward, To do 6, also has one). Necrons
-   (`bfgxr/rules/09_necrons.md`): reactive hulls ("RH 4+"), Deadly Awakening, Without a Trace
+   (`bfgxr/rules/10_necrons.md`): reactive hulls ("RH 4+"), Deadly Awakening, Without a Trace
    (auto-disengage, firing on own hulks, hulks 4+ Armour), Necron weapons (nightmare field,
    star pulse generator, particle whip, lightning arc, portals), Dynasty upgrades, the Necron
    critical hits table, Monuments and Necron Lords (the commanders are built, see the Obelisk

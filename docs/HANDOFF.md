@@ -1074,7 +1074,7 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    (their toggles say "not built yet"), nor their +3 disengage Ld and commander re-roll limit;
    Demiurg undo doesn't return collected blast markers; forced-flee isn't enforced for humans.
 7. New (owner request): scenarios and sub-plots, engine and AI: the booklet's scenarios
-   (`bfgxr/rules/12_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
+   (`bfgxr/rules/14_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
    Rogue Trader faction sub-plots), then an AI that plays their objectives and win conditions,
    not just cruiser clash (owner: Domination's objective markers and 10-point race are just one
    example; there are many other scenarios, and the AI must handle each one's conditions).

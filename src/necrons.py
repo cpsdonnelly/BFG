@@ -1,4 +1,4 @@
-"""Necron rules (bfgxr/rules/09_necrons.md, Xenos pp.38-51; CLAUDE.md To do 14),
+"""Necron rules (bfgxr/rules/10_necrons.md, Xenos pp.38-51; CLAUDE.md To do 14),
 pure logic. First slice, not wired into the catalog or game yet: reactive
 hulls and Brace for Impact, Deadly Awakening (alert levels, awakening,
 power conservation), the inertialess drive's All Ahead Full, and the Necron

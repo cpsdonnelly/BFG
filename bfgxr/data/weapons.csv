@@ -357,6 +357,17 @@ Chaos,Slaverer (World Eaters),,weapon,,Lances,,,30,FP,2,direct,L | R,True,"Lance
 Chaos,Slaverer (World Eaters),,weapon,,Macrobatteries,,,30,FP,16,direct,L | R,True,"Macrobatteries 30cm FP16 (L), (R)"
 Chaos,Slaverer (World Eaters),,weapon,Dorsal,Macrobatteries,,,60,FP,8,direct,L/F/R,True,Dorsal Macrobatteries 60cm FP8 (L/F/R)
 Chaos,Slaverer (World Eaters),,weapon,Prow,Torps,,,30,S,8,ordnance,F,True,Prow Torps 30cm S8 (F)
+Dark Eldar,Mortalis Class Grand Cruiser,,weapon,Prow,Weapons Battery,,,30,FP,16,direct,F,True,Prow Weapons Battery 30cm FP16 (F)
+Dark Eldar,Torture Class Cruiser,,weapon,Prow,Weapons Battery,,,30,FP,12,direct,F,True,Prow Weapons Battery 30cm FP12 (F)
+Dark Eldar,Succubus Class Light Cruiser,,weapon,Prow,Weapons Battery,,,30,FP,6,direct,F,True,Prow Weapons Battery 30cm FP6 (F)
+Dark Eldar,Corsair Class Frigate,,weapon,,Weapons Battery,,,30,FP,2,direct,F,True,Weapons Battery 30cm FP2 (F)
+Dark Eldar,Subjugation Class Raider,,weapon,,Weapons Battery,,,30,FP,1,direct,F,True,Weapons Battery 30cm FP1 (F)
+Dark Eldar,Dark Eldar Transport,,weapon,,Weapons Battery,,,30,FP,2,direct,F,True,Weapons Battery 30cm FP2 (F)
+Dark Eldar,Tormentor Class Spire,,weapon,,Weapons Battery,,,45,FP,12,direct,All Round,True,Weapons Battery 45cm FP12 (All Round)
+Dark Eldar,Tormentor Class Spire,,weapon,,Phantom Lance,,,30,FP,3,direct,All Round,True,Phantom Lance 30cm FP3 (All Round)
+Dark Eldar,Tormentor Class Spire,,unparsed,,,,,,,,,,False,"Torpedo Launcher 30cm S4 (All Round), plasma, leech and boarding torpedoes"
+Dark Eldar,Tormentor Class Spire,,unparsed,,,,,,,,,,False,Impaler Bay 2 Modules (Impalers 30cm)
+Dark Eldar,Tormentor Class Spire,,launch_bays,,Launch Bay,,,,S,4,ordnance,,True,"Launch Bay S4 (Raptors 30cm, Razorwings 20cm, Slavebringers 30cm)"
 Eldar,Void Stalker Class Battleship,,weapon,Prow,Pulsar Lance,,,45,FP,2,direct,L/F,True,Prow Pulsar Lance 45cm FP2 (L/F)
 Eldar,Void Stalker Class Battleship,,weapon,Prow,Pulsar Lance,,,45,FP,2,direct,R/F,True,Prow Pulsar Lance 45cm FP2 (R/F)
 Eldar,Void Stalker Class Battleship,,weapon,Keel,Weapons Battery,,,45,FP,8,direct,L/F/R,True,Keel Weapons Battery 45cm FP8 (L/F/R)
@@ -365,7 +376,7 @@ Eldar,Void Stalker Class Battleship,,launch_bays,Prow,Launch Bays,,,,S,4,ordnanc
 Eldar,Supernova Class Grand Cruiser,,weapon,Prow,Pulsar Lance,,,45,FP,3,direct,F,True,Prow Pulsar Lance 45cm FP3 (F)
 Eldar,Supernova Class Grand Cruiser,,weapon,Keel,Pulsar Lance,,,30,FP,2,direct,F,True,Keel Pulsar Lance 30cm FP2 (F)
 Eldar,Eclipse Class Cruiser,,weapon,Prow,Pulsar Lance,,,30,FP,2,direct,F,True,Prow Pulsar Lance 30cm FP2 (F)
-Eldar,Eclipse Class Cruiser,,unparsed,,,,,,,,,,False,"Keel Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)"
+Eldar,Eclipse Class Cruiser,,launch_bays,Keel,Launch Bays,,,,S,4,ordnance,,True,"Keel Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)"
 Eldar,Shadow Class Cruiser,,weapon,Prow,Weapons Battery,,,30,FP,12,direct,F,True,Prow Weapons Battery 30cm FP12 (F)
 Eldar,Shadow Class Cruiser,,weapon,Keel,Torpedoes,,,30,S,4,ordnance,F,True,Keel Torpedoes 30cm S4 (F)
 Eldar,Aurora Class Light Cruiser,,weapon,Prow,Pulsar Lance,,,30,FP,2,direct,F,True,Prow Pulsar Lance 30cm FP2 (F)
@@ -373,7 +384,7 @@ Eldar,Aurora Class Light Cruiser,,weapon,Keel,Torpedoes,,,30,S,4,ordnance,F,True
 Eldar,Solaris Class Light Cruiser,,weapon,Prow,Weapons Battery,,,45,FP,10,direct,F,True,Prow Weapons Battery 45cm FP10 (F)
 Eldar,Hellebore Class Frigate,,weapon,Prow,Pulsar Lance,,,30,FP,1,direct,F,True,Prow Pulsar Lance 30cm FP1 (F)
 Eldar,Hellebore Class Frigate,,weapon,Prow,Weapons Battery,,,30,FP,2,direct,F,True,Prow Weapons Battery 30cm FP2 (F)
-Eldar,Hellebore Class Frigate,,unparsed,,,,,,,,,,False,Keel Launch Bay S1 (Darkstar ASF 30cm)
+Eldar,Hellebore Class Frigate,,launch_bays,Keel,Launch Bay,,,,S,1,ordnance,,True,Keel Launch Bay S1 (Darkstar ASF 30cm)
 Eldar,Aconite Class Frigate,,weapon,Prow,Weapons Battery,,,30,FP,5,direct,F,True,Prow Weapons Battery 30cm FP5 (F)
 Eldar,Nightshade Class Destroyer,,weapon,Prow,Weapons Battery,,,30,FP,1,direct,F,True,Prow Weapons Battery 30cm FP1 (F)
 Eldar,Nightshade Class Destroyer,,weapon,Keel,Torpedoes,,,30,S,2,ordnance,F,True,Keel Torpedoes 30cm S2 (F)
@@ -386,19 +397,19 @@ Eldar,Wyrm Class Battleship,,weapon,Keel,Torpedoes,,,30,S,4,ordnance,F,True,Keel
 Eldar,Void Dragon Class Grand Cruiser,,weapon,Port,Pulsar Lance,,,30,FP,1,direct,F,True,Port Pulsar Lance 30cm FP1 (F)
 Eldar,Void Dragon Class Grand Cruiser,,weapon,Starboard,Pulsar Lance,,,30,FP,1,direct,F,True,Starboard Pulsar Lance 30cm FP1 (F)
 Eldar,Void Dragon Class Grand Cruiser,,weapon,Prow,Weapons Battery,,,30,FP,16,direct,F,True,Prow Weapons Battery 30cm FP16 (F)
-Eldar,Void Dragon Class Grand Cruiser,,unparsed,,,,,,,,,,False,"Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)"
+Eldar,Void Dragon Class Grand Cruiser,,launch_bays,Keel,Launch Bays,,,,S,4,ordnance,,True,"Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)"
 Eldar,Bahzhakhain (Biel-Tan),,weapon,Prow,Pulsar Lance,,,30,FP,2,direct,F,True,Prow Pulsar Lance 30cm FP2 (F)
 Eldar,Bahzhakhain (Biel-Tan),,weapon,Prow,Torpedoes,,,30,S,8,ordnance,F,True,Prow Torpedoes 30cm S8 (F)
-Eldar,Bahzhakhain (Biel-Tan),,unparsed,,,,,,,,,,False,"Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)"
+Eldar,Bahzhakhain (Biel-Tan),,launch_bays,Keel,Launch Bays,,,,S,4,ordnance,,True,"Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)"
 Eldar,Wild Serpent (Saim-Hann),,weapon,Prow,Pulsar Lance,,,45,FP,1,direct,L/F,True,Prow Pulsar Lance 45cm FP1 (L/F)
 Eldar,Wild Serpent (Saim-Hann),,weapon,Prow,Pulsar Lance,,,45,FP,1,direct,R/F,True,Prow Pulsar Lance 45cm FP1 (R/F)
 Eldar,Wild Serpent (Saim-Hann),,weapon,Prow,Torpedoes,,,30,S,4,ordnance,F,True,Prow Torpedoes 30cm S4 (F)
 Eldar,Wild Serpent (Saim-Hann),,weapon,Keel,Weapons Battery,,,30,FP,10,direct,L/F/R,True,Keel Weapons Battery 30cm FP10 (L/F/R)
-Eldar,Wild Serpent (Saim-Hann),,unparsed,,,,,,,,,,False,"Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)"
+Eldar,Wild Serpent (Saim-Hann),,launch_bays,Keel,Launch Bays,,,,S,4,ordnance,,True,"Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)"
 Eldar,Flame of Asuryan (Iyanden),,weapon,Port,Pulsar Lance,,,30,FP,1,direct,F,True,Port Pulsar Lance 30cm FP1 (F)
 Eldar,Flame of Asuryan (Iyanden),,weapon,Starboard,Pulsar Lance,,,30,FP,1,direct,F,True,Starboard Pulsar Lance 30cm FP1 (F)
 Eldar,Flame of Asuryan (Iyanden),,weapon,Prow,Weapons Battery,,,30,FP,16,direct,F,True,Prow Weapons Battery 30cm FP16 (F)
-Eldar,Flame of Asuryan (Iyanden),,unparsed,,,,,,,,,,False,"Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)"
+Eldar,Flame of Asuryan (Iyanden),,launch_bays,Keel,Launch Bays,,,,S,4,ordnance,,True,"Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)"
 Eldar,Shadow Point (Ulthwé),,weapon,Prow,Pulsar Lance,,,30,FP,2,direct,F,True,Prow Pulsar Lance 30cm FP2 (F)
 Eldar,Shadow Point (Ulthwé),,weapon,Keel,Pulsar Lance,,,30,FP,1,direct,F,True,Keel Pulsar Lance 30cm FP1 (F)
 Eldar,Shadow Point (Ulthwé),,weapon,Prow,Weapons Battery,,,30,FP,12,direct,F,True,Prow Weapons Battery 30cm FP12 (F)
@@ -535,3 +546,12 @@ Tau & Allies,Nicassar Caravan,,weapon,,Railguns,,,30,FP,10,direct,All Round,True
 Tau & Allies,Nicassar Dhow,,weapon,,Railguns,,,30,FP,3,direct,L | R,True,"Railguns 30cm FP3 (L), (R)"
 Tau & Allies,Nicassar Rig,,gravitic_hooks,,Gravitic Hooks,,,,,4 Dhows,special,,True,Gravitic Hooks (4 Dhows)
 Tau & Allies,Kroot Warsphere,,weapon,,Macrobatteries,,,30,FP,12,direct,All Round,True,Macrobatteries 30cm FP12 (All Round)
+Tyranids,Proteus Class Hive Ship,,unparsed,,,,,,,,,,False,Prow Feeder Tendrils Str 3 (base contact)
+Tyranids,Proteus Class Hive Ship,,weapon,Dorsal,Pyro-Acid Battery,,,45,FP,12,direct,L/F/R,True,Dorsal Pyro-Acid Battery 45cm FP12 (L/F/R)
+Tyranids,Proteus Class Hive Ship,,weapon,Keel,Pyro-Acid Battery,,,45,FP,12,direct,L/F/R,True,Keel Pyro-Acid Battery 45cm FP12 (L/F/R)
+Tyranids,Proteus Class Hive Ship,,weapon,Dorsal,Bio-Plasma Spines,,,30,FP,3,direct,L/F/R,True,Dorsal Bio-Plasma Spines 30cm FP3 (L/F/R)
+Tyranids,Proteus Class Hive Ship,,weapon,Keel,Bio-Plasma Spines,,,30,FP,3,direct,L/F/R,True,Keel Bio-Plasma Spines 30cm FP3 (L/F/R)
+Tyranids,Proteus Class Hive Ship,,unparsed,,,,,,,,,,False,Port and Starboard Launch Glands S6 each (Antibodies 15cm)
+Tyranids,Proteus Class Hive Ship,,unparsed,,,,,,,,,,False,"Prow Excretion Ducts S10 (Hull-borers 20cm, F)"
+Tyranids,Infested Space Station,,weapon,,Weapons Battery,,,60,FP,12,direct,All Round,True,Weapons Battery 60cm FP12 (All Round)
+Tyranids,Infested Space Station,,weapon,,Lance Battery,,,30,FP,3,direct,All Round,True,Lance Battery 30cm FP3 (All Round)

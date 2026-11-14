@@ -2,24 +2,23 @@
 
 Source: `BFGXR_XR_Companion.docx`
 
-- Ships: 212
-- Weapon entries: 536
-- Parsed and round-tripped exactly: 526
-- Not parsed (kept as raw text only): 10
-- Ships whose Armament cell is not a weapon list: 12
+- Ships: 228
+- Weapon entries: 556
+- Parsed and round-tripped exactly: 547
+- Not parsed (kept as raw text only): 9
+- Ships whose Armament cell is not a weapon list: 19
 
 ## Weapons kept as raw text
 
-- Eldar / Eclipse Class Cruiser: `Keel Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)`
-- Eldar / Hellebore Class Frigate: `Keel Launch Bay S1 (Darkstar ASF 30cm)`
-- Eldar / Void Dragon Class Grand Cruiser: `Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)`
-- Eldar / Bahzhakhain (Biel-Tan): `Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)`
-- Eldar / Wild Serpent (Saim-Hann): `Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)`
-- Eldar / Flame of Asuryan (Iyanden): `Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)`
+- Dark Eldar / Tormentor Class Spire: `Torpedo Launcher 30cm S4 (All Round), plasma, leech and boarding torpedoes`
+- Dark Eldar / Tormentor Class Spire: `Impaler Bay 2 Modules (Impalers 30cm)`
 - Necrons / Cairn Class Tombship: `Star Pulse Generator 20cm (area effect)`
 - Necrons / Reaper Class Grand Harvest Ship: `Star Pulse Generator 20cm (area effect)`
 - Necrons / Scythe Class Harvest Ship: `Star Pulse Generator 20cm (area effect)`
 - Tau & Allies / Bastion Commerce Vessel: `Dorsal Modular Launch Bays S2 or S4 Torps (All Round; ASF 30cm / BMR 20cm / AB 30cm / torps 30cm)`
+- Tyranids / Proteus Class Hive Ship: `Prow Feeder Tendrils Str 3 (base contact)`
+- Tyranids / Proteus Class Hive Ship: `Port and Starboard Launch Glands S6 each (Antibodies 15cm)`
+- Tyranids / Proteus Class Hive Ship: `Prow Excretion Ducts S10 (Hull-borers 20cm, F)`
 
 ## Stat cells kept as raw text only (not plain numbers)
 
@@ -28,6 +27,14 @@ Source: `BFGXR_XR_Companion.docx`
 - Support Assets / Activated Blackstone Fortress: `turn_raw` = `Special`
 - Chaos / Chaos Space Hulk: `turn_raw` = `Special`
 - Chaos / Terminus Est (Death Guard): `points_raw` = `420*`
+- Dark Eldar / Mortalis Class Grand Cruiser: `shields_raw` = `SF`
+- Dark Eldar / Torture Class Cruiser: `shields_raw` = `SF`
+- Dark Eldar / Succubus Class Light Cruiser: `shields_raw` = `SF`
+- Dark Eldar / Corsair Class Frigate: `shields_raw` = `SF`
+- Dark Eldar / Subjugation Class Raider: `shields_raw` = `SF`
+- Dark Eldar / Dark Eldar Transport: `points_raw` = `Free`
+- Dark Eldar / Dark Eldar Transport: `shields_raw` = `SF`
+- Dark Eldar / Tormentor Class Spire: `shields_raw` = `SF`
 - Eldar / Void Stalker Class Battleship: `speed_raw` = `10/15/20`
 - Eldar / Void Stalker Class Battleship: `shields_raw` = `3+H`
 - Eldar / Supernova Class Grand Cruiser: `speed_raw` = `10/15/20`
@@ -72,6 +79,7 @@ Source: `BFGXR_XR_Companion.docx`
 - Eldar / Shadow Point (Ulthwé): `shields_raw` = `3+H`
 - Eldar / Sword of Eldanesh (Alaitoc): `speed_raw` = `10/20/30`
 - Eldar / Sword of Eldanesh (Alaitoc): `shields_raw` = `1+H`
+- Eldar / Eldar Transport: `points_raw` = `Free`
 - Eldar / Eldar Transport: `speed_raw` = `10/15/15`
 - Eldar / Eldar Transport: `shields_raw` = `1+H`
 - Eldar / Haven Class Spire: `speed_raw` = `5/5/5`
@@ -90,6 +98,11 @@ Source: `BFGXR_XR_Companion.docx`
 - Tau & Allies / Courier Transport: `points_raw` = `Free`
 - Tau & Allies / Nicassar Caravan: `turn_raw` = `Special`
 - Tau & Allies / Kroot Warsphere: `turn_raw` = `Special`
+- Tyranids / Proteus Class Hive Ship: `shields_raw` = `SC`
+- Tyranids / Charybdis Class Hive Ship: `shields_raw` = `SC`
+- Tyranids / Tyranid Bio-Cruiser: `shields_raw` = `SC`
+- Tyranids / Vanguard Drone: `shields_raw` = `SC`
+- Tyranids / Escort Drone: `shields_raw` = `SC`
 - Orks / Terror Ship: `armour_raw` = `6+/5+/4+`
 - Orks / Kill Kroozer: `armour_raw` = `6+/5+/4+`
 - Orks / Basha Lite Kroozer: `armour_raw` = `6+/5+/4+`
@@ -109,3 +122,10 @@ Source: `BFGXR_XR_Companion.docx`
 - Eldar / Shadowhunter Class Destroyer: `Prow: Weapons Battery 30cm FP3 (F) or Phantom Lance 30cm FP1 (F)`
 - Necrons / Deathseed Minefield: ``
 - Necrons / Deathseed Mine: ``
+- Tyranids / Charybdis Class Hive Ship: `Prow Feeder Tendrils Str 2 (base contact); plus weapon configuration`
+- Tyranids / Tyranid Bio-Cruiser: `Prow Feeder Tendrils Str 1 (base contact); plus gene template and weapon configuration`
+- Tyranids / Kraken: `Weapon configuration (choose one)`
+- Tyranids / Vanguard Drone: `Weapon configuration (choose one)`
+- Tyranids / Escort Drone: `Weapon configuration (choose one)`
+- Tyranids / Spore Field: ``
+- Tyranids / Orbital Defence Spores: ``

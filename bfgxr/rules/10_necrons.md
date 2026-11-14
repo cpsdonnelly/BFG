@@ -78,7 +78,7 @@ These upgrades are found only in Necron Dynasty fleets; costs are in the Necron 
 
 ### Critical Hits & Campaigns
 
-**Critical Hits:** Necron vessels use the Necron Critical Hits Table (Appendix 3, p.201). Note that some results will inflict a leadership penalty on the ship, as shown in the 'Extra Damage' column. These penalties are applied each time the system is hit, just like any other extra damage, and cannot be removed during the game, even if the system is repaired. If playing in a campaign, these leadership penalties are automatically repaired at the end of each game, in the same way as critical damage results.
+**Critical Hits:** Necron vessels use the Necron Critical Hits Table (Appendix 3, p.226). Note that some results will inflict a leadership penalty on the ship, as shown in the 'Extra Damage' column. These penalties are applied each time the system is hit, just like any other extra damage, and cannot be removed during the game, even if the system is repaired. If playing in a campaign, these leadership penalties are automatically repaired at the end of each game, in the same way as critical damage results.
 
 **Campaign Refits & Crew Skills:** In a campaign, a Necron fleet does not earn refits or crew skills. Whenever a ship would earn a crew skill or an appeal for a refit is granted, the fleet gains one repair point instead.
 

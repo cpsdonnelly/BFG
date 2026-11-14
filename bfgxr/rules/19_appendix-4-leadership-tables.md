@@ -1,0 +1,12 @@
+# Appendix 4 - Leadership Tables
+
+*Roll a D6 before the game for each ship and read across. Factions not listed use Default. Some ships never roll for Ld: their rules give a fixed value (for example fleet support units, Demiurg commerce vessels, the Black Ship, the Fortress-Monastery and Ork space hulks). Tyranid ships do not roll for leadership values (Xenos p.104); see Instinctive Behaviour. The default ranks are Untried (6), Experienced (7), Veteran (8), Crack (9). Dark Eldar also use the Eldar column. Sources: BFG:XR Rulebook p.7; Mechanicus, Space Marine and Ork fleet lists; Eldar per XR and the MMS rulesheet.*
+
+| D6 | Default | Mechanicus | Astartes | Orks | Eldar |
+|---|---|---|---|---|---|
+| 1 | 6 | 7 | 8 | 5 | 7 |
+| 2 | 7 | 8 | 8 | 6 | 8 |
+| 3 | 7 | 8 | 9 | 6 | 8 |
+| 4 | 8 | 9 | 9 | 7 | 9 |
+| 5 | 8 | 9 | 10 | 7 | 9 |
+| 6 | 9 | 9 | 10 | 8 | 10 |

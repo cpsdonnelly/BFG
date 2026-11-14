@@ -1,4 +1,4 @@
-"""Demiurg War Host (bfgxr/rules/11_tau-allies.md, Xenos p.101; CHANGES updates 22-23)."""
+"""Demiurg War Host (bfgxr/rules/12_tau-allies.md, Xenos p.101; CHANGES updates 22-23)."""
 from tests.conftest import make_gs, make_ship
 from tests.test_fleet_lists import rows
 from src.fleet_lists import fleet_list_errors, option_allowed, reserve_allowed

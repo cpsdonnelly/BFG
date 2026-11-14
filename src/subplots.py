@@ -1,4 +1,4 @@
-"""Sub-plots (bfgxr/rules/12_scenarios.md, XR p.80-82; CLAUDE.md To do 7 b),
+"""Sub-plots (bfgxr/rules/14_scenarios.md, XR p.80-82; CLAUDE.md To do 7 b),
 pure logic: generation (D6 for the table, D6 for the entry), the set-up
 effects, the objectives judged at the end of the game and the battle result
 (Heroic Victory / Victory / Heroic Defeat / Miserable Defeat).

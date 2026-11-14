@@ -1,4 +1,4 @@
-"""Eldar MMS v2.0 rules (bfgxr/rules/08_eldar.md, MMS pp.3-5; CLAUDE.md To do
+"""Eldar MMS v2.0 rules (bfgxr/rules/09_eldar.md, MMS pp.3-5; CLAUDE.md To do
 14), pure logic. First slice: speeds by the sun, the two-move movement
 (turn on the spot at the start of each move), special-order limits, holofields
 and Fragile. Wiring into the catalog, combat, movement dialogs and the AI comes

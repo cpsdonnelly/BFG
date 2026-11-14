@@ -1,6 +1,6 @@
 # Appendix 3 - Special Damage Tables
 
-*Critical hits and catastrophic damage for the Ramilies Star Fort, the Fortress-Monastery, the Chaos and Ork Space Hulks, Eldar and Necron vessels, and space stations and other high orbit defences with 3 or more starting hits. Everything else uses Appendix 5, p.204.*
+*Critical hits and catastrophic damage for the Ramilies Star Fort, the Fortress-Monastery, the Chaos and Ork Space Hulks, Dark Eldar, Eldar, Necron and Tyranid vessels, and space stations and other high orbit defences with 3 or more starting hits. Everything else uses Appendix 5, p.231.*
 
 ### Imperial Navy
 
@@ -34,7 +34,7 @@
 
 ### Space Marines
 
-The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical Hits Table** and **Catastrophic Damage Table (p.199)**.
+The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical Hits Table** and **Catastrophic Damage Table (p.223)**.
 
 ### Chaos
 
@@ -48,11 +48,31 @@ The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical
 | 3-4 | **Target weapons clusters.** The attacker chooses one of the following (applicable) options: reduce the firepower of a gunnery weapon facing the attacker by 2; reduce the strength of a torpedo salvo (a *launcha*, for Orks) facing the attacker by 2; or reduce the launch capacity of any launch bay by 2. |
 | 5+ | **Target thruster assemblies.** Note each time this is rolled. Each time the hulk wishes to turn, it must roll higher on a D6 than the number of thruster assembly critical hits it has suffered during the course of the battle. This does not include the free turn it may make when it is within a planet's gravity well. Maximum 6 such hits. |
 
+### Dark Eldar
+
+**Dark Eldar Critical Hits Table**
+
+*Used by all Dark Eldar vessels except the Tormentor Spire, which has its own table (Dark Eldar section). Roll 2D6. Dark Eldar still use the normal catastrophic damage table. Source: Xenos p.6.*
+
+| 2D6 | Extra Damage | Result |
+|---|---|---|
+| 2 | +0 | **Control circuit damaged.** The ship's control circuit, which aids internal communications, is damaged by the hit. The ship's leadership is reduced by 1 until the damage is repaired. This penalty is cumulative for each time this system is damaged. |
+| 3 | +0 | **Keel armament damaged.** The keel armament is taken offline by the hit and may not fire until the damage has been repaired. |
+| 4 | +0 | **Prow armament damaged.** The ship's prow armament is taken offline by the hit and may not fire until the damage has been repaired. |
+| 5 | +0 | **Graviton harness severed.** The systems that allow the ship to alter the angle of its turning fins are damaged by the hit. The ship may make no turns in the movement phase until the damage is repaired. |
+| 6 | +0 | **Bladevanes scarred.** The ship's blade-like energy collectors are damaged, reducing the ship's power reserves. The ship's speed is reduced by 5cm until the damage is repaired. |
+| 7 | +0 | **Superstructure damaged.** A small breach occurs. Excess strain on the ship's hull could threaten its structural integrity. Until the damage is repaired, roll a D6 each time the ship turns during its movement phase. On a result of 1-2, the ship suffers one point of damage. |
+| 8 | +1 | **Thrusters damaged.** The ship's main thrusters are severely damaged, crippling its movement. The ship's speed is reduced by 10cm until the damage is repaired. |
+| 9 | +0 | **Commanders Slain.** Explosions kill most of the command staff. Conveniently, other crew members step up to take their places, though the ship's leadership is still reduced by 1. This damage may not be repaired. |
+| 10 | +0 | **Shadowfield generators destroyed.** The ship's shadowfield generators are smashed to pieces. The ship no longer benefits from its shadowfields. This damage may not be repaired. |
+| 11 | +D3 | **Hull breach.** A huge gash is torn in the ship's hull, causing carnage amongst the crew. |
+| 12 | +D6 | **Bulkhead collapse.** Internal pillars buckle and twist, whole compartments crumple with the screams of crushed and eviscerated slaves; just pray that some of the ship holds together. |
+
 ### Eldar
 
 **Eldar Critical Hits Table**
 
-*Used by all Corsair and Craftworld Eldar vessels. Roll 2D6. Eldar take critical hits on a 5+ (Fragile; Ghostships on 6+). Source: MMS p.5.*
+*Used by all Corsair and Craftworld Eldar vessels except the Haven Spire, which has its own table (Eldar section). Roll 2D6. Eldar take critical hits on a 5+ (Fragile; Ghostships on 6+). Source: MMS p.5.*
 
 | 2D6 | Extra Damage | Result |
 |---|---|---|
@@ -67,6 +87,8 @@ The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical
 | 10 | +1 | **Shields collapse.** The shield generators overload and burn out, leaving the ship virtually defenceless. The ship's shield strength is reduced to zero. This damage may not be repaired. |
 | 11 | +D3 | **Hull breach.** A huge gash is torn in the ship's hull, causing carnage among the crew. |
 | 12 | +D6 | **Bulkhead collapse.** Internal pillars buckle and twist; whole compartments crumple with a psychic scream of tortured wraithbone. |
+
+*XR differs (Xenos p.17): 7 Superstructure damaged: roll a D6 each time the ship turns (other than a solar jibe), suffering 1 damage on a 1-2. 9 Infinity Circuit Smashed (+1): Leadership -3, cannot be repaired. 10 Field generators destroyed (+0): no holofields or wave shields, cannot be repaired. Results 2-6, 8, 11 and 12 match MMS in effect.*
 
 ### Necrons
 
@@ -90,7 +112,38 @@ The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical
 
 ### Orks
 
-The Ork Space Hulk uses the shared **Space Hulk Critical Hits Table (p.200)**.
+The Ork Space Hulk uses the shared **Space Hulk Critical Hits Table (p.224)**.
+
+### Tyranids
+
+**Tyranid Critical Hits Table**
+
+*Used by all Tyranid vessels except the Infested Space Station, which follows the rules for orbital stations and uses the Space Station Critical Hits Table (Fleet Support, below). Roll 2D6. If a result cannot be applied, apply the next highest result instead. Source: Xenos p.107.*
+
+| 2D6 | Extra Damage | Result |
+|---|---|---|
+| 2 | +0 | **Spore cysts injured.** The ship's spore cysts are badly damaged by the hit. The ship is reduced to 0 spore cysts until the damage has been repaired. This damage affects all functions of its spore cysts (both as shields and turrets). |
+| 3 | +0 | **Starboard armament wounded.** The starboard armament is severely injured by the hit. The ship's starboard weapons may not be used until the damage has been repaired. |
+| 4 | +0 | **Port armament wounded.** Heavy damage wounds the port side weaponry. The ship's port armament may not be used until the damage has been repaired. |
+| 5 | +0 | **Prow armament wounded.** The bio-ship's prow is ripped open. Its prow armament may not be used until the damage has been repaired. |
+| 6 | +1 | **Thorax armament wounded.** A large tear in the vessel's thorax prevents its weapons from discharging. The ship may not use its thorax weapons until the damage has been repaired. |
+| 7 | +0 | **Deep wound!** Internal organs are ruptured and massive bleeding weakens the vessel. Roll to repair the deep wound in the End phase; if the wound is not repaired, it causes 1 point of extra damage and keeps bleeding. (This result functions exactly like a Fire critical hit). |
+| 8 | +1 | **Discharge vents wounded.** One of the huge biological valves that manoeuvre the ship through the ether is crippled. The bio-ship may not turn until the damage has been repaired. |
+| 9 | +0 | **Synapse link severed.** The nerve bundles which connect the ship to the Hive Mind are badly damaged. The bio-ship cannot use or benefit from synaptic control until the damage has been repaired. |
+| 10 | +0 | **Spore cysts ruptured.** The ship's spore cysts suffer larvae failure and seal up. The ship is reduced to 0 spore cysts. This damage affects all functions of its spore cysts (both as shields and turrets) and cannot be repaired. |
+| 11 | +D3 | **Severe wound.** A huge gash is torn in the ship's hull, vital fluids freezing instantly as they spill into the void. |
+| 12 | +D6 | **Massive haemorrhage.** The armoured hide of the ship suffers immense damage, spraying alien ichor far into the void. Make a bio-plasma attack with Strength 1 against every other ship and ordnance marker within 2D6cm. Like other types of area effects, holofields and similar defences will have no effect against this attack. |
+
+**Tyranid Catastrophic Damage Table**
+
+*Roll 2D6 when a Tyranid ship loses its last hit. Source: Xenos p.107.*
+
+| 2D6 | Result |
+|---|---|
+| 2-7 | **Drifting carcass.** The limp remains of the bio-ship drift through the void, pushed forward by sporadic death spasms. The wreck moves 4D6cm forward in each of its subsequent movement phases. Place a blast marker in contact with the corpse's base after each move. |
+| 8-9 | **Death throes.** The ship is wracked by violent muscle contractions, and ichor seeps from dozens of horrendous wounds. The wreck moves 4D6cm forward in each of its subsequent movement phases. Place a blast marker in contact with the corpse's base and roll on the Catastrophic Damage table again at the end of the movement phase (replacing this result if a 2-7 is rolled). |
+| 10-11 | **Biological eruption.** The ship spectacularly explodes, hurling gobbets of viral slime and acid over a wide area. Remove the ship from play, leaving behind a number of blast markers equal to half its starting number of hits. Make a pyro-acid attack against every target within 3D6cm, with a firepower equal to the ship's starting damage. (Like other area-of-effect attacks, holofields and similar defences offer no protection). |
+| 12 | **Bio-plasma detonation.** With a blinding flash the ship's main arteries explode with bio-plasma engulfing the creature and spraying dangerously in all directions. Remove the ship from play, leaving behind a number of blast markers equal to its starting number of hits. Make a bio-plasma attack against every target within 3D6cm, with a Strength equal to half the exploding vessel's starting damage. Shields will not protect against the detonation. (Like other area-of-effect attacks, holofields and similar defences offer no protection). |
 
 ### Fleet Support
 

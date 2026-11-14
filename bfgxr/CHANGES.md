@@ -828,3 +828,94 @@ New `notes/` folder (simulator design, not booklet rules; the booklet and `rules
   - Idea A in the July AA working notes (replaced by System 3);
   - task 2b's 15-degree heading sampling in AI_DESIGN_feedback.md (replaced by the target-directed
     movement note).
+
+# Fifty-sixth update: Dark Eldar and Tyranids added
+
+Two new faction sections, from *Ships of the Xenos*, with ships in `data/`:
+- `rules/08_dark-eldar.md` (Xenos p.2-13): faction rules (Leadership +1, Slave-Taking, Insatiable
+  Greed, Pain Frenzy, Spectral Plating, Mimic Engine, Shadowfields), weapons, upgrades, six ships
+  with their Kabal Variants, the Transport, the Tormentor Spire with its own critical table, fleet list.
+- `rules/13_tyranids.md` (Xenos p.104-120): Instinctive Behaviour chart (as a table), Synaptic
+  Control, spores, boarding, ordnance, weapons, biomorphs, ships with weapon configurations and
+  gene templates, defences, three fleet lists (Hive, Vanguard, Gestating).
+
+**Files renumbered.** Every rules file from Eldar onwards moved: Eldar 08 -> 09, Necrons 09 -> 10,
+Orks 10 -> 11, Tau 11 -> 12, scenarios 12 -> 14, campaigns 13 -> 15, appendices 14-20 -> 16-22.
+Update any hard-coded paths. Booklet page numbers after p.99 also moved.
+
+Other changes:
+- Appendix 3 has the Dark Eldar critical table and the Tyranid critical and catastrophic tables.
+- Appendix 4: Dark Eldar use the Eldar column (Default +1).
+
+Data notes:
+- `shields_raw` is `SF` (Dark Eldar shadowfields) or `SC` (Tyranid spore cloud = spore cysts). There
+  are no numeric shields; see the faction rules.
+- Several Tyranid ships have no fixed armament; their weapons are chosen from options in the Ship
+  Special Rules (listed in `parse_report.md`).
+- Dark Eldar ships must take a Kabal Variant (prose, in the rules file).
+
+**Pending owner review.** These sections await the owner's review (variant costs, base sizes, Proteus
+type, Strength vs FP for claws/tendrils, Gestating Scylla cost and others). Treat the printed
+values as current until a later update says otherwise.
+
+# Fifty-seventh update: AI questions note
+
+- New `notes/AI_terrain_and_learning_questions.md`: questions for the simulator to check (booklet unchanged):
+  - cloud, asteroid and planet rules (clouds act as one blast marker in contact, including -1 shield, and
+    don't block line of sight);
+  - terms the move score may lack;
+  - learned-evaluation features (all hand-crafted features plus more);
+  - luck-adjusted fitness, to cut dice noise in tuning and training labels;
+  - game-count estimates; measure simulator games per hour first.
+
+# Fifty-eighth update: Eldar conflict notes and XR options; owner rulings
+
+Booklet is now 235 pages (Necrons 120, Orks 128, Tau 138, Tyranids 148, Scenarios 161, Campaigns 205,
+Appendices 217-234).
+
+Eldar (`rules/09_eldar.md`), all approved by the owner:
+- "XR differs (Xenos p.N)" notes after each MMS rule that XR's own Eldar rules contradict: second move,
+  solar jibe, minimum move, boarding, All Ahead Full, Come to New Heading, celestial phenomena, shields
+  and holofields, stealth, fighters, pulsars, Dying Race, Gryphon Knights, Seer Council, Aspect Warriors,
+  Ghostships, ship profiles, named ships, Craftworld guidelines, fleet limits, Haven Spire, and the
+  Eldar crit table (Appendix 3). MMS has priority; the notes are reference only. **Engine: use MMS.**
+- New booklet options taken from XR, usable with MMS ships ("Booklet Hybrid Options (from XR)"):
+  Vampire Hunters (+40), fusion/distortion torpedoes (Void Stalker +25, Wyrmship +50), mine launcher
+  swap for up to two cruisers (+5 per bay). The Supernova's Prismatic Array is left out.
+- Eldar Transport: now Free, with XR's convoy-ship rules (transport capacity 1; only when the scenario
+  needs transports).
+- Haven Spire: XR's Leadership 8, Docking, Webway Portal and Hidden Base rules, and its own critical
+  hits table (in the Eldar section; Appendix 3's Eldar table now excludes it). Netherfield and
+  Polarization Field are not used.
+- Escorts: squadrons of two to six (Corsair: no more than four two-hit escorts), from XR.
+- Wyrm Notes: the keel swap is a Keel Pulsar Lance 45cm FP2 (F).
+
+Tyranids: the bio-cruiser's weapon cost is added to the cost of the bio-cruiser (source said "hive ship",
+a typo).
+
+New standing rulings in CLAUDE.md: light cruisers in "per N cruisers" limits; Tyranid claws and tendrils
+use Strength; Proteus type Defence.
+
+# Fifty-ninth update: Necron awakening is capital ships only
+
+No booklet change; `rules/10_necrons.md` already says "Necron capital ships". Owner flagged it as easily
+missed, so it's now a standing ruling in CLAUDE.md. **Engine check:** escorts must never conserve power,
+awaken, or score double VP, but hits on escorts do raise the alert level.
+
+# Sixtieth update: owner decisions on Dark Eldar and Tyranids; sign-off answers
+
+Booklet (now 234 pages; every section from Scenarios on moved back one page):
+- Tyranids: Charybdis starboard pyro-acid battery 30cm (printed 45cm; owner ruling: a typo, noted in the
+  booklet).
+  The Instinctive Behaviour chart has no number column and uses the source text. The Gestating fleet
+  table uses the source wording; its synapse node gives Ld8, one more than the +5 minor node's Ld7.
+- Appendix 3: the Infested Space Station uses the Space Station Critical Hits Table.
+- Appendix 4: the column is "Eldar" again (Dark Eldar also use it); Tyranids never roll Ld.
+- Dark Eldar fleet table: source wording.
+
+Data:
+- `profile_from` fixed for the Grey Knights escorts.
+- Eldar keel launch bays now parse (`location: "Keel"`; the name may be the singular "Launch Bay").
+
+New note: `notes/OWNER_SIGNOFF_answers.md` gives the booklet-side answers to OWNER_SIGNOFF.md. It has
+rule changes for items 6, 9, 13, 14, 17, 44, 49, 50 and 58, and the low-orbit answer for item 1.

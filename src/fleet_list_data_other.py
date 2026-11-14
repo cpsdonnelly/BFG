@@ -2,8 +2,8 @@
 in fleet_lists.py. Transcribed from the booklet:
   bfgxr/rules/07_chaos.md       Fleet Composition (Incursion, Crusade, Renegades
                                 & God-Dedicated Fleet Lists)
-  bfgxr/rules/10_orks.md        Fleet Composition (Green Tide Fleet List)
-  bfgxr/rules/11_tau-allies.md  Fleet Composition (Tau Empire Fleet List)
+  bfgxr/rules/11_orks.md        Fleet Composition (Green Tide Fleet List)
+  bfgxr/rules/12_tau-allies.md  Fleet Composition (Tau Empire Fleet List)
   bfgxr/rules/05_rogue-traders.md  Fleet Composition (Fleet Detachment,
                                 Expedition & Pirate Lists)
 """
@@ -202,7 +202,7 @@ CHAOS_LISTS = [
               "Boons: Warp Beasts (+25, up to two ships), Strands of Fortune (+25)."),
 ]
 
-# ── Orks (10_orks.md) ─────────────────────────────────────────────────────────
+# ── Orks (11_orks.md) ─────────────────────────────────────────────────────────
 
 _NAVY_KEYS = ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion"]
 
@@ -239,7 +239,7 @@ ORK_LISTS = [
          "kroozers\")."]},
 ]
 
-# ── Tau (11_tau-allies.md) ────────────────────────────────────────────────────
+# ── Tau (12_tau-allies.md) ────────────────────────────────────────────────────
 
 TAU_LISTS = [
     {"key": "tau_empire", "faction": "tau_kororvesh",

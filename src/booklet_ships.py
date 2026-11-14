@@ -30,6 +30,10 @@ FACTIONS: Dict[str, Tuple[str, str, str]] = {
     # listed use Default"); Eldar use the Eldar column (Default +1).
     "Eldar": ("eldar", "Eldar", "Eldar"),
     "Necrons": ("necrons", "Necrons", "Default"),
+    # Export 14 (update 56, 60): Dark Eldar use the Eldar column; Tyranids
+    # never roll Leadership (synapse sets it)
+    "Dark Eldar": ("dark_eldar", "Dark Eldar", "Eldar"),
+    "Tyranids": ("tyranids", "Tyranids", "Default"),
 }
 
 # Factions whose own rules the engine doesn't play yet: every ship is listed
@@ -39,7 +43,16 @@ UNBUILT_FACTION_RULES = {
     # listed in CLAUDE.md To do 14
     # Necrons are playable too (src/necrons.py); the ground defences and Deathseed
     # mines stay unsupported for their own reasons (no movement / profile)
+    "Dark Eldar": "Dark Eldar faction rules (shadowfields, Mimic Engine, Slave-Taking, "
+                  "Kabal Variants...) not built yet",
+    "Tyranids": "Tyranid faction rules (Instinctive Behaviour, synapse, spore clouds, "
+                "weapon configurations...) not built yet",
 }
+
+# Convoy ships whose capacity is in their faction's special rule, not their
+# Notes cell: the Eldar Transport ("It has a transport capacity of 1", Xenos
+# p.31, in the Eldar Ship Special Rules)
+RULE_TRANSPORT = {"Eldar Transport": 1.0}
 
 # Appendix 4 - Leadership Tables: D6 roll -> Leadership, per column.
 LEADERSHIP_TABLES: Dict[str, List[int]] = {
@@ -397,6 +410,8 @@ def convert_row(row: dict) -> dict:
                         f"{row.get('turn_raw')}) not modelled yet")
     transport = transport_capacity(notes0) if (
         "Convoy ship" in notes0 or row.get("roster_group") == "Convoy Ships") else None
+    if transport is None and row.get("name") in RULE_TRANSPORT and "Convoy ship" in notes0:
+        transport = (RULE_TRANSPORT[row["name"]], False)
     if row.get("points") is None and not (transport and row.get("points_raw") == "Free"):
         problems.append(f"points cost '{row.get('points_raw')}' is not a fixed number")
     if not row["weapons"] and not (transport and ship_type in ("escort", "cruiser")):

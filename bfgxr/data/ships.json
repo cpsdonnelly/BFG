@@ -1,6 +1,6 @@
 {
  "source_document": "BFGXR_XR_Companion.docx",
- "ship_count": 212,
+ "ship_count": 228,
  "ships": [
   {
    "faction": "Imperial Navy",
@@ -8336,7 +8336,7 @@
     "Grey Knights"
    ],
    "faction_rules_basis": "Follows Grey Knights faction rules",
-   "profile_from": "Space Marine Nova (p",
+   "profile_from": "Space Marine Nova",
    "name": "Grey Knights Nova Frigate",
    "hull_type": "Escort",
    "points": 45,
@@ -8424,7 +8424,7 @@
     "Grey Knights"
    ],
    "faction_rules_basis": "Follows Grey Knights faction rules",
-   "profile_from": "Space Marine Gladius (p",
+   "profile_from": "Space Marine Gladius",
    "name": "Grey Knights Gladius Frigate",
    "hull_type": "Escort",
    "points": 40,
@@ -8486,7 +8486,7 @@
     "Grey Knights"
    ],
    "faction_rules_basis": "Follows Grey Knights faction rules",
-   "profile_from": "Space Marine Hunter (p",
+   "profile_from": "Space Marine Hunter",
    "name": "Grey Knights Hunter Destroyer",
    "hull_type": "Escort",
    "points": 40,
@@ -14686,6 +14686,493 @@
    "notes": "Unique; flagship only if most expensive. Free Mark of Khorne. Improved Thrusters (+D6cm on All Ahead Full); always has CSM + Terminator crew, re-rolls boarding; Defiant Rage when crippled. Full rules: see Chaos Ship Special Rules"
   },
   {
+   "faction": "Dark Eldar",
+   "source": "Xenos p.2-13",
+   "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Dark Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Mortalis Class Grand Cruiser",
+   "hull_type": "Cruiser",
+   "points": 300,
+   "points_raw": "300",
+   "hits": 8,
+   "hits_raw": "8",
+   "base": "32mm",
+   "speed_cm": 30,
+   "speed_raw": "30cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "SF",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Weapons Battery 30cm FP16 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Weapons Battery 30cm FP16 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "16",
+     "value_int": 16,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Kabal Variant required (see Dark Eldar Ship Special Rules)"
+  },
+  {
+   "faction": "Dark Eldar",
+   "source": "Xenos p.2-13",
+   "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Dark Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Torture Class Cruiser",
+   "hull_type": "Cruiser",
+   "points": 230,
+   "points_raw": "230",
+   "hits": 6,
+   "hits_raw": "6",
+   "base": "32mm",
+   "speed_cm": 35,
+   "speed_raw": "35cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "SF",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Weapons Battery 30cm FP12 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Weapons Battery 30cm FP12 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Kabal Variant required (see Dark Eldar Ship Special Rules)"
+  },
+  {
+   "faction": "Dark Eldar",
+   "source": "Xenos p.2-13",
+   "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Dark Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Succubus Class Light Cruiser",
+   "hull_type": "Cruiser",
+   "points": 140,
+   "points_raw": "140",
+   "hits": 4,
+   "hits_raw": "4",
+   "base": "32mm",
+   "speed_cm": 40,
+   "speed_raw": "40cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "SF",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Prow Weapons Battery 30cm FP6 (F)",
+   "weapons": [
+    {
+     "raw": "Prow Weapons Battery 30cm FP6 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Prow",
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "6",
+     "value_int": 6,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Kabal Variant required (see Dark Eldar Ship Special Rules)"
+  },
+  {
+   "faction": "Dark Eldar",
+   "source": "Xenos p.2-13",
+   "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Dark Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Corsair Class Frigate",
+   "hull_type": "Escort",
+   "points": 60,
+   "points_raw": "60",
+   "hits": 2,
+   "hits_raw": "2",
+   "base": "32mm",
+   "speed_cm": 40,
+   "speed_raw": "40cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "SF",
+   "armour": {
+    "front": 4,
+    "front_note": null,
+    "other": 4
+   },
+   "armour_raw": "4+",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "Weapons Battery 30cm FP2 (F)",
+   "weapons": [
+    {
+     "raw": "Weapons Battery 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Kabal Variant required (see Dark Eldar Ship Special Rules)"
+  },
+  {
+   "faction": "Dark Eldar",
+   "source": "Xenos p.2-13",
+   "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Dark Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Subjugation Class Raider",
+   "hull_type": "Escort",
+   "points": 40,
+   "points_raw": "40",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 45,
+   "speed_raw": "45cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "SF",
+   "armour": {
+    "front": 4,
+    "front_note": null,
+    "other": 4
+   },
+   "armour_raw": "4+",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "Weapons Battery 30cm FP1 (F)",
+   "weapons": [
+    {
+     "raw": "Weapons Battery 30cm FP1 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "1",
+     "value_int": 1,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Kabal Variant required (see Dark Eldar Ship Special Rules)"
+  },
+  {
+   "faction": "Dark Eldar",
+   "source": "Xenos p.2-13",
+   "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Dark Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Dark Eldar Transport",
+   "hull_type": "Escort",
+   "points": null,
+   "points_raw": "Free",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 25,
+   "speed_raw": "25cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "SF",
+   "armour": {
+    "front": 4,
+    "front_note": null,
+    "other": 4
+   },
+   "armour_raw": "4+",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "Weapons Battery 30cm FP2 (F)",
+   "weapons": [
+    {
+     "raw": "Weapons Battery 30cm FP2 (F)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "2",
+     "value_int": 2,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "F"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Convoy ship, transport capacity 1 (see Dark Eldar Ship Special Rules)"
+  },
+  {
+   "faction": "Dark Eldar",
+   "source": "Xenos p.2-13",
+   "roster_group": "Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Dark Eldar"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Tormentor Class Spire",
+   "hull_type": "Defence",
+   "points": 275,
+   "points_raw": "275",
+   "hits": 10,
+   "hits_raw": "10",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "-",
+   "turn_deg": null,
+   "turn_raw": "-",
+   "shields": null,
+   "shields_raw": "SF",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Weapons Battery 45cm FP12 (All Round); Phantom Lance 30cm FP3 (All Round); Torpedo Launcher 30cm S4 (All Round), plasma, leech and boarding torpedoes; Impaler Bay 2 Modules (Impalers 30cm); Launch Bay S4 (Raptors 30cm, Razorwings 20cm, Slavebringers 30cm)",
+   "weapons": [
+    {
+     "raw": "Weapons Battery 45cm FP12 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Phantom Lance 30cm FP3 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Phantom Lance",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Torpedo Launcher 30cm S4 (All Round), plasma, leech and boarding torpedoes",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    },
+    {
+     "raw": "Impaler Bay 2 Modules (Impalers 30cm)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    },
+    {
+     "raw": "Launch Bay S4 (Raptors 30cm, Razorwings 20cm, Slavebringers 30cm)",
+     "group": null,
+     "kind": "launch_bays",
+     "location": null,
+     "name": "Launch Bay",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "4",
+       "raw": "S4"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Raptors",
+       "speed_cm": 30
+      },
+      {
+       "type": "Razorwings",
+       "speed_cm": 20
+      },
+      {
+       "type": "Slavebringers",
+       "speed_cm": 30
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "High orbit defence. Ld 8. Rules: see Dark Eldar Ship Special Rules"
+  },
+  {
    "faction": "Eldar",
    "source": "MMS p.3-28",
    "roster_group": "Corsair Battleships",
@@ -14992,8 +15479,29 @@
     {
      "raw": "Keel Launch Bays S4 (Darkstar ASF 30cm, Eagle BMR 20cm)",
      "group": null,
-     "kind": "unparsed",
-     "parsed": false
+     "kind": "launch_bays",
+     "location": "Keel",
+     "name": "Launch Bays",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "4",
+       "raw": "S4"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Darkstar ASF",
+       "speed_cm": 30
+      },
+      {
+       "type": "Eagle BMR",
+       "speed_cm": 20
+      }
+     ],
+     "parsed": true
     }
    ],
    "notes": null
@@ -15310,8 +15818,25 @@
     {
      "raw": "Keel Launch Bay S1 (Darkstar ASF 30cm)",
      "group": null,
-     "kind": "unparsed",
-     "parsed": false
+     "kind": "launch_bays",
+     "location": "Keel",
+     "name": "Launch Bay",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "1",
+       "raw": "S1"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Darkstar ASF",
+       "speed_cm": 30
+      }
+     ],
+     "parsed": true
     }
    ],
    "notes": "May take mines +5pts, totally replacing its ordnance (mines do not benefit from stealth). May swap its launch bay for S2 torpedoes at no cost"
@@ -15674,7 +16199,7 @@
      "parsed": true
     }
    ],
-   "notes": "May replace both keel torpedo launchers with two pulsar lances (45cm, Front) at no cost (loses eight torpedoes, gains two pulsar lances); alternatively may purchase boarding torpedoes +10pts"
+   "notes": "May replace both keel torpedo launchers with a Keel Pulsar Lance 45cm FP2 (F) at no cost (loses eight torpedoes, gains pulsar lance firepower 2); alternatively may purchase boarding torpedoes +10pts"
   },
   {
    "faction": "Eldar",
@@ -15784,8 +16309,33 @@
     {
      "raw": "Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
      "group": null,
-     "kind": "unparsed",
-     "parsed": false
+     "kind": "launch_bays",
+     "location": "Keel",
+     "name": "Launch Bays",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "4",
+       "raw": "S4"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Nightwing ASF",
+       "speed_cm": 30
+      },
+      {
+       "type": "Phoenix BMR",
+       "speed_cm": 20
+      },
+      {
+       "type": "Vampire AB",
+       "speed_cm": 30
+      }
+     ],
+     "parsed": true
     }
    ],
    "notes": "Requires a High Admiral (Craftworld) or a Hero (Corsair). Counts as belonging to the parent fleet for reserves. Counts as a Dragonship but does not require Wraithships"
@@ -16049,8 +16599,33 @@
     {
      "raw": "Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
      "group": null,
-     "kind": "unparsed",
-     "parsed": false
+     "kind": "launch_bays",
+     "location": "Keel",
+     "name": "Launch Bays",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "4",
+       "raw": "S4"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Nightwing ASF",
+       "speed_cm": 30
+      },
+      {
+       "type": "Phoenix BMR",
+       "speed_cm": 20
+      },
+      {
+       "type": "Vampire AB",
+       "speed_cm": 30
+      }
+     ],
+     "parsed": true
     }
    ],
    "notes": "0-1, Dragonship, fleets over 1000pts only. Extra +1 boarding, aspect warriors, Ld10, 1 re-roll for every Dragonship with aspect warriors (including the Bahzhakhain)"
@@ -16191,8 +16766,33 @@
     {
      "raw": "Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
      "group": null,
-     "kind": "unparsed",
-     "parsed": false
+     "kind": "launch_bays",
+     "location": "Keel",
+     "name": "Launch Bays",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "4",
+       "raw": "S4"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Nightwing ASF",
+       "speed_cm": 30
+      },
+      {
+       "type": "Phoenix BMR",
+       "speed_cm": 20
+      },
+      {
+       "type": "Vampire AB",
+       "speed_cm": 30
+      }
+     ],
+     "parsed": true
     }
    ],
    "notes": "0-1, Dragonship, fleets over 1000pts only. Aspect warriors (same effect), Ld10, 1 re-roll, crew skill 6 (Elite Command Crew, see Appendix 2)"
@@ -16305,8 +16905,33 @@
     {
      "raw": "Keel Launch Bays S4 (Nightwing ASF 30cm, Phoenix BMR 20cm, Vampire AB 30cm)",
      "group": null,
-     "kind": "unparsed",
-     "parsed": false
+     "kind": "launch_bays",
+     "location": "Keel",
+     "name": "Launch Bays",
+     "stat": "S",
+     "category": "ordnance",
+     "bays": [
+      {
+       "side": null,
+       "strength": "4",
+       "raw": "S4"
+      }
+     ],
+     "craft": [
+      {
+       "type": "Nightwing ASF",
+       "speed_cm": 30
+      },
+      {
+       "type": "Phoenix BMR",
+       "speed_cm": 20
+      },
+      {
+       "type": "Vampire AB",
+       "speed_cm": 30
+      }
+     ],
+     "parsed": true
     }
    ],
    "notes": "0-1, Dragonship; any Corsair or Craftworld Iyanden fleet, in place of a Dragonship or Void Dragon. Aspect warriors, Ld10, 2 re-rolls. Elite command crew (see Appendix 2)"
@@ -16540,7 +17165,7 @@
    "name": "Eldar Transport",
    "hull_type": "Escort",
    "points": null,
-   "points_raw": "-",
+   "points_raw": "Free",
    "hits": 1,
    "hits_raw": "1",
    "base": "32mm",
@@ -16585,7 +17210,7 @@
      "parsed": true
     }
    ],
-   "notes": "No points given"
+   "notes": "Convoy ship. Rules: see Eldar Transport (Eldar Ship Special Rules)"
   },
   {
    "faction": "Eldar",
@@ -16696,7 +17321,7 @@
      "parsed": true
     }
    ],
-   "notes": "Even though it can move, it counts as a regular defence for removing blast markers in the end phase"
+   "notes": "Even though it can move, it counts as a regular defence for removing blast markers in the end phase. Ld 8. Rules: see Haven Class Spire (Eldar Ship Special Rules)"
   },
   {
    "faction": "Necrons",
@@ -21493,6 +22118,485 @@
     }
    ],
    "notes": "Classed as a defence. Scalable: buy starting hits up to 16 at +10pts per hit (each added hit gives +1 battery firepower) or sell down to 6 at -10pts per hit (each hit lost gives -1 battery firepower); at 10+ hits it may also add +1 Shield +15pts, +1 Turret +5pts, and/or extend battery range to 45cm +25pts (each once). Special movement and damage: see Kroot Ship Special Rules"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Hive Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Proteus Class Hive Ship",
+   "hull_type": "Defence",
+   "points": 600,
+   "points_raw": "600",
+   "hits": 20,
+   "hits_raw": "20",
+   "base": "60mm",
+   "speed_cm": 15,
+   "speed_raw": "15cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "SC",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 5,
+   "turrets_raw": "5",
+   "armament_raw": "Prow Feeder Tendrils Str 3 (base contact); Dorsal Pyro-Acid Battery 45cm FP12 (L/F/R); Keel Pyro-Acid Battery 45cm FP12 (L/F/R); Dorsal Bio-Plasma Spines 30cm FP3 (L/F/R); Keel Bio-Plasma Spines 30cm FP3 (L/F/R); Port and Starboard Launch Glands S6 each (Antibodies 15cm); Prow Excretion Ducts S10 (Hull-borers 20cm, F)",
+   "weapons": [
+    {
+     "raw": "Prow Feeder Tendrils Str 3 (base contact)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    },
+    {
+     "raw": "Dorsal Pyro-Acid Battery 45cm FP12 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Dorsal",
+     "name": "Pyro-Acid Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Pyro-Acid Battery 45cm FP12 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Pyro-Acid Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 45,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Dorsal Bio-Plasma Spines 30cm FP3 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Dorsal",
+     "name": "Bio-Plasma Spines",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Keel Bio-Plasma Spines 30cm FP3 (L/F/R)",
+     "group": null,
+     "kind": "weapon",
+     "location": "Keel",
+     "name": "Bio-Plasma Spines",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "L",
+        "F",
+        "R"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Port and Starboard Launch Glands S6 each (Antibodies 15cm)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    },
+    {
+     "raw": "Prow Excretion Ducts S10 (Hull-borers 20cm, F)",
+     "group": null,
+     "kind": "unparsed",
+     "parsed": false
+    }
+   ],
+   "notes": "Synapse creature: Ld10, synapse range 60cm. Extremely ponderous (see Tyranid Ship Special Rules)"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Hive Ships",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Charybdis Class Hive Ship",
+   "hull_type": "Battleship",
+   "points": 165,
+   "points_raw": "165",
+   "hits": 10,
+   "hits_raw": "10",
+   "base": "60mm",
+   "speed_cm": 15,
+   "speed_raw": "15cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "SC",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 3,
+   "turrets_raw": "3",
+   "armament_raw": "Prow Feeder Tendrils Str 2 (base contact); plus weapon configuration",
+   "weapons": [],
+   "notes": "Synapse creature: Ld8, synapse range 45cm. Ponderous (see Tyranid Ship Special Rules)"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Cruisers",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Tyranid Bio-Cruiser",
+   "hull_type": "Cruiser",
+   "points": 70,
+   "points_raw": "70",
+   "hits": 6,
+   "hits_raw": "6",
+   "base": "32mm",
+   "speed_cm": 20,
+   "speed_raw": "20cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "SC",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 2,
+   "turrets_raw": "2",
+   "armament_raw": "Prow Feeder Tendrils Str 1 (base contact); plus gene template and weapon configuration",
+   "weapons": [],
+   "notes": "Gene template required (see Tyranid Ship Special Rules)"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Kraken",
+   "hull_type": "Escort",
+   "points": 30,
+   "points_raw": "30",
+   "hits": 2,
+   "hits_raw": "2",
+   "base": "32mm",
+   "speed_cm": 25,
+   "speed_raw": "25cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "-",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "Weapon configuration (choose one)",
+   "weapons": [],
+   "notes": "Bonded exo-plating"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Vanguard Drone",
+   "hull_type": "Escort",
+   "points": 30,
+   "points_raw": "30",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 25,
+   "speed_raw": "25cm",
+   "turn_deg": 90,
+   "turn_raw": "90°",
+   "shields": null,
+   "shields_raw": "SC",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Weapon configuration (choose one)",
+   "weapons": [],
+   "notes": "Pheromone sprayers"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Escorts",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Escort Drone",
+   "hull_type": "Escort",
+   "points": 20,
+   "points_raw": "20",
+   "hits": 1,
+   "hits_raw": "1",
+   "base": "32mm",
+   "speed_cm": 15,
+   "speed_raw": "15cm",
+   "turn_deg": 45,
+   "turn_raw": "45°",
+   "shields": null,
+   "shields_raw": "SC",
+   "armour": {
+    "front": 5,
+    "front_note": null,
+    "other": 5
+   },
+   "armour_raw": "5+",
+   "turrets": 1,
+   "turrets_raw": "1",
+   "armament_raw": "Weapon configuration (choose one)",
+   "weapons": [],
+   "notes": "Living barrier; slow gestation"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Planetary Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Infested Space Station",
+   "hull_type": "Defence",
+   "points": 150,
+   "points_raw": "150",
+   "hits": 10,
+   "hits_raw": "10",
+   "base": "32mm",
+   "speed_cm": null,
+   "speed_raw": "-",
+   "turn_deg": null,
+   "turn_raw": "-",
+   "shields": 2,
+   "shields_raw": "2",
+   "armour": {
+    "front": 6,
+    "front_note": null,
+    "other": 6
+   },
+   "armour_raw": "6+",
+   "turrets": 4,
+   "turrets_raw": "4",
+   "armament_raw": "Weapons Battery 60cm FP12 (All Round); Lance Battery 30cm FP3 (All Round)",
+   "weapons": [
+    {
+     "raw": "Weapons Battery 60cm FP12 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Weapons Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 60,
+     "stat": "FP",
+     "value": "12",
+     "value_int": 12,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    },
+    {
+     "raw": "Lance Battery 30cm FP3 (All Round)",
+     "group": null,
+     "kind": "weapon",
+     "location": null,
+     "name": "Lance Battery",
+     "qualifier": null,
+     "range_min_cm": null,
+     "range_max_cm": 30,
+     "stat": "FP",
+     "value": "3",
+     "value_int": 3,
+     "per_face": false,
+     "per_quadrant": false,
+     "category": "direct",
+     "mounts": [
+      {
+       "arcs": [
+        "All Round"
+       ]
+      }
+     ],
+     "parsed": true
+    }
+   ],
+   "notes": "Orbital station; not a Tyranid station (see Tyranid Ship Special Rules)"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Planetary Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Spore Field",
+   "hull_type": null,
+   "points": 50,
+   "points_raw": "50",
+   "hits": null,
+   "hits_raw": "",
+   "base": null,
+   "speed_cm": null,
+   "speed_raw": "-",
+   "turn_deg": null,
+   "turn_raw": "-",
+   "shields": null,
+   "shields_raw": "-",
+   "armour": null,
+   "armour_raw": "-",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "",
+   "weapons": [],
+   "notes": "Minefield generating phage mines"
+  },
+  {
+   "faction": "Tyranids",
+   "source": "Xenos p.104-120",
+   "roster_group": "Planetary Defences",
+   "roster_group_notes": null,
+   "faction_rules": [
+    "Tyranids"
+   ],
+   "faction_rules_basis": null,
+   "profile_from": null,
+   "name": "Orbital Defence Spores",
+   "hull_type": null,
+   "points": 5,
+   "points_raw": "5",
+   "hits": null,
+   "hits_raw": "",
+   "base": null,
+   "speed_cm": null,
+   "speed_raw": "-",
+   "turn_deg": null,
+   "turn_raw": "-",
+   "shields": null,
+   "shields_raw": "-",
+   "armour": null,
+   "armour_raw": "-",
+   "turrets": null,
+   "turrets_raw": "-",
+   "armament_raw": "",
+   "weapons": [],
+   "notes": "Ordnance markers; phage mines (Antibodies +5)"
   }
  ]
 }

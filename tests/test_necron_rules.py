@@ -1,4 +1,4 @@
-"""Necron first slice (To do 14; bfgxr/rules/09_necrons.md)."""
+"""Necron first slice (To do 14; bfgxr/rules/10_necrons.md)."""
 from types import SimpleNamespace
 
 from tests.conftest import DiceStub

@@ -1,4 +1,4 @@
-"""Booklet scenarios (bfgxr/rules/12_scenarios.md; CLAUDE.md To do 7), pure
+"""Booklet scenarios (bfgxr/rules/14_scenarios.md; CLAUDE.md To do 7), pure
 logic. First slice: the scenario registry (set-up zones, first turn, game end,
 victory) with the matched-play Confrontation and Domination (XR p.117,
 p.125-126). The older generic modes (kill the admiral, destroy / protect a

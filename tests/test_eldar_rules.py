@@ -1,4 +1,4 @@
-"""Eldar MMS v2.0 first slice (To do 14; bfgxr/rules/08_eldar.md)."""
+"""Eldar MMS v2.0 first slice (To do 14; bfgxr/rules/09_eldar.md)."""
 from tests.conftest import DiceStub
 from src import eldar
 
