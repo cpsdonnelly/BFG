@@ -94,6 +94,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "planet_battle",
     },
+    "gauntlet": {
+        "name": "The Gauntlet (XR p.96, Convoy variant)",
+        "first_turn": "attacker",       # the Orks move on in the first turn
+        "end": "convoy_narrative",
+        "victory": "convoy_narrative",
+    },
     "convoy_narrative": {
         "name": "Convoy (XR p.94-95, narrative)",
         "first_turn": "defender",
@@ -468,6 +474,11 @@ def turn_start(gs, dice=None) -> None:
                          _dice_for(gs, p, dice))
     if mode == "surprise_attack":
         _standby_tests(gs, _dice_for(gs, defender(gs), dice))
+    if mode == "gauntlet":
+        from .convoy_narrative import gauntlet_arrivals
+        players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
+        for p in players:
+            gauntlet_arrivals(gs, p)
     if mode == "convoy_narrative":
         from .convoy_narrative import attacker_turn_start, record_start_positions
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
@@ -875,6 +886,9 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
         else:
             from .planet_scenarios import setup as _planet_setup
             _planet_setup(gs, dice)
+    elif mode == "gauntlet":
+        from .convoy_narrative import gauntlet_setup
+        gauntlet_setup(gs, dice)
     elif mode == "convoy_narrative":
         if dice is None:
             from .dice import DiceRoller
@@ -1140,6 +1154,9 @@ def force_errors(gs) -> List[str]:
     if mode == "convoy_narrative":
         from .convoy_narrative import force_errors as _cn_errors
         return _cn_errors(gs)
+    if mode == "gauntlet":
+        from .convoy_narrative import gauntlet_force_errors
+        return gauntlet_force_errors(gs)
     if mode == "pelucidar":
         from .campaign_scenarios import pelucidar_force_errors
         return pelucidar_force_errors(gs)
@@ -1241,6 +1258,10 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
     elif mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         from .planet_scenarios import zone_rects as _planet_rects
         rects = _planet_rects(gs)
+    elif mode == "gauntlet":
+        # the convoy and escorts within 45cm of the left short edge; the Orks
+        # move on (zone kept for the panels)
+        rects = {3 - att_p: [(0, w - 45, 0, 0)], att_p: [(30, 30, 30, 30)]}
     elif mode == "convoy_narrative":
         # Nobody deploys: the attacker's forces are contact markers, the
         # convoy moves on from its entry point (zones kept for the panels)
@@ -1337,6 +1358,11 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     squadron excepted)."""
     errs: List[str] = []
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "gauntlet" and group and group[0].player == defender(gs):
+        for s_, hd in zip(group, headings):
+            if abs((hd + 180.0) % 360.0 - 180.0) > 1.0:
+                errs.append(f"The Gauntlet: {s_.name} faces the opposite short edge (right)")
+        return errs
     if mode == "pelucidar" and group:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
@@ -1624,6 +1650,8 @@ def auto_heading(gs, player: int, x: float, y: float) -> Optional[float]:
         return div[1] if div else None
     if mode == "cruiser_clash":
         return 270.0 if y > gs.table_height / 2 else 90.0
+    if mode == "gauntlet" and player == defender(gs):
+        return 0.0                      # facing the opposite (right) short edge
     return None
 
 
@@ -1913,7 +1941,7 @@ def _scenario_kill_bonus(gs, ship) -> float:
     if mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         from .planet_scenarios import kill_bonus_vp as _planet_bonus
         return _planet_bonus(gs, ship)
-    if mode == "convoy_narrative" and is_convoy(ship) and ship.player == defender(gs):
+    if mode in ("convoy_narrative", "gauntlet") and is_convoy(ship) and ship.player == defender(gs):
         from .convoy_narrative import capacity_vp
         return capacity_vp(gs) * transport(ship)
     if mode == "destroy_docks" and ship.player == defender(gs):
@@ -2076,7 +2104,7 @@ def check_end(gs) -> Optional[dict]:
     if mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         from .planet_scenarios import check_end as _planet_end
         return _planet_end(gs)
-    if mode == "convoy_narrative":
+    if mode in ("convoy_narrative", "gauntlet"):
         from .convoy_narrative import check_end as _cn_end
         return _cn_end(gs)
     if mode == "macharia":

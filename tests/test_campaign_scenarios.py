@@ -371,3 +371,43 @@ def test_spear_of_light_fires_as_a_nova_cannon():
     res = cw.fire_spear(gs, a, _Hit())
     assert "error" not in res and res["ship_hits"]
     assert gs.get_ship_by_id("a1").hits_remaining < hp
+
+
+# --- The Gauntlet ---------------------------------------------------------------------
+
+def _gauntlet():
+    orks = [make_ship(id=f"o{i}", player=1, faction="orks", ship_type="escort",
+                      squadron_id="sq_a" if i < 2 else "sq_b", points_value=40, hits_max=1)
+            for i in range(4)]
+    convoy = [make_ship(id=f"t{i}", player=2, ship_type="escort", points_value=0,
+                        special_rules=["transport:1"], x=20, y=40 + 10 * i) for i in range(3)]
+    gs = _gs(orks + convoy, "gauntlet")
+    sc.setup_scenario(gs, DiceStub([]))
+    return gs
+
+
+def test_gauntlet_orks_wait_then_move_on_from_the_long_edges():
+    gs = _gauntlet()
+    assert all(sc.is_reserve(gs.get_ship_by_id(f"o{i}")) for i in range(4))
+    assert sc.first_player(gs) == 1
+    zone = {z.player: z for z in sc.deployment_zones(gs)}[2]
+    assert zone.contains(40, 60) and not zone.contains(50, 60)
+    assert sc.auto_heading(gs, 2, 20, 60) == 0.0
+    gs.active_player = 1
+    sc.turn_start(gs, DiceStub([]))
+    orks = [gs.get_ship_by_id(f"o{i}") for i in range(4)]
+    assert not any(sc.is_reserve(s) for s in orks)
+    tops = [s for s in orks if s.y > 100]
+    bottoms = [s for s in orks if s.y < 20]
+    assert len(tops) == 2 and len(bottoms) == 2
+    assert all(s.heading == 270.0 for s in tops) and all(s.heading == 90.0 for s in bottoms)
+
+
+def test_gauntlet_needs_three_capacity_out():
+    from src import convoy_narrative as cn
+    gs = _gauntlet()
+    gs.scenario_state["escaped"] = ["t0", "t1"]
+    assert cn.winner(gs) == 1 and "Attackers Marginal" in cn.result_text(gs)
+    gs.scenario_state["escaped"] = ["t0", "t1", "t2"]
+    assert cn.winner(gs) == 2 and "Convoy Marginal" in cn.result_text(gs)
+    assert not cn.gauntlet_force_errors(gs)

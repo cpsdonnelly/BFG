@@ -96,6 +96,10 @@ if scenario == "craftworld_assault":
     # the Eldar defend the craftworld (squadron ids set below)
     imp = ["Eclipse Class Cruiser", "Shadow Class Cruiser", "Hellebore Class Frigate",
            "Hellebore Class Frigate"]
+if scenario == "gauntlet":
+    # Orks: escorts only, up to half the capacity (3, rounded up: 2) x 100 pts
+    chs = ["Ravager Attack Ship"] * 3
+    imp = ["Dauntless Class Light Cruiser", "Sword Class Frigate", "Sword Class Frigate"]
 if scenario == "pelucidar":
     imp = imp[:3]                       # cruisers, battlecruisers and battleships only
 for p, names in ((1, chs), (2, imp)):
@@ -131,6 +135,14 @@ if scenario == "convoy_narrative":
     for k in range(4):                  # 4 transport capacity, squadrons of 2
         c = cat("Conventional Transport", 2, 60 + k, 0.0, 0.0)
         c.squadron_id = f"cn_{k // 2}"
+        gs.add_ship(c)
+if scenario == "gauntlet":
+    for sd in gs.ships:
+        if sd["ship_class"] in ("Ravager Attack Ship", "Sword Frigate"):
+            sd["squadron_id"] = f"sq_{sd['player']}"
+    for k in range(4):                  # 4 transport capacity, squadrons of 2
+        c = cat("Conventional Transport", 2, 60 + k, 0.0, 0.0)
+        c.squadron_id = f"gt_{k // 2}"
         gs.add_ship(c)
 if scenario == "navigate_storm":
     for k in range(10):                 # 10 transport capacity of convoy ships

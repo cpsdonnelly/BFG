@@ -49,7 +49,7 @@ def check_game_over(gs: GameState) -> Optional[dict]:
     # is destroyed" is won on its own victory conditions (VP, objective points)
     # (the narrative Convoy has its own end; Pelucidar ends only when the
     # Imperial fleet is gone, even with no Ork ship on the table)
-    gone_check = {"convoy_narrative": (), "pelucidar": (3 - gs.scenario_attacker,)}
+    gone_check = {"convoy_narrative": (), "gauntlet": (), "pelucidar": (3 - gs.scenario_attacker,)}
     for p in gone_check.get(gs.scenario_mode, (1, 2)):
         if not ships_alive(gs, p):
             if booklet:

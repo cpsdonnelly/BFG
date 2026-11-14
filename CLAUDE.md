@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1328 pass; all GUI checks pass
+playable). Tests: 1330 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -531,7 +531,7 @@ three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Esca
 Engagement's contact markers, Navigate the Storm, Destroy the Docks and the narrative
 Convoy; then (booklet zip 14) the owner's sign-off answers applied, low orbit,
 Exterminatus! and Planetary Assault, then the faction sub-plots and two campaign set pieces
-(The Defence of Pelucidar, Macharia's End, Craftworld Assault): 28 booklet scenarios in all (To do 7 lists what is
+(The Defence of Pelucidar, Macharia's End, Craftworld Assault) and The Gauntlet: 29 booklet scenarios in all (To do 7 lists what is
 left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
@@ -1491,13 +1491,23 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (`gate_arrivals`). Not yet: the forges' netherfields (the booklet doesn't define them:
    owner question) and polarisation fields, the alert units on the low orbit table, the AI
    docking damaged ships or choosing the Spear's moment, a human aiming the Spear.
-   Status: 28 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   The Gauntlet built (p.96, mode `gauntlet`, in `convoy_narrative`: the narrative Convoy's
+   exit, escape count and game end): the Orks (the chosen attacker) don't deploy, every unit
+   moves on in their first turn (they go first) from a long edge (`gauntlet_arrivals`,
+   judgement also for a human: alternately top and bottom, centred); the convoy and escorts
+   within 45cm of the left short edge facing the right one (reading: the left; `auto_heading`,
+   `placement_errors`); `gauntlet_force_errors`: 3+ capacity, escorts, light cruisers and one
+   standard cruiser; Ork escorts only, up to half the capacity rounded up x 100 pts; the
+   convoy needs 3 capacity out to win (`needed`; reading: the result table shifts by one,
+   so 3 is a Convoy Marginal Win, 4+ a Convoy Win). Not yet: the optional Running Battle
+   (the table shifting 20cm each Imperial turn, ten turns), choosing entry points.
+   Status: 29 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
    Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
    Engagement, Navigate the Storm, Destroy the Docks, the narrative Convoy, Exterminatus!,
-   Planetary Assault, The Defence of Pelucidar, Macharia's End, Craftworld Assault
+   Planetary Assault, The Defence of Pelucidar, Macharia's End, Craftworld Assault, The Gauntlet
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
-   also `gui_spectator_domination.py`). Still to build (largest first): the variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
+   also `gui_spectator_domination.py`). Still to build (largest first): the variants Daemon Blockade and Parol's Bait (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
    the sub-plots (the Decoy / Mimic Drive) and their AI beyond kill
    bonuses.
    Smaller gaps: racing Domination's 10 against the turn order; reinforcements entering along

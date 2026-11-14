@@ -20,7 +20,13 @@ DEADFALL_SPEED = 30.0
 
 
 def active(gs) -> bool:
-    return getattr(gs, "scenario_mode", "") == "convoy_narrative"
+    """The narrative Convoy, or its Third Armageddon War variant The Gauntlet
+    (p.96), which shares the convoy's exit, escape count and game end."""
+    return getattr(gs, "scenario_mode", "") in ("convoy_narrative", "gauntlet")
+
+
+def gauntlet(gs) -> bool:
+    return getattr(gs, "scenario_mode", "") == "gauntlet"
 
 
 def _key(s) -> str:
@@ -391,9 +397,18 @@ def capacity_escaped(gs) -> int:
 RESULTS = {0: "Attackers Win", 1: "Attackers Marginal Win", 2: "Convoy Marginal Win"}
 
 
+def needed(gs) -> int:
+    """Capacity that must escape for the convoy to win: 2, The Gauntlet 3."""
+    return 3 if gauntlet(gs) else 2
+
+
 def result_text(gs) -> str:
+    """The result table; The Gauntlet needs one more capacity for each
+    result (reading: "at least 3 ... rather than the usual 2" shifts the
+    table by one)."""
     n = capacity_escaped(gs)
-    return RESULTS.get(n, "Convoy Win") + f" ({n} transport capacity escaped)"
+    k = n - (needed(gs) - 2)
+    return RESULTS.get(max(0, k), "Convoy Win") + f" ({n} transport capacity escaped)"
 
 
 def attacker_spent(gs) -> bool:
@@ -403,7 +418,8 @@ def attacker_spent(gs) -> bool:
     st = gs.scenario_state or {}
     if any(not m.get("deployed") for m in st.get("markers", [])):
         return False
-    if any(s.player == att and not s.is_destroyed and not s.is_disengaged
+    if any(s.player == att and not s.is_destroyed
+           and (not s.is_disengaged or s.status == "reserve")   # still to come on
            for s in gs.get_ships()):
         return False
     return not any(o.owner_player == att for o in gs.get_ordnance())
@@ -420,7 +436,7 @@ def winner(gs) -> int:
     from .scenarios import defender
     if attacker_spent(gs) and (capacity_escaped(gs) >= 1 or convoy_left(gs)):
         return defender(gs)
-    return defender(gs) if capacity_escaped(gs) >= 2 else gs.scenario_attacker
+    return defender(gs) if capacity_escaped(gs) >= needed(gs) else gs.scenario_attacker
 
 
 def check_end(gs) -> Optional[dict]:
@@ -450,3 +466,65 @@ def exit_value(gs, ship) -> float:
     if not active(gs) or ship.player != defender(gs) or not is_convoy(ship):
         return 0.0
     return transport(ship) * capacity_vp(gs) + ship.points_value
+
+
+# --- The Gauntlet (p.96) -------------------------------------------------------------
+
+def gauntlet_setup(gs, dice=None) -> None:
+    """The Orks (the attacker, reading: the chosen attacker) don't deploy:
+    their ships wait off the table and move on in their first turn; the
+    convoy and its escorts deploy within 45cm of the left short edge
+    (reading: the left one), facing the right, which is their exit."""
+    from .scenarios import _to_reserve
+    for sd in gs.ships:
+        if sd["player"] == gs.scenario_attacker:
+            _to_reserve(sd)
+    gs.scenario_state = {"entry_edge": "left", "markers": [], "escaped": []}
+    gs.add_log("[The Gauntlet] the Orks move on from the long edges in their first turn")
+
+
+def gauntlet_arrivals(gs, player: int) -> List[str]:
+    """In the attacker's first turn every unit moves on from a long edge
+    (judgement, also for a human: alternately the top and the bottom edge,
+    centred on the convoy's way)."""
+    from .scenarios import reserve_units, place_arrival_at
+    if not gauntlet(gs) or player != gs.scenario_attacker:
+        return []
+    names, n = [], {"top": 0, "bottom": 0}
+    for i, (k, ships) in enumerate(sorted(reserve_units(gs, player).items())):
+        edge = "top" if i % 2 == 0 else "bottom"
+        place_arrival_at(gs, ships, edge, n[edge])
+        n[edge] += 1
+        names.append(f"{ships[0].name} ({edge})")
+    if names:
+        gs.add_log(f"[The Gauntlet] the Orks move on: {', '.join(names)}")
+    return names
+
+
+def gauntlet_force_errors(gs) -> List[str]:
+    """At least 3 transport capacity; escorts, light cruisers and at most one
+    standard cruiser; the Orks escorts only, up to half the capacity
+    (rounding up) x 100 pts (warnings)."""
+    from .scenarios import transport, defender, is_convoy
+    errs = []
+    dfn, att = defender(gs), gs.scenario_attacker
+    cap = sum(transport(s, building=True) for s in gs.get_ships()
+              if s.player == dfn and is_convoy(s))
+    if cap < 3:
+        errs.append(f"The Gauntlet: the convoy needs at least 3 transport capacity, has {cap:g}")
+    war = [s for s in gs.get_ships() if s.player == dfn and not is_convoy(s)]
+    big = [s.name for s in war if s.ship_type != "escort" and "Light Cruiser" not in s.ship_class
+           and not (s.ship_type == "cruiser" and "Cruiser" in s.ship_class
+                    and not any(w in s.ship_class for w in ("Battlecruiser", "Grand", "Heavy")))]
+    cruisers = [s.name for s in war if s.ship_type == "cruiser" and "Light Cruiser" not in s.ship_class]
+    if big or len(cruisers) > 1:
+        errs.append("The Gauntlet: the Imperial fleet may take only escorts, light cruisers and "
+                    "one standard cruiser")
+    orks = [s for s in gs.get_ships() if s.player == att]
+    if any(s.ship_type != "escort" for s in orks):
+        errs.append("The Gauntlet: the Orks take escorts only")
+    limit = int(-(-cap // 2)) * 100
+    pts = sum(s.points_value for s in orks)
+    if pts > limit:
+        errs.append(f"The Gauntlet: the Ork escorts may cost {limit} pts, have {pts}")
+    return errs

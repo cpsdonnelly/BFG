@@ -1031,7 +1031,7 @@ class AIPlayer:
         if gs.scenario_mode == "navigate_storm":
             from .navigate_storm import via_exit_point
             exit_term = self._convoy_run(ship, x, y, enemy) if via_exit_point(gs, moved) else 0.0
-        elif gs.scenario_mode == "convoy_narrative":
+        elif gs.scenario_mode in ("convoy_narrative", "gauntlet"):
             from .convoy_narrative import exit_edge_for
             exit_term = self._convoy_run(ship, x, y, enemy) if edge == exit_edge_for(gs) else 0.0
         else:
@@ -1104,7 +1104,7 @@ class AIPlayer:
         if gs.scenario_mode == "navigate_storm":
             from .navigate_storm import exit_value
             return exit_value(gs, ship)
-        if gs.scenario_mode == "convoy_narrative":
+        if gs.scenario_mode in ("convoy_narrative", "gauntlet"):
             from .convoy_narrative import exit_value as _cn_exit_value
             return _cn_exit_value(gs, ship)
         return 0.0
@@ -1127,7 +1127,7 @@ class AIPlayer:
             from .navigate_storm import exit_progress
             return g * exit_progress(gs, ship, x, y) / (
                 0.35 * max(1.0, value_per_hit(enemy, gs)))
-        if gs.scenario_mode == "convoy_narrative":
+        if gs.scenario_mode in ("convoy_narrative", "gauntlet"):
             # the short edge opposite the entry point
             from .convoy_narrative import exit_edge_for
             w = gs.table_width
@@ -1218,7 +1218,7 @@ class AIPlayer:
         gs = self.gs
         if gs.scenario_mode == "blockade_run" and ship.player == gs.scenario_attacker:
             return max(0.0, self._exit_value(ship))  # leaving by a test gives up the bonus
-        if gs.scenario_mode in ("navigate_storm", "convoy_narrative"):
+        if gs.scenario_mode in ("navigate_storm", "convoy_narrative", "gauntlet"):
             return max(0.0, self._exit_value(ship))  # only the exit counts
         if gs.scenario_mode == "macharia" and ship.player != gs.scenario_attacker:
             # Macharia's End: each Imperial ship leaving gives up its share of

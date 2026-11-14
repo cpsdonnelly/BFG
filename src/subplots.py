@@ -136,7 +136,7 @@ def faction_subplot(gs, player: int, dice) -> Optional[Dict]:
         sp = {"key": key, "name": name, "renown": list(renown), "table": "quest", **extra}
     elif any(s.faction == "rogue_traders" and any(r.startswith("transport:")
                                                   for r in s.special_rules) for s in ships) \
-            and not ((mode in ("convoy_matched", "navigate_storm", "convoy_narrative")
+            and not ((mode in ("convoy_matched", "navigate_storm", "convoy_narrative", "gauntlet")
                       and player == defender(gs))
                      or (mode in ("planetary_assault", "craftworld_assault")
                          and player == gs.scenario_attacker)):
