@@ -955,3 +955,91 @@ def test_fleet_engagement_formations_setups_and_arrows():
     zones = {z.player: z for z in sc.deployment_zones(gs)}
     assert zones[gs.scenario_attacker].contains(90, 10)
     assert sc.auto_heading(gs, 3 - gs.scenario_attacker, 90, 110) == 0.0
+
+
+# --- Escalating Engagement ------------------------------------------------------------
+
+def _ee_gs():
+    p1 = [make_ship(id=f"a{i}", player=1, points_value=v, speed=20)
+          for i, v in enumerate((300, 200, 150))]
+    p2 = [make_ship(id=f"b{i}", player=2, points_value=v, speed=25)
+          for i, v in enumerate((250, 180))]
+    return _gs(p1 + p2, mode="escalating_engagement")
+
+
+def test_escalating_divisions_and_starting_markers():
+    from src import escalating as ee
+    gs = _ee_gs()
+    assert ee.auto_divisions(gs, 1) == [["a0"], ["a1"], ["a2"]]
+    # starting division D6s (p1: 2 -> division 1; p2: a 4 is re-rolled, then 1),
+    # roll-off 3 v 5 (p2 places second), p1's spot then p2's
+    dice = DiceStub([2, 4, 1, 3, 5, 3, 3])
+    sc.setup_scenario(gs, dice)
+    assert dice._idx == 7
+    st = gs.scenario_state
+    assert st["start_div"] == {"1": 1, "2": 0} and st["first_marker"] == 1
+    m1, m2 = ee.start_marker(gs, 1), ee.start_marker(gs, 2)
+    for (x, y) in (m1, m2):
+        assert 30 <= x <= 150 and 30 <= y <= 90
+    assert math.hypot(m1[0] - m2[0], m1[1] - m2[1]) >= 60
+    # only the starting divisions are on the table
+    assert [s.id for s in gs.get_ships() if not sc.is_reserve(s)] == ["a1", "b0"]
+    assert st["waiting"] == {"1": [0, 2], "2": [1]}
+    # deployment within 10cm of the marker
+    a1 = gs.get_ship_by_id("a1")
+    zone = {z.player: z for z in sc.deployment_zones(gs)}[1]
+    assert zone.contains(m1[0] + 9, m1[1])
+    assert sc.placement_errors(gs, [a1], [(m1[0] + 9, m1[1])], [0.0], []) == []
+    assert sc.placement_errors(gs, [a1], [(m1[0] + 8, m1[1] + 8)], [0.0], [])
+    pts = sc.auto_positions(gs, [a1], zone, [], 0)
+    assert math.hypot(pts[0][0] - m1[0], pts[0][1] - m1[1]) <= 10
+
+
+def test_escalating_edge_markers_and_arrivals():
+    from src import escalating as ee
+    gs = _ee_gs()
+    sc.setup_scenario(gs, DiceStub([2, 1, 3, 5, 3, 3]))
+    a1, b0 = gs.get_ship_by_id("a1"), gs.get_ship_by_id("b0")
+    a1.x, a1.y = 40.0, 20.0
+    b0.x, b0.y = 150.0, 100.0
+    gs.update_ship(a1)
+    gs.update_ship(b0)
+    # player 1's end phase: division D6 (2 of [0, 2] -> 2), edge 4 = bottom;
+    # a1 is within 30cm of the bottom edge, so the marker goes within 30cm of it
+    ee.end_of_turn(gs, 1, DiceStub([2, 4]))
+    m = gs.scenario_state["edge_markers"][0]
+    assert (m["player"], m["div"], m["edge"]) == (1, 2, "bottom") and m["y"] == 0.0
+    assert math.hypot(m["x"] - 40.0, m["y"] - 20.0) <= 30
+    assert gs.scenario_state["waiting"]["1"] == [0]
+    # start of player 1's turn: speed 20 needs 5+, friends within 30cm +2: a 3 arrives
+    gs.active_player = 1
+    sc.turn_start(gs, DiceStub([3]))
+    a2 = gs.get_ship_by_id("a2")
+    assert not sc.is_reserve(a2) and a2.y < 5 and a2.heading == 90.0
+    assert abs(a2.x - m["x"]) <= 10
+    assert gs.scenario_state["edge_markers"] == []
+
+
+def test_escalating_marker_waits_or_slides():
+    from src import escalating as ee
+    gs = _ee_gs()
+    sc.setup_scenario(gs, DiceStub([2, 1, 3, 5, 3, 3]))
+    a1, b0 = gs.get_ship_by_id("a1"), gs.get_ship_by_id("b0")
+    a1.x, a1.y = 90.0, 60.0
+    b0.x, b0.y = 0.0, 60.0         # an enemy within 60cm of the whole left edge
+    gs.update_ship(a1)
+    gs.update_ship(b0)
+    ee.end_of_turn(gs, 1, DiceStub([1, 1]))          # left edge: nowhere legal
+    assert gs.scenario_state["edge_markers"] == [] and gs.scenario_state["waiting"]["1"] == [0, 2]
+    ee.end_of_turn(gs, 1, DiceStub([1, 6]))          # right edge, division 0
+    m = gs.scenario_state["edge_markers"][0]
+    assert m["edge"] == "right" and m["div"] == 0
+    # a failed roll (speed 20: 5+, no friends near): the marker slides towards a1
+    m0 = dict(m)
+    a1.y = 110.0
+    gs.update_ship(a1)
+    gs.active_player = 1
+    sc.turn_start(gs, DiceStub([4]))
+    m = gs.scenario_state["edge_markers"][0]
+    assert sc.is_reserve(gs.get_ship_by_id("a0"))
+    assert m["y"] == min(110.0, m0["y"] + 20.0)

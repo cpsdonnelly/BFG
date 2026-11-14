@@ -613,7 +613,7 @@ class GamePanel(AAPanelMixin):
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
                       "the_bait", "raiders", "blockade_run", "rearguard", "alien_intervention",
-                      "surprise_attack", "fleet_engagement", "confrontation", "line_breaker", "ambush",
+                      "surprise_attack", "escalating_engagement", "fleet_engagement", "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
                       "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)

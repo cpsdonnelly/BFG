@@ -76,6 +76,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "vp",
     },
+    "escalating_engagement": {
+        "name": "Escalating Engagement (XR p.107)",
+        "first_turn": "roll_off",
+        "end": "fleet_gone",
+        "victory": "vp",
+    },
     "fleet_engagement": {
         "name": "Fleet Engagement (XR p.108-109)",
         "first_turn": "roll_off",
@@ -356,6 +362,11 @@ def turn_start(gs, dice=None) -> None:
                          _dice_for(gs, p, dice))
     if mode == "surprise_attack":
         _standby_tests(gs, _dice_for(gs, defender(gs), dice))
+    if mode == "escalating_engagement":
+        from .escalating import turn_start as _ee_turn_start
+        players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
+        for p in players:
+            _ee_turn_start(gs, p, _dice_for(gs, p, dice))
     if mode not in ("raiders", "rearguard"):
         return
     st = dict(gs.scenario_state or {})
@@ -697,6 +708,12 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 from .dice import DiceRoller
                 dice = DiceRoller(mode="auto")
             resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
+    elif mode == "escalating_engagement":
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        from .escalating import setup as _ee_setup
+        _ee_setup(gs, dice)
     elif mode == "alien_intervention":
         # The defender's allies of convenience (ships of another faction than
         # its main one) are the alien reinforcements; a planet within 30cm of
@@ -1008,6 +1025,11 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         rects = {3 - att_p: [(30, 30, 30, 30)],
                  att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
                          (w - e, 0, 0, 0)]}
+    elif mode == "escalating_engagement":
+        from .escalating import zone_rects
+        rects = zone_rects(gs)
+        if not rects:
+            return None
     elif mode == "fleet_engagement":
         if not (gs.scenario_state or {}).get("setup"):
             return None
@@ -1086,6 +1108,9 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
         return errs
+    if mode == "escalating_engagement":
+        from .escalating import placement_errors as _ee_errors
+        return _ee_errors(gs, group, positions)
     if mode == "fleet_engagement" and group:
         # each ship faces its division's approach arrow
         for s_, (x, y), hd in zip(group, positions, headings):
@@ -1244,6 +1269,9 @@ def auto_positions(gs, group, zone, placed, index: int):
     Storm alternates its divisions' corners; Ambush spaces the defender's
     groups 25cm apart."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "escalating_engagement":
+        from .escalating import auto_positions as _ee_auto
+        return _ee_auto(gs, group, placed)
     if mode == "fleet_engagement" and group:
         # round-robin over the player's divisions, so each gets a unit
         r = zone.rects()[index % len(zone.rects())]

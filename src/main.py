@@ -424,6 +424,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("rearguard",         "Rearguard Attack (booklet p.97: reinforcements, 8 turns)"),
         ("alien_intervention", "Alien Intervention (booklet p.103: allies arrive, 8 turns)"),
         ("surprise_attack",   "Surprise Attack (booklet p.104: defenders on standby)"),
+        ("escalating_engagement", "Escalating Engagement (booklet p.107: contact markers)"),
         ("fleet_engagement",  "Fleet Engagement (booklet p.108: formations, set-ups A-D)"),
         ("confrontation",     "Confrontation (booklet p.117: attacker first, VP)"),
         ("line_breaker",      "Line Breaker (booklet p.118: defence platforms)"),

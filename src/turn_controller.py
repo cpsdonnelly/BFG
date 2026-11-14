@@ -331,6 +331,11 @@ class TurnController:
             # Booklet scenarios scoring at the end of a player's turn (Domination)
             from .scenarios import score_end_of_turn
             score_end_of_turn(self.gs, self.gs.active_player)
+            # Escalating Engagement: the player places its next contact marker
+            from .scenarios import _dice_for
+            from .escalating import end_of_turn as _ee_end
+            _ee_end(self.gs, self.gs.active_player,
+                    _dice_for(self.gs, self.gs.active_player, self.dice))
             # Mark of Chaos Undivided lasts until the end of the turn
             from .chaos_undivided import end_turn as _undivided_end
             _undivided_end(self.gs, self.gs.active_player)

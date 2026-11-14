@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1278 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1281 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -514,7 +514,8 @@ defences, the Space Station crit table and transport capacity; scenario points i
 (To do 2 done); two general AI fixes (off-table moves priced as disengaging, edge traps).
 Then attack ratings, sub-plots' first slice, the introductory scenarios, four raids (The
 Raiders, Blockade Run, The Bait, Rearguard Attack) on a new reinforcements framework, and
-three battles (Alien Intervention, Surprise Attack, Fleet Engagement): 19 booklet scenarios in
+three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Escalating
+Engagement's contact markers: 20 booklet scenarios in
 all (To do 7 lists what is left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
@@ -531,7 +532,7 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 candidates (11 a)).
 Not built: Exterminatus!, Planetary Assault, Escalating Engagement, the narrative Convoy,
 Navigate the Storm, Destroy the Docks, the campaign set pieces and the rest of the sub-plots
-(To do 7; 19 scenarios are built), and the To do items below.
+(To do 7; 20 scenarios are built), and the To do items below.
 Next (largest first): 7 (the low orbit table for Exterminatus! / Planetary Assault, contact
 markers for Escalating Engagement / Convoy, Navigate the Storm, orbital mines for Destroy the
 Docks, the rest of the sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
@@ -1202,14 +1203,32 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    `fe_division_at`, `auto_heading` also used by the deployment panel's auto-place) and every
    division needs a unit (`fe_division_errors`, warned at the end of deployment); roll-off for
    the first turn; VP; not yet: the alternating deployment by a roll).
-   Status: 19 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   Escalating Engagement built (p.107, `src/escalating.py`): up to five divisions per player
+   (`auto_divisions`, judgement: dearest units first, each to the division with fewest
+   points; `scenario_state["divisions"]` keeps a chosen split), a random starting division
+   each (D6, re-rolled above the count), a roll-off for who places its starting marker first
+   (the winner second, judgement), markers 30cm from the edges and 60cm apart (placed
+   automatically on the player's half, a D6 along it, reading), the starting division within
+   10cm of its marker (`placement_errors`, zone = the rect round it); the rest in reserve. In
+   each player's end phase (`end_of_turn`, from `TurnController.end_phase`) a random waiting
+   division's marker goes on a D6 edge (1 left, 2-3 top, 4-5 bottom, 6 right): not within
+   60cm of enemy ships, within 30cm of our ships near that edge, nearest our ships
+   (judgement); none legal: it waits (reading). At the start of the player's turn
+   (`turn_start`) each edge marker rolls 5+ / 4+ / 3+ by the slowest speed, +2 with friends
+   within 30cm (always tried, judgement): arrived divisions are placed touching the edge within
+   10cm of the marker, facing in, and move normally; otherwise the marker slides along the
+   edge up to the slowest speed towards our ships (judgement). The board draws the markers.
+   Not yet: a human choosing the divisions, the markers' positions and slides (dialogs); the
+   AI valuing where its markers go.
+   Status: 20 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
-   Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement
+   Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
+   Engagement
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
    also `gui_spectator_domination.py`). Still to build (largest first): Exterminatus! and
    Planetary Assault (the low orbit table, s.41; assault points; Armageddon weapons on
-   Exterminators; random patrol arrival edges), Escalating Engagement (contact markers per
-   division, random arrival edges and rolls), the narrative Convoy (hidden contact markers,
+   Exterminators; random patrol arrival edges; owner question: how a ship enters low orbit,
+   the booklet doesn't say), the narrative Convoy (hidden contact markers,
    deadfall torpedoes, attack craft clusters, random attacker forces), Navigate the Storm
    (players placing warp rifts, ships lost in a rift rematerialising near a capital ship, the
    exit point), Destroy the Docks (orbital mines aren't playable yet; random reinforcement

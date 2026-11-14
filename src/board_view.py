@@ -608,6 +608,9 @@ class BoardView:
         """Booklet scenario objective markers (Domination): a ring of the 15cm
         control range, coloured by the player controlling it."""
         gs = self.gs
+        if gs.scenario_mode == "escalating_engagement":
+            self._draw_contact_markers()
+            return
         if gs.scenario_mode != "domination":
             return
         from .scenarios import objectives, controller, points, CONTROL_RANGE
@@ -628,6 +631,24 @@ class BoardView:
         self.canvas.create_text(self.margin + 4, self.margin + 4, anchor="nw",
                                 text=f"Domination: P1 {pts[1]}  P2 {pts[2]}  (10 wins)",
                                 fill="#FFD700", font=("Consolas", 9, "bold"))
+
+    def _draw_contact_markers(self):
+        """Escalating Engagement: each player's contact markers on the table
+        edges (triangles in the player's colour) and the starting markers
+        before deployment ends."""
+        gs = self.gs
+        st = gs.scenario_state or {}
+        cols = {1: gs.player1_color, 2: gs.player2_color}
+        marks = [(m["player"], m["x"], m["y"], "?") for m in st.get("edge_markers", [])]
+        if gs.turn_number <= 1 and gs.current_phase in ("deployment", "setup", ""):
+            marks += [(int(p), xy[0], xy[1], "S") for p, xy in st.get("start", {}).items()]
+        for p, x, y, lab in marks:
+            sx, sy = self.cm_to_screen(x, y)
+            self.canvas.create_polygon(sx, sy - 9, sx - 8, sy + 6, sx + 8, sy + 6,
+                                       fill=cols.get(p, "#DDDDDD"), outline="#FFFFFF",
+                                       width=2)
+            self.canvas.create_text(sx, sy + 1, text=lab, fill="#000000",
+                                    font=("Consolas", 7, "bold"))
 
     def _draw_artefact_marker(self):
         gs = self.gs
