@@ -1063,7 +1063,8 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    phase and landing turn, enemy guns on the way, reactive CAP / intercept / fighters in
    flight, strikes outside the enemy's umbrella, co-ordinated bombers and missiles, wave
    splitting at launch, the expert's risk preference, risk-aware disengaging, re-rolls, brace
-   and strikes, the expert valuing its own craft in flight. Left: scenario points (To do 7).
+   and strikes, the expert valuing its own craft in flight, scenario points in the margin
+   (Domination, Planet Strike). Done.
 3. Mine launcher swaps; torpedo bombers (purchases, salvos, combined wave salvos, Tiger
    Sharks per the owner ruling) and the AI changes they need.
 4. Named commanders, Mark of Chaos Undivided, daemonships, Stormbirds, god-fleet boons, Ork
@@ -1076,8 +1077,14 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    (`bfgxr/rules/12_scenarios.md`) and sub-plots (p.80-82, plus Mechanicus, Inquisition and
    Rogue Trader faction sub-plots), then an AI that plays their objectives and win conditions,
    not just cruiser clash (owner: Domination's objective markers and 10-point race are just one
-   example; there are many other scenarios, and the AI must handle each one's conditions). The engine has only the old generic modes today (`scenario.check_scenario_end`).
-   Do items 1-6 first.
+   example; there are many other scenarios, and the AI must handle each one's conditions).
+   Built (`src/scenarios.py`, `src/subplots.py`): 19 scenarios (the nine matched-play ones,
+   Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade Run, Rearguard Attack,
+   Alien Intervention, Surprise Attack, Fleet Engagement), attack ratings, reinforcements,
+   immobile defences, transport capacity, sub-plots' first slice, and the AI terms for each.
+   Left: Exterminatus! / Planetary Assault (low orbit), Escalating Engagement and the narrative
+   Convoy (contact markers), Navigate the Storm, Destroy the Docks (orbital mines), the
+   campaign set pieces, the rest of the sub-plots (CLAUDE.md To do 7 has the full list).
 8. New (owner ideas, not hard rules: it depends on the matchup): matchup-aware manoeuvre.
    Crossing the T / both broadsides busy for gun-heavy Imperium fleets, kiting for Chaos (or
    any fleet that out-ranges and out-moves its enemy on average), Tau prow-on only when the

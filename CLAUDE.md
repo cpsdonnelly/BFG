@@ -512,6 +512,11 @@ Then (HANDOFF, same section, "scenarios"): Necrons playable (To do 14), and To d
 matched-play set: all nine short scenarios built for the engine and the AI, with immobile
 defences, the Space Station crit table and transport capacity; scenario points in the margin
 (To do 2 done); two general AI fixes (off-table moves priced as disengaging, edge traps).
+Then attack ratings, sub-plots' first slice, the introductory scenarios, four raids (The
+Raiders, Blockade Run, The Bait, Rearguard Attack) on a new reinforcements framework, and
+three battles (Alien Intervention, Surprise Attack, Fleet Engagement): 19 booklet scenarios in
+all (To do 7 lists what is left). Fixed on the way: a zero-length line of sight against a
+planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
 Built so far: every booklet rule section the engine plays (see the sections above), the export
 31 "still to do" list, boarding crew bonuses, disengaging incl. forced disengagement, optional
@@ -524,8 +529,12 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: the narrative scenarios (raids, battles, set pieces; the nine matched-play ones are built, To do 7) and the rest of the sub-plots, and the To do items below.
-Next (largest first): 7 (the raids and battles, the rest of the sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
+Not built: Exterminatus!, Planetary Assault, Escalating Engagement, the narrative Convoy,
+Navigate the Storm, Destroy the Docks, the campaign set pieces and the rest of the sub-plots
+(To do 7; 19 scenarios are built), and the To do items below.
+Next (largest first): 7 (the low orbit table for Exterminatus! / Planetary Assault, contact
+markers for Escalating Engagement / Convoy, Navigate the Storm, orbital mines for Destroy the
+Docks, the rest of the sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
@@ -1192,11 +1201,30 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    their approach arrows); every ship faces its division's arrow (`placement_errors`,
    `fe_division_at`, `auto_heading` also used by the deployment panel's auto-place) and every
    division needs a unit (`fe_division_errors`, warned at the end of deployment); roll-off for
-   the first turn; VP; not yet: the alternating deployment by a roll). Not yet: racing the 10 against the turn
-   order, Planet Strike's planetary defence budget (+20%) and "extra assault points" ships,
-   Orbit Lost, The Bait (reinforcements entering), the raids and battles, the rest of the
-   sub-plots, Cruiser Clash's alternating deployment and forces limits, the Ambush attacker's half-points limit (fleet building), Line Breaker's
-   "platforms can't squadron".
+   the first turn; VP; not yet: the alternating deployment by a roll).
+   Status: 19 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
+   Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement
+   (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
+   also `gui_spectator_domination.py`). Still to build (largest first): Exterminatus! and
+   Planetary Assault (the low orbit table, s.41; assault points; Armageddon weapons on
+   Exterminators; random patrol arrival edges), Escalating Engagement (contact markers per
+   division, random arrival edges and rolls), the narrative Convoy (hidden contact markers,
+   deadfall torpedoes, attack craft clusters, random attacker forces), Navigate the Storm
+   (players placing warp rifts, ships lost in a rift rematerialising near a capital ship, the
+   exit point), Destroy the Docks (orbital mines aren't playable yet; random reinforcement
+   arrival by speed), the campaign set pieces (Defence of Pelucidar, Macharia's End,
+   Craftworld Assault) and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
+   the sub-plots (Blood Bond, Fleet Experience, Signaling Problems effects; Unexpected Help,
+   Decoy, Fresh Captain's objective; faction sub-plots) and their AI beyond kill bonuses.
+   Smaller gaps: racing Domination's 10 against the turn order; reinforcements entering along
+   the long edges after turn 1 and choosing them / The Bait's pursued unit / Surprise Attack's
+   full-alert units in the set-up dialogs; Alien Intervention's drifting hulk; alternating
+   deployment (Cruiser Clash, Fleet Engagement); the scenarios' extra planetary defence
+   points and forces limits (fleet building: the Ambush / raid attackers' half points, Line
+   Breaker's "platforms can't squadron", Cruiser Clash's 185pt cruisers); Planet Strike's
+   "extra assault points" ships; Orbit Lost; off-table entry (The Raiders / Rearguard /
+   Surprise Attack attackers deploy touching the edge instead).
 
 8. Matchup-aware manoeuvre (owner ideas; "do not take these as hard rules, it depends on the
    matchup": each should come out of the expected-VP move score, not a fixed doctrine).

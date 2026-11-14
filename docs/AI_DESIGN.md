@@ -46,7 +46,8 @@ and ahead it plays safe. A little expected VP stays in the score so more VP stil
 the result is settled. The normal AI uses the same idea (Built) when it decides whether to
 disengage (staying is a gamble, leaving a sure 10%: ahead it leaves more readily, behind less)
 and spends re-rolls freely on the last turn (left-over re-rolls are worth nothing after it).
-Planned: the same preference in brace and strike choices; scenario points in the margin.
+Built since: the same preference in brace and strike choices, and scenario points (Domination's
+objective points, Planet Strike's bombardment) in the margin, the expert search's leaf included.
 
 **Disabled rules** (Built principle, owner): if an optional rule is switched off (boarding,
 ramming, teleport, hit-and-run...), the AI never values moves by it nor attempts it. With
@@ -183,7 +184,7 @@ one broadside). Cost grows with targets and goals, not with the turn angle.
   (massed turrets with the commander's ship or a carrier, squadron coherency); safety (the
   tangent past a hazard, built: `_safety_goals`; out of the most dangerous enemies' arcs); disengaging for crippled
   ships (toward a phenomenon within 15cm for +3 Ld, or the nearest edge); scenario objectives
-  once scenarios exist.
+  (built: Domination's three nearest markers as point goals).
 - **Fallback grid**: a small even set (straight plus a few headings at the turn limit, at the
   three turn points, minimum and full distance) for moves no goal predicted; 90-degree ships
   and special turners get more fallback headings and more variations round each goal (owner:
@@ -424,7 +425,7 @@ Each ordnance phase the AI plans fighters across all its carriers:
 - **Built since**: the turn-limit risk preference (the expert's chance-of-winning score, and the
   normal AI's disengaging and re-rolls); crit values over up to 3 of the target's shooting
   phases and the turn limit; the risk preference in brace, strike choices and the guns a
-  disengaging ship gives up. **Planned**: scenario objectives over the game (To do 7).
+  disengaging ship gives up, and scenario points in the margin (Domination, Planet Strike).
 
 ---
 
@@ -479,22 +480,31 @@ the current AI, whose normal and expert players and weights stay as they are.
 ## 9. Win conditions
 
 - **Victory points** (Built): destroyed, crippled and disengaged ships (s.38) are what the AI's
-  values are built from; Holding the Field isn't counted yet.
-- **Turn limit** (Built in the expert search as a horizon and as its risk preference; Planned for
-  the normal AI's choices, To do 2).
-- **Scenarios** (Planned, To do 7; owner: "Domination was just one example; there are many
-  other scenarios"): the engine today has only old generic modes (kill the admiral, destroy or
-  protect a ship, capture an artefact). Every booklet scenario has its own objectives, length
-  and end triggers, and the AI must play each: e.g. Domination (objective markers held by a
-  ship within 15cm with no enemy near, 1 point per marker at the end of each player's own
-  turn, first to 10 or the fleet destroyed / disengaged), convoys and blockade runners getting
-  off the table, planets and assault points, Exterminatus, rescue and escape objectives, and the
-  rest of the booklet's scenarios. These feed the same values as ship VP, in both the normal AI
-  and the expert search.
-- **Sub-plots** (Planned, To do 7): Legacies of War, Chance Circumstances, Secret Ploys and the
-  faction sub-plots (Mechanicus Quest for Knowledge, Inquisition Secret Ploys, Rogue Trader
-  Business as Usual), e.g. the Vendetta target, keeping the flagship above 75% for Fleet
-  Experience, boarding for battle plans; the battle result (Heroic Victory to Miserable Defeat).
+  values are built from; Holding the Field isn't counted yet (but in Planet Strike, where it
+  wins the game, the defender's ships count keeping the field).
+- **Turn limit** (Built: the expert search's horizon and risk preference, and the normal AI's
+  disengaging, re-rolls, brace and strikes, To do 2).
+- **Scenarios** (Built for 19 booklet scenarios, To do 7; owner: "Domination was just one
+  example; there are many other scenarios"): each plays its own objectives in expected VP next
+  to ship VP. Domination: markers held at the end of our turn, contesting enemy-held ones, a
+  pull towards markers within two moves, point goals for the move candidates, the points race
+  in the margin. Line Breaker: platforms carry a kill bonus, then capital ships run for the
+  defender's edge. Chance Encounter: the defender values crippling the attacking flagship
+  (half the points on the table), the attacker runs for the far edge. Convoy / Blockade Run:
+  convoy ships and blockade runners head for their exit edge and don't take disengage tests.
+  Rescue: the flagship's double value, and its run for its own edge when leaving pays. Space
+  Assault: the station's 250 VP swing. Planet Strike: Burn Retros to hold over the planet,
+  closing on it, the defender keeping the field. Warp Storm: the chance a disengaged ship is
+  lost in the warp. Every scenario: a move off the table is priced as the disengage it is
+  (only the scenario's own exit edge counts as its exit), and ending pointed at an edge that
+  every next move would cross is penalised. Not yet: racing Domination's 10 against the turn
+  order; the AI choosing when reinforcements enter (it brings them at once); the scenarios
+  still to build (CLAUDE.md To do 7).
+- **Sub-plots** (first slice built, To do 7): generation, most effects, objectives and the
+  battle result (Heroic Victory to Miserable Defeat). The AI values a Vendetta target and its own
+  Desperate Mission / Experimental Ship / Fleet Experience flagship more (a tenth of the points
+  on the table, judgement); other objectives (No Quarter, Enemy Plans boarding, Secret
+  Intelligence raids, Hit and Run's deadline) aren't steered for yet.
 
 ---
 
@@ -534,7 +544,8 @@ hazards), so its strength is long-range manoeuvre. Its other phases are the norm
 ## 11. Things the questions didn't cover
 
 - **Deployment** (gap): ships are grouped for set-up (escorts first, squadrons together) but not
-  placed by strategy. Planned with scenarios (To do 7): deploy for the matchup and objectives.
+  placed by strategy. Scenarios now set the zones, facings and fixed placements (To do 7), but
+  where to stand inside a zone still isn't chosen for the matchup or the objectives.
 - **Damage control** (gap; To do 11 e): each capital ship rolls a D6 per remaining hit, each 6
   repairs one system, dice halved in contact with blast markers (s.36, XR p.35). Repairs follow a
   fixed priority (fires first, then engines, then the rest), not expected VP: a fire costs 1 hit
