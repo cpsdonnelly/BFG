@@ -58,6 +58,8 @@ class GamePanel(AAPanelMixin):
         tc.gs.turret_choice_hook = self._turret_choice_hook
         tc.gs.mr_suppress_hook = self._mr_suppress_hook
         tc.gs.reserve_hook = self._reserve_hook
+        tc.gs.low_orbit_hook = self._low_orbit_hook
+        tc.gs.assault_hook = self._assault_hook
 
         self._game_over = False
         self._ai_thinking = False   # expert AI search running on a worker thread
@@ -613,7 +615,8 @@ class GamePanel(AAPanelMixin):
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
                       "the_bait", "raiders", "blockade_run", "rearguard", "alien_intervention",
-                      "surprise_attack", "navigate_storm", "destroy_docks", "convoy_narrative", "escalating_engagement", "fleet_engagement", "confrontation", "line_breaker", "ambush",
+                      "surprise_attack", "navigate_storm", "destroy_docks", "convoy_narrative", "exterminatus",
+                      "planetary_assault", "escalating_engagement", "fleet_engagement", "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
                       "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
@@ -1134,6 +1137,35 @@ class GamePanel(AAPanelMixin):
         return choose(self.root, "Reinforcements",
                       f"Player {player}: bring {names} on from the table edge this turn?",
                       [("Enter now", True), ("Wait", False)], True)
+
+    def _low_orbit_hook(self, ship) -> bool:
+        """Low orbit (s.39): a ship in the planet's gravity well at the start of
+        its turn may enter low orbit. A human is asked, with "Auto (best)"
+        (the AI's choice, `planet_scenarios.wants_low_orbit`)."""
+        import threading
+        from .planet_scenarios import wants_low_orbit
+        best = wants_low_orbit(self.ctx.gs, ship)
+        if self.ctx.is_ai_controlled(ship.player) or \
+                threading.current_thread() is not threading.main_thread():
+            return best
+        from .choice_dialog import choose
+        return choose(self.root, "Low orbit",
+                      f"{ship.name} is in the planet's gravity well: enter low orbit?",
+                      [("Enter low orbit", True), ("Stay in high orbit", False)], best)
+
+    def _assault_hook(self, ship) -> bool:
+        """Planetary Assault: at the start of the attacker's shooting phase a
+        ship within 30cm of the planet edge may assault instead of firing."""
+        import threading
+        if self.ctx.is_ai_controlled(ship.player) or \
+                threading.current_thread() is not threading.main_thread():
+            return True
+        from .choice_dialog import choose
+        from .planet_scenarios import assault_capacity
+        return choose(self.root, "Planetary Assault",
+                      f"{ship.name}: assault the planet (+{assault_capacity(ship):g} assault "
+                      f"points; no shooting, launching or teleporting this turn)?",
+                      [("Assault", True), ("Fight normally", False)], True)
 
     def _roll_subplots(self):
         """Sub-plots (p.80): with the rule on, each player (the attacker

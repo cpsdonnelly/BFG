@@ -79,6 +79,9 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     # Siege Cannons: macrobatteries fired on their own shift right
     if weapon:
         shifts += siege_alone_shift(ship, weapon)
+    # Low orbit (s.39): all gunnery weapons there shift one column right
+    from .low_orbit import gunnery_shift
+    shifts += gunnery_shift(ship)
 
     # LoS-based shifts (blast markers and dust clouds in line of fire)
     phenomena = phenomena or []
@@ -572,6 +575,13 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
         strength = (strength + 1) // 2
     if "half_armament" in attacker.special_rules:
         strength = (strength + 1) // 2     # Navigate the Storm: recovering from the warp
+    # Low orbit (s.39): lances need a 4+ to fire at all
+    from .low_orbit import needs_fire_roll
+    if strength > 0 and needs_fire_roll(attacker):
+        r = dice.roll_d6(1, f"{attacker.name} {weapon['name']} fires in low orbit on 4+")[0]
+        if r < 4:
+            result.description = f"{weapon['name']}: fails to fire in low orbit (rolled {r})"
+            return result
 
     if strength <= 0:
         result.description = f"{weapon['name']}: no strength available"
@@ -675,6 +685,11 @@ def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
 
     if dist < 30 or dist > 150:
         return {"error": f"Target at {dist:.1f}cm, nova cannon range is 30-150cm"}
+    from .low_orbit import needs_fire_roll
+    if needs_fire_roll(attacker):
+        r = dice.roll_d6(1, f"{attacker.name} nova cannon fires in low orbit on 4+")[0]
+        if r < 4:
+            return {"error": f"the nova cannon fails to fire in low orbit (rolled {r})"}
 
     # Scatter
     if dist <= 45:

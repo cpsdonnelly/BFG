@@ -8,9 +8,8 @@ from .dice import DiceRoller
 
 def check_off_table(ship: Ship, table_width: float, table_height: float) -> bool:
     """Check if a ship has moved off the table edge (involuntary disengage)."""
-    r = ship.base_radius
-    return (ship.x - r < 0 or ship.x + r > table_width or
-            ship.y - r < 0 or ship.y + r > table_height)
+    from .low_orbit import off_bounds
+    return off_bounds(ship, table_width, table_height)
 
 
 def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = None):

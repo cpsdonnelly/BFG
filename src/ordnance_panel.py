@@ -498,7 +498,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
         group_var = tk.IntVar(value=0)
         for idx, grp in enumerate(groups):
             names = ", ".join(s.name for s in grp)
-            can_torp = any(s.ordnance_loaded_torps for s in grp)
+            can_torp = any(s.ordnance_loaded_torps and "in_low_orbit" not in s.special_rules
+                           for s in grp)
             can_craft = any(s.ordnance_loaded_craft for s in grp)
             types = " | ".join(filter(None, [
                 "Torps" if can_torp else None,
@@ -523,7 +524,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
             return
 
         group = groups[chosen_group_idx.get()]
-        can_torp = any(s.ordnance_loaded_torps for s in group)
+        can_torp = any(s.ordnance_loaded_torps and "in_low_orbit" not in s.special_rules
+                       for s in group)
         can_craft = any(s.ordnance_loaded_craft for s in group)
 
         # Ordnance type selection
@@ -1025,9 +1027,11 @@ class OrdnancePanel(OrdnanceMovementMixin):
         bay_weapons = []
         for w in ship.weapons:
             wtype = w.get("weapon_type", "")
-            if wtype == "torpedo" and ship.ordnance_loaded_torps:
+            if wtype == "torpedo" and ship.ordnance_loaded_torps \
+                    and "in_low_orbit" not in ship.special_rules:      # s.39
                 torp_weapons.append(w)
-            elif wtype == "mine_launcher" and ship.ordnance_loaded_mines:
+            elif wtype == "mine_launcher" and ship.ordnance_loaded_mines \
+                    and "in_low_orbit" not in ship.special_rules:
                 mine_weapons.append(w)
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
                 bay_weapons.append(w)

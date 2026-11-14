@@ -286,6 +286,9 @@ class _FireDialog:
         cv = self.closest_visible
         if not cv or target.id == cv.id:
             return target
+        from .planet_scenarios import priority_free
+        if priority_free(self.ctx.gs, self.attacker, target):
+            return target    # Exterminatus!: an Exterminator counts as the closest
         # A hulk that is the closest enemy may be fired on without a test (s.34)
         if (target.status in ("drifting_hulk", "burning_hulk")
                 and self.attacker.distance_to(target) < self.attacker.distance_to(cv)):

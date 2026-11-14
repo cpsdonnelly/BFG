@@ -230,8 +230,16 @@ class BoardView:
         self.redraw()
 
     # Coordinate conversion
+    def _low_orbit_shown(self) -> bool:
+        return bool((getattr(self.gs, "scenario_state", None) or {}).get("low_orbit_planet"))
+
     def cm_to_screen(self, cx, cy) -> Tuple[float, float]:
-        """Convert game cm coordinates to screen pixel coordinates"""
+        """Convert game cm coordinates to screen pixel coordinates. The low
+        orbit table (far away in game coordinates, src/low_orbit.py) is drawn
+        as a strip just above the main table."""
+        from .low_orbit import is_low, Y0, board_offset
+        if is_low(cy):
+            cy = board_offset(self.gs.table_height) + (cy - Y0)
         sx = self.margin + cx * self.scale
         sy = self.canvas.winfo_height() - self.margin - cy * self.scale  # Y flipped
         return sx, sy
@@ -240,6 +248,11 @@ class BoardView:
         """Convert screen pixels to game cm coordinates"""
         cx = (sx - self.margin) / self.scale
         cy = (self.canvas.winfo_height() - self.margin - sy) / self.scale
+        if self._low_orbit_shown():
+            from .low_orbit import Y0, board_offset
+            off = board_offset(self.gs.table_height)
+            if cy >= off - 2.0:
+                cy = Y0 + (cy - off)
         return cx, cy
 
     def cm_to_pixels(self, cm_val) -> float:
@@ -252,8 +265,11 @@ class BoardView:
         ch = event.height - 2 * self.margin
         if cw <= 0 or ch <= 0:
             return
-        scale_x = cw / self.gs.table_width
-        scale_y = ch / self.gs.table_height
+        from .low_orbit import WIDTH, LENGTH, board_offset
+        lo_h = (board_offset(self.gs.table_height) + WIDTH) if self._low_orbit_shown() \
+            else self.gs.table_height
+        scale_x = cw / max(self.gs.table_width, LENGTH if self._low_orbit_shown() else 0)
+        scale_y = ch / lo_h
         self.scale = min(scale_x, scale_y)
         self.redraw()
 
@@ -726,6 +742,20 @@ class BoardView:
         x0, y0 = self.cm_to_screen(0, 0)
         x1, y1 = self.cm_to_screen(self.gs.table_width, self.gs.table_height)
         self.canvas.create_rectangle(x0, y1, x1, y0, outline="#333355", width=2)
+        if self._low_orbit_shown():
+            # The low orbit table (s.39): the planet edge at the top
+            from .low_orbit import Y0, WIDTH, LENGTH
+            lx0, ly0 = self.cm_to_screen(0, Y0)
+            lx1, ly1 = self.cm_to_screen(LENGTH, Y0 + WIDTH)
+            self.canvas.create_rectangle(lx0, ly1, lx1, ly0, outline="#5577AA", width=2,
+                                         fill="#0A1020")
+            self.canvas.create_line(lx0, ly1, lx1, ly1, fill="#55AA55", width=4)
+            self.canvas.create_text(lx0 + 4, ly1 + 8, anchor="w", fill="#88AACC",
+                                    text="LOW ORBIT (planet edge above)",
+                                    font=("Consolas", 8, "bold"))
+            gx0, gy = self.cm_to_screen(0, Y0 + WIDTH - 45.0)
+            gx1, _ = self.cm_to_screen(LENGTH, Y0 + WIDTH - 45.0)
+            self.canvas.create_line(gx0, gy, gx1, gy, fill="#446688", dash=(3, 4))
 
         # Grid lines every 10cm
         for i in range(0, int(self.gs.table_width) + 1, 10):

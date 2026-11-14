@@ -855,8 +855,9 @@ class OrdnanceMovementMixin:
                     continue
 
                 # Off table check
-                if (marker.x < -5 or marker.x > self.ctx.gs.table_width + 5 or
-                        marker.y < -5 or marker.y > self.ctx.gs.table_height + 5):
+                from .low_orbit import marker_off_bounds
+                if marker_off_bounds(marker.x, marker.y, self.ctx.gs.table_width,
+                                     self.ctx.gs.table_height):
                     to_remove.add(marker.id)
                     self.ctx.log(f"  {marker.ordnance_type} left the table")
                     continue

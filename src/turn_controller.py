@@ -309,6 +309,10 @@ class TurnController:
 
         elif phase == "shooting":
             self.ships_fired.clear()
+            # Planetary Assault: ships may assault the planet instead of firing
+            from .planet_scenarios import shooting_start as _assault_start
+            _assault_start(self.gs, self.gs.active_player,
+                           getattr(self.gs, "assault_hook", None))
 
         label = f"t{self.gs.turn_number}_{phase}"
         self.save_snapshot(label)

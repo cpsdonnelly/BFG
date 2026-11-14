@@ -82,6 +82,18 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone_or_no_cargo",
         "victory": "navigate_storm",
     },
+    "exterminatus": {
+        "name": "Exterminatus! (XR p.101-102)",
+        "first_turn": "roll_off",
+        "end": "fleet_gone",
+        "victory": "planet_battle",
+    },
+    "planetary_assault": {
+        "name": "Planetary Assault (XR p.105-106)",
+        "first_turn": "roll_off",
+        "end": "fleet_gone",
+        "victory": "planet_battle",
+    },
     "convoy_narrative": {
         "name": "Convoy (XR p.94-95, narrative)",
         "first_turn": "defender",
@@ -289,7 +301,11 @@ def entry_edge(gs) -> Optional[str]:
 def place_arrival(gs, ships, index: int = 0) -> None:
     """Put an arriving unit on the table at the entry edge, facing in, stacked
     along the edge from its middle (each later unit further along)."""
-    edge = entry_edge(gs)
+    place_arrival_at(gs, ships, entry_edge(gs), index)
+
+
+def place_arrival_at(gs, ships, edge: str, index: int = 0) -> None:
+    """place_arrival for a given edge (Exterminatus' random patrol edges)."""
     w, h = gs.table_width, gs.table_height
     occupied = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
     off = 0
@@ -400,6 +416,22 @@ def turn_start(gs, dice=None) -> None:
     if mode == "destroy_docks":
         from .destroy_docks import lay_orbital_mines
         lay_orbital_mines(gs)
+    if mode in ("exterminatus", "planetary_assault"):
+        from .low_orbit import falling, can_enter, enter
+        from .planet_scenarios import turn_start as _planet_start, wants_low_orbit
+        players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
+        for p in players:
+            pdice = _dice_for(gs, p, dice)
+            _planet_start(gs, p, pdice)
+            falling(gs)
+            hook = getattr(gs, "low_orbit_hook", None)
+            ai = getattr(gs, "ai_spectator", False) or getattr(gs, "ai_player", None) == p
+            for s in gs.get_ships():
+                if s.player != p or not can_enter(gs, s):
+                    continue
+                want = wants_low_orbit(gs, s) if (ai or hook is None) else bool(hook(s))
+                if want:
+                    enter(gs, s)
     if entry_edge(gs):
         hook = getattr(gs, "reserve_hook", None)
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
@@ -783,6 +815,12 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 from .dice import DiceRoller
                 dice = DiceRoller(mode="auto")
             resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
+    elif mode in ("exterminatus", "planetary_assault"):
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        from .planet_scenarios import setup as _planet_setup
+        _planet_setup(gs, dice)
     elif mode == "convoy_narrative":
         if dice is None:
             from .dice import DiceRoller
@@ -1039,6 +1077,9 @@ def force_errors(gs) -> List[str]:
     if mode == "convoy_narrative":
         from .convoy_narrative import force_errors as _cn_errors
         return _cn_errors(gs)
+    if mode == "planetary_assault":
+        from .planet_scenarios import force_errors as _pa_errors
+        return _pa_errors(gs)
     if mode == "line_breaker":
         pts = sum(s.points_value for s in ships)
         need = -(-pts // 200)
@@ -1131,6 +1172,9 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         # the exit point (the right edge's 20cm strip)
         rects = {3 - att_p: [(20, w / 2.0, h / 2.0, 0)],
                  att_p: [(w / 2.0, 20, 10, h / 2.0)]}
+    elif mode in ("exterminatus", "planetary_assault"):
+        from .planet_scenarios import zone_rects as _planet_rects
+        rects = _planet_rects(gs)
     elif mode == "convoy_narrative":
         # Nobody deploys: the attacker's forces are contact markers, the
         # convoy moves on from its entry point (zones kept for the panels)
@@ -1223,6 +1267,9 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
         return errs
+    if mode in ("exterminatus", "planetary_assault"):
+        from .planet_scenarios import placement_errors as _planet_errors
+        return _planet_errors(gs, group, positions)
     if mode == "destroy_docks":
         from .destroy_docks import placement_errors as _docks_errors
         return _docks_errors(gs, group, positions)
@@ -1387,6 +1434,9 @@ def auto_positions(gs, group, zone, placed, index: int):
     Storm alternates its divisions' corners; Ambush spaces the defender's
     groups 25cm apart."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode in ("exterminatus", "planetary_assault"):
+        from .planet_scenarios import auto_positions as _planet_auto
+        return _planet_auto(gs, group, placed)
     if mode == "destroy_docks":
         from .destroy_docks import auto_positions as _docks_auto
         return _docks_auto(gs, group, placed)
@@ -1580,6 +1630,13 @@ def exit_edge(gs, ship) -> str:
     return max(over, key=over.get)
 
 
+def record_landing(gs, ship) -> None:
+    """A ship landed from low orbit (Planetary Assault scores escort convoy
+    ships landing)."""
+    from .planet_scenarios import record_landing as _pl
+    _pl(gs, ship)
+
+
 def record_exit(gs, ship) -> None:
     """A ship moved off the table: remember the edge (Line Breaker's
     breakthrough is a capital ship off the defender's long edge)."""
@@ -1741,6 +1798,9 @@ def _scenario_kill_bonus(gs, ship) -> float:
     mode = getattr(gs, "scenario_mode", "")
     if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
         return 100.0        # a convoy ship escaping would give the defender 100
+    if mode in ("exterminatus", "planetary_assault"):
+        from .planet_scenarios import kill_bonus_vp as _planet_bonus
+        return _planet_bonus(gs, ship)
     if mode == "convoy_narrative" and is_convoy(ship) and ship.player == defender(gs):
         from .convoy_narrative import capacity_vp
         return capacity_vp(gs) * transport(ship)
@@ -1901,6 +1961,9 @@ def check_end(gs) -> Optional[dict]:
     """Booklet scenario game-end and victory (scenario.check_game_over's
     contract). Fleet-gone checks stay in check_game_over."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode in ("exterminatus", "planetary_assault"):
+        from .planet_scenarios import check_end as _planet_end
+        return _planet_end(gs)
     if mode == "convoy_narrative":
         from .convoy_narrative import check_end as _cn_end
         return _cn_end(gs)
@@ -1999,6 +2062,9 @@ def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
         return None if a == b else (1 if a > b else 2)
     if sc and sc["victory"] == "chance_encounter":
         return chance_result(gs)
+    if sc and sc["victory"] == "planet_battle":
+        from .planet_scenarios import winner as _planet_winner
+        return _planet_winner(gs)
     if sc and sc["victory"] == "convoy_narrative":
         from .convoy_narrative import winner as _cn_winner
         return _cn_winner(gs)

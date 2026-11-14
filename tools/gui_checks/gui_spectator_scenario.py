@@ -68,6 +68,8 @@ gs.scenario_mode = scenario
 gs.rule_subplots = "subplots" in sys.argv
 gs.scenario_attacker = 1
 gs.turn_limit = 12
+if scenario in ("exterminatus", "planetary_assault"):
+    gs.turn_limit = 30          # the planet is 150cm from the attacker's edge
 from src import scenarios as sc
 imp = ["Lunar Class Cruiser", "Gothic Class Cruiser", "Dominator Class Cruiser",
        "Dauntless Class Light Cruiser"]
@@ -105,6 +107,10 @@ if scenario == "convoy_matched":
         c = cat("Conventional Transport", 2, 10 + k, 0.0, 0.0)
         c.squadron_id = "convoy_a" if k < 3 else "convoy_b"
         gs.add_ship(c)
+if scenario == "planetary_assault":
+    pts = sum(s_.points_value for s_ in gs.get_ships())
+    for k in range(2 * (-(-pts // 500)) // 2):          # 2 capacity a Heavy Transport
+        gs.add_ship(cat("Heavy Transport", 1, 70 + k, 0.0, 0.0))
 if scenario == "convoy_narrative":
     for k in range(4):                  # 4 transport capacity, squadrons of 2
         c = cat("Conventional Transport", 2, 60 + k, 0.0, 0.0)

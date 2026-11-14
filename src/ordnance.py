@@ -1291,6 +1291,10 @@ def lay_mines(ship: Ship, weapon: Dict, gs: GameState) -> List[OrdnanceMarker]:
     fresh = gs.get_ship_by_id(ship.id) or ship
     if not fresh.ordnance_loaded_mines:
         return []
+    from .low_orbit import launch_forbidden
+    if launch_forbidden(fresh, "mine"):
+        gs.add_log(f"{fresh.name}: mines can't be laid in low orbit")
+        return []
     n = mine_launch_strength(fresh, weapon)
     exempt = compute_torpedo_launch_exempt(fresh, gs)
     out = []
@@ -1609,6 +1613,12 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
     It is clamped to ±45° of the ship's heading — the same forward-arc
     constraint the human launch dialog enforces. Defaults to ship heading.
     """
+    # Low orbit (s.39): no torpedoes; barrage bombs may be launched (s.16)
+    from .low_orbit import launch_forbidden
+    if launch_forbidden(ship) and kind != "barrage" and \
+            weapon.get("torpedo_type") != "barrage":
+        game_state.add_log(f"{ship.name}: torpedoes can't be launched in low orbit")
+        return None
     torpedo_type = weapon.get("torpedo_type", "standard")
     if not getattr(game_state, "rule_hit_and_run", True):
         # Owner: no boarding torpedoes while hit-and-run raids are disabled (each

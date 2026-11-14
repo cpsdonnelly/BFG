@@ -801,8 +801,11 @@ class AIPlayer:
         the way, exposure, carrier exposure, plus screening and explosions."""
         fx, fy, fh = self._simulate_final_pos(ship, turn_deg, dist, turn_at)
         r = ship.base_radius
-        if fx - r < 0 or fy - r < 0 or fx + r > self.gs.table_width \
-                or fy + r > self.gs.table_height:
+        from .low_orbit import bounds_for, in_low_orbit
+        bx0, by0, bx1, by1 = bounds_for(ship.y, self.gs.table_width, self.gs.table_height)
+        if fx - r < bx0 or fy - r < by0 or fx + r > bx1 or fy + r > by1:
+            if in_low_orbit(ship):
+                return self._low_orbit_exit_score(ship, fx, fy, enemy)
             return self._off_table_score(ship, fx, fy, enemy)
         path = self._simulate_path(ship, turn_deg, dist, turn_at)
         trap = self._edge_trap_penalty(ship, fx, fy, fh, enemy)
@@ -826,7 +829,100 @@ class AIPlayer:
         score += self._breakthrough(ship, fx, fy, enemy)
         score += self._convoy_run(ship, fx, fy, enemy)
         score += self._bombard_approach(ship, fx, fy, enemy)
+        score += self._planet_term(ship, fx, fy, enemy, fh)
         return score
+
+    def _planet_objective_vp(self, ship: Ship) -> float:
+        """What getting this ship into position over the planet is worth
+        (Exterminatus! / Planetary Assault, judgement): an Exterminator the
+        planet's share (its kill bonus: half the points on the table shared
+        out) x the 4+ / 3+ chance; an assaulting ship two turns of its assault
+        points."""
+        from .planet_scenarios import is_exterminator, kill_bonus_vp, mode
+        gs = self.gs
+        if mode(gs) == "exterminatus" and is_exterminator(ship):
+            need = next((int(r.split(":")[1]) for r in ship.special_rules
+                         if r.startswith("exterminator:")), 4)
+            return kill_bonus_vp(gs, ship) * (7 - need) / 6.0
+        if mode(gs) == "planetary_assault" and ship.player == gs.scenario_attacker:
+            return kill_bonus_vp(gs, ship)
+        return 0.0
+
+    def _planet_term(self, ship: Ship, x: float, y: float, enemy: Ship,
+                     end_heading: Optional[float] = None) -> float:
+        """Exterminatus! / Planetary Assault (low orbit, s.39), judgement:
+        ships with a planet objective close on the gravity well in high orbit
+        (in proportion to the way covered; they enter low orbit at the start
+        of their next turn); in low orbit they end within reach of the planet
+        edge (45cm for an Exterminator's roll, 30cm to assault) but never
+        where the two falls before their next move (the enemy's turn start
+        and their own) would take them off the planet edge, which costs the
+        ship. In move-score units."""
+        from .planet_scenarios import active as _pa, EXTERMINATUS_RANGE, ASSAULT_RANGE, mode
+        from . import low_orbit as lo
+        gs = self.gs
+        if not _pa(gs) or self.difficulty == "easy":
+            return 0.0
+        from .ai_hazards import value_per_hit, ship_value
+        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        goal = self._planet_objective_vp(ship)
+        if lo.in_low_orbit(ship):
+            pl = lo.planet(gs)
+            fall = lo.FALL.get(pl.phenomenon_type, 8.0) if pl else 8.0
+            d = lo.planet_edge_y() - y
+            if d <= lo.GRIP + 2 * fall:
+                # It falls at the start of the enemy's turn and its own, then
+                # moves: it must survive those falls and still be able to
+                # climb clear of the next two (away from the planet is -y; a
+                # ship turns at most its turn angle a move, so its heading
+                # decides how much it can climb)
+                h = end_heading if end_heading is not None else ship.heading
+                after = d - 2 * fall
+                if after - ship.base_radius <= 0:
+                    return -2.0 * ship_value(ship, gs) / units
+                ta = ship.turn_angle or 0
+                spd = ship.effective_speed
+                climb = max(0.0, max(-math.sin(math.radians(h + t)) * spd
+                                     for t in (-ta, -ta / 2.0, 0.0, ta / 2.0, ta)))
+                if after + climb - 2 * fall - ship.base_radius <= 0:
+                    return -1.5 * ship_value(ship, gs) / units
+            reach = EXTERMINATUS_RANGE if mode(gs) == "exterminatus" else ASSAULT_RANGE
+            if goal > 0 and d <= reach:
+                return goal / units
+            if goal > 0:
+                d0 = lo.planet_edge_y() - ship.y
+                return 0.5 * goal * max(0.0, d0 - d) / max(1.0, d0) / units
+            return 0.0
+        if goal <= 0:
+            return 0.0
+        pl = lo.planet(gs)
+        if pl is None:
+            return 0.0
+        well = pl.gravity_well_radius
+        d0 = max(0.0, math.hypot(ship.x - pl.x, ship.y - pl.y) - well)
+        d1 = max(0.0, math.hypot(x - pl.x, y - pl.y) - well)
+        progress = 1.0 if d1 <= 0 else max(0.0, d0 - d1) / max(1.0, d0)
+        return 0.5 * goal * progress / units
+
+    def _low_orbit_exit_score(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """A move off the low orbit table's edge: landing (escorts and
+        transports, off the planet edge: a Planetary Assault convoy ship scores
+        that turn), returning to high orbit, or for a capital ship stopping
+        at the planet edge (it falls off next turn). In move-score units."""
+        from . import low_orbit as lo
+        from .ai_hazards import value_per_hit, ship_value
+        gs = self.gs
+        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        goal = self._planet_objective_vp(ship)
+        if y + ship.base_radius > lo.planet_edge_y():
+            if lo.lands(ship):
+                from .planet_scenarios import assault_capacity, assault_point_vp, mode
+                gain = (assault_capacity(ship) * assault_point_vp(gs)
+                        if mode(gs) == "planetary_assault" and ship.player == gs.scenario_attacker
+                        else 0.0)
+                return (gain - 0.1 * ship_value(ship, gs)) / units
+            return -2.0 * ship_value(ship, gs) / units
+        return -goal / units
 
     def _edge_trap_penalty(self, ship: Ship, x: float, y: float, h: float,
                            enemy: Ship) -> float:
@@ -837,7 +933,8 @@ class AIPlayer:
         negative) at `PHASE_DISCOUNT`. Burn Retros might save it, at its
         command check's odds, which isn't counted (judgement). Immobile and
         escorts (they turn anywhere) excepted. In move-score units."""
-        if ship.ship_type == "escort" or "immobile" in ship.special_rules:
+        if ship.ship_type == "escort" or "immobile" in ship.special_rules \
+                or "in_low_orbit" in ship.special_rules:     # no minimum move there
             return 0.0
         from .movement import MIN_TURN_DISTANCE
         gs = self.gs
@@ -846,8 +943,11 @@ class AIPlayer:
         td = min(lo, MIN_TURN_DISTANCE.get(ship.ship_type, 10))
         ta = math.radians(ship.turn_angle or 0)
 
+        from .low_orbit import bounds_for
+        bx0, by0, bx1, by1 = bounds_for(y, gs.table_width, gs.table_height)
+
         def off(px, py):
-            return px - r < 0 or py - r < 0 or px + r > gs.table_width or py + r > gs.table_height
+            return px - r < bx0 or py - r < by0 or px + r > bx1 or py + r > by1
         hr = math.radians(h)
         for turn in (0.0, ta, -ta):
             mx, my = x + td * math.cos(hr), y + td * math.sin(hr)
@@ -1080,6 +1180,17 @@ class AIPlayer:
             return max(0.0, self._exit_value(ship))  # leaving by a test gives up the bonus
         if gs.scenario_mode in ("navigate_storm", "convoy_narrative"):
             return max(0.0, self._exit_value(ship))  # only the exit counts
+        if gs.scenario_mode in ("exterminatus", "planetary_assault"):
+            # The planet battles: the defender gives up its share of stopping
+            # the attack (half the points on the table shared out, judgement);
+            # an attacker with a planet objective gives that up
+            if ship.player != gs.scenario_attacker:
+                mine = [s for s in gs.get_ships() if s.player == ship.player
+                        and not s.is_destroyed and not s.is_disengaged
+                        and "immobile" not in s.special_rules]
+                return (0.5 * sum(s.points_value for s in gs.get_ships())
+                        / max(1, len(mine)))
+            return self._planet_objective_vp(ship)
         if (gs.scenario_mode == "convoy_matched" and is_convoy(ship)
                 and ship.player == defender(gs)):
             # Convoy: leaving except off the attacker's edge counts as destroyed, +50
@@ -2886,6 +2997,9 @@ class AIPlayer:
         cv = visible[0] if visible else None
         if cv is None or wanted.id == cv.id or not any(v.id == cv.id for v in valid):
             return wanted                     # the closest isn't a target for this weapon
+        from .planet_scenarios import priority_free
+        if priority_free(gs, ship, wanted):
+            return wanted                     # Exterminatus!: counts as the closest
         if (wanted.status in ("drifting_hulk", "burning_hulk")
                 and ship.distance_to(wanted) < ship.distance_to(cv)):
             return wanted

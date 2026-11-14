@@ -96,6 +96,8 @@ def get_effective_speed(ship: Ship, special_order: str, aaf_bonus: int = 0,
     if blast_slowdown:
         max_spd = max(0, max_spd - 5)
         min_spd = min(min_spd, max_spd)
+    if "in_low_orbit" in ship.special_rules:
+        min_spd = 0          # s.39: ships in low orbit don't have to move
 
     return (min_spd, max_spd)
 
@@ -294,8 +296,9 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
         # (reading: each turn after a further 20cm)
         min_turn_dist = 20
 
-    # Burn Retros: no minimum distance before turning
-    if special_order == SpecialOrder.BURN_RETROS.value:
+    # Burn Retros: no minimum distance before turning; in low orbit capital
+    # ships need none either (s.39)
+    if special_order == SpecialOrder.BURN_RETROS.value or "in_low_orbit" in ship.special_rules:
         min_turn_dist = 0
 
     # Track state
@@ -337,10 +340,12 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
             new_x = cx + cmd.value * math.cos(rad)
             new_y = cy + cmd.value * math.sin(rad)
 
-            if new_x < 0 or new_x > table_width or new_y < 0 or new_y > table_height:
+            from .low_orbit import bounds_for as _bounds_for
+            bx0, by0, bx1, by1 = _bounds_for(cy, table_width, table_height)
+            if new_x < bx0 or new_x > bx1 or new_y < by0 or new_y > by1:
                 result.add_warning(f"Ship would leave the table at ({new_x:.1f}, {new_y:.1f})")
-                new_x = max(0, min(table_width, new_x))
-                new_y = max(0, min(table_height, new_y))
+                new_x = max(bx0, min(bx1, new_x))
+                new_y = max(by0, min(by1, new_y))
 
             if first_contact is None and need > 1:
                 hit = _first_multi_contact(cx, cy, new_x, new_y, blast_markers,
@@ -549,6 +554,11 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
     ship.y = result.final_y
     ship.heading = result.final_heading
     ship.moved_this_turn = True
+
+    # Low orbit (s.39): landing, returning to high orbit, the planet edge
+    from .low_orbit import handle_move_end as _lo_move_end
+    if _lo_move_end(gs, ship, dice):
+        return
 
     # Check for off-table (involuntary disengage)
     if check_off_table(ship, gs.table_width, gs.table_height):
