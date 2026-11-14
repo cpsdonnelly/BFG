@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1281 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1284 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -515,7 +515,7 @@ defences, the Space Station crit table and transport capacity; scenario points i
 Then attack ratings, sub-plots' first slice, the introductory scenarios, four raids (The
 Raiders, Blockade Run, The Bait, Rearguard Attack) on a new reinforcements framework, and
 three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Escalating
-Engagement's contact markers: 20 booklet scenarios in
+Engagement's contact markers and Navigate the Storm: 21 booklet scenarios in
 all (To do 7 lists what is left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
@@ -532,7 +532,7 @@ disengaging, re-rolls), the expert's root moves paying for hazards, exposure by 
 candidates (11 a)).
 Not built: Exterminatus!, Planetary Assault, Escalating Engagement, the narrative Convoy,
 Navigate the Storm, Destroy the Docks, the campaign set pieces and the rest of the sub-plots
-(To do 7; 20 scenarios are built), and the To do items below.
+(To do 7; 21 scenarios are built), and the To do items below.
 Next (largest first): 7 (the low orbit table for Exterminatus! / Planetary Assault, contact
 markers for Escalating Engagement / Convoy, Navigate the Storm, orbital mines for Destroy the
 Docks, the rest of the sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
@@ -1220,18 +1220,52 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    edge up to the slowest speed towards our ships (judgement). The board draws the markers.
    Not yet: a human choosing the divisions, the markers' positions and slides (dialogs); the
    AI valuing where its markers go.
-   Status: 20 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   Navigate the Storm built (p.98, `src/navigate_storm.py`): no other phenomena, 8 warp rifts
+   each placed alternately from the attacker (10cm squares 10cm apart edge to edge; placed
+   automatically, judgement: the attacker on the convoy's way from the defender's zone to the
+   exit point, the defender away from it, never in a zone or the exit point); zones from the
+   diagram (defender the bottom-left quarter 20cm in from the left edge, attacker the
+   top-right quarter 10cm down and short of the exit point, the exit point the right edge's
+   20cm strip beside it, `zones`); the attacker chooses who goes first (`first_turn
+   "attacker_choice"`); `force_errors` wants 10 transport capacity. A failed rift test
+   (`terrain_effects.resolve_warp_rift_navigation` -> `lose_ship`): a defending ship counts
+   as destroyed (reading: its capacity and VP to the attacker); an attacking ship is
+   `lost_in_warp` and in the attacker's end phase (`end_phase`) picks a capital ship on the
+   table (judgement, also for a human: the one nearest the convoy) and on a 2+ is placed 15cm
+   from it towards the convoy (reading: within 20cm), `materialising` and out of play until
+   the attacker's next movement phase (`turn_start`), where it moves ignoring terrain and
+   blast markers; at the end of that phase (`end_of_movement`, from `TurnController.end_phase`)
+   it returns to normal unless in base contact with an enemy (then out of play again,
+   reading) and tests Ld: a failure halves its batteries and lances (`half_armament`,
+   reading: not ordnance) until the end phase. AA (reading): materialising ships return at
+   the round start. Exit point: off the right edge with the centre between its ends
+   (`via_exit_point`, recorded by `record_exit`); evacuated ships score nothing for the
+   attacker (`scores_normally`). Game end: no transport capacity in play (reading for "until
+   victory conditions are met") or a fleet gone. Victory (`winner`): attacker 8 capacity
+   destroyed and 50% of the defender's points in VP; defender 5 capacity and 25% of its
+   points (uncrippled) via the exit point; one met wins, else the most capacity destroyed /
+   evacuated, the attacker on a tie. AI: convoy ships (capacity x `CAPACITY_WEIGHT` 0.05 x the
+   points on the table + their points) and uncrippled warships while the 25% is short
+   (`WARSHIP_EXIT_WEIGHT` 0.25 x points) run for the exit point (`_exit_value`, `_convoy_run`,
+   exit-point move goals); the attacker's kill bonus is the capacity value; a warp rift's loss
+   costs a ship's value plus its kill bonus (`ai_hazards.lost_ship_vp`; an attacking ship
+   0.1 x its value, it comes back). Not yet: players placing the rifts and choosing the
+   return anchor / spot in dialogs, secret deployment, the 13th Black Crusade daemonship
+   variant.
+   Fixed on the way (general): AI moves never took asteroid field / warp rift navigation
+   tests or dust cloud contact (the flags were set and left);
+   `terrain_effects.resolve_post_move_terrain` now resolves them for the AI and the human
+   move dialogs alike.
+   Status: 21 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
    Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
-   Engagement
+   Engagement, Navigate the Storm
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
    also `gui_spectator_domination.py`). Still to build (largest first): Exterminatus! and
    Planetary Assault (the low orbit table, s.41; assault points; Armageddon weapons on
    Exterminators; random patrol arrival edges; owner question: how a ship enters low orbit,
    the booklet doesn't say), the narrative Convoy (hidden contact markers,
-   deadfall torpedoes, attack craft clusters, random attacker forces), Navigate the Storm
-   (players placing warp rifts, ships lost in a rift rematerialising near a capital ship, the
-   exit point), Destroy the Docks (orbital mines aren't playable yet; random reinforcement
+   deadfall torpedoes, attack craft clusters, random attacker forces), Destroy the Docks (orbital mines aren't playable yet; random reinforcement
    arrival by speed), the campaign set pieces (Defence of Pelucidar, Macharia's End,
    Craftworld Assault) and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
    the sub-plots (Blood Bond, Fleet Experience, Signaling Problems effects; Unexpected Help,

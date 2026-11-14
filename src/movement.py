@@ -540,7 +540,8 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
         gs.add_log(f"{ship.name} moved through blast markers (-5cm speed)")
         first_time_this_phase = not ship.crossed_blast_this_turn
         ship.crossed_blast_this_turn = True
-        if first_time_this_phase and dice is not None and _blast_marker_damage(ship, gs, dice):
+        if first_time_this_phase and dice is not None and "materialising" not in ship.special_rules \
+                and _blast_marker_damage(ship, gs, dice):
             return
 
     if result.counts_as_defense:
@@ -548,7 +549,9 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
 
     # Check terrain interactions at final position
     phenomena = gs.get_phenomena()
-    contacts = check_ship_terrain_contact(ship, phenomena)
+    # Navigate the Storm: a materialising ship interacts with nothing
+    contacts = [] if "materialising" in ship.special_rules else \
+        check_ship_terrain_contact(ship, phenomena)
     for contact in contacts:
         ptype = contact["type"]
         effects = contact["effects"]

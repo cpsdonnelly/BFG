@@ -705,6 +705,10 @@ class AIPlayer:
         def execute(result, cmds) -> bool:
             execute_movement(ship, result, gs, self.dice)
             record_staged_move(gs, ship.id, result, cmds)
+            # Asteroid / warp rift / cloud tests the move ran into (s.39)
+            from .terrain_effects import resolve_post_move_terrain
+            resolve_post_move_terrain(gs, ship.id, self.dice,
+                                      order == SpecialOrder.ALL_AHEAD_FULL.value)
             return True
 
         r = validate_movement(ship, commands, **kwargs)
@@ -884,9 +888,13 @@ class AIPlayer:
         # Only the scenario's own exit edge counts as its exit
         from .scenarios import exit_edge
         edge = exit_edge(gs, moved)
-        exit_term = ((self._rescue_escape(ship, x, y, enemy) if edge == "left" else 0.0)
-                     + (self._breakthrough(ship, x, y, enemy) if edge == "bottom" else 0.0)
-                     + (self._convoy_run(ship, x, y, enemy) if edge == "top" else 0.0))
+        if gs.scenario_mode == "navigate_storm":
+            from .navigate_storm import via_exit_point
+            exit_term = self._convoy_run(ship, x, y, enemy) if via_exit_point(gs, moved) else 0.0
+        else:
+            exit_term = ((self._rescue_escape(ship, x, y, enemy) if edge == "left" else 0.0)
+                         + (self._breakthrough(ship, x, y, enemy) if edge == "bottom" else 0.0)
+                         + (self._convoy_run(ship, x, y, enemy) if edge == "top" else 0.0))
         if exit_term > 0:
             return exit_term          # the scenario's own exit (scored by the scenario)
         return cache[key] / units
@@ -950,6 +958,9 @@ class AIPlayer:
         if gs.scenario_mode == "blockade_run" and ship.player == gs.scenario_attacker:
             p = ship.points_value
             return (p // 4 if ship.damage_crippled else p) - 0.1 * p
+        if gs.scenario_mode == "navigate_storm":
+            from .navigate_storm import exit_value
+            return exit_value(gs, ship)
         return 0.0
 
     def _convoy_run(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
@@ -965,6 +976,11 @@ class AIPlayer:
         if g <= 0:
             return 0.0
         from .ai_hazards import value_per_hit
+        if gs.scenario_mode == "navigate_storm":
+            # Navigate the Storm: the exit point on the right edge
+            from .navigate_storm import exit_progress
+            return g * exit_progress(gs, ship, x, y) / (
+                0.35 * max(1.0, value_per_hit(enemy, gs)))
         h = gs.table_height
         if y + ship.base_radius > h:
             progress = 1.0
@@ -1045,6 +1061,8 @@ class AIPlayer:
         gs = self.gs
         if gs.scenario_mode == "blockade_run" and ship.player == gs.scenario_attacker:
             return max(0.0, self._exit_value(ship))  # leaving by a test gives up the bonus
+        if gs.scenario_mode == "navigate_storm":
+            return max(0.0, self._exit_value(ship))  # only the exit point counts
         if (gs.scenario_mode == "convoy_matched" and is_convoy(ship)
                 and ship.player == defender(gs)):
             # Convoy: leaving except off the attacker's edge counts as destroyed, +50
@@ -1384,6 +1402,11 @@ class AIPlayer:
         objs = sorted(_scenario_objectives(self.gs),
                       key=lambda m: math.hypot(m[0] - ship.x, m[1] - ship.y))[:3]
         goals += [((mx, my), "objective") for mx, my in objs]
+        if self.gs.scenario_mode == "navigate_storm" and self._exit_value(ship) > 0:
+            # Navigate the Storm: the exit point (and just past it)
+            from .navigate_storm import exit_target
+            ex, ey = exit_target(self.gs)
+            goals += [((ex - 10.0, ey), "objective"), ((ex + 5.0, ey), "objective")]
         for (gx, gy), src in goals:
             self._head_for(ship, gx, gy, points, min_spd, max_spd, ta, add, src)
         # g: Lock On next turn forbids turning, so end pointed for a straight

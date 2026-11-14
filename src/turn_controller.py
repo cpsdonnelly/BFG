@@ -327,6 +327,9 @@ class TurnController:
             # Escort squadrons that lost a ship off the table keep trying to leave
             from .disengage import forced_disengage_tests
             forced_disengage_tests(self.gs, self.dice, self.gs.active_player)
+            # Navigate the Storm: materialising ships return to normal
+            from .navigate_storm import end_of_movement as _storm_moved
+            _storm_moved(self.gs, self.gs.active_player, self.dice)
         if current == "end":
             # Booklet scenarios scoring at the end of a player's turn (Domination)
             from .scenarios import score_end_of_turn
@@ -336,6 +339,12 @@ class TurnController:
             from .escalating import end_of_turn as _ee_end
             _ee_end(self.gs, self.gs.active_player,
                     _dice_for(self.gs, self.gs.active_player, self.dice))
+            # Navigate the Storm: ships lost in the warp try to come back, and
+            # a returned ship's halved armament ends with the turn
+            from .navigate_storm import end_phase as _storm_end, clear_half_armament
+            _storm_end(self.gs, self.gs.active_player,
+                       _dice_for(self.gs, self.gs.active_player, self.dice))
+            clear_half_armament(self.gs, self.gs.active_player)
             # Mark of Chaos Undivided lasts until the end of the turn
             from .chaos_undivided import end_turn as _undivided_end
             _undivided_end(self.gs, self.gs.active_player)

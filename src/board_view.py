@@ -611,6 +611,16 @@ class BoardView:
         if gs.scenario_mode == "escalating_engagement":
             self._draw_contact_markers()
             return
+        if gs.scenario_mode == "navigate_storm":
+            from .navigate_storm import zones
+            x0, y0, x1, y1 = zones(gs)["exit"]
+            ax, ay = self.cm_to_screen(x0, y0)
+            bx, by = self.cm_to_screen(x1, y1)
+            self.canvas.create_rectangle(ax, ay, bx, by, outline="#FFD700", dash=(4, 3),
+                                         width=2)
+            self.canvas.create_text((ax + bx) / 2, (ay + by) / 2, text="EXIT",
+                                    fill="#FFD700", font=("Consolas", 9, "bold"))
+            return
         if gs.scenario_mode != "domination":
             return
         from .scenarios import objectives, controller, points, CONTROL_RANGE

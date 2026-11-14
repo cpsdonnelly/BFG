@@ -17,43 +17,11 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
     def _resolve_post_move_terrain(self, ship_id: str, on_aaf: bool):
         """Run asteroid/warp-rift/dust-cloud navigation tests flagged during
         movement, log the results, and clear the flags from the ship."""
-        from .terrain_effects import (resolve_asteroid_navigation,
-                                      resolve_warp_rift_navigation,
-                                      resolve_gas_dust_contact)
-
-        def _clear_flag(flag):
-            u = self.ctx.gs.get_ship_by_id(ship_id)
-            if u:
-                u.special_rules = [r for r in u.special_rules if r != flag]
-                self.ctx.gs.update_ship(u)
-            return u
-
+        from .terrain_effects import resolve_post_move_terrain
         # Ordnance the ship ran into during its move attacks it (s.15)
         self.ctx.ordnance._resolve_moving_ship_contacts()
-
-        updated = self.ctx.gs.get_ship_by_id(ship_id)
-        if not updated or updated.is_disengaged:
-            return
-        if "in_asteroid_field" in (updated.special_rules or []):
-            nav = resolve_asteroid_navigation(
-                updated, self.ctx.dice, self.ctx.gs, on_aaf)
-            if not nav["passed"]:
-                self.ctx.log(
-                    f"  {updated.name}: asteroid damage {nav['damage']} HP!")
-                self.ctx.check_destruction(updated)
-            updated = _clear_flag("in_asteroid_field")
-        if updated and "in_warp_rift" in (updated.special_rules or []):
-            nav = resolve_warp_rift_navigation(updated, self.ctx.dice, self.ctx.gs)
-            if not nav["passed"]:
-                self.ctx.log(f"  {updated.name}: LOST IN THE WARP!")
-            else:
-                pos = nav.get("new_position", (0, 0))
-                self.ctx.log(
-                    f"  {updated.name}: emerged at ({pos[0]:.0f}, {pos[1]:.0f})")
-            updated = _clear_flag("in_warp_rift")
-        if updated and "in_dust_cloud" in (updated.special_rules or []):
-            resolve_gas_dust_contact(updated, self.ctx.dice, self.ctx.gs)
-            _clear_flag("in_dust_cloud")
+        resolve_post_move_terrain(self.ctx.gs, ship_id, self.ctx.dice, on_aaf,
+                                  log=self.ctx.log)
     """Handles all ship movement UI: drag-drop, dialog, M-key, scroll-wheel."""
 
     def __init__(self, ctx: GameContext):

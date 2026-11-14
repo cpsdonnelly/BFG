@@ -76,6 +76,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "vp",
     },
+    "navigate_storm": {
+        "name": "Navigate the Storm (XR p.98)",
+        "first_turn": "attacker_choice",
+        "end": "fleet_gone_or_no_cargo",
+        "victory": "navigate_storm",
+    },
     "escalating_engagement": {
         "name": "Escalating Engagement (XR p.107)",
         "first_turn": "roll_off",
@@ -362,6 +368,11 @@ def turn_start(gs, dice=None) -> None:
                          _dice_for(gs, p, dice))
     if mode == "surprise_attack":
         _standby_tests(gs, _dice_for(gs, defender(gs), dice))
+    if mode == "navigate_storm":
+        from .navigate_storm import turn_start as _storm_start
+        players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
+        for p in players:
+            _storm_start(gs, p)
     if mode == "escalating_engagement":
         from .escalating import turn_start as _ee_turn_start
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
@@ -509,6 +520,8 @@ def first_turn_chooser(gs) -> Optional[int]:
     sc = SCENARIOS.get(getattr(gs, "scenario_mode", ""))
     if sc and sc.get("first_turn") == "defender_choice":
         return defender(gs)
+    if sc and sc.get("first_turn") == "attacker_choice":
+        return gs.scenario_attacker
     return None
 
 
@@ -708,6 +721,9 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 from .dice import DiceRoller
                 dice = DiceRoller(mode="auto")
             resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
+    elif mode == "navigate_storm":
+        from .navigate_storm import setup as _storm_setup
+        _storm_setup(gs)
     elif mode == "escalating_engagement":
         if dice is None:
             from .dice import DiceRoller
@@ -892,6 +908,10 @@ def cargo_on_table(gs, player: int) -> float:
 def scores_normally(gs, ship) -> bool:
     """False for ships the scenario scores itself (vp_bonus): Convoy's convoy
     ships."""
+    if getattr(gs, "scenario_mode", "") == "navigate_storm":
+        # Ships evacuated via the exit point don't count towards the attacker
+        from .navigate_storm import evacuated
+        return not evacuated(gs, ship)
     return not (getattr(gs, "scenario_mode", "") == "convoy_matched" and is_convoy(ship)
                 and ship.player == defender(gs))
 
@@ -939,6 +959,9 @@ def force_errors(gs) -> List[str]:
     defender's fleet; Space Assault a single space station."""
     mode = getattr(gs, "scenario_mode", "")
     ships = [s for s in gs.get_ships() if s.player == defender(gs)]
+    if mode == "navigate_storm":
+        from .navigate_storm import force_errors as _storm_errors
+        return _storm_errors(gs)
     if mode == "line_breaker":
         pts = sum(s.points_value for s in ships)
         need = -(-pts // 200)
@@ -1025,6 +1048,12 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         rects = {3 - att_p: [(30, 30, 30, 30)],
                  att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
                          (w - e, 0, 0, 0)]}
+    elif mode == "navigate_storm":
+        # Defender: the bottom-left quarter, 20cm in from the left edge;
+        # attacker: the top-right quarter, 10cm down from the top, short of
+        # the exit point (the right edge's 20cm strip)
+        rects = {3 - att_p: [(20, w / 2.0, h / 2.0, 0)],
+                 att_p: [(w / 2.0, 20, 10, h / 2.0)]}
     elif mode == "escalating_engagement":
         from .escalating import zone_rects
         rects = zone_rects(gs)
@@ -1469,6 +1498,8 @@ def record_exit(gs, ship) -> None:
     exits[ship.id] = exit_edge(gs, ship)
     st["exits"] = exits
     gs.scenario_state = st
+    from .navigate_storm import record_exit as _storm_exit
+    _storm_exit(gs, ship)
 
 
 def damage_points(gs, player: int) -> int:
@@ -1606,6 +1637,9 @@ def _scenario_kill_bonus(gs, ship) -> float:
     mode = getattr(gs, "scenario_mode", "")
     if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
         return 100.0        # a convoy ship escaping would give the defender 100
+    if mode == "navigate_storm" and ship.player == defender(gs):
+        from .navigate_storm import capacity_vp
+        return capacity_vp(gs) * transport(ship, building=True)
     if mode == "space_assault" and ship.ship_class.startswith("Space Station") \
             and ship.player == defender(gs):
         return 500.0
@@ -1763,6 +1797,12 @@ def check_end(gs) -> Optional[dict]:
             from .scenario import vp_winner
             return {"winner": vp_winner(gs), "reason": "convoy_gone",
                     "detail": "no transport capacity left on the table"}
+    if mode == "navigate_storm":
+        from .navigate_storm import cargo_left, winner
+        st = gs.scenario_state or {}
+        if cargo_left(gs) <= 0 and gs.turn_number >= 1 and gs.get_ships():
+            return {"winner": winner(gs), "reason": "convoy_gone",
+                    "detail": "no transport capacity left in play"}
     if mode == "line_breaker" and line_breaker_won(gs):
         return {"winner": gs.scenario_attacker, "reason": "breakthrough",
                 "detail": "the line is broken"}
@@ -1846,6 +1886,9 @@ def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
         return None if a == b else (1 if a > b else 2)
     if sc and sc["victory"] == "chance_encounter":
         return chance_result(gs)
+    if sc and sc["victory"] == "navigate_storm":
+        from .navigate_storm import winner
+        return winner(gs)
     if sc and sc["victory"] == "planet_strike":
         st = gs.scenario_state or {}
         if st.get("strike_winner"):

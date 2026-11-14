@@ -233,6 +233,9 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
         gs.add_log(
             f"  {ship.name} navigates warp rift! "
             f"Repositioned {reposition_dist}cm to ({new_x:.0f}, {new_y:.0f})")
+    elif getattr(gs, "scenario_mode", "") == "navigate_storm":
+        from .navigate_storm import lose_ship
+        lose_ship(gs, ship)
     else:
         # Lost in warp
         ship.status = "disengaged"
@@ -380,3 +383,51 @@ class TabletopEffects:
             if "_original_ld" in s_dict:
                 gs.ships[i]["leadership"] = s_dict["_original_ld"]
                 del gs.ships[i]["_original_ld"]
+
+
+def resolve_post_move_terrain(gs: GameState, ship_id: str, dice: DiceRoller,
+                              on_aaf: bool = False, log=None) -> None:
+    """Resolve the asteroid / warp rift / dust cloud tests a move flagged
+    (`movement.execute_movement` sets `in_asteroid_field`, `in_warp_rift`,
+    `in_dust_cloud`) and clear the flags. Shared by the human move dialogs and
+    the AI (whose moves used to leave the flags unresolved). A ship reduced to
+    0 by asteroids rolls on the Catastrophic Damage table."""
+    log = log or (lambda msg: None)
+
+    def _clear(flag):
+        u = gs.get_ship_by_id(ship_id)
+        if u:
+            u.special_rules = [r for r in u.special_rules if r != flag]
+            gs.update_ship(u)
+        return u
+
+    updated = gs.get_ship_by_id(ship_id)
+    if not updated or updated.is_disengaged:
+        if updated:
+            for f in ("in_asteroid_field", "in_warp_rift", "in_dust_cloud"):
+                _clear(f)
+        return
+    if "in_asteroid_field" in (updated.special_rules or []):
+        nav = resolve_asteroid_navigation(updated, dice, gs, on_aaf)
+        if not nav["passed"]:
+            log(f"  {updated.name}: asteroid damage {nav['damage']} HP!")
+            sh = gs.get_ship_by_id(ship_id)
+            if sh and sh.hits_remaining <= 0 and sh.status == "active":
+                from .combat import resolve_catastrophic
+                log(f"  {sh.name}: {resolve_catastrophic(sh, dice, gs)}")
+        updated = _clear("in_asteroid_field")
+    if updated and updated.status == "active" and \
+            "in_warp_rift" in (updated.special_rules or []):
+        nav = resolve_warp_rift_navigation(updated, dice, gs)
+        if not nav["passed"]:
+            log(f"  {updated.name}: LOST IN THE WARP!")
+        else:
+            pos = nav.get("new_position", (0, 0))
+            log(f"  {updated.name}: emerged at ({pos[0]:.0f}, {pos[1]:.0f})")
+        updated = _clear("in_warp_rift")
+    if updated and "in_dust_cloud" in (updated.special_rules or []):
+        if not updated.is_disengaged:
+            resolve_gas_dust_contact(updated, dice, gs)
+        _clear("in_dust_cloud")
+    for f in ("in_asteroid_field", "in_warp_rift"):
+        _clear(f)

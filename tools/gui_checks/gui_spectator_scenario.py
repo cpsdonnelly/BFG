@@ -103,6 +103,11 @@ if scenario == "convoy_matched":
         c = cat("Conventional Transport", 2, 10 + k, 0.0, 0.0)
         c.squadron_id = "convoy_a" if k < 3 else "convoy_b"
         gs.add_ship(c)
+if scenario == "navigate_storm":
+    for k in range(10):                 # 10 transport capacity of convoy ships
+        c = cat("Conventional Transport", 2, 50 + k, 0.0, 0.0)
+        c.squadron_id = f"storm_{k // 3}"
+        gs.add_ship(c)
 sc.setup_scenario(gs)
 fixed = sc.fixed_placements(gs)
 zones = {z.player: z for z in sc.deployment_zones(gs)}

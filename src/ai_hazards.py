@@ -329,6 +329,18 @@ def blast_markers_at(ship: Ship, end: Point, gs) -> int:
     return sum(1 for b in gs.get_blast_markers() if math.hypot(b.x - end[0], b.y - end[1]) <= reach)
 
 
+def lost_ship_vp(ship: Ship, gs) -> float:
+    """What losing a ship in a warp rift costs: its value plus any scenario
+    kill bonus (a Navigate the Storm convoy ship's transport capacity: a lost
+    defending ship counts as destroyed). Navigate the Storm's attacking ships
+    come back after a turn or more (judgement: 0.1 of their value)."""
+    from .scenarios import kill_bonus_vp
+    if getattr(gs, "scenario_mode", "") == "navigate_storm" and \
+            ship.player == getattr(gs, "scenario_attacker", 0):
+        return 0.1 * ship_value(ship, gs)
+    return ship_value(ship, gs) + kill_bonus_vp(gs, ship)
+
+
 def move_hazard_vp(ship: Ship, end: Point, path: Sequence[Point], gs,
                    order: str = "") -> Dict:
     """Expected VP a move risks: hits x the ship's VP per hit (a cripple and a
@@ -343,7 +355,7 @@ def move_hazard_vp(ship: Ship, end: Point, path: Sequence[Point], gs,
     remaining = max(1, ship.hits_remaining)
     weight = 1.0 + (0.5 if hits >= remaining - ship.hits_max / 2 else 0.0) \
         + (1.0 if hits >= remaining * 0.75 else 0.0)
-    vp = hits * vph * weight + lose * ship_value(ship, gs)
+    vp = hits * vph * weight + lose * lost_ship_vp(ship, gs)
     if "demiurg_commerce" not in ship.special_rules:
         down = min(ship.effective_shields, blast_markers_at(ship, end, gs))
         vp += down * 0.5 * vph

@@ -290,6 +290,8 @@ def effective_battery_firepower(attacker: Ship, weapon: Dict,
             fp = reduce_for_movement_order(attacker, fp, gunnery=True)
     if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
         fp = (fp + 1) // 2
+    if "half_armament" in attacker.special_rules:
+        fp = (fp + 1) // 2         # Navigate the Storm: recovering from the warp
     return fp
 
 
@@ -568,6 +570,8 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
 
     if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
         strength = (strength + 1) // 2
+    if "half_armament" in attacker.special_rules:
+        strength = (strength + 1) // 2     # Navigate the Storm: recovering from the warp
 
     if strength <= 0:
         result.description = f"{weapon['name']}: no strength available"

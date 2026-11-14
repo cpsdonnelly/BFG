@@ -1043,3 +1043,113 @@ def test_escalating_marker_waits_or_slides():
     m = gs.scenario_state["edge_markers"][0]
     assert sc.is_reserve(gs.get_ship_by_id("a0"))
     assert m["y"] == min(110.0, m0["y"] + 20.0)
+
+
+# --- Navigate the Storm ---------------------------------------------------------------
+
+def _storm_gs():
+    from src.models import Phenomenon
+    att = [make_ship(id="a1", player=1, points_value=200, leadership=8, x=120.0, y=80.0),
+           make_ship(id="a2", player=1, points_value=200, leadership=8, x=130.0, y=80.0)]
+    dfn = [make_ship(id="d1", player=2, points_value=300, x=50.0, y=30.0)]
+    convoy = [make_ship(id=f"c{i}", player=2, ship_type="escort", squadron_id="cv",
+                        points_value=20, x=40.0 + 5 * i, y=20.0, special_rules=["transport:2"])
+              for i in range(5)]
+    gs = _gs(att + dfn + convoy, mode="navigate_storm")
+    gs.add_phenomenon(Phenomenon(id="old", phenomenon_type="asteroid_field", x=10, y=10,
+                                 width=10, height=10, radius=0))
+    return gs
+
+
+def test_navigate_storm_setup_rifts_and_zones():
+    from src import navigate_storm as ns
+    gs = _storm_gs()
+    sc.setup_scenario(gs)
+    rifts = gs.get_phenomena()
+    assert len(rifts) == 16 and all(p.phenomenon_type == "warp_rift" for p in rifts)
+    for i, a in enumerate(rifts):
+        for b in rifts[i + 1:]:
+            gap = max(abs(a.x - b.x), abs(a.y - b.y)) - 10.0
+            assert gap >= 10.0 - 1e-9
+    zones = {z.player: z for z in sc.deployment_zones(gs)}
+    assert zones[2].contains(30, 10) and not zones[2].contains(15, 10)
+    assert zones[1].contains(150, 100) and not zones[1].contains(165, 100) \
+        and not zones[1].contains(150, 115)
+    assert sc.first_turn_chooser(gs) == 1 and sc.first_player(gs) is None
+    assert sc.force_errors(gs) == []                 # 5 x 2 capacity
+    s = gs.get_ship_by_id("c0")
+    s.x, s.y = 181.0, 85.0
+    assert ns.via_exit_point(gs, s)
+    s.y = 50.0
+    assert not ns.via_exit_point(gs, s)
+
+
+def test_navigate_storm_lost_ships_return_and_materialise():
+    from src import navigate_storm as ns
+    from src.terrain_effects import resolve_warp_rift_navigation
+    from src.turn_controller import TurnController
+    gs = _storm_gs()
+    sc.setup_scenario(gs)
+    a1 = gs.get_ship_by_id("a1")
+    res = resolve_warp_rift_navigation(a1, DiceStub([6, 5, 4]), gs)     # 15 vs Ld 8
+    assert not res["passed"]
+    a1 = gs.get_ship_by_id("a1")
+    assert a1.status == ns.LOST and a1.is_disengaged and gs.scenario_state["lost"] == ["a1"]
+    # a defending ship lost in the warp counts as destroyed
+    c0 = gs.get_ship_by_id("c0")
+    resolve_warp_rift_navigation(c0, DiceStub([6, 6, 6]), gs)
+    assert gs.get_ship_by_id("c0").is_destroyed and ns.capacity_destroyed(gs) == 2
+    # the attacker's end phase: a 1 stays lost, then a 4 brings it back near
+    # the capital ship nearest the convoy (the defender's d1)
+    ns.end_phase(gs, 1, DiceStub([1]))
+    assert gs.scenario_state["lost"] == ["a1"]
+    ns.end_phase(gs, 1, DiceStub([4]))
+    a1 = gs.get_ship_by_id("a1")
+    d1 = gs.get_ship_by_id("d1")
+    assert a1.status == "active" and a1.is_disengaged and ns.is_materialising(a1)
+    assert math.hypot(a1.x - d1.x, a1.y - d1.y) <= 20
+    # the attacker's next turn: it comes into play to move, then recovers at
+    # the end of the movement phase: a failed Ld test halves its armament
+    gs.active_player = 1
+    ns.turn_start(gs, 1)
+    assert not gs.get_ship_by_id("a1").is_disengaged
+    a1 = gs.get_ship_by_id("a1")
+    a1.x, a1.y = 120.0, 100.0
+    gs.update_ship(a1)
+    tc = TurnController(gs, DiceStub([9]))
+    gs.current_phase = "movement"
+    tc.end_phase()
+    a1 = gs.get_ship_by_id("a1")
+    assert not ns.is_materialising(a1) and ns.halved(a1)
+    from src.combat import effective_battery_firepower
+    assert effective_battery_firepower(a1, {"strength": 6, "name": "b"}) == 3
+    ns.clear_half_armament(gs, 1)
+    assert not ns.halved(gs.get_ship_by_id("a1"))
+
+
+def test_navigate_storm_victory():
+    from src import navigate_storm as ns
+    gs = _storm_gs()
+    sc.setup_scenario(gs)
+    # three convoy ships (6 capacity) and d1 (300 of 400: >= 25%) off the exit point
+    for sid in ("c0", "c1", "c2", "d1"):
+        s = gs.get_ship_by_id(sid)
+        s.x, s.y = 182.0, 80.0
+        s.is_disengaged = True
+        s.status = "disengaged"
+        gs.update_ship(s)
+        sc.record_exit(gs, s)
+    assert ns.capacity_evacuated(gs) == 6 and ns.points_evacuated(gs) == 360
+    met = ns.objectives_met(gs)
+    assert met == {"attacker": False, "defender": True} and ns.winner(gs) == 2
+    # evacuated ships give the attacker nothing
+    from src.victory_points import calculate_victory_points
+    assert calculate_victory_points(gs)[1]["total"] == 0
+    # the last two convoy ships destroyed: no capacity left, the game ends
+    for sid in ("c3", "c4"):
+        s = gs.get_ship_by_id(sid)
+        s.status = "destroyed"
+        s.hits_remaining = 0
+        gs.update_ship(s)
+    end = sc.check_end(gs)
+    assert end and end["winner"] == 2 and end["reason"] == "convoy_gone"
