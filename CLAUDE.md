@@ -97,8 +97,11 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   easier target, never a better one against a harder target.
 - **"5+ / 4+R" armour** (Tau Explorer) is 5+ everywhere except the rear quadrant, 4+.
   Three-value armour (Ork cruisers 6+/5+/4+) is front / abeam / rear (`Ship.armor_vs`).
-- **Random Ork firepower/strength is rolled when used:** direct fire when the weapon fires
-  (the target may still brace before damage is rolled), ordnance just before launching.
+- **Random Ork firepower/strength is rolled when used:** direct fire when the weapon fires,
+  after the target is chosen and has had its chance to brace; ordnance at launch, after the
+  salvo is aimed (owner: "aimed first and then rolled"; the launch dialogs check the heading,
+  then roll; the AI aims with the average and rolls as it launches). Once on the table a
+  salvo's rolled strength is known and used (`ai_hazards.marker_hits`).
   `combat.weapon_fire_pool` fixes a weapon's pool on its first shot of the turn.
 
 - **Tactical Reserves covers macrobatteries only, not lances** (battle barges lose 25% of
@@ -2489,10 +2492,6 @@ rather than touch a third ship).
   netherfields and polarisation fields (identical to those of the Haven Spire)", but the
   booklet's Haven Spire (MMS) has neither; only XR's note names them, and only the Dark
   Eldar Tormentor Spire defines a polarisation field. What should they do?
-- **Random ordnance strength and aiming:** it is rolled "just before launching". Is the
-  roll known before the launch is aimed (heading / target chosen), or is the salvo aimed
-  first? The AI currently aims its own random-strength salvos (Ork Torps S D6...) using the
-  average and rolls as it launches.
 - **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
   next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
 
