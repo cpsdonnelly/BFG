@@ -497,69 +497,65 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 14 (CHANGES.md update 60; Dark Eldar and Tyranids added, listed but
-unsupported until their faction rules are built; rules files renumbered again: Dark Eldar 08,
-Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`, campaigns 15,
-the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
-Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
-convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1334 pass; all GUI checks pass
-(`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
-difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
-limit). After every new export, diff the built
-catalog (dump every entry's stats, rules, weapons and options before and after): notes text is
-matched in code, and a reworded note silently drops an option.
+Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1334 pass; all
+GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
+take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
+`gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
+built catalog (dump every entry's stats, rules, weapons and options before and after): notes
+text is matched in code, and a reworded note silently drops an option.
 
-Latest work (HANDOFF, "Session after booklet zip 13", the AA and Eldar parts): alternate
-activation plays end to end in the game window (all three systems, AI and humans; To do 13)
-and Eldar MMS v2.0 are playable (To do 14). Before that, in the same session: To do 2, 3, 6 done; large parts of 4, 5, 8, 9, 10, 11 and the first slice of 13 built
-(each item below says what). Fixed: attackers no longer add turrets to troop rating (s.32).
-Readings to confirm with the owner are listed in HANDOFF and in To do 3 / 6.
-Later in that session (HANDOFF, same section, "Then"): Miasma's ordnance part; Siren's Summon
-against plain Leadership tests (reading to confirm: an escort squadron's off-table / forced
-disengage tests within 15cm are treated as blocked, no failure penalty); To do 10's Reload
-Ordnance and Come to New Heading by value (10 is done but e's small Brace items); To do 11 a's
-safety goals, disengaging valued at the end position and one coordination round. Known limit:
-the expert's root moves under Come to New Heading are one-turn only.
-Then (HANDOFF, same section, "scenarios"): Necrons playable (To do 14), and To do 7's
-matched-play set: all nine short scenarios built for the engine and the AI, with immobile
-defences, the Space Station crit table and transport capacity; scenario points in the margin
-(To do 2 done); two general AI fixes (off-table moves priced as disengaging, edge traps).
-Then attack ratings, sub-plots' first slice, the introductory scenarios, four raids (The
-Raiders, Blockade Run, The Bait, Rearguard Attack) on a new reinforcements framework, and
-three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Escalating
-Engagement's contact markers, Navigate the Storm, Destroy the Docks and the narrative
-Convoy; then (booklet zip 14) the owner's sign-off answers applied, low orbit,
-Exterminatus! and Planetary Assault, then the faction sub-plots and two campaign set pieces
-(The Defence of Pelucidar, Macharia's End, Craftworld Assault) , The Gauntlet, Parol's Bait and Daemon Blockade: 31 booklet scenarios in all (To do 7 lists what is
-left). Fixed on the way: a zero-length line of sight against a
-planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
+Finished (humans and the AI, IGOUGO and alternate activation; each section above and To do
+item below says how):
+- Every core rules section the engine plays; all optional rules (boarding, ramming, teleports,
+  hit-and-run, s.40 celestial effects, Remastered blast markers / suppression / escort VP).
+- Ten factions playable: Imperial Navy, Chaos, Mechanicus, Space Marines (+ Venerable Strike
+  Cruisers), Inquisition / Grey Knights, Orks, Tau (+ Demiurg), Rogue Traders, Eldar MMS v2.0
+  (18 of 24 ships), Necrons (the six mobile ships); fleet lists for the first eight.
+- Commanders (fleet, secondary, named), refits, gifts, marks, kustoms, bought torpedo types,
+  mines, torpedo bombers.
+- 31 booklet scenarios (To do 7): the nine matched-play ones, the introductory, raid and battle
+  scenarios, low orbit with Exterminatus! and Planetary Assault, the campaign set pieces (The
+  Defence of Pelucidar, Macharia's End, Craftworld Assault) and variants (The Gauntlet,
+  Parol's Bait, Daemon Blockade); sub-plots incl. the faction ones (not the Decoy).
+- Alternate activation (all three order systems, To do 13); the expected-VP AI (easy, normal,
+  expert search); "Auto (best)" on every player prompt; To do 2, 3 and 6.
 
-Built so far: every booklet rule section the engine plays (see the sections above), the export
-31 "still to do" list, boarding crew bonuses, disengaging incl. forced disengagement, optional
-blast marker rules, the turret split, waves / CAP / wave planner, the hit-and-run toggle
-covering every raid, Remastered turret suppression per p.82, the optional-rule toggle audit,
-and the expected-VP AI below (incl. carrier doctrine, strikes valued when they land,
-co-ordinated strikes, splitting a strike into two waves under enemy guns, the AI's own teleports, Brace asked before each weapon of AI fire and
-before each kind of weapon in the Fire dialog, the AI's mine hazard counting turrets, crit
-values over later shooting phases, playing for the win under a turn limit (expert search,
-disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
-(8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
-candidates (11 a)).
-Not built: the Decoy sub-plot and To do 7's smaller gaps (31 scenarios are built, the
-campaign set pieces and variants included), and the To do items below.
-Next (largest first): Dark Eldar and
-Tyranids (new in export 14, listed but unsupported), the Necron and Eldar gaps (To do 14), To do 13's remaining
-bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
-AI per unit), the rest of 4 (daemonships:
-off-table start, warp translation, spectral state touching every targeting / ordnance path;
-Ordos; Inquisitors; Veteran Bond-Captains) and 5 (special movement: Space Hulk / Rok /
-Nicassar / Kroot; fortress weapons; Pthuxutl; Man O' War), the rest of 11 (deeper expert
-hazards, more coordination rounds, two-turn root moves for the expert under Come to New
-Heading), 10 e (Brace's remaining bits), 12 (learned evaluation) and 1 (weight tuning) only when the owner says
-so, kept separate from the current AI (see Owner rulings). Owner: the order isn't hugely important; follow the dependencies. For 13,
-the AA notes leave several choices open (shooting vs movement order, the launch ordnance
-phase, end-phase cadence): build them as settings, never settle them for the owner.
+Discovered this session (code review, `docs/CODE_REVIEW_PLAN.md`; plan only, not acted on):
+- Game modes: hot seat (player vs player), player vs AI (the AI is always Player 2), AI vs AI
+  (spectator; one difficulty for both sides). No more than two sides: the engine is
+  two-sided throughout (`3 - player` ~100 times); one side may mix factions. 2v2 humans
+  sharing a side is a UI / turn-flow change; three or more sides a large one (the booklet has
+  no multi-player rules). LAN multiplayer and the web client are on hold.
+- Performance (profiled, 4 v 4 AI movement phase): about 40% is
+  `ai_hazards.ship_bracket_raw`'s `Ship.to_dict` deep copies (cacheable per phase); copying
+  ships (`asdict` / `from_dict`) is over half the phase; function-local imports are ~3%
+  (~90 ns each) and special-rule `in` tests ~27 ns, neither worth changing for speed.
+- Rules bugs found (To do 15): raid crits skip Bridge Smashed's -3 Ld and other crit effects;
+  the raid preview uses the default crit table for every faction; the Eldar sunward edge goes
+  stale after an in-game change; some game rolls (the daemon mine D6, Fleet Engagement's AI
+  formation) use raw `random`, bypassing manual dice and replays; plus reported, unchecked
+  ones (crit slot tests disagreeing, Meteor Storm at 0 hits, stale crit lists, leaky
+  `gs.__dict__` state).
+- AI value gaps (To do 15 / 18): random values like D6+1 are stored as a truncated average (4,
+  not 4.5) and valued at the average firepower instead of over the dice outcomes (the Gunnery
+  table isn't linear); target values ignore crits on 4+ (bombardment cannons, killkannons:
+  the engine is right); `_brace_hull_hits` ignores the Gunnery table; ~8 copies of the
+  "0.35 per firepower point" rule of thumb.
+- Structure (To do 18): string-keyed ladders (scenario modes in parallel functions, crit
+  effects outside the tables, special-order legality in five places); ~170 special-rule tag
+  checks spread over ~20 files, some checked but never produced; `ai_player.py` at 4,600
+  lines; game rules in UI files; judgement weights scattered.
+- Recording (To do 17): phase snapshots (ships, ordnance, markers, phenomena), a thin actions
+  log (13 event kinds) and the text log exist; the dice log isn't saved, there is no seed,
+  snapshots miss scenario / sub-plot / order state, and nothing replays a game.
+- Language (To do 20): a full port in its own branch, Python staying the reference, is the
+  second-last task; the ML-trained AI (To do 12, then 1) is the last, built on the faster
+  engine. Python is a real bottleneck for full-rules self-play (rough estimate: 30-60s a game,
+  5,000 games ~55 core-hours before the speed fixes).
+
+Next: the "Agreed order" at the top of the To do list.
 
 ### AI: how it decides (expected VP)
 
@@ -776,7 +772,30 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
 (`win_score`, To do 2); root moves are the normal AI's candidates, best first, at most
 `ROOT_MOVES` 12, and pay the path-hazard cost (To do 11 b); lances valued by their hit roll.
 
-### To do (agreed order; detail in docs/HANDOFF.md)
+### To do (detail in docs/HANDOFF.md)
+
+Item numbers are IDs (code comments and docs cite them), not the order. Agreed order
+(owner: the order otherwise isn't hugely important, follow the dependencies; the last two
+are fixed by the owner):
+1. To do 15: the rules bugs from the code review (each with a test).
+2. To do 16: performance fixes and a headless multiprocess game runner.
+3. To do 17: recording and replay (seeded dice, structured events, full snapshots, viewer).
+4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split,
+   weapon-value helper, central AI weights, rules out of the UI).
+5. To do 19: Dark Eldar and Tyranids.
+6. To do 14: the Eldar and Necron gaps.
+7. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains; special movement
+   (Space Hulk, Rok, Nicassar, Kroot), fortress weapons, Pthuxutl, Man O' War.
+8. To do 13: alternate activation's experiments (they want the headless runner), the expert
+   AI per unit, the rest.
+9. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
+   coordination rounds, two-turn expert root moves, Brace's remaining bits, 8 d / g).
+10. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
+11. Second last, To do 20: port the engine to a faster language in a new branch.
+12. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
+    until the owner says to start; built on the faster engine, kept separate from the current
+    AI, never replacing it.
+Done: To do 2, 3, 6; most of 7.
 
 1. On hold until the owner says to start (owner); when built, kept separate from the current
    AI, never replacing it: tuning the AI's judgement weights (listed in "AI: how it decides"). Keep
@@ -2006,8 +2025,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    confident of the order, not of the size of each gain); tuning only improves the AI within
    its structure and must be redone after every structural change.
 
-12. Learned evaluation for the expert search (owner: do it; low priority, after To do 11,
-   and only after its a-c). On hold until the owner says to start; when built, an experimental
+12. Learned evaluation for the expert search (owner: the LAST task, with 1 after it, built on
+   To do 20's faster engine; after To do 11 and its a-c). On hold until the owner says to start; when built, an experimental
    ML-driven AI kept separate from the current AI, never replacing it. Supervised fitting of position features to game outcomes.
    Features: material, threat both ways, relative geometry (no absolute coordinates),
    ordnance in flight, tempo, state, and terrain by what it does to ships (hazard cost of
@@ -2283,6 +2302,63 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    Dynasty / Monument item), star pulse generator and portals as actions, power conservation and awakening in the turn, the inertialess AAF), the tomb
    complex / pylon / Deathseed rules and their craft, the Necron crit table, Without a
    Trace (auto-disengage, firing at own hulks), the AI, then the Eldar gaps above.
+
+15. Rules bugs found by the code review (`docs/CODE_REVIEW_PLAN.md` section 3; fix each with a
+   test; check the "[reported]" ones against the code first):
+   - raid crits (`hit_and_run._apply_raid_crit`): one shared crit-effect function with
+     `combat.roll_critical_hit` (Bridge Smashed -3 Ld / Demiurg, Necron `ld_loss`, Infinity
+     Circuit, Holofield);
+   - `raid_crit_preview`: use `crit_table_for(target)`;
+   - the sunward edge: one source on `gs` (`eldar._SUNWARD` goes stale);
+   - game rolls through `DiceRoller` (daemon mines, Fleet Engagement's formations), marker ids
+     from a counter;
+   - reported: the crit slot tests (`Ship.has_armament_slot` vs `weapon_in_crit_slot`),
+     Meteor Storm at 0 hits, `add_fire_crits`' stale list, the Kustom Kannon copy in AI
+     shooting, `gs.__dict__` state leaking across load / undo, `GameState.save`'s hand list,
+     `optional_rules.set_ship_source` binding the live state;
+   - AI values: random values by their exact mean (4.5, not 4) and expected hits over the
+     dice outcomes, crits on 4+ in target values, `_brace_hull_hits` on the Gunnery table;
+   - docstrings: `_zzapp_firepower` / `weapon_fire_pool` (only zzapp guns with random
+     firepower are rolled; the Onslaught's fixed FP1 zzapp gun option is a To do 9 swap),
+     optional_rules' spill-over note, `GameState.scenario_mode`'s list.
+16. Performance and a headless runner (plan section 2): cache `ship_bracket_raw` /
+   `bracket_matchup` per phase; arc tests on (x, y, heading) without Ship copies; a per-phase
+   snapshot for the move score's terms and one hits matrix for the focus loops; later cheaper
+   `Ship` copies (shallow copy instead of `asdict`). Re-profile each step. A headless
+   multiprocess AI-vs-AI runner (no Tk) reporting games per hour, win rates and VP margins;
+   To do 13's experiments, 20's cross-checks and 12 / 1 all use it.
+17. Recording and replay (plan section 6): a game seed and every roll saved in order;
+   structured events for every decision (move commands, orders, weapon / target, launches,
+   craft orders, brace, re-rolls, prompts) recorded at the engine API for humans and the AI
+   alike; complete snapshots (from `fields()`); replay = start state + seed + events, checked
+   against the snapshots (a determinism test); a viewer stepping through a game. The records
+   are also To do 12's training data and To do 20's cross-check.
+18. Code structure (plan section 4; pure refactors, no behaviour change, tests unchanged):
+   special-rule tag constants and a test that every tag checked is produced and vice versa;
+   crit entries carrying their effects; one `order_allowed`; one effective launch strength /
+   fire pool (UI halving inline today); a `ScenarioDef` registry replacing the scenario-mode
+   ladders; `ai_player.py` split (movement, scenario terms, orders, shooting, ordnance, AA)
+   with `_move_score` as a list of terms; one `mount_expected_hits` helper replacing the
+   0.35 copies (To do 1's prerequisite); `ai/weights.py` for every judgement weight; rules out
+   of the UI (squadron limits in fleet_builder, hull repair in game_panel); the long functions
+   (`_resolve_ship_contacts`, `_apply_damage`, `validate_movement`, `setup_scenario`).
+19. Dark Eldar and Tyranids (export 14, listed but unsupported, `UNBUILT_FACTION_RULES`).
+   Dark Eldar (`bfgxr/rules/08_dark-eldar.md`): +1 Ld (the Eldar column), no minimum speed or
+   turning distance, auto-pass Come to New Heading, shadowfields (a right shift, tracking
+   marks, a 2+ save vs lances and ordnance getting worse per mark, ram +2D6, nova +1D6
+   scatter), weapons batteries' left shift, phantom lances (exists), flickerfields (turrets
+   +2 to hit), Raptors 4+ resilient, plasma torpedoes re-rolling misses, leech torpedoes,
+   Impalers, the Mimic Engine, Slave-Taking, Insatiable Greed, Pain Frenzy, Spectral Plating,
+   Incubi / Wych Cults / Haemonculi, the Dark Eldar crit table (Appendix 3), Kabal Variants
+   (one required per ship), the Raiders fleet list (Dread Archon, Dracons), the Tormentor
+   Spire. Catalog today: speeds / armour / batteries parse; the Spire's torpedoes and Impaler
+   bay don't. Tyranids (`13_tyranids.md`): Instinctive Behaviour, synapse, spore clouds,
+   weapon configurations; no Ld roll.
+20. Port the engine to a faster language in a new branch (owner: second-last task; plan
+   section 7; Rust suggested). Python stays the reference that defines the rules; the port
+   must reproduce Python games exactly from the same seed and events (To do 17), which is
+   what keeps the two from drifting; every booklet export and owner ruling lands in Python
+   first. Measure with the headless runner (To do 16) before and after.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

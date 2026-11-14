@@ -18,17 +18,37 @@ Finished (playable for humans and the AI, IGOUGO and alternate activation):
   search), "Auto (best)" on every player prompt.
 - Game modes: player vs player (hot seat), player vs AI, AI vs AI (spectator).
 
-Left (CLAUDE.md "Next" and the To do list have the detail):
-- Dark Eldar and Tyranids (listed, not playable; Dark Eldar was the next slice, nothing
-  written yet).
-- Eldar / Necron gaps (To do 14), daemonships and other To do 4 items, special-movement and
-  fortress units (To do 5), To do 13's AA experiments and expert AI per unit, the rest of 11
-  (deeper expert hazards, more coordination rounds), 10 e (Brace's remaining bits).
-- To do 7's small gaps and the Decoy sub-plot (needs the owner).
-- On hold until the owner says so: To do 12 (learned evaluation) and 1 (weight tuning).
-- Owner questions open: CLAUDE.md "Open questions for the owner".
-- Code quality: `docs/CODE_REVIEW_PLAN.md` (performance hot spots, rule dispatch, AI value
-  gaps); plan only, nothing refactored yet.
+Left, in the agreed order (CLAUDE.md "To do" has the order and every item's detail; item
+numbers are IDs, not the order):
+1. To do 15: the rules bugs the code review found (raid crits skip Bridge Smashed's -3 Ld and
+   other effects, the raid preview's crit table, the stale Eldar sunward edge, rolls bypassing
+   the dice roller, and reported ones to check), plus the AI value gaps (random values by
+   their exact mean and over the dice outcomes, crits on 4+ in target values, Brace's hit
+   estimate) and misleading docstrings (zzapp gunz).
+2. To do 16: performance (ship copies are over half an AI movement phase) and a headless
+   multiprocess game runner.
+3. To do 17: recording and replay (seed, every roll, structured events, full snapshots,
+   viewer).
+4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split, one
+   weapon-value helper, central AI weights, rules out of the UI).
+5. To do 19: Dark Eldar (next faction; nothing written yet), then Tyranids.
+6. To do 14: Eldar and Necron gaps.
+7. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
+   fortress weapons.
+8. To do 13: alternate activation's experiments, expert AI per unit.
+9. To do 11, 10 e, 8: the rest of the rules-based AI.
+10. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
+11. Second last, To do 20: port the engine to a faster language (Rust suggested) in its own
+    branch, Python staying the reference; games must match exactly from seed and events.
+12. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
+    engine; on hold until the owner says so; separate from the current AI.
+
+Owner questions open: CLAUDE.md "Open questions for the owner". Code review, profile and
+plans: `docs/CODE_REVIEW_PLAN.md` (sections 1-7; nothing refactored yet).
+
+Game modes today: hot seat, player vs AI (AI always Player 2), AI vs AI spectator (one
+difficulty for both). Recording today: phase snapshots, a thin actions log and the text log;
+no saved dice, no seed, no replay.
 
 Not supported: more than two players / sides (2v2): the engine is two-player throughout.
 
