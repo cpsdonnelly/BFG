@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1288 pass; all GUI checks pass
+playable). Tests: 1293 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -921,8 +921,9 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    fail every command check, Brace included; no plain Leadership tests either: a voluntary
    disengage test can't be taken (`blocked`, a squadron tests from a member outside 15cm),
    forced tests fail (asteroid / warp rift navigation, guided torpedo control, Heed the Machine
-   Spirit), the AI's disengage value knows it; `tests/test_sirens_summon_ld.py`; reading to
-   confirm: an escort leaving the table or a forced disengage test near it is `blocked` too), Miasma of
+   Spirit), the AI's disengage value knows it; `tests/test_sirens_summon_ld.py`; sign-off
+   answer 50: a forced disengage test (an escort leaving the table, Leadership 1 or less,
+   Demiurg mercenaries) within 15cm fails with its normal result, `forced=True`), Miasma of
    Pestilence (no left shift within 15cm; ordnance attacking it destroyed on a 6 as
    through blast markers, `ordnance_movement._resolve_ship_contacts`; the AI counts it and the
    Modern / Remastered blast-contact roll via `ai_hazards.attack_survival` in `best_route` and
@@ -1115,8 +1116,10 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    banked plus, at `LATER_TURN_WEIGHT`, the markers each side holds where its ships stand / the
    attacker's hits touching the planet. Attack ratings (p.78): `scenarios.attack_rating`
    (the main faction's by points; Grey Knights banisher 3, 2 when more than half isn't Grey
-   Knights; Rogue Trader / Inquisition detachments change nothing; readings: Eldar 3 and
-   Necrons 4 until their fleet lists exist, Rogue Traders alone 2) and `roll_attack_ratings`
+   Knights; Rogue Trader / Inquisition detachments change nothing; sign-off answer 44: Rogue
+   Traders alone 3, Dark Eldar 4, Tyranids 2 (3 with Pheromone Rage, not built), Corsair /
+   Craftworld Eldar 4 / 3 and Necron Harvest / Dynasty 4 / 3 by `LIST_ATTACK_RATINGS`
+   (ships don't carry their list yet, so Eldar 3 and Necrons 4)) and `roll_attack_ratings`
    (best die, then the next; out of dice loses; full tie re-rolled), chosen in setup as
    "Attack ratings (roll)" (`GameState.attacker_by_rating`, rolled in
    `GamePanel._start_game`). Sub-plots, first slice (7 b, `src/subplots.py`): with the
@@ -1233,7 +1236,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    Not yet: a human choosing the divisions, the markers' positions and slides (dialogs); the
    AI valuing where its markers go.
    Navigate the Storm built (p.98, `src/navigate_storm.py`): no other phenomena, 8 warp rifts
-   each placed alternately from the attacker (10cm squares 10cm apart edge to edge; placed
+   each placed alternately from the attacker (D3x5cm wide by D3x10cm long, s.39, sign-off
+   answer 17, long side along the table, 10cm apart edge to edge; placed
    automatically, judgement: the attacker on the convoy's way from the defender's zone to the
    exit point, the defender away from it, never in a zone or the exit point); zones from the
    diagram (defender the bottom-left quarter 20cm in from the left edge, attacker the
@@ -1248,8 +1252,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    the attacker's next movement phase (`turn_start`), where it moves ignoring terrain and
    blast markers; at the end of that phase (`end_of_movement`, from `TurnController.end_phase`)
    it returns to normal unless in base contact with an enemy (then out of play again,
-   reading) and tests Ld: a failure halves its batteries and lances (`half_armament`,
-   reading: not ordnance) until the end phase. AA (reading): materialising ships return at
+   the end of the next one) and tests Ld: a failure halves its armament (`half_armament`:
+   batteries, lances and ordnance, sign-off answer 14) until the end phase. AA (reading): materialising ships return at
    the round start. Exit point: off the right edge with the centre between its ends
    (`via_exit_point`, recorded by `record_exit`); evacuated ships score nothing for the
    attacker (`scores_normally`). Game end: no transport capacity in play (reading for "until
@@ -1302,8 +1306,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    first and moves on from it (all its ships wait off the table and arrive at the start of
    its turn; up to half its ships by count may wait for its second turn, `wants_arrival`;
    the AI never holds back). A marker activates when a defending ship comes within 30cm
-   (reading: on the straight line from where it began the movement phase,
-   `check_activation`), deployed after the defender's movement phase (`end_of_defender_
+   (sign-off answer 6: along its actual path, turns included, `record_path` from
+   `movement.execute_movement`, `check_activation`), deployed after the defender's movement phase (`end_of_defender_
    movement`): deadfall torpedoes a strength D6+2 speed-30 salvo, attack craft D3+1
    squadrons (judgement: half fighters, the rest bombers, one close wave at the nearest
    defender), ships on the marker facing the nearest defender. The attacker activates one
@@ -1987,8 +1991,9 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    the AI's hazard / strike maths for stealthy ordnance. Movement built: `movement.validate_movement`
    sends Eldar ships to `_validate_eldar` (MMS legs from the commands, `eldar.commands_to_legs`;
    an IGOUGO "move, turn, move" is two legs; speeds by `eldar.sunward_edge()`, registered from
-   `GameState.sunward_edge` by the TurnController; first form: no staged moves, no blast marker
-   speed loss, to confirm). Critical hits built: `tables.ELDAR_CRITICAL_HITS` /
+   `GameState.sunward_edge` by the TurnController; no staged moves; blast markers slow them like
+   any ship, sign-off answer 58: -5cm from the first touch on that move and the later one,
+   `eldar.validate_mms_move(slowed_at=)`). Critical hits built: `tables.ELDAR_CRITICAL_HITS` /
    `crit_table_for` in the crit cascade (keel armament as a weapon slot, infinity circuit -1 Ld,
    holofield destroyed, mast lines no turns, mainsail scarred -5cm each speed per hit, mainsail
    shredded one move). Not yet: Superstructure Damaged's 3+ roll on turning, a second prow crit

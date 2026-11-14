@@ -15,8 +15,9 @@ import math
 from typing import Dict, List, Optional, Tuple
 
 RIFTS_EACH = 8
-RIFT_SIZE = 10.0            # each rift a 10cm square marker (judgement)
 RIFT_GAP = 10.0             # at least 10cm from any other rift (edge to edge)
+# Warp rifts are D3x5cm wide and D3x10cm long (s.39, sign-off answer 17);
+# placed with the long side along the table (judgement)
 RETURN_RANGE = 20.0         # a lost ship returns within 20cm of a capital ship
 ATTACKER_TARGET_CAP = 8     # attacker: destroy 8 transport capacity ...
 ATTACKER_VP_SHARE = 0.5     # ... and score 50% of the defender's points
@@ -65,7 +66,8 @@ def _in_rect(x, y, r, pad=0.0) -> bool:
     return r[0] - pad <= x <= r[2] + pad and r[1] - pad <= y <= r[3] + pad
 
 
-def rift_spot(gs, player: int, attacker: int) -> Optional[Tuple[float, float]]:
+def rift_spot(gs, player: int, attacker: int, w_cm: float = 10.0,
+              h_cm: float = 10.0) -> Optional[Tuple[float, float]]:
     """Where a player places its next rift (judgement): the attacker on the
     convoy's way from the defender's zone to the exit point, the defender as
     far off that way as it can. Legal: at least 10cm from every other rift
@@ -75,17 +77,18 @@ def rift_spot(gs, player: int, attacker: int) -> Optional[Tuple[float, float]]:
     dz, ex = zs["defender"], exit_target(gs)
     ax, ay = (dz[0] + dz[2]) / 2.0, (dz[1] + dz[3]) / 2.0
     rifts = [p for p in gs.get_phenomena() if p.phenomenon_type == "warp_rift"]
-    half = RIFT_SIZE / 2.0
+    hw, hh = w_cm / 2.0, h_cm / 2.0
     best, best_v = None, None
-    y = half + 5.0
-    while y <= gs.table_height - half - 5.0:
-        x = half + 5.0
-        while x <= gs.table_width - half - 5.0:
-            ok = not any(_in_rect(x, y, zs[k], half) for k in zs)
+    y = hh + 5.0
+    while y <= gs.table_height - hh - 5.0:
+        x = hw + 5.0
+        while x <= gs.table_width - hw - 5.0:
+            ok = not any(zs[k][0] - hw <= x <= zs[k][2] + hw and zs[k][1] - hh <= y <= zs[k][3] + hh
+                         for k in zs)
             if ok:
                 for r in rifts:
-                    gap_x = abs(x - r.x) - (half + r.width / 2.0)
-                    gap_y = abs(y - r.y) - (half + r.height / 2.0)
+                    gap_x = abs(x - r.x) - (hw + r.width / 2.0)
+                    gap_y = abs(y - r.y) - (hh + r.height / 2.0)
                     if max(gap_x, gap_y) < RIFT_GAP:
                         ok = False
                         break
@@ -99,22 +102,28 @@ def rift_spot(gs, player: int, attacker: int) -> Optional[Tuple[float, float]]:
     return best
 
 
-def setup(gs) -> None:
+def setup(gs, dice=None) -> None:
     """Instead of the normal battlezone, the players place eight warp rifts
     each, the attacker first, and no other celestial phenomena (the ones on
-    the table are removed). Placed automatically (judgement, see rift_spot)."""
+    the table are removed). Each rift is D3x5cm wide and D3x10cm long (s.39).
+    Placed automatically (judgement, see rift_spot)."""
+    if dice is None:
+        from .dice import DiceRoller
+        dice = DiceRoller(mode="auto")
     from .models import Phenomenon
     gs.phenomena = []
     att = gs.scenario_attacker
     placed = 0
     for i in range(2 * RIFTS_EACH):
         p = att if i % 2 == 0 else 3 - att
-        spot = rift_spot(gs, p, att)
+        a, b = dice.roll_d6(2, f"Warp rift {i + 1}: D3x5cm wide, D3x10cm long")
+        wide, long_ = 5.0 * ((a + 1) // 2), 10.0 * ((b + 1) // 2)
+        spot = rift_spot(gs, p, att, long_, wide)
         if spot is None:
             continue
         gs.add_phenomenon(Phenomenon(id=f"storm_rift_{i}", phenomenon_type="warp_rift",
-                                     x=spot[0], y=spot[1], width=RIFT_SIZE,
-                                     height=RIFT_SIZE, radius=0))
+                                     x=spot[0], y=spot[1], width=long_,
+                                     height=wide, radius=0))
         placed += 1
     gs.scenario_state = {"lost": [], "exits": {}}
     gs.add_log(f"[Navigate the Storm] {placed} warp rifts placed (8 each, attacker first)")

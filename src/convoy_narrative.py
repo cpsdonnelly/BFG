@@ -217,6 +217,7 @@ def record_start_positions(gs, player: int) -> None:
     st = dict(gs.scenario_state or {})
     st["start_pos"] = {s.id: [s.x, s.y] for s in gs.get_ships() if s.player == player
                        and not s.is_destroyed and not s.is_disengaged}
+    st["paths"] = {}
     gs.scenario_state = st
 
 
@@ -226,10 +227,32 @@ def _seg_dist(px, py, ax, ay, bx, by) -> float:
     return math.hypot(px - ax - t * dx, py - ay - t * dy)
 
 
+def record_path(gs, ship, points) -> None:
+    """Keep each defending ship's movement path this phase (every leg, turns
+    included) for contact marker activation (sign-off answer 6)."""
+    from .scenarios import defender
+    if not active(gs) or ship.player != defender(gs):
+        return
+    st = dict(gs.scenario_state or {})
+    paths = dict(st.get("paths", {}))
+    paths[ship.id] = list(paths.get(ship.id, [])) + [[round(x, 3), round(y, 3)]
+                                                     for x, y in points]
+    st["paths"] = paths
+    gs.scenario_state = st
+
+
+def _path_dist(m, pts) -> float:
+    if len(pts) == 1:
+        return math.hypot(m["x"] - pts[0][0], m["y"] - pts[0][1])
+    return min(_seg_dist(m["x"], m["y"], a[0], a[1], b[0], b[1])
+               for a, b in zip(pts, pts[1:]))
+
+
 def check_activation(gs) -> List[str]:
-    """A marker is activated once a defending vessel moves within 30cm of it
-    (reading: on the straight line from where the ship started its movement
-    phase to where it ended, or its arrival point)."""
+    """A marker is activated as soon as a defending vessel moves within 30cm
+    of it (sign-off answer 6): along the ship's actual path this phase, turns
+    included (`record_path`), from where it began the phase (its arrival
+    point for ships that moved on)."""
     from .scenarios import defender
     st = dict(gs.scenario_state or {})
     starts = st.get("start_pos", {})
@@ -242,7 +265,8 @@ def check_activation(gs) -> List[str]:
             if s.player != defender(gs) or s.is_destroyed or s.is_disengaged:
                 continue
             a = starts.get(s.id, [s.x, s.y])
-            if _seg_dist(m["x"], m["y"], a[0], a[1], s.x, s.y) <= ACTIVATE_RANGE:
+            pts = [a] + list((st.get("paths") or {}).get(s.id, [])) + [[s.x, s.y]]
+            if _path_dist(m, pts) <= ACTIVATE_RANGE:
                 m["active"] = True
                 out.append(m["id"])
                 break

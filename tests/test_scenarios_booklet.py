@@ -1068,12 +1068,16 @@ def _storm_gs():
 def test_navigate_storm_setup_rifts_and_zones():
     from src import navigate_storm as ns
     gs = _storm_gs()
-    sc.setup_scenario(gs)
+    sc.setup_scenario(gs, DiceStub([1, 6] + [3, 4] * 15))
     rifts = gs.get_phenomena()
     assert len(rifts) == 16 and all(p.phenomenon_type == "warp_rift" for p in rifts)
+    # D3x5cm wide, D3x10cm long (sign-off answer 17): 1 -> 5cm, 6 -> 30cm
+    assert (rifts[0].width, rifts[0].height) == (30.0, 5.0)
+    assert all((r.width, r.height) == (20.0, 10.0) for r in rifts[1:])
     for i, a in enumerate(rifts):
         for b in rifts[i + 1:]:
-            gap = max(abs(a.x - b.x), abs(a.y - b.y)) - 10.0
+            gap = max(abs(a.x - b.x) - (a.width + b.width) / 2,
+                      abs(a.y - b.y) - (a.height + b.height) / 2)
             assert gap >= 10.0 - 1e-9
     zones = {z.player: z for z in sc.deployment_zones(gs)}
     assert zones[2].contains(30, 10) and not zones[2].contains(15, 10)
@@ -1127,6 +1131,9 @@ def test_navigate_storm_lost_ships_return_and_materialise():
     assert not ns.is_materialising(a1) and ns.halved(a1)
     from src.combat import effective_battery_firepower
     assert effective_battery_firepower(a1, {"strength": 6, "name": "b"}) == 3
+    # sign-off answer 14: ordnance is halved too
+    from src.ordnance import mine_launch_strength
+    assert mine_launch_strength(a1, {"strength": 4}) == 2
     ns.clear_half_armament(gs, 1)
     assert not ns.halved(gs.get_ship_by_id("a1"))
 
@@ -1311,3 +1318,25 @@ def test_convoy_narrative_arrival_activation_and_end():
     gs.turn_number = 3
     end = sc.check_end(gs)
     assert end["winner"] == 2 and "Convoy Win" in end["detail"]
+
+
+def test_convoy_narrative_activation_follows_the_path():
+    """Sign-off answer 6: the actual path, turns included, not a straight line
+    from the start to the end."""
+    from src import convoy_narrative as cn
+    gs = _cn_gs()
+    sc.setup_scenario(gs, DiceStub([1, 1, 1, 1, 2]))
+    st = dict(gs.scenario_state)
+    st["markers"] = [{"id": "m", "kind": "torpedoes", "x": 100.0, "y": 100.0,
+                      "active": False}]
+    gs.scenario_state = st
+    c0 = gs.get_ship_by_id("c0")
+    c0.x, c0.y, c0.status, c0.is_disengaged = 60.0, 40.0, "active", False
+    gs.update_ship(c0)
+    cn.record_start_positions(gs, 2)
+    # out to (80, 80), within 28cm of the marker, then back to (100, 40):
+    # the straight line from start to end passes 60cm away
+    c0.x, c0.y = 100.0, 40.0
+    gs.update_ship(c0)
+    cn.record_path(gs, c0, [(60.0, 40.0), (80.0, 80.0), (100.0, 40.0)])
+    assert cn.check_activation(gs) == ["m"]

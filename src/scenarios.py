@@ -794,7 +794,7 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
         _docks_setup(gs, dice)
     elif mode == "navigate_storm":
         from .navigate_storm import setup as _storm_setup
-        _storm_setup(gs)
+        _storm_setup(gs, dice)
     elif mode == "escalating_engagement":
         if dice is None:
             from .dice import DiceRoller

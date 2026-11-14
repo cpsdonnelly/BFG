@@ -541,6 +541,10 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
 
     collect_blast_markers(ship, gs, [(ship.x, ship.y)] + [tuple(p[:2]) for p in (result.path or [])]
                           + [(result.final_x, result.final_y)])
+    # Convoy (narrative): the path, turns included, for contact marker activation
+    from .convoy_narrative import record_path
+    record_path(gs, ship, [(ship.x, ship.y)] + [tuple(p[:2]) for p in (result.path or [])]
+                + [(result.final_x, result.final_y)])
     ship.x = result.final_x
     ship.y = result.final_y
     ship.heading = result.final_heading

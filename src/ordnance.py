@@ -1277,6 +1277,8 @@ def mine_launch_strength(ship: Ship, weapon: Dict) -> int:
         n = ship.crippled_value(n)
     if ship.special_order == "brace_for_impact":
         n = (n + 1) // 2
+    if "half_armament" in ship.special_rules:
+        n = (n + 1) // 2         # Navigate the Storm: armaments at half strength (answer 14)
     return n
 
 
@@ -1376,6 +1378,8 @@ def torpedo_launch_strength(ship: Ship, weapon: Dict,
         strength = ship.crippled_value(strength)
     if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
         strength = (strength + 1) // 2
+    if "half_armament" in ship.special_rules:
+        strength = (strength + 1) // 2   # Navigate the Storm (sign-off answer 14)
     return strength, rolled
 
 
@@ -1739,6 +1743,8 @@ def bay_launch_capacity(ship: Ship, bay_weapons: List[Dict],
         total = ship.crippled_value(total)
     if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
         total = (total + 1) // 2
+    if "half_armament" in ship.special_rules:
+        total = (total + 1) // 2         # Navigate the Storm (sign-off answer 14)
     return total, log
 
 
