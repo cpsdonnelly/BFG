@@ -672,7 +672,9 @@ class TurnController:
         commander's own when `ship` is his ship or in his squadron."""
         holder = self._own_reroll_holder(ship)
         own = holder.own_rerolls if holder else 0
-        fleet = 0 if self._radiation_blocks(player, ship) else self._commander_rerolls(player)
+        from .subplots import reroll_blocked
+        fleet = 0 if (self._radiation_blocks(player, ship)
+                      or reroll_blocked(self.gs, player, ship)) else self._commander_rerolls(player)
         return own + fleet + self._war_host_rerolls(player, ship)
 
     def _war_host_rerolls(self, player: int, ship: Optional[Ship]) -> int:
@@ -741,6 +743,11 @@ class TurnController:
         if self._radiation_blocks(player, ship):
             self.gs.add_log("Radiation burst: the fleet commander's re-rolls are only for "
                             "his own ship or squadron this turn")
+            return False
+        from .subplots import reroll_blocked
+        if reroll_blocked(self.gs, player, ship):
+            self.gs.add_log("Signaling Problems: the fleet commander's re-rolls only reach "
+                            "ships within 30cm of his ship")
             return False
 
 

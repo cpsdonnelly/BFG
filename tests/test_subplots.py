@@ -17,8 +17,9 @@ def test_generation_tables():
         dice = DiceStub([t, n])
         sp = sp_mod.generate(gs, 1, dice)
         assert sp["key"] == key and dice._idx == 2
-    sp = sp_mod.generate(gs, 1, DiceStub([3, 3]))
-    assert sp["key"] == "unexpected_help" and "unbuilt" in sp
+    sp = sp_mod.generate(gs, 1, DiceStub([5, 5]))
+    assert sp["key"] == "decoy" and "unbuilt" in sp
+    assert "unbuilt" not in sp_mod.generate(gs, 1, DiceStub([3, 3]))     # Unexpected Help
 
 
 def test_gunnery_practice_and_extended_duty_modify_command_checks():
@@ -130,3 +131,62 @@ def test_ai_values_subplot_ships():
     sp = sp_mod.generate(gs, 1, DiceStub([2, 6]))            # Vendetta on "big"
     sp_mod.apply_setup(gs, 1, sp, DiceStub([]))
     assert damage_vp(gs.get_ship_by_id("big"), gs, 3.0) > plain + 30
+
+
+def test_blood_bond_and_fleet_experience_leadership():
+    flag = make_ship(id="f", player=1, leadership=9, is_flagship=True, x=50.0, y=50.0)
+    near = make_ship(id="n", player=1, leadership=6, x=70.0, y=50.0)
+    far = make_ship(id="r", player=1, leadership=6, x=150.0, y=50.0)
+    gs = _gs(flag, near, far, make_ship(id="e", player=2))
+    sp_mod._set(gs, 1, {"key": "fleet_experience", "name": "Fleet Experience",
+                        "renown": [1, 0]})
+    assert sp_mod.leadership(gs, gs.get_ship_by_id("n")) == 9      # within 30cm
+    assert sp_mod.leadership(gs, gs.get_ship_by_id("r")) == 6
+    r = do_command_check(gs.get_ship_by_id("n"), "lock_on", DiceStub([9]), gs=gs)
+    assert r["passed"] and r["needed"] == 9
+    # Blood Bond: after a capital ship is lost, +1 for the player's next turn
+    gs2 = _gs(make_ship(id="a", player=1, leadership=7), make_ship(id="b", player=1,
+                                                                   leadership=7),
+              make_ship(id="e", player=2))
+    sp = {"key": "blood_bond", "name": "Blood Bond", "renown": [1, -1]}
+    sp_mod.apply_setup(gs2, 1, sp, DiceStub([]))
+    a = gs2.get_ship_by_id("a")
+    a.status, a.hits_remaining = "destroyed", 0
+    gs2.update_ship(a)
+    gs2.turn_number = 3
+    sp_mod.turn_start(gs2, 1)
+    assert sp_mod.leadership(gs2, gs2.get_ship_by_id("b")) == 8
+    gs2.turn_number = 4
+    assert sp_mod.leadership(gs2, gs2.get_ship_by_id("b")) == 7
+
+
+def test_signaling_problems_limits_rerolls():
+    from src.turn_controller import TurnController
+    flag = make_ship(id="f", player=1, is_flagship=True, x=50.0, y=50.0)
+    flag.rerolls_remaining = 2
+    near = make_ship(id="n", player=1, x=70.0, y=50.0)
+    far = make_ship(id="r", player=1, x=150.0, y=50.0)
+    gs = _gs(flag, near, far, make_ship(id="e", player=2))
+    sp_mod._set(gs, 1, {"key": "signaling_problems", "name": "Signaling Problems",
+                        "renown": [1, -1]})
+    tc = TurnController(gs, DiceStub([]))
+    assert tc.get_fleet_rerolls(1, gs.get_ship_by_id("n")) == 2
+    assert tc.get_fleet_rerolls(1, gs.get_ship_by_id("r")) == 0
+    assert not tc.use_fleet_reroll(1, gs.get_ship_by_id("r"))
+
+
+def test_unexpected_help_adds_reinforcements_and_judges_them():
+    gs = _gs(make_ship(id="a", player=1, faction="imperial_navy_gothic", points_value=500),
+             make_ship(id="e", player=2))
+    sp = {"key": "unexpected_help", "name": "Unexpected Help", "renown": [0, -2]}
+    # D3 = 3 -> 150pts: the dearest Navy capital ship within it (a light cruiser); Ld roll 4
+    sp_mod.apply_setup(gs, 1, sp, DiceStub([6, 4]))
+    sp = sp_mod.get(gs, 1)
+    ships = [gs.get_ship_by_id(i) for i in sp["ships"]]
+    assert ships and sum(s.points_value for s in ships) <= 150
+    assert len(ships) == 1 and ships[0].ship_type == "cruiser" and ships[0].leadership == 8
+    assert sp_mod.objective_met(gs, 1, True)
+    for s in ships:
+        s.status, s.hits_remaining = "destroyed", 0
+        gs.update_ship(s)
+    assert not sp_mod.objective_met(gs, 1, True)

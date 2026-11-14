@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1300 pass; all GUI checks pass
+playable). Tests: 1303 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1138,11 +1138,19 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (`record_raid` in `hit_and_run.resolve_raids`). Objectives judged at the end
    (`objective_met`; readings: Extended Duty / No Quarter count a crippled ship's whole
    points, a draw isn't a won main mission) and the battle result with renown in the game-over
-   dialog (`battle_result`: Heroic Victory / Victory / Heroic Defeat / Miserable Defeat). Not
-   built (flagged `unbuilt` when rolled): Blood Bond's +1 Ld, Fleet Experience's borrowed Ld,
-   Signaling Problems' re-roll limit (their objectives are judged), Unexpected Help's
-   reinforcements and the Decoy (can't be met), Fresh Captain's objective (kills aren't
-   credited to ships); faction sub-plots. AI, first form: `subplots.kill_bonus_vp` (a
+   dialog (`battle_result`: Heroic Victory / Victory / Heroic Defeat / Miserable Defeat). Built
+   later: Blood Bond (+1 Ld, max 10, for the player's next turn after one of its capital
+   ships is crippled or destroyed, reading: checked at the start of its turn,
+   `subplots.turn_start`), Fleet Experience (within 30cm of the commander's ship a ship may
+   use the commander's Ld, the better of the two, reading) through `subplots.leadership` in
+   command checks, disengage tests and asteroid / warp rift tests; Signaling Problems
+   (`reroll_blocked` in `TurnController.get_fleet_rerolls` / `use_fleet_reroll`: commander
+   re-rolls only for a ship whose squadron has a ship within 30cm of the commander's ship,
+   reading: single ships likewise); Unexpected Help (`_unexpected_help`: D3 x 50pts, judgement
+   pick also for a human: the dearest capital ship of the fleet's main faction within it,
+   else the escorts worth most; its Ld rolled on its table; the objective judged, the AI
+   protects them). Not built (flagged `unbuilt` when rolled): the Decoy (hidden identity);
+   Fresh Captain's objective (kills aren't credited to ships); faction sub-plots. AI, first form: `subplots.kill_bonus_vp` (a
    Vendetta target, our Desperate Mission / Experimental Ship, a Fleet Experience flagship:
    `SUBPLOT_WEIGHT` 0.1 x the points on the table, judgement) through
    `scenarios.kill_bonus_vp` into `damage_vp` and `disengage_gain`
@@ -1385,8 +1393,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
    also `gui_spectator_domination.py`). Still to build (largest first): the campaign set pieces (Defence of Pelucidar, Macharia's End,
    Craftworld Assault) and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
-   the sub-plots (Blood Bond, Fleet Experience, Signaling Problems effects; Unexpected Help,
-   Decoy, Fresh Captain's objective; faction sub-plots) and their AI beyond kill bonuses.
+   the sub-plots (the Decoy, Fresh Captain's objective, faction sub-plots) and their AI beyond
+   kill bonuses.
    Smaller gaps: racing Domination's 10 against the turn order; reinforcements entering along
    the long edges after turn 1 and choosing them / The Bait's pursued unit / Surprise Attack's
    full-alert units in the set-up dialogs; Alien Intervention's drifting hulk; alternating

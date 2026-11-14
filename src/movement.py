@@ -679,7 +679,8 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
             fresh = gs.get_ship_by_id(ship.id)
             if fresh is not None:
                 ship.leadership = fresh.leadership
-    ld = ship.leadership
+    from .subplots import leadership as _sp_ld
+    ld = _sp_ld(gs, ship)            # Fleet Experience / Blood Bond
     mods = []
     if gs is not None and _sirens_summon(ship, gs):
         # Siren's Summon (Pleasure Fleet of Slaanesh): no special orders or

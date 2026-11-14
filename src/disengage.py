@@ -195,7 +195,8 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
     Calculate Ld modifiers for voluntary disengagement.
     Returns dict with modifier breakdown and final Ld.
     """
-    base_ld = ship.leadership
+    from .subplots import leadership as _sp_ld
+    base_ld = _sp_ld(gs, ship)       # Fleet Experience / Blood Bond
     modifiers = []
     total_mod = 0
 

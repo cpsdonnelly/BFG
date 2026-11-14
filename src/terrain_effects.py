@@ -97,7 +97,8 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
     On failure: D6 damage (shields block normally, no blast markers).
     """
     num_dice = 3 if on_aaf else 2
-    ld = ship.leadership
+    from .subplots import leadership as _sp_ld
+    ld = _sp_ld(gs, ship)            # Fleet Experience / Blood Bond
 
     # Shadow Engines: escort squadrons automatically pass to navigate asteroids;
     # so do Eldar escorts (MMS p.3)
@@ -195,7 +196,8 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
     3+ (permanently lost on 1-2).
     """
     eldar = "eldar_mms" in ship.special_rules
-    ld = ship.leadership - (2 if eldar else 0)
+    from .subplots import leadership as _sp_ld
+    ld = _sp_ld(gs, ship) - (2 if eldar else 0)
     from .movement import fleet_reroll_offered, sirens_summon
     siren = sirens_summon(ship, gs)
     if siren:

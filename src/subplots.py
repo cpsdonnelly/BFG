@@ -39,14 +39,9 @@ TABLES = {
 
 # Effects the engine doesn't play yet (the objective is still judged where it can be)
 UNBUILT = {
-    "blood_bond": "the +1 Ld after a loss isn't applied yet (the objective is judged)",
-    "fleet_experience": "using the commander's Ld within 30cm isn't applied yet (the "
-                        "objective is judged)",
-    "signaling_problems": "the re-roll limit isn't applied yet (the objective is judged)",
-    "unexpected_help": "adding the D3x50pts reinforcements isn't built: the objective "
-                       "can't be met",
     "decoy": "the hidden decoy isn't built: the objective can't be met",
 }
+COMMAND_RANGE = 30.0      # Fleet Experience / Signaling Problems: within 30cm of the commander
 
 
 def capital_ships(gs, player: int):
@@ -157,6 +152,10 @@ def apply_setup(gs, player: int, sp: Dict, dice,
         logs.append(f"  win within {sp['turns']} turns")
     elif key == "navigational_hazards":
         _place_hazards(gs, dice, logs)
+    elif key == "unexpected_help":
+        _unexpected_help(gs, player, sp, dice, logs)
+    elif key == "blood_bond":
+        sp["lost_seen"] = sum(1 for s in own if _lost(s))
     if key == "secret_intelligence":
         flag = next((s for s in gs.get_ships() if s.player == player and s.is_flagship), None)
         if flag is not None:
@@ -169,6 +168,108 @@ def apply_setup(gs, player: int, sp: Dict, dice,
     for line in logs:
         gs.add_log(f"[Sub-plot] {line}")
     return logs
+
+
+def _unexpected_help(gs, player: int, sp: Dict, dice, logs: List[str]) -> None:
+    """Add a single capital ship or escort squadron totalling D3 x 50 points
+    (judgement for the pick, also for a human until a dialog exists: the
+    dearest capital ship within the limit, else the escorts worth most within
+    it; the fleet's main faction). Its Leadership is rolled as the others'."""
+    from .models import Ship
+    from .convoy_narrative import _pick_capital, _pick_escorts
+    from .scenarios import _main_faction
+    from .booklet_ships import LEADERSHIP_TABLES
+    limit = 50 * ((dice.roll_d6(1, "Unexpected Help: D3 x 50 points")[0] + 1) // 2)
+    faction = _main_faction(gs, player) or "imperial_navy_gothic"
+    e = _pick_capital(faction, limit)
+    n = 1
+    if e is None:
+        e, n = _pick_escorts(faction, limit)
+    if e is None or n <= 0:
+        logs.append(f"  no {faction} ship fits within {limit}pts")
+        return
+    ids = []
+    sq = f"help_{player}" if e.ship_type == "escort" else ""
+    ld = 0
+    if e.leadership_table:
+        ld = LEADERSHIP_TABLES.get(e.leadership_table, LEADERSHIP_TABLES["Default"])[
+            dice.roll_d6(1, f"Unexpected Help: {e.ship_class} Leadership")[0] - 1]
+    for k in range(n):
+        sid = f"help_{player}_{k}"
+        d = e.to_ship_dict(e.ship_class, player, ship_id=sid)
+        d.update(x=0.0, y=0.0, heading=0.0, squadron_id=sq)
+        if ld:
+            d["leadership"] = ld
+        gs.add_ship(Ship.from_dict(d))
+        ids.append(sid)
+    sp["ships"] = ids
+    logs.append(f"  reinforcements ({limit}pts): {n} x {e.ship_class}")
+
+
+def _flagship(gs, player: int):
+    return next((s for s in gs.get_ships() if s.player == player and s.is_flagship
+                 and not s.is_destroyed and not s.is_disengaged), None)
+
+
+def _near_commander(gs, ship) -> bool:
+    """The ship, or a member of its squadron, within 30cm of its fleet
+    commander's ship."""
+    flag = _flagship(gs, ship.player)
+    if flag is None:
+        return False
+    group = [ship]
+    if ship.squadron_id:
+        group = [s for s in gs.get_ships() if s.squadron_id == ship.squadron_id
+                 and s.player == ship.player and not s.is_destroyed] or [ship]
+    return any(s.id == flag.id or s.distance_to(flag) <= COMMAND_RANGE for s in group)
+
+
+def leadership(gs, ship) -> int:
+    """A ship's Leadership for its tests with the sub-plots' effects: Fleet
+    Experience (within 30cm of the commander's ship it may use the
+    commander's Ld: the better, reading) and Blood Bond (+1 for the turn after
+    a capital ship of the fleet was crippled or destroyed, max 10)."""
+    ld = ship.leadership
+    if gs is None:
+        return ld
+    sp = get(gs, ship.player)
+    if not sp:
+        return ld
+    if sp["key"] == "fleet_experience":
+        flag = _flagship(gs, ship.player)
+        if flag is not None and flag.id != ship.id and ship.distance_to(flag) <= COMMAND_RANGE:
+            ld = max(ld, flag.leadership)
+    if (sp["key"] == "blood_bond" and sp.get("bond_turn") == gs.turn_number
+            and ship.ship_type != "escort" and not _lost(ship)):
+        ld = min(10, ld + 1)
+    return ld
+
+
+def reroll_blocked(gs, player: int, ship) -> bool:
+    """Signaling Problems: fleet commander re-rolls only for squadrons with a
+    ship within 30cm of the commander's ship (reading: single ships too, a
+    ship being its own squadron)."""
+    sp = get(gs, player)
+    if not sp or sp["key"] != "signaling_problems" or ship is None:
+        return False
+    return not _near_commander(gs, ship)
+
+
+def turn_start(gs, player: int) -> None:
+    """Blood Bond: at the start of the player's turn, if one of its capital
+    ships was crippled or destroyed since its last turn, the others gain +1 Ld
+    for this turn (reading: "the next turn" is the player's next turn)."""
+    sp = get(gs, player)
+    if not sp or sp["key"] != "blood_bond":
+        return
+    lost = sum(1 for s in capital_ships(gs, player) if _lost(s))
+    if lost > sp.get("lost_seen", 0):
+        sp = dict(sp)
+        sp["lost_seen"] = lost
+        sp["bond_turn"] = gs.turn_number
+        _set(gs, player, sp)
+        gs.add_log(f"[Sub-plot] Blood Bond: player {player}'s capital ships are at +1 Ld "
+                   f"this turn")
 
 
 def _contradicts(imp: int, side: int) -> bool:
@@ -308,6 +409,9 @@ def kill_bonus_vp(gs, ship) -> float:
             v += SUBPLOT_WEIGHT * total
         if key == "fleet_experience" and ship.is_flagship and str(ship.player) == p:
             v += SUBPLOT_WEIGHT * total
+        if key == "unexpected_help" and ship.id in sp.get("ships", []):
+            # the objective needs one of them to survive: shared out (judgement)
+            v += SUBPLOT_WEIGHT * total / max(1, len(sp.get("ships", [])))
     return v
 
 
@@ -352,6 +456,9 @@ def objective_met(gs, player: int, won: bool) -> Optional[bool]:
         return sum(1 for s in esc if not s.is_destroyed) * 2 >= len(esc)
     if key in ("enemy_plans", "secret_intelligence"):
         return bool(sp.get("done"))
+    if key == "unexpected_help":
+        return any(not _lost(by_id[i]) and not by_id[i].is_disengaged
+                   for i in sp.get("ships", []) if i in by_id)
     if key in ("experimental_ship", "desperate_mission"):
         s = by_id.get(sp.get("ship"))
         return bool(s and not _lost(s))
@@ -359,7 +466,7 @@ def objective_met(gs, player: int, won: bool) -> Optional[bool]:
         game_turn = (gs.turn_number + 1) // 2 if getattr(gs, "turn_system", "igougo") != "aa" \
             else gs.turn_number
         return won and game_turn <= sp.get("turns", 0)
-    return False          # Unexpected Help, Decoy, Fresh Captain: not judged (see UNBUILT)
+    return False          # Decoy, Fresh Captain: not judged (see UNBUILT)
 
 
 def _points_lost(ships) -> float:

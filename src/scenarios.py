@@ -413,6 +413,9 @@ def turn_start(gs, dice=None) -> None:
     its Ld back after its D6 turns of reduced alert (reading: game turns, both
     players' turns)."""
     mode = getattr(gs, "scenario_mode", "")
+    from .subplots import turn_start as _sp_turn_start
+    for p in ((1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)):
+        _sp_turn_start(gs, p)
     if mode == "destroy_docks":
         from .destroy_docks import lay_orbital_mines
         lay_orbital_mines(gs)
