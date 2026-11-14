@@ -7,6 +7,9 @@ from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, Phenomenon
 
 
+_COLLECTIONS = ("ships", "ordnance", "blast_markers", "phenomena", "log")
+
+
 @dataclass
 class GameState:
     # Game info
@@ -159,70 +162,17 @@ class GameState:
         os.makedirs(directory, exist_ok=True)
 
         # Main state (without large collections)
-        meta = {
-            "game_name": self.game_name,
-            "turn_number": self.turn_number,
-            "current_phase": self.current_phase,
-            "active_player": self.active_player,
-            "phase_step": self.phase_step,
-            "player1_name": self.player1_name,
-            "player2_name": self.player2_name,
-            "player1_faction": self.player1_faction,
-            "player2_faction": self.player2_faction,
-            "player1_color": self.player1_color,
-            "player2_color": self.player2_color,
-            "table_width": self.table_width,
-            "table_height": self.table_height,
-            "sunward_edge": self.sunward_edge,
-            "dice_mode": self.dice_mode,
-            "points_limit": self.points_limit,
-            "rule_fighting_sunward": self.rule_fighting_sunward,
-            "rule_solar_flares": self.rule_solar_flares,
-            "rule_radiation_bursts": self.rule_radiation_bursts,
-            "rule_boarding": self.rule_boarding,
-            "rule_ramming": self.rule_ramming,
-            "rule_teleport": self.rule_teleport,
-            "rule_hit_and_run": self.rule_hit_and_run,
-            "rule_turret_suppression_remastered": self.rule_turret_suppression_remastered,
-            "allow_movement_pass": self.allow_movement_pass,
-            "ai_player": self.ai_player,
-            "ai_difficulty": self.ai_difficulty,
-            "ai_spectator": self.ai_spectator,
-            "contact_margin_cm": self.contact_margin_cm,
-            "blast_marker_rules": self.blast_marker_rules,
-            "rule_remastered_spillover": self.rule_remastered_spillover,
-            "rule_remastered_escort_vp": self.rule_remastered_escort_vp,
-            "turn_limit": self.turn_limit,
-            "ftl_available_turn": self.ftl_available_turn,
-            "scenario_mode": self.scenario_mode,
-            "scenario_attacker": self.scenario_attacker,
-            "attacker_by_rating": self.attacker_by_rating,
-            "objective_ship_id": self.objective_ship_id,
-            "artefact_submode": self.artefact_submode,
-            "artefact_token_pos": list(self.artefact_token_pos) if self.artefact_token_pos else None,
-            "artefact_carrier_id": self.artefact_carrier_id,
-            "artefact_owner": self.artefact_owner,
-            "first_player": self.first_player,
-            "turn_system": self.turn_system,
-            "necron_alert": dict(self.necron_alert),
-            "kill_credit": list(self.kill_credit),
-            "aa_settings": dict(self.aa_settings),
-            "aa_state": dict(self.aa_state),
-            "scenario_state": dict(self.scenario_state),
-            "rule_subplots": self.rule_subplots,
-            "subplots": dict(self.subplots),
-            "undivided_used": list(self.undivided_used),
-            "solar_flare_dice": self.solar_flare_dice,
-            "radiation_burst_dice": self.radiation_burst_dice,
-            "solar_flare_done": self.solar_flare_done,
-            "solar_flare_turn": self.solar_flare_turn,
-            "radiation_level": self.radiation_level,
-            "radiation_turn": self.radiation_turn,
-            "radiation_deltas": self.radiation_deltas,
-            "undivided_boost": self.undivided_boost,
-            "id_serial": self.id_serial,
-            "timestamp": time.time(),
-        }
+        # Every dataclass field but the large collections (a hand-written list
+        # here could drift from the fields)
+        meta = {}
+        for f in fields(self):
+            if f.name in _COLLECTIONS:
+                continue
+            v = getattr(self, f.name)
+            if f.name == "artefact_token_pos" and v is not None:
+                v = list(v)
+            meta[f.name] = v
+        meta["timestamp"] = time.time()
 
         with open(os.path.join(directory, "game_state.json"), "w") as f:
             json.dump(meta, f, indent=2)
@@ -272,6 +222,18 @@ class GameState:
 
         The turn controller, board and panels all hold a reference to the
         same GameState, so a load must mutate it rather than replace it.
+        Transient engine scratch stashed as underscore attributes (zzapp
+        blast markers once a turn, Demiurg collected markers, spill-over
+        touches) is dropped so it can't leak across a load or undo; the UI's
+        hooks (plain attributes) stay.
         """
         for f in fields(self):
             setattr(self, f.name, getattr(other, f.name))
+        self.clear_transient()
+
+    def clear_transient(self) -> None:
+        """Drop engine scratch kept as underscore attributes (not dataclass
+        fields, never saved): it describes the state being replaced."""
+        names = {f.name for f in fields(self)}
+        for k in [k for k in vars(self) if k.startswith("_") and k not in names]:
+            del self.__dict__[k]

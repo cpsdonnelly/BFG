@@ -377,32 +377,19 @@ class Ship:
         """Check if this ship has weapons that would be affected by an armament crit.
         Used for crit cascade: if a ship has no prow weapons, a prow armament
         crit cascades to the next highest result."""
-        slot_to_arcs = {
-            "dorsal_armament": None,    # dorsal = weapons with left+front+right arcs
-            "starboard_armament": "right",
-            "port_armament": "left",
-            "prow_armament": "front",
-        }
-        if crit_type == "keel_armament":
-            return any("keel" in (w.get("name") or "").lower() for w in self.weapons)
         station = {"station_lances": ("lance",), "station_batteries": ("battery",),
                    "station_bays": ("launch_bay", "torpedo", "mine_launcher")}
         if crit_type in station:
             return any(w.get("weapon_type") in station[crit_type] for w in self.weapons)
-        if crit_type not in slot_to_arcs:
+        if crit_type not in ("dorsal_armament", "starboard_armament", "port_armament",
+                             "prow_armament", "keel_armament"):
             return True  # non-armament crits always apply
-
-        target_arc = slot_to_arcs[crit_type]
-        for w in self.weapons:
-            arcs = w.get("arcs", [])
-            if target_arc is None:
-                # Dorsal: weapons that cover left, front, and right
-                if "left" in arcs and "front" in arcs and "right" in arcs:
-                    return True
-            else:
-                if target_arc in arcs:
-                    return True
-        return False
+        # The same location test that decides which weapons the crit disables
+        # (combat.weapon_in_crit_slot: by name, then by arcs), so a crit that
+        # would disable nothing cascades instead (a dorsal L/F/R weapon used to
+        # count as a prow slot)
+        from .combat import weapon_in_crit_slot
+        return any(weapon_in_crit_slot(w, crit_type) for w in self.weapons)
 
     def distance_to(self, other):
         """Distance in cm between ship stems"""

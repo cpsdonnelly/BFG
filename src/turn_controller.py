@@ -126,6 +126,7 @@ class TurnController:
         self.gs.turn_number = snapshot["turn"]
         self.gs.current_phase = snapshot["phase"]
         self.gs.active_player = snapshot["active_player"]
+        self.gs.clear_transient()
         return True
 
     def list_snapshots(self) -> List[str]:
@@ -158,6 +159,7 @@ class TurnController:
         self.gs.ships = self._phase_start_snapshot["ships"]
         self.gs.ordnance = self._phase_start_snapshot["ordnance"]
         self.gs.blast_markers = self._phase_start_snapshot["blast_markers"]
+        self.gs.clear_transient()
         self.ships_moved.clear()
         self.ships_fired.clear()
         self.command_check_failed = False

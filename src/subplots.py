@@ -201,7 +201,11 @@ def apply_setup(gs, player: int, sp: Dict, dice,
     elif key == "meteor_storm":
         for s in own:
             if dice.roll_d6(1, f"Meteor Storm: {s.name}")[0] <= 3:
-                roll_critical_hit(s, dice, gs)
+                if roll_critical_hit(s, dice, gs):
+                    # Its extra damage destroyed it (reading: destroyed before the
+                    # battle, no catastrophic roll since it isn't on the table)
+                    s.hits_remaining, s.status = 0, "destroyed"
+                    logs.append(f"  {s.name} is destroyed by the meteor storm")
                 gs.update_ship(s)
                 logs.append(f"  {s.name} takes a critical hit")
     elif key == "fresh_captain":

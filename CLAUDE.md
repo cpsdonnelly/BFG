@@ -2440,6 +2440,9 @@ rather than touch a third ship).
   netherfields and polarisation fields (identical to those of the Haven Spire)", but the
   booklet's Haven Spire (MMS) has neither; only XR's note names them, and only the Dark
   Eldar Tormentor Spire defines a polarisation field. What should they do?
+- **Meteor Storm sub-plot:** its critical hit can deal enough extra damage (Hull Breach,
+  Bulkhead Collapse) to reduce a small capital ship to 0 before the game. The booklet is
+  silent; the game treats it as destroyed before the battle, with no catastrophic roll. OK?
 - **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
   next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
 

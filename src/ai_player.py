@@ -2643,6 +2643,7 @@ class AIPlayer:
                 if weapon.get("kustom_kannon"):
                     from .combat import spend_kustom_kannon
                     spend_kustom_kannon(ship, weapon, gs)
+                    ship.ordnance_loaded_torps = False   # keep the loop's copy in step
             elif wtype == "lance":
                 sr = resolve_lances(ship, target, weapon, self.dice,
                                     lock_on=lock_on)
