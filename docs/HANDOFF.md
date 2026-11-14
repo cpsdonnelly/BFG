@@ -1,5 +1,37 @@
 # Handoff brief for the next Claude session
 
+## Status at a glance (latest; the dated sections below are history)
+
+Finished (playable for humans and the AI, IGOUGO and alternate activation):
+- Every core rules section the engine plays, all optional rules (boarding, ramming, teleports,
+  hit-and-run, s.40 celestial effects, Remastered blast markers / suppression / escort VP).
+- Factions: Imperial Navy, Chaos, Mechanicus, Space Marines (+ Venerable Strike Cruisers),
+  Inquisition / Grey Knights, Orks, Tau (+ Demiurg, Kroot partly), Rogue Traders, Eldar (MMS
+  v2.0, 18 of 24 ships), Necrons (the six mobile ships). Fleet lists for the first eight.
+- Fleet commanders, secondary commanders, named commanders, refits / gifts / marks / kustoms,
+  bought torpedo types, mines and torpedo bombers.
+- 31 booklet scenarios: the nine matched-play ones, the introductory, raid and battle
+  scenarios, low orbit with Exterminatus! and Planetary Assault, the campaign set pieces
+  (Pelucidar, Macharia's End, Craftworld Assault) and variants (The Gauntlet, Parol's Bait,
+  Daemon Blockade); sub-plots incl. the faction ones (Decoy aside).
+- Alternate activation (all three order systems), the expected-VP AI (normal, easy, expert
+  search), "Auto (best)" on every player prompt.
+- Game modes: player vs player (hot seat), player vs AI, AI vs AI (spectator).
+
+Left (CLAUDE.md "Next" and the To do list have the detail):
+- Dark Eldar and Tyranids (listed, not playable; Dark Eldar was the next slice, nothing
+  written yet).
+- Eldar / Necron gaps (To do 14), daemonships and other To do 4 items, special-movement and
+  fortress units (To do 5), To do 13's AA experiments and expert AI per unit, the rest of 11
+  (deeper expert hazards, more coordination rounds), 10 e (Brace's remaining bits).
+- To do 7's small gaps and the Decoy sub-plot (needs the owner).
+- On hold until the owner says so: To do 12 (learned evaluation) and 1 (weight tuning).
+- Owner questions open: CLAUDE.md "Open questions for the owner".
+- Code quality: `docs/CODE_REVIEW_PLAN.md` (performance hot spots, rule dispatch, AI value
+  gaps); plan only, nothing refactored yet.
+
+Not supported: more than two players / sides (2v2): the engine is two-player throughout.
+
 Read this first, then `CLAUDE.md` (the living source: every owner ruling, conventions, module
 notes) and `bfgxr/CLAUDE.md` (rules authority). This file is a snapshot at the end of a long
 session.
@@ -14,7 +46,7 @@ session.
 - `bfgxr/` is the rules authority. Each new booklet zip the owner sends **replaces `bfgxr/`
   wholesale** (extract into the scratchpad, `diff -rq`, read the new part of `CHANGES.md`,
   diff `data/ships.json` by ship, then `rm -rf bfgxr && cp -a <new> bfgxr`). Never hand-edit it.
-  The current install is zip 12 (CHANGES.md: forty-fifth update).
+  The current install is zip 14 (CHANGES.md: update 60).
 - **Never invent rules.** If the booklet is silent or ambiguous, ask the owner (AskUserQuestion
   works well), then record the answer under the matching heading in `CLAUDE.md`.
 - Check what an audit or helper agent reports against the booklet yourself before acting on it.
@@ -25,7 +57,7 @@ session.
 
 ## Testing
 
-- `pytest -q` (here: `/root/.local/share/uv/tools/pytest/bin/python -m pytest -q`): **1055
+- `pytest -q` (here: `/root/.local/share/uv/tools/pytest/bin/python -m pytest -q`): **1334
   tests pass** at handoff. `tests/conftest.py` `DiceStub` with realistic rolls
   listed one by one; assert `dice._idx == len(rolls)`.
 - `flake8 --select=E9,F src/` (pytest never imports the Tk files).
