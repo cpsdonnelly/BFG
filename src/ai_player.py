@@ -1098,7 +1098,7 @@ class AIPlayer:
             if ship.player == defender(gs) and is_convoy(ship) and transport(ship) > 0:
                 return 100.0 + self.CONVOY_RUN_WEIGHT * ship.points_value
             return 0.0
-        if gs.scenario_mode == "blockade_run" and ship.player == gs.scenario_attacker:
+        if gs.scenario_mode in ("blockade_run", "daemon_blockade") and ship.player == gs.scenario_attacker:
             p = ship.points_value
             return (p // 4 if ship.damage_crippled else p) - 0.1 * p
         if gs.scenario_mode == "navigate_storm":
@@ -1216,7 +1216,7 @@ class AIPlayer:
         Judgement, first form."""
         from .scenarios import objectives, points, DOMINATION_TARGET, is_convoy, defender
         gs = self.gs
-        if gs.scenario_mode == "blockade_run" and ship.player == gs.scenario_attacker:
+        if gs.scenario_mode in ("blockade_run", "daemon_blockade") and ship.player == gs.scenario_attacker:
             return max(0.0, self._exit_value(ship))  # leaving by a test gives up the bonus
         if gs.scenario_mode in ("navigate_storm", "convoy_narrative", "gauntlet"):
             return max(0.0, self._exit_value(ship))  # only the exit counts

@@ -441,3 +441,51 @@ def test_parols_bait_light_ships_flee_mines_ahead_and_ork_bonus():
     sd["status"], sd["is_disengaged"] = "active", False      # the cruiser arrives
     vp = calculate_victory_points(gs)
     assert vp[1]["total"] == 10 + 90
+
+
+# --- Daemon Blockade ------------------------------------------------------------------
+
+def _daemon():
+    att = [make_ship(id="a1", player=1, points_value=180, x=90, y=5)]
+    chaos = [make_ship(id="c1", player=2, faction="chaos", points_value=180)]
+    gs = _gs(att + chaos, "daemon_blockade")
+    # the blockader's third (5: right), then ten mines' thirds
+    sc.setup_scenario(gs, DiceStub([5, 1, 2, 3, 4, 5, 6, 1, 3, 5, 6]))
+    return gs
+
+
+def test_daemon_mines_laid_by_third():
+    gs = _daemon()
+    mines = [m for m in gs.get_ordnance() if "daemon_mine" in m.special_rules]
+    assert len(mines) == 10 and all(m.resilient_save == 4 for m in mines)
+    w = gs.table_width
+    left = [m for m in mines if m.x < w / 3]
+    assert len(left) == 3                           # the rolls of 1 and 2 (three)
+    assert all(m.y > gs.table_height - 60 for m in mines)
+
+
+def test_daemon_mine_moves_10_plus_d6_and_eats_enemy_ordnance():
+    from src.ordnance import move_ordnance, resolve_ordnance_interactions
+    from tests.conftest import make_marker
+    gs = _daemon()
+    m = next(o for o in gs.get_ordnance() if "daemon_mine" in o.special_rules)
+    import math
+    d0 = math.hypot(m.x - 90, m.y - 5)
+    move_ordnance(m, gs)
+    d1 = math.hypot(m.x - 90, m.y - 5)
+    assert 11 <= d0 - d1 <= 16
+    gs.ordnance = [m.to_dict()]
+    torp = make_marker(id="t1", ordnance_type="torpedo", owner_player=1, x=m.x + 1, y=m.y)
+    gs.add_ordnance(torp)
+    resolve_ordnance_interactions(gs, DiceStub([]))
+    ids = [o.id for o in gs.get_ordnance()]
+    assert ids == [m.id]                            # the salvo gone, the mine still there
+
+
+def test_daemon_mine_vp_for_the_attacker():
+    from src.victory_points import calculate_victory_points
+    gs = _daemon()
+    gs.ordnance = gs.ordnance[:7]                   # three gone
+    gs.scenario_state["daemon_detonated"] = 1       # one of them hit a ship
+    vp = calculate_victory_points(gs)
+    assert vp[1]["total"] == 20

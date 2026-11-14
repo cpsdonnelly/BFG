@@ -615,7 +615,7 @@ class GamePanel(AAPanelMixin):
                  anchor=tk.W).pack(side=tk.LEFT)
         scen_modes = ["standard", "kill_admiral", "destroy_ship",
                       "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
-                      "the_bait", "parols_bait", "raiders", "blockade_run", "rearguard", "alien_intervention",
+                      "the_bait", "parols_bait", "raiders", "blockade_run", "daemon_blockade", "rearguard", "alien_intervention",
                       "surprise_attack", "navigate_storm", "destroy_docks", "convoy_narrative", "gauntlet", "exterminatus",
                       "planetary_assault", "craftworld_assault", "pelucidar", "macharia", "escalating_engagement", "fleet_engagement", "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",

@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1331 pass; all GUI checks pass
+playable). Tests: 1334 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -531,7 +531,7 @@ three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Esca
 Engagement's contact markers, Navigate the Storm, Destroy the Docks and the narrative
 Convoy; then (booklet zip 14) the owner's sign-off answers applied, low orbit,
 Exterminatus! and Planetary Assault, then the faction sub-plots and two campaign set pieces
-(The Defence of Pelucidar, Macharia's End, Craftworld Assault) , The Gauntlet and Parol's Bait: 30 booklet scenarios in all (To do 7 lists what is
+(The Defence of Pelucidar, Macharia's End, Craftworld Assault) , The Gauntlet, Parol's Bait and Daemon Blockade: 31 booklet scenarios in all (To do 7 lists what is
 left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
@@ -546,9 +546,9 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: the campaign set pieces and the rest of the sub-plots (To do 7; 25 scenarios
-are built), and the To do items below.
-Next (largest first): 7 (the campaign set pieces, the rest of the sub-plots), Dark Eldar and
+Not built: the Decoy sub-plot and To do 7's smaller gaps (31 scenarios are built, the
+campaign set pieces and variants included), and the To do items below.
+Next (largest first): Dark Eldar and
 Tyranids (new in export 14, listed but unsupported), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
@@ -1512,13 +1512,23 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (`vp_bonus`; reading: whatever arrives, at its full points). Not yet: the AI weighing that
    half value before bringing reinforcements on (it brings them at once), the mines
    counting against the 500 reinforcement points in the fleet builder.
-   Status: 30 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   Daemon Blockade built (p.93, mode `daemon_blockade`, Blockade Run's thirds, zones, exits
+   and VP): the Chaos blockader's ten free daemon mines, each placed after a D6 for its third
+   (`_daemon_mines`, judgement: staggered rows high in the third), mine markers with the
+   `daemon_mine` rule: they move 10+D6cm (`ordnance.move_ordnance`, the D6 rolled
+   automatically), save on 4+ against fighters (`resilient_save` 4) and destroy any enemy
+   ordnance but fighters they meet without being removed (`_interaction_pass`); +10 VP to
+   the attacker for each one destroyed before it reached one of its ships (reading: every
+   daemon mine gone that didn't detonate against a ship, `daemon_detonated` counted in
+   `resolve_mine_contact`). Not yet: the forces' limits (Chaos -100pts, the attacker half;
+   warnings), the AI's mine hazard at 10+D6cm (it counts 10cm).
+   Status: 31 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
    Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
    Engagement, Navigate the Storm, Destroy the Docks, the narrative Convoy, Exterminatus!,
-   Planetary Assault, The Defence of Pelucidar, Macharia's End, Craftworld Assault, The Gauntlet, Parol's Bait
+   Planetary Assault, The Defence of Pelucidar, Macharia's End, Craftworld Assault, The Gauntlet, Parol's Bait, Daemon Blockade
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
-   also `gui_spectator_domination.py`). Still to build (largest first): the variant Daemon Blockade (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
+   also `gui_spectator_domination.py`). Still to build (largest first): the rest of
    the sub-plots (the Decoy / Mimic Drive) and their AI beyond kill
    bonuses.
    Smaller gaps: racing Domination's 10 against the turn order; reinforcements entering along

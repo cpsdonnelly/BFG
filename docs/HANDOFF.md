@@ -1156,5 +1156,8 @@ Killer closes on the planet and begins charging about turn 10 (game turn 5), so 
 spectator check a long turn limit. 
 Then Craftworld Assault (`src/craftworld.py`, a Planetary Assault variant with the
 fortresses, the Spear of Light, the forges and the Gates; readings in CLAUDE.md To do 7, and a
-new owner question about the forges' netherfields). Left of To do 7: the campaign variants
-(Parol's Bait, Daemon Blockade, The Gauntlet) and the Decoy sub-plot.
+new owner question about the forges' netherfields). Then the three campaign variants (The
+Gauntlet, Parol's Bait, Daemon Blockade): 31 booklet scenarios in all. Left of To do 7: the
+Decoy sub-plot (needs the owner: hidden identity in hot-seat play) and the smaller gaps
+listed there. Next by the CLAUDE.md order: Dark Eldar and Tyranids, the Necron / Eldar
+gaps (To do 14), the rest of 13, 4, 5, 10 e and 11.

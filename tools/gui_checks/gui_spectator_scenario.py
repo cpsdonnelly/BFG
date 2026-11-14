@@ -81,6 +81,9 @@ imp = ["Lunar Class Cruiser", "Gothic Class Cruiser", "Dominator Class Cruiser",
        "Dauntless Class Light Cruiser"]
 chs = ["Slaughter Class Cruiser", "Carnage Class Cruiser", "Murder Class Cruiser",
        "Infidel Class Raider"]
+if scenario == "daemon_blockade":
+    # the Imperial reinforcements run the Chaos blockade (Forces of Order attack)
+    imp, chs = chs, imp[:2]
 if scenario in ("ambush", "raiders", "blockade_run", "rearguard"):
     chs = chs[:2]                       # the attacker has half the points
 if scenario == "line_breaker":
@@ -207,7 +210,7 @@ for p in (1, 2):
                 s_.heading = hd_
             if scenario in ("raiders", "rearguard", "surprise_attack") and p == 1:
                 s_.heading = 90.0 if s_.y < gs.table_height / 2 else 270.0   # onto the table
-            if scenario == "blockade_run":
+            if scenario in ("blockade_run", "daemon_blockade"):
                 s_.heading = 90.0 if p == 1 else 270.0
             idx += 1
         assert z.contains(s_.x, s_.y) or s_.id in fixed, (s_.name, s_.x, s_.y)

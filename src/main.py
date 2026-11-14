@@ -422,6 +422,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("parols_bait",       "Parol's Bait (campaign p.87: The Bait variant, Orks pursue)"),
         ("raiders",           "The Raiders (booklet p.91: raid a larger fleet, 8 turns)"),
         ("blockade_run",      "Blockade Run (booklet p.92: break through, 6 turns)"),
+        ("daemon_blockade",   "Daemon Blockade (campaign p.93: Blockade Run with daemon mines)"),
         ("rearguard",         "Rearguard Attack (booklet p.97: reinforcements, 8 turns)"),
         ("alien_intervention", "Alien Intervention (booklet p.103: allies arrive, 8 turns)"),
         ("surprise_attack",   "Surprise Attack (booklet p.104: defenders on standby)"),

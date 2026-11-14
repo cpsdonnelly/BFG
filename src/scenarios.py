@@ -43,6 +43,13 @@ SCENARIOS: Dict[str, Dict] = {
         "victory": "vp",
         "game_turns": 8,
     },
+    "daemon_blockade": {
+        "name": "Daemon Blockade (XR p.93, Blockade Run variant)",
+        "first_turn": "roll_off",
+        "end": "fleet_gone",
+        "victory": "vp",
+        "game_turns": 6,
+    },
     "blockade_run": {
         "name": "Blockade Run (XR p.92)",
         "first_turn": "roll_off",
@@ -332,6 +339,38 @@ def _parols_setup(gs) -> None:
     gs.scenario_state = {"fleeing": flee, "mine_points": ORBITAL_MINE_POINTS * n_mines}
     gs.add_log(f"[Parol's Bait] the pursued: {flee}; {n_mines} orbital mines ahead of them; "
                f"the rest are reinforcements")
+
+
+DAEMON_MINES = 10
+DAEMON_MINE_VP = 10
+
+
+def _daemon_mines(gs, dice) -> None:
+    """Daemon Blockade: the Chaos blockader's ten free daemon mines, each
+    placed after a D6 for its third like a blockading unit (judgement:
+    staggered rows across the third, more than 60cm from the attacker's
+    edge as the blockaders are). Mines with the `daemon_mine` rule: they
+    move 10+D6cm, have a 4+ resilient save against fighters and destroy any
+    enemy ordnance but fighters they meet without being removed (s.17
+    exceptions, `ordnance`)."""
+    from .models import OrdnanceMarker, OrdnanceType
+    st = dict(gs.scenario_state or {})
+    w, h = gs.table_width, gs.table_height
+    count = {1: 0, 2: 0, 3: 0}
+    for i in range(DAEMON_MINES):
+        third = (dice.roll_d6(1, f"Daemon Blockade: daemon mine {i + 1}'s area (D6)")[0] + 1) // 2
+        k = count[third]
+        count[third] += 1
+        x = (third - 1) * w / 3.0 + w / 6.0 + 10.0 * ((-1) ** k) * ((k + 1) // 2)
+        y = h - 25.0 - 12.0 * (k % 3)
+        gs.add_ordnance(OrdnanceMarker(
+            id=f"daemon_mine_{i}", ordnance_type=OrdnanceType.MINE_FIELD.value,
+            owner_player=defender(gs), launched_by="", x=x, y=y, heading=270.0, strength=1,
+            speed=10, launched_turn=0, resilient_save=4, special_rules=["daemon_mine"]))
+    st["daemon_mines"] = DAEMON_MINES
+    st["daemon_detonated"] = 0
+    gs.scenario_state = st
+    gs.add_log(f"[Daemon Blockade] ten daemon mines laid: {count} by third")
 
 
 def is_reserve(ship) -> bool:
@@ -1008,7 +1047,7 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 sd["leadership"] = max(1, sd["leadership"] - 1)
         gs.scenario_state = {"alert_turns": n, "alert_restored": False}
         gs.add_log(f"[The Raiders] the defender is at -1 Ld for {n} turn(s)")
-    elif mode == "blockade_run":
+    elif mode in ("blockade_run", "daemon_blockade"):
         # A D6 for each blockading ship or squadron: which third it deploys in
         if dice is None:
             from .dice import DiceRoller
@@ -1023,6 +1062,8 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 thirds[key] = (r + 1) // 2           # 1-2 left, 3-4 middle, 5-6 right
         gs.scenario_state = {"thirds": thirds}
         gs.add_log(f"[Blockade Run] blockade areas: {thirds}")
+        if mode == "daemon_blockade":
+            _daemon_mines(gs, dice)
     elif mode == "cruiser_clash":
         # One player rolls a D6: 1-3 they set up in Fleet A (the top zone),
         # 4-6 in Fleet B (reading: player 1 rolls)
@@ -1379,7 +1420,7 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         rects = {3 - att_p: [(60, 0, 30, 30)],
                  att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
                          (w - e, 0, 0, 0)]}
-    elif mode == "blockade_run":
+    elif mode in ("blockade_run", "daemon_blockade"):
         # Attacker within 15cm of its (bottom) edge; blockaders not within 60cm
         # of it, in the third of the table their D6 gave (placement_errors)
         rects = {att_p: [(0, 0, h - 15, 0)], 3 - att_p: [(0, 0, 0, 60)]}
@@ -1503,7 +1544,7 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
                 errs.append(f"Rearguard Attack: at least 10cm from {s.name}")
                 break
         return errs
-    if mode == "blockade_run" and group and group[0].player == defender(gs):
+    if mode in ("blockade_run", "daemon_blockade") and group and group[0].player == defender(gs):
         third = (gs.scenario_state or {}).get("thirds", {}).get(_group_key(group[0]))
         if third:
             lo = (third - 1) * gs.table_width / 3.0
@@ -1652,7 +1693,7 @@ def auto_positions(gs, group, zone, placed, index: int):
         r = zone.rects()[index % len(zone.rects())]
         cx, cy = (r.x_min + r.x_max) / 2, (r.y_min + r.y_max) / 2
         return [(cx + 5.0 * (i % 3) - 5.0, cy + 5.0 * (i // 3)) for i in range(len(group))]
-    if mode == "blockade_run" and group and group[0].player == defender(gs):
+    if mode in ("blockade_run", "daemon_blockade") and group and group[0].player == defender(gs):
         third = (gs.scenario_state or {}).get("thirds", {}).get(_group_key(group[0]), 2)
         lo = (third - 1) * gs.table_width / 3.0
         n_here = sum(1 for s in placed if s.player == group[0].player
@@ -1940,7 +1981,18 @@ def vp_bonus(gs, result: Dict) -> None:
                 result[who]["scenario"] = result[who].get("scenario", 0) + vp
                 result[who]["details"].append(f"Convoy: {c.name} {why}: +{vp} VP")
         return
-    if getattr(gs, "scenario_mode", "") == "blockade_run":
+    if getattr(gs, "scenario_mode", "") == "daemon_blockade":
+        # +10 VP to the attacker for each daemon mine it destroyed before it
+        # reached one of its ships (reading: every daemon mine gone that
+        # didn't detonate against a ship)
+        st = gs.scenario_state or {}
+        left = sum(1 for m in gs.get_ordnance() if "daemon_mine" in (m.special_rules or []))
+        n = max(0, st.get("daemon_mines", 0) - left - st.get("daemon_detonated", 0))
+        if n:
+            result[gs.scenario_attacker]["destroyed"] += DAEMON_MINE_VP * n
+            result[gs.scenario_attacker]["details"].append(
+                f"Daemon Blockade: {n} daemon mines destroyed: +{DAEMON_MINE_VP * n} VP")
+    if getattr(gs, "scenario_mode", "") in ("blockade_run", "daemon_blockade"):
         # The attacker's ships off the blockader's (top) edge: 100% of their
         # points, 25% if crippled (an escort squadron as a unit, reading: by
         # its ships that escaped)

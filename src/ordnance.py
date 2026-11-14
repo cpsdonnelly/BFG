@@ -49,9 +49,15 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
         dx = nearest.x - marker.x
         dy = nearest.y - marker.y
         dist = math.sqrt(dx**2 + dy**2)
+        speed = marker.speed
+        if "daemon_mine" in (marker.special_rules or []):
+            import random as _r
+            extra = _r.randint(1, 6)       # Daemon Blockade: 10+D6cm (rolled automatically)
+            speed += extra
+            game_state.add_log(f"Daemon mine moves {speed:g}cm (10 + {extra})")
         if dist > 0:
-            marker.x += marker.speed * dx / dist
-            marker.y += marker.speed * dy / dist
+            marker.x += speed * dx / dist
+            marker.y += speed * dy / dist
             marker.heading = math.degrees(math.atan2(dy, dx)) % 360
         return
 
@@ -721,6 +727,11 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     turrets need 5+.
     """
     result = {"hits": 0, "attack_dice": 8}
+    if "daemon_mine" in (marker.special_rules or []):
+        # Daemon Blockade: this one reached a ship (no VP for the attacker)
+        st = dict(game_state.scenario_state or {})
+        st["daemon_detonated"] = st.get("daemon_detonated", 0) + 1
+        game_state.scenario_state = st
 
     turrets = ordnance_turrets(ship, game_state)
     end_ordnance_attack(ship, game_state)
@@ -1071,6 +1082,15 @@ def _interaction_pass(ordnance, to_remove, logs, dice, game_state, is_lead):
                     to_remove.add(m2.id)
 
             else:
+                # Daemon Blockade: a daemon mine destroys any enemy ordnance
+                # but fighters it meets and isn't removed itself
+                d1 = "daemon_mine" in (m1.special_rules or [])
+                d2 = "daemon_mine" in (m2.special_rules or [])
+                if d1 != d2:
+                    gone = m2 if d1 else m1
+                    to_remove.add(gone.id)
+                    logs.append(f"A daemon mine destroys {gone.ordnance_type}")
+                    continue
                 # Non-fighter vs non-fighter (e.g. torpedo vs torpedo)
                 # Both torpedo salvos are destroyed on contact
                 is_torp1 = is_torpedo_salvo(m1)
