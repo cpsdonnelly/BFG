@@ -38,9 +38,13 @@ numbers are IDs, not the order):
 8. To do 13: alternate activation's experiments, expert AI per unit.
 9. To do 11, 10 e, 8: the rest of the rules-based AI.
 10. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
-11. Second last, To do 20: port the engine to a faster language (Rust suggested) in its own
-    branch, Python staying the reference; games must match exactly from seed and events.
-12. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
+11. To do 21: the replay system as the comparison standard, finished before the port
+    (every event kind covered, a versioned language-neutral record format, a Python replay
+    verifier, a golden set of recorded games for every faction and scenario).
+12. Second last, To do 20: port the engine to a faster language (Rust suggested) in its own
+    branch, Python staying the reference; its first milestone is replaying the golden games,
+    then every one must match exactly.
+13. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
     engine; on hold until the owner says so; separate from the current AI.
 
 Owner questions open: CLAUDE.md "Open questions for the owner". Code review, profile and

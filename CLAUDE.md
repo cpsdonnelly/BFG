@@ -791,8 +791,13 @@ are fixed by the owner):
 9. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
    coordination rounds, two-turn expert root moves, Brace's remaining bits, 8 d / g).
 10. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
-11. Second last, To do 20: port the engine to a faster language in a new branch.
-12. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
+11. To do 21: the replay system as the comparison standard, completed before the port: every
+    kind of event covered (the rules and factions added after step 3 included), a
+    versioned, language-neutral record format, a Python replay verifier and a golden set of
+    recorded games covering every faction and scenario. The port's first milestone is
+    reading and replaying these records.
+12. Second last, To do 20: port the engine to a faster language in a new branch.
+13. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
     until the owner says to start; built on the faster engine, kept separate from the current
     AI, never replacing it.
 Done: To do 2, 3, 6; most of 7.
@@ -2356,9 +2361,23 @@ Done: To do 2, 3, 6; most of 7.
    weapon configurations; no Ld roll.
 20. Port the engine to a faster language in a new branch (owner: second-last task; plan
    section 7; Rust suggested). Python stays the reference that defines the rules; the port
-   must reproduce Python games exactly from the same seed and events (To do 17), which is
-   what keeps the two from drifting; every booklet export and owner ruling lands in Python
-   first. Measure with the headless runner (To do 16) before and after.
+   must reproduce Python games exactly from the same seed and events (To do 21's records and
+   golden games), which is what keeps the two from drifting; every booklet export and owner
+   ruling lands in Python first. Order inside the port: the replay reader first, then the
+   engine until every golden game replays identically, then the AI. Measure with the
+   headless runner (To do 16) before and after.
+21. Replay system as the comparison standard (owner: before the port, so both versions can be
+   compared). Builds on To do 17's recorder, which comes early; this finishes it once the rules
+   have settled:
+   - an audit that every decision and roll the engine makes is recorded, including the
+     rules and factions added since To do 17 (Dark Eldar, Tyranids, To do 4 / 5 units...);
+   - a versioned, language-neutral record format (JSON with a written schema: start state,
+     seed, rolls, events, snapshots), not tied to Python objects;
+   - a Python replay verifier that re-runs a record and reports the first divergence (turn,
+     phase, event, state difference);
+   - a golden set of recorded games covering every faction, scenario, optional rule and
+     both turn systems, regenerated and re-verified after each rules change;
+   - a determinism test in the suite (record, replay, compare).
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

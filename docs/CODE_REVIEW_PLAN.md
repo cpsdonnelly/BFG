@@ -271,7 +271,10 @@ Rough numbers, to measure with the headless runner:
 Plan:
 1. The section 2 speed fixes and a headless multiprocess game runner, needed anyway.
 2. Measure games per hour.
-3. If training needs more, port the full engine in its own branch (Rust suggested).
+3. Before any port, finish the replay system as the comparison standard (CLAUDE.md To do
+   21): every event recorded, a versioned language-neutral format, a Python verifier and
+   golden games.
+4. If training needs more, port the full engine in its own branch (Rust suggested).
    - Python stays the reference that defines the rules.
    - The port must reproduce Python games exactly from the same seed and events (section
      6), which is what keeps the two from drifting.
