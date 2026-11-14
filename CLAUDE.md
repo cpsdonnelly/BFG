@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1330 pass; all GUI checks pass
+playable). Tests: 1331 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -531,7 +531,7 @@ three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Esca
 Engagement's contact markers, Navigate the Storm, Destroy the Docks and the narrative
 Convoy; then (booklet zip 14) the owner's sign-off answers applied, low orbit,
 Exterminatus! and Planetary Assault, then the faction sub-plots and two campaign set pieces
-(The Defence of Pelucidar, Macharia's End, Craftworld Assault) and The Gauntlet: 29 booklet scenarios in all (To do 7 lists what is
+(The Defence of Pelucidar, Macharia's End, Craftworld Assault) , The Gauntlet and Parol's Bait: 30 booklet scenarios in all (To do 7 lists what is
 left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
@@ -1501,13 +1501,24 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    convoy needs 3 capacity out to win (`needed`; reading: the result table shifts by one,
    so 3 is a Convoy Marginal Win, 4+ a Convoy Win). Not yet: the optional Running Battle
    (the table shifting 20cm each Imperial turn, ten turns), choosing entry points.
-   Status: 29 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   Parol's Bait built (p.87, mode `parols_bait`, The Bait's rules via `entry_edge`,
+   `fixed_placements` and zones): the pursued forces are light cruisers and escort squadrons,
+   several may start fleeing (reading: every light cruiser and escort unit of the defender
+   flees, placed side by side at the centre facing the right edge; with none, The Bait's
+   pick); the rest are reinforcements from the right edge; up to six orbital mines (the
+   defender's "Orbital Mine" support assets, 5pts each, or `scenario_state["orbital_mines"]`)
+   laid as mine markers 20-35cm ahead of them (judgement), their points to the attacker
+   automatically; the attacker also gains half the value of every reinforcement brought on
+   (`vp_bonus`; reading: whatever arrives, at its full points). Not yet: the AI weighing that
+   half value before bringing reinforcements on (it brings them at once), the mines
+   counting against the 500 reinforcement points in the fleet builder.
+   Status: 30 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
    Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
    Engagement, Navigate the Storm, Destroy the Docks, the narrative Convoy, Exterminatus!,
-   Planetary Assault, The Defence of Pelucidar, Macharia's End, Craftworld Assault, The Gauntlet
+   Planetary Assault, The Defence of Pelucidar, Macharia's End, Craftworld Assault, The Gauntlet, Parol's Bait
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
-   also `gui_spectator_domination.py`). Still to build (largest first): the variants Daemon Blockade and Parol's Bait (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
+   also `gui_spectator_domination.py`). Still to build (largest first): the variant Daemon Blockade (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
    the sub-plots (the Decoy / Mimic Drive) and their AI beyond kill
    bonuses.
    Smaller gaps: racing Domination's 10 against the turn order; reinforcements entering along

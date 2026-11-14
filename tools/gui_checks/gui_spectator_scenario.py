@@ -100,6 +100,11 @@ if scenario == "gauntlet":
     # Orks: escorts only, up to half the capacity (3, rounded up: 2) x 100 pts
     chs = ["Ravager Attack Ship"] * 3
     imp = ["Dauntless Class Light Cruiser", "Sword Class Frigate", "Sword Class Frigate"]
+if scenario == "parols_bait":
+    # the pursued light ships, a cruiser in reinforcement
+    imp = ["Dauntless Class Light Cruiser", "Sword Class Frigate", "Sword Class Frigate",
+           "Lunar Class Cruiser"]
+    chs = chs[:3]
 if scenario == "pelucidar":
     imp = imp[:3]                       # cruisers, battlecruisers and battleships only
 for p, names in ((1, chs), (2, imp)):
@@ -136,6 +141,11 @@ if scenario == "convoy_narrative":
         c = cat("Conventional Transport", 2, 60 + k, 0.0, 0.0)
         c.squadron_id = f"cn_{k // 2}"
         gs.add_ship(c)
+if scenario == "parols_bait":
+    gs.scenario_state = {"orbital_mines": 3}
+    for sd in gs.ships:
+        if sd["ship_class"] == "Sword Frigate":
+            sd["squadron_id"] = "pb_sw"
 if scenario == "gauntlet":
     for sd in gs.ships:
         if sd["ship_class"] in ("Ravager Attack Ship", "Sword Frigate"):

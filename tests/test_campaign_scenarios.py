@@ -411,3 +411,33 @@ def test_gauntlet_needs_three_capacity_out():
     gs.scenario_state["escaped"] = ["t0", "t1", "t2"]
     assert cn.winner(gs) == 2 and "Convoy Marginal" in cn.result_text(gs)
     assert not cn.gauntlet_force_errors(gs)
+
+
+# --- Parol's Bait ---------------------------------------------------------------------
+
+def test_parols_bait_light_ships_flee_mines_ahead_and_ork_bonus():
+    orks = [make_ship(id="o1", player=1, faction="orks", points_value=200)]
+    imp = [make_ship(id="lc", player=2, ship_class="Dauntless Light Cruiser", points_value=110),
+           make_ship(id="f1", player=2, ship_type="escort", squadron_id="sw", points_value=35),
+           make_ship(id="f2", player=2, ship_type="escort", squadron_id="sw", points_value=35),
+           make_ship(id="cr", player=2, ship_class="Lunar Class Cruiser", points_value=180),
+           make_ship(id="m1", player=2, ship_class="Orbital Mine", points_value=5),
+           make_ship(id="m2", player=2, ship_class="Orbital Mine", points_value=5)]
+    gs = _gs(orks + imp, "parols_bait")
+    sc.setup_scenario(gs, DiceStub([]))
+    st = gs.scenario_state
+    assert st["fleeing"] == ["lc", "sw"]
+    assert sc.is_reserve(gs.get_ship_by_id("cr"))
+    assert gs.get_ship_by_id("m1") is None
+    mines = gs.get_ordnance()
+    assert len(mines) == 2 and all(m.x > gs.table_width / 2 for m in mines)
+    fixed = sc.fixed_placements(gs)
+    assert set(fixed) == {"lc", "f1", "f2"} and all(h == 0.0 for _x, _y, h in fixed.values())
+    assert sc.entry_edge(gs) == "right"
+    from src.victory_points import calculate_victory_points
+    vp = calculate_victory_points(gs)
+    assert vp[1]["total"] == 10                     # the mines' points; nothing brought on
+    sd = next(s for s in gs.ships if s["id"] == "cr")
+    sd["status"], sd["is_disengaged"] = "active", False      # the cruiser arrives
+    vp = calculate_victory_points(gs)
+    assert vp[1]["total"] == 10 + 90

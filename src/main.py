@@ -419,6 +419,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("cruiser_clash",     "Cruiser Clash (booklet p.84: 8 turns, damage points)"),
         ("chance_encounter",  "Chance Encounter (booklet p.88: stop the flagship, 6 turns)"),
         ("the_bait",          "The Bait (booklet p.86: lure the pursuers into reinforcements)"),
+        ("parols_bait",       "Parol's Bait (campaign p.87: The Bait variant, Orks pursue)"),
         ("raiders",           "The Raiders (booklet p.91: raid a larger fleet, 8 turns)"),
         ("blockade_run",      "Blockade Run (booklet p.92: break through, 6 turns)"),
         ("rearguard",         "Rearguard Attack (booklet p.97: reinforcements, 8 turns)"),

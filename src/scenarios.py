@@ -56,6 +56,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "vp",
     },
+    "parols_bait": {
+        "name": "Parol's Bait (XR p.87, The Bait variant)",
+        "first_turn": "defender",
+        "end": "fleet_gone",
+        "victory": "vp",
+    },
     "rearguard": {
         "name": "Rearguard Attack (XR p.97)",
         "first_turn": "attacker",
@@ -284,6 +290,50 @@ def _standby_tests(gs, dice) -> None:
     gs.scenario_state = st
 
 
+PAROLS_MINES_MAX = 6
+ORBITAL_MINE_POINTS = 5        # Support Assets: Orbital Mine, 5pts
+
+
+def _parols_setup(gs) -> None:
+    """Parol's Bait: the pursued forces are light cruisers and escort
+    squadrons, more than one may start on the table (reading: every light
+    cruiser and escort unit of the defender's flees; with none, The Bait's
+    pick); the rest are reinforcements. Up to six orbital mines (the
+    defender's "Orbital Mine" support assets, or `scenario_state
+    ["orbital_mines"]`) count against the reinforcements' points and are laid
+    between the fleeing ships and the short edge ahead of them (judgement: a
+    staggered line 20-35cm ahead, as mine markers, active at once)."""
+    from .models import OrdnanceMarker, OrdnanceType
+    st0 = dict(gs.scenario_state or {})
+    mines = [sd for sd in gs.ships if sd["player"] == defender(gs)
+             and sd.get("ship_class") == "Orbital Mine"]
+    n_mines = min(PAROLS_MINES_MAX, int(st0.get("orbital_mines", 0)) + len(mines))
+    gs.ships = [sd for sd in gs.ships if sd not in mines]
+    flee = []
+    for sd in gs.ships:
+        if sd["player"] != defender(gs):
+            continue
+        light = sd.get("ship_type") == "escort" or "Light Cruiser" in sd.get("ship_class", "")
+        if light and _group_key_d(sd) not in flee:
+            flee.append(_group_key_d(sd))
+    if not flee:
+        b = bait_unit(gs)
+        flee = [b] if b else []
+    for sd in gs.ships:
+        if sd["player"] == defender(gs) and _group_key_d(sd) not in flee:
+            _to_reserve(sd)
+    w, h = gs.table_width, gs.table_height
+    for i in range(n_mines):
+        gs.add_ordnance(OrdnanceMarker(
+            id=f"parols_mine_{i}", ordnance_type=OrdnanceType.MINE_FIELD.value,
+            owner_player=defender(gs), launched_by="", x=w / 2.0 + 20.0 + 15.0 * (i % 2),
+            y=h / 2.0 + 15.0 * ((-1) ** i) * ((i + 2) // 2) - (0 if i % 2 else 7.5),
+            heading=0.0, strength=1, speed=10, launched_turn=0))
+    gs.scenario_state = {"fleeing": flee, "mine_points": ORBITAL_MINE_POINTS * n_mines}
+    gs.add_log(f"[Parol's Bait] the pursued: {flee}; {n_mines} orbital mines ahead of them; "
+               f"the rest are reinforcements")
+
+
 def is_reserve(ship) -> bool:
     return getattr(ship, "status", "") == RESERVE
 
@@ -322,7 +372,8 @@ def entry_edge(gs) -> Optional[str]:
         return (gs.scenario_state or {}).get("ally_edge", "top")
     if mode == "convoy_narrative":
         return (gs.scenario_state or {}).get("entry_edge", "left")
-    return {"the_bait": "right", "rearguard": "left", "destroy_docks": "top"}.get(mode)
+    return {"the_bait": "right", "parols_bait": "right", "rearguard": "left",
+            "destroy_docks": "top"}.get(mode)
 
 
 def place_arrival(gs, ships, index: int = 0) -> None:
@@ -835,6 +886,8 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 _to_reserve(sd)
         gs.scenario_state = {"fleeing": flee}
         gs.add_log(f"[The Bait] the pursued unit is {flee}; the rest are reinforcements")
+    elif mode == "parols_bait":
+        _parols_setup(gs)
     elif mode == "rearguard":
         # At least 25% of the defender's points are reinforcements (reading:
         # the cheapest ships / squadrons first, until a quarter is reached),
@@ -1035,6 +1088,17 @@ def fixed_placements(gs) -> Dict[str, Tuple[float, float, float]]:
         flag = rescue_flagship(gs)
         if flag is not None:
             return {flag.id: (gs.table_width / 2.0, gs.table_height / 2.0, 180.0)}
+    if getattr(gs, "scenario_mode", "") == "parols_bait":
+        # every pursued unit at the centre, facing the right short edge, the
+        # units side by side across the table (judgement), squadrons stacked
+        flee = (gs.scenario_state or {}).get("fleeing", [])
+        out = {}
+        for j, k in enumerate(flee):
+            dy = 12.0 * ((-1) ** j) * ((j + 1) // 2)
+            ships = [s for s in gs.get_ships() if _group_key(s) == k]
+            for i, s in enumerate(ships):
+                out[s.id] = (gs.table_width / 2.0, gs.table_height / 2.0 + dy + 4.0 * i, 0.0)
+        return out
     if getattr(gs, "scenario_mode", "") == "the_bait":
         flee = (gs.scenario_state or {}).get("fleeing")
         ships = [s for s in gs.get_ships() if _group_key(s) == flee]
@@ -1304,7 +1368,7 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         rects = {3 - att_p: [(30, 30, 30, 30)],
                  att_p: [(0, 0, h - e, 0), (0, 0, 0, h - e), (0, w - e, 0, 0),
                          (w - e, 0, 0, 0)]}
-    elif mode == "the_bait":
+    elif mode in ("the_bait", "parols_bait"):
         # The pursued ship at the centre (fixed_placements); the pursuers more
         # than 60cm behind it (towards the left short edge)
         rects = {att_p: [(0, w / 2.0 + 60.0, 0, 0)], 3 - att_p: [(w / 2.0 - 1, w / 2.0 - 1, 0, 0)]}
@@ -1838,6 +1902,19 @@ def vp_bonus(gs, result: Dict) -> None:
     the space station is destroyed, else 250 to the defender."""
     from .subplots import vp_bonus as _subplot_vp
     _subplot_vp(gs, result)            # Business as Usual (Rogue Trader sub-plots)
+    if getattr(gs, "scenario_mode", "") == "parols_bait":
+        # The Orks gain half the value of every reinforcement brought on, and
+        # the orbital mines' points automatically
+        st = gs.scenario_state or {}
+        flee = set(st.get("fleeing", []))
+        arrived = sum(s.points_value for s in gs.get_ships() if s.player == defender(gs)
+                      and _group_key(s) not in flee and s.status != RESERVE)
+        bonus = arrived // 2 + st.get("mine_points", 0)
+        if bonus:
+            result[gs.scenario_attacker]["destroyed"] += bonus
+            result[gs.scenario_attacker]["details"].append(
+                f"Parol's Bait: half the reinforcements brought on and the orbital mines "
+                f"+{bonus} VP")
     if getattr(gs, "scenario_mode", "") == "convoy_matched":
         # Each convoy ship moving off the attacker's long edge (the top) gives
         # the defender 100 VP instead of counting for the attacker; leaving
