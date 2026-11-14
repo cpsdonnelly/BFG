@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1307 pass; all GUI checks pass
+playable). Tests: 1320 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -530,7 +530,8 @@ Raiders, Blockade Run, The Bait, Rearguard Attack) on a new reinforcements frame
 three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Escalating
 Engagement's contact markers, Navigate the Storm, Destroy the Docks and the narrative
 Convoy; then (booklet zip 14) the owner's sign-off answers applied, low orbit,
-Exterminatus! and Planetary Assault: 25 booklet scenarios in all (To do 7 lists what is
+Exterminatus! and Planetary Assault, then the faction sub-plots and two campaign set pieces
+(The Defence of Pelucidar, Macharia's End): 27 booklet scenarios in all (To do 7 lists what is
 left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
@@ -1415,14 +1416,53 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    barrage bombs' assault points, the defenders' extra planetary defence points, the
    biosphere choice, high orbit's free turns towards the planet, the low orbit defences,
    the attacker placing patrols.
-   Status: 25 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   Campaign set pieces built (`src/campaign_scenarios.py`, modes `pelucidar` / `macharia`):
+   The Defence of Pelucidar (p.111: the Orks are the attacker (the player whose main faction
+   is Orks, else the chosen attacker) and their built fleet is removed (reading); Pelucidar a
+   medium planet at the table centre (judgement); the Imperial fleet more than 30cm from the
+   edges, 20cm apart, all facing one edge (The Raiders' check); the Orks go first; at the
+   start of each Ork turn D6 + the game turn on the table (`pelucidar_arrivals`): a wave of 4
+   Fighta-Bommerz squadrons, 1-3 squadrons of D6 Ravagers, 1-2 Kill Kroozers or a Hammer
+   (judgement picks for "any combination"; the Rok and Space Hulk aren't playable, so 15+
+   falls to 13-14 as the rule says for missing models), Ld rolled on the Orks table, from a
+   D6 edge (reading: 1 left, 2-3 top, 4-5 bottom, 6 right); the game ends only when the
+   Imperial fleet is gone (no Ork fleet-gone check, `scenario.check_game_over`); nobody holds
+   the field (`victory_points`); the Imperials win with 2000+ VP more (`pelucidar_winner`);
+   `force_errors` warns about escorts, light and grand cruisers). Macharia's End (p.112:
+   Chaos the attacker; Macharia a medium planet touching the centre of the Imperial (left)
+   short edge; the Planet Killer added at no cost if missing (Ld rolled), held off the table
+   and moving on from the right edge at the start of the first Chaos turn; the Imperial
+   vanguard (judgement: its cheapest units up to 500pts) within 5cm of the centreline, the
+   rest within 20cm of the left edge, Chaos within 10cm of the right; Imperial first. No
+   Retreat: off the table it is destroyed, no disengage test (reading). Overcharge
+   (`macharia_turn_start`: a human via `GameState.overcharge_hook`, the AI by
+   `wants_overcharge`, judgement: Macharia's centre within the hole's reach of its line
+   ahead and three minimum moves leaving it within 60cm): a counter each Chaos turn; while
+   charging +2 shields, no turns (`get_max_turns`), no special orders (`order_forbidden`), no
+   lances (`weapon_blocked` via `combat.weapon_disabled_by_crit`; reading: nor the gun fired
+   normally); at 3 it fires at the start of the Chaos shooting phase (`shooting_start`,
+   reading of "must fire during the Shooting Phase"): the template from the stem 60cm ahead,
+   every ship under it destroyed, the hole touching Macharia wins for Chaos
+   (`fire_overcharged`). A miss: `pk_recharging` (no firing or launching, only Reload
+   Ordnance) until two Reload Ordnance pass on consecutive Chaos turns (`record_reload` from
+   `TurnController.apply_passed_order`). The Imperials win by crippling or destroying it
+   (`macharia_check_end`); neither by the end (only with a turn limit set): a draw (reading).
+   AI: the Planet Killer's crippling is worth half the points on the table
+   (`cripple_bonus_vp`); `_macharia_approach` (`MACHARIA_WEIGHT` 0.5 x the points on the
+   table, judgement) takes it towards a spot 30cm off Macharia aimed at it, never past it;
+   Imperial ships' stake against disengaging; Reload Ordnance valued while recharging).
+   A human is asked with "Auto (best)" (`GamePanel._overcharge_hook`). Not yet: the Planet
+   Killer's forced disengage tests, Chaos ships
+   screening it or keeping out of the shot's path (AI-vs-AI the shot killed a Slaughter on
+   its way; the rule destroys any ship under it), the Imperial AI ending the game by disengaging once 2000 VP ahead.
+   Status: 27 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
    Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
    Engagement, Navigate the Storm, Destroy the Docks, the narrative Convoy, Exterminatus!,
-   Planetary Assault
+   Planetary Assault, The Defence of Pelucidar, Macharia's End
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
-   also `gui_spectator_domination.py`). Still to build (largest first): the campaign set pieces (Defence of Pelucidar, Macharia's End,
-   Craftworld Assault) and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
+   also `gui_spectator_domination.py`). Still to build (largest first): the campaign set
+   piece Craftworld Assault and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
    the sub-plots (the Decoy / Mimic Drive) and their AI beyond kill
    bonuses.
    Smaller gaps: racing Domination's 10 against the turn order; reinforcements entering along

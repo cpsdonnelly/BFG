@@ -70,6 +70,12 @@ gs.scenario_attacker = 1
 gs.turn_limit = 12
 if scenario in ("exterminatus", "planetary_assault"):
     gs.turn_limit = 30          # the planet is 150cm from the attacker's edge
+if scenario == "macharia":
+    gs.turn_limit = 24          # no turn limit in the booklet: until a side wins
+if scenario == "pelucidar":
+    # no turn limit in the booklet; the Ork waves grow every turn (40+
+    # escorts by game turn 8), so the check stops after 6 game turns
+    gs.turn_limit = 6 if system == "aa" else 12
 from src import scenarios as sc
 imp = ["Lunar Class Cruiser", "Gothic Class Cruiser", "Dominator Class Cruiser",
        "Dauntless Class Light Cruiser"]
@@ -86,6 +92,8 @@ if scenario == "space_assault":
     imp = imp[:3] + ["Space Station", "Orbital Weapons Platform"]
 if scenario == "convoy_narrative":
     imp = ["Dauntless Class Light Cruiser"]   # 2 x 100pts for 4 capacity
+if scenario == "pelucidar":
+    imp = imp[:3]                       # cruisers, battlecruisers and battleships only
 for p, names in ((1, chs), (2, imp)):
     for i, n in enumerate(names):
         s_ = cat(n, p, i, 0.0, 0.0)

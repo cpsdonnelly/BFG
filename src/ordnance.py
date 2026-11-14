@@ -1848,6 +1848,9 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
     """Create attack craft markers from launch bays. Assault boats aren't
     launched while hit-and-run raids are disabled (craft_type_allowed)."""
     from .scenarios import on_standby
+    if "pk_recharging" in ship.special_rules:
+        game_state.add_log(f"{ship.name} is recharging its Armageddon Gun: no launches")
+        return []
     if on_standby(game_state, ship):
         game_state.add_log(f"{ship.name} is on standby: no launches")
         return []

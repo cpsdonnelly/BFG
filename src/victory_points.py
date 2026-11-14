@@ -106,8 +106,10 @@ def calculate_victory_points(gs: GameState) -> Dict:
                 f"{s.name} crippled: +{vp} VP")
 
     # Holding the field
-    p1_holds = _holds_field(1, ships)
-    p2_holds = _holds_field(2, ships)
+    # (The Defence of Pelucidar: neither fleet holds the field)
+    no_field = getattr(gs, "scenario_mode", "") == "pelucidar"
+    p1_holds = not no_field and _holds_field(1, ships)
+    p2_holds = not no_field and _holds_field(2, ships)
 
     if p1_holds:
         hulk_vp = _hulk_points(ships)

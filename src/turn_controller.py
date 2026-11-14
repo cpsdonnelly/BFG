@@ -313,6 +313,9 @@ class TurnController:
             from .planet_scenarios import shooting_start as _assault_start
             _assault_start(self.gs, self.gs.active_player,
                            getattr(self.gs, "assault_hook", None))
+            # Macharia's End: a fully charged Armageddon Gun must fire
+            from .campaign_scenarios import shooting_start as _overcharge_start
+            _overcharge_start(self.gs, self.gs.active_player)
 
         label = f"t{self.gs.turn_number}_{phase}"
         self.save_snapshot(label)
@@ -477,6 +480,11 @@ class TurnController:
             return result
         if order == SpecialOrder.BURN_RETROS.value and "eldar_mms" in ship.special_rules:
             result["error"] = "Eldar may not use Burn Retros (MMS p.3)"
+            return result
+        from .campaign_scenarios import order_forbidden as _campaign_order
+        why = _campaign_order(self.gs, ship, order)
+        if why:
+            result["error"] = why
             return result
         if not self.can_issue_special_order(ship):
             result["error"] = "Cannot issue orders (check already failed or ship braced)"
@@ -651,6 +659,10 @@ class TurnController:
             for line in reload_ship_ordnance(ship):
                 self.gs.add_log(line)
         self.gs.update_ship(ship)
+        if order == SpecialOrder.RELOAD_ORDNANCE.value:
+            # Macharia's End: recharging after a missed overcharged shot
+            from .campaign_scenarios import record_reload
+            record_reload(self.gs, ship)
 
     def _own_reroll_holder(self, ship: Optional[Ship]) -> Optional[Ship]:
         """A secondary commander with re-rolls left on this ship or in its

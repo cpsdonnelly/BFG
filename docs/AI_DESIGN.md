@@ -512,7 +512,11 @@ the current AI, whose normal and expert players and weights stay as they are.
   (only the scenario's own exit edge counts as its exit), and ending pointed at an edge that
   every next move would cross is penalised. Not yet: racing Domination's 10 against the turn
   order; the AI choosing when reinforcements enter (it brings them at once); the scenarios
-  still to build (CLAUDE.md To do 7).
+  still to build (CLAUDE.md To do 7). Macharia's End: the Imperials value crippling the
+  Planet Killer at half the points on the table; the Planet Killer heads for a firing spot
+  aimed at Macharia and starts charging when three minimum straight moves leave the planet
+  dead ahead within 60cm. The Defence of Pelucidar: plain VP play (not yet: disengaging to
+  end the game once 2000 VP ahead).
 - **Sub-plots** (first slice built, To do 7): generation, most effects, objectives and the
   battle result (Heroic Victory to Miserable Defeat). The AI values a Vendetta target and its own
   Desperate Mission / Experimental Ship / Fleet Experience flagship more (a tenth of the points

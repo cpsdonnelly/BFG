@@ -175,6 +175,8 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
         # Engine Room Damaged; Necron Main Drive Damaged / Eldar Mast Lines Severed
         if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines"):
             return 0
+    if "overcharging" in ship.special_rules:
+        return 0       # Macharia's End: the Planet Killer can't turn while charging
     if special_order == SpecialOrder.ALL_AHEAD_FULL.value and "necron" in ship.special_rules:
         return 99      # inertialess drive: a turn for every 20cm (validate_movement)
     if special_order == SpecialOrder.ALL_AHEAD_FULL.value:

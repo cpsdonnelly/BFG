@@ -60,6 +60,7 @@ class GamePanel(AAPanelMixin):
         tc.gs.reserve_hook = self._reserve_hook
         tc.gs.low_orbit_hook = self._low_orbit_hook
         tc.gs.assault_hook = self._assault_hook
+        tc.gs.overcharge_hook = self._overcharge_hook
 
         self._game_over = False
         self._ai_thinking = False   # expert AI search running on a worker thread
@@ -616,7 +617,7 @@ class GamePanel(AAPanelMixin):
                       "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
                       "the_bait", "raiders", "blockade_run", "rearguard", "alien_intervention",
                       "surprise_attack", "navigate_storm", "destroy_docks", "convoy_narrative", "exterminatus",
-                      "planetary_assault", "escalating_engagement", "fleet_engagement", "confrontation", "line_breaker", "ambush",
+                      "planetary_assault", "pelucidar", "macharia", "escalating_engagement", "fleet_engagement", "confrontation", "line_breaker", "ambush",
                       "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
                       "domination"]
         scen_var = tk.StringVar(value=gs.scenario_mode)
@@ -1152,6 +1153,23 @@ class GamePanel(AAPanelMixin):
         return choose(self.root, "Low orbit",
                       f"{ship.name} is in the planet's gravity well: enter low orbit?",
                       [("Enter low orbit", True), ("Stay in high orbit", False)], best)
+
+    def _overcharge_hook(self, ship) -> bool:
+        """Macharia's End: at the start of a Chaos turn the Planet Killer may
+        begin charging its Armageddon Gun ("Auto (best)": the AI's choice,
+        `campaign_scenarios.wants_overcharge`)."""
+        import threading
+        from .campaign_scenarios import wants_overcharge
+        best = wants_overcharge(self.ctx.gs, ship)
+        if self.ctx.is_ai_controlled(ship.player) or \
+                threading.current_thread() is not threading.main_thread():
+            return best
+        from .choice_dialog import choose
+        return choose(self.root, "Armageddon Overcharge",
+                      f"{ship.name}: begin charging the Armageddon Gun? (3 counters, then it "
+                      f"must fire 60cm ahead; while charging +2 shields, no turns, special "
+                      f"orders or lances; it can't be stopped)",
+                      [("Begin charging", True), ("Not yet", False)], best)
 
     def _assault_hook(self, ship) -> bool:
         """Planetary Assault: at the start of the attacker's shooting phase a

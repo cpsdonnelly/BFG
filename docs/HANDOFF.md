@@ -1149,3 +1149,8 @@ after turn; the AI still lets the odd ship fall onto the planet (its climb check
 rounds ahead) and defenders sometimes run off the table edge. Exterminatus! games are long:
 the planet is 150cm from the attacker's edge, so the Exterminator takes 6-8 game turns to
 arrive and is often crippled on the way.
+Then the faction sub-plots and two campaign set pieces, The Defence of Pelucidar and
+Macharia's End (`src/campaign_scenarios.py`; CLAUDE.md To do 7 has the readings). AI-vs-AI:
+Pelucidar's Ork waves grow each turn and swamp three cruisers; in Macharia's End the Planet
+Killer closes on the planet and begins charging about turn 10 (game turn 5), so give the
+spectator check a long turn limit. Not yet: Craftworld Assault and the variants.

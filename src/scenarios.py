@@ -167,6 +167,18 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "planet_strike",
     },
+    "pelucidar": {
+        "name": "The Defence of Pelucidar (XR p.111, campaign)",
+        "first_turn": "attacker",       # the Orks always take the first turn
+        "end": "fleet_gone",
+        "victory": "pelucidar",
+    },
+    "macharia": {
+        "name": "Macharia's End (XR p.112, campaign)",
+        "first_turn": "defender",       # the Imperial player
+        "end": "macharia",
+        "victory": "macharia",
+    },
     "domination": {
         "name": "Domination (XR p.125-126)",
         "first_turn": "attacker",
@@ -452,6 +464,19 @@ def turn_start(gs, dice=None) -> None:
                 record_start_positions(gs, p)
             else:
                 attacker_turn_start(gs, p, dice)
+    if mode in ("pelucidar", "macharia"):
+        from .campaign_scenarios import pelucidar_arrivals, macharia_turn_start
+        att = gs.scenario_attacker
+        players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
+        if att in players:
+            from .dice import DiceRoller
+            adice = _dice_for(gs, att, dice) or DiceRoller(mode="auto")
+            if mode == "pelucidar":
+                pelucidar_arrivals(gs, adice)
+            else:
+                ai = getattr(gs, "ai_spectator", False) or getattr(gs, "ai_player", None) == att
+                hook = getattr(gs, "overcharge_hook", None)
+                macharia_turn_start(gs, att, adice, None if (ai or hook is None) else hook)
     if mode == "navigate_storm":
         from .navigate_storm import turn_start as _storm_start
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
@@ -830,6 +855,12 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
             dice = DiceRoller(mode="auto")
         from .convoy_narrative import setup as _cn_setup
         _cn_setup(gs, dice)
+    elif mode in ("pelucidar", "macharia"):
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        from .campaign_scenarios import pelucidar_setup, macharia_setup
+        (pelucidar_setup if mode == "pelucidar" else macharia_setup)(gs, dice)
     elif mode == "destroy_docks":
         from .destroy_docks import setup as _docks_setup
         _docks_setup(gs, dice)
@@ -1083,6 +1114,9 @@ def force_errors(gs) -> List[str]:
     if mode == "convoy_narrative":
         from .convoy_narrative import force_errors as _cn_errors
         return _cn_errors(gs)
+    if mode == "pelucidar":
+        from .campaign_scenarios import pelucidar_force_errors
+        return pelucidar_force_errors(gs)
     if mode == "planetary_assault":
         from .planet_scenarios import force_errors as _pa_errors
         return _pa_errors(gs)
@@ -1187,6 +1221,14 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         rects = {att_p: [(30, 30, 30, 30)], 3 - att_p: [(0, w - 3, 0, 0)]
                  if (gs.scenario_state or {}).get("entry_edge", "left") == "left"
                  else [(w - 3, 0, 0, 0)]}
+    elif mode == "pelucidar":
+        # the Imperial fleet at least 30cm from every edge; the Orks arrive
+        rects = {3 - att_p: [(30, 30, 30, 30)], att_p: [(30, 30, 30, 30)]}
+    elif mode == "macharia":
+        # Imperial within 20cm of the left short edge, its vanguard within 5cm
+        # of the centreline (`placement_errors`); Chaos within 10cm of the right
+        rects = {3 - att_p: [(0, w - 20, 0, 0), (w / 2.0 - 5, w / 2.0 - 5, 0, 0)],
+                 att_p: [(w - 10, 0, 0, 0)]}
     elif mode == "destroy_docks":
         from .destroy_docks import zone_rects as _docks_rects
         rects = _docks_rects(gs)
@@ -1269,6 +1311,21 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
     squadron excepted)."""
     errs: List[str] = []
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "pelucidar" and group:
+        if group[0].player == defender(gs):
+            return _raiders_defender_errors(gs, group, positions, headings, placed)
+        return errs
+    if mode == "macharia" and group and group[0].player == defender(gs):
+        from .campaign_scenarios import is_vanguard
+        w = gs.table_width
+        for s_, (x, y) in zip(group, positions):
+            if is_vanguard(gs, s_) and abs(x - w / 2.0) > 5.0:
+                errs.append(f"Macharia's End: {s_.name} is in the vanguard: within 5cm of "
+                            f"the centreline")
+            elif not is_vanguard(gs, s_) and x > 20.0:
+                errs.append(f"Macharia's End: {s_.name} deploys within 20cm of the Imperial "
+                            f"(left) edge")
+        return errs
     if mode == "raiders" and group:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
@@ -1612,12 +1669,23 @@ def disengage_forbidden(gs, ship) -> Optional[str]:
         return "Ambush: the defender may not disengage in its first turn"
     if mode == "rescue" and ship.id == (gs.scenario_state or {}).get("flagship"):
         return "Rescue: the flagship can only disengage off the defender's short edge"
+    if mode == "macharia":
+        from .campaign_scenarios import planet_killer
+        pk = planet_killer(gs)
+        if pk is not None and ship.id == pk.id:
+            # No Retreat: it would be destroyed instead (reading: so no test)
+            return "Macharia's End: No Retreat (the Planet Killer would be destroyed)"
     return None
 
 
 def off_table_destroyed(gs, ship) -> bool:
     """Rescue: the flagship moving off any edge but the defender's short edge
-    (the left edge, x = 0) is destroyed instead of disengaging."""
+    (the left edge, x = 0) is destroyed instead of disengaging. Macharia's
+    End: the Planet Killer off any edge (No Retreat)."""
+    if getattr(gs, "scenario_mode", "") == "macharia":
+        from .campaign_scenarios import planet_killer
+        pk = planet_killer(gs)
+        return pk is not None and ship.id == pk.id
     if getattr(gs, "scenario_mode", "") != "rescue":
         return False
     if ship.id != (gs.scenario_state or {}).get("flagship"):
@@ -1786,6 +1854,13 @@ def cripple_bonus_vp(gs, ship) -> float:
     if getattr(gs, "scenario_mode", "") == "chance_encounter":
         flag = chance_flagship(gs)
         if flag is not None and flag.id == ship.id:
+            return 0.5 * table_points(gs)
+    if getattr(gs, "scenario_mode", "") == "macharia":
+        # crippling or destroying the Planet Killer wins (judgement: half
+        # the points on the table, as Chance Encounter's flagship)
+        from .campaign_scenarios import planet_killer
+        pk = planet_killer(gs)
+        if pk is not None and pk.id == ship.id:
             return 0.5 * table_points(gs)
     return 0.0
 
@@ -1975,6 +2050,9 @@ def check_end(gs) -> Optional[dict]:
     if mode == "convoy_narrative":
         from .convoy_narrative import check_end as _cn_end
         return _cn_end(gs)
+    if mode == "macharia":
+        from .campaign_scenarios import macharia_check_end
+        return macharia_check_end(gs)
     if mode == "convoy_matched":
         st = gs.scenario_state or {}
         if st.get("had_cargo") and cargo_on_table(gs, defender(gs)) <= 0:
@@ -2076,6 +2154,13 @@ def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
     if sc and sc["victory"] == "convoy_narrative":
         from .convoy_narrative import winner as _cn_winner
         return _cn_winner(gs)
+    if sc and sc["victory"] == "pelucidar":
+        from .campaign_scenarios import pelucidar_winner
+        return pelucidar_winner(gs)
+    if sc and sc["victory"] == "macharia":
+        from .campaign_scenarios import macharia_check_end
+        r = macharia_check_end(gs)
+        return r["winner"] if r else None      # neither condition met: a draw (reading)
     if sc and sc["victory"] == "destroy_docks":
         from .destroy_docks import winner as _docks_winner
         return _docks_winner(gs)

@@ -1206,6 +1206,9 @@ def weapon_disabled_by_crit(ship: Ship, weapon: Dict) -> bool:
     if weapon.get("kustom_kannon") and weapon.get("weapon_type") == "battery" \
             and not ship.ordnance_loaded_torps:
         return True
+    from .campaign_scenarios import weapon_blocked
+    if weapon_blocked(ship, weapon):
+        return True
     crits = {c.get("crit_type") for c in ship.critical_damage}
     # Necron crits (Appendix 3): main capacitors silence lightning arcs, power
     # flow disrupted both lightning arcs and particle whips

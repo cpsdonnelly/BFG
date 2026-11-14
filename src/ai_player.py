@@ -830,7 +830,40 @@ class AIPlayer:
         score += self._convoy_run(ship, fx, fy, enemy)
         score += self._bombard_approach(ship, fx, fy, enemy)
         score += self._planet_term(ship, fx, fy, enemy, fh)
+        score += self._macharia_approach(ship, fx, fy, fh, enemy)
         return score
+
+    MACHARIA_WEIGHT = 0.5    # judgement: the share of the points on the table the winning shot is worth
+
+    def _macharia_approach(self, ship: Ship, x: float, y: float, h: float,
+                           enemy: Ship) -> float:
+        """Macharia's End: the Planet Killer heads for a firing position, the
+        planet dead ahead within the overcharged shot's 60cm after its three
+        charging moves (it can't turn while charging). Worth `MACHARIA_WEIGHT`
+        x the points on the table at the firing position, in proportion to
+        the way covered and how well it is aimed. In move-score units."""
+        gs = self.gs
+        if gs.scenario_mode != "macharia" or self.difficulty == "easy":
+            return 0.0
+        from .campaign_scenarios import planet_killer, macharia, OVERCHARGE_RANGE
+        pk, pl = planet_killer(gs), macharia(gs)
+        if pk is None or pl is None or ship.id != pk.id:
+            return 0.0
+        from .ai_hazards import value_per_hit
+        win = self.MACHARIA_WEIGHT * sum(s.points_value for s in gs.get_ships())
+        unit = 0.35 * max(1.0, value_per_hit(enemy, gs)) if enemy is not None else 1.0
+        rad = math.radians(h)
+        dx, dy = pl.x - x, pl.y - y
+        along = dx * math.cos(rad) + dy * math.sin(rad) - ship.base_radius
+        lateral = abs(-dx * math.sin(rad) + dy * math.cos(rad))
+        if along <= pl.radius:
+            return -win / unit                 # past it or about to hit it
+        aim = max(0.0, 1.0 - lateral / (pl.radius + 10.0))
+        target = 0.5 * OVERCHARGE_RANGE        # judgement: a firing spot 30cm off
+        d0 = max(0.0, math.hypot(pl.x - ship.x, pl.y - ship.y) - target)
+        d1 = max(0.0, math.hypot(dx, dy) - target)
+        progress = 1.0 if d1 <= 0 else max(0.0, d0 - d1) / max(1.0, d0)
+        return win * (0.5 * progress + 0.5 * aim) / unit
 
     def _planet_objective_vp(self, ship: Ship) -> float:
         """What getting this ship into position over the planet is worth
@@ -1187,6 +1220,13 @@ class AIPlayer:
             return max(0.0, self._exit_value(ship))  # leaving by a test gives up the bonus
         if gs.scenario_mode in ("navigate_storm", "convoy_narrative"):
             return max(0.0, self._exit_value(ship))  # only the exit counts
+        if gs.scenario_mode == "macharia" and ship.player != gs.scenario_attacker:
+            # Macharia's End: each Imperial ship leaving gives up its share of
+            # stopping the Planet Killer
+            mine = [s for s in gs.get_ships() if s.player == ship.player
+                    and not s.is_destroyed and not s.is_disengaged]
+            return (self.MACHARIA_WEIGHT * sum(s.points_value for s in gs.get_ships())
+                    / max(1, len(mine)))
         if gs.scenario_mode in ("exterminatus", "planetary_assault"):
             # The planet battles: the defender gives up its share of stopping
             # the attack (half the points on the table shared out, judgement);
@@ -2088,7 +2128,8 @@ class AIPlayer:
         return (("torpedo" in has and not ship.ordnance_loaded_torps)
                 or ("launch_bay" in has and not ship.ordnance_loaded_craft)
                 or ("mine_launcher" in has and not ship.ordnance_loaded_mines)
-                or "armageddon_spent" in ship.special_rules)
+                or "armageddon_spent" in ship.special_rules
+                or "pk_recharging" in ship.special_rules)
 
     def _reload_value(self, ship: Ship) -> float:
         """Expected VP of Reload Ordnance (To do 10 b): next turn's launch from
@@ -2152,6 +2193,9 @@ class AIPlayer:
                 v += max(0.0, self._armageddon_value(ship))
             except Exception:
                 pass
+        if "pk_recharging" in ship.special_rules:
+            # Macharia's End: recharging is the way back to the winning shot
+            v += 0.5 * self.MACHARIA_WEIGHT * sum(s.points_value for s in self.gs.get_ships())
         return v
 
     LOCK_ON_GAIN = 0.5      # re-rolled misses: lances exactly +50%, batteries about that

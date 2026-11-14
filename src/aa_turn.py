@@ -102,8 +102,10 @@ class AATurn:
         self.scheduler = None
         if ph == "shooting":
             from .planet_scenarios import shooting_start as _assault_start
+            from .campaign_scenarios import shooting_start as _overcharge_start
             for p in (1, 2):
                 _assault_start(self.gs, p, getattr(self.gs, "assault_hook", None))
+                _overcharge_start(self.gs, p)
         if ph in ACTIVATION_PHASES:
             elig = {p: phase_units(self.gs, p, ph, self.cfg) for p in (1, 2)}
             chooser = None

@@ -429,6 +429,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("convoy_narrative",  "Convoy (booklet p.94: contact markers, deadfall torpedoes)"),
         ("exterminatus",      "Exterminatus! (booklet p.101: low orbit, destroy the planet)"),
         ("planetary_assault", "Planetary Assault (booklet p.105: low orbit, assault points)"),
+        ("pelucidar",         "The Defence of Pelucidar (campaign p.111: Orks arrive, +2000 VP)"),
+        ("macharia",          "Macharia's End (campaign p.112: stop the Planet Killer)"),
         ("escalating_engagement", "Escalating Engagement (booklet p.107: contact markers)"),
         ("fleet_engagement",  "Fleet Engagement (booklet p.108: formations, set-ups A-D)"),
         ("confrontation",     "Confrontation (booklet p.117: attacker first, VP)"),
