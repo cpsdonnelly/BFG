@@ -225,3 +225,53 @@ Re-profile after each step; keep the GUI spectator timings as the benchmark.
 Each step leaves all 1,334 tests and the GUI spectator checks passing, and lands as its own
 commit. No behaviour changes in the pure refactors (2, 4, 5, 6): if a test changes, it's a
 bug fix and is listed as one.
+
+## 6. Recording and replaying games (owner question)
+
+What exists [checked]:
+- **Phase snapshots:** `TurnController.save_snapshot` writes ships, ordnance, blast markers and
+  phenomena at every phase start and end (`saves/<game>/snapshots/`). Undo uses them.
+- **Actions log:** `actions_log.json` records only about 13 kinds of event (special orders,
+  phase starts, a few AA steps). Individual moves, shots, launches and choices aren't
+  recorded as structured events.
+- **Text log:** `turn_log.txt`, readable but not machine-replayable.
+- **Save file:** `GameState.save` writes the full state.
+
+Missing:
+- **The dice:** the dice log (`DiceRoller.log`) is in memory only, and there's no seed.
+- **Complete snapshots:** they leave out scenario state, sub-plots, orders and AA state.
+- **A replay viewer:** `get_snapshot_list` has no callers.
+
+Plan:
+1. **Seeded dice.** A game seed plus every roll appended to a saved roll log (the source
+   rolled for, the result).
+2. **Structured events** for every decision (move commands, special order, weapon / target,
+   launch and craft orders, brace, re-roll, choice prompts). Recorded at the engine API, so
+   human and AI decisions are logged the same way.
+3. **Complete snapshots,** from `fields()`, not a hand list.
+4. **Replay:** load the start state and seed, re-apply the events, and check the state
+   matches each snapshot. This doubles as a determinism test.
+5. **A viewer** stepping through snapshots and events on the board.
+
+The same records are the training data for To do 12 and the cross-check for any port.
+
+## 7. Language (revised after the owner's follow-up)
+
+A port on a new branch doesn't endanger the Python version; its cost is upkeep (every
+booklet export and ruling twice, the tests ported, drift). Python is a real bottleneck for
+To do 12 / 1: the training plan uses full-rules normal-AI self-play, so the whole engine's
+speed matters, not just the expert AI's simulation.
+
+Rough numbers, to measure with the headless runner:
+- a game is probably 30-60s now (an estimate);
+- 5,000 games are about 55 core-hours;
+- with the section 2 fixes and 16 processes, about 1-2 hours;
+- a compiled engine would likely be 20-100x faster than Python.
+
+Plan:
+1. The section 2 speed fixes and a headless multiprocess game runner, needed anyway.
+2. Measure games per hour.
+3. If training needs more, port the full engine in its own branch (Rust suggested).
+   - Python stays the reference that defines the rules.
+   - The port must reproduce Python games exactly from the same seed and events (section
+     6), which is what keeps the two from drifting.
