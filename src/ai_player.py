@@ -5,6 +5,7 @@ with no Tkinter dialogs. Caller must set dice.mode = "auto" before use.
 """
 import math
 import random
+from dataclasses import replace as _dc_replace  # shallow ship copies for trial positions
 from typing import List, Optional, Dict
 
 from .models import (Ship, OrdnanceMarker, SpecialOrder,
@@ -1015,8 +1016,7 @@ class AIPlayer:
         from .scenarios import off_table_destroyed
         gs = self.gs
         units = 0.35 * max(1.0, value_per_hit(enemy, gs))
-        moved = Ship.from_dict(ship.to_dict())
-        moved.x, moved.y = x, y
+        moved = _dc_replace(ship, x=x, y=y)
         if off_table_destroyed(gs, moved):
             return -2.0 * ship_value(ship, gs) / units
         cache = self.__dict__.setdefault("_leave_cache", {})
@@ -1289,8 +1289,7 @@ class AIPlayer:
         if not objs or self.gs.scenario_mode != "domination":
             return 0.0
         ships = [s for s in self.gs.get_ships() if s.id != ship.id]
-        moved = Ship.from_dict(ship.to_dict())
-        moved.x, moved.y = x, y
+        moved = _dc_replace(ship, x=x, y=y)
         gain = 0.0
         pull = 0.0
         reach = 2.0 * max(1.0, ship.speed or 0) + CONTROL_RANGE
@@ -1341,8 +1340,7 @@ class AIPlayer:
         ok, ev, outs = cache[key]
         if not ok:
             return 0.0
-        moved = Ship.from_dict(ship.to_dict())
-        moved.x, moved.y, moved.heading = x, y, h
+        moved = _dc_replace(ship, x=x, y=y, heading=h)
         ld = get_disengage_ld_modifiers(moved, gs)["effective_ld"]
         g = disengage_gain(moved, gs, ld, ev, outs)
         if g <= 0:
@@ -1766,7 +1764,7 @@ class AIPlayer:
                      and s.id != ship.id and not s.is_destroyed and not s.is_disengaged), None)
         if flag is None:
             return 0.0
-        moved = Ship.from_dict({**ship.to_dict(), "x": x, "y": y, "heading": h})
+        moved = _dc_replace(ship, x=x, y=y, heading=h)
         if not ships_in_base_contact(moved, flag):
             return 0.0
         others = [s for s in gs.get_ships() if s.id != ship.id]
@@ -3951,7 +3949,7 @@ class AIPlayer:
             return 0.0
         share = bay_launch_capacity(ship, mine, None)[0] / max(1, ours)
         doctrine = 2.0 if theirs > ours else 1.0
-        moved = Ship.from_dict({**ship.to_dict(), "x": x, "y": y})
+        moved = _dc_replace(ship, x=x, y=y)
         friends = [f for f in self.gs.get_ships() if f.player == self.player
                    and not f.is_destroyed and not f.is_disengaged]
         vp = 0.0

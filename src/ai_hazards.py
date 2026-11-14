@@ -22,6 +22,7 @@ Everything is pure logic (no Tk), so the expert AI's worker thread may use it.
 """
 import math
 from itertools import product
+from dataclasses import replace as _dc_replace  # shallow ship copies for trial positions
 from typing import Dict, List, Sequence, Tuple
 
 from .models import OrdnanceMarker, Ship
@@ -709,7 +710,7 @@ def _mount_bears(e: Ship, w: dict, t: Ship) -> bool:
         return cross < 0
     turn = e.turn_angle or 0
     for dh in (0, -turn, turn):
-        turned = e if not dh else Ship.from_dict({**e.to_dict(), "heading": (e.heading + dh) % 360})
+        turned = e if not dh else _dc_replace(e, heading=(e.heading + dh) % 360)
         if check_weapon_in_arc(turned, w, t.x, t.y):
             return True
     return False
@@ -1275,7 +1276,7 @@ def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -
     that could bear there (_mount_bears), on the Armour facing it would hit at
     our end heading (mount_hits, To do 8 a), less its shields once per enemy."""
     from .geometry import current_shields
-    moved = Ship.from_dict({**ship.to_dict(), "x": x, "y": y, "heading": heading})
+    moved = _dc_replace(ship, x=x, y=y, heading=heading)
     shields = current_shields(ship, gs.get_blast_markers())
     total = 0.0
     for e in gs.get_ships():
@@ -1988,9 +1989,11 @@ def ship_bracket_raw(a: Ship, b: Ship, dist: float, heading_b: float, heading_a:
     Gunz' close value), lances 0.5, the Nova Cannon (nova_expected_hits; not
     when crippled). Ordnance isn't counted (it launches once and flies)."""
     from .combat import check_weapon_in_arc, expected_hits, weapon_disabled_by_crit
-    tb = Ship.from_dict({**b.to_dict(), "x": dist, "y": 0.0, "heading": float(heading_b)})
-    ta = Ship.from_dict({**a.to_dict(), "x": 0.0, "y": 0.0, "heading": float(heading_a),
-                         "special_order": ""})
+    # shallow copies (read only: the weapon lists are shared, never changed);
+    # deep to_dict / from_dict copies here were ~40% of AI move planning
+    from dataclasses import replace
+    tb = replace(b, x=dist, y=0.0, heading=float(heading_b))
+    ta = replace(a, x=0.0, y=0.0, heading=float(heading_a), special_order="")
     gs = _BareState([ta, tb])
     hits = 0.0
     for w in ta.weapons:
@@ -2009,10 +2012,34 @@ def ship_bracket_raw(a: Ship, b: Ship, dist: float, heading_b: float, heading_a:
     return hits
 
 
+def _bracket_state(s: Ship) -> tuple:
+    """What a ship's bracket values depend on (its guns and their state)."""
+    return (s.id, s.ship_class, s.hits_remaining, s.hits_max, s.status, s.shields_max,
+            tuple(sorted(c.get("crit_type", "") for c in s.critical_damage)),
+            tuple(s.special_rules), len(s.weapons), s.speed)
+
+
+_BRACKET_CACHE: Dict[tuple, float] = {}
+
+
 def ship_bracket_hits(a: Ship, b: Ship, dist: float, shields: bool = True) -> float:
     """Expected hits `a` puts on `b` at `dist`, on average over b's facing,
     `a` turned to bring its best guns to bear; with `shields`, past b's
-    shields (past_shields), else before them."""
+    shields (past_shields), else before them. Cached by both ships' state:
+    the value doesn't depend on where they are, so a phase's candidate moves
+    share it."""
+    key = (_bracket_state(a), _bracket_state(b), round(dist, 3), shields)
+    hit = _BRACKET_CACHE.get(key)
+    if hit is not None:
+        return hit
+    if len(_BRACKET_CACHE) > 20000:
+        _BRACKET_CACHE.clear()
+    val = _ship_bracket_hits(a, b, dist, shields)
+    _BRACKET_CACHE[key] = val
+    return val
+
+
+def _ship_bracket_hits(a: Ship, b: Ship, dist: float, shields: bool) -> float:
     total = 0.0
     sh = b.effective_shields or 0
     for hb in _BRACKET_HEADINGS:

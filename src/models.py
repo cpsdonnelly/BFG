@@ -1,6 +1,6 @@
 """BFG:XR Data Models - Ships, Ordnance, Terrain, Blast Markers"""
 import math
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, fields
 from typing import List, Optional, Dict
 from enum import Enum
 
@@ -423,11 +423,36 @@ class Ship:
             return "abeam"
 
     def to_dict(self):
-        return asdict(self)
+        # A deep copy of the fields, as dataclasses.asdict gave, without its
+        # per-item dataclass checks (the fields are plain JSON-like data);
+        # asdict was a large share of the AI's time
+        return {k: _copy_plain(v) for k, v in self.__dict__.items() if k in _SHIP_FIELDS}
 
     @classmethod
     def from_dict(cls, d):
+        # Fast path: a complete dict (every stored ship is) fills the instance
+        # directly; it shares the dict's lists, as cls(**d) did. Older or
+        # partial dicts take the normal constructor for the defaults.
+        if len(d) == len(_SHIP_FIELDS) and d.get("hits_remaining") is not None \
+                and _SHIP_FIELDS.issubset(d):
+            obj = cls.__new__(cls)
+            obj.__dict__.update(d)
+            return obj
         return cls(**d)
+
+
+def _copy_plain(v):
+    """Deep copy of JSON-like data (dicts, lists, tuples, scalars)."""
+    if isinstance(v, list):
+        return [_copy_plain(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _copy_plain(x) for k, x in v.items()}
+    if isinstance(v, tuple):
+        return tuple(_copy_plain(x) for x in v)
+    return v
+
+
+_SHIP_FIELDS = frozenset(f.name for f in fields(Ship))
 
 
 @dataclass
