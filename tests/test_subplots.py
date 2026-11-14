@@ -204,3 +204,84 @@ def test_kill_credit_and_fresh_captain():
     apply_damage(gs.get_ship_by_id("f"), 4, DiceStub([1, 1, 1, 1]), gs, attacker_key="c")
     assert gs.kill_credit == [{"by": "c", "target": "f", "kind": "crippled"}]
     assert sp_mod.objective_met(gs, 1, True)
+
+
+def _rt(id, player=1, cls="Rogue Trader Carrack", **kw):
+    kw.setdefault("points_value", 40)
+    return make_ship(id=id, player=player, faction="rogue_traders", ship_class=cls,
+                     special_rules=["transport:2"], **kw)
+
+
+def test_faction_subplots_are_rolled_for_the_right_fleets():
+    mech = make_ship(id="m", player=1, faction="adeptus_mechanicus", points_value=300)
+    gs = _gs(mech, make_ship(id="e", player=2))
+    sp = sp_mod.faction_subplot(gs, 1, DiceStub([4]))
+    assert sp["key"] == "desperate_mission" and sp["name"] == "Sacred Vessel" \
+        and sp["slot"] == "faction" and sp.get("mech_only")
+    assert sp_mod.faction_subplot(gs, 2, DiceStub([])) is None
+    gs2 = _gs(_rt("c"), make_ship(id="e", player=2))
+    sp2 = sp_mod.faction_subplot(gs2, 1, DiceStub([1]))
+    assert sp2["key"] == "trooping_the_colour"
+    # a Convoy scenario defender's convoy ships are scored by the scenario
+    gs2.scenario_mode, gs2.scenario_attacker = "convoy_matched", 2
+    assert sp_mod.faction_subplot(gs2, 1, DiceStub([])) is None
+
+
+def test_mechanicus_experimental_ship_and_two_subplots_in_the_result():
+    m = make_ship(id="m", player=1, faction="adeptus_mechanicus", ship_type="cruiser",
+                  hits_max=8, turrets=3,
+                  weapons=[{"name": "Dorsal Lances", "weapon_type": "lance", "strength": 2,
+                            "range_cm": 60, "arcs": ["front"]}])
+    gs = _gs(m, make_ship(id="e", player=2))
+    sp_mod._set(gs, 1, {"key": "no_quarter", "name": "No Quarter!", "renown": [1, -1]})
+    extra = {"key": "mech_experimental", "name": "Experimental Ship (Quest)",
+             "renown": [1, -1], "slot": "faction", "mech_only": True}
+    # which cruiser 1; improvement 6 (lances ignore shields on a 6); side effect 3 (-2 turrets)
+    sp_mod.apply_setup(gs, 1, extra, DiceStub([1, 6, 3]))
+    m = gs.get_ship_by_id("m")
+    assert m.weapons[0].get("shield_bypass_6") and m.turrets == 1
+    assert len(sp_mod.all_for(gs, 1)) == 2
+    br = sp_mod.battle_result(gs, 1, 1)
+    assert br["sub_plot"] == "No Quarter! + Experimental Ship (Quest)"
+    assert br["result"] == "Victory!" and br["renown"] == -1 + 1     # No Quarter failed
+
+
+def test_business_as_usual_effects():
+    from src.victory_points import calculate_victory_points
+    from src.models import Phenomenon
+    c1, c2 = _rt("c1"), _rt("c2", cls="Rogue Trader Sloop")
+    foe = make_ship(id="f", player=2, points_value=200)
+    gs = _gs(c1, c2, foe)
+    # Trooping the Colour: a destroyed carrack scores double
+    sp_mod._set(gs, 1, {"key": "trooping_the_colour", "name": "T", "renown": [2, -1],
+                        "slot": "faction"})
+    c = gs.get_ship_by_id("c1")
+    c.status, c.hits_remaining = "destroyed", 0
+    gs.update_ship(c)
+    vp = calculate_victory_points(gs)
+    assert vp[2]["total"] == 80
+    # the enemy scored 80 from convoy ships, more than 10% of its 200pts: failed
+    assert not sp_mod.objective_met(gs, 1, True, sp_mod.has(gs, 1, "trooping_the_colour"))
+    # Punitive Strike: the enemy's fire must go to the nearest of them
+    gs.subplots = {}
+    sp_mod._set(gs, 1, {"key": "punitive_strike", "name": "P", "renown": [1, -1],
+                        "slot": "faction"})
+    pt = sp_mod.punitive_target(gs, gs.get_ship_by_id("f"), gs.get_ships())
+    assert pt is not None and pt.id == "c2"
+    # Expeditionary Group: touching a feature surveys it, +50 VP
+    gs.subplots = {}
+    sp_mod._set(gs, 1, {"key": "expeditionary_group", "name": "X", "renown": [1, -1],
+                        "slot": "faction", "surveyed": []})
+    gs.add_phenomenon(Phenomenon(id="cloud", phenomenon_type="gas_cloud", x=50.0, y=50.0,
+                                 width=15.0, height=10.0))
+    sp_mod.record_survey(gs, gs.get_ship_by_id("c2"), [(20.0, 50.0), (50.0, 50.0)])
+    assert sp_mod.has(gs, 1, "expeditionary_group")["surveyed"] == ["cloud"]
+    assert calculate_victory_points(gs)[1]["total"] >= 50
+    # Treasure Haul: raiding the carrier passes the treasure to the raider
+    gs.subplots = {}
+    sp_mod._set(gs, 1, {"key": "treasure_haul", "name": "H", "renown": [1, -2],
+                        "slot": "faction", "holder": "c2", "revealed": False})
+    sp_mod.record_raid(gs, 2, gs.get_ship_by_id("c2"))
+    th = sp_mod.has(gs, 1, "treasure_haul")
+    assert th["holder"] == "f" and th["revealed"]
+    assert sp_mod.treasure_controller(gs, th) == 2

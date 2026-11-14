@@ -300,6 +300,8 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     # ships need none either (s.39)
     if special_order == SpecialOrder.BURN_RETROS.value or "in_low_orbit" in ship.special_rules:
         min_turn_dist = 0
+    elif "turn_distance_plus5" in ship.special_rules:
+        min_turn_dist += 5          # Experimental Ship (Quest) side effect
 
     # Track state
     distance_moved = 0.0
@@ -548,8 +550,11 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
                           + [(result.final_x, result.final_y)])
     # Convoy (narrative): the path, turns included, for contact marker activation
     from .convoy_narrative import record_path
-    record_path(gs, ship, [(ship.x, ship.y)] + [tuple(p[:2]) for p in (result.path or [])]
-                + [(result.final_x, result.final_y)])
+    _pts = [(ship.x, ship.y)] + [tuple(p[:2]) for p in (result.path or [])] \
+        + [(result.final_x, result.final_y)]
+    record_path(gs, ship, _pts)
+    from .subplots import record_survey          # Expeditionary Group
+    record_survey(gs, ship, _pts)
     ship.x = result.final_x
     ship.y = result.final_y
     ship.heading = result.final_heading
@@ -702,8 +707,11 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
         ld += 1
         mods.append("Grot Riggers +1")
     if enemy_on_special:
-        # Cobra improved sensor array: +2 instead of +1
+        # Cobra improved sensor array: +2 instead of +1; a Mechanicus
+        # Experimental Ship within 15cm adds +1 (Quest for Knowledge)
         bonus = 2 if "improved_sensor_array" in ship.special_rules else 1
+        from .subplots import mech_ld_aura
+        bonus += mech_ld_aura(gs, ship)
         ld += bonus
         mods.append(f"Enemy Contacts +{bonus}")
     # Modifiers can't take Ld above 10 or below 0 (s.6); at Ld 1 or less a

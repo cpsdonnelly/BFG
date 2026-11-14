@@ -37,6 +37,28 @@ TABLES = {
     },
 }
 
+# Faction sub-plots, taken in addition to the rolled one (`faction_subplot`):
+# the Adeptus Mechanicus Quest for Knowledge (02_adeptus-mechanicus.md) and the
+# Rogue Trader Business as Usual table (05_rogue-traders.md). Quest entries
+# reuse the core effects they repeat (`extra` narrows them to Mechanicus ships).
+QUEST = {
+    1: ("extended_duty", "Extended Duty (Quest)", (1, 0), {"mech_only": True, "vc": "count"}),
+    2: ("meteor_storm", "Xenos Logic Engine", (2, -1), {"mech_only": True}),
+    3: ("decoy", "Mimic Drive", (1, -1), {}),
+    4: ("desperate_mission", "Sacred Vessel", (1, -1), {"mech_only": True}),
+    5: ("vendetta", "The Prize", (1, -2), {}),
+    6: ("mech_experimental", "Experimental Ship (Quest)", (1, -1), {"mech_only": True}),
+}
+BUSINESS = {
+    1: ("trooping_the_colour", "Trooping the Colour", (2, -1)),
+    2: ("punitive_strike", "Punitive Strike", (1, -1)),
+    3: ("colony_settlement", "Colony Settlement", (0, -1)),
+    4: ("reclamation_crusade", "Reclamation Crusade", (1, 0)),
+    5: ("expeditionary_group", "Expeditionary Group", (1, -1)),
+    6: ("treasure_haul", "Treasure Haul", (1, -2)),
+}
+RT_CONVOY_CLASSES = ("Sloop", "Caravel", "Carrack")
+
 # Effects the engine doesn't play yet (the objective is still judged where it can be)
 UNBUILT = {
     "decoy": "the hidden decoy isn't built: the objective can't be met",
@@ -62,14 +84,74 @@ def generate(gs, player: int, dice) -> Dict:
     return sp
 
 
+def _slot(player: int, sp: Dict) -> str:
+    return f"{player}:{sp['slot']}" if sp.get("slot") else str(player)
+
+
 def _set(gs, player: int, sp: Dict) -> None:
     subs = dict(getattr(gs, "subplots", None) or {})
-    subs[str(player)] = sp
+    subs[_slot(player, sp)] = sp
     gs.subplots = subs
 
 
 def get(gs, player: int) -> Optional[Dict]:
     return (getattr(gs, "subplots", None) or {}).get(str(player))
+
+
+def all_for(gs, player: int) -> List[Dict]:
+    """Every sub-plot the player has: the rolled one and a faction one."""
+    subs = getattr(gs, "subplots", None) or {}
+    return [sp for k, sp in sorted(subs.items()) if k.split(":")[0] == str(player)]
+
+
+def has(gs, player: int, key: str) -> Optional[Dict]:
+    return next((sp for sp in all_for(gs, player) if sp["key"] == key), None)
+
+
+def _main_faction(gs, player: int) -> Optional[str]:
+    from .scenarios import _main_faction as mf
+    return mf(gs, player)
+
+
+def rt_convoy(ship) -> bool:
+    """A Rogue Trader sloop, caravel or carrack (Business as Usual)."""
+    return ship.faction == "rogue_traders" and any(c in ship.ship_class
+                                                   for c in RT_CONVOY_CLASSES)
+
+
+def faction_subplot(gs, player: int, dice) -> Optional[Dict]:
+    """The faction sub-plot a fleet must take besides the rolled one: an
+    Adeptus Mechanicus fleet (reading: any fleet whose main faction is the
+    Mechanicus, ships don't carry their list) the Quest for Knowledge; a fleet
+    with Rogue Trader convoy ships the Business as Usual table, unless the
+    scenario already scores its convoy ships (Convoy / Navigate the Storm /
+    narrative Convoy defender, Planetary Assault attacker); an Ordo Malleus
+    fleet led by an Inquisitor Lord a random Secret Ploys sub-plot."""
+    from .scenarios import defender
+    ships = [s for s in gs.get_ships() if s.player == player]
+    mode = getattr(gs, "scenario_mode", "")
+    if _main_faction(gs, player) == "adeptus_mechanicus":
+        n = dice.roll_d6(1, f"Player {player} Quest for Knowledge (D6)")[0]
+        key, name, renown, extra = QUEST[n]
+        sp = {"key": key, "name": name, "renown": list(renown), "table": "quest", **extra}
+    elif any(s.faction == "rogue_traders" and any(r.startswith("transport:")
+                                                  for r in s.special_rules) for s in ships) \
+            and not ((mode in ("convoy_matched", "navigate_storm", "convoy_narrative")
+                      and player == defender(gs))
+                     or (mode == "planetary_assault" and player == gs.scenario_attacker)):
+        n = dice.roll_d6(1, f"Player {player} Business as Usual (D6)")[0]
+        key, name, renown = BUSINESS[n]
+        sp = {"key": key, "name": name, "renown": list(renown), "table": "business"}
+    elif any("Inquisitor Lord" in u for s in ships for u in (s.upgrades or [])):
+        n = dice.roll_d6(1, f"Player {player} Secret Ploys (Inquisitor Lord)")[0]
+        key, name, renown = TABLES["ploys"][n]
+        sp = {"key": key, "name": name, "renown": list(renown), "table": "ploys"}
+    else:
+        return None
+    sp["slot"] = "faction"
+    if key in UNBUILT:
+        sp["unbuilt"] = UNBUILT[key]
+    return sp
 
 
 def apply_setup(gs, player: int, sp: Dict, dice,
@@ -82,6 +164,8 @@ def apply_setup(gs, player: int, sp: Dict, dice,
     key = sp["key"]
     logs = [f"Player {player} sub-plot: {sp['name']}"]
     own = capital_ships(gs, player)
+    if sp.get("mech_only"):
+        own = [s for s in own if s.faction == "adeptus_mechanicus"]
     enemy = capital_ships(gs, 3 - player)
     pick = choose_ship or (lambda cands, _p: max(cands, key=lambda s: s.points_value,
                                                  default=None))
@@ -154,6 +238,20 @@ def apply_setup(gs, player: int, sp: Dict, dice,
         _place_hazards(gs, dice, logs)
     elif key == "unexpected_help":
         _unexpected_help(gs, player, sp, dice, logs)
+    elif key == "mech_experimental":
+        cruisers = [s for s in own if s.ship_type == "cruiser"] or own
+        if cruisers:
+            i = dice.roll_d6(1, "Experimental Ship (Quest): which cruiser")[0]
+            s = cruisers[(i - 1) % len(cruisers)]
+            sp["ship"] = s.id
+            imp = _mech_roll(dice, s, "improvement")
+            side = _mech_roll(dice, s, "side effect")
+            _mech_experiment(s, imp, side)
+            gs.update_ship(s)
+            sp["improvement"], sp["side_effect"] = imp, side
+            logs.append(f"  {s.name}: improvement {imp}, side effect {side}")
+    elif key in BUSINESS_KEYS:
+        _business_setup(gs, player, sp, dice, logs)
     elif key == "blood_bond":
         sp["lost_seen"] = sum(1 for s in own if _lost(s))
     if key == "secret_intelligence":
@@ -232,14 +330,15 @@ def leadership(gs, ship) -> int:
     ld = ship.leadership
     if gs is None:
         return ld
-    sp = get(gs, ship.player)
+    sp = has(gs, ship.player, "fleet_experience") or has(gs, ship.player, "blood_bond")
     if not sp:
         return ld
-    if sp["key"] == "fleet_experience":
+    if has(gs, ship.player, "fleet_experience"):
         flag = _flagship(gs, ship.player)
         if flag is not None and flag.id != ship.id and ship.distance_to(flag) <= COMMAND_RANGE:
             ld = max(ld, flag.leadership)
-    if (sp["key"] == "blood_bond" and sp.get("bond_turn") == gs.turn_number
+    bond = has(gs, ship.player, "blood_bond")
+    if (bond and bond.get("bond_turn") == gs.turn_number
             and ship.ship_type != "escort" and not _lost(ship)):
         ld = min(10, ld + 1)
     return ld
@@ -249,8 +348,7 @@ def reroll_blocked(gs, player: int, ship) -> bool:
     """Signaling Problems: fleet commander re-rolls only for squadrons with a
     ship within 30cm of the commander's ship (reading: single ships too, a
     ship being its own squadron)."""
-    sp = get(gs, player)
-    if not sp or sp["key"] != "signaling_problems" or ship is None:
+    if not has(gs, player, "signaling_problems") or ship is None:
         return False
     return not _near_commander(gs, ship)
 
@@ -259,8 +357,8 @@ def turn_start(gs, player: int) -> None:
     """Blood Bond: at the start of the player's turn, if one of its capital
     ships was crippled or destroyed since its last turn, the others gain +1 Ld
     for this turn (reading: "the next turn" is the player's next turn)."""
-    sp = get(gs, player)
-    if not sp or sp["key"] != "blood_bond":
+    sp = has(gs, player, "blood_bond")
+    if not sp:
         return
     lost = sum(1 for s in capital_ships(gs, player) if _lost(s))
     if lost > sp.get("lost_seen", 0):
@@ -270,6 +368,233 @@ def turn_start(gs, player: int) -> None:
         _set(gs, player, sp)
         gs.add_log(f"[Sub-plot] Blood Bond: player {player}'s capital ships are at +1 Ld "
                    f"this turn")
+
+
+def _lances_dorsal_prow(s) -> List[Dict]:
+    return [w for w in s.weapons if w.get("weapon_type") == "lance"
+            and (str(w.get("name", "")).startswith(("Dorsal", "Prow"))
+                 or (w.get("location") or "").lower() in ("dorsal", "prow"))]
+
+
+def _mech_roll(dice, s, table: str) -> int:
+    """A Mechanicus Experimental Ship roll, re-rolled when it can't be applied
+    (the lance results without dorsal or prow lances)."""
+    while True:
+        r = dice.roll_d6(1, f"Experimental Ship (Quest) {table}")[0]
+        if r == 6 and not _lances_dorsal_prow(s):
+            continue
+        return r
+
+
+def _mech_experiment(s, imp: int, side: int) -> None:
+    """The Quest for Knowledge Experimental Ship tables (02_adeptus-mechanicus)."""
+    direct = [w for w in s.weapons if w.get("weapon_type") in ("battery", "lance")]
+    if imp == 1:
+        for w in direct:
+            w["range_cm"] = int(w.get("range_cm", 0)) + 15
+    elif imp == 2:
+        s.shields_max += 1
+    elif imp == 3:
+        s.special_rules = list(s.special_rules) + ["turret_reroll"]
+    elif imp == 4:
+        s.turn_angle = 90
+    elif imp == 5:
+        s.special_rules = list(s.special_rules) + ["mech_ld_aura"]
+    elif imp == 6:
+        for w in _lances_dorsal_prow(s):
+            w["shield_bypass_6"] = True
+    if side == 1:
+        for w in direct:
+            w["strength"] = (int(w.get("strength", 0)) + 1) // 2
+    elif side == 2:
+        s.hits_max = max(1, s.hits_max - 2)
+        s.hits_remaining = min(s.hits_remaining, s.hits_max)
+    elif side == 3:
+        s.turrets = max(0, s.turrets - 2)
+    elif side == 4:
+        s.special_rules = list(s.special_rules) + ["turn_distance_plus5"]
+    elif side == 5:
+        s.speed = max(5, s.speed - 5)
+    elif side == 6:
+        for w in _lances_dorsal_prow(s):
+            w["hits_on"] = 6
+
+
+def mech_ld_aura(gs, ship) -> int:
+    """Experimental Ship (Quest) improvement 5: friendly ships within 15cm
+    of it gain +1 Ld against enemies on special orders (with Enemy
+    Contacts, reading), max 10."""
+    if gs is None:
+        return 0
+    return 1 if any("mech_ld_aura" in s.special_rules and s.player == ship.player
+                    and not s.is_destroyed and s.distance_to(ship) <= 15.0
+                    for s in gs.get_ships() if s.id != ship.id) else 0
+
+
+# --- Business as Usual (Rogue Traders) ------------------------------------------------
+BUSINESS_KEYS = {v[0] for v in BUSINESS.values()}
+
+
+def _business_setup(gs, player: int, sp: Dict, dice, logs: List[str]) -> None:
+    from .scenarios import transport
+    mine = [s for s in gs.get_ships() if s.player == player and rt_convoy(s)]
+    key = sp["key"]
+    if key == "punitive_strike":
+        sp["capacity"] = sum(transport(s, building=True) for s in gs.get_ships()
+                             if s.player == player and any(r.startswith("transport:")
+                                                           for r in s.special_rules))
+    elif key == "reclamation_crusade":
+        for s in mine:
+            for w in s.weapons:
+                if w.get("weapon_type") in ("battery", "lance"):
+                    w["range_cm"] = max(30, int(w.get("range_cm", 0)))
+            gs.update_ship(s)
+        logs.append("  sloops, caravels and carracks fire to 30cm")
+    elif key == "expeditionary_group":
+        sp["surveyed"] = []
+    elif key == "treasure_haul" and mine:
+        i = dice.roll_d6(1, "Treasure Haul: the ship carrying the treasure (secret)")[0]
+        sp["holder"] = mine[(i - 1) % len(mine)].id
+        sp["revealed"] = False
+        logs.append("  the treasure is aboard one of the sloops / caravels / carracks")
+
+
+def punitive_target(gs, attacker, candidates) -> Optional[object]:
+    """Punitive Strike: enemy direct fire must target one of our sloops,
+    caravels or carracks if possible, unless it passes a target priority test:
+    the nearest such ship among `candidates` (the weapon's valid targets)."""
+    marked = [c for c in candidates if rt_convoy(c) and has(gs, c.player, "punitive_strike")
+              and c.player != attacker.player and not c.is_destroyed and not c.is_disengaged]
+    return min(marked, key=attacker.distance_to, default=None)
+
+
+def record_survey(gs, ship, path) -> None:
+    """Expeditionary Group: a sloop, caravel or carrack touching an
+    un-surveyed feature along its move marks it surveyed."""
+    sp = has(gs, ship.player, "expeditionary_group")
+    if not sp or not rt_convoy(ship):
+        return
+    from .terrain_effects import check_ship_terrain_contact
+    from .models import Ship
+    done = set(sp.get("surveyed", []))
+    probe = Ship.from_dict(ship.to_dict())
+    phen = gs.get_phenomena()
+    new = []
+    for (x, y) in path:
+        probe.x, probe.y = x, y
+        for c in check_ship_terrain_contact(probe, phen):
+            pid = getattr(c.get("phenomenon"), "id", None)
+            if pid and pid not in done:
+                done.add(pid)
+                new.append(pid)
+        for p in phen:
+            if "planet" in p.phenomenon_type and p.id not in done and \
+                    ((x - p.x) ** 2 + (y - p.y) ** 2) ** 0.5 <= p.radius + ship.base_radius:
+                done.add(p.id)
+                new.append(p.id)
+    if new:
+        sp = dict(sp)
+        sp["surveyed"] = sorted(done)
+        _set(gs, ship.player, sp)
+        gs.add_log(f"[Sub-plot] Expeditionary Group: {ship.name} surveys {len(new)} feature(s)")
+
+
+def _treasure_event(gs, player: int, target) -> None:
+    """A boarding action or hit-and-run raid by `player` on `target`: a
+    sloop / caravel / carrack reveals whether it carries the treasure; the
+    treasure's holder (once known) loses it to the attacker (reading: the
+    attacking player's nearest ship, with launch bays if any, stands for the
+    ship that made the attack)."""
+    for owner in (1, 2):
+        sp = has(gs, owner, "treasure_haul")
+        if not sp or sp.get("holder") != target.id:
+            continue
+        if not (rt_convoy(target) or sp.get("revealed")):
+            continue
+        ships = [s for s in gs.get_ships() if s.player == player and not s.is_destroyed
+                 and not s.is_disengaged]
+        if not ships:
+            continue
+        carriers = [s for s in ships if any(w.get("weapon_type") == "launch_bay"
+                                            for w in s.weapons)]
+        taker = min(carriers or ships, key=target.distance_to)
+        sp = dict(sp)
+        sp["holder"], sp["revealed"] = taker.id, True
+        _set(gs, owner, sp)
+        gs.add_log(f"[Sub-plot] Treasure Haul: the treasure was aboard {target.name}; "
+                   f"{taker.name} takes it")
+
+
+def treasure_controller(gs, sp: Dict) -> Optional[int]:
+    """Who controls the treasure at the end: the player of the ship carrying
+    it; a hulk's goes to the player holding the field; destroyed, lost."""
+    from .victory_points import _holds_field
+    s = gs.get_ship_by_id(sp.get("holder", ""))
+    if s is None or s.is_destroyed:
+        return None
+    if s.status in ("drifting_hulk", "burning_hulk"):
+        for p in (1, 2):
+            if _holds_field(p, gs.get_ships()):
+                return p
+        return None
+    return s.player
+
+
+def vp_bonus(gs, result: Dict) -> None:
+    """Business as Usual victory points: Trooping the Colour doubles what the
+    enemy scores for our sloops / caravels / carracks; Colony Settlement
+    replaces it (boarded or raided to death: the enemy gets their cost;
+    otherwise whoever destroyed it loses their cost); Expeditionary Group +50
+    a surveyed feature; Treasure Haul 1000 to the player controlling it."""
+    for p in (1, 2):
+        enemy = 3 - p
+        for sp in all_for(gs, p):
+            key = sp["key"]
+            if key == "trooping_the_colour":
+                for s in gs.get_ships():
+                    if s.player != p or not rt_convoy(s):
+                        continue
+                    v = s.points_value if s.is_destroyed else (
+                        s.points_value // 4 if s.damage_crippled else 0)
+                    if v:
+                        result[enemy]["scenario"] = result[enemy].get("scenario", 0) + v
+                        result[enemy]["details"].append(f"Trooping the Colour: {s.name} "
+                                                        f"counts double: +{v} VP")
+            elif key == "colony_settlement":
+                raided = set(sp.get("raided", []))
+                for s in gs.get_ships():
+                    if s.player != p or not rt_convoy(s) or not s.is_destroyed:
+                        continue
+                    if s.id in raided:
+                        result[enemy]["scenario"] = result[enemy].get("scenario", 0) + s.points_value
+                        result[enemy]["details"].append(f"Colony Settlement: {s.name} taken "
+                                                        f"by boarding / raid: +{s.points_value}")
+                        continue
+                    by = next((c["by"] for c in getattr(gs, "kill_credit", []) or []
+                               if c["target"] == s.id and c["kind"] == "destroyed"), None)
+                    shooter = gs.get_ship_by_id(by) if by else None
+                    if shooter is not None:
+                        q = shooter.player
+                        result[q]["scenario"] = result[q].get("scenario", 0) - s.points_value
+                        result[q]["details"].append(f"Colony Settlement: {s.name} destroyed: "
+                                                    f"-{s.points_value} VP")
+            elif key == "expeditionary_group":
+                n = len(sp.get("surveyed", []))
+                if n:
+                    result[p]["scenario"] = result[p].get("scenario", 0) + 50 * n
+                    result[p]["details"].append(f"Expeditionary Group: {n} feature(s) "
+                                                f"surveyed: +{50 * n} VP")
+            elif key == "treasure_haul":
+                q = treasure_controller(gs, sp)
+                if q:
+                    result[q]["scenario"] = result[q].get("scenario", 0) + 1000
+                    result[q]["details"].append("Treasure Haul: the treasure: +1000 VP")
+
+
+def scores_normally(gs, ship) -> bool:
+    """Colony Settlement's sloops, caravels and carracks are scored only by
+    `vp_bonus`."""
+    return not (rt_convoy(ship) and has(gs, ship.player, "colony_settlement"))
 
 
 def _contradicts(imp: int, side: int) -> bool:
@@ -348,8 +673,8 @@ def orders_forbidden(gs, ship) -> Optional[str]:
     """Surprise Attack!: the enemy of the player who rolled it can't go on
     special orders for the first D3 turns (reading: game turns, both players'
     turns counted together, so turn_number up to 2 x D3)."""
-    sp = get(gs, 3 - ship.player)
-    if sp and sp["key"] == "surprise_attack":
+    sp = has(gs, 3 - ship.player, "surprise_attack")
+    if sp:
         limit = 2 * sp.get("turns", 1)
         if getattr(gs, "turn_system", "igougo") == "aa":
             limit = sp.get("turns", 1)
@@ -362,10 +687,8 @@ def record_boarding(gs, player: int, target, dice) -> None:
     """A boarding action launched by `player` against `target`: Enemy Plans
     (a capital ship, D6 +1 against the fleet commander's ship, 4+: the plans
     are found) and Secret Intelligence (the nominated ship boarded)."""
-    sp = get(gs, player)
-    if not sp:
-        return
-    if sp["key"] == "enemy_plans" and target.ship_type != "escort" and not sp.get("done"):
+    sp = has(gs, player, "enemy_plans")
+    if sp and target.ship_type != "escort" and not sp.get("done"):
         r = dice.roll_d6(1, "Enemy Plans: search the enemy ship") + \
             [1 if target.is_flagship else 0]
         if sum(r) >= 4:
@@ -378,11 +701,17 @@ def record_boarding(gs, player: int, target, dice) -> None:
 def record_raid(gs, player: int, target) -> None:
     """A boarding action or hit-and-run attack on `target` (Secret
     Intelligence: the informant extracted)."""
-    sp = get(gs, player)
-    if sp and sp["key"] == "secret_intelligence" and sp.get("target") == target.id:
+    sp = has(gs, player, "secret_intelligence")
+    if sp and sp.get("target") == target.id:
         sp["done"] = True
         _set(gs, player, sp)
         gs.add_log(f"[Sub-plot] Secret Intelligence: player {player} extracts the informant")
+    col = has(gs, target.player, "colony_settlement")
+    if col and rt_convoy(target):
+        col = dict(col)
+        col["raided"] = sorted(set(col.get("raided", [])) | {target.id})
+        _set(gs, target.player, col)
+    _treasure_event(gs, player, target)
 
 
 # --- AI: what a ship is worth to the sub-plots ------------------------------------
@@ -407,8 +736,14 @@ def kill_bonus_vp(gs, ship) -> float:
             v += SUBPLOT_WEIGHT * total
         if key in ("desperate_mission", "experimental_ship") and sp.get("ship") == ship.id:
             v += SUBPLOT_WEIGHT * total
-        if key == "fleet_experience" and ship.is_flagship and str(ship.player) == p:
+        if key == "fleet_experience" and ship.is_flagship and str(ship.player) == p.split(":")[0]:
             v += SUBPLOT_WEIGHT * total
+        if key == "trooping_the_colour" and rt_convoy(ship) and str(ship.player) == p.split(":")[0]:
+            v += ship.points_value              # they count double
+        if key == "colony_settlement" and rt_convoy(ship) and str(ship.player) == p.split(":")[0]:
+            v -= 2.0 * ship.points_value        # destroying one costs the shooter its cost
+        if key == "treasure_haul" and sp.get("holder") == ship.id and sp.get("revealed"):
+            v += 0.5 * 1000                     # judgement: losing it with the ship
         if key == "unexpected_help" and ship.id in sp.get("ships", []):
             # the objective needs one of them to survive: shared out (judgement)
             v += SUBPLOT_WEIGHT * total / max(1, len(sp.get("ships", [])))
@@ -421,10 +756,10 @@ def _lost(ship) -> bool:
     return ship.is_destroyed or ship.damage_crippled
 
 
-def objective_met(gs, player: int, won: bool) -> Optional[bool]:
+def objective_met(gs, player: int, won: bool, sp: Optional[Dict] = None) -> Optional[bool]:
     """Whether `player`'s sub-plot objective is met at the end of the game
-    (None: no sub-plot)."""
-    sp = get(gs, player)
+    (None: no sub-plot). `sp`: one of its sub-plots (default the rolled one)."""
+    sp = sp or get(gs, player)
     if not sp:
         return None
     key = sp["key"]
@@ -435,6 +770,9 @@ def objective_met(gs, player: int, won: bool) -> Optional[bool]:
     if key == "gunnery_practice":
         return all(s.hits_remaining < s.hits_max or s.is_destroyed
                    for s in capital_ships(gs, 3 - player))
+    if key == "extended_duty" and sp.get("vc") == "count":
+        # Quest for Knowledge: more enemy ships crippled / destroyed than ours
+        return sum(1 for s in theirs if _lost(s)) > sum(1 for s in mine if _lost(s))
     if key == "extended_duty":
         return _points_lost(theirs) > _points_lost(mine)
     if key == "blood_bond":
@@ -468,7 +806,9 @@ def objective_met(gs, player: int, won: bool) -> Optional[bool]:
     if key == "unexpected_help":
         return any(not _lost(by_id[i]) and not by_id[i].is_disengaged
                    for i in sp.get("ships", []) if i in by_id)
-    if key in ("experimental_ship", "desperate_mission"):
+    if key in BUSINESS_KEYS:
+        return _business_met(gs, player, sp, mine, theirs)
+    if key in ("experimental_ship", "desperate_mission", "mech_experimental"):
         s = by_id.get(sp.get("ship"))
         return bool(s and not _lost(s))
     if key == "hit_and_run":
@@ -476,6 +816,40 @@ def objective_met(gs, player: int, won: bool) -> Optional[bool]:
             else gs.turn_number
         return won and game_turn <= sp.get("turns", 0)
     return False          # Decoy: not judged (see UNBUILT)
+
+
+def _business_met(gs, player: int, sp: Dict, mine, theirs) -> bool:
+    from .scenarios import transport
+    from .victory_points import _holds_field
+    key = sp["key"]
+    convoy = [s for s in mine if rt_convoy(s)]
+    if key == "trooping_the_colour":
+        alive = any(not s.is_destroyed and not (s.ship_type != "escort" and s.damage_crippled)
+                    for s in convoy)
+        scored = sum(2 * (s.points_value if s.is_destroyed else
+                          (s.points_value // 4 if s.damage_crippled else 0)) for s in convoy)
+        limit = sum(s.points_value for s in theirs)
+        return alive and scored <= 0.1 * limit
+    if key == "punitive_strike":
+        left = sum(transport(s, building=True) for s in mine if not s.is_destroyed
+                   and any(r.startswith("transport:") for r in s.special_rules))
+        return left * 2 >= sp.get("capacity", 0)
+    if key == "colony_settlement":
+        return any(not s.is_destroyed for s in convoy) and \
+            not _holds_field(3 - player, gs.get_ships())
+    if key == "reclamation_crusade":
+        ids = {s.id for s in convoy}
+        killed = [gs.get_ship_by_id(c["target"]) for c in getattr(gs, "kill_credit", []) or []
+                  if c["by"] in ids and c["kind"] == "destroyed"]
+        killed = [k for k in killed if k is not None]
+        return any(k.ship_type != "escort" for k in killed) or \
+            sum(1 for k in killed if k.ship_type == "escort") >= 6
+    if key == "expeditionary_group":
+        n = len(gs.get_phenomena())
+        return n > 0 and len(sp.get("surveyed", [])) * 2 >= n
+    if key == "treasure_haul":
+        return treasure_controller(gs, sp) == player
+    return False
 
 
 def _points_lost(ships) -> float:
@@ -492,11 +866,12 @@ RESULTS = {(True, True): "Heroic Victory!", (True, False): "Victory!",
 def battle_result(gs, player: int, winner: Optional[int]) -> Optional[Dict]:
     """The player's battle result with a sub-plot (p.80): main mission (the
     scenario won; reading: a draw is not a win) and sub-plot, with renown."""
-    sp = get(gs, player)
-    if not sp:
+    sps = all_for(gs, player)
+    if not sps:
         return None
     won = winner == player
-    met = bool(objective_met(gs, player, won))
-    renown = sp["renown"][0] if met else sp["renown"][1]
-    return {"sub_plot": sp["name"], "objective": met, "result": RESULTS[(won, met)],
-            "renown": renown}
+    mets = [bool(objective_met(gs, player, won, sp)) for sp in sps]
+    met = all(mets)          # reading: a heroic result needs every sub-plot met
+    renown = sum(sp["renown"][0] if m else sp["renown"][1] for sp, m in zip(sps, mets))
+    return {"sub_plot": " + ".join(sp["name"] for sp in sps), "objective": met,
+            "result": RESULTS[(won, met)], "renown": renown}

@@ -453,6 +453,18 @@ def torpedo_may_attack(marker: OrdnanceMarker, ship: Ship,
     return last is None or game_state.turn_number - last >= 2
 
 
+def turret_dice(dice, ship: Ship, n: int, need: int, label: str) -> List[int]:
+    """Roll a ship's turret dice; a Mechanicus Experimental Ship with the
+    "re-roll missed turret hits" improvement re-rolls the misses."""
+    rolls = dice.roll_d6(n, label)
+    if "turret_reroll" in (ship.special_rules or []):
+        misses = [r for r in rolls if r < need]
+        if misses:
+            again = dice.roll_d6(len(misses), f"{ship.name} re-rolls missed turret hits")
+            rolls = [r for r in rolls if r >= need] + list(again)
+    return rolls
+
+
 def turret_hit_on(ship: Ship, marker=None) -> int:
     """Turrets hit ordnance on 4+ (s.28); Ork turrets on 5+ (Xenos, Turret
     Defences). Eldar (MMS p.4): their turrets +1 to hit; Eldar ordnance is
@@ -574,7 +586,8 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
 
     if turrets > 0:
         need = turret_hit_on(target, marker)
-        turret_rolls = dice.roll_d6(turrets, f"{target.name} turrets vs torpedoes ({need}+)")
+        turret_rolls = turret_dice(dice, target, turrets,
+                                   need, f"{target.name} turrets vs torpedoes ({need}+)")
         turret_kills = sum(1 for d in turret_rolls if d >= need)
         result["turret_kills"] = turret_kills
         result["remaining_strength"] = max(0, marker.strength - turret_kills)
@@ -726,8 +739,8 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
 
     if turrets > 0:
         need = turret_hit_on(ship, marker)
-        turret_rolls = dice.roll_d6(
-            turrets, f"{ship.name} turrets vs mine (any {need}+ reduces to 4D6)")
+        turret_rolls = turret_dice(
+            dice, ship, turrets, need, f"{ship.name} turrets vs mine (any {need}+ reduces to 4D6)")
         mark_turrets_used(ship, "torp", game_state)
         if any(r >= need for r in turret_rolls):
             attack_dice = 4
@@ -785,8 +798,8 @@ def resolve_bomber_interception(bomber_count: int,
                                      f"torpedoes / mines this phase: no shots at the attack craft"]}
 
     need = turret_hit_on(target, marker)
-    rolls = dice.roll_d6(
-        turrets,
+    rolls = turret_dice(
+        dice, target, turrets, need,
         f"Phase 1 interception: {target.name} vs {bomber_count} attack craft ({need}+)")
     kills = min(sum(1 for r in rolls if r >= need), bomber_count)
 

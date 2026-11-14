@@ -3002,6 +3002,10 @@ class AIPlayer:
                                               gs.get_blast_markers(), gs.ships).get("clear", True)),
                          key=ship.distance_to)
         cv = visible[0] if visible else None
+        from .subplots import punitive_target
+        pt = punitive_target(gs, ship, valid)
+        if pt is not None:
+            cv = pt                           # Punitive Strike: must target it, or test
         if cv is None or wanted.id == cv.id or not any(v.id == cv.id for v in valid):
             return wanted                     # the closest isn't a target for this weapon
         from .planet_scenarios import priority_free

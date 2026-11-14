@@ -611,8 +611,9 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
             extra_hits = sum(1 for d in result.reroll_dice if d >= need)
             result.hits += extra_hits
 
-    if weapon.get("particle_whip"):
-        # 6s bypass shields and holofields (anything but Brace)
+    if weapon.get("particle_whip") or weapon.get("shield_bypass_6"):
+        # 6s bypass shields and holofields (anything but Brace); also a
+        # Mechanicus Experimental Ship's dorsal / prow lances
         result.bypass_hits = sum(1 for d in list(result.dice_rolled) + list(result.reroll_dice)
                                  if d == 6)
     result.hits -= _holofield(attacker, target, result.hits - getattr(result, "bypass_hits", 0),

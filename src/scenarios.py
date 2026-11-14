@@ -1020,6 +1020,9 @@ def cargo_on_table(gs, player: int) -> float:
 def scores_normally(gs, ship) -> bool:
     """False for ships the scenario scores itself (vp_bonus): Convoy's convoy
     ships."""
+    from .subplots import scores_normally as _sp_scores
+    if not _sp_scores(gs, ship):
+        return False                   # Colony Settlement scores them itself
     if getattr(gs, "scenario_mode", "") == "navigate_storm":
         # Ships evacuated via the exit point don't count towards the attacker
         from .navigate_storm import evacuated
@@ -1708,6 +1711,8 @@ def vp_bonus(gs, result: Dict) -> None:
     Rescue: the attacker +100% of the defending flagship's cost if it is
     destroyed at the end of the game. Space Assault: 250 to the attacker if
     the space station is destroyed, else 250 to the defender."""
+    from .subplots import vp_bonus as _subplot_vp
+    _subplot_vp(gs, result)            # Business as Usual (Rogue Trader sub-plots)
     if getattr(gs, "scenario_mode", "") == "convoy_matched":
         # Each convoy ship moving off the attacker's long edge (the top) gives
         # the defender 100 VP instead of counting for the attacker; leaving

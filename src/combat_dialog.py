@@ -284,6 +284,16 @@ class _FireDialog:
     def _check_target_priority(self, weapon, target):
         """Enforce target priority; returns the ship that must actually be fired at."""
         cv = self.closest_visible
+        from .subplots import punitive_target
+        pt = punitive_target(self.ctx.gs, self.attacker,
+                             [s for s in self.ctx.gs.get_ships() if not s.is_destroyed
+                              and not s.is_disengaged
+                              and self.attacker.distance_to(s)
+                              <= (weapon_range(self.attacker, weapon) or 999)
+                              and (self.attacker.get_target_arc(s.x, s.y).value
+                                   in weapon.get("arcs", []) or not weapon.get("arcs"))])
+        if pt is not None:
+            cv = pt              # Punitive Strike: must target it unless the test passes
         if not cv or target.id == cv.id:
             return target
         from .planet_scenarios import priority_free

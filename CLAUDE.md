@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1304 pass; all GUI checks pass
+playable). Tests: 1307 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -1152,8 +1152,35 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    protects them). Fresh Captain's objective is judged too: `combat.apply_damage` now
    credits the attacking ship (or the ship that launched the ordnance) with each enemy ship it
    newly cripples or destroys (`GameState.kill_credit`), and the chosen ship must reach its own
-   points (reading: each ship once, at its full points). Not built (flagged `unbuilt` when
-   rolled): the Decoy (hidden identity); faction sub-plots. AI, first form: `subplots.kill_bonus_vp` (a
+   points (reading: each ship once, at its full points). Faction sub-plots built
+   (`subplots.faction_subplot`, rolled after the main one in `GamePanel._roll_subplots` and
+   kept in its own slot, `gs.subplots["<p>:faction"]`; `all_for` / `has` read every sub-plot
+   of a player; the battle result needs every one met, reading, and sums the renown): an
+   Adeptus Mechanicus fleet (reading: main faction, ships don't carry their list) the Quest
+   for Knowledge (Extended Duty counting ships, Xenos Logic Engine as Meteor Storm, Sacred
+   Vessel as Desperate Mission, The Prize as Vendetta, all on Mechanicus ships; its own
+   Experimental Ship tables, `_mech_experiment`: +15cm range, +1 shield, turret re-rolls
+   (`ordnance.turret_dice`), 90-degree turns, an Ld aura vs enemies on orders
+   (`mech_ld_aura` in `do_command_check`), dorsal / prow lances bypassing shields on a 6;
+   firepower halved, -2 hits, -2 turrets, +5cm turning distance, -5cm speed, those lances
+   hitting only on a 6; lance results re-rolled without such lances; Mimic Drive is the
+   unbuilt Decoy); a fleet with Rogue Trader convoy ships the Business as Usual table, unless
+   the scenario scores its convoy ships (`rt_convoy`: sloops, caravels, carracks): Trooping
+   the Colour (their VP doubled, `vp_bonus`; the objective), Punitive Strike (enemy direct
+   fire must target the nearest of them unless it passes target priority,
+   `punitive_target` in the AI's `_enforce_target_priority` and the Fire dialog), Colony
+   Settlement (scored only by `vp_bonus`: boarded or raided to death the enemy gets their
+   cost, otherwise whoever destroyed it loses it, from the kill credit), Reclamation Crusade
+   (their guns to 30cm; kills from the kill credit), Expeditionary Group (`record_survey`
+   from `movement.execute_movement`: features touched along the move, +50 VP each), Treasure
+   Haul (a hidden holder; a boarding or raid on it passes the treasure to the attacker's
+   nearest ship, with launch bays if any, reading; 1000 VP to whoever controls it, a hulk's
+   to the player holding the field); an Ordo Malleus fleet with an Inquisitor Lord a Secret
+   Ploys sub-plot. AI: kill bonuses (Trooping +points, Colony -2 x points, a revealed
+   treasure, Unexpected Help); not yet: moving to survey features, the treasure's play. Not
+   built (flagged `unbuilt` when rolled): the Decoy / Mimic Drive (hidden identity), the
+   Inquisition's swap of a sub-plot for Vendetta / Desperate Mission against Chaos, one
+   Secret Ploys per Ordo with Inquisitors (the Inquisitors aren't built). AI, first form: `subplots.kill_bonus_vp` (a
    Vendetta target, our Desperate Mission / Experimental Ship, a Fleet Experience flagship:
    `SUBPLOT_WEIGHT` 0.1 x the points on the table, judgement) through
    `scenarios.kill_bonus_vp` into `damage_vp` and `disengage_gain`
@@ -1396,8 +1423,8 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
    also `gui_spectator_domination.py`). Still to build (largest first): the campaign set pieces (Defence of Pelucidar, Macharia's End,
    Craftworld Assault) and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
-   the sub-plots (the Decoy, faction sub-plots) and their AI beyond
-   kill bonuses.
+   the sub-plots (the Decoy / Mimic Drive) and their AI beyond kill
+   bonuses.
    Smaller gaps: racing Domination's 10 against the turn order; reinforcements entering along
    the long edges after turn 1 and choosing them / The Bait's pursued unit / Surprise Attack's
    full-alert units in the set-up dialogs; Alien Intervention's drifting hulk; alternating

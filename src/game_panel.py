@@ -1194,6 +1194,13 @@ class GamePanel(AAPanelMixin):
                                   [(c.name, c) for c in cands], best)
             for line in apply_setup(gs, p, sp, dice, chooser):
                 self.ctx.log(f"[Sub-plot] {line}")
+            # a faction sub-plot on top (Quest for Knowledge, Business as
+            # Usual, an Inquisitor Lord's Secret Ploys)
+            from .subplots import faction_subplot
+            extra = faction_subplot(gs, p, dice)
+            if extra is not None:
+                for line in apply_setup(gs, p, extra, dice, chooser):
+                    self.ctx.log(f"[Sub-plot] {line}")
         self.ctx.board.redraw()
 
     def _begin_turn1(self):
