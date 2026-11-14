@@ -3,7 +3,8 @@
 "standard": the XR rules. "modern": Optional: Modern Blast Markers (intervening
 blasts, overlapping bases). "remastered": Remastered Blast Markers (the modern
 rules plus whole-base contact and a firing ship in contact shifting right).
-The spill-over limit isn't modelled. The game sets the mode from
+Remastered's spill-over limit is its own Advanced checkbox
+(GameState.rule_remastered_spillover, combat._place_shield_impacts). The game sets the mode from
 GameState.blast_marker_rules (TurnController, the settings dialog); the engine
 reads it here because gunnery and ordnance code don't always see the game state.
 """

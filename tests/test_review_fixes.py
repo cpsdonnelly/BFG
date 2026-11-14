@@ -74,3 +74,31 @@ def test_transient_scratch_cleared_on_restore():
     gs.brace_hook = print
     gs.clear_transient()
     assert "_zzapp_blast" not in vars(gs) and gs.brace_hook is print
+
+
+def test_expected_hits_over_a_random_firepower():
+    from src.combat import expected_hits, dice_distribution, dice_value_mean
+    from src.tables import lookup_gunnery_dice, get_gunnery_column
+    assert dice_value_mean("D6+1") == 4.5
+    assert abs(sum(p for _v, p in dice_distribution("2D6")) - 1.0) < 1e-9
+    a = make_ship(id="a", player=1, x=0, y=0, heading=0)
+    t = make_ship(id="b", player=2, x=20, y=0, heading=180)      # closing, 6+ prow facing a
+    gun = {"name": "Gunz", "weapon_type": "battery", "strength": 4, "strength_dice": "D6+1",
+           "arcs": ["front"], "range": 30}
+    want = sum(lookup_gunnery_dice(v, get_gunnery_column("capital", "closing"), 0)
+               for v in range(2, 8)) / 6 * (7 - t.armor_vs(0, 0)) / 6
+    assert abs(expected_hits(a, gun, t) - want) < 1e-9
+    lance = {"name": "Zzapp", "weapon_type": "lance", "strength": 2, "strength_dice": "D3",
+             "hits_on": 5, "arcs": ["front"], "range": 30}
+    assert abs(expected_hits(a, lance, t) - 2.0 * 2 / 6) < 1e-9
+
+
+def test_crit_on_4_weapons_worth_more_as_targets_choice():
+    from src.ai_hazards import shot_vp
+    a = make_ship(id="a", player=1, x=0, y=0, heading=0)
+    t = make_ship(id="b", player=2, x=20, y=0, heading=90, shields_max=0, points_value=180)
+    gs = make_gs([a, t])
+    plain = {"name": "Batteries", "weapon_type": "battery", "strength": 6, "arcs": ["front"],
+             "range": 30, "hits_on": 4}
+    bc = dict(plain, name="Bombardment Cannon", crit_on=4)
+    assert shot_vp(a, bc, t, gs) > shot_vp(a, plain, t, gs)

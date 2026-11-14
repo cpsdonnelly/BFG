@@ -43,7 +43,10 @@ class GameState:
     # Turn limit and scenario settings
     turn_limit: Optional[int] = None           # None = unlimited turns
     ftl_available_turn: Optional[int] = None   # None = FTL always available
-    scenario_mode: str = "standard"            # standard | kill_admiral | destroy_ship | capture_artefact
+    # "standard", the old generic modes (kill_admiral | destroy_ship |
+    # protect_ship | capture_artefact, scenario.py) or a booklet scenario key
+    # (scenarios.SCENARIOS: domination, cruiser_clash, pelucidar, ...)
+    scenario_mode: str = "standard"
     scenario_attacker: int = 1                 # player who is "attacker" in asymmetric modes
     attacker_by_rating: bool = False           # booklet scenarios: roll attack ratings (p.78)
     objective_ship_id: Optional[str] = None    # target ship for destroy/protect modes

@@ -59,8 +59,10 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
                 continue
             if not check_los_clear(enemy, target, phenomena, blast_markers).get("clear", True):
                 continue
-            armor_num = target.armor_vs(enemy.x, enemy.y)
-            expected = weapon.get("strength", 1) * max(0.0, (7 - armor_num) / 6.0)
+            # the engine's estimate: the Gunnery table for batteries, lances'
+            # own roll, hits_on (bombardment cannons / killkannons), random values
+            from .combat import expected_hits
+            expected = expected_hits(enemy, weapon, target, gs)
             future_hull += max(0.0, expected - shields_left)
             shields_left = max(0.0, shields_left - expected)
     return current_hull + future_hull

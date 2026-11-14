@@ -499,7 +499,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1334 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1344 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2308,24 +2308,36 @@ Done: To do 2, 3, 6; most of 7.
    complex / pylon / Deathseed rules and their craft, the Necron crit table, Without a
    Trace (auto-disengage, firing at own hulks), the AI, then the Eldar gaps above.
 
-15. Rules bugs found by the code review (`docs/CODE_REVIEW_PLAN.md` section 3; fix each with a
-   test; check the "[reported]" ones against the code first):
-   - raid crits (`hit_and_run._apply_raid_crit`): one shared crit-effect function with
-     `combat.roll_critical_hit` (Bridge Smashed -3 Ld / Demiurg, Necron `ld_loss`, Infinity
-     Circuit, Holofield);
-   - `raid_crit_preview`: use `crit_table_for(target)`;
-   - the sunward edge: one source on `gs` (`eldar._SUNWARD` goes stale);
-   - game rolls through `DiceRoller` (daemon mines, Fleet Engagement's formations), marker ids
-     from a counter;
-   - reported: the crit slot tests (`Ship.has_armament_slot` vs `weapon_in_crit_slot`),
-     Meteor Storm at 0 hits, `add_fire_crits`' stale list, the Kustom Kannon copy in AI
-     shooting, `gs.__dict__` state leaking across load / undo, `GameState.save`'s hand list,
-     `optional_rules.set_ship_source` binding the live state;
-   - AI values: random values by their exact mean (4.5, not 4) and expected hits over the
-     dice outcomes, crits on 4+ in target values, `_brace_hull_hits` on the Gunnery table;
-   - docstrings: `_zzapp_firepower` / `weapon_fire_pool` (only zzapp guns with random
-     firepower are rolled; the Onslaught's fixed FP1 zzapp gun option is a To do 9 swap),
-     optional_rules' spill-over note, `GameState.scenario_mode`'s list.
+15. Rules bugs found by the code review (`docs/CODE_REVIEW_PLAN.md` section 3). Done
+   (`tests/test_review_fixes.py`):
+   - raid and boarding crits share `combat.apply_crit_effects` with `roll_critical_hit`
+     (Bridge Smashed -3 Ld / Demiurg, Necron `ld_loss`, Infinity Circuit, Holofield; raids
+     on Necrons and Eldar hit those results);
+   - `raid_crit_preview` / `describe_raid_result` use the engine's cascade on the target's
+     own table; the cascade's log no longer raises on a gap in a sparse table;
+   - `optional_rules.set_sunward` passes the edge to `eldar` (in-game changes left Eldar
+     speeds stale);
+   - the daemon mine D6 goes through `DiceRoller` (`move_ordnance(..., dice)`); marker ids
+     come from `GameState.next_serial` (random 0-9999 could collide);
+   - `Ship.has_armament_slot` uses `weapon_in_crit_slot`, so a crit that would disable
+     nothing cascades (a dorsal L/F/R weapon counted as a prow slot);
+   - Meteor Storm reducing a ship to 0 destroys it before the battle (reading, owner
+     question); `add_fire_crits` appends to the stored list;
+   - `GameState.save` writes every field; `clear_transient` drops underscore scratch on
+     restore, snapshot load and phase undo;
+   - AI values: `combat.expected_hits` averages over a random value's outcomes
+     (`dice_distribution`, `dice_value_mean`); `_brace_hull_hits` uses it; `shot_vp` credits
+     crits on 4+ (`CRIT_VP_PER_HIT` 1.0, judgement);
+   - docstrings: zzapp gunz, `weapon_fire_pool`, optional_rules' spill-over, scenario modes,
+     the repair priority list.
+   Not changed, on purpose: the AI chooses its target before a random weapon is rolled and
+   doesn't re-pick after (owner ruling: rolled when the weapon fires, after the target is
+   chosen and may brace); the Kustom Kannon "stale copy" in AI shooting was never written
+   back (kept in step anyway). Left: `optional_rules.set_ship_source` binding the live
+   state (harmless while the expert's sim doesn't use a GameState; revisit in To do 18),
+   Fleet Engagement's AI formation pick by `random` (an AI choice: seeded with the AI's
+   choices in To do 17), the ~8 "0.35 per point" estimates still reading the truncated
+   average (To do 18's `mount_expected_hits`).
 16. Performance and a headless runner (plan section 2): cache `ship_bracket_raw` /
    `bracket_matchup` per phase; arc tests on (x, y, heading) without Ship copies; a per-phase
    snapshot for the move score's terms and one hits matrix for the focus loops; later cheaper

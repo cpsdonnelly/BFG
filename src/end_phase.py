@@ -115,9 +115,11 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
         # Auto mode: the repairs worth most expected VP (To do 11 e,
         # ai_hazards.repair_value); the fixed priority (fire first, then
         # engine, then the rest) breaks ties and is the fallback
+        # (repairable crits only: Shields Collapse and Bridge Smashed can't be
+        # repaired, so they aren't listed)
         priority = ["fire", "engine_room", "thrusters_damaged",
-                     "shields_collapse", "dorsal_armament", "port_armament",
-                     "starboard_armament", "prow_armament", "bridge_smashed"]
+                    "dorsal_armament", "port_armament",
+                    "starboard_armament", "prow_armament"]
         from .ai_hazards import repair_value
         vals = {id(c): repair_value(ship, c, gs) for c in ship.critical_damage
                 if c.get("repairable", False)}

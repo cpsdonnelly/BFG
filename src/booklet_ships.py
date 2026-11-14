@@ -297,7 +297,10 @@ def _convert_weapon(w: dict, craft_map: Dict[str, str],
     if strength is None and wtype in ("battery", "lance", "torpedo"):
         from .combat import is_dice_value, dice_value_average
         if is_dice_value(w.get("value") or ""):
-            # Owner ruling: random Ork values are rolled when used
+            # Owner ruling: values printed as dice (a few Ork weapons) are rolled
+            # when used; "strength" holds their average, rounded down, for
+            # labels and integer estimates (launch bays hold their maximum, the
+            # cap on launches; the AI's expected hits use the dice outcomes)
             strength_dice = w["value"].replace(" ", "").upper()
             strength = dice_value_average(strength_dice)
     if wtype != "nova_cannon" and strength is None:

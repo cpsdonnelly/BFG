@@ -183,6 +183,28 @@ def dice_value_average(text: str) -> int:
     return int((int(n or 1) * (int(sides) + 1) / 2) + int(add or 0))
 
 
+def dice_distribution(text: str) -> List[Tuple[int, float]]:
+    """Every value of a dice expression with its probability, e.g. "D6+1" ->
+    [(2, 1/6) ... (7, 1/6)]. A D3 is a D6 halved, rounding up."""
+    n, sides, add = _DICE_EXPR.match(text.replace(" ", "").upper()).groups()
+    n, add = int(n or 1), int(add or 0)
+    faces = [1, 2, 3] if sides == "3" else [1, 2, 3, 4, 5, 6]
+    dist = {0: 1.0}
+    for _ in range(n):
+        nxt: Dict[int, float] = {}
+        for total, p in dist.items():
+            for f in faces:
+                nxt[total + f] = nxt.get(total + f, 0.0) + p / len(faces)
+        dist = nxt
+    return [(max(0, t + add), p) for t, p in sorted(dist.items())]
+
+
+def dice_value_mean(text: str) -> float:
+    """The exact average of a dice value (D6+1 = 4.5; `dice_value_average`
+    rounds down for labels and integer stats)."""
+    return sum(v * p for v, p in dice_distribution(text))
+
+
 def dice_value_max(text: str) -> int:
     n, sides, add = _DICE_EXPR.match(text.replace(" ", "").upper()).groups()
     return int(n or 1) * int(sides) + int(add or 0)
@@ -201,9 +223,11 @@ def roll_dice_value(text: str, dice: DiceRoller, label: str = "") -> int:
 
 
 def _zzapp_firepower(attacker: Ship, weapon: Dict, dice: DiceRoller, gs) -> int:
-    """Zzapp Gunz' random firepower (Ork weapons): rolled with D6s so the
-    actual dice are seen (a D3 is a D6 halved, rounding up); a 1 on any of
-    them puts a blast marker in contact with the ship's rear arc, once a turn."""
+    """The firepower of a zzapp gun printed with dice (only those: a zzapp gun
+    with a fixed value, e.g. the Onslaught option's FP1, isn't rolled):
+    rolled with D6s so the actual dice are seen (a D3 is a D6 halved,
+    rounding up); a 1 on any of them puts a blast marker in contact with the
+    ship's rear arc, once a turn."""
     n, sides, add = _DICE_EXPR.match(weapon["strength_dice"].replace(" ", "").upper()).groups()
     raw = dice.roll_d6(int(n or 1), f"{attacker.name} {weapon['name']} ({weapon['strength_dice']})")
     total = sum(raw) if sides == "6" else sum((r + 1) // 2 for r in raw)
@@ -225,7 +249,8 @@ def weapon_fire_pool(attacker: Ship, weapon: Dict, w_idx: int, target_dist: floa
     target_dist away: (pool, range_mode, error).
 
     The first shot of the turn fixes the pool:
-      - random values (strength_dice, e.g. Gunz FP D6+1) are rolled now, when
+      - random values (strength_dice: the few weapons printed with dice, e.g.
+        an Onslaught's Gunz FP D6+1; most Gunz are fixed) are rolled now, when
         the weapon is used (owner ruling);
       - Heavy Gunz use their bracketed value within 15cm, else the first value.
     Later shots (split fire) use what is left in attacker.weapons_remaining.
@@ -853,13 +878,19 @@ def expected_hits(attacker: Ship, weapon: Dict, target: Ship, gs=None) -> float:
     whether to brace before the attack is rolled, and the AI's targeting).
     With the game state, batteries take their column shifts (range, blast
     markers / dust in the line of fire or in contact, s.11 / s.13); lances
-    don't use the gunnery table, so blast markers don't affect them."""
+    don't use the gunnery table, so blast markers don't affect them. A random
+    value (strength_dice, e.g. Gunz FP D6+6) isn't known until the weapon
+    fires (owner ruling), so it counts the expected hits over every outcome:
+    the Gunnery table isn't linear, so that isn't the hits at the average."""
     wtype = weapon.get("weapon_type", "")
+    dice_text = weapon.get("strength_dice")
+    outcomes = (dice_distribution(dice_text) if dice_text and is_dice_value(dice_text)
+                else [(weapon.get("strength", 0), 1.0)])
     if wtype == "lance":
-        return weapon.get("strength", 0) * (7 - (weapon.get("hits_on") or 4)) / 6.0
+        p_hit = (7 - (weapon.get("hits_on") or 4)) / 6.0
+        return sum(v * p for v, p in outcomes) * p_hit
     if wtype != "battery":
         return 0.0
-    fp = effective_battery_firepower(attacker, weapon, target)
     column = get_gunnery_column(gunnery_target_type(target),
                                 _battery_orientation(attacker, target, weapon,
                                                      gunnery_target_type(target)))
@@ -867,9 +898,12 @@ def expected_hits(attacker: Ship, weapon: Dict, target: Ship, gs=None) -> float:
     if gs is not None:
         shifts = get_column_shifts(attacker, target, gs.get_blast_markers(),
                                    gs.get_phenomena(), gs.get_ships(), weapon)
-    n = lookup_gunnery_dice(fp, column, shifts)
     need = weapon.get("hits_on") or target.armor_vs(attacker.x, attacker.y)
-    return n * max(0, 7 - need) / 6
+    total = 0.0
+    for v, p in outcomes:
+        fp = effective_battery_firepower(attacker, {**weapon, "strength": v}, target)
+        total += p * lookup_gunnery_dice(fp, column, shifts)
+    return total * max(0, 7 - need) / 6
 
 
 def apply_damage(target: Ship, hits: int, dice: DiceRoller, game_state: GameState,

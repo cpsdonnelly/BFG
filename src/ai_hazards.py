@@ -586,8 +586,19 @@ def shot_vp(attacker: Ship, weapon: dict, target: Ship, gs, committed: float = 0
     # shields knocked down open the target to the rest of the fleet's fire
     shield_hits = min(raw, max(0.0, shields - committed))
     alive = 1.0 - poisson_at_least(before, max(1, target.hits_remaining))
+    # Bombardment cannons / killkannons crit on 4+ (crit_on): the extra crits
+    # over the usual 6+ per hull hit, each worth CRIT_VP_PER_HIT hits
+    # (judgement), on ships that use a critical hits table
+    crit_on = weapon.get("crit_on", 6)
+    crit_extra = 0.0
+    if crit_on < 6 and target.ship_type != "escort":
+        crit_extra = ((after - before) * ((7 - crit_on) / 6.0 - 1 / 6.0)
+                      * CRIT_VP_PER_HIT * value_per_hit(target, gs) * alive)
     return (damage_vp(target, gs, after) - damage_vp(target, gs, before)
-            + shield_hits * value_per_hit(target, gs) * 0.1 * alive)
+            + shield_hits * value_per_hit(target, gs) * 0.1 * alive + crit_extra)
+
+
+CRIT_VP_PER_HIT = 1.0   # judgement: a crit ~ a hit (the table averages ~0.6 extra damage + its effect)
 
 
 def intercept_gain(gs, player: int, target: OrdnanceMarker, already: int = 0) -> float:
