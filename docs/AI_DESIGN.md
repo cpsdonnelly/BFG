@@ -484,7 +484,7 @@ the current AI, whose normal and expert players and weights stay as they are.
   wins the game, the defender's ships count keeping the field).
 - **Turn limit** (Built: the expert search's horizon and risk preference, and the normal AI's
   disengaging, re-rolls, brace and strikes, To do 2).
-- **Scenarios** (Built for 21 booklet scenarios, To do 7; owner: "Domination was just one
+- **Scenarios** (Built for 22 booklet scenarios, To do 7; owner: "Domination was just one
   example; there are many other scenarios"): each plays its own objectives in expected VP next
   to ship VP. Domination: markers held at the end of our turn, contesting enemy-held ones, a
   pull towards markers within two moves, point goals for the move candidates, the points race
@@ -493,7 +493,8 @@ the current AI, whose normal and expert players and weights stay as they are.
   ships (their capacity value + points) and warships while the 25% points goal is short run
   for the exit point (progress, move goals); the attacker's kill bonus is the capacity; a warp
   rift costs a lost defending ship's value + capacity (`lost_ship_vp`), an attacking ship only
-  0.1 of its value (it comes back). Line Breaker: platforms carry a kill bonus, then capital ships run for the
+  0.1 of its value (it comes back). Destroy the Docks: the stations, dock and inner platforms
+  carry a kill bonus (half the points on the table shared out). Line Breaker: platforms carry a kill bonus, then capital ships run for the
   defender's edge. Chance Encounter: the defender values crippling the attacking flagship
   (half the points on the table), the attacker runs for the far edge. Convoy / Blockade Run:
   convoy ships and blockade runners head for their exit edge and don't take disengage tests.

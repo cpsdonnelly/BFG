@@ -1153,3 +1153,81 @@ def test_navigate_storm_victory():
         gs.update_ship(s)
     end = sc.check_end(gs)
     assert end and end["winner"] == 2 and end["reason"] == "convoy_gone"
+
+
+# --- Destroy the Docks ----------------------------------------------------------------
+
+def _docks_gs():
+    att = [make_ship(id=f"a{i}", player=1, points_value=v) for i, v in
+           enumerate((300, 250, 200, 150))]
+    dfn = [make_ship(id="d1", player=2, points_value=200, speed=20, is_flagship=True),
+           make_ship(id="d2", player=2, points_value=150, speed=30)]
+    gs = _gs(att + dfn, mode="destroy_docks")
+    return gs
+
+
+def test_destroy_docks_setup():
+    from src import destroy_docks as dd
+    gs = _docks_gs()
+    sc.setup_scenario(gs)
+    pl = dd.planet(gs)
+    assert pl.phenomenon_type == "planet_large" and (pl.x, pl.y) == (90.0, 60.0)
+    roles = gs.scenario_state["roles"]
+    assert len(roles["station"]) == 2 and len(roles["dock"]) == 1 \
+        and len(roles["inner"]) == 4 and len(roles["outer"]) == 4 \
+        and len(roles["escort"]) == 2 and len(roles["monitor"]) == 1
+    assert roles["fleet"] == ["d1", "d2"] and sc.is_reserve(gs.get_ship_by_id("d1"))
+    assert gs.get_ship_by_id("d1").rerolls_remaining >= 1
+    assert gs.scenario_state["forces"] == {"left": ["a0", "a3"], "right": ["a1", "a2"]}
+    assert gs.turn_limit == 16 and sc.entry_edge(gs) == "top"
+    # asteroid fields outside the well
+    for p in gs.get_phenomena():
+        if p.phenomenon_type == "asteroid_field":
+            assert math.hypot(p.x - pl.x, p.y - pl.y) - 7.5 > pl.gravity_well_radius
+    st = gs.get_ship_by_id(roles["station"][0])
+    outer = gs.get_ship_by_id(roles["outer"][0])
+    a0 = gs.get_ship_by_id("a0")
+    assert sc.placement_errors(gs, [st], [(90.0, 80.0)], [90.0], []) == []
+    assert sc.placement_errors(gs, [st], [(20.0, 20.0)], [90.0], [])
+    assert sc.placement_errors(gs, [outer], [(20.0, 20.0)], [90.0], []) == []
+    assert sc.placement_errors(gs, [a0], [(5.0, 60.0)], [0.0], []) == []
+    assert sc.placement_errors(gs, [a0], [(175.0, 60.0)], [0.0], [])
+    zone = {z.player: z for z in sc.deployment_zones(gs)}[2]
+    pos = sc.auto_positions(gs, [st], zone, [], 0)
+    assert dd.in_well(gs, *pos[0])
+
+
+def test_destroy_docks_arrivals_mines_and_victory():
+    from src import destroy_docks as dd
+    from src.victory_points import calculate_victory_points
+    gs = _docks_gs()
+    sc.setup_scenario(gs)
+    gs.active_player = 2
+    # d1 (speed 20: 5+) rolls 4, d2 (speed 30: 3+) rolls 3
+    sc.turn_start(gs, DiceStub([4, 3]))
+    assert sc.is_reserve(gs.get_ship_by_id("d1"))
+    d2 = gs.get_ship_by_id("d2")
+    assert not sc.is_reserve(d2) and d2.y > 115
+    assert len([m for m in gs.get_ordnance() if m.id.startswith("orbital_mine_")]) == 8
+    # two failed turns: d1 needs 4+ now
+    sc.turn_start(gs, DiceStub([2]))
+    assert gs.scenario_state["fails"]["d1"] == 2
+    sc.turn_start(gs, DiceStub([4]))
+    assert not sc.is_reserve(gs.get_ship_by_id("d1"))
+    # mines removed give the attacker 5 VP each
+    gs.ordnance = [m for m in gs.ordnance if m["id"] not in ("orbital_mine_0", "orbital_mine_1")]
+    vp = calculate_victory_points(gs)
+    assert vp[1]["scenario"] == 10
+    # the targets all destroyed, but not 25% of the reinforcements (350 -> 87.5)
+    assert dd.winner(gs) == 2
+    for sid in dd.targets(gs):
+        s = gs.get_ship_by_id(sid)
+        s.status = "destroyed"
+        s.hits_remaining = 0
+        gs.update_ship(s)
+    assert dd.winner(gs) == 2
+    d2 = gs.get_ship_by_id("d2")
+    d2.status = "destroyed"
+    d2.hits_remaining = 0
+    gs.update_ship(d2)
+    assert dd.winner(gs) == 1

@@ -82,6 +82,13 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone_or_no_cargo",
         "victory": "navigate_storm",
     },
+    "destroy_docks": {
+        "name": "Destroy the Docks (XR p.99)",
+        "first_turn": "roll_2d6_vs_d6",
+        "end": "fleet_gone",
+        "victory": "destroy_docks",
+        "game_turns": 8,
+    },
     "escalating_engagement": {
         "name": "Escalating Engagement (XR p.107)",
         "first_turn": "roll_off",
@@ -268,7 +275,7 @@ def entry_edge(gs) -> Optional[str]:
     mode = getattr(gs, "scenario_mode", "")
     if mode == "alien_intervention":
         return (gs.scenario_state or {}).get("ally_edge", "top")
-    return {"the_bait": "right", "rearguard": "left"}.get(mode)
+    return {"the_bait": "right", "rearguard": "left", "destroy_docks": "top"}.get(mode)
 
 
 def place_arrival(gs, ships, index: int = 0) -> None:
@@ -308,6 +315,11 @@ def arrivals(gs, player: int, wants=None, dice=None) -> List[str]:
     human's prompt; None or an AI: they all come on at once, judgement).
     Returns the names that arrived."""
     came = []
+    if getattr(gs, "scenario_mode", "") == "destroy_docks":
+        if player != defender(gs):
+            return came
+        from .destroy_docks import arrivals as _docks_arrivals
+        return _docks_arrivals(gs, player, dice)
     if getattr(gs, "scenario_mode", "") == "alien_intervention":
         # The alien fleet comes as one: a D6 from the defender's 2nd turn on
         # (2: 4+, 3: 3+, 4-5: 2+, 6: automatic), the whole fleet from one
@@ -359,6 +371,9 @@ def turn_start(gs, dice=None) -> None:
     its Ld back after its D6 turns of reduced alert (reading: game turns, both
     players' turns)."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "destroy_docks":
+        from .destroy_docks import lay_orbital_mines
+        lay_orbital_mines(gs)
     if entry_edge(gs):
         hook = getattr(gs, "reserve_hook", None)
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
@@ -721,6 +736,9 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 from .dice import DiceRoller
                 dice = DiceRoller(mode="auto")
             resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
+    elif mode == "destroy_docks":
+        from .destroy_docks import setup as _docks_setup
+        _docks_setup(gs, dice)
     elif mode == "navigate_storm":
         from .navigate_storm import setup as _storm_setup
         _storm_setup(gs)
@@ -962,6 +980,9 @@ def force_errors(gs) -> List[str]:
     if mode == "navigate_storm":
         from .navigate_storm import force_errors as _storm_errors
         return _storm_errors(gs)
+    if mode == "destroy_docks":
+        from .destroy_docks import force_errors as _docks_errors
+        return _docks_errors(gs)
     if mode == "line_breaker":
         pts = sum(s.points_value for s in ships)
         need = -(-pts // 200)
@@ -1054,6 +1075,9 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         # the exit point (the right edge's 20cm strip)
         rects = {3 - att_p: [(20, w / 2.0, h / 2.0, 0)],
                  att_p: [(w / 2.0, 20, 10, h / 2.0)]}
+    elif mode == "destroy_docks":
+        from .destroy_docks import zone_rects as _docks_rects
+        rects = _docks_rects(gs)
     elif mode == "escalating_engagement":
         from .escalating import zone_rects
         rects = zone_rects(gs)
@@ -1137,6 +1161,9 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
         return errs
+    if mode == "destroy_docks":
+        from .destroy_docks import placement_errors as _docks_errors
+        return _docks_errors(gs, group, positions)
     if mode == "escalating_engagement":
         from .escalating import placement_errors as _ee_errors
         return _ee_errors(gs, group, positions)
@@ -1298,6 +1325,9 @@ def auto_positions(gs, group, zone, placed, index: int):
     Storm alternates its divisions' corners; Ambush spaces the defender's
     groups 25cm apart."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "destroy_docks":
+        from .destroy_docks import auto_positions as _docks_auto
+        return _docks_auto(gs, group, placed)
     if mode == "escalating_engagement":
         from .escalating import auto_positions as _ee_auto
         return _ee_auto(gs, group, placed)
@@ -1591,6 +1621,16 @@ def vp_bonus(gs, result: Dict) -> None:
                 result[att]["scenario"] = result[att].get("scenario", 0) + vp
                 result[att]["details"].append(f"Blockade Run: {c.name} broke through: +{vp} VP")
         return
+    if getattr(gs, "scenario_mode", "") == "destroy_docks":
+        # Orbital mines give their points when removed (Support Assets)
+        from .destroy_docks import mines_removed, MINE_VP
+        n = mines_removed(gs)
+        if n:
+            att = gs.scenario_attacker
+            result[att]["scenario"] = result[att].get("scenario", 0) + n * MINE_VP
+            result[att]["details"].append(f"Destroy the Docks: {n} orbital mine(s) removed: "
+                                          f"+{n * MINE_VP} VP")
+        return
     if getattr(gs, "scenario_mode", "") == "space_assault":
         st = space_station(gs)
         if st is None:
@@ -1637,6 +1677,9 @@ def _scenario_kill_bonus(gs, ship) -> float:
     mode = getattr(gs, "scenario_mode", "")
     if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
         return 100.0        # a convoy ship escaping would give the defender 100
+    if mode == "destroy_docks" and ship.player == defender(gs):
+        from .destroy_docks import target_bonus_vp
+        return target_bonus_vp(gs, ship)
     if mode == "navigate_storm" and ship.player == defender(gs):
         from .navigate_storm import capacity_vp
         return capacity_vp(gs) * transport(ship, building=True)
@@ -1886,6 +1929,9 @@ def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
         return None if a == b else (1 if a > b else 2)
     if sc and sc["victory"] == "chance_encounter":
         return chance_result(gs)
+    if sc and sc["victory"] == "destroy_docks":
+        from .destroy_docks import winner as _docks_winner
+        return _docks_winner(gs)
     if sc and sc["victory"] == "navigate_storm":
         from .navigate_storm import winner
         return winner(gs)
