@@ -1225,6 +1225,11 @@ class GamePanel(AAPanelMixin):
         """Called by DeploymentPanel when all ships are placed."""
         tc = self.ctx.tc
         gs = self.ctx.gs
+        # Meteor Storm wrecks not yet rolled for (set-ups that skip the
+        # deployment panel): catastrophic damage where they now stand
+        from .subplots import deployed_wrecks
+        for res in deployed_wrecks(gs, self.ctx.dice):
+            self.ctx.log(f"[Meteor Storm] a wreck: {res}")
         from .scenarios import first_player as _scenario_first, first_turn_chooser
         from .scenarios import roll_for_choice
         from .dice import DiceRoller

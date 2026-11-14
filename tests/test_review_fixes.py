@@ -102,3 +102,28 @@ def test_crit_on_4_weapons_worth_more_as_targets_choice():
              "range": 30, "hits_on": 4}
     bc = dict(plain, name="Bombardment Cannon", crit_on=4)
     assert shot_vp(a, bc, t, gs) > shot_vp(a, plain, t, gs)
+
+
+def test_meteor_storm_wreck_rolls_catastrophic_when_placed():
+    from src.subplots import deployed_wrecks, WRECK_RULE
+    wreck = make_ship(id="w", hits_remaining=0, x=50, y=50, special_rules=[WRECK_RULE])
+    placed = make_ship(id="p", player=2, x=55, y=50)
+    unplaced = make_ship(id="u", player=2, x=52, y=50)
+    gs = make_gs([wreck, placed, unplaced])
+    # 2D6 = 12: a warp drive implosion; its radius (3D6 = 12cm), then the blast's
+    # rolls against the placed ship only (the unplaced one is kept out of it)
+    dice = DiceStub([12] + [4] * 17)
+    res = deployed_wrecks(gs, dice, placed_ids={"w", "p"})
+    assert res == ["warp_drive_implosion"] and dice._idx == 18
+    assert WRECK_RULE not in gs.get_ship_by_id("w").special_rules
+    assert gs.get_ship_by_id("u").hits_remaining == gs.get_ship_by_id("u").hits_max
+    assert not gs.get_ship_by_id("u").is_disengaged
+    assert gs.get_ship_by_id("p").hits_remaining < gs.get_ship_by_id("p").hits_max
+
+
+def test_meteor_storm_wreck_waits_until_placed():
+    from src.subplots import deployed_wrecks, WRECK_RULE
+    wreck = make_ship(id="w", hits_remaining=0, special_rules=[WRECK_RULE])
+    gs = make_gs([wreck])
+    assert deployed_wrecks(gs, DiceStub([]), placed_ids=set()) == []
+    assert WRECK_RULE in gs.get_ship_by_id("w").special_rules

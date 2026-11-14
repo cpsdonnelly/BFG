@@ -2321,8 +2321,11 @@ Done: To do 2, 3, 6; most of 7.
      come from `GameState.next_serial` (random 0-9999 could collide);
    - `Ship.has_armament_slot` uses `weapon_in_crit_slot`, so a crit that would disable
      nothing cascades (a dorsal L/F/R weapon counted as a prow slot);
-   - Meteor Storm reducing a ship to 0 destroys it before the battle (reading, owner
-     question); `add_fire_crits` appends to the stored list;
+   - Meteor Storm reducing a ship to 0 (owner ruling): it is deployed as usual and rolls on
+     the Catastrophic Damage table when and where it is placed (`subplots.deployed_wrecks`,
+     the `catastrophic_on_deploy` rule; from `DeploymentPanel` after each placement, ships
+     not yet placed kept out of any blast; `GamePanel._begin_turn1` catches set-ups that skip
+     the panel); `add_fire_crits` appends to the stored list;
    - `GameState.save` writes every field; `clear_transient` drops underscore scratch on
      restore, snapshot load and phase undo;
    - AI values: `combat.expected_hits` averages over a random value's outcomes
@@ -2330,9 +2333,11 @@ Done: To do 2, 3, 6; most of 7.
      crits on 4+ (`CRIT_VP_PER_HIT` 1.0, judgement);
    - docstrings: zzapp gunz, `weapon_fire_pool`, optional_rules' spill-over, scenario modes,
      the repair priority list.
-   Not changed, on purpose: the AI chooses its target before a random weapon is rolled and
-   doesn't re-pick after (owner ruling: rolled when the weapon fires, after the target is
-   chosen and may brace); the Kustom Kannon "stale copy" in AI shooting was never written
+   Not changed, on purpose (owner, confirmed): a random direct-fire weapon's firepower is
+   rolled after the target is chosen and after it may brace, so the AI doesn't re-pick after
+   the roll; every firing path checked (Fire dialog, combined squadron fire, AI). Random
+   ordnance strength is known once the salvo is on the table: the AI values ordnance in
+   flight at the marker's rolled strength (`marker_hits`); the Kustom Kannon "stale copy" in AI shooting was never written
    back (kept in step anyway). Left: `optional_rules.set_ship_source` binding the live
    state (harmless while the expert's sim doesn't use a GameState; revisit in To do 18),
    Fleet Engagement's AI formation pick by `random` (an AI choice: seeded with the AI's
@@ -2466,9 +2471,10 @@ rather than touch a third ship).
   netherfields and polarisation fields (identical to those of the Haven Spire)", but the
   booklet's Haven Spire (MMS) has neither; only XR's note names them, and only the Dark
   Eldar Tormentor Spire defines a polarisation field. What should they do?
-- **Meteor Storm sub-plot:** its critical hit can deal enough extra damage (Hull Breach,
-  Bulkhead Collapse) to reduce a small capital ship to 0 before the game. The booklet is
-  silent; the game treats it as destroyed before the battle, with no catastrophic roll. OK?
+- **Random ordnance strength and aiming:** it is rolled "just before launching". Is the
+  roll known before the launch is aimed (heading / target chosen), or is the salvo aimed
+  first? The AI currently aims its own random-strength salvos (Ork Torps S D6...) using the
+  average and rolls as it launches.
 - **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
   next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
 
