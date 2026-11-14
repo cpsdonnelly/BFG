@@ -99,8 +99,14 @@ _sunward_edge = None          # set when Fighting Sunward (s.40) is on
 
 
 def set_sunward(enabled: bool, edge: str = "north") -> None:
+    """Fighting Sunward's edge (None when off). The sunward edge itself also
+    sets Eldar speeds whether or not the rule is on, so it is passed on to
+    `eldar` every time (it used to be set only when a TurnController was made,
+    so an in-game change left Eldar speeds stale)."""
     global _sunward_edge
     _sunward_edge = edge if enabled else None
+    from .eldar import set_sunward_edge
+    set_sunward_edge(edge)
 
 
 def sunward_edge():

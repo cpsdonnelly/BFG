@@ -841,7 +841,7 @@ def _place_shield_impacts(target: Ship, n: int, game_state: GameState,
         if spill and attacker_key:
             touched.update(touching_ids((bx, by)))
         bm = BlastMarker(
-            id=f"bm_{target.id}_t{game_state.turn_number}_{j}_{random.randint(0,9999)}",
+            id=f"bm_{target.id}_t{game_state.turn_number}_{j}_{game_state.next_serial()}",
             x=bx, y=by, source=turn_label,
             heading=(math.degrees(best) + 180) % 360)
         game_state.add_blast_marker(bm)
@@ -1108,6 +1108,20 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
         game_state.add_log(f"  Extra damage: {extra} HP")
         if target.hits_remaining <= 0:
             return True
+    if apply_crit_effects(target, crit_data, game_state):
+        return True
+    if mine_launcher_crit(target, crit_data["crit_type"], dice, game_state):
+        return True
+    return torpedo_launcher_crit(target, crit_data["crit_type"], dice, game_state, summary)
+
+
+def apply_crit_effects(target: Ship, crit_data: Dict, game_state: GameState) -> bool:
+    """A critical hit's effects beyond its record and extra damage, shared by
+    gunnery / ordnance crits (`roll_critical_hit`) and hit-and-run raids:
+    Leadership losses (Necron `ld_loss`, Eldar Infinity Circuit, Bridge
+    Smashed -3 or the Demiurg's extra damage instead) and lost rules (Eldar
+    Holofield destroyed). Changes target in place. True if the ship is
+    reduced to 0."""
     if crit_data.get("ld_loss"):
         # Necron crits: a Leadership penalty each time, never removed in the game
         target.leadership = max(1, target.leadership - crit_data["ld_loss"])
@@ -1124,9 +1138,7 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
                 return True
         else:
             target.leadership = max(1, target.leadership - 3)
-    if mine_launcher_crit(target, crit_data["crit_type"], dice, game_state):
-        return True
-    return torpedo_launcher_crit(target, crit_data["crit_type"], dice, game_state, summary)
+    return False
 
 
 def mine_launcher_crit(target: Ship, crit_type: str, dice: DiceRoller,
@@ -1930,7 +1942,7 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
         # This crit can apply
         if test_roll != roll_2d6:
             game_state.add_log(
-                f"  Crit cascaded from {table[roll_2d6]['name']} "
+                f"  Crit cascaded from {(table.get(roll_2d6) or {}).get('name', roll_2d6)} "
                 f"to {crit_data['name']}")
         return crit_data
 
@@ -2011,9 +2023,8 @@ def resolve_armageddon_gun(ship: Ship, gs, dice: DiceRoller) -> Dict:
     gs.ordnance = [o for o in gs.ordnance if seg(o["x"], o["y"]) > TR + 1.0]
     if blocked:
         n = dice.roll_d6(1, "Armageddon Gun blocked: D6 blast markers")[0]
-        import random as _r
         for i in range(n):
-            gs.add_blast_marker(BlastMarker(id=f"armageddon_{_r.randint(0, 99999)}_{i}",
+            gs.add_blast_marker(BlastMarker(id=f"armageddon_{gs.next_serial()}_{i}",
                                             x=x1 + (i - n / 2) * 1.0, y=y1))
     for sid, n in hits.items():
         t = gs.get_ship_by_id(sid)

@@ -739,7 +739,6 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         f"(ship heading {_s.heading:.0f}°).")
                     return
 
-            import random as _rng
 
             if launch_torps:
                 # Detect torpedo type from first contributor's weapon
@@ -777,7 +776,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                          if torp_weapon else TORPEDO_SPEED_DEFAULT)
 
                 marker = OrdnanceMarker(
-                    id=f"combined_torp_{player}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
+                    id=f"combined_torp_{player}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
                     ordnance_type=o_type,
                     owner_player=player,
                     launched_by=contributors[0].id,
@@ -842,7 +841,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         if total_launched >= current_remaining:
                             break
                         marker = OrdnanceMarker(
-                            id=f"combined_craft_{player}_{ct}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
+                            id=f"combined_craft_{player}_{ct}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
                             ordnance_type=o_type,
                             owner_player=player,
                             launched_by=contributors[0].id,
@@ -1203,14 +1202,13 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     o_type = torpedo_ordnance_type(w, kind=kv.get())
                     from .ordnance import torpedo_speed_for, torpedo_kind_name
 
-                    import random as _rng
 
                     from .ordnance import compute_torpedo_launch_exempt
                     exempt = compute_torpedo_launch_exempt(ship, self.ctx.gs)
 
                     # First (or only) salvo
                     marker = OrdnanceMarker(
-                        id=f"torp_{ship.id}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
+                        id=f"torp_{ship.id}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
                         ordnance_type=o_type,
                         owner_player=ship.player,
                         launched_by=ship.id,
@@ -1235,7 +1233,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     remainder = total - strength
                     if remainder > 0:
                         marker2 = OrdnanceMarker(
-                            id=f"torp_{ship.id}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}_b",
+                            id=f"torp_{ship.id}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}_b",
                             ordnance_type=o_type,
                             owner_player=ship.player,
                             launched_by=ship.id,
@@ -1663,7 +1661,6 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 total_launched = 0
                 launched_ids = []
 
-                import random as _rng
                 for ct, var in composition_vars.items():
                     try:
                         count = int(var.get())
@@ -1708,7 +1705,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         px = protect_pos[0] + (i - count / 2) * 1.5
                         py = protect_pos[1]
                         marker = OrdnanceMarker(
-                            id=f"craft_{ship.id}_{ct}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
+                            id=f"craft_{ship.id}_{ct}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
                             ordnance_type=o_type,
                             owner_player=ship.player,
                             launched_by=ship.id,
@@ -1742,7 +1739,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                             on_cap = kind == "cap"
                             x0, y0 = ppos if on_cap else (ship.x, ship.y)
                             marker = OrdnanceMarker(
-                                id=f"craft_{ship.id}_{kind}_{self.ctx.gs.turn_number}_{_rng.randint(0,9999)}",
+                                id=f"craft_{ship.id}_{kind}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
                                 ordnance_type=o_type, owner_player=ship.player,
                                 launched_by=ship.id, x=x0 + (i + 1) * 1.5, y=y0 + 2.0,
                                 heading=heading, strength=1, speed=spd,

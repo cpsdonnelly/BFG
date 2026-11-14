@@ -300,9 +300,8 @@ def fire_spear(gs, target, dice=None) -> Dict:
                          attacker_key="spear_of_light",
                          origin=(nc["template_x"], nc["template_y"]))
     from .models import BlastMarker
-    import random as _r
     for (bx, by) in nc.get("blast_markers", []):
-        gs.add_blast_marker(BlastMarker(id=f"spear_{_r.randint(0, 99999)}", x=bx, y=by))
+        gs.add_blast_marker(BlastMarker(id=f"spear_{gs.next_serial()}", x=bx, y=by))
     st = dict(gs.scenario_state or {})
     if st.get("spear_damage", 0) >= 1:
         st["spear_loaded"] = False         # damaged: Reload Ordnance (Ld 8) before it fires again

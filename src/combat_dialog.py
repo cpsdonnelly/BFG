@@ -522,8 +522,7 @@ class _FireDialog:
                             self._log("  Nova Cannon: no ships hit")
                         for bx, by in nc.get("blast_markers", []):
                             from .models import BlastMarker as BM
-                            import random as _rng
-                            bm = BM(id=f"nova_miss_{_rng.randint(0,9999)}",
+                            bm = BM(id=f"nova_miss_{self.ctx.gs.next_serial()}",
                                     x=bx, y=by, source="nova_cannon_miss")
                             self.ctx.gs.add_blast_marker(bm)
                             self._log(

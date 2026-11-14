@@ -14,7 +14,7 @@ from .dice import DiceRoller
 TORPEDO_SPEED_DEFAULT = 30
 
 
-def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
+def move_ordnance(marker: OrdnanceMarker, game_state: GameState, dice=None):
     """Move a single ordnance marker forward along its heading.
     Tau guided missiles are player-controlled and should be moved via the dialog,
     not auto-moved here. This function only handles non-guided ordnance."""
@@ -51,8 +51,10 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState):
         dist = math.sqrt(dx**2 + dy**2)
         speed = marker.speed
         if "daemon_mine" in (marker.special_rules or []):
-            import random as _r
-            extra = _r.randint(1, 6)       # Daemon Blockade: 10+D6cm (rolled automatically)
+            if dice is None:
+                from .dice import DiceRoller
+                dice = DiceRoller(mode="auto")
+            extra = dice.roll_d6(1, "Daemon mine: 10+D6cm")[0]   # Daemon Blockade
             speed += extra
             game_state.add_log(f"Daemon mine moves {speed:g}cm (10 + {extra})")
         if dist > 0:
@@ -1320,7 +1322,6 @@ def lay_mines(ship: Ship, weapon: Dict, gs: GameState) -> List[OrdnanceMarker]:
     phase, placed on the ship's base; they move 10cm towards the nearest enemy
     vessel in every ordnance phase. Unloads the ship (mark_launched). Returns
     the markers."""
-    import random as _rng
     fresh = gs.get_ship_by_id(ship.id) or ship
     if not fresh.ordnance_loaded_mines:
         return []
@@ -1333,7 +1334,7 @@ def lay_mines(ship: Ship, weapon: Dict, gs: GameState) -> List[OrdnanceMarker]:
     out = []
     for i in range(n):
         m = OrdnanceMarker(
-            id=f"mine_{fresh.id}_{gs.turn_number}_{i}_{_rng.randint(0, 9999)}",
+            id=f"mine_{fresh.id}_{gs.turn_number}_{i}_{gs.next_serial()}",
             ordnance_type=OrdnanceType.MINE_FIELD.value, owner_player=fresh.player,
             launched_by=fresh.id, x=fresh.x + (i - n / 2) * 1.5, y=fresh.y,
             heading=fresh.heading, strength=1, speed=weapon.get("mine_speed", 10),

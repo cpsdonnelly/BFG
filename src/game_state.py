@@ -92,6 +92,9 @@ class GameState:
     subplots: Dict = field(default_factory=dict)
     undivided_used: List[int] = field(default_factory=list)
     undivided_boost: Dict = field(default_factory=dict)
+    # Serial for marker / ordnance ids (unique for the game; ids used to end in
+    # a random 0-9999 and could collide)
+    id_serial: int = 0
 
     # Collections
     ships: List[Dict] = field(default_factory=list)
@@ -101,6 +104,10 @@ class GameState:
 
     # Turn log
     log: List[str] = field(default_factory=list)
+
+    def next_serial(self) -> int:
+        self.id_serial += 1
+        return self.id_serial
 
     def add_ship(self, ship: Ship):
         self.ships.append(ship.to_dict())
@@ -213,6 +220,7 @@ class GameState:
             "radiation_turn": self.radiation_turn,
             "radiation_deltas": self.radiation_deltas,
             "undivided_boost": self.undivided_boost,
+            "id_serial": self.id_serial,
             "timestamp": time.time(),
         }
 

@@ -414,7 +414,7 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller,
 
         # Place blast marker after move
         bm = BlastMarker(
-            id=f"hulk_drift_{ship.id}_{random.randint(0,9999)}",
+            id=f"hulk_drift_{ship.id}_{gs.next_serial()}",
             x=ship.x, y=ship.y,
             source="hulk_drift",
             heading=random.uniform(0, 360))

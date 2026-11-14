@@ -471,9 +471,10 @@ def test_daemon_mine_moves_10_plus_d6_and_eats_enemy_ordnance():
     m = next(o for o in gs.get_ordnance() if "daemon_mine" in o.special_rules)
     import math
     d0 = math.hypot(m.x - 90, m.y - 5)
-    move_ordnance(m, gs)
+    dice = DiceStub([4])                            # the D6: 10 + 4 = 14cm
+    move_ordnance(m, gs, dice)
     d1 = math.hypot(m.x - 90, m.y - 5)
-    assert 11 <= d0 - d1 <= 16
+    assert abs((d0 - d1) - 14.0) < 1e-6 and dice._idx == 1
     gs.ordnance = [m.to_dict()]
     torp = make_marker(id="t1", ordnance_type="torpedo", owner_player=1, x=m.x + 1, y=m.y)
     gs.add_ordnance(torp)

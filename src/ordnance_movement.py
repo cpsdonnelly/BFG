@@ -845,7 +845,7 @@ class OrdnanceMovementMixin:
                     wave_of[marker.id] = [m.id for m in ms[1:]]
                     marker.speed = wave_speed(ms)
                 self._ord_path_start[marker.id] = (marker.x, marker.y)
-                move_ordnance(marker, self.ctx.gs)
+                move_ordnance(marker, self.ctx.gs, self.ctx.dice)
                 if marker.wave_id:
                     marker.speed = o_dict["speed"]
 

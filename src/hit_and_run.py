@@ -220,6 +220,13 @@ def _apply_raid_crit(roll: int, target: Ship, gs: GameState,
     else:
         gs.add_log(f"  Raid: {crit_data['name']}")
     if target.hits_remaining > 0:
+        # The crit's own effects, as for any crit (Bridge Smashed -3 Ld, Necron
+        # Ld losses, Eldar Infinity Circuit / Holofield)
+        from .combat import apply_crit_effects
+        before = target.hits_remaining
+        apply_crit_effects(target, crit_data, gs)
+        extra += before - target.hits_remaining
+    if target.hits_remaining > 0:
         # Unused melta / vortex torpedoes in a hit launcher explode (s.16)
         from .combat import torpedo_launcher_crit, mine_launcher_crit
         before = target.hits_remaining
@@ -243,24 +250,17 @@ def raid_crit_preview(effective: int, target: Ship) -> Optional[str]:
     """The critical a raid result would inflict on a crit-table target, after
     the cascade (no weapons in that slot, unrepairable crit already there), or
     None (off the table, or a prow crit absorbed by Ablative Prow Armour). No
-    side effects: used to value Wings of Fury re-rolls."""
-    from .tables import CRITICAL_HITS
-    from .combat import ARMAMENT_CRIT_TYPES
-    roll = max(2, min(6, effective))
-    while roll <= 12:
-        data = CRITICAL_HITS.get(roll)
-        ct = data["crit_type"]
-        if ct == "prow_armament" and "ablative_prow_armor" in target.special_rules:
-            return None
-        if ct in ARMAMENT_CRIT_TYPES and not target.has_armament_slot(ct):
-            roll += 1
-            continue
-        if not data["repairable"] and any(c.get("crit_type") == ct
-                                          for c in target.critical_damage):
-            roll += 1
-            continue
-        return ct
-    return None
+    side effects: used to value Wings of Fury re-rolls. The engine's own
+    cascade on the target's own table (Eldar, Necron, stations...)."""
+    from .combat import _resolve_crit_cascade
+    data = _resolve_crit_cascade(max(2, min(6, effective)), target, _SilentLog())
+    return data["crit_type"] if data else None
+
+
+class _SilentLog:
+    """A stand-in game state for previews: the cascade only logs to it."""
+    def add_log(self, *_a, **_k):
+        pass
 
 
 # Expected extra damage of each critical (D3 = 2, D6 = 3.5)
@@ -433,8 +433,8 @@ def describe_raid_result(effective: int, target: Ship) -> str:
         return "no effect"
     if not uses_crit_table(target):
         return "1 damage"
-    from .tables import CRITICAL_HITS
-    entry = CRITICAL_HITS.get(max(2, min(6, effective))) or {}
+    from .tables import crit_table_for
+    entry = crit_table_for(target).get(max(2, min(6, effective))) or {}
     name = entry.get("name") or entry.get("crit_type", "critical hit").replace("_", " ")
     return f"critical hit: {name}"
 

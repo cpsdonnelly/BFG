@@ -433,7 +433,7 @@ class WebGameContext:
         moved = 0
         for i, o_dict in enumerate(self.gs.ordnance):
             marker = OrdnanceMarker.from_dict(o_dict)
-            move_ordnance(marker, self.gs)
+            move_ordnance(marker, self.gs, self.dice)
             self.gs.ordnance[i] = marker.to_dict()
             moved += 1
         self.log(f"Moved {moved} ordnance marker(s)")
