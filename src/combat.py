@@ -871,7 +871,33 @@ def expected_hits(attacker: Ship, weapon: Dict, target: Ship, gs=None) -> float:
     return n * max(0, 7 - need) / 6
 
 
-def apply_damage(target: Ship, hits: int, dice: DiceRoller,
+def apply_damage(target: Ship, hits: int, dice: DiceRoller, game_state: GameState,
+                 *args, **kwargs) -> Dict:
+    """Apply hits to a ship (`_apply_damage`) and credit the attacker
+    (`attacker_key`: a ship, or an ordnance marker credited to the ship that
+    launched it) with the target newly crippled or destroyed
+    (`GameState.kill_credit`)."""
+    was_crippled, was_alive = target.damage_crippled, target.hits_remaining > 0
+    result = _apply_damage(target, hits, dice, game_state, *args, **kwargs)
+    key = kwargs.get("attacker_key", "")
+    if key and game_state is not None:
+        by = key
+        if game_state.get_ship_by_id(key) is None:
+            m = next((o for o in game_state.ordnance if o.get("id") == key), None)
+            by = (m or {}).get("launched_by") or ""
+        fresh = game_state.get_ship_by_id(target.id) or target
+        shooter = game_state.get_ship_by_id(by) if by else None
+        if shooter is not None and shooter.player != fresh.player:
+            credit = getattr(game_state, "kill_credit", None)
+            if credit is not None:
+                if was_alive and fresh.hits_remaining <= 0:
+                    credit.append({"by": by, "target": fresh.id, "kind": "destroyed"})
+                elif not was_crippled and fresh.damage_crippled:
+                    credit.append({"by": by, "target": fresh.id, "kind": "crippled"})
+    return result
+
+
+def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  game_state: GameState,
                  ignores_shields: bool = False,
                  target_braced: bool = False,

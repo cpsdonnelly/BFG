@@ -190,3 +190,17 @@ def test_unexpected_help_adds_reinforcements_and_judges_them():
         s.status, s.hits_remaining = "destroyed", 0
         gs.update_ship(s)
     assert not sp_mod.objective_met(gs, 1, True)
+
+
+def test_kill_credit_and_fresh_captain():
+    from src.combat import apply_damage
+    cap = make_ship(id="c", player=1, points_value=150)
+    foe = make_ship(id="f", player=2, points_value=200, hits_max=8, shields_max=0)
+    gs = _gs(cap, foe)
+    sp_mod._set(gs, 1, {"key": "fresh_captain", "name": "Fresh Captain", "renown": [1, -1],
+                        "ship": "c"})
+    assert not sp_mod.objective_met(gs, 1, True)
+    # 4 hits cripple the 8-hit target (crit checks 1s)
+    apply_damage(gs.get_ship_by_id("f"), 4, DiceStub([1, 1, 1, 1]), gs, attacker_key="c")
+    assert gs.kill_credit == [{"by": "c", "target": "f", "kind": "crippled"}]
+    assert sp_mod.objective_met(gs, 1, True)

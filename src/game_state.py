@@ -77,6 +77,9 @@ class GameState:
     # booklet's turns) or "aa"; aa_settings holds the AARoundConfig fields
     # Necron Deadly Awakening: {player: alert level} (src/necrons.py)
     necron_alert: Dict = field(default_factory=dict)
+    # Kill credit: [{"by": ship id, "target": ship id, "kind": "crippled" | "destroyed"}]
+    # (combat.apply_damage; Fresh Captain's objective reads it)
+    kill_credit: List = field(default_factory=list)
     turn_system: str = "igougo"
     aa_settings: Dict = field(default_factory=dict)
     aa_state: Dict = field(default_factory=dict)
@@ -195,6 +198,7 @@ class GameState:
             "first_player": self.first_player,
             "turn_system": self.turn_system,
             "necron_alert": dict(self.necron_alert),
+            "kill_credit": list(self.kill_credit),
             "aa_settings": dict(self.aa_settings),
             "aa_state": dict(self.aa_state),
             "scenario_state": dict(self.scenario_state),

@@ -127,8 +127,8 @@ def apply_setup(gs, player: int, sp: Dict, dice,
             s.leadership = max(1, s.leadership - 1)
             gs.update_ship(s)
             sp["ship"] = s.id
-            logs.append(f"  {s.name}: -1 Ld (reading: its objective needs kills credited "
-                        f"to it, which aren't tracked: judged as not met)")
+            logs.append(f"  {s.name}: -1 Ld; it must cripple or destroy enemy ships worth "
+                        f"its own points")
     elif key == "surprise_attack":
         sp["turns"] = dice.roll_d6(1, "Surprise Attack: D3 turns")[0]
         sp["turns"] = (sp["turns"] + 1) // 2
@@ -456,6 +456,15 @@ def objective_met(gs, player: int, won: bool) -> Optional[bool]:
         return sum(1 for s in esc if not s.is_destroyed) * 2 >= len(esc)
     if key in ("enemy_plans", "secret_intelligence"):
         return bool(sp.get("done"))
+    if key == "fresh_captain":
+        # The chosen ship must cripple or destroy enemy ships worth at least its
+        # own points (reading: each ship once, at its full points, whether it
+        # crippled or destroyed it; ordnance it launched counts)
+        s = by_id.get(sp.get("ship"))
+        if s is None:
+            return False
+        hit = {c["target"] for c in getattr(gs, "kill_credit", []) or [] if c["by"] == s.id}
+        return sum(by_id[t].points_value for t in hit if t in by_id) >= s.points_value
     if key == "unexpected_help":
         return any(not _lost(by_id[i]) and not by_id[i].is_disengaged
                    for i in sp.get("ships", []) if i in by_id)
@@ -466,7 +475,7 @@ def objective_met(gs, player: int, won: bool) -> Optional[bool]:
         game_turn = (gs.turn_number + 1) // 2 if getattr(gs, "turn_system", "igougo") != "aa" \
             else gs.turn_number
         return won and game_turn <= sp.get("turns", 0)
-    return False          # Decoy, Fresh Captain: not judged (see UNBUILT)
+    return False          # Decoy: not judged (see UNBUILT)
 
 
 def _points_lost(ships) -> float:
