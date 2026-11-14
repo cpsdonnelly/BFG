@@ -611,6 +611,17 @@ class BoardView:
         if gs.scenario_mode == "escalating_engagement":
             self._draw_contact_markers()
             return
+        if gs.scenario_mode == "convoy_narrative":
+            for m in (gs.scenario_state or {}).get("markers", []):
+                if m.get("deployed"):
+                    continue
+                sx, sy = self.cm_to_screen(m["x"], m["y"])
+                self.canvas.create_polygon(sx, sy - 9, sx - 8, sy + 6, sx + 8, sy + 6,
+                                           fill=gs.player1_color if gs.scenario_attacker == 1
+                                           else gs.player2_color, outline="#FFFFFF", width=2)
+                self.canvas.create_text(sx, sy + 1, text="?", fill="#000000",
+                                        font=("Consolas", 7, "bold"))
+            return
         if gs.scenario_mode == "navigate_storm":
             from .navigate_storm import zones
             x0, y0, x1, y1 = zones(gs)["exit"]

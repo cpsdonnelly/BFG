@@ -82,6 +82,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone_or_no_cargo",
         "victory": "navigate_storm",
     },
+    "convoy_narrative": {
+        "name": "Convoy (XR p.94-95, narrative)",
+        "first_turn": "defender",
+        "end": "convoy_narrative",
+        "victory": "convoy_narrative",
+    },
     "destroy_docks": {
         "name": "Destroy the Docks (XR p.99)",
         "first_turn": "roll_2d6_vs_d6",
@@ -275,6 +281,8 @@ def entry_edge(gs) -> Optional[str]:
     mode = getattr(gs, "scenario_mode", "")
     if mode == "alien_intervention":
         return (gs.scenario_state or {}).get("ally_edge", "top")
+    if mode == "convoy_narrative":
+        return (gs.scenario_state or {}).get("entry_edge", "left")
     return {"the_bait": "right", "rearguard": "left", "destroy_docks": "top"}.get(mode)
 
 
@@ -285,8 +293,10 @@ def place_arrival(gs, ships, index: int = 0) -> None:
     w, h = gs.table_width, gs.table_height
     occupied = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
     off = 0
+    centre = (gs.scenario_state or {}).get("entry_y", h / 2.0) \
+        if getattr(gs, "scenario_mode", "") == "convoy_narrative" else h / 2.0
     while True:
-        y0 = h / 2.0 + ((-1) ** off) * 8.0 * ((off + 1) // 2)
+        y0 = centre + ((-1) ** off) * 8.0 * ((off + 1) // 2)
         pts = [(y0 + 4.0 * i) for i in range(len(ships))]
         r = ships[0].base_radius + 0.1
         if edge in ("top", "bottom"):
@@ -315,6 +325,22 @@ def arrivals(gs, player: int, wants=None, dice=None) -> List[str]:
     human's prompt; None or an AI: they all come on at once, judgement).
     Returns the names that arrived."""
     came = []
+    if getattr(gs, "scenario_mode", "") == "convoy_narrative":
+        if player != defender(gs):
+            return came           # the attacker's ships come from contact markers
+        from .convoy_narrative import wants_arrival
+        inner = wants
+        wants = (lambda names, _k=None: True)
+        for i, (k, ships) in enumerate(sorted(reserve_units(gs, player).items())):
+            names = ", ".join(s.name for s in ships)
+            ans = True if inner is None else bool(inner(names))
+            if not wants_arrival(gs, player, k, ans):
+                gs.add_log(f"[Convoy] {names} held back for the second turn")
+                continue
+            place_arrival(gs, ships, i)
+            came.append(names)
+            gs.add_log(f"[Reinforcements] arriving from the {entry_edge(gs)} edge: {names}")
+        return came
     if getattr(gs, "scenario_mode", "") == "destroy_docks":
         if player != defender(gs):
             return came
@@ -383,6 +409,14 @@ def turn_start(gs, dice=None) -> None:
                          _dice_for(gs, p, dice))
     if mode == "surprise_attack":
         _standby_tests(gs, _dice_for(gs, defender(gs), dice))
+    if mode == "convoy_narrative":
+        from .convoy_narrative import attacker_turn_start, record_start_positions
+        players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
+        for p in players:
+            if p == defender(gs):
+                record_start_positions(gs, p)
+            else:
+                attacker_turn_start(gs, p, dice)
     if mode == "navigate_storm":
         from .navigate_storm import turn_start as _storm_start
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
@@ -736,6 +770,12 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 from .dice import DiceRoller
                 dice = DiceRoller(mode="auto")
             resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
+    elif mode == "convoy_narrative":
+        if dice is None:
+            from .dice import DiceRoller
+            dice = DiceRoller(mode="auto")
+        from .convoy_narrative import setup as _cn_setup
+        _cn_setup(gs, dice)
     elif mode == "destroy_docks":
         from .destroy_docks import setup as _docks_setup
         _docks_setup(gs, dice)
@@ -983,6 +1023,9 @@ def force_errors(gs) -> List[str]:
     if mode == "destroy_docks":
         from .destroy_docks import force_errors as _docks_errors
         return _docks_errors(gs)
+    if mode == "convoy_narrative":
+        from .convoy_narrative import force_errors as _cn_errors
+        return _cn_errors(gs)
     if mode == "line_breaker":
         pts = sum(s.points_value for s in ships)
         need = -(-pts // 200)
@@ -1075,6 +1118,12 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         # the exit point (the right edge's 20cm strip)
         rects = {3 - att_p: [(20, w / 2.0, h / 2.0, 0)],
                  att_p: [(w / 2.0, 20, 10, h / 2.0)]}
+    elif mode == "convoy_narrative":
+        # Nobody deploys: the attacker's forces are contact markers, the
+        # convoy moves on from its entry point (zones kept for the panels)
+        rects = {att_p: [(30, 30, 30, 30)], 3 - att_p: [(0, w - 3, 0, 0)]
+                 if (gs.scenario_state or {}).get("entry_edge", "left") == "left"
+                 else [(w - 3, 0, 0, 0)]}
     elif mode == "destroy_docks":
         from .destroy_docks import zone_rects as _docks_rects
         rects = _docks_rects(gs)
@@ -1530,6 +1579,8 @@ def record_exit(gs, ship) -> None:
     gs.scenario_state = st
     from .navigate_storm import record_exit as _storm_exit
     _storm_exit(gs, ship)
+    from .convoy_narrative import record_exit as _cn_exit
+    _cn_exit(gs, ship)
 
 
 def damage_points(gs, player: int) -> int:
@@ -1677,6 +1728,9 @@ def _scenario_kill_bonus(gs, ship) -> float:
     mode = getattr(gs, "scenario_mode", "")
     if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
         return 100.0        # a convoy ship escaping would give the defender 100
+    if mode == "convoy_narrative" and is_convoy(ship) and ship.player == defender(gs):
+        from .convoy_narrative import capacity_vp
+        return capacity_vp(gs) * transport(ship)
     if mode == "destroy_docks" and ship.player == defender(gs):
         from .destroy_docks import target_bonus_vp
         return target_bonus_vp(gs, ship)
@@ -1834,6 +1888,9 @@ def check_end(gs) -> Optional[dict]:
     """Booklet scenario game-end and victory (scenario.check_game_over's
     contract). Fleet-gone checks stay in check_game_over."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "convoy_narrative":
+        from .convoy_narrative import check_end as _cn_end
+        return _cn_end(gs)
     if mode == "convoy_matched":
         st = gs.scenario_state or {}
         if st.get("had_cargo") and cargo_on_table(gs, defender(gs)) <= 0:
@@ -1929,6 +1986,9 @@ def winner_at_end(gs, vp_winner_fn) -> Optional[int]:
         return None if a == b else (1 if a > b else 2)
     if sc and sc["victory"] == "chance_encounter":
         return chance_result(gs)
+    if sc and sc["victory"] == "convoy_narrative":
+        from .convoy_narrative import winner as _cn_winner
+        return _cn_winner(gs)
     if sc and sc["victory"] == "destroy_docks":
         from .destroy_docks import winner as _docks_winner
         return _docks_winner(gs)

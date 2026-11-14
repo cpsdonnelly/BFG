@@ -82,6 +82,8 @@ if scenario == "convoy_matched":
     imp = imp[:2]
 if scenario == "space_assault":
     imp = imp[:3] + ["Space Station", "Orbital Weapons Platform"]
+if scenario == "convoy_narrative":
+    imp = ["Dauntless Class Light Cruiser"]   # 2 x 100pts for 4 capacity
 for p, names in ((1, chs), (2, imp)):
     for i, n in enumerate(names):
         s_ = cat(n, p, i, 0.0, 0.0)
@@ -102,6 +104,11 @@ if scenario == "convoy_matched":
     for k in range(-(-pts // 100)):
         c = cat("Conventional Transport", 2, 10 + k, 0.0, 0.0)
         c.squadron_id = "convoy_a" if k < 3 else "convoy_b"
+        gs.add_ship(c)
+if scenario == "convoy_narrative":
+    for k in range(4):                  # 4 transport capacity, squadrons of 2
+        c = cat("Conventional Transport", 2, 60 + k, 0.0, 0.0)
+        c.squadron_id = f"cn_{k // 2}"
         gs.add_ship(c)
 if scenario == "navigate_storm":
     for k in range(10):                 # 10 transport capacity of convoy ships

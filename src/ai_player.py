@@ -891,6 +891,9 @@ class AIPlayer:
         if gs.scenario_mode == "navigate_storm":
             from .navigate_storm import via_exit_point
             exit_term = self._convoy_run(ship, x, y, enemy) if via_exit_point(gs, moved) else 0.0
+        elif gs.scenario_mode == "convoy_narrative":
+            from .convoy_narrative import exit_edge_for
+            exit_term = self._convoy_run(ship, x, y, enemy) if edge == exit_edge_for(gs) else 0.0
         else:
             exit_term = ((self._rescue_escape(ship, x, y, enemy) if edge == "left" else 0.0)
                          + (self._breakthrough(ship, x, y, enemy) if edge == "bottom" else 0.0)
@@ -961,6 +964,9 @@ class AIPlayer:
         if gs.scenario_mode == "navigate_storm":
             from .navigate_storm import exit_value
             return exit_value(gs, ship)
+        if gs.scenario_mode == "convoy_narrative":
+            from .convoy_narrative import exit_value as _cn_exit_value
+            return _cn_exit_value(gs, ship)
         return 0.0
 
     def _convoy_run(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
@@ -981,6 +987,17 @@ class AIPlayer:
             from .navigate_storm import exit_progress
             return g * exit_progress(gs, ship, x, y) / (
                 0.35 * max(1.0, value_per_hit(enemy, gs)))
+        if gs.scenario_mode == "convoy_narrative":
+            # the short edge opposite the entry point
+            from .convoy_narrative import exit_edge_for
+            w = gs.table_width
+            if exit_edge_for(gs) == "right":
+                progress = 1.0 if x + ship.base_radius > w else \
+                    max(0.0, x - ship.x) / max(1.0, w - ship.x)
+            else:
+                progress = 1.0 if x - ship.base_radius < 0 else \
+                    max(0.0, ship.x - x) / max(1.0, ship.x)
+            return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
         h = gs.table_height
         if y + ship.base_radius > h:
             progress = 1.0
@@ -1061,8 +1078,8 @@ class AIPlayer:
         gs = self.gs
         if gs.scenario_mode == "blockade_run" and ship.player == gs.scenario_attacker:
             return max(0.0, self._exit_value(ship))  # leaving by a test gives up the bonus
-        if gs.scenario_mode == "navigate_storm":
-            return max(0.0, self._exit_value(ship))  # only the exit point counts
+        if gs.scenario_mode in ("navigate_storm", "convoy_narrative"):
+            return max(0.0, self._exit_value(ship))  # only the exit counts
         if (gs.scenario_mode == "convoy_matched" and is_convoy(ship)
                 and ship.player == defender(gs)):
             # Convoy: leaving except off the attacker's edge counts as destroyed, +50

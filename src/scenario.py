@@ -47,7 +47,7 @@ def check_game_over(gs: GameState) -> Optional[dict]:
 
     # All ships gone: a booklet scenario that ends "when one fleet disengages or
     # is destroyed" is won on its own victory conditions (VP, objective points)
-    for p in (1, 2):
+    for p in (1, 2) if gs.scenario_mode != "convoy_narrative" else ():
         if not ships_alive(gs, p):
             if booklet:
                 return {"winner": winner_at_end(gs, vp_winner), "reason": "no_ships",

@@ -426,6 +426,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("surprise_attack",   "Surprise Attack (booklet p.104: defenders on standby)"),
         ("navigate_storm",    "Navigate the Storm (booklet p.98: warp rifts, exit point)"),
         ("destroy_docks",     "Destroy the Docks (booklet p.99: orbital raid, 8 turns)"),
+        ("convoy_narrative",  "Convoy (booklet p.94: contact markers, deadfall torpedoes)"),
         ("escalating_engagement", "Escalating Engagement (booklet p.107: contact markers)"),
         ("fleet_engagement",  "Fleet Engagement (booklet p.108: formations, set-ups A-D)"),
         ("confrontation",     "Confrontation (booklet p.117: attacker first, VP)"),

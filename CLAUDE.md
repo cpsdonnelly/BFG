@@ -490,7 +490,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Booklet installed: zip 13 (CHANGES.md update 55; Eldar MMS v2.0 and Necrons added, rules files
-renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1286 pass; all GUI checks pass
+renumbered: scenarios are `12_scenarios.md`, the appendices 14-20). Tests: 1288 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -515,8 +515,8 @@ defences, the Space Station crit table and transport capacity; scenario points i
 Then attack ratings, sub-plots' first slice, the introductory scenarios, four raids (The
 Raiders, Blockade Run, The Bait, Rearguard Attack) on a new reinforcements framework, and
 three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Escalating
-Engagement's contact markers, Navigate the Storm and Destroy the Docks: 22 booklet
-scenarios in
+Engagement's contact markers, Navigate the Storm, Destroy the Docks and the narrative
+Convoy: 23 booklet scenarios in
 all (To do 7 lists what is left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
@@ -531,11 +531,10 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: Exterminatus!, Planetary Assault, the narrative Convoy, the campaign set pieces
-and the rest of the sub-plots (To do 7; 22 scenarios are built), and the To do items below.
+Not built: Exterminatus!, Planetary Assault, the campaign set pieces
+and the rest of the sub-plots (To do 7; 23 scenarios are built), and the To do items below.
 Next (largest first): 7 (the low orbit table for Exterminatus! / Planetary Assault, waiting
-on the owner's answer to how ships enter low orbit; the narrative Convoy's hidden contact
-markers; the rest of the sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
+on the owner's answer to how ships enter low orbit; the rest of the sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
@@ -1278,16 +1277,42 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    judgement). Not yet: players choosing the satellites and the inner / outer split and
    placing the asteroid fields, the alternating set-up order, orbital mines as a general
    support asset (only this scenario lays them), the 13th Black Crusade framing.
-   Status: 22 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   The narrative Convoy built (p.94-95, `src/convoy_narrative.py`, mode `convoy_narrative`):
+   the attacker's built fleet is replaced by the random force (reading; its main faction kept):
+   2 + one per 2 transport capacity D6s, 1-3 that many clusters (judgement: alternately
+   deadfall torpedoes and attack craft), 4 / 5 an escort squadron up to 100 / 150pts, 6 a
+   capital ship up to 200pts (judgement picks: the escort class giving the most points within
+   the limit, the dearest capital ship; unique, immobile and convoy ships excluded), held off
+   the table; one contact marker each, 30cm apart and from every edge (judgement: a 30cm grid
+   from the centre out, doubled up when full); the defender's entry edge by a D6 (reading:
+   1-3 left, 4-6 right), the entry point midway between the long edges; the defender goes
+   first and moves on from it (all its ships wait off the table and arrive at the start of
+   its turn; up to half its ships by count may wait for its second turn, `wants_arrival`;
+   the AI never holds back). A marker activates when a defending ship comes within 30cm
+   (reading: on the straight line from where it began the movement phase,
+   `check_activation`), deployed after the defender's movement phase (`end_of_defender_
+   movement`): deadfall torpedoes a strength D6+2 speed-30 salvo, attack craft D3+1
+   squadrons (judgement: half fighters, the rest bombers, one close wave at the nearest
+   defender), ships on the marker facing the nearest defender. The attacker activates one
+   marker at the start of its turn, two if a defending ship is on special orders
+   (`attacker_turn_start`, judgement: always, nearest the convoy). Game end: no convoy ships
+   left (on the table or to come), or the attacker spent (no ships, markers or ordnance): the
+   defender wins if any capacity escaped or is left. Result by capacity off the far short
+   edge (rounded down): 0 attackers win, 1 attackers marginal, 2 convoy marginal, 3+ convoy
+   win (`result_text`). AI: convoy ships run for the far edge (capacity x `CAPACITY_WEIGHT`
+   0.1 x the points on the table, at least 300, judgement), the attacker's kill bonus is the
+   same. Not yet: players choosing the clusters' mix, marker spots and deployments
+   (dialogs), the escort squadron's formation choice, hiding markers' contents from a human
+   defender (they're drawn as "?" but the log names them), the Gauntlet variant.
+   Status: 23 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
    Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
-   Engagement, Navigate the Storm, Destroy the Docks
+   Engagement, Navigate the Storm, Destroy the Docks, the narrative Convoy
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
    also `gui_spectator_domination.py`). Still to build (largest first): Exterminatus! and
    Planetary Assault (the low orbit table, s.41; assault points; Armageddon weapons on
    Exterminators; random patrol arrival edges; owner question: how a ship enters low orbit,
-   the booklet doesn't say), the narrative Convoy (hidden contact markers,
-   deadfall torpedoes, attack craft clusters, random attacker forces), the campaign set pieces (Defence of Pelucidar, Macharia's End,
+   the booklet doesn't say), the campaign set pieces (Defence of Pelucidar, Macharia's End,
    Craftworld Assault) and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
    the sub-plots (Blood Bond, Fleet Experience, Signaling Problems effects; Unexpected Help,
    Decoy, Fresh Captain's objective; faction sub-plots) and their AI beyond kill bonuses.

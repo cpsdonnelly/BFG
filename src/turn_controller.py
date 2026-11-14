@@ -330,6 +330,9 @@ class TurnController:
             # Navigate the Storm: materialising ships return to normal
             from .navigate_storm import end_of_movement as _storm_moved
             _storm_moved(self.gs, self.gs.active_player, self.dice)
+            # Convoy (narrative): contact markers the defender came near
+            from .convoy_narrative import end_of_defender_movement as _cn_moved
+            _cn_moved(self.gs, self.gs.active_player, self.dice)
         if current == "end":
             # Booklet scenarios scoring at the end of a player's turn (Domination)
             from .scenarios import score_end_of_turn

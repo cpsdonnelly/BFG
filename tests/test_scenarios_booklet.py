@@ -1231,3 +1231,79 @@ def test_destroy_docks_arrivals_mines_and_victory():
     d2.hits_remaining = 0
     gs.update_ship(d2)
     assert dd.winner(gs) == 1
+
+
+# --- Convoy (narrative) ---------------------------------------------------------------
+
+def _cn_gs():
+    att = [make_ship(id="x", player=1, faction="chaos", points_value=100)]
+    escort = [make_ship(id="d1", player=2, points_value=180, speed=20)]
+    convoy = [make_ship(id=f"c{i}", player=2, ship_type="escort", squadron_id="cv",
+                        points_value=0, speed=15, special_rules=["transport:1"])
+              for i in range(4)]
+    return _gs(att + escort + convoy, mode="convoy_narrative")
+
+
+def test_convoy_narrative_force_and_markers():
+    from src import convoy_narrative as cn
+    gs = _cn_gs()
+    # 4 capacity: 2 + 2 rolls: 2 (two clusters), 6 (a capital ship), 4 (escorts),
+    # 1 (one cluster); the entry D6 5 -> right
+    dice = DiceStub([2, 6, 4, 1, 5])
+    sc.setup_scenario(gs, dice)
+    assert dice._idx == 5
+    st = gs.scenario_state
+    kinds = [m["kind"] for m in st["markers"]]
+    assert kinds == ["torpedoes", "craft", "unit", "unit", "torpedoes"]
+    assert gs.get_ship_by_id("x") is None and st["replaced"] == ["x"]
+    cap = next(m for m in st["markers"] if m["kind"] == "unit")
+    s0 = gs.get_ship_by_id(cap["ships"][0])
+    assert s0.faction == "chaos" and s0.points_value <= 200 and sc.is_reserve(s0)
+    esc = [m for m in st["markers"] if m["kind"] == "unit"][1]
+    assert sum(gs.get_ship_by_id(i).points_value for i in esc["ships"]) <= 100
+    for i, a in enumerate(st["markers"]):
+        assert 30 <= a["x"] <= 150 and 30 <= a["y"] <= 90
+        for b in st["markers"][i + 1:]:
+            assert math.hypot(a["x"] - b["x"], a["y"] - b["y"]) >= 30
+    assert st["entry_edge"] == "right" and cn.exit_edge_for(gs) == "left"
+    assert sc.first_player(gs) == 2
+    assert cn.force_errors(gs) == []          # 180 <= 2 x 100; squadron of 4
+
+
+def test_convoy_narrative_arrival_activation_and_end():
+    from src import convoy_narrative as cn
+    from src.turn_controller import TurnController
+    gs = _cn_gs()
+    sc.setup_scenario(gs, DiceStub([1, 1, 1, 1, 2]))           # 4 clusters, left entry
+    gs.active_player = 2
+    gs.turn_number = 1
+    sc.turn_start(gs, DiceStub([]))
+    c0 = gs.get_ship_by_id("c0")
+    assert not sc.is_reserve(c0) and c0.x < 5 and abs(c0.y - 60) < 20
+    assert gs.scenario_state["start_pos"]["c0"]
+    # moving to within 30cm of the nearest marker activates it at the end of
+    # the movement phase: torpedoes (D6+2 = 6) facing the nearest defender
+    m = min((x for x in gs.scenario_state["markers"] if x["kind"] == "torpedoes"),
+            key=lambda m: m["x"])
+    c0.x, c0.y = m["x"] - 25.0, m["y"]
+    gs.update_ship(c0)
+    gs.current_phase = "movement"
+    tc = TurnController(gs, DiceStub([4]))
+    tc.end_phase()
+    m = next(x for x in gs.scenario_state["markers"] if x["id"] == m["id"])
+    assert m["deployed"]
+    torp = next(o for o in gs.get_ordnance() if o.id == f"deadfall_{m['id']}")
+    assert torp.strength == 6 and torp.speed == 30 and abs(torp.heading - 180.0) < 1
+    # three convoy ships off the far (right) edge: a Convoy Win
+    for sid in ("c0", "c1", "c2"):
+        s = gs.get_ship_by_id(sid)
+        s.x, s.status, s.is_disengaged = 182.0, "disengaged", True
+        gs.update_ship(s)
+        sc.record_exit(gs, s)
+    assert cn.capacity_escaped(gs) == 3
+    c3 = gs.get_ship_by_id("c3")
+    c3.status, c3.hits_remaining = "destroyed", 0
+    gs.update_ship(c3)
+    gs.turn_number = 3
+    end = sc.check_end(gs)
+    assert end["winner"] == 2 and "Convoy Win" in end["detail"]

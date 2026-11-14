@@ -1078,16 +1078,15 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    Rogue Trader faction sub-plots), then an AI that plays their objectives and win conditions,
    not just cruiser clash (owner: Domination's objective markers and 10-point race are just one
    example; there are many other scenarios, and the AI must handle each one's conditions).
-   Built (`src/scenarios.py`, `src/subplots.py`, `src/escalating.py`): 22 scenarios (the nine
+   Built (`src/scenarios.py`, `src/subplots.py`, `src/escalating.py`): 23 scenarios (the nine
    matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade Run,
    Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
    Engagement, Navigate the Storm, `src/navigate_storm.py`, Destroy the Docks,
-   `src/destroy_docks.py`); AI moves now take asteroid / warp
+   `src/destroy_docks.py`, the narrative Convoy, `src/convoy_narrative.py`); AI moves now take asteroid / warp
    rift tests (`terrain_effects.resolve_post_move_terrain`; they never did), attack ratings, reinforcements,
    immobile defences, transport capacity, sub-plots' first slice, and the AI terms for each.
    Left: Exterminatus! / Planetary Assault (low orbit; owner question: how does a ship enter
-   low orbit? s.41 only says how it leaves), the narrative Convoy (contact markers), the
-   campaign set pieces, the rest of the sub-plots (CLAUDE.md To do 7 has the full list).
+   low orbit? s.41 only says how it leaves), the campaign set pieces, the rest of the sub-plots (CLAUDE.md To do 7 has the full list).
 8. New (owner ideas, not hard rules: it depends on the matchup): matchup-aware manoeuvre.
    Crossing the T / both broadsides busy for gun-heavy Imperium fleets, kiting for Chaos (or
    any fleet that out-ranges and out-moves its enemy on average), Tau prow-on only when the
