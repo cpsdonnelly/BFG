@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1293 pass; all GUI checks pass
+playable). Tests: 1300 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -529,8 +529,9 @@ Then attack ratings, sub-plots' first slice, the introductory scenarios, four ra
 Raiders, Blockade Run, The Bait, Rearguard Attack) on a new reinforcements framework, and
 three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Escalating
 Engagement's contact markers, Navigate the Storm, Destroy the Docks and the narrative
-Convoy: 23 booklet scenarios in
-all (To do 7 lists what is left). Fixed on the way: a zero-length line of sight against a
+Convoy; then (booklet zip 14) the owner's sign-off answers applied, low orbit,
+Exterminatus! and Planetary Assault: 25 booklet scenarios in all (To do 7 lists what is
+left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
 Built so far: every booklet rule section the engine plays (see the sections above), the export
@@ -544,10 +545,10 @@ values over later shooting phases, playing for the win under a turn limit (exper
 disengaging, re-rolls), the expert's root moves paying for hazards, exposure by Armour facing
 (8 a), the range-bracket matchup table (8 f) and the first slice of target-directed movement
 candidates (11 a)).
-Not built: Exterminatus!, Planetary Assault, the campaign set pieces
-and the rest of the sub-plots (To do 7; 23 scenarios are built), and the To do items below.
-Next (largest first): 7 (the low orbit table for Exterminatus! / Planetary Assault, waiting
-on the owner's answer to how ships enter low orbit; the rest of the sub-plots), the Necron and Eldar gaps (To do 14), To do 13's remaining
+Not built: the campaign set pieces and the rest of the sub-plots (To do 7; 25 scenarios
+are built), and the To do items below.
+Next (largest first): 7 (the campaign set pieces, the rest of the sub-plots), Dark Eldar and
+Tyranids (new in export 14, listed but unsupported), the Necron and Eldar gaps (To do 14), To do 13's remaining
 bits (the experiments: Eldar fleet lists or hand-built fleets and a headless runner; the expert
 AI per unit), the rest of 4 (daemonships:
 off-table start, warp translation, spectral state touching every targeting / ordnance path;
@@ -1321,15 +1322,68 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    same. Not yet: players choosing the clusters' mix, marker spots and deployments
    (dialogs), the escort squadron's formation choice, hiding markers' contents from a human
    defender (they're drawn as "?" but the log names them), the Gauntlet variant.
-   Status: 23 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   Low orbit built (s.39, `src/low_orbit.py`; sign-off answer 1): the low orbit table is a
+   separate area of the engine's coordinates (x 0-120, y 10000-10060, judgement: 120 x 60cm;
+   far from the main table so nothing reaches across), its top edge the planet edge; the
+   board draws it as a strip above the main table (`BoardView.cm_to_screen` maps it, clicks
+   map back). A ship in the planet's gravity well at the start of its turn may enter
+   (`can_enter` / `enter`: a human is asked, `GameState.low_orbit_hook`; the AI by
+   `planet_scenarios.wants_low_orbit`), placed touching the edge furthest from the planet
+   (Remastered p.116, proposed; owner to confirm) facing along the planet edge (reading:
+   left or right by its heading; facing the planet a 45-degree ship couldn't climb away
+   before falling), at an x for its
+   side of the planet (judgement). In low orbit (`in_low_orbit` rule): no minimum move, no
+   turning distance (`movement.get_effective_speed` / `validate_movement`), gunnery one
+   column right (`combat.get_column_shifts`), lances and nova cannon fire only on a 4+
+   (`resolve_lances`, `resolve_nova_cannon`), no torpedoes or mines (barrage bombs allowed;
+   `ordnance.launch_torpedoes` / `lay_mines`, the launch dialogs); ordnance can't leave
+   (`marker_off_bounds`). At the start of each player's turn ships within 45cm of the
+   planet edge fall 5 / 8 / 10cm by planet size (`falling`), off it destroyed; off the planet
+   edge voluntarily escorts and transports land (disengaging), capital ships stop at the
+   edge (reading); off any other edge a ship returns to high orbit touching the planet
+   template (on the side its x stands for, facing out, reading), never in the turn it
+   entered (it stops at the edge, reading) (`handle_move_end` from
+   `movement.execute_movement`; off-table checks by `bounds_for` / `off_bounds`).
+   Exterminatus! and Planetary Assault built (p.101-102, p.105-106,
+   `src/planet_scenarios.py`): the planet by D6 (1 small, 2-5 medium, 6 large; radii 3 / 5 / 8
+   as elsewhere) with its near edge 150cm from the attacker's (right) short edge, centred
+   (reading of the drawing); other planets removed; attacker within 15cm of the right edge;
+   roll-off for the first turn. Exterminatus!: one Exterminator per 1000pts or portion
+   (judgement: the ships with most hits; the Planet Killer or an Activated Blackstone counts
+   alone), prow weapons removed (`_is_prow`) except Space Marine battle barges (virus bombs)
+   and Inquisitorial Cruisers with torpedoes, which need 3+; one patrol per 500pts or portion
+   (judgement: the cheapest units) in reserve, arriving on 5+ / 4+ / 3+ by speed from a D6
+   edge (1 left, 2-3 top, 4-5 bottom, 6 right, `patrol_arrivals`); the defender more than
+   30cm from the edges; each Exterminator in low orbit within 45cm of the planet edge rolls
+   at the start of each attacker's turn (reading: "each turn" as the attacker's) to destroy
+   the planet (`exterminatus_rolls`); defenders may treat Exterminators as the closest enemy
+   (`priority_free`, AI and Fire dialog); ends on the planet destroyed (attacker wins), every
+   Exterminator destroyed (defender wins) or a fleet gone (holding the field). Planetary
+   Assault: the defender's dearest half on alert in the gravity well, the rest on patrol 30cm
+   from the edges (judgement; the attacker placing patrols on 1-3 isn't built); 2 transport
+   capacity per 500pts or portion (`force_errors`); at the start of the attacker's shooting
+   phase each capital ship / convoy ship within 30cm of the planet edge may assault
+   (`shooting_start`, a human via `GameState.assault_hook`, the AI always): 2 x its capacity
+   (capital ships at least 1/2) in assault points, no shooting / launching / teleporting that
+   turn (`has_fired`); escort convoy ships landing score that turn (`record_landing`); ends at
+   10 points or a fleet gone; result: points + 1 per full 500 VP of the attacker - 1 per 500
+   (or portion) of the defender, + a final score for each uncrippled attacking capital /
+   convoy ship on the table when it holds the field (reading: wherever it is), 0-1 / 2-5 /
+   6-9 / 10+ (`assault_total`, `assault_result`). AI: `_planet_term` (high orbit: close on the
+   gravity well with a planet objective; low orbit: end within 45 / 30cm of the planet edge,
+   never where the two falls before its next move, or the round after even climbing its best,
+   take it off the edge), `_low_orbit_exit_score`, Exterminators' and assault ships' kill
+   bonuses (`planet_scenarios.kill_bonus_vp`), defenders' stake against disengaging. Not yet:
+   barrage bombs' assault points, the defenders' extra planetary defence points, the
+   biosphere choice, high orbit's free turns towards the planet, the low orbit defences,
+   the attacker placing patrols.
+   Status: 25 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
    Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
-   Engagement, Navigate the Storm, Destroy the Docks, the narrative Convoy
+   Engagement, Navigate the Storm, Destroy the Docks, the narrative Convoy, Exterminatus!,
+   Planetary Assault
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
-   also `gui_spectator_domination.py`). Still to build (largest first): Exterminatus! and
-   Planetary Assault (the low orbit table, s.41; assault points; Armageddon weapons on
-   Exterminators; random patrol arrival edges; owner question: how a ship enters low orbit,
-   the booklet doesn't say), the campaign set pieces (Defence of Pelucidar, Macharia's End,
+   also `gui_spectator_domination.py`). Still to build (largest first): the campaign set pieces (Defence of Pelucidar, Macharia's End,
    Craftworld Assault) and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
    the sub-plots (Blood Bond, Fleet Experience, Signaling Problems effects; Unexpected Help,
    Decoy, Fresh Captain's objective; faction sub-plots) and their AI beyond kill bonuses.
@@ -2139,11 +2193,12 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- **Low orbit (s.41, Exterminatus! / Planetary Assault):** how does a ship get from the main
-  table into low orbit? s.41 says a ship leaving low orbit by any edge but the planet edge
-  returns to high orbit, but not how one enters (from the planet's gravity well? by moving
-  off the main table's edge? where it appears on the low-orbit table?). Both scenarios wait
-  on this.
+- **Low orbit placement:** XR (s.39) says a ship in the gravity well at the start of its turn
+  may enter low orbit, but not where it appears; the booklet-side answer proposes
+  Remastered's "touching the edge furthest from the planet" (built that way). Ciarán to
+  confirm. Also my readings in To do 7's low orbit / planet battle paragraph.
+- **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
+  next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
 
 Answered before: the AA notes and draft PDF are now in `docs/` (To do 13); where AA sits
 in the order follows the dependencies (its experiments come after 11 a-c). Answered: where To do 8 goes. Owner: "the order isn't hugely important". So follow

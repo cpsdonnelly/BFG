@@ -484,7 +484,7 @@ the current AI, whose normal and expert players and weights stay as they are.
   wins the game, the defender's ships count keeping the field).
 - **Turn limit** (Built: the expert search's horizon and risk preference, and the normal AI's
   disengaging, re-rolls, brace and strikes, To do 2).
-- **Scenarios** (Built for 23 booklet scenarios, To do 7; owner: "Domination was just one
+- **Scenarios** (Built for 25 booklet scenarios, To do 7; owner: "Domination was just one
   example; there are many other scenarios"): each plays its own objectives in expected VP next
   to ship VP. Domination: markers held at the end of our turn, contesting enemy-held ones, a
   pull towards markers within two moves, point goals for the move candidates, the points race
@@ -496,7 +496,12 @@ the current AI, whose normal and expert players and weights stay as they are.
   0.1 of its value (it comes back). Destroy the Docks: the stations, dock and inner platforms
   carry a kill bonus (half the points on the table shared out). The narrative Convoy: convoy
   ships run for the far short edge (capacity value + points), the attacker's kill bonus is the
-  same; the attacker reveals the contact marker nearest the convoy each turn. Line Breaker: platforms carry a kill bonus, then capital ships run for the
+  same; the attacker reveals the contact marker nearest the convoy each turn. Exterminatus! /
+  Planetary Assault: ships with a planet objective (Exterminators, assaulting ships) close on
+  the gravity well and enter low orbit, then end within 45 / 30cm of the planet edge but
+  never where the falls before their next move, or the round after even climbing, would take
+  them off it; they always assault; defenders value Exterminators and assault ships as kills
+  and pay a stake for leaving. Line Breaker: platforms carry a kill bonus, then capital ships run for the
   defender's edge. Chance Encounter: the defender values crippling the attacking flagship
   (half the points on the table), the attacker runs for the far edge. Convoy / Blockade Run:
   convoy ships and blockade runners head for their exit edge and don't take disengage tests.

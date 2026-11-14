@@ -48,7 +48,7 @@ def test_entering_falling_landing_and_leaving():
         assert lo.can_enter(gs, s)
         lo.enter(gs, s)
     c = gs.get_ship_by_id("c")
-    assert lo.in_low_orbit(c) and c.y < lo.Y0 + 3 and c.heading == 90.0
+    assert lo.in_low_orbit(c) and c.y < lo.Y0 + 3 and c.heading in (0.0, 180.0)
     assert lo.entered_this_turn(gs, c)
     # far from the planet edge (60cm): no fall
     lo.falling(gs)

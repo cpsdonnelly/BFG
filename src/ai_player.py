@@ -878,6 +878,13 @@ class AIPlayer:
                 # decides how much it can climb)
                 h = end_heading if end_heading is not None else ship.heading
                 after = d - 2 * fall
+                # Long run: a ship that can't out-climb two falls a round even
+                # pointing straight away (it can turn there in two moves) only
+                # sinks once inside the 45cm grip: it falls in the end unless
+                # it can land first (escorts, transports)
+                if (d <= lo.GRIP and ship.effective_speed <= 2 * fall
+                        and not lo.lands(ship)):
+                    return -1.5 * ship_value(ship, gs) / units
                 if after - ship.base_radius <= 0:
                     return -2.0 * ship_value(ship, gs) / units
                 ta = ship.turn_angle or 0

@@ -1078,15 +1078,15 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
    Rogue Trader faction sub-plots), then an AI that plays their objectives and win conditions,
    not just cruiser clash (owner: Domination's objective markers and 10-point race are just one
    example; there are many other scenarios, and the AI must handle each one's conditions).
-   Built (`src/scenarios.py`, `src/subplots.py`, `src/escalating.py`): 23 scenarios (the nine
+   Built (`src/scenarios.py`, `src/subplots.py`, `src/escalating.py`): 25 scenarios (the nine
    matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade Run,
    Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
    Engagement, Navigate the Storm, `src/navigate_storm.py`, Destroy the Docks,
-   `src/destroy_docks.py`, the narrative Convoy, `src/convoy_narrative.py`); AI moves now take asteroid / warp
+   `src/destroy_docks.py`, the narrative Convoy, `src/convoy_narrative.py`, Exterminatus! and Planetary Assault on the
+   low orbit table, `src/low_orbit.py`, `src/planet_scenarios.py`); AI moves now take asteroid / warp
    rift tests (`terrain_effects.resolve_post_move_terrain`; they never did), attack ratings, reinforcements,
    immobile defences, transport capacity, sub-plots' first slice, and the AI terms for each.
-   Left: Exterminatus! / Planetary Assault (low orbit; owner question: how does a ship enter
-   low orbit? s.41 only says how it leaves), the campaign set pieces, the rest of the sub-plots (CLAUDE.md To do 7 has the full list).
+   Left: the campaign set pieces, the rest of the sub-plots (CLAUDE.md To do 7 has the full list).
 8. New (owner ideas, not hard rules: it depends on the matchup): matchup-aware manoeuvre.
    Crossing the T / both broadsides busy for gun-heavy Imperium fleets, kiting for Chaos (or
    any fleet that out-ranges and out-moves its enemy on average), Tau prow-on only when the
@@ -1130,3 +1130,22 @@ choice, multi-role attack modes, Wings of Fury re-rolls and the expert AI's leaf
 
 Watch the context window: read rules sections with targeted `sed -n` ranges, delegate long
 transcriptions and verify a sample against the booklet yourself.
+
+
+## Session after booklet zip 14 (update 60)
+
+Installed zip 14: Dark Eldar and Tyranids listed but unsupported (`UNBUILT_FACTION_RULES`), the
+Eldar Transport playable (capacity 1 from its special rule), rules files renumbered (code and
+docs follow). Catalog diff: nothing else changed. The owner's sign-off answers
+(`bfgxr/notes/OWNER_SIGNOFF_answers.md`) applied: Convoy markers activate along the actual
+path (6), Navigate the Storm halves ordnance too (14) and rolls D3x5 by D3x10cm rifts (17),
+attack ratings (44), light cruisers in a list's Cruisers category may take the mine swap,
+and the Eldar hybrid mine swap (49), Siren's Summon forced tests fail (50), Eldar slowed by
+blast markers (58), raids raise the Necron alert (59). Answer 9 (a second marker) and 13
+(materialising until the end of the next movement phase) were already so.
+Then low orbit and the two planet battles (CLAUDE.md To do 7 has the detail and the
+readings). AI-vs-AI: Planetary Assault reaches 10 assault points with ships assaulting turn
+after turn; the AI still lets the odd ship fall onto the planet (its climb check looks two
+rounds ahead) and defenders sometimes run off the table edge. Exterminatus! games are long:
+the planet is 150cm from the attacker's edge, so the Exterminator takes 6-8 game turns to
+arrive and is often crippled on the way.

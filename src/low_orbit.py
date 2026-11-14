@@ -128,12 +128,15 @@ def _clear_spot(gs, ship, x: float, y: float, along: str = "x"):
 
 def enter(gs, ship) -> None:
     """Move a ship from high orbit onto the low orbit table, touching the edge
-    furthest from the planet, facing the planet (reading)."""
+    furthest from the planet, facing along the planet edge (reading: its
+    heading's side, left or right; facing the planet would leave a 45-degree
+    ship unable to climb away before it falls)."""
     pl = planet(gs)
     angle = math.degrees(math.atan2(ship.y - pl.y, ship.x - pl.x)) % 360.0
     x = max(ship.base_radius, min(LENGTH - ship.base_radius, _angle_to_x(angle)))
     x, y = _clear_spot(gs, ship, x, Y0 + ship.base_radius + 0.1)
-    ship.x, ship.y, ship.heading = x, y, 90.0
+    along = 0.0 if math.cos(math.radians(ship.heading)) >= 0 else 180.0
+    ship.x, ship.y, ship.heading = x, y, along
     ship.special_rules = [r for r in ship.special_rules
                           if r != FLAG and not r.startswith("lo_entered:")] + \
         [FLAG, f"lo_entered:{gs.turn_number}"]
