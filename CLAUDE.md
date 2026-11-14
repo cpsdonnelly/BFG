@@ -525,9 +525,9 @@ item below says how):
 Discovered this session (code review, `docs/CODE_REVIEW_PLAN.md`; plan only, not acted on):
 - Game modes: hot seat (player vs player), player vs AI (the AI is always Player 2), AI vs AI
   (spectator; one difficulty for both sides). No more than two sides: the engine is
-  two-sided throughout (`3 - player` ~100 times); one side may mix factions. 2v2 humans
-  sharing a side is a UI / turn-flow change; three or more sides a large one (the booklet has
-  no multi-player rules). LAN multiplayer and the web client are on hold.
+  two-sided throughout (`3 - player` ~100 times); one side may mix factions. Team play
+  (owner design, To do 22): two teams of players, each team one side, its ships acting in
+  the team's phases together; no new phases. LAN multiplayer and the web client are on hold.
 - Performance (profiled, 4 v 4 AI movement phase): about 40% is
   `ai_hazards.ship_bracket_raw`'s `Ship.to_dict` deep copies (cacheable per phase); copying
   ships (`asdict` / `from_dict`) is over half the phase; function-local imports are ~3%
@@ -782,22 +782,24 @@ are fixed by the owner):
 3. To do 17: recording and replay (seeded dice, structured events, full snapshots, viewer).
 4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split,
    weapon-value helper, central AI weights, rules out of the UI).
-5. To do 19: Dark Eldar and Tyranids.
-6. To do 14: the Eldar and Necron gaps.
-7. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains; special movement
+5. To do 22: team play (several players a side; after 18, which moves the game flow out
+   of the Tk panels).
+6. To do 19: Dark Eldar and Tyranids.
+7. To do 14: the Eldar and Necron gaps.
+8. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains; special movement
    (Space Hulk, Rok, Nicassar, Kroot), fortress weapons, Pthuxutl, Man O' War.
-8. To do 13: alternate activation's experiments (they want the headless runner), the expert
+9. To do 13: alternate activation's experiments (they want the headless runner), the expert
    AI per unit, the rest.
-9. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
+10. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
    coordination rounds, two-turn expert root moves, Brace's remaining bits, 8 d / g).
-10. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
-11. To do 21: the replay system as the comparison standard, completed before the port: every
+11. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
+12. To do 21: the replay system as the comparison standard, completed before the port: every
     kind of event covered (the rules and factions added after step 3 included), a
     versioned, language-neutral record format, a Python replay verifier and a golden set of
     recorded games covering every faction and scenario. The port's first milestone is
     reading and replaying these records.
-12. Second last, To do 20: port the engine to a faster language in a new branch.
-13. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
+13. Second last, To do 20: port the engine to a faster language in a new branch.
+14. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
     until the owner says to start; built on the faster engine, kept separate from the current
     AI, never replacing it.
 Done: To do 2, 3, 6; most of 7.
@@ -2409,6 +2411,22 @@ Done: To do 2, 3, 6; most of 7.
    - a golden set of recorded games covering every faction, scenario, optional rule and
      both turn systems, regenerated and re-verified after each rules change;
    - a determinism test in the suite (record, replay, compare).
+22. Team play (owner design): two teams, each team one side, so the engine stays two-sided
+   (`player` 1 / 2 is the team) and the number of phases is unchanged. Players on a team are
+   "like the same player but cut up": each ship belongs to one team member (a controller,
+   human or AI), and all of a team's ships act in that team's phases together, whoever
+   controls them. IGOUGO: the team's movement / shooting / ordnance / end phase as now, each
+   member acting with their own ships, the phase ending when the team is done. Alternate
+   activation's bags: unchanged, the dice just carry the controller's name (a drawn die of
+   the team's lets the member it names activate one of their units; System 1's order and
+   System 3's choice per team). Victory points, holding the field, scenario roles and turn
+   order per team. Plan: a controller per ship (`Ship.controller`), team rosters on
+   `GameState`, the UI's action filter by the seat at the screen, AI seats per controller,
+   setup screens for teams. Questions for the owner before building: one fleet commander and
+   re-roll pool per team or per player; one fleet list per team or per player (and how the
+   points are split); who decides team-wide choices (Brace of a squadron split across
+   players can't happen if squadrons stay with one player; the System 3 first-activation
+   choice; blast marker removal).
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 
