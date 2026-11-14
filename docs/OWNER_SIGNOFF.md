@@ -1,5 +1,11 @@
 # Owner sign-off: open questions and my readings
 
+**Status (after booklet zip 14):** the booklet-side answers are in
+`bfgxr/notes/OWNER_SIGNOFF_answers.md`. Applied: 1 (low orbit, with Remastered's placement
+pending Ciarán's confirmation), 6, 9 (already so), 13 (already so), 14, 17, 44, 49, 50, 58, 59.
+Still with Ciarán: 2, 10, 16, 54, 55, 63-66, and the low orbit readings in CLAUDE.md To do 7.
+Not yet checked on the booklet side: 15, 26-43, 45-48, 51, 53, 67-70.
+
 Wherever the booklet was unclear or silent, I made a choice so the game could play. Each item
 below says what the game does **now**. Tick **OK**, or write what it should do instead. Items
 marked *(judgement)* are AI or automatic choices with no rule behind them. The others are my
