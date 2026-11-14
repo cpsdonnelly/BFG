@@ -1153,4 +1153,8 @@ Then the faction sub-plots and two campaign set pieces, The Defence of Pelucidar
 Macharia's End (`src/campaign_scenarios.py`; CLAUDE.md To do 7 has the readings). AI-vs-AI:
 Pelucidar's Ork waves grow each turn and swamp three cruisers; in Macharia's End the Planet
 Killer closes on the planet and begins charging about turn 10 (game turn 5), so give the
-spectator check a long turn limit. Not yet: Craftworld Assault and the variants.
+spectator check a long turn limit. 
+Then Craftworld Assault (`src/craftworld.py`, a Planetary Assault variant with the
+fortresses, the Spear of Light, the forges and the Gates; readings in CLAUDE.md To do 7, and a
+new owner question about the forges' netherfields). Left of To do 7: the campaign variants
+(Parol's Bait, Daemon Blockade, The Gauntlet) and the Decoy sub-plot.

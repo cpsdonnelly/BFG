@@ -503,7 +503,7 @@ Eldar 09, Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios `14_scenarios.md`,
 the appendices 16-22; the owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`).
 Catalog diff against zip 13: no existing entry changed but the Eldar Transport (now Free, a
 convoy ship with transport capacity 1 from its special rule, `booklet_ships.RULE_TRANSPORT`,
-playable). Tests: 1320 pass; all GUI checks pass
+playable). Tests: 1328 pass; all GUI checks pass
 (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; the spectator checks take a
 difficulty: `gui_spectator_demo.py normal` / `expert`; expert games take ~75s of their 180s
 limit). After every new export, diff the built
@@ -531,7 +531,7 @@ three battles (Alien Intervention, Surprise Attack, Fleet Engagement), then Esca
 Engagement's contact markers, Navigate the Storm, Destroy the Docks and the narrative
 Convoy; then (booklet zip 14) the owner's sign-off answers applied, low orbit,
 Exterminatus! and Planetary Assault, then the faction sub-plots and two campaign set pieces
-(The Defence of Pelucidar, Macharia's End): 27 booklet scenarios in all (To do 7 lists what is
+(The Defence of Pelucidar, Macharia's End, Craftworld Assault): 28 booklet scenarios in all (To do 7 lists what is
 left). Fixed on the way: a zero-length line of sight against a
 planet divided by zero; AI scenario rolls asked a human in "mixed" dice mode.
 
@@ -1455,14 +1455,49 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
    Killer's forced disengage tests, Chaos ships
    screening it or keeping out of the shot's path (AI-vs-AI the shot killed a Slaughter on
    its way; the rule destroys any ship under it), the Imperial AI ending the game by disengaging once 2000 VP ahead.
-   Status: 27 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
+   Craftworld Assault built (p.113-115, `src/craftworld.py`, mode `craftworld_assault`): it
+   plays as Planetary Assault (`planet_scenarios.mode` treats it so: assault points, low
+   orbit, the game end and the result) with the craftworld as the planet: Iyanden by default
+   (25cm across, gravity well 20cm, `Phenomenon` rule `well:20`; `scenario_state["roll_size"]`
+   rolls the D6 size table, judgement: the middle of each diameter range), placed as
+   Planetary Assault's planet; the Eldar defend (the player whose main faction is Eldar). Set-
+   up: on alert (judgement: the dearest units until half the points) in the gravity well
+   (reading: not yet on the low orbit table), the rest on patrol, a D6 each, 1-3 placed by the
+   attacker (judgement: 30cm from its edge), Shadowhunter squadrons always on patrol placed
+   by the defender; special reserves (`gate_reserve` rule or `scenario_state["gate_reserves"]`;
+   not yet bought at 50% in the fleet builder) wait for the Gates. First turn: D6 + attack
+   rating each, the higher chooses (`roll_for_choice` "rating_choice", reading: ties re-
+   rolled). The Fortresses: each assault point that would be scored is negated on a 4+ (5+
+   at 2-3 damage, 6+ at 4-5, none at 6; reading: a part point rolls as one;
+   `filter_assault_points` in `declare_assault`), and in the Eldar shooting phase each of
+   them (one at 5 damage, none at 6) makes an FP1 pulsar lance attack (4+, a hit gives a
+   follow-up, at most three) at every enemy capital ship and escort squadron (reading: its
+   member nearest the planet edge) in low orbit within 45cm of the planet edge (Brace
+   offered). The Spear of Light: a nova cannon fired automatically at the start of the
+   Eldar shooting phase (judgement, also for a human, first form: the enemy off the low orbit
+   table at 30-150cm from the craftworld's edge worth most, none with an Eldar ship within
+   12cm); damaged once it needs Reload Ordnance at Ld 8 after each shot (reading: tried at
+   the start of each Eldar turn, outside the fleet's command checks), twice destroyed. Each
+   player's end phase rolls a D6 per assault point for each, any 6 one damage
+   (`craftworld.end_phase`). The Forges: an Eldar capital ship (MMS) in low orbit moving off
+   the planet edge docks (`low_orbit.handle_move_end` -> `dock`): it stays touching the edge,
+   reloads, can't move / shoot / launch / board / teleport (`scenarios.on_standby` ->
+   `held_back`), doesn't fall, and its damage control gets +4D6 ignoring blast markers, or
+   with nothing repairable a hit back per 6 (`end_phase._forge`, `forge_hit_recovery`); it
+   undocks at the end of the next Eldar turn and doesn't fall before its next move (reading:
+   otherwise docking would always end in a crash). The Gates: from the second Eldar turn a D6,
+   on 5+ D3 reserve units (judgement: dearest first) arrive touching the craftworld on its far
+   side from the attacker, facing the nearest short edge, unable to move or shoot that turn
+   (`gate_arrivals`). Not yet: the forges' netherfields (the booklet doesn't define them:
+   owner question) and polarisation fields, the alert units on the low orbit table, the AI
+   docking damaged ships or choosing the Spear's moment, a human aiming the Spear.
+   Status: 28 booklet scenarios play end to end for humans and the AI, in IGOUGO and AA: the
    nine matched-play ones, Cruiser Clash, Chance Encounter, The Bait, The Raiders, Blockade
    Run, Rearguard Attack, Alien Intervention, Surprise Attack, Fleet Engagement, Escalating
    Engagement, Navigate the Storm, Destroy the Docks, the narrative Convoy, Exterminatus!,
-   Planetary Assault, The Defence of Pelucidar, Macharia's End
+   Planetary Assault, The Defence of Pelucidar, Macharia's End, Craftworld Assault
    (`tools/gui_checks/gui_spectator_scenario.py igougo|aa <scenario> [subplots]`; Domination
-   also `gui_spectator_domination.py`). Still to build (largest first): the campaign set
-   piece Craftworld Assault and variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
+   also `gui_spectator_domination.py`). Still to build (largest first): the variants (Parol's Bait, Daemon Blockade, The Gauntlet); the rest of
    the sub-plots (the Decoy / Mimic Drive) and their AI beyond kill
    bonuses.
    Smaller gaps: racing Domination's 10 against the turn order; reinforcements entering along
@@ -2275,6 +2310,10 @@ rather than touch a third ship).
   may enter low orbit, but not where it appears; the booklet-side answer proposes
   Remastered's "touching the edge furthest from the planet" (built that way). Ciarán to
   confirm. Also my readings in To do 7's low orbit / planet battle paragraph.
+- **Craftworld Assault's forges** give docked ships "the protection of the forges'
+  netherfields and polarisation fields (identical to those of the Haven Spire)", but the
+  booklet's Haven Spire (MMS) has neither; only XR's note names them, and only the Dark
+  Eldar Tormentor Spire defines a polarisation field. What should they do?
 - **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
   next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
 

@@ -205,3 +205,169 @@ def test_ai_overcharge_needs_the_planet_ahead():
     assert not cs.wants_overcharge(gs, pk)
     pk.heading, pk.x = 180.0, pl.x + 120.0
     assert not cs.wants_overcharge(gs, pk)
+
+
+# --- Craftworld Assault -------------------------------------------------------------
+
+from src import craftworld as cw  # noqa: E402
+from src import low_orbit as lo  # noqa: E402
+
+
+def _cw_gs(extra=()):
+    att = [make_ship(id="a1", player=1, faction="chaos", points_value=200, x=170, y=60)]
+    eld = [make_ship(id=f"e{i}", player=2, faction="eldar", points_value=150 + 10 * i,
+                     special_rules=["eldar_mms"]) for i in range(3)]
+    gs = _gs(att + eld + list(extra), "craftworld_assault")
+    return gs
+
+
+def test_craftworld_setup_is_iyanden_with_alert_and_patrols():
+    gs = _cw_gs()
+    gs.scenario_attacker = 2                      # set from the factions: Eldar defend
+    dice = DiceStub([2])                          # the one patrol: placed by the attacker
+    sc.setup_scenario(gs, dice)
+    assert dice._idx == 1 and gs.scenario_attacker == 1
+    pl = cw.craftworld(gs)
+    assert pl.radius == 12.5 and pl.gravity_well_radius == 32.5
+    assert pl.x + pl.radius == gs.table_width - 150.0
+    st = gs.scenario_state
+    assert st["alert"] == ["e2", "e1"]             # the dearest, until half the points
+    assert st["patrol_by_attacker"] == ["e0"]
+    assert lo.planet(gs).id == pl.id
+
+
+def test_craftworld_first_turn_by_d6_plus_attack_rating():
+    gs = _cw_gs()
+    sc.setup_scenario(gs, DiceStub([6, 6]))
+    # attacker (Chaos 2) rolls 3 = 5, defender (Eldar 3) rolls 3 = 6: Eldar choose
+    assert sc.roll_for_choice(gs, DiceStub([3, 3])) == 2
+    # a tie (4 + 2 = 3 + 3) is re-rolled
+    assert sc.roll_for_choice(gs, DiceStub([4, 3, 6, 1])) == 1
+
+
+def test_fortresses_negate_assault_points():
+    gs = _cw_gs()
+    sc.setup_scenario(gs, DiceStub([6, 6]))
+    # 2 points: rolls 4 (negated) and 3 (kept)
+    assert cw.filter_assault_points(gs, 2.0, DiceStub([4, 3])) == 1.0
+    gs.scenario_state["fortress_damage"] = 2          # 5+ now
+    assert cw.filter_assault_points(gs, 2.0, DiceStub([4, 5])) == 1.0
+    gs.scenario_state["fortress_damage"] = 4          # 6+
+    assert cw.filter_assault_points(gs, 1.0, DiceStub([5])) == 1.0
+    gs.scenario_state["fortress_damage"] = 6          # no cover at all
+    assert cw.negate_need(gs) is None and cw.fortresses(gs) == 0
+    assert cw.filter_assault_points(gs, 3.0, DiceStub([])) == 3.0
+
+
+def test_fortress_fire_hits_low_orbit_ships_near_the_planet_edge():
+    gs = _cw_gs()
+    sc.setup_scenario(gs, DiceStub([6, 6]))
+    a = gs.get_ship_by_id("a1")
+    a.x, a.y = 60.0, lo.planet_edge_y() - 20.0
+    a.special_rules = [lo.FLAG]
+    gs.update_ship(a)
+    shields, hp = a.shields_max, a.hits_remaining
+    # fortress 1: hit, follow-up hit, follow-up miss (2 hits); fortress 2: miss
+    dice = DiceStub([4, 5, 2, 1])
+    hits = cw.fortress_fire(gs, dice)
+    assert hits == 2 and dice._idx == 4
+    assert gs.get_ship_by_id("a1").hits_remaining == hp - max(0, 2 - shields)
+    # out of reach (more than 45cm from the planet edge): no attack
+    a = gs.get_ship_by_id("a1")
+    a.y = lo.planet_edge_y() - 50.0
+    gs.update_ship(a)
+    assert cw.fortress_targets(gs) == []
+
+
+def test_defence_damage_rolls_in_the_end_phase():
+    gs = _cw_gs()
+    sc.setup_scenario(gs, DiceStub([6, 6]))
+    gs.scenario_state["assault_points"] = 2.0
+    cw.end_phase(gs, 1, DiceStub([6, 6, 1, 6]))     # fortresses: two 6s = one damage
+    assert gs.scenario_state["fortress_damage"] == 1
+    assert gs.scenario_state["spear_damage"] == 1
+    cw.end_phase(gs, 2, DiceStub([1, 2, 6, 2]))
+    assert gs.scenario_state["fortress_damage"] == 1
+    assert gs.scenario_state["spear_damage"] == 2 and not cw.spear_ready(gs)
+
+
+def test_docking_at_the_forges():
+    gs = _cw_gs()
+    sc.setup_scenario(gs, DiceStub([6, 6]))
+    e = gs.get_ship_by_id("e2")
+    e.x, e.y, e.heading = 60.0, lo.planet_edge_y() + 1.0, 90.0
+    e.special_rules = list(e.special_rules) + [lo.FLAG, "lo_entered:0"]
+    e.hits_remaining = e.hits_max - 2
+    gs.update_ship(e)
+    gs.turn_number = 4
+    assert lo.handle_move_end(gs, gs.get_ship_by_id("e2"))
+    e = gs.get_ship_by_id("e2")
+    assert cw.docked(e) and not e.is_disengaged
+    assert sc.on_standby(gs, e)                     # no moving / shooting / launching
+    y = e.y
+    lo.falling(gs)
+    assert gs.get_ship_by_id("e2").y == y          # docked ships don't fall
+    # the forges: +4D6 and a hit back for every 6 with nothing to repair
+    from src.end_phase import resolve_damage_control
+    n = e.hits_remaining + 4
+    resolve_damage_control(e, DiceStub([6, 6, 6] + [1] * (n - 3)), gs)
+    assert gs.get_ship_by_id("e2").hits_remaining == e.hits_max
+    # undocked at the end of the next Eldar turn, safe until its next move
+    gs.turn_number = 6
+    cw.end_phase(gs, 2, DiceStub([]))
+    e = gs.get_ship_by_id("e2")
+    assert not cw.docked(e) and cw.held_in_orbit(e)
+    cw.turn_start(gs, 2, DiceStub([]))
+    assert not cw.held_in_orbit(gs.get_ship_by_id("e2"))
+
+
+def test_gates_bring_reserves_from_the_second_eldar_turn():
+    gs = _cw_gs()
+    gs.scenario_state = {"gate_reserves": ["e0"]}
+    sc.setup_scenario(gs, DiceStub([6]))            # one patrol roll (e1)
+    assert sc.is_reserve(gs.get_ship_by_id("e0"))
+    gs.turn_number = 2
+    cw.turn_start(gs, 2, DiceStub([]))              # the first Eldar turn: nothing
+    assert sc.is_reserve(gs.get_ship_by_id("e0"))
+    gs.turn_number = 4
+    cw.turn_start(gs, 2, DiceStub([5, 2]))         # 5+: D3 (1) units
+    e = gs.get_ship_by_id("e0")
+    pl = cw.craftworld(gs)
+    assert not sc.is_reserve(e)
+    import math
+    assert abs(math.hypot(e.x - pl.x, e.y - pl.y) - (pl.radius + e.base_radius + 0.1)) < 0.5 \
+        or e.x <= e.base_radius + 0.01
+    assert sc.on_standby(gs, e)                     # can't move or shoot this turn
+    gs.turn_number = 6
+    assert not sc.on_standby(gs, gs.get_ship_by_id("e0"))
+
+
+class _Hit:
+    """Dice for a direct nova hit: scatter "hit", then 6s (D6 hits = 6, no
+    crit rolls needed below 6 matter)."""
+    def roll_scatter(self, *a, **k):
+        return True
+
+    def roll_scatter_direction(self, *a, **k):
+        return 0
+
+    def roll_d6(self, n=1, *a, **k):
+        return [6] * n
+
+    def roll_2d6(self, *a, **k):
+        return 12
+
+
+def test_spear_of_light_fires_as_a_nova_cannon():
+    gs = _cw_gs()
+    sc.setup_scenario(gs, DiceStub([6, 6]))
+    pl = cw.craftworld(gs)
+    a = gs.get_ship_by_id("a1")
+    a.x, a.y = pl.x + pl.radius + 60.0, pl.y
+    a.shields_max = 0                    # 2 shields would stop the expected hits
+    gs.update_ship(a)
+    assert cw.spear_target(gs).id == "a1"
+    hp = a.hits_remaining
+    res = cw.fire_spear(gs, a, _Hit())
+    assert "error" not in res and res["ship_hits"]
+    assert gs.get_ship_by_id("a1").hits_remaining < hp

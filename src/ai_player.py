@@ -1227,7 +1227,7 @@ class AIPlayer:
                     and not s.is_destroyed and not s.is_disengaged]
             return (self.MACHARIA_WEIGHT * sum(s.points_value for s in gs.get_ships())
                     / max(1, len(mine)))
-        if gs.scenario_mode in ("exterminatus", "planetary_assault"):
+        if gs.scenario_mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
             # The planet battles: the defender gives up its share of stopping
             # the attack (half the points on the table shared out, judgement);
             # an attacker with a planet objective gives that up

@@ -520,6 +520,9 @@ class Phenomenon:
     @property
     def gravity_well_radius(self):
         """Returns gravity well radius for planets, 0 for non-planets"""
+        for r in self.special_rules or []:
+            if r.startswith("well:"):          # e.g. a craftworld's own well
+                return self.radius + float(r.split(":")[1])
         if self.phenomenon_type == PhenomenonType.PLANET_SMALL.value:
             return self.radius + 10
         elif self.phenomenon_type == PhenomenonType.PLANET_MEDIUM.value:

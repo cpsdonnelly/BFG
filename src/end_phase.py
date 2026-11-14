@@ -31,6 +31,28 @@ def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str
     return logs
 
 
+def _forge(ship: Ship, gs: GameState) -> bool:
+    """Craftworld Assault: a ship docked at the forges (+4D6, blast markers
+    ignored, hits back on 6s when nothing is repairable)."""
+    from .craftworld import active, docked
+    return active(gs) and docked(ship)
+
+
+def forge_hit_recovery(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]:
+    """A docked ship with no repairable critical damage rolls anyway (with the
+    forges' +4D6) and recovers 1 lost damage point for every 6."""
+    n = ship.hits_remaining + 4
+    lost = ship.hits_max - ship.hits_remaining
+    if lost <= 0:
+        return []
+    rolls = dice.roll_d6(n, f"{ship.name} at the forges: a hit back for every 6")
+    back = min(lost, sum(1 for r in rolls if r >= 6))
+    fresh = gs.get_ship_by_id(ship.id) or ship
+    fresh.hits_remaining += back
+    gs.update_ship(fresh)
+    return [f"{ship.name}: the forges restore {back} damage ({n} dice)"]
+
+
 def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
                            repair_choices: List[str] = None) -> List[str]:
     """
@@ -46,13 +68,14 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
         return logs
 
     repairable_crits = [c for c in ship.critical_damage if c.get("repairable", False)]
+    forge = _forge(ship, gs)
     if not repairable_crits:
-        return logs
+        return forge_hit_recovery(ship, dice, gs) if forge else logs
 
-    num_dice = ship.hits_remaining
+    num_dice = ship.hits_remaining + (4 if forge else 0)
 
-    # Check if ship is touching blast markers (halves dice)
-    touching_blast = count_blast_markers_touching(ship, gs.get_blast_markers())
+    # Check if ship is touching blast markers (halves dice; not at the forges)
+    touching_blast = 0 if forge else count_blast_markers_touching(ship, gs.get_blast_markers())
     if touching_blast > 0:
         num_dice = (num_dice + 1) // 2
         logs.append(f"{ship.name}: damage control with {num_dice} dice "
@@ -131,11 +154,15 @@ def get_repair_info(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
         return {"sixes": 0, "repairable": [], "num_dice": 0}
 
     repairable_crits = [c for c in ship.critical_damage if c.get("repairable", False)]
+    forge = _forge(ship, gs)
     if not repairable_crits:
+        if forge:
+            for line in forge_hit_recovery(ship, dice, gs):
+                gs.add_log(line)
         return {"sixes": 0, "repairable": [], "num_dice": 0}
 
-    num_dice = ship.hits_remaining
-    touching_blast = count_blast_markers_touching(ship, gs.get_blast_markers())
+    num_dice = ship.hits_remaining + (4 if forge else 0)
+    touching_blast = 0 if forge else count_blast_markers_touching(ship, gs.get_blast_markers())
     if touching_blast > 0:
         num_dice = (num_dice + 1) // 2
 

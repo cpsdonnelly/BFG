@@ -186,6 +186,10 @@ def handle_move_end(gs, ship, dice=None) -> bool:
             from .scenarios import record_landing
             record_landing(gs, ship)
         else:
+            from .craftworld import can_dock, dock
+            if can_dock(gs, ship):
+                dock(gs, ship)                 # Craftworld Assault: the forges
+                return True
             # capital ships can't land: it stops at the planet edge (reading)
             ship.y = planet_edge_y() - r - 0.1
             gs.update_ship(ship)
@@ -211,8 +215,9 @@ def falling(gs) -> None:
         return
     d = FALL.get(pl.phenomenon_type, 8.0)
     edge = planet_edge_y()
+    from .craftworld import held_in_orbit
     for s in gs.get_ships():
-        if not in_low_orbit(s) or s.is_destroyed or s.is_disengaged:
+        if not in_low_orbit(s) or s.is_destroyed or s.is_disengaged or held_in_orbit(s):
             continue
         if edge - s.y > GRIP:
             continue

@@ -167,6 +167,12 @@ SCENARIOS: Dict[str, Dict] = {
         "end": "fleet_gone",
         "victory": "planet_strike",
     },
+    "craftworld_assault": {
+        "name": "Craftworld Assault (XR p.113-115, campaign)",
+        "first_turn": "rating_choice",  # D6 + attack rating, the higher chooses
+        "end": "fleet_gone",
+        "victory": "planet_battle",
+    },
     "pelucidar": {
         "name": "The Defence of Pelucidar (XR p.111, campaign)",
         "first_turn": "attacker",       # the Orks always take the first turn
@@ -239,6 +245,9 @@ def on_standby(gs, ship) -> bool:
     """Surprise Attack: a defending ship still on standby can't move, shoot,
     launch ordnance, board or teleport (it may brace, repair and use its
     turrets against ordnance)."""
+    if getattr(gs, "scenario_mode", "") == "craftworld_assault":
+        from .craftworld import held_back
+        return held_back(gs, ship)     # docked at the forges / just through the Gates
     if getattr(gs, "scenario_mode", "") != "surprise_attack":
         return False
     return _group_key(ship) in (gs.scenario_state or {}).get("standby", [])
@@ -431,13 +440,16 @@ def turn_start(gs, dice=None) -> None:
     if mode == "destroy_docks":
         from .destroy_docks import lay_orbital_mines
         lay_orbital_mines(gs)
-    if mode in ("exterminatus", "planetary_assault"):
+    if mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         from .low_orbit import falling, can_enter, enter
         from .planet_scenarios import turn_start as _planet_start, wants_low_orbit
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
         for p in players:
             pdice = _dice_for(gs, p, dice)
             _planet_start(gs, p, pdice)
+            if mode == "craftworld_assault":
+                from .craftworld import turn_start as _cw_start
+                _cw_start(gs, p, pdice)
             falling(gs)
             hook = getattr(gs, "low_orbit_hook", None)
             ai = getattr(gs, "ai_spectator", False) or getattr(gs, "ai_player", None) == p
@@ -507,6 +519,16 @@ def roll_for_choice(gs, dice) -> Optional[int]:
     """Alien Intervention: the attacker rolls 2D6, the defender 1D6; the
     higher total chooses to go first or second (reading: ties re-rolled)."""
     sc = SCENARIOS.get(getattr(gs, "scenario_mode", ""))
+    if sc and sc.get("first_turn") == "rating_choice":
+        # Craftworld Assault: a D6 + the fleet's attack rating each, the
+        # higher chooses (reading: ties re-rolled)
+        while True:
+            a = dice.roll_d6(1, "Attacker's roll for the first turn (D6 + attack rating)")[0] \
+                + attack_rating(gs, gs.scenario_attacker)
+            d = dice.roll_d6(1, "Defender's roll for the first turn (D6 + attack rating)")[0] \
+                + attack_rating(gs, defender(gs))
+            if a != d:
+                return gs.scenario_attacker if a > d else defender(gs)
     if not sc or sc.get("first_turn") != "roll_2d6_vs_d6":
         return None
     while True:
@@ -843,12 +865,16 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
                 from .dice import DiceRoller
                 dice = DiceRoller(mode="auto")
             resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
-    elif mode in ("exterminatus", "planetary_assault"):
+    elif mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         if dice is None:
             from .dice import DiceRoller
             dice = DiceRoller(mode="auto")
-        from .planet_scenarios import setup as _planet_setup
-        _planet_setup(gs, dice)
+        if mode == "craftworld_assault":
+            from .craftworld import setup as _cw_setup
+            _cw_setup(gs, dice)
+        else:
+            from .planet_scenarios import setup as _planet_setup
+            _planet_setup(gs, dice)
     elif mode == "convoy_narrative":
         if dice is None:
             from .dice import DiceRoller
@@ -1117,7 +1143,7 @@ def force_errors(gs) -> List[str]:
     if mode == "pelucidar":
         from .campaign_scenarios import pelucidar_force_errors
         return pelucidar_force_errors(gs)
-    if mode == "planetary_assault":
+    if mode in ("planetary_assault", "craftworld_assault"):
         from .planet_scenarios import force_errors as _pa_errors
         return _pa_errors(gs)
     if mode == "line_breaker":
@@ -1212,7 +1238,7 @@ def deployment_zones(gs) -> Optional[List[DeploymentZone]]:
         # the exit point (the right edge's 20cm strip)
         rects = {3 - att_p: [(20, w / 2.0, h / 2.0, 0)],
                  att_p: [(w / 2.0, 20, 10, h / 2.0)]}
-    elif mode in ("exterminatus", "planetary_assault"):
+    elif mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         from .planet_scenarios import zone_rects as _planet_rects
         rects = _planet_rects(gs)
     elif mode == "convoy_narrative":
@@ -1330,7 +1356,7 @@ def placement_errors(gs, group, positions, headings, placed) -> List[str]:
         if group[0].player == defender(gs):
             return _raiders_defender_errors(gs, group, positions, headings, placed)
         return errs
-    if mode in ("exterminatus", "planetary_assault"):
+    if mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         from .planet_scenarios import placement_errors as _planet_errors
         return _planet_errors(gs, group, positions)
     if mode == "destroy_docks":
@@ -1497,6 +1523,9 @@ def auto_positions(gs, group, zone, placed, index: int):
     Storm alternates its divisions' corners; Ambush spaces the defender's
     groups 25cm apart."""
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "craftworld_assault":
+        from .craftworld import auto_positions as _cw_auto
+        return _cw_auto(gs, group, placed)
     if mode in ("exterminatus", "planetary_assault"):
         from .planet_scenarios import auto_positions as _planet_auto
         return _planet_auto(gs, group, placed)
@@ -1881,7 +1910,7 @@ def _scenario_kill_bonus(gs, ship) -> float:
     mode = getattr(gs, "scenario_mode", "")
     if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
         return 100.0        # a convoy ship escaping would give the defender 100
-    if mode in ("exterminatus", "planetary_assault"):
+    if mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         from .planet_scenarios import kill_bonus_vp as _planet_bonus
         return _planet_bonus(gs, ship)
     if mode == "convoy_narrative" and is_convoy(ship) and ship.player == defender(gs):
@@ -2044,7 +2073,7 @@ def check_end(gs) -> Optional[dict]:
     """Booklet scenario game-end and victory (scenario.check_game_over's
     contract). Fleet-gone checks stay in check_game_over."""
     mode = getattr(gs, "scenario_mode", "")
-    if mode in ("exterminatus", "planetary_assault"):
+    if mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         from .planet_scenarios import check_end as _planet_end
         return _planet_end(gs)
     if mode == "convoy_narrative":

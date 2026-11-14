@@ -68,7 +68,7 @@ gs.scenario_mode = scenario
 gs.rule_subplots = "subplots" in sys.argv
 gs.scenario_attacker = 1
 gs.turn_limit = 12
-if scenario in ("exterminatus", "planetary_assault"):
+if scenario in ("exterminatus", "planetary_assault", "craftworld_assault"):
     gs.turn_limit = 30          # the planet is 150cm from the attacker's edge
 if scenario == "macharia":
     gs.turn_limit = 24          # no turn limit in the booklet: until a side wins
@@ -92,6 +92,10 @@ if scenario == "space_assault":
     imp = imp[:3] + ["Space Station", "Orbital Weapons Platform"]
 if scenario == "convoy_narrative":
     imp = ["Dauntless Class Light Cruiser"]   # 2 x 100pts for 4 capacity
+if scenario == "craftworld_assault":
+    # the Eldar defend the craftworld (squadron ids set below)
+    imp = ["Eclipse Class Cruiser", "Shadow Class Cruiser", "Hellebore Class Frigate",
+           "Hellebore Class Frigate"]
 if scenario == "pelucidar":
     imp = imp[:3]                       # cruisers, battlecruisers and battleships only
 for p, names in ((1, chs), (2, imp)):
@@ -115,7 +119,11 @@ if scenario == "convoy_matched":
         c = cat("Conventional Transport", 2, 10 + k, 0.0, 0.0)
         c.squadron_id = "convoy_a" if k < 3 else "convoy_b"
         gs.add_ship(c)
-if scenario == "planetary_assault":
+if scenario == "craftworld_assault":
+    for sd in gs.ships:
+        if sd["ship_class"] == "Hellebore Class Frigate":
+            sd["squadron_id"] = "hel"
+if scenario in ("planetary_assault", "craftworld_assault"):
     pts = sum(s_.points_value for s_ in gs.get_ships())
     for k in range(2 * (-(-pts // 500)) // 2):          # 2 capacity a Heavy Transport
         gs.add_ship(cat("Heavy Transport", 1, 70 + k, 0.0, 0.0))

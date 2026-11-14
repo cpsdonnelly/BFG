@@ -316,6 +316,11 @@ class TurnController:
             # Macharia's End: a fully charged Armageddon Gun must fire
             from .campaign_scenarios import shooting_start as _overcharge_start
             _overcharge_start(self.gs, self.gs.active_player)
+            # Craftworld Assault: the fortresses and the Spear of Light
+            from .craftworld import shooting_start as _cw_shooting
+            from .scenarios import _dice_for
+            _cw_shooting(self.gs, self.gs.active_player,
+                         _dice_for(self.gs, self.gs.active_player, self.dice))
 
         label = f"t{self.gs.turn_number}_{phase}"
         self.save_snapshot(label)
@@ -360,6 +365,10 @@ class TurnController:
             _undivided_end(self.gs, self.gs.active_player)
             from .celestial import end_of_turn as _celestial_end
             _celestial_end(self.gs, self.gs.active_player)
+            # Craftworld Assault: damage to the fortresses / the Spear; undocking
+            from .craftworld import end_phase as _cw_end
+            _cw_end(self.gs, self.gs.active_player,
+                    _dice_for(self.gs, self.gs.active_player, self.dice))
         if current == "ordnance":
             # Torpedo bomber salvos have limited fuel (s.21)
             from .ordnance import remove_spent_salvos

@@ -106,6 +106,8 @@ class AATurn:
             for p in (1, 2):
                 _assault_start(self.gs, p, getattr(self.gs, "assault_hook", None))
                 _overcharge_start(self.gs, p)
+                from .craftworld import shooting_start as _cw_shooting
+                _cw_shooting(self.gs, p)
         if ph in ACTIVATION_PHASES:
             elig = {p: phase_units(self.gs, p, ph, self.cfg) for p in (1, 2)}
             chooser = None

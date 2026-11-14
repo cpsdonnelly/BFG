@@ -138,7 +138,8 @@ def faction_subplot(gs, player: int, dice) -> Optional[Dict]:
                                                   for r in s.special_rules) for s in ships) \
             and not ((mode in ("convoy_matched", "navigate_storm", "convoy_narrative")
                       and player == defender(gs))
-                     or (mode == "planetary_assault" and player == gs.scenario_attacker)):
+                     or (mode in ("planetary_assault", "craftworld_assault")
+                         and player == gs.scenario_attacker)):
         n = dice.roll_d6(1, f"Player {player} Business as Usual (D6)")[0]
         key, name, renown = BUSINESS[n]
         sp = {"key": key, "name": name, "renown": list(renown), "table": "business"}

@@ -22,7 +22,10 @@ EXTERMINATUS_RANGE = 45.0   # an Exterminator within 45cm of the planet table ed
 
 
 def mode(gs) -> str:
-    return getattr(gs, "scenario_mode", "")
+    """The scenario mode; Craftworld Assault plays as Planetary Assault (its
+    own defences are in src/craftworld.py)."""
+    m = getattr(gs, "scenario_mode", "")
+    return "planetary_assault" if m == "craftworld_assault" else m
 
 
 def active(gs) -> bool:
@@ -231,6 +234,8 @@ def declare_assault(gs, ship) -> float:
     """The ship assaults the planet: it can't shoot, launch ordnance or
     teleport for the rest of the turn; the attacker scores its points."""
     pts = assault_capacity(ship)
+    from .craftworld import filter_assault_points
+    pts = filter_assault_points(gs, pts)       # Craftworld Assault: the fortresses
     st = dict(gs.scenario_state or {})
     st["assault_points"] = st.get("assault_points", 0.0) + pts
     done = dict(st.get("assaulted", {}))
