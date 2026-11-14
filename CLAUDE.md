@@ -2327,10 +2327,10 @@ Done: To do 2, 3, 6; most of 7.
    - `Ship.has_armament_slot` uses `weapon_in_crit_slot`, so a crit that would disable
      nothing cascades (a dorsal L/F/R weapon counted as a prow slot);
    - Meteor Storm reducing a ship to 0 (owner ruling): it is deployed as usual and rolls on
-     the Catastrophic Damage table when and where it is placed (`subplots.deployed_wrecks`,
-     the `catastrophic_on_deploy` rule; from `DeploymentPanel` after each placement, ships
-     not yet placed kept out of any blast; `GamePanel._begin_turn1` catches set-ups that skip
-     the panel); `add_fire_crits` appends to the stored list;
+     the Catastrophic Damage table where it stands once deployment is finished, before the
+     first turn, so a blast can reach every ship (`subplots.deployed_wrecks`, the
+     `catastrophic_on_deploy` rule, from `GamePanel._begin_turn1`); `add_fire_crits` appends
+     to the stored list;
    - `GameState.save` writes every field; `clear_transient` drops underscore scratch on
      restore, snapshot load and phase undo;
    - AI values: `combat.expected_hits` averages over a random value's outcomes

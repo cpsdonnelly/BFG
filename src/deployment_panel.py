@@ -349,19 +349,10 @@ class DeploymentPanel:
         n = len(self._pending_positions)
         for ship in self.state.placed_ships[-n:]:
             self.gs.update_ship(ship)
-        self._placed_wrecks()
 
         self._pending_positions.clear()
         self._pending_headings.clear()
         self._refresh()
-
-    def _placed_wrecks(self):
-        """Meteor Storm wrecks roll for catastrophic damage as they're placed."""
-        from .subplots import deployed_wrecks
-        from .dice import DiceRoller
-        dice = DiceRoller(mode=getattr(self.gs, "dice_mode", "auto"))
-        if deployed_wrecks(self.gs, dice, {s.id for s in self.state.placed_ships}):
-            self.board.redraw()
 
     def _undo_last(self):
         """Remove the last pending position (within the current group)."""
@@ -426,7 +417,6 @@ class DeploymentPanel:
                 break
             for ship in self.state.placed_ships[-len(group):]:
                 self.gs.update_ship(ship)
-            self._placed_wrecks()
 
         self._refresh()
 

@@ -204,11 +204,12 @@ def apply_setup(gs, player: int, sp: Dict, dice,
                 if roll_critical_hit(s, dice, gs):
                     # Its extra damage reduced it to 0 (owner ruling): it is
                     # deployed as usual and rolls on the Catastrophic Damage
-                    # table when and where it is placed (deployed_wrecks)
+                    # table where it stands once deployment is finished
+                    # (deployed_wrecks, from GamePanel._begin_turn1)
                     s.hits_remaining = 0
                     s.special_rules = list(s.special_rules) + [WRECK_RULE]
                     logs.append(f"  {s.name} is reduced to 0 by the meteor storm: it rolls "
-                                f"for catastrophic damage when it is placed")
+                                f"for catastrophic damage after deployment")
                 gs.update_ship(s)
                 logs.append(f"  {s.name} takes a critical hit")
     elif key == "fresh_captain":
@@ -888,35 +889,19 @@ def battle_result(gs, player: int, winner: Optional[int]) -> Optional[Dict]:
 WRECK_RULE = "catastrophic_on_deploy"
 
 
-def deployed_wrecks(gs, dice, placed_ids=None) -> list:
+def deployed_wrecks(gs, dice) -> list:
     """Meteor Storm ships reduced to 0 before the battle roll on the
-    Catastrophic Damage table when and where they are placed (owner ruling).
-    `placed_ids`: the ships on the table so far (deployment); ships not placed
-    yet are kept out of any explosion. None: every ship is placed (game start,
-    the fallback for set-ups that skip the deployment panel). Returns the
-    results."""
+    Catastrophic Damage table where they stand once deployment is finished
+    (owner ruling), before the first turn; a blast reaches every ship on the
+    table. Returns the results."""
     from .combat import resolve_catastrophic
     out = []
     for s in gs.get_ships():
         if WRECK_RULE not in s.special_rules:
             continue
-        if placed_ids is not None and s.id not in placed_ids:
-            continue
         s.special_rules = [r for r in s.special_rules if r != WRECK_RULE]
         gs.update_ship(s)
-        # ships not on the table yet are out of the blast
-        away = []
-        if placed_ids is not None:
-            for sd in gs.ships:
-                if sd["id"] not in placed_ids and sd["id"] != s.id and not sd.get("is_disengaged"):
-                    away.append(sd["id"])
-                    sd["is_disengaged"] = True
-        try:
-            res = resolve_catastrophic(gs.get_ship_by_id(s.id), dice, gs)
-        finally:
-            for sd in gs.ships:
-                if sd["id"] in away:
-                    sd["is_disengaged"] = False
-        gs.add_log(f"[Meteor Storm] {s.name} is placed as a wreck: {res}")
+        res = resolve_catastrophic(gs.get_ship_by_id(s.id), dice, gs)
+        gs.add_log(f"[Meteor Storm] {s.name}, deployed as a wreck: {res}")
         out.append(res)
     return out
