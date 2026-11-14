@@ -31,20 +31,22 @@ numbers are IDs, not the order):
    viewer).
 4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split, one
    weapon-value helper, central AI weights, rules out of the UI).
-5. To do 19: Dark Eldar (next faction; nothing written yet), then Tyranids.
-6. To do 14: Eldar and Necron gaps.
-7. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
+5. To do 22: team play (two teams of players; a team is one side, its members' ships act in
+   its phases together; owner design, questions in CLAUDE.md To do 22).
+6. To do 19: Dark Eldar (next faction; nothing written yet), then Tyranids.
+7. To do 14: Eldar and Necron gaps.
+8. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
    fortress weapons.
-8. To do 13: alternate activation's experiments, expert AI per unit.
-9. To do 11, 10 e, 8: the rest of the rules-based AI.
-10. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
-11. To do 21: the replay system as the comparison standard, finished before the port
+9. To do 13: alternate activation's experiments, expert AI per unit.
+10. To do 11, 10 e, 8: the rest of the rules-based AI.
+11. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
+12. To do 21: the replay system as the comparison standard, finished before the port
     (every event kind covered, a versioned language-neutral record format, a Python replay
     verifier, a golden set of recorded games for every faction and scenario).
-12. Second last, To do 20: port the engine to a faster language (Rust suggested) in its own
+13. Second last, To do 20: port the engine to a faster language (Rust suggested) in its own
     branch, Python staying the reference; its first milestone is replaying the golden games,
     then every one must match exactly.
-13. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
+14. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
     engine; on hold until the owner says so; separate from the current AI.
 
 Owner questions open: CLAUDE.md "Open questions for the owner". Code review, profile and
@@ -54,7 +56,7 @@ Game modes today: hot seat, player vs AI (AI always Player 2), AI vs AI spectato
 difficulty for both). Recording today: phase snapshots, a thin actions log and the text log;
 no saved dice, no seed, no replay.
 
-Not supported: more than two players / sides (2v2): the engine is two-player throughout.
+Not supported yet: teams of players (To do 22, owner design: two teams, each one side).
 
 Read this first, then `CLAUDE.md` (the living source: every owner ruling, conventions, module
 notes) and `bfgxr/CLAUDE.md` (rules authority). This file is a snapshot at the end of a long
