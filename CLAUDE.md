@@ -190,8 +190,10 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
 
 ### Player choice prompts: "Auto (best)"
 
-Owner request: the player's choice prompts have an "Auto (best: ...)" button that picks what
-the AI's expected-value logic would (`src/choice_dialog.choose`; closing the window takes it
+Owner request: the player's choice prompts have an "Auto" button that picks what the AI's
+expected-value logic would (owner: on screen it is only ever labelled "Auto", never "best",
+so players don't read it as the AI telling them how to play; "Auto split" in the launch
+dialog, "(Auto: <aspect>)" in Combine Squadron Fire) (`src/choice_dialog.choose`; closing the window takes it
 too): Leadership-test re-rolls and guided torpedo re-rolls (`ai_rerolls.should_reroll`),
 Wings of Fury raid re-rolls (`hit_and_run.best_raid_reroll`, below), Mark of Tzeentch re-rolls (9+ own / 5-
 enemy), the turret split (`ordnance.choose_turret_target`) and multi-role turret suppression

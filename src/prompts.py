@@ -126,7 +126,7 @@ class TkPrompter(Prompter):
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
         tk.Button(row, text="Skip Repairs", command=lambda: take([]),
                   font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-        tk.Button(dialog, text=f"Auto (best: {', '.join(best) or 'none'})", bg="#335533",
+        tk.Button(dialog, text="Auto", bg="#335533",
                   fg="white", wraplength=360, command=lambda: take(best)).pack(pady=(0, 8))
         dialog.protocol("WM_DELETE_WINDOW", lambda: take(best))
         self.root.wait_window(dialog)

@@ -950,7 +950,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
             note.set(f"vs {tgt.name} ({inputs['turrets']} turrets, {inputs['massed']} massed, "
                      f"{cap} CAP, Armour {inputs['armour']}+): {f} fighters + {b} bombers, "
                      f"about {ev:.1f} hits")
-        tk.Button(row, text="Best split", command=_best, bg="#335533", fg="white",
+        tk.Button(row, text="Auto split", command=_best, bg="#335533", fg="white",
                   font=("Consolas", 7)).pack(side=tk.LEFT, padx=3)
         tk.Label(parent, textvariable=note, font=("Consolas", 7), fg="#88aa88",
                  wraplength=400, justify=tk.LEFT).pack(anchor=tk.W, padx=5)
@@ -1614,7 +1614,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     extra = (f"; plus {lone} lone fighter(s)" if lone else "") + \
                             (f"; plus {capn} on CAP for {cap_protect_var.get()}" if capn else "")
                     split_note.set(plan["note"] + extra)
-                tk.Button(quick_craft, text="Best split", command=_set_best_split,
+                tk.Button(quick_craft, text="Auto split", command=_set_best_split,
                           bg="#335533", fg="white",
                           font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
                 tk.Label(bay_frame, textvariable=split_note, font=("Consolas", 7),

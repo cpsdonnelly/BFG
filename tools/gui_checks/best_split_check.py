@@ -36,7 +36,7 @@ for turrets in (1, 4):
     panel = GamePanel(f, tc, board, root)
     panel.ordnance._launch_ordnance_dialog(preselected_ship=gs.get_ship_by_id("d")); root.update()
     dlg = [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)][-1]
-    btn = [b for b in walk(dlg) if isinstance(b, tk.Button) and b.cget("text") == "Best split"]
+    btn = [b for b in walk(dlg) if isinstance(b, tk.Button) and b.cget("text") == "Auto split"]
     if not btn:
         fails.append("no Best split button"); print("  FAIL no button"); root.destroy(); continue
     plan = {}
@@ -91,7 +91,7 @@ def setv(key, v):
     plan[key].delete(0, tk.END); plan[key].insert(0, str(v))
 setv("Wave size", 6); setv("+ lone fighters", 1); setv("+ CAP fighters", 1)
 setv("CAP", 2); setv("Bombers", 4)
-[b for b in walk(dlg) if isinstance(b, tk.Button) and b.cget("text") == "Best split"][0].invoke()
+[b for b in walk(dlg) if isinstance(b, tk.Button) and b.cget("text") == "Auto split"][0].invoke()
 root.update()
 fb, bb, _ = best_wave_split(6, 3, 3, 2, 5, b_save=4)
 got = (int(plan[next(k for k in plan if k.startswith("Fury"))].get()),

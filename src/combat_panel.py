@@ -493,8 +493,8 @@ class CombatPanel(CombatDialogMixin):
                 var = tk.StringVar(value=best_a)
                 ttk.Combobox(row_f, textvariable=var, values=present, state="readonly",
                              width=12, font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
-                tk.Label(row_f, text=f"(Auto best for expected hits: "
-                                     f"{best_a.replace('_', ' ')}; harder aspects can't be hit)",
+                tk.Label(row_f, text=f"(Auto: {best_a.replace('_', ' ')}; "
+                                     f"harder aspects can't be hit)",
                          font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
                 aspect_vars[view] = var
 
