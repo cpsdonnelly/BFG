@@ -554,7 +554,7 @@ Discovered this session (code review, `docs/CODE_REVIEW_PLAN.md`; plan only, not
   log (13 event kinds) and the text log exist; the dice log isn't saved, there is no seed,
   snapshots miss scenario / sub-plot / order state, and nothing replays a game.
 - Language (To do 20): a full port in its own branch, Python staying the reference, is the
-  second-last task; the ML-trained AI (To do 12, then 1) is the last, built on the faster
+  third-last task, online play (To do 23) the second last; the ML-trained AI (To do 12, then 1) is the last, built on the faster
   engine. Python is a real bottleneck for full-rules self-play (rough estimate: 30-60s a game,
   5,000 games ~55 core-hours before the speed fixes).
 
@@ -795,26 +795,28 @@ are fixed by the owner):
 8. To do 28 and 29: AI deployment (buff ships last, escort squadrons and formations, capital
    squadrons, squadron sizes from the fleet list) and commander placement.
 9. To do 22: team play (several players a side; needs 18's game flow out of the Tk panels).
-10. To do 23: online play (needs 17's events, 18's game flow and 22's seats).
-11. To do 19: Dark Eldar and Tyranids (also completes the last demo fleets).
-12. To do 14: the Eldar and Necron gaps.
-13. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains; special movement
+10. To do 19: Dark Eldar and Tyranids (also completes the last demo fleets).
+11. To do 14: the Eldar and Necron gaps.
+12. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains; special movement
     (Space Hulk, Rok, Nicassar, Kroot), fortress weapons, Pthuxutl, Man O' War.
-14. To do 13: alternate activation's experiments (they want the headless runner), the expert
+13. To do 13: alternate activation's experiments (they want the headless runner), the expert
     AI per unit, the rest.
-15. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
+14. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
     coordination rounds, two-turn expert root moves, Brace's remaining bits, 8 d / g).
-16. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
-17. To do 21: the replay system as the comparison standard, completed before the port: every
+15. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
+16. To do 21: the replay system as the comparison standard, completed before the port: every
     kind of event covered (the rules and factions added after step 3 included), a
     versioned, language-neutral record format, a Python replay verifier and a golden set of
     recorded games covering every faction and scenario. The port's first milestone is
     reading and replaying these records.
-18. Second last, To do 20: port the engine to a faster language in a new branch.
+17. Third last, To do 20: port the engine to a faster language in a new branch.
+18. Second last, To do 23: online play (owner: just before the ML-trained AI; needs 17's
+    events, 18's game flow and 22's seats; the server runs the engine, so it comes after
+    the port).
 19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
     until the owner says to start; built on the faster engine, kept separate from the current
     AI, never replacing it.
-(Steps 5-10 placed by Claude, owner to confirm; the order isn't hugely important, follow the
+(Steps 5-8 placed by Claude, owner to confirm; the order isn't hugely important, follow the
 dependencies.)
 Done: To do 2, 3, 6; most of 7.
 
@@ -2406,7 +2408,7 @@ Done: To do 2, 3, 6; most of 7.
    Spire. Catalog today: speeds / armour / batteries parse; the Spire's torpedoes and Impaler
    bay don't. Tyranids (`13_tyranids.md`): Instinctive Behaviour, synapse, spore clouds,
    weapon configurations; no Ld roll.
-20. Port the engine to a faster language in a new branch (owner: second-last task; plan
+20. Port the engine to a faster language in a new branch (owner: third-last task, before online play; plan
    section 7; Rust suggested). Python stays the reference that defines the rules; the port
    must reproduce Python games exactly from the same seed and events (To do 21's records and
    golden games), which is what keeps the two from drifting; every booklet export and owner
@@ -2442,7 +2444,8 @@ Done: To do 2, 3, 6; most of 7.
    players can't happen if squadrons stay with one player; the System 3 first-activation
    choice; blast marker removal).
 
-23. Online play (owner: another task; worked on before, not finished). Today: `web/` +
+23. Online play (owner: another task, the second last, just before the ML-trained AI;
+   worked on before, not finished). Today: `web/` +
    `src/web_*.py` run the whole game in one browser on Pyodide (Python compiled for the
    browser, in a Web Worker, Netlify for the COOP / COEP headers) with their own older
    copy of the game flow (`WebGameContext`, simplified rules); `network.py` is desktop LAN

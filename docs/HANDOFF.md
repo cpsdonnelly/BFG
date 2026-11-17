@@ -41,24 +41,24 @@ numbers are IDs, not the order):
    placement after the Ld roll.
 9. To do 22: team play (two teams of players; a team is one side, its members' ships act in
    its phases together; owner design, questions in CLAUDE.md To do 22).
-10. To do 23: online play (server-authoritative Python engine with browser clients, after
-    17, 18 and 22; the Pyodide `web/` client and LAN `network.py` aren't online play).
-11. To do 19: Dark Eldar, then Tyranids.
-12. To do 14: Eldar and Necron gaps.
-13. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
+10. To do 19: Dark Eldar, then Tyranids.
+11. To do 14: Eldar and Necron gaps.
+12. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
     fortress weapons.
-14. To do 13: alternate activation's experiments, expert AI per unit.
-15. To do 11, 10 e, 8: the rest of the rules-based AI.
-16. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
-17. To do 21: the replay system as the comparison standard, finished before the port
+13. To do 13: alternate activation's experiments, expert AI per unit.
+14. To do 11, 10 e, 8: the rest of the rules-based AI.
+15. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
+16. To do 21: the replay system as the comparison standard, finished before the port
     (every event kind covered, a versioned language-neutral record format, a Python replay
     verifier, a golden set of recorded games for every faction and scenario).
-18. Second last, To do 20: port the engine to a faster language (Rust suggested) in its own
+17. Third last, To do 20: port the engine to a faster language (Rust suggested) in its own
     branch, Python staying the reference; its first milestone is replaying the golden games,
     then every one must match exactly.
+18. Second last, To do 23: online play (owner); a server running the engine with browser
+    clients; the Pyodide `web/` client and LAN `network.py` aren't online play.
 19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
     engine; on hold until the owner says so; separate from the current AI.
-(Steps 5-10 placed by Claude, owner to confirm.)
+(Steps 5-8 placed by Claude, owner to confirm.)
 
 Owner questions open: CLAUDE.md "Open questions for the owner". Code review, profile and
 plans: `docs/CODE_REVIEW_PLAN.md` (sections 1-7; nothing refactored yet).
