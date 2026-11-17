@@ -4,7 +4,7 @@ Drives movement, shooting, and ordnance phases using pure-logic APIs,
 with no Tkinter dialogs. Caller must set dice.mode = "auto" before use.
 """
 import math
-import random
+from .rng import game_random
 from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
 from typing import List, Optional, Dict
 
@@ -789,7 +789,7 @@ class AIPlayer:
             # good move, sometimes a worse one, never at random
             top = max(sc for sc, _c in scored)
             weights = [math.exp((sc - top) / self.EASY_TEMPERATURE) for sc, _c in scored]
-            pick = random.choices(range(len(scored)), weights=weights)[0]
+            pick = game_random(self.gs).choices(range(len(scored)), weights=weights)[0]
             turn_deg, dist, turn_at, src = scored[pick][1]
             self._last_move_source = src + " (easy)"
             return self._move_cmds(ship, turn_deg, dist, turn_at)
@@ -3034,7 +3034,7 @@ class AIPlayer:
             return None
 
         if self.difficulty == "easy":
-            return self._enforce_target_priority(ship, weapon, random.choice(valid), valid)
+            return self._enforce_target_priority(ship, weapon, game_random(self.gs).choice(valid), valid)
         # normal / hard / expert: the most expected VP for this weapon, counting the
         # fire already committed to each target this phase (owner guidance:
         # finish and cripple ships, no overkill, don't spread too thin)

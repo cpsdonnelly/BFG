@@ -1,6 +1,6 @@
 """BFG:XR Combat System - Shooting phase resolution"""
 import math
-import random
+import random  # noqa: F401 (tests patch it)
 import re
 from typing import List, Dict, Tuple, Optional
 from .models import Ship, BlastMarker, Arc, SpecialOrder
@@ -8,6 +8,7 @@ from .game_state import GameState
 from .tables import (lookup_gunnery_dice, get_gunnery_column, CRITICAL_HITS,  # noqa: F401 (re-exported)
                      lookup_catastrophic)
 from .dice import DiceRoller
+from .rng import cosmetic_heading
 from .geometry import (current_shields,
                        EXPLOSION_BLAST_OFFSET_CM,
                        NOVA_CANNON_TEMPLATE_RADIUS_CM,
@@ -1821,7 +1822,7 @@ def replace_with_blast_marker(ship: Ship, game_state: GameState) -> None:
     if not any(bm["id"] == marker_id for bm in game_state.blast_markers):
         game_state.add_blast_marker(BlastMarker(
             id=marker_id, x=ship.x, y=ship.y, source="destroyed_escort",
-            heading=random.uniform(0, 360)))
+            heading=cosmetic_heading(game_state)))
 
 
 def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) -> str:

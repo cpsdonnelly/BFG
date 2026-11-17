@@ -105,6 +105,11 @@ class GameState:
     # Serial for marker / ordnance ids (unique for the game; ids used to end in
     # a random 0-9999 and could collide)
     id_serial: int = 0
+    # Recording (To do 17): the game's seed (its dice, dice.start_game_dice) and
+    # the counter of non-dice random draws (rng.game_random: AI choices,
+    # cosmetic headings)
+    game_seed: int = 0
+    rng_counter: int = 0
 
     # Collections
     ships: List[Dict] = field(default_factory=list)
@@ -231,6 +236,13 @@ class GameState:
             json.dump(self.phenomena, f, indent=2)
         with open(os.path.join(directory, "turn_log.txt"), "w") as f:
             f.write("\n".join(self.log))
+        # The game's dice (To do 17): seed, generator state and the roll record,
+        # so a loaded game rolls on as it would have
+        from .dice import current_source
+        src = current_source()
+        if src.seed is not None and src.seed == self.game_seed:
+            with open(os.path.join(directory, "dice.json"), "w") as f:
+                json.dump(src.state(), f)
 
     @classmethod
     def load(cls, directory: str) -> "GameState":
@@ -260,6 +272,11 @@ class GameState:
             with open(log_path) as f:
                 content = f.read().strip()
                 gs.log = content.split("\n") if content else []
+        dice_path = os.path.join(directory, "dice.json")
+        if os.path.exists(dice_path):          # the saved game's dice carry on
+            from .dice import DiceSource, set_source
+            with open(dice_path) as f:
+                set_source(DiceSource.from_state(json.load(f)))
         return gs
 
     def restore_from(self, other: "GameState") -> None:

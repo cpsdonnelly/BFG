@@ -73,6 +73,12 @@ def main():
     if setup is None:
         root.destroy()
         return
+    # The game's seed (To do 17): every roll from here on comes from it and is
+    # recorded (dice.DiceSource), so the game can be replayed
+    import secrets
+    from .dice import start_game_dice
+    seed = setup.get("seed") or secrets.randbits(31)
+    start_game_dice(seed)
 
     if setup["mode"] == "demo":
         p1_info = get_fleet_info(setup["p1_fleet"])
@@ -196,6 +202,7 @@ def main():
                 gs.add_ship(ship)
 
     # Create turn controller and dice
+    gs.game_seed = seed
     dice = DiceRoller(mode=gs.dice_mode, root=root)
     from .chapter_tactics import apply_fleet_tactics
     for line in apply_fleet_tactics(gs):          # Space Marine Chapter tactics

@@ -963,11 +963,11 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
         # picks at random for the AI, judgement: the three beat each other in
         # a circle); without them, random formations here
         if not (gs.scenario_state or {}).get("setup"):
-            import random
+            from .rng import game_random
             if dice is None:
                 from .dice import DiceRoller
                 dice = DiceRoller(mode="auto")
-            resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
+            resolve_formations(gs, game_random(gs).choice(FORMATIONS), game_random(gs).choice(FORMATIONS), dice)
     elif mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         if dice is None:
             from .dice import DiceRoller

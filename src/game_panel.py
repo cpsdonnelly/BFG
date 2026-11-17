@@ -1103,7 +1103,7 @@ class GamePanel(AAPanelMixin):
         """Fleet Engagement (p.108): each player secretly picks a formation (a
         human from a dialog; the AI at random, judgement), then the set-up
         and roles follow from the table and a roll (scenarios)."""
-        import random
+        from .rng import game_random
         from .scenarios import FORMATIONS, resolve_formations
         from .choice_dialog import choose
         from .dice import DiceRoller
@@ -1111,7 +1111,7 @@ class GamePanel(AAPanelMixin):
         forms = {}
         for p in (1, 2):
             if self.ctx.is_ai_controlled(p):
-                forms[p] = random.choice(FORMATIONS)
+                forms[p] = game_random(gs).choice(FORMATIONS)
             else:
                 forms[p] = choose(self.root, "Fleet Engagement",
                                   f"Player {p}: choose your fleet's formation (secret)",

@@ -1,10 +1,11 @@
 """BFG:XR Terrain Effects - Asteroid fields, dust clouds, warp rifts, tabletop effects"""
 import math
-import random
+import random  # noqa: F401 (tests patch it)
 from typing import List, Dict
 from .models import Ship, Phenomenon, BlastMarker
 from .game_state import GameState
 from .dice import DiceRoller
+from .rng import cosmetic_heading
 from .geometry import current_shields
 
 
@@ -217,9 +218,8 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
         # Reposition 2D6 x 10cm away
         dist_dice = dice.roll_d6(2, "Reposition distance (2D6 x 10cm)")
         reposition_dist = sum(dist_dice) * 10
-        # Pick random direction
-        import random
-        angle = random.uniform(0, 360)
+        # A random direction (a game roll: from the dice, so it is recorded)
+        angle = dice.roll_direction(f"{ship.name} warp rift reposition direction")
         new_x = ship.x + reposition_dist * math.cos(math.radians(angle))
         new_y = ship.y + reposition_dist * math.sin(math.radians(angle))
         # Clamp to table
@@ -334,7 +334,7 @@ class TabletopEffects:
                 x=s.x + s.base_radius * 0.5,
                 y=s.y,
                 source="solar_flare",
-                heading=random.uniform(0, 360))
+                heading=cosmetic_heading(gs))
             gs.add_blast_marker(bm)
 
             # Ships without shields (none at all, or collapsed) take damage

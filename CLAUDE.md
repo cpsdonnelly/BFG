@@ -502,7 +502,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1349 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1354 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2402,6 +2402,24 @@ Done: To do 2, 3, 6; most of 7.
    alike; complete snapshots (from `fields()`); replay = start state + seed + events, checked
    against the snapshots (a determinism test); a viewer stepping through a game. The records
    are also To do 12's training data and To do 20's cross-check.
+   First slice built (seeded, recorded dice): `dice.DiceSource`, one seeded generator behind
+   every `DiceRoller` (`current_source` / `set_source` / `start_game_dice`, started from
+   `GameState.game_seed` in `main.py` and the headless runner), recording every roll in order
+   (kind, count, values, description, "auto" or "manual" for dice a player typed); replay
+   (`DiceSource(replay=record)`) feeds the record back whatever the roller's mode, never asks,
+   and raises `ReplayDivergence` at the first roll of another kind or count. A player's own
+   real-life dice are therefore replayed exactly: the record, not the seed, is the game. Random
+   directions are dice rolls (`roll_direction`: scatter, warp rift reposition). Non-dice
+   randomness (the AI's random choices, cosmetic blast marker headings) uses
+   `rng.game_random(gs)`: a fresh generator from the seed, a stream name and
+   `GameState.rng_counter`, so it repeats and survives save / load / undo. Saves write
+   `dice.json` (seed, generator state, record); loading carries the dice on. Checks:
+   `tests/test_recording.py` (one seed one game; the record replays it under another seed;
+   divergence; manual rolls), `tools/headless_runner.py --replay-check` (each game replayed
+   from its record through the real game window gives the same final state: 4 of 4 IGOUGO).
+   Still to do: structured decision events (needed to replay games with humans), complete
+   snapshots, the replay player / viewer, `map_maker`'s terrain randomness (part of the start
+   state for now).
 18. Code structure (plan section 4; pure refactors, no behaviour change, tests unchanged):
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /
@@ -2477,7 +2495,11 @@ Done: To do 2, 3, 6; most of 7.
    convoy contact markers, Treasure Haul: commit a hash first, reveal later), a small
    signalling / relay service only for finding the other player and NAT traversal (WebRTC
    data channels; a relay when a direct link fails), reconnect by replaying the record, and
-   the AI run by the client of the player who owns it. Team play (To do 22) adds one peer
+   the AI run by the client of the player who owns it. Dice (owner question): a player's
+   typed real-life dice go to the other side as a decision, tagged "manual" (trust, as at a
+   table); digital dice neither side can rig need a commit-reveal shared seed (each sends a
+   hash of a secret, then both reveal, the combination seeds the dice); proposed: digital by
+   default, typed dice as a setting both players agree to (owner to confirm). Team play (To do 22) adds one peer
    per seat. Retire `WebGameContext` and the LAN `network.py` rather than extend them.
 24. AI list builder (owner design; for the AI and for players: build as / against a random
    fleet, or watch two random fleets). Steps: set the points limit; choose a fleet list;

@@ -71,6 +71,9 @@ class DiceStub:
     def roll_scatter_direction(self) -> float:
         return 0.0
 
+    def roll_direction(self, label: str = "") -> float:
+        return 0.0
+
 
 def make_gs(ships=None) -> GameState:
     """Build a minimal GameState pre-populated with given Ship objects."""

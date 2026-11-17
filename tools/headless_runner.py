@@ -11,7 +11,9 @@ under xvfb-run:
 
 Prints one line per game (winner, VP, turns, seconds) and a summary: win
 rates, mean VP margin and games per hour. Each game is seeded (--seed + its
-index) for the dice; the AI's own choices aren't seeded yet (To do 17), so
+index) for the dice, and its rolls are recorded (--json keeps them;
+--replay-check replays every game from its record and compares the final
+state); the AI's own choices aren't seeded yet (To do 17), so
 games repeat only with a fixed PYTHONHASHSEED and the normal AI (the
 expert's time budget cuts its search at different points). Each result
 carries a hash of the final state (ships, ordnance, blast markers, log) to
@@ -34,7 +36,8 @@ sys.path.insert(0, ROOT)
 
 def play(args) -> dict:
     """One game; returns its result. Runs in a worker process."""
-    fleet1, fleet2, difficulty, turns, system, seed, timeout = args
+    fleet1, fleet2, difficulty, turns, system, seed, timeout = args[:7]
+    replay = args[7] if len(args) > 7 else None
     os.environ["BFG_FAST"] = "1"
     import random
     import tempfile
@@ -63,7 +66,13 @@ def play(args) -> dict:
 
     root = tk.Tk()
     root.withdraw()
+    from src.dice import start_game_dice, set_source, DiceSource
+    if replay is None:
+        start_game_dice(seed)
+    else:                                # the recorded dice, in order (To do 17)
+        set_source(DiceSource(seed, replay=replay))
     gs = GameState()
+    gs.game_seed = seed
     gs.dice_mode = "auto"
     gs.ai_spectator = True
     gs.ai_difficulty = difficulty
@@ -93,7 +102,8 @@ def play(args) -> dict:
     if os.environ.get("BFG_DUMP_STATE"):
         with open(f"{os.environ['BFG_DUMP_STATE']}_{seed}.json", "w") as fh:
             fh.write(state)
-    res = {"hash": hashlib.sha256(state.encode()).hexdigest()[:16],"seed": seed, "winner": over[0] if over else None, "finished": bool(over),
+    from src.dice import current_source
+    res = {"record": current_source().record, "hash": hashlib.sha256(state.encode()).hexdigest()[:16],"seed": seed, "winner": over[0] if over else None, "finished": bool(over),
            "vp1": vp[1]["total"], "vp2": vp[2]["total"], "turns": gs.turn_number,
            "seconds": round(time.time() - start, 1), "errors": errors[:3]}
     root.destroy()
@@ -112,6 +122,8 @@ def main():
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--timeout", type=float, default=600.0, help="seconds per game")
     ap.add_argument("--json", help="write the results to this file")
+    ap.add_argument("--replay-check", action="store_true",
+                    help="replay each game from its recorded dice and check the final state matches")
     a = ap.parse_args()
     jobs = [(a.fleet1, a.fleet2, a.difficulty, a.turns, a.system, a.seed + i, a.timeout)
             for i in range(a.games)]
@@ -123,6 +135,14 @@ def main():
             print(f"seed {r['seed']}: winner={r['winner']} VP {r['vp1']}-{r['vp2']} "
                   f"turns={r['turns']} {r['seconds']}s hash={r['hash']}"
                   + (f" ERRORS {r['errors']}" if r["errors"] else ""), flush=True)
+    if a.replay_check:
+        again = [j + (r["record"],) for j, r in zip(jobs, results)]
+        with ProcessPoolExecutor(max_workers=a.procs) as ex:
+            for r, r2 in zip(results, ex.map(play, again)):
+                same = r2["hash"] == r["hash"]
+                print(f"replay seed {r['seed']}: {'same' if same else 'DIFFERENT'} "
+                      f"({len(r['record'])} rolls)"
+                      + (f" ERRORS {r2['errors']}" if r2["errors"] else ""), flush=True)
     wall = time.time() - t0
     done = [r for r in results if r["finished"]]
     wins = {p: sum(1 for r in done if r["winner"] == p) for p in (1, 2)}
@@ -133,7 +153,7 @@ def main():
     print(f"wins: player 1 {wins[1]}, player 2 {wins[2]}, other {len(results) - wins[1] - wins[2]}; "
           f"mean VP margin (1 - 2) {margin:+.0f}")
     if a.json:
-        json.dump(results, open(a.json, "w"), indent=1)
+        json.dump(results, open(a.json, "w"), indent=1)   # each with its dice record
 
 
 if __name__ == "__main__":

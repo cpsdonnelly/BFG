@@ -1,10 +1,11 @@
 """BFG:XR End Phase - Damage control, blast removal, fire damage"""
 import math
-import random
+import random  # noqa: F401 (tests patch it)
 from typing import List, Dict, Optional
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
+from .rng import cosmetic_heading
 from .geometry import (count_blast_markers_touching, BLAST_MARKER_RADIUS_CM,
                        first_contact_along_segment)
 
@@ -419,7 +420,7 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller,
             id=f"hulk_drift_{ship.id}_{gs.next_serial()}",
             x=ship.x, y=ship.y,
             source="hulk_drift",
-            heading=random.uniform(0, 360))
+            heading=cosmetic_heading(gs))
         gs.add_blast_marker(bm)
 
         # Check if hulk drifted off table
