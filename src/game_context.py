@@ -37,6 +37,11 @@ class GameContext:
         # AI thinking, game over). Replaced by GamePanel.
         self.actions_locked = lambda: False
 
+        # The questions asked of a player during play (prompts.Prompter: best
+        # answers, no window; GamePanel puts in TkPrompter for the dialogs)
+        from .prompts import Prompter
+        self.prompt = Prompter()
+
     def is_ai_controlled(self, player: int) -> bool:
         """True if the AI makes this player's decisions (AI-vs-AI included)."""
         return self.gs.ai_spectator or self.gs.ai_player == player

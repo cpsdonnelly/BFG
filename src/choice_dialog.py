@@ -27,9 +27,6 @@ def choose(root, title: str, text: str, options, best):
     win.protocol("WM_DELETE_WINDOW", lambda: pick(best))
     win.grab_set()
     root.wait_window(win)
-    from . import recorder
-    recorder.event(recorder.current_gs(), "prompt", title=title, answer=result["v"],
-                   best=best, auto=result["v"] == best)
     return result["v"]
 
 

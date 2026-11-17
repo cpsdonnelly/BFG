@@ -779,7 +779,7 @@ class MovementDialogMixin:
         if not contacted:
             return
         target_names = ", ".join(e.name for e in contacted)
-        if not messagebox.askyesno(
+        if not self.ctx.prompt.yes_no(
                 "Declare Boarding Action",
                 f"{ship.name} is in base contact with {target_names}.\n"
                 f"Declare a boarding action?\n"

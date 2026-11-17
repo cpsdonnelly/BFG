@@ -172,10 +172,8 @@ class SpecialOrderMixin:
             """Show failure UI and offer re-roll for an individual order."""
             rerolls = self.ctx.tc.get_fleet_rerolls(ship.player, ship)
             if rerolls > 0:
-                from . import choice_dialog
                 from .ai_rerolls import should_reroll
-                use_reroll = choice_dialog.yes_no(
-                    self.ctx.root, "Order Failed - Re-roll Available",
+                use_reroll = self.ctx.prompt.yes_no("Order Failed - Re-roll Available",
                     f"{ship.name}: {order_str} FAILED\n"
                     f"Rolled {result.get('roll')} vs Leadership {result.get('needed')}\n\n"
                     f"Fleet commander has {rerolls} re-roll(s) remaining.\n"
@@ -262,10 +260,8 @@ class SpecialOrderMixin:
                                       key=lambda s: s.leadership)
                     rerolls = self.ctx.tc.get_fleet_rerolls(ship.player, ship)
                     if rerolls > 0:
-                        from . import choice_dialog
                         from .ai_rerolls import should_reroll
-                        use_rr = choice_dialog.yes_no(
-                            self.ctx.root, "Squadron Order Failed - Re-roll Available",
+                        use_rr = self.ctx.prompt.yes_no("Squadron Order Failed - Re-roll Available",
                             f"{err}\n\n"
                             f"Fleet commander has {rerolls} re-roll(s) remaining.\n"
                             f"Use a re-roll? (Cannot be undone)",

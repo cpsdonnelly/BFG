@@ -38,6 +38,8 @@ class GamePanel(AAPanelMixin):
         self.ctx = GameContext(tc=tc, gs=gs, dice=dice,
                                board=board_view, root=root,
                                log_widget=self.log_text)
+        from .prompts import TkPrompter
+        self.ctx.prompt = TkPrompter(root)         # the desktop dialogs
 
         self.movement  = MovementPanel(self.ctx)
         self.combat    = CombatPanel(self.ctx)
@@ -255,13 +257,11 @@ class GamePanel(AAPanelMixin):
         n_mr = len(mr_suppress_candidates(group))
         from .waves import best_mr_suppress
         from .ordnance import turret_hit_on, ordnance_turrets
-        from .choice_dialog import choose
         from .ordnance import get_massed_turret_bonus
         t = ordnance_turrets(ship, self.ctx.gs)
         best = best_mr_suppress(group, t, (7 - turret_hit_on(ship)) / 6.0, ship.lowest_armor_value,
                                 shots=t + get_massed_turret_bonus(ship, self.ctx.gs.get_ships()))
-        return choose(
-            self.ctx.root, "Suppress turrets?",
+        return self.ctx.prompt.choose("Suppress turrets?",
             f"A wave of {len(group)} squadrons is attacking {ship.name} "
             f"({ship.effective_turrets} turrets). {n_mr} multi-role squadron(s) may suppress "
             f"turrets instead of attacking (s.27): each surviving one gives a bomber exactly 3 "
@@ -277,10 +277,8 @@ class GamePanel(AAPanelMixin):
             return None
         tdesc = ", ".join(f"{m.ordnance_type} S{m.strength}" for m in torps)
         from .ordnance import choose_turret_target
-        from .choice_dialog import choose
         best = choose_turret_target(ship, craft, torps, self.ctx.gs, ai=True)
-        return choose(
-            self.ctx.root, "Turrets: attack craft or torpedoes?",
+        return self.ctx.prompt.choose("Turrets: attack craft or torpedoes?",
             f"{ship.name} is attacked by {len(craft)} attack craft squadron(s) and by {tdesc}. "
             f"Its turrets can defend against only one kind this phase (s.28).",
             [("Shoot the attack craft", "craft"), ("Shoot the torpedoes / mines", "torp")], best)
@@ -291,8 +289,7 @@ class GamePanel(AAPanelMixin):
         import threading
         if threading.current_thread() is not threading.main_thread():
             return False
-        from .choice_dialog import choose
-        return choose(self.ctx.root, "Mark of Tzeentch", f"Player {player}: {text}",
+        return self.ctx.prompt.choose("Mark of Tzeentch", f"Player {player}: {text}",
                       [("Re-roll", True), ("Keep", False)], best)
 
     def _first_turn_roll_off(self):
@@ -308,8 +305,7 @@ class GamePanel(AAPanelMixin):
         if self.ctx.is_ai_controlled(winner):
             first = best
         else:
-            from .choice_dialog import choose
-            first = choose(self.ctx.root, "First Turn",
+            first = self.ctx.prompt.choose("First Turn",
                            f"Roll-off: player 1 rolled {a}, player 2 rolled {b}. "
                            f"Player {winner} wins: move first or second?",
                            [("Move first", True), ("Move second", False)], best)
@@ -328,8 +324,7 @@ class GamePanel(AAPanelMixin):
         if (threading.current_thread() is not threading.main_thread()
                 or self.ctx.is_ai_controlled(ship.player)):
             return best
-        from .choice_dialog import choose
-        return choose(self.ctx.root, "Mark of Chaos Undivided",
+        return self.ctx.prompt.choose("Mark of Chaos Undivided",
                       f"{ship.name} is about to test Leadership ({label}, Ld {ship.leadership}). "
                       f"Use the Mark of Chaos Undivided now (once per game): the whole fleet "
                       f"uses {leader.name}'s Ld {leader.leadership} until the end of the turn?",
@@ -351,9 +346,7 @@ class GamePanel(AAPanelMixin):
             use = should_reroll(ship, label, self.ctx.gs, left)
         else:
             from .ai_rerolls import should_reroll
-            from .choice_dialog import choose
-            use = choose(
-                self.ctx.root, "Leadership Test Failed - Re-roll?",
+            use = self.ctx.prompt.choose("Leadership Test Failed - Re-roll?",
                 f"{ship.name}: {label} failed (rolled {roll} vs Ld {needed}). "
                 f"Use a fleet commander re-roll ({left} left)?",
                 [("Re-roll", True), ("Don't", False)],
@@ -375,9 +368,7 @@ class GamePanel(AAPanelMixin):
         from .hit_and_run import describe_raid_result
         shown = f"{roll}" + (f" ({effective} after modifiers)" if effective != roll else "")
         from .hit_and_run import best_raid_reroll
-        from .choice_dialog import choose
-        return choose(
-            self.ctx.root, "Wings of Fury",
+        return self.ctx.prompt.choose("Wings of Fury",
             f"Thunderhawk raid on {target.name} rolled {shown}: "
             f"{describe_raid_result(effective, target)}. Re-roll it? The second result "
             f"stands, even if it is worse.",
@@ -1105,7 +1096,6 @@ class GamePanel(AAPanelMixin):
         and roles follow from the table and a roll (scenarios)."""
         from .rng import game_random
         from .scenarios import FORMATIONS, resolve_formations
-        from .choice_dialog import choose
         from .dice import DiceRoller
         gs = self.ctx.gs
         forms = {}
@@ -1113,7 +1103,7 @@ class GamePanel(AAPanelMixin):
             if self.ctx.is_ai_controlled(p):
                 forms[p] = game_random(gs).choice(FORMATIONS)
             else:
-                forms[p] = choose(self.root, "Fleet Engagement",
+                forms[p] = self.ctx.prompt.choose("Fleet Engagement",
                                   f"Player {p}: choose your fleet's formation (secret)",
                                   [(f.title(), f) for f in FORMATIONS], "wedge")
 
@@ -1122,7 +1112,7 @@ class GamePanel(AAPanelMixin):
                 return options[0]
             labels = [(f"Set-up {s}" + (f" as {'attacker' if r == 'atk' else 'defender'}"
                                         if r else ""), (s, r)) for s, r in options]
-            return choose(self.root, "Fleet Engagement", f"Player {player}: you choose the "
+            return self.ctx.prompt.choose("Fleet Engagement", f"Player {player}: you choose the "
                           f"set-up", labels, options[0])
         resolve_formations(gs, forms[1], forms[2], DiceRoller(mode="auto"), pick)
         self.ctx.log(gs.log[-1])
@@ -1134,8 +1124,7 @@ class GamePanel(AAPanelMixin):
         if self.ctx.is_ai_controlled(player) or \
                 threading.current_thread() is not threading.main_thread():
             return True
-        from .choice_dialog import choose
-        return choose(self.root, "Reinforcements",
+        return self.ctx.prompt.choose("Reinforcements",
                       f"Player {player}: bring {names} on from the table edge this turn?",
                       [("Enter now", True), ("Wait", False)], True)
 
@@ -1149,8 +1138,7 @@ class GamePanel(AAPanelMixin):
         if self.ctx.is_ai_controlled(ship.player) or \
                 threading.current_thread() is not threading.main_thread():
             return best
-        from .choice_dialog import choose
-        return choose(self.root, "Low orbit",
+        return self.ctx.prompt.choose("Low orbit",
                       f"{ship.name} is in the planet's gravity well: enter low orbit?",
                       [("Enter low orbit", True), ("Stay in high orbit", False)], best)
 
@@ -1164,8 +1152,7 @@ class GamePanel(AAPanelMixin):
         if self.ctx.is_ai_controlled(ship.player) or \
                 threading.current_thread() is not threading.main_thread():
             return best
-        from .choice_dialog import choose
-        return choose(self.root, "Armageddon Overcharge",
+        return self.ctx.prompt.choose("Armageddon Overcharge",
                       f"{ship.name}: begin charging the Armageddon Gun? (3 counters, then it "
                       f"must fire 60cm ahead; while charging +2 shields, no turns, special "
                       f"orders or lances; it can't be stopped)",
@@ -1178,9 +1165,8 @@ class GamePanel(AAPanelMixin):
         if self.ctx.is_ai_controlled(ship.player) or \
                 threading.current_thread() is not threading.main_thread():
             return True
-        from .choice_dialog import choose
         from .planet_scenarios import assault_capacity
-        return choose(self.root, "Planetary Assault",
+        return self.ctx.prompt.choose("Planetary Assault",
                       f"{ship.name}: assault the planet (+{assault_capacity(ship):g} assault "
                       f"points; no shooting, launching or teleporting this turn)?",
                       [("Assault", True), ("Fight normally", False)], True)
@@ -1202,13 +1188,12 @@ class GamePanel(AAPanelMixin):
             if ai:
                 chooser = None
             else:
-                from .choice_dialog import choose
 
                 def chooser(cands, prompt):
                     if not cands:
                         return None
                     best = max(cands, key=lambda s: s.points_value)
-                    return choose(self.root, "Sub-plot", prompt,
+                    return self.ctx.prompt.choose("Sub-plot", prompt,
                                   [(c.name, c) for c in cands], best)
             for line in apply_setup(gs, p, sp, dice, chooser):
                 self.ctx.log(f"[Sub-plot] {line}")
@@ -1244,8 +1229,7 @@ class GamePanel(AAPanelMixin):
             if self.ctx.is_ai_controlled(chooser):
                 first = best
             else:
-                from .choice_dialog import choose
-                first = choose(self.ctx.root, "First Turn",
+                first = self.ctx.prompt.choose("First Turn",
                                f"Player {chooser}: the scenario lets you choose. Move first "
                                f"or second?", [("Move first", True), ("Move second", False)],
                                best)
@@ -1656,7 +1640,7 @@ class GamePanel(AAPanelMixin):
             used_reroll = False
             rr_result = {}
             if rerolls > 0:
-                use_rr = messagebox.askyesno(
+                use_rr = self.ctx.prompt.yes_no(
                     "Disengage Failed - Re-roll?",
                     f"{ship.name} disengage FAILED\n"
                     f"Rolled {result['roll']} vs Ld {result['needed']}\n\n"

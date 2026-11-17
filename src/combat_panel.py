@@ -233,10 +233,8 @@ class CombatPanel(CombatDialogMixin):
             want = ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker)
         else:
             who = (f"{target.name}'s squadron" if group and len(group) > 1 else target.name)
-            from . import choice_dialog
             from .ai_player import ai_should_brace
-            want = choice_dialog.yes_no(
-                self.ctx.root, "Brace For Impact?",
+            want = self.ctx.prompt.yes_no("Brace For Impact?",
                 f"{who} is about to be attacked by {attacker_name} "
                 f"(about {expected:.1f} hits expected).\n"
                 f"Attempt Brace For Impact before the attack is rolled?\n"
@@ -302,7 +300,7 @@ class CombatPanel(CombatDialogMixin):
                     log_fn(f"     [AI] Brace FAILED (rolled {check['roll']} "
                            f"vs Ld {check['needed']})")
         elif attacker.id not in (target.brace_failed_vs or []):
-            want_brace = messagebox.askyesno(
+            want_brace = self.ctx.prompt.yes_no(
                 "Brace For Impact?",
                 f"{target.name} taking {total_hits} hits from {attacker.name}.\n"
                 f"Attempt Brace For Impact? (Ld test, then 4+ save per hull hit)\n"

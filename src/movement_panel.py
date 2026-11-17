@@ -200,7 +200,7 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                            if s.player != ship.player
                            and not s.is_destroyed and not s.is_disengaged
                            and s.status not in ("drifting_hulk", "burning_hulk", "destroyed")]
-                if enemies and messagebox.askyesno(
+                if enemies and self.ctx.prompt.yes_no(
                         "Declare Ramming Target",
                         f"{ship.name} is on All Ahead Full.\n"
                         f"Declare a ramming target before the speed roll?"):

@@ -502,7 +502,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1355 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1357 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2438,7 +2438,28 @@ Done: To do 2, 3, 6; most of 7.
    in place of the dialogs: needs To do 18's game flow out of the Tk panels, so it waits for
    it), the viewer stepping through a game (snapshots + events + the text log),
    `map_maker`'s terrain randomness (part of the start state for now).
-18. Code structure (plan section 4; pure refactors, no behaviour change, tests unchanged):
+18. Code structure (plan section 4; pure refactors, no behaviour change, tests unchanged;
+   checked by `tools/refactor_check.sh`: 16 seeded AI-vs-AI games, Navy v Tau in both turn
+   systems and Space Marines v Orks, whose final-state hashes a refactor must not change).
+   First slice built, the game flow's questions out of Tk: `src/prompts.py`; every question
+   asked of a player during play goes through `ctx.prompt` (`choose`, `yes_no`, `number`,
+   `pick_many`, `notify`): `Prompter` answers with the best choice and needs no window
+   (headless, AI seats, tests; the default on `GameContext`), `TkPrompter` shows the dialogs
+   (GamePanel; it calls `choice_dialog.choose` / `yes_no` and Tk's boxes at call time, so the
+   GUI checks' patches still apply), `ReplayPrompter` answers from the recorded events (To
+   do 17; `ReplayDivergence` at a mismatch). Converted: GamePanel's hooks (first turn,
+   Tzeentch, Undivided, re-rolls, Fleet Engagement, reserves, low orbit, overcharge,
+   assault, sub-plots, the disengage re-roll), Brace (combat panel), order re-rolls,
+   alternate activation's initiative / forcing, teleports and their brace, the torpedo
+   bomber target, ram and boarding declarations, raid brace, guided / boarding torpedo
+   turns and control, multi-role attack mode, the repair chooser (now with "Auto (best)",
+   the AI's repair pick), the artefact notice. Every answer is recorded once, as a "prompt"
+   event (`recorder`). Left as plain dialogs: window conveniences (deployment auto-place,
+   the movement / shooting phase reminders, settings, saves). The 16 games unchanged.
+   Next: the phase flow (`GamePanel._begin_turn1 / _end_phase / _run_ai_phase` and the
+   end-phase / ordnance-resolution mixin steps) into an engine `GameFlow` the window and a
+   display-free runner both drive; then human replay (To do 17) on it.
+   Plan items:
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /
    fire pool (UI halving inline today); a `ScenarioDef` registry replacing the scenario-mode

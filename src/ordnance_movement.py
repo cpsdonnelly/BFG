@@ -5,7 +5,6 @@ ship contacts (torpedoes, bombers, assault boats, mines), CAP fighter
 interception, ordnance-vs-ordnance clashes, and terrain effects.
 Split out of ordnance_panel.py, which keeps the launch dialogs.
 """
-from tkinter import messagebox
 import math
 
 from .models import SpecialOrder, OrdnanceMarker, OrdnanceType
@@ -149,7 +148,7 @@ class OrdnanceMovementMixin:
                     f"{'PASSED' if check['passed'] else 'FAILED'} "
                     f"(rolled {check['roll']} vs Ld {check['needed']})")
                 return True, check["passed"]
-            if not messagebox.askyesno("Hit-and-Run Raid — Brace?", msg):
+            if not self.ctx.prompt.yes_no("Hit-and-Run Raid — Brace?", msg):
                 return False, False
             check = attempt_brace(target_ship, self.ctx.gs, self.ctx.dice)
             self.ctx.log(
@@ -163,7 +162,6 @@ class OrdnanceMovementMixin:
         """Before ordnance moves, each boarding salvo launched on an earlier turn
         may turn up to 45° (s.16). The owner chooses; the AI points it at the
         nearest enemy."""
-        from tkinter import simpledialog
         from .ordnance import (boarding_torp_may_turn, boarding_torp_suggested_turn,
                                turn_boarding_torp)
         gs = self.ctx.gs
@@ -177,15 +175,14 @@ class OrdnanceMovementMixin:
             if self.ctx.is_ai_controlled(marker.owner_player):
                 deg = _ai_salvo_turn(marker, gs, suggested)
             else:
-                deg = simpledialog.askfloat(
+                deg = self.ctx.prompt.number(
                     "Boarding Torpedoes",
                     f"Player {marker.owner_player}: boarding torpedoes Str "
                     f"{marker.strength} at ({marker.x:.0f}, {marker.y:.0f}), "
                     f"heading {marker.heading:.0f}°.\n"
                     f"Turn before moving: -45 (clockwise) to +45 (anticlockwise).\n"
                     f"Suggested {suggested:+.0f}° points at the nearest enemy.",
-                    initialvalue=round(suggested), minvalue=-45, maxvalue=45,
-                    parent=self.ctx.root)
+                    suggested, -45, 45)
                 if deg is None:
                     deg = 0.0
             if abs(deg) >= 0.5:
@@ -208,9 +205,8 @@ class OrdnanceMovementMixin:
                 return False
         else:
             from .ai_rerolls import should_reroll
-            from .choice_dialog import choose
             left = tc.get_fleet_rerolls(player, ship)
-            if not choose(self.ctx.root, "Guided Torpedoes - Re-roll?",
+            if not self.ctx.prompt.choose("Guided Torpedoes - Re-roll?",
                           f"{ship.name} rolled {roll} against Leadership {ship.leadership}. "
                           f"Use a fleet commander re-roll ({left} left)?",
                           [("Re-roll", True), ("Don't", False)],
@@ -224,21 +220,19 @@ class OrdnanceMovementMixin:
         uses its best Leadership."""
         if self.ctx.is_ai_controlled(enemy_player):
             return max(candidates, key=lambda s: s.leadership)
-        from tkinter import simpledialog
         names = [f"{i + 1}. {s.name} (Ld {s.leadership})" for i, s in enumerate(candidates)]
-        pick = simpledialog.askinteger(
+        pick = self.ctx.prompt.number(
             "Guided Torpedoes - Take Control?",
             f"Player {enemy_player}: the enemy's guided torpedoes failed their guidance "
             f"test. Choose a ship to try to take control (Leadership test), or Cancel:\n\n"
             + "\n".join(names),
-            minvalue=1, maxvalue=len(candidates), parent=self.ctx.root)
+            None, 1, len(candidates), integer=True)
         return candidates[pick - 1] if pick else None
 
     def _turn_guided_and_seeking(self, ships, mover=None):
         """Seeking torpedoes turn up to 45° at the nearest enemy ship; guided
         torpedoes turn up to 45° for whoever wins the Leadership tests (s.16).
         Neither turns in the ordnance phase of its launch turn."""
-        from tkinter import simpledialog
         from .ordnance import (seeking_turn, guided_control, guided_suggested_turn,
                                turn_boarding_torp)
         gs = self.ctx.gs
@@ -265,15 +259,14 @@ class OrdnanceMovementMixin:
                            if controller == marker.owner_player else suggested)
                 else:
                     who = "your" if controller == marker.owner_player else "the enemy's"
-                    deg = simpledialog.askfloat(
-                        "Guided Torpedoes",
+                    deg = self.ctx.prompt.number(
+                    "Guided Torpedoes",
                         f"Player {controller}: you control {who} guided torpedoes Str "
                         f"{marker.strength} at ({marker.x:.0f}, {marker.y:.0f}), heading "
                         f"{marker.heading:.0f}°.\nTurn before moving: -45 (clockwise) to "
                         f"+45 (anticlockwise).\nSuggested {suggested:+.0f}° points at the "
                         f"nearest of your enemy's ships.",
-                        initialvalue=round(suggested), minvalue=-45, maxvalue=45,
-                        parent=self.ctx.root)
+                        suggested, -45, 45)
                     if deg is None:
                         deg = 0.0
                 label = "Guided torpedoes"
@@ -324,12 +317,10 @@ class OrdnanceMovementMixin:
             if self.ctx.is_ai_controlled(owner):
                 mode = best
             else:
-                from .choice_dialog import choose
                 from .waves import bomber_squadron_value, raid_squadron_value
                 bv = bomber_squadron_value(target, self.ctx.gs)
                 av = raid_squadron_value(target, self.ctx.gs, owner, ms[0].special_rules)
-                mode = choose(
-                    self.ctx.root, "Multi-role Attack Craft",
+                mode = self.ctx.prompt.choose("Multi-role Attack Craft",
                     f"{len(ms)} {names} squadron(s) attack {target.name} "
                     f"({target.effective_turrets} turrets, Armour {target.lowest_armor_value}+)."
                     f"\n\nExpected VP per squadron: as bombers {bv:.1f}, as assault boats "

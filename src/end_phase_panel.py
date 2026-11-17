@@ -1,6 +1,4 @@
 """BFG:XR — EndPhasePanel: teleport attacks and repair choice dialogs."""
-import tkinter as tk
-from tkinter import messagebox
 from typing import List
 
 from .models import Ship, SpecialOrder
@@ -79,8 +77,7 @@ class EndPhasePanel:
                 gs.artefact_carrier_id = new_carrier.id
                 gs.artefact_owner = new_carrier.player
                 gs.add_log(f"[ARTEFACT] Artefact seized by {new_carrier.name}!")
-                from tkinter import messagebox
-                messagebox.showinfo("Artefact Seized!",
+                self.ctx.prompt.notify("Artefact Seized!",
                     f"{new_carrier.name} has seized the artefact!\n"
                     f"{'Escape the board to win!' if new_carrier.player == gs.scenario_attacker else 'Defend it!'}")
 
@@ -165,7 +162,7 @@ class EndPhasePanel:
                 target_names = ", ".join(
                     f"{t.name} ({attacker.distance_to(t):.0f}cm)"
                     for t in eligible_targets)
-                want = messagebox.askyesno(
+                want = self.ctx.prompt.yes_no(
                     "Teleport Attack",
                     f"{attacker.name} can teleport against:\n{target_names}\n\n"
                     f"Attempt a teleport attack?")
@@ -204,7 +201,7 @@ class EndPhasePanel:
                             f"(rolled {check['roll']} vs Ld {check['needed']})")
                         return True, check["passed"]
                     return False, False
-                want_b = messagebox.askyesno("Teleport Attack — Brace?", msg)
+                want_b = self.ctx.prompt.yes_no("Teleport Attack — Brace?", msg)
                 if not want_b:
                     return False, False
                 check = attempt_brace(target_ship, self.ctx.gs, self.ctx.dice)
@@ -237,43 +234,9 @@ class EndPhasePanel:
         if max_repairs == 1 and len(repairable) == 1:
             return list(repairable)
 
-        dialog = tk.Toplevel(self.ctx.root)
-        dialog.title(f"Repair Choice - {ship.name}")
-        dialog.geometry("400x350")
-        dialog.transient(self.ctx.root)
-
-        tk.Label(dialog, text=f"{ship.name}: Choose {max_repairs} crit(s) to repair",
-                 font=("Consolas", 10, "bold")).pack(pady=5)
-
-        check_vars = {}
-        for crit_desc in repairable:
-            var = tk.BooleanVar(value=False)
-            check_vars[crit_desc] = var
-            tk.Checkbutton(dialog, text=crit_desc, variable=var,
-                           font=("Consolas", 9)).pack(anchor=tk.W, padx=20)
-
-        result = [None]
-
-        def confirm():
-            selected = [desc for desc, var in check_vars.items() if var.get()]
-            if len(selected) > max_repairs:
-                messagebox.showwarning("Too Many",
-                    f"Select at most {max_repairs} crit(s) to repair.")
-                return
-            result[0] = selected
-            dialog.destroy()
-
-        def skip():
-            result[0] = []
-            dialog.destroy()
-
-        btn_frame = tk.Frame(dialog)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Repair Selected", command=confirm,
-                  bg="#336633", fg="white",
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Skip Repairs", command=skip,
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-
-        self.ctx.root.wait_window(dialog)
-        return result[0] if result[0] is not None else []
+        from .ai_player import AIPlayer
+        best = AIPlayer.auto_repair_choices(repairable, max_repairs)
+        return self.ctx.prompt.pick_many(
+            f"Repair Choice - {ship.name}",
+            f"{ship.name}: Choose {max_repairs} crit(s) to repair", list(repairable),
+            max_repairs, best)

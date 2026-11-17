@@ -34,8 +34,7 @@ class AAPanelMixin:
     def _aa_choose_first(self, holder: int, phase: str) -> int:
         if self.ctx.is_ai_controlled(holder):
             return holder if self._aa_ai(holder).aa_choose_first(phase) else 3 - holder
-        from tkinter import messagebox
-        first = messagebox.askyesno(
+        first = self.ctx.prompt.yes_no(
             "Initiative", f"You hold the initiative edge. Take the first activation of the "
                           f"{phase} phase? (No: the enemy goes first)")
         return holder if first else 3 - holder
@@ -151,12 +150,11 @@ class AAPanelMixin:
         cfg = self.aa.cfg.activation
         if cfg.order_mode != "fixed_initiative" or not cfg.allow_forcing:
             return
-        from tkinter import messagebox
         requests = {}
         for p in (1, 2):
             if self.ctx.is_ai_controlled(p) or self.ctx.tc.get_fleet_rerolls(p) <= 0:
                 continue
-            if not messagebox.askyesno("Force an activation",
+            if not self.ctx.prompt.yes_no("Force an activation",
                                        f"Player {p}: spend a re-roll to make one ship "
                                        f"(yours or the enemy's) activate first this {ph} phase?"):
                 continue

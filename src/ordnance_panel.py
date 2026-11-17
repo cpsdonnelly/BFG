@@ -86,7 +86,6 @@ class OrdnancePanel(OrdnanceMovementMixin):
         or holds; "Auto (best)" picks what the AI would."""
         from .ordnance import torpedo_bomber_groups, fire_torpedo_bombers
         from .ai_hazards import torpedo_bomber_target
-        from .choice_dialog import choose
         gs = self.ctx.gs
         players = [p for p in (1, 2) if not self.ctx.is_ai_controlled(p)]
         groups = [(p, g) for p in players for g in torpedo_bomber_groups(gs, p)]
@@ -101,7 +100,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     and not e.is_disengaged]
             opts.append(("Hold (don't fire)", ""))
             best = torpedo_bomber_target(gs, g, p)
-            pick = choose(self.ctx.root, "Torpedo Bombers",
+            pick = self.ctx.prompt.choose("Torpedo Bombers",
                           f"{len(g)} torpedo bomber squadron(s): fire a strength "
                           f"{2 * len(g)} salvo at which ship?", opts,
                           best[1].id if best and best[0] > 0 else "")
