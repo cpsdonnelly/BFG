@@ -2523,9 +2523,19 @@ Done: To do 2, 3, 6; most of 7.
    no one picks the dice; new randomness is revealed for each roll, after the decision it
    follows is locked in, never once per game or per phase, which would let a modified client
    read ahead; each side commits at the start to a hash chain of secrets and reveals the next
-   link with each roll, one message each way; a side that stops revealing (it saw a bad
-   result coming) forfeits, and the record shows who stopped; it guarantees fair,
-   unpredictable dice only, not against outside help). Owner decision: cheat-proof is the online default; shared seed is an
+   link with each roll, one message each way; it guarantees fair, unpredictable dice
+   only, not against outside help). Disconnects (owner): never an automatic loss. The game
+   is its record (start state, seed / commitments, rolls, events) and both sides hold it, so
+   a disconnect pauses the game and either player resumes it later (the two records and a
+   state hash compared, the side behind catches up from the other's); a stalling player
+   gains nothing, since its committed chain fixes the secret it must reveal on return; a
+   forfeit only after a time limit both players agreed in setup (off by default). Play by
+   mail (owner: must be possible): each player's turn is sent as a file / message carrying
+   its decisions and the record. Dice by mail, options (owner to choose): shared seed (trust;
+   proposed default), the opponent's client running unattended to answer rolls online, or a
+   small signing dice service both trust (as play-by-mail dice servers do; the only option
+   that is fair with neither player online, but a server). Not commit-reveal ahead of time:
+   secrets handed over in advance let a player read its own turn's rolls. Owner decision: cheat-proof is the online default; shared seed is an
    option the players can choose instead. Team play (To do 22) adds one peer
    per seat. Retire `WebGameContext` and the LAN `network.py` rather than extend them.
 24. AI list builder (owner design; for the AI and for players: build as / against a random
