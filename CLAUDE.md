@@ -2497,11 +2497,16 @@ Done: To do 2, 3, 6; most of 7.
    convoy contact markers, Treasure Haul: commit a hash first, reveal later), a small
    signalling / relay service only for finding the other player and NAT traversal (WebRTC
    data channels; a relay when a direct link fails), reconnect by replaying the record, and
-   the AI run by the client of the player who owns it. Dice (owner question): a player's
-   typed real-life dice go to the other side as a decision, tagged "manual" (trust, as at a
-   table); digital dice neither side can rig need a commit-reveal shared seed (each sends a
-   hash of a secret, then both reveal, the combination seeds the dice); proposed: digital by
-   default, typed dice as a setting both players agree to (owner to confirm). Team play (To do 22) adds one peer
+   the AI run by the client of the player who owns it. Dice (owner): online games can turn
+   typed dice off (a game setting, off by default online; both players must agree to allow
+   them; typed rolls go to the other side as a decision, tagged "manual"). Digital dice, two
+   settings: "shared seed" (both clients know the seed from the start: simple, but a modified
+   client could read every future roll and a player choosing the seed could pick a good
+   one; fine between friends) and "cheat-proof" (commit-reveal: each side commits a hash of a
+   secret, then both reveal, so no one picks the dice; the randomness for each roll or phase
+   is revealed only when needed, so no one sees rolls ahead; one more message exchange per
+   reveal). Proposed: cheat-proof for strangers, shared seed between friends (owner to
+   confirm). Team play (To do 22) adds one peer
    per seat. Retire `WebGameContext` and the LAN `network.py` rather than extend them.
 24. AI list builder (owner design; for the AI and for players: build as / against a random
    fleet, or watch two random fleets). Steps: set the points limit; choose a fleet list;
