@@ -2505,8 +2505,8 @@ Done: To do 2, 3, 6; most of 7.
    one; fine between friends) and "cheat-proof" (commit-reveal: each side commits a hash of a
    secret, then both reveal, so no one picks the dice; the randomness for each roll or phase
    is revealed only when needed, so no one sees rolls ahead; one more message exchange per
-   reveal). Proposed: cheat-proof for strangers, shared seed between friends (owner to
-   confirm). Team play (To do 22) adds one peer
+   reveal). Owner decision: cheat-proof is the online default; shared seed is an
+   option the players can choose instead. Team play (To do 22) adds one peer
    per seat. Retire `WebGameContext` and the LAN `network.py` rather than extend them.
 24. AI list builder (owner design; for the AI and for players: build as / against a random
    fleet, or watch two random fleets). Steps: set the points limit; choose a fleet list;
