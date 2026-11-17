@@ -2,242 +2,66 @@
 import sys
 import os
 import tkinter as tk
+from tkinter import filedialog
 from typing import Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.models import Ship, Phenomenon
+from src.models import Phenomenon
 from src.game_state import GameState
 from src.board_view import BoardView
 from src.dice import DiceRoller
 from src.turn_controller import TurnController
+from src.fleet_loader import (load_fleet_file, fleet_to_ships, roll_starting_leadership,
+                               get_available_fleets, get_fleet_info,
+                               find_unofficial_ships)
+from src.fleet_builder import FleetBuilderWindow
 
 
-def create_demo_imperial_fleet(gs: GameState):
-    """Create the Imperial Navy 800pt fleet"""
 
-    # INS Throne Eternal - Mars Class Battlecruiser (Flagship)
-    mars = Ship(
-        id="imp_mars", name="INS Throne Eternal",
-        ship_class="Mars Class Battlecruiser", faction="imperial_navy",
-        player=1, ship_type="cruiser", base_size="small",
-        x=60, y=15, heading=90,
-        speed=20, turn_angle=45, shields_max=2,
-        armor_prow="6+", armor_side="5+", turrets=2, hits_max=8,
-        leadership=8, is_flagship=True, admiral_type="Vice Admiral",
-        rerolls_remaining=1,
-        points_value=350,
-        weapons=[
-            {"name": "Port Weapons Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 6, "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 6, "arcs": ["right"]},
-            {"name": "Port Launch Bays", "weapon_type": "launch_bay",
-             "range_cm": 30, "strength": 2, "arcs": [],
-             "craft_types": ["fury_fighter", "starhawk_bomber"], "craft_speed": 30},
-            {"name": "Starboard Launch Bays", "weapon_type": "launch_bay",
-             "range_cm": 30, "strength": 2, "arcs": [],
-             "craft_types": ["fury_fighter", "starhawk_bomber"], "craft_speed": 30},
-            {"name": "Prow Nova Cannon", "weapon_type": "nova_cannon",
-             "range_cm": 150, "strength": 0, "arcs": ["front"]},
-            {"name": "Dorsal Lance Battery", "weapon_type": "lance",
-             "range_cm": 60, "strength": 2, "arcs": ["left", "front", "right"]},
-        ],
-        upgrades=["targeting_matrix"],
-        special_rules=["targeting_matrix"],
-    )
-    gs.add_ship(mars)
-
-    # INS Sword of Bakka - Lunar Class Cruiser
-    lunar1 = Ship(
-        id="imp_lunar1", name="INS Sword of Bakka",
-        ship_class="Lunar Class Cruiser", faction="imperial_navy",
-        player=1, ship_type="cruiser", base_size="small",
-        x=40, y=15, heading=90,
-        speed=20, turn_angle=45, shields_max=2,
-        armor_prow="6+", armor_side="5+", turrets=2, hits_max=8,
-        leadership=7,
-        points_value=180,
-        weapons=[
-            {"name": "Port Weapons Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 6, "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 6, "arcs": ["right"]},
-            {"name": "Port Lance Battery", "weapon_type": "lance",
-             "range_cm": 30, "strength": 2, "arcs": ["left"]},
-            {"name": "Starboard Lance Battery", "weapon_type": "lance",
-             "range_cm": 30, "strength": 2, "arcs": ["right"]},
-            {"name": "Prow Torpedoes", "weapon_type": "torpedo",
-             "range_cm": 0, "strength": 6, "arcs": ["front"],
-             "torpedo_speed": 30, "torpedo_type": "standard"},
-        ],
-    )
-    gs.add_ship(lunar1)
-
-    # INS Vigilance Undying - Lunar Class Cruiser
-    lunar2 = Ship(
-        id="imp_lunar2", name="INS Vigilance Undying",
-        ship_class="Lunar Class Cruiser", faction="imperial_navy",
-        player=1, ship_type="cruiser", base_size="small",
-        x=80, y=15, heading=90,
-        speed=20, turn_angle=45, shields_max=2,
-        armor_prow="6+", armor_side="5+", turrets=2, hits_max=8,
-        leadership=8,
-        points_value=180,
-        weapons=[
-            {"name": "Port Weapons Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 6, "arcs": ["left"]},
-            {"name": "Starboard Weapons Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 6, "arcs": ["right"]},
-            {"name": "Port Lance Battery", "weapon_type": "lance",
-             "range_cm": 30, "strength": 2, "arcs": ["left"]},
-            {"name": "Starboard Lance Battery", "weapon_type": "lance",
-             "range_cm": 30, "strength": 2, "arcs": ["right"]},
-            {"name": "Prow Torpedoes", "weapon_type": "torpedo",
-             "range_cm": 0, "strength": 6, "arcs": ["front"],
-             "torpedo_speed": 30, "torpedo_type": "standard"},
-        ],
-    )
-    gs.add_ship(lunar2)
-
-    # Cobras
-    for i, name in enumerate(["INS Fervent", "INS Wrathful", "INS Pious"]):
-        cobra = Ship(
-            id=f"imp_cobra{i+1}", name=name,
-            ship_class="Cobra Class Destroyer", faction="imperial_navy",
-            player=1, ship_type="escort", base_size="small",
-            x=95 + i * 5, y=15, heading=90,
-            speed=30, turn_angle=90, shields_max=1,
-            armor_prow="5+", armor_side="5+", turrets=1, hits_max=1,
-            leadership=7,
-            points_value=30,
-            weapons=[
-                {"name": "Prow Torpedoes", "weapon_type": "torpedo",
-                 "range_cm": 0, "strength": 2, "arcs": ["front"],
-                 "torpedo_speed": 30, "torpedo_type": "standard"},
-            ],
-        )
-        gs.add_ship(cobra)
-
-
-def create_demo_tau_fleet(gs: GameState):
-    """Create the Tau Kor'or'vesh 800pt fleet"""
-
-    # Custodian Class Battleship (Flagship)
-    custodian = Ship(
-        id="tau_custodian", name="Or'es El'leath",
-        ship_class="Custodian Class Battleship", faction="tau_kororvesh",
-        player=2, ship_type="battleship", base_size="large",
-        x=60, y=105, heading=270,
-        speed=20, turn_angle=45, shields_max=3,
-        armor_prow="6+", armor_side="5+", turrets=4, hits_max=10,
-        leadership=9, is_flagship=True, admiral_type="Kor'O",
-        rerolls_remaining=2,
-        points_value=425,
-        weapons=[
-            {"name": "Port Railgun Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 6, "arcs": ["left", "front"]},
-            {"name": "Starboard Railgun Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 6, "arcs": ["right", "front"]},
-            {"name": "Port Ion Cannon", "weapon_type": "lance",
-             "range_cm": 45, "strength": 1, "arcs": ["left", "front"]},
-            {"name": "Starboard Ion Cannon", "weapon_type": "lance",
-             "range_cm": 45, "strength": 1, "arcs": ["right", "front"]},
-            {"name": "Port Launch Bays", "weapon_type": "launch_bay",
-             "range_cm": 25, "strength": 3, "arcs": [],
-             "craft_types": ["manta", "barracuda"], "craft_speed": 25},
-            {"name": "Starboard Launch Bays", "weapon_type": "launch_bay",
-             "range_cm": 25, "strength": 3, "arcs": [],
-             "craft_types": ["manta", "barracuda"], "craft_speed": 25},
-            {"name": "Prow Gravitic Launcher", "weapon_type": "gravitic_launcher",
-             "range_cm": 40, "strength": 8, "arcs": ["front"],
-             "torpedo_speed": 40, "torpedo_type": "guided"},
-        ],
-        special_rules=["ponderous", "deflector", "tracking_systems_20"],
-        towed_escorts=["tau_warden1", "tau_warden2", "tau_warden3"],
-    )
-    gs.add_ship(custodian)
-
-    # Emissary Class Light Cruisers (Bor'kan refit + deflector)
-    for i, (eid, name, ld) in enumerate([
-        ("tau_emissary1", "Kor'el Kais's Kir'shas'vre", 8),
-        ("tau_emissary2", "Kor'el Mont'yr's Kir'shas'vre", 6),
-    ]):
-        emissary = Ship(
-            id=eid, name=name,
-            ship_class="Emissary Class Light Cruiser", faction="tau_kororvesh",
-            player=2, ship_type="cruiser", base_size="small",
-            x=45 + i * 30, y=105, heading=270,
-            speed=20, turn_angle=90, shields_max=2,
-            armor_prow="5+", armor_side="5+", turrets=2, hits_max=4,
-            leadership=ld,
-            points_value=120,
-            weapons=[
-                {"name": "Port Railgun Battery", "weapon_type": "battery",
-                 "range_cm": 45, "strength": 4, "arcs": ["left", "front"]},
-                {"name": "Starboard Railgun Battery", "weapon_type": "battery",
-                 "range_cm": 45, "strength": 4, "arcs": ["right", "front"]},
-                {"name": "Port Ion Cannon", "weapon_type": "lance",
-                 "range_cm": 30, "strength": 1, "arcs": ["left", "front"]},
-                {"name": "Starboard Ion Cannon", "weapon_type": "lance",
-                 "range_cm": 30, "strength": 1, "arcs": ["right", "front"]},
-                {"name": "Prow Gravitic Launcher", "weapon_type": "gravitic_launcher",
-                 "range_cm": 40, "strength": 3, "arcs": ["front"],
-                 "torpedo_speed": 40, "torpedo_type": "guided"},
-            ],
-            special_rules=["deflector"],
-        )
-        gs.add_ship(emissary)
-
-    # Wardens (towed by Custodian)
-    for i, name in enumerate(["Kor'vre Shas", "Kor'vre Y'he", "Kor'vre Lar'shi"]):
-        warden = Ship(
-            id=f"tau_warden{i+1}", name=name,
-            ship_class="Warden Class Gunship", faction="tau_kororvesh",
-            player=2, ship_type="escort", base_size="small",
-            x=55 + i * 5, y=100, heading=270,
-            speed=25, turn_angle=90, shields_max=1,
-            armor_prow="5+", armor_side="5+", turrets=1, hits_max=1,
-            leadership=7,
-            points_value=30,
-            weapons=[
-                {"name": "Railgun Battery", "weapon_type": "battery",
-                 "range_cm": 30, "strength": 2, "arcs": ["front"]},
-                {"name": "Ion Cannon", "weapon_type": "lance",
-                 "range_cm": 30, "strength": 1, "arcs": ["left", "front", "right"]},
-            ],
-        )
-        gs.add_ship(warden)
-
-    # Castellan
-    castellan = Ship(
-        id="tau_castellan", name="Kor'vre Or'es",
-        ship_class="Castellan Class Escort", faction="tau_kororvesh",
-        player=2, ship_type="escort", base_size="small",
-        x=60, y=98, heading=270,
-        speed=25, turn_angle=90, shields_max=1,
-        armor_prow="5+", armor_side="5+", turrets=2, hits_max=1,
-        leadership=8,
-        points_value=45,
-        weapons=[
-            {"name": "Railgun Battery", "weapon_type": "battery",
-             "range_cm": 45, "strength": 2, "arcs": ["left", "front", "right"]},
-            {"name": "Gravitic Launcher", "weapon_type": "gravitic_launcher",
-             "range_cm": 40, "strength": 2, "arcs": ["front"],
-             "torpedo_speed": 40, "torpedo_type": "guided"},
-        ],
-    )
-    gs.add_ship(castellan)
 
 
 def _apply_rules(gs, setup):
     """Apply optional rule settings from setup dict to GameState."""
     for key in ("rule_fighting_sunward", "rule_solar_flares", "rule_radiation_bursts",
                  "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
-                 "rule_turret_suppression_remastered"):
+                 "rule_turret_suppression_remastered", "rule_subplots", "allow_movement_pass",
+                 "turn_limit", "ftl_available_turn", "scenario_mode",
+                 "scenario_attacker", "attacker_by_rating", "artefact_submode",
+                 "ai_player", "ai_difficulty", "ai_spectator"):
         if key in setup:
             setattr(gs, key, setup[key])
+    # Place artefact token at board centre for race mode
+    if setup.get("scenario_mode") == "capture_artefact" and setup.get("artefact_submode") == "race":
+        gs.artefact_token_pos = (gs.table_width / 2, gs.table_height / 2)
+
+
+def _choose_gift(root, ship_dict) -> int:
+    """Vault of Technology rolled a 6: the owner picks one of Gifts 1-5, with
+    the "Auto (best)" button taking the AI's pick (Advanced Shields)."""
+    from src.booklet_options import MECHANICUS_GIFTS
+    from src.choice_dialog import choose
+    opts = [(f"{n}. {name}", n) for n, name, _, _ in MECHANICUS_GIFTS[:5]]
+    return choose(root, "Vault of Technology",
+                  f"{ship_dict['name']} rolled a 6: choose a Gift", opts, 4) or 4
+
+
+def _load_fleet_checked(path: str, player: int, root):
+    """Load fleet and warn via messagebox if any ship classes are not in the catalog."""
+    from tkinter import messagebox
+    fleet_data = load_fleet_file(path)
+    unofficial = find_unofficial_ships(fleet_data)
+    if unofficial:
+        messagebox.showwarning(
+            "Unofficial Ships Detected",
+            f"The following ship class(es) in player {player}'s fleet are not in "
+            f"the official catalog or homebrew catalog:\n\n"
+            + "\n".join(f"  • {sc}" for sc in unofficial)
+            + "\n\nThey will be loaded with default stats.",
+            parent=root,
+        )
+    return fleet_to_ships(fleet_data, player)
 
 
 def main():
@@ -251,25 +75,27 @@ def main():
         return
 
     if setup["mode"] == "demo":
-        # Demo game with preset fleets and terrain
+        p1_info = get_fleet_info(setup["p1_fleet"])
+        p2_info = get_fleet_info(setup["p2_fleet"])
         gs = GameState(
-            game_name="imperial_vs_tau_demo",
+            game_name="fleet_battle",
             table_width=setup.get("width", 120),
             table_height=setup.get("height", 120),
-            player1_name="Imperial Navy",
-            player2_name="Tau Kor'or'vesh",
-            player1_faction="imperial_navy",
-            player2_faction="tau_kororvesh",
+            player1_name=p1_info["fleet_name"],
+            player2_name=p2_info["fleet_name"],
+            player1_faction=p1_info["faction"],
+            player2_faction=p2_info["faction"],
             player1_color="red",
             player2_color="blue",
-            points_limit=800,
+            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 800,
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=setup.get("sunward", "north"),
         )
-        # Apply optional rules
         _apply_rules(gs, setup)
-        create_demo_imperial_fleet(gs)
-        create_demo_tau_fleet(gs)
+        for ship in _load_fleet_checked(setup["p1_fleet"], 1, root):
+            gs.add_ship(ship)
+        for ship in _load_fleet_checked(setup["p2_fleet"], 2, root):
+            gs.add_ship(ship)
 
         if setup.get("terrain") == "random":
             from .map_maker import generate_random_map
@@ -292,18 +118,26 @@ def main():
         # else: blank board
 
     elif setup["mode"] == "blank":
+        p1_info = get_fleet_info(setup["p1_fleet"])
+        p2_info = get_fleet_info(setup["p2_fleet"])
         gs = GameState(
             game_name="custom_game",
             table_width=setup.get("width", 120),
             table_height=setup.get("height", 120),
-            player1_name=setup.get("p1_name", "Player 1"),
-            player2_name=setup.get("p2_name", "Player 2"),
+            player1_name=p1_info["fleet_name"],
+            player2_name=p2_info["fleet_name"],
+            player1_faction=p1_info["faction"],
+            player2_faction=p2_info["faction"],
+            player1_color="red",
+            player2_color="blue",
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=setup.get("sunward", "north"),
         )
         _apply_rules(gs, setup)
-        create_demo_imperial_fleet(gs)
-        create_demo_tau_fleet(gs)
+        for ship in _load_fleet_checked(setup["p1_fleet"], 1, root):
+            gs.add_ship(ship)
+        for ship in _load_fleet_checked(setup["p2_fleet"], 2, root):
+            gs.add_ship(ship)
 
     elif setup["mode"] == "editor":
         # Launch map editor first
@@ -322,23 +156,27 @@ def main():
         editor_root.destroy()
 
         # Create game with editor map
+        p1_info = get_fleet_info(setup["p1_fleet"])
+        p2_info = get_fleet_info(setup["p2_fleet"])
         gs = GameState(
             game_name="custom_game",
             table_width=map_settings["table_width"],
             table_height=map_settings["table_height"],
-            player1_name="Imperial Navy",
-            player2_name="Tau Kor'or'vesh",
-            player1_faction="imperial_navy",
-            player2_faction="tau_kororvesh",
+            player1_name=p1_info["fleet_name"],
+            player2_name=p2_info["fleet_name"],
+            player1_faction=p1_info["faction"],
+            player2_faction=p2_info["faction"],
             player1_color="red",
             player2_color="blue",
-            points_limit=800,
+            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 800,
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=map_settings["sunward_edge"],
         )
         _apply_rules(gs, setup)
-        create_demo_imperial_fleet(gs)
-        create_demo_tau_fleet(gs)
+        for ship in _load_fleet_checked(setup["p1_fleet"], 1, root):
+            gs.add_ship(ship)
+        for ship in _load_fleet_checked(setup["p2_fleet"], 2, root):
+            gs.add_ship(ship)
         for p in map_phenomena:
             gs.add_phenomenon(Phenomenon.from_dict(p))
 
@@ -348,11 +186,29 @@ def main():
             table_width=120, table_height=120,
             dice_mode="mixed",
         )
-        create_demo_imperial_fleet(gs)
-        create_demo_tau_fleet(gs)
+        p1_fleet = setup.get("p1_fleet")
+        p2_fleet = setup.get("p2_fleet")
+        if p1_fleet:
+            for ship in _load_fleet_checked(p1_fleet, 1, root):
+                gs.add_ship(ship)
+        if p2_fleet:
+            for ship in _load_fleet_checked(p2_fleet, 2, root):
+                gs.add_ship(ship)
 
     # Create turn controller and dice
-    dice = DiceRoller(mode=gs.dice_mode)
+    dice = DiceRoller(mode=gs.dice_mode, root=root)
+    from .chapter_tactics import apply_fleet_tactics
+    for line in apply_fleet_tactics(gs):          # Space Marine Chapter tactics
+        gs.add_log(line)
+    for line in roll_starting_leadership(gs, dice, ai_dice=DiceRoller(mode="auto")):
+        gs.add_log(line)
+    from .ordnance import roll_torpedo_types
+    for line in roll_torpedo_types(gs, dice, ai_dice=DiceRoller(mode="auto")):
+        gs.add_log(line)                         # Anointed / Refitted / Looted torpedoes
+    from .mechanicus import roll_vault_of_technology
+    for line in roll_vault_of_technology(gs, dice, ai_dice=DiceRoller(mode="auto"),
+                                         choose_fn=lambda s: _choose_gift(root, s)):
+        gs.add_log(line)                         # Mechanicus Vault of Technology
     tc = TurnController(gs, dice)
 
     # Show main window
@@ -364,7 +220,7 @@ def main():
     board.info_text.config(height=10)
 
     from .game_panel import GamePanel
-    game_panel = GamePanel(game_frame, tc, board, root)
+    GamePanel(game_frame, tc, board, root)  # registers its own Tk callbacks
 
     root.mainloop()
 
@@ -375,7 +231,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
 
     dialog = tk.Toplevel(root)
     dialog.title("BFG:XR - Game Setup")
-    dialog.geometry("420x480")
+    dialog.geometry("540x680")
     dialog.protocol("WM_DELETE_WINDOW", lambda: (result.__setitem__(0, None), dialog.destroy()))
 
     tk.Label(dialog, text="BATTLEFLEET GOTHIC: XR",
@@ -432,6 +288,62 @@ def _show_setup_dialog(root) -> Optional[dict]:
         tk.Radiobutton(bz_frame, text=name, variable=bz_var,
                        value=str(i), font=("Consolas", 7)).pack(side=tk.LEFT)
 
+    # Fleet selection
+    fleets_frame = tk.Frame(dialog)
+    fleets_frame.pack(pady=5, padx=20, fill=tk.X)
+    tk.Label(fleets_frame, text="Fleet Lists:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
+
+    available_fleets = get_available_fleets("data/fleets")
+    fleet_labels = {p: get_fleet_info(p)["fleet_name"] for p in available_fleets}
+
+    _imp_default = next((p for p in available_fleets if "imperial" in os.path.basename(p).lower()),
+                        available_fleets[0] if available_fleets else "")
+    _tau_default = next((p for p in available_fleets if "tau" in os.path.basename(p).lower()),
+                        available_fleets[-1] if available_fleets else "")
+
+    p1_fleet_var = tk.StringVar(value=_imp_default)
+    p2_fleet_var = tk.StringVar(value=_tau_default)
+
+    def _make_fleet_row(parent, label_text, fleet_var):
+        row = tk.Frame(parent)
+        row.pack(fill=tk.X, pady=2)
+        tk.Label(row, text=label_text, font=("Consolas", 9), width=10, anchor=tk.W).pack(side=tk.LEFT)
+        if available_fleets:
+            opt = tk.OptionMenu(row, fleet_var, *available_fleets,
+                                command=lambda _: None)
+            opt.config(font=("Consolas", 8), width=28)
+            opt["menu"].config(font=("Consolas", 8))
+            # Update OptionMenu display to show fleet_name not path
+            for i, path in enumerate(available_fleets):
+                opt["menu"].entryconfig(i, label=fleet_labels.get(path, os.path.basename(path)))
+            opt.pack(side=tk.LEFT, padx=3)
+        else:
+            tk.Label(row, text="No fleet files found in data/fleets/",
+                     font=("Consolas", 8), fg="#cc4444").pack(side=tk.LEFT)
+
+        def _browse(fv=fleet_var):
+            path = filedialog.askopenfilename(
+                parent=dialog, title="Select Fleet File",
+                initialdir="data/fleets",
+                filetypes=[("Fleet JSON", "*.json"), ("All Files", "*")])
+            if path:
+                fv.set(path)
+        tk.Button(row, text="Browse...", font=("Consolas", 8),
+                  command=_browse).pack(side=tk.LEFT, padx=3)
+
+        def _open_builder(fv=fleet_var):
+            def on_save(_data, saved_path):
+                fv.set(saved_path)
+            FleetBuilderWindow.open(dialog, on_save=on_save)
+        tk.Button(row, text="Build...", font=("Consolas", 8),
+                  command=_open_builder).pack(side=tk.LEFT, padx=3)
+
+    _make_fleet_row(fleets_frame, "Player 1:", p1_fleet_var)
+    _make_fleet_row(fleets_frame, "Player 2:", p2_fleet_var)
+    tk.Label(fleets_frame,
+             text="Fleet files live in data/fleets/ — copy or create JSON files there to add fleets.",
+             font=("Consolas", 7), fg="#888888", wraplength=480, justify=tk.LEFT).pack(anchor=tk.W)
+
     # Optional rules
     rules_frame = tk.Frame(dialog)
     rules_frame.pack(pady=5, padx=20, fill=tk.X)
@@ -448,6 +360,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("hit_and_run", "Hit and Run Raids", False),
         ("turret_suppression_remastered",
          "Turret Suppression: Remastered mode (default: XR — fighters give 3 fixed attacks)", False),
+        ("subplots", "Sub-plots (booklet p.80: each player rolls one)", False),
     ]
     for key, label, default in rules_list:
         var = tk.BooleanVar(value=default)
@@ -455,12 +368,171 @@ def _show_setup_dialog(root) -> Optional[dict]:
         tk.Checkbutton(rules_frame, text=label, variable=var,
                        font=("Consolas", 8)).pack(anchor=tk.W)
 
+    # Movement enforcement setting
+    movement_frame = tk.Frame(dialog)
+    movement_frame.pack(pady=5, padx=20, fill=tk.X)
+    tk.Label(movement_frame, text="Movement Enforcement:",
+             font=("Consolas", 9, "bold")).pack(anchor=tk.W)
+    allow_pass_var = tk.BooleanVar(value=False)
+    tk.Checkbutton(movement_frame,
+                   text="Allow movement pass (players may skip moving ships without penalty)",
+                   variable=allow_pass_var,
+                   font=("Consolas", 8)).pack(anchor=tk.W)
+    tk.Label(movement_frame,
+             text="Default OFF: ending the movement phase with unmoved ships is blocked.",
+             font=("Consolas", 7), fg="#888888").pack(anchor=tk.W)
+
+    # Turn limit and FTL charge
+    turn_frame = tk.Frame(dialog)
+    turn_frame.pack(pady=4, padx=20, fill=tk.X)
+    tk.Label(turn_frame, text="Game Options:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
+
+    tl_row = tk.Frame(turn_frame)
+    tl_row.pack(anchor=tk.W)
+    tk.Label(tl_row, text="Turn Limit:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    turn_limit_var = tk.StringVar(value="5")
+    tk.Entry(tl_row, textvariable=turn_limit_var, width=4,
+             font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+    tk.Label(tl_row, text="(blank = unlimited, default 5)",
+             font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+
+    ftl_row = tk.Frame(turn_frame)
+    ftl_row.pack(anchor=tk.W)
+    tk.Label(ftl_row, text="FTL Charge Turn:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    ftl_turn_var = tk.StringVar(value="")
+    tk.Entry(ftl_row, textvariable=ftl_turn_var, width=4,
+             font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+    tk.Label(ftl_row, text="(blank = FTL always available)",
+             font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+
+    # Scenario mode
+    scen_frame = tk.LabelFrame(dialog, text="Scenario Mode", font=("Consolas", 9, "bold"),
+                                padx=8, pady=4)
+    scen_frame.pack(fill=tk.X, padx=20, pady=4)
+    scenario_var = tk.StringVar(value="standard")
+
+    scenario_options = [
+        ("standard",          "Standard (all ships / turn limit)"),
+        ("kill_admiral",      "Kill the Admiral (destroy enemy flagship)"),
+        ("destroy_ship",      "Destroy / Protect a Ship"),
+        ("capture_artefact",  "Capture the Artefact"),
+        ("cruiser_clash",     "Cruiser Clash (booklet p.84: 8 turns, damage points)"),
+        ("chance_encounter",  "Chance Encounter (booklet p.88: stop the flagship, 6 turns)"),
+        ("the_bait",          "The Bait (booklet p.86: lure the pursuers into reinforcements)"),
+        ("parols_bait",       "Parol's Bait (campaign p.87: The Bait variant, Orks pursue)"),
+        ("raiders",           "The Raiders (booklet p.91: raid a larger fleet, 8 turns)"),
+        ("blockade_run",      "Blockade Run (booklet p.92: break through, 6 turns)"),
+        ("daemon_blockade",   "Daemon Blockade (campaign p.93: Blockade Run with daemon mines)"),
+        ("rearguard",         "Rearguard Attack (booklet p.97: reinforcements, 8 turns)"),
+        ("alien_intervention", "Alien Intervention (booklet p.103: allies arrive, 8 turns)"),
+        ("surprise_attack",   "Surprise Attack (booklet p.104: defenders on standby)"),
+        ("navigate_storm",    "Navigate the Storm (booklet p.98: warp rifts, exit point)"),
+        ("destroy_docks",     "Destroy the Docks (booklet p.99: orbital raid, 8 turns)"),
+        ("convoy_narrative",  "Convoy (booklet p.94: contact markers, deadfall torpedoes)"),
+        ("gauntlet",          "The Gauntlet (campaign p.96: Convoy variant, Ork escorts move on)"),
+        ("exterminatus",      "Exterminatus! (booklet p.101: low orbit, destroy the planet)"),
+        ("planetary_assault", "Planetary Assault (booklet p.105: low orbit, assault points)"),
+        ("craftworld_assault", "Craftworld Assault (campaign p.113: Eldar craftworld, assault points)"),
+        ("pelucidar",         "The Defence of Pelucidar (campaign p.111: Orks arrive, +2000 VP)"),
+        ("macharia",          "Macharia's End (campaign p.112: stop the Planet Killer)"),
+        ("escalating_engagement", "Escalating Engagement (booklet p.107: contact markers)"),
+        ("fleet_engagement",  "Fleet Engagement (booklet p.108: formations, set-ups A-D)"),
+        ("confrontation",     "Confrontation (booklet p.117: attacker first, VP)"),
+        ("line_breaker",      "Line Breaker (booklet p.118: defence platforms)"),
+        ("ambush",            "Ambush (booklet p.119: defender caught unawares)"),
+        ("convoy_matched",    "Convoy (booklet p.120: escort the convoy off the far edge)"),
+        ("space_assault",     "Space Assault (booklet p.121: space station)"),
+        ("rescue",            "Rescue (booklet p.122: defending flagship at the centre)"),
+        ("warp_storm",        "Warp Storm (booklet p.123: corner divisions)"),
+        ("planet_strike",     "Planet Strike (booklet p.124: bombard the planet)"),
+        ("domination",        "Domination (booklet p.125: objectives, 10 points)"),
+    ]
+    for val, lbl in scenario_options:
+        tk.Radiobutton(scen_frame, text=lbl, variable=scenario_var, value=val,
+                       font=("Consolas", 8)).pack(anchor=tk.W)
+
+    tk.Label(scen_frame,
+             text="For Destroy/Protect and Capture modes, set objective ship ID in-game\n"
+                  "via the settings panel after starting.",
+             font=("Consolas", 7), fg="#888888", justify=tk.LEFT).pack(anchor=tk.W)
+
+    # Capture artefact sub-options
+    artefact_frame = tk.Frame(scen_frame)
+    artefact_frame.pack(anchor=tk.W, padx=10)
+    artefact_submode_var = tk.StringVar(value="race")
+    tk.Label(artefact_frame, text="Sub-mode:", font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(artefact_frame, text="Race (neutral token)",
+                   variable=artefact_submode_var, value="race",
+                   font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(artefact_frame, text="Carrier Escape",
+                   variable=artefact_submode_var, value="carrier_escape",
+                   font=("Consolas", 7)).pack(side=tk.LEFT)
+
+    scenario_attacker_var = tk.StringVar(value="1")
+    att_row = tk.Frame(scen_frame)
+    att_row.pack(anchor=tk.W, padx=10)
+    tk.Label(att_row, text="Attacker:", font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(att_row, text="Player 1", variable=scenario_attacker_var,
+                   value="1", font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(att_row, text="Player 2", variable=scenario_attacker_var,
+                   value="2", font=("Consolas", 7)).pack(side=tk.LEFT)
+    tk.Radiobutton(att_row, text="Attack ratings (roll)", variable=scenario_attacker_var,
+                   value="rating", font=("Consolas", 7)).pack(side=tk.LEFT)
+
+    # AI opponent
+    ai_frame = tk.LabelFrame(dialog, text="AI Opponent", font=("Consolas", 9, "bold"),
+                              padx=8, pady=4)
+    ai_frame.pack(fill=tk.X, padx=20, pady=4)
+    ai_enabled_var = tk.BooleanVar(value=False)
+    tk.Checkbutton(ai_frame, text="Enable AI opponent (controls Player 2)",
+                   variable=ai_enabled_var,
+                   font=("Consolas", 8)).pack(anchor=tk.W)
+    ai_spectator_var = tk.BooleanVar(value=False)
+    tk.Checkbutton(ai_frame, text="Spectator mode (AI controls both players)",
+                   variable=ai_spectator_var,
+                   font=("Consolas", 8)).pack(anchor=tk.W)
+    diff_row = tk.Frame(ai_frame)
+    diff_row.pack(anchor=tk.W, padx=10)
+    tk.Label(diff_row, text="Difficulty:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    ai_diff_var = tk.StringVar(value="normal")
+    for lbl, val in [("Easy", "easy"), ("Normal", "normal"),
+                     ("Hard", "hard"), ("Expert", "expert")]:
+        tk.Radiobutton(diff_row, text=lbl, variable=ai_diff_var, value=val,
+                       font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+    tk.Label(ai_frame,
+             text="Easy: random targets  Normal: weakest target  "
+                  "Hard: focus-fire crippled  Expert: 5-turn lookahead minimax",
+             font=("Consolas", 7), fg="#888888", justify=tk.LEFT,
+             wraplength=440).pack(anchor=tk.W)
+
     def _get_rules():
-        return {f"rule_{k}": v.get() for k, v in rule_vars.items()}
+        rules = {f"rule_{k}": v.get() for k, v in rule_vars.items()}
+        rules["allow_movement_pass"] = allow_pass_var.get()
+        tl = turn_limit_var.get().strip()
+        rules["turn_limit"] = int(tl) if tl.isdigit() else None
+        ftl = ftl_turn_var.get().strip()
+        rules["ftl_available_turn"] = int(ftl) if ftl.isdigit() else None
+        rules["scenario_mode"] = scenario_var.get()
+        att = scenario_attacker_var.get()
+        rules["attacker_by_rating"] = att == "rating"
+        rules["scenario_attacker"] = 1 if att == "rating" else int(att)
+        rules["artefact_submode"] = artefact_submode_var.get()
+        # In carrier_escape mode, enforce FTL charge of at least 3 if not set
+        if (rules["scenario_mode"] == "capture_artefact"
+                and rules["artefact_submode"] == "carrier_escape"
+                and rules["ftl_available_turn"] is None):
+            rules["ftl_available_turn"] = 3
+        spectator = ai_spectator_var.get()
+        rules["ai_spectator"] = spectator
+        rules["ai_player"] = 2 if (ai_enabled_var.get() or spectator) else None
+        rules["ai_difficulty"] = ai_diff_var.get()
+        return rules
+
+    def _get_fleets():
+        return {"p1_fleet": p1_fleet_var.get(), "p2_fleet": p2_fleet_var.get()}
 
     # Buttons
     def start_demo():
-        rules = _get_rules()
         result[0] = {
             "mode": "demo",
             "width": float(width_var.get()),
@@ -469,31 +541,32 @@ def _show_setup_dialog(root) -> Optional[dict]:
             "dice_mode": dice_var.get(),
             "terrain": terrain_var.get(),
             "battlezone": int(bz_var.get()),
-            **rules,
+            **_get_rules(),
+            **_get_fleets(),
         }
         dialog.destroy()
 
     def start_blank():
-        rules = _get_rules()
         result[0] = {
             "mode": "blank",
             "width": float(width_var.get()),
             "height": float(height_var.get()),
             "sunward": sunward_var.get(),
             "dice_mode": dice_var.get(),
-            **rules,
+            **_get_rules(),
+            **_get_fleets(),
         }
         dialog.destroy()
 
     def start_editor():
-        rules = _get_rules()
         result[0] = {
             "mode": "editor",
             "width": float(width_var.get()),
             "height": float(height_var.get()),
             "sunward": sunward_var.get(),
             "dice_mode": dice_var.get(),
-            **rules,
+            **_get_rules(),
+            **_get_fleets(),
         }
         dialog.destroy()
 

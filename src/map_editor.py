@@ -1,9 +1,9 @@
 """BFG:XR Map Editor - Drag-and-drop terrain placement with mouse wheel rotation"""
 import tkinter as tk
-from tkinter import messagebox, simpledialog, filedialog
+from tkinter import messagebox, filedialog
 import math
 import os
-from typing import Optional, List
+from typing import List
 from .models import Phenomenon
 from .game_state import GameState
 from .board_view import BoardView, PHENOMENON_COLORS

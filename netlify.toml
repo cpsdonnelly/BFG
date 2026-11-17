@@ -1,0 +1,9 @@
+[build]
+  publish = "web"
+  command = "python scripts/build_web.py"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy   = "same-origin"
+    Cross-Origin-Embedder-Policy = "require-corp"

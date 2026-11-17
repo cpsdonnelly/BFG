@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BFG:XR — Battlefleet Gothic Simulator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: #0a0a1a;
+    color: #cccccc;
+    font-family: "Courier New", monospace;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Top bar ─────────────────────────────────── */
+#topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: #12122a;
+    border-bottom: 1px solid #333366;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+#phase-label {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 13px;
+    background: #333344;
+}
+
+#turn-label { font-size: 12px; flex: 1; }
+
+#status-bar {
+    font-size: 11px;
+    color: #888899;
+    min-width: 150px;
+    text-align: right;
+}
+
+/* ── Main layout ─────────────────────────────── */
+#main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ── Board ───────────────────────────────────── */
+#board-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+}
+
+#board-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* ── Right panel ─────────────────────────────── */
+#right-panel {
+    width: 240px;
+    background: #12122a;
+    border-left: 1px solid #333366;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+    #right-panel { width: 100%; position: absolute; bottom: 0; left: 0; height: 40%; z-index: 10; }
+    #main { flex-direction: column; }
+}
+
+/* ── Action panels ───────────────────────────── */
+.action-panel {
+    padding: 6px;
+    border-bottom: 1px solid #333366;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.phase-note {
+    font-size: 10px;
+    color: #888899;
+    padding: 0 2px 4px;
+}
+
+/* ── Ship list ───────────────────────────────── */
+#ship-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.ship-card {
+    border: 1px solid #333366;
+    border-left: 3px solid #3366cc;
+    border-radius: 3px;
+    padding: 4px 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    background: #1a1a2e;
+    transition: background 0.1s;
+}
+.ship-card:hover   { background: #22223e; }
+.ship-card.selected { background: #222244; border-color: #ffffff; }
+
+.ship-name  { font-size: 11px; font-weight: bold; }
+.ship-stats { font-size: 10px; color: #aaaaaa; display: flex; justify-content: space-between; }
+.ship-order { color: #ccaa33; }
+
+.hp-bar  { height: 2px; background: #333344; margin-top: 3px; border-radius: 1px; }
+.hp-fill { height: 100%; border-radius: 1px; transition: width 0.2s; }
+
+/* ── Log panel ───────────────────────────────── */
+#log-panel {
+    height: 130px;
+    border-top: 1px solid #333366;
+    overflow-y: auto;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.log-line {
+    font-size: 9px;
+    color: #aaaaaa;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ── Buttons ─────────────────────────────────── */
+button {
+    background: #1e2e4e;
+    border: 1px solid #3366cc;
+    color: #cccccc;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.1s;
+    touch-action: manipulation;
+}
+button:hover    { background: #2a3e66; }
+button:disabled { opacity: 0.4; cursor: default; }
+button.danger   { border-color: #993333; }
+button.primary  { border-color: #336699; background: #1a3a5e; }
+
+/* ── Dialog overlay ──────────────────────────── */
+#dialog-layer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,10,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.dialog-box {
+    background: #1a1a2e;
+    border: 1px solid #3366cc;
+    border-radius: 6px;
+    padding: 20px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 80dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dialog-box h3 { font-size: 14px; color: #aaaaff; }
+.dialog-box p  { font-size: 12px; line-height: 1.5; }
+
+.dialog-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+.btn-yes { border-color: #336633; background: #1a3a1a; min-width: 80px; font-size: 13px; padding: 8px; }
+.btn-no  { border-color: #663333; background: #3a1a1a; min-width: 80px; font-size: 13px; padding: 8px; }
+.btn-ok  { min-width: 80px; font-size: 13px; padding: 8px; }
+
+.list-container {
+    overflow-y: auto;
+    max-height: 50dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.list-item  { display: block; }
+.list-btn {
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+/* ── Setup overlay ───────────────────────────── */
+#setup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,10,0.92);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.setup-box {
+    background: #1a1a2e;
+    border: 1px solid #3366cc;
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.setup-box h1 { font-size: 22px; color: #aaaaff; letter-spacing: 2px; }
+.setup-box p  { font-size: 12px; color: #888899; line-height: 1.6; }
+
+#btn-start { font-size: 14px; padding: 12px; background: #1a3a5e; border-color: #4488cc; }
+#btn-start:disabled { opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+    <div id="phase-label">Setup</div>
+    <div id="turn-label">Turn 1</div>
+    <div id="status-bar">Initialising…</div>
+</div>
+
+<!-- Main layout -->
+<div id="main">
+
+    <!-- Board canvas -->
+    <div id="board-wrapper">
+        <canvas id="board-canvas"></canvas>
+    </div>
+
+    <!-- Right panel -->
+    <div id="right-panel">
+
+        <!-- Movement phase actions -->
+        <div class="action-panel" id="panel-movement">
+            <div class="phase-note" id="movement-remaining"></div>
+            <button id="btn-order">Special Order…</button>
+            <button id="btn-move"  disabled>Move Ship…</button>
+            <button id="btn-end-movement" class="danger">End Movement →</button>
+        </div>
+
+        <!-- Shooting phase actions -->
+        <div class="action-panel" id="panel-shooting">
+            <button id="btn-fire"         disabled>Fire Weapons…</button>
+            <button id="btn-end-shooting" class="danger">End Shooting →</button>
+        </div>
+
+        <!-- Ordnance phase actions -->
+        <div class="action-panel" id="panel-ordnance">
+            <button id="btn-move-ordnance">Move Ordnance</button>
+            <button id="btn-end-ordnance" class="danger">End Ordnance →</button>
+        </div>
+
+        <!-- End phase actions -->
+        <div class="action-panel" id="panel-end">
+            <button id="btn-resolve-end" class="primary">Resolve End Phase</button>
+            <button id="btn-end-endphase" class="danger">Next Turn →</button>
+        </div>
+
+        <!-- Common -->
+        <div style="padding:6px; border-bottom:1px solid #333366;">
+            <button id="btn-run-ai" style="width:100%">Run AI Turn</button>
+        </div>
+
+        <!-- Ship list -->
+        <div id="ship-list"></div>
+
+        <!-- Log -->
+        <div id="log-panel"></div>
+    </div>
+</div>
+
+<!-- Dialog overlay -->
+<div id="dialog-layer"></div>
+
+<!-- Setup / start screen -->
+<div id="setup-overlay">
+    <div class="setup-box">
+        <h1>BFG:XR</h1>
+        <p>Battlefleet Gothic Simulator<br>Loading game engine…</p>
+        <button id="btn-start" disabled>Start Demo Game</button>
+        <p style="font-size:10px;color:#555566">
+            Powered by Pyodide · First load ~10 s
+        </p>
+    </div>
+</div>
+
+<script type="module">
+    import { boot } from "./game.js";
+    import { initButtons, initSetupDialog } from "./ui.js";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        initButtons();
+        initSetupDialog();
+        await boot();
+    });
+</script>
+</body>
+</html>

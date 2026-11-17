@@ -1,0 +1,358 @@
+"""BFG:XR Boarding Actions
+
+Boarding is declared during the movement phase when an attacker moves into base
+contact with an enemy. Resolution occurs in the attacker's end phase (before damage
+control) if the ships are still in contact.
+
+Multi-ship boarding: several attackers may pool their troop ratings against one target.
+If the attacking group loses, the owning player distributes damage across attackers.
+While grappled in a drawn combat, ships cannot move, fire, launch ordnance, or
+disengage. Turrets are not added to the troop rating while grappled.
+
+Ships reduced to 0 damage by boarding become drifting hulks (no catastrophic roll).
+"""
+
+from typing import List, Dict, Optional
+from .models import Ship
+from .game_state import GameState
+from .dice import DiceRoller
+from .tables import BOARDING_RESULTS
+from .geometry import count_blast_markers_touching
+
+
+_TROOP_BONUS_TABLE = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}  # floored at 0, capped at 4
+
+
+def troop_rating(ship: Ship, grappled: bool = False, defending: bool = False) -> int:
+    """Return a ship's troop rating: hits_remaining (+ turrets if not grappled).
+    Before the turrets (s.32): the Mark of Khorne and an Ork Warboss double it;
+    Tau Kor'vattra vessels always halve it, Nicassar when boarded (rounding up)."""
+    if ship.hits_remaining <= 0:
+        return 0
+    base = ship.hits_remaining
+    if ("mark:khorne" in ship.special_rules or "warboss" in ship.special_rules
+            or "doubles_troops" in ship.special_rules):     # Abaddon's Bringers of Despair
+        base *= 2
+    if "kor_vattra" in ship.special_rules or ("frail_crew" in ship.special_rules and defending):
+        base = (base + 1) // 2
+    # Owner ruling: its CURRENT innate turrets (halved rounding up when crippled,
+    # s.33; after Fleet Defence Turrets' -2), never massed turrets
+    # s.32: only the DEFENDING vessel adds its turrets ("with the defending
+    # vessel adding its turrets"); Goffs add theirs in boarding actions they
+    # initiate (escorts +1 at most). Locked (grappled) ships add none.
+    t = 0
+    if not grappled:
+        if defending:
+            t = ship.effective_turrets
+        elif "clan:goffs" in ship.special_rules:
+            t = min(1, ship.effective_turrets) if ship.ship_type == "escort" \
+                else ship.effective_turrets
+    return base + t
+
+
+def _troop_advantage_bonus(attacker_rating: int, defender_rating: int) -> int:
+    if attacker_rating <= 0 or defender_rating <= 0:
+        return 0
+    ratio = attacker_rating / defender_rating
+    if ratio >= 4:
+        return 4
+    if ratio >= 3:
+        return 3
+    if ratio >= 2:
+        return 2
+    if ratio > 1:
+        return 1
+    return 0
+
+
+# Crew-quality bonuses added to a ship's boarding roll, keyed by special rule.
+# Unless a ship carries one of these rules, its bonus is 0.
+_CREW_DAMAGE_BONUSES = {
+    "space_marine_crew": 2,  # Space Marines (and Chaos Space Marine crews): +2
+    "chaos_crew": 1,         # Chaos: +1
+    "ork_crew": 1,           # Orks: +1
+    "mega_armoured_boarders": 2,   # Ork kustom upgrade: crew damage bonus +2
+}
+
+
+def _crew_damage_bonus(ship: Ship) -> int:
+    """Crew-quality bonus added to a ship's boarding roll.
+
+    Defaults to 0. Keyed off ``ship.special_rules`` so factions/upgrades can
+    grant varying bonuses (e.g. Space Marine crews add +2).
+    """
+    # "Ships may only use the largest applicable bonus" (s.32)
+    return max([_CREW_DAMAGE_BONUSES.get(rule, 0) for rule in ship.special_rules] or [0])
+
+
+def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
+    """Return sum of modifiers that apply to the OPPONENT's roll due to this ship's status."""
+    mod = 0
+    if ship.is_crippled:
+        mod += 2
+    if ship.special_order not in ("none", ""):
+        mod += 1
+    blast_markers = gs.get_blast_markers()
+    touching = count_blast_markers_touching(ship, blast_markers)
+    if touching > 0:
+        mod += 1
+    return mod
+
+
+def _boarding_crit_check(ship: Ship, threshold: Optional[int],
+                          dice: DiceRoller, gs: GameState) -> Optional[Dict]:
+    """Roll 1D6 for a boarding crit check. Return the applied crit or None.
+
+    Escorts take 1 point of damage instead of rolling on the crit table, so an
+    escort can win a boarding action and still be destroyed.
+    """
+    from .hit_and_run import _apply_raid_crit
+    if threshold is None:
+        return None
+    if ship.ship_type == "escort":
+        if threshold:
+            roll = dice.roll_d6(1, f"Boarding crit check on {ship.name} (need {threshold}+)")[0]
+            gs.add_log(f"  {ship.name} crit check: rolled {roll} (need {threshold}+)")
+            if roll < threshold:
+                return None
+        if ship.is_destroyed:
+            return None
+        gs.add_log(f"  {ship.name}: boarding critical — 1 damage (escort)")
+        _apply_boarding_damage(ship, 1, gs)
+        return {"crit_type": "escort_damage", "description": "+1 damage (escort)"}
+    if threshold == 0:
+        # Auto-crit: use a fresh roll to determine which crit
+        roll = dice.roll_d6(1, f"Auto boarding crit on {ship.name}")[0]
+        # Clamp to 2 (minimum valid crit roll on the raid crit table)
+        roll = max(2, roll)
+        return _crit_damage_reopens_hulk(ship, _apply_raid_crit(roll, ship, gs, dice), gs)
+    roll = dice.roll_d6(1, f"Boarding crit check on {ship.name} (need {threshold}+)")[0]
+    gs.add_log(f"  {ship.name} crit check: rolled {roll} (need {threshold}+)")
+    if roll >= threshold:
+        crit_roll = max(2, dice.roll_d6(1, f"Boarding crit type on {ship.name}")[0])
+        return _crit_damage_reopens_hulk(ship, _apply_raid_crit(crit_roll, ship, gs, dice), gs)
+    return None
+
+
+def _crit_damage_reopens_hulk(ship: Ship, crit: Optional[Dict],
+                              gs: GameState) -> Optional[Dict]:
+    """Owner ruling on s.32: a ship boarded to 0 is a drifting hulk with no
+    catastrophic roll, but the boarding crit is still rolled, and if that crit
+    deals extra damage the ship does roll on the Catastrophic Damage table.
+    Clearing the hulk status leaves it at 0 hits for check_destruction."""
+    if (crit and crit.get("extra_damage", 0) > 0
+            and ship.status == "drifting_hulk" and ship.hits_remaining <= 0):
+        ship.status = "active"
+        gs.update_ship(ship)
+        gs.add_log(f"  {ship.name}: boarding critical deals extra damage — "
+                   f"roll for catastrophic damage")
+    return crit
+
+
+def resolve_boarding(attackers: List[Ship], target: Ship,
+                     dice: DiceRoller, gs: GameState) -> Dict:
+    """Resolve a boarding action between one or more attackers and a target.
+
+    Returns a summary dict:
+      {
+        "attacker_roll": int,       # total roll for attacker side
+        "defender_roll": int,       # total roll for defender side
+        "winner": str,              # "attacker" | "defender" | "draw"
+        "damage": int,              # damage applied to loser (0 on draw)
+        "loser_ships": List[Ship],  # ships that take the damage (defenders or attackers)
+        "attacker_crits": List,     # crits applied to attacker ships
+        "defender_crits": List,     # crits applied to target
+        "grapple": bool,            # True if combat was a draw
+      }
+    """
+    # Sub-plots: Enemy Plans and Secret Intelligence (src/subplots.py)
+    if attackers:
+        from .subplots import record_boarding
+        record_boarding(gs, attackers[0].player, target, dice)
+    # Plague Fleet of Nurgle, Plague Arks: a ship that boards or is boarded
+    # by one suffers an automatic Plague critical (a Fire critical)
+    from .combat import add_fire_crits
+    sides = [(attackers, [target]), ([target], attackers)]
+    for plaguers, victims in sides:
+        if any("plague_ark" in p.special_rules for p in plaguers):
+            for v in victims:
+                if "plague_ark" not in v.special_rules:
+                    add_fire_crits(v, 1, gs)
+                    gs.add_log(f"  Plague Ark: {v.name} suffers a Plague critical (Fire)")
+    # Troop ratings
+    a_rating = sum(troop_rating(a, a.is_grappled) for a in attackers)
+    # Pack Hunter Protocols: +1 per escort / vanguard boarding a larger ship
+    # together with only its own squadron
+    from .chapter_tactics import pack_hunter_bonus
+    pack = pack_hunter_bonus(attackers, target)
+    if pack:
+        a_rating += pack
+        gs.add_log(f"  Pack Hunter Protocols: +{pack} troop rating")
+    d_rating = troop_rating(target, target.is_grappled, defending=True)
+
+    # Modifiers: each ship's weaknesses add to the OPPONENT's roll
+    # Attacker's modifiers (from target's perspective)
+    a_mod = _get_ship_modifier(target, gs)
+    # Defender's modifiers (from attackers' perspective)
+    d_mod = max(_get_ship_modifier(a, gs) for a in attackers)
+
+    a_troop_bonus = _troop_advantage_bonus(a_rating, d_rating)
+    d_troop_bonus = _troop_advantage_bonus(d_rating, a_rating)
+    a_crew = max(_crew_damage_bonus(a) for a in attackers)
+    d_crew = _crew_damage_bonus(target)
+
+    a_roll = dice.roll_d6(1, "boarding attacker roll")[0]
+    d_roll = dice.roll_d6(1, "boarding defender roll")[0]
+
+    # Lord Admiral Rath, Inspiring Presence: +1 defending against boarding
+    d_rath = 1 if "inspiring_presence" in target.special_rules else 0
+    a_total = a_roll + a_mod + a_troop_bonus + a_crew
+    d_total = d_roll + d_mod + d_troop_bonus + d_crew + d_rath
+
+    # Grey Knights, Knights of Titan: re-roll any boarding action involving a
+    # friendly Grey Knights ship; the second result stands. Re-rolled when the
+    # Grey Knights side would lose.
+    a_gk = any("knights_of_titan" in a.special_rules for a in attackers)
+    d_gk = "knights_of_titan" in target.special_rules
+    if (a_gk and a_total < d_total) or (d_gk and d_total < a_total):
+        gs.add_log(f"  Knights of Titan: {'attackers' if a_gk else target.name} "
+                   f"re-roll the boarding action ({a_total} vs {d_total})")
+        a_roll = dice.roll_d6(1, "boarding attacker re-roll")[0]
+        d_roll = dice.roll_d6(1, "boarding defender re-roll")[0]
+        a_total = a_roll + a_mod + a_troop_bonus + a_crew
+        d_total = d_roll + d_mod + d_troop_bonus + d_crew + d_rath
+
+    gs.add_log(
+        f"  Boarding: {'+'.join(a.name for a in attackers)} vs {target.name}")
+    gs.add_log(
+        f"  Attacker: {a_roll}+{a_mod}(mods)+{a_troop_bonus}(troops)"
+        f"+{a_crew}(crew) = {a_total}  |  "
+        f"Defender: {d_roll}+{d_mod}(mods)+{d_troop_bonus}(troops)"
+        f"+{d_crew}(crew) = {d_total}")
+
+    summary: Dict = {
+        "attacker_roll": a_total,
+        "defender_roll": d_total,
+        "winner": "draw",
+        "damage": 0,
+        "loser_ships": [],
+        "attacker_crits": [],
+        "defender_crits": [],
+        "grapple": False,
+    }
+
+    diff = abs(a_total - d_total)
+    crit_key = min(diff, 5)
+    crit_row = BOARDING_RESULTS.get(crit_key, BOARDING_RESULTS[5])
+
+    if a_total > d_total:
+        summary["winner"] = "attacker"
+        summary["damage"] = diff
+        summary["loser_ships"] = [target]
+        # Apply damage to target — ignores shields and brace
+        _apply_boarding_damage(target, diff, gs)
+        gs.add_log(f"  Attackers WIN by {diff} — {target.name} takes {diff} damage")
+        attacker_crit = _boarding_crit_check(
+            attackers[0], crit_row["winner_crit"], dice, gs)
+        if attacker_crit:
+            summary["attacker_crits"].append(attacker_crit)
+        defender_crit = _boarding_crit_check(target, crit_row["loser_crit"], dice, gs)
+        if defender_crit:
+            summary["defender_crits"].append(defender_crit)
+
+    elif d_total > a_total:
+        summary["winner"] = "defender"
+        summary["damage"] = diff
+        summary["loser_ships"] = list(attackers)
+        # Losing attackers distribute damage (player's choice handled in UI)
+        # For pure logic: apply evenly, remainder to first attacker
+        _distribute_boarding_damage(attackers, diff, gs)
+        gs.add_log(f"  Defender WINS by {diff} — attackers take {diff} total damage")
+        defender_crit = _boarding_crit_check(
+            target, crit_row["winner_crit"], dice, gs)
+        if defender_crit:
+            summary["defender_crits"].append(defender_crit)
+        for attacker in attackers:
+            a_crit = _boarding_crit_check(attacker, crit_row["loser_crit"], dice, gs)
+            if a_crit:
+                summary["attacker_crits"].append(a_crit)
+
+    else:
+        # Draw — grapple
+        summary["grapple"] = True
+        gs.add_log("  Boarding DRAW — ships grapple! Combat repeats each end phase.")
+        # Still apply crit checks on a draw (both treated as if diff=1 each side)
+        draw_row = BOARDING_RESULTS[1]
+        for attacker in attackers:
+            a_crit = _boarding_crit_check(attacker, draw_row["winner_crit"], dice, gs)
+            if a_crit:
+                summary["attacker_crits"].append(a_crit)
+        d_crit = _boarding_crit_check(target, draw_row["winner_crit"], dice, gs)
+        if d_crit:
+            summary["defender_crits"].append(d_crit)
+
+    return summary
+
+
+def _apply_boarding_damage(ship: Ship, damage: int, gs: GameState) -> None:
+    """Apply boarding damage directly to hull — ignores shields and brace.
+    A ship reduced to 0 becomes a drifting hulk (no catastrophic roll); escorts
+    are too small to hulk and are replaced by a blast marker instead.
+    """
+    from .combat import becomes_blast_marker, replace_with_blast_marker
+    ship.hits_remaining = max(0, ship.hits_remaining - damage)
+    if ship.hits_remaining <= 0 and becomes_blast_marker(ship):
+        replace_with_blast_marker(ship, gs)
+        return
+    if ship.hits_remaining <= 0:
+        ship.status = "drifting_hulk"
+        gs.add_log(f"  {ship.name} overwhelmed — drifting hulk (no explosion roll)")
+    gs.update_ship(ship)
+
+
+def _distribute_boarding_damage(attackers: List[Ship], total_damage: int,
+                                 gs: GameState) -> None:
+    """Distribute boarding damage across attacking ships (evenly, remainder to first)."""
+    if not attackers:
+        return
+    per_ship = total_damage // len(attackers)
+    remainder = total_damage % len(attackers)
+    for i, ship in enumerate(attackers):
+        dmg = per_ship + (remainder if i == 0 else 0)
+        if dmg > 0:
+            _apply_boarding_damage(ship, dmg, gs)
+
+
+def ships_in_base_contact(ship_a: Ship, ship_b: Ship) -> bool:
+    """True if the bases of two ships are touching."""
+    from .geometry import BASE_CONTACT_MARGIN_CM
+    dist = ship_a.distance_to(ship_b)
+    return dist <= ship_a.base_radius + ship_b.base_radius + BASE_CONTACT_MARGIN_CM
+
+
+def contiguous_contact_groups(ships: List[Ship]) -> List[List[Ship]]:
+    """Partition `ships` into connected components by base contact.
+
+    Two ships are connected if their bases touch; a group is the transitive
+    closure of that relation. Returns every component, including singletons.
+    Input order is preserved within each group.
+    """
+    visited = set()
+    groups: List[List[Ship]] = []
+    for start in ships:
+        if start.id in visited:
+            continue
+        group: List[Ship] = []
+        stack = [start]
+        while stack:
+            current = stack.pop()
+            if current.id in visited:
+                continue
+            visited.add(current.id)
+            group.append(current)
+            for other in ships:
+                if other.id not in visited and ships_in_base_contact(current, other):
+                    stack.append(other)
+        group.sort(key=lambda s: ships.index(s))
+        groups.append(group)
+    return groups

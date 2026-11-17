@@ -2,9 +2,12 @@
 import json
 import os
 import time
-from dataclasses import dataclass, field, asdict
-from typing import List, Dict, Optional
+from dataclasses import dataclass, field, fields
+from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, Phenomenon
+
+
+_COLLECTIONS = ("ships", "ordnance", "blast_markers", "phenomena", "log")
 
 
 @dataclass
@@ -32,6 +35,25 @@ class GameState:
     # Settings
     dice_mode: str = "mixed"  # "manual", "auto", "mixed"
     points_limit: int = 800
+    allow_movement_pass: bool = False  # False = strict: must move all ships; True = can skip
+    ai_player: Optional[int] = None    # player number controlled by AI (None = hotseat)
+    ai_difficulty: str = "normal"      # "easy" | "normal" | "hard" | "expert"
+    ai_spectator: bool = False         # True = both players AI (spectator mode)
+
+    # Turn limit and scenario settings
+    turn_limit: Optional[int] = None           # None = unlimited turns
+    ftl_available_turn: Optional[int] = None   # None = FTL always available
+    # "standard", the old generic modes (kill_admiral | destroy_ship |
+    # protect_ship | capture_artefact, scenario.py) or a booklet scenario key
+    # (scenarios.SCENARIOS: domination, cruiser_clash, pelucidar, ...)
+    scenario_mode: str = "standard"
+    scenario_attacker: int = 1                 # player who is "attacker" in asymmetric modes
+    attacker_by_rating: bool = False           # booklet scenarios: roll attack ratings (p.78)
+    objective_ship_id: Optional[str] = None    # target ship for destroy/protect modes
+    artefact_submode: str = "race"             # race | carrier_escape
+    artefact_token_pos: Optional[Tuple[float, float]] = None  # board pos when uncarried
+    artefact_carrier_id: Optional[str] = None  # ship currently holding artefact
+    artefact_owner: Optional[int] = None       # player who holds artefact
 
     # Optional rules (each independently togglable)
     rule_fighting_sunward: bool = False
@@ -42,6 +64,43 @@ class GameState:
     rule_teleport: bool = False  # note: Tau cannot teleport regardless
     rule_hit_and_run: bool = False
     rule_turret_suppression_remastered: bool = False  # False = XR mode, True = Remastered mode
+    contact_margin_cm: float = 0.2  # wiggle room added to base contact distance checks
+    blast_marker_rules: str = "standard"  # s.11: standard | modern | remastered (optional_rules)
+    rule_remastered_spillover: bool = False  # s.11 Remastered: one round's markers touch <= 2 ships
+    rule_remastered_escort_vp: bool = False  # Remastered p.121 escort squadron VP (XR default)
+    # s.40 celestial effects (src/celestial.py)
+    solar_flare_dice: int = 1
+    radiation_burst_dice: int = 1
+    solar_flare_done: bool = False
+    solar_flare_turn: Optional[List[int]] = None
+    radiation_level: int = 0
+    radiation_turn: Optional[List[int]] = None
+    radiation_deltas: Dict = field(default_factory=dict)
+    # Mark of Chaos Undivided (once per game per player): players who have used
+    # it, and the boost in force {player: {"turn": n, "deltas": {ship id: +Ld}}}
+    first_player: int = 1        # s.2: who moves first (the roll-off winner's choice)
+    # Alternate activation (To do 13, optional, outside the booklet): "igougo" (the
+    # booklet's turns) or "aa"; aa_settings holds the AARoundConfig fields
+    # Necron Deadly Awakening: {player: alert level} (src/necrons.py)
+    necron_alert: Dict = field(default_factory=dict)
+    # Kill credit: [{"by": ship id, "target": ship id, "kind": "crippled" | "destroyed"}]
+    # (combat.apply_damage; Fresh Captain's objective reads it)
+    kill_credit: List = field(default_factory=list)
+    turn_system: str = "igougo"
+    aa_settings: Dict = field(default_factory=dict)
+    aa_state: Dict = field(default_factory=dict)
+    # Booklet scenarios (src/scenarios.py): e.g. Domination's layout, objective
+    # markers and points
+    scenario_state: Dict = field(default_factory=dict)
+    # Sub-plots (src/subplots.py, p.80-82): rule_subplots rolls one for each
+    # player before deployment; subplots holds them {"1": {...}, "2": {...}}
+    rule_subplots: bool = False
+    subplots: Dict = field(default_factory=dict)
+    undivided_used: List[int] = field(default_factory=list)
+    undivided_boost: Dict = field(default_factory=dict)
+    # Serial for marker / ordnance ids (unique for the game; ids used to end in
+    # a random 0-9999 and could collide)
+    id_serial: int = 0
 
     # Collections
     ships: List[Dict] = field(default_factory=list)
@@ -51,6 +110,10 @@ class GameState:
 
     # Turn log
     log: List[str] = field(default_factory=list)
+
+    def next_serial(self) -> int:
+        self.id_serial += 1
+        return self.id_serial
 
     def add_ship(self, ship: Ship):
         self.ships.append(ship.to_dict())
@@ -102,33 +165,17 @@ class GameState:
         os.makedirs(directory, exist_ok=True)
 
         # Main state (without large collections)
-        meta = {
-            "game_name": self.game_name,
-            "turn_number": self.turn_number,
-            "current_phase": self.current_phase,
-            "active_player": self.active_player,
-            "phase_step": self.phase_step,
-            "player1_name": self.player1_name,
-            "player2_name": self.player2_name,
-            "player1_faction": self.player1_faction,
-            "player2_faction": self.player2_faction,
-            "player1_color": self.player1_color,
-            "player2_color": self.player2_color,
-            "table_width": self.table_width,
-            "table_height": self.table_height,
-            "sunward_edge": self.sunward_edge,
-            "dice_mode": self.dice_mode,
-            "points_limit": self.points_limit,
-            "rule_fighting_sunward": self.rule_fighting_sunward,
-            "rule_solar_flares": self.rule_solar_flares,
-            "rule_radiation_bursts": self.rule_radiation_bursts,
-            "rule_boarding": self.rule_boarding,
-            "rule_ramming": self.rule_ramming,
-            "rule_teleport": self.rule_teleport,
-            "rule_hit_and_run": self.rule_hit_and_run,
-            "rule_turret_suppression_remastered": self.rule_turret_suppression_remastered,
-            "timestamp": time.time(),
-        }
+        # Every dataclass field but the large collections (a hand-written list
+        # here could drift from the fields)
+        meta = {}
+        for f in fields(self):
+            if f.name in _COLLECTIONS:
+                continue
+            v = getattr(self, f.name)
+            if f.name == "artefact_token_pos" and v is not None:
+                v = list(v)
+            meta[f.name] = v
+        meta["timestamp"] = time.time()
 
         with open(os.path.join(directory, "game_state.json"), "w") as f:
             json.dump(meta, f, indent=2)
@@ -149,8 +196,13 @@ class GameState:
         with open(os.path.join(directory, "game_state.json")) as f:
             meta = json.load(f)
         for k, v in meta.items():
-            if k != "timestamp" and hasattr(gs, k):
-                setattr(gs, k, v)
+            if k == "timestamp":
+                continue
+            if not hasattr(gs, k):
+                continue
+            if k == "artefact_token_pos" and v is not None:
+                v = tuple(v)
+            setattr(gs, k, v)
 
         with open(os.path.join(directory, "ships.json")) as f:
             gs.ships = json.load(f)
@@ -167,3 +219,24 @@ class GameState:
                 content = f.read().strip()
                 gs.log = content.split("\n") if content else []
         return gs
+
+    def restore_from(self, other: "GameState") -> None:
+        """Overwrite this state in place with another's.
+
+        The turn controller, board and panels all hold a reference to the
+        same GameState, so a load must mutate it rather than replace it.
+        Transient engine scratch stashed as underscore attributes (zzapp
+        blast markers once a turn, Demiurg collected markers, spill-over
+        touches) is dropped so it can't leak across a load or undo; the UI's
+        hooks (plain attributes) stay.
+        """
+        for f in fields(self):
+            setattr(self, f.name, getattr(other, f.name))
+        self.clear_transient()
+
+    def clear_transient(self) -> None:
+        """Drop engine scratch kept as underscore attributes (not dataclass
+        fields, never saved): it describes the state being replaced."""
+        names = {f.name for f in fields(self)}
+        for k in [k for k in vars(self) if k.startswith("_") and k not in names]:
+            del self.__dict__[k]

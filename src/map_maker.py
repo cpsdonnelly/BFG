@@ -3,8 +3,7 @@ import math
 import json
 import os
 import random
-from typing import List, Dict, Optional, Tuple
-from .models import Phenomenon
+from typing import List, Dict
 from .dice import DiceRoller
 
 

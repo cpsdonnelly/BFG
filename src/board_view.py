@@ -1,16 +1,18 @@
 """BFG:XR Board Viewer - Tkinter Canvas GUI"""
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 import math
 from typing import Optional, Tuple
-from .models import Ship, BlastMarker, OrdnanceMarker, Phenomenon, ShipType, BaseSize, Arc
+from .models import (Ship, BlastMarker, OrdnanceMarker, Phenomenon,
+                     signed_angle_diff)
 from .game_state import GameState
+from .geometry import count_blast_markers_touching, current_shields
 
 # Ship circle sizes in screen pixels (will be scaled)
 SHIP_RADII = {
     "battleship": 2.5,   # cm on table, will scale to screen
     "cruiser": 1.6,
-    "escort": 1.2,
+    "escort": 1.6,
     "defense": 1.6,
 }
 
@@ -90,6 +92,7 @@ class BoardView:
         self.selected_ship_id = None
         self.show_arcs_ship_id = None
         self.snap_target_id = None    # ship we'd snap to on click
+        self._info_cache = None       # (ship_id, rendered_text) last shown in info panel
 
         # Persistent ruler lines (stay on screen until cleared)
         self.ruler_lines = []  # list of ((x1,y1), (x2,y2), dist, label)
@@ -97,6 +100,29 @@ class BoardView:
         # Mouse tracking
         self.mouse_x = 0
         self.mouse_y = 0
+
+        # Drag-and-drop movement state
+        self.drag_ship_id: Optional[str] = None   # ship being dragged
+        self.drag_result = None                    # last MovementResult from path compute
+        self.drag_commands = []                    # last computed MoveCommand list
+        # Callbacks set by game_panel:
+        #   can_drag_ship_fn(ship) -> bool  : returns True if ship may move now
+        #   commit_drag_fn(ship, commands)  : called on valid release to execute move
+        self.can_drag_ship_fn = None
+        self.commit_drag_fn = None
+        #   save_game_fn() / load_game_fn() : File > Save / Load handlers
+        self.save_game_fn = None
+        self.load_game_fn = None
+
+        # Ordnance launch drag state
+        self.ord_drag_ship_id: Optional[str] = None  # ship being aimed
+        self.ord_drag_heading: float = 0.0            # current drag heading
+        self.ord_drag_in_arc: bool = False            # True if heading is in ±45° arc
+        # Callbacks set by game_panel:
+        #   can_ord_drag_fn(ship) -> bool
+        #   commit_ord_drag_fn(ship, heading)
+        self.can_ord_drag_fn = None
+        self.commit_ord_drag_fn = None
 
         # Bindings
         self.canvas.bind("<Configure>", self._on_resize)
@@ -111,7 +137,7 @@ class BoardView:
         master.bind("d", lambda e: self._toggle_tool("ruler_ship"))
         master.bind("a", lambda e: self._toggle_tool("arc_view"))
         master.bind("c", lambda e: self._clear_rulers())
-        master.bind("Escape", lambda e: self._clear_tool())
+        master.bind("Escape", lambda e: self._cancel_drag_or_clear_tool())
 
         # Menu bar
         self._create_menu()
@@ -180,6 +206,23 @@ class BoardView:
         self.status_var.set("Ready")
         self.redraw()
 
+    def _cancel_drag_or_clear_tool(self):
+        """Escape: cancel active drag (movement or ordnance), then clear tool."""
+        if self.drag_ship_id:
+            self.drag_ship_id = None
+            self.drag_commands = []
+            self.drag_result = None
+            self.status_var.set("Drag cancelled")
+            self.redraw()
+        elif self.ord_drag_ship_id:
+            self.ord_drag_ship_id = None
+            self.ord_drag_heading = 0.0
+            self.ord_drag_in_arc = False
+            self.status_var.set("Ordnance aim cancelled")
+            self.redraw()
+        else:
+            self._clear_tool()
+
     def _clear_rulers(self):
         """Clear all persistent ruler lines from the board"""
         self.ruler_lines.clear()
@@ -187,8 +230,16 @@ class BoardView:
         self.redraw()
 
     # Coordinate conversion
+    def _low_orbit_shown(self) -> bool:
+        return bool((getattr(self.gs, "scenario_state", None) or {}).get("low_orbit_planet"))
+
     def cm_to_screen(self, cx, cy) -> Tuple[float, float]:
-        """Convert game cm coordinates to screen pixel coordinates"""
+        """Convert game cm coordinates to screen pixel coordinates. The low
+        orbit table (far away in game coordinates, src/low_orbit.py) is drawn
+        as a strip just above the main table."""
+        from .low_orbit import is_low, Y0, board_offset
+        if is_low(cy):
+            cy = board_offset(self.gs.table_height) + (cy - Y0)
         sx = self.margin + cx * self.scale
         sy = self.canvas.winfo_height() - self.margin - cy * self.scale  # Y flipped
         return sx, sy
@@ -197,6 +248,11 @@ class BoardView:
         """Convert screen pixels to game cm coordinates"""
         cx = (sx - self.margin) / self.scale
         cy = (self.canvas.winfo_height() - self.margin - sy) / self.scale
+        if self._low_orbit_shown():
+            from .low_orbit import Y0, board_offset
+            off = board_offset(self.gs.table_height)
+            if cy >= off - 2.0:
+                cy = Y0 + (cy - off)
         return cx, cy
 
     def cm_to_pixels(self, cm_val) -> float:
@@ -209,8 +265,11 @@ class BoardView:
         ch = event.height - 2 * self.margin
         if cw <= 0 or ch <= 0:
             return
-        scale_x = cw / self.gs.table_width
-        scale_y = ch / self.gs.table_height
+        from .low_orbit import WIDTH, LENGTH, board_offset
+        lo_h = (board_offset(self.gs.table_height) + WIDTH) if self._low_orbit_shown() \
+            else self.gs.table_height
+        scale_x = cw / max(self.gs.table_width, LENGTH if self._low_orbit_shown() else 0)
+        scale_y = ch / lo_h
         self.scale = min(scale_x, scale_y)
         self.redraw()
 
@@ -241,8 +300,7 @@ class BoardView:
         """Find ship near a point for snapping (larger tolerance than selection)"""
         best = None
         best_dist = snap_radius_cm
-        for s_dict in self.gs.ships:
-            s = Ship.from_dict(s_dict)
+        for s in self.gs.get_ships():
             dist = math.sqrt((cx - s.x)**2 + (cy - s.y)**2)
             display_r = SHIP_RADII.get(s.ship_type, 1.6)
             if dist <= display_r + snap_radius_cm and dist < best_dist:
@@ -272,18 +330,17 @@ class BoardView:
             else:
                 dist = math.sqrt((point[0] - self.ruler_start[0])**2 +
                                  (point[1] - self.ruler_start[1])**2)
-                # Build label
+                # Build status message (names useful in bar, not on canvas)
                 start_label = ""
                 if self.ruler_start_ship:
                     s = self.gs.get_ship_by_id(self.ruler_start_ship)
                     start_label = s.name if s else ""
                 end_label = snap_ship.name if snap_ship else ""
-                label = f"{dist:.1f}cm"
-                if start_label or end_label:
-                    label = f"{start_label or 'point'} → {end_label or 'point'}: {dist:.1f}cm"
-                # Store as persistent line
+                label = f"{dist:.1f}cm"  # canvas label: distance only
+                status_label = (f"{start_label or 'point'} → {end_label or 'point'}: {dist:.1f}cm"
+                                if (start_label or end_label) else label)
                 self.ruler_lines.append((self.ruler_start, point, dist, label))
-                self.status_var.set(f"Ruler: {label}")
+                self.status_var.set(f"Ruler: {status_label}")
                 self.ruler_start = None
                 self.ruler_start_ship = None
                 self.redraw()
@@ -306,9 +363,10 @@ class BoardView:
                 start_ship = self.gs.get_ship_by_id(self.ruler_start_ship)
                 start_name = start_ship.name if start_ship else "?"
                 end_name = snap_ship.name if snap_ship else "point"
-                label = f"{start_name} → {end_name}: {dist:.1f}cm"
-                self.ruler_lines.append((self.ruler_start, point, dist, label))
-                self.status_var.set(label)
+                status_label = f"{start_name} → {end_name}: {dist:.1f}cm"
+                canvas_label = f"{dist:.1f}cm"  # names stay in status bar only
+                self.ruler_lines.append((self.ruler_start, point, dist, canvas_label))
+                self.status_var.set(status_label)
                 self.ruler_start = None
                 self.ruler_start_ship = None
                 self.redraw()
@@ -321,14 +379,26 @@ class BoardView:
                 self.redraw()
             return
 
-        # Default: select ship
+        # Default: select ship; start movement drag or ordnance aim drag
         ship = self._find_ship_at(cx, cy)
         if ship:
             self.selected_ship_id = ship.id
             self._show_ship_info(ship)
+            if self.can_drag_ship_fn and self.can_drag_ship_fn(ship):
+                self.drag_ship_id = ship.id
+                self.status_var.set(
+                    f"Dragging {ship.name} — release to commit, Escape to cancel")
+            elif self.can_ord_drag_fn and self.can_ord_drag_fn(ship):
+                self.ord_drag_ship_id = ship.id
+                self.ord_drag_heading = ship.heading
+                self.ord_drag_in_arc = True
+                self.status_var.set(
+                    f"Aim ordnance from {ship.name} — drag to set heading, Escape to cancel")
             self.redraw()
         else:
             self.selected_ship_id = None
+            self.drag_ship_id = None
+            self.ord_drag_ship_id = None
             self._clear_info()
             self.redraw()
 
@@ -360,12 +430,11 @@ class BoardView:
     def _measure_to_all_enemies(self, ship: Ship):
         """Draw ruler lines from this ship to every enemy ship"""
         enemy_player = 2 if ship.player == 1 else 1
-        for s_dict in self.gs.ships:
-            other = Ship.from_dict(s_dict)
+        for other in self.gs.get_ships():
             if other.player == enemy_player and not other.is_destroyed:
                 dist = ship.distance_to(other)
                 arc = ship.get_target_arc(other.x, other.y)
-                label = f"→ {other.name}: {dist:.1f}cm ({arc.value})"
+                label = f"{dist:.1f}cm ({arc.value})"
                 self.ruler_lines.append(((ship.x, ship.y), (other.x, other.y), dist, label))
         self.redraw()
         self.status_var.set(f"Showing distances from {ship.name} to all enemies | C to clear")
@@ -379,9 +448,141 @@ class BoardView:
                              (end[1] - self.ruler_start[1])**2)
             self._draw_ruler_line(self.ruler_start, end, dist, persistent=False)
             self.status_var.set(f"Ruler: {dist:.1f} cm")
+            return
+
+        if self.drag_ship_id:
+            cx, cy = self.screen_to_cm(event.x, event.y)
+            ship = self.gs.get_ship_by_id(self.drag_ship_id)
+            if not ship:
+                self.drag_ship_id = None
+                return
+            from .movement_ui import compute_drag_path
+            commands, result = compute_drag_path(
+                ship, cx, cy,
+                ship.special_order,
+                blast_markers=self.gs.get_blast_markers(),
+                table_width=self.gs.table_width,
+                table_height=self.gs.table_height)
+            self.drag_commands = commands
+            self.drag_result = result
+            self.redraw()
+            if result:
+                color = "#44FF44" if result.valid else "#FF4444"
+                # Draw path segments
+                for i in range(len(result.path) - 1):
+                    sx0, sy0 = self.cm_to_screen(*result.path[i])
+                    sx1, sy1 = self.cm_to_screen(*result.path[i + 1])
+                    self.canvas.create_line(sx0, sy0, sx1, sy1,
+                                            fill=color, width=2, dash=(4, 4))
+                # Ghost ship circle at end position
+                gx, gy = self.cm_to_screen(result.final_x, result.final_y)
+                r = self.cm_to_pixels(ship.base_radius)
+                self.canvas.create_oval(gx - r, gy - r, gx + r, gy + r,
+                                        outline=color, width=2, dash=(3, 3))
+                # Ghost heading arrow
+                head_rad = math.radians(result.final_heading)
+                ax = gx + r * 2 * math.cos(head_rad)
+                ay = gy - r * 2 * math.sin(head_rad)
+                self.canvas.create_line(gx, gy, ax, ay,
+                                        fill=color, width=2, arrow=tk.LAST)
+                dist_label = f"{result.total_distance:.1f}cm"
+                if not result.valid:
+                    dist_label += " ✗"
+                self.status_var.set(
+                    f"Drag {ship.name}: {dist_label} "
+                    f"→ ({result.final_x:.0f}, {result.final_y:.0f}) "
+                    f"hdg {result.final_heading:.0f}°"
+                    + ("  VALID — release to commit"
+                       if result.valid else
+                       f"  INVALID: {result.errors[0] if result.errors else ''}"))
+
+        elif self.ord_drag_ship_id:
+            cx, cy = self.screen_to_cm(event.x, event.y)
+            ship = self.gs.get_ship_by_id(self.ord_drag_ship_id)
+            if not ship:
+                self.ord_drag_ship_id = None
+                return
+
+            dx = cx - ship.x
+            dy = cy - ship.y
+            drag_dist = math.sqrt(dx * dx + dy * dy)
+
+            if drag_dist > 0.5:
+                raw_bearing = math.degrees(math.atan2(dy, dx)) % 360
+                # Offset from ship heading, in (-180, 180]
+                diff = signed_angle_diff(raw_bearing, ship.heading)
+                in_arc = abs(diff) <= 45
+                # Snap range: ±45° to ±60° → clamp to ±45°
+                snap_zone = 45 < abs(diff) <= 60
+                if snap_zone:
+                    diff = 45.0 * (1 if diff > 0 else -1)
+                    in_arc = True
+                self.ord_drag_heading = (ship.heading + diff) % 360
+                self.ord_drag_in_arc = in_arc and not (abs(diff) > 60)
+            else:
+                self.ord_drag_heading = ship.heading
+                self.ord_drag_in_arc = True
+
+            self.redraw()
+            sx, sy = self.cm_to_screen(ship.x, ship.y)
+            arc_color = "#44FF44" if self.ord_drag_in_arc else "#FF4444"
+
+            # Draw ±45° launch arc cone
+            arc_r = self.cm_to_pixels(30)
+            ship_hdg = ship.heading
+            start_angle_screen = -(ship_hdg + 45)  # canvas angles are CCW from east
+            self.canvas.create_arc(
+                sx - arc_r, sy - arc_r, sx + arc_r, sy + arc_r,
+                start=start_angle_screen, extent=90,
+                fill="", outline="#888844", width=1, style=tk.ARC)
+            # Draw two arc boundary lines
+            for offset in (-45, 45):
+                edge_rad = math.radians(ship_hdg + offset)
+                ex = sx + arc_r * math.cos(edge_rad)
+                ey = sy - arc_r * math.sin(edge_rad)
+                self.canvas.create_line(sx, sy, ex, ey,
+                                        fill="#888844", width=1, dash=(3, 3))
+
+            # Draw heading arrow
+            hdg_rad = math.radians(self.ord_drag_heading)
+            arrow_len = self.cm_to_pixels(25)
+            ax = sx + arrow_len * math.cos(hdg_rad)
+            ay = sy - arrow_len * math.sin(hdg_rad)
+            self.canvas.create_line(sx, sy, ax, ay,
+                                    fill=arc_color, width=2, arrow=tk.LAST)
+
+            if self.ord_drag_in_arc:
+                self.status_var.set(
+                    f"Launch from {ship.name}: heading {self.ord_drag_heading:.0f}° "
+                    f"— VALID  (release to open launch dialog)")
+            else:
+                self.status_var.set(
+                    f"Launch from {ship.name}: heading {self.ord_drag_heading:.0f}° "
+                    f"— OUTSIDE ARC (>{60}° off bow — release cancels)")
 
     def _on_release(self, event):
-        pass
+        if self.drag_ship_id:
+            ship = self.gs.get_ship_by_id(self.drag_ship_id)
+            if (ship and self.drag_result and self.drag_result.valid
+                    and self.commit_drag_fn and self.drag_commands):
+                self.commit_drag_fn(ship, self.drag_commands)
+            self.drag_ship_id = None
+            self.drag_commands = []
+            self.drag_result = None
+            self.status_var.set("Ready")
+            self.redraw()
+
+        elif self.ord_drag_ship_id:
+            ship = self.gs.get_ship_by_id(self.ord_drag_ship_id)
+            if ship and self.ord_drag_in_arc and self.commit_ord_drag_fn:
+                self.commit_ord_drag_fn(ship, self.ord_drag_heading)
+            elif ship and not self.ord_drag_in_arc:
+                self.status_var.set(
+                    "Launch cancelled — heading too far off arc")
+            self.ord_drag_ship_id = None
+            self.ord_drag_heading = 0.0
+            self.ord_drag_in_arc = False
+            self.redraw()
 
     def _set_arc_view(self, ship_id):
         self.show_arcs_ship_id = ship_id
@@ -389,8 +590,7 @@ class BoardView:
 
     def _find_ship_at(self, cx, cy) -> Optional[Ship]:
         """Find ship whose base contains the point (cx, cy)"""
-        for s_dict in self.gs.ships:
-            s = Ship.from_dict(s_dict)
+        for s in self.gs.get_ships():
             display_r = SHIP_RADII.get(s.ship_type, 1.6)
             dist = math.sqrt((cx - s.x)**2 + (cy - s.y)**2)
             if dist <= display_r + 0.5:  # small tolerance
@@ -406,11 +606,120 @@ class BoardView:
         self._draw_phenomena()
         self._draw_blast_markers()
         self._draw_ordnance()
+        self._draw_wave_labels()
         self._draw_ships()
+        self._draw_artefact_marker()
+        self._draw_scenario_objectives()
         self._draw_persistent_rulers()
         self._draw_snap_indicator()
         if self.show_arcs_ship_id:
             self._draw_arc_overlay(self.show_arcs_ship_id)
+        # Keep the info panel in sync with current ship state (e.g. new crits)
+        if self.selected_ship_id:
+            sel = self.gs.get_ship_by_id(self.selected_ship_id)
+            if sel:
+                self._show_ship_info(sel)
+
+    def _draw_scenario_objectives(self):
+        """Booklet scenario objective markers (Domination): a ring of the 15cm
+        control range, coloured by the player controlling it."""
+        gs = self.gs
+        if gs.scenario_mode == "escalating_engagement":
+            self._draw_contact_markers()
+            return
+        if gs.scenario_mode == "convoy_narrative":
+            for m in (gs.scenario_state or {}).get("markers", []):
+                if m.get("deployed"):
+                    continue
+                sx, sy = self.cm_to_screen(m["x"], m["y"])
+                self.canvas.create_polygon(sx, sy - 9, sx - 8, sy + 6, sx + 8, sy + 6,
+                                           fill=gs.player1_color if gs.scenario_attacker == 1
+                                           else gs.player2_color, outline="#FFFFFF", width=2)
+                self.canvas.create_text(sx, sy + 1, text="?", fill="#000000",
+                                        font=("Consolas", 7, "bold"))
+            return
+        if gs.scenario_mode == "navigate_storm":
+            from .navigate_storm import zones
+            x0, y0, x1, y1 = zones(gs)["exit"]
+            ax, ay = self.cm_to_screen(x0, y0)
+            bx, by = self.cm_to_screen(x1, y1)
+            self.canvas.create_rectangle(ax, ay, bx, by, outline="#FFD700", dash=(4, 3),
+                                         width=2)
+            self.canvas.create_text((ax + bx) / 2, (ay + by) / 2, text="EXIT",
+                                    fill="#FFD700", font=("Consolas", 9, "bold"))
+            return
+        if gs.scenario_mode != "domination":
+            return
+        from .scenarios import objectives, controller, points, CONTROL_RANGE
+        ships = gs.get_ships()
+        cols = {1: gs.player1_color, 2: gs.player2_color}
+        for i, m in enumerate(objectives(gs)):
+            sx, sy = self.cm_to_screen(*m)
+            own = controller(gs, m, ships)
+            col = cols.get(own, "#DDDDDD")
+            rr = CONTROL_RANGE * self.scale
+            self.canvas.create_oval(sx - rr, sy - rr, sx + rr, sy + rr, outline=col,
+                                    dash=(3, 4), width=1)
+            self.canvas.create_oval(sx - 6, sy - 6, sx + 6, sy + 6, outline="#FFFFFF",
+                                    fill=col, width=2)
+            self.canvas.create_text(sx, sy + 14, text=f"OBJ {i + 1}", fill="#FFFFFF",
+                                    font=("Consolas", 7))
+        pts = points(gs)
+        self.canvas.create_text(self.margin + 4, self.margin + 4, anchor="nw",
+                                text=f"Domination: P1 {pts[1]}  P2 {pts[2]}  (10 wins)",
+                                fill="#FFD700", font=("Consolas", 9, "bold"))
+
+    def _draw_contact_markers(self):
+        """Escalating Engagement: each player's contact markers on the table
+        edges (triangles in the player's colour) and the starting markers
+        before deployment ends."""
+        gs = self.gs
+        st = gs.scenario_state or {}
+        cols = {1: gs.player1_color, 2: gs.player2_color}
+        marks = [(m["player"], m["x"], m["y"], "?") for m in st.get("edge_markers", [])]
+        if gs.turn_number <= 1 and gs.current_phase in ("deployment", "setup", ""):
+            marks += [(int(p), xy[0], xy[1], "S") for p, xy in st.get("start", {}).items()]
+        for p, x, y, lab in marks:
+            sx, sy = self.cm_to_screen(x, y)
+            self.canvas.create_polygon(sx, sy - 9, sx - 8, sy + 6, sx + 8, sy + 6,
+                                       fill=cols.get(p, "#DDDDDD"), outline="#FFFFFF",
+                                       width=2)
+            self.canvas.create_text(sx, sy + 1, text=lab, fill="#000000",
+                                    font=("Consolas", 7, "bold"))
+
+    def _draw_artefact_marker(self):
+        gs = self.gs
+        if gs.scenario_mode != "capture_artefact":
+            return
+
+        if gs.artefact_token_pos is not None:
+            # Uncarried token on board
+            tx, ty = gs.artefact_token_pos
+            sx, sy = self.cm_to_screen(tx, ty)
+            r = 8
+            pts = []
+            import math
+            for i in range(5):
+                angle = math.radians(i * 72 - 90)
+                pts.extend([sx + r * math.cos(angle), sy + r * math.sin(angle)])
+                angle2 = math.radians(i * 72 + 36 - 90)
+                pts.extend([sx + (r * 0.4) * math.cos(angle2), sy + (r * 0.4) * math.sin(angle2)])
+            self.canvas.create_polygon(pts, fill="#FFD700", outline="#FFFFFF", width=1)
+            self.canvas.create_text(sx, sy + r + 8, text="ARTEFACT",
+                                    fill="#FFD700", font=("Consolas", 7))
+        elif gs.artefact_carrier_id:
+            carrier = gs.get_ship_by_id(gs.artefact_carrier_id)
+            if carrier and not carrier.is_destroyed:
+                sx, sy = self.cm_to_screen(carrier.x, carrier.y)
+                r = 6
+                import math
+                pts = []
+                for i in range(5):
+                    angle = math.radians(i * 72 - 90)
+                    pts.extend([sx + r * math.cos(angle), sy + r * math.sin(angle)])
+                    angle2 = math.radians(i * 72 + 36 - 90)
+                    pts.extend([sx + (r * 0.4) * math.cos(angle2), sy + (r * 0.4) * math.sin(angle2)])
+                self.canvas.create_polygon(pts, fill="#FFD700", outline="#FFFFFF", width=1)
 
     def _draw_persistent_rulers(self):
         """Draw all stored ruler lines"""
@@ -433,6 +742,20 @@ class BoardView:
         x0, y0 = self.cm_to_screen(0, 0)
         x1, y1 = self.cm_to_screen(self.gs.table_width, self.gs.table_height)
         self.canvas.create_rectangle(x0, y1, x1, y0, outline="#333355", width=2)
+        if self._low_orbit_shown():
+            # The low orbit table (s.39): the planet edge at the top
+            from .low_orbit import Y0, WIDTH, LENGTH
+            lx0, ly0 = self.cm_to_screen(0, Y0)
+            lx1, ly1 = self.cm_to_screen(LENGTH, Y0 + WIDTH)
+            self.canvas.create_rectangle(lx0, ly1, lx1, ly0, outline="#5577AA", width=2,
+                                         fill="#0A1020")
+            self.canvas.create_line(lx0, ly1, lx1, ly1, fill="#55AA55", width=4)
+            self.canvas.create_text(lx0 + 4, ly1 + 8, anchor="w", fill="#88AACC",
+                                    text="LOW ORBIT (planet edge above)",
+                                    font=("Consolas", 8, "bold"))
+            gx0, gy = self.cm_to_screen(0, Y0 + WIDTH - 45.0)
+            gx1, _ = self.cm_to_screen(LENGTH, Y0 + WIDTH - 45.0)
+            self.canvas.create_line(gx0, gy, gx1, gy, fill="#446688", dash=(3, 4))
 
         # Grid lines every 10cm
         for i in range(0, int(self.gs.table_width) + 1, 10):
@@ -571,7 +894,33 @@ class BoardView:
             self.canvas.create_oval(sx - cr, sy - cr, sx + cr, sy + cr,
                                      fill="#FFAA33", outline="")
 
+    def _draw_wave_labels(self):
+        """Waves of attack craft are stacked on their lead marker: label each
+        with its size and formation (contents are open information, s.25)."""
+        waves = {}
+        for o in self.gs.ordnance:
+            if o.get("wave_id"):
+                waves.setdefault(o["wave_id"], []).append(o)
+        for ms in waves.values():
+            lead = min(ms, key=lambda o: o.get("wave_order", 0))
+            sx, sy = self.cm_to_screen(lead["x"], lead["y"])
+            off = self.cm_to_pixels(1.6)
+            tag = "C" if lead.get("wave_formation") == "close" else "L"
+            self.canvas.create_text(sx + off, sy - off, text=f"x{len(ms)}{tag}",
+                                    fill="#FFFF88", font=("Consolas", 8, "bold"))
+
     def _draw_ordnance(self):
+        # Attack craft orders: dashed line from each squadron to its target
+        from .ordnance import craft_target_point
+        for o_dict in self.gs.ordnance:
+            if not o_dict.get("craft_target_id"):
+                continue
+            pt = craft_target_point(OrdnanceMarker.from_dict(o_dict), self.gs)
+            if pt is None:
+                continue
+            x1, y1 = self.cm_to_screen(o_dict["x"], o_dict["y"])
+            x2, y2 = self.cm_to_screen(*pt)
+            self.canvas.create_line(x1, y1, x2, y2, fill="#7799BB", dash=(3, 3))
         for o_dict in self.gs.ordnance:
             o = OrdnanceMarker.from_dict(o_dict)
             sx, sy = self.cm_to_screen(o.x, o.y)
@@ -605,7 +954,8 @@ class BoardView:
                 tip_screen = self._rotate_polygon(arrow_pts, heading_rad, sx, sy)
                 self.canvas.create_polygon(tip_screen, fill=fill, outline=outline, width=1)
                 # Strength label
-                self.canvas.create_text(sx, sy, text=f"T{o.strength}",
+                tag = "B" if otype == "torpedo_boarding" else "T"
+                self.canvas.create_text(sx, sy, text=f"{tag}{o.strength}",
                                          fill="white", font=("Consolas", 7, "bold"))
 
             elif otype in ("fighter", "barracuda"):
@@ -647,14 +997,29 @@ class BoardView:
                 self.canvas.create_text(sx, sy, text="M",
                                          fill="white", font=("Consolas", 9, "bold"))
 
-            elif otype == "assault_boat":
+            elif otype in ("assault_boat", "thunderhawk", "gun_cutter", "fighta_bommer"):
+                # Assault boats and multi-role craft: 20mm square with a label
                 hs = self.cm_to_pixels(1.0)
                 pts = self._rotate_polygon(
                     [(-hs, -hs), (hs, -hs), (hs, hs), (-hs, hs)],
                     heading_rad, sx, sy)
-                self.canvas.create_polygon(pts, fill=fill, outline=outline, width=1)
-                self.canvas.create_text(sx, sy, text="AB",
+                self.canvas.create_polygon(pts, fill=fill, outline=outline,
+                                           width=1 if otype == "assault_boat" else 2)
+                label = {"assault_boat": "AB", "thunderhawk": "TH",
+                         "gun_cutter": "GC", "fighta_bommer": "FB"}[otype]
+                self.canvas.create_text(sx, sy, text=label,
                                          fill="white", font=("Consolas", 7, "bold"))
+
+            elif otype == "mine_field":
+                # Single mine: 20mm square marker (2cm side), dashed orange
+                hs = self.cm_to_pixels(1.0)
+                pts = self._rotate_polygon(
+                    [(-hs, -hs), (hs, -hs), (hs, hs), (-hs, hs)],
+                    0, sx, sy)
+                self.canvas.create_polygon(pts, fill="#331100", outline="#FF8800",
+                                            width=2, dash=(3, 2))
+                self.canvas.create_text(sx, sy, text="M",
+                                         fill="#FF8800", font=("Consolas", 8, "bold"))
 
             else:
                 hs = self.cm_to_pixels(0.8)
@@ -759,8 +1124,7 @@ class BoardView:
                                  fill=color, font=("Consolas", 7))
 
     def _draw_ships(self):
-        for s_dict in self.gs.ships:
-            s = Ship.from_dict(s_dict)
+        for s in self.gs.get_ships():
             # Don't draw disengaged or fully destroyed ships
             if s.is_disengaged or s.status == "disengaged":
                 continue
@@ -855,7 +1219,6 @@ class BoardView:
         range_px = self.cm_to_pixels(max_range)
 
         # Draw arc separator lines extended to max range
-        arc_colors = {"front": "#FFFF44", "left": "#44FF44", "right": "#44FF44", "rear": "#FF4444"}
         for angle_offset in [45, 135, 225, 315]:
             a = heading_rad + math.radians(angle_offset)
             x2 = sx + range_px * math.cos(a)
@@ -942,70 +1305,69 @@ class BoardView:
                                              fill="#888888", font=("Consolas", 7))
 
     def _show_ship_info(self, s: Ship):
-        self.info_text.config(state=tk.NORMAL)
-        self.info_text.delete("1.0", tk.END)
-
         lines = []
         lines.append(f"=== {s.name} ===")
         lines.append(f"Class: {s.ship_class}")
         lines.append(f"Type: {s.ship_type.upper()}")
         lines.append(f"Faction: {s.faction}")
-        lines.append(f"")
+        lines.append("")
         lines.append(f"HP: {s.hits_remaining}/{s.hits_max}" +
                      (" [CRIPPLED]" if s.is_crippled else "") +
                      (" [DESTROYED]" if s.is_destroyed else ""))
 
-        # Calculate actual shields (reduced by touching blast markers)
-        blast_touching = 0
-        for bm_dict in self.gs.blast_markers:
-            bm = BlastMarker.from_dict(bm_dict)
-            dist = math.sqrt((bm.x - s.x)**2 + (bm.y - s.y)**2)
-            if dist <= s.base_radius + 2.0:
-                blast_touching += 1
-        actual_shields = max(0, s.effective_shields - blast_touching)
-        lines.append(f"Shields: {actual_shields}/{s.shields_max}"
+        blast_markers = self.gs.get_blast_markers()
+        blast_touching = count_blast_markers_touching(s, blast_markers)
+        collapsed = any(c.get("crit_type") == "shields_collapse"
+                        for c in s.critical_damage)
+        lines.append(f"Shields: {current_shields(s, blast_markers)}/{s.shields_max}"
+                     + (" (SHIELDS COLLAPSED)" if collapsed else "")
                      + (f" ({blast_touching} blast markers)" if blast_touching > 0 else ""))
         lines.append(f"Speed: {s.effective_speed}cm")
         lines.append(f"Turn: {s.turn_angle}°")
-        lines.append(f"Armor: {s.armor_prow} prow / {s.armor_side} side")
+        lines.append(f"Armor: {s.armor_prow} prow / {s.armor_side} "
+                     + (f"abeam / {s.armor_rear} rear" if s.armor_rear else "side"))
         lines.append(f"Turrets: {s.effective_turrets}")
         lines.append(f"Leadership: {s.leadership}")
         lines.append(f"Position: ({s.x:.1f}, {s.y:.1f})")
         lines.append(f"Heading: {s.heading:.0f}°")
-        lines.append(f"")
+        lines.append("")
 
         if s.special_order != "none":
             lines.append(f"Order: {s.special_order}")
         if s.is_flagship:
             lines.append(f"FLAGSHIP ({s.admiral_type})")
             lines.append(f"Re-rolls: {s.rerolls_remaining}")
-        lines.append(f"")
+        lines.append("")
 
         # Weapons
         lines.append("--- WEAPONS ---")
         for w in s.weapons:
             arcs = "/".join(w.get("arcs", []))
             wtype = w.get("weapon_type", "?")
+            # Random values show as dice; Heavy Gunz show their within-15cm value
+            val = w.get("strength_dice") or w["strength"]
+            if w.get("strength_close") is not None:
+                val = f"{val}({w['strength_close']})"
             if wtype == "battery":
-                lines.append(f"  {w['name']}: FP {w['strength']} {w['range_cm']}cm [{arcs}]")
+                lines.append(f"  {w['name']}: FP {val} {w['range_cm']}cm [{arcs}]")
             elif wtype == "lance":
-                lines.append(f"  {w['name']}: Str {w['strength']} {w['range_cm']}cm [{arcs}]")
+                lines.append(f"  {w['name']}: Str {val} {w['range_cm']}cm [{arcs}]")
             elif wtype == "nova_cannon":
                 lines.append(f"  {w['name']}: Nova 30-150cm [{arcs}]")
             elif wtype == "launch_bay":
                 types = "/".join(w.get("craft_types", []))
                 lines.append(f"  {w['name']}: {w['strength']} sqn ({types}) [{arcs}]")
             elif wtype == "torpedo":
-                lines.append(f"  {w['name']}: Str {w['strength']} {w.get('torpedo_speed', 30)}cm [{arcs}]")
-            elif wtype == "gravitic_launcher":
-                lines.append(f"  {w['name']}: Str {w['strength']} {w['range_cm']}cm [{arcs}]")
-        lines.append(f"")
+                lines.append(f"  {w['name']}: Str {val} {w.get('torpedo_speed', w.get('range_cm', 30))}cm [{arcs}]")
+        lines.append("")
 
         # Ordnance status
         lines.append("--- ORDNANCE ---")
         lines.append(f"  Torps/Missiles: {'LOADED' if s.ordnance_loaded_torps else 'EMPTY'}")
         lines.append(f"  Attack Craft: {'LOADED' if s.ordnance_loaded_craft else 'EMPTY'}")
-        lines.append(f"")
+        if any(w.get("weapon_type") == "mine_launcher" for w in s.weapons):
+            lines.append(f"  Mines: {'LOADED' if s.ordnance_loaded_mines else 'EMPTY'}")
+        lines.append("")
 
         # Critical damage (grouped with effect descriptions)
         if s.critical_damage:
@@ -1057,7 +1419,7 @@ class BoardView:
                     line += f" → {effect}"
                 lines.append(line)
 
-            lines.append(f"")
+            lines.append("")
 
         # Special rules
         if s.special_rules:
@@ -1065,10 +1427,19 @@ class BoardView:
             for sr in s.special_rules:
                 lines.append(f"  {sr}")
 
-        self.info_text.insert("1.0", "\n".join(lines))
+        text = "\n".join(lines)
+        # Skip the widget rewrite when nothing changed — avoids flicker/scroll
+        # reset when redraw() fires repeatedly (e.g. during a ship drag).
+        if self._info_cache == (s.id, text):
+            return
+        self._info_cache = (s.id, text)
+        self.info_text.config(state=tk.NORMAL)
+        self.info_text.delete("1.0", tk.END)
+        self.info_text.insert("1.0", text)
         self.info_text.config(state=tk.DISABLED)
 
     def _clear_info(self):
+        self._info_cache = None
         self.info_text.config(state=tk.NORMAL)
         self.info_text.delete("1.0", tk.END)
         self.info_text.insert("1.0", "Click a ship to inspect")
@@ -1079,15 +1450,13 @@ class BoardView:
         for p in [1, 2]:
             pname = self.gs.player1_name if p == 1 else self.gs.player2_name
             text += f"\n=== {pname} ===\n"
-            for s_dict in self.gs.ships:
-                if s_dict["player"] == p:
-                    s = Ship.from_dict(s_dict)
-                    status = ""
-                    if s.is_destroyed:
-                        status = " [DESTROYED]"
-                    elif s.is_crippled:
-                        status = " [CRIPPLED]"
-                    text += f"  {s.name} ({s.ship_class}) - HP {s.hits_remaining}/{s.hits_max}{status}\n"
+            for s in self.gs.player_ships(p):
+                status = ""
+                if s.is_destroyed:
+                    status = " [DESTROYED]"
+                elif s.is_crippled:
+                    status = " [CRIPPLED]"
+                text += f"  {s.name} ({s.ship_class}) - HP {s.hits_remaining}/{s.hits_max}{status}\n"
         messagebox.showinfo("Fleet Summary", text)
 
     def _show_help(self):
@@ -1097,11 +1466,19 @@ class BoardView:
             "D  -  Distance (ship-to-ship/point)\n"
             "A  -  Arc View (click ship to show fire arcs)\n"
             "C  -  Clear all ruler lines\n"
-            "Esc - Clear active tool\n\n"
+            "Esc - Cancel drag / clear active tool\n\n"
+            "=== MOVEMENT SHORTCUTS ===\n\n"
+            "M  -  Min-move selected ship straight forward\n"
+            "      (half speed, or exact AAF distance)\n"
+            "      Click a ship first, then press M\n"
+            "Space    - Min-move ALL unmoved ships (active player)\n"
+            "Backspace - Undo ALL movement this turn\n"
+            "           (restores every ship to its phase-start position)\n\n"
             "=== MOUSE ===\n\n"
-            "Left click  - Select ship / use tool\n"
-            "Right click - Context menu (arcs, info, measure)\n"
-            "Drag        - Live ruler preview\n\n"
+            "Left click        - Select ship / use tool\n"
+            "Left drag (ship)  - Drag-and-drop movement preview\n"
+            "Scroll (in dialog)- Turn ship heading 5° per tick\n"
+            "Right click       - Context menu (arcs, info, measure)\n\n"
             "=== GAME FLOW ===\n\n"
             "1. MOVEMENT: Issue orders, then move each ship\n"
             "2. SHOOTING: Fire weapons at targets\n"
@@ -1115,19 +1492,30 @@ class BoardView:
         messagebox.showinfo("Help - BFG:XR Simulator", help_text)
 
     def _save_game(self):
-        self.gs.save()
-        messagebox.showinfo("Saved", f"Game saved to saves/{self.gs.game_name}/")
+        if self.save_game_fn:
+            self.save_game_fn()
+            return
+        from tkinter import filedialog
+        d = filedialog.askdirectory(title="Choose save folder")
+        if d:
+            self.gs.save(d)
+            messagebox.showinfo("Saved", f"Game saved to {d}")
 
     def _load_game(self):
-        dir_name = simpledialog.askstring("Load Game", "Enter save directory name:")
-        if dir_name:
+        if self.load_game_fn:
+            self.load_game_fn()
+            return
+        from tkinter import filedialog
+        d = filedialog.askdirectory(title="Select save folder to load")
+        if d:
             try:
-                path = os.path.join("saves", dir_name)
-                self.gs = GameState.load(path)
+                self.gs.restore_from(GameState.load(d))
+                from .optional_rules import set_blast_rules
+                set_blast_rules(self.gs.blast_marker_rules)
                 self.redraw()
-                messagebox.showinfo("Loaded", f"Game loaded from {path}")
+                messagebox.showinfo("Loaded", f"Game loaded from {d}")
             except Exception as e:
-                messagebox.showerror("Error", str(e))
+                messagebox.showerror("Load Error", str(e))
 
     @staticmethod
     def _darken(hex_color, factor):

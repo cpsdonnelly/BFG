@@ -1,9 +1,11 @@
 """BFG:XR Terrain Effects - Asteroid fields, dust clouds, warp rifts, tabletop effects"""
 import math
-from typing import List, Dict, Optional, Tuple
-from .models import Ship, Phenomenon, BlastMarker, OrdnanceMarker
+import random
+from typing import List, Dict
+from .models import Ship, Phenomenon, BlastMarker
 from .game_state import GameState
 from .dice import DiceRoller
+from .geometry import current_shields
 
 
 def check_ship_terrain_contact(ship: Ship, phenomena: List[Phenomenon]) -> List[Dict]:
@@ -95,16 +97,34 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
     On failure: D6 damage (shields block normally, no blast markers).
     """
     num_dice = 3 if on_aaf else 2
-    ld = ship.leadership
+    from .subplots import leadership as _sp_ld
+    ld = _sp_ld(gs, ship)            # Fleet Experience / Blood Bond
 
-    roll = sum(dice.roll_d6(num_dice,
-        f"{ship.name} asteroid navigation ({num_dice}D6 vs Ld {ld})"))
-    passed = roll <= ld
+    # Shadow Engines: escort squadrons automatically pass to navigate asteroids;
+    # so do Eldar escorts (MMS p.3)
+    if ship.ship_type == "escort" and ("chapter_tactic:shadow_engines" in ship.special_rules
+                                       or "eldar_mms" in ship.special_rules):
+        gs.add_log(f"  {ship.name} navigates the asteroid field (Shadow Engines)")
+        return {"passed": True, "roll": 0, "needed": ld, "damage": 0}
+
+    from .movement import sirens_summon
+    siren = sirens_summon(ship, gs)
+    if siren:
+        # Siren's Summon: a forced Leadership test fails (no re-rolls)
+        gs.add_log(f"  {ship.name} fails asteroid navigation (Siren's Summon)")
+        roll, passed = 0, False
+    else:
+        roll = sum(dice.roll_d6(num_dice,
+            f"{ship.name} asteroid navigation ({num_dice}D6 vs Ld {ld})"))
+        passed = roll <= ld
 
     result = {"passed": passed, "roll": roll, "needed": ld, "damage": 0}
 
     # Escorts can re-roll on failure
-    if not passed and ship.ship_type == "escort":
+    if siren:
+        pass
+    elif not passed and (ship.ship_type == "escort" or "eldar_mms" in ship.special_rules):
+        # escorts may re-roll; so do Eldar capital ships (MMS p.3)
         gs.add_log(f"  {ship.name} failed but escorts may re-roll")
         roll2 = sum(dice.roll_d6(num_dice,
             f"{ship.name} asteroid re-roll ({num_dice}D6 vs Ld {ld})"))
@@ -113,8 +133,25 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
         result["passed"] = passed
         if passed:
             gs.add_log(f"  Re-roll passed ({roll2} vs Ld {ld})")
+    elif not passed:
+        from .movement import fleet_reroll_offered
+        if fleet_reroll_offered(gs, ship, "asteroid navigation", roll, ld):
+            roll2 = sum(dice.roll_d6(num_dice,
+                f"{ship.name} asteroid fleet re-roll ({num_dice}D6 vs Ld {ld})"))
+            passed = roll2 <= ld
+            result["roll"], result["passed"] = roll2, passed
 
     if not passed:
+        # The Leadership test is failed: the ship may brace before the damage
+        # is rolled (s.7)
+        from .combat import offer_brace
+        braced = offer_brace(gs, ship, "asteroid_field", "an asteroid field", 3.5 / 2)
+        fresh = gs.get_ship_by_id(ship.id)
+        if fresh is not None:          # keep a new brace when this copy is saved
+            ship.special_order = fresh.special_order
+            ship.previous_order = fresh.previous_order
+            ship.brace_set_on_turn = fresh.brace_set_on_turn
+            ship.brace_failed_vs = fresh.brace_failed_vs
         # D6 damage, shields block normally, no blast markers from shields
         dmg_roll = dice.roll_d6(1, f"Asteroid damage on {ship.name}")[0]
         result["damage"] = dmg_roll
@@ -123,13 +160,25 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
             f"Takes {dmg_roll} asteroid damage")
 
         # Apply damage (shields absorb but no blast markers placed)
-        shields = ship.effective_shields
+        shields = current_shields(ship, gs.get_blast_markers())
         absorbed = min(dmg_roll, shields)
         hull_dmg = max(0, dmg_roll - absorbed)
+        if hull_dmg > 0 and braced:
+            saves = sum(1 for d in dice.roll_d6(hull_dmg, f"{ship.name} Brace saves (4+)")
+                        if d >= 4)
+            gs.add_log(f"  Brace saves: {saves} of {hull_dmg}")
+            hull_dmg -= saves
         if hull_dmg > 0:
             ship.hits_remaining = max(0, ship.hits_remaining - hull_dmg)
-            gs.update_ship(ship)
             gs.add_log(f"  {absorbed} absorbed by shields, {hull_dmg} hull damage")
+
+        # Speed reduction: ship is forced back 5cm along reverse heading
+        result["speed_reduction"] = 5
+        reverse_rad = math.radians((ship.heading + 180) % 360)
+        ship.x = max(0, min(gs.table_width, ship.x + 5 * math.cos(reverse_rad)))
+        ship.y = max(0, min(gs.table_height, ship.y + 5 * math.sin(reverse_rad)))
+        gs.add_log(f"  {ship.name} pushed back 5cm by asteroid impact")
+        gs.update_ship(ship)
     else:
         gs.add_log(
             f"  {ship.name} navigates asteroids successfully "
@@ -143,10 +192,24 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
     """
     Resolve a ship entering a warp rift.
     3D6 Ld test. Pass: reposition 2D6x10cm away. Fail: lost in warp.
+    Eldar (MMS p.3) test at -2 Ld (Slaanesh), and once lost come home only on a
+    3+ (permanently lost on 1-2).
     """
-    ld = ship.leadership
-    roll = sum(dice.roll_d6(3, f"{ship.name} warp rift navigation (3D6 vs Ld {ld})"))
-    passed = roll <= ld
+    eldar = "eldar_mms" in ship.special_rules
+    from .subplots import leadership as _sp_ld
+    ld = _sp_ld(gs, ship) - (2 if eldar else 0)
+    from .movement import fleet_reroll_offered, sirens_summon
+    siren = sirens_summon(ship, gs)
+    if siren:
+        # Siren's Summon: a forced Leadership test fails
+        gs.add_log(f"  {ship.name} fails warp rift navigation (Siren's Summon)")
+        roll, passed = 0, False
+    else:
+        roll = sum(dice.roll_d6(3, f"{ship.name} warp rift navigation (3D6 vs Ld {ld})"))
+        passed = roll <= ld
+    if not passed and not siren and fleet_reroll_offered(gs, ship, "warp rift navigation", roll, ld):
+        roll = sum(dice.roll_d6(3, f"{ship.name} warp rift fleet re-roll (3D6 vs Ld {ld})"))
+        passed = roll <= ld
 
     result = {"passed": passed, "roll": roll, "needed": ld}
 
@@ -172,6 +235,9 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
         gs.add_log(
             f"  {ship.name} navigates warp rift! "
             f"Repositioned {reposition_dist}cm to ({new_x:.0f}, {new_y:.0f})")
+    elif getattr(gs, "scenario_mode", "") == "navigate_storm":
+        from .navigate_storm import lose_ship
+        lose_ship(gs, ship)
     else:
         # Lost in warp
         ship.status = "disengaged"
@@ -181,7 +247,9 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
             f"  {ship.name} LOST IN THE WARP! "
             f"(rolled {roll} vs Ld {ld})")
         # Post-game: D6: 1=destroyed, 2-6=disengaged
-        result["post_game_note"] = "Roll D6 after game: 1=destroyed permanently, 2-6=temporarily lost"
+        result["post_game_note"] = (
+            "Roll D6 after game: 1-2=lost permanently, 3-6=temporarily lost (Eldar)" if eldar
+            else "Roll D6 after game: 1=destroyed permanently, 2-6=temporarily lost")
 
     return result
 
@@ -194,14 +262,15 @@ def resolve_gas_dust_contact(ship: Ship, dice: DiceRoller,
     shieldless ships take 1 damage on D6=6.
     """
     result = {"speed_penalty": 5, "damage": 0}
+    if "demiurg_commerce" in ship.special_rules or "necron" in ship.special_rules:
+        return {"speed_penalty": 0, "damage": 0}      # Absorber fields / Necrons: immune
+    if "eldar_mms" in ship.special_rules:
+        # Eldar suffer no movement penalties for celestial phenomena (MMS p.3);
+        # the cloud's other effects (as a blast marker) still apply
+        result["speed_penalty"] = 0
 
-    # If ship has no shields at all (permanently disabled, not just depleted)
-    has_shields = ship.shields_max > 0
-    shield_collapsed = any(
-        c.get("crit_type") == "shields_collapse"
-        for c in ship.critical_damage)
-
-    if not has_shields or shield_collapsed:
+    # Shieldless means no shields at all or collapsed, not merely knocked down
+    if ship.effective_shields == 0:
         roll = dice.roll_d6(1, f"{ship.name} dust cloud damage (no shields, 6=1 damage)")[0]
         if roll == 6:
             result["damage"] = 1
@@ -254,25 +323,22 @@ class TabletopEffects:
         logs = ["SOLAR FLARE!"]
 
         # Each ship gets a blast marker
-        for s_dict in gs.ships:
-            s = Ship.from_dict(s_dict)
+        for s in gs.get_ships():
             if s.is_destroyed or s.is_disengaged:
                 continue
+            if "demiurg_commerce" in s.special_rules:
+                continue                # Absorber fields: immune to solar flares
 
             bm = BlastMarker(
                 id=f"flare_{s.id}",
                 x=s.x + s.base_radius * 0.5,
                 y=s.y,
-                source="solar_flare")
+                source="solar_flare",
+                heading=random.uniform(0, 360))
             gs.add_blast_marker(bm)
 
-            # Ships without shields take damage
-            has_shields = s.shields_max > 0
-            shield_collapsed = any(
-                c.get("crit_type") == "shields_collapse"
-                for c in s.critical_damage)
-
-            if not has_shields or shield_collapsed:
+            # Ships without shields (none at all, or collapsed) take damage
+            if s.effective_shields == 0:
                 s.hits_remaining = max(0, s.hits_remaining - 1)
                 # Critical on 4+ instead of 6
                 crit_roll = dice.roll_d6(1, f"Solar flare crit check on {s.name} (4+)")[0]
@@ -303,6 +369,8 @@ class TabletopEffects:
             s = Ship.from_dict(s_dict)
             if s.is_destroyed or s.is_disengaged:
                 continue
+            if "demiurg_commerce" in s.special_rules:
+                continue                # Absorber fields: immune to radiation bursts
             # Temporarily reduce leadership (will need to be restored at end of turn)
             # Store original Ld for restoration
             gs.ships[i]["_original_ld"] = s.leadership
@@ -317,3 +385,51 @@ class TabletopEffects:
             if "_original_ld" in s_dict:
                 gs.ships[i]["leadership"] = s_dict["_original_ld"]
                 del gs.ships[i]["_original_ld"]
+
+
+def resolve_post_move_terrain(gs: GameState, ship_id: str, dice: DiceRoller,
+                              on_aaf: bool = False, log=None) -> None:
+    """Resolve the asteroid / warp rift / dust cloud tests a move flagged
+    (`movement.execute_movement` sets `in_asteroid_field`, `in_warp_rift`,
+    `in_dust_cloud`) and clear the flags. Shared by the human move dialogs and
+    the AI (whose moves used to leave the flags unresolved). A ship reduced to
+    0 by asteroids rolls on the Catastrophic Damage table."""
+    log = log or (lambda msg: None)
+
+    def _clear(flag):
+        u = gs.get_ship_by_id(ship_id)
+        if u:
+            u.special_rules = [r for r in u.special_rules if r != flag]
+            gs.update_ship(u)
+        return u
+
+    updated = gs.get_ship_by_id(ship_id)
+    if not updated or updated.is_disengaged:
+        if updated:
+            for f in ("in_asteroid_field", "in_warp_rift", "in_dust_cloud"):
+                _clear(f)
+        return
+    if "in_asteroid_field" in (updated.special_rules or []):
+        nav = resolve_asteroid_navigation(updated, dice, gs, on_aaf)
+        if not nav["passed"]:
+            log(f"  {updated.name}: asteroid damage {nav['damage']} HP!")
+            sh = gs.get_ship_by_id(ship_id)
+            if sh and sh.hits_remaining <= 0 and sh.status == "active":
+                from .combat import resolve_catastrophic
+                log(f"  {sh.name}: {resolve_catastrophic(sh, dice, gs)}")
+        updated = _clear("in_asteroid_field")
+    if updated and updated.status == "active" and \
+            "in_warp_rift" in (updated.special_rules or []):
+        nav = resolve_warp_rift_navigation(updated, dice, gs)
+        if not nav["passed"]:
+            log(f"  {updated.name}: LOST IN THE WARP!")
+        else:
+            pos = nav.get("new_position", (0, 0))
+            log(f"  {updated.name}: emerged at ({pos[0]:.0f}, {pos[1]:.0f})")
+        updated = _clear("in_warp_rift")
+    if updated and "in_dust_cloud" in (updated.special_rules or []):
+        if not updated.is_disengaged:
+            resolve_gas_dust_contact(updated, dice, gs)
+        _clear("in_dust_cloud")
+    for f in ("in_asteroid_field", "in_warp_rift"):
+        _clear(f)

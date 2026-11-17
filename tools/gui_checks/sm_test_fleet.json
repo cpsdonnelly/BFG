@@ -1,0 +1,363 @@
+{
+ "fleet_name": "SM",
+ "faction": "space_marines",
+ "ships": [
+  {
+   "id": "sm0",
+   "name": "Hammer of Dorn",
+   "ship_class": "Space Marine Battle Barge",
+   "faction": "space_marines",
+   "player": 2,
+   "ship_type": "battleship",
+   "base_size": "large",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 20,
+   "turn_angle": 45,
+   "shields_max": 4,
+   "armor_prow": "6+",
+   "armor_side": "6+",
+   "armor_rear": "",
+   "turrets": 4,
+   "hits_max": 12,
+   "leadership": 10,
+   "leadership_table": "",
+   "weapons": [
+    {
+     "name": "Port Macrobatteries",
+     "weapon_type": "battery",
+     "range_cm": 45,
+     "strength": 12,
+     "arcs": [
+      "left"
+     ]
+    },
+    {
+     "name": "Starboard Macrobatteries",
+     "weapon_type": "battery",
+     "range_cm": 45,
+     "strength": 12,
+     "arcs": [
+      "right"
+     ]
+    },
+    {
+     "name": "Dorsal Bombardment Cannon",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 8,
+     "arcs": [
+      "left",
+      "front",
+      "right"
+     ],
+     "hits_on": 4,
+     "crit_on": 4
+    },
+    {
+     "name": "Launch Bays",
+     "weapon_type": "launch_bay",
+     "range_cm": 30,
+     "strength": 3,
+     "arcs": [],
+     "craft_types": [
+      "thunderhawk"
+     ],
+     "craft_speeds": {
+      "thunderhawk": 20
+     },
+     "craft_speed": 20
+    },
+    {
+     "name": "Prow Torps",
+     "weapon_type": "torpedo",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "front"
+     ],
+     "torpedo_type": "standard",
+     "torpedo_speed": 30,
+     "boarding_torpedoes": true
+    }
+   ],
+   "special_rules": [
+    "space_marine_crew",
+    "teleport_assault",
+    "ponderous",
+    "fleet_commander",
+    "chapter_tactic:siege_cannons"
+   ],
+   "upgrades": [
+    "Master of the Fleet (Ld 10)",
+    "Master of the Fleet: 2 re-rolls",
+    "Chapter tactic: Siege Cannons"
+   ],
+   "points_value": 540,
+   "is_flagship": true,
+   "admiral_type": "",
+   "rerolls_remaining": 2,
+   "spawn_x": 60,
+   "spawn_y": 100,
+   "spawn_heading": 270
+  },
+  {
+   "id": "sm1",
+   "name": "Spear",
+   "ship_class": "Strike Cruiser",
+   "faction": "space_marines",
+   "player": 2,
+   "ship_type": "cruiser",
+   "base_size": "small",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 25,
+   "turn_angle": 90,
+   "shields_max": 1,
+   "armor_prow": "6+",
+   "armor_side": "6+",
+   "armor_rear": "",
+   "turrets": 2,
+   "hits_max": 6,
+   "leadership": 0,
+   "leadership_table": "Astartes",
+   "weapons": [
+    {
+     "name": "Port Macrobatteries",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "left"
+     ]
+    },
+    {
+     "name": "Starboard Macrobatteries",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "right"
+     ]
+    },
+    {
+     "name": "Prow Bombardment Cannon",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 3,
+     "arcs": [
+      "left",
+      "front",
+      "right"
+     ],
+     "hits_on": 4,
+     "crit_on": 4
+    },
+    {
+     "name": "Prow Bombardment Cannon (refit)",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 5,
+     "arcs": [
+      "front"
+     ],
+     "hits_on": 4,
+     "crit_on": 4
+    }
+   ],
+   "special_rules": [
+    "space_marine_crew",
+    "teleport_assault"
+   ],
+   "upgrades": [
+    "Variant: prow Bombardment Cannon"
+   ],
+   "points_value": 145,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 40,
+   "spawn_y": 100,
+   "spawn_heading": 270
+  },
+  {
+   "id": "sm2",
+   "name": "Shield",
+   "ship_class": "Strike Cruiser",
+   "faction": "space_marines",
+   "player": 2,
+   "ship_type": "cruiser",
+   "base_size": "small",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 25,
+   "turn_angle": 90,
+   "shields_max": 1,
+   "armor_prow": "6+",
+   "armor_side": "6+",
+   "armor_rear": "",
+   "turrets": 2,
+   "hits_max": 6,
+   "leadership": 0,
+   "leadership_table": "Astartes",
+   "weapons": [
+    {
+     "name": "Port Macrobatteries",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "left"
+     ]
+    },
+    {
+     "name": "Starboard Macrobatteries",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "right"
+     ]
+    },
+    {
+     "name": "Prow Bombardment Cannon",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 3,
+     "arcs": [
+      "left",
+      "front",
+      "right"
+     ],
+     "hits_on": 4,
+     "crit_on": 4
+    },
+    {
+     "name": "Launch Bays",
+     "weapon_type": "launch_bay",
+     "range_cm": 30,
+     "strength": 2,
+     "arcs": [],
+     "craft_types": [
+      "thunderhawk"
+     ],
+     "craft_speeds": {
+      "thunderhawk": 20
+     },
+     "craft_speed": 20
+    }
+   ],
+   "special_rules": [
+    "space_marine_crew",
+    "teleport_assault"
+   ],
+   "upgrades": [],
+   "points_value": 145,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 80,
+   "spawn_y": 100,
+   "spawn_heading": 270
+  },
+  {
+   "id": "sm3",
+   "name": "Glad 1",
+   "ship_class": "Gladius Frigate",
+   "faction": "space_marines",
+   "player": 2,
+   "ship_type": "escort",
+   "base_size": "small",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 30,
+   "turn_angle": 90,
+   "shields_max": 1,
+   "armor_prow": "5+",
+   "armor_side": "5+",
+   "armor_rear": "",
+   "turrets": 2,
+   "hits_max": 1,
+   "leadership": 0,
+   "leadership_table": "Astartes",
+   "weapons": [
+    {
+     "name": "Macrobatteries",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "left",
+      "front",
+      "right"
+     ]
+    }
+   ],
+   "special_rules": [
+    "space_marine_crew",
+    "teleport_assault"
+   ],
+   "upgrades": [],
+   "points_value": 40,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 25,
+   "spawn_y": 100,
+   "spawn_heading": 270,
+   "squadron_id": "g"
+  },
+  {
+   "id": "sm4",
+   "name": "Glad 2",
+   "ship_class": "Gladius Frigate",
+   "faction": "space_marines",
+   "player": 2,
+   "ship_type": "escort",
+   "base_size": "small",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 30,
+   "turn_angle": 90,
+   "shields_max": 1,
+   "armor_prow": "5+",
+   "armor_side": "5+",
+   "armor_rear": "",
+   "turrets": 2,
+   "hits_max": 1,
+   "leadership": 0,
+   "leadership_table": "Astartes",
+   "weapons": [
+    {
+     "name": "Macrobatteries",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "left",
+      "front",
+      "right"
+     ]
+    }
+   ],
+   "special_rules": [
+    "space_marine_crew",
+    "teleport_assault"
+   ],
+   "upgrades": [],
+   "points_value": 40,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 28,
+   "spawn_y": 100,
+   "spawn_heading": 270,
+   "squadron_id": "g"
+  }
+ ]
+}

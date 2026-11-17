@@ -1,0 +1,122 @@
+"""BFG:XR Movement UI — Drag-and-Drop path computation.
+
+This module provides compute_drag_path, which takes a ship's current state
+and a cursor position and returns the best legal movement path the ship can
+take in that direction. It is used by board_view.py during drag-and-drop to
+preview and commit ship movement.
+"""
+
+import math
+from typing import List, Optional, Tuple
+from .models import Ship, BlastMarker, SpecialOrder
+from .movement import (MoveCommand, MovementResult, validate_movement,
+                       movement_budget, MIN_TURN_DISTANCE)
+
+
+def compute_drag_path(ship: Ship,
+                      target_x: float,
+                      target_y: float,
+                      special_order: str,
+                      aaf_bonus: int = 0,
+                      blast_markers: List[BlastMarker] = None,
+                      table_width: float = 120,
+                      table_height: float = 120) -> Tuple[List[MoveCommand], Optional[MovementResult]]:
+    """
+    Compute the best legal movement path from the ship toward (target_x, target_y).
+
+    Strategy:
+      1. Calculate bearing from ship to target and relative angle vs current heading.
+      2. If the target is roughly ahead (within turn_angle), move straight toward it.
+      3. Otherwise: move the minimum pre-turn distance forward, apply the turn
+         (capped at ship's max turn_angle), then move remaining distance forward.
+      4. Total distance is clamped to the ship's maximum speed.
+      5. The resulting command list is run through validate_movement — the caller
+         receives the result so it can colour the preview green or red.
+
+    Ships on AAF or Lock On cannot turn, so only straight movement is generated.
+    Burn Retros caps at half speed.
+    Escorts have no minimum pre-turn distance requirement.
+
+    Returns (commands, MovementResult). Returns ([], None) if target is trivially
+    close or the ship type cannot be determined.
+    """
+    blast_markers = blast_markers or []
+
+    dx = target_x - ship.x
+    dy = target_y - ship.y
+    dist_to_target = math.sqrt(dx * dx + dy * dy)
+
+    if dist_to_target < 0.5:
+        return [], None
+
+    # If the cursor is very close (short drag), treat as "minimum move" intent:
+    # clamp to min_speed rather than returning nothing.
+    bearing = math.degrees(math.atan2(dy, dx)) % 360
+    relative = (bearing - ship.heading + 360) % 360
+
+    # Determine turn direction and capped angle
+    if relative <= 180:
+        turn_dir = "turn_left"
+        turn_deg = min(relative, float(ship.turn_angle))
+    else:
+        turn_dir = "turn_right"
+        turn_deg = min(360.0 - relative, float(ship.turn_angle))
+
+    needs_turn = turn_deg > 1.0
+
+    # Speed limits for this order — use remaining budget, not full budget
+    _, remaining_spd = movement_budget(ship, special_order, aaf_bonus, blast_markers)
+    already_moved = ship.distance_moved_this_turn
+    base_min = ship.effective_speed / 2
+    if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
+        _min_spd_hint = remaining_spd  # must use all remaining
+    elif special_order == SpecialOrder.BURN_RETROS.value:
+        _min_spd_hint = 0.0
+    else:
+        _min_spd_hint = max(0.0, base_min - already_moved)
+    min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
+
+    # No turns allowed on AAF or Lock On
+    no_turns = special_order in (
+        SpecialOrder.ALL_AHEAD_FULL.value,
+        SpecialOrder.LOCK_ON.value,
+    )
+
+    # Clamp total movement to remaining budget.
+    # Short drag (cursor very close): snap to minimum legal move rather than 0.
+    move_dist = min(dist_to_target, remaining_spd)
+    if move_dist < _min_spd_hint:
+        move_dist = _min_spd_hint
+
+    commands: List[MoveCommand] = []
+
+    if not needs_turn or no_turns:
+        # Straight ahead — AAF must use exact remaining speed
+        if special_order == SpecialOrder.ALL_AHEAD_FULL.value:
+            commands.append(MoveCommand("forward", remaining_spd))
+        else:
+            commands.append(MoveCommand("forward", move_dist))
+    else:
+        # Pre-turn straight segment (escorts: 0, others: min_turn_dist)
+        # Forward movement earlier this phase counts (since its last turn)
+        carried = (ship.distance_since_last_turn if ship.turns_used_this_turn
+                   else already_moved)
+        pre_turn = max(0.0, float(min_turn_dist) - carried)
+        # Don't pre-turn more than ~40% of total distance so there's room to move after
+        pre_turn = min(pre_turn, move_dist * 0.5)
+        post_turn = max(0.0, move_dist - pre_turn)
+
+        if pre_turn > 0.1:
+            commands.append(MoveCommand("forward", pre_turn))
+        commands.append(MoveCommand(turn_dir, turn_deg))
+        if post_turn > 0.1:
+            commands.append(MoveCommand("forward", post_turn))
+
+    result = validate_movement(
+        ship, commands, special_order, aaf_bonus,
+        blast_markers, table_width, table_height,
+        turns_already_used=ship.turns_used_this_turn,
+        distance_already_moved=ship.distance_moved_this_turn,
+        blast_already_crossed=ship.crossed_blast_this_turn)
+
+    return commands, result

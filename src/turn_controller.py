@@ -49,6 +49,12 @@ class ActionRecord:
         return ar
 
 
+
+def _standby(gs, ship) -> bool:
+    from .scenarios import on_standby
+    return on_standby(gs, ship)
+
+
 class TurnController:
     """
     Manages game flow: phases, turn order, snapshots, and action recording.
@@ -60,6 +66,16 @@ class TurnController:
                  save_dir: str = None):
         self.gs = game_state
         self.dice = dice
+        from .optional_rules import set_blast_rules, set_ship_source
+        set_blast_rules(getattr(game_state, "blast_marker_rules", "standard"))
+        from .eldar import set_sunward_edge
+        set_sunward_edge(getattr(game_state, "sunward_edge", "north"))
+        from .optional_rules import set_suppression_rules
+        set_suppression_rules(getattr(game_state, "rule_turret_suppression_remastered", False))
+        from .optional_rules import set_sunward
+        set_sunward(getattr(game_state, "rule_fighting_sunward", False),
+                    getattr(game_state, "sunward_edge", "north"))
+        set_ship_source(game_state.get_ships)
         self.save_dir = save_dir or os.path.join("saves", game_state.game_name)
         self.snapshots_dir = os.path.join(self.save_dir, "snapshots")
         os.makedirs(self.snapshots_dir, exist_ok=True)
@@ -106,9 +122,11 @@ class TurnController:
         self.gs.ships = snapshot["ships"]
         self.gs.ordnance = snapshot["ordnance"]
         self.gs.blast_markers = snapshot["blast_markers"]
+        self.gs.phenomena = snapshot.get("phenomena", [])
         self.gs.turn_number = snapshot["turn"]
         self.gs.current_phase = snapshot["phase"]
         self.gs.active_player = snapshot["active_player"]
+        self.gs.clear_transient()
         return True
 
     def list_snapshots(self) -> List[str]:
@@ -126,6 +144,14 @@ class TurnController:
             "blast_markers": copy.deepcopy(self.gs.blast_markers),
         }
 
+    def reset_after_load(self):
+        """Clear per-phase tracking after the game state was replaced by a load,
+        and re-anchor undo so it can't roll back into the pre-load game."""
+        self.ships_moved.clear()
+        self.ships_fired.clear()
+        self.command_check_failed = False
+        self._save_phase_start()
+
     def undo_to_phase_start(self) -> bool:
         """Undo all changes in current phase, restoring to phase start."""
         if self._phase_start_snapshot is None:
@@ -133,6 +159,7 @@ class TurnController:
         self.gs.ships = self._phase_start_snapshot["ships"]
         self.gs.ordnance = self._phase_start_snapshot["ordnance"]
         self.gs.blast_markers = self._phase_start_snapshot["blast_markers"]
+        self.gs.clear_transient()
         self.ships_moved.clear()
         self.ships_fired.clear()
         self.command_check_failed = False
@@ -154,6 +181,20 @@ class TurnController:
                         self.gs.ships[i]["heading"] = old_ship_data["heading"]
                         self.gs.ships[i]["special_order"] = old_ship_data["special_order"]
                         self.gs.ships[i]["moved_this_turn"] = False
+                        self.gs.ships[i]["distance_moved_this_turn"] = 0.0
+                        self.gs.ships[i]["turns_used_this_turn"] = 0
+                        self.gs.ships[i]["net_rotation_this_turn"] = 0.0
+                        self.gs.ships[i]["crossed_blast_this_turn"] = False
+                        self.gs.ships[i]["distance_since_last_turn"] = 0.0
+                        # Demiurg absorber fields: blast markers collected on the
+                        # undone move go back on the table
+                        back = self.gs.__dict__.get("_bm_collected", {}).pop(
+                            (self.gs.turn_number, ship_id), [])
+                        if back:
+                            have = {b["id"] for b in self.gs.blast_markers}
+                            self.gs.blast_markers += [b for b in back if b["id"] not in have]
+                            self.gs.ships[i]["collected_blast_markers"] = old_ship_data.get(
+                                "collected_blast_markers", 0)
                         if ship_id in self.ships_moved:
                             self.ships_moved.remove(ship_id)
                         return True
@@ -201,23 +242,87 @@ class TurnController:
         """Initialize the game, save first snapshot."""
         self.gs.turn_number = 1
         self.gs.current_phase = "movement"
-        self.gs.active_player = 1  # determined by scenario or coin toss
+        # s.2: the roll-off winner's choice (GamePanel._first_turn_roll_off)
+        self.gs.active_player = getattr(self.gs, "first_player", 1) or 1
         self.save_snapshot("t1_start")
         self.record_action("game_start", description="Game begins")
+
+    def _necron_awakening(self, player: int) -> None:
+        """Each Necron capital ship conserving power whose Ld, with the modifiers
+        of its command checks (Enemy Contacts), meets the alert level's
+        threshold awakens for the rest of the game (Xenos p.39)."""
+        from .necrons import AWAKEN_LD, starting_alert
+        mine = [s for s in self.gs.get_ships() if s.player == player
+                and "necron" in s.special_rules and s.ship_type != "escort"
+                and not s.is_destroyed and not s.is_disengaged]
+        if not mine:
+            return
+        al = dict(self.gs.necron_alert or {})
+        key = str(player)
+        if key not in al:
+            def worth(p):
+                return sum(s.points_value or 0 for s in self.gs.get_ships()
+                           if s.player == p and not s.is_destroyed)
+            al[key] = starting_alert(worth(3 - player), worth(player))
+            self.gs.necron_alert = al
+        need = AWAKEN_LD[al[key]]
+        contacts = any(e.player != player and e.special_order not in ("none", "")
+                       and not e.is_destroyed for e in self.gs.get_ships())
+        for s in mine:
+            if "necron_awake" in s.special_rules:
+                continue
+            if s.leadership + (1 if contacts else 0) >= need:
+                s.special_rules = list(s.special_rules) + ["necron_awake"]
+                self.gs.update_ship(s)
+                self.gs.add_log(f"{s.name} awakens (alert level {al[key]}: Ld {need}+)")
 
     def begin_phase(self, phase: str):
         """Start a new phase."""
         self.gs.current_phase = phase
         self._save_phase_start()
+        # A ship's turrets defend against attack craft or against torpedoes and
+        # mines "in the same phase" (s.28): the split lasts one phase, every ship
+        for i in range(len(self.gs.ships)):
+            self.gs.ships[i]["turrets_used_vs"] = ""
 
         if phase == "movement":
             self.ships_moved.clear()
             self.command_check_failed = False
             # Remove previous special orders (except Brace)
             self._clear_previous_orders()
+            # Abaddon's Supreme Leadership: one re-roll a turn, never saved
+            for sd in self.gs.ships:
+                if sd["player"] == self.gs.active_player and "abaddon" in sd.get(
+                        "special_rules", []) and sd.get("status") == "active":
+                    sd["rerolls_remaining"] = 1
+            # Necron Deadly Awakening (Xenos p.39): at the start of each Necron turn
+            self._necron_awakening(self.gs.active_player)
+            # Booklet scenarios' start-of-turn effects (The Raiders' alert)
+            from .scenarios import turn_start as _scenario_turn_start
+            _scenario_turn_start(self.gs, self.dice)
+            # s.40: solar flares and radiation bursts at the start of each turn
+            from .celestial import start_of_turn as _celestial_start
+            _celestial_start(self.gs, self.dice)
+            for s in self.gs.get_ships():
+                if (s.player == self.gs.active_player and s.must_flee
+                        and not s.is_destroyed and not s.is_disengaged):
+                    self.gs.add_log(f"{s.name} must move as fast as possible towards the "
+                                    f"nearest table edge (failed a forced disengage test)")
 
         elif phase == "shooting":
             self.ships_fired.clear()
+            # Planetary Assault: ships may assault the planet instead of firing
+            from .planet_scenarios import shooting_start as _assault_start
+            _assault_start(self.gs, self.gs.active_player,
+                           getattr(self.gs, "assault_hook", None))
+            # Macharia's End: a fully charged Armageddon Gun must fire
+            from .campaign_scenarios import shooting_start as _overcharge_start
+            _overcharge_start(self.gs, self.gs.active_player)
+            # Craftworld Assault: the fortresses and the Spear of Light
+            from .craftworld import shooting_start as _cw_shooting
+            from .scenarios import _dice_for
+            _cw_shooting(self.gs, self.gs.active_player,
+                         _dice_for(self.gs, self.gs.active_player, self.dice))
 
         label = f"t{self.gs.turn_number}_{phase}"
         self.save_snapshot(label)
@@ -227,6 +332,49 @@ class TurnController:
     def end_phase(self):
         """End current phase and advance to next."""
         current = self.gs.current_phase
+        if current == "movement":
+            # Remember how far each of the moving player's ships went: a ship
+            # that moved under 5cm counts as Defenses when shot at
+            for s_dict in self.gs.ships:
+                if s_dict["player"] == self.gs.active_player:
+                    s_dict["last_move_cm"] = s_dict.get("distance_moved_this_turn", 0.0)
+            # Escort squadrons that lost a ship off the table keep trying to leave
+            from .disengage import forced_disengage_tests
+            forced_disengage_tests(self.gs, self.dice, self.gs.active_player)
+            # Navigate the Storm: materialising ships return to normal
+            from .navigate_storm import end_of_movement as _storm_moved
+            _storm_moved(self.gs, self.gs.active_player, self.dice)
+            # Convoy (narrative): contact markers the defender came near
+            from .convoy_narrative import end_of_defender_movement as _cn_moved
+            _cn_moved(self.gs, self.gs.active_player, self.dice)
+        if current == "end":
+            # Booklet scenarios scoring at the end of a player's turn (Domination)
+            from .scenarios import score_end_of_turn
+            score_end_of_turn(self.gs, self.gs.active_player)
+            # Escalating Engagement: the player places its next contact marker
+            from .scenarios import _dice_for
+            from .escalating import end_of_turn as _ee_end
+            _ee_end(self.gs, self.gs.active_player,
+                    _dice_for(self.gs, self.gs.active_player, self.dice))
+            # Navigate the Storm: ships lost in the warp try to come back, and
+            # a returned ship's halved armament ends with the turn
+            from .navigate_storm import end_phase as _storm_end, clear_half_armament
+            _storm_end(self.gs, self.gs.active_player,
+                       _dice_for(self.gs, self.gs.active_player, self.dice))
+            clear_half_armament(self.gs, self.gs.active_player)
+            # Mark of Chaos Undivided lasts until the end of the turn
+            from .chaos_undivided import end_turn as _undivided_end
+            _undivided_end(self.gs, self.gs.active_player)
+            from .celestial import end_of_turn as _celestial_end
+            _celestial_end(self.gs, self.gs.active_player)
+            # Craftworld Assault: damage to the fortresses / the Spear; undocking
+            from .craftworld import end_phase as _cw_end
+            _cw_end(self.gs, self.gs.active_player,
+                    _dice_for(self.gs, self.gs.active_player, self.dice))
+        if current == "ordnance":
+            # Torpedo bomber salvos have limited fuel (s.21)
+            from .ordnance import remove_spent_salvos
+            remove_spent_salvos(self.gs)
         label = f"t{self.gs.turn_number}_{current}_end"
         self.save_snapshot(label)
         self.save_actions_log()
@@ -264,14 +412,33 @@ class TurnController:
             if s_dict["player"] == self.gs.active_player:
                 if s_dict.get("special_order") != SpecialOrder.BRACE_FOR_IMPACT.value:
                     self.gs.ships[i]["special_order"] = SpecialOrder.NONE.value
+                # The order a braced ship was on before bracing (e.g. All Ahead
+                # Full) only affected the move it had already made (s.7)
+                self.gs.ships[i]["previous_order"] = SpecialOrder.NONE.value
                 # Reset per-turn flags
                 self.gs.ships[i]["moved_this_turn"] = False
+                # (the movement panel resets these too; alternate activation
+                # has no panel phase start, and Planet Strike's bombardment
+                # reads them at the end of the turn)
+                self.gs.ships[i]["distance_moved_this_turn"] = 0.0
+                self.gs.ships[i]["turns_used_this_turn"] = 0
+                self.gs.ships[i]["net_rotation_this_turn"] = 0.0
+                self.gs.ships[i]["distance_since_last_turn"] = 0.0
+                self.gs.ships[i]["collected_blast_markers"] = 0   # unused markers are lost
                 self.gs.ships[i]["has_fired"] = False
                 self.gs.ships[i]["disengage_failed_this_turn"] = False
                 self.gs.ships[i]["weapons_fired_indices"] = []
                 self.gs.ships[i]["weapons_remaining"] = {}
+                self.gs.ships[i]["weapon_pool_mode"] = {}
                 self.gs.ships[i]["turrets_used_vs"] = ""
                 self.gs.ships[i]["brace_failed_vs"] = []
+                self.gs.ships[i]["target_priority_turn"] = -1
+                self.gs.ships[i]["machine_spirit_used_vs"] = []
+                # Clear per-turn boarding flags (grapple state persists across turns)
+                self.gs.ships[i]["has_boarded"] = False
+                self.gs.ships[i]["aa_locked"] = False
+                if not self.gs.ships[i].get("is_grappled", False):
+                    self.gs.ships[i]["boarding_target_id"] = None
 
     def _player_name(self) -> str:
         if self.gs.active_player == 1:
@@ -288,6 +455,9 @@ class TurnController:
             return False
         if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
             return False  # Brace persists, can't override with another order
+        from .scenarios import orders_forbidden
+        if orders_forbidden(self.gs, ship):
+            return False
         return True
 
     def issue_special_order(self, ship: Ship, order: str) -> Dict:
@@ -299,6 +469,34 @@ class TurnController:
 
         result = {"success": False, "order": order, "roll": 0, "needed": 0}
 
+        from .scenarios import orders_forbidden
+        why = orders_forbidden(self.gs, ship)
+        if why:
+            result["error"] = why
+            return result
+        if "immobile" in ship.special_rules and order in (
+                SpecialOrder.ALL_AHEAD_FULL.value, SpecialOrder.BURN_RETROS.value,
+                SpecialOrder.COME_TO_NEW_HEADING.value):
+            result["error"] = ("Defences can't use All Ahead Full, Burn Retros or Come to "
+                               "New Heading (Support Assets)")
+            return result
+
+        if (order == SpecialOrder.ALL_AHEAD_FULL.value and any(
+                c.get("crit_type") == "inertialess_drive" for c in ship.critical_damage)):
+            result["error"] = "Inertialess Drive Damaged: no All Ahead Full until repaired"
+            return result
+        if order == SpecialOrder.RELOAD_ORDNANCE.value and "necron" in ship.special_rules \
+                and "tomb_complex" not in ship.special_rules:
+            result["error"] = "Necron ships may not use Reload Ordnance (Xenos p.39)"
+            return result
+        if order == SpecialOrder.BURN_RETROS.value and "eldar_mms" in ship.special_rules:
+            result["error"] = "Eldar may not use Burn Retros (MMS p.3)"
+            return result
+        from .campaign_scenarios import order_forbidden as _campaign_order
+        why = _campaign_order(self.gs, ship, order)
+        if why:
+            result["error"] = why
+            return result
         if not self.can_issue_special_order(ship):
             result["error"] = "Cannot issue orders (check already failed or ship braced)"
             return result
@@ -309,12 +507,16 @@ class TurnController:
                 result["error"] = "Ponderous ships cannot use Come to New Heading"
                 return result
 
+        # Demiurg: markers in contact as it begins its move are collected first
+        # (no Under Fire for a movement-phase order); Brace is checked normally
+        if order != SpecialOrder.BRACE_FOR_IMPACT.value and self.gs.current_phase == "movement":
+            from .movement import collect_blast_markers
+            if collect_blast_markers(ship, self.gs):
+                self.gs.update_ship(ship)
         # Determine Ld modifiers
         blast_markers = self.gs.get_blast_markers()
-        in_blast = any(
-            math.sqrt((bm.x - ship.x)**2 + (bm.y - ship.y)**2) < ship.base_radius + 1.5
-            for bm in blast_markers
-        )
+        from .geometry import count_blast_markers_touching
+        in_blast = count_blast_markers_touching(ship, blast_markers) > 0
         enemy_on_special = any(
             s.get("special_order", "none") != "none"
             for s in self.gs.ships
@@ -322,7 +524,7 @@ class TurnController:
         )
 
         check = do_command_check(ship, order, self.dice,
-                                  enemy_on_special, in_blast)
+                                  enemy_on_special, in_blast, gs=self.gs)
         passed = check["passed"]
         roll_val = check["roll"]
         needed = check["needed"]
@@ -331,8 +533,7 @@ class TurnController:
         result["needed"] = needed
 
         if passed:
-            ship.special_order = order
-            self.gs.update_ship(ship)
+            self.apply_passed_order(ship, order)
             result["success"] = True
             self.gs.add_log(
                 f"{ship.name}: {order} PASSED (rolled {roll_val} vs Ld {needed})")
@@ -358,17 +559,155 @@ class TurnController:
 
         return result
 
+    def issue_squadron_order(self, ships: List[Ship], order: str) -> Dict:
+        """
+        Roll once (using the highest-Ld ship) to issue the same special order
+        to every ship in a squadron.  Returns same result shape as issue_special_order,
+        plus 'leader' and 'ships_affected' keys.
+        """
+        from .movement import do_command_check
+
+        if self.command_check_failed:
+            return {"success": False,
+                    "error": "A command check already failed this turn."}
+
+        from .squadron import partition_by_coherency
+        in_coh, out_coh = partition_by_coherency(ships)
+        for s in out_coh:
+            self.gs.add_log(
+                f"  {s.name}: out of squadron coherency — must use individual order "
+                f"(own Ld {s.leadership})")
+        ships = in_coh
+        if not ships:
+            return {"success": False,
+                    "error": "No ships in squadron coherency — cannot issue a squadron order."}
+
+        leader = max(ships, key=lambda s: s.leadership)
+
+        if order == SpecialOrder.COME_TO_NEW_HEADING.value:
+            ponderous = [s for s in ships if "ponderous" in s.special_rules]
+            if ponderous:
+                return {"success": False,
+                        "error": ("Ponderous ships cannot use Come to New Heading: "
+                                  + ", ".join(s.name for s in ponderous))}
+
+        blast_markers = self.gs.get_blast_markers()
+        if order != SpecialOrder.BRACE_FOR_IMPACT.value and self.gs.current_phase == "movement":
+            from .movement import collect_blast_markers
+            if collect_blast_markers(leader, self.gs):
+                self.gs.update_ship(leader)
+            blast_markers = self.gs.get_blast_markers()
+        from .geometry import count_blast_markers_touching
+        in_blast = count_blast_markers_touching(leader, blast_markers) > 0
+        enemy_on_special = any(
+            s.get("special_order", "none") != "none"
+            for s in self.gs.ships
+            if s["player"] != leader.player and not Ship.from_dict(s).is_destroyed
+        )
+
+        check = do_command_check(leader, order, self.dice, enemy_on_special, in_blast,
+                                 gs=self.gs)
+        passed = check["passed"]
+        roll_val = check["roll"]
+        needed = check["needed"]
+
+        result: Dict = {"success": passed, "leader": leader.name,
+                        "roll": roll_val, "needed": needed,
+                        "order": order, "ships_affected": []}
+
+        if passed:
+            for ship in ships:
+                if ship.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
+                    self.apply_passed_order(ship, order)
+                    result["ships_affected"].append(ship.name)
+                    self.gs.add_log(f"  {ship.name}: {order} (squadron order)")
+            self.gs.add_log(
+                f"Squadron {order} PASSED via {leader.name} "
+                f"(rolled {roll_val} vs Ld {needed})")
+            self.record_action(
+                "squadron_order", leader.id,
+                details={"order": order, "passed": True,
+                         "roll": roll_val, "needed": needed,
+                         "ships": [s.name for s in ships]},
+                description=(f"Squadron {order} PASSED via {leader.name} "
+                             f"(rolled {roll_val} vs Ld {needed})"))
+        else:
+            self.command_check_failed = True
+            result["error"] = (f"Squadron order FAILED via {leader.name} "
+                               f"(rolled {roll_val} vs Ld {needed}). "
+                               f"No more orders this turn.")
+            self.gs.add_log(
+                f"Squadron {order} FAILED via {leader.name} "
+                f"(rolled {roll_val} vs Ld {needed})")
+            self.record_action(
+                "squadron_order", leader.id,
+                details={"order": order, "passed": False,
+                         "roll": roll_val, "needed": needed},
+                description=(f"Squadron {order} FAILED via {leader.name} "
+                             f"(rolled {roll_val} vs Ld {needed})"))
+
+        return result
+
     # --- Fleet Commander Re-rolls ---
 
     def get_flagship(self, player: int) -> Optional[Ship]:
         """Get the flagship for a player."""
-        for s_dict in self.gs.ships:
-            if s_dict["player"] == player and s_dict.get("is_flagship", False):
-                return Ship.from_dict(s_dict)
+        for s in self.gs.player_ships(player):
+            if s.is_flagship:
+                return s
         return None
 
-    def get_fleet_rerolls(self, player: int) -> int:
-        """Get remaining re-rolls for a player's fleet commander."""
+    def apply_passed_order(self, ship: Ship, order: str) -> None:
+        """Put a ship on an order whose command check passed.
+
+        Re-reads the ship from game state first: if it is the flagship that
+        just spent a re-roll, the caller's copy still has the old count.
+        """
+        ship = self.gs.get_ship_by_id(ship.id) or ship
+        ship.special_order = order
+        if order == SpecialOrder.RELOAD_ORDNANCE.value:
+            from .ordnance import reload_ship_ordnance
+            for line in reload_ship_ordnance(ship):
+                self.gs.add_log(line)
+        self.gs.update_ship(ship)
+        if order == SpecialOrder.RELOAD_ORDNANCE.value:
+            # Macharia's End: recharging after a missed overcharged shot
+            from .campaign_scenarios import record_reload
+            record_reload(self.gs, ship)
+
+    def _own_reroll_holder(self, ship: Optional[Ship]) -> Optional[Ship]:
+        """A secondary commander with re-rolls left on this ship or in its
+        squadron (usable only for that ship or squadron, s.5); lost if its
+        ship suffers Bridge Smashed or is destroyed."""
+        if ship is None:
+            return None
+        for s in self.gs.get_ships():
+            if s.own_rerolls <= 0 or s.player != ship.player or s.is_destroyed:
+                continue
+            if any(c.get("crit_type") == "bridge_smashed" for c in s.critical_damage):
+                continue
+            if s.id == ship.id or (ship.squadron_id and s.squadron_id == ship.squadron_id):
+                return s
+        return None
+
+    def get_fleet_rerolls(self, player: int, ship: Optional[Ship] = None) -> int:
+        """Re-rolls available: the fleet commander's, plus a secondary
+        commander's own when `ship` is his ship or in his squadron."""
+        holder = self._own_reroll_holder(ship)
+        own = holder.own_rerolls if holder else 0
+        from .subplots import reroll_blocked
+        fleet = 0 if (self._radiation_blocks(player, ship)
+                      or reroll_blocked(self.gs, player, ship)) else self._commander_rerolls(player)
+        return own + fleet + self._war_host_rerolls(player, ship)
+
+    def _war_host_rerolls(self, player: int, ship: Optional[Ship]) -> int:
+        """Demiurg War Host re-rolls: usable by any Demiurg vessel, not lost
+        with the ship they were bought on."""
+        if ship is None or "demiurg_commerce" not in ship.special_rules:
+            return 0
+        return sum(s.war_host_rerolls for s in self.gs.get_ships() if s.player == player)
+
+    def _commander_rerolls(self, player: int) -> int:
         flagship = self.get_flagship(player)
         if not flagship:
             return 0
@@ -376,16 +715,44 @@ class TurnController:
         for crit in flagship.critical_damage:
             if crit.get("crit_type") == "bridge_smashed":
                 return 0
-        if flagship.is_destroyed or flagship.is_disengaged:
+        # Re-rolls are lost if the commander's ship suffers Bridge Smashed or
+        # is destroyed (booklet update 33, owner ruling)
+        if flagship.is_destroyed:
             return 0
         return flagship.rerolls_remaining
 
-    def use_fleet_reroll(self, player: int) -> bool:
+    def _radiation_blocks(self, player: int, ship) -> bool:
+        """s.40: during a radiation burst fleet commanders may only use their
+        re-rolls for their own ship or squadron."""
+        from .celestial import radiation_active
+        if ship is None or not radiation_active(self.gs):
+            return False
+        flag = self.get_flagship(player)
+        if flag is None or ship.id == flag.id:
+            return False
+        return not (flag.squadron_id and ship.squadron_id == flag.squadron_id)
+
+    def use_fleet_reroll(self, player: int, ship: Optional[Ship] = None) -> bool:
         """
-        Use one fleet commander re-roll.
+        Use one re-roll: a secondary commander's own first (when `ship` is his
+        ship or squadron), else the fleet commander's.
         Returns True if successful, False if none available.
         """
+        holder = self._own_reroll_holder(ship)
+        if holder is not None:
+            holder.own_rerolls -= 1
+            self.gs.update_ship(holder)
+            self.gs.add_log(f"{holder.name}'s commander re-roll used "
+                            f"({holder.own_rerolls} left)")
+            return True
         flagship = self.get_flagship(player)
+        if (not flagship or flagship.rerolls_remaining <= 0) and self._war_host_rerolls(player, ship):
+            pool = next(s for s in self.gs.get_ships()
+                        if s.player == player and s.war_host_rerolls > 0)
+            pool.war_host_rerolls -= 1
+            self.gs.update_ship(pool)
+            self.gs.add_log(f"War Host re-roll used ({self._war_host_rerolls(player, ship)} left)")
+            return True
         if not flagship or flagship.rerolls_remaining <= 0:
             return False
         # Check bridge smashed
@@ -394,8 +761,18 @@ class TurnController:
                 self.gs.add_log(
                     f"Re-roll unavailable: {flagship.name} bridge is smashed!")
                 return False
-        if flagship.is_destroyed or flagship.is_disengaged:
+        if flagship.is_destroyed:
+            return False                 # the commander is lost with his ship
+        if self._radiation_blocks(player, ship):
+            self.gs.add_log("Radiation burst: the fleet commander's re-rolls are only for "
+                            "his own ship or squadron this turn")
             return False
+        from .subplots import reroll_blocked
+        if reroll_blocked(self.gs, player, ship):
+            self.gs.add_log("Signaling Problems: the fleet commander's re-rolls only reach "
+                            "ships within 30cm of his ship")
+            return False
+
 
         flagship.rerolls_remaining -= 1
         self.gs.update_ship(flagship)
@@ -415,15 +792,13 @@ class TurnController:
         """
         from .movement import do_command_check
 
-        if not self.use_fleet_reroll(ship.player):
+        if not self.use_fleet_reroll(ship.player, ship):
             return {"success": False, "error": "No re-rolls available"}
 
         # Recalculate modifiers
         blast_markers = self.gs.get_blast_markers()
-        in_blast = any(
-            math.sqrt((bm.x - ship.x)**2 + (bm.y - ship.y)**2) < ship.base_radius + 1.5
-            for bm in blast_markers
-        )
+        from .geometry import count_blast_markers_touching
+        in_blast = count_blast_markers_touching(ship, blast_markers) > 0
         enemy_on_special = any(
             s.get("special_order", "none") != "none"
             for s in self.gs.ships
@@ -431,7 +806,7 @@ class TurnController:
         )
 
         check = do_command_check(ship, order, self.dice,
-                                  enemy_on_special, in_blast)
+                                  enemy_on_special, in_blast, gs=self.gs)
         passed = check["passed"]
         roll_val = check["roll"]
         needed = check["needed"]
@@ -440,8 +815,7 @@ class TurnController:
                   "order": order, "rerolled": True}
 
         if passed:
-            ship.special_order = order
-            self.gs.update_ship(ship)
+            self.apply_passed_order(ship, order)
             # Undo the command_check_failed flag since re-roll succeeded
             self.command_check_failed = False
             self.gs.add_log(
@@ -458,26 +832,27 @@ class TurnController:
 
         return result
 
+    # Alternate activation: during a human's activation only the ships of the
+    # unit being activated may act (set by AAPanelMixin; None otherwise)
+    aa_allowed = None
+
+    def _aa_ok(self, s) -> bool:
+        return self.aa_allowed is None or self.aa_allowed(s)
+
     def get_unmoved_ships(self) -> List[Ship]:
         """Get ships belonging to active player that haven't moved yet."""
-        ships = []
-        for s_dict in self.gs.ships:
-            if s_dict["player"] == self.gs.active_player:
-                s = Ship.from_dict(s_dict)
+        return [s for s in self.gs.player_ships(self.gs.active_player)
                 if (not s.is_destroyed and not s.is_disengaged
-                        and s.id not in self.ships_moved):
-                    ships.append(s)
-        return ships
+                    and s.id not in self.ships_moved and self._aa_ok(s)
+                    and "immobile" not in s.special_rules       # defences never move
+                    and not _standby(self.gs, s))]              # Surprise Attack
 
     def get_unfired_ships(self) -> List[Ship]:
         """Get active player ships that haven't fired yet."""
-        ships = []
-        for s_dict in self.gs.ships:
-            if s_dict["player"] == self.gs.active_player:
-                s = Ship.from_dict(s_dict)
-                if not s.is_destroyed and s.id not in self.ships_fired:
-                    ships.append(s)
-        return ships
+        return [s for s in self.gs.player_ships(self.gs.active_player)
+                if (not s.is_destroyed and not s.is_disengaged
+                    and s.id not in self.ships_fired and self._aa_ok(s)
+                    and not _standby(self.gs, s))]
 
     def mark_ship_moved(self, ship_id: str):
         self.ships_moved.append(ship_id)

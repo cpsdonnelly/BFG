@@ -80,10 +80,6 @@ def get_gunnery_column(target_type: str, target_aspect: str,
     return COL_CLOSING_CAPITAL  # fallback
 
 
-def get_target_column(target_type: str, target_aspect: str) -> int:
-    """Alias for get_gunnery_column for backward compatibility."""
-    return get_gunnery_column(target_type, target_aspect)
-
 
 def lookup_gunnery_dice(firepower: int, column: int, shifts: int = 0) -> int:
     """
@@ -135,6 +131,81 @@ CRITICAL_HITS = {
     12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
 }
 
+# Eldar Critical Hits Table (Appendix 3, MMS p.5): all Corsair and Craftworld
+# Eldar vessels
+ELDAR_CRITICAL_HITS = {
+    2:  {"name": "Infinity Circuit Damaged", "extra_damage": 0, "crit_type": "infinity_circuit", "repairable": True},
+    3:  {"name": "Keel Armament Damaged", "extra_damage": 0, "crit_type": "keel_armament", "repairable": True},
+    4:  {"name": "Prow Armament Damaged", "extra_damage": 0, "crit_type": "prow_armament", "repairable": True},
+    5:  {"name": "Mast Lines Severed", "extra_damage": 0, "crit_type": "mast_lines", "repairable": True},
+    6:  {"name": "Mainsail Scarred", "extra_damage": 0, "crit_type": "mainsail_scarred", "repairable": True},
+    7:  {"name": "Superstructure Damaged", "extra_damage": 1, "crit_type": "superstructure", "repairable": True},
+    8:  {"name": "Mainsail Shredded", "extra_damage": 0, "crit_type": "mainsail_shredded", "repairable": True},
+    9:  {"name": "Holofield Generators Destroyed", "extra_damage": 1, "crit_type": "holofield_destroyed", "repairable": False},
+    10: {"name": "Shields Collapse", "extra_damage": 1, "crit_type": "shields_collapse", "repairable": False},
+    11: {"name": "Hull Breach", "extra_damage": "D3", "crit_type": "hull_breach", "repairable": False},
+    12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
+}
+
+
+# Necron Critical Hits Table (Appendix 3, Xenos p.41); "ld_loss" is a Leadership
+# penalty applied each time, never removed during the game (even when repaired)
+NECRON_CRITICAL_HITS = {
+    2:  {"name": "Port Power Relays Damaged", "extra_damage": 0, "crit_type": "port_relays", "repairable": True},
+    3:  {"name": "Starboard Power Relays Damaged", "extra_damage": 0, "crit_type": "starboard_relays", "repairable": True},
+    4:  {"name": "Main Capacitors Damaged", "extra_damage": 0, "crit_type": "main_capacitors", "repairable": True},
+    5:  {"name": "Power Flow Disrupted", "extra_damage": 0, "crit_type": "power_flow", "repairable": True},
+    6:  {"name": "Main Drive Damaged", "extra_damage": 0, "crit_type": "main_drive", "repairable": True, "ld_loss": 1},
+    7:  {"name": "Impulse Power Disrupted", "extra_damage": 0, "crit_type": "impulse_power", "repairable": True, "ld_loss": 1},
+    8:  {"name": "Inertialess Drive Damaged", "extra_damage": 0, "crit_type": "inertialess_drive", "repairable": True, "ld_loss": 1},
+    9:  {"name": "Monument Damaged", "extra_damage": 0, "crit_type": "monument", "repairable": True, "ld_loss": 2},
+    10: {"name": "Command Core Damaged", "extra_damage": 0, "crit_type": "command_core", "repairable": True, "ld_loss": 3},
+    11: {"name": "Power Surge", "extra_damage": "D3", "crit_type": "power_surge", "repairable": False, "ld_loss": 2},
+    12: {"name": "Power Core Ruptured", "extra_damage": "D6", "crit_type": "power_core", "repairable": False, "ld_loss": 2},
+}
+
+
+# Space Station Critical Hits (Appendix 3, Rulebook p.62): high orbit
+# defences with 3 or more starting hits
+SPACE_STATION_CRITICAL_HITS = {
+    2:  {"name": "Lances Damaged", "extra_damage": 0, "crit_type": "station_lances", "repairable": True},
+    3:  {"name": "Lances Damaged", "extra_damage": 0, "crit_type": "station_lances", "repairable": True},
+    4:  {"name": "Main Armament Damaged", "extra_damage": 0, "crit_type": "station_batteries", "repairable": True},
+    5:  {"name": "Ordnance Bays Hit", "extra_damage": 0, "crit_type": "station_bays", "repairable": True},
+    6:  {"name": "Reactors Damaged", "extra_damage": 1, "crit_type": "station_reactors", "repairable": True},
+    7:  {"name": "Fire!", "extra_damage": 0, "crit_type": "fire", "repairable": True},
+    8:  {"name": "Orbit Lost", "extra_damage": 1, "crit_type": "orbit_lost", "repairable": True},
+    9:  {"name": "Orbit Lost", "extra_damage": 1, "crit_type": "orbit_lost", "repairable": True},
+    10: {"name": "Shields Collapse", "extra_damage": 0, "crit_type": "shields_collapse", "repairable": False},
+    11: {"name": "Hull Breach", "extra_damage": "D3", "crit_type": "hull_breach", "repairable": False},
+    12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
+}
+
+
+def crit_table_for(ship) -> dict:
+    """The critical hits table a ship rolls on (Appendix 3 / 5)."""
+    if "space_station_crits" in (getattr(ship, "special_rules", None) or []):
+        return SPACE_STATION_CRITICAL_HITS
+    if "eldar_mms" in (getattr(ship, "special_rules", None) or []):
+        return ELDAR_CRITICAL_HITS
+    if "necron" in (getattr(ship, "special_rules", None) or []):
+        return NECRON_CRITICAL_HITS
+    return CRITICAL_HITS
+
+
+# Boarding Action Results Table
+# diff: score difference between winner and loser
+# winner_crit: minimum 1D6 roll for winner to suffer a crit (None = no crit check)
+# loser_crit: minimum 1D6 roll for loser to suffer a crit (0 = auto-crit)
+BOARDING_RESULTS = {
+    1: {"winner_crit": 5, "loser_crit": 5},
+    2: {"winner_crit": 5, "loser_crit": 4},
+    3: {"winner_crit": 6, "loser_crit": 3},
+    4: {"winner_crit": 6, "loser_crit": 2},
+    5: {"winner_crit": None, "loser_crit": 0},  # None=no check, 0=auto
+}
+
+
 # Catastrophic Damage Table (2D6)
 CATASTROPHIC_DAMAGE = {
     (2, 6):  "drifting_hulk",
@@ -152,10 +223,3 @@ def lookup_catastrophic(roll_2d6):
     return "drifting_hulk"
 
 
-# Leadership table (D6 roll at game start)
-LEADERSHIP_TABLE = {
-    1: 6,   # Untried
-    2: 7, 3: 7,  # Experienced
-    4: 8, 5: 8,  # Veteran
-    6: 9,   # Crack
-}

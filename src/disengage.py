@@ -1,24 +1,193 @@
 """BFG:XR Disengagement - Voluntary and involuntary disengagement"""
 import math
-from typing import List, Dict
-from .models import Ship, BlastMarker, Phenomenon, OrdnanceMarker
+from typing import Dict, List, Optional
+from .models import Ship
 from .game_state import GameState
 from .dice import DiceRoller
 
 
 def check_off_table(ship: Ship, table_width: float, table_height: float) -> bool:
     """Check if a ship has moved off the table edge (involuntary disengage)."""
-    r = ship.base_radius
-    return (ship.x - r < 0 or ship.x + r > table_width or
-            ship.y - r < 0 or ship.y + r > table_height)
+    from .low_orbit import off_bounds
+    return off_bounds(ship, table_width, table_height)
 
 
-def process_involuntary_disengage(ship: Ship, gs: GameState):
-    """Handle a ship that has moved off the table edge."""
+def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = None):
+    """Handle a ship that has moved off the table edge.
+
+    Core rules s.8 (Maneuvering Squadrons): if it was an escort in a squadron,
+    the rest of the squadron must immediately, and in later turns, attempt to
+    disengage. The immediate test is taken right away (owner ruling); without
+    dice the squadron is only flagged and tests at the end of the phase.
+    """
     ship.is_disengaged = True
     ship.status = "disengaged"
     gs.update_ship(ship)
     gs.add_log(f"{ship.name} has moved off the table and DISENGAGED!")
+
+    if ship.ship_type != "escort" or not ship.squadron_id:
+        return
+    rest = [s for s in gs.get_ships()
+            if s.squadron_id == ship.squadron_id and s.player == ship.player
+            and s.id != ship.id and not s.is_destroyed and not s.is_disengaged]
+    if not rest:
+        return
+    for s in rest:
+        s.must_disengage = True
+        gs.update_ship(s)
+    gs.add_log(f"  Squadron {ship.squadron_id} lost {ship.name} off the table: "
+               f"the rest of the squadron must attempt to disengage")
+    if dice is not None:
+        squadron_disengage_test(rest, dice, gs, forced=True)
+
+
+def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState,
+                            forced: bool = False) -> Dict:
+    """One disengage test for an escort squadron (s.8, s.37).
+
+    Owner ruling: the Leadership modifiers are those of the best-placed member
+    (the highest resulting Leadership). Pass: the whole squadron disengages.
+    Fail: none of it may fire, launch ordnance or use special orders (except
+    Brace) for the rest of the turn. `forced` (a member left the table,
+    Forced Disengagement, Demiurg mercenaries): under Siren's Summon a forced
+    test fails with its normal result (sign-off answer 50); a voluntary one
+    is just blocked.
+    """
+    ships = [gs.get_ship_by_id(s.id) for s in ships]
+    ships = [s for s in ships if s and not s.is_destroyed and not s.is_disengaged]
+    if not ships:
+        return {"success": False, "roll": 0, "needed": 0, "modifiers": [], "ships": []}
+
+    blocked = _ftl_blocked(ships[0], gs)
+    if blocked:
+        return {"success": False, "roll": 0, "needed": 0, "modifiers": [blocked],
+                "blocked": True, "ships": [s.id for s in ships]}
+    if all("necron" in s.special_rules for s in ships):
+        # Without a Trace (Xenos p.40): the squadron vanishes, no test
+        for s in ships:
+            s.is_disengaged, s.status = True, "disengaged"
+            s.must_disengage_tested_turn = gs.turn_number
+            gs.update_ship(s)
+        gs.add_log(f"Squadron {ships[0].squadron_id} phases out (Without a Trace)")
+        return {"success": True, "roll": 0, "needed": 0, "modifiers": ["Without a Trace"],
+                "ships": [s.id for s in ships]}
+
+    # Siren's Summon: a member within 15cm of it can't take the test, so the
+    # best-placed member is chosen among the others; none left, the test fails
+    from .movement import sirens_summon
+    able = [s for s in ships if not sirens_summon(s, gs)]
+    if not able:
+        for s in ships:
+            s.must_disengage_tested_turn = gs.turn_number
+            if forced:
+                s.disengage_failed_this_turn = True
+                s.has_fired = True
+            gs.update_ship(s)
+        if forced:
+            gs.add_log(f"Squadron {ships[0].squadron_id} fails its forced disengage test "
+                       f"(Siren's Summon)")
+            return {"success": False, "roll": 0, "needed": 0,
+                    "modifiers": ["Siren's Summon: forced test fails"],
+                    "ships": [s.id for s in ships]}
+        gs.add_log(f"Squadron {ships[0].squadron_id} can't take a disengage test "
+                   f"(Siren's Summon)")
+        return {"success": False, "roll": 0, "needed": 0, "blocked": True,
+                "modifiers": ["Siren's Summon: no Leadership tests"],
+                "ships": [s.id for s in ships]}
+    best_ship, best = max(((s, get_disengage_ld_modifiers(s, gs)) for s in able),
+                          key=lambda pair: pair[1]["effective_ld"])
+    ld = best["effective_ld"]
+    roll = dice.roll_2d6(
+        f"Squadron {best_ship.squadron_id} disengage check "
+        f"(need <= {ld}, from {best_ship.name}'s position)")
+    passed = roll <= ld
+
+    for s in ships:
+        s.must_disengage_tested_turn = gs.turn_number
+        if passed:
+            s.is_disengaged = True
+            s.status = "disengaged"
+        else:
+            s.disengage_failed_this_turn = True
+            s.has_fired = True
+        gs.update_ship(s)
+    names = ", ".join(s.name for s in ships)
+    gs.add_log(f"Squadron {best_ship.squadron_id} ({names}) disengage "
+               f"{'PASSED' if passed else 'FAILED'} (rolled {roll} vs Ld {ld})")
+    return {"success": passed, "roll": roll, "needed": ld,
+            "modifiers": best["modifiers"], "ships": [s.id for s in ships]}
+
+
+def mercenary_must_disengage(ship: Ship, gs: GameState) -> bool:
+    """Demiurg Mercenaries (Xenos p.91-94): unless its fleet is all Demiurg, a
+    crippled Demiurg ship attempts to disengage every turn (with Ork vessels
+    in the opposing fleet, only at 2 or fewer hits remaining)."""
+    if "demiurg_commerce" not in ship.special_rules:
+        return False
+    ships = gs.get_ships()
+    if all("demiurg_commerce" in s.special_rules for s in ships if s.player == ship.player):
+        return False
+    if any(s.player != ship.player and s.faction == "orks" for s in ships):
+        return 0 < ship.hits_remaining <= 2
+    return ship.is_crippled
+
+
+def forced_disengage_tests(gs: GameState, dice: DiceRoller, player: int) -> List[Dict]:
+    """End of a player's movement phase (s.8, s.37): escort squadrons that must
+    disengage, ships or squadrons at Leadership 1 or less (Forced
+    Disengagement) and Demiurg mercenaries take their test, unless they
+    already tested this turn. A ship that fails heads for the nearest table
+    edge next turn (`must_flee`)."""
+    squadrons: Dict[str, List[Ship]] = {}
+    singles: List[Ship] = []
+    for s in gs.get_ships():
+        if (s.player != player or s.is_destroyed or s.is_disengaged
+                or s.must_disengage_tested_turn == gs.turn_number):
+            continue
+        forced = s.leadership <= 1 or mercenary_must_disengage(s, gs)
+        if s.must_disengage or (forced and s.ship_type == "escort" and s.squadron_id):
+            squadrons.setdefault(s.squadron_id, []).append(s)
+        elif forced:
+            singles.append(s)
+    results = []
+    for members in squadrons.values():
+        mates = [m for m in gs.get_ships() if m.squadron_id == members[0].squadron_id
+                 and m.player == player and not m.is_destroyed and not m.is_disengaged]
+        results.append(squadron_disengage_test(mates, dice, gs, forced=True))
+    for s in singles:
+        gs.add_log(f"{s.name} must attempt to disengage"
+                   + (" (Demiurg mercenaries)" if mercenary_must_disengage(s, gs)
+                      else " (Leadership 1 or less)"))
+        results.append(attempt_disengage(s, dice, gs, forced=True))
+        fresh = gs.get_ship_by_id(s.id)
+        fresh.must_disengage_tested_turn = gs.turn_number
+        gs.update_ship(fresh)
+    for r in results:
+        if not r.get("success") and not r.get("blocked"):
+            for sid in r.get("ships") or []:
+                fresh = gs.get_ship_by_id(sid)
+                fresh.must_flee = True
+                gs.update_ship(fresh)
+    return results
+
+
+def _ftl_blocked(ship: Ship, gs: GameState) -> Optional[str]:
+    """Reason a ship can't disengage yet in an FTL-charging scenario, or None.
+    Booklet scenarios too (scenarios.disengage_forbidden: Ambush, Rescue)."""
+    if "immobile" in ship.special_rules:
+        return "immobile defences can't disengage"
+    from .scenarios import disengage_forbidden
+    why = disengage_forbidden(gs, ship)
+    if why:
+        return why
+    if gs.ftl_available_turn and gs.turn_number < gs.ftl_available_turn:
+        reason = f"FTL not charged until turn {gs.ftl_available_turn}"
+        if gs.scenario_mode == "capture_artefact" and gs.artefact_submode == "carrier_escape":
+            if ship.player == gs.scenario_attacker:
+                return reason
+        elif gs.scenario_mode != "capture_artefact":
+            return reason
+    return None
 
 
 def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
@@ -26,7 +195,8 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
     Calculate Ld modifiers for voluntary disengagement.
     Returns dict with modifier breakdown and final Ld.
     """
-    base_ld = ship.leadership
+    from .subplots import leadership as _sp_ld
+    base_ld = _sp_ld(gs, ship)       # Fleet Experience / Blood Bond
     modifiers = []
     total_mod = 0
 
@@ -45,9 +215,21 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
         total_mod += blast_count
         modifiers.append(f"+{blast_count} Ld (blast markers within 5cm)")
 
-    # Celestial phenomena within 15cm: +3 Ld
+    # Celestial phenomena within 15cm: +3 Ld (anywhere during a radiation
+    # burst or solar flare, s.37 / s.40)
+    from .celestial import radiation_active, flare_now
+    if radiation_active(gs) or flare_now(gs):
+        total_mod += 3
+        modifiers.append("+3 Ld (radiation burst / solar flare)")
+        phenomena = []
     for p in phenomena:
-        dist = math.sqrt((p.x - ship.x)**2 + (p.y - ship.y)**2)
+        # Measured to the phenomenon's edge: a planet's circle, else its rectangle
+        if "planet" in p.phenomenon_type and p.radius > 0:
+            dist = max(0.0, math.hypot(p.x - ship.x, p.y - ship.y) - p.radius)
+        else:
+            dx = max(0.0, abs(ship.x - p.x) - p.width / 2)
+            dy = max(0.0, abs(ship.y - p.y) - p.height / 2)
+            dist = math.hypot(dx, dy)
         if dist <= 15:
             total_mod += 3
             modifiers.append("+3 Ld (celestial phenomena within 15cm)")
@@ -70,7 +252,12 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
         total_mod -= enemy_count
         modifiers.append(f"-{enemy_count} Ld (enemies/ordnance within 15cm)")
 
-    effective_ld = min(10, max(2, base_ld + total_mod))
+    from .movement import slaanesh_penalty
+    if slaanesh_penalty(ship, gs):
+        total_mod -= 1
+        modifiers.append("-1 Ld (Mark of Slaanesh within 15cm)")
+
+    effective_ld = min(10, max(0, base_ld + total_mod))   # Ld 1 or less always fails
 
     return {
         "base_ld": base_ld,
@@ -80,11 +267,47 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
     }
 
 
-def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
+def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState,
+                      forced: bool = False) -> Dict:
     """
     Attempt voluntary disengagement at end of movement phase.
     Returns dict with success status and details.
+    In carrier_escape scenario, the escaping player cannot disengage until ftl_available_turn.
     """
+    blocked = _ftl_blocked(ship, gs)
+    if blocked:
+        return {"success": False, "roll": 0, "needed": 0,
+                "modifiers": [blocked], "blocked": True}
+
+    # An escort squadron tests once, together (s.37)
+    if ship.ship_type == "escort" and ship.squadron_id:
+        mates = [s for s in gs.get_ships() if s.squadron_id == ship.squadron_id
+                 and s.player == ship.player and not s.is_destroyed and not s.is_disengaged]
+        if len(mates) > 1:
+            return squadron_disengage_test(mates, dice, gs, forced=forced)
+
+    if "necron" in ship.special_rules:
+        # Without a Trace (Xenos p.40): no Leadership check, the vessel vanishes
+        ship.is_disengaged = True
+        ship.status = "disengaged"
+        gs.update_ship(ship)
+        gs.add_log(f"{ship.name} phases out (Without a Trace)")
+        return {"success": True, "roll": 0, "needed": 0,
+                "modifiers": ["Without a Trace"], "ships": [ship.id]}
+    from .movement import sirens_summon
+    if sirens_summon(ship, gs) and forced:
+        # Sign-off answer 50: a forced test fails with its normal result
+        ship.disengage_failed_this_turn = True
+        ship.has_fired = True
+        gs.update_ship(ship)
+        gs.add_log(f"{ship.name} fails its forced disengage test (Siren's Summon)")
+        return {"success": False, "roll": 0, "needed": 0,
+                "modifiers": ["Siren's Summon: forced test fails"], "ships": [ship.id]}
+    if sirens_summon(ship, gs):
+        gs.add_log(f"{ship.name} can't take a disengage test (Siren's Summon)")
+        return {"success": False, "roll": 0, "needed": 0, "blocked": True,
+                "modifiers": ["Siren's Summon: no Leadership tests"], "ships": [ship.id]}
+
     ld_info = get_disengage_ld_modifiers(ship, gs)
     ld = ld_info["effective_ld"]
 
@@ -97,6 +320,7 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
         "roll": roll,
         "needed": ld,
         "modifiers": ld_info["modifiers"],
+        "ships": [ship.id],
     }
 
     if passed:
@@ -111,9 +335,59 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState) -> Dict:
         # (except Brace) for rest of turn
         ship.disengage_failed_this_turn = True
         ship.has_fired = True  # prevent firing
+        if ship.squadron_id and ship.ship_type != "escort":
+            # A capital ship that fails falls out of its squadron for good (s.37)
+            gs.add_log(f"{ship.name} falls out of squadron {ship.squadron_id}")
+            ship.squadron_id = ""
         gs.update_ship(ship)
         gs.add_log(
             f"{ship.name} disengage FAILED (rolled {roll} vs Ld {ld}). "
             f"No firing or orders this turn!")
 
     return result
+
+
+def _edge_dist(x: float, y: float, gs) -> float:
+    return min(x, y, gs.table_width - x, gs.table_height - y)
+
+
+def flee_move_errors(ship, result, gs, order: str = "", aaf_bonus: int = 0,
+                     tolerance: float = 2.0):
+    """A ship that failed a forced disengage test (`must_flee`, s.37: "must
+    attempt to disengage or move off of the closest table edge (if
+    possible)") moves as fast as possible towards the nearest table edge.
+    Errors for a human's move that doesn't: shorter than its full speed, or
+    ending more than `tolerance` cm further from the nearest edge than the
+    best simple move (straight, or one turn of up to its turn angle after the
+    turning distance) would. Disengaging instead is done with its own button."""
+    from .movement import (get_effective_speed, validate_movement, MoveCommand,
+                           MIN_TURN_DISTANCE)
+    if not getattr(ship, "must_flee", False):
+        return []
+    _, max_spd = get_effective_speed(ship, order, aaf_bonus)
+    left = max(0.0, max_spd - (ship.distance_moved_this_turn or 0.0))
+    errs = []
+    if result.total_distance < left - 0.05:
+        errs.append(f"{ship.name} failed a forced disengage test: it must move its full "
+                    f"{left:g}cm towards the nearest table edge (or try to disengage).")
+    td = min(MIN_TURN_DISTANCE.get(ship.ship_type, 0), left)
+    best = None
+    cands = [[MoveCommand("forward", left)]]
+    for turn in ("turn_left", "turn_right"):
+        for ang in (ship.turn_angle, ship.turn_angle / 2):
+            cmds = ([MoveCommand("forward", td)] if td else []) + [MoveCommand(turn, ang)]
+            if left - td > 0:
+                cmds.append(MoveCommand("forward", left - td))
+            cands.append(cmds)
+    for cmds in cands:
+        r = validate_movement(ship, cmds, special_order=order, aaf_bonus=aaf_bonus,
+                              blast_markers=gs.get_blast_markers(),
+                              table_width=gs.table_width, table_height=gs.table_height,
+                              distance_already_moved=ship.distance_moved_this_turn or 0.0)
+        if r.valid:
+            d = _edge_dist(r.final_x, r.final_y, gs)
+            best = d if best is None else min(best, d)
+    if best is not None and _edge_dist(result.final_x, result.final_y, gs) > best + tolerance:
+        errs.append(f"{ship.name} failed a forced disengage test: it must head for the "
+                    f"nearest table edge (a move ending {best:.1f}cm from it is possible).")
+    return errs

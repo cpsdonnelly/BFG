@@ -1,0 +1,145 @@
+"""Tests for resolve_nova_cannon in src/combat.py."""
+from tests.conftest import make_ship, make_gs, DiceStub
+from src.combat import resolve_nova_cannon
+from src.models import SpecialOrder
+
+
+def _attacker():
+    return make_ship(id="a", x=0, y=0, heading=0, ship_type="cruiser")
+
+
+# ── restrictions ──────────────────────────────────────────────────────────────
+
+def test_crippled_cannot_fire():
+    a = make_ship(id="a", x=0, y=0, hits_max=8, hits_remaining=4)
+    gs = make_gs([a])
+    r = resolve_nova_cannon(a, 60, 0, DiceStub([1]), gs)
+    assert "error" in r
+    assert "crippled" in r["error"].lower()
+
+
+def test_invalid_order_cannot_fire():
+    a = _attacker()
+    a.special_order = SpecialOrder.BURN_RETROS.value
+    gs = make_gs([a])
+    r = resolve_nova_cannon(a, 60, 0, DiceStub([1]), gs)
+    assert "error" in r
+
+
+def test_target_too_close_error():
+    a = _attacker()
+    gs = make_gs([a])
+    # Target only 20cm away (min is 30cm)
+    r = resolve_nova_cannon(a, 20, 0, DiceStub([1]), gs)
+    assert "error" in r
+    assert "range" in r["error"].lower()
+
+
+def test_target_too_far_error():
+    a = _attacker()
+    gs = make_gs([a])
+    r = resolve_nova_cannon(a, 160, 0, DiceStub([1]), gs)
+    assert "error" in r
+
+
+# ── hit (no scatter) ─────────────────────────────────────────────────────────
+
+def test_direct_hit_template_stays_at_target():
+    a = _attacker()
+    gs = make_gs([a])
+    # DiceStub([1]) → roll_scatter returns bool(1)=True → HIT (no scatter)
+    r = resolve_nova_cannon(a, 60, 0, DiceStub([1]), gs)
+    assert "error" not in r
+    assert r["template_x"] == 60
+    assert r["template_y"] == 0
+
+
+def test_hit_with_no_ships_in_template_places_blast_marker():
+    a = _attacker()
+    gs = make_gs([a])
+    r = resolve_nova_cannon(a, 60, 0, DiceStub([1]), gs)
+    assert len(r["blast_markers"]) == 1
+
+
+def test_hit_ship_in_template_ring_gives_one_auto_hit():
+    a = _attacker()
+    # Target ship very close to template center (60, 0) — in the outer ring
+    t = make_ship(id="t", x=60, y=4, player=2, hits_max=8)
+    gs = make_gs([a, t])
+    # Hit (1 → True), then DiceStub cycling for D6 hits if needed
+    r = resolve_nova_cannon(a, 60, 0, DiceStub([1, 3]), gs)
+    assert "t" in r["ship_hits"]
+    assert r["ship_hits"]["t"]["hits"] >= 1
+    assert r["ship_hits"]["t"]["ignores_armor"] is True
+
+
+# ── miss (scatter) ────────────────────────────────────────────────────────────
+
+def test_miss_moves_template():
+    a = _attacker()
+    gs = make_gs([a])
+    # roll_scatter(0) → bool(0)=False → miss; then scatter_roll for distance
+    # At 60cm dist ≤ 60 → 2 scatter dice
+    r = resolve_nova_cannon(a, 60, 0, DiceStub([0, 3, 4]), gs)
+    # Template should have moved from (60,0) by scatter distance in direction 0.0°
+    scatter_dist = 7  # 3+4
+    assert abs(r["template_x"] - (60 + scatter_dist)) < 0.1
+    assert r["scatter_distance"] == scatter_dist
+
+
+# ── lock on (still allowed) ───────────────────────────────────────────────────
+
+def test_lock_on_order_allowed():
+    a = _attacker()
+    a.special_order = SpecialOrder.LOCK_ON.value
+    gs = make_gs([a])
+    r = resolve_nova_cannon(a, 60, 0, DiceStub([1]), gs)
+    assert "error" not in r
+
+
+def test_nova_cannon_hits_are_absorbed_by_shields(tmp_path):
+    # Core rules s.14: D6 hits "regardless of its Armor value" - shields still apply
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    firer = make_ship(id="n", player=1, x=0.0, y=0.0)
+    target = make_ship(id="t", player=2, x=40.0, y=0.0, shields_max=2, hits_max=8,
+                       points_value=150)
+    gs = make_gs([firer, target])
+    rolls = [
+        1,      # scatter die: hit, template stays on the target
+        3,      # centre hole: D6 = 3 hits
+        1,      # 2 absorbed by shields, 1 hull hit: crit check
+    ]
+    dice = DiceStub(rolls)
+    ai = AIPlayer(1, TurnController(gs, dice, save_dir=str(tmp_path)), gs, dice)
+
+    ai._fire_nova_cannon(gs.get_ship_by_id("n"), [gs.get_ship_by_id("t")])
+
+    assert dice._idx == len(rolls)
+    assert gs.get_ship_by_id("t").hits_remaining == 7
+
+
+def test_ai_nova_aims_by_value_and_spares_friends(tmp_path):
+    """To do 9: the AI's Nova Cannon picks the target worth most, not the
+    nearest, and never one with our own ship next to it."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    nova = {"name": "Prow Nova Cannon", "weapon_type": "nova_cannon", "range_cm": 150,
+            "min_range_cm": 30, "strength": 0, "arcs": ["front"]}
+    firer = make_ship(id="n", player=1, x=0.0, y=0.0, weapons=[nova])
+    cheap = make_ship(id="c", player=2, x=40.0, y=0.0, points_value=40, hits_max=8)
+    rich = make_ship(id="r", player=2, x=70.0, y=5.0, points_value=300, hits_max=8,
+                     hits_remaining=2)
+    gs = make_gs([firer, cheap, rich])
+    dice = DiceStub([1, 3, 1])
+    ai = AIPlayer(1, TurnController(gs, dice, save_dir=str(tmp_path)), gs, dice)
+    ai._fire_nova_cannon(gs.get_ship_by_id("n"), [gs.get_ship_by_id("c"),
+                         gs.get_ship_by_id("r")], nova)
+    assert gs.get_ship_by_id("r").hits_remaining < 2
+    # a friend next to the only target: hold fire
+    gs2 = make_gs([firer, make_ship(id="c", player=2, x=40.0, y=0.0, points_value=150),
+                   make_ship(id="f", player=1, x=45.0, y=0.0, points_value=150)])
+    d2 = DiceStub([])
+    ai2 = AIPlayer(1, TurnController(gs2, d2, save_dir=str(tmp_path)), gs2, d2)
+    ai2._fire_nova_cannon(gs2.get_ship_by_id("n"), [gs2.get_ship_by_id("c")], nova)
+    assert d2._idx == 0

@@ -1,0 +1,436 @@
+{
+ "fleet_name": "Ork carriers",
+ "faction": "orks",
+ "ships": [
+  {
+   "id": "ork0",
+   "name": "Gorbag",
+   "ship_class": "Gorbag's Revenge (0-1)",
+   "faction": "orks",
+   "player": 2,
+   "ship_type": "battleship",
+   "base_size": "large",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 20,
+   "turn_angle": 45,
+   "shields_max": 2,
+   "armor_prow": "6+",
+   "armor_side": "5+",
+   "armor_rear": "",
+   "turrets": 4,
+   "hits_max": 12,
+   "leadership": 0,
+   "leadership_table": "Orks",
+   "weapons": [
+    {
+     "name": "Prow Gunz",
+     "weapon_type": "battery",
+     "range_cm": 45,
+     "strength": 9,
+     "arcs": [
+      "front"
+     ],
+     "strength_dice": "D6+6"
+    },
+    {
+     "name": "Prow Torps",
+     "weapon_type": "torpedo",
+     "range_cm": 30,
+     "strength": 7,
+     "arcs": [
+      "front"
+     ],
+     "strength_dice": "D6+4",
+     "torpedo_type": "standard",
+     "torpedo_speed": 30
+    },
+    {
+     "name": "Port Heavy Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "left"
+     ],
+     "strength_close": 10
+    },
+    {
+     "name": "Starboard Heavy Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "right"
+     ],
+     "strength_close": 10
+    },
+    {
+     "name": "Port Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "left"
+     ]
+    },
+    {
+     "name": "Starboard Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "right"
+     ]
+    },
+    {
+     "name": "Dorsal Launch Bays",
+     "weapon_type": "launch_bay",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [],
+     "craft_types": [
+      "fighta_bommer",
+      "assault_boat"
+     ],
+     "craft_speeds": {
+      "fighta_bommer": 25,
+      "assault_boat": 30
+     },
+     "craft_speed": 30,
+     "strength_dice": "D3+1"
+    },
+    {
+     "name": "Port Launch Bays",
+     "weapon_type": "launch_bay",
+     "range_cm": 30,
+     "strength": 2,
+     "arcs": [],
+     "craft_types": [
+      "fighta_bommer",
+      "assault_boat"
+     ],
+     "craft_speeds": {
+      "fighta_bommer": 25,
+      "assault_boat": 30
+     },
+     "craft_speed": 30
+    },
+    {
+     "name": "Starboard Launch Bays",
+     "weapon_type": "launch_bay",
+     "range_cm": 30,
+     "strength": 2,
+     "arcs": [],
+     "craft_types": [
+      "fighta_bommer",
+      "assault_boat"
+     ],
+     "craft_speeds": {
+      "fighta_bommer": 25,
+      "assault_boat": 30
+     },
+     "craft_speed": 30
+    }
+   ],
+   "special_rules": [
+    "ponderous"
+   ],
+   "upgrades": [],
+   "points_value": 315,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 50,
+   "spawn_y": 100,
+   "spawn_heading": 270
+  },
+  {
+   "id": "ork1",
+   "name": "Terror",
+   "ship_class": "Terror Ship",
+   "faction": "orks",
+   "player": 2,
+   "ship_type": "cruiser",
+   "base_size": "small",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 20,
+   "turn_angle": 45,
+   "shields_max": 1,
+   "armor_prow": "6+",
+   "armor_side": "5+",
+   "armor_rear": "4+",
+   "turrets": 3,
+   "hits_max": 10,
+   "leadership": 0,
+   "leadership_table": "Orks",
+   "weapons": [
+    {
+     "name": "Prow Gunz",
+     "weapon_type": "battery",
+     "range_cm": 45,
+     "strength": 7,
+     "arcs": [
+      "front"
+     ],
+     "strength_dice": "D6+4"
+    },
+    {
+     "name": "Prow Heavy Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "front"
+     ],
+     "strength_close": 10
+    },
+    {
+     "name": "Port Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "left"
+     ]
+    },
+    {
+     "name": "Starboard Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "right"
+     ]
+    },
+    {
+     "name": "Port Launch Bays",
+     "weapon_type": "launch_bay",
+     "range_cm": 30,
+     "strength": 2,
+     "arcs": [],
+     "craft_types": [
+      "fighta_bommer",
+      "assault_boat"
+     ],
+     "craft_speeds": {
+      "fighta_bommer": 25,
+      "assault_boat": 30
+     },
+     "craft_speed": 30
+    },
+    {
+     "name": "Starboard Launch Bays",
+     "weapon_type": "launch_bay",
+     "range_cm": 30,
+     "strength": 2,
+     "arcs": [],
+     "craft_types": [
+      "fighta_bommer",
+      "assault_boat"
+     ],
+     "craft_speeds": {
+      "fighta_bommer": 25,
+      "assault_boat": 30
+     },
+     "craft_speed": 30
+    }
+   ],
+   "special_rules": [],
+   "upgrades": [],
+   "points_value": 175,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 70,
+   "spawn_y": 100,
+   "spawn_heading": 270
+  },
+  {
+   "id": "ork2",
+   "name": "Gutrippa",
+   "ship_class": "Kill Kroozer",
+   "faction": "orks",
+   "player": 2,
+   "ship_type": "cruiser",
+   "base_size": "small",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 20,
+   "turn_angle": 45,
+   "shields_max": 1,
+   "armor_prow": "6+",
+   "armor_side": "5+",
+   "armor_rear": "4+",
+   "turrets": 3,
+   "hits_max": 10,
+   "leadership": 0,
+   "leadership_table": "Orks",
+   "weapons": [
+    {
+     "name": "Prow Gunz",
+     "weapon_type": "battery",
+     "range_cm": 45,
+     "strength": 9,
+     "arcs": [
+      "front"
+     ],
+     "strength_dice": "D6+6"
+    },
+    {
+     "name": "Prow Heavy Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "front"
+     ],
+     "strength_close": 10
+    },
+    {
+     "name": "Port Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "left"
+     ]
+    },
+    {
+     "name": "Starboard Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 6,
+     "arcs": [
+      "right"
+     ]
+    },
+    {
+     "name": "Port Heavy Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "left"
+     ],
+     "strength_close": 6
+    },
+    {
+     "name": "Starboard Heavy Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "right"
+     ],
+     "strength_close": 6
+    }
+   ],
+   "special_rules": [],
+   "upgrades": [],
+   "points_value": 155,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 30,
+   "spawn_y": 100,
+   "spawn_heading": 270
+  },
+  {
+   "id": "ork3",
+   "name": "Ons 1",
+   "ship_class": "Onslaught Attack Ship",
+   "faction": "orks",
+   "player": 2,
+   "ship_type": "escort",
+   "base_size": "small",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 25,
+   "turn_angle": 45,
+   "shields_max": 1,
+   "armor_prow": "6+",
+   "armor_side": "4+",
+   "armor_rear": "",
+   "turrets": 3,
+   "hits_max": 1,
+   "leadership": 0,
+   "leadership_table": "Orks",
+   "weapons": [
+    {
+     "name": "Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "left",
+      "front",
+      "right"
+     ],
+     "strength_dice": "D6+1"
+    }
+   ],
+   "special_rules": [],
+   "upgrades": [],
+   "points_value": 30,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 90,
+   "spawn_y": 100,
+   "spawn_heading": 270,
+   "squadron_id": "ons"
+  },
+  {
+   "id": "ork4",
+   "name": "Ons 2",
+   "ship_class": "Onslaught Attack Ship",
+   "faction": "orks",
+   "player": 2,
+   "ship_type": "escort",
+   "base_size": "small",
+   "x": 0.0,
+   "y": 0.0,
+   "heading": 90.0,
+   "speed": 25,
+   "turn_angle": 45,
+   "shields_max": 1,
+   "armor_prow": "6+",
+   "armor_side": "4+",
+   "armor_rear": "",
+   "turrets": 3,
+   "hits_max": 1,
+   "leadership": 0,
+   "leadership_table": "Orks",
+   "weapons": [
+    {
+     "name": "Gunz",
+     "weapon_type": "battery",
+     "range_cm": 30,
+     "strength": 4,
+     "arcs": [
+      "left",
+      "front",
+      "right"
+     ],
+     "strength_dice": "D6+1"
+    }
+   ],
+   "special_rules": [],
+   "upgrades": [],
+   "points_value": 30,
+   "is_flagship": false,
+   "admiral_type": "",
+   "rerolls_remaining": 0,
+   "spawn_x": 93,
+   "spawn_y": 100,
+   "spawn_heading": 270,
+   "squadron_id": "ons"
+  }
+ ]
+}

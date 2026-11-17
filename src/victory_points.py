@@ -1,6 +1,5 @@
 """BFG:XR Victory Points - End-of-game scoring"""
-import math
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from .models import Ship
 from .game_state import GameState
 
@@ -33,56 +32,84 @@ def calculate_victory_points(gs: GameState) -> Dict:
     # Score each ship/squadron
     scored_squadron_ids = set()
 
+    from .scenarios import scores_normally
     for s in ships:
         opponent = 2 if s.player == 1 else 1
         pts = s.points_value
-        if pts <= 0:
-            continue
+        if pts <= 0 or not scores_normally(gs, s) or s.status == "reserve":
+            continue            # (reinforcements that never arrived score nothing, reading)            # (convoy ships in Convoy are scored by vp_bonus)
 
         # Skip escorts that are part of a squadron (handled below)
         if s.squadron_id and s.ship_type == "escort":
             if s.squadron_id not in scored_squadron_ids:
                 scored_squadron_ids.add(s.squadron_id)
-                _score_squadron(squadrons[s.squadron_id], opponent, result)
+                _score_squadron(squadrons[s.squadron_id], opponent, result,
+                                getattr(gs, "rule_remastered_escort_vp", False))
             continue
+
+        # Venerable Battle Barges (Space Marines): 50% of cost if crippled,
+        # 125% if destroyed, instead of the normal VP
+        venerable = "venerable" in s.special_rules
+        destroyed_vp = pts * 5 // 4 if venerable else pts
+        crippled_vp = pts // 2 if venerable else max(1, pts // 4)
+        # Demiurg VP: a commerce vessel destroyed is worth its higher value
+        # (Stronghold 400, Bastion 300, Citadel 200) only if its fleet is all
+        # Demiurg or the opposing fleet has any Ork vessels
+        higher = next((int(r.split(":")[1]) for r in s.special_rules
+                       if r.startswith("demiurg_vp:")), None)
+        if higher is not None:
+            own = [o for o in ships if o.player == s.player]
+            if (all("demiurg_commerce" in o.special_rules for o in own)
+                    or any(o.player == opponent and o.faction == "orks" for o in ships)):
+                from .ship_catalog import find_ship_class
+                entry = find_ship_class(s.ship_class)
+                base = entry.points_cost if entry else pts
+                destroyed_vp = pts + max(0, higher - base)
+        # Awakened Necron capital ships (and their hulks) are worth double VP
+        if "necron_awake" in s.special_rules:
+            destroyed_vp, crippled_vp = destroyed_vp * 2, crippled_vp * 2
 
         # Capital ships and solo escorts
         if s.status == "destroyed" or s.hits_remaining <= 0:
             # Destroyed: 100% points to opponent
+            pts = destroyed_vp
             result[opponent]["destroyed"] += pts
             result[opponent]["details"].append(
                 f"{s.name} destroyed: +{pts} VP")
 
         elif s.status in ("drifting_hulk", "burning_hulk"):
             # Hulk: treated as destroyed for VP
+            pts = destroyed_vp
             result[opponent]["destroyed"] += pts
             result[opponent]["details"].append(
                 f"{s.name} hulked: +{pts} VP")
 
-        elif s.is_disengaged and not s.is_crippled:
+        elif s.is_disengaged and not s.damage_crippled:
             # Non-crippled disengaged: 10% points
             vp = max(1, pts // 10)
             result[opponent]["disengaged"] += vp
             result[opponent]["details"].append(
                 f"{s.name} disengaged (scattered): +{vp} VP")
 
-        elif s.is_disengaged and s.is_crippled:
+        elif s.is_disengaged and s.damage_crippled:
             # Crippled and disengaged: 25% (crippled value)
-            vp = max(1, pts // 4)
+            vp = crippled_vp
             result[opponent]["crippled"] += vp
             result[opponent]["details"].append(
                 f"{s.name} disengaged crippled: +{vp} VP")
 
-        elif s.is_crippled:
+        elif s.damage_crippled:
             # Crippled on table: 25% points
-            vp = max(1, pts // 4)
+            vp = crippled_vp
             result[opponent]["crippled"] += vp
             result[opponent]["details"].append(
                 f"{s.name} crippled: +{vp} VP")
 
     # Holding the field
-    p1_holds = _holds_field(1, ships)
-    p2_holds = _holds_field(2, ships)
+    # (The Defence of Pelucidar: neither fleet holds the field)
+    no_field = getattr(gs, "scenario_mode", "") == "pelucidar"
+    p1_holds = not no_field and _holds_field(1, ships)
+    p2_holds = not no_field and _holds_field(2, ships)
 
     if p1_holds:
         hulk_vp = _hulk_points(ships)
@@ -96,55 +123,68 @@ def calculate_victory_points(gs: GameState) -> Dict:
         result[2]["details"].append(
             f"Holding the field: +{hulk_vp} VP from hulks")
 
+    # Scenario victory points (src/scenarios.py, e.g. Rescue's flagship)
+    from .scenarios import vp_bonus
+    vp_bonus(gs, result)
+
     # Totals
     for p in [1, 2]:
         result[p]["total"] = (result[p]["destroyed"] +
                                result[p]["crippled"] +
                                result[p]["disengaged"] +
-                               result[p]["holding_field"])
+                               result[p]["holding_field"] +
+                               result[p].get("scenario", 0))
 
     return result
 
 
-def _score_squadron(squadron: List[Ship], opponent: int, result: Dict):
-    """Score an escort squadron as a unit."""
+def _score_squadron(squadron: List[Ship], opponent: int, result: Dict,
+                    remastered: bool = False):
+    """Score an escort squadron once, as a single unit.
+
+    A squadron earns exactly one result, never a mix: destroyed (every ship)
+    = full points; crippled (at least half its ships destroyed, rounding up)
+    = 25%; scattered (not crippled, every surviving ship disengaged) = 10%.
+
+    Remastered option (p.121, `GameState.rule_remastered_escort_vp`): only a
+    squadron destroyed entirely scores its value; no 25% for a crippled
+    squadron left on the table; disengaged, 25% of the whole squadron's value
+    if crippled before leaving, else 10% ("total points value" read as the full
+    original squadron: unconfirmed).
+    """
     total_pts = sum(s.points_value for s in squadron)
     total_ships = len(squadron)
     destroyed = sum(1 for s in squadron
-                    if s.status in ("destroyed",) or s.hits_remaining <= 0)
+                    if s.status == "destroyed" or s.hits_remaining <= 0)
     disengaged = sum(1 for s in squadron if s.is_disengaged)
+    name = squadron[0].ship_class
 
     if destroyed == total_ships:
-        # Entire squadron destroyed
         result[opponent]["destroyed"] += total_pts
         result[opponent]["details"].append(
-            f"Squadron destroyed ({squadron[0].ship_class}): +{total_pts} VP")
-
-    elif destroyed + disengaged == total_ships:
-        # All destroyed or disengaged
-        destroyed_pts = sum(s.points_value for s in squadron
-                           if s.status == "destroyed" or s.hits_remaining <= 0)
-        result[opponent]["destroyed"] += destroyed_pts
-        disengaged_pts = sum(max(1, s.points_value // 10)
-                            for s in squadron if s.is_disengaged)
-        result[opponent]["disengaged"] += disengaged_pts
+            f"Squadron destroyed ({name}): +{total_pts} VP")
+        return
+    if remastered:
+        if not (disengaged and destroyed + disengaged == total_ships):
+            return                       # on the table: nothing (Remastered)
+        crippled = destroyed >= (total_ships + 1) // 2
+        vp = max(1, total_pts // 4) if crippled else max(1, total_pts // 10)
+        result[opponent]["disengaged"] += vp
         result[opponent]["details"].append(
-            f"Squadron scattered ({squadron[0].ship_class}): "
-            f"+{destroyed_pts} destroyed, +{disengaged_pts} disengaged")
+            f"Squadron disengaged{' crippled' if crippled else ''} ({name}): +{vp} VP")
+        return
 
-    else:
-        # Partially destroyed: check if crippled (half or more destroyed)
-        cripple_threshold = (total_ships + 1) // 2  # round up
-        if destroyed >= cripple_threshold:
-            vp = max(1, total_pts // 4)
-            result[opponent]["crippled"] += vp
-            # Also count fully destroyed ships
-            destroyed_pts = sum(s.points_value for s in squadron
-                               if s.status == "destroyed" or s.hits_remaining <= 0)
-            result[opponent]["destroyed"] += destroyed_pts
-            result[opponent]["details"].append(
-                f"Squadron crippled ({squadron[0].ship_class}): "
-                f"+{destroyed_pts} destroyed, +{vp} crippled")
+    if destroyed >= (total_ships + 1) // 2:
+        vp = max(1, total_pts // 4)
+        result[opponent]["crippled"] += vp
+        result[opponent]["details"].append(
+            f"Squadron crippled ({name}, {destroyed}/{total_ships} destroyed): +{vp} VP")
+
+    elif disengaged and destroyed + disengaged == total_ships:
+        vp = max(1, total_pts // 10)
+        result[opponent]["disengaged"] += vp
+        result[opponent]["details"].append(
+            f"Squadron scattered ({name}): +{vp} VP")
 
 
 def _holds_field(player: int, ships: List[Ship]) -> bool:
@@ -185,7 +225,7 @@ def format_vp_summary(vp_result: Dict, gs: GameState) -> str:
     for p in [1, 2]:
         pname = gs.player1_name if p == 1 else gs.player2_name
         data = vp_result[p]
-        lines.append(f"")
+        lines.append("")
         lines.append(f"--- {pname} ---")
         lines.append(f"  Enemies Destroyed:  {data['destroyed']} VP")
         lines.append(f"  Enemies Crippled:   {data['crippled']} VP")
@@ -193,7 +233,7 @@ def format_vp_summary(vp_result: Dict, gs: GameState) -> str:
         lines.append(f"  Holding the Field:  {data['holding_field']} VP")
         lines.append(f"  TOTAL:              {data['total']} VP")
         if data["details"]:
-            lines.append(f"  Breakdown:")
+            lines.append("  Breakdown:")
             for d in data["details"]:
                 lines.append(f"    {d}")
 

@@ -1,40 +1,85 @@
-"""BFG:XR Game Controls Panel - Turn flow, movement input, shooting controls"""
+"""BFG:XR Game Controls Panel — thin coordinator using composition."""
+import os
 import tkinter as tk
-from tkinter import messagebox, simpledialog
-import math
-from typing import Optional, Callable, List
+from contextlib import contextmanager, nullcontext
+from tkinter import messagebox, ttk
 
-from .models import Ship, SpecialOrder, OrdnanceMarker, OrdnanceType
-from .game_state import GameState
+from .models import Ship, SpecialOrder
 from .turn_controller import TurnController
-from .dice import DiceRoller
-from .movement import (MoveCommand, validate_movement, execute_movement,
-                       resolve_aaf_speed, MIN_TURN_DISTANCE)
-from .combat import (check_weapon_in_arc, check_weapon_in_range,
-                     resolve_batteries, resolve_lances, resolve_nova_cannon,
-                     apply_damage, check_los_clear)
-from .end_phase import resolve_end_phase
+from .game_context import GameContext
+from .movement_panel import MovementPanel
+from .combat_panel import CombatPanel
+from .ordnance_panel import OrdnancePanel
+from .end_phase_panel import EndPhasePanel
+from .aa_panel import AAPanelMixin
 
 
-class GamePanel:
+class GamePanel(AAPanelMixin):
     """
     Controls panel for running the game turn-by-turn.
     Attaches to an existing Tk frame (the side panel of BoardView).
+    Delegates all phase logic to composed panel objects sharing a GameContext.
     """
 
     def __init__(self, parent_frame: tk.Frame, turn_controller: TurnController,
                  board_view, root: tk.Tk):
         self.parent = parent_frame
-        self.tc = turn_controller
-        self.gs = turn_controller.gs
-        self.dice = turn_controller.dice
-        self.board = board_view
         self.root = root
 
-        # Make dice use our root for dialogs
-        self.dice.root = root
+        # Build log widget first — GameContext needs a reference to it
+        self._build_log_widget()
 
+        # Compose shared context and panels
+        tc = turn_controller
+        gs = turn_controller.gs
+        dice = turn_controller.dice
+        dice.root = root
+
+        self.ctx = GameContext(tc=tc, gs=gs, dice=dice,
+                               board=board_view, root=root,
+                               log_widget=self.log_text)
+
+        self.movement  = MovementPanel(self.ctx)
+        self.combat    = CombatPanel(self.ctx)
+        self.ordnance  = OrdnancePanel(self.ctx)
+        self.end_phase = EndPhasePanel(self.ctx)
+
+        # Wire cross-panel references into context
+        self.ctx.movement = self.movement
+        self.ctx.ordnance = self.ordnance
+        self.ctx.combat = self.combat
+        # Engine hook: ships about to take damage from ramming, explosions or
+        # asteroid fields may brace first (s.7)
+        tc.gs.brace_hook = self._brace_hook
+        tc.gs.raid_reroll_hook = self._raid_reroll_hook
+        tc.gs.ld_reroll_hook = self._ld_reroll_hook
+        tc.gs.undivided_hook = self._undivided_hook
+        tc.gs.crit_reroll_hook = self._crit_reroll_hook
+        tc.gs.turret_choice_hook = self._turret_choice_hook
+        tc.gs.mr_suppress_hook = self._mr_suppress_hook
+        tc.gs.reserve_hook = self._reserve_hook
+        tc.gs.low_orbit_hook = self._low_orbit_hook
+        tc.gs.assault_hook = self._assault_hook
+        tc.gs.overcharge_hook = self._overcharge_hook
+
+        self._game_over = False
+        self._ai_thinking = False   # expert AI search running on a worker thread
+        self._ai_epoch = 0          # bumped on load so stale AI callbacks do nothing
+        self.ctx.actions_locked = self._actions_locked
+
+        # Build the rest of the UI and wire drag callbacks
         self._build_ui()
+        self.movement.wire_drag_callbacks()
+
+    # ── UI construction ───────────────────────────────────────────────────────
+
+    def _build_log_widget(self):
+        """Build the log text widget (needed before GameContext is created)."""
+        self.log_text = tk.Text(
+            self.parent, bg="#0a0a1a", fg="#88CC88",
+            font=("Consolas", 8), wrap=tk.WORD, height=12,
+            state=tk.DISABLED, borderwidth=1, relief=tk.SUNKEN)
+        # Packed later in _build_ui; stored here so GameContext can use it
 
     def _build_ui(self):
         """Build the game controls UI."""
@@ -64,36 +109,55 @@ class GamePanel:
         self.btn_frame = tk.Frame(self.parent, bg="#1a1a2e")
         self.btn_frame.pack(fill=tk.X, padx=5, pady=3)
 
-        # Start game button (shown initially)
         self.start_btn = tk.Button(
             self.btn_frame, text="Start Game", command=self._start_game,
-            bg="#336633", fg="white", font=("Consolas", 10, "bold"),
-            width=25)
+            bg="#336633", fg="white", font=("Consolas", 10, "bold"), width=25)
         self.start_btn.pack(pady=3)
 
-        # Phase action buttons (hidden until game starts)
         self.move_btn = tk.Button(
-            self.btn_frame, text="Move Ship", command=self._move_ship_dialog,
+            self.btn_frame, text="Move Ship",
+            command=self.movement._move_ship_dialog,
             bg="#333366", fg="white", font=("Consolas", 9), width=25)
+
+        self.move_squad_btn = tk.Button(
+            self.btn_frame, text="Move Squadron",
+            command=self.movement._move_squadron_dialog,
+            bg="#334466", fg="white", font=("Consolas", 9), width=25)
 
         self.order_btn = tk.Button(
             self.btn_frame, text="Issue Special Order",
-            command=self._special_order_dialog,
+            command=self.movement._special_order_dialog,
             bg="#333366", fg="white", font=("Consolas", 9), width=25)
 
         self.fire_btn = tk.Button(
-            self.btn_frame, text="Fire Weapons", command=self._fire_dialog,
+            self.btn_frame, text="Fire Weapons",
+            command=self.combat._fire_dialog,
             bg="#663333", fg="white", font=("Consolas", 9), width=25)
+
+        self.combine_fire_btn = tk.Button(
+            self.btn_frame, text="Combine Squadron Fire",
+            command=self.combat._combine_squadron_fire_dialog,
+            bg="#663344", fg="white", font=("Consolas", 9), width=25)
+
+        self.target_squad_btn = tk.Button(
+            self.btn_frame, text="Fire at Enemy Squadron",
+            command=self.combat._squadron_target_dialog,
+            bg="#663355", fg="white", font=("Consolas", 9), width=25)
 
         self.fire_ord_btn = tk.Button(
             self.btn_frame, text="Fire at Ordnance",
-            command=self._fire_at_ordnance_dialog,
+            command=self.combat._fire_at_ordnance_dialog,
             bg="#553344", fg="white", font=("Consolas", 9), width=25)
 
         self.launch_btn = tk.Button(
             self.btn_frame, text="Launch Ordnance",
-            command=self._launch_ordnance_dialog,
+            command=self.ordnance._launch_ordnance_dialog,
             bg="#663333", fg="white", font=("Consolas", 9), width=25)
+
+        self.combine_ord_btn = tk.Button(
+            self.btn_frame, text="Combine Ordnance Launch",
+            command=self.ordnance._combine_ordnance_dialog,
+            bg="#664422", fg="white", font=("Consolas", 9), width=25)
 
         self.end_phase_btn = tk.Button(
             self.btn_frame, text="End Phase >>",
@@ -102,7 +166,7 @@ class GamePanel:
 
         self.undo_btn = tk.Button(
             self.btn_frame, text="Undo Ship Movement",
-            command=self._undo_movement,
+            command=self.movement._undo_movement,
             bg="#553333", fg="white", font=("Consolas", 9), width=25)
 
         self.disengage_btn = tk.Button(
@@ -110,9 +174,19 @@ class GamePanel:
             command=self._disengage_dialog,
             bg="#555533", fg="white", font=("Consolas", 9), width=25)
 
+        self.craft_orders_btn = tk.Button(
+            self.btn_frame, text="Attack Craft Orders",
+            command=self.ordnance._craft_orders_dialog,
+            bg="#445566", fg="white", font=("Consolas", 9), width=25)
+
+        self.fire_tb_btn = tk.Button(
+            self.btn_frame, text="Fire Torpedo Bombers",
+            command=self.ordnance._fire_torpedo_bombers_dialog,
+            bg="#554466", fg="white", font=("Consolas", 9), width=25)
+
         self.move_missile_btn = tk.Button(
             self.btn_frame, text="Move Tau Missiles",
-            command=self._move_tau_missiles_dialog,
+            command=self.ordnance._move_tau_missiles_dialog,
             bg="#445544", fg="white", font=("Consolas", 9), width=25)
 
         self.vp_btn = tk.Button(
@@ -120,47 +194,237 @@ class GamePanel:
             command=self._show_victory_points,
             bg="#334455", fg="white", font=("Consolas", 9), width=25)
 
+        # Settings button — always visible
+        self.settings_btn = tk.Button(
+            self.parent, text="Settings", command=self._settings_dialog,
+            bg="#2a2a44", fg="#aaaacc", font=("Consolas", 8), width=25)
+        self.settings_btn.pack(pady=2, padx=5)
+
+        # Save / Load / Export row — always visible
+        sl_frame = tk.Frame(self.parent, bg="#1a1a2e")
+        sl_frame.pack(pady=2, padx=5, fill=tk.X)
+        tk.Button(sl_frame, text="Save Game", command=self._save_game,
+                  bg="#2a3d2a", fg="#aaccaa", font=("Consolas", 8),
+                  width=10).pack(side=tk.LEFT, padx=1)
+        self.ctx.board.save_game_fn = self._save_game
+        self.ctx.board.load_game_fn = self._load_game
+        tk.Button(sl_frame, text="Load Game", command=self._load_game,
+                  bg="#2a2a3d", fg="#aaaacc", font=("Consolas", 8),
+                  width=10).pack(side=tk.LEFT, padx=1)
+        tk.Button(sl_frame, text="Export .bfg", command=self._export_match,
+                  bg="#28283a", fg="#9999bb", font=("Consolas", 8),
+                  width=10).pack(side=tk.LEFT, padx=1)
+        tk.Button(sl_frame, text="Export Map", command=self._export_map,
+                  bg="#283038", fg="#99aabb", font=("Consolas", 8),
+                  width=10).pack(side=tk.LEFT, padx=1)
+        # LAN multiplayer row
+        mp_frame = tk.Frame(self.parent, bg="#1a1a2e")
+        mp_frame.pack(pady=1, padx=5, fill=tk.X)
+        tk.Button(mp_frame, text="Host LAN Game", command=self._show_host_dialog,
+                  bg="#2a3344", fg="#99aacc", font=("Consolas", 8),
+                  width=14).pack(side=tk.LEFT, padx=1)
+        tk.Button(mp_frame, text="Join LAN Game", command=self._show_join_dialog,
+                  bg="#2a3344", fg="#99aacc", font=("Consolas", 8),
+                  width=14).pack(side=tk.LEFT, padx=1)
+
         # Log display
         tk.Frame(self.parent, bg="#333355", height=2).pack(fill=tk.X, padx=5, pady=3)
         tk.Label(self.parent, text="Game Log", bg="#1a1a2e", fg="#888888",
                  font=("Consolas", 9)).pack(padx=5)
-
-        self.log_text = tk.Text(
-            self.parent, bg="#0a0a1a", fg="#88CC88",
-            font=("Consolas", 8), wrap=tk.WORD, height=12,
-            state=tk.DISABLED, borderwidth=1, relief=tk.SUNKEN)
         self.log_text.pack(padx=5, pady=3, fill=tk.BOTH, expand=True)
 
+    def _brace_hook(self, ship, attacker_key, attacker_name, expected):
+        """GameState.brace_hook: ask the ship's player (the AI decides for its
+        own ships). Only on the Tk main thread; elsewhere nothing is asked."""
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            return False
+        from .combat import squadron_group
+        return self.combat._brace_before_attack(
+            attacker_key, attacker_name, ship, expected,
+            group=squadron_group(ship, self.ctx.gs.get_ships()))
+
+    def _mr_suppress_hook(self, ship, group):
+        """GameState.mr_suppress_hook (s.27): how many of the wave's multi-role
+        fighter-bombers suppress turrets instead of attacking (before the
+        turrets fire; at least one squadron must attack)."""
+        import threading
+        from .waves import mr_suppress_candidates
+        if threading.current_thread() is not threading.main_thread():
+            return 0
+        n_mr = len(mr_suppress_candidates(group))
+        from .waves import best_mr_suppress
+        from .ordnance import turret_hit_on, ordnance_turrets
+        from .choice_dialog import choose
+        from .ordnance import get_massed_turret_bonus
+        t = ordnance_turrets(ship, self.ctx.gs)
+        best = best_mr_suppress(group, t, (7 - turret_hit_on(ship)) / 6.0, ship.lowest_armor_value,
+                                shots=t + get_massed_turret_bonus(ship, self.ctx.gs.get_ships()))
+        return choose(
+            self.ctx.root, "Suppress turrets?",
+            f"A wave of {len(group)} squadrons is attacking {ship.name} "
+            f"({ship.effective_turrets} turrets). {n_mr} multi-role squadron(s) may suppress "
+            f"turrets instead of attacking (s.27): each surviving one gives a bomber exactly 3 "
+            f"attacks. At least one squadron must attack. How many suppress?",
+            [(str(k), k) for k in range(n_mr + 1)], best)
+
+    def _turret_choice_hook(self, ship, craft, torps):
+        """GameState.turret_choice_hook (s.28): attack craft and torpedoes /
+        mines attack this ship in one phase; its turrets may defend against
+        one kind only. Off the main thread nothing is asked (AI choice)."""
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            return None
+        tdesc = ", ".join(f"{m.ordnance_type} S{m.strength}" for m in torps)
+        from .ordnance import choose_turret_target
+        from .choice_dialog import choose
+        best = choose_turret_target(ship, craft, torps, self.ctx.gs, ai=True)
+        return choose(
+            self.ctx.root, "Turrets: attack craft or torpedoes?",
+            f"{ship.name} is attacked by {len(craft)} attack craft squadron(s) and by {tdesc}. "
+            f"Its turrets can defend against only one kind this phase (s.28).",
+            [("Shoot the attack craft", "craft"), ("Shoot the torpedoes / mines", "torp")], best)
+
+    def _crit_reroll_hook(self, player, text, best=False):
+        """GameState.crit_reroll_hook (Mark of Tzeentch): ask the owner. Off the
+        main thread nothing is asked (the engine's AI choice applies)."""
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            return False
+        from .choice_dialog import choose
+        return choose(self.ctx.root, "Mark of Tzeentch", f"Player {player}: {text}",
+                      [("Re-roll", True), ("Keep", False)], best)
+
+    def _first_turn_roll_off(self):
+        """s.2 First turn: roll off; the winner moves first or second (the AI
+        by first_turn.ai_moves_first, a human asked with "Auto (best)")."""
+        from .first_turn import roll_off, ai_moves_first
+        from .dice import DiceRoller
+        gs = self.ctx.gs
+        auto = DiceRoller(mode="auto")
+        winner, (a, b) = roll_off(auto if self.ctx.is_ai_controlled(1) else self.ctx.dice,
+                                  auto if self.ctx.is_ai_controlled(2) else self.ctx.dice)
+        best = ai_moves_first(gs, winner)
+        if self.ctx.is_ai_controlled(winner):
+            first = best
+        else:
+            from .choice_dialog import choose
+            first = choose(self.ctx.root, "First Turn",
+                           f"Roll-off: player 1 rolled {a}, player 2 rolled {b}. "
+                           f"Player {winner} wins: move first or second?",
+                           [("Move first", True), ("Move second", False)], best)
+        gs.first_player = winner if first else 3 - winner
+        self.ctx.log(f"First turn: player {winner} wins the roll-off ({a} v {b}) and "
+                     f"chooses to move {'first' if first else 'second'}")
+
+    def _undivided_hook(self, ship, leader, label):
+        """GameState.undivided_hook: Mark of Chaos Undivided, once per game
+        before a Leadership test or command check. A human owner is asked
+        ("Auto (best)" is the AI's rule); the AI decides for its own fleet.
+        Main thread only."""
+        import threading
+        from .chaos_undivided import ai_wants_undivided
+        best = ai_wants_undivided(self.ctx.gs, ship, leader, label)
+        if (threading.current_thread() is not threading.main_thread()
+                or self.ctx.is_ai_controlled(ship.player)):
+            return best
+        from .choice_dialog import choose
+        return choose(self.ctx.root, "Mark of Chaos Undivided",
+                      f"{ship.name} is about to test Leadership ({label}, Ld {ship.leadership}). "
+                      f"Use the Mark of Chaos Undivided now (once per game): the whole fleet "
+                      f"uses {leader.name}'s Ld {leader.leadership} until the end of the turn?",
+                      [("Use it", True), ("Not now", False)], best)
+
+    def _ld_reroll_hook(self, ship, label, roll, needed):
+        """GameState.ld_reroll_hook: a failed Leadership test may use a fleet
+        commander re-roll (s.5). A human owner is asked; the AI uses one while
+        it has two or more left. Main thread only."""
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            return False
+        tc = self.ctx.tc
+        left = tc.get_fleet_rerolls(ship.player, ship)
+        if left <= 0:
+            return False
+        if self.ctx.is_ai_controlled(ship.player):
+            from .ai_rerolls import should_reroll     # importance-based (owner guidance)
+            use = should_reroll(ship, label, self.ctx.gs, left)
+        else:
+            from .ai_rerolls import should_reroll
+            from .choice_dialog import choose
+            use = choose(
+                self.ctx.root, "Leadership Test Failed - Re-roll?",
+                f"{ship.name}: {label} failed (rolled {roll} vs Ld {needed}). "
+                f"Use a fleet commander re-roll ({left} left)?",
+                [("Re-roll", True), ("Don't", False)],
+                should_reroll(ship, label, self.ctx.gs, left))
+        if use and tc.use_fleet_reroll(ship.player, ship):
+            self.ctx.log(f"  {ship.name}: fleet re-roll for {label}")
+            return True
+        return False
+
+    def _raid_reroll_hook(self, owner, roll, effective, target):
+        """GameState.raid_reroll_hook (Wings of Fury): ask a human owner whether
+        to re-roll a Thunderhawk raid. None lets the engine decide (AI owner,
+        or off the Tk main thread)."""
+        import threading
+        gs = self.ctx.gs
+        if (threading.current_thread() is not threading.main_thread()
+                or gs.ai_spectator or (gs.ai_player is not None and owner == gs.ai_player)):
+            return None
+        from .hit_and_run import describe_raid_result
+        shown = f"{roll}" + (f" ({effective} after modifiers)" if effective != roll else "")
+        from .hit_and_run import best_raid_reroll
+        from .choice_dialog import choose
+        return choose(
+            self.ctx.root, "Wings of Fury",
+            f"Thunderhawk raid on {target.name} rolled {shown}: "
+            f"{describe_raid_result(effective, target)}. Re-roll it? The second result "
+            f"stands, even if it is worse.",
+            [("Re-roll", True), ("Keep", False)],
+            best_raid_reroll(roll, effective, target, gs, owner))
+
     def _update_phase_display(self):
-        """Update the phase/turn indicators."""
-        self.turn_label.config(text=f"Turn {self.gs.turn_number}")
-        self.phase_label.config(text=f"Phase: {self.gs.current_phase.upper()}")
-        pname = self.gs.player1_name if self.gs.active_player == 1 else self.gs.player2_name
+        """Update the phase/turn indicators and show the correct buttons."""
+        gs = self.ctx.gs
+        self.turn_label.config(text=f"Turn {gs.turn_number}")
+        self.phase_label.config(text=f"Phase: {gs.current_phase.upper()}")
+        pname = gs.player1_name if gs.active_player == 1 else gs.player2_name
         self.player_label.config(text=f"Active: {pname}")
 
-        # Show/hide buttons based on phase
-        # First hide all
-        for w in (self.move_btn, self.order_btn, self.fire_btn,
-                  self.fire_ord_btn, self.launch_btn, self.end_phase_btn,
+        for w in (self.move_btn, self.move_squad_btn, self.order_btn, self.fire_btn,
+                  self.combine_fire_btn, self.target_squad_btn, self.fire_ord_btn,
+                  self.launch_btn, self.combine_ord_btn, self.end_phase_btn,
                   self.undo_btn, self.start_btn, self.disengage_btn,
-                  self.move_missile_btn, self.vp_btn):
+                  self.move_missile_btn, self.craft_orders_btn, self.vp_btn,
+                  self.fire_tb_btn):
             w.pack_forget()
 
-        phase = self.gs.current_phase
-        if phase == "movement":
+        phase = gs.current_phase
+        if phase == "command":                 # alternate activation's orders
+            self.order_btn.pack(pady=2)
+            self.end_phase_btn.pack(pady=5)
+            self.vp_btn.pack(pady=2)
+        elif phase == "movement":
             self.order_btn.pack(pady=2)
             self.move_btn.pack(pady=2)
+            self.move_squad_btn.pack(pady=2)
             self.disengage_btn.pack(pady=2)
             self.undo_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
         elif phase == "shooting":
             self.fire_btn.pack(pady=2)
+            self.combine_fire_btn.pack(pady=2)
+            self.target_squad_btn.pack(pady=2)
             self.fire_ord_btn.pack(pady=2)
-            self.launch_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
         elif phase == "ordnance":
+            self.launch_btn.pack(pady=2)
+            self.combine_ord_btn.pack(pady=2)
+            self.craft_orders_btn.pack(pady=2)
+            self.fire_tb_btn.pack(pady=2)
             self.move_missile_btn.pack(pady=2)
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
@@ -168,187 +432,959 @@ class GamePanel:
             self.end_phase_btn.pack(pady=5)
             self.vp_btn.pack(pady=2)
 
-    def _append_log(self, text: str):
-        """Add text to the game log display."""
-        self.log_text.config(state=tk.NORMAL)
-        self.log_text.insert(tk.END, text + "\n")
-        self.log_text.see(tk.END)
-        self.log_text.config(state=tk.DISABLED)
+        state = tk.DISABLED if self._actions_locked() else tk.NORMAL
+        for w in (self.move_btn, self.move_squad_btn, self.order_btn, self.fire_btn,
+                  self.combine_fire_btn, self.target_squad_btn, self.fire_ord_btn,
+                  self.launch_btn, self.combine_ord_btn, self.end_phase_btn,
+                  self.undo_btn, self.disengage_btn, self.move_missile_btn,
+                  self.craft_orders_btn, self.fire_tb_btn):
+            w.config(state=state)
 
-    def _log_lines(self, lines):
-        for line in lines:
-            self._append_log(line)
+        if self._game_over:
+            self.phase_label.config(text="GAME OVER")
+        elif self._ai_thinking:
+            self.phase_label.config(text="AI Thinking…")
+        elif self._is_ai_turn():
+            self.player_label.config(text=f"Active: {pname} (AI)")
 
-    # --- Game Flow ---
+    def _is_ai_turn(self) -> bool:
+        gs = self.ctx.gs
+        if gs.current_phase == "setup":
+            return False
+        return gs.ai_spectator or (
+            gs.ai_player is not None and gs.active_player == gs.ai_player)
 
-    def _start_game(self):
-        self.tc.start_game()
-        self.tc.begin_phase("movement")
-        self._process_movement_phase_start()
-        self._update_phase_display()
-        self._append_log(f"=== GAME START ===")
-        self._append_log(f"Turn 1 - {self.gs.player1_name}")
-        self._append_log(f"Movement Phase")
-        self.board.redraw()
+    @contextmanager
+    def _auto_dice(self):
+        """Roll automatically for the duration (rolls made on the AI's behalf)."""
+        gs, dice = self.ctx.gs, self.ctx.dice
+        old = (gs.dice_mode, dice.mode)
+        gs.dice_mode = dice.mode = "auto"
+        try:
+            yield
+        finally:
+            gs.dice_mode, dice.mode = old
 
-    def _process_movement_phase_start(self):
-        """Process things that happen at the start of each movement phase."""
-        from .end_phase import resolve_hulk_drift
-        hulk_logs = resolve_hulk_drift(self.gs, self.dice)
-        if hulk_logs:
-            self._log_lines(hulk_logs)
-            self.board.redraw()
+    def _auto_dice_if(self, condition: bool):
+        return self._auto_dice() if condition else nullcontext()
 
-    def _resolve_end_phase_interactive(self):
-        """Run end phase with interactive repair choices."""
-        from .end_phase import (resolve_fire_damage, get_repair_info,
-                                 apply_repair_choices, remove_blast_markers,
-                                 remove_brace_orders)
+    def _actions_locked(self) -> bool:
+        return self._game_over or self._ai_thinking or self._is_ai_turn()
 
-        self._append_log("=== END PHASE ===")
+    def _busy_with_ai(self) -> bool:
+        """Tell the player to wait if the AI search is mid-flight."""
+        if self._ai_thinking:
+            messagebox.showinfo("AI Thinking",
+                                "The AI is still planning its move. Try again in a moment.")
+            return True
+        return False
 
-        # 1. Fire damage
-        for s_dict in self.gs.ships:
-            ship = Ship.from_dict(s_dict)
-            if ship.is_destroyed or ship.is_disengaged:
-                continue
-            if ship.status in ("drifting_hulk", "burning_hulk"):
-                continue
-            fire_logs = resolve_fire_damage(ship, self.dice, self.gs)
-            self._log_lines(fire_logs)
-            if ship.hits_remaining <= 0:
-                self._check_destruction(ship)
+    # ── Settings dialog ───────────────────────────────────────────────────────
 
-        # 2. Damage control with player choice
-        for s_dict in list(self.gs.ships):
-            ship = Ship.from_dict(s_dict)
-            if ship.is_destroyed or ship.is_disengaged:
-                continue
-            if ship.status in ("drifting_hulk", "burning_hulk"):
-                continue
-
-            info = get_repair_info(ship, self.dice, self.gs)
-            if info["sixes"] > 0 and info["repairable"]:
-                repairs_available = min(info["sixes"], len(info["repairable"]))
-
-                touch_msg = (f" (halved, {info['touching_blast']} blast markers)"
-                            if info.get("touching_blast", 0) > 0 else "")
-                self._append_log(
-                    f"{ship.name}: {info['num_dice']} dice{touch_msg}, "
-                    f"{info['sixes']} repair(s) available!")
-
-                # Show repair choice dialog
-                choices = self._repair_choice_dialog(
-                    ship, info["repairable"], repairs_available)
-                if choices:
-                    repair_logs = apply_repair_choices(ship, choices, self.gs)
-                    self._log_lines(repair_logs)
-                else:
-                    self._append_log(f"  {ship.name}: no repairs applied")
-            elif info["num_dice"] > 0:
-                self._append_log(
-                    f"{ship.name}: {info['num_dice']} dice, no 6s rolled")
-
-        # 3. Remove blast markers
-        bm_logs = remove_blast_markers(self.gs, self.dice)
-        self._log_lines(bm_logs)
-
-        # 4. Remove expired brace orders
-        brace_logs = remove_brace_orders(self.gs)
-        self._log_lines(brace_logs)
-
-        self.board.redraw()
-
-    def _repair_choice_dialog(self, ship: Ship, repairable: List[str],
-                               max_repairs: int) -> List[str]:
-        """Show dialog for player to choose which crits to repair."""
-        if max_repairs >= len(repairable):
-            # Can repair everything, no choice needed
-            return list(repairable)
-
-        if max_repairs == 1 and len(repairable) == 1:
-            return list(repairable)
-
+    def _settings_dialog(self):
+        """In-game settings dialog — changes take effect immediately."""
+        if self._busy_with_ai():
+            return
+        gs = self.ctx.gs
         dialog = tk.Toplevel(self.root)
-        dialog.title(f"Repair Choice - {ship.name}")
-        dialog.geometry("400x350")
+        dialog.title("Game Settings")
+        dialog.geometry("520x780")
         dialog.transient(self.root)
+        dialog.focus_set()
+        dialog.lift()
 
-        tk.Label(dialog, text=f"{ship.name}: Choose {max_repairs} crit(s) to repair",
-                 font=("Consolas", 10, "bold")).pack(pady=5)
+        tk.Label(dialog, text="Game Settings",
+                 font=("Consolas", 12, "bold")).pack(pady=8)
+        tk.Label(dialog, text="Changes apply immediately — no need to restart.",
+                 font=("Consolas", 8), fg="#888888").pack()
 
-        chosen = []
-        check_vars = {}
-        for crit_desc in repairable:
-            var = tk.BooleanVar(value=False)
-            check_vars[crit_desc] = var
-            tk.Checkbutton(dialog, text=crit_desc, variable=var,
-                           font=("Consolas", 9)).pack(anchor=tk.W, padx=20)
+        dice_frame = tk.LabelFrame(dialog, text="Dice Mode", font=("Consolas", 9, "bold"),
+                                   padx=8, pady=4)
+        dice_frame.pack(fill=tk.X, padx=15, pady=6)
+        dice_var = tk.StringVar(value=gs.dice_mode)
+        for label, val in [("Mixed (popup with manual/auto choice)", "mixed"),
+                            ("Auto (computer RNG, no prompts)", "auto"),
+                            ("Manual (always prompt for each die)", "manual")]:
+            tk.Radiobutton(dice_frame, text=label, variable=dice_var, value=val,
+                           font=("Consolas", 8)).pack(anchor=tk.W)
+        tk.Label(dice_frame,
+                 text="Mixed: each roll shows a popup — enter dice manually or click Auto-Roll.\n"
+                      "      Both per-die entry and number-of-successes shortcut are always available.",
+                 font=("Consolas", 7), fg="#888888", justify=tk.LEFT).pack(anchor=tk.W)
 
-        result = [None]
+        move_frame = tk.LabelFrame(dialog, text="Movement", font=("Consolas", 9, "bold"),
+                                   padx=8, pady=4)
+        move_frame.pack(fill=tk.X, padx=15, pady=4)
+        pass_var = tk.BooleanVar(value=gs.allow_movement_pass)
+        tk.Checkbutton(move_frame,
+                       text="Allow movement pass (skip moving ships without penalty)",
+                       variable=pass_var, font=("Consolas", 8)).pack(anchor=tk.W)
 
-        def confirm():
-            selected = [desc for desc, var in check_vars.items() if var.get()]
-            if len(selected) > max_repairs:
-                messagebox.showwarning("Too Many",
-                    f"Select at most {max_repairs} crit(s) to repair.")
-                return
-            result[0] = selected
+        rules_frame = tk.LabelFrame(dialog, text="Optional Rules", font=("Consolas", 9, "bold"),
+                                    padx=8, pady=4)
+        rules_frame.pack(fill=tk.X, padx=15, pady=4)
+        rule_defs = [
+            # s.40: these three aren't built yet; the boxes have no effect (audit)
+            ("rule_fighting_sunward",          "Fighting Sunward (double range shifts, s.40)"),
+            ("rule_solar_flares",              "Solar Flares (s.40)"),
+            ("rule_radiation_bursts",          "Radiation Bursts (s.40)"),
+            ("rule_boarding",                  "Boarding Actions"),
+            ("rule_ramming",                   "Ramming"),
+            ("rule_teleport",                  "Teleport Attacks (not Tau)"),
+            ("rule_hit_and_run",               "Hit and Run Raids"),
+            ("rule_turret_suppression_remastered",
+             "Turret Suppression: Remastered mode\n"
+             "  (default XR: fighters suppress to 3 fixed attacks)"),
+        ]
+        rule_vars = {}
+        for attr, label in rule_defs:
+            var = tk.BooleanVar(value=getattr(gs, attr))
+            rule_vars[attr] = var
+            tk.Checkbutton(rules_frame, text=label, variable=var,
+                           font=("Consolas", 8), justify=tk.LEFT).pack(anchor=tk.W)
+
+        adv_frame = tk.LabelFrame(dialog, text="Advanced", font=("Consolas", 9, "bold"),
+                                  padx=8, pady=4)
+        adv_frame.pack(fill=tk.X, padx=15, pady=4)
+        margin_row = tk.Frame(adv_frame)
+        margin_row.pack(fill=tk.X)
+        tk.Label(margin_row, text="Contact margin (cm):", font=("Consolas", 8)).pack(side=tk.LEFT)
+        margin_var = tk.StringVar(value=str(gs.contact_margin_cm))
+        tk.Entry(margin_row, textvariable=margin_var, width=6,
+                 font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+        tk.Label(margin_row, text="(wiggle room for contact distance checks)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
+        blast_row = tk.Frame(adv_frame)
+        blast_row.pack(fill=tk.X, pady=(4, 0))
+        tk.Label(blast_row, text="Blast marker rules:", font=("Consolas", 8)).pack(side=tk.LEFT)
+        blast_labels = {"standard": "XR standard", "modern": "Modern (optional, s.11)",
+                        "remastered": "Remastered (s.11)"}
+        blast_var = tk.StringVar(value=blast_labels.get(gs.blast_marker_rules, "XR standard"))
+        ttk.Combobox(blast_row, textvariable=blast_var, values=list(blast_labels.values()),
+                     state="readonly", width=24, font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        spill_var = tk.BooleanVar(value=gs.rule_remastered_spillover)
+        tk.Checkbutton(adv_frame, text="Remastered spill-over limit (one round's blast markers "
+                       "touch at most the target and one other ship)",
+                       variable=spill_var, font=("Consolas", 8)).pack(anchor=tk.W)
+        esc_vp_var = tk.BooleanVar(value=getattr(gs, "rule_remastered_escort_vp", False))
+        tk.Checkbutton(adv_frame, text="Remastered escort squadron VP (p.121: only a whole "
+                       "squadron destroyed scores; disengaged 25% if crippled, else 10%)",
+                       variable=esc_vp_var, font=("Consolas", 8)).pack(anchor=tk.W)
+        # Alternate activation (To do 13, optional, outside the booklet): chosen
+        # before the game starts; the open framework items are settings too
+        aa_row = tk.Frame(adv_frame)
+        aa_row.pack(anchor=tk.W)
+        tk.Label(aa_row, text="Turn system:", font=("Consolas", 8)).pack(side=tk.LEFT)
+        aa_labels = {"igougo": "IGOUGO (booklet)", "aa": "Alternate activation (draft)"}
+        aa_var = tk.StringVar(value=aa_labels.get(getattr(gs, "turn_system", "igougo")))
+        started = gs.current_phase != "setup"
+        ttk.Combobox(aa_row, textvariable=aa_var, values=list(aa_labels.values()),
+                     state="disabled" if started else "readonly", width=26,
+                     font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        aa_set = dict(getattr(gs, "aa_settings", {}) or {})
+        aa_modes = {"bag_adjusted": "System 3: adjusted bag", "bag": "System 2: bag",
+                    "fixed_initiative": "System 1: fixed initiative"}
+        aa_mode_var = tk.StringVar(value=aa_modes[aa_set.get("order_mode", "bag_adjusted")])
+        aa_row2 = tk.Frame(adv_frame)
+        aa_row2.pack(anchor=tk.W)
+        ttk.Combobox(aa_row2, textvariable=aa_mode_var, values=list(aa_modes.values()),
+                     state="disabled" if started else "readonly", width=26,
+                     font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        aa_order_var = tk.StringVar(value=aa_set.get("phase_order", "shoot_first"))
+        ttk.Combobox(aa_row2, textvariable=aa_order_var, values=["shoot_first", "move_first"],
+                     state="disabled" if started else "readonly", width=12,
+                     font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+        aa_force_var = tk.BooleanVar(value=aa_set.get("allow_forcing", False))
+        tk.Checkbutton(adv_frame, text="AA System 1: allow forcing an activation with a re-roll",
+                       variable=aa_force_var, font=("Consolas", 8),
+                       state=tk.DISABLED if started else tk.NORMAL).pack(anchor=tk.W)
+        aa_launch_var = tk.StringVar(value=aa_set.get("launch_phase", "ordnance_b"))
+        ttk.Combobox(aa_row2, textvariable=aa_launch_var, values=["ordnance_b", "ordnance_a"],
+                     state="disabled" if started else "readonly", width=11,
+                     font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+
+        camp_frame = tk.LabelFrame(dialog, text="Campaign / Scenario", font=("Consolas", 9, "bold"),
+                                   padx=8, pady=4)
+        camp_frame.pack(fill=tk.X, padx=15, pady=4)
+
+        # ── Scenario mode ────────────────────────────────────────────────────
+        locked = gs.turn_number > 1
+        mode_row = tk.Frame(camp_frame)
+        mode_row.pack(fill=tk.X, pady=2)
+        tk.Label(mode_row, text="Scenario:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        scen_modes = ["standard", "kill_admiral", "destroy_ship",
+                      "protect_ship", "capture_artefact", "cruiser_clash", "chance_encounter",
+                      "the_bait", "parols_bait", "raiders", "blockade_run", "daemon_blockade", "rearguard", "alien_intervention",
+                      "surprise_attack", "navigate_storm", "destroy_docks", "convoy_narrative", "gauntlet", "exterminatus",
+                      "planetary_assault", "craftworld_assault", "pelucidar", "macharia", "escalating_engagement", "fleet_engagement", "confrontation", "line_breaker", "ambush",
+                      "convoy_matched", "space_assault", "rescue", "warp_storm", "planet_strike",
+                      "domination"]
+        scen_var = tk.StringVar(value=gs.scenario_mode)
+        scen_cb = ttk.Combobox(mode_row, textvariable=scen_var, values=scen_modes,
+                                state="disabled" if locked else "readonly", width=22,
+                                font=("Consolas", 8))
+        scen_cb.pack(side=tk.LEFT)
+        if locked:
+            tk.Label(mode_row, text="(locked after turn 1)",
+                     font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── Objective ship ───────────────────────────────────────────────────
+        obj_row = tk.Frame(camp_frame)
+        obj_row.pack(fill=tk.X, pady=2)
+        tk.Label(obj_row, text="Objective ship:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        all_ships = gs.get_ships()
+        ship_names = [f"P{s.player} {s.name}" for s in all_ships]
+        ship_ids   = [s.id for s in all_ships]
+        cur_idx = ship_ids.index(gs.objective_ship_id) if gs.objective_ship_id in ship_ids else 0
+        obj_var = tk.StringVar(value=ship_names[cur_idx] if ship_names else "")
+        obj_cb  = ttk.Combobox(obj_row, textvariable=obj_var, values=ship_names,
+                                state="disabled" if locked else "readonly", width=24,
+                                font=("Consolas", 8))
+        obj_cb.pack(side=tk.LEFT)
+        tk.Label(obj_row, text="(destroy/protect/admiral)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── Artefact submode ─────────────────────────────────────────────────
+        art_row = tk.Frame(camp_frame)
+        art_row.pack(fill=tk.X, pady=2)
+        tk.Label(art_row, text="Artefact mode:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        art_var = tk.StringVar(value=gs.artefact_submode)
+        for lbl, val in [("Race", "race"), ("Carrier escape", "carrier_escape")]:
+            tk.Radiobutton(art_row, text=lbl, variable=art_var, value=val,
+                           font=("Consolas", 8),
+                           state=tk.DISABLED if locked else tk.NORMAL).pack(side=tk.LEFT)
+
+        # ── Artefact position (X, Y) ─────────────────────────────────────────
+        artpos_row = tk.Frame(camp_frame)
+        artpos_row.pack(fill=tk.X, pady=2)
+        tk.Label(artpos_row, text="Artefact pos:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        cur_ax = str(int(gs.artefact_token_pos[0])) if gs.artefact_token_pos else str(int(gs.table_width // 2))
+        cur_ay = str(int(gs.artefact_token_pos[1])) if gs.artefact_token_pos else str(int(gs.table_height // 2))
+        art_x_var = tk.StringVar(value=cur_ax)
+        art_y_var = tk.StringVar(value=cur_ay)
+        tk.Label(artpos_row, text="X:", font=("Consolas", 8)).pack(side=tk.LEFT)
+        tk.Entry(artpos_row, textvariable=art_x_var, width=5,
+                 font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
+        tk.Label(artpos_row, text="Y:", font=("Consolas", 8)).pack(side=tk.LEFT, padx=(4, 0))
+        tk.Entry(artpos_row, textvariable=art_y_var, width=5,
+                 font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
+        tk.Label(artpos_row, text="cm (when uncarried)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── Turn limit ───────────────────────────────────────────────────────
+        tl_row = tk.Frame(camp_frame)
+        tl_row.pack(fill=tk.X, pady=2)
+        tk.Label(tl_row, text="Turn limit:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        tl_var = tk.StringVar(value="" if gs.turn_limit is None else str(gs.turn_limit))
+        tk.Entry(tl_row, textvariable=tl_var, width=5,
+                 font=("Consolas", 8)).pack(side=tk.LEFT)
+        tk.Label(tl_row, text="(blank = unlimited)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── FTL available from turn ──────────────────────────────────────────
+        ftl_row = tk.Frame(camp_frame)
+        ftl_row.pack(fill=tk.X, pady=2)
+        tk.Label(ftl_row, text="FTL from turn:", font=("Consolas", 8), width=14,
+                 anchor=tk.W).pack(side=tk.LEFT)
+        ftl_var = tk.StringVar(value="" if gs.ftl_available_turn is None
+                               else str(gs.ftl_available_turn))
+        tk.Entry(ftl_row, textvariable=ftl_var, width=5,
+                 font=("Consolas", 8)).pack(side=tk.LEFT)
+        tk.Label(ftl_row, text="(blank = always available)",
+                 font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT, padx=4)
+
+        # ── Export ───────────────────────────────────────────────────────────
+        tk.Button(camp_frame, text="Export Fleet with Damage…",
+                  command=lambda: (dialog.destroy(), self._export_fleet_dialog()),
+                  bg="#2a2a44", fg="#aaaacc",
+                  font=("Consolas", 8)).pack(anchor=tk.W, pady=4)
+
+        def on_apply():
+            gs.dice_mode = dice_var.get()
+            self.ctx.dice.mode = dice_var.get()
+            gs.allow_movement_pass = pass_var.get()
+            for attr, var in rule_vars.items():
+                setattr(gs, attr, var.get())
+            try:
+                gs.contact_margin_cm = float(margin_var.get())
+            except ValueError:
+                pass
+            from .optional_rules import set_blast_rules
+            gs.blast_marker_rules = next(k for k, v in blast_labels.items()
+                                         if v == blast_var.get())
+            set_blast_rules(gs.blast_marker_rules)
+            from .optional_rules import set_suppression_rules
+            set_suppression_rules(gs.rule_turret_suppression_remastered)
+            gs.rule_remastered_spillover = spill_var.get()
+            from .optional_rules import set_sunward
+            set_sunward(gs.rule_fighting_sunward, gs.sunward_edge)
+            gs.rule_remastered_escort_vp = esc_vp_var.get()
+            if not started:
+                inv = {v: k for k, v in aa_labels.items()}
+                gs.turn_system = inv.get(aa_var.get(), "igougo")
+                minv = {v: k for k, v in aa_modes.items()}
+                gs.aa_settings = {**aa_set, "order_mode": minv.get(aa_mode_var.get(),
+                                                                    "bag_adjusted"),
+                                  "phase_order": aa_order_var.get(),
+                                  "launch_phase": aa_launch_var.get(),
+                                  "allow_forcing": aa_force_var.get()}
+            # Scenario settings (only if not locked)
+            if not locked:
+                gs.scenario_mode = scen_var.get()
+                obj_sel = obj_var.get()
+                if obj_sel and obj_sel in ship_names:
+                    gs.objective_ship_id = ship_ids[ship_names.index(obj_sel)]
+                gs.artefact_submode = art_var.get()
+            # Artefact position always editable (carrier may drop it)
+            try:
+                ax = float(art_x_var.get())
+                ay = float(art_y_var.get())
+                if 0 <= ax <= gs.table_width and 0 <= ay <= gs.table_height:
+                    gs.artefact_token_pos = (ax, ay)
+            except ValueError:
+                pass
+            # Turn limit / FTL always adjustable
+            tl = tl_var.get().strip()
+            gs.turn_limit = int(tl) if tl.isdigit() else None
+            ftl = ftl_var.get().strip()
+            gs.ftl_available_turn = int(ftl) if ftl.isdigit() else None
+            self.ctx.board.redraw()
             dialog.destroy()
+            self.ctx.log("[Settings] Updated game settings.")
 
-        def skip():
-            result[0] = []
+        def on_cancel():
             dialog.destroy()
 
         btn_frame = tk.Frame(dialog)
         btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Repair Selected", command=confirm,
-                  bg="#336633", fg="white",
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Skip Repairs", command=skip,
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Apply", command=on_apply,
+                  bg="#336633", fg="white", font=("Consolas", 10, "bold"),
+                  width=12).pack(side=tk.LEFT, padx=8)
+        tk.Button(btn_frame, text="Cancel", command=on_cancel,
+                  font=("Consolas", 10), width=12).pack(side=tk.LEFT, padx=8)
 
+        dialog.bind("<Escape>", lambda e: on_cancel())
         self.root.wait_window(dialog)
-        return result[0] if result[0] is not None else []
 
-    def _end_phase(self):
-        phase = self.gs.current_phase
+    # ── Save / Load / Export ─────────────────────────────────────────────────
 
-        # Movement phase: BLOCK if ships haven't moved (with override option)
-        if phase == "movement":
-            unmoved = self.tc.get_unmoved_ships()
-            unmoved = [s for s in unmoved if not s.is_destroyed]
-            if unmoved:
-                names = "\n  ".join(s.name for s in unmoved[:8])
-                override = messagebox.askyesno(
-                    "Ships Haven't Moved",
-                    f"These ships haven't moved:\n  {names}\n\n"
-                    f"All ships should move before ending movement.\n"
-                    f"Use Burn Retros to remain stationary.\n\n"
-                    f"OVERRIDE and end phase anyway?",
-                    icon="warning")
-                if not override:
+    def _save_game(self):
+        if self._busy_with_ai():
+            return
+        from tkinter import filedialog
+        d = filedialog.askdirectory(title="Choose save folder")
+        if d:
+            self.ctx.gs.save(d)
+            self.ctx.log(f"[Save] Game saved to {d}")
+
+    def _load_game(self):
+        if self._busy_with_ai():
+            return
+        from tkinter import filedialog
+        d = filedialog.askdirectory(title="Select save folder to load")
+        if d:
+            try:
+                from .game_state import GameState
+                self.ctx.gs.restore_from(GameState.load(d))
+                from .optional_rules import set_blast_rules
+                set_blast_rules(self.ctx.gs.blast_marker_rules)
+                from .optional_rules import set_suppression_rules
+                set_suppression_rules(self.ctx.gs.rule_turret_suppression_remastered)
+                from .optional_rules import set_sunward
+                set_sunward(self.ctx.gs.rule_fighting_sunward, self.ctx.gs.sunward_edge)
+                self.ctx.dice.mode = self.ctx.gs.dice_mode
+                self.ctx.tc.reset_after_load()
+            except Exception as exc:
+                from tkinter import messagebox as _mb
+                _mb.showerror("Load Error", str(exc))
+                return
+            self._ai_epoch += 1
+            self._game_over = False
+            self.ctx.board.redraw()
+            self._update_phase_display()
+            self.ctx.log(f"[Load] Game loaded from {d}")
+            if self._is_ai_turn():
+                self._schedule_ai_phase(500)
+
+    def _export_match(self):
+        from tkinter import filedialog
+        fp = filedialog.asksaveasfilename(
+            title="Export match archive",
+            defaultextension=".bfg",
+            filetypes=[("BFG match archive", "*.bfg"), ("All files", "*.*")])
+        if fp:
+            self.ctx.tc.export_match(fp)
+            self.ctx.log(f"[Export] Match exported to {fp}")
+
+    def _export_map(self):
+        from tkinter import filedialog
+        gs = self.ctx.gs
+        phenomena = getattr(gs, "phenomena", [])
+        width = getattr(gs, "table_width", 180)
+        height = getattr(gs, "table_height", 120)
+        sunward = getattr(gs, "sunward_edge", "bottom")
+        fp = filedialog.asksaveasfilename(
+            title="Export map JSON",
+            defaultextension=".json",
+            filetypes=[("Map JSON", "*.json"), ("All files", "*.*")])
+        if fp:
+            from .map_maker import save_map
+            save_map(phenomena, width, height, sunward, fp)
+            self.ctx.log(f"[Export] Map exported to {fp}")
+
+    # ── LAN multiplayer ───────────────────────────────────────────────────────
+
+    def _network_sync_phase(self):
+        """After each phase: active player sends state; passive player receives."""
+        net = self.ctx.network
+        if net is None:
+            return
+        gs = self.ctx.gs
+        local = self.ctx.local_player
+        try:
+            # The player who just finished their turn sends state
+            if local == gs.active_player:
+                net.send_state(gs)
+            else:
+                # Receive updated state from the active player
+                new_gs = net.recv_state()
+                # Preserve our reference but overwrite all mutable fields
+                for attr in ("ships", "ordnance", "blast_markers", "phenomena",
+                             "log", "turn_number", "current_phase", "active_player",
+                             "phase_step"):
+                    setattr(gs, attr, getattr(new_gs, attr))
+        except ConnectionError as e:
+            messagebox.showerror("Multiplayer Error",
+                                 f"Network error: {e}\nGame will continue locally.")
+            self.ctx.network = None
+
+    def _show_host_dialog(self):
+        """Show the 'host a game' dialog and wait for a client to connect."""
+        from .network import GameServer, DEFAULT_PORT
+        net = GameServer()
+        ip = net.start()
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Hosting Game")
+        dialog.geometry("360x180")
+        dialog.transient(self.root)
+        tk.Label(dialog, text="Waiting for opponent to connect…",
+                 font=("Consolas", 10, "bold")).pack(pady=12)
+        tk.Label(dialog, text=f"Your IP:  {ip}",
+                 font=("Consolas", 11)).pack()
+        tk.Label(dialog, text=f"Port:  {DEFAULT_PORT}",
+                 font=("Consolas", 11)).pack()
+        tk.Label(dialog, text="Share these with your opponent.",
+                 font=("Consolas", 8), fg="#888888").pack(pady=6)
+        cancel_var = [False]
+
+        def on_cancel():
+            cancel_var[0] = True
+            net.close()
+            dialog.destroy()
+
+        tk.Button(dialog, text="Cancel", command=on_cancel,
+                  font=("Consolas", 9)).pack(pady=6)
+
+        def poll():
+            if cancel_var[0]:
+                return
+            if net.connected:
+                dialog.destroy()
+                self.ctx.network = net
+                self.ctx.local_player = 1
+                # Send initial state to client
+                net.send_state(self.ctx.gs)
+                self.ctx.log("[Net] Opponent connected. You are Player 1.")
+            else:
+                self.root.after(500, poll)
+
+        poll()
+
+    def _show_join_dialog(self):
+        """Show the 'join a game' dialog and connect to a host."""
+        from .network import GameClient, DEFAULT_PORT
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Join Game")
+        dialog.geometry("320x160")
+        dialog.transient(self.root)
+        tk.Label(dialog, text="Join LAN Game",
+                 font=("Consolas", 10, "bold")).pack(pady=8)
+        row = tk.Frame(dialog)
+        row.pack()
+        tk.Label(row, text="Host IP:", font=("Consolas", 9)).pack(side=tk.LEFT)
+        ip_var = tk.StringVar()
+        tk.Entry(row, textvariable=ip_var, width=18,
+                 font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+
+        def on_connect():
+            host_ip = ip_var.get().strip()
+            if not host_ip:
+                return
+            try:
+                client = GameClient(host_ip, DEFAULT_PORT)
+                client.connect()
+                # Receive initial game state from host
+                new_gs = client.recv_state()
+                self.ctx.gs = new_gs
+                self.ctx.tc.gs = new_gs
+                self.ctx.network = client
+                self.ctx.local_player = 2
+                dialog.destroy()
+                self.ctx.board.redraw()
+                self.ctx.log(f"[Net] Connected to {host_ip}. You are Player 2.")
+            except Exception as e:
+                messagebox.showerror("Connection Failed", str(e))
+
+        tk.Button(dialog, text="Connect", command=on_connect,
+                  font=("Consolas", 9), bg="#2a4422", fg="#aaccaa").pack(pady=8)
+
+    def _export_fleet_dialog(self):
+        from tkinter import filedialog
+        from .fleet_loader import export_fleet_with_damage
+        gs = self.ctx.gs
+        player = gs.active_player
+        fp = filedialog.asksaveasfilename(
+            title=f"Export Player {player} fleet with damage",
+            defaultextension=".json",
+            filetypes=[("Fleet JSON", "*.json"), ("All files", "*.*")])
+        if fp:
+            ships = [Ship.from_dict(s) for s in gs.ships]
+            export_fleet_with_damage(ships, player, fp)
+            self.ctx.log(f"[Export] Player {player} fleet exported to {fp}")
+
+    # ── Campaign ─────────────────────────────────────────────────────────────
+
+    def _campaign_post_battle_dialog(self, vp_p1: int, vp_p2: int):
+        """After a battle, let the player choose (or create) a campaign save."""
+        from tkinter import filedialog
+        from .campaign import open_or_create_campaign, post_battle_update
+        gs = self.ctx.gs
+        campaign_dir = filedialog.askdirectory(
+            title="Select campaign folder (existing or new)")
+        if not campaign_dir:
+            return
+        cs = open_or_create_campaign(campaign_dir, gs)
+        cs = post_battle_update(cs, gs, vp_p1, vp_p2, campaign_dir)
+        self.ctx.log(
+            f"[Campaign] Battle {cs.battles_played} saved. "
+            f"VP: {gs.player1_name} {cs.player1_total_vp} — "
+            f"{gs.player2_name} {cs.player2_total_vp}")
+        # Offer repair dialog for each player
+        for player, fleet_path, budget in [
+            (1, cs.player1_fleet_file, cs.repair_budget_p1),
+            (2, cs.player2_fleet_file, cs.repair_budget_p2),
+        ]:
+            if fleet_path and os.path.exists(fleet_path) and budget > 0:
+                self._campaign_repair_dialog(
+                    gs.player1_name if player == 1 else gs.player2_name,
+                    fleet_path, budget, campaign_dir, cs)
+
+    def _campaign_repair_dialog(self, player_name: str, fleet_path: str,
+                                 budget: int, campaign_dir: str, cs):
+        """Let a player spend their repair budget on crits and hull points."""
+        from .campaign import apply_repairs, save_campaign
+        import json as _json
+        with open(fleet_path) as f:
+            fleet_data = _json.load(f)
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"{player_name} — Repair ({budget} pts available)")
+        dialog.geometry("500x480")
+        dialog.transient(self.root)
+
+        tk.Label(dialog, text=f"{player_name} Repair Bay",
+                 font=("Consolas", 11, "bold")).pack(pady=6)
+        tk.Label(dialog, text=f"Budget: {budget} pts  |  Crit repair: 25 pts  |  Hull +1HP: 10 pts",
+                 font=("Consolas", 8), fg="#888888").pack()
+
+        orders_var: list = []
+        budget_var = tk.IntVar(value=budget)
+        budget_lbl = tk.Label(dialog, text=f"Remaining: {budget} pts",
+                              font=("Consolas", 9, "bold"))
+        budget_lbl.pack()
+
+        canvas = tk.Canvas(dialog, bg="#1a1a2e")
+        scroll = tk.Scrollbar(dialog, command=canvas.yview)
+        canvas.configure(yscrollcommand=scroll.set)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(fill=tk.BOTH, expand=True, padx=8)
+        inner = tk.Frame(canvas, bg="#1a1a2e")
+        canvas.create_window((0, 0), window=inner, anchor=tk.NW)
+        inner.bind("<Configure>", lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")))
+
+        def refresh_budget():
+            budget_lbl.config(text=f"Remaining: {budget_var.get()} pts")
+
+        for ship in fleet_data.get("ships", []):
+            sid = ship["id"]
+            name = ship.get("name", sid)
+            hits = ship.get("hits_remaining", 0)
+            hits_max = ship.get("hits_max", 8)
+            crits = ship.get("critical_damage", [])
+            frame = tk.LabelFrame(inner, text=f"{name}  HP {hits}/{hits_max}",
+                                  font=("Consolas", 8), padx=4, pady=2, bg="#1a1a2e",
+                                  fg="#aaaacc")
+            frame.pack(fill=tk.X, padx=4, pady=2)
+            # Hull repair button
+            if hits < hits_max // 2:
+                def _hull(s=sid, f=frame):
+                    cost = 10
+                    if budget_var.get() >= cost:
+                        orders_var.append({"ship_id": s, "action": "hull"})
+                        budget_var.set(budget_var.get() - cost)
+                        refresh_budget()
+                tk.Button(frame, text="+1 HP (10 pts)", command=_hull,
+                          font=("Consolas", 7), bg="#2a3a2a", fg="#aaccaa").pack(anchor=tk.W)
+            # Crit repair buttons
+            for idx, crit in enumerate(crits):
+                crit_name = crit.get("crit_type", "unknown") if isinstance(crit, dict) else str(crit)
+                def _crit(s=sid, i=idx):
+                    cost = 25
+                    if budget_var.get() >= cost:
+                        orders_var.append({"ship_id": s, "action": "crit", "crit_index": i})
+                        budget_var.set(budget_var.get() - cost)
+                        refresh_budget()
+                tk.Button(frame, text=f"Repair: {crit_name} (25 pts)", command=_crit,
+                          font=("Consolas", 7), bg="#3a2a2a", fg="#ccaaaa").pack(anchor=tk.W)
+
+        def on_apply():
+            remaining = apply_repairs(fleet_path, orders_var, budget)
+            if player_name == cs.player1_name:
+                cs.repair_budget_p1 = remaining
+            else:
+                cs.repair_budget_p2 = remaining
+            save_campaign(cs, campaign_dir)
+            self.ctx.log(f"[Campaign] {player_name}: repairs applied, {remaining} pts unused.")
+            dialog.destroy()
+
+        tk.Button(dialog, text="Apply Repairs", command=on_apply,
+                  bg="#2a4422", fg="#aaccaa",
+                  font=("Consolas", 9)).pack(pady=6)
+
+    # ── Game flow ─────────────────────────────────────────────────────────────
+
+    def _start_game(self):
+        """Launch the deployment phase, then begin Turn 1 Movement."""
+        self.start_btn.config(state=tk.DISABLED)
+        from .scenarios import is_booklet_scenario, setup_scenario
+        if is_booklet_scenario(self.ctx.gs) and not self.ctx.gs.scenario_state:
+            if getattr(self.ctx.gs, "attacker_by_rating", False):
+                from .scenarios import roll_attack_ratings
+                from .dice import DiceRoller
+                self.ctx.gs.scenario_attacker = roll_attack_ratings(
+                    self.ctx.gs, DiceRoller(mode="auto"))
+                self.ctx.log(self.ctx.gs.log[-1])
+            if self.ctx.gs.scenario_mode == "fleet_engagement":
+                self._fleet_engagement_formations()
+            setup_scenario(self.ctx.gs)       # e.g. the Domination deployment D6
+            from .scenarios import force_errors
+            errs = force_errors(self.ctx.gs)
+            if errs:
+                messagebox.showwarning("Scenario forces", "\n".join(errs))
+            self.ctx.board.redraw()
+        self._roll_subplots()
+        from .deployment_panel import DeploymentPanel
+        DeploymentPanel(
+            parent_frame=self.parent,
+            board_view=self.ctx.board,
+            gs=self.ctx.gs,
+            root=self.root,
+            on_complete=self._begin_turn1,
+            mode="sequential",
+        )
+
+    def _fleet_engagement_formations(self):
+        """Fleet Engagement (p.108): each player secretly picks a formation (a
+        human from a dialog; the AI at random, judgement), then the set-up
+        and roles follow from the table and a roll (scenarios)."""
+        import random
+        from .scenarios import FORMATIONS, resolve_formations
+        from .choice_dialog import choose
+        from .dice import DiceRoller
+        gs = self.ctx.gs
+        forms = {}
+        for p in (1, 2):
+            if self.ctx.is_ai_controlled(p):
+                forms[p] = random.choice(FORMATIONS)
+            else:
+                forms[p] = choose(self.root, "Fleet Engagement",
+                                  f"Player {p}: choose your fleet's formation (secret)",
+                                  [(f.title(), f) for f in FORMATIONS], "wedge")
+
+        def pick(player, options):
+            if self.ctx.is_ai_controlled(player):
+                return options[0]
+            labels = [(f"Set-up {s}" + (f" as {'attacker' if r == 'atk' else 'defender'}"
+                                        if r else ""), (s, r)) for s, r in options]
+            return choose(self.root, "Fleet Engagement", f"Player {player}: you choose the "
+                          f"set-up", labels, options[0])
+        resolve_formations(gs, forms[1], forms[2], DiceRoller(mode="auto"), pick)
+        self.ctx.log(gs.log[-1])
+
+    def _reserve_hook(self, player, names) -> bool:
+        """Scenario reinforcements (The Bait, Rearguard Attack) may enter this
+        turn: the AI brings them on at once (judgement); a human is asked."""
+        import threading
+        if self.ctx.is_ai_controlled(player) or \
+                threading.current_thread() is not threading.main_thread():
+            return True
+        from .choice_dialog import choose
+        return choose(self.root, "Reinforcements",
+                      f"Player {player}: bring {names} on from the table edge this turn?",
+                      [("Enter now", True), ("Wait", False)], True)
+
+    def _low_orbit_hook(self, ship) -> bool:
+        """Low orbit (s.39): a ship in the planet's gravity well at the start of
+        its turn may enter low orbit. A human is asked, with "Auto (best)"
+        (the AI's choice, `planet_scenarios.wants_low_orbit`)."""
+        import threading
+        from .planet_scenarios import wants_low_orbit
+        best = wants_low_orbit(self.ctx.gs, ship)
+        if self.ctx.is_ai_controlled(ship.player) or \
+                threading.current_thread() is not threading.main_thread():
+            return best
+        from .choice_dialog import choose
+        return choose(self.root, "Low orbit",
+                      f"{ship.name} is in the planet's gravity well: enter low orbit?",
+                      [("Enter low orbit", True), ("Stay in high orbit", False)], best)
+
+    def _overcharge_hook(self, ship) -> bool:
+        """Macharia's End: at the start of a Chaos turn the Planet Killer may
+        begin charging its Armageddon Gun ("Auto (best)": the AI's choice,
+        `campaign_scenarios.wants_overcharge`)."""
+        import threading
+        from .campaign_scenarios import wants_overcharge
+        best = wants_overcharge(self.ctx.gs, ship)
+        if self.ctx.is_ai_controlled(ship.player) or \
+                threading.current_thread() is not threading.main_thread():
+            return best
+        from .choice_dialog import choose
+        return choose(self.root, "Armageddon Overcharge",
+                      f"{ship.name}: begin charging the Armageddon Gun? (3 counters, then it "
+                      f"must fire 60cm ahead; while charging +2 shields, no turns, special "
+                      f"orders or lances; it can't be stopped)",
+                      [("Begin charging", True), ("Not yet", False)], best)
+
+    def _assault_hook(self, ship) -> bool:
+        """Planetary Assault: at the start of the attacker's shooting phase a
+        ship within 30cm of the planet edge may assault instead of firing."""
+        import threading
+        if self.ctx.is_ai_controlled(ship.player) or \
+                threading.current_thread() is not threading.main_thread():
+            return True
+        from .choice_dialog import choose
+        from .planet_scenarios import assault_capacity
+        return choose(self.root, "Planetary Assault",
+                      f"{ship.name}: assault the planet (+{assault_capacity(ship):g} assault "
+                      f"points; no shooting, launching or teleporting this turn)?",
+                      [("Assault", True), ("Fight normally", False)], True)
+
+    def _roll_subplots(self):
+        """Sub-plots (p.80): with the rule on, each player (the attacker
+        first) rolls one before deployment; nominations are asked of a human
+        owner (the AI nominates the dearest ship)."""
+        gs = self.ctx.gs
+        if not getattr(gs, "rule_subplots", False) or gs.subplots:
+            return
+        from .subplots import generate, apply_setup
+        from .dice import DiceRoller
+        first = gs.scenario_attacker if gs.scenario_mode != "standard" else 1
+        for p in (first, 3 - first):
+            ai = self.ctx.is_ai_controlled(p)
+            dice = DiceRoller(mode="auto") if ai else self.ctx.dice
+            sp = generate(gs, p, dice)
+            if ai:
+                chooser = None
+            else:
+                from .choice_dialog import choose
+
+                def chooser(cands, prompt):
+                    if not cands:
+                        return None
+                    best = max(cands, key=lambda s: s.points_value)
+                    return choose(self.root, "Sub-plot", prompt,
+                                  [(c.name, c) for c in cands], best)
+            for line in apply_setup(gs, p, sp, dice, chooser):
+                self.ctx.log(f"[Sub-plot] {line}")
+            # a faction sub-plot on top (Quest for Knowledge, Business as
+            # Usual, an Inquisitor Lord's Secret Ploys)
+            from .subplots import faction_subplot
+            extra = faction_subplot(gs, p, dice)
+            if extra is not None:
+                for line in apply_setup(gs, p, extra, dice, chooser):
+                    self.ctx.log(f"[Sub-plot] {line}")
+        self.ctx.board.redraw()
+
+    def _begin_turn1(self):
+        """Called by DeploymentPanel when all ships are placed."""
+        tc = self.ctx.tc
+        gs = self.ctx.gs
+        # Meteor Storm wrecks: catastrophic damage where they stand, once
+        # deployment is finished (owner ruling)
+        from .subplots import deployed_wrecks
+        for res in deployed_wrecks(gs, self.ctx.dice):
+            self.ctx.log(f"[Meteor Storm] a wreck: {res}")
+        from .scenarios import first_player as _scenario_first, first_turn_chooser
+        from .scenarios import roll_for_choice
+        from .dice import DiceRoller
+        chooser = first_turn_chooser(gs) or roll_for_choice(gs, DiceRoller(mode="auto"))
+        if _scenario_first(gs):
+            gs.first_player = _scenario_first(gs)
+            self.ctx.log(f"First turn: player {gs.first_player} (the scenario's attacker)")
+        elif chooser:
+            # The scenario lets one player choose (Chance Encounter: the defender)
+            from .first_turn import ai_moves_first
+            best = ai_moves_first(gs, chooser)
+            if self.ctx.is_ai_controlled(chooser):
+                first = best
+            else:
+                from .choice_dialog import choose
+                first = choose(self.ctx.root, "First Turn",
+                               f"Player {chooser}: the scenario lets you choose. Move first "
+                               f"or second?", [("Move first", True), ("Move second", False)],
+                               best)
+            gs.first_player = chooser if first else 3 - chooser
+            self.ctx.log(f"First turn: player {chooser} chooses to move "
+                         f"{'first' if first else 'second'}")
+        else:
+            self._first_turn_roll_off()
+        tc.start_game()
+        if self._aa_on():
+            # Alternate activation (To do 13): the AA driver runs the rounds
+            self._aa_begin()
+            return
+        tc.begin_phase("movement")
+        with self._auto_dice_if(self._is_ai_turn()):
+            self.movement._process_movement_phase_start()
+        self._update_phase_display()
+        self.ctx.log("=== GAME START ===")
+        self.ctx.log(f"Turn 1 - {gs.player1_name}")
+        self.ctx.log("Movement Phase")
+        self.ctx.log(
+            "Keys: M=min-move selected  Space=min-move all  "
+            "BackSpace=undo all movement  Scroll=pending turn  Esc=cancel")
+        self.ctx.board.canvas.focus_set()
+        self.ctx.board.redraw()
+        # If Player 1 (or both players) is AI, start automation immediately
+        if self._is_ai_turn():
+            self._schedule_ai_phase(500)
+
+    def _resolve_end_phase_interactive(self):
+        """Run end phase with interactive repair choices."""
+        from .end_phase import (get_repair_info, apply_repair_choices,
+                                remove_blast_markers, remove_brace_orders)
+        gs = self.ctx.gs
+
+        self.ctx.log("=== END PHASE ===")
+
+        # 0a. Boarding actions (before teleport, before damage control)
+        self.end_phase._resolve_boarding_actions()
+
+        # 0b. Teleport attacks
+        self.end_phase._resolve_teleport_attacks()
+
+        # 1. Damage control with player choice
+        for ship in gs.get_ships():
+            if ship.is_destroyed or ship.is_disengaged:
+                continue
+            if ship.status in ("drifting_hulk", "burning_hulk"):
+                continue
+
+            info = get_repair_info(ship, self.ctx.dice, gs)
+            if info["sixes"] > 0 and info["repairable"]:
+                repairs_available = min(info["sixes"], len(info["repairable"]))
+                touch_msg = (f" (halved, {info['touching_blast']} blast markers)"
+                             if info.get("touching_blast", 0) > 0 else "")
+                self.ctx.log(
+                    f"{ship.name}: {info['num_dice']} dice{touch_msg}, "
+                    f"{info['sixes']} repair(s) available!")
+                choices = self.end_phase._repair_choice_dialog(
+                    ship, info["repairable"], repairs_available)
+                if choices:
+                    repair_logs = apply_repair_choices(ship, choices, gs)
+                    self.ctx.log_lines(repair_logs)
+                else:
+                    self.ctx.log(f"  {ship.name}: no repairs applied")
+            elif info["num_dice"] > 0:
+                self.ctx.log(f"{ship.name}: {info['num_dice']} dice, no 6s rolled")
+
+        # 2. Fires not extinguished by damage control each deal 1 damage
+        self._resolve_unextinguished_fires()
+
+        # 3. Remove blast markers
+        bm_logs = remove_blast_markers(gs, self.ctx.dice)
+        self.ctx.log_lines(bm_logs)
+
+        # 4. Remove expired brace orders
+        brace_logs = remove_brace_orders(gs)
+        self.ctx.log_lines(brace_logs)
+
+        self.ctx.board.redraw()
+
+    def _end_phase(self, from_ai: bool = False):
+        """Advance to the next phase.
+
+        from_ai: the AI driver already resolved this phase, so skip the
+        prompts aimed at a human player and the interactive end phase.
+        """
+        if self._game_over:
+            return
+        if self._aa_on() and self.aa is not None:
+            if not from_ai:
+                self._aa_end_button()
+            return
+        gs = self.ctx.gs
+        tc = self.ctx.tc
+        phase = gs.current_phase
+
+        if phase == "movement" and not from_ai:
+            unmoved = tc.get_unmoved_ships()
+            unmoved_obligated = [
+                s for s in unmoved
+                if not s.is_destroyed
+                and s.special_order != SpecialOrder.BURN_RETROS.value
+            ]
+            if unmoved_obligated:
+                names = "\n  ".join(s.name for s in unmoved_obligated[:8])
+                if not gs.allow_movement_pass:
+                    messagebox.showerror(
+                        "Ships Must Move",
+                        f"These ships have not moved:\n  {names}\n\n"
+                        f"All ships must move before ending the movement phase.\n"
+                        f"Use Burn Retros to remain stationary.")
                     return
+                else:
+                    override = messagebox.askyesno(
+                        "Ships Haven't Moved",
+                        f"These ships haven't moved:\n  {names}\n\n"
+                        f"All ships should move before ending movement.\n"
+                        f"Use Burn Retros to remain stationary.\n\n"
+                        f"OVERRIDE and end phase anyway?",
+                        icon="warning")
+                    if not override:
+                        return
 
-        # Run ordnance phase movement if we're ending ordnance phase
         if phase == "ordnance":
-            self._resolve_ordnance_movement()
+            with self._auto_dice_if(from_ai):
+                self.ordnance._resolve_ordnance_movement()
 
-        # Shooting phase: warn about unfired weapons
-        if phase == "shooting":
+        if phase == "shooting" and not from_ai:
             unfired_warnings = []
-            for s_dict in self.gs.ships:
-                if s_dict["player"] != self.gs.active_player:
-                    continue
-                s = Ship.from_dict(s_dict)
+            for s in gs.player_ships(gs.active_player):
                 if s.is_destroyed or s.is_disengaged:
                     continue
                 unfired = []
                 for i, w in enumerate(s.weapons):
                     wtype = w.get("weapon_type", "")
-                    if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
+                    if wtype in ("torpedo", "launch_bay"):
                         continue
-                    if self._weapon_disabled_by_crit(s, w):
+                    if self.combat._weapon_disabled_by_crit(s, w):
                         continue
                     if i not in s.weapons_fired_indices:
                         unfired.append(w["name"])
@@ -357,1937 +1393,226 @@ class GamePanel:
             if unfired_warnings:
                 msg = "\n".join(unfired_warnings[:6])
                 messagebox.showwarning("Unfired Weapons",
-                    f"These weapons haven't fired:\n{msg}\n\n"
-                    f"End shooting phase anyway?")
+                    f"These weapons haven't fired:\n{msg}\n\nEnd shooting phase anyway?")
 
-        # Run end phase logic if this is the end phase
-        if phase == "end":
+        if phase == "end" and not from_ai:
             self._resolve_end_phase_interactive()
 
-        # Save and advance
-        self.tc.end_phase()
-        self.tc.advance_phase()
+        tc.end_phase()
+        tc.advance_phase()
 
-        # Process start-of-movement-phase events
-        if self.gs.current_phase == "movement":
-            self._process_movement_phase_start()
+        # LAN multiplayer: sync state to peer after each phase
+        self._network_sync_phase()
+
+        # Check for game-over conditions at the start of each new turn
+        if gs.current_phase == "movement" and gs.turn_number > 1:
+            if self._check_game_over():
+                self._update_phase_display()
+                self.ctx.board.redraw()
+                return
+
+        if gs.current_phase == "movement":
+            with self._auto_dice_if(self._is_ai_turn()):
+                self.movement._process_movement_phase_start()
+            self._check_artefact_pickup()
+            self.ctx.log(
+                "Keys: M=min-move selected  Space=min-move all  "
+                "BackSpace=undo all  Scroll=pending turn  Esc=cancel")
+            self.ctx.board.canvas.focus_set()
+
+        if gs.current_phase == "ordnance":
+            for i, o_dict in enumerate(gs.ordnance):
+                if o_dict.get("moved_this_phase"):
+                    gs.ordnance[i] = {**o_dict, "moved_this_phase": False}
+
+        # Check scenario conditions after shooting and ordnance resolve too
+        if phase in ("shooting", "ordnance", "end") and self._check_scenario_end():
+            self._update_phase_display()
+            self.ctx.board.redraw()
+            return
 
         self._update_phase_display()
-        self._append_log(f"--- {self.gs.current_phase.upper()} PHASE ---")
-        self.board.redraw()
+        self.ctx.log(f"--- {gs.current_phase.upper()} PHASE ---")
+        self.ctx.board.redraw()
 
-    # --- Movement ---
+        if self._is_ai_turn():
+            self._schedule_ai_phase(400)
 
-    def _special_order_dialog(self):
-        """Dialog to issue a special order to a ship."""
-        unmoved = self.tc.get_unmoved_ships()
-        if not unmoved:
-            messagebox.showinfo("No Ships", "All ships have moved")
+    # ── AI phase automation ───────────────────────────────────────────────────
+
+    # Fast mode (the headless runner, tools/headless_runner.py; or BFG_FAST=1):
+    # no pacing pauses between AI phases, the AI's worker polled every 1ms
+    FAST = bool(os.environ.get("BFG_FAST"))
+
+    def _pace(self, ms: int) -> int:
+        return 1 if self.FAST else ms
+
+    def _schedule_ai_phase(self, delay_ms: int):
+        epoch = self._ai_epoch
+        self.root.after(self._pace(delay_ms), lambda: self._run_ai_phase(epoch))
+
+    def _ai_callback_stale(self, epoch: int) -> bool:
+        """True if a load or game over happened since this AI callback was queued."""
+        return epoch != self._ai_epoch or self._game_over
+
+    def _run_ai_phase(self, epoch: int):
+        import threading
+        from .ai_player import AIPlayer
+        if self._ai_callback_stale(epoch) or self._ai_thinking or not self._is_ai_turn():
             return
+        gs = self.ctx.gs
+        tc = self.ctx.tc
+        dice = self.ctx.dice
+        phase = gs.current_phase
 
-        if self.tc.command_check_failed:
-            messagebox.showinfo("Command Failed",
-                "A command check already failed this turn.\n"
-                "No more special orders can be issued (except Brace).")
-            return
+        # In spectator mode both players are AI; use active_player as the controller
+        ai_player_num = gs.active_player if gs.ai_spectator else gs.ai_player
 
-        # Pick ship
-        ship = self._pick_ship_dialog(unmoved, "Select ship for special order")
-        if not ship:
-            return
+        # DiceRoller reads its own mode; gs.dice_mode is just the saved setting
+        old_modes = (gs.dice_mode, dice.mode)
+        gs.dice_mode = dice.mode = "auto"
 
-        # Pick order
-        orders = [
-            ("All Ahead Full", SpecialOrder.ALL_AHEAD_FULL.value),
-            ("Burn Retros", SpecialOrder.BURN_RETROS.value),
-            ("Come to New Heading", SpecialOrder.COME_TO_NEW_HEADING.value),
-            ("Lock On", SpecialOrder.LOCK_ON.value),
-            ("Reload Ordnance", SpecialOrder.RELOAD_ORDNANCE.value),
-        ]
+        def restore_dice():
+            gs.dice_mode, dice.mode = old_modes
 
-        # Filter out CtNH for ponderous ships
-        if "ponderous" in ship.special_rules:
-            orders = [(n, v) for n, v in orders
-                      if v != SpecialOrder.COME_TO_NEW_HEADING.value]
-
-        dialog = tk.Toplevel(self.root)
-        dialog.title(f"Special Order - {ship.name}")
-        dialog.geometry("300x300")
-        dialog.transient(self.root)
-        # dialog.grab_set()  # removed: conflicts with dice popups
-
-        tk.Label(dialog, text=f"Order for {ship.name}",
-                 font=("Consolas", 11, "bold")).pack(pady=5)
-        tk.Label(dialog, text=f"Leadership: {ship.leadership}",
-                 font=("Consolas", 9)).pack()
-
-        selected = tk.StringVar()
-
-        for name, value in orders:
-            tk.Radiobutton(dialog, text=name, variable=selected, value=value,
-                          font=("Consolas", 9)).pack(anchor=tk.W, padx=20)
-
-        def confirm():
-            order = selected.get()
-            if not order:
-                return
-            dialog.destroy()
-            result = self.tc.issue_special_order(ship, order)
-            roll_info = f" (rolled {result.get('roll', '?')} vs Ld {result.get('needed', '?')})"
-            if result["success"]:
-                self._append_log(
-                    f"{ship.name}: {order} PASSED{roll_info}")
-                messagebox.showinfo("Order Passed",
-                    f"{ship.name}: {order} PASSED\n"
-                    f"Rolled {result.get('roll')} vs Leadership {result.get('needed')}")
-            else:
-                # Check if fleet commander re-roll is available
-                rerolls = self.tc.get_fleet_rerolls(ship.player)
-                if rerolls > 0:
-                    use_reroll = messagebox.askyesno(
-                        "Order Failed - Re-roll Available",
-                        f"{ship.name}: {order} FAILED\n"
-                        f"Rolled {result.get('roll')} vs Leadership {result.get('needed')}\n\n"
-                        f"Fleet commander has {rerolls} re-roll(s) remaining.\n"
-                        f"Use a re-roll? (Cannot be undone)")
-                    if use_reroll:
-                        reroll_result = self.tc.attempt_reroll_command_check(
-                            ship, order)
-                        rr_info = (f" (RE-ROLL: rolled {reroll_result.get('roll', '?')} "
-                                   f"vs Ld {reroll_result.get('needed', '?')})")
-                        if reroll_result["success"]:
-                            self._append_log(
-                                f"{ship.name}: {order} RE-ROLL PASSED{rr_info}")
-                            messagebox.showinfo("Re-roll Passed!",
-                                f"{ship.name}: {order} RE-ROLL PASSED\n"
-                                f"Rolled {reroll_result.get('roll')} vs "
-                                f"Leadership {reroll_result.get('needed')}")
-                        else:
-                            msg = reroll_result.get("error", f"{order} RE-ROLL FAILED")
-                            self._append_log(f"{ship.name}: {msg}")
-                            messagebox.showwarning("Re-roll Failed",
-                                f"{ship.name}: {order} RE-ROLL ALSO FAILED\n"
-                                f"Rolled {reroll_result.get('roll')} vs "
-                                f"Leadership {reroll_result.get('needed')}\n"
-                                f"No more special orders this turn!")
-                    else:
-                        msg = result.get("error", f"{order} FAILED")
-                        self._append_log(f"{ship.name}: {msg}")
-                else:
-                    msg = result.get("error", f"{order} FAILED")
-                    self._append_log(f"{ship.name}: {msg}")
-                    messagebox.showwarning("Order Failed",
-                        f"{ship.name}: {order} FAILED\n"
-                        f"Rolled {result.get('roll')} vs Leadership {result.get('needed')}\n"
-                        f"No fleet re-rolls available.\n"
-                        f"No more special orders this turn!")
-            self.board.redraw()
-
-        # Show re-roll count
-        rerolls = self.tc.get_fleet_rerolls(ship.player)
-        reroll_text = f"Fleet re-rolls available: {rerolls}" if rerolls > 0 else ""
-        if reroll_text:
-            tk.Label(dialog, text=reroll_text, font=("Consolas", 8),
-                     fg="#FFAA00").pack(pady=2)
-
-        tk.Button(dialog, text="Issue Order", command=confirm,
-                  bg="#336633", fg="white", font=("Consolas", 10)).pack(pady=10)
-
-    def _move_ship_dialog(self):
-        """Dialog to move a ship with exact instructions."""
-        unmoved = self.tc.get_unmoved_ships()
-        if not unmoved:
-            messagebox.showinfo("No Ships", "All ships have moved")
-            return
-
-        ship = self._pick_ship_dialog(unmoved, "Select ship to move")
-        if not ship:
-            return
-
-        # Movement command dialog
-        dialog = tk.Toplevel(self.root)
-        dialog.title(f"Move {ship.name}")
-        dialog.geometry("500x580")
-        dialog.transient(self.root)
-        # dialog.grab_set()  # removed: conflicts with dice popups
-
-        tk.Label(dialog, text=f"Move: {ship.name}",
-                 font=("Consolas", 11, "bold")).pack(pady=3)
-
-        # Ship stats
-        order = ship.special_order
-        min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
-        aaf_bonus = 0
-        if order == SpecialOrder.ALL_AHEAD_FULL.value:
-            aaf_bonus = resolve_aaf_speed(ship, self.dice)
-            self._append_log(
-                f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
-
-        base_speed = ship.effective_speed
-        if order == SpecialOrder.ALL_AHEAD_FULL.value:
-            max_speed = base_speed + aaf_bonus
-            min_speed = max_speed  # must move exact
-            speed_text = f"Speed: {max_speed}cm (AAF: {base_speed}+{aaf_bonus}) MUST MOVE ALL"
-        elif order == SpecialOrder.BURN_RETROS.value:
-            max_speed = base_speed // 2
-            min_speed = 0
-            speed_text = f"Speed: 0-{max_speed}cm (Burn Retros)"
+        if gs.ai_difficulty == "expert":
+            from .lookahead_ai import LookaheadAI
+            ai = LookaheadAI(ai_player_num, tc, gs, dice, gs.ai_difficulty)
         else:
-            max_speed = base_speed
-            min_speed = max(1, base_speed // 2)
-            speed_text = f"Speed: {min_speed}-{max_speed}cm"
-
-        # Crit warnings
-        crit_warnings = []
-        has_engine_crit = any(c.get("crit_type") == "engine_room" for c in ship.critical_damage)
-        has_thrusters_crit = any(c.get("crit_type") == "thrusters_damaged" for c in ship.critical_damage)
-        if has_engine_crit:
-            crit_warnings.append("ENGINE ROOM DAMAGED: No turns!")
-        if has_thrusters_crit:
-            thrusters_count = sum(1 for c in ship.critical_damage if c.get("crit_type") == "thrusters_damaged")
-            crit_warnings.append(f"THRUSTERS DAMAGED x{thrusters_count}: -10cm speed")
-
-        info_text = (
-            f"Order: {order} | {speed_text}\n"
-            f"Turn: {ship.turn_angle}° max | "
-            f"Min before turn: {min_turn_dist}cm\n"
-            f"Pos: ({ship.x:.1f}, {ship.y:.1f}) | Heading: {ship.heading:.0f}°"
-        )
-        if crit_warnings:
-            info_text += "\n" + " | ".join(crit_warnings)
-
-        info_label = tk.Label(dialog, text=info_text, font=("Consolas", 8),
-                 justify=tk.LEFT)
-        info_label.pack(padx=10, anchor=tk.W)
-        if crit_warnings:
-            info_label.config(fg="#FF6644")
-
-        # Remaining distance meter
-        meter_frame = tk.Frame(dialog)
-        meter_frame.pack(fill=tk.X, padx=10, pady=3)
-        remaining_var = tk.StringVar(value=f"Remaining: {max_speed:.0f}cm / {max_speed:.0f}cm")
-        remaining_label = tk.Label(meter_frame, textvariable=remaining_var,
-                                    font=("Consolas", 10, "bold"), fg="#44CC44")
-        remaining_label.pack()
-
-        # Command list
-        cmd_listbox = tk.Listbox(dialog, font=("Consolas", 9),
-                                  height=6, width=50)
-        cmd_listbox.pack(padx=10, pady=3, fill=tk.X)
-
-        commands = []
-
-        # Quick-move buttons
-        quick_frame = tk.Frame(dialog)
-        quick_frame.pack(padx=10, pady=3, fill=tk.X)
-
-        def _quick_min_move():
-            """Auto move minimum half-speed forward."""
-            current_dist = sum(c.value for c in commands if c.action == "forward")
-            needed = max(0, min_speed - current_dist)
-            if needed > 0:
-                _add_cmd("forward", needed)
-
-        def _quick_min_before_turn():
-            """Auto move minimum distance to enable a turn."""
-            # Calculate distance since last turn
-            dist_since_turn = 0
-            for c in reversed(commands):
-                if c.action == "forward":
-                    dist_since_turn += c.value
-                else:
-                    break
-            needed = max(0, min_turn_dist - dist_since_turn)
-            if needed > 0:
-                _add_cmd("forward", needed)
-
-        def _quick_full_speed():
-            """Auto move full remaining distance forward."""
-            current_dist = sum(c.value for c in commands if c.action == "forward")
-            remaining = max(0, max_speed - current_dist)
-            if remaining > 0:
-                _add_cmd("forward", remaining)
-
-        tk.Button(quick_frame, text=f"Auto: Min Move ({min_speed}cm)",
-                  command=_quick_min_move,
-                  font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
-
-        if min_turn_dist > 0 and ship.ship_type != "escort":
-            tk.Button(quick_frame, text=f"Auto: Pre-Turn ({min_turn_dist}cm)",
-                      command=_quick_min_before_turn,
-                      font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
-
-        tk.Button(quick_frame, text="Auto: Full Speed",
-                  command=_quick_full_speed,
-                  font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
-
-        def _quick_remaining():
-            """Use up all remaining movement forward."""
-            current_dist = sum(c.value for c in commands if c.action == "forward")
-            remaining = max(0, max_speed - current_dist)
-            if remaining > 0:
-                _add_cmd("forward", remaining)
-
-        tk.Button(quick_frame, text="Auto: Remaining",
-                  command=_quick_remaining,
-                  font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
-
-        # Add command buttons
-        add_frame = tk.Frame(dialog)
-        add_frame.pack(padx=10, pady=3)
-
-        dist_var = tk.StringVar(value="10")
-        angle_var = tk.StringVar(value=str(ship.turn_angle))
-
-        tk.Label(add_frame, text="Distance:").grid(row=0, column=0)
-        dist_entry = tk.Entry(add_frame, textvariable=dist_var, width=6,
-                               font=("Consolas", 10))
-        dist_entry.grid(row=0, column=1)
-        tk.Button(add_frame, text="Forward",
-                  command=lambda: _add_cmd("forward", float(dist_var.get())),
-                  font=("Consolas", 9)).grid(row=0, column=2, padx=3)
-
-        tk.Label(add_frame, text="Angle:").grid(row=1, column=0)
-        tk.Entry(add_frame, textvariable=angle_var, width=6,
-                 font=("Consolas", 10)).grid(row=1, column=1)
-        tk.Button(add_frame, text="Anticlockwise",
-                  command=lambda: _add_cmd("turn_left", float(angle_var.get())),
-                  font=("Consolas", 9)).grid(row=1, column=2, padx=3)
-        tk.Button(add_frame, text="Clockwise",
-                  command=lambda: _add_cmd("turn_right", float(angle_var.get())),
-                  font=("Consolas", 9)).grid(row=1, column=3, padx=3)
-
-        # Common turn angle buttons
-        turn_frame = tk.Frame(dialog)
-        turn_frame.pack(padx=10, pady=2, fill=tk.X)
-        tk.Label(turn_frame, text="Quick turns:",
-                 font=("Consolas", 8)).pack(side=tk.LEFT)
-        for deg in [5, 15, 30, 45]:
-            if deg <= ship.turn_angle:
-                tk.Button(turn_frame, text=f"↶{deg}°",
-                          command=lambda d=deg: _add_cmd("turn_left", d),
-                          font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
-                tk.Button(turn_frame, text=f"↷{deg}°",
-                          command=lambda d=deg: _add_cmd("turn_right", d),
-                          font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
-
-        tk.Button(add_frame, text="Remove Last",
-                  command=lambda: _remove_last(),
-                  font=("Consolas", 9)).grid(row=2, column=0, columnspan=2, pady=3)
-        tk.Button(add_frame, text="Clear All",
-                  command=lambda: _clear_all(),
-                  font=("Consolas", 9)).grid(row=2, column=2, columnspan=2, pady=3)
-
-        # Preview/validation label
-        preview_var = tk.StringVar(value="Add movement commands above")
-        tk.Label(dialog, textvariable=preview_var,
-                 font=("Consolas", 8), fg="#AAAAAA",
-                 wraplength=460, justify=tk.LEFT).pack(padx=10)
-
-        def _add_cmd(action, value):
-            try:
-                value = float(value)
-            except ValueError:
-                return
-            cmd = MoveCommand(action, value)
-            commands.append(cmd)
-            cmd_listbox.insert(tk.END, str(cmd))
-            _validate()
-
-        def _remove_last():
-            if commands:
-                commands.pop()
-                cmd_listbox.delete(tk.END)
-                _validate()
-
-        def _clear_all():
-            commands.clear()
-            cmd_listbox.delete(0, tk.END)
-            remaining_var.set(f"Remaining: {max_speed:.0f}cm / {max_speed:.0f}cm")
-            remaining_label.config(fg="#44CC44")
-            preview_var.set("Add movement commands above")
-            self.board.redraw()
-
-        def _validate():
-            result = validate_movement(
-                ship, commands, order, aaf_bonus,
-                self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height)
-
-            # Update remaining distance
-            used = result.total_distance
-            remaining = max(0, max_speed - used)
-            remaining_var.set(f"Remaining: {remaining:.1f}cm / {max_speed:.0f}cm (used {used:.1f}cm)")
-            if remaining < 0.5:
-                remaining_label.config(fg="#CCAA00")
-            else:
-                remaining_label.config(fg="#44CC44")
-
-            if result.valid:
-                preview_var.set(
-                    f"VALID: {result.total_distance:.1f}cm, "
-                    f"{result.turns_used} turns, "
-                    f"end ({result.final_x:.1f}, {result.final_y:.1f}) "
-                    f"hdg {result.final_heading:.0f}°"
-                    + (" [DEFENSES]" if result.counts_as_defense else ""))
-            else:
-                preview_var.set("ERRORS: " + "; ".join(result.errors))
-
-            # Draw preview path on board
-            self.board.redraw()
-            if result.path:
-                for i in range(len(result.path) - 1):
-                    sx0, sy0 = self.board.cm_to_screen(*result.path[i])
-                    sx1, sy1 = self.board.cm_to_screen(*result.path[i+1])
-                    color = "#44FF44" if result.valid else "#FF4444"
-                    self.board.canvas.create_line(
-                        sx0, sy0, sx1, sy1,
-                        fill=color, width=2, dash=(4, 4))
-                if result.valid:
-                    gx, gy = self.board.cm_to_screen(
-                        result.final_x, result.final_y)
-                    r = self.board.cm_to_pixels(1.2)
-                    self.board.canvas.create_oval(
-                        gx-r, gy-r, gx+r, gy+r,
-                        outline="#44FF44", width=2, dash=(3, 3))
-                    # Ghost heading arrow
-                    head_rad = math.radians(result.final_heading)
-                    ax = gx + r * 2 * math.cos(head_rad)
-                    ay = gy - r * 2 * math.sin(head_rad)
-                    self.board.canvas.create_line(
-                        gx, gy, ax, ay, fill="#44FF44", width=2, arrow=tk.LAST)
-
-        def _confirm():
-            result = validate_movement(
-                ship, commands, order, aaf_bonus,
-                self.gs.get_blast_markers(),
-                self.gs.table_width, self.gs.table_height)
-            if not result.valid:
-                messagebox.showerror("Invalid Movement",
-                                     "\n".join(result.errors))
-                return
-            execute_movement(ship, result, self.gs)
-
-            # Check for terrain navigation tests
-            updated_ship = self.gs.get_ship_by_id(ship.id)
-            if updated_ship and not updated_ship.is_disengaged:
-                from .terrain_effects import (resolve_asteroid_navigation,
-                                               resolve_warp_rift_navigation,
-                                               resolve_gas_dust_contact)
-                if "in_asteroid_field" in (updated_ship.special_rules or []):
-                    on_aaf = order == SpecialOrder.ALL_AHEAD_FULL.value
-                    nav = resolve_asteroid_navigation(
-                        updated_ship, self.dice, self.gs, on_aaf)
-                    if not nav["passed"]:
-                        self._append_log(
-                            f"  {updated_ship.name}: asteroid damage {nav['damage']} HP!")
-                        self._check_destruction(updated_ship)
-                    # Remove flag
-                    updated_ship = self.gs.get_ship_by_id(ship.id)
-                    if updated_ship:
-                        sr = [r for r in updated_ship.special_rules
-                              if r != "in_asteroid_field"]
-                        updated_ship.special_rules = sr
-                        self.gs.update_ship(updated_ship)
-
-                if "in_warp_rift" in (updated_ship.special_rules or []):
-                    nav = resolve_warp_rift_navigation(
-                        updated_ship, self.dice, self.gs)
-                    if not nav["passed"]:
-                        self._append_log(f"  {updated_ship.name}: LOST IN THE WARP!")
-                    else:
-                        pos = nav.get("new_position", (0, 0))
-                        self._append_log(
-                            f"  {updated_ship.name}: emerged at ({pos[0]:.0f}, {pos[1]:.0f})")
-                    updated_ship = self.gs.get_ship_by_id(ship.id)
-                    if updated_ship:
-                        sr = [r for r in updated_ship.special_rules
-                              if r != "in_warp_rift"]
-                        updated_ship.special_rules = sr
-                        self.gs.update_ship(updated_ship)
-
-                if "in_dust_cloud" in (updated_ship.special_rules or []):
-                    resolve_gas_dust_contact(updated_ship, self.dice, self.gs)
-                    updated_ship = self.gs.get_ship_by_id(ship.id)
-                    if updated_ship:
-                        sr = [r for r in updated_ship.special_rules
-                              if r != "in_dust_cloud"]
-                        updated_ship.special_rules = sr
-                        self.gs.update_ship(updated_ship)
-
-            self.tc.mark_ship_moved(ship.id)
-            self.tc.record_action(
-                "move_ship", ship.id,
-                details={
-                    "commands": [{"action": c.action, "value": c.value}
-                                 for c in commands],
-                    "special_order": order,
-                },
-                result={
-                    "final_position": [result.final_x, result.final_y],
-                    "final_heading": result.final_heading,
-                    "distance_moved": result.total_distance,
-                },
-                description=(
-                    f"{ship.name} moved {result.total_distance:.1f}cm "
-                    f"to ({result.final_x:.1f}, {result.final_y:.1f}) "
-                    f"heading {result.final_heading:.0f}°"))
-            self._append_log(
-                f"{ship.name}: moved {result.total_distance:.1f}cm")
-            dialog.destroy()
-            self.board.redraw()
-
-        # Confirm / Cancel
-        btn_row = tk.Frame(dialog)
-        btn_row.pack(pady=5)
-        tk.Button(btn_row, text="Confirm Move", command=_confirm,
-                  bg="#336633", fg="white",
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_row, text="Cancel",
-                  command=dialog.destroy,
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-
-    def _undo_movement(self):
-        """Undo a ship's movement."""
-        moved_ids = self.tc.ships_moved
-        if not moved_ids:
-            messagebox.showinfo("Nothing to undo", "No ships have moved yet")
-            return
-
-        # Pick which to undo
-        moved_ships = [Ship.from_dict(s) for s in self.gs.ships
-                       if s["id"] in moved_ids]
-        ship = self._pick_ship_dialog(moved_ships, "Select ship to undo movement")
-        if not ship:
-            return
-
-        if self.tc.undo_ship_movement(ship.id):
-            self._append_log(f"Undid movement for {ship.name}")
-            self.board.redraw()
-
-    # --- Shooting ---
-
-    def _fire_dialog(self):
-        """Dialog to fire a ship's weapons - pick weapons, pick targets, split fire."""
-        # Get ships that have unfired weapons (check per-weapon, not just has_fired)
-        active_ships = [Ship.from_dict(s) for s in self.gs.ships
-                        if s["player"] == self.gs.active_player
-                        and not Ship.from_dict(s).is_destroyed
-                        and not s.get("is_disengaged", False)
-                        and not s.get("disengage_failed_this_turn", False)]
-
-        ships_with_weapons = []
-        for s in active_ships:
-            ship = Ship.from_dict(s) if isinstance(s, dict) else s
-            wr = ship.weapons_remaining or {}
-            has_unfired = False
-            for i, w in enumerate(ship.weapons):
-                wtype = w.get("weapon_type", "")
-                if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
-                    continue
-                if not self._weapon_disabled_by_crit(ship, w):
-                    idx_key = str(i)
-                    if idx_key in wr:
-                        if wr[idx_key] > 0:
-                            has_unfired = True
-                            break
-                    else:
-                        has_unfired = True
-                        break
-            if has_unfired:
-                ships_with_weapons.append(ship)
-
-        if not ships_with_weapons:
-            messagebox.showinfo("No Ships", "All ships have fired all weapons")
-            return
-
-        attacker = self._pick_ship_dialog(ships_with_weapons, "Select ship to fire")
-        if not attacker:
-            return
-
-        # Get enemies (only living, not disengaged)
-        enemy_player = 2 if attacker.player == 1 else 1
-        enemies = [Ship.from_dict(s) for s in self.gs.ships
-                   if s["player"] == enemy_player
-                   and not Ship.from_dict(s).is_destroyed
-                   and not s.get("is_disengaged", False)]
-        if not enemies:
-            messagebox.showinfo("No Targets", "No enemy ships in play")
-            return
-
-        # Sort enemies by distance, but only consider visible ones for "closest"
-        enemies.sort(key=lambda e: attacker.distance_to(e))
-        phenomena = self.gs.get_phenomena()
-        blast_markers = self.gs.get_blast_markers()
-
-        # Find closest VISIBLE enemy (for target priority)
-        closest_visible = None
-        for e in enemies:
-            los = check_los_clear(attacker, e, phenomena, blast_markers)
-            if los["clear"]:
-                closest_visible = e
-                break
-
-        lock_on = attacker.special_order == SpecialOrder.LOCK_ON.value
-
-        # Build list of available weapons (not ordnance, not crit-disabled, has remaining strength)
-        available_weapons = []
-        for i, weapon in enumerate(attacker.weapons):
-            wtype = weapon.get("weapon_type", "")
-            if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
-                continue
-            if self._weapon_disabled_by_crit(attacker, weapon):
-                continue
-            # Check remaining strength
-            idx_key = str(i)
-            if idx_key in attacker.weapons_remaining:
-                remaining = attacker.weapons_remaining[idx_key]
-                if remaining <= 0:
-                    continue  # fully spent
-            available_weapons.append((i, weapon))
-
-        if not available_weapons:
-            messagebox.showinfo("No Weapons",
-                f"{attacker.name} has no available direct fire weapons")
-            return
-
-        # Weapon selection dialog
-        dialog = tk.Toplevel(self.root)
-        dialog.title(f"Fire Weapons - {attacker.name}")
-        dialog.geometry("550x600")
-        dialog.transient(self.root)
-        # dialog.grab_set()  # removed: conflicts with dice popups
-
-        tk.Label(dialog, text=f"Fire: {attacker.name}",
-                 font=("Consolas", 11, "bold")).pack(pady=3)
-        tk.Label(dialog, text=f"Order: {attacker.special_order}"
-                 + (" [LOCK ON - re-roll misses]" if lock_on else ""),
-                 font=("Consolas", 8)).pack()
-
-        # Weapon assignment frame
-        assign_frame = tk.Frame(dialog)
-        assign_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-
-        tk.Label(assign_frame, text="Select weapons and assign targets:",
-                 font=("Consolas", 9, "bold")).pack(anchor=tk.W)
-
-        # For each weapon, create a row with checkbox, weapon info, target dropdown
-        weapon_assignments = []
-        target_options_per_weapon = {}  # w_idx -> list of option strings
-
-        for w_idx, weapon in available_weapons:
-            row = tk.Frame(assign_frame)
-            row.pack(fill=tk.X, pady=2)
-
-            enabled = tk.BooleanVar(value=True)
-            tk.Checkbutton(row, variable=enabled).pack(side=tk.LEFT)
-
-            wtype = weapon.get("weapon_type", "")
-            arcs = "/".join(weapon.get("arcs", []))
-
-            # Calculate available strength (may be reduced from prior split fire)
-            full_str = weapon.get("strength", 0)
-            idx_key = str(w_idx)
-            if idx_key in attacker.weapons_remaining:
-                avail_str = attacker.weapons_remaining[idx_key]
-            else:
-                avail_str = full_str
-
-            if wtype == "battery":
-                desc = f"Battery FP{avail_str}/{full_str} {weapon['range_cm']}cm [{arcs}]"
-            elif wtype == "lance":
-                desc = f"Lance Str{avail_str}/{full_str} {weapon['range_cm']}cm [{arcs}]"
-            elif wtype == "nova_cannon":
-                desc = f"Nova Cannon 30-150cm [front]"
-                avail_str = 1  # nova cannon is binary
-            else:
-                desc = f"{weapon['name']}"
-
-            tk.Label(row, text=f"{weapon['name']}: {desc}",
-                     font=("Consolas", 8), anchor=tk.W).pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-            # Strength to fire entry (for split fire)
-            str_var = tk.StringVar(value=str(avail_str))
-            if wtype != "nova_cannon" and avail_str > 1:
-                tk.Label(row, text="Fire:", font=("Consolas", 8)).pack(side=tk.LEFT)
-                str_entry = tk.Entry(row, textvariable=str_var, width=3,
-                                      font=("Consolas", 9))
-                str_entry.pack(side=tk.LEFT, padx=2)
-
-            # Target dropdown - show name + distance + arc + LoS
-            target_options = []
-            phenomena = self.gs.get_phenomena()
-            for e in enemies:
-                dist = attacker.distance_to(e)
-                arc = attacker.get_target_arc(e.x, e.y)
-                in_arc = arc.value in weapon.get("arcs", []) or not weapon.get("arcs")
-                in_range = dist <= weapon.get("range_cm", 999)
-                los = check_los_clear(attacker, e, phenomena, blast_markers)
-                status = ""
-                if not los["clear"]:
-                    status = f" [NO LOS: {los['blocked_by']}]"
-                elif not in_arc:
-                    status = " [NO ARC]"
-                elif not in_range:
-                    status = " [OUT OF RANGE]"
-                target_options.append(f"{e.name} ({dist:.0f}cm {arc.value}){status}")
-
-            target_options_per_weapon[w_idx] = list(target_options)
-            target_var = tk.StringVar(value=target_options[0] if target_options else "")
-            target_menu = tk.OptionMenu(row, target_var, *target_options)
-            target_menu.config(font=("Consolas", 7), width=25)
-            target_menu.pack(side=tk.RIGHT)
-
-            weapon_assignments.append((w_idx, weapon, enabled, target_var, str_var, avail_str))
-
-        # Log area
-        log_frame = tk.Frame(dialog)
-        log_frame.pack(fill=tk.X, padx=10, pady=3)
-        fire_log = tk.Text(log_frame, height=10, font=("Consolas", 8),
-                           bg="#0a0a1a", fg="#88CC88", state=tk.DISABLED)
-        fire_log.pack(fill=tk.X)
-
-        def _log(msg):
-            fire_log.config(state=tk.NORMAL)
-            fire_log.insert(tk.END, msg + "\n")
-            fire_log.see(tk.END)
-            fire_log.config(state=tk.DISABLED)
-
-        def _fire_all():
-            """Fire all selected weapons at their assigned targets."""
-            all_damage = {}  # target_id -> list of (hits, weapon_type)
-            fired_weapon_indices = []  # track which weapons we fire
-
-            for w_idx, weapon, enabled, target_var, str_var, avail_str in weapon_assignments:
-                if not enabled.get():
-                    continue
-
-                target_str = target_var.get()
-                if not target_str:
-                    _log(f"  {weapon['name']}: skipped (no target selected)")
-                    continue
-                if any(block in target_str for block in
-                       ["[NO ARC]", "[OUT OF RANGE]", "[NO LOS"]):
-                    _log(f"  {weapon['name']}: skipped (invalid target)")
-                    continue
-
-                # Parse strength to fire (for split volleys)
+            ai = AIPlayer(ai_player_num, tc, gs, dice, gs.ai_difficulty)
+        # Targets decide on Brace for Impact before the AI's attacks are rolled
+        ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
+            att.id, att.name, tgt, exp, None, grp, att))
+
+        # Expert movement is slow (minimax depth-5); run off-thread so UI stays
+        # live. The worker never touches Tk: the main thread polls for it.
+        if gs.ai_difficulty == "expert" and phase == "movement":
+            outcome = {}
+
+            def _do_movement():
                 try:
-                    fire_str = int(str_var.get())
-                    fire_str = max(1, min(fire_str, avail_str))
-                except (ValueError, TypeError):
-                    fire_str = avail_str
-
-                # Find target ship by name match
-                target_name = target_str.split(" (")[0]
-                target = None
-                for e in enemies:
-                    if e.name == target_name:
-                        target = e
-                        break
-                if not target:
-                    continue
-
-                # Target priority check: only needed if firing at a target
-                # that is NOT the closest VALID target for THIS weapon
-                # (valid = in arc, in range, in LoS)
-                needs_priority_check = False
-                if closest_visible and target.id != closest_visible.id:
-                    # Check if closest_visible is actually valid for this weapon
-                    cv_arc = attacker.get_target_arc(closest_visible.x, closest_visible.y)
-                    cv_in_arc = cv_arc.value in weapon.get("arcs", []) or not weapon.get("arcs")
-                    cv_in_range = attacker.distance_to(closest_visible) <= weapon.get("range_cm", 999)
-                    cv_los = check_los_clear(attacker, closest_visible,
-                                            self.gs.get_phenomena(), blast_markers)
-                    if cv_in_arc and cv_in_range and cv_los["clear"]:
-                        needs_priority_check = True
-
-                if needs_priority_check:
-                    from .movement import do_command_check
-                    check = do_command_check(attacker, "target_priority",
-                                             self.dice)
-                    if not check["passed"]:
-                        _log(f"  {weapon['name']}: Target priority FAILED "
-                             f"(rolled {check['roll']} vs Ld {check['needed']}). "
-                             f"Must fire at closest visible: {closest_visible.name}")
-                        target = closest_visible
-                    else:
-                        _log(f"  {weapon['name']}: Target priority passed "
-                             f"(rolled {check['roll']} vs Ld {check['needed']})")
-
-                # Track this weapon as fired (with strength used)
-                # BUT: nova cannon errors don't consume the weapon
-                weapon_actually_fired = True
-
-                wtype = weapon.get("weapon_type", "")
-                phenomena = self.gs.get_phenomena()
-
-                # Create weapon dict with the specific strength to fire
-                fire_weapon = dict(weapon)
-                fire_weapon["strength"] = fire_str
-
-                if wtype == "battery":
-                    sr = resolve_batteries(attacker, target, fire_weapon,
-                                          self.dice, blast_markers, lock_on,
-                                          phenomena, self.gs.ships)
-                    _log(f"  {sr.description}")
-                    if sr.hits > 0:
-                        all_damage.setdefault(target.id, []).append(
-                            (sr.hits, "battery", target))
-
-                elif wtype == "lance":
-                    sr = resolve_lances(attacker, target, fire_weapon,
-                                       self.dice, lock_on)
-                    _log(f"  {sr.description}")
-                    if sr.hits > 0:
-                        all_damage.setdefault(target.id, []).append(
-                            (sr.hits, "lance", target))
-
-                elif wtype == "nova_cannon":
-                    # Check range BEFORE attempting to fire
-                    dist_to_target = attacker.distance_to(target)
-                    if dist_to_target < 30 or dist_to_target > 150:
-                        _log(f"  Nova Cannon: target at {dist_to_target:.0f}cm, "
-                             f"range is 30-150cm. Cannot fire.")
-                        weapon_actually_fired = False
-                    else:
-                        nc = resolve_nova_cannon(attacker, target.x, target.y,
-                                               self.dice, self.gs)
-                        if "error" in nc:
-                            _log(f"  Nova Cannon: {nc['error']}")
-                            weapon_actually_fired = False
-                        else:
-                            # Log scatter result
-                            tx, ty = nc["template_x"], nc["template_y"]
-                            if nc.get("scatter_distance", 0) > 0:
-                                _log(f"  Nova Cannon: SCATTERED {nc['scatter_distance']:.0f}cm "
-                                     f"to ({tx:.0f}, {ty:.0f})")
-                            else:
-                                _log(f"  Nova Cannon: HIT! Template at ({tx:.0f}, {ty:.0f})")
-
-                            # Draw template on board
-                            self.board.draw_nova_template(tx, ty,
-                                                          hit=bool(nc.get("ship_hits")))
-
-                            # Apply hits
-                            if nc.get("ship_hits"):
-                                for sid, hd in nc["ship_hits"].items():
-                                    hit_ship = self.gs.get_ship_by_id(sid)
-                                    if hit_ship:
-                                        _log(f"  Nova Cannon hits {hit_ship.name}: "
-                                             f"{hd['hits']} hits (ignores armor)")
-                                        apply_damage(hit_ship, hd["hits"],
-                                                   self.dice, self.gs,
-                                                   ignores_shields=True)
-                                        self._check_destruction(hit_ship)
-                            else:
-                                _log(f"  Nova Cannon: no ships hit")
-
-                            # Place blast markers for misses
-                            for bx, by in nc.get("blast_markers", []):
-                                from .models import BlastMarker as BM
-                                import random as _rng
-                                bm = BM(
-                                    id=f"nova_miss_{_rng.randint(0,9999)}",
-                                    x=bx, y=by,
-                                    source="nova_cannon_miss")
-                                self.gs.add_blast_marker(bm)
-                                _log(f"  Blast marker placed at ({bx:.0f}, {by:.0f})")
-
-                # Only track as fired if the weapon actually resolved
-                if weapon_actually_fired:
-                    fired_weapon_indices.append((w_idx, fire_str, avail_str))
-
-            # Now apply damage per target
-            for target_id, hit_list in all_damage.items():
-                total = sum(h for h, _, _ in hit_list)
-                target = hit_list[0][2]  # get target ship from first entry
-                target = self.gs.get_ship_by_id(target_id)  # re-fetch
-                if not target or target.is_destroyed:
-                    continue
-
-                _log(f"  >> {target.name}: {total} total hits")
-
-                # Brace option (per attacker, requires Ld test)
-                brace = False
-                already_braced = (target.special_order ==
-                                  SpecialOrder.BRACE_FOR_IMPACT.value)
-
-                if already_braced:
-                    brace = True
-                    _log(f"     (already braced)")
-                elif attacker.id not in (target.brace_failed_vs or []):
-                    want_brace = messagebox.askyesno(
-                        "Brace For Impact?",
-                        f"{target.name} taking {total} hits from {attacker.name}.\n"
-                        f"Attempt Brace For Impact? (Ld test, then 4+ save per hull hit)\n"
-                        f"If failed: cannot brace against {attacker.name} again.")
-                    if want_brace:
-                        # Command check for brace
-                        from .movement import do_command_check
-                        check = do_command_check(target, "brace_for_impact",
-                                                 self.dice)
-                        if check["passed"]:
-                            brace = True
-                            # Save previous order before replacing
-                            if target.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
-                                target.previous_order = target.special_order
-                            target.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                            target.brace_set_on_turn = self.gs.turn_number
-                            self.gs.update_ship(target)
-                            _log(f"     Brace PASSED (rolled {check['roll']} "
-                                 f"vs Ld {check['needed']})")
-                        else:
-                            # Failed: can't brace against this attacker again
-                            failed_list = target.brace_failed_vs or []
-                            failed_list.append(attacker.id)
-                            target.brace_failed_vs = failed_list
-                            self.gs.update_ship(target)
-                            _log(f"     Brace FAILED (rolled {check['roll']} "
-                                 f"vs Ld {check['needed']})")
-                else:
-                    _log(f"     (already failed brace vs {attacker.name})")
-
-                dmg = apply_damage(target, total, self.dice, self.gs,
-                                  target_braced=brace)
-                _log(f"     Shields: {dmg['shield_hits']}, "
-                     f"Hull: {dmg['hull_hits']}, "
-                     f"Saves: {dmg['brace_saves']}")
-                if dmg.get("crits"):
-                    for crit in dmg["crits"]:
-                        _log(f"     CRITICAL: {crit}")
-                if dmg["crippled"]:
-                    _log(f"     {target.name} is CRIPPLED!")
-                if dmg["destroyed"]:
-                    _log(f"     {target.name} DESTROYED!")
-                    self._check_destruction(target)
-
-            # Record which weapons were fired and track remaining strength
-            attacker_fresh = self.gs.get_ship_by_id(attacker.id)
-            if attacker_fresh:
-                wr = attacker_fresh.weapons_remaining or {}
-                wfi = attacker_fresh.weapons_fired_indices or []
-
-                for w_idx, fire_str, avail_str in fired_weapon_indices:
-                    new_remaining = avail_str - fire_str
-                    wr[str(w_idx)] = new_remaining
-                    if new_remaining <= 0 and w_idx not in wfi:
-                        wfi.append(w_idx)
-
-                attacker_fresh.weapons_remaining = wr
-                attacker_fresh.weapons_fired_indices = wfi
-
-                # Check if ALL direct-fire weapons are fully spent
-                all_done = True
-                for i, w in enumerate(attacker_fresh.weapons):
-                    wtype = w.get("weapon_type", "")
-                    if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
-                        continue
-                    if self._weapon_disabled_by_crit(attacker_fresh, w):
-                        continue
-                    idx_key = str(i)
-                    if idx_key in wr:
-                        if wr[idx_key] > 0:
-                            all_done = False
-                            break
-                    else:
-                        all_done = False
-                        break
-                attacker_fresh.has_fired = all_done
-                self.gs.update_ship(attacker_fresh)
-
-            self._append_log(
-                f"{attacker.name} fired {len(fired_weapon_indices)} weapon(s)")
-
-            # Warn if unfired weapons remain
-            if attacker_fresh and not attacker_fresh.has_fired:
-                remaining_weapons = []
-                wr2 = attacker_fresh.weapons_remaining or {}
-                for i, w in enumerate(attacker_fresh.weapons):
-                    wtype = w.get("weapon_type", "")
-                    if wtype in ("torpedo", "launch_bay", "gravitic_launcher"):
-                        continue
-                    if self._weapon_disabled_by_crit(attacker_fresh, w):
-                        continue
-                    idx_key = str(i)
-                    if idx_key in wr2:
-                        rem = wr2[idx_key]
-                        if rem > 0:
-                            remaining_weapons.append(
-                                f"{w['name']} ({rem} remaining)")
-                    else:
-                        remaining_weapons.append(w["name"])
-                if remaining_weapons:
-                    self._append_log(
-                        f"  WARNING: {attacker.name} still has unfired: "
-                        + ", ".join(remaining_weapons))
-
-            dialog.destroy()
-            self.board.redraw()
-
-        def _auto_full_volley():
-            """Set all weapons to fire at closest valid target."""
-            for w_idx, weapon, enabled, target_var, str_var, avail_str in weapon_assignments:
-                # Find closest valid target for this weapon
-                best = None
-                for opt in target_options_per_weapon.get(w_idx, []):
-                    if not any(x in opt for x in ["[NO ARC]", "[OUT OF RANGE]", "[NO LOS"]):
-                        best = opt
-                        break
-                if best:
-                    enabled.set(True)
-                    target_var.set(best)
-                else:
-                    enabled.set(False)
-            _fire_all()
-
-        # Buttons
-        btn_frame = tk.Frame(dialog)
-        btn_frame.pack(pady=5)
-        tk.Button(btn_frame, text="Auto: Full Volley at Closest",
-                  command=_auto_full_volley,
-                  bg="#444466", fg="white",
-                  font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
-        tk.Button(btn_frame, text="Fire Selected Weapons", command=_fire_all,
-                  bg="#663333", fg="white",
-                  font=("Consolas", 10, "bold")).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-
-    def _move_tau_missiles_dialog(self):
-        """Player-controlled Tau missile movement. Reuses ship movement concepts:
-        choose speed (20-40cm), optional 45° turn at start, quick buttons."""
-        tau_missiles = [OrdnanceMarker.from_dict(o) for o in self.gs.ordnance
-                        if o["ordnance_type"] == OrdnanceType.TORPEDO_GUIDED.value
-                        and o["owner_player"] == self.gs.active_player
-                        and not o.get("moved_this_phase", False)]
-        if not tau_missiles:
-            messagebox.showinfo("No Missiles",
-                "No unmoved Tau missile salvos this phase")
-            return
-
-        # Pick which salvo to move
-        if len(tau_missiles) == 1:
-            missile = tau_missiles[0]
-        else:
-            dialog = tk.Toplevel(self.root)
-            dialog.title("Select Missile Salvo")
-            dialog.geometry("350x300")
-            dialog.transient(self.root)
-            listbox = tk.Listbox(dialog, font=("Consolas", 9), height=8)
-            listbox.pack(fill=tk.X, padx=10, pady=10)
-            for m in tau_missiles:
-                listbox.insert(tk.END,
-                    f"Str {m.strength} at ({m.x:.0f},{m.y:.0f}) hdg {m.heading:.0f}°")
-            selected = [None]
-            def _sel():
-                s = listbox.curselection()
-                if s:
-                    selected[0] = tau_missiles[s[0]]
-                dialog.destroy()
-            tk.Button(dialog, text="Select", command=_sel,
-                      font=("Consolas", 10)).pack(pady=5)
-            self.root.wait_window(dialog)
-            missile = selected[0]
-            if not missile:
-                return
-
-        # Movement dialog (similar to ship movement)
-        dialog = tk.Toplevel(self.root)
-        dialog.title(f"Move Tau Missiles (Str {missile.strength})")
-        dialog.geometry("480x450")
-        dialog.transient(self.root)
-
-        tk.Label(dialog, text=f"Tau Missile Salvo Str {missile.strength}",
-                 font=("Consolas", 11, "bold")).pack(pady=3)
-
-        can_turn = missile.launched_turn < self.gs.turn_number  # can't turn on launch turn
-        turn_note = "Can turn 45° at start" if can_turn else "Cannot turn (launched this turn)"
-
-        info_text = (
-            f"Speed: 20-40cm | {turn_note}\n"
-            f"Pos: ({missile.x:.1f}, {missile.y:.1f}) | Heading: {missile.heading:.0f}°"
-        )
-        tk.Label(dialog, text=info_text, font=("Consolas", 8),
-                 justify=tk.LEFT).pack(padx=10, anchor=tk.W)
-
-        # Turn controls (only if allowed)
-        turn_applied = [0.0]  # net turn applied
-
-        if can_turn:
-            turn_frame = tk.Frame(dialog)
-            turn_frame.pack(padx=10, pady=3, fill=tk.X)
-            tk.Label(turn_frame, text="Turn:", font=("Consolas", 9)).pack(side=tk.LEFT)
-            turn_var = tk.StringVar(value="0")
-
-            for deg in [5, 15, 30, 45]:
-                tk.Button(turn_frame, text=f"↶{deg}°",
-                          command=lambda d=deg: _apply_turn(d),
-                          font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
-                tk.Button(turn_frame, text=f"↷{deg}°",
-                          command=lambda d=deg: _apply_turn(-d),
-                          font=("Consolas", 8), width=4).pack(side=tk.LEFT, padx=1)
-
-            turn_label = tk.Label(dialog, text="Net turn: 0°",
-                                   font=("Consolas", 9, "bold"))
-            turn_label.pack()
-
-            def _apply_turn(deg):
-                new_net = turn_applied[0] + deg
-                if abs(new_net) > 45:
-                    return  # can't exceed 45°
-                turn_applied[0] = new_net
-                turn_label.config(
-                    text=f"Net turn: {new_net:+.0f}° "
-                         f"({'anticlockwise' if new_net > 0 else 'clockwise' if new_net < 0 else 'none'})")
-                # Update preview
-                _update_preview()
-
-            tk.Button(turn_frame, text="Reset",
-                      command=lambda: (_apply_turn(-turn_applied[0]),),
-                      font=("Consolas", 7)).pack(side=tk.LEFT, padx=3)
-
-        # Speed control
-        speed_frame = tk.Frame(dialog)
-        speed_frame.pack(padx=10, pady=3, fill=tk.X)
-        tk.Label(speed_frame, text="Move distance (20-40cm):",
-                 font=("Consolas", 9)).pack(side=tk.LEFT)
-        speed_var = tk.StringVar(value="30")
-        tk.Entry(speed_frame, textvariable=speed_var, width=5,
-                 font=("Consolas", 10)).pack(side=tk.LEFT, padx=3)
-
-        # Quick speed buttons
-        quick_frame = tk.Frame(dialog)
-        quick_frame.pack(padx=10, pady=2, fill=tk.X)
-        for spd in [20, 25, 30, 35, 40]:
-            tk.Button(quick_frame, text=f"{spd}cm",
-                      command=lambda s=spd: speed_var.set(str(s)),
-                      font=("Consolas", 8)).pack(side=tk.LEFT, padx=2)
-
-        # Preview
-        preview_var = tk.StringVar(value="Set turn and speed, then confirm")
-        tk.Label(dialog, textvariable=preview_var,
-                 font=("Consolas", 8), fg="#AAAAAA",
-                 wraplength=440).pack(padx=10, pady=5)
-
-        def _update_preview():
-            try:
-                spd = float(speed_var.get())
-            except ValueError:
-                spd = 30
-            spd = max(20, min(40, spd))
-            new_heading = (missile.heading + turn_applied[0]) % 360
-            rad = math.radians(new_heading)
-            end_x = missile.x + spd * math.cos(rad)
-            end_y = missile.y + spd * math.sin(rad)
-            preview_var.set(
-                f"Heading {new_heading:.0f}° -> ({end_x:.0f}, {end_y:.0f}), {spd:.0f}cm")
-
-            # Draw preview on board
-            self.board.redraw()
-            sx0, sy0 = self.board.cm_to_screen(missile.x, missile.y)
-            sx1, sy1 = self.board.cm_to_screen(end_x, end_y)
-            self.board.canvas.create_line(sx0, sy0, sx1, sy1,
-                                          fill="#44FF44", width=2, dash=(4, 4))
-
-        speed_var.trace_add("write", lambda *a: _update_preview())
-        _update_preview()
-
-        def _confirm():
-            try:
-                spd = float(speed_var.get())
-            except ValueError:
-                messagebox.showerror("Error", "Invalid speed")
-                return
-            spd = max(20, min(40, spd))
-
-            # Apply turn
-            new_heading = (missile.heading + turn_applied[0]) % 360
-            missile.heading = new_heading
-
-            # Apply movement
-            rad = math.radians(missile.heading)
-            missile.x += spd * math.cos(rad)
-            missile.y += spd * math.sin(rad)
-
-            # Update in game state
-            for j, o_dict in enumerate(self.gs.ordnance):
-                if o_dict["id"] == missile.id:
-                    updated = missile.to_dict()
-                    updated["moved_this_phase"] = True
-                    self.gs.ordnance[j] = updated
-                    break
-
-            turn_desc = f", turned {turn_applied[0]:+.0f}°" if turn_applied[0] != 0 else ""
-            self._append_log(
-                f"Tau missiles Str {missile.strength} moved {spd:.0f}cm"
-                f"{turn_desc} to ({missile.x:.0f}, {missile.y:.0f})")
-            dialog.destroy()
-            self.board.redraw()
-
-        btn_frame = tk.Frame(dialog)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Confirm Move", command=_confirm,
-                  bg="#336633", fg="white",
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
-                  font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
-
-    def _fire_at_ordnance_dialog(self):
-        """Fire weapons at ordnance. 6+ to hit, one hit removes entire wave/salvo.
-        Batteries use Ordnance column on gunnery table. Lances roll strength dice.
-        Ordnance-only target priority (other ordnance = nearest, not ships)."""
-        enemy_player = 2 if self.gs.active_player == 1 else 1
-        enemy_ordnance = [OrdnanceMarker.from_dict(o) for o in self.gs.ordnance
-                          if o["owner_player"] == enemy_player]
-        if not enemy_ordnance:
-            messagebox.showinfo("No Targets", "No enemy ordnance on the board")
-            return
-
-        # Get ships with unfired direct-fire weapons (batteries OR lances)
-        active_ships = [Ship.from_dict(s) for s in self.gs.ships
-                        if s["player"] == self.gs.active_player
-                        and not Ship.from_dict(s).is_destroyed
-                        and not s.get("is_disengaged", False)]
-        ships_with_weapons = []
-        for s in active_ships:
-            wr = s.weapons_remaining or {}
-            for i, w in enumerate(s.weapons):
-                wtype = w.get("weapon_type", "")
-                if wtype not in ("battery", "lance"):
-                    continue
-                if self._weapon_disabled_by_crit(s, w):
-                    continue
-                idx_key = str(i)
-                if idx_key in wr and wr[idx_key] <= 0:
-                    continue
-                ships_with_weapons.append(s)
-                break
-
-        if not ships_with_weapons:
-            messagebox.showinfo("No Ships",
-                "No ships with available battery or lance weapons")
-            return
-
-        attacker = self._pick_ship_dialog(ships_with_weapons,
-                                           "Select ship to fire at ordnance")
-        if not attacker:
-            return
-
-        dialog = tk.Toplevel(self.root)
-        dialog.title(f"Fire at Ordnance - {attacker.name}")
-        dialog.geometry("500x500")
-        dialog.transient(self.root)
-
-        tk.Label(dialog, text=f"Fire {attacker.name} at ordnance",
-                 font=("Consolas", 11, "bold")).pack(pady=3)
-        tk.Label(dialog, text="All weapons hit ordnance on 6+. One hit kills the entire wave.",
-                 font=("Consolas", 8), fg="#AAAAAA").pack()
-
-        # Sort ordnance by distance (for ordnance-only target priority)
-        enemy_ordnance.sort(key=lambda o: math.sqrt(
-            (o.x - attacker.x)**2 + (o.y - attacker.y)**2))
-
-        # Weapon selection
-        avail_weapons = []
-        for i, w in enumerate(attacker.weapons):
-            wtype = w.get("weapon_type", "")
-            if wtype not in ("battery", "lance"):
-                continue
-            if self._weapon_disabled_by_crit(attacker, w):
-                continue
-            wr = attacker.weapons_remaining or {}
-            idx_key = str(i)
-            avail = wr.get(idx_key, w.get("strength", 0))
-            if avail <= 0:
-                continue
-            avail_weapons.append((i, w, avail))
-
-        # Weapon selector
-        tk.Label(dialog, text="Select weapon:", font=("Consolas", 9, "bold")).pack(anchor=tk.W, padx=10)
-        weapon_var = tk.StringVar()
-        weapon_labels = []
-        for i, w, avail in avail_weapons:
-            wtype = w.get("weapon_type", "")
-            label = f"{w['name']} ({wtype} Str {avail}, {w.get('range_cm', 0)}cm)"
-            weapon_labels.append(label)
-            tk.Radiobutton(dialog, text=label, variable=weapon_var,
-                           value=str(i), font=("Consolas", 8)).pack(anchor=tk.W, padx=20)
-        if avail_weapons:
-            weapon_var.set(str(avail_weapons[0][0]))
-
-        # Target selector
-        tk.Label(dialog, text="Select target:", font=("Consolas", 9, "bold")).pack(anchor=tk.W, padx=10, pady=(5,0))
-        target_listbox = tk.Listbox(dialog, font=("Consolas", 9), height=6)
-        target_listbox.pack(fill=tk.X, padx=10, pady=3)
-        for o in enemy_ordnance:
-            dist = math.sqrt((o.x - attacker.x)**2 + (o.y - attacker.y)**2)
-            label = f"{o.ordnance_type} Str{o.strength} ({dist:.0f}cm)"
-            target_listbox.insert(tk.END, label)
-        if enemy_ordnance:
-            target_listbox.selection_set(0)
-
-        def _fire():
-            sel = target_listbox.curselection()
-            if not sel:
-                return
-            target_ord = enemy_ordnance[sel[0]]
-            w_idx = int(weapon_var.get())
-
-            # Find the weapon
-            weapon = attacker.weapons[w_idx]
-            wtype = weapon.get("weapon_type", "")
-            wr = attacker.weapons_remaining or {}
-            idx_key = str(w_idx)
-            avail = wr.get(idx_key, weapon.get("strength", 0))
-
-            dist = math.sqrt((target_ord.x - attacker.x)**2 +
-                             (target_ord.y - attacker.y)**2)
-
-            # Range check
-            if dist > weapon.get("range_cm", 999):
-                messagebox.showerror("Out of Range",
-                    f"Target at {dist:.0f}cm, weapon range {weapon['range_cm']}cm")
-                return
-
-            # Ordnance-only target priority: check if this is the closest ordnance
-            # If not, no Ld test needed (ordnance priority only counts other ordnance)
-            closest_ord = enemy_ordnance[0]  # already sorted by distance
-            if target_ord.id != closest_ord.id:
-                from .movement import do_command_check
-                check = do_command_check(attacker, "target_priority", self.dice)
-                if not check["passed"]:
-                    self._append_log(
-                        f"  Target priority FAILED (rolled {check['roll']} vs Ld {check['needed']}). "
-                        f"Must fire at closest ordnance.")
-                    target_ord = closest_ord
-
-            # Determine dice count
-            if wtype == "battery":
-                # Use Ordnance column (col 5) on gunnery table
-                # Column shifts for range, blast markers, special rules still apply
-                from .tables import lookup_gunnery_dice, COL_ABEAM_ESCORT
-                shifts = 0
-                # Range shifts
-                if dist < 15:
-                    shifts -= 1  # close range = better
-                elif dist > 30:
-                    shifts += 1  # long range = worse
-                # Blast markers in line of fire
-                from .los import check_los
-                los = check_los(attacker.x, attacker.y,
-                                target_ord.x, target_ord.y,
-                                self.gs.get_phenomena(),
-                                self.gs.get_blast_markers())
-                shifts += los.get("column_shifts", 0)
-                # Targeting matrix
-                if "targeting_matrix" in attacker.special_rules:
-                    shifts -= 1
-
-                dice_count = lookup_gunnery_dice(avail, COL_ABEAM_ESCORT, shifts)
-                self._append_log(
-                    f"  {weapon['name']} FP{avail} vs ordnance: "
-                    f"{dice_count} dice (col Ordnance, {shifts:+d} shifts)")
-            elif wtype == "lance":
-                # Lances roll their strength in dice
-                dice_count = avail
-                self._append_log(
-                    f"  {weapon['name']} Str{avail} vs ordnance: "
-                    f"{dice_count} dice")
-            else:
-                dice_count = 0
-
-            if dice_count <= 0:
-                self._append_log(f"  No dice to roll")
-                dialog.destroy()
-                return
-
-            # Roll: 6+ to hit ordnance
-            rolls = self.dice.roll_d6(dice_count,
-                f"{weapon['name']} vs {target_ord.ordnance_type} (6+ to hit)")
-            hits = sum(1 for r in rolls if r >= 6)
-
-            # Track weapon as used
-            wr[idx_key] = 0
-            attacker.weapons_remaining = wr
-            if w_idx not in attacker.weapons_fired_indices:
-                attacker.weapons_fired_indices.append(w_idx)
-            self.gs.update_ship(attacker)
-
-            if hits > 0:
-                # ONE HIT KILLS ENTIRE WAVE/SALVO
-                self.gs.ordnance = [
-                    o for o in self.gs.ordnance
-                    if o["id"] != target_ord.id]
-                self._append_log(
-                    f"  HIT! {target_ord.ordnance_type} Str{target_ord.strength} "
-                    f"destroyed! (rolled {hits} hit(s) on 6+)")
-            else:
-                self._append_log(
-                    f"  MISS! No 6s rolled ({dice_count} dice)")
-
-            dialog.destroy()
-            self.board.redraw()
-
-        btn_frame = tk.Frame(dialog)
-        btn_frame.pack(pady=10)
-        tk.Button(btn_frame, text="Fire at Ordnance", command=_fire,
-                  bg="#663333", fg="white",
-                  font=("Consolas", 10)).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Cancel", command=dialog.destroy,
-                  font=("Consolas", 9)).pack(side=tk.LEFT, padx=5)
-
-    def _check_destruction(self, ship: Ship):
-        """Handle ship destruction - escorts become blast markers, capitals roll catastrophic."""
-        ship = self.gs.get_ship_by_id(ship.id)
-        if not ship or ship.hits_remaining > 0:
-            return
-
-        from .combat import resolve_catastrophic
-        result = resolve_catastrophic(ship, self.dice, self.gs)
-        self._append_log(f"  {ship.name}: {result}")
-        self.board.redraw()
-
-    def _resolve_ordnance_movement(self):
-        """Move all ordnance markers in the ordnance phase.
-        Order: degrade Tau missiles, move all, blast checks,
-        ordnance-vs-ordnance interactions, then ship contacts."""
-        from .ordnance import (move_ordnance, degrade_tau_missiles,
-                                check_torpedo_contact, resolve_torpedo_attack,
-                                resolve_bomber_attack, check_ordnance_vs_blast,
-                                resolve_ordnance_interactions)
-
-        self._append_log("--- Ordnance Movement ---")
-
-        # Degrade Tau missiles from previous turns
-        degrade_tau_missiles(self.gs, self.dice, self.gs.turn_number)
-
-        # Check for unmoved Tau missiles - auto-move at minimum speed straight
-        for i, o_dict in enumerate(list(self.gs.ordnance)):
-            if (o_dict.get("ordnance_type") == OrdnanceType.TORPEDO_GUIDED.value
-                    and o_dict.get("owner_player") == self.gs.active_player
-                    and not o_dict.get("moved_this_phase", False)):
-                marker = OrdnanceMarker.from_dict(o_dict)
-                rad = math.radians(marker.heading)
-                marker.x += 20 * math.cos(rad)  # minimum speed
-                marker.y += 20 * math.sin(rad)
-                self.gs.ordnance[i] = marker.to_dict()
-                self._append_log(
-                    f"  Tau missiles Str {marker.strength} auto-moved 20cm (minimum)")
-
-        ships = self.gs.get_ships()
-        blast_markers = self.gs.get_blast_markers()
-        to_remove = set()
-
-        # 1. Move all ordnance
-        for i, o_dict in enumerate(list(self.gs.ordnance)):
-            marker = OrdnanceMarker.from_dict(o_dict)
-            move_ordnance(marker, self.gs)
-
-            # Off table check
-            if (marker.x < -5 or marker.x > self.gs.table_width + 5 or
-                    marker.y < -5 or marker.y > self.gs.table_height + 5):
-                to_remove.add(marker.id)
-                self._append_log(f"  {marker.ordnance_type} left the table")
-                continue
-
-            # Blast marker destruction (D6=6)
-            if check_ordnance_vs_blast(marker, blast_markers, self.dice):
-                to_remove.add(marker.id)
-                self._append_log(f"  {marker.ordnance_type} destroyed by blast marker")
-                continue
-
-            # Update position
-            self.gs.ordnance[i] = marker.to_dict()
-
-        # Remove off-table and blast-destroyed ordnance
-        if to_remove:
-            self.gs.ordnance = [
-                o for o in self.gs.ordnance if o["id"] not in to_remove]
-
-        # 2. Ordnance-vs-ordnance interactions (fighters intercept, torp collisions)
-        interaction_logs = resolve_ordnance_interactions(self.gs, self.dice)
-        for log in interaction_logs:
-            self._append_log(log)
-
-        # 3. Check ordnance contact with ships
-        # Torpedoes hit ALL ships (friendly fire!) unless launched through base contact
-        to_remove_after = set()
-        for o_dict in list(self.gs.ordnance):
-            marker = OrdnanceMarker.from_dict(o_dict)
-            if marker.id in to_remove_after:
-                continue
-
-            is_torp = "torpedo" in marker.ordnance_type
-            is_bomber = marker.ordnance_type in (
-                OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
-
-            if is_torp:
-                # Torpedoes attack ANY ship they contact (friend or foe)
-                for s in ships:
-                    if s.is_destroyed or s.is_disengaged:
-                        continue
-                    if s.status in ("drifting_hulk", "burning_hulk", "destroyed"):
-                        continue
-                    if not check_torpedo_contact(marker, s):
-                        continue
-
-                    self._append_log(
-                        f"  Torpedoes contact {s.name}"
-                        + (" (FRIENDLY FIRE!)" if s.player == marker.owner_player else "")
-                        + f"!")
-                    result = resolve_torpedo_attack(
-                        marker, s, self.dice, self.gs)
-
-                    # Reduce salvo strength by hits inflicted, continue if strength remains
-                    marker.strength -= result["hits"]
-                    if result["hits"] > 0:
-                        self._check_destruction(s)
-                    if marker.strength <= 0:
-                        to_remove_after.add(marker.id)
-                        break
-                    # Update marker for next ship in path
-                    for j, od in enumerate(self.gs.ordnance):
-                        if od["id"] == marker.id:
-                            self.gs.ordnance[j] = marker.to_dict()
-                            break
-
-            elif is_bomber:
-                # Bombers attack enemy ships only
-                for s in ships:
-                    if s.player == marker.owner_player:
-                        continue
-                    if s.is_destroyed or s.is_disengaged:
-                        continue
-                    dist = math.sqrt(
-                        (marker.x - s.x)**2 + (marker.y - s.y)**2)
-                    if dist <= s.base_radius + 1.5:
-                        self._append_log(
-                            f"  {marker.ordnance_type} attacks {s.name}!")
-
-                        # Count friendly fighters in contact with this target
-                        # (same player as bomber, within base contact range)
-                        contact_r = s.base_radius + 2.0
-                        suppressing_fighters = sum(
-                            1 for od in self.gs.ordnance
-                            if od.get("owner_player") == marker.owner_player
-                            and od.get("ordnance_type") in (
-                                OrdnanceType.FIGHTER.value,
-                                OrdnanceType.BARRACUDA.value,
-                                OrdnanceType.MANTA.value)
-                            and math.sqrt((od.get("x", 0) - s.x)**2
-                                          + (od.get("y", 0) - s.y)**2) <= contact_r)
-
-                        # Count all bombers from same player contacting this ship
-                        # (needed for Remastered cap)
-                        total_bombers_on_target = sum(
-                            1 for od in self.gs.ordnance
-                            if od.get("owner_player") == marker.owner_player
-                            and od.get("ordnance_type") in (
-                                OrdnanceType.BOMBER.value, OrdnanceType.MANTA.value)
-                            and math.sqrt((od.get("x", 0) - s.x)**2
-                                          + (od.get("y", 0) - s.y)**2)
-                                <= s.base_radius + 1.5)
-
-                        if suppressing_fighters > 0:
-                            if self.gs.rule_turret_suppression_remastered:
-                                # Remastered: fighters add +1 to attack roll,
-                                # capped at total attacking bombers
-                                result = resolve_bomber_attack(
-                                    marker, s, self.dice, self.gs,
-                                    remastered_fighter_bonus=suppressing_fighters,
-                                    remastered_bomber_cap=total_bombers_on_target)
-                            else:
-                                # XR default: this bomber gets exactly 3 attacks
-                                result = resolve_bomber_attack(
-                                    marker, s, self.dice, self.gs,
-                                    suppressed_by_fighter=True)
-                        else:
-                            result = resolve_bomber_attack(
-                                marker, s, self.dice, self.gs)
-
-                        if result["hits"] > 0:
-                            self._check_destruction(s)
-                        to_remove_after.add(marker.id)
-                        break
-
-        # Remove spent ordnance
-        if to_remove_after:
-            self.gs.ordnance = [
-                o for o in self.gs.ordnance
-                if o["id"] not in to_remove_after]
-
-        self._append_log(
-            f"  Ordnance phase complete: {len(self.gs.ordnance)} markers remain")
-        self.board.redraw()
-
-    def _launch_ordnance_dialog(self):
-        """Dialog to launch torpedoes or attack craft with heading and composition control."""
-        all_active = [Ship.from_dict(s) for s in self.gs.ships
-                      if s["player"] == self.gs.active_player
-                      and not Ship.from_dict(s).is_destroyed
-                      and not s.get("is_disengaged", False)]
-        launchers = [s for s in all_active
-                     if s.ordnance_loaded_torps or s.ordnance_loaded_craft]
-        if not launchers:
-            messagebox.showinfo("No Ordnance", "No ships with loaded ordnance")
-            return
-
-        ship = self._pick_ship_dialog(launchers, "Select ship to launch from")
-        if not ship:
-            return
-
-        dialog = tk.Toplevel(self.root)
-        dialog.title(f"Launch Ordnance - {ship.name}")
-        dialog.geometry("500x550")
-        dialog.transient(self.root)
-
-        tk.Label(dialog, text=f"Launch from {ship.name}",
-                 font=("Consolas", 11, "bold")).pack(pady=3)
-        tk.Label(dialog, text=f"Heading: {ship.heading:.0f}°",
-                 font=("Consolas", 8)).pack()
-
-        notebook_frame = tk.Frame(dialog)
-        notebook_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-
-        # Find launchable weapons
-        torp_weapons = []
-        bay_weapons = []
-        for w in ship.weapons:
-            wtype = w.get("weapon_type", "")
-            if wtype in ("torpedo", "gravitic_launcher") and ship.ordnance_loaded_torps:
-                torp_weapons.append(w)
-            elif wtype == "launch_bay" and ship.ordnance_loaded_craft:
-                bay_weapons.append(w)
-
-        # --- TORPEDO SECTION ---
-        if torp_weapons:
-            torp_frame = tk.LabelFrame(notebook_frame, text="Torpedoes / Missiles",
-                                        font=("Consolas", 9, "bold"))
-            torp_frame.pack(fill=tk.X, pady=3)
-
-            for tw in torp_weapons:
-                total_str = tw["strength"]
-                # Halve for crippled, then halve again for braced (cumulative)
-                halve_reasons = []
-                if ship.is_crippled:
-                    total_str = (total_str + 1) // 2
-                    halve_reasons.append("crippled")
-                if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
-                    total_str = (total_str + 1) // 2
-                    halve_reasons.append("braced")
-
-                is_guided = tw.get("torpedo_type") == "guided"
-                label = "Guided Missiles" if is_guided else "Torpedoes"
-                torp_speed = tw.get("torpedo_speed", 30)
-                halve_note = f" [{', '.join(halve_reasons)}]" if halve_reasons else ""
-
-                tk.Label(torp_frame,
-                         text=f"{tw['name']}: Str {total_str}, Speed {torp_speed}cm"
-                              + (" [GUIDED]" if is_guided else "") + halve_note,
-                         font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
-
-                # Heading control (within forward arc: ship heading +/- 45°)
-                head_frame = tk.Frame(torp_frame)
-                head_frame.pack(fill=tk.X, padx=10, pady=2)
-                tk.Label(head_frame, text="Launch heading:",
-                         font=("Consolas", 8)).pack(side=tk.LEFT)
-                heading_var = tk.StringVar(value=f"{ship.heading:.0f}")
-                tk.Entry(head_frame, textvariable=heading_var, width=6,
-                         font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
-                tk.Label(head_frame,
-                         text=f"(forward arc: {ship.heading-45:.0f}° to {ship.heading+45:.0f}°)",
-                         font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
-
-                # Split volley (only Str 7+ can split, into exactly two)
-                split_frame = tk.Frame(torp_frame)
-                split_frame.pack(fill=tk.X, padx=10, pady=2)
-                str_var = tk.StringVar(value=str(total_str))
-                if total_str >= 7:
-                    tk.Label(split_frame, text="Strength to launch:",
-                             font=("Consolas", 8)).pack(side=tk.LEFT)
-                    tk.Entry(split_frame, textvariable=str_var, width=4,
-                             font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
-                    tk.Label(split_frame,
-                             text=f"(Str {total_str}: can split into two salvos, min 1 each)",
-                             font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
-                else:
-                    tk.Label(split_frame,
-                             text=f"Full salvo: Str {total_str} (splitting requires Str 7+)",
-                             font=("Consolas", 8), fg="#888888").pack(side=tk.LEFT)
-
-                def _launch_torps(w=tw, hv=heading_var, sv=str_var,
-                                   effective_str=total_str):
-                    try:
-                        heading = float(hv.get())
-                        strength = int(sv.get())
-                    except ValueError:
-                        messagebox.showerror("Error", "Invalid heading or strength")
-                        return
-
-                    # Validate heading within forward arc (+/- 45°)
-                    diff = (heading - ship.heading + 180) % 360 - 180
-                    if abs(diff) > 45:
-                        messagebox.showerror("Error",
-                            f"Heading {heading:.0f}° is outside forward arc "
-                            f"({ship.heading-45:.0f}° to {ship.heading+45:.0f}°)")
-                        return
-
-                    # Use the already-halved effective strength as the cap
-                    total = effective_str
-                    # Enforce split rules
-                    if total < 7:
-                        strength = total  # can't split below Str 7
-                    else:
-                        strength = max(1, min(strength, total))
-
-                    is_g = w.get("torpedo_type") == "guided"
-                    o_type = (OrdnanceType.TORPEDO_GUIDED.value if is_g
-                              else OrdnanceType.TORPEDO_STANDARD.value)
-
-                    import random as _rng
-
-                    # First (or only) salvo
-                    marker = OrdnanceMarker(
-                        id=f"torp_{ship.id}_{self.gs.turn_number}_{_rng.randint(0,9999)}",
-                        ordnance_type=o_type,
-                        owner_player=ship.player,
-                        launched_by=ship.id,
-                        x=ship.x, y=ship.y,
-                        heading=heading,
-                        strength=strength,
-                        speed=w.get("torpedo_speed", 30),
-                        launched_turn=self.gs.turn_number,
-                        can_turn=is_g,
-                        turn_angle=45 if is_g else 0,
-                    )
-                    self.gs.add_ordnance(marker)
-
-                    name = "guided missiles" if is_g else "torpedoes"
-                    self._append_log(
-                        f"{ship.name} launched {name} Str {strength} "
-                        f"heading {heading:.0f}°")
-
-                    # Second salvo if split
-                    remainder = total - strength
-                    if remainder > 0:
-                        marker2 = OrdnanceMarker(
-                            id=f"torp_{ship.id}_{self.gs.turn_number}_{_rng.randint(0,9999)}_b",
-                            ordnance_type=o_type,
-                            owner_player=ship.player,
-                            launched_by=ship.id,
-                            x=ship.x, y=ship.y,
-                            heading=heading,  # same heading for now
-                            strength=remainder,
-                            speed=w.get("torpedo_speed", 30),
-                            launched_turn=self.gs.turn_number,
-                            can_turn=is_g,
-                            turn_angle=45 if is_g else 0,
-                        )
-                        self.gs.add_ordnance(marker2)
-                        self._append_log(
-                            f"  Split salvo: second volley Str {remainder} "
-                            f"heading {heading:.0f}°")
-
-                    ship_fresh = self.gs.get_ship_by_id(ship.id)
-                    if ship_fresh:
-                        ship_fresh.ordnance_loaded_torps = False
-                        self.gs.update_ship(ship_fresh)
-
-                    dialog.destroy()
-                    self.board.redraw()
-
-                tk.Button(torp_frame, text=f"Launch {label}",
-                          command=_launch_torps,
-                          bg="#663333", fg="white",
-                          font=("Consolas", 9)).pack(pady=3)
-
-        # --- ATTACK CRAFT SECTION ---
-        if bay_weapons:
-            bay_frame = tk.LabelFrame(notebook_frame, text="Attack Craft",
-                                       font=("Consolas", 9, "bold"))
-            bay_frame.pack(fill=tk.X, pady=3)
-
-            # Combine all bays on this ship
-            total_bays = sum(w["strength"] for w in bay_weapons)
-            # Halve for crippled, then halve again for braced (cumulative)
-            bay_halve_reasons = []
-            if ship.is_crippled:
-                total_bays = (total_bays + 1) // 2
-                bay_halve_reasons.append("crippled")
-            if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
-                total_bays = (total_bays + 1) // 2
-                bay_halve_reasons.append("braced")
-
-            available_types = set()
-            for w in bay_weapons:
-                for ct in w.get("craft_types", w.get("craft", [])):
-                    available_types.add(ct)
-
-            bay_cap_label = f"Total launch capacity: {total_bays} squadrons"
-            if bay_halve_reasons:
-                bay_cap_label += f" [{', '.join(bay_halve_reasons)}]"
-            tk.Label(bay_frame,
-                     text=bay_cap_label,
-                     font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
-            tk.Label(bay_frame,
-                     text=f"Available types: {', '.join(sorted(available_types))}",
-                     font=("Consolas", 8)).pack(anchor=tk.W, padx=5)
-
-            # Composition picker: one row per craft type
-            CRAFT_NAMES = {
-                "fury_fighter": "Fury Interceptors (fighters)",
-                "starhawk_bomber": "Starhawk Bombers",
-                "manta": "Manta (fighter+bomber, resilient)",
-                "barracuda": "Barracuda (fighters)",
-            }
-            composition_vars = {}
-            comp_frame = tk.Frame(bay_frame)
-            comp_frame.pack(fill=tk.X, padx=10, pady=3)
-
-            for ct in sorted(available_types):
-                row = tk.Frame(comp_frame)
-                row.pack(fill=tk.X)
-                name = CRAFT_NAMES.get(ct, ct)
-                tk.Label(row, text=f"{name}:", font=("Consolas", 8),
-                         width=30, anchor=tk.W).pack(side=tk.LEFT)
-                var = tk.StringVar(value="0")
-                composition_vars[ct] = var
-                tk.Entry(row, textvariable=var, width=3,
-                         font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
-
-            # Heading control for craft
-            craft_head_frame = tk.Frame(bay_frame)
-            craft_head_frame.pack(fill=tk.X, padx=10, pady=2)
-            tk.Label(craft_head_frame, text="Launch heading:",
-                     font=("Consolas", 8)).pack(side=tk.LEFT)
-            craft_heading_var = tk.StringVar(value=f"{ship.heading:.0f}")
-            tk.Entry(craft_head_frame, textvariable=craft_heading_var, width=6,
-                     font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
-
-            # Quick buttons
-            quick_craft = tk.Frame(bay_frame)
-            quick_craft.pack(fill=tk.X, padx=10, pady=2)
-
-            def _set_all_fighters():
-                for ct, v in composition_vars.items():
-                    v.set("0")
-                fighter_key = next(
-                    (k for k in composition_vars
-                     if k in ("fury_fighter", "barracuda")), None)
-                if fighter_key:
-                    composition_vars[fighter_key].set(str(total_bays))
-
-            def _set_all_bombers():
-                for ct, v in composition_vars.items():
-                    v.set("0")
-                bomber_key = next(
-                    (k for k in composition_vars
-                     if k in ("starhawk_bomber", "manta")), None)
-                if bomber_key:
-                    composition_vars[bomber_key].set(str(total_bays))
-
-            def _set_mixed():
-                for ct, v in composition_vars.items():
-                    v.set("0")
-                types_list = sorted(available_types)
-                if len(types_list) >= 2:
-                    half = total_bays // 2
-                    composition_vars[types_list[0]].set(str(half))
-                    composition_vars[types_list[1]].set(str(total_bays - half))
-                elif types_list:
-                    composition_vars[types_list[0]].set(str(total_bays))
-
-            tk.Button(quick_craft, text="All Fighters", command=_set_all_fighters,
-                      font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
-            tk.Button(quick_craft, text="All Bombers", command=_set_all_bombers,
-                      font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
-            tk.Button(quick_craft, text="Mixed", command=_set_mixed,
-                      font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
-
-            def _launch_craft():
-                try:
-                    heading = float(craft_heading_var.get())
-                except ValueError:
-                    messagebox.showerror("Error", "Invalid heading")
+                    ai.run_movement_phase()
+                except Exception as exc:
+                    outcome["error"] = exc
+
+            def _poll():
+                if worker.is_alive():
+                    self.root.after(self._pace(100), _poll)
                     return
+                if "error" not in outcome:
+                    # Main thread: ordnance the AI's ships ran into attacks them
+                    self.ordnance._resolve_moving_ship_contacts()
+                restore_dice()
+                self._ai_thinking = False
+                if "error" in outcome:
+                    self._report_ai_error(phase, outcome["error"])
+                self.ctx.board.redraw()
+                self.ctx.log("[AI] movement phase complete")
+                self._update_phase_display()
+                self._finish_ai_phase(phase, epoch)
 
-                total_launched = 0
-                CRAFT_STATS = {
-                    "manta": (OrdnanceType.MANTA.value, 20, 4),
-                    "barracuda": (OrdnanceType.BARRACUDA.value, 25, 0),
-                    "fury_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
-                    "starhawk_bomber": (OrdnanceType.BOMBER.value, 20, 0),
-                }
+            self._ai_thinking = True
+            self._update_phase_display()
+            worker = threading.Thread(target=_do_movement, daemon=True)
+            worker.start()
+            self.root.after(self._pace(100), _poll)
+            return
 
-                import random as _rng
-                for ct, var in composition_vars.items():
-                    try:
-                        count = int(var.get())
-                    except ValueError:
-                        continue
-                    if count <= 0:
-                        continue
+        try:
+            if phase == "movement":
+                ai.run_movement_phase()
+                # Ordnance the AI's ships ran into attacks them (s.15)
+                self.ordnance._resolve_moving_ship_contacts()
+            elif phase == "shooting":
+                ai.run_shooting_phase()
+            elif phase == "ordnance":
+                ai.run_ordnance_phase()
+            elif phase == "end":
+                self._resolve_end_phase_auto(ai)
+        except Exception as exc:
+            self._report_ai_error(phase, exc)
+        finally:
+            restore_dice()
 
-                    o_type, spd, resil = CRAFT_STATS.get(
-                        ct, (OrdnanceType.FIGHTER.value, 30, 0))
+        self.ctx.board.redraw()
+        self.ctx.log(f"[AI] {phase} phase complete")
+        self._finish_ai_phase(phase, epoch)
 
-                    for i in range(count):
-                        marker = OrdnanceMarker(
-                            id=f"craft_{ship.id}_{ct}_{self.gs.turn_number}_{_rng.randint(0,9999)}",
-                            ordnance_type=o_type,
-                            owner_player=ship.player,
-                            launched_by=ship.id,
-                            x=ship.x + (i - count/2) * 1.5,
-                            y=ship.y,
-                            heading=heading,
-                            strength=1,
-                            speed=spd,
-                            launched_turn=self.gs.turn_number,
-                            resilient_save=resil,
-                        )
-                        self.gs.add_ordnance(marker)
-                        total_launched += 1
+    def _finish_ai_phase(self, phase: str, epoch: int):
+        def advance():
+            if not self._ai_callback_stale(epoch):
+                self._end_phase(from_ai=True)
+        self.root.after(self._pace(300), advance)
 
-                if total_launched == 0:
-                    messagebox.showwarning("No Craft",
-                        "Set at least one craft type to a non-zero count")
-                    return
+    def _report_ai_error(self, phase: str, exc: Exception):
+        """An AI failure ends the AI's phase instead of freezing the game."""
+        import traceback
+        traceback.print_exception(type(exc), exc, exc.__traceback__)
+        self.ctx.log(f"[AI] Error during {phase} phase: {exc!r} — ending the AI's phase")
+        messagebox.showerror(
+            "AI Error",
+            f"The AI hit an error during the {phase} phase and will end its phase "
+            f"early so the game can continue.\n\n{exc!r}")
 
-                if total_launched > total_bays:
-                    messagebox.showwarning("Over Capacity",
-                        f"Launched {total_launched} but only have {total_bays} bays. "
-                        f"Excess will be placed anyway.")
+    def _resolve_end_phase_auto(self, ai):
+        """End phase for the AI player — same logic as interactive but auto-repairs."""
+        from .end_phase import (get_repair_info, apply_repair_choices,
+                                remove_blast_markers, remove_brace_orders)
+        from .ai_player import AIPlayer
+        gs = self.ctx.gs
 
-                ship_fresh = self.gs.get_ship_by_id(ship.id)
-                if ship_fresh:
-                    ship_fresh.ordnance_loaded_craft = False
-                    self.gs.update_ship(ship_fresh)
+        self.ctx.log("=== END PHASE (AI) ===")
 
-                self._append_log(
-                    f"{ship.name} launched {total_launched} attack craft "
-                    f"heading {heading:.0f}°")
-                dialog.destroy()
-                self.board.redraw()
+        self.end_phase._resolve_boarding_actions()
+        self.end_phase._resolve_teleport_attacks()
 
-            tk.Button(bay_frame, text="Launch Attack Craft",
-                      command=_launch_craft,
-                      bg="#663333", fg="white",
-                      font=("Consolas", 9)).pack(pady=3)
+        for ship in gs.get_ships():
+            if ship.is_destroyed or ship.is_disengaged:
+                continue
+            if ship.status in ("drifting_hulk", "burning_hulk"):
+                continue
+            info = get_repair_info(ship, self.ctx.dice, gs)
+            if info["sixes"] > 0 and info["repairable"]:
+                repairs_available = min(info["sixes"], len(info["repairable"]))
+                if self.ctx.is_ai_controlled(ship.player):
+                    choices = AIPlayer.auto_repair_choices(
+                        info["repairable"], repairs_available)
+                else:
+                    choices = self.end_phase._repair_choice_dialog(
+                        ship, info["repairable"], repairs_available)
+                if choices:
+                    repair_logs = apply_repair_choices(ship, choices, gs)
+                    self.ctx.log_lines(repair_logs)
 
-        # Cancel
-        tk.Button(dialog, text="Cancel", command=dialog.destroy,
-                  font=("Consolas", 9)).pack(pady=5)
+        self._resolve_unextinguished_fires()
 
-    # --- Disengagement ---
+        bm_logs = remove_blast_markers(gs, self.ctx.dice)
+        self.ctx.log_lines(bm_logs)
+        brace_logs = remove_brace_orders(gs)
+        self.ctx.log_lines(brace_logs)
+        self.ctx.board.redraw()
+
+    def _resolve_unextinguished_fires(self):
+        """After damage control: each fire still burning deals 1 damage."""
+        from .end_phase import resolve_fire_damage
+        for ship in self.ctx.gs.get_ships():
+            if ship.is_destroyed or ship.is_disengaged:
+                continue
+            if ship.status in ("drifting_hulk", "burning_hulk"):
+                continue
+            self.ctx.log_lines(resolve_fire_damage(ship, self.ctx.dice, self.ctx.gs))
+            if ship.hits_remaining <= 0:
+                self.ctx.check_destruction(ship)
+
+    # ── Disengagement ─────────────────────────────────────────────────────────
 
     def _disengage_dialog(self):
         """Dialog to attempt voluntary disengagement."""
         from .disengage import attempt_disengage, get_disengage_ld_modifiers
+        gs = self.ctx.gs
 
-        # Get active player ships that haven't moved yet and are still active
-        candidates = [Ship.from_dict(s) for s in self.gs.ships
-                      if s["player"] == self.gs.active_player
+        candidates = [Ship.from_dict(s) for s in gs.ships
+                      if s["player"] == gs.active_player
                       and s.get("status", "active") == "active"
                       and not Ship.from_dict(s).is_destroyed
                       and not s.get("is_disengaged", False)]
@@ -2295,12 +1620,11 @@ class GamePanel:
             messagebox.showinfo("No Ships", "No ships available to disengage")
             return
 
-        ship = self._pick_ship_dialog(candidates, "Select ship to disengage")
+        ship = self.ctx.pick_ship(candidates, "Select ship to disengage")
         if not ship:
             return
 
-        # Show modifiers before rolling
-        ld_info = get_disengage_ld_modifiers(ship, self.gs)
+        ld_info = get_disengage_ld_modifiers(ship, gs)
         mod_text = "\n".join(ld_info["modifiers"]) if ld_info["modifiers"] else "No modifiers"
         confirm = messagebox.askyesno(
             "Disengage Attempt",
@@ -2314,18 +1638,23 @@ class GamePanel:
         if not confirm:
             return
 
-        result = attempt_disengage(ship, self.dice, self.gs)
+        result = attempt_disengage(ship, self.ctx.dice, gs)
+        if result.get("blocked"):
+            messagebox.showwarning("FTL Not Charged",
+                f"{ship.name} cannot disengage yet.\n"
+                + "\n".join(result["modifiers"]))
+            return
         if result["success"]:
-            self._append_log(
+            self.ctx.log(
                 f"{ship.name} DISENGAGED (rolled {result['roll']} "
                 f"vs Ld {result['needed']})")
             messagebox.showinfo("Disengaged",
                 f"{ship.name} has disengaged from battle!\n"
                 f"Rolled {result['roll']} vs Ld {result['needed']}")
         else:
-            # Offer fleet re-roll
-            rerolls = self.tc.get_fleet_rerolls(ship.player)
+            rerolls = self.ctx.tc.get_fleet_rerolls(ship.player, ship)
             used_reroll = False
+            rr_result = {}
             if rerolls > 0:
                 use_rr = messagebox.askyesno(
                     "Disengage Failed - Re-roll?",
@@ -2335,105 +1664,149 @@ class GamePanel:
                     f"Use a re-roll?")
                 if use_rr:
                     from .disengage import attempt_disengage as _rr_disengage
-                    # Undo the failed state
                     ship.disengage_failed_this_turn = False
                     ship.has_fired = False
-                    self.gs.update_ship(ship)
-                    self.tc.use_fleet_reroll(ship.player)
-                    rr_result = _rr_disengage(ship, self.dice, self.gs)
+                    gs.update_ship(ship)
+                    self.ctx.tc.use_fleet_reroll(ship.player, ship)
+                    rr_result = _rr_disengage(ship, self.ctx.dice, gs)
                     used_reroll = True
                     if rr_result["success"]:
-                        self._append_log(
+                        self.ctx.log(
                             f"{ship.name} RE-ROLL DISENGAGED "
                             f"(rolled {rr_result['roll']} vs Ld {rr_result['needed']})")
                         messagebox.showinfo("Re-roll: Disengaged!",
                             f"{ship.name} disengaged on re-roll!\n"
                             f"Rolled {rr_result['roll']} vs Ld {rr_result['needed']}")
                     else:
-                        self._append_log(
+                        self.ctx.log(
                             f"{ship.name} RE-ROLL disengage FAILED "
                             f"(rolled {rr_result['roll']} vs Ld {rr_result['needed']})")
 
             if not used_reroll or (used_reroll and not rr_result.get("success")):
-                self._append_log(
-                    f"{ship.name} disengage FAILED. No firing this turn!")
+                self.ctx.log(f"{ship.name} disengage FAILED. No firing this turn!")
                 if not used_reroll:
                     messagebox.showwarning("Disengage Failed",
                         f"{ship.name} failed to disengage.\n"
                         f"Rolled {result['roll']} vs Ld {result['needed']}\n\n"
                         f"No firing or orders this turn.")
 
-        self.board.redraw()
+        self.ctx.board.redraw()
 
-    # --- Victory Points ---
+    # ── Victory Points ────────────────────────────────────────────────────────
 
     def _show_victory_points(self):
-        """Show current victory points summary."""
         from .victory_points import calculate_victory_points, format_vp_summary
-        vp = calculate_victory_points(self.gs)
-        summary = format_vp_summary(vp, self.gs)
+        vp = calculate_victory_points(self.ctx.gs)
+        summary = format_vp_summary(vp, self.ctx.gs)
         messagebox.showinfo("Victory Points", summary)
 
-    # --- Helpers ---
+    # ── Game-end detection (rules live in scenario.py) ──────────────────────
 
-    def _pick_ship_dialog(self, ships: list, title: str) -> Optional[Ship]:
-        """Show a dialog to pick a ship from a list."""
-        if len(ships) == 1:
-            return ships[0]
+    def _show_game_over_dialog(self, winner, reason: str = "", detail: str = ""):
+        from .victory_points import calculate_victory_points, format_vp_summary
+        gs = self.ctx.gs
+        vp = calculate_victory_points(gs)
+        vp_text = format_vp_summary(vp, gs)
 
+        p1_name = gs.player1_name
+        p2_name = gs.player2_name
+
+        if winner == 1:
+            title = f"Victory — {p1_name}!"
+            headline = f"{p1_name} wins!"
+        elif winner == 2:
+            title = f"Victory — {p2_name}!"
+            headline = f"{p2_name} wins!"
+        else:
+            title = "Draw!"
+            headline = "The battle ends in a draw."
+
+        reason_text = {
+            "turn_limit": f"Turn limit ({gs.turn_limit}) reached.",
+            "no_ships": "One side has no ships remaining.",
+            "admiral_killed": f"Admiral killed ({detail}).",
+            "objective_destroyed": f"Objective ship destroyed ({detail}).",
+            "artefact_escaped": "Artefact carrier escaped the field!",
+            "artefact_lost": "Artefact carrier destroyed — artefact lost!",
+            "objective_points": f"Objective points reached 10 ({detail}).",
+            "convoy_gone": "Convoy: no transport capacity left on the table.",
+            "breakthrough": "Line Breaker: the platforms are destroyed and the attacker broke through.",
+        }.get(reason, "")
+        from .subplots import battle_result
+        for p in (1, 2):
+            br = battle_result(gs, p, winner)
+            if br:
+                name = gs.player1_name if p == 1 else gs.player2_name
+                reason_text += (f"\n{name}: {br['result']} (sub-plot {br['sub_plot']} "
+                                f"{'achieved' if br['objective'] else 'failed'}; "
+                                f"renown {br['renown']:+d})")
+        if gs.scenario_mode == "cruiser_clash":
+            from .scenarios import damage_points
+            reason_text += (f"\nCruiser Clash damage points: {damage_points(gs, 1)} - "
+                            f"{damage_points(gs, 2)}")
+        if gs.scenario_mode == "chance_encounter" and winner is not None:
+            from .scenarios import chance_flagship
+            flag = chance_flagship(gs)
+            if flag is not None and flag.is_destroyed and winner != gs.scenario_attacker:
+                reason_text += "\nThe attacking flagship is destroyed: a heroic victory!"
+        if gs.scenario_mode == "domination":
+            from .scenarios import points
+            pts = points(gs)
+            reason_text += f"\nDomination objective points: {pts[1]} - {pts[2]}"
+
+        # Build the game-over dialog
         dialog = tk.Toplevel(self.root)
         dialog.title(title)
-        dialog.geometry("350x400")
+        dialog.geometry("420x340")
         dialog.transient(self.root)
-        # dialog.grab_set()  # removed: conflicts with dice popups
+        dialog.focus_set()
+        tk.Label(dialog, text=headline,
+                 font=("Consolas", 13, "bold")).pack(pady=10)
+        if reason_text:
+            tk.Label(dialog, text=reason_text,
+                     font=("Consolas", 9), fg="#888888").pack()
+        tk.Label(dialog, text=vp_text, font=("Consolas", 9),
+                 justify=tk.LEFT).pack(padx=15, pady=6)
+        tk.Button(dialog, text="Save to Campaign…",
+                  command=lambda: (dialog.destroy(),
+                                   self._campaign_post_battle_dialog(
+                                       vp[1]["total"], vp[2]["total"])),
+                  bg="#2a3344", fg="#aabbcc",
+                  font=("Consolas", 9)).pack(pady=4)
+        tk.Button(dialog, text="Close", command=dialog.destroy,
+                  font=("Consolas", 9)).pack(pady=2)
 
-        tk.Label(dialog, text=title,
-                 font=("Consolas", 10, "bold")).pack(pady=5)
+    def _check_game_over(self) -> bool:
+        from .scenario import check_game_over
+        return self._declare_game_over(check_game_over(self.ctx.gs))
 
-        selected = [None]  # mutable container for closure
-        listbox = tk.Listbox(dialog, font=("Consolas", 9), height=15)
-        listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+    def _check_scenario_end(self) -> bool:
+        from .scenario import check_scenario_end
+        return self._declare_game_over(check_scenario_end(self.ctx.gs))
 
-        for s in ships:
-            status = ""
-            if s.is_crippled:
-                status = " [CRIPPLED]"
-            order = f" ({s.special_order})" if s.special_order != "none" else ""
-            listbox.insert(tk.END,
-                          f"{s.name} ({s.ship_class}){status}{order}")
+    def _declare_game_over(self, result) -> bool:
+        if not result:
+            return False
+        # Rolls the scenario makes when the game ends (Warp Storm's warp tests)
+        from .scenarios import end_of_game, winner_at_end
+        from .scenario import vp_winner
+        from .dice import DiceRoller
+        dice = DiceRoller(mode="auto") if all(self.ctx.is_ai_controlled(p) for p in (1, 2)) \
+            else self.ctx.dice
+        if end_of_game(self.ctx.gs, dice) and result.get("reason") != "objective_points":
+            result = {**result, "winner": winner_at_end(self.ctx.gs, vp_winner)}
+        self._game_over = True
+        self.ctx.log("=== GAME OVER ===")
+        self._show_game_over_dialog(
+            result["winner"], reason=result["reason"], detail=result["detail"])
+        return True
 
-        def on_select():
-            sel = listbox.curselection()
-            if sel:
-                selected[0] = ships[sel[0]]
-            dialog.destroy()
-
-        def on_double(event):
-            on_select()
-
-        listbox.bind("<Double-Button-1>", on_double)
-        tk.Button(dialog, text="Select", command=on_select,
-                  font=("Consolas", 10)).pack(pady=5)
-
-        self.root.wait_window(dialog)
-        return selected[0]
-
-    def _weapon_disabled_by_crit(self, ship: Ship, weapon: dict) -> bool:
-        """Check if a weapon is disabled by critical damage."""
-        arcs = weapon.get("arcs", [])
-        for crit in ship.critical_damage:
-            ct = crit.get("crit_type", "")
-            if ct == "dorsal_armament" and "dorsal" in weapon["name"].lower():
-                return True
-            if ct == "port_armament" and "port" in weapon["name"].lower():
-                return True
-            if ct == "starboard_armament" and "starboard" in weapon["name"].lower():
-                return True
-            if ct == "prow_armament" and "prow" in weapon["name"].lower():
-                return True
-            # Also check by arc matching
-            if ct == "port_armament" and arcs == ["left"]:
-                return True
-            if ct == "starboard_armament" and arcs == ["right"]:
-                return True
-        return False
+    def _check_artefact_pickup(self):
+        """After movement: check if any ship moved onto the uncarried artefact token."""
+        from .scenario import check_artefact_pickup
+        ship = check_artefact_pickup(self.ctx.gs)
+        if ship:
+            self.ctx.board.redraw()
+            messagebox.showinfo("Artefact Seized",
+                f"{ship.name} has picked up the artefact!\n"
+                f"Escape the board edge or warp out to win.")

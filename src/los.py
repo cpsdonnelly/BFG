@@ -1,7 +1,8 @@
 """BFG:XR Line of Sight - LoS checking through terrain and blast markers"""
 import math
-from typing import List, Tuple, Optional
+from typing import List
 from .models import Ship, Phenomenon, BlastMarker
+from .geometry import line_touches_trefoil
 
 
 def check_los(x1: float, y1: float, x2: float, y2: float,
@@ -14,7 +15,7 @@ def check_los(x1: float, y1: float, x2: float, y2: float,
       - blocked_by: str or None (what blocks it)
       - blast_markers_crossed: int (count of blast markers in the line)
       - dust_clouds_crossed: int
-      - column_shifts: int (right shifts from blast/dust)
+      - column_shifts: int (one right shift if any blast marker or dust cloud is in the way)
     """
     result = {
         "clear": True,
@@ -59,26 +60,43 @@ def check_los(x1: float, y1: float, x2: float, y2: float,
                                       p.x - p.width/2, p.y - p.height/2,
                                       p.x + p.width/2, p.y + p.height/2):
                 result["dust_clouds_crossed"] += 1
-                result["column_shifts"] += 1
 
     # Check blast markers in line of fire (cause column shift for batteries)
     blast_crossed = False
     for bm in blast_markers:
-        if _point_near_line(x1, y1, x2, y2, bm.x, bm.y, 1.5):
+        if line_touches_trefoil(x1, y1, x2, y2, bm.x, bm.y, bm.heading):
             if not blast_crossed:
                 result["blast_markers_crossed"] += 1
-                result["column_shifts"] += 1
-                blast_crossed = True  # only one shift for blast markers total
+                blast_crossed = True
 
+    # Owner ruling: blast markers and gas / dust clouds in the line of fire give
+    # one right column shift between them, however many there are (no stacking)
+    if result["blast_markers_crossed"] or result["dust_clouds_crossed"]:
+        result["column_shifts"] = 1
     return result
 
 
 def check_los_ships(attacker: Ship, target: Ship,
                     phenomena: List[Phenomenon],
-                    blast_markers: List[BlastMarker] = None) -> dict:
-    """Check LoS between two ships."""
-    return check_los(attacker.x, attacker.y, target.x, target.y,
-                     phenomena, blast_markers)
+                    blast_markers: List[BlastMarker] = None,
+                    ships: list = None) -> dict:
+    """Check LoS between two ships. ships: everything on the table, so hulks
+    can block lines of fire to ships behind their base (s.34)."""
+    result = check_los(attacker.x, attacker.y, target.x, target.y,
+                       phenomena, blast_markers)
+    if result["clear"] and ships:
+        for s in ships:
+            s = Ship.from_dict(s) if isinstance(s, dict) else s
+            if s.id in (attacker.id, target.id):
+                continue
+            if s.status not in ("drifting_hulk", "burning_hulk"):
+                continue
+            if _line_intersects_circle(attacker.x, attacker.y, target.x, target.y,
+                                       s.x, s.y, s.base_radius):
+                result["clear"] = False
+                result["blocked_by"] = f"hulk {s.name}"
+                break
+    return result
 
 
 def _line_intersects_circle(x1, y1, x2, y2, cx, cy, r) -> bool:
@@ -89,6 +107,8 @@ def _line_intersects_circle(x1, y1, x2, y2, cx, cy, r) -> bool:
     a = dx * dx + dy * dy
     b = 2 * (fx * dx + fy * dy)
     c = fx * fx + fy * fy - r * r
+    if a <= 1e-12:
+        return c <= 0          # a zero-length line: blocked only if the point is inside
 
     discriminant = b * b - 4 * a * c
     if discriminant < 0:
@@ -145,13 +165,3 @@ def _line_intersects_rect(x1, y1, x2, y2,
     return False
 
 
-def _point_near_line(x1, y1, x2, y2, px, py, threshold) -> bool:
-    """Check if point is within threshold of line segment."""
-    dx, dy = x2 - x1, y2 - y1
-    length_sq = dx * dx + dy * dy
-    if length_sq == 0:
-        return math.sqrt((px - x1)**2 + (py - y1)**2) <= threshold
-    t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
-    proj_x = x1 + t * dx
-    proj_y = y1 + t * dy
-    return math.sqrt((px - proj_x)**2 + (py - proj_y)**2) <= threshold
