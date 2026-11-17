@@ -2534,7 +2534,7 @@ Done: To do 2, 3, 6; most of 7.
    its decisions and the record. Dice by mail (owner): two options, shared seed (trust) and a small
    signing dice service both trust (as play-by-mail dice servers do; fair with neither
    player online, but a server); not the opponent's client answering online, which isn't
-   play by mail. Not commit-reveal ahead of time:
+   play by mail. Default for play by mail: shared seed (owner). Not commit-reveal ahead of time:
    secrets handed over in advance let a player read its own turn's rolls. Owner decision: cheat-proof is the online default; shared seed is an
    option the players can choose instead. Team play (To do 22) adds one peer
    per seat. Retire `WebGameContext` and the LAN `network.py` rather than extend them.
