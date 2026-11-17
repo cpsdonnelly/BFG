@@ -54,8 +54,9 @@ numbers are IDs, not the order):
 17. Third last, To do 20: port the engine to a faster language (Rust suggested) in its own
     branch, Python staying the reference; its first milestone is replaying the golden games,
     then every one must match exactly.
-18. Second last, To do 23: online play (owner); a server running the engine with browser
-    clients; the Pyodide `web/` client and LAN `network.py` aren't online play.
+18. Second last, To do 23: online play, peer-to-peer lockstep (owner): each client runs the
+    ported engine from the same seed and they exchange only decisions, with a state hash
+    each phase; the Pyodide `web/` client and LAN `network.py` aren't online play.
 19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
     engine; on hold until the owner says so; separate from the current AI.
 (Steps 5-8 placed by Claude, owner to confirm.)

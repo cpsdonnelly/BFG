@@ -810,9 +810,9 @@ are fixed by the owner):
     recorded games covering every faction and scenario. The port's first milestone is
     reading and replaying these records.
 17. Third last, To do 20: port the engine to a faster language in a new branch.
-18. Second last, To do 23: online play (owner: just before the ML-trained AI; needs 17's
-    events, 18's game flow and 22's seats; the server runs the engine, so it comes after
-    the port).
+18. Second last, To do 23: online play, peer-to-peer lockstep (owner: just before the
+    ML-trained AI; needs 17's events and seed, 18's game flow, 22's seats, 21's exact
+    determinism; each client runs the ported engine).
 19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
     until the owner says to start; built on the faster engine, kept separate from the current
     AI, never replacing it.
@@ -2450,14 +2450,20 @@ Done: To do 2, 3, 6; most of 7.
    browser, in a Web Worker, Netlify for the COOP / COEP headers) with their own older
    copy of the game flow (`WebGameContext`, simplified rules); `network.py` is desktop LAN
    only (the full state over a raw TCP socket each phase end). Neither is online play.
-   Recommended (Claude, owner to confirm): an authoritative server running this Python
-   engine (the same code, so no second copy of the rules), browser clients over websockets,
-   each client sending its decisions and receiving the events / state (To do 17's events
-   are the protocol); the game flow shared by the desktop app, the server and tests (To do
-   18); seats per player (To do 22); reconnect by replaying the record. Alternative: lockstep
-   peer-to-peer (each browser runs the engine on Pyodide from the same seed and exchanges
-   decisions), no server but slow to load, the AI slow in the browser, and it needs exact
-   determinism (To do 17 / 21). Retire `WebGameContext` rather than extend it.
+   Owner decision: peer-to-peer lockstep. Each player's client runs the engine itself
+   (after the port, To do 20, the compiled engine, e.g. Rust built for WebAssembly in the
+   browser, or the desktop app), both start from the same start state and seed, and they
+   exchange only decisions (To do 17's events: moves, orders, targets, launches, prompts'
+   answers); each applies the other's decisions, so both games stay identical. Needs:
+   exact determinism (every roll from the seeded dice, no unseeded `random`, no
+   order-dependent iteration over sets / dicts, float results identical on both machines),
+   a state hash exchanged each phase to catch a divergence at once (then resync from the
+   other side's snapshot), hidden information kept fair (secret formations, Escalating /
+   convoy contact markers, Treasure Haul: commit a hash first, reveal later), a small
+   signalling / relay service only for finding the other player and NAT traversal (WebRTC
+   data channels; a relay when a direct link fails), reconnect by replaying the record, and
+   the AI run by the client of the player who owns it. Team play (To do 22) adds one peer
+   per seat. Retire `WebGameContext` and the LAN `network.py` rather than extend them.
 24. AI list builder (owner design; for the AI and for players: build as / against a random
    fleet, or watch two random fleets). Steps: set the points limit; choose a fleet list;
    choose a personality (carrier heavy, cruiser heavy, light cruiser heavy, escort heavy,
@@ -2553,9 +2559,16 @@ Done: To do 2, 3, 6; most of 7.
    pulsars (Eldar), shadowfields' saves and tracking marks (Dark Eldar), reactive hulls
    (Necrons), Tyranid rules; ordnance vs turrets (0-6, needs 4+ / Ork 5+ / worse against
    Eldar and Dark Eldar ordnance; Tau missiles turning) likewise. Raids and boarding are
-   already exact (the D6s enumerated). Sizes are tiny (n <= ~20 dice), so tables cost nothing;
-   sampling is only for long sequences of interacting choices (waves through CAP and
-   turrets), where the planners already model the steps. Replaces the AI's Poisson
+   already exact (the D6s enumerated). Sizes are tiny (n <= ~20 dice), so tables cost nothing.
+   Owner ruling: exact solutions wherever one exists; never random sampling when an exact
+   answer costs the same or similar (no accuracy given up for no speed gained). Long chains
+   are exact too, by dynamic programming over the chain's states: a wave through CAP and
+   then turrets is a distribution over (squadrons left in front of each kind, saves used)
+   after each CAP interception (resilient saves are fixed chances), then the turret dice
+   remove squadrons from the front (binomial), then each surviving bomber's D6 - turrets
+   attacks plus suppression bonuses, then hits on the Armour (binomial), all convolved; the
+   states are few, so it is exact and cheap. Sampling only where the state space genuinely
+   explodes, and then say so in the code. Replaces the AI's Poisson
    approximations (`poisson_at_least`) and the 0.35 rule of thumb (To do 18's
    `mount_expected_hits`).
 31. Log of random decisions (owner): keep track of every place the AI decides at random in
