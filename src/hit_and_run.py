@@ -43,6 +43,7 @@ Eligibility:
 from typing import Callable, List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker
 from .game_state import GameState
+from . import recorder as _rec
 from .dice import DiceRoller
 from .geometry import current_shields
 from .combat import uses_crit_table
@@ -602,6 +603,8 @@ def resolve_hit_and_run(marker: OrdnanceMarker, target: Ship,
     return summary
 
 
+@_rec.logged("teleport", lambda r, A: (A["gs"], dict(
+    ship=A["attacker"].id, target=A["target"].id, result=r)))
 def resolve_teleport_attack(attacker: Ship, target: Ship,
                              dice: DiceRoller, gs: GameState,
                              brace_decision_fn) -> Dict:

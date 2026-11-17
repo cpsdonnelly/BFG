@@ -12,6 +12,7 @@ from src.dice import DiceRoller, DiceSource, ReplayDivergence, set_source, curre
 from src.game_state import GameState
 from src.models import Ship
 from src.rng import game_random
+from src import recorder
 from src.ship_catalog import find_ship_class
 from src.turn_controller import TurnController
 
@@ -21,6 +22,7 @@ P2 = ["Slaughter Class Cruiser", "Murder Class Cruiser", "Infidel Class Raider"]
 
 def _play(tmp_path, source: DiceSource, seed: int = 7, turns: int = 3) -> str:
     set_source(source)
+    recorder.start_recording()
     gs = GameState(game_name="rec")
     gs.table_width, gs.table_height = 180.0, 120.0
     gs.game_seed = seed
@@ -52,13 +54,20 @@ def _play(tmp_path, source: DiceSource, seed: int = 7, turns: int = 3) -> str:
 def test_same_seed_same_game_and_replay(tmp_path):
     a = _play(tmp_path, DiceSource(7, record=True))
     record = current_source().record
+    evs = recorder.events()
+    kinds = {e["kind"] for e in evs}
+    assert {"move", "fire"} <= kinds             # decisions were recorded
+    assert all(e["roll"] is not None and e["roll"] <= len(record) for e in evs)
     assert len(record) > 5                       # the dice were used and recorded
     assert all(e[4] == "auto" for e in record)
     b = _play(tmp_path, DiceSource(7, record=True))
     assert a == b                                # one seed, one game
+    assert recorder.events() == evs              # and the same decisions
     c = _play(tmp_path, DiceSource(999, replay=[list(e) for e in record]))
     assert c == a                                # the recorded dice replay it, whatever the seed
     assert current_source().pos == len(record)   # every recorded roll used
+    assert recorder.events() == evs
+    recorder.stop_recording()
 
 
 def test_replay_divergence_is_reported():
@@ -96,3 +105,22 @@ def test_game_random_repeats_from_seed_and_counter():
     g1, g2 = GameState(game_seed=5), GameState(game_seed=5)
     assert [game_random(g1).random() for _ in range(3)] == [game_random(g2).random() for _ in range(3)]
     assert g1.rng_counter == 3
+
+
+def test_complete_snapshot_round_trip(tmp_path):
+    gs = GameState(game_name="snap", game_seed=3)
+    d = find_ship_class("Lunar Class Cruiser").to_ship_dict("Lunar Class Cruiser", 1, ship_id="a")
+    gs.add_ship(Ship.from_dict(d))
+    gs.scenario_state = {"points": {"1": 3}}
+    gs.subplots = {"1": {"name": "Vendetta"}}
+    gs.necron_alert = {"2": 4}
+    gs.rng_counter = 9
+    tc = TurnController(gs, DiceRoller(mode="auto"), save_dir=str(tmp_path / "s"))
+    tc.start_game()
+    before = gs.to_snapshot()
+    gs.scenario_state, gs.subplots, gs.necron_alert, gs.rng_counter = {}, {}, {}, 0
+    gs.turn_number = 5
+    assert tc.load_snapshot("t1_start")
+    after = gs.to_snapshot()
+    before.pop("log"), after.pop("log")          # "Game begins" is logged just after the snapshot
+    assert after == before                       # scenario, sub-plot and counters back too

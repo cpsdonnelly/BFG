@@ -9,6 +9,7 @@ from .tables import (lookup_gunnery_dice, get_gunnery_column, CRITICAL_HITS,  # 
                      lookup_catastrophic)
 from .dice import DiceRoller
 from .rng import cosmetic_heading
+from . import recorder as _rec
 from .geometry import (current_shields,
                        EXPLOSION_BLAST_OFFSET_CM,
                        NOVA_CANNON_TEMPLATE_RADIUS_CM,
@@ -348,6 +349,9 @@ def gunnery_target_type(ship: Ship) -> str:
     return "defense"
 
 
+@_rec.logged("fire", lambda r, A: (_rec.current_gs(), dict(
+    ship=A["attacker"].id, target=A["target"].id, what="battery", hits=r.hits,
+    weapon=_rec.weapon_label(A["attacker"], A["weapon"]), lock_on=A["lock_on"])))
 def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
                       dice: DiceRoller, blast_markers: List[BlastMarker],
                       lock_on: bool = False,
@@ -577,6 +581,9 @@ def cutting_beam_firepower(ship: Ship, dist: float) -> int:
     return min(8, 1 + max(0, markers))
 
 
+@_rec.logged("fire", lambda r, A: (_rec.current_gs(), dict(
+    ship=A["attacker"].id, target=A["target"].id, what="lance", hits=r.hits,
+    weapon=_rec.weapon_label(A["attacker"], A["weapon"]), lock_on=A["lock_on"])))
 def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
                    dice: DiceRoller, lock_on: bool = False) -> ShotResult:
     """Resolve a lance weapon attack."""
@@ -693,6 +700,8 @@ def _eldar_lance_hits(attacker: Ship, target: Ship, weapon: Dict, result, dice: 
     return hits
 
 
+@_rec.logged("fire", lambda r, A: (A["game_state"], dict(
+    ship=A["attacker"].id, at=[A["target_x"], A["target_y"]], what="nova_cannon", result=r)))
 def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
                         dice: DiceRoller, game_state: GameState) -> Dict:
     """
@@ -1656,6 +1665,10 @@ def resolve_squadron_volley(plan: Dict, targets: List[Ship], dice: DiceRoller,
     return applied
 
 
+@_rec.logged("fire", lambda r, A: (_rec.current_gs(), dict(
+    ship=A["attacker"].id, targets=[s.id for s in A["eligible_ships"]],
+    aspect=A["chosen_orientation"], weapon=_rec.weapon_label(A["attacker"], A["weapon"]),
+    what="battery_vs_squadron", hits=r.hits)))
 def resolve_batteries_vs_squadron(
         attacker: Ship, weapon: Dict, target_type: str,
         chosen_orientation: str, eligible_ships: List["Ship"],
@@ -1732,6 +1745,8 @@ def ram_ld_dice(rammer_type: str, target_type: str) -> int:
     return 2
 
 
+@_rec.logged("ram", lambda r, A: (A["game_state"], dict(
+    ship=A["rammer"].id, target=A["target"].id, result=r)))
 def resolve_ram(rammer: Ship, target: Ship, dice: DiceRoller,
                 game_state: GameState) -> Dict:
     """Resolve ramming damage for both ships.

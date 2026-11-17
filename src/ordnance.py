@@ -4,6 +4,7 @@ from typing import List, Dict, Optional, Tuple
 from .models import (Ship, OrdnanceMarker, BlastMarker, OrdnanceType,
                      SpecialOrder, signed_angle_diff)
 from .game_state import GameState
+from . import recorder as _rec
 from .geometry import (BASE_CONTACT_MARGIN_CM, circle_touches_torpedo,
                         TORP_BODY_HALF_W_CM, ATTACK_CRAFT_HALF_SIDE_CM)
 from .dice import DiceRoller
@@ -1316,6 +1317,9 @@ def mine_launch_strength(ship: Ship, weapon: Dict) -> int:
     return n
 
 
+@_rec.logged("launch", lambda r, A: (A["gs"], dict(
+    ship=A["ship"].id, weapon=_rec.weapon_label(A["ship"], A["weapon"]), what="mines",
+    markers=[m.id for m in r or []])))
 def lay_mines(ship: Ship, weapon: Dict, gs: GameState) -> List[OrdnanceMarker]:
     """Launch one mine per mine launcher (s.17) at the end of the shooting
     phase, placed on the ship's base; they move 10cm towards the nearest enemy
@@ -1589,6 +1593,9 @@ def torpedo_bomber_groups(game_state: GameState, player: int) -> List[List[Ordna
     return groups
 
 
+@_rec.logged("launch", lambda r, A: (A["game_state"], dict(
+    what="torpedo_bombers", craft=list(A["marker_ids"]), heading=A["heading"],
+    markers=[r.id] if r is not None else [])))
 def fire_torpedo_bombers(game_state: GameState, marker_ids: List[str],
                          heading: float) -> Optional[OrdnanceMarker]:
     """Replace torpedo bomber squadrons (one wave, or a lone squadron) with one
@@ -1635,6 +1642,10 @@ def remove_spent_salvos(game_state: GameState) -> List[str]:
     return [o["id"] for o in gone]
 
 
+@_rec.logged("launch", lambda r, A: (A["game_state"], dict(
+    ship=A["ship"].id, weapon=_rec.weapon_label(A["ship"], A["weapon"]), what="torpedo",
+    heading=A["heading"], boarding=A["boarding"], torp_kind=A["kind"],
+    markers=[r.id])) if r is not None else None)
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
                      heading: Optional[float] = None,
                      boarding: bool = False,
@@ -1863,6 +1874,9 @@ def craft_type_allowed(craft_type: str, bay_weapons: List[Dict], game_state) -> 
     return roles != {"assault_boat"}
 
 
+@_rec.logged("launch", lambda r, A: (A["game_state"], dict(
+    ship=A["ship"].id, weapon=_rec.weapon_label(A["ship"], A["weapon"]), what="attack_craft",
+    craft=A["craft_type"], count=A["count"], markers=[m.id for m in r or []])))
 def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
                         count: int, game_state: GameState) -> List[OrdnanceMarker]:
     """Create attack craft markers from launch bays. Assault boats aren't

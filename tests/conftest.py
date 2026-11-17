@@ -1,4 +1,6 @@
 """Shared fixtures and helpers for BFG:XR tests."""
+import os
+os.environ.setdefault("BFG_RECORD_STRICT", "1")   # a broken event extractor fails the test
 import pytest
 from src.models import Ship, OrdnanceMarker, Phenomenon, BlastMarker
 from src.game_state import GameState

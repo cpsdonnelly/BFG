@@ -8,6 +8,7 @@ from typing import List, Dict, Optional
 from .game_state import GameState
 from .models import Ship, SpecialOrder
 from .dice import DiceRoller
+from . import recorder as _rec
 
 
 class ActionRecord:
@@ -76,6 +77,7 @@ class TurnController:
         set_sunward(getattr(game_state, "rule_fighting_sunward", False),
                     getattr(game_state, "sunward_edge", "north"))
         set_ship_source(game_state.get_ships)
+        _rec.set_current_gs(game_state)          # the game the decision events belong to
         self.save_dir = save_dir or os.path.join("saves", game_state.game_name)
         self.snapshots_dir = os.path.join(self.save_dir, "snapshots")
         os.makedirs(self.snapshots_dir, exist_ok=True)
@@ -97,6 +99,9 @@ class TurnController:
         """Save current game state as a named snapshot."""
         path = os.path.join(self.snapshots_dir, f"{label}.json")
         # Deep copy the entire state as a dict
+        from .dice import current_source
+        rec = current_source().record
+        evs = _rec.events()
         snapshot = {
             "label": label,
             "turn": self.gs.turn_number,
@@ -106,6 +111,11 @@ class TurnController:
             "ordnance": copy.deepcopy(self.gs.ordnance),
             "blast_markers": copy.deepcopy(self.gs.blast_markers),
             "phenomena": copy.deepcopy(self.gs.phenomena),
+            # Complete state (To do 17): every GameState field, and where the
+            # dice and event records stood, so a replay can start here
+            "state": self.gs.to_snapshot(),
+            "roll": len(rec) if rec is not None else None,
+            "event": len(evs) if evs is not None else None,
             "timestamp": time.time(),
         }
         with open(path, "w") as f:
@@ -119,6 +129,9 @@ class TurnController:
             return False
         with open(path) as f:
             snapshot = json.load(f)
+        if "state" in snapshot:                 # a complete snapshot (To do 17)
+            self.gs.restore_snapshot(snapshot["state"])
+            return True
         self.gs.ships = snapshot["ships"]
         self.gs.ordnance = snapshot["ordnance"]
         self.gs.blast_markers = snapshot["blast_markers"]
@@ -460,6 +473,8 @@ class TurnController:
             return False
         return True
 
+    @_rec.logged("order", lambda r, A: (A["self"].gs, dict(
+        ships=[A["ship"].id], order=A["order"], passed=r.get("success"))))
     def issue_special_order(self, ship: Ship, order: str) -> Dict:
         """
         Attempt to issue a special order to a ship.
@@ -559,6 +574,8 @@ class TurnController:
 
         return result
 
+    @_rec.logged("order", lambda r, A: (A["self"].gs, dict(
+        ships=[s.id for s in A["ships"]], order=A["order"], passed=r.get("success"))))
     def issue_squadron_order(self, ships: List[Ship], order: str) -> Dict:
         """
         Roll once (using the highest-Ld ship) to issue the same special order
@@ -732,6 +749,8 @@ class TurnController:
             return False
         return not (flag.squadron_id and ship.squadron_id == flag.squadron_id)
 
+    @_rec.logged("reroll", lambda r, A: (A["self"].gs, dict(
+        player=A["player"], ship=_rec._id(A["ship"]))) if r else None)
     def use_fleet_reroll(self, player: int, ship: Optional[Ship] = None) -> bool:
         """
         Use one re-roll: a secondary commander's own first (when `ship` is his

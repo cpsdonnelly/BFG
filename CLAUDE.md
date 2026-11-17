@@ -502,7 +502,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1354 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1355 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2419,9 +2419,25 @@ Done: To do 2, 3, 6; most of 7.
    from its record through the real game window gives the same final state: 4 of 4 IGOUGO,
    2 of 2 alternate activation, whose bag and dice-off now draw from the recorded dice,
    `dice.RecordedRandom`).
-   Still to do: structured decision events (needed to replay games with humans), complete
-   snapshots, the replay player / viewer, `map_maker`'s terrain randomness (part of the start
-   state for now).
+   Second slice built: decision events (`src/recorder.py`): every decision is recorded where
+   the engine acts on it, humans and the AI alike (`recorder.logged` wrappers bound to each
+   function's signature, plus explicit calls): move (path and end position, so a drag-move
+   and the AI's commands record the same way), order (one ship or a squadron, passed),
+   fire (batteries, lances, nova cannon, squadron volleys: weapon, target, hits), launch
+   (torpedoes, attack craft, mines, torpedo bombers), brace, reroll, board, teleport, ram,
+   disengage, and every "Auto (best)" prompt's answer (`choice_dialog.choose`). Each carries
+   the turn, phase, active player and the dice position (`roll`: rolls recorded so far).
+   Started with the dice (`main.py`, the runner); saved as `events.json`, carried on by a
+   load; a broken extractor fails the tests (`BFG_RECORD_STRICT`, set in conftest), never a
+   game. Complete snapshots: `GameState.to_snapshot` / `restore_snapshot` (every field), and
+   the turn-start snapshots keep them with the dice and event positions, so a replay can
+   start at any turn; older snapshot files load as before. Checks (`tests/test_recording.py`):
+   the same events from one seed and from the replayed record; a snapshot brings back
+   scenario, sub-plot and counter state; seeded games unchanged by recording (same hashes).
+   Still to do: replaying games with human players (the recorded human decisions fed back
+   in place of the dialogs: needs To do 18's game flow out of the Tk panels, so it waits for
+   it), the viewer stepping through a game (snapshots + events + the text log),
+   `map_maker`'s terrain randomness (part of the start state for now).
 18. Code structure (plan section 4; pure refactors, no behaviour change, tests unchanged):
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /

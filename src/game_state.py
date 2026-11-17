@@ -243,6 +243,11 @@ class GameState:
         if src.seed is not None and src.seed == self.game_seed:
             with open(os.path.join(directory, "dice.json"), "w") as f:
                 json.dump(src.state(), f)
+        from .recorder import events          # the decision events (To do 17)
+        evs = events()
+        if evs is not None:
+            with open(os.path.join(directory, "events.json"), "w") as f:
+                json.dump(evs, f)
 
     @classmethod
     def load(cls, directory: str) -> "GameState":
@@ -277,6 +282,11 @@ class GameState:
             from .dice import DiceSource, set_source
             with open(dice_path) as f:
                 set_source(DiceSource.from_state(json.load(f)))
+        events_path = os.path.join(directory, "events.json")
+        if os.path.exists(events_path):        # and its decision events carry on
+            from .recorder import start_recording
+            with open(events_path) as f:
+                start_recording(json.load(f))
         return gs
 
     def restore_from(self, other: "GameState") -> None:
@@ -291,6 +301,21 @@ class GameState:
         """
         for f in fields(self):
             setattr(self, f.name, getattr(other, f.name))
+        self.clear_transient()
+
+    def to_snapshot(self) -> Dict:
+        """Every field of the game (To do 17: complete snapshots), as JSON data
+        (a deep copy: tuples become lists, as in a save)."""
+        return json.loads(json.dumps({f.name: getattr(self, f.name) for f in fields(self)}))
+
+    def restore_snapshot(self, snap: Dict) -> None:
+        """Put back every field a snapshot holds (fields it lacks are left)."""
+        for f in fields(self):
+            if f.name in snap:
+                v = json.loads(json.dumps(snap[f.name]))
+                if f.name == "artefact_token_pos" and v is not None:
+                    v = tuple(v)
+                setattr(self, f.name, v)
         self.clear_transient()
 
     def clear_transient(self) -> None:

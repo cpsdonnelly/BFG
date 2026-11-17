@@ -15,6 +15,7 @@ Ships reduced to 0 damage by boarding become drifting hulks (no catastrophic rol
 from typing import List, Dict, Optional
 from .models import Ship
 from .game_state import GameState
+from . import recorder as _rec
 from .dice import DiceRoller
 from .tables import BOARDING_RESULTS
 from .geometry import count_blast_markers_touching
@@ -149,6 +150,8 @@ def _crit_damage_reopens_hulk(ship: Ship, crit: Optional[Dict],
     return crit
 
 
+@_rec.logged("board", lambda r, A: (A["gs"], dict(
+    attackers=[s.id for s in A["attackers"]], target=A["target"].id, result=r)))
 def resolve_boarding(attackers: List[Ship], target: Ship,
                      dice: DiceRoller, gs: GameState) -> Dict:
     """Resolve a boarding action between one or more attackers and a target.

@@ -3,6 +3,7 @@ import math
 from typing import List, Optional, Tuple
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
+from . import recorder as _rec
 from .dice import DiceRoller
 from .geometry import (first_contact_along_segment, count_blast_markers_touching,
                        BLAST_MARKER_RADIUS_CM)
@@ -542,6 +543,10 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
     dice: needed for the blast marker test a shieldless ship makes when it
     moves through markers; without it the test is skipped.
     """
+    _rec.event(gs, "move", ship=ship.id, frm=[ship.x, ship.y, ship.heading],
+               path=result.path, to=[result.final_x, result.final_y, result.final_heading],
+               distance=result.total_distance, turns=result.turns_used,
+               order=ship.special_order)
     # Ordnance the ship runs into on the way attacks it once the move is made
     touched = ordnance_touched_along_path(ship, result.path, gs)
     if touched:
@@ -738,6 +743,7 @@ def fleet_reroll_offered(gs: GameState, ship: Ship, label: str, roll: int, neede
     return bool(hook and hook(ship, label, roll, needed))
 
 
+@_rec.logged("brace", lambda r, A: (A["gs"], dict(ship=A["ship"].id, passed=r.get("passed"))))
 def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
     """
     Roll a Brace For Impact command check and, on success, apply the order:

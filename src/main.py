@@ -79,6 +79,8 @@ def main():
     from .dice import start_game_dice
     seed = setup.get("seed") or secrets.randbits(31)
     start_game_dice(seed)
+    from .recorder import start_recording
+    start_recording()                            # and every player's decisions
 
     if setup["mode"] == "demo":
         p1_info = get_fleet_info(setup["p1_fleet"])

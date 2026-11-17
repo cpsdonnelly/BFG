@@ -28,8 +28,9 @@ numbers are IDs, not the order):
 2. To do 16: performance and the headless runner, done (4 v 4 movement phase 0.85s ->
    0.28s, ~655 games an hour on 4 cores, seeded games repeat exactly); left: the runner
    without a display (with 18), a repeatable expert AI (with 17).
-3. To do 17: recording and replay (seed, every roll, structured events, full snapshots,
-   viewer).
+3. To do 17: recording and replay: seeded, recorded dice, decision events and complete
+   snapshots built; AI-vs-AI games replay exactly (both turn systems). Left: replaying
+   human games (after 18 moves the game flow out of Tk) and the viewer.
 4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split, one
    weapon-value helper, central AI weights, rules out of the UI), with To do 30 (exact
    cached hit distributions replacing the Poisson / 0.35 estimates).

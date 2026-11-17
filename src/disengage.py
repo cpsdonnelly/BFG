@@ -3,6 +3,7 @@ import math
 from typing import Dict, List, Optional
 from .models import Ship
 from .game_state import GameState
+from . import recorder as _rec
 from .dice import DiceRoller
 
 
@@ -267,6 +268,8 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
     }
 
 
+@_rec.logged("disengage", lambda r, A: (A["gs"], dict(
+    ship=A["ship"].id, forced=A["forced"], passed=r.get("success"))))
 def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState,
                       forced: bool = False) -> Dict:
     """

@@ -67,6 +67,8 @@ def play(args) -> dict:
     root = tk.Tk()
     root.withdraw()
     from src.dice import start_game_dice, set_source, DiceSource
+    from src.recorder import start_recording, events
+    start_recording()
     if replay is None:
         start_game_dice(seed)
     else:                                # the recorded dice, in order (To do 17)
@@ -103,7 +105,7 @@ def play(args) -> dict:
         with open(f"{os.environ['BFG_DUMP_STATE']}_{seed}.json", "w") as fh:
             fh.write(state)
     from src.dice import current_source
-    res = {"record": current_source().record, "hash": hashlib.sha256(state.encode()).hexdigest()[:16],"seed": seed, "winner": over[0] if over else None, "finished": bool(over),
+    res = {"record": current_source().record, "events": events(), "hash": hashlib.sha256(state.encode()).hexdigest()[:16],"seed": seed, "winner": over[0] if over else None, "finished": bool(over),
            "vp1": vp[1]["total"], "vp2": vp[2]["total"], "turns": gs.turn_number,
            "seconds": round(time.time() - start, 1), "errors": errors[:3]}
     root.destroy()
