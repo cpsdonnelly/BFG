@@ -1,10 +1,14 @@
 """BFG:XR Game State - Save/Load/Manage"""
+import contextlib
 import json
 import os
+import threading
 import time
 from dataclasses import dataclass, field, fields
 from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, Phenomenon
+
+_SNAPSHOT_CHECK = os.environ.get("BFG_SNAPSHOT_CHECK") == "1"
 
 
 _COLLECTIONS = ("ships", "ordnance", "blast_markers", "phenomena", "log")
@@ -116,10 +120,47 @@ class GameState:
         return self.id_serial
 
     def add_ship(self, ship: Ship):
+        self.__dict__.pop("_ships_snapshot", None)
         self.ships.append(ship.to_dict())
 
     def get_ships(self) -> List[Ship]:
-        return [Ship.from_dict(s) for s in self.ships]
+        snap = self.__dict__.get("_ships_snapshot")
+        if snap is not None and snap[0] != threading.get_ident():
+            snap = None                      # another thread's scope (the expert search's)
+        if snap is not None and snap[1] is self.ships:
+            return list(snap[2])
+        ships = [Ship.from_dict(s) for s in self.ships]
+        if snap is not None:                 # a scope is open: keep these copies
+            self._ships_snapshot = (snap[0], self.ships, ships)
+            return list(ships)
+        return ships
+
+    @contextlib.contextmanager
+    def ships_snapshot(self):
+        """Read-only scope (the AI's move scoring, To do 16): inside it
+        get_ships() returns the same copies each time instead of rebuilding
+        them, so callers must not change the ships it returns. update_ship /
+        add_ship (or replacing `ships`) drop the snapshot; a direct write to
+        a ship dict inside the scope would not be seen, so the scope is only
+        for code that writes nothing. Nested scopes share the outer one.
+        BFG_SNAPSHOT_CHECK=1 checks on exit that no copy was changed."""
+        if "_ships_snapshot" in self.__dict__:
+            yield                            # nested, or another thread's scope: plain get_ships
+            return
+        me = threading.get_ident()
+        self._ships_snapshot = (me, None, None)
+        try:
+            yield
+        finally:
+            snap = self.__dict__.get("_ships_snapshot")
+            if snap is not None and snap[0] == me:
+                self.__dict__.pop("_ships_snapshot", None)
+            else:
+                snap = None
+            if _SNAPSHOT_CHECK and snap and snap[1] is self.ships and snap[2]:
+                for sh, d in zip(snap[2], self.ships):
+                    if sh.to_dict() != d:
+                        raise AssertionError(f"ship {sh.id} changed inside a ships_snapshot scope")
 
     def get_ship_by_id(self, ship_id: str) -> Optional[Ship]:
         for s in self.ships:
@@ -128,6 +169,7 @@ class GameState:
         return None
 
     def update_ship(self, ship: Ship):
+        self.__dict__.pop("_ships_snapshot", None)
         for i, s in enumerate(self.ships):
             if s["id"] == ship.id:
                 self.ships[i] = ship.to_dict()

@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .models import Ship, parse_armor, bearing_between, arc_name_for_bearing
 from .game_state import GameState
-from .ai_player import AIPlayer
+from .ai_player import AIPlayer, _scored_on_snapshot
 from .movement import (
     MoveCommand, get_effective_speed, MIN_TURN_DISTANCE,
 )
@@ -715,6 +715,7 @@ class LookaheadAI(AIPlayer):
     TIME_BUDGET = 2.0  # seconds per ship decision
     ROOT_MOVES = 12    # root candidates searched, best first by the move score
 
+    @_scored_on_snapshot
     def _plan_move_toward(self, ship: Ship, enemy: Ship,
                           order: str, aaf_bonus: int) -> List[MoveCommand]:
         """Override: choose move using minimax search rather than greedy heuristic."""

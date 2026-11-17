@@ -5,7 +5,7 @@ with no Tkinter dialogs. Caller must set dice.mode = "auto" before use.
 """
 import math
 import random
-from dataclasses import replace as _dc_replace  # shallow ship copies for trial positions
+from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
 from typing import List, Optional, Dict
 
 from .models import (Ship, OrdnanceMarker, SpecialOrder,
@@ -152,6 +152,18 @@ def ai_should_brace(gs: GameState, target: Ship,
     if orders_forbidden(gs, target):
         return False
     return brace_value(gs, target, incoming_hits, attacker) > 0.0
+
+
+def _scored_on_snapshot(fn):
+    """Run a move-scoring method inside gs.ships_snapshot() (To do 16): its
+    many get_ships() calls share one set of copies. Scoring writes nothing."""
+    import functools
+
+    @functools.wraps(fn)
+    def wrapper(self, *a, **k):
+        with self.gs.ships_snapshot():
+            return fn(self, *a, **k)
+    return wrapper
 
 
 class AIPlayer:
@@ -742,6 +754,7 @@ class AIPlayer:
 
         return False
 
+    @_scored_on_snapshot
     def _plan_move_toward(self, ship: Ship, enemy: Ship,
                           order: str, aaf_bonus: int) -> List[MoveCommand]:
         """Choose the move worth most against `enemy` (the move score below)
@@ -1389,8 +1402,7 @@ class AIPlayer:
         others = [e for e in self._live_enemies() if e.id != target.id]
         if not others:
             return 0.0
-        import dataclasses
-        at = dataclasses.replace(ship, x=x, y=y, heading=h)
+        at = _dc_replace(ship, x=x, y=y, heading=h)
         total = 0.0
         for w in ship.weapons:
             if w.get("weapon_type") not in ("battery", "lance"):
@@ -2218,6 +2230,7 @@ class AIPlayer:
             cache[key] = self._lock_on_gain_uncached(ship)
         return cache[key]
 
+    @_scored_on_snapshot
     def _aaf_gain(self, ship: Ship) -> float:
         """All Ahead Full's value in move-score units (To do 10 b): the best
         straight move at full speed plus the expected bonus (4D6, 14cm; Orks
@@ -2364,6 +2377,7 @@ class AIPlayer:
                         out.append((sc, cmds, "eldar mms"))
         return out
 
+    @_scored_on_snapshot
     def _ctnh_gain(self, ship: Ship) -> float:
         """Come to New Heading's value in move-score units: the best two-turn
         move, with what it brings to bear in range halved (s.7: half
@@ -2416,6 +2430,7 @@ class AIPlayer:
                 h = (h - c.value) % 360
         return x, y, h
 
+    @_scored_on_snapshot
     def _lock_on_gain_uncached(self, ship: Ship) -> float:
         from .ai_hazards import p_sum_at_most
         if not any(w.get("weapon_type") in ("battery", "lance") for w in ship.weapons):
@@ -3878,8 +3893,7 @@ class AIPlayer:
             return 0.0
         from .geometry import BASE_CONTACT_MARGIN_CM
         from .ai_hazards import value_per_hit
-        import dataclasses
-        at = dataclasses.replace(ship, x=x, y=y)
+        at = _dc_replace(ship, x=x, y=y)
         best = 0.0
         for e in self._live_enemies():
             if math.hypot(e.x - x, e.y - y) <= e.base_radius + ship.base_radius + BASE_CONTACT_MARGIN_CM:

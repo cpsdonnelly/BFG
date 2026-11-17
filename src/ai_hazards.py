@@ -22,7 +22,7 @@ Everything is pure logic (no Tk), so the expert AI's worker thread may use it.
 """
 import math
 from itertools import product
-from dataclasses import replace as _dc_replace  # shallow ship copies for trial positions
+from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
 from typing import Dict, List, Sequence, Tuple
 
 from .models import OrdnanceMarker, Ship
@@ -1563,7 +1563,6 @@ def _predicted_positions(target, our_phase: bool):
     facing along its course. If it is our ordnance phase it hasn't moved yet:
     [now, after 1 move, after 1 move, after 2 moves]; in the enemy's phase it
     already has: [now, now, after 1, after 1]."""
-    import dataclasses
     import math as _m
     paths = enemy_move_samples(target)[0]
     wsum = sum(p.weight for p in paths) or 1.0
@@ -1571,8 +1570,8 @@ def _predicted_positions(target, our_phase: bool):
     ey = sum(p.weight * p[-1][1] for p in paths) / wsum
     mv = 0.75 * (target.effective_speed or 0)
     h = _m.radians(target.heading)
-    e1 = dataclasses.replace(target, x=ex, y=ey)
-    e2 = dataclasses.replace(target, x=ex + mv * _m.cos(h), y=ey + mv * _m.sin(h))
+    e1 = _dc_replace(target, x=ex, y=ey)
+    e2 = _dc_replace(target, x=ex + mv * _m.cos(h), y=ey + mv * _m.sin(h))
     return [target, e1, e1, e2] if our_phase else [target, target, e1, e1]
 
 
@@ -1648,9 +1647,8 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
                 # The target moved onto the waiting salvo (s.15): it meets the
                 # salvo with the side it was moving with, seen from where the
                 # salvo sits as the target's base first touches it
-                import dataclasses
                 th = _m.radians(tgt.heading)
-                tgt = dataclasses.replace(tgt, x=px - rt * _m.cos(th), y=py - rt * _m.sin(th))
+                tgt = _dc_replace(tgt, x=px - rt * _m.cos(th), y=py - rt * _m.sin(th))
                 back = (px, py)
             else:
                 cx, cy = px + (qx - px) * t_hit, py + (qy - py) * t_hit
@@ -1745,7 +1743,6 @@ AIRBORNE_INTERCEPT_WEIGHT = 0.75
 def _positions_through(target, our_phase: bool, phases: int):
     """_predicted_positions extended to `phases` ordnance phases: after the
     second move the target keeps going along its course, a mean move per turn."""
-    import dataclasses
     import math as _m
     pos = list(_predicted_positions(target, our_phase))
     mv = 0.75 * (target.effective_speed or 0)
@@ -1754,7 +1751,7 @@ def _positions_through(target, our_phase: bool, phases: int):
         last = pos[-1]
         # it moves before the enemy's ordnance phases: odd ones when it is our phase now
         moves = (len(pos) % 2 == 1) if our_phase else (len(pos) % 2 == 0)
-        pos.append(dataclasses.replace(last, x=last.x + (mv * _m.cos(h) if moves else 0.0),
+        pos.append(_dc_replace(last, x=last.x + (mv * _m.cos(h) if moves else 0.0),
                                        y=last.y + (mv * _m.sin(h) if moves else 0.0)))
     return pos[:phases]
 
@@ -1991,9 +1988,8 @@ def ship_bracket_raw(a: Ship, b: Ship, dist: float, heading_b: float, heading_a:
     from .combat import check_weapon_in_arc, expected_hits, weapon_disabled_by_crit
     # shallow copies (read only: the weapon lists are shared, never changed);
     # deep to_dict / from_dict copies here were ~40% of AI move planning
-    from dataclasses import replace
-    tb = replace(b, x=dist, y=0.0, heading=float(heading_b))
-    ta = replace(a, x=0.0, y=0.0, heading=float(heading_a), special_order="")
+    tb = _dc_replace(b, x=dist, y=0.0, heading=float(heading_b))
+    ta = _dc_replace(a, x=0.0, y=0.0, heading=float(heading_a), special_order="")
     gs = _BareState([ta, tb])
     hits = 0.0
     for w in ta.weapons:
@@ -2137,9 +2133,8 @@ def repair_value(ship: Ship, crit: dict, gs) -> float:
     if ct in ARMAMENT_CRITS:
         # valued as if repaired: the raid model counts a location already
         # knocked out as worth nothing
-        import dataclasses
         from .hit_and_run import armament_threat_value
-        fixed = dataclasses.replace(ship, critical_damage=[
+        fixed = _dc_replace(ship, critical_damage=[
             c for c in ship.critical_damage if c is not crit])
         return armament_threat_value(fixed, ct, gs, 3 - ship.player)
     if ct == "shields_collapse":

@@ -455,6 +455,23 @@ def _copy_plain(v):
 _SHIP_FIELDS = frozenset(f.name for f in fields(Ship))
 
 
+def ship_copy(ship, **changes):
+    """dataclasses.replace(ship, **changes) without re-running __init__ (a
+    large share of the AI's time, To do 16): a shallow copy of the fields
+    with the changes. Same result: Ship's only __post_init__ fills a missing
+    hits_remaining, which then takes the normal path."""
+    d = ship.__dict__
+    if type(ship) is not Ship or d.get("hits_remaining") is None \
+            or len(d) != len(_SHIP_FIELDS):
+        import dataclasses
+        return dataclasses.replace(ship, **changes)
+    obj = Ship.__new__(Ship)
+    nd = obj.__dict__
+    nd.update(d)
+    nd.update(changes)
+    return obj
+
+
 @dataclass
 class OrdnanceMarker:
     id: str

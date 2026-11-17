@@ -12,7 +12,10 @@ under xvfb-run:
 Prints one line per game (winner, VP, turns, seconds) and a summary: win
 rates, mean VP margin and games per hour. Each game is seeded (--seed + its
 index) for the dice; the AI's own choices aren't seeded yet (To do 17), so
-games aren't exactly repeatable.
+games repeat only with a fixed PYTHONHASHSEED and the normal AI (the
+expert's time budget cuts its search at different points). Each result
+carries a hash of the final state (ships, ordnance, blast markers, log) to
+check that a change left play unchanged.
 
 Still needs a display: the game flow (ordnance contacts, the end phase,
 alternate activation) lives in the Tk panels. Moving it into the engine, so
@@ -84,7 +87,10 @@ def play(args) -> dict:
     while not panel._game_over and time.time() - start < timeout:
         root.update()
     vp = calculate_victory_points(gs)
-    res = {"seed": seed, "winner": over[0] if over else None, "finished": bool(over),
+    import hashlib
+    state = json.dumps({"ships": gs.ships, "ordnance": gs.ordnance,
+                        "blast": gs.blast_markers, "log": gs.log}, sort_keys=True, default=str)
+    res = {"hash": hashlib.sha256(state.encode()).hexdigest()[:16],"seed": seed, "winner": over[0] if over else None, "finished": bool(over),
            "vp1": vp[1]["total"], "vp2": vp[2]["total"], "turns": gs.turn_number,
            "seconds": round(time.time() - start, 1), "errors": errors[:3]}
     root.destroy()
@@ -112,7 +118,7 @@ def main():
         for r in ex.map(play, jobs):
             results.append(r)
             print(f"seed {r['seed']}: winner={r['winner']} VP {r['vp1']}-{r['vp2']} "
-                  f"turns={r['turns']} {r['seconds']}s"
+                  f"turns={r['turns']} {r['seconds']}s hash={r['hash']}"
                   + (f" ERRORS {r['errors']}" if r["errors"] else ""), flush=True)
     wall = time.time() - t0
     done = [r for r in results if r["finished"]]
