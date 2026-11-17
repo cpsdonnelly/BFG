@@ -780,31 +780,42 @@ shields each turn, the real table, its own ordnance in flight); leaf = VP banked
 Item numbers are IDs (code comments and docs cite them), not the order. Agreed order
 (owner: the order otherwise isn't hugely important, follow the dependencies; the last two
 are fixed by the owner):
-1. To do 15: the rules bugs from the code review (each with a test).
-2. To do 16: performance fixes and a headless multiprocess game runner.
+1. To do 15: the rules bugs from the code review (each with a test). Done.
+2. To do 16: performance fixes and a headless multiprocess game runner (partly done).
 3. To do 17: recording and replay (seeded dice, structured events, full snapshots, viewer).
 4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split,
-   weapon-value helper, central AI weights, rules out of the UI).
-5. To do 22: team play (several players a side; after 18, which moves the game flow out
-   of the Tk panels).
-6. To do 19: Dark Eldar and Tyranids.
-7. To do 14: the Eldar and Necron gaps.
-8. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains; special movement
-   (Space Hulk, Rok, Nicassar, Kroot), fortress weapons, Pthuxutl, Man O' War.
-9. To do 13: alternate activation's experiments (they want the headless runner), the expert
-   AI per unit, the rest.
-10. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
-   coordination rounds, two-turn expert root moves, Brace's remaining bits, 8 d / g).
-11. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
-12. To do 21: the replay system as the comparison standard, completed before the port: every
+   weapon-value helper, central AI weights, rules out of the UI), with To do 30 (exact hit
+   distributions for the AI's threat and VP values) on its weapon-value helper.
+5. To do 25: fleet building completeness (every ship upgrade, fleet option and leader
+   selectable; the owner's 1000pt fleets as validation test cases).
+6. To do 26 and 27: the demo reworked (the old demo fleets removed, random terrain Cruiser
+   Clash, choose both fleets and the mode) and favourite fleets (save a fleet on quitting).
+7. To do 24 and 31: the AI list builder (personalities, validation and repair; for players
+   too), with the log of the places it decides at random.
+8. To do 28 and 29: AI deployment (buff ships last, escort squadrons and formations, capital
+   squadrons, squadron sizes from the fleet list) and commander placement.
+9. To do 22: team play (several players a side; needs 18's game flow out of the Tk panels).
+10. To do 23: online play (needs 17's events, 18's game flow and 22's seats).
+11. To do 19: Dark Eldar and Tyranids (also completes the last demo fleets).
+12. To do 14: the Eldar and Necron gaps.
+13. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains; special movement
+    (Space Hulk, Rok, Nicassar, Kroot), fortress weapons, Pthuxutl, Man O' War.
+14. To do 13: alternate activation's experiments (they want the headless runner), the expert
+    AI per unit, the rest.
+15. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
+    coordination rounds, two-turn expert root moves, Brace's remaining bits, 8 d / g).
+16. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
+17. To do 21: the replay system as the comparison standard, completed before the port: every
     kind of event covered (the rules and factions added after step 3 included), a
     versioned, language-neutral record format, a Python replay verifier and a golden set of
     recorded games covering every faction and scenario. The port's first milestone is
     reading and replaying these records.
-13. Second last, To do 20: port the engine to a faster language in a new branch.
-14. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
+18. Second last, To do 20: port the engine to a faster language in a new branch.
+19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
     until the owner says to start; built on the faster engine, kept separate from the current
     AI, never replacing it.
+(Steps 5-10 placed by Claude, owner to confirm; the order isn't hugely important, follow the
+dependencies.)
 Done: To do 2, 3, 6; most of 7.
 
 1. On hold until the owner says to start (owner); when built, kept separate from the current
@@ -2430,6 +2441,124 @@ Done: To do 2, 3, 6; most of 7.
    points are split); who decides team-wide choices (Brace of a squadron split across
    players can't happen if squadrons stay with one player; the System 3 first-activation
    choice; blast marker removal).
+
+23. Online play (owner: another task; worked on before, not finished). Today: `web/` +
+   `src/web_*.py` run the whole game in one browser on Pyodide (Python compiled for the
+   browser, in a Web Worker, Netlify for the COOP / COEP headers) with their own older
+   copy of the game flow (`WebGameContext`, simplified rules); `network.py` is desktop LAN
+   only (the full state over a raw TCP socket each phase end). Neither is online play.
+   Recommended (Claude, owner to confirm): an authoritative server running this Python
+   engine (the same code, so no second copy of the rules), browser clients over websockets,
+   each client sending its decisions and receiving the events / state (To do 17's events
+   are the protocol); the game flow shared by the desktop app, the server and tests (To do
+   18); seats per player (To do 22); reconnect by replaying the record. Alternative: lockstep
+   peer-to-peer (each browser runs the engine on Pyodide from the same seed and exchanges
+   decisions), no server but slow to load, the AI slow in the browser, and it needs exact
+   determinism (To do 17 / 21). Retire `WebGameContext` rather than extend it.
+24. AI list builder (owner design; for the AI and for players: build as / against a random
+   fleet, or watch two random fleets). Steps: set the points limit; choose a fleet list;
+   choose a personality (carrier heavy, cruiser heavy, light cruiser heavy, escort heavy,
+   battlecruiser / heavy cruiser heavy, grand cruiser heavy, battleship heavy, random...);
+   a personality the list can't do (e.g. carriers in Bakka) is detected and another chosen.
+   Carrier heavy: first the biggest carrier the list allows, then its requirements (e.g. an
+   Emperor needs 3 cruisers: at least one a carrier cruiser such as a Dictator, then randomly
+   0, 1 or 2 more carrier cruisers); then a second personality roll for the rest, weighted so
+   a second carrier personality is likelier than chance (e.g. 40%); a second battleship
+   carrier if points and the list allow, else the next carrier class down (battlecruiser
+   size), else ships with no requirements (cruisers, light cruisers, escorts). Escorts:
+   2D3 or the most the points allow, whichever is smaller, at most two escort classes each
+   time (so squadrons form of one class), within the list's escort rules and squadron sizes.
+   Any personality with a standout ship works the same way (battleship heavy: a battleship,
+   then gun cruisers for its requirements). "<class> heavy": as many of that class as
+   possible. Then validate every fleet-list requirement (`fleet_list_errors`); on an error
+   the builder repairs it (over points: drop or downgrade ships...) or starts again.
+   Ships are categorised by armament for the builder (30cm macrobatteries, 45cm lances,
+   torpedoes, carrier, nova cannon...). Upgrades and leaders are bought too (see To do 25,
+   29). Every random choice is logged (To do 31).
+25. Fleet building completeness (owner: make sure ships can be upgraded; ship-specific and
+   fleet-wide upgrades and leaders selectable). The owner's 1000pt fleets are the test
+   cases (`tests/` and the new demo fleets, To do 26), each built and validated exactly:
+   Chaos (Warmaster + 1 re-roll on the Styx, which the Warmaster MUST lead as the dearest
+   capital ship; Devastation, Inferno, Murder, 4 Iconoclasts); Imperial Gothic (Vice
+   Admiral + 1 re-roll; Mars, Lunar, Tyrant with upgraded range, Dauntless with torpedoes,
+   2 Firestorms, 4 Cobras); Bakka (Fleet Admiral + 1; Victory, Tyrant with nova cannon and
+   range, 2 Dauntless, 3 Swords); Tau Merchant (Kor'O + 1; Explorer, 3 Orcas, 3 Heroes, a
+   Messenger); Tau Protector (Kor'O + 2, required by the Custodian; Custodian, 2 Emissaries
+   with ion cannons instead of gravitic hooks, mine launchers +10 and a deflector +10, 3
+   Wardens, a Protector); Orks (Big Mek, Big Boss, Extra Power Field; Dethdeala with kustom
+   force field, 3 Bashas with kustom force field, an Onslaught with the zzapp gun option, a
+   looted Imperial Dominator with a killkannon for its nova cannon); Space Marines (Master
+   of the Fleet, Wings of Fury, 2 re-rolls; 3 Strike Cruisers, 2 with extra launch bays, a
+   Nova); Necrons (Ld 10 Lord; 2 Shrouds with Cartouche and Khopesh, a coin for both taking
+   the War upgrade; Cairn with nightmare field and Bloodswarm Nanoscarabs; 2 Dirges); Eldar
+   (Ld 9; Eclipse, 4 Hemlocks, 5 Nightshades, 4 Aconites); Dark Eldar (+2 Ld, 2 re-rolls;
+   Succubus with launch bays and torpedo bombers, 6 Corsairs with Impaler bays, 4 Raiders
+   with torpedoes, 5 with macrobatteries); Mechanicus (Ld 9 + 1; Dictator, 2 Tyrants with
+   nova cannon and range, 4 Novas; gifts rolled on the table and kept when good and
+   affordable, never Fleet Defence Turrets); Tyranid Gestating, Vanguard and Hive fleets
+   (bio-cruiser / drone configurations with their bought weapons, synapse escorts required).
+   Checked against the catalog (Claude): buildable now: Chaos, Gothic, Bakka, Tau Merchant,
+   Space Marines, Mechanicus (to check the Mechanicus Tyrant's nova / range refits). Gaps:
+   Emissary options (ion cannons for hooks, mine launchers, deflector); Ork kustom force
+   field, the Onslaught's zzapp gun swap, looted vessels; Necron Dynasty refits / upgrades
+   (Cartouche, Khopesh, War, nightmare field, Bloodswarm); Eldar commanders and fleet lists;
+   Dark Eldar and Tyranids (To do 19; the Tyranid configurations Scylla / Guardian /
+   Carnivore / Prowler are built from the Bio-Cruiser and Vanguard Drone profiles).
+   Points totals to verify against the booklet when each is built.
+26. Demo rework (owner): remove the current demo fleets; the demo start generates random
+   terrain for a Cruiser Clash, lets the player pick a fleet to play as and one to play
+   against (the To do 25 fleets, or random ones from To do 24), and the mode: Player vs AI
+   (default), Player vs Player, AI vs AI. GUI checks and the headless runner move to the new
+   fleets.
+27. Favourite fleets (owner): on quitting, mid-game or at the end, offer to save each fleet
+   to a favourites section of the fleet lists.
+28. AI deployment (owner): ships with buffs to friends in range (Tyranid synapse 30-60cm,
+   Tau tracking systems 10cm, the Custodian's 20cm...) are placed last, where as many
+   friends as possible (at least one) are in range. Squadron sizes always from the fleet
+   list (most 2-6; Tyranid Hive / Gestating 1-12; Vanguard 6-12; Kraken count as two
+   escorts, at most 4 Kraken a squadron); the AI's defaults only within them: escort
+   squadrons of 2D3 or the escorts left, whichever is smaller; fill a squadron with one
+   class, start a new squadron when the class changes; a lone escort joins a squadron of
+   its class, splitting it in half if that breaks the list's maximum; a squadron of 1 only
+   when the list has a single escort-sized ship or its rules say (the Tau Messenger).
+   Squadrons placed at random in the zone, line or box formation and in base contact or
+   not, chosen at random, always coherent. Capital ships squadroned only with similar roles
+   (carriers, torpedo armament, direct fire in the same range bracket), at most 3 (Tyranids
+   and Orks 5); ships whose rules forbid squadrons never (Tyranid primary hive ships, Scylla
+   with synapse nodes). Squadrons formable in list building and in deployment, with an auto
+   tight / dispersed line / box formation setter for players.
+29. Commander placement (owner): Leadership is rolled before the game and commanders are
+   assigned during deployment, so the AI sees the rolled values when it chooses. Where the
+   rules don't fix the ship (the Chaos Warmaster must lead the Styx in the test fleet; a
+   Custodian needs a Kor'O), the commander goes on the capital ship with the lowest Ld,
+   unless the dearest capital ship costs far more than the next (Cairn 500 vs Shroud 155:
+   the Lord on the Cairn, whose guaranteed high Ld helps it awaken). Today the commander is
+   an option bought on one ship in the fleet builder: this needs the purchase kept with
+   the fleet and the ship chosen at deployment (owner to confirm the wording).
+30. Exact hit distributions for the AI's threat and VP values (owner question: lookup tables
+   or random sampling?). Answer (Claude): neither as such; exact distributions, computed once
+   per parameter set and cached (memoised), which is a lookup table built on demand. Gunnery:
+   the table gives n dice, each hitting with p (Armour, hits_on 4+), so hits are binomial
+   (n, p); shields take the first hits, so P(hull hits = k) is exact, and the real risk
+   (hits exceeding shields, which an average hides) comes out of it; a second hostile ship's
+   volley is a convolution; lances binomial; bombardment cannons / killkannons binomial at
+   p = 1/2 with crits at 1/2 a hull hit; random firepower a mixture over its outcomes; mixed
+   armaments (Lunar batteries + lances, Strike Cruiser batteries + bombardment cannon)
+   convolve. VP loss = sum over k of P(k) x the value of k hull hits (the crippled / destroyed
+   thresholds, near-threshold ships; escort squadrons by nearest-first allocation, each
+   escort its own hits). Faction rules are parameters, not new tables: holofield saves and
+   pulsars (Eldar), shadowfields' saves and tracking marks (Dark Eldar), reactive hulls
+   (Necrons), Tyranid rules; ordnance vs turrets (0-6, needs 4+ / Ork 5+ / worse against
+   Eldar and Dark Eldar ordnance; Tau missiles turning) likewise. Raids and boarding are
+   already exact (the D6s enumerated). Sizes are tiny (n <= ~20 dice), so tables cost nothing;
+   sampling is only for long sequences of interacting choices (waves through CAP and
+   turrets), where the planners already model the steps. Replaces the AI's Poisson
+   approximations (`poisson_at_least`) and the 0.35 rule of thumb (To do 18's
+   `mount_expected_hits`).
+31. Log of random decisions (owner): keep track of every place the AI decides at random in
+   fleet building (personality rolls, carrier counts, escort counts, Mechanicus gift rolls,
+   the Necron War upgrade coin, formations, squadron placement...), so the ML-driven AI (To
+   do 12, kept separate) can learn better choices there.
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

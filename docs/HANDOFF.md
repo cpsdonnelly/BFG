@@ -30,24 +30,35 @@ numbers are IDs, not the order):
 3. To do 17: recording and replay (seed, every roll, structured events, full snapshots,
    viewer).
 4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split, one
-   weapon-value helper, central AI weights, rules out of the UI).
-5. To do 22: team play (two teams of players; a team is one side, its members' ships act in
+   weapon-value helper, central AI weights, rules out of the UI), with To do 30 (exact
+   cached hit distributions replacing the Poisson / 0.35 estimates).
+5. To do 25: fleet building completeness (every upgrade, fleet option and leader; the
+   owner's 1000pt fleets as test cases; gaps listed in To do 25).
+6. To do 26 and 27: demo rework (random-terrain Cruiser Clash, pick both fleets and the
+   mode) and favourite fleets saved on quitting.
+7. To do 24 and 31: the AI list builder with personalities, and the log of its random choices.
+8. To do 28 and 29: AI deployment (squadrons, formations, buff ships last) and commander
+   placement after the Ld roll.
+9. To do 22: team play (two teams of players; a team is one side, its members' ships act in
    its phases together; owner design, questions in CLAUDE.md To do 22).
-6. To do 19: Dark Eldar (next faction; nothing written yet), then Tyranids.
-7. To do 14: Eldar and Necron gaps.
-8. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
-   fortress weapons.
-9. To do 13: alternate activation's experiments, expert AI per unit.
-10. To do 11, 10 e, 8: the rest of the rules-based AI.
-11. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
-12. To do 21: the replay system as the comparison standard, finished before the port
+10. To do 23: online play (server-authoritative Python engine with browser clients, after
+    17, 18 and 22; the Pyodide `web/` client and LAN `network.py` aren't online play).
+11. To do 19: Dark Eldar, then Tyranids.
+12. To do 14: Eldar and Necron gaps.
+13. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
+    fortress weapons.
+14. To do 13: alternate activation's experiments, expert AI per unit.
+15. To do 11, 10 e, 8: the rest of the rules-based AI.
+16. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
+17. To do 21: the replay system as the comparison standard, finished before the port
     (every event kind covered, a versioned language-neutral record format, a Python replay
     verifier, a golden set of recorded games for every faction and scenario).
-13. Second last, To do 20: port the engine to a faster language (Rust suggested) in its own
+18. Second last, To do 20: port the engine to a faster language (Rust suggested) in its own
     branch, Python staying the reference; its first milestone is replaying the golden games,
     then every one must match exactly.
-14. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
+19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
     engine; on hold until the owner says so; separate from the current AI.
+(Steps 5-10 placed by Claude, owner to confirm.)
 
 Owner questions open: CLAUDE.md "Open questions for the owner". Code review, profile and
 plans: `docs/CODE_REVIEW_PLAN.md` (sections 1-7; nothing refactored yet).
