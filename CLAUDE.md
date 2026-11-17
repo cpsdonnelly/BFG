@@ -2502,10 +2502,14 @@ Done: To do 2, 3, 6; most of 7.
    them; typed rolls go to the other side as a decision, tagged "manual"). Digital dice, two
    settings: "shared seed" (both clients know the seed from the start: simple, but a modified
    client could read every future roll and a player choosing the seed could pick a good
-   one; fine between friends) and "cheat-proof" (commit-reveal: each side commits a hash of a
-   secret, then both reveal, so no one picks the dice; the randomness for each roll or phase
-   is revealed only when needed, so no one sees rolls ahead; one more message exchange per
-   reveal). Owner decision: cheat-proof is the online default; shared seed is an
+   one; fine between friends) and "cheat-proof" (commit-reveal: each side commits a SHA-256 hash of a
+   random secret of 128+ bits, then both reveal and the roll comes from the two together, so
+   no one picks the dice; new randomness is revealed for each roll, after the decision it
+   follows is locked in, never once per game or per phase, which would let a modified client
+   read ahead; each side commits at the start to a hash chain of secrets and reveals the next
+   link with each roll, one message each way; a side that stops revealing (it saw a bad
+   result coming) forfeits, and the record shows who stopped; it guarantees fair,
+   unpredictable dice only, not against outside help). Owner decision: cheat-proof is the online default; shared seed is an
    option the players can choose instead. Team play (To do 22) adds one peer
    per seat. Retire `WebGameContext` and the LAN `network.py` rather than extend them.
 24. AI list builder (owner design; for the AI and for players: build as / against a random
