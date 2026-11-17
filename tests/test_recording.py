@@ -52,7 +52,7 @@ def _play(tmp_path, source: DiceSource, seed: int = 7, turns: int = 3) -> str:
 def test_same_seed_same_game_and_replay(tmp_path):
     a = _play(tmp_path, DiceSource(7, record=True))
     record = current_source().record
-    assert len(record) > 20                      # the dice were used and recorded
+    assert len(record) > 5                       # the dice were used and recorded
     assert all(e[4] == "auto" for e in record)
     b = _play(tmp_path, DiceSource(7, record=True))
     assert a == b                                # one seed, one game

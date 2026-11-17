@@ -46,7 +46,10 @@ class AATurn:
         self.tc = tc
         self.gs = tc.gs
         self.cfg = cfg or config_from(self.gs)
-        self.rng = rng or random.Random()
+        if rng is None:                  # the bag's draws are game rolls: recorded (To do 17)
+            from .dice import RecordedRandom
+            rng = RecordedRandom("activation bag")
+        self.rng = rng
         self.choose_first = choose_first
         self.phases = self.cfg.round_phases()
         self.phase_index = 0

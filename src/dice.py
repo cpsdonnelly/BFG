@@ -88,6 +88,33 @@ def start_game_dice(seed: int, record: bool = True) -> DiceSource:
     return set_source(DiceSource(seed, record=record))
 
 
+class RecordedRandom:
+    """The game's dice as a random.Random-like object for code that draws
+    rather than rolls (the alternate activation bag, System 1's dice-off):
+    randrange / random go through the current DiceSource and are recorded
+    ("draw" / "unit"), so they repeat from the seed and replay from the
+    record."""
+
+    def __init__(self, description: str = "draw"):
+        self.description = description
+
+    def randrange(self, n: int) -> int:
+        src = _SOURCE
+        if src.replaying:
+            return src.take("draw", n, self.description)
+        v = src.rng.randrange(n)
+        src.note("draw", n, v, self.description)
+        return v
+
+    def random(self) -> float:
+        src = _SOURCE
+        if src.replaying:
+            return src.take("unit", 1, self.description)
+        v = src.rng.random()
+        src.note("unit", 1, v, self.description)
+        return v
+
+
 class DiceRoller:
     """Handles all dice rolling with configurable input mode. Every roller
     draws from the game's DiceSource (current_source), so all of a game's
