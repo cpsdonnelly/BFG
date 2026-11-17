@@ -1,6 +1,5 @@
 """BFG:XR — CombatDialogMixin: _fire_dialog."""
-import tkinter as tk
-from tkinter import messagebox
+from .tk_compat import tk, messagebox
 
 from .models import Ship, SpecialOrder
 from .chapter_tactics import weapon_range, shadow_engines_hidden

@@ -1,5 +1,5 @@
 """BFG:XR — GameContext: shared state and helper methods for all panels."""
-import tkinter as tk
+from .tk_compat import tk
 from typing import Optional, TYPE_CHECKING
 
 from .models import Ship

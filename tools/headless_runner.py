@@ -38,34 +38,18 @@ def play(args) -> dict:
     """One game; returns its result. Runs in a worker process."""
     fleet1, fleet2, difficulty, turns, system, seed, timeout = args[:7]
     replay = args[7] if len(args) > 7 else None
+    display = args[8] if len(args) > 8 else True
     os.environ["BFG_FAST"] = "1"
     import random
     import tempfile
-    import tkinter as tk
-    from tkinter import messagebox
     random.seed(seed)
     os.chdir(tempfile.mkdtemp())
-    import src.choice_dialog as cd
     from src.game_state import GameState
     from src.dice import DiceRoller
     from src.turn_controller import TurnController
-    from src.board_view import BoardView
-    from src import game_panel as gp_mod
-    from src.game_panel import GamePanel
     from src.fleet_loader import load_fleet_file, fleet_to_ships, roll_starting_leadership
     from src.victory_points import calculate_victory_points
-
     errors = []
-    for name in ("showinfo", "showwarning"):
-        setattr(messagebox, name, lambda *a, **k: None)
-    messagebox.showerror = lambda title, msg="", **k: errors.append(f"{title}: {msg}")
-    messagebox.askyesno = lambda *a, **k: False
-    gp_mod.messagebox = messagebox
-    cd.yes_no = lambda root, title, text, best: best
-    cd.choose = lambda root, title, text, options, best, *a, **k: best
-
-    root = tk.Tk()
-    root.withdraw()
     from src.dice import start_game_dice, set_source, DiceSource
     from src.recorder import start_recording, events
     start_recording()
@@ -86,17 +70,23 @@ def play(args) -> dict:
     dice = DiceRoller(mode="auto")
     roll_starting_leadership(gs, dice, ai_dice=dice)
     tc = TurnController(gs, dice)
-    board = BoardView(root, gs)
-    board.redraw = lambda *a, **k: None          # no drawing
-    frame = tk.Frame(board.side_panel)
-    frame.pack()
-    panel = GamePanel(frame, tc, board, root)
     over = []
-    panel._show_game_over_dialog = lambda w, **k: over.append(w)
     start = time.time()
-    panel._begin_turn1()
-    while not panel._game_over and time.time() - start < timeout:
-        root.update()
+    if display:
+        _play_in_window(tc, over, errors, timeout, start)
+    else:                                # no window, no Tk (To do 18)
+        from src.headless_game import HeadlessGame
+        from src.prompts import Prompter
+
+        class _Errors(Prompter):
+            def _notify(self, title, text, level):
+                if level == "error":
+                    errors.append(f"{title}: {text}")
+        game = HeadlessGame(tc)
+        game.ctx.prompt = _Errors()
+        res = game.play(timeout)
+        if res is not None:
+            over.append(res["winner"])
     vp = calculate_victory_points(gs)
     import hashlib
     state = json.dumps({"ships": gs.ships, "ordnance": gs.ordnance,
@@ -108,8 +98,36 @@ def play(args) -> dict:
     res = {"record": current_source().record, "events": events(), "hash": hashlib.sha256(state.encode()).hexdigest()[:16],"seed": seed, "winner": over[0] if over else None, "finished": bool(over),
            "vp1": vp[1]["total"], "vp2": vp[2]["total"], "turns": gs.turn_number,
            "seconds": round(time.time() - start, 1), "errors": errors[:3]}
-    root.destroy()
     return res
+
+
+def _play_in_window(tc, over, errors, timeout, start):
+    """The real GamePanel in fast mode on a hidden window (needs a display)."""
+    import tkinter as tk
+    from tkinter import messagebox
+    import src.choice_dialog as cd
+    from src.board_view import BoardView
+    from src import game_panel as gp_mod
+    from src.game_panel import GamePanel
+    for name in ("showinfo", "showwarning"):
+        setattr(messagebox, name, lambda *a, **k: None)
+    messagebox.showerror = lambda title, msg="", **k: errors.append(f"{title}: {msg}")
+    messagebox.askyesno = lambda *a, **k: False
+    gp_mod.messagebox = messagebox
+    cd.yes_no = lambda root, title, text, best: best
+    cd.choose = lambda root, title, text, options, best, *a, **k: best
+    root = tk.Tk()
+    root.withdraw()
+    board = BoardView(root, tc.gs)
+    board.redraw = lambda *a, **k: None          # no drawing
+    frame = tk.Frame(board.side_panel)
+    frame.pack()
+    panel = GamePanel(frame, tc, board, root)
+    panel._show_game_over_dialog = lambda w, **k: over.append(w)
+    panel._begin_turn1()
+    while not panel._game_over and time.time() - start < timeout:
+        root.update()
+    root.destroy()
 
 
 def main():
@@ -124,11 +142,13 @@ def main():
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--timeout", type=float, default=600.0, help="seconds per game")
     ap.add_argument("--json", help="write the results to this file")
+    ap.add_argument("--no-display", action="store_true",
+                    help="play with no window and no Tk (headless_game.HeadlessGame)")
     ap.add_argument("--replay-check", action="store_true",
                     help="replay each game from its recorded dice and check the final state matches")
     a = ap.parse_args()
-    jobs = [(a.fleet1, a.fleet2, a.difficulty, a.turns, a.system, a.seed + i, a.timeout)
-            for i in range(a.games)]
+    jobs = [(a.fleet1, a.fleet2, a.difficulty, a.turns, a.system, a.seed + i, a.timeout,
+             None, not a.no_display) for i in range(a.games)]
     t0 = time.time()
     results = []
     with ProcessPoolExecutor(max_workers=a.procs) as ex:
@@ -138,7 +158,7 @@ def main():
                   f"turns={r['turns']} {r['seconds']}s hash={r['hash']}"
                   + (f" ERRORS {r['errors']}" if r["errors"] else ""), flush=True)
     if a.replay_check:
-        again = [j + (r["record"],) for j, r in zip(jobs, results)]
+        again = [j[:7] + (r["record"], j[8]) for j, r in zip(jobs, results)]
         with ProcessPoolExecutor(max_workers=a.procs) as ex:
             for r, r2 in zip(results, ex.map(play, again)):
                 same = r2["hash"] == r["hash"]

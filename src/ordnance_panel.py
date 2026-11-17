@@ -1,6 +1,5 @@
 """BFG:XR — OrdnancePanel: ordnance launch, movement, and contact resolution."""
-import tkinter as tk
-from tkinter import messagebox
+from .tk_compat import tk, messagebox
 import math
 
 from .models import (Ship, SpecialOrder, OrdnanceMarker, OrdnanceType,

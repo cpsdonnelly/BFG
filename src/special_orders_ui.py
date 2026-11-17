@@ -3,8 +3,7 @@
 Mixin for MovementPanel: the special-order dialog, fleet re-roll handling,
 and squadron coherency group selection. Split out of movement_panel.py.
 """
-import tkinter as tk
-from tkinter import messagebox
+from .tk_compat import tk, messagebox
 from typing import List, Optional
 
 from .models import Ship, SpecialOrder

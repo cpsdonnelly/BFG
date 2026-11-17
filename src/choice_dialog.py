@@ -1,7 +1,7 @@
 """A modal choice prompt with an "Auto (best)" button (owner request: the
 player can let the game pick the expected best option, the one the AI's
 expected-value logic would take). Tk UI: main thread only."""
-import tkinter as tk
+from .tk_compat import tk
 
 
 def choose(root, title: str, text: str, options, best):

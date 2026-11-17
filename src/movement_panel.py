@@ -1,6 +1,5 @@
 """BFG:XR — MovementPanel: ship movement UI and drag-drop callbacks."""
-import tkinter as tk
-from tkinter import messagebox
+from .tk_compat import tk, messagebox
 import math
 
 from .models import Ship

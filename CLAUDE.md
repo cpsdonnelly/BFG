@@ -502,7 +502,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1357 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1358 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2394,7 +2394,7 @@ Done: To do 2, 3, 6; most of 7.
    cache's cold first phase, arcs, crit checks and local imports): further gains need To
    do 18's structure. Dropped: one hits matrix for the focus loops (they run twice a phase).
    Still to do:
-   - the runner without a display (the game flow out of the Tk panels, with To do 18);
+   - the runner without a display: done (`--no-display`, To do 18's GameFlow);
    - the expert AI repeatable (a node budget instead of a time budget, To do 17).
 17. Recording and replay (plan section 6): a game seed and every roll saved in order;
    structured events for every decision (move commands, orders, weapon / target, launches,
@@ -2456,9 +2456,20 @@ Done: To do 2, 3, 6; most of 7.
    the AI's repair pick), the artefact notice. Every answer is recorded once, as a "prompt"
    event (`recorder`). Left as plain dialogs: window conveniences (deployment auto-place,
    the movement / shooting phase reminders, settings, saves). The 16 games unchanged.
-   Next: the phase flow (`GamePanel._begin_turn1 / _end_phase / _run_ai_phase` and the
-   end-phase / ordnance-resolution mixin steps) into an engine `GameFlow` the window and a
-   display-free runner both drive; then human replay (To do 17) on it.
+   Second slice built, the turn flow out of the window: `src/game_flow.py`, `GameFlow` (the
+   decision hooks, the first turn, `_end_phase`, the AI's phases, the end phase, game over /
+   scenario ends, the network sync, plus alternate activation's `AAPanelMixin`), moved
+   unchanged from GamePanel; it knows the screen only through `_update_phase_display`,
+   `_show_game_over_dialog`, `_show_victory_points` and `_disengage_dialog`, asks through
+   `ctx.prompt` and schedules with `self.root.after`. `GamePanel(GameFlow)` adds the widgets
+   (and keeps `_start_game`, which opens deployment). `src/headless_game.py`: `HeadlessGame`
+   runs the same flow with no window (`HeadlessContext`: the log as a list, a board that
+   ignores drawing; `QueueRoot`: `after` as a queue in virtual time), and `src/tk_compat.py`
+   lets the flow and panels import on a Python without tkinter. `tools/headless_runner.py
+   --no-display` plays that way (no xvfb, no Tk): all 16 refactor-check games give the same
+   final states as the window, and `tests/test_headless_game.py` plays one to game over and
+   replays it from its record. Next: human replay (To do 17: events fed back through the
+   engine entry points and `ReplayPrompter`), then the rest of the plan items below.
    Plan items:
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /

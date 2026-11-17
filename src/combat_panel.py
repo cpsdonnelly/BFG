@@ -1,6 +1,5 @@
 """BFG:XR — CombatPanel: shooting phase UI, weapon targeting, damage resolution."""
-import tkinter as tk
-from tkinter import messagebox, ttk
+from .tk_compat import tk, messagebox, ttk
 import math
 from typing import Optional, Tuple
 
