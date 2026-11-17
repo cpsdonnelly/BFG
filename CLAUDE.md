@@ -2416,7 +2416,9 @@ Done: To do 2, 3, 6; most of 7.
    `dice.json` (seed, generator state, record); loading carries the dice on. Checks:
    `tests/test_recording.py` (one seed one game; the record replays it under another seed;
    divergence; manual rolls), `tools/headless_runner.py --replay-check` (each game replayed
-   from its record through the real game window gives the same final state: 4 of 4 IGOUGO).
+   from its record through the real game window gives the same final state: 4 of 4 IGOUGO,
+   2 of 2 alternate activation, whose bag and dice-off now draw from the recorded dice,
+   `dice.RecordedRandom`).
    Still to do: structured decision events (needed to replay games with humans), complete
    snapshots, the replay player / viewer, `map_maker`'s terrain randomness (part of the start
    state for now).
