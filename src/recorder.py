@@ -45,9 +45,7 @@ def _jsonable(v):
         return [_jsonable(x) for x in v]
     if isinstance(v, dict):
         return {str(k): _jsonable(x) for k, x in v.items()}
-    if isinstance(v, float):
-        return round(v, 6)
-    if v is None or isinstance(v, (bool, int, str)):
+    if v is None or isinstance(v, (bool, int, float, str)):   # floats exact: moves replay
         return v
     return str(v)
 

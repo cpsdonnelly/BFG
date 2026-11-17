@@ -504,7 +504,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1358 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1359 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2470,8 +2470,22 @@ Done: To do 2, 3, 6; most of 7.
    lets the flow and panels import on a Python without tkinter. `tools/headless_runner.py
    --no-display` plays that way (no xvfb, no Tk): all 16 refactor-check games give the same
    final states as the window, and `tests/test_headless_game.py` plays one to game over and
-   replays it from its record. Next: human replay (To do 17: events fed back through the
-   engine entry points and `ReplayPrompter`), then the rest of the plan items below.
+   replays it from its record. Third slice, the action layer (item 7, and To do 17's human
+   replay): a human action goes through window code that calls several engine functions in
+   turn, so it is replayed by making each kind of action one engine function used by the
+   window, the AI and a replay (`src/actions.py`), recording one "act" event with its exact
+   inputs. Built: moves, `actions.apply_move` (the move, the ordnance it touched, the
+   terrain tests, the staged-move count; it records the exact `MovementResult`, floats
+   unrounded, `result_from` rebuilds it), used by the AI and all six human move paths (the
+   move dialog, its squadron move, drag, M quick move, spacebar min-move all). Fixed on the
+   way: the M quick move and spacebar min-move skipped the asteroid / warp rift / cloud tests
+   (`tests/test_actions.py`). Found, not yet changed (it changes AI play): the AI's ships
+   meet the ordnance they moved into only after the whole AI movement phase, a human's
+   after each move (s.15: each ship's move is resolved as it is made), so two AI ships
+   moving through one salvo both face it whole. Next: the other movement-phase actions
+   (orders and re-rolls, ram and boarding declarations, holding position), a replay seat
+   that plays a phase from its act events, checked by replaying AI games phase by phase,
+   then shooting, ordnance and the end phase.
    Plan items:
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /

@@ -16,7 +16,7 @@ from .dice import DiceRoller
 from .geometry import current_shields
 from .movement import do_command_check
 from .movement import (
-    MoveCommand, validate_movement, execute_movement, record_staged_move,
+    MoveCommand, validate_movement,
     get_effective_speed, get_max_turns,
 )
 from .combat import (
@@ -718,12 +718,12 @@ class AIPlayer:
         )
 
         def execute(result, cmds) -> bool:
-            execute_movement(ship, result, gs, self.dice)
-            record_staged_move(gs, ship.id, result, cmds)
-            # Asteroid / warp rift / cloud tests the move ran into (s.39)
-            from .terrain_effects import resolve_post_move_terrain
-            resolve_post_move_terrain(gs, ship.id, self.dice,
-                                      order == SpecialOrder.ALL_AHEAD_FULL.value)
+            # The move, the asteroid / warp rift / cloud tests it ran into (s.39)
+            # and its staged-move count (actions.apply_move, shared with the
+            # window); ordnance it touched attacks after the AI's phase
+            from .actions import apply_move
+            apply_move(gs, self.dice, ship, result, cmds,
+                       order == SpecialOrder.ALL_AHEAD_FULL.value)
             return True
 
         r = validate_movement(ship, commands, **kwargs)

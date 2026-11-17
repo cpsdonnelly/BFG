@@ -3,8 +3,7 @@ from .tk_compat import tk, messagebox
 import math
 
 from .models import SpecialOrder
-from .movement import (MoveCommand, validate_movement, execute_movement,
-                       record_staged_move,
+from .movement import (MoveCommand, validate_movement,
                        resolve_aaf_speed, MIN_TURN_DISTANCE, get_max_turns,
                        movement_budget)
 
@@ -372,11 +371,10 @@ class _MoveShipDialog:
         if flee:
             messagebox.showerror("Must Flee", "\n".join(flee))
             return
-        execute_movement(self.ship, result, self.ctx.gs, self.ctx.dice)
-        self.panel._resolve_post_move_terrain(
-            self.ship.id, self.order == SpecialOrder.ALL_AHEAD_FULL.value)
-
-        record_staged_move(self.ctx.gs, self.ship.id, result, self.commands)
+        from .actions import apply_move
+        apply_move(self.ctx.gs, self.ctx.dice, self.ship, result, self.commands,
+                   self.order == SpecialOrder.ALL_AHEAD_FULL.value,
+                   contacts=self.ctx.ordnance._resolve_moving_ship_contacts, log=self.ctx.log)
         self.ctx.tc.mark_ship_moved(self.ship.id)
         self.ctx.tc.record_action(
             "move_ship", self.ship.id,
@@ -726,10 +724,11 @@ class _MoveSquadronDialog:
 
         for s in ships_in:
             res = results[s.id]
-            execute_movement(s, res, self.ctx.gs, self.ctx.dice)
-            self.panel._resolve_post_move_terrain(
-                s.id, s.special_order == SpecialOrder.ALL_AHEAD_FULL.value)
-            record_staged_move(self.ctx.gs, s.id, res, self.commands)
+            from .actions import apply_move
+            apply_move(self.ctx.gs, self.ctx.dice, s, res, self.commands,
+                       s.special_order == SpecialOrder.ALL_AHEAD_FULL.value,
+                       contacts=self.ctx.ordnance._resolve_moving_ship_contacts,
+                       log=self.ctx.log)
             self.ctx.tc.mark_ship_moved(s.id)
             self.ctx.log(
                 f"{s.name}: squadron-moved {res.total_distance:.1f}cm "

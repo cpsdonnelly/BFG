@@ -3,8 +3,7 @@ from .tk_compat import tk, messagebox
 import math
 
 from .models import Ship
-from .movement import (MoveCommand, validate_movement, execute_movement,
-                       record_staged_move,
+from .movement import (MoveCommand, validate_movement,
                        resolve_aaf_speed, movement_budget)
 from .game_context import GameContext
 from .special_orders_ui import SpecialOrderMixin
@@ -59,11 +58,11 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
             if flee:
                 messagebox.showerror("Must Flee", "\n".join(flee))
                 return
-            execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
-            self._resolve_post_move_terrain(ship.id, order == "all_ahead_full")
-
-            # Update staged tracking fields
-            final_ship = record_staged_move(self.ctx.gs, ship.id, result, commands)
+            from .actions import apply_move
+            final_ship = apply_move(self.ctx.gs, self.ctx.dice, ship, result, commands,
+                                    order == "all_ahead_full",
+                                    contacts=self.ctx.ordnance._resolve_moving_ship_contacts,
+                                    log=self.ctx.log)
             if final_ship:
                 # Lock the ship only when its movement budget is exhausted
                 _, remaining = movement_budget(final_ship, order, aaf_bonus,
@@ -273,8 +272,11 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                 return
 
         start_x, start_y = ship.x, ship.y
-        execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
-        self.ctx.ordnance._resolve_moving_ship_contacts()
+        from .actions import apply_move
+        moved = apply_move(self.ctx.gs, self.ctx.dice, ship, result, commands,
+                           order == "all_ahead_full",
+                           contacts=self.ctx.ordnance._resolve_moving_ship_contacts,
+                           log=self.ctx.log)     # the terrain tests too (it skipped them)
 
         # Resolve ramming if a target was declared
         if ship.ramming_target_id:
@@ -302,8 +304,8 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         # Offer boarding declaration if rule is on and ship is in base contact with enemy
         self._offer_boarding(ship_id)
 
-        # Update staged tracking fields on the now-moved ship
-        ship = record_staged_move(self.ctx.gs, ship_id, result, commands)
+        # Staged tracking fields (counted by apply_move)
+        ship = moved and self.ctx.gs.get_ship_by_id(ship_id)
         if ship:
             left_deg = sum(c.value for c in commands if c.action == "turn_left")
             right_deg = sum(c.value for c in commands if c.action == "turn_right")
@@ -370,11 +372,12 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                     f"  {ship.name}: min-move skipped — {result.errors[0]}")
                 continue
 
-            execute_movement(ship, result, self.ctx.gs, self.ctx.dice)
-            self.ctx.ordnance._resolve_moving_ship_contacts()
+            from .actions import apply_move
+            apply_move(self.ctx.gs, self.ctx.dice, ship, result, commands,
+                       order == "all_ahead_full",
+                       contacts=self.ctx.ordnance._resolve_moving_ship_contacts,
+                       log=self.ctx.log)      # the terrain tests too (it skipped them)
             self.ctx.tc.mark_ship_moved(ship.id)
-            # Update staged fields so dialog is consistent if opened later
-            record_staged_move(self.ctx.gs, ship.id, result, commands)
             moved_count += 1
 
         self.ctx.log(f"Spacebar: min-moved {moved_count} ships")
