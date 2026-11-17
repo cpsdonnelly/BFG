@@ -25,8 +25,9 @@ numbers are IDs, not the order):
    the dice roller, and reported ones to check), plus the AI value gaps (random values by
    their exact mean and over the dice outcomes, crits on 4+ in target values, Brace's hit
    estimate) and misleading docstrings (zzapp gunz).
-2. To do 16: performance (ship copies are over half an AI movement phase) and a headless
-   multiprocess game runner.
+2. To do 16: performance and the headless runner, done (4 v 4 movement phase 0.85s ->
+   0.28s, ~655 games an hour on 4 cores, seeded games repeat exactly); left: the runner
+   without a display (with 18), a repeatable expert AI (with 17).
 3. To do 17: recording and replay (seed, every roll, structured events, full snapshots,
    viewer).
 4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split, one

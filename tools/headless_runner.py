@@ -90,6 +90,9 @@ def play(args) -> dict:
     import hashlib
     state = json.dumps({"ships": gs.ships, "ordnance": gs.ordnance,
                         "blast": gs.blast_markers, "log": gs.log}, sort_keys=True, default=str)
+    if os.environ.get("BFG_DUMP_STATE"):
+        with open(f"{os.environ['BFG_DUMP_STATE']}_{seed}.json", "w") as fh:
+            fh.write(state)
     res = {"hash": hashlib.sha256(state.encode()).hexdigest()[:16],"seed": seed, "winner": over[0] if over else None, "finished": bool(over),
            "vp1": vp[1]["total"], "vp2": vp[2]["total"], "turns": gs.turn_number,
            "seconds": round(time.time() - start, 1), "errors": errors[:3]}

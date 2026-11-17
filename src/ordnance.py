@@ -1,6 +1,5 @@
 """BFG:XR Ordnance Phase - Torpedo and attack craft resolution"""
 import math
-import uuid as _uuid
 from typing import List, Dict, Optional, Tuple
 from .models import (Ship, OrdnanceMarker, BlastMarker, OrdnanceType,
                      SpecialOrder, signed_angle_diff)
@@ -1675,7 +1674,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
         launch_heading = (ship.heading + diff) % 360
 
     marker = OrdnanceMarker(
-        id=f"torp_{ship.id}_{game_state.turn_number}_{_uuid.uuid4().hex[:6]}",
+        id=f"torp_{ship.id}_{game_state.turn_number}_{game_state.next_serial():06d}",
         ordnance_type=o_type, owner_player=ship.player,
         launched_by=ship.id, x=ship.x, y=ship.y,
         heading=launch_heading, strength=strength,

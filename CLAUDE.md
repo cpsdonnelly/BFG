@@ -502,7 +502,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1344 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1349 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -781,7 +781,8 @@ Item numbers are IDs (code comments and docs cite them), not the order. Agreed o
 (owner: the order otherwise isn't hugely important, follow the dependencies; the last two
 are fixed by the owner):
 1. To do 15: the rules bugs from the code review (each with a test). Done.
-2. To do 16: performance fixes and a headless multiprocess game runner (partly done).
+2. To do 16: performance fixes and a headless multiprocess game runner (done but the
+   display-free runner and a repeatable expert, which wait for 18 and 17).
 3. To do 17: recording and replay (seeded dice, structured events, full snapshots, viewer).
 4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split,
    weapon-value helper, central AI weights, rules out of the UI), with To do 30 (exact hit
@@ -2367,20 +2368,34 @@ Done: To do 2, 3, 6; most of 7.
      `ship_bracket_raw`;
    - `Ship.to_dict` copies plain data without `asdict`'s checks, and `Ship.from_dict` fills
      a complete dict directly (it shares lists exactly as `cls(**d)` did);
-   - result: an AI movement phase (4 v 4) 0.85s -> ~0.47s cold, the test suite 8.3s -> ~6s.
+   - `models.ship_copy` replaces `dataclasses.replace` for the AI's trial positions (a
+     shallow copy of the fields, no `__init__`; the same result);
+   - `GameState.ships_snapshot()`: a read-only scope (each ship's move planning and the
+     order values that score moves, `ai_player._scored_on_snapshot`) inside which
+     `get_ships()` reuses one set of copies; `update_ship` / `add_ship` / replacing
+     `ships` drop it; it belongs to the thread that opened it (the expert search runs on
+     a worker); `BFG_SNAPSHOT_CHECK=1` checks on exit that no copy was changed (the suite
+     and 8 games pass with it on; `tests/test_perf_snapshot.py`);
+   - result: an AI movement phase (4 v 4) 0.85s -> 0.28s cold, the test suite 8.3s -> ~5.5s.
    Headless runner built: `tools/headless_runner.py` (under `xvfb-run`). It plays many
    AI-vs-AI games in parallel processes, the real GamePanel in fast mode (`BFG_FAST`,
    `GamePanel._pace`: no pacing pauses; the board isn't drawn), and reports each game
-   (winner, VP, turns, seconds), win rates, the mean VP margin and games per hour.
-   - Measured: ~400 games an hour on 4 cores (the demo fleets, 12 player turns, ~29s a
-     game).
-   - The demo Navy fleet beat the demo Tau fleet in 4 of 4 games in IGOUGO: a matchup worth
+   (winner, VP, turns, seconds, a hash of the final state; `BFG_DUMP_STATE=<prefix>` writes
+   the state), win rates, the mean VP margin and games per hour.
+   - Measured: ~655 games an hour on 4 cores (the demo fleets, 12 player turns, ~20s a
+     game; ~400 before the snapshot).
+   - Repeatable: with `PYTHONHASHSEED=0` and the normal AI, a seed gives the same game down
+     to the final state hash (wave and torpedo ids now come from `GameState.next_serial`,
+     not `uuid`); the expert's time budget still varies its search. The speed-ups were
+     checked this way: 8 seeded games gave the same winners, VP and turns before and after.
+   - The demo Navy fleet beat the demo Tau fleet in 7 of 8 games in IGOUGO: a matchup worth
      a look in To do 13's experiments.
+   Profile now flat (no function above ~7% of a movement phase; the rest is the bracket
+   cache's cold first phase, arcs, crit checks and local imports): further gains need To
+   do 18's structure. Dropped: one hits matrix for the focus loops (they run twice a phase).
    Still to do:
-   - a per-phase snapshot for the move score's terms (`gs.get_ships()` rebuilt ~4 times a
-     candidate, now the largest share) and one hits matrix for the three focus loops;
    - the runner without a display (the game flow out of the Tk panels, with To do 18);
-   - seeded AI choices (with To do 17) so games repeat exactly.
+   - the expert AI repeatable (a node budget instead of a time budget, To do 17).
 17. Recording and replay (plan section 6): a game seed and every roll saved in order;
    structured events for every decision (move commands, orders, weapon / target, launches,
    craft orders, brace, re-rolls, prompts) recorded at the engine API for humans and the AI

@@ -11,7 +11,6 @@ Against a ship it must attack, the ship's turrets fire once at the whole wave
 (each success removes one squadron, lead first), the rest attack together, and
 then the whole wave is removed.
 """
-import uuid
 from typing import Dict, List, Optional
 
 from .models import OrdnanceMarker
@@ -38,6 +37,16 @@ def order_for_wave(markers: List[OrdnanceMarker]) -> List[OrdnanceMarker]:
     return sorted(markers, key=wave_rank)
 
 
+def _serial(game_state) -> str:
+    """A new id part from the game's own counter (repeatable from the seed,
+    unlike uuid; To do 17)."""
+    nxt = getattr(game_state, "next_serial", None)
+    if nxt is None:
+        import uuid
+        return uuid.uuid4().hex[:8]
+    return f"{nxt():08d}"
+
+
 def form_wave(game_state, marker_ids: List[str], formation: str = "close") -> str:
     """Combine attack craft markers (launched together) into one wave, stacked
     on the lead marker's position. Returns the wave id ("" if fewer than two)."""
@@ -47,7 +56,7 @@ def form_wave(game_state, marker_ids: List[str], formation: str = "close") -> st
                if o["id"] in set(marker_ids)]
     if len(markers) < 2:
         return ""
-    wid = f"wave_{uuid.uuid4().hex[:8]}"
+    wid = f"wave_{_serial(game_state)}"
     ordered = order_for_wave(markers)
     lead = ordered[0]
     for i, m in enumerate(ordered):
@@ -101,7 +110,7 @@ def split_from_wave(game_state, marker_ids: List[str]) -> str:
         _write(game_state, m)
         new = ""
     else:
-        new = f"wave_{uuid.uuid4().hex[:8]}"
+        new = f"wave_{_serial(game_state)}"
         for i, m in enumerate(order_for_wave(split)):
             m.wave_id, m.wave_order, m.wave_formation = new, i, formation
             _write(game_state, m)
