@@ -1,4 +1,4 @@
-"""Combined squadron craft launch: "Best split" fills the planner's mix for
+"""Combined squadron craft launch: "Auto split" fills the planner's mix for
 two Dictators (8 bays) against a 4-turret target, and launches one wave."""
 import os, sys, tempfile, time, tkinter as tk
 from tkinter import messagebox
@@ -33,7 +33,7 @@ tc = TurnController(gs, DiceRoller(mode="auto")); tc.start_game()
 gs.current_phase = "ordnance"; gs.active_player = 1
 board = BoardView(root, gs); f = tk.Frame(board.side_panel); f.pack()
 panel = GamePanel(f, tc, board, root)
-steps = ["Select Group", "Attack Craft", "Best split", "Launch Combined"]
+steps = ["Select Group", "Attack Craft", "Auto split", "Launch Combined"]
 seen = {}
 def act():
     for d in [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)]:

@@ -1,4 +1,4 @@
-"""Launch dialog's "Best split" (fighters vs bombers for one wave) matches
+"""Launch dialog's "Auto split" (fighters vs bombers for one wave) matches
 waves.best_wave_split for the nearest enemy's turrets and CAP."""
 import os, sys, tempfile, tkinter as tk
 from tkinter import messagebox
