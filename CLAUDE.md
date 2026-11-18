@@ -537,10 +537,10 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
-shooting dialog as recorded actions; `src/fire_volley.py`) and the AI's ordnance phase
-as actions; next: the human ordnance dialogs as actions (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+shooting dialog as recorded actions; `src/fire_volley.py`) and the ordnance phase (AI
+and every human dialog) as actions; next: the end phase as actions (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1375 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1376 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2570,10 +2570,14 @@ Done: To do 2, 3, 6; most of 7.
    (`launch_craft`), waves (`form_craft_wave`) and craft targets (`set_craft_target`); and
    the AI's target priority test is an action too (`target_priority_test`, the re-roll
    choice recorded); ordnance phases replay (`tests/test_headless_game.py`, carriers and
-   torpedo ships). Not yet as actions: the human launch / combine / craft orders / torpedo
-   bomber / Tau missile dialogs (`ordnance_panel.py`, ~800 lines that build markers in the
-   window code). Next: those, then the end phase and alternate activation's per-unit phases;
-   then games with human players replay in full.
+   torpedo ships). The human ordnance dialogs too, their rules out of the window: torpedo
+   launches with splits (`launch_torpedo_volley`), bay launches incl. CAP, lone fighters and
+   waves (`launch_bays`), combined squadron launches (`combined_torpedo_launch`,
+   `combined_craft_launch`), mines, recalls, torpedo bombers, craft orders and wave splits
+   (`set_craft_target`, `split_craft`), Tau missile moves (`move_tau_missile`); every
+   ordnance GUI check passes and a human launch replays (`tests/test_actions.py`). Next: the
+   end phase (damage control, boarding, teleports, blast marker removal) and alternate
+   activation's per-unit phases; then games with human players replay in full.
    Plan items:
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /

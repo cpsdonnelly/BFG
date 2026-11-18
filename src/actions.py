@@ -233,6 +233,24 @@ def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
         set_craft_target(gs, ev["markers"], ev["target"])
     elif k == "act_target_priority":
         target_priority_test(gs, dice, tc, ev["ship"], lambda _s: ev.get("rerolled"))
+    elif k == "act_split_wave":
+        split_craft(gs, ev["markers"])
+    elif k == "act_move_missile":
+        move_tau_missile(gs, ev["marker"], ev["turn"], ev["speed"])
+    elif k == "act_launch_volley":
+        launch_torpedo_volley(gs, dice, ev["ship"], ev["weapon"], ev["heading"],
+                              ev.get("strength"), ev.get("heading2"), ev.get("torp", ""),
+                              ev["effective"])
+    elif k == "act_launch_bays":
+        launch_bays(gs, dice, ev["ship"], ev["bays"], ev["heading"], ev["comp"], ev["cap"],
+                    ev["protect"], ev["protect_name"], ev["extra"], ev["split"], ev["wave"],
+                    ev["formation"], ev["remaining"])
+    elif k == "act_combined_torps":
+        combined_torpedo_launch(gs, dice, ev["ships"], ev["heading"], ev.get("torp", ""),
+                                ev["at"], ev["exempt"], ev["strength"], ev["names"])
+    elif k == "act_combined_craft":
+        combined_craft_launch(gs, dice, ev["ships"], ev["heading"], ev["comp"], ev["at"],
+                              ev["remaining"], ev["wave"], ev["formation"], ev["names"])
     elif k == "act_volley_fire":
         if panel is None:
             raise ReplayDivergence(f"event {ev['n']}: a Fire dialog volley needs the panel")
@@ -909,3 +927,332 @@ def target_priority_test(gs, dice, tc, ship_id: str, want_reroll=None, tag: str 
     gs.add_log(f"{tag}{att.name}: target priority {'passed' if check['passed'] else 'FAILED'} "
                f"(rolled {check['roll']} vs Ld {check['needed']})")
     return dict(check, rerolled=rerolled)
+
+
+@recorder.logged("act_split_wave", lambda r, A: (A["gs"], dict(markers=list(A["marker_ids"]))))
+def split_craft(gs, marker_ids) -> str:
+    """Attack craft orders: squadrons split off their wave (alone, or as a
+    new wave in the same formation, s.25)."""
+    from .waves import split_from_wave
+    return split_from_wave(gs, list(marker_ids))
+
+
+@recorder.logged("act_move_missile", lambda r, A: (A["gs"], dict(
+    marker=A["marker_id"], turn=A["turn"], speed=A["speed"])))
+def move_tau_missile(gs, marker_id: str, turn: float, speed: float):
+    """A Tau missile salvo's move (Tau Missiles): a turn, then 20-40cm."""
+    import math
+    from .models import OrdnanceMarker
+    for i, o in enumerate(gs.ordnance):
+        if o["id"] != marker_id:
+            continue
+        m = OrdnanceMarker.from_dict(o)
+        m.heading = (m.heading + turn) % 360
+        rad = math.radians(m.heading)
+        m.x += speed * math.cos(rad)
+        m.y += speed * math.sin(rad)
+        updated = m.to_dict()
+        updated["moved_this_phase"] = True
+        gs.ordnance[i] = updated
+        return m
+    return None
+
+
+@recorder.logged("act_launch_bays", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], bays=list(A["bay_idxs"]), heading=A["heading"],
+    comp=[list(c) for c in A["composition"]], cap=A["cap"], protect=A["protect_id"],
+    protect_name=A["protect_name"], extra=dict(A["extra"]), split=A["split_type"],
+    wave=A["wave"], formation=A["formation"], remaining=A["remaining"])))
+def launch_bays(gs, dice, ship_id: str, bay_idxs, heading: float, composition, cap: bool,
+                protect_id: str, protect_name: str, extra, split_type, wave: bool,
+                formation: str, remaining: int, log=None) -> dict:
+    """A player's attack craft launch from one ship (the launch dialog, s.18):
+    one squadron per bay (random bay strengths rolled now), the chosen craft
+    types and counts (`composition` [[type, count text]]), on CAP for
+    `protect_id` when `cap`, plus the split planner's lone and CAP fighters
+    (`extra`), up to the fleet's free slots (`remaining`); launched together
+    they may form a wave. Returns {"launched"} or {"error", "title"}."""
+    import math
+    from .models import OrdnanceMarker
+    from .ordnance import bay_launch_capacity, craft_stats, craft_roles
+    log = log or gs.add_log
+    ship = gs.get_ship_by_id(ship_id)
+    bay_weapons = [ship.weapons[i] for i in bay_idxs]
+
+    def _pos(sid):
+        s = gs.get_ship_by_id(sid) if sid else None
+        return (s.x, s.y) if s else (ship.x, ship.y)
+
+    ship_cap, roll_log = bay_launch_capacity(ship, bay_weapons, dice)
+    for line in roll_log:
+        log(line)
+    allowed = min(ship_cap, remaining)
+    total_launched = 0
+    launched_ids = []
+    for ct, text in composition:
+        try:
+            count = int(text)
+        except (ValueError, TypeError):
+            continue
+        if count <= 0:
+            continue
+        o_type, spd, resil = craft_stats(ct, bay_weapons)
+        can_cap = "fighter" in craft_roles(o_type)
+        if cap and not can_cap:
+            return {"title": "Bombers Cannot CAP",
+                    "error": "Bombers cannot be assigned to Combat Air Patrol.\n"
+                             "Only fighters may perform CAP."}
+        assign_cap = cap and can_cap
+        pid = (protect_id or ship.id) if assign_cap else ""
+        protect_pos = _pos(pid) if assign_cap else (ship.x, ship.y)
+        if assign_cap and pid:
+            px_ship, py_ship = _pos(pid)
+            dist_to_protect = math.sqrt((ship.x - px_ship) ** 2 + (ship.y - py_ship) ** 2)
+            if dist_to_protect > spd:
+                return {"title": "CAP Out of Range",
+                        "error": f"Protected ship is {dist_to_protect:.1f}cm away.\n"
+                                 f"Fighter speed is {spd:.0f}cm — cannot reach."}
+        for i in range(count):
+            if total_launched >= allowed:
+                break
+            px = protect_pos[0] + (i - count / 2) * 1.5
+            py = protect_pos[1]
+            marker = OrdnanceMarker(
+                id=f"craft_{ship.id}_{ct}_{gs.turn_number}_{gs.next_serial()}",
+                ordnance_type=o_type, owner_player=ship.player, launched_by=ship.id,
+                x=px if assign_cap else ship.x + (i - count / 2) * 1.5,
+                y=py if assign_cap else ship.y,
+                heading=heading, strength=1, speed=spd, launched_turn=gs.turn_number,
+                resilient_save=resil, cap_ship_id=pid,
+                special_rules=list(ship.special_rules))
+            gs.add_ordnance(marker)
+            launched_ids.append(marker.id)
+            total_launched += 1
+    wave_ids = list(launched_ids)
+    extra_counts = {k: int(v) if str(v).strip().isdigit() else 0 for k, v in extra.items()}
+    if split_type and any(extra_counts.values()):
+        o_type, spd, resil = craft_stats(split_type, bay_weapons)
+        pid = protect_id or ship.id
+        ppos = _pos(pid)
+        for kind in ("lone", "cap"):
+            for i in range(extra_counts.get(kind, 0)):
+                if total_launched >= allowed:
+                    break
+                on_cap = kind == "cap"
+                x0, y0 = ppos if on_cap else (ship.x, ship.y)
+                marker = OrdnanceMarker(
+                    id=f"craft_{ship.id}_{kind}_{gs.turn_number}_{gs.next_serial()}",
+                    ordnance_type=o_type, owner_player=ship.player,
+                    launched_by=ship.id, x=x0 + (i + 1) * 1.5, y=y0 + 2.0,
+                    heading=heading, strength=1, speed=spd, launched_turn=gs.turn_number,
+                    resilient_save=resil, cap_ship_id=pid if on_cap else "",
+                    special_rules=list(ship.special_rules))
+                gs.add_ordnance(marker)
+                launched_ids.append(marker.id)
+                total_launched += 1
+        if extra_counts.get("lone") or extra_counts.get("cap"):
+            log(f"  {extra_counts.get('lone', 0)} lone fighter(s), "
+                f"{extra_counts.get('cap', 0)} on CAP for {protect_name} (not in the wave)")
+    if total_launched == 0:
+        return {"title": "No Craft", "error": "Set at least one craft type to a non-zero count",
+                "warning": True}
+    wanted = sum(int(t) for _c, t in composition if str(t).strip().isdigit()) + \
+        sum(extra_counts.values())
+    if wanted > total_launched:
+        log(f"  Only {total_launched} of {wanted} squadrons launched "
+            f"(this ship's bays: {ship_cap}, fleet slots: {remaining})")
+    ship_fresh = gs.get_ship_by_id(ship.id)
+    if ship_fresh:
+        ship_fresh.mark_launched("craft")
+        gs.update_ship(ship_fresh)
+    if not cap and wave and len(wave_ids) > 1:     # craft on CAP are never a wave (s.26)
+        from .waves import members, wave_label
+        wid = form_craft_wave(gs, wave_ids, formation)
+        ms = members([OrdnanceMarker.from_dict(o) for o in gs.ordnance], wid)
+        log(f"  {len(ms)} squadrons form a {formation} wave: {wave_label(ms)}")
+    if cap:
+        log(f"{ship.name} launched {total_launched} attack craft on CAP for {protect_name}")
+    else:
+        log(f"{ship.name} launched {total_launched} attack craft heading {heading:.0f}°")
+    return {"launched": launched_ids}
+
+
+@recorder.logged("act_launch_volley", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], weapon=A["w_idx"], heading=A["heading"], strength=A["strength"],
+    heading2=A["heading2"], torp=A["kind"], effective=A["effective_str"])))
+def launch_torpedo_volley(gs, dice, ship_id: str, w_idx: int, heading: float, strength,
+                          heading2, kind: str, effective_str: int, log=None) -> dict:
+    """A player's torpedo launch (the launch dialog, s.16): random strength
+    rolled now (after aiming), a Str 7+ salvo split in two when asked (each at
+    least 3, in different directions; an already-rolled salvo that can't
+    split as asked goes as one), the ship unloaded and one-per-game types
+    used. Returns {"markers"} or {"error"} (nothing rolled)."""
+    from .models import OrdnanceMarker
+    from .ordnance import (torpedo_launch_strength, torpedo_split_error, torpedo_ordnance_type,
+                           torpedo_speed_for, torpedo_kind_name, compute_torpedo_launch_exempt,
+                           mark_once_torpedoes_used)
+    from .models import signed_angle_diff
+    log = log or gs.add_log
+    ship = gs.get_ship_by_id(ship_id)
+    w = ship.weapons[w_idx]
+    total, rolled_now = effective_str, None
+    if w.get("strength_dice"):
+        total, rolled_now = torpedo_launch_strength(ship, w, dice)
+        log(f"{ship.name} {w['name']}: rolled {w['strength_dice']} = {rolled_now}"
+            + (f", Str {total} after halving" if total != rolled_now else ""))
+    if total < 7 or strength is None:
+        strength = total
+    else:
+        strength = max(1, min(strength, total))
+    h2 = heading2 if strength < total else None
+    err = torpedo_split_error(total, strength, heading, h2)
+    if err is None and h2 is not None and abs(signed_angle_diff(h2, ship.heading)) > 45:
+        err = (f"Second salvo heading {h2:.0f}° is outside the forward arc "
+               f"({ship.heading-45:.0f}° to {ship.heading+45:.0f}°)")
+    if err and rolled_now is not None:
+        log(f"  Can't split as asked ({err}) — one salvo")
+        strength, h2, err = total, None, None
+    if err:
+        return {"error": err}
+    is_g = w.get("torpedo_type") == "guided"
+    o_type = torpedo_ordnance_type(w, kind=kind)
+    exempt = compute_torpedo_launch_exempt(ship, gs)
+    made = []
+    for n, (hd, st) in enumerate(((heading, strength), (h2, total - strength))):
+        if st <= 0:
+            continue
+        marker = OrdnanceMarker(
+            id=f"torp_{ship.id}_{gs.turn_number}_{gs.next_serial()}" + ("_b" if n else ""),
+            ordnance_type=o_type, owner_player=ship.player, launched_by=ship.id,
+            x=ship.x, y=ship.y, heading=hd, strength=st, speed=torpedo_speed_for(w, o_type),
+            launched_turn=gs.turn_number, can_turn=is_g, turn_angle=45 if is_g else 0,
+            launch_exempt_ships=list(exempt), special_rules=list(ship.special_rules))
+        gs.add_ordnance(marker)
+        made.append(marker.id)
+        if n == 0:
+            log(f"{ship.name} launched {torpedo_kind_name(o_type)} Str {st} heading {hd:.0f}°")
+        else:
+            log(f"  Split salvo: second volley Str {st} heading {hd:.0f}°")
+    ship_fresh = gs.get_ship_by_id(ship.id)
+    if ship_fresh:
+        ship_fresh.mark_launched("torps")
+        gs.update_ship(ship_fresh)
+        mark_once_torpedoes_used(ship_fresh, kind, gs)
+    return {"markers": made}
+
+
+@recorder.logged("act_combined_torps", lambda r, A: (A["gs"], dict(
+    ships=list(A["ship_ids"]), heading=A["heading"], torp=A["kind"], at=list(A["at"]),
+    exempt=list(A["exempt"]), strength=A["combined_strength"], names=A["names"])))
+def combined_torpedo_launch(gs, dice, ship_ids, heading: float, kind: str, at, exempt,
+                            combined_strength: int, names: str, log=None):
+    """A squadron's combined torpedo salvo (s.15): one marker of the
+    contributors' total strength (random strengths rolled now) at `at`, the
+    raid bonuses every contributor shares, each ship unloaded."""
+    from .models import OrdnanceMarker, OrdnanceType
+    from .ordnance import (torpedo_ordnance_type, torpedo_launch_strength, torpedo_speed_for,
+                           torpedo_kind_name, mark_once_torpedoes_used, TORPEDO_SPEED_DEFAULT)
+    log = log or gs.add_log
+    contributors = [gs.get_ship_by_id(i) for i in ship_ids]
+    player = contributors[0].player
+    torp_weapon = next((w for s in contributors for w in s.weapons
+                        if w.get("weapon_type") == "torpedo"), None)
+    is_guided = bool(torp_weapon) and torp_weapon.get("torpedo_type") == "guided"
+    o_type = (torpedo_ordnance_type(torp_weapon, kind=kind)
+              if torp_weapon else OrdnanceType.TORPEDO_STANDARD.value)
+    if any(w.get("strength_dice") for c in contributors for w in c.weapons
+           if w.get("weapon_type") == "torpedo"):
+        launch_strength = 0
+        for c in contributors:
+            for w in c.weapons:
+                if w.get("weapon_type") == "torpedo" and c.ordnance_loaded_torps:
+                    st, rolled = torpedo_launch_strength(c, w, dice)
+                    if rolled is not None:
+                        log(f"  {c.name} {w['name']}: rolled {w['strength_dice']} = {rolled}")
+                    launch_strength += st
+    else:
+        launch_strength = combined_strength
+    common_rules = set(contributors[0].special_rules)
+    for c in contributors[1:]:
+        common_rules &= set(c.special_rules)
+    speed = torpedo_speed_for(torp_weapon, o_type) if torp_weapon else TORPEDO_SPEED_DEFAULT
+    marker = OrdnanceMarker(
+        id=f"combined_torp_{player}_{gs.turn_number}_{gs.next_serial()}",
+        ordnance_type=o_type, owner_player=player, launched_by=contributors[0].id,
+        x=at[0], y=at[1], heading=heading, strength=launch_strength, speed=speed,
+        launched_turn=gs.turn_number, can_turn=is_guided, turn_angle=45 if is_guided else 0,
+        launch_exempt_ships=list(exempt), special_rules=sorted(common_rules))
+    gs.add_ordnance(marker)
+    log(f"Combined {torpedo_kind_name(o_type)} launch: {names} — "
+        f"Str {launch_strength} heading {heading:.0f}°")
+    for s in contributors:
+        fresh = gs.get_ship_by_id(s.id)
+        if fresh:
+            fresh.mark_launched("torps")
+            gs.update_ship(fresh)
+            mark_once_torpedoes_used(fresh, kind, gs)
+    return marker
+
+
+@recorder.logged("act_combined_craft", lambda r, A: (A["gs"], dict(
+    ships=list(A["ship_ids"]), heading=A["heading"], comp=[list(c) for c in A["composition"]],
+    at=list(A["at"]), remaining=A["remaining"], wave=A["wave"], formation=A["formation"],
+    names=A["names"])))
+def combined_craft_launch(gs, dice, ship_ids, heading: float, composition, at, remaining: int,
+                          wave: bool, formation: str, names: str, log=None) -> dict:
+    """A squadron's combined attack craft launch (s.15): one squadron per bay
+    of the contributors (random strengths rolled now), up to the fleet's free
+    slots, launched together at `at`, optionally as one wave."""
+    from .models import OrdnanceMarker
+    from .ordnance import bay_launch_capacity, craft_stats
+    log = log or gs.add_log
+    contributors = [gs.get_ship_by_id(i) for i in ship_ids]
+    player = contributors[0].player
+    group_cap = 0
+    for c in contributors:
+        if not c.ordnance_loaded_craft:
+            continue
+        cap, roll_log = bay_launch_capacity(
+            c, [w for w in c.weapons if w.get("weapon_type") == "launch_bay"], dice)
+        group_cap += cap
+        for line in roll_log:
+            log(line)
+    remaining = min(remaining, group_cap)
+    total_launched = 0
+    launched_ids = []
+    for ct, text in composition:
+        try:
+            count = int(text)
+        except (ValueError, TypeError):
+            continue
+        if count <= 0:
+            continue
+        o_type, spd, resil = craft_stats(ct, [w for c in contributors for w in c.weapons
+                                              if w.get("weapon_type") == "launch_bay"])
+        for i in range(count):
+            if total_launched >= remaining:
+                break
+            marker = OrdnanceMarker(
+                id=f"combined_craft_{player}_{ct}_{gs.turn_number}_{gs.next_serial()}",
+                ordnance_type=o_type, owner_player=player, launched_by=contributors[0].id,
+                x=at[0] + (i - count / 2) * 1.5, y=at[1], heading=heading, strength=1,
+                speed=spd, launched_turn=gs.turn_number, resilient_save=resil,
+                special_rules=sorted(set.intersection(
+                    *(set(c.special_rules) for c in contributors))))
+            gs.add_ordnance(marker)
+            launched_ids.append(marker.id)
+            total_launched += 1
+    if total_launched == 0:
+        return {"error": "Set at least one craft type to a non-zero count."}
+    if wave and len(launched_ids) > 1:
+        from .waves import members, wave_label
+        wid = form_craft_wave(gs, launched_ids, formation)
+        ms = members([OrdnanceMarker.from_dict(o) for o in gs.ordnance], wid)
+        log(f"  {len(ms)} squadrons form a {formation} wave: {wave_label(ms)}")
+    log(f"Combined craft launch: {names} — {total_launched} squadrons heading {heading:.0f}°")
+    for s in contributors:
+        fresh = gs.get_ship_by_id(s.id)
+        if fresh:
+            fresh.mark_launched("craft")
+            gs.update_ship(fresh)
+    return {"launched": launched_ids}

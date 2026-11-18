@@ -193,3 +193,54 @@ def test_fire_at_squadron_action_replays():
     recorder.stop_recording()
     assert "hits" in res and [e["kind"] for e in top] == ["act_fire_squadron"]
     assert state(gs2) == s1
+
+
+def test_human_launches_are_actions_that_replay():
+    """The launch dialog's torpedo salvo (split in two) and bay launch (a
+    wave) as recorded actions: replayed from the record, the same markers."""
+    import json
+    from src import recorder, actions
+    from src.dice import DiceSource, set_source, current_source
+    from src.game_state import GameState
+    from src.models import Ship
+    from src.ship_catalog import find_ship_class
+
+    def setup():
+        gs = GameState(game_name="launch", game_seed=6)
+        for p, n, sid in ((1, "Dictator Class Cruiser", "dic"), (1, "Lunar Class Cruiser", "lun")):
+            d = find_ship_class(n).to_ship_dict(n, p, ship_id=sid)
+            d.update(x=30.0 if sid == "dic" else 60.0, y=30.0, heading=0.0, leadership=8)
+            gs.add_ship(Ship.from_dict(d))
+        gs.current_phase, gs.active_player = "ordnance", 1
+        recorder.set_current_gs(gs)
+        return gs
+
+    set_source(DiceSource(6, record=True))
+    recorder.start_recording()
+    gs = setup()
+    lun, dic = gs.get_ship_by_id("lun"), gs.get_ship_by_id("dic")
+    t_idx = next(i for i, w in enumerate(lun.weapons) if w.get("weapon_type") == "torpedo")
+    torps = actions.launch_torpedo_volley(gs, None, "lun", t_idx, 0.0, 3, 20.0, "standard",
+                                          lun.weapons[t_idx]["strength"])
+    bays = [i for i, w in enumerate(dic.weapons) if w.get("weapon_type") == "launch_bay"]
+    kinds = sorted({ct for i in bays for ct in dic.weapons[i].get("craft_types", [])})
+    craft = actions.launch_bays(gs, current_source_dice(), "dic", bays, 0.0,
+                                [[kinds[0], "2"]], False, "dic", "", {"lone": "0", "cap": "0"},
+                                None, True, "close", 8)
+    state = json.dumps(gs.ordnance, sort_keys=True, default=str)
+    record, evs = current_source().record, recorder.events()
+    assert len(torps["markers"]) == 1 and len(craft["launched"]) == 2   # Str 6: no split (s.16)
+    set_source(DiceSource(0, replay=[list(e) for e in record]))
+    recorder.start_recording()
+    gs2 = setup()
+    for e in evs:
+        if e["depth"] == 0:
+            actions.replay_event(gs2, None, current_source_dice(), e)
+    set_source(DiceSource())
+    recorder.stop_recording()
+    assert json.dumps(gs2.ordnance, sort_keys=True, default=str) == state
+
+
+def current_source_dice():
+    from src.dice import DiceRoller
+    return DiceRoller(mode="auto")
