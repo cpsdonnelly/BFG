@@ -39,7 +39,11 @@ Needs more work (next first):
    commanders (nova cannon refit, 45cm guns, admirals, re-rolls) exist only in the ship Edit
    dialog (double-click), which nothing points to and which is cut off too (680 tall, needs
    ~1080); with "No fleet list" it shows every list's options; the owner's To do 25 fleets
-   aren't files yet. Details and the fix list in CLAUDE.md To do 32.
+   aren't files yet. Windows fixed: scrolling setup and Edit dialogs with their buttons
+   always shown, the builder's buttons first on its top row, "Add with options...", options
+   under headings, the fleet list's rules checked live (`src/tk_scroll.py`,
+   `tools/gui_checks/layout_check.py`). Left: the owner's fleets as files. Details in
+   CLAUDE.md To do 32.
 1. To do 17 / 18: shooting actions done (the AI's attacks, `actions.fire_weapons` and
    friends; the Fire dialog's volley as `actions.fire_volley` on `src/fire_volley.py`;
    shooting phases replay; the Combine Squadron Fire, Fire at Squadron and Fire at Ordnance

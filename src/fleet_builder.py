@@ -34,6 +34,26 @@ _SEL_BG     = "#1a1a2e"
 # Ship upgrade/name editor dialog
 # ---------------------------------------------------------------------------
 
+_OPTION_GROUPS = ["Refits and weapon options", "Torpedo types",
+                  "Fleet commander and re-rolls", "Other options"]
+_COMMANDER_WORDS = ("Admiral", "Commander", "Captain", "Lord", "re-roll", "Master",
+                    "Warmaster", "Kor'", "Boss", "Archmagos", "Magos", "Champion",
+                    "Inquisitor", "Daemonhunter", "Kaptin", "Warboss", "Big Mek",
+                    "Abaddon", "Rath", "Mesme", "Overlord", "Nemesor", "Obelisk",
+                    "Monolith", "Sepulchre", "honour guard", "Chapter tactic", "Nob")
+
+
+def _option_group(name: str) -> str:
+    """The heading an option is listed under in the Edit dialog (display only)."""
+    if name.startswith("Torpedoes") or "torpedo" in name.lower():
+        return "Torpedo types"
+    if any(w in name for w in _COMMANDER_WORDS):
+        return "Fleet commander and re-rolls"
+    if name.startswith("Refit") or "refit" in name.lower() or "Variant" in name:
+        return "Refits and weapon options"
+    return "Other options"
+
+
 class _ShipEditDialog:
     def __init__(self, root: tk.Tk, entry: ShipClassEntry,
                  current_name: str, current_upgrades: List[str],
@@ -47,18 +67,34 @@ class _ShipEditDialog:
 
         self.dialog = tk.Toplevel(root)
         self.dialog.title(f"Edit — {entry.ship_class}")
-        self.dialog.geometry("500x680")
+        from .tk_scroll import scroll_body, fit_height
+        self.dialog.geometry(f"640x{fit_height(self.dialog, 760)}")
+        self.dialog.minsize(480, 360)
         self.dialog.configure(bg=_BG)
         self.dialog.transient(root)
         self.dialog.grab_set()
+
+        # Save / Cancel and the total stay at the bottom, outside the scrolling
+        # part, so they are always on screen (To do 32)
+        btn_frame = tk.Frame(self.dialog, bg=_BG)
+        btn_frame.pack(side=tk.BOTTOM, pady=8)
+        tk.Button(btn_frame, text="Save", font=_FONT_BOLD,
+                  bg="#223322", fg=_FG, relief=tk.FLAT, padx=12,
+                  command=self._save).pack(side=tk.LEFT, padx=6)
+        tk.Button(btn_frame, text="Cancel", font=_FONT_BODY,
+                  bg="#221111", fg=_FG, relief=tk.FLAT, padx=12,
+                  command=self.dialog.destroy).pack(side=tk.LEFT, padx=6)
+        self._total_var = tk.StringVar()
+        tk.Label(self.dialog, textvariable=self._total_var, font=_FONT_BOLD,
+                 bg=_BG, fg=_ACCENT).pack(side=tk.BOTTOM, pady=(5, 2))
 
         tk.Label(self.dialog, text=entry.ship_class, font=_FONT_TITLE,
                  bg=_BG, fg=_ACCENT).pack(pady=(10, 2))
         tk.Label(self.dialog, text=f"{entry.ship_type.capitalize()}  •  {self._base_cost} pts base",
                  font=_FONT_BODY, bg=_BG, fg=_FG).pack()
 
-        # Custom name
-        name_frame = tk.Frame(self.dialog, bg=_BG)
+        body = scroll_body(self.dialog, bg=_BG)
+        name_frame = tk.Frame(body, bg=_BG)
         name_frame.pack(fill=tk.X, padx=15, pady=(10, 2))
         tk.Label(name_frame, text="Ship name:", font=_FONT_BODY,
                  bg=_BG, fg=_FG, width=12, anchor="w").pack(side=tk.LEFT)
@@ -68,10 +104,10 @@ class _ShipEditDialog:
                  insertbackground=_FG, width=28).pack(side=tk.LEFT, padx=5)
 
         # Upgrades
-        tk.Label(self.dialog, text="Available upgrades:", font=_FONT_BOLD,
+        tk.Label(body, text="Options, refits and commanders:", font=_FONT_BOLD,
                  bg=_BG, fg=_ACCENT).pack(anchor="w", padx=15, pady=(10, 2))
 
-        upgrade_frame = tk.Frame(self.dialog, bg=_BG)
+        upgrade_frame = tk.Frame(body, bg=_BG)
         upgrade_frame.pack(fill=tk.X, padx=15)
 
         self._upgrade_vars: Dict[str, tk.BooleanVar] = {}
@@ -81,7 +117,13 @@ class _ShipEditDialog:
         if not upgrades:
             tk.Label(upgrade_frame, text="(no upgrades available)",
                      font=_FONT_BODY, bg=_BG, fg="#666666").pack(anchor="w")
-        for u in upgrades:
+        last_group = None
+        for u in sorted(upgrades, key=lambda u: _OPTION_GROUPS.index(_option_group(u.name))):
+            group = _option_group(u.name)
+            if group != last_group:
+                tk.Label(upgrade_frame, text=group, font=_FONT_BOLD, bg=_BG,
+                         fg="#AAAAFF").pack(anchor="w", pady=(6, 0))
+                last_group = group
             var = tk.BooleanVar(value=(u.name in current_upgrades))
             self._upgrade_vars[u.name] = var
             urow = tk.Frame(upgrade_frame, bg=_BG)
@@ -96,14 +138,10 @@ class _ShipEditDialog:
                      bg=_BG, fg="#888888", wraplength=300, justify="left",
                      anchor="w").pack(side=tk.LEFT, padx=8)
 
-        # Total cost display
-        self._total_var = tk.StringVar()
-        tk.Label(self.dialog, textvariable=self._total_var, font=_FONT_BOLD,
-                 bg=_BG, fg=_ACCENT).pack(pady=(5, 2))
         self._refresh_total()
 
         # ── Damage / Scenario State ──────────────────────────────────────────
-        dmg_lf = tk.LabelFrame(self.dialog, text="Damage / Scenario State",
+        dmg_lf = tk.LabelFrame(body, text="Damage / Scenario State",
                                 font=_FONT_BOLD, bg=_BG, fg=_ACCENT,
                                 padx=8, pady=4)
         dmg_lf.pack(fill=tk.X, padx=15, pady=(6, 2))
@@ -178,15 +216,6 @@ class _ShipEditDialog:
                   bg="#223322", fg=_FG, relief=tk.FLAT,
                   command=self._add_crit).pack(side=tk.LEFT, padx=4)
 
-        # Buttons
-        btn_frame = tk.Frame(self.dialog, bg=_BG)
-        btn_frame.pack(pady=8)
-        tk.Button(btn_frame, text="Save", font=_FONT_BOLD,
-                  bg="#223322", fg=_FG, relief=tk.FLAT, padx=12,
-                  command=self._save).pack(side=tk.LEFT, padx=6)
-        tk.Button(btn_frame, text="Cancel", font=_FONT_BODY,
-                  bg="#221111", fg=_FG, relief=tk.FLAT, padx=12,
-                  command=self.dialog.destroy).pack(side=tk.LEFT, padx=6)
 
         root.wait_window(self.dialog)
 
@@ -537,7 +566,9 @@ class FleetBuilderWindow:
 
         self.win = tk.Toplevel(root)
         self.win.title("BFG:XR Fleet Builder")
-        self.win.geometry("1000x680")
+        from .tk_scroll import fit_height
+        self.win.geometry(f"1100x{fit_height(self.win, 720)}")
+        self.win.minsize(900, 480)
         self.win.configure(bg=_BG)
         self.win.transient(root)
 
@@ -552,6 +583,16 @@ class FleetBuilderWindow:
         # ── Top bar ──
         top = tk.Frame(self.win, bg=_BG)
         top.pack(fill=tk.X, padx=10, pady=6)
+        # Packed first so they always get their room (To do 32: packed last on
+        # the faction row, they were never drawn in a 1000-pixel window)
+        for text, cmd in [
+            ("Validate",   self._validate_and_report),
+            ("Save Fleet", self._save_fleet),
+            ("Load Fleet", self._load_fleet),
+        ]:
+            tk.Button(top, text=text, font=_FONT_BOLD if text == "Save Fleet" else _FONT_BODY,
+                      bg="#223322" if text == "Save Fleet" else _SEL_BG, fg=_FG,
+                      relief=tk.FLAT, padx=8, command=cmd).pack(side=tk.RIGHT, padx=3)
 
         tk.Label(top, text="FLEET BUILDER", font=_FONT_TITLE,
                  bg=_BG, fg=_ACCENT).pack(side=tk.LEFT)
@@ -587,14 +628,14 @@ class FleetBuilderWindow:
         self._faction_ids = factions
         self._faction_combo = ttk.Combobox(bar, textvariable=self._faction_var,
                                            values=faction_names, state="readonly",
-                                           font=_FONT_BODY, width=24)
+                                           font=_FONT_BODY, width=20)
         self._faction_combo.pack(side=tk.LEFT, padx=5)
         self._faction_combo.bind("<<ComboboxSelected>>", self._on_faction_selected)
 
         tk.Label(bar, text="Fleet list:", font=_FONT_BODY, bg=_BG, fg=_FG).pack(
             side=tk.LEFT, padx=(10, 0))
         self._list_combo = ttk.Combobox(bar, values=[], state="readonly",
-                                        font=_FONT_BODY, width=34)
+                                        font=_FONT_BODY, width=30)
         self._list_combo.pack(side=tk.LEFT, padx=5)
         self._list_combo.bind("<<ComboboxSelected>>", self._on_list_selected)
         self._list_options: List[str] = [""]
@@ -606,14 +647,6 @@ class FleetBuilderWindow:
         self._det_combo.bind("<<ComboboxSelected>>", self._on_detachment_selected)
         self._det_options: List[str] = [""]
 
-        for text, cmd in [
-            ("Load Fleet", self._load_fleet),
-            ("Save Fleet", self._save_fleet),
-            ("Validate",   self._validate_and_report),
-        ]:
-            tk.Button(bar, text=text, font=_FONT_BODY,
-                      bg=_SEL_BG, fg=_FG, relief=tk.FLAT, padx=8,
-                      command=cmd).pack(side=tk.RIGHT, padx=3)
 
         # ── Main panes ──
         pane = tk.PanedWindow(self.win, orient=tk.HORIZONTAL,
@@ -639,9 +672,14 @@ class FleetBuilderWindow:
                                       justify=tk.LEFT, anchor="w", wraplength=300)
         self._catalog_info.pack(fill=tk.X, pady=(2, 0))
 
-        tk.Button(left, text="Add to Fleet ▶", font=_FONT_BODY,
+        add_row = tk.Frame(left, bg=_BG)
+        add_row.pack(pady=4)
+        tk.Button(add_row, text="Add to Fleet ▶", font=_FONT_BODY,
                   bg="#223322", fg=_FG, relief=tk.FLAT, padx=8,
-                  command=self._add_selected).pack(pady=4)
+                  command=self._add_selected).pack(side=tk.LEFT, padx=3)
+        tk.Button(add_row, text="Add with options... ▶", font=_FONT_BODY,
+                  bg="#223322", fg=_FG, relief=tk.FLAT, padx=8,
+                  command=lambda: self._add_selected(with_options=True)).pack(side=tk.LEFT, padx=3)
         tk.Button(left, text="+ New Homebrew Ship", font=_FONT_BODY,
                   bg="#332211", fg=_FG, relief=tk.FLAT, padx=8,
                   command=self._new_homebrew_ship).pack(pady=2)
@@ -664,13 +702,24 @@ class FleetBuilderWindow:
         btn_row = tk.Frame(right, bg=_BG)
         btn_row.pack(fill=tk.X, pady=4)
         for text, cmd in [
-            ("Edit",     self._edit_selected),
+            ("Options / Edit...", self._edit_selected),
             ("Flagship", self._toggle_flagship),
             ("Remove",   self._remove_selected),
         ]:
             tk.Button(btn_row, text=text, font=_FONT_BODY,
                       bg=_SEL_BG, fg=_FG, relief=tk.FLAT, padx=8,
                       command=cmd).pack(side=tk.LEFT, padx=3)
+        tk.Label(right, text="Refits, weapon options (e.g. a nova cannon), torpedo types, "
+                 "the fleet commander and re-rolls: select a ship and press "
+                 "Options / Edit, or double-click it.",
+                 font=("Consolas", 8), bg=_BG, fg="#AAAAAA", wraplength=420,
+                 justify=tk.LEFT).pack(anchor="w")
+        # The fleet list's rules, checked as the fleet changes (To do 32)
+        self._check_var = tk.StringVar(value="")
+        self._check_label = tk.Label(right, textvariable=self._check_var,
+                                     font=("Consolas", 8), bg=_BG, fg="#FF8866",
+                                     wraplength=420, justify=tk.LEFT)
+        self._check_label.pack(anchor="w", pady=(2, 0))
 
         # Status bar
         self._status_var = tk.StringVar(value="Select a faction to begin.")
@@ -842,7 +891,7 @@ class FleetBuilderWindow:
 
     # ── Fleet manipulation ────────────────────────────────────────────────────
 
-    def _add_selected(self):
+    def _add_selected(self, with_options: bool = False):
         sel = self._catalog_list.curselection()
         if not sel:
             self._status_var.set("Select a ship class first.")
@@ -860,6 +909,10 @@ class FleetBuilderWindow:
         self._fleet.append(row)
         self._refresh_fleet_list()
         self._status_var.set(f"Added {entry.ship_class}.")
+        if with_options:
+            self._fleet_list.selection_clear(0, tk.END)
+            self._fleet_list.selection_set(len(self._fleet) - 1)
+            self._edit_selected()
 
     def _edit_selected(self):
         sel = self._fleet_list.curselection()
@@ -945,6 +998,27 @@ class FleetBuilderWindow:
         for widget in self.win.winfo_children():
             pass  # pts label is in status_bar — update directly
         self.win.after_idle(lambda: self._pts_label_color(color, total, limit))
+        self._live_check()
+
+    def _live_check(self):
+        """Show the fleet list's problems as the fleet changes (To do 32)."""
+        if not hasattr(self, "_check_var"):
+            return
+        if not self._fleet:
+            self._check_var.set("")
+            return
+        try:
+            ok, errors = self._validate_fleet()
+        except Exception as exc:          # noqa: BLE001 (a check never stops building)
+            ok, errors = False, [f"(fleet check failed: {exc})"]
+        if ok:
+            self._check_label.config(fg="#88CC88")
+            what = "the fleet list's rules" if self._list_key else "the points limit"
+            self._check_var.set(f"Fleet valid ({what}).")
+        else:
+            self._check_label.config(fg="#FF8866")
+            more = f"\n... and {len(errors) - 6} more (Validate)" if len(errors) > 6 else ""
+            self._check_var.set("Fleet problems:\n- " + "\n- ".join(errors[:6]) + more)
 
     def _pts_label_color(self, color, total, limit):
         self._pts_var.set(f"Total: {total} / {limit} pts")

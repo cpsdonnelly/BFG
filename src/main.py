@@ -240,7 +240,9 @@ def _show_setup_dialog(root) -> Optional[dict]:
 
     dialog = tk.Toplevel(root)
     dialog.title("BFG:XR - Game Setup")
-    dialog.geometry("540x680")
+    from .tk_scroll import scroll_body, fit_height
+    dialog.geometry(f"560x{fit_height(dialog, 760)}")
+    dialog.minsize(480, 360)
     dialog.protocol("WM_DELETE_WINDOW", lambda: (result.__setitem__(0, None), dialog.destroy()))
 
     tk.Label(dialog, text="BATTLEFLEET GOTHIC: XR",
@@ -248,8 +250,10 @@ def _show_setup_dialog(root) -> Optional[dict]:
     tk.Label(dialog, text="Game Setup",
              font=("Consolas", 10)).pack()
 
+    body = scroll_body(dialog)
+
     # Board size
-    size_frame = tk.Frame(dialog)
+    size_frame = tk.Frame(body)
     size_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(size_frame, text="Board size (cm):", font=("Consolas", 9)).pack(side=tk.LEFT)
     width_var = tk.StringVar(value="120")
@@ -259,7 +263,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
     tk.Entry(size_frame, textvariable=height_var, width=5, font=("Consolas", 10)).pack(side=tk.LEFT, padx=3)
 
     # Sunward edge
-    sun_frame = tk.Frame(dialog)
+    sun_frame = tk.Frame(body)
     sun_frame.pack(pady=3, padx=20, fill=tk.X)
     tk.Label(sun_frame, text="Sunward edge:", font=("Consolas", 9)).pack(side=tk.LEFT)
     sunward_var = tk.StringVar(value="north")
@@ -268,7 +272,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        value=edge, font=("Consolas", 8)).pack(side=tk.LEFT, padx=3)
 
     # Dice mode
-    dice_frame = tk.Frame(dialog)
+    dice_frame = tk.Frame(body)
     dice_frame.pack(pady=3, padx=20, fill=tk.X)
     tk.Label(dice_frame, text="Dice mode:", font=("Consolas", 9)).pack(side=tk.LEFT)
     dice_var = tk.StringVar(value="mixed")
@@ -277,7 +281,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        value=mode[1], font=("Consolas", 8)).pack(side=tk.LEFT, padx=3)
 
     # Terrain
-    terrain_frame = tk.Frame(dialog)
+    terrain_frame = tk.Frame(body)
     terrain_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(terrain_frame, text="Terrain:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
     terrain_var = tk.StringVar(value="demo")
@@ -288,7 +292,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        value=val, font=("Consolas", 8)).pack(anchor=tk.W)
 
     # Battlezone (for random)
-    bz_frame = tk.Frame(dialog)
+    bz_frame = tk.Frame(body)
     bz_frame.pack(pady=3, padx=20, fill=tk.X)
     tk.Label(bz_frame, text="Battlezone (for random):", font=("Consolas", 9)).pack(side=tk.LEFT)
     bz_var = tk.StringVar(value="4")
@@ -298,7 +302,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        value=str(i), font=("Consolas", 7)).pack(side=tk.LEFT)
 
     # Fleet selection
-    fleets_frame = tk.Frame(dialog)
+    fleets_frame = tk.Frame(body)
     fleets_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(fleets_frame, text="Fleet Lists:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
 
@@ -354,7 +358,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
              font=("Consolas", 7), fg="#888888", wraplength=480, justify=tk.LEFT).pack(anchor=tk.W)
 
     # Optional rules
-    rules_frame = tk.Frame(dialog)
+    rules_frame = tk.Frame(body)
     rules_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(rules_frame, text="Optional Rules:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
 
@@ -378,7 +382,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        font=("Consolas", 8)).pack(anchor=tk.W)
 
     # Movement enforcement setting
-    movement_frame = tk.Frame(dialog)
+    movement_frame = tk.Frame(body)
     movement_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(movement_frame, text="Movement Enforcement:",
              font=("Consolas", 9, "bold")).pack(anchor=tk.W)
@@ -392,7 +396,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
              font=("Consolas", 7), fg="#888888").pack(anchor=tk.W)
 
     # Turn limit and FTL charge
-    turn_frame = tk.Frame(dialog)
+    turn_frame = tk.Frame(body)
     turn_frame.pack(pady=4, padx=20, fill=tk.X)
     tk.Label(turn_frame, text="Game Options:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
 
@@ -415,7 +419,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
              font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
 
     # Scenario mode
-    scen_frame = tk.LabelFrame(dialog, text="Scenario Mode", font=("Consolas", 9, "bold"),
+    scen_frame = tk.LabelFrame(body, text="Scenario Mode", font=("Consolas", 9, "bold"),
                                 padx=8, pady=4)
     scen_frame.pack(fill=tk.X, padx=20, pady=4)
     scenario_var = tk.StringVar(value="standard")
@@ -489,7 +493,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                    value="rating", font=("Consolas", 7)).pack(side=tk.LEFT)
 
     # AI opponent
-    ai_frame = tk.LabelFrame(dialog, text="AI Opponent", font=("Consolas", 9, "bold"),
+    ai_frame = tk.LabelFrame(body, text="AI Opponent", font=("Consolas", 9, "bold"),
                               padx=8, pady=4)
     ai_frame.pack(fill=tk.X, padx=20, pady=4)
     ai_enabled_var = tk.BooleanVar(value=False)
@@ -581,7 +585,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
 
     btn_frame = tk.Frame(dialog)
     btn_frame.pack(pady=15)
-    tk.Button(btn_frame, text="Start Game (Demo Fleets)",
+    tk.Button(btn_frame, text="Start Game",
               command=start_demo,
               bg="#336633", fg="white",
               font=("Consolas", 10, "bold")).pack(pady=3, fill=tk.X)
@@ -589,7 +593,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
               command=start_editor,
               bg="#335533", fg="white",
               font=("Consolas", 9)).pack(pady=3, fill=tk.X)
-    tk.Button(btn_frame, text="Start Blank (Demo Fleets, No Terrain)",
+    tk.Button(btn_frame, text="Start Game, No Terrain",
               command=start_blank,
               font=("Consolas", 9)).pack(pady=3, fill=tk.X)
     tk.Button(btn_frame, text="Cancel",

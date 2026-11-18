@@ -540,9 +540,9 @@ Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and eve
 shooting dialog as recorded actions; `src/fire_volley.py`), the ordnance phase (AI
 and every human dialog) and the end phase's decisions as recorded actions, so every phase
 replays from the record. Owner report (To do 32): the setup wizard's start buttons, the
-fleet builder's Save / Validate and the ship Edit dialog's lower options are cut off the
-screen, so a game can't be started or a fleet built from the window; not yet fixed. Next: To
-do 32 unless the owner says otherwise, then alternate activation's per-unit phases (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+fleet builder's Save / Validate and the ship Edit dialog's lower options were cut off the
+screen; fixed (scrolling dialogs, buttons always shown, options under headings, live fleet
+check). Next: the owner's fleets as files (To do 25), then alternate activation's per-unit phases (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
 owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1585 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
@@ -2843,11 +2843,22 @@ Done: To do 2, 3, 6; most of 7.
      Veteran Captain and Lord Admiral Rath).
    - The owner's 1000pt fleets (To do 25) aren't built yet: `data/fleets/` holds only the
      two demo fleets.
-   To fix: scrollable / resizable setup and Edit dialogs with the start / save buttons always
-   visible, a builder top bar that fits (two rows, or the buttons first), the fleet-list
-   check shown live as ships are added, the options reachable from the catalog / fleet list
-   and visible as "variants", the start button's label, then the To do 25 fleets as files.
-   Minimal Tk versions only (owner: the full window is built once, in the browser).
+   Fixed (minimal Tk, owner: the full window is built once, in the browser):
+   `src/tk_scroll.py` (`scroll_body`: a scrolling area with the dialog's buttons packed
+   outside it; `fit_height`: no taller than the screen); the setup wizard scrolls with Start
+   Game / Map Editor / Start Game, No Terrain / Cancel always below it (the start button now
+   just "Start Game"); the builder opens 1100 wide (fitted to the screen's height) with Load /
+   Save / Validate packed first on the top row; the Edit dialog scrolls with the total and
+   Save / Cancel pinned, its options under headings (Refits and weapon options, Torpedo types,
+   Fleet commander and re-rolls, Other options; `fleet_builder._option_group`, display only);
+   "Add with options..." in the catalog adds a ship and opens its options, the fleet list's
+   button reads "Options / Edit..." with a hint line saying where refits, commanders and
+   re-rolls are; the fleet list's rules are checked live as the fleet changes
+   (`FleetBuilderWindow._live_check`, the Validate check shown under the fleet).
+   `tools/gui_checks/layout_check.py` (run with `xvfb-run -a -s "-screen 0 1366x768x24"`)
+   checks every one of those buttons is drawn inside its window; the old layout fails it.
+   Still to do: the owner's To do 25 fleets as files in `data/fleets/`; with "No fleet list"
+   the Edit dialog still offers every list's options (s.4: no restrictions, kept).
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 
