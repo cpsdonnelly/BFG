@@ -95,3 +95,43 @@ def test_movement_and_shooting_phases_replay_from_the_recorded_actions(tmp_path)
     HeadlessGame(tc, replay_events=evs, replay_phases=("movement", "shooting")).play(timeout=120)
     assert state(gs) == s1
     recorder.stop_recording()
+
+
+
+CARRIERS = ((1, ["Dictator Class Cruiser", "Lunar Class Cruiser"], 40.0),
+            (2, ["Devastation Class Cruiser", "Murder Class Cruiser"], 80.0))
+
+
+def _carrier_gs(save):
+    gs = GameState(game_name="headless", game_seed=21)
+    gs.table_width, gs.table_height, gs.dice_mode, gs.turn_limit = 120.0, 90.0, "auto", 6
+    for p, names, x in CARRIERS:
+        for i, n in enumerate(names):
+            d = find_ship_class(n).to_ship_dict(n, p, ship_id=f"p{p}_{i}")
+            d.update(x=x, y=30.0 + 25 * i, heading=0.0 if p == 1 else 180.0, leadership=8)
+            gs.add_ship(Ship.from_dict(d))
+    return gs, TurnController(gs, DiceRoller(mode="auto"), save_dir=save)
+
+
+def test_ordnance_phases_replay_from_the_recorded_actions(tmp_path):
+    """Carriers and torpedo ships: movement, shooting and ordnance played from
+    the record (launches, waves, craft targets, steering as actions), the end
+    phase by the AI: the same game."""
+    def state(gs):
+        return json.dumps({"ships": gs.ships, "ordnance": gs.ordnance,
+                           "bm": gs.blast_markers}, sort_keys=True, default=str)
+    set_source(DiceSource(21, record=True))
+    recorder.start_recording()
+    gs, tc = _carrier_gs(str(tmp_path / "a"))
+    HeadlessGame(tc).play(timeout=180)
+    s1, record, evs = state(gs), current_source().record, recorder.events()
+    kinds = {e["kind"] for e in evs if e["depth"] == 0 and e["seat"] and e["phase"] == "ordnance"}
+    assert "act_launch_craft" in kinds
+    set_source(DiceSource(0, replay=[list(e) for e in record]))
+    recorder.start_recording()
+    gs2, tc2 = _carrier_gs(str(tmp_path / "b"))
+    HeadlessGame(tc2, replay_events=evs,
+                 replay_phases=("movement", "shooting", "ordnance")).play(timeout=180)
+    set_source(DiceSource())
+    recorder.stop_recording()
+    assert state(gs2) == s1

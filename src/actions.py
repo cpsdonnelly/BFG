@@ -212,6 +212,27 @@ def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
     elif k == "act_fire_squadron":
         fire_at_squadron_ships(panel, ev["ship"], ev["members"], ev["squadron"], ev["orient"],
                                ev["weapon"])
+    elif k == "act_steer":
+        steer_salvo(gs, ev["marker"], ev["heading"])
+    elif k == "act_fire_bombers":
+        fire_bomber_salvo(gs, ev["markers"], ev["heading"], ev.get("target"))
+    elif k == "act_launch_torps":
+        launch_salvo(gs, dice, ev["ship"], ev["weapon"], ev["heading"], ev.get("torp", ""),
+                     ev.get("target"))
+    elif k == "act_lay_mines":
+        lay_ship_mines(gs, ev["ship"], ev["weapon"])
+    elif k == "act_recall":
+        recall(gs, ev["owner"], ev["markers"])
+    elif k == "act_roll_bays":
+        roll_bays(gs, dice, ev["ship"], ev["bays"])
+    elif k == "act_launch_craft":
+        launch_craft(gs, ev["ship"], ev["bay"], ev["craft"], ev["count"], ev.get("cap"))
+    elif k == "act_form_wave":
+        form_craft_wave(gs, ev["markers"], ev.get("formation", "close"))
+    elif k == "act_craft_target":
+        set_craft_target(gs, ev["markers"], ev["target"])
+    elif k == "act_target_priority":
+        target_priority_test(gs, dice, tc, ev["ship"], lambda _s: ev.get("rerolled"))
     elif k == "act_volley_fire":
         if panel is None:
             raise ReplayDivergence(f"event {ev['n']}: a Fire dialog volley needs the panel")
@@ -730,3 +751,157 @@ def fire_at_squadron_ships(panel, attacker_id: str, member_ids, squadron: str, o
         gs.update_ship(fresh_att)
     ctx.log(f"{attacker.name} fires at squadron {squadron}: {total_hits} total hits")
     return {"hits": total_hits}
+
+
+# --- Ordnance phase: each launch / order one action ---------------------------------
+
+def _weapon_index(ship, weapon) -> int:
+    """A weapon's index on its ship (the very dict, else an equal one)."""
+    for i, w in enumerate(ship.weapons):
+        if w is weapon:
+            return i
+    return ship.weapons.index(weapon)
+
+
+def _marker_dict(gs, marker_id):
+    return next((o for o in gs.ordnance if o["id"] == marker_id), None)
+
+
+@recorder.logged("act_steer", lambda r, A: (A["gs"], dict(
+    marker=A["marker_id"], heading=A["heading"])))
+def steer_salvo(gs, marker_id: str, heading: float) -> None:
+    """A salvo that can turn takes its new heading and makes its move this
+    ordnance phase (guided torpedoes, Tau missiles)."""
+    import math
+    o = _marker_dict(gs, marker_id)
+    if o is None:
+        return
+    o["heading"] = heading % 360
+    rad = math.radians(o["heading"])
+    o["x"] += (o.get("speed") or 0) * math.cos(rad)
+    o["y"] += (o.get("speed") or 0) * math.sin(rad)
+    o["moved_this_phase"] = True
+
+
+@recorder.logged("act_fire_bombers", lambda r, A: (A["gs"], dict(
+    markers=list(A["marker_ids"]), heading=A["heading"], target=A["target_id"])))
+def fire_bomber_salvo(gs, marker_ids, heading: float, target_id: str = None):
+    """Torpedo bombers (a wave or a lone squadron) fire their salvo (s.21),
+    aimed at `target_id` (the salvo's in-flight aim)."""
+    from .ordnance import fire_torpedo_bombers
+    salvo = fire_torpedo_bombers(gs, list(marker_ids), heading)
+    if salvo is not None and target_id:
+        o = _marker_dict(gs, salvo.id)
+        if o is not None:
+            o["torp_target_id"] = target_id
+    return salvo
+
+
+@recorder.logged("act_launch_torps", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], weapon=A["w_idx"], heading=A["heading"], torp=A["kind"],
+    target=A["target_id"])))
+def launch_salvo(gs, dice, ship_id: str, w_idx: int, heading: float, kind: str = "",
+                 target_id: str = None):
+    """A torpedo salvo launched on `heading` (launch_torpedoes: random strength
+    rolled after it is aimed), `target_id` its planned target in flight."""
+    from .ordnance import launch_torpedoes
+    ship = gs.get_ship_by_id(ship_id)
+    m = launch_torpedoes(ship, ship.weapons[w_idx], gs, heading=heading, dice=dice, kind=kind)
+    if m is not None and target_id:
+        o = _marker_dict(gs, m.id)
+        if o is not None:
+            o["torp_target_id"] = target_id
+    return m
+
+
+@recorder.logged("act_lay_mines", lambda r, A: (A["gs"], dict(ship=A["ship_id"],
+                                                               weapon=A["w_idx"])))
+def lay_ship_mines(gs, ship_id: str, w_idx: int):
+    """A ship's mine launchers lay their mines (s.17)."""
+    from .ordnance import lay_mines
+    ship = gs.get_ship_by_id(ship_id)
+    return lay_mines(ship, ship.weapons[w_idx], gs)
+
+
+@recorder.logged("act_recall", lambda r, A: (A["gs"], dict(owner=A["player"],
+                                                           markers=list(A["marker_ids"]))))
+def recall(gs, player: int, marker_ids) -> int:
+    """Recall attack craft beyond the fleet's bays (s.15)."""
+    from .ordnance import recall_craft
+    return recall_craft(gs, player, list(marker_ids))
+
+
+@recorder.logged("act_roll_bays", lambda r, A: (A["gs"], dict(ship=A["ship_id"],
+                                                              bays=list(A["bay_idxs"]))))
+def roll_bays(gs, dice, ship_id: str, bay_idxs, log=None, tag: str = "") -> int:
+    """How many squadrons the ship's bays launch now (random bay strengths
+    rolled just before launching, bay_launch_capacity)."""
+    from .ordnance import bay_launch_capacity
+    ship = gs.get_ship_by_id(ship_id)
+    count, roll_log = bay_launch_capacity(ship, [ship.weapons[i] for i in bay_idxs], dice)
+    for line in roll_log:
+        (log or gs.add_log)(f"{tag}{line}")
+    return count
+
+
+@recorder.logged("act_launch_craft", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], bay=A["bay_idx"], craft=A["craft_type"], count=A["count"],
+    cap=A["cap_ship_id"])))
+def launch_craft(gs, ship_id: str, bay_idx: int, craft_type: str, count: int,
+                 cap_ship_id: str = None):
+    """Attack craft launched from a bay (launch_attack_craft); with
+    `cap_ship_id` they fly CAP over that ship, placed on it. Returns the
+    markers."""
+    from .ordnance import launch_attack_craft
+    ship = gs.get_ship_by_id(ship_id)
+    launched = launch_attack_craft(ship, ship.weapons[bay_idx], craft_type, count, gs)
+    if cap_ship_id:
+        guard = gs.get_ship_by_id(cap_ship_id)
+        ids = {m.id for m in launched}
+        for o in gs.ordnance:
+            if o["id"] in ids and guard:
+                o["cap_ship_id"] = cap_ship_id
+                o["x"], o["y"] = guard.x, guard.y
+    return launched
+
+
+@recorder.logged("act_form_wave", lambda r, A: (A["gs"], dict(
+    markers=list(A["marker_ids"]), formation=A["formation"])))
+def form_craft_wave(gs, marker_ids, formation: str = "close") -> str:
+    """Attack craft launched together formed into one wave (s.25)."""
+    from .waves import form_wave
+    return form_wave(gs, list(marker_ids), formation)
+
+
+@recorder.logged("act_craft_target", lambda r, A: (A["gs"], dict(
+    markers=list(A["marker_ids"]), target=A["target_id"])))
+def set_craft_target(gs, marker_ids, target_id) -> None:
+    """Attack craft orders (s.18): the squadrons fly at `target_id`."""
+    ids = set(marker_ids)
+    for o in gs.ordnance:
+        if o["id"] in ids:
+            o["craft_target_id"] = target_id
+
+
+@recorder.logged("act_target_priority", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], passed=r["passed"], rerolled=r["rerolled"])))
+def target_priority_test(gs, dice, tc, ship_id: str, want_reroll=None, tag: str = "") -> dict:
+    """The ship's one target priority test this turn (s.7): a Leadership test,
+    a commander re-roll after a failure when `want_reroll(ship)` (the player's
+    choice), the result kept for the rest of the turn. Returns the check with
+    "rerolled"."""
+    from .movement import do_command_check
+    att = gs.get_ship_by_id(ship_id)
+    check = do_command_check(att, "target_priority", dice, gs=gs)
+    rerolled = False
+    if not check["passed"] and want_reroll is not None and want_reroll(att) \
+            and tc.use_fleet_reroll(att.player, att):
+        check = do_command_check(att, "target_priority", dice, gs=gs)
+        rerolled = True
+    att = gs.get_ship_by_id(ship_id) or att
+    att.target_priority_turn = gs.turn_number
+    att.target_priority_passed = check["passed"]
+    gs.update_ship(att)
+    gs.add_log(f"{tag}{att.name}: target priority {'passed' if check['passed'] else 'FAILED'} "
+               f"(rolled {check['roll']} vs Ld {check['needed']})")
+    return dict(check, rerolled=rerolled)

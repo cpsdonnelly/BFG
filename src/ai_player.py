@@ -16,7 +16,6 @@ from .game_state import GameState
 from .turn_controller import TurnController
 from .dice import DiceRoller
 from .geometry import current_shields
-from .movement import do_command_check
 from .movement import (
     MoveCommand, validate_movement,
     get_effective_speed, get_max_turns,
@@ -27,9 +26,7 @@ from .combat import (
 )
 from .chapter_tactics import shadow_engines_hidden
 from .ordnance import ship_torpedo_types, SHORT_BURN_SPEED, unused_once_torpedoes
-from .ordnance import (launch_torpedoes, launch_attack_craft,
-                       bay_launch_capacity, fleet_craft_slots,
-                       fleet_craft_excess, recall_craft, ai_craft_to_recall,
+from .ordnance import (fleet_craft_slots, fleet_craft_excess, ai_craft_to_recall,
                        TORPEDO_SPEED_DEFAULT)
 
 
@@ -3029,20 +3026,13 @@ class AIPlayer:
             return wanted
         att = gs.get_ship_by_id(ship.id) or ship
         if att.target_priority_turn != gs.turn_number:
-            check = do_command_check(att, "target_priority", self.dice, gs=gs)
-            if not check["passed"]:
-                from .ai_rerolls import should_reroll
-                left = self.tc.get_fleet_rerolls(att.player, att)
-                if left and should_reroll(att, "target priority", gs, left) \
-                        and self.tc.use_fleet_reroll(att.player, att):
-                    check = do_command_check(att, "target_priority", self.dice, gs=gs)
+            from .ai_rerolls import should_reroll
+
+            def _want(a):
+                left = self.tc.get_fleet_rerolls(a.player, a)
+                return bool(left and should_reroll(a, "target priority", gs, left))
+            actions.target_priority_test(gs, self.dice, self.tc, att.id, _want, tag="[AI] ")
             att = gs.get_ship_by_id(ship.id) or att
-            att.target_priority_turn = gs.turn_number
-            att.target_priority_passed = check["passed"]
-            gs.update_ship(att)
-            gs.add_log(f"[AI] {att.name}: target priority "
-                       f"{'passed' if check['passed'] else 'FAILED'} "
-                       f"(rolled {check['roll']} vs Ld {check['needed']})")
         return wanted if att.target_priority_passed else next(v for v in valid if v.id == cv.id)
 
     def _log_damage(self, target: Ship, dmg: Dict):
@@ -3103,7 +3093,7 @@ class AIPlayer:
         within this phase's salvo move where it does most expected VP, aimed
         straight at it (ships don't move in the ordnance phase); it holds when
         none is in reach (the salvo is removed at the end of the phase)."""
-        from .ordnance import torpedo_bomber_groups, fire_torpedo_bombers
+        from .ordnance import torpedo_bomber_groups
         from .ai_hazards import torpedo_bomber_target
         for group in torpedo_bomber_groups(self.gs, self.player):
             lead = group[0]
@@ -3112,11 +3102,8 @@ class AIPlayer:
                 continue
             e = best[1]
             heading = math.degrees(math.atan2(e.y - lead.y, e.x - lead.x))
-            salvo = fire_torpedo_bombers(self.gs, [m.id for m in group], heading)
+            salvo = actions.fire_bomber_salvo(self.gs, [m.id for m in group], heading, e.id)
             if salvo is not None:
-                for o in self.gs.ordnance:
-                    if o["id"] == salvo.id:
-                        o["torp_target_id"] = e.id
                 self.gs.add_log(f"[AI] torpedo bombers fire at {e.name}")
 
     def _steer_guided_missile(self, marker: OrdnanceMarker,
@@ -3146,16 +3133,7 @@ class AIPlayer:
             diff = signed_angle_diff(desired, marker.heading)
             max_t = getattr(marker, "turn_angle", 45)
             marker.heading = (marker.heading + max(-max_t, min(max_t, diff))) % 360
-
-        rad = math.radians(marker.heading)
-        marker.x += marker.speed * math.cos(rad)
-        marker.y += marker.speed * math.sin(rad)
-        marker.moved_this_phase = True
-
-        for i, o in enumerate(gs.ordnance):
-            if o["id"] == marker.id:
-                gs.ordnance[i] = marker.to_dict()
-                break
+        actions.steer_salvo(gs, marker.id, marker.heading)
 
     def _launch_ship_ordnance(self, ship: Ship):
         gs = self.gs
@@ -3164,7 +3142,7 @@ class AIPlayer:
             return
 
         bays_held = False
-        for weapon in ship.weapons:
+        for w_i, weapon in enumerate(ship.weapons):
             wtype = weapon.get("weapon_type", "")
 
             if wtype == "torpedo" and ship.ordnance_loaded_torps:
@@ -3192,12 +3170,9 @@ class AIPlayer:
                         kind = "short_burn"
                         aim_weapon = {**weapon, "torpedo_speed": SHORT_BURN_SPEED}
                     aim = self._torpedo_aim_heading(ship, aim_weapon, target)
-                    m = launch_torpedoes(ship, weapon, gs, heading=aim, dice=self.dice,
-                                         kind=kind)
+                    # its in-flight turns follow the plan (torp_target_id)
+                    m = actions.launch_salvo(gs, self.dice, ship.id, w_i, aim, kind, target.id)
                     if m is not None:
-                        for o in gs.ordnance:     # its in-flight turns follow the plan
-                            if o["id"] == m.id:
-                                o["torp_target_id"] = target.id
                         tsp = aim_weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or 30
                         tph = 0 if ship.distance_to(target) <= tsp + target.base_radius else 1
                         self.__dict__.setdefault("_ord_arrivals", {}).setdefault(target.id, {}).setdefault(
@@ -3209,15 +3184,15 @@ class AIPlayer:
                 # ordnance phase and stay active until destroyed: lay them when
                 # an enemy is within three turns' reach (20cm a turn), where
                 # they can still find it
-                from .ordnance import lay_mines
                 if any(ship.distance_to(e) <= 60.0 + e.base_radius for e in enemies):
-                    lay_mines(ship, weapon, gs)
+                    actions.lay_ship_mines(gs, ship.id, w_i)
                     ship = gs.get_ship_by_id(ship.id)
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft and not bays_held:
                 # All of the ship's bays launch together: launching any craft
                 # means reloading before launching again (s.15)
                 bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+                bay_idx = {id(w): i for i, w in enumerate(ship.weapons)}
                 from .ordnance import craft_type_allowed
                 # no assault boats while hit-and-run raids are off (owner)
                 craft_types = [ct for w in bays for ct in w.get("craft_types", [])
@@ -3241,17 +3216,16 @@ class AIPlayer:
                 # Craft in play beyond the fleet's bays must go first (s.15)
                 excess = fleet_craft_excess(gs, self.player)
                 if excess:
-                    recall_craft(gs, self.player, ai_craft_to_recall(gs, self.player, excess))
-                count, roll_log = bay_launch_capacity(ship, bays, self.dice)
-                for line in roll_log:
-                    gs.add_log(f"[AI] {line}")
+                    actions.recall(gs, self.player, ai_craft_to_recall(gs, self.player, excess))
+                count = actions.roll_bays(gs, self.dice, ship.id, [bay_idx[id(w)] for w in bays],
+                                          tag="[AI] ")
                 count = min(count, fleet_craft_slots(gs, self.player))
                 alloc = (self._bay_allocation(ship, craft_types, count, enemies)
                          if count > 0 and self.difficulty != "easy" else None)
                 plan = None
                 if alloc is not None:
                     plan = alloc["strike"]
-                    self._launch_defence(ship, bays, alloc)
+                    self._launch_defence(ship, bays, alloc, bay_idx)
                     count = sum(n for _ct, n in plan) if plan else 0
                 else:
                     plan = self._wave_split(ship, craft_types, count, enemies,
@@ -3265,30 +3239,24 @@ class AIPlayer:
                     for ct, n in plan:
                         if n > 0:
                             bay = next(w for w in bays if ct in w.get("craft_types", []))
-                            launched += launch_attack_craft(gs.get_ship_by_id(ship.id),
-                                                            bay, ct, n, gs)
+                            launched += actions.launch_craft(gs, ship.id, bay_idx[id(bay)], ct, n)
                     if len(launched) > 1:
-                        from .waves import form_wave
                         for group in self._wave_groups(launched, plan):
-                            form_wave(gs, [m.id for m in group], "close")
+                            actions.form_craft_wave(gs, [m.id for m in group], "close")
                     # Fly at the chosen target; later launches this phase see its hits
                     tgt = getattr(self, "_strike_target", None)
                     if tgt:
-                        ids = {m.id for m in launched}
-                        for o in gs.ordnance:
-                            if o["id"] in ids:
-                                o["craft_target_id"] = tgt[0]
+                        actions.set_craft_target(gs, [m.id for m in launched], tgt[0])
                         oc = getattr(self, "_ord_committed", {})
                         oc[tgt[0]] = oc.get(tgt[0], 0.0) + tgt[1]
                         self._ord_committed = oc
                         self._strike_target = None
                 elif count > 0:
-                    launched = launch_attack_craft(ship, next(w for w in bays if preferred in
-                                                              w.get("craft_types", [])),
-                                                   preferred, count, gs)
+                    bay = next(w for w in bays if preferred in w.get("craft_types", []))
+                    launched = actions.launch_craft(gs, ship.id, bay_idx[id(bay)], preferred,
+                                                    count)
                     if len(launched) > 1:            # the AI flies them as one wave (s.25)
-                        from .waves import form_wave
-                        form_wave(gs, [m.id for m in launched], "close")
+                        actions.form_craft_wave(gs, [m.id for m in launched], "close")
                 ship = gs.get_ship_by_id(ship.id)
 
     def _wave_groups(self, launched, plan):
@@ -4081,21 +4049,16 @@ class AIPlayer:
                 plan["assigned"].setdefault(ship.id, []).append(t)
         return plan
 
-    def _launch_defence(self, ship: Ship, bays, alloc):
+    def _launch_defence(self, ship: Ship, bays, alloc, bay_idx):
         """Launch _bay_allocation's CAP and free fighters (not in the wave)."""
         gs = self.gs
         fk = alloc["fighter"]
         bay = next(w for w in bays if fk in w.get("craft_types", []))
         for sid, n in alloc["cap"]:
-            guard = gs.get_ship_by_id(sid)
-            launched = launch_attack_craft(gs.get_ship_by_id(ship.id), bay, fk, n, gs)
-            ids = {m.id for m in launched}
-            for o in gs.ordnance:
-                if o["id"] in ids and guard:
-                    o["cap_ship_id"] = sid
-                    o["x"], o["y"] = guard.x, guard.y
+            actions.launch_craft(gs, ship.id, bay_idx[id(bay)], fk, n,
+                                 cap_ship_id=sid if gs.get_ship_by_id(sid) else None)
         if alloc["free"]:
-            launch_attack_craft(gs.get_ship_by_id(ship.id), bay, fk, alloc["free"], gs)
+            actions.launch_craft(gs, ship.id, bay_idx[id(bay)], fk, alloc["free"])
 
     # ── Auto repair (for end phase) ──────────────────────────────────────────
 
