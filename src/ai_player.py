@@ -3094,14 +3094,13 @@ class AIPlayer:
         straight at it (ships don't move in the ordnance phase); it holds when
         none is in reach (the salvo is removed at the end of the phase)."""
         from .ordnance import torpedo_bomber_groups
-        from .ai_hazards import torpedo_bomber_target
+        from .ai_hazards import torpedo_bomber_target, torpedo_bomber_heading
         for group in torpedo_bomber_groups(self.gs, self.player):
-            lead = group[0]
             best = torpedo_bomber_target(self.gs, group, self.player)
             if best is None or best[0] <= 0:
                 continue
             e = best[1]
-            heading = math.degrees(math.atan2(e.y - lead.y, e.x - lead.x))
+            heading = torpedo_bomber_heading(self.gs, group, self.player, e)
             salvo = actions.fire_bomber_salvo(self.gs, [m.id for m in group], heading, e.id)
             if salvo is not None:
                 self.gs.add_log(f"[AI] torpedo bombers fire at {e.name}")

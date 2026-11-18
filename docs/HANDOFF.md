@@ -67,9 +67,12 @@ system comparison now, big runs after the port; team play rulings in To do 22; t
 with per-player visibility in the engine (CLAUDE.md "To do").
 Owner questions: the last round is answered and built (CLAUDE.md "Owner rulings: answers to
 the open questions, round 2": halving, low orbit facing, the forges' fields, sign-off 2 / 10 /
-16 / 54 / 55 / 63-66); still open: team play (To do 22), steps 5-8 of the order. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
+16 / 54 / 55 / 63-66), and so is the torpedo bomber salvo placed on a ship (CLAUDE.md "Owner
+ruling: torpedo bomber salvos placed on a ship": it attacks at once, turrets first, then
+carries on reduced; friends too; no launch arc; the AI parks its waves on their target and
+aims the carry-on, `ai_hazards.torpedo_bomber_heading`). No questions open. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Checking a change: `pytest -q` (1575 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
+Checking a change: `pytest -q` (1578 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
 `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
 `tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
 baseline changes whenever a rules fix changes play; regenerate it then).

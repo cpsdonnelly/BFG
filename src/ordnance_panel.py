@@ -105,7 +105,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
             if not pick:
                 continue
             t = gs.get_ship_by_id(pick)
-            heading = math.degrees(math.atan2(t.y - lead.y, t.x - lead.x))
+            from .ai_hazards import torpedo_bomber_heading
+            heading = torpedo_bomber_heading(gs, g, p, t)
             from .actions import fire_bomber_salvo
             fire_bomber_salvo(gs, [m.id for m in g], heading)
             self.ctx.log(f"Torpedo bombers fire at {t.name}")

@@ -2093,26 +2093,95 @@ def best_bracket(table) -> Tuple[float, float]:
     return max(table, key=lambda r: r[1] - r[2])[0]
 
 
-def torpedo_bomber_target(gs, group, player: int):
-    """(VP, ship) for a torpedo bomber wave's salvo this phase (s.21: 2 a
-    squadron; Tiger Sharks a Tau missile salvo, 40cm, 5/6 of it through): the
-    enemy ship within the salvo's move where it does most expected VP (turret
-    kills 4+ each, the facing it hits; ships don't move in the ordnance phase),
-    or None when none is in reach. Shared by the AI and the "Auto (best)"
-    choice."""
+def _salvo_attack_hits(strength: float, ship: Ship, x: float, y: float) -> Tuple[float, float]:
+    """(expected hits, strength left) of a salvo of `strength` attacking `ship`
+    from (x, y): turrets kill 4+ each first (half a point a turret), then each
+    point hits on the facing it touches; hits and kills are spent, the misses
+    carry on (s.17)."""
+    through = max(0.0, strength - 0.5 * ship.effective_turrets)
+    hits = through * p_hit(ship.armor_vs(x, y))
+    return hits, max(0.0, through - hits)
+
+
+def _parked_on(lead, ship: Ship) -> bool:
+    """A torpedo bomber wave whose lead sits on a ship's base: a salvo placed
+    there is in contact and attacks it at once (owner ruling, s.21)."""
+    return math.hypot(ship.x - lead.x, ship.y - lead.y) <= ship.base_radius + TORP_CONTACT_HALF_W
+
+
+def _bomber_salvo_value(gs, group, player: int, heading: float) -> float:
+    """Expected VP for `player` of a torpedo bomber wave's salvo placed at its
+    lead and moving `heading` (s.21): it attacks every ship it touches along
+    its move, the ships it is placed on first (owner ruling: friends too,
+    the fire-through-allies exception covers only ships firing torpedoes),
+    then those along the lane, nearest first, carrying on with what misses
+    (s.17). Enemy hits count for us, ours against us (owner: friendly fire is
+    negative VP)."""
     from .ordnance import TORPEDO_SPEED_DEFAULT
     lead = group[0]
     tiger = "tiger_shark" in lead.special_rules
     reach = 40.0 if tiger else float(TORPEDO_SPEED_DEFAULT)
     strength = 2 * len(group) * (5 / 6 if tiger else 1.0)
+    rad = math.radians(heading)
+    ex, ey = lead.x + reach * math.cos(rad), lead.y + reach * math.sin(rad)
+    touched = []
+    for s in gs.get_ships():
+        if s.is_destroyed or s.is_disengaged:
+            continue
+        if _parked_on(lead, s):
+            touched.append((-1.0, s))
+            continue
+        if _seg_dist(s.x, s.y, lead.x, lead.y, ex, ey) <= s.base_radius + TORP_CONTACT_HALF_W:
+            along = (s.x - lead.x) * math.cos(rad) + (s.y - lead.y) * math.sin(rad)
+            if along > 0:
+                touched.append((along, s))
+    total = 0.0
+    for _, s in sorted(touched, key=lambda t: t[0]):
+        if strength <= 0:
+            break
+        hits, strength = _salvo_attack_hits(strength, s, lead.x, lead.y)
+        v = hull_hits_vp(s, gs, 0.0, hits)
+        total += v if s.player != player else -v
+    return total
+
+
+SALVO_HEADINGS = 24          # headings tried for a salvo placed on its target
+
+
+def torpedo_bomber_heading(gs, group, player: int, target: Ship) -> float:
+    """The heading for a torpedo bomber wave's salvo aimed at `target`.
+    Off the target: straight at it (ships don't move in the ordnance phase).
+    Parked on it (the AI flies its waves onto their target so contact is
+    certain next ordnance phase, owner ruling s.21): the placement attack
+    happens whatever the facing, so the heading is the one whose carry-on
+    does most (a second enemy in the lane, never a friend)."""
+    lead = group[0]
+    if not _parked_on(lead, target):
+        return math.degrees(math.atan2(target.y - lead.y, target.x - lead.x))
+    return max((k * 360.0 / SALVO_HEADINGS for k in range(SALVO_HEADINGS)),
+               key=lambda h: _bomber_salvo_value(gs, group, player, h))
+
+
+def torpedo_bomber_target(gs, group, player: int):
+    """(VP, ship) for a torpedo bomber wave's salvo this phase (s.21: 2 a
+    squadron; Tiger Sharks a Tau missile salvo, 40cm, 5/6 of it through): the
+    enemy ship within the salvo's move where the salvo does most expected VP
+    (`_bomber_salvo_value` along `torpedo_bomber_heading`: turret kills 4+
+    each, the facing it hits, the ships it is placed on attacked first,
+    friends against us), or None when none is in reach. Shared by the AI and
+    the "Auto (best)" choice."""
+    from .ordnance import TORPEDO_SPEED_DEFAULT
+    lead = group[0]
+    tiger = "tiger_shark" in lead.special_rules
+    reach = 40.0 if tiger else float(TORPEDO_SPEED_DEFAULT)
     best = None
     for e in gs.get_ships():
         if e.player == player or e.is_destroyed or e.is_disengaged:
             continue
         if math.hypot(e.x - lead.x, e.y - lead.y) > reach + e.base_radius:
             continue
-        hits = max(0.0, strength - 0.5 * e.effective_turrets) * p_hit(e.armor_vs(lead.x, lead.y))
-        v = hull_hits_vp(e, gs, 0.0, hits)
+        v = _bomber_salvo_value(gs, group, player,
+                                torpedo_bomber_heading(gs, group, player, e))
         if best is None or v > best[0]:
             best = (v, e)
     return best

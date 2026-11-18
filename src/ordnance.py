@@ -436,8 +436,13 @@ def torpedo_in_launch_arc(marker: OrdnanceMarker, ship: Ship,
                           game_state: GameState) -> bool:
     """On the turn it is launched, a salvo cannot attack a target that is not
     in its firing arc (s.16): the arc of the launcher's torpedo weapon, seen
-    from the launcher (which hasn't moved since it launched this turn)."""
+    from the launcher (which hasn't moved since it launched this turn).
+    A torpedo bomber / Tiger Shark salvo ("limited_fuel") is placed, not
+    launched: its bombers left the carrier on an earlier turn and its facing
+    is the player's choice, so no arc applies (owner ruling, s.21)."""
     if marker.launched_turn != game_state.turn_number:
+        return True
+    if "limited_fuel" in (marker.special_rules or []):
         return True
     launcher = game_state.get_ship_by_id(marker.launched_by)
     if launcher is None:

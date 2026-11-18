@@ -94,3 +94,91 @@ def test_hazard_model_counts_a_salvo_not_bomber_attacks():
     h, why = marker_hits(s, near, (0.0, 0.0), [(0.0, 0.0)], [s])
     assert 0 < h <= 2 and "torpedo bombers" in why
     assert marker_hits(s, far, (0.0, 0.0), [(0.0, 0.0)], [s])[0] == 0.0
+
+
+def _parked_game(friend_too=False, behind=True):
+    """An Emperor's torpedo bomber wave (two squadrons) parked on an enemy
+    Lunar that is behind the carrier (outside any torpedo arc it has); the
+    salvo is placed there in the next ordnance phase."""
+    from src.game_state import GameState
+    from src.turn_controller import TurnController
+    from src.dice import DiceRoller, DiceSource, set_source
+    from src.headless_game import HeadlessGame
+    from src import recorder
+    set_source(DiceSource(3))
+    gs = GameState(game_name="tb", game_seed=3)
+    gs.table_width, gs.table_height, gs.dice_mode = 180.0, 120.0, "auto"
+    gs.ai_spectator = True
+    gs.add_ship(_carrier("Emperor Battleship", "Attack craft: torpedo bombers",
+                         x=90.0, y=60.0, heading=0.0, leadership=8))
+    foe = find_ship_class("Lunar Class Cruiser").to_ship_dict("Lunar Class Cruiser", 2,
+                                                             ship_id="foe")
+    foe.update(x=60.0 if behind else 120.0, y=60.0, heading=90.0, leadership=8)
+    gs.add_ship(Ship.from_dict(foe))
+    if friend_too:
+        fr = find_ship_class("Lunar Class Cruiser").to_ship_dict("Lunar Class Cruiser", 1,
+                                                                ship_id="friend")
+        fr.update(x=60.0, y=60.0, heading=90.0, leadership=8)
+        gs.add_ship(Ship.from_dict(fr))
+    for i in range(2):
+        gs.add_ordnance(OrdnanceMarker(
+            id=f"tb{i}", ordnance_type="torpedo_bomber", owner_player=1, launched_by="cv",
+            x=gs.get_ship_by_id("foe").x, y=60.0, speed=20, launched_turn=1,
+            wave_id="w", wave_order=i))
+    gs.current_phase, gs.active_player, gs.turn_number = "ordnance", 1, 3
+    tc = TurnController(gs, DiceRoller(mode="auto"), save_dir=None)
+    recorder.set_current_gs(gs)
+    return gs, HeadlessGame(tc)
+
+
+def test_placed_salvo_attacks_the_ship_it_is_placed_on_then_carries_on():
+    """Owner ruling (s.21): a salvo placed overlapping a ship's base attacks at
+    once (turrets first), whatever the carrier's arcs, then carries on at its
+    reduced strength; it can't attack that ship again that turn."""
+    from src.dice import DiceSource, set_source
+    from src.ordnance import torpedo_may_attack
+    try:
+        gs, game = _parked_game()
+        salvo = fire_torpedo_bombers(gs, ["tb0", "tb1"], 0.0)
+        foe = gs.get_ship_by_id("foe")
+        assert torpedo_may_attack(salvo, foe, gs)        # no launch arc for a placed salvo
+        game.ordnance._resolve_ordnance_movement()
+        foe = gs.get_ship_by_id("foe")
+        assert any("Torpedoes contact Lunar" in line for line in game.ctx.lines)
+        left = [o for o in gs.ordnance if o["id"] == salvo.id]
+        if left:                                         # the misses carried on
+            assert left[0]["strength"] < 4 and left[0]["x"] > 60.0 + 10
+            assert left[0]["attacked_turns"]["foe"] == gs.turn_number
+            assert not torpedo_may_attack(OrdnanceMarker.from_dict(left[0]), foe, gs)
+    finally:
+        set_source(DiceSource())
+
+
+def test_placed_salvo_attacks_a_friendly_ship_it_is_placed_on():
+    from src.dice import DiceSource, set_source
+    try:
+        gs, game = _parked_game(friend_too=True)
+        fire_torpedo_bombers(gs, ["tb0", "tb1"], 0.0)
+        game.ordnance._resolve_ordnance_movement()
+        assert any("FRIENDLY FIRE" in line for line in game.ctx.lines)
+    finally:
+        set_source(DiceSource())
+
+
+def test_ai_values_a_parked_wave_and_aims_its_carry_on():
+    """The AI fires a wave parked on its target (certain contact) and points the
+    salvo's carry-on away from its own ships; a friend under the wave counts
+    against the shot."""
+    from src.ai_hazards import torpedo_bomber_target, torpedo_bomber_heading, _bomber_salvo_value
+    gs, _g = _parked_game()
+    group = torpedo_bomber_groups(gs, 1)[0]
+    v, e = torpedo_bomber_target(gs, group, 1)
+    assert e.id == "foe" and v > 0
+    # a friend 20cm along heading 0 from the parked wave: the carry-on avoids it
+    fr = make_ship(id="f2", player=1, x=80.0, y=60.0, points_value=200)
+    gs.add_ship(fr)
+    h = torpedo_bomber_heading(gs, group, 1, gs.get_ship_by_id("foe"))
+    assert _bomber_salvo_value(gs, group, 1, h) > _bomber_salvo_value(gs, group, 1, 0.0)
+    gs2, _g2 = _parked_game(friend_too=True)
+    v2, _e = torpedo_bomber_target(gs2, torpedo_bomber_groups(gs2, 1)[0], 1)
+    assert v2 < v

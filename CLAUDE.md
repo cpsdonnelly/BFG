@@ -540,7 +540,7 @@ Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and eve
 shooting dialog as recorded actions; `src/fire_volley.py`) and the ordnance phase (AI
 and every human dialog) as actions; next: the end phase as actions (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1575 pass (BFG_SWEEP=1 adds ~4,500 ordnance cases); all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1578 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2859,11 +2859,28 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- **A torpedo bomber salvo fired from on top of a ship (s.21):** torpedo bombers never
-  attack ships, so a wave can end its move in contact with an enemy ship; its salvo,
-  placed there next turn, doesn't attack that ship (the engine finds contacts along the
-  salvo's move, not where it starts). Should a salvo placed in contact attack the ship at
-  once?
+None open.
+
+### Owner ruling: torpedo bomber salvos placed on a ship (s.21; implemented, tested)
+
+A salvo placed overlapping a ship's base is in contact and attacks it at once (s.15 "comes
+into contact ... it will immediately attack it"; s.17 "contacts a ship's base (friend or
+foe)", its example a marker overlapping a base): a normal torpedo attack at placement, the
+target's turrets first, then the attack, then the salvo carries on its move at its reduced
+strength; it can't attack that ship again that turn (s.17's once per full turn). It also
+attacks a friendly ship it is placed on (the fire-through-allies exception is for ships
+firing torpedoes). No launch-turn arc for placed salvos (the bombers left on an earlier
+turn and the facing is the player's choice): `ordnance.torpedo_in_launch_arc` passes every
+`limited_fuel` salvo. AI: its waves fly at their target ship's centre (`craft_target_id`),
+so they park on it and contact is certain next ordnance phase; `ai_hazards.
+torpedo_bomber_target` values each salvo along its heading (`_bomber_salvo_value`: the
+ships it is placed on first, friends against us, then the lane, nearest first, carrying on
+with the misses) and `torpedo_bomber_heading` points a parked salvo's carry-on where it does
+most (another enemy, never a friend; 24 headings); the human dialog's "Auto" and heading
+use the same. Defence: the hazard model counts a wave within its move + the salvo move of
+the end position (a parked wave included), and fighters, CAP and gunfire at ordnance value
+it through `marker_hits` (`tests/test_torpedo_bombers.py`). Not yet: re-targeting torpedo
+bombers in flight when their target is destroyed (they carry straight on).
 
 Round 2, team play (To do 22), steps 5-8, the window, the port language and the Decoy
 are answered (see below, the agreed order, "Window and port", To do 22).
