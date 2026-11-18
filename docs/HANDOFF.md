@@ -56,11 +56,11 @@ Owner decisions this session worth knowing:
 - Exact solutions over sampling wherever an exact answer costs about the same (To do 30).
 - Team play design (To do 22); Meteor Storm wrecks roll catastrophic damage after deployment.
 
-Owner questions open: CLAUDE.md "Open questions for the owner" (low orbit placement, Craftworld
-forges' fields, combined batteries' halving order, sign-off answers 2 / 10 / 16 / 54 / 55 /
-63-66). Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
+Owner questions: the last round is answered and built (CLAUDE.md "Owner rulings: answers to
+the open questions, round 2": halving, low orbit facing, the forges' fields, sign-off 2 / 10 /
+16 / 54 / 55 / 63-66); still open: team play (To do 22), steps 5-8 of the order. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Checking a change: `pytest -q` (1366 pass); `flake8 --select=E9,F src/`; GUI checks under
+Checking a change: `pytest -q` (1370 pass); `flake8 --select=E9,F src/`; GUI checks under
 `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
 `tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
 baseline changes whenever a rules fix changes play; regenerate it then).

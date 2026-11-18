@@ -199,3 +199,35 @@ def test_planetary_assault_points_and_result():
     gs.scenario_state = st
     end = sc.check_end(gs)
     assert end["winner"] == 1 and "Attacker's Victory" in end["detail"]
+
+
+def test_the_owning_player_chooses_the_facing():
+    """Owner ruling: placed touching the edge furthest from the planet
+    (Remastered p.116), facing as the owning player chooses; the AI (and
+    "Auto") along the planet edge."""
+    cap = make_ship(id="c", player=1, x=0, y=0, heading=200.0)
+    gs = _gs([cap, make_ship(id="d", player=2, points_value=300)])
+    _setup(gs, [2])
+    pl = lo.planet(gs)
+    c = gs.get_ship_by_id("c")
+    c.x, c.y = pl.x + pl.radius + 5.0, pl.y
+    gs.update_ship(c)
+    assert lo.default_facing(c) == 180.0
+    lo.enter(gs, gs.get_ship_by_id("c"), 45.0)
+    c = gs.get_ship_by_id("c")
+    assert c.heading == 45.0 and c.y < lo.Y0 + 3
+    # through the scenario's turn start: a human seat is asked
+    asked = []
+    gs2 = _gs([make_ship(id="c", player=1, x=0, y=0),
+               make_ship(id="d", player=2, points_value=300)])
+    _setup(gs2, [2])
+    pl = lo.planet(gs2)
+    c = gs2.get_ship_by_id("c")
+    c.x, c.y = pl.x + pl.radius + 5.0, pl.y
+    gs2.update_ship(c)
+    gs2.low_orbit_hook = lambda s: True
+    gs2.low_orbit_facing_hook = lambda s: asked.append(s.id) or 270.0
+    gs2.ai_player = 2
+    gs2.active_player = 1
+    sc.turn_start(gs2, DiceStub([]))
+    assert asked == ["c"] and gs2.get_ship_by_id("c").heading == 270.0

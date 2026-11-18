@@ -111,6 +111,9 @@ class AATurn:
                 _overcharge_start(self.gs, p)
                 from .craftworld import shooting_start as _cw_shooting
                 _cw_shooting(self.gs, p)
+        if ph == "movement":
+            from .navigate_storm import aa_movement_start
+            aa_movement_start(self.gs)
         if ph in ACTIVATION_PHASES:
             elig = {p: phase_units(self.gs, p, ph, self.cfg) for p in (1, 2)}
             chooser = None
@@ -124,6 +127,9 @@ class AATurn:
 
     def advance(self) -> None:
         """To the next phase; after the end phase, the next round."""
+        if self.phase == "movement":
+            from .navigate_storm import aa_movement_end
+            aa_movement_end(self.gs, self.tc.dice)
         if self.phase_index < len(self.phases) - 1:
             self.phase_index += 1
             self._begin_phase()

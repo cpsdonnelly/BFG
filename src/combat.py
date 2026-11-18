@@ -112,6 +112,11 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     # Pleasure Fleet of Slaanesh, Veil of Lust: an automatic right shift
     if "veil_of_lust" in target_ship.special_rules:
         shifts += 1
+    # Craftworld Assault: a ship docked at the forges has their netherfield
+    # (owner ruling, XR Xenos p.32: one more right shift for all gunnery)
+    from .craftworld import forge_fields
+    if forge_fields(target_ship):
+        shifts += 1
     # Plague Fleet of Nurgle, Miasma of Pestilence: no left shift within 15cm
     if "miasma" in target_ship.special_rules and dist < 15:
         shifts += rng
@@ -304,13 +309,19 @@ def combined_battery(attacker: Ship, shots: List[Dict], target: Ship) -> Dict:
     at one target makes ONE Gunnery table roll on their total firepower.
     `shots` are the weapons with their firepower for this shot decided
     (shot_weapon); each is reduced by its own modifiers (orders, crippling,
-    Brace), as capital ships in a squadron halve individually, then totalled.
+    Brace), as capital ships in a squadron halve individually, then totalled
+    (standing ruling: two FP3 on Burn Retros make 2 + 2 = 4). Escorts are the
+    exception (s.8, Shooting by Squadrons): total first, then halve.
     Returns one weapon dict for resolve_batteries / fire_at_squadron."""
     if len(shots) == 1:
         return shots[0]
     d = {k: v for k, v in shots[0].items() if k not in ("strength_close", "strength_dice")}
     d["name"] = " + ".join(w.get("name", "battery") for w in shots)
-    d["combined_fp"] = sum(effective_battery_firepower(attacker, w, target) for w in shots)
+    if attacker.ship_type == "escort":
+        d["strength"] = sum(battery_base_firepower(attacker, w, target) for w in shots)
+        d["combined_fp"] = effective_battery_firepower(attacker, d, target)
+    else:
+        d["combined_fp"] = sum(effective_battery_firepower(attacker, w, target) for w in shots)
     d["strength"] = d["combined_fp"]
     d["combined_of"] = len(shots)
     return d

@@ -380,6 +380,16 @@ def docked(ship) -> bool:
     return any(r.startswith("docked:") for r in (getattr(ship, "special_rules", None) or []))
 
 
+def forge_fields(ship) -> bool:
+    """A docked ship has the forges' netherfield and polarisation field (owner
+    ruling, XR Xenos p.32, "the Haven Spire / the station" read as the docked
+    ship; the booklet's MMS Haven Spire has neither): gunnery at it takes one
+    more right shift (combat.get_column_shifts); it never risks a hit for
+    contact with blast markers (movement._blast_marker_damage) and ignores
+    every effect of solar flares (celestial._solar_flare)."""
+    return docked(ship)
+
+
 def held_in_orbit(ship) -> bool:
     """Docked ships don't fall; nor does one just undocked before its next
     move (reading: "remains docked until the end of the next Eldar turn",

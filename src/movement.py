@@ -632,6 +632,9 @@ def _blast_marker_damage(ship: Ship, gs: GameState, dice: DiceRoller) -> bool:
     per move). Returns True if the ship was destroyed."""
     if ship.effective_shields > 0 or "necron" in ship.special_rules:
         return False             # Necrons: immune to blast marker damage (Xenos p.40)
+    from .craftworld import forge_fields
+    if forge_fields(ship):
+        return False             # docked at a forge: polarisation field
     roll = dice.roll_d6(1, f"{ship.name} through blast markers, no shields (6 = 1 damage)")[0]
     if roll != 6:
         return False

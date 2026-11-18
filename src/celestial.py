@@ -78,9 +78,10 @@ def _solar_flare(gs, dice) -> List[str]:
     gs.solar_flare_turn = [gs.turn_number, gs.active_player]
     logs = ["SOLAR FLARE! A blast marker on every ship, sunward side"]
     sun = math.radians(SUN_ANGLE.get(gs.sunward_edge or "north", 90.0))
+    from .craftworld import forge_fields
     for s0 in gs.get_ships():
-        if s0.is_destroyed or s0.is_disengaged or _immune(s0):
-            continue
+        if s0.is_destroyed or s0.is_disengaged or _immune(s0) or forge_fields(s0):
+            continue                     # forge_fields: a polarisation field
         s = gs.get_ship_by_id(s0.id)
         unshielded = current_shields(s, gs.get_blast_markers()) <= 0
         _place_shield_impacts(s, 1, gs, origin=(s.x + 500 * math.cos(sun),

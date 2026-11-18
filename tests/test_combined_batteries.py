@@ -99,3 +99,12 @@ def test_later_attacks_see_new_markers_unless_simultaneous(monkeypatch):
     # 8 hits remaining + 2 shields is more than the batteries' expected hits:
     # fired together, so both attacks see the table as it was (no markers)
     assert markers_seen == [0, 0]
+
+
+def test_an_escort_totals_first_then_halves():
+    """Standing ruling: escorts total first, then halve (s.8)."""
+    a, t = _ships()
+    a.ship_type = "escort"
+    a.special_order = "burn_retros"
+    w = combined_battery(a, [dict(BAT, strength=3), dict(BAT, strength=3)], t)
+    assert w["combined_fp"] == 3                    # (3 + 3) / 2, not 2 + 2

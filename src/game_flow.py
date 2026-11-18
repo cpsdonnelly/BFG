@@ -51,6 +51,7 @@ class GameFlow(AAPanelMixin):
         tc.gs.mr_suppress_hook = self._mr_suppress_hook
         tc.gs.reserve_hook = self._reserve_hook
         tc.gs.low_orbit_hook = self._low_orbit_hook
+        tc.gs.low_orbit_facing_hook = self._low_orbit_facing_hook
         tc.gs.assault_hook = self._assault_hook
         tc.gs.overcharge_hook = self._overcharge_hook
 
@@ -323,6 +324,19 @@ class GameFlow(AAPanelMixin):
         return self.ctx.prompt.choose("Low orbit",
                       f"{ship.name} is in the planet's gravity well: enter low orbit?",
                       [("Enter low orbit", True), ("Stay in high orbit", False)], best)
+
+    def _low_orbit_facing_hook(self, ship) -> float:
+        """Entering low orbit: the owning player chooses the facing (owner
+        ruling); "Auto" is along the planet edge (`low_orbit.default_facing`)."""
+        import threading
+        from .low_orbit import FACINGS, default_facing
+        best = default_facing(ship)
+        if self.ctx.is_ai_controlled(ship.player) or \
+                threading.current_thread() is not threading.main_thread():
+            return best
+        return self.ctx.prompt.choose("Low orbit facing",
+                      f"{ship.name} enters low orbit touching the edge furthest from the "
+                      f"planet. Which way does it face?", FACINGS, best)
 
     def _overcharge_hook(self, ship) -> bool:
         """Macharia's End: at the start of a Chaos turn the Planet Killer may

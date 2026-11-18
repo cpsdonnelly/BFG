@@ -554,7 +554,8 @@ def turn_start(gs, dice=None) -> None:
                     continue
                 want = wants_low_orbit(gs, s) if (ai or hook is None) else bool(hook(s))
                 if want:
-                    enter(gs, s)
+                    face = getattr(gs, "low_orbit_facing_hook", None)
+                    enter(gs, s, None if (ai or face is None) else face(s))
     if entry_edge(gs):
         hook = getattr(gs, "reserve_hook", None)
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)

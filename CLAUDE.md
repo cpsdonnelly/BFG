@@ -540,7 +540,7 @@ Latest work: To do 17 / 18 (recording, replay, the game flow out of the window, 
 action layer) and the owner's s.11 / s.13 shooting ruling; next: shooting actions and
 replay (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1366 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1370 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -1360,8 +1360,8 @@ Done: To do 2, 3, 6; most of 7.
    blast markers; at the end of that phase (`end_of_movement`, from `TurnController.end_phase`)
    it returns to normal unless in base contact with an enemy (then out of play again,
    the end of the next one) and tests Ld: a failure halves its armament (`half_armament`:
-   batteries, lances and ordnance, sign-off answer 14) until the end phase. AA (reading): materialising ships return at
-   the round start. Exit point: off the right edge with the centre between its ends
+   batteries, lances and ordnance, sign-off answer 14) until the end phase. AA (owner, sign-off 16): materialising ships come into play at
+   the start of the round's movement phase and return at its end. Exit point: off the right edge with the centre between its ends
    (`via_exit_point`, recorded by `record_exit`); evacuated ships score nothing for the
    attacker (`scores_normally`). Game end: no transport capacity in play (reading for "until
    victory conditions are met") or a fleet gone. Victory (`winner`): attacker 8 capacity
@@ -1435,8 +1435,8 @@ Done: To do 2, 3, 6; most of 7.
    map back). A ship in the planet's gravity well at the start of its turn may enter
    (`can_enter` / `enter`: a human is asked, `GameState.low_orbit_hook`; the AI by
    `planet_scenarios.wants_low_orbit`), placed touching the edge furthest from the planet
-   (Remastered p.116, proposed; owner to confirm) facing along the planet edge (reading:
-   left or right by its heading; facing the planet a 45-degree ship couldn't climb away
+   (Remastered p.116, owner ruling) facing as its player chooses, the AI along the planet edge
+   (left or right by its heading; facing the planet a 45-degree ship couldn't climb away
    before falling), at an x for its
    side of the planet (judgement). In low orbit (`in_low_orbit` rule): no minimum move, no
    turning distance (`movement.get_effective_speed` / `validate_movement`), gunnery one
@@ -1555,8 +1555,8 @@ Done: To do 2, 3, 6; most of 7.
    otherwise docking would always end in a crash). The Gates: from the second Eldar turn a D6,
    on 5+ D3 reserve units (judgement: dearest first) arrive touching the craftworld on its far
    side from the attacker, facing the nearest short edge, unable to move or shoot that turn
-   (`gate_arrivals`). Not yet: the forges' netherfields (the booklet doesn't define them:
-   owner question) and polarisation fields, the alert units on the low orbit table, the AI
+   (`gate_arrivals`). The forges' netherfield and polarisation field (owner ruling, XR Xenos
+   p.32): `craftworld.forge_fields`, see "answers, round 2". Not yet: the alert units on the low orbit table, the AI
    docking damaged ships or choosing the Spear's moment, a human aiming the Spear.
    The Gauntlet built (p.96, mode `gauntlet`, in `convoy_narrative`: the narrative Convoy's
    exit, escape count and game end): the Orks (the chosen attacker) don't deploy, every unit
@@ -2789,20 +2789,35 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- **Low orbit placement:** XR (s.39) says a ship in the gravity well at the start of its turn
-  may enter low orbit, but not where it appears; the booklet-side answer proposes
-  Remastered's "touching the edge furthest from the planet" (built that way). Ciarán to
-  confirm. Also my readings in To do 7's low orbit / planet battle paragraph.
-- **Craftworld Assault's forges** give docked ships "the protection of the forges'
-  netherfields and polarisation fields (identical to those of the Haven Spire)", but the
-  booklet's Haven Spire (MMS) has neither; only XR's note names them, and only the Dark
-  Eldar Tormentor Spire defines a polarisation field. What should they do?
-- **Combined batteries' halving (owner ruling s.13 built):** when a ship's macrobatteries
-  combine, each is reduced by its own modifiers (orders, crippling, Brace) and then totalled
-  (two FP3 on Burn Retros: 2 + 2 = 4), as capital ships halve individually in squadron fire.
-  Or total first, then halve (3)? Built the first way; to confirm.
-- **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
-  next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
+None open from the last round; answered (rulings above, "Owner rulings: answers to the open
+questions, round 2"). Still open: the team play questions (To do 22), confirming steps 5-8 of
+the agreed order.
+
+### Owner rulings: answers to the open questions, round 2 (implemented, tested)
+
+- **Halving (standing ruling, s.13 / s.8):** capital ships halve each weapon separately
+  (rounding up), then total: two FP3 on Burn Retros make 2 + 2 = 4. Escort squadrons are the
+  exception: total first, then halve (s.8, Shooting by Squadrons; `plan_squadron_volley`),
+  and an escort's own combined batteries likewise (`combat.combined_battery`).
+- **Low orbit placement:** Remastered p.116's "touching the edge furthest from the planet".
+  The owning player chooses the facing (`GameFlow._low_orbit_facing_hook`, prompt with
+  "Auto"; `low_orbit.FACINGS`, `enter(gs, ship, heading)`); the AI and "Auto" face along the
+  planet edge on its heading's side (`low_orbit.default_facing`); position along the edge by
+  its side of the planet, as built.
+- **Craftworld forges (XR Xenos p.32, for the craftworld's forges only; the booklet's MMS
+  Haven Spire keeps neither field):** a docked ship (`craftworld.forge_fields`) has the
+  Netherfield, "All gunnery weapons suffer an additional right column-shift against" it
+  (`combat.get_column_shifts`, so the AI's values see it), and the Polarization Field, it
+  "never risks suffering a hit for being in contact with blast markers and ignores all
+  effects of solar flares" (`movement._blast_marker_damage`, `celestial._solar_flare`).
+- **Sign-off 2:** closed. **10:** as built: Navigate the Storm ends only when no transport
+  capacity remains or a fleet is gone (the "both or neither" draw needs both checked at the
+  end). **16:** in alternate activation, materialising ships come into play at the start of
+  the round's movement phase and return to normal at its end, after both sides' movement
+  activations, base contact as in IGOUGO (`navigate_storm.aa_movement_start / _end`, from
+  `AATurn._begin_phase` / `advance`). **54:** the Remastered escort VP option's "total
+  points value" is the full original squadron (as built). **55:** the 45-degree sun split is
+  fine. **63-66:** the AA AI choices are fine as built.
 
 Answered before: the AA notes and draft PDF are now in `docs/` (To do 13); where AA sits
 in the order follows the dependencies (its experiments come after 11 a-c). Answered: where To do 8 goes. Owner: "the order isn't hugely important". So follow
