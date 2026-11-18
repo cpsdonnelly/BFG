@@ -61,3 +61,79 @@ def test_ram_and_boarding_declarations_replay(tmp_path):
     assert gs2.get_ship_by_id("a").ramming_target_id == ("b" if passed else None)
     recorder.stop_recording()
     set_source(DiceSource())
+
+
+def test_a_fire_dialog_volley_is_one_action_that_replays():
+    """To do 17 / 18: the Fire dialog's volley runs without a window
+    (fire_volley.FireVolley) as one recorded action (actions.fire_volley);
+    the same orders and the recorded dice give the same result."""
+    import json
+    from src import recorder, actions
+    from src.dice import DiceRoller, DiceSource, set_source, current_source
+    from src.game_state import GameState
+    from src.headless_game import HeadlessContext
+    from src.combat_panel import CombatPanel
+    from src.models import Ship
+    from src.ship_catalog import find_ship_class
+    from src.turn_controller import TurnController
+
+    def setup():
+        gs = GameState(game_name="volley", game_seed=3)
+        gs.ai_player = 2
+        for p, n, x, h in ((1, "Lunar Class Cruiser", 40.0, 0.0),
+                           (2, "Murder Class Cruiser", 40.0, 180.0)):
+            d = find_ship_class(n).to_ship_dict(n, p, ship_id=f"p{p}")
+            d.update(x=x if p == 1 else 40.0, y=30.0 if p == 1 else 50.0,
+                     heading=90.0 if p == 1 else 270.0, leadership=8)
+            gs.add_ship(Ship.from_dict(d))
+        gs.current_phase, gs.active_player = "shooting", 1
+        tc = TurnController(gs, DiceRoller(mode="auto"), save_dir=None)
+        recorder.set_current_gs(gs)
+        return gs, CombatPanel(HeadlessContext(tc, gs, tc.dice))
+
+    def state(gs):
+        return json.dumps({"ships": gs.ships, "bm": gs.blast_markers}, sort_keys=True,
+                          default=str)
+
+    set_source(DiceSource(5, record=True))
+    recorder.start_recording()
+    gs, panel = setup()
+    lunar = gs.get_ship_by_id("p1")
+    orders = [[i, "p2", None] for i, w in enumerate(lunar.weapons)
+              if w.get("weapon_type") in ("battery", "lance")]
+    actions.fire_volley(panel, "p1", orders)
+    s1, record, evs = state(gs), current_source().record, recorder.events()
+    assert any(e["kind"] == "fire" for e in evs)          # it rolled
+    top = [e for e in evs if e["depth"] == 0]
+    assert [e["kind"] for e in top if e["kind"] != "prompt"] == ["act_volley_fire"]
+
+    set_source(DiceSource(0, replay=[list(e) for e in record]))
+    recorder.start_recording()
+    gs2, panel2 = setup()
+    for e in top:
+        if e["kind"] != "prompt":
+            actions.replay_event(gs2, panel2.ctx.tc, panel2.ctx.dice, e, panel=panel2)
+    set_source(DiceSource())                 # back to plain dice for later tests
+    recorder.stop_recording()
+    assert state(gs2) == s1
+
+
+def test_a_nova_cannon_miss_places_a_blast_marker():
+    """s.14: if no ships were hit, a blast marker under the centre of the
+    template (the AI's path used to drop it; the Fire dialog placed it)."""
+    from src import actions
+    from tests.conftest import make_gs, make_ship, DiceStub
+    nova = dict(name="Nova Cannon", weapon_type="nova_cannon", strength=1, range=150,
+                arcs=["front"])
+    a = make_ship(id="a", x=0.0, y=0.0, heading=0.0, weapons=[nova])
+    t = make_ship(id="t", player=2, x=60.0, y=0.0)
+    gs = make_gs([a, t])
+    import src.combat as combat
+    real = combat.resolve_nova_cannon
+    combat.resolve_nova_cannon = lambda *a_, **k: {"template_x": 90.0, "template_y": 40.0,
+                                                   "ship_hits": {}, "blast_markers": [(90.0, 40.0)]}
+    try:
+        actions.fire_nova_cannon(gs, DiceStub([]), "a", 60.0, 0.0)
+    finally:
+        combat.resolve_nova_cannon = real
+    assert [(m.x, m.y) for m in gs.get_blast_markers()] == [(90.0, 40.0)]

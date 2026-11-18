@@ -4,6 +4,8 @@ Drives movement, shooting, and ordnance phases using pure-logic APIs,
 with no Tkinter dialogs. Caller must set dice.mode = "auto" before use.
 """
 import math
+
+from . import actions
 from .rng import game_random
 from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
 from typing import List, Optional, Dict
@@ -21,9 +23,7 @@ from .movement import (
 )
 from .combat import (
     check_weapon_in_arc, check_weapon_in_range, check_los_clear,
-    resolve_batteries, resolve_lances, apply_damage,
-    squadron_group, fire_at_squadron, weapon_fire_pool, shot_weapon,
-    weapon_disabled_by_crit,
+    squadron_group, weapon_disabled_by_crit,
 )
 from .chapter_tactics import shadow_engines_hidden
 from .ordnance import ship_torpedo_types, SHORT_BURN_SPEED, unused_once_torpedoes
@@ -335,11 +335,7 @@ class AIPlayer:
             if ship.is_destroyed or ship.is_disengaged or ship.has_fired or is_locked(ship):
                 continue
             self._fire_ship(ship)
-            ship = gs.get_ship_by_id(ship.id)
-            if not ship.has_fired:
-                ship.has_fired = True
-                gs.update_ship(ship)
-            tc.mark_ship_fired(ship.id)
+            actions.mark_fired(tc, ship.id)
 
     def aa_unit_value(self, phase: str, unit) -> float:
         """How much acting with `unit` now is worth, for choosing which unit to
@@ -2524,11 +2520,7 @@ class AIPlayer:
             if on_standby(gs, ship):             # Surprise Attack: on standby
                 continue
             self._fire_ship(ship)
-            ship = gs.get_ship_by_id(ship.id)
-            if not ship.has_fired:
-                ship.has_fired = True
-                gs.update_ship(ship)
-            tc.mark_ship_fired(ship.id)
+            actions.mark_fired(tc, ship.id)
 
     def _fire_ship(self, ship: Ship):
         gs = self.gs
@@ -2568,33 +2560,24 @@ class AIPlayer:
                 self._fire_nova_cannon(ship, enemies, weapon)
                 continue
             if wtype == "star_pulse":
-                from .combat import resolve_star_pulse
                 from .necrons import field_usable, FIELD_RANGE
                 if field_usable(ship.is_crippled, ship.special_order or "") and any(
                         "necron" not in t.special_rules and ship.distance_to(t)
                         <= FIELD_RANGE + t.base_radius for t in enemies):
-                    for sid in resolve_star_pulse(ship, gs, self.dice).get("hits", {}):
-                        t = gs.get_ship_by_id(sid)
-                        if t is not None:
-                            self._resolve_kill(t)
+                    actions.fire_area_weapon(gs, self.dice, ship.id, "star_pulse")
                     ship = gs.get_ship_by_id(ship.id)
                 continue
             if wtype == "armageddon_gun":
                 if self._armageddon_value(ship) > 0:
-                    from .combat import resolve_armageddon_gun
-                    for sid in resolve_armageddon_gun(ship, gs, self.dice).get("hits", {}):
-                        t = gs.get_ship_by_id(sid)
-                        if t is not None:
-                            self._resolve_kill(t)
+                    actions.fire_area_weapon(gs, self.dice, ship.id, "armageddon_gun")
                     ship = gs.get_ship_by_id(ship.id)
                 continue
 
             # Shoot an incoming mine / salvo / wave instead, when that's worth more
             ordshot = self._ordnance_shot(ship, weapon, w_idx) if self.difficulty != "easy" else None
             if ordshot:
-                from .combat import fire_at_ordnance
                 m = ordshot["marker"]
-                res = fire_at_ordnance(ship, weapon, m.id, gs, self.dice, ordshot["avail"])
+                res = actions.fire_at_marker(gs, self.dice, ship.id, w_idx, m.id, ordshot["avail"])
                 gs.add_log(f"[AI] {ship.name} → {m.ordnance_type}: {weapon['name']} "
                            f"{res['dice']} dice, {'destroyed' if res['hits'] else 'missed'}")
                 continue
@@ -2612,47 +2595,12 @@ class AIPlayer:
                 # make one roll, so they are planned first and fired together
                 battery_plans.append((w_idx, weapon, target))
                 continue
+            if wtype != "lance":
+                continue
             self._offer_brace(ship, target, [weapon])
-
-            if wtype in ("battery", "lance"):
-                # Firepower fixed when fired: random values rolled, Heavy Gunz by range
-                pool, _mode, _err = weapon_fire_pool(
-                    ship, weapon, w_idx, ship.distance_to(target), self.dice, gs)
-                if weapon.get("strength_dice"):
-                    gs.add_log(f"[AI] {ship.name} {weapon['name']}: rolled "
-                               f"{weapon['strength_dice']} = {pool}")
-                weapon = shot_weapon(weapon, pool)
-
-            # A ship in a squadron can't be picked out: fire at the squadron (s.8)
-            group = squadron_group(target, gs.get_ships())
-            if len(group) > 1 and wtype in ("battery", "lance"):
-                crit_on = weapon.get("crit_on", 6)
-                sr, applied = fire_at_squadron(
-                    ship, weapon, target, group, self.dice,
-                    lambda m, n, _c=crit_on, _a=ship.id: self._apply_hits_to(m, n, _c, _a),
-                    lock_on, blast_markers, phenomena, all_ships)
-                gs.add_log(f"[AI] {ship.name} → squadron {target.squadron_id}: "
-                           f"{weapon['name']} {sr.hits} hit(s)")
-                continue
-
-            if wtype == "battery":
-                sr = resolve_batteries(ship, target, weapon, self.dice,
-                                       blast_markers, lock_on=lock_on,
-                                       phenomena=phenomena, all_ships=all_ships)
-                if weapon.get("kustom_kannon"):
-                    from .combat import spend_kustom_kannon
-                    spend_kustom_kannon(ship, weapon, gs)
-                    ship.ordnance_loaded_torps = False   # keep the loop's copy in step
-            elif wtype == "lance":
-                sr = resolve_lances(ship, target, weapon, self.dice,
-                                    lock_on=lock_on)
-            else:
-                continue
-            gs.add_log(f"[AI] {ship.name} → {target.name}: "
-                       f"{weapon['name']} {sr.hits} hit(s)")
-            if sr.hits > 0:
-                self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id,
-                                    bypass_hits=sr.bypass_hits)
+            # Firepower fixed when fired, one attack at the target or its squadron
+            actions.fire_weapons(gs, self.dice, ship.id, target.id, [w_idx], lock_on,
+                                 tag="[AI] ")
         if not flushed:
             self._fire_battery_groups(ship, battery_plans, lock_on, phenomena)
 
@@ -2667,7 +2615,7 @@ class AIPlayer:
         alone isn't expected to destroy the target (committing costs little;
         judgement), else in sequence. A group whose target is already gone
         picks new targets."""
-        from .combat import gunnery_kind, resolve_battery_group, expected_hits
+        from .combat import gunnery_kind, expected_hits
         from .geometry import current_shields
         gs = self.gs
         if not plans:
@@ -2707,33 +2655,10 @@ class AIPlayer:
                 continue
             weapons = [w for _i, w in members]
             self._offer_brace(ship, target, weapons)
-            shots = []
-            for w_idx, weapon in members:
-                pool, _mode, _err = weapon_fire_pool(
-                    ship, weapon, w_idx, ship.distance_to(target), self.dice, gs)
-                if weapon.get("strength_dice"):
-                    gs.add_log(f"[AI] {ship.name} {weapon['name']}: rolled "
-                               f"{weapon['strength_dice']} = {pool}")
-                shots.append(shot_weapon(weapon, pool))
-            markers = start_markers if simultaneous.get(tid) else gs.get_blast_markers()
-            group = squadron_group(target, gs.get_ships())
-            crit_on = weapons[0].get("crit_on", 6)
-            sr, applied = resolve_battery_group(
-                ship, target, shots, self.dice, markers, lock_on, phenomena, gs.get_ships(),
-                group=group,
-                apply_hits=lambda m, n, _c=crit_on, _a=ship.id: self._apply_hits_to(m, n, _c, _a))
-            for w in weapons:
-                if w.get("kustom_kannon"):
-                    from .combat import spend_kustom_kannon
-                    spend_kustom_kannon(ship, w, gs)
-            if applied is not None:
-                gs.add_log(f"[AI] {ship.name} → squadron {target.squadron_id}: "
-                           f"{sr.weapon_name} {sr.hits} hit(s)")
-                continue
-            gs.add_log(f"[AI] {ship.name} → {target.name}: {sr.weapon_name} {sr.hits} hit(s)")
-            if sr.hits > 0:
-                self._apply_hits_to(target, sr.hits, crit_on, ship.id,
-                                    bypass_hits=sr.bypass_hits)
+            actions.fire_weapons(
+                gs, self.dice, ship.id, target.id, [i for i, _w in members], lock_on,
+                marker_ids=([b.id for b in start_markers] if simultaneous.get(tid) else None),
+                tag="[AI] ")
 
     def _squadron_volleys(self, only: Optional[str] = None):
         """Shooting by Squadrons for the AI (s.8, combat.plan_squadron_volley):
@@ -2744,7 +2669,7 @@ class AIPlayer:
         nearest valid target for every contributing battery (so no target
         priority test is needed). Lances, torpedoes and the rest still fire
         ship by ship afterwards."""
-        from .combat import plan_squadron_volley, resolve_squadron_volley
+        from .combat import plan_squadron_volley
         from .ai_hazards import added_vp, p_hit
         gs = self.gs
         squads = {}
@@ -2794,16 +2719,14 @@ class AIPlayer:
             lead = contrib[0][0]
             self._offer_brace(lead, target, expected=hits)
             lock_on = all(m.special_order == SpecialOrder.LOCK_ON.value for m, _i, _w in contrib)
-            applied = resolve_squadron_volley(
-                plan, group, self.dice,
-                lambda t, n, _a=lead.id: self._apply_hits_to(t, n, 6, _a),
-                lock_on=lock_on, game_state=gs)
+            # bms: the markers when this phase's volleys were planned
+            actions.fire_squadron_volley(
+                gs, self.dice, lead.id, [(m.id, i) for m, i, _w in contrib], target.id,
+                "best" if len(group) > 1 else None, lock_on,
+                marker_ids=[b.id for b in bms], tag="[AI] ")
             self._committed[target.id] = self._committed.get(target.id, 0.0) + hits
             for m, i, _w in contrib:
                 self._volley_fired.add((m.id, i))
-            gs.add_log(f"[AI] squadron {lead.squadron_id} combined batteries at "
-                       f"{target.name}: {sum(a['dice'] for a in plan['attacks'])} dice, "
-                       f"{sum(applied.values())} hit(s)")
 
     def _aaf_bonus(self, ship) -> int:
         """All Ahead Full speed bonus: a squadron rolls once this turn, members
@@ -2855,7 +2778,6 @@ class AIPlayer:
         can reach the same (non-squadron) target together. Returns the weapon
         indices used."""
         from .chapter_tactics import siege_ship
-        from .combat import resolve_siege_cannons
         if not siege_ship(ship):
             return set()
         bcs = [(i, w) for i, w in enumerate(ship.weapons) if w.get("hits_on")
@@ -2874,37 +2796,17 @@ class AIPlayer:
         if not macro or not bc_ok:
             return set()
         self._offer_brace(ship, target, [w for _i, w in macro + bc_ok])
-        shots = {}
-        for i, w in macro + bc_ok:
-            pool, _m, _e = weapon_fire_pool(ship, w, i, ship.distance_to(target), self.dice)
-            shots[i] = shot_weapon(w, pool)
-        m_res, b_res = resolve_siege_cannons(
-            ship, target, [shots[i] for i, _ in macro], [shots[i] for i, _ in bc_ok],
-            self.dice, blast_markers, lock_on, phenomena, all_ships)
-        self.gs.add_log(f"[AI] {ship.name} → {target.name}: Siege Cannons "
-                        f"{m_res.hits}+{b_res.hits} hit(s)")
-        if m_res.hits:
-            self._apply_hits_to(target, m_res.hits, 6, ship.id)
-        if b_res.hits:
-            self._apply_hits_to(target, b_res.hits, 4, ship.id)
+        actions.fire_siege_cannons(self.gs, self.dice, ship.id, target.id,
+                                   [i for i, _ in macro], [i for i, _ in bc_ok], lock_on,
+                                   tag="[AI] ")
         return {i for i, _ in macro + bc_ok}
 
     def _apply_hits_to(self, target: Ship, hits: int, crit_on: int = 6,
                        attacker_key: str = "", bypass_hits: int = 0):
         """Apply hits from AI fire, then resolve the ship's destruction if it died.
         Returns (unused hits, destroyed) for squadron hit allocation."""
-        t = self.gs.get_ship_by_id(target.id)
-        hulk = t is not None and t.status in ("drifting_hulk", "burning_hulk")
-        if not t or (t.is_destroyed and not hulk):
-            return hits, True             # hulks take hits: they re-roll catastrophic damage
-        braced = t.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
-        src = self.gs.get_ship_by_id(attacker_key) if attacker_key else None
-        dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced,
-                           crit_on=crit_on, attacker_key=attacker_key,
-                           origin=(src.x, src.y) if src else None, bypass_hits=bypass_hits)
-        self._log_damage(t, dmg)
-        self._resolve_kill(t)
-        return dmg["unused_hits"], dmg["destroyed"]
+        return actions.apply_hits(self.gs, self.dice, target.id, hits, crit_on, attacker_key,
+                                  bypass_hits=bypass_hits, log=self.gs.add_log, tag="[AI] ")
 
     def _resolve_kill(self, target: Ship):
         """A ship the AI reduced to 0 rolls catastrophic damage (or becomes a
@@ -2947,7 +2849,6 @@ class AIPlayer:
         range, shields still stop them) add the most VP given this phase's
         other fire (`added_vp`, To do 9); never at a target with one of our
         ships within `NOVA_FRIEND_CLEARANCE` of it (a scatter could land on it)."""
-        from .combat import resolve_nova_cannon
         from .ai_hazards import nova_expected_hits, added_vp
         gs = self.gs
         if not enemies:
@@ -2972,20 +2873,7 @@ class AIPlayer:
             return
         target = best[1]
         self._offer_brace(ship, target)          # before the scatter roll (s.7)
-        nc = resolve_nova_cannon(ship, target.x, target.y, self.dice, gs)
-        if "error" in nc:
-            return
-        gs.add_log(f"[AI] {ship.name} nova cannon at ({target.x:.0f},{target.y:.0f})")
-        for sid, hd in nc.get("ship_hits", {}).items():
-            t = gs.get_ship_by_id(sid)
-            if t:
-                dmg = apply_damage(t, hd["hits"], self.dice, gs,
-                                   target_braced=t.special_order
-                                   == SpecialOrder.BRACE_FOR_IMPACT.value,
-                                   attacker_key=ship.id,
-                                   origin=(nc["template_x"], nc["template_y"]))
-                self._log_damage(t, dmg)
-                self._resolve_kill(t)
+        actions.fire_nova_cannon(gs, self.dice, ship.id, target.x, target.y, tag="[AI] ")
 
     def _ordnance_shot(self, ship: Ship, weapon: Dict, w_idx: int) -> Optional[Dict]:
         """Is shooting enemy ordnance with this weapon worth more than its best

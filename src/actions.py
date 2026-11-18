@@ -12,7 +12,11 @@ Built so far: the movement phase. Moves (apply_move: the AI's and every
 human move path), ram declarations and rams after the move, boarding
 declarations; the recorded engine calls it also replays: special orders
 and their re-rolls, All Ahead Full speed rolls, marking a ship moved,
-disengage tests."""
+disengage tests. The shooting phase (the AI's so far; the Fire dialogs
+next): each attack resolved and its hits applied by one action
+(fire_weapons, fire_siege_cannons, fire_squadron_volley, fire_nova_cannon,
+fire_area_weapon, fire_at_marker; apply_hits), Brace before an attack
+(declare_brace), a ship done firing (mark_fired)."""
 from . import recorder
 from .movement import (MovementResult, MoveCommand, execute_movement,
                        record_staged_move)
@@ -139,7 +143,7 @@ class ReplayDivergence(Exception):
     """A replayed action came out differently from the record."""
 
 
-def replay_event(gs, tc, dice, ev: dict, contacts=None) -> None:
+def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
     """Do a recorded depth-0 action again, with the same inputs (its dice come
     from the roll record). `contacts`: the flow's resolver for ordnance a
     moving ship touched, for moves that resolved it at once."""
@@ -174,6 +178,38 @@ def replay_event(gs, tc, dice, ev: dict, contacts=None) -> None:
         _same(ev, "passed", attempt_disengage(ship, dice, gs, ev.get("forced", False)).get("success"))
     elif k == "reroll":
         tc.use_fleet_reroll(ev["player"], ship)
+    elif k == "act_fire":
+        fire_weapons(gs, dice, ev["ship"], ev["target"], ev["weapons"], ev["lock_on"],
+                     marker_ids=ev.get("markers"), tag=ev.get("tag", ""))
+    elif k == "act_siege":
+        fire_siege_cannons(gs, dice, ev["ship"], ev["target"], ev["macro"], ev["bc"],
+                           ev["lock_on"], tag=ev.get("tag", ""))
+    elif k == "act_volley":
+        fire_squadron_volley(gs, dice, ev["ship"], ev["firers"], ev["target"], ev.get("aspects"),
+                             ev["lock_on"], marker_ids=ev.get("markers"), tag=ev.get("tag", ""))
+    elif k == "act_nova":
+        fire_nova_cannon(gs, dice, ev["ship"], ev["at"][0], ev["at"][1], tag=ev.get("tag", ""))
+    elif k == "act_area":
+        fire_area_weapon(gs, dice, ev["ship"], ev["what"])
+    elif k == "act_fire_ordnance":
+        fire_at_marker(gs, dice, ev["ship"], ev["weapon"], ev["marker"], ev["avail"])
+    elif k == "act_hits":
+        apply_hits(gs, dice, ev["target"], ev["hits"], ev["crit_on"], ev["attacker"],
+                   bypass_hits=ev.get("bypass", 0), origin=ev.get("origin"),
+                   tag=ev.get("tag", ""))
+    elif k == "act_brace":
+        _same(ev, "passed", declare_brace(gs, dice, ev["ship"], ev["attacker"],
+                                          ev.get("group", ())).get("passed"))
+    elif k == "brace":
+        from .movement import attempt_brace
+        _same(ev, "passed", attempt_brace(ship, gs, dice).get("passed"))
+    elif k == "act_fired":
+        mark_fired(tc, ev["ship"])
+    elif k == "act_volley_fire":
+        if panel is None:
+            raise ReplayDivergence(f"event {ev['n']}: a Fire dialog volley needs the panel")
+        fire_volley(panel, ev["ship"], ev["orders"], ev.get("together", False),
+                    context=ev.get("context"))
     else:
         raise ReplayDivergence(f"event {ev['n']}: '{k}' can't be replayed yet")
 
@@ -182,3 +218,265 @@ def _same(ev, key, got):
     if ev.get(key) != got:
         raise ReplayDivergence(f"event {ev['n']} {ev['kind']}: recorded {key}={ev.get(key)}, "
                                f"the replay got {got}")
+
+
+# --- Shooting (To do 18 / 17): each attack one action, for the AI and a replay ---------
+
+def _ids(markers):
+    return None if markers is None else [m.id for m in markers]
+
+
+def _markers(gs, ids):
+    """The blast markers an attack rolls against: those in play now (s.11:
+    markers come into effect at once), or, for gunnery fired simultaneously,
+    the ones that were in play before it (their ids)."""
+    bms = gs.get_blast_markers()
+    return bms if ids is None else [m for m in bms if m.id in set(ids)]
+
+
+@recorder.logged("act_hits", lambda r, A: (A["gs"], dict(
+    target=A["target_id"], hits=A["hits"], crit_on=A["crit_on"], attacker=A["attacker_id"],
+    bypass=A["bypass_hits"], origin=A["origin"], tag=A["tag"])))
+def apply_hits(gs, dice, target_id: str, hits: int, crit_on: int = 6, attacker_id: str = "",
+               bypass_hits: int = 0, origin=None, log=None, tag: str = ""):
+    """Hits from one attack applied to one ship (apply_damage: shields, Brace
+    saves if it is braced, criticals), then a ship reduced to 0 rolls
+    catastrophic damage. A hulk takes hits too (it re-rolls catastrophic
+    damage). `origin`: where the attack came from (the attacker by default).
+    Returns (hits left unused because the ship was destroyed, destroyed)."""
+    from .combat import apply_damage
+    from .models import SpecialOrder
+    t = gs.get_ship_by_id(target_id)
+    hulk = t is not None and t.status in ("drifting_hulk", "burning_hulk")
+    if not t or (t.is_destroyed and not hulk):
+        return hits, True
+    braced = t.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
+    if origin is None and attacker_id:
+        src = gs.get_ship_by_id(attacker_id)
+        origin = (src.x, src.y) if src else None
+    dmg = apply_damage(t, hits, dice, gs, target_braced=braced, crit_on=crit_on,
+                       attacker_key=attacker_id, origin=tuple(origin) if origin else None,
+                       bypass_hits=bypass_hits)
+    if log:
+        for c in dmg.get("crits") or []:
+            log(f"{tag}  CRIT: {c}")
+        if dmg.get("crippled"):
+            log(f"{tag}  {t.name} CRIPPLED")
+        if dmg.get("destroyed"):
+            log(f"{tag}  {t.name} DESTROYED")
+    resolve_kill(gs, dice, t.id)
+    return dmg["unused_hits"], dmg["destroyed"]
+
+
+def _hits_fn(gs, dice, crit_on, attacker_id, log, tag):
+    return lambda m, n: apply_hits(gs, dice, m.id, n, crit_on, attacker_id, log=log, tag=tag)
+
+
+@recorder.logged("act_fire", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], target=A["target_id"], weapons=list(A["w_idxs"]),
+    lock_on=A["lock_on"], markers=A["marker_ids"], tag=A["tag"])))
+def fire_weapons(gs, dice, ship_id: str, target_id: str, w_idxs, lock_on: bool,
+                 marker_ids=None, log=None, tag: str = ""):
+    """One attack at one target (s.13): the weapons' firepower fixed as they
+    fire (random values rolled, Heavy Gunz by range: weapon_fire_pool), then
+    macrobatteries of one gunnery type as ONE roll on their total firepower
+    (resolve_battery_group), or one lance weapon; a target in a squadron is
+    fired on as the squadron, hits nearest first (s.8). Hits applied
+    (apply_hits), a Kustom Kannon's load spent. `marker_ids`: the blast
+    markers from before, for gunnery types fired simultaneously.
+    Returns the ShotResult."""
+    from .combat import (weapon_fire_pool, shot_weapon, squadron_group, fire_at_squadron,
+                         resolve_battery_group, resolve_lances, spend_kustom_kannon)
+    log = log or gs.add_log
+    ship, target = gs.get_ship_by_id(ship_id), gs.get_ship_by_id(target_id)
+    weapons = [ship.weapons[i] for i in w_idxs]
+    shots = []
+    for i, w in zip(w_idxs, weapons):
+        pool, _mode, _err = weapon_fire_pool(ship, w, i, ship.distance_to(target), dice, gs)
+        if w.get("strength_dice"):
+            log(f"{tag}{ship.name} {w['name']}: rolled {w['strength_dice']} = {pool}")
+        shots.append(shot_weapon(w, pool))
+    group = squadron_group(target, gs.get_ships())
+    crit_on = weapons[0].get("crit_on", 6)
+    hits_fn = _hits_fn(gs, dice, crit_on, ship.id, log, tag)
+    phenomena = gs.get_phenomena()
+    if weapons[0].get("weapon_type") == "battery":
+        sr, applied = resolve_battery_group(
+            ship, target, shots, dice, _markers(gs, marker_ids), lock_on, phenomena,
+            gs.get_ships(), group=group, apply_hits=hits_fn)
+        for w in weapons:
+            if w.get("kustom_kannon"):
+                spend_kustom_kannon(ship, w, gs)
+    elif len(group) > 1:
+        sr, applied = fire_at_squadron(ship, shots[0], target, group, dice, hits_fn, lock_on,
+                                       _markers(gs, marker_ids), phenomena, gs.get_ships())
+    else:
+        sr, applied = resolve_lances(ship, target, shots[0], dice, lock_on=lock_on), None
+    if applied is not None:
+        log(f"{tag}{ship.name} → squadron {target.squadron_id}: "
+            f"{sr.weapon_name or weapons[0]['name']} {sr.hits} hit(s)")
+        return sr
+    log(f"{tag}{ship.name} → {target.name}: {sr.weapon_name or weapons[0]['name']} "
+        f"{sr.hits} hit(s)")
+    if sr.hits > 0:
+        apply_hits(gs, dice, target.id, sr.hits, crit_on, ship.id,
+                   bypass_hits=sr.bypass_hits, log=log, tag=tag)
+    return sr
+
+
+@recorder.logged("act_siege", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], target=A["target_id"], macro=list(A["macro"]), bc=list(A["bc"]),
+    lock_on=A["lock_on"], tag=A["tag"])))
+def fire_siege_cannons(gs, dice, ship_id: str, target_id: str, macro, bc, lock_on: bool,
+                       log=None, tag: str = ""):
+    """Siege Cannons: macrobatteries and bombardment cannons in one lookup
+    (resolve_siege_cannons), each kind's hits applied with its own crits."""
+    from .combat import weapon_fire_pool, shot_weapon, resolve_siege_cannons
+    log = log or gs.add_log
+    ship, target = gs.get_ship_by_id(ship_id), gs.get_ship_by_id(target_id)
+    shots = {}
+    for i in list(macro) + list(bc):
+        w = ship.weapons[i]
+        pool, _m, _e = weapon_fire_pool(ship, w, i, ship.distance_to(target), dice)
+        shots[i] = shot_weapon(w, pool)
+    m_res, b_res = resolve_siege_cannons(
+        ship, target, [shots[i] for i in macro], [shots[i] for i in bc], dice,
+        gs.get_blast_markers(), lock_on, gs.get_phenomena(), gs.get_ships())
+    log(f"{tag}{ship.name} → {target.name}: Siege Cannons {m_res.hits}+{b_res.hits} hit(s)")
+    if m_res.hits:
+        apply_hits(gs, dice, target.id, m_res.hits, 6, ship.id, log=log, tag=tag)
+    if b_res.hits:
+        apply_hits(gs, dice, target.id, b_res.hits, 4, ship.id, log=log, tag=tag)
+    return m_res, b_res
+
+
+@recorder.logged("act_volley", lambda r, A: (A["gs"], dict(
+    ship=A["lead_id"], firers=[list(p) for p in A["firers"]], target=A["target_id"],
+    aspects=A["aspects"], lock_on=A["lock_on"], markers=A["marker_ids"], tag=A["tag"])))
+def fire_squadron_volley(gs, dice, lead_id: str, firers, target_id: str, aspects=None,
+                         lock_on: bool = False, marker_ids=None, log=None, tag: str = ""):
+    """Shooting by Squadrons (s.8): the firers' batteries ([ship id, weapon
+    index]) as one planned volley at the target or its squadron
+    (plan_squadron_volley; aspects "best": best_aspect_choice), rolled and
+    applied nearest first. Returns {ship id: hits applied}."""
+    from .combat import (plan_squadron_volley, resolve_squadron_volley, squadron_group,
+                         best_aspect_choice)
+    log = log or gs.add_log
+    target = gs.get_ship_by_id(target_id)
+    bms, phen, all_ships = _markers(gs, marker_ids), gs.get_phenomena(), gs.get_ships()
+    group = squadron_group(target, all_ships)
+    pairs = []
+    for sid, i in firers:
+        m = gs.get_ship_by_id(sid)
+        pairs.append((m, m.weapons[i]))
+    choice = (best_aspect_choice(pairs, group, bms, phen, all_ships)
+              if aspects == "best" and len(group) > 1 else None)
+    plan = plan_squadron_volley(pairs, group, bms, phen, all_ships, aspect_choice=choice)
+    applied = resolve_squadron_volley(
+        plan, group, dice,
+        lambda t, n: apply_hits(gs, dice, t.id, n, 6, lead_id, log=log, tag=tag),
+        lock_on=lock_on, game_state=gs)
+    lead = gs.get_ship_by_id(lead_id)
+    log(f"{tag}squadron {lead.squadron_id if lead else ''} combined batteries at "
+        f"{target.name}: {sum(a['dice'] for a in plan['attacks'])} dice, "
+        f"{sum(applied.values())} hit(s)")
+    return applied
+
+
+@recorder.logged("act_nova", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], at=[A["x"], A["y"]], tag=A["tag"])))
+def fire_nova_cannon(gs, dice, ship_id: str, x: float, y: float, log=None, tag: str = ""):
+    """The Nova Cannon aimed at (x, y) (s.14): the scatter, then each ship
+    under the template takes its hits from where the template landed."""
+    from .combat import resolve_nova_cannon
+    log = log or gs.add_log
+    ship = gs.get_ship_by_id(ship_id)
+    nc = resolve_nova_cannon(ship, x, y, dice, gs)
+    if "error" in nc:
+        return nc
+    log(f"{tag}{ship.name} nova cannon at ({x:.0f},{y:.0f})")
+    for sid, hd in nc.get("ship_hits", {}).items():
+        apply_hits(gs, dice, sid, hd["hits"], 6, ship.id,
+                   origin=(nc["template_x"], nc["template_y"]), log=log, tag=tag)
+    # s.14: no ship hit, a blast marker under the centre of the template
+    from .models import BlastMarker
+    for bx, by in nc.get("blast_markers", []):
+        gs.add_blast_marker(BlastMarker(id=f"nova_miss_{gs.next_serial()}", x=bx, y=by,
+                                        source="nova_cannon_miss"))
+    return nc
+
+
+@recorder.logged("act_area", lambda r, A: (A["gs"], dict(ship=A["ship_id"], what=A["what"])))
+def fire_area_weapon(gs, dice, ship_id: str, what: str):
+    """A weapon with no target to pick: a Necron star pulse generator or the
+    Armageddon Gun; ships it reduced to 0 roll catastrophic damage."""
+    from .combat import resolve_star_pulse, resolve_armageddon_gun
+    ship = gs.get_ship_by_id(ship_id)
+    res = (resolve_star_pulse if what == "star_pulse" else resolve_armageddon_gun)(ship, gs, dice)
+    for sid in res.get("hits", {}):
+        resolve_kill(gs, dice, sid)
+    return res
+
+
+@recorder.logged("act_fire_ordnance", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], weapon=A["w_idx"], marker=A["marker_id"], avail=A["avail"])))
+def fire_at_marker(gs, dice, ship_id: str, w_idx: int, marker_id: str, avail: int):
+    """A weapon fired at an enemy ordnance marker (s.30, fire_at_ordnance)."""
+    from .combat import fire_at_ordnance
+    ship = gs.get_ship_by_id(ship_id)
+    return fire_at_ordnance(ship, ship.weapons[w_idx], marker_id, gs, dice, avail)
+
+
+@recorder.logged("act_brace", lambda r, A: (A["gs"], dict(
+    ship=A["target_id"], attacker=A["attacker_key"], group=list(A["group_ids"]),
+    passed=r["passed"])))
+def declare_brace(gs, dice, target_id: str, attacker_key: str, group_ids=()) -> dict:
+    """Brace for Impact before an attack (s.7): the command check; passed,
+    the target's whole squadron is braced (s.8); failed, none of them may try
+    again against this attacker this turn. Returns the command check."""
+    from .movement import attempt_brace
+    from .models import SpecialOrder
+    target = gs.get_ship_by_id(target_id)
+    check = attempt_brace(target, gs, dice)
+    others = [i for i in group_ids if i != target_id]
+    if check["passed"]:
+        for i in others:
+            m = gs.get_ship_by_id(i)
+            if m and m.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
+                m.previous_order = m.special_order
+                m.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
+                m.brace_set_on_turn = gs.turn_number
+                gs.update_ship(m)
+    else:
+        for i in [target_id] + others:
+            m = gs.get_ship_by_id(i)
+            if m:
+                m.brace_failed_vs = list(m.brace_failed_vs or []) + [attacker_key]
+                gs.update_ship(m)
+    return check
+
+
+@recorder.logged("act_fired", lambda r, A: (A["tc"].gs, dict(ship=A["ship_id"])))
+def mark_fired(tc, ship_id: str) -> None:
+    """A ship has finished its shooting this phase."""
+    gs = tc.gs
+    ship = gs.get_ship_by_id(ship_id)
+    if ship is not None and not ship.has_fired:
+        ship.has_fired = True
+        gs.update_ship(ship)
+    tc.mark_ship_fired(ship_id)
+
+
+@recorder.logged("act_volley_fire", lambda r, A: (A["panel"].ctx.gs, dict(
+    ship=A["ship_id"], orders=[list(o) for o in A["orders"]], together=A["together"],
+    context=A["context"])))
+def fire_volley(panel, ship_id: str, orders, together: bool = False, log=None,
+                context=None):
+    """A player's volley from the Fire dialog (fire_volley.FireVolley): orders
+    [[weapon index, target id or None, firepower or None], ...]; together:
+    different gunnery types fire simultaneously (s.13); context: what the
+    dialog was opened with (the closest visible enemy for target priority,
+    Lock On, an asteroid field, the enemies on offer)."""
+    from .fire_volley import FireVolley
+    FireVolley(panel, ship_id, [tuple(o) for o in orders], together, log=log,
+               context=context).run()

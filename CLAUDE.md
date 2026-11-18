@@ -536,11 +536,11 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Latest work: To do 17 / 18 (recording, replay, the game flow out of the window, the
-action layer) and the owner's s.11 / s.13 shooting ruling; next: shooting actions and
-replay (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and the Fire
+dialog's volley as recorded actions; `src/fire_volley.py`); next: the squadron fire dialogs
+as actions, then ordnance actions and replay (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1370 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1373 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2543,9 +2543,26 @@ Done: To do 2, 3, 6; most of 7.
    Checked: games with every movement phase replayed from the record and the rest played by
    the AI end in exactly the same state (`tests/test_headless_game.py`; Navy v Tau and Orks v
    Space Marines with ramming and boarding on); ram / boarding declarations replay
-   (`tests/test_actions.py`); the 16 games unchanged. Next: shooting (a shot's hits applied
-   by one action for the AI and the Fire dialogs), then ordnance, the end phase and alternate
-   activation's per-unit phases; then games with human players replay in full.
+   (`tests/test_actions.py`); the 16 games unchanged. Shooting built: each AI attack is one
+   action that fixes the firepower, rolls and applies the hits (`actions.fire_weapons`:
+   batteries of one gunnery type as one roll, a lance, at a ship or its squadron;
+   `fire_siege_cannons`, `fire_squadron_volley`, `fire_nova_cannon`, `fire_area_weapon` (star
+   pulse, Armageddon Gun), `fire_at_marker`; `apply_hits` for every application, the AI's
+   `_apply_hits_to` delegating), Brace before an attack (`declare_brace`, used by
+   `CombatPanel._brace_before_attack`) and a ship done firing (`mark_fired`); the 16 games
+   unchanged. The Fire dialog's volley moved out of the window into `src/fire_volley.py`
+   (`FireVolley`, the same code: target priority, Brace per kind, s.13 groups, lances, nova
+   cannon, hits per kind, weapons used) and runs as one recorded action, `actions.fire_volley`
+   (orders [weapon, target, firepower], the s.13 "together" choice and what the dialog was
+   opened with). Shooting phases replay (`tests/test_headless_game.py`), and a Fire dialog
+   volley replays (`tests/test_actions.py`). Fixed on the way: the AI's Nova Cannon misses
+   placed no blast marker (s.14; the dialog did), now `fire_nova_cannon` places it. Found,
+   not changed: the AI's squadron volleys after the first use the markers from when the
+   phase's volleys were planned, not those the earlier volley placed (s.11 says at once; kept
+   for the pure refactor). Not yet as actions: the Combine Squadron Fire and squadron-target
+   dialogs, shooting at ordnance from its dialog. Next: those, then ordnance, the end phase
+   and alternate activation's per-unit phases; then games with human players replay in
+   full.
    Plan items:
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /

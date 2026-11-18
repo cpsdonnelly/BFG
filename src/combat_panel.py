@@ -212,7 +212,6 @@ class CombatPanel(CombatDialogMixin):
         rolls the command check. group: the target's squadron, which tests once
         and braces together (s.8). A ship may only try once per attacker per
         turn. Returns True if the target is braced."""
-        from .movement import attempt_brace
         log_fn = log_fn or self.ctx.log
         target = self.ctx.gs.get_ship_by_id(target.id) or target
         if target.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
@@ -242,25 +241,15 @@ class CombatPanel(CombatDialogMixin):
                 ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker))
         if not want:
             return False
-        check = attempt_brace(target, self.ctx.gs, self.ctx.dice)
+        from .actions import declare_brace
+        check = declare_brace(self.ctx.gs, self.ctx.dice, target.id, attacker_key,
+                              [m.id for m in (group or [target])])
         tag = "[AI] " if self.ctx.is_ai_controlled(target.player) else ""
         members = [m for m in (group or [target]) if m.id != target.id]
         if check["passed"]:
             log_fn(f"     {tag}{target.name} Brace PASSED (rolled {check['roll']} "
                    f"vs Ld {check['needed']})" + (" — whole squadron braced" if members else ""))
-            for m in members:
-                fresh = self.ctx.gs.get_ship_by_id(m.id)
-                if fresh and fresh.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
-                    fresh.previous_order = fresh.special_order
-                    fresh.special_order = SpecialOrder.BRACE_FOR_IMPACT.value
-                    fresh.brace_set_on_turn = self.ctx.gs.turn_number
-                    self.ctx.gs.update_ship(fresh)
             return True
-        for m in [target] + members:
-            fresh = self.ctx.gs.get_ship_by_id(m.id)
-            if fresh:
-                fresh.brace_failed_vs = list(fresh.brace_failed_vs or []) + [attacker_key]
-                self.ctx.gs.update_ship(fresh)
         log_fn(f"     {tag}{target.name} Brace FAILED (rolled {check['roll']} "
                f"vs Ld {check['needed']})")
         return False

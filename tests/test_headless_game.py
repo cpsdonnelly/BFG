@@ -68,3 +68,30 @@ def test_movement_phases_replay_from_the_recorded_actions(tmp_path):
     HeadlessGame(tc, replay_events=evs, replay_phases=("movement",)).play(timeout=120)
     assert state(gs) == s1
     recorder.stop_recording()
+
+
+def test_movement_and_shooting_phases_replay_from_the_recorded_actions(tmp_path):
+    """Movement and shooting played from the record (each attack one action:
+    actions.fire_weapons and friends), ordnance and the end phase by the AI:
+    the same game."""
+    def state(gs):
+        return json.dumps({"ships": gs.ships, "ordnance": gs.ordnance,
+                           "bm": gs.blast_markers}, sort_keys=True, default=str)
+    _res, _h, game = _game(tmp_path, DiceSource(11, record=True))
+    s1 = state(game.ctx.gs)
+    record, evs = current_source().record, recorder.events()
+    assert any(e["kind"] == "act_fire" and e["depth"] == 0 and e["seat"] for e in evs)
+    set_source(DiceSource(0, replay=[list(e) for e in record]))
+    recorder.start_recording()
+    gs = GameState(game_name="headless", game_seed=11)
+    gs.table_width, gs.table_height, gs.dice_mode, gs.turn_limit = 120.0, 90.0, "auto", 4
+    for p, names, x in ((1, ["Lunar Class Cruiser", "Dauntless Class Light Cruiser"], 40.0),
+                        (2, ["Murder Class Cruiser", "Infidel Class Raider"], 80.0)):
+        for i, n in enumerate(names):
+            d = find_ship_class(n).to_ship_dict(n, p, ship_id=f"p{p}_{i}")
+            d.update(x=x, y=30.0 + 25 * i, heading=0.0 if p == 1 else 180.0, leadership=8)
+            gs.add_ship(Ship.from_dict(d))
+    tc = TurnController(gs, DiceRoller(mode="auto"), save_dir=str(tmp_path / "r2"))
+    HeadlessGame(tc, replay_events=evs, replay_phases=("movement", "shooting")).play(timeout=120)
+    assert state(gs) == s1
+    recorder.stop_recording()

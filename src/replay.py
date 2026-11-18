@@ -30,7 +30,8 @@ class ReplaySeat:
     def _replay(self, phase: str):
         contacts = self.flow.ordnance._resolve_moving_ship_contacts
         for ev in seat_events(self.events, self.gs.turn_number, phase, self.player):
-            actions.replay_event(self.gs, self.tc, self.dice, ev, contacts=contacts)
+            actions.replay_event(self.gs, self.tc, self.dice, ev, contacts=contacts,
+                                 panel=self.flow.combat)
 
     def run_movement_phase(self):
         self._replay("movement")
