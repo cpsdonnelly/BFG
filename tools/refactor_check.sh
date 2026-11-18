@@ -4,6 +4,7 @@
 # must leave every final-state hash unchanged.
 #   tools/refactor_check.sh > after.txt ; diff before.txt after.txt
 cd "$(dirname "$0")/.." || exit 1
+unset DISPLAY      # no window: a stray Tk call fails loudly instead of needing xvfb
 export PYTHONHASHSEED=0
 for sys in igougo aa; do
   /usr/bin/python3.12 tools/headless_runner.py --no-display --games 6 --procs 4 \

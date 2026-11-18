@@ -104,6 +104,40 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   salvo's rolled strength is known and used (`ai_hazards.marker_hits`).
   `combat.weapon_fire_pool` fixes a weapon's pool on its first shot of the turn.
 
+- **Blast markers and a ship's own shooting (owner ruling; s.11, s.13):** blast markers come
+  into effect immediately, so they can affect later shooting in the same turn (lances and nova
+  cannon never). But every macrobattery a ship fires at one target totals its firepower into
+  ONE Gunnery table roll (s.13): no firing some, seeing the result and adding the rest at the
+  same target; the only way to hold batteries back is to fire them at another target, which
+  normally needs a target priority test (so the AI should weigh passing one to send spare
+  batteries elsewhere when the total would overkill). Earlier / later shots happen only when
+  a ship splits its batteries between targets, or has different gunnery weapon types (a
+  strike cruiser's macrobatteries and bombardment cannon). For the second, s.13's Mixing
+  Different Gunnery Weapons lets the player fire them simultaneously (all to-hit rolls first,
+  so none takes column shifts from the others' markers, but all are committed even if the
+  first kills the target); otherwise they fire in sequence and earlier markers shift later
+  ones: a choice in the Fire dialog, and the AI uses it when committing everything is worth
+  it. Siege Cannons: macrobatteries and bombardment cannons in one lookup, the macrobatteries
+  making the dice beyond the cannons' firepower (so shifts and table losses fall on them; with
+  fewer dice than the cannons' firepower, the cannons make them all); macrobatteries alone take
+  an extra right shift (built so). Batteries before lances because lance hits absorbed by
+  shields also place markers, which would shift gunnery fired after; battery markers never
+  affect lances. Squadrons: one combined volley is one simultaneous attack (no shifts between
+  its shares); a later separate volley is affected. Markers in the way: the line of fire,
+  including markers in contact with either ship's base; Modern / Remastered add base contact
+  as s.11 says (built so). Built: `combat.gunnery_kind` (macrobatteries vs bombardment
+  cannons, Kustom Kannon, Eldar / lightning-arc batteries), `combined_battery` (each weapon
+  reduced by its own modifiers, as capital ships halve individually in a squadron, then
+  totalled; reading) and `resolve_battery_group` (one roll at a ship or as a squadron attack);
+  the AI plans all its batteries' targets first (`_pick_target`'s overkill check) and fires
+  one attack per target and type (`AIPlayer._fire_battery_groups`), re-picking for a group
+  whose target an earlier attack destroyed, each attack seeing the markers in play, or all of
+  a target's types together when the first type alone isn't expected to destroy it
+  (judgement); the Fire dialog fires the same groups (`_fire_battery_groups`; a group's hits
+  are applied before the next rolls) and offers "Fire different gunnery weapons together"
+  for a ship with two gunnery types (`tests/test_combined_batteries.py`,
+  `tools/gui_checks/battery_combine_check.py`). Not yet: the AI weighing a target priority
+  test to send spare batteries elsewhere beyond what `_pick_target` already does.
 - **Tactical Reserves covers macrobatteries only, not lances** (battle barges lose 25% of
   macrobattery firepower on All Ahead Full or Burn Retros; lances still halve).
 - **Defence turrets (s.28; owner ruling this session):** a ship's turrets defend against
@@ -504,7 +538,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1361 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1366 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2775,12 +2809,6 @@ rather than touch a third ship).
   netherfields and polarisation fields (identical to those of the Haven Spire)", but the
   booklet's Haven Spire (MMS) has neither; only XR's note names them, and only the Dark
   Eldar Tormentor Spire defines a polarisation field. What should they do?
-- **A ship's own blast markers and its later weapons (found in To do 18):** when one ship
-  fires several batteries at a target, do the blast markers its earlier batteries put on the
-  target's shields shift its later batteries' column? Today neither the AI nor the Fire
-  dialog does (each reads the markers once, when the ship starts firing), although To do
-  11 d's batteries-before-lances order assumed they would. Squadron volleys have the owner
-  ruling "no" between groups of firers.
 - **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
   next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
 

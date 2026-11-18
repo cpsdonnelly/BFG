@@ -2543,13 +2543,20 @@ class AIPlayer:
         siege_done = self._fire_siege_cannons(ship, enemies, lock_on, blast_markers,
                                               phenomena, all_ships)
 
-        # Batteries before lances (To do 11 d): the blast markers that hits on
-        # shields leave shift later batteries right but never lances (s.11)
+        # Batteries before lances (To do 11 d; owner): lance hits on shields
+        # place blast markers too, which would shift gunnery fired after them
+        # (s.11), while battery markers never affect lances
         order = sorted(enumerate(ship.weapons),
                        key=lambda iw: {"battery": 0, "lance": 2}.get(
                            iw[1].get("weapon_type", ""), 1))
+        battery_plans = []                  # (w_idx, weapon, target), fired as groups
+        flushed = False
         for w_idx, weapon in order:
             wtype = weapon.get("weapon_type", "")
+            if wtype != "battery" and not flushed:
+                flushed = True
+                self._fire_battery_groups(ship, battery_plans, lock_on, phenomena)
+                ship = gs.get_ship_by_id(ship.id)
             if wtype in ("torpedo", "launch_bay", "mine_launcher") or w_idx in siege_done:
                 continue
             if weapon_disabled_by_crit(ship, weapon):
@@ -2600,6 +2607,11 @@ class AIPlayer:
             target = self._pick_target(ship, weapon, enemies)
             if not target:
                 continue
+            if wtype == "battery":
+                # s.13 (owner): a ship's batteries of one type at one target
+                # make one roll, so they are planned first and fired together
+                battery_plans.append((w_idx, weapon, target))
+                continue
             self._offer_brace(ship, target, [weapon])
 
             if wtype in ("battery", "lance"):
@@ -2640,6 +2652,87 @@ class AIPlayer:
                        f"{weapon['name']} {sr.hits} hit(s)")
             if sr.hits > 0:
                 self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id,
+                                    bypass_hits=sr.bypass_hits)
+        if not flushed:
+            self._fire_battery_groups(ship, battery_plans, lock_on, phenomena)
+
+    def _fire_battery_groups(self, ship: Ship, plans, lock_on: bool, phenomena) -> None:
+        """Fire the ship's planned batteries (owner ruling, s.11 / s.13): those
+        of one gunnery type at one target as ONE roll on their total firepower
+        (`combat.resolve_battery_group`); each attack sees the blast markers in
+        play now (markers come into effect at once), except that different
+        gunnery types at the same target may fire simultaneously (s.13's Mixing
+        Different Gunnery Weapons: all to-hit rolls on the markers from before,
+        but all committed). The AI fires them together when the first type
+        alone isn't expected to destroy the target (committing costs little;
+        judgement), else in sequence. A group whose target is already gone
+        picks new targets."""
+        from .combat import gunnery_kind, resolve_battery_group, expected_hits
+        from .geometry import current_shields
+        gs = self.gs
+        if not plans:
+            return
+        start_markers = gs.get_blast_markers()
+        groups = {}
+        for w_idx, weapon, target in plans:
+            groups.setdefault((target.id, gunnery_kind(weapon)), []).append((w_idx, weapon))
+        kinds_at = {}
+        for (tid, kind) in groups:
+            kinds_at.setdefault(tid, []).append(kind)
+        simultaneous = {}
+        for tid, kinds in kinds_at.items():
+            if len(kinds) < 2:
+                continue
+            t = gs.get_ship_by_id(tid)
+            first = groups[(tid, kinds[0])]
+            exp = sum(expected_hits(ship, w, t, gs) for _i, w in first) if t else 0.0
+            simultaneous[tid] = t is not None and exp < t.hits_remaining + current_shields(
+                t, gs.get_blast_markers())
+        replanned = set()
+        queue = list(groups.items())
+        while queue:
+            (tid, kind), members = queue.pop(0)
+            target = gs.get_ship_by_id(tid)
+            ship = gs.get_ship_by_id(ship.id)
+            if target is None or target.is_destroyed or target.is_disengaged:
+                fresh = {}
+                for w_idx, weapon in members:
+                    if w_idx in replanned:
+                        continue
+                    replanned.add(w_idx)
+                    t2 = self._pick_target(ship, weapon, self._live_enemies())
+                    if t2 is not None:
+                        fresh.setdefault((t2.id, kind), []).append((w_idx, weapon))
+                queue.extend(fresh.items())
+                continue
+            weapons = [w for _i, w in members]
+            self._offer_brace(ship, target, weapons)
+            shots = []
+            for w_idx, weapon in members:
+                pool, _mode, _err = weapon_fire_pool(
+                    ship, weapon, w_idx, ship.distance_to(target), self.dice, gs)
+                if weapon.get("strength_dice"):
+                    gs.add_log(f"[AI] {ship.name} {weapon['name']}: rolled "
+                               f"{weapon['strength_dice']} = {pool}")
+                shots.append(shot_weapon(weapon, pool))
+            markers = start_markers if simultaneous.get(tid) else gs.get_blast_markers()
+            group = squadron_group(target, gs.get_ships())
+            crit_on = weapons[0].get("crit_on", 6)
+            sr, applied = resolve_battery_group(
+                ship, target, shots, self.dice, markers, lock_on, phenomena, gs.get_ships(),
+                group=group,
+                apply_hits=lambda m, n, _c=crit_on, _a=ship.id: self._apply_hits_to(m, n, _c, _a))
+            for w in weapons:
+                if w.get("kustom_kannon"):
+                    from .combat import spend_kustom_kannon
+                    spend_kustom_kannon(ship, w, gs)
+            if applied is not None:
+                gs.add_log(f"[AI] {ship.name} → squadron {target.squadron_id}: "
+                           f"{sr.weapon_name} {sr.hits} hit(s)")
+                continue
+            gs.add_log(f"[AI] {ship.name} → {target.name}: {sr.weapon_name} {sr.hits} hit(s)")
+            if sr.hits > 0:
+                self._apply_hits_to(target, sr.hits, crit_on, ship.id,
                                     bypass_hits=sr.bypass_hits)
 
     def _squadron_volleys(self, only: Optional[str] = None):

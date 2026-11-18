@@ -290,6 +290,53 @@ def shot_weapon(weapon: Dict, strength: int) -> Dict:
     return d
 
 
+def gunnery_kind(weapon: Dict) -> tuple:
+    """Which gunnery weapon type a battery is, for s.13: a ship's macrobatteries
+    of one type firing at one target total their firepower into one Gunnery
+    table roll, while distinct types (a strike cruiser's bombardment cannon,
+    a Kustom Kannon, Eldar or lightning-arc batteries) roll separately."""
+    return (weapon.get("hits_on"), weapon.get("crit_on", 6), bool(weapon.get("eldar_battery")),
+            bool(weapon.get("lightning_arc")), bool(weapon.get("kustom_kannon")))
+
+
+def combined_battery(attacker: Ship, shots: List[Dict], target: Ship) -> Dict:
+    """Owner ruling, s.13: every macrobattery of one gunnery type a ship fires
+    at one target makes ONE Gunnery table roll on their total firepower.
+    `shots` are the weapons with their firepower for this shot decided
+    (shot_weapon); each is reduced by its own modifiers (orders, crippling,
+    Brace), as capital ships in a squadron halve individually, then totalled.
+    Returns one weapon dict for resolve_batteries / fire_at_squadron."""
+    if len(shots) == 1:
+        return shots[0]
+    d = {k: v for k, v in shots[0].items() if k not in ("strength_close", "strength_dice")}
+    d["name"] = " + ".join(w.get("name", "battery") for w in shots)
+    d["combined_fp"] = sum(effective_battery_firepower(attacker, w, target) for w in shots)
+    d["strength"] = d["combined_fp"]
+    d["combined_of"] = len(shots)
+    return d
+
+
+def resolve_battery_group(attacker: Ship, target: Ship, shots: List[Dict], dice,
+                          blast_markers, lock_on: bool = False, phenomena: list = None,
+                          all_ships: list = None, no_column_shifts: bool = False,
+                          group: List[Ship] = None, apply_hits=None,
+                          range_cap: Optional[float] = None):
+    """Fire a ship's macrobatteries of one gunnery type at one target as one
+    attack (s.13, combined_battery). A target in a squadron of 2+ is fired on
+    as the squadron, hits nearest first through apply_hits(ship, n) (s.8).
+    `blast_markers` are the ones in play now (s.11: markers come into effect
+    at once), or those from before the volley when different gunnery weapon
+    types fire simultaneously. Returns (ShotResult, hits applied per ship id
+    or None for a single target, whose hits the caller applies)."""
+    weapon = combined_battery(attacker, shots, target)
+    if group is not None and len(group) > 1:
+        return fire_at_squadron(attacker, weapon, target, group, dice, apply_hits, lock_on,
+                                blast_markers, phenomena, all_ships,
+                                no_column_shifts=no_column_shifts, range_cap=range_cap)
+    return resolve_batteries(attacker, target, weapon, dice, blast_markers, lock_on,
+                             phenomena, all_ships, no_column_shifts=no_column_shifts), None
+
+
 def battery_base_firepower(attacker: Ship, weapon: Dict,
                            target: Optional[Ship] = None) -> int:
     """Printed firepower for this shot. Ork Heavy Gunz have two values: the
@@ -304,6 +351,8 @@ def battery_base_firepower(attacker: Ship, weapon: Dict,
 def effective_battery_firepower(attacker: Ship, weapon: Dict,
                                 target: Optional[Ship] = None) -> int:
     """Return the effective firepower of a battery weapon after all modifiers."""
+    if "combined_fp" in weapon:        # combined_battery: already totalled after modifiers
+        return weapon["combined_fp"]
     from .chapter_tactics import reduce_for_movement_order, lightning_vanguard
     fp = battery_base_firepower(attacker, weapon, target)
     if attacker.is_crippled:

@@ -195,6 +195,20 @@ class _FireDialog:
             self.weapon_assignments.append(
                 (w_idx, weapon, enabled, target_var, str_var, avail_str))
 
+        # s.13 Mixing Different Gunnery Weapons (owner ruling): fire them
+        # simultaneously (no shifts from each other's blast markers, all
+        # committed even if the first kills the target) or in sequence
+        from .combat import gunnery_kind
+        kinds = {gunnery_kind(w) for _i, w, *_r in self.weapon_assignments
+                 if w.get("weapon_type") == "battery"}
+        self._together_var = tk.BooleanVar(value=False)
+        if len(kinds) > 1:
+            tk.Checkbutton(dialog, variable=self._together_var,
+                           text="Fire different gunnery weapons together (s.13: no column "
+                                "shifts from each other's blast markers; all are committed)",
+                           font=("Consolas", 8), wraplength=520,
+                           justify=tk.LEFT).pack(anchor=tk.W, padx=10)
+
         # Log area
         log_frame = tk.Frame(dialog)
         log_frame.pack(fill=tk.X, padx=10, pady=3)
@@ -361,11 +375,14 @@ class _FireDialog:
         siege_done = self._fire_siege_cannons(all_damage, fired_weapon_indices)
 
         asked_kinds = {"battery"}
+        self._fire_battery_groups(all_damage, fired_weapon_indices, siege_done)
         for w_idx, weapon, enabled, target_var, str_var, avail_str in sorted(
                 self.weapon_assignments, key=lambda a: _FIRE_ORDER.get(
                     a[1].get("weapon_type", ""), 9)):
             if not enabled.get() or w_idx in siege_done:
                 continue
+            if weapon.get("weapon_type") == "battery":
+                continue                    # fired as groups above (s.13)
             target = self._volley_targets.get(w_idx)
             if target is None:
                 self._log(f"  {weapon['name']}: skipped (no valid target)")
@@ -534,6 +551,102 @@ class _FireDialog:
         self._record_fired(fired_weapon_indices)
         self.dialog.destroy()
         self.ctx.board.redraw()
+
+    def _battery_pool(self, w_idx, weapon, target, str_var, avail_str):
+        """This shot's firepower for one battery: a random value rolled now
+        (after the target chose to brace), Heavy Gunz by range, the player's
+        chosen strength within what is available. None if it can't fire."""
+        pool, mode, err = weapon_fire_pool(
+            self.attacker, weapon, w_idx, self.attacker.distance_to(target),
+            self.ctx.dice, self.ctx.gs)
+        if err:
+            self._log(f"  {err}")
+            return None
+        if (weapon.get("strength_dice") or weapon.get("strength_close")
+                is not None) and str(w_idx) not in self.attacker.weapons_remaining:
+            if weapon.get("strength_dice"):
+                self._log(f"  {weapon['name']}: rolled {weapon['strength_dice']} = {pool}")
+            if self.in_asteroid_field:
+                pool = max(1, (pool + 1) // 2)
+            avail_str = pool
+        if mode:
+            self._pool_modes[w_idx] = mode
+        try:
+            fire_str = max(1, min(int(str_var.get()), avail_str))
+        except (ValueError, TypeError):
+            fire_str = avail_str
+        return fire_str, avail_str
+
+    def _fire_battery_groups(self, all_damage, fired_weapon_indices, siege_done):
+        """Owner ruling (s.11 / s.13): every macrobattery of one gunnery type
+        the ship fires at one target makes ONE roll on their total firepower
+        (combat.resolve_battery_group). Groups fire in turn and each sees the
+        blast markers in play (markers come into effect at once), so a group's
+        hits are applied before the next rolls; with "Fire different gunnery
+        weapons together" every group uses the markers from before the volley
+        (s.13 Mixing Different Gunnery Weapons)."""
+        from .combat import gunnery_kind, resolve_battery_group
+        gs = self.ctx.gs
+        together = bool(self._together_var.get()) if hasattr(self, "_together_var") else False
+        start_markers = gs.get_blast_markers()
+        groups = {}
+        for w_idx, weapon, enabled, _tv, str_var, avail_str in self.weapon_assignments:
+            if (not enabled.get() or w_idx in siege_done
+                    or weapon.get("weapon_type") != "battery"):
+                continue
+            target = self._volley_targets.get(w_idx)
+            if target is None:
+                self._log(f"  {weapon['name']}: skipped (no valid target)")
+                continue
+            groups.setdefault((target.id, gunnery_kind(weapon)), []).append(
+                (w_idx, weapon, str_var, avail_str))
+        phenomena = gs.get_phenomena()
+        for (tid, _kind), entries in groups.items():
+            target = gs.get_ship_by_id(tid)
+            if target is None or (target.is_destroyed and not target.is_hulk):
+                self._log(f"  {', '.join(e[1]['name'] for e in entries)}: target already "
+                          f"destroyed")
+                continue
+            shots, fired = [], []
+            for w_idx, weapon, str_var, avail_str in entries:
+                got = self._battery_pool(w_idx, weapon, target, str_var, avail_str)
+                if got is None:
+                    continue
+                fire_str, avail = got
+                shots.append(shot_weapon(weapon, fire_str))
+                fired.append((w_idx, fire_str, avail))
+            if not shots:
+                continue
+            crit_on = entries[0][1].get("crit_on", 6)
+
+            def _apply_to(member, n, _c=crit_on):
+                fresh = gs.get_ship_by_id(member.id)
+                if not fresh or fresh.is_destroyed:
+                    return n, True
+                self._log(f"  >> {fresh.name}: {n} hits")
+                return self.panel._apply_hits_to_target(
+                    self.attacker, fresh, n, self._log, crit_on=_c,
+                    braced=self._braced.get(fresh.id, False))
+            markers = start_markers if together else gs.get_blast_markers()
+            sr, applied = resolve_battery_group(
+                self.attacker, target, shots, self.ctx.dice, markers, self.lock_on,
+                phenomena, gs.ships, no_column_shifts=self.in_asteroid_field,
+                group=squadron_group(target, gs.get_ships()), apply_hits=_apply_to,
+                range_cap=10 if self.in_asteroid_field else None)
+            for _w_idx, weapon, *_r in entries:
+                if weapon.get("kustom_kannon"):
+                    from .combat import spend_kustom_kannon
+                    spend_kustom_kannon(self.attacker, weapon, gs)
+            fired_weapon_indices.extend(fired)
+            if applied is not None:
+                self._log(f"  {sr.description} — squadron takes {sr.hits} hit(s)")
+                continue
+            self._log(f"  {sr.description}")
+            if sr.hits > 0:
+                all_damage.setdefault(target.id, []).append(
+                    (sr.hits, "battery", target, crit_on, self._braced.get(target.id, False)))
+            if not together:
+                self._apply_volley_damage(all_damage, final=False)   # its markers now count
 
     def _apply_volley_damage(self, all_damage, final=True):
         """Apply the hits rolled so far, then clear them (each kind of weapon's

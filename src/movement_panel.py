@@ -453,11 +453,10 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
         if violations:
             for v in violations:
                 self.ctx.log(f"  COHERENCY: {v}")
-            messagebox.showwarning(
+            self.ctx.prompt.notify(
                 "Squadron Coherency",
                 "Ships out of squadron coherency (>15 cm from all squadron-mates):\n\n"
-                + "\n".join(f"• {v}" for v in violations),
-            )
+                + "\n".join(f"• {v}" for v in violations), "warning")
 
         # Clear any pending scroll-wheel turns
         self._pending_turn.clear()
