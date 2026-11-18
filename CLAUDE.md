@@ -537,10 +537,11 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
-shooting dialog as recorded actions; `src/fire_volley.py`) and the ordnance phase (AI
-and every human dialog) as actions; next: the end phase as actions (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+shooting dialog as recorded actions; `src/fire_volley.py`), the ordnance phase (AI
+and every human dialog) and the end phase's decisions as recorded actions, so every phase
+replays from the record; next: alternate activation's per-unit phases (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1582 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1585 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2589,9 +2590,22 @@ Done: To do 2, 3, 6; most of 7.
    now kept on the game (`gs._threat_cache`) and keyed by the ship's state and guns and
    every enemy's position and state; the bracket cache's key now includes the weapons and
    order, not just their count (both change AI play slightly: the 16-game baseline was
-   regenerated). Next: the
-   end phase (damage control, boarding, teleports, blast marker removal) and alternate
-   activation's per-unit phases; then games with human players replay in full.
+   regenerated). End phase built: its players' decisions are each one recorded choice,
+   made through one path for the AI, a human and a replay (`GameFlow._end_choice`, an
+   `end_choice` event {what, ship, by, target, answer}, seat True inside the flow via
+   `recorder.seat()`; a replay hands them back in order, `replay.EndChoices`,
+   `ReplayDivergence` on a mismatch): "teleport" (the attacker's player: a target or none),
+   "raid_brace" (the target's player, after the turrets fire, s.31) and "repair" (the ship's
+   player: the crits to repair). Boarding resolution, fires and blast marker removal have no
+   player decision and stay the flow's. The human and AI end phases are now one
+   (`_resolve_end_phase`); fixed on the way: in a human's end phase the AI's ships' repair
+   choices went to the human's dialog, and damage control now rolls for the active player's
+   ships first (s.36). Checked: Space Marines v Orks with boarding, teleports, raids and
+   rams, every phase replayed from the record, the same game (`tests/test_headless_game.py`,
+   repairs, a teleport and its brace among the decisions); a recorded repair choice the AI
+   wouldn't make replays (`tests/test_end_phase_replay.py`). Next: alternate activation's
+   per-unit phases; then games with human players replay in full (the replay setting each
+   seat's human / AI as recorded).
    Plan items:
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /

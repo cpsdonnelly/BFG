@@ -460,9 +460,39 @@ class GameFlow(AAPanelMixin):
             self._schedule_ai_phase(500)
 
     def _resolve_end_phase_interactive(self):
-        """Run end phase with interactive repair choices."""
+        """The end phase when a human pressed End Phase (_resolve_end_phase)."""
+        self._resolve_end_phase()
+
+    def _end_choice(self, player: int, what: str, ship_id: str, auto, ask, target_id=None):
+        """One end-phase decision of `player`'s (To do 18): "teleport" (a
+        target id or None), "raid_brace" (bool), "repair" (the crits to
+        repair). The record's when the end phase is replayed (replay.
+        EndChoices), the AI's (`auto`) for an AI seat, else the human's
+        (`ask`); recorded as that player's own decision (an end_choice event,
+        seat True although the end phase is the game flow's)."""
+        gs = self.ctx.gs
+        if "end" in getattr(self, "replay_phases", ()):
+            if getattr(self, "_end_replay", None) is None:
+                from .replay import EndChoices
+                self._end_replay = EndChoices(self.replay_events)
+            answer = self._end_replay.next(gs.turn_number, what, ship_id)
+        elif self.ctx.is_ai_controlled(player):
+            answer = auto()
+        else:
+            answer = ask()
+        with recorder.seat():
+            recorder.event(gs, "end_choice", _depth=0, what=what, ship=ship_id, by=player,
+                           target=target_id, answer=answer)
+        return answer
+
+    def _resolve_end_phase(self):
+        """The end phase (s.36's order): boarding actions and teleport attacks,
+        damage control (both players, the player whose turn it is first),
+        fires, blast marker removal, expired braces. The players' decisions go
+        through _end_choice, so the AI, a human and a replay share one path."""
         from .end_phase import (get_repair_info, apply_repair_choices,
                                 remove_blast_markers, remove_brace_orders)
+        from .ai_player import AIPlayer
         gs = self.ctx.gs
 
         self.ctx.log("=== END PHASE ===")
@@ -471,10 +501,12 @@ class GameFlow(AAPanelMixin):
         self.end_phase._resolve_boarding_actions()
 
         # 0b. Teleport attacks
-        self.end_phase._resolve_teleport_attacks()
+        self.end_phase._resolve_teleport_attacks(self._end_choice)
 
-        # 1. Damage control with player choice
-        for ship in gs.get_ships():
+        # 1. Damage control: "the player whose turn it is rolls for his or her
+        # ships first" (s.36)
+        active = gs.active_player
+        for ship in sorted(gs.get_ships(), key=lambda s: s.player != active):
             if ship.is_destroyed or ship.is_disengaged:
                 continue
             if ship.status in ("drifting_hulk", "burning_hulk"):
@@ -482,16 +514,20 @@ class GameFlow(AAPanelMixin):
 
             info = get_repair_info(ship, self.ctx.dice, gs)
             if info["sixes"] > 0 and info["repairable"]:
-                repairs_available = min(info["sixes"], len(info["repairable"]))
+                rep = list(info["repairable"])
+                n = min(info["sixes"], len(rep))
                 touch_msg = (f" (halved, {info['touching_blast']} blast markers)"
                              if info.get("touching_blast", 0) > 0 else "")
                 self.ctx.log(
                     f"{ship.name}: {info['num_dice']} dice{touch_msg}, "
                     f"{info['sixes']} repair(s) available!")
-                choices = self.end_phase._repair_choice_dialog(
-                    ship, info["repairable"], repairs_available)
+                choices = self._end_choice(
+                    ship.player, "repair", ship.id,
+                    lambda rep=rep, n=n: AIPlayer.auto_repair_choices(rep, n),
+                    lambda ship=ship, rep=rep, n=n: self.end_phase._repair_choice_dialog(
+                        ship, rep, n))
                 if choices:
-                    repair_logs = apply_repair_choices(ship, choices, gs)
+                    repair_logs = apply_repair_choices(ship, list(choices), gs)
                     self.ctx.log_lines(repair_logs)
                 else:
                     self.ctx.log(f"  {ship.name}: no repairs applied")
@@ -671,7 +707,7 @@ class GameFlow(AAPanelMixin):
         ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
             att.id, att.name, tgt, exp, None, grp, att))
         # A replay (replay.py): this phase's actions come from the record
-        replaying = phase in getattr(self, "replay_phases", ()) and phase != "end"
+        replaying = phase in getattr(self, "replay_phases", ())
         if replaying:
             from .replay import ReplaySeat
             ai = ReplaySeat(self, ai_player_num, self.replay_events)
@@ -750,42 +786,8 @@ class GameFlow(AAPanelMixin):
             f"early so the game can continue.\n\n{exc!r}", "error")
 
     def _resolve_end_phase_auto(self, ai):
-        """End phase for the AI player — same logic as interactive but auto-repairs."""
-        from .end_phase import (get_repair_info, apply_repair_choices,
-                                remove_blast_markers, remove_brace_orders)
-        from .ai_player import AIPlayer
-        gs = self.ctx.gs
-
-        self.ctx.log("=== END PHASE (AI) ===")
-
-        self.end_phase._resolve_boarding_actions()
-        self.end_phase._resolve_teleport_attacks()
-
-        for ship in gs.get_ships():
-            if ship.is_destroyed or ship.is_disengaged:
-                continue
-            if ship.status in ("drifting_hulk", "burning_hulk"):
-                continue
-            info = get_repair_info(ship, self.ctx.dice, gs)
-            if info["sixes"] > 0 and info["repairable"]:
-                repairs_available = min(info["sixes"], len(info["repairable"]))
-                if self.ctx.is_ai_controlled(ship.player):
-                    choices = AIPlayer.auto_repair_choices(
-                        info["repairable"], repairs_available)
-                else:
-                    choices = self.end_phase._repair_choice_dialog(
-                        ship, info["repairable"], repairs_available)
-                if choices:
-                    repair_logs = apply_repair_choices(ship, choices, gs)
-                    self.ctx.log_lines(repair_logs)
-
-        self._resolve_unextinguished_fires()
-
-        bm_logs = remove_blast_markers(gs, self.ctx.dice)
-        self.ctx.log_lines(bm_logs)
-        brace_logs = remove_brace_orders(gs)
-        self.ctx.log_lines(brace_logs)
-        self.ctx.board.redraw()
+        """The end phase run by the game for an AI turn (_resolve_end_phase)."""
+        self._resolve_end_phase()
 
     def _resolve_unextinguished_fires(self):
         """After damage control: each fire still burning deals 1 damage."""

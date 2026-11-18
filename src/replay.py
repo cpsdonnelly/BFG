@@ -16,7 +16,30 @@ def seat_events(events, turn: int, phase: str, player: int):
     return [e for e in events
             if e.get("depth") == 0 and e.get("seat") and e["turn"] == turn
             and e["phase"] == phase and e["player"] == player
-            and e["kind"] not in ("prompt",)]
+            and e["kind"] not in ("prompt", "end_choice")]
+
+
+class EndChoices:
+    """The end phase's recorded decisions (end_choice events: teleports,
+    braces against raids, repairs), handed back in order whoever made them;
+    a decision of another kind or ship than the record's is a divergence."""
+
+    def __init__(self, events):
+        self.events = [e for e in events if e.get("kind") == "end_choice" and e.get("seat")]
+        self.pos = 0
+
+    def next(self, turn: int, what: str, ship_id: str):
+        from .prompts import ReplayDivergence
+        while self.pos < len(self.events) and self.events[self.pos]["turn"] < turn:
+            self.pos += 1
+        if self.pos >= len(self.events):
+            raise ReplayDivergence(f"end_choice {what} {ship_id}: past the end of the record")
+        e = self.events[self.pos]
+        if (e["turn"], e["what"], e["ship"]) != (turn, what, ship_id):
+            raise ReplayDivergence(f"end_choice: wanted {what} {ship_id} (turn {turn}), the "
+                                   f"record has {e['what']} {e['ship']} (turn {e['turn']})")
+        self.pos += 1
+        return e.get("answer")
 
 
 class ReplaySeat:

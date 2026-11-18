@@ -108,15 +108,26 @@ class EndPhasePanel:
             self.ctx.check_destruction(target)
             self.ctx.board.redraw()
 
-    def _resolve_teleport_attacks(self):
-        """Allow the active player to make teleport attacks during the end phase."""
+    def _direct_choice(self, player, what, ship_id, auto, ask, target_id=None):
+        """A decision with no recording or replay: the AI's, else the human's."""
+        return auto() if self.ctx.is_ai_controlled(player) else ask()
+
+    def _resolve_teleport_attacks(self, choice=None):
+        """The active player's teleport attacks in the end phase (s.31). Each
+        decision goes through `choice(player, what, ship_id, auto, ask,
+        target_id)` (GameFlow._end_choice: the AI's, the human's or the
+        record's, recorded as an end_choice): "teleport" (the attacker's
+        player: the target's id or None) and "raid_brace" (the target's
+        player: brace or not, s.31's order, after the turrets fire)."""
         if not self.ctx.gs.rule_teleport or not self.ctx.gs.rule_hit_and_run:
             return                 # teleports are raids: both rules needed (owner)
         from .hit_and_run import check_teleport_eligibility, resolve_teleport_attack
         from .movement import attempt_brace
+        choice = choice or self._direct_choice
+        gs = self.ctx.gs
 
-        active = self.ctx.gs.active_player
-        ships = self.ctx.gs.get_ships()
+        active = gs.active_player
+        ships = gs.get_ships()
         attackers = [s for s in ships
                      if s.player == active
                      and not s.is_destroyed and not s.is_disengaged
@@ -136,29 +147,25 @@ class EndPhasePanel:
         for attacker in attackers:
             eligible_targets = []
             for target in enemies:
-                ok, reason = check_teleport_eligibility(attacker, target, self.ctx.gs)
+                ok, reason = check_teleport_eligibility(attacker, target, gs)
                 if ok:
                     eligible_targets.append(target)
 
             if not eligible_targets or attacker.id in teleported:
                 continue
 
-            if self.ctx.is_ai_controlled(attacker.player):
-                # The AI decides for its own ships (it used to get the human's
-                # dialog): a teleport attack costs nothing, so it raids the target
+            def auto(attacker=attacker, eligible_targets=eligible_targets):
+                # The AI: a teleport attack costs nothing, so it raids the target
                 # where one raid is worth the most expected VP
                 from .waves import raid_squadron_value
-                gs = self.ctx.gs
-                target, best_v = None, 0.0
+                best, best_v = None, 0.0
                 for t in eligible_targets:
                     v = raid_squadron_value(t, gs, attacker.player, attacker.special_rules)
                     if v > best_v:
-                        target, best_v = t, v
-                if target is None:
-                    continue
-                self.ctx.log(f"  [AI] {attacker.name} teleports against {target.name} "
-                             f"(about {best_v:.1f} VP a raid)")
-            else:
+                        best, best_v = t.id, v
+                return best
+
+            def ask(attacker=attacker, eligible_targets=eligible_targets):
                 target_names = ", ".join(
                     f"{t.name} ({attacker.distance_to(t):.0f}cm)"
                     for t in eligible_targets)
@@ -167,44 +174,41 @@ class EndPhasePanel:
                     f"{attacker.name} can teleport against:\n{target_names}\n\n"
                     f"Attempt a teleport attack?")
                 if not want:
-                    continue
-
-                # Pick target if multiple eligible
+                    return None
                 if len(eligible_targets) == 1:
-                    target = eligible_targets[0]
-                else:
-                    target = self.ctx.prompt.pick_ship("Select teleport target",
-                                                       eligible_targets)
-                    if not target:
-                        continue
+                    return eligible_targets[0].id
+                t = self.ctx.prompt.pick_ship("Select teleport target", eligible_targets)
+                return t.id if t else None
 
-            # Re-fetch both ships to get live state
-            attacker = self.ctx.gs.get_ship_by_id(attacker.id)
-            target = self.ctx.gs.get_ship_by_id(target.id)
-            if not attacker or not target:
+            tid = choice(attacker.player, "teleport", attacker.id, auto, ask)
+            if not tid:
                 continue
 
-            def _brace_fn(target_ship, msg):
+            # Re-fetch both ships to get live state
+            attacker = gs.get_ship_by_id(attacker.id)
+            target = gs.get_ship_by_id(tid)
+            if not attacker or not target:
+                continue
+            self.ctx.log(f"  {attacker.name} teleports against {target.name}")
+
+            def _brace_fn(target_ship, msg, attacker=attacker):
                 if target_ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
                     self.ctx.log(
                         f"  {target_ship.name} already braced — saves apply automatically")
                     return True, True
-                if self.ctx.is_ai_controlled(target_ship.player):
+
+                def b_auto():
                     # Priced by the raid's value (To do 8 j (3))
                     from .ai_player import ai_should_brace_vs_raid
-                    if ai_should_brace_vs_raid(self.ctx.gs, target_ship, attacker):
-                        check = attempt_brace(target_ship, self.ctx.gs,
-                                              self.ctx.dice)
-                        self.ctx.log(
-                            f"  [AI] {target_ship.name} brace: "
-                            f"{'PASSED' if check['passed'] else 'FAILED'} "
-                            f"(rolled {check['roll']} vs Ld {check['needed']})")
-                        return True, check["passed"]
+                    return bool(ai_should_brace_vs_raid(gs, target_ship, attacker))
+
+                def b_ask():
+                    return bool(self.ctx.prompt.yes_no("Teleport Attack — Brace?", msg))
+
+                if not choice(target_ship.player, "raid_brace", target_ship.id, b_auto, b_ask,
+                              attacker.id):
                     return False, False
-                want_b = self.ctx.prompt.yes_no("Teleport Attack — Brace?", msg)
-                if not want_b:
-                    return False, False
-                check = attempt_brace(target_ship, self.ctx.gs, self.ctx.dice)
+                check = attempt_brace(target_ship, gs, self.ctx.dice)
                 self.ctx.log(
                     f"  {target_ship.name} brace: "
                     f"{'PASSED' if check['passed'] else 'FAILED'} "
@@ -212,7 +216,7 @@ class EndPhasePanel:
                 return True, check["passed"]
 
             result = resolve_teleport_attack(
-                attacker, target, self.ctx.dice, self.ctx.gs, _brace_fn)
+                attacker, target, self.ctx.dice, gs, _brace_fn)
             teleported.add(attacker.id)
 
             n_crits = len(result["crits_applied"])

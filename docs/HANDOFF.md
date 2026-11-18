@@ -35,9 +35,12 @@ Needs more work (next first):
 1. To do 17 / 18: shooting actions done (the AI's attacks, `actions.fire_weapons` and
    friends; the Fire dialog's volley as `actions.fire_volley` on `src/fire_volley.py`;
    shooting phases replay; the Combine Squadron Fire, Fire at Squadron and Fire at Ordnance
-   dialogs are actions too); the ordnance phase as actions, AI and human dialogs, and replayed. Next: the end
-   phase and alternate activation's per-unit phases; then human games replay in full; then
-   the replay viewer. Found, not changed (changes AI play): AI ships meet ordnance they moved
+   dialogs are actions too); the ordnance phase as actions, AI and human dialogs, and replayed;
+   the end phase's decisions (teleport, raid brace, repair) as recorded `end_choice` events
+   through one path for the AI, humans and a replay (`GameFlow._end_choice`,
+   `replay.EndChoices`), so every phase replays (Space Marines v Orks with boarding /
+   teleports / rams, `tests/test_headless_game.py`). Next: alternate activation's per-unit
+   phases; then human games replay in full (seats as recorded); then the replay viewer. Found, not changed (changes AI play): AI ships meet ordnance they moved
    into only after the whole AI movement phase, a human's after each move (s.15).
 2. The rest of To do 18's plan items (tag constants and coverage test, crit-effect tables,
    one `order_allowed`, `ScenarioDef` registry, `ai_player.py` split, `mount_expected_hits` with
@@ -75,7 +78,7 @@ by value, `torpedo_bomber_flight_target`; AI waves fire in either player's ordna
 missiles, Tiger Shark salvos included, move 20-40cm in both phases; turning salvos re-target
 through `approach_plan`, within their real turns). No questions open. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Checking a change: `pytest -q` (1582 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
+Checking a change: `pytest -q` (1585 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
 `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
 `tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
 baseline changes whenever a rules fix changes play; regenerate it then).

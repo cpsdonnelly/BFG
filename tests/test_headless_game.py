@@ -135,3 +135,44 @@ def test_ordnance_phases_replay_from_the_recorded_actions(tmp_path):
     set_source(DiceSource())
     recorder.stop_recording()
     assert state(gs2) == s1
+
+
+BOARDERS = ((1, ["Strike Cruiser", "Strike Cruiser"], 45.0),
+            (2, ["Kill Kroozer", "Terror Ship"], 75.0))
+
+
+def _boarders_gs(save):
+    gs = GameState(game_name="headless", game_seed=31)
+    gs.table_width, gs.table_height, gs.dice_mode, gs.turn_limit = 120.0, 90.0, "auto", 6
+    gs.rule_boarding = gs.rule_teleport = gs.rule_hit_and_run = gs.rule_ramming = True
+    for p, names, x in BOARDERS:
+        for i, n in enumerate(names):
+            d = find_ship_class(n).to_ship_dict(n, p, ship_id=f"p{p}_{i}")
+            d.update(x=x, y=35.0 + 20 * i, heading=0.0 if p == 1 else 180.0, leadership=8)
+            gs.add_ship(Ship.from_dict(d))
+    return gs, TurnController(gs, DiceRoller(mode="auto"), save_dir=save)
+
+
+def test_every_phase_replays_from_the_recorded_actions(tmp_path):
+    """Space Marines v Orks with boarding, teleports, raids and rams on:
+    every phase, the end phase's teleports / braces / repairs included,
+    played from the record gives the same game (To do 18: a game with
+    human players replays in full)."""
+    def state(gs):
+        return json.dumps({"ships": gs.ships, "ordnance": gs.ordnance,
+                           "bm": gs.blast_markers}, sort_keys=True, default=str)
+    set_source(DiceSource(31, record=True))
+    recorder.start_recording()
+    gs, tc = _boarders_gs(str(tmp_path / "a"))
+    HeadlessGame(tc).play(timeout=180)
+    s1, record, evs = state(gs), current_source().record, recorder.events()
+    set_source(DiceSource(0, replay=[list(e) for e in record]))
+    recorder.start_recording()
+    gs2, tc2 = _boarders_gs(str(tmp_path / "b"))
+    HeadlessGame(tc2, replay_events=evs,
+                 replay_phases=("movement", "shooting", "ordnance", "end")).play(timeout=180)
+    set_source(DiceSource())
+    recorder.stop_recording()
+    assert state(gs2) == s1
+    whats = {e["what"] for e in evs if e["kind"] == "end_choice"}
+    assert whats, "no end-phase decisions were made"

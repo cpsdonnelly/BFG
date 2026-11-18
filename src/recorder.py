@@ -10,7 +10,8 @@ order (ships, order, passed), fire (ship, target, weapon, kind, hits),
 launch (ship, weapon, kind, markers), brace (ship, passed), reroll (player,
 ship), board (attackers, target), teleport (ship, target), ram (ship,
 target), disengage (ship, passed), prompt (title, answer, best) for every
-"Auto (best)" prompt a player answered.
+"Auto (best)" prompt a player answered, end_choice (what, ship, by, target,
+answer) for each end-phase decision (teleport, raid_brace, repair).
 
 Off unless a game starts it (start_recording); the AI's planning never
 calls these entry points, so it records nothing."""
@@ -34,6 +35,21 @@ class flow:
     def __exit__(self, *exc):
         global _FLOW
         _FLOW -= 1
+        return False
+
+
+class seat:
+    """Context: a player's own decision made while the game flow runs (the
+    end phase's teleports, braces against raids and repair choices); events
+    recorded inside have "seat": True again."""
+
+    def __enter__(self):
+        global _FLOW
+        self._saved, _FLOW = _FLOW, 0
+
+    def __exit__(self, *exc):
+        global _FLOW
+        _FLOW = self._saved
         return False
 
 
