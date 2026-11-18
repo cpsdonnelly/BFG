@@ -56,6 +56,13 @@ Owner decisions this session worth knowing:
 - Exact solutions over sampling wherever an exact answer costs about the same (To do 30).
 - Team play design (To do 22); Meteor Storm wrecks roll catastrophic damage after deployment.
 
+Owner decisions (latest): steps 5-8 are 25, 24/31, 28/29, then 26/27 (minimal Tk only);
+the long-term window is the browser (Rust to WebAssembly), Tk for development only; Python
+retired once the Rust port replays every golden game; Rust determinism designed in (libm or
+fixed point, no HashMap order, single-threaded state, recorded seeded RNG); deeper AI (11,
+10 e, 8) and the AI file split move into the port, exact hit odds (30) stay now; a small AA
+system comparison now, big runs after the port; team play rulings in To do 22; the Decoy
+with per-player visibility in the engine (CLAUDE.md "To do").
 Owner questions: the last round is answered and built (CLAUDE.md "Owner rulings: answers to
 the open questions, round 2": halving, low orbit facing, the forges' fields, sign-off 2 / 10 /
 16 / 54 / 55 / 63-66); still open: team play (To do 22), steps 5-8 of the order. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.

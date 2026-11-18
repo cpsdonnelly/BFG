@@ -578,8 +578,8 @@ Still true from the review:
 - Structure (To do 18's remaining items): string-keyed ladders, ~170 special-rule tag checks,
   `ai_player.py` ~4,700 lines, some rules in UI files, judgement weights scattered, ~8 copies
   of the "0.35 per firepower point" rule of thumb.
-- Language (To do 20): a full port in its own branch, Python staying the reference, is the
-  third-last task, online play (To do 23) the second last; the ML-trained AI (To do 12, then
+- Language (To do 20): a full port to Rust in its own branch, Python retired once it replays
+  every golden game, is the third-last task, online play (To do 23) the second last; the ML-trained AI (To do 12, then
   1) is the last, on the faster engine.
 
 Next: the "Agreed order" at the top of the To do list.
@@ -808,41 +808,63 @@ are fixed by the owner):
 2. To do 16: performance fixes and a headless multiprocess game runner (done but the
    display-free runner and a repeatable expert, which wait for 18 and 17).
 3. To do 17: recording and replay (seeded dice, structured events, full snapshots, viewer).
-4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split,
-   weapon-value helper, central AI weights, rules out of the UI), with To do 30 (exact hit
-   distributions for the AI's threat and VP values) on its weapon-value helper.
+4. To do 18: code structure (rule dispatch, scenario registry, weapon-value helper, central
+   AI weights, rules out of the UI), with To do 30 (exact hit distributions for the AI's
+   threat and VP values) on its weapon-value helper: owner, keep 30 now (small, half done,
+   improves every game the current AI plays, the golden set included). The `ai_player.py`
+   split moves to the port (owner): the AI is rebuilt there.
 5. To do 25: fleet building completeness (every ship upgrade, fleet option and leader
    selectable; the owner's 1000pt fleets as validation test cases).
-6. To do 26 and 27: the demo reworked (the old demo fleets removed, random terrain Cruiser
-   Clash, choose both fleets and the mode) and favourite fleets (save a fleet on quitting).
-7. To do 24 and 31: the AI list builder (personalities, validation and repair; for players
+6. To do 24 and 31: the AI list builder (personalities, validation and repair; for players
    too), with the log of the places it decides at random.
-8. To do 28 and 29: AI deployment (buff ships last, escort squadrons and formations, capital
+7. To do 28 and 29: AI deployment (buff ships last, escort squadrons and formations, capital
    squadrons, squadron sizes from the fleet list) and commander placement.
+8. To do 26 and 27: the demo reworked (the old demo fleets removed, random terrain Cruiser
+   Clash, choose both fleets and the mode) and favourite fleets (save a fleet on quitting).
+   Last of 5-8 (owner): the demo needs random fleets (24) and is the most window-dependent
+   task. Before the port only minimal Tk versions (also of new dialogs); the full versions
+   are built once, in the browser window (see "Window and port", owner).
 9. To do 22: team play (several players a side; needs 18's game flow out of the Tk panels).
 10. To do 19: Dark Eldar and Tyranids (also completes the last demo fleets).
 11. To do 14: the Eldar and Necron gaps.
 12. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains; special movement
     (Space Hulk, Rok, Nicassar, Kroot), fortress weapons, Pthuxutl, Man O' War.
-13. To do 13: alternate activation's experiments (they want the headless runner), the expert
-    AI per unit, the rest.
-14. To do 11, 10 e and 8: the rest of the rules-based AI (deeper expert hazards, more
-    coordination rounds, two-turn expert root moves, Brace's remaining bits, 8 d / g).
-15. To do 7 and 9: the small gaps, the Decoy sub-plot (needs the owner).
+13. To do 13: a small comparison of the three ordering systems on the current engine
+    (owner: now, small); the large experiment runs, the expert AI per unit and the rest after
+    the port.
+14. (Moved into the port, owner: To do 11, 10 e and 8, the rest of the rules-based AI:
+    deeper expert hazards, more coordination rounds, two-turn expert root moves, Brace's
+    remaining bits, 8 d / g; built on the rebuilt AI in the new language.)
+15. To do 7 and 9: the small gaps; the Decoy sub-plot with per-player visibility in the
+    engine (owner: the AI knows only what its player could see, never which ship is the
+    decoy; the human-vs-human hidden mode waits for online play).
 16. To do 21: the replay system as the comparison standard, completed before the port: every
     kind of event covered (the rules and factions added after step 3 included), a
     versioned, language-neutral record format, a Python replay verifier and a golden set of
     recorded games covering every faction and scenario. The port's first milestone is
     reading and replaying these records.
-17. Third last, To do 20: port the engine to a faster language in a new branch.
+17. Third last, To do 20: port the engine to Rust in a new branch (the engine to parity
+    with the golden games, the tests and booklet checks with it, then the AI rebuilt,
+    including the deeper AI work from step 14 and the AI split; Python retired at parity).
 18. Second last, To do 23: online play, peer-to-peer lockstep (owner: just before the
     ML-trained AI; needs 17's events and seed, 18's game flow, 22's seats, 21's exact
     determinism; each client runs the ported engine).
 19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, then weight tuning); on hold
     until the owner says to start; built on the faster engine, kept separate from the current
     AI, never replacing it.
-(Steps 5-8 placed by Claude, owner to confirm; the order isn't hugely important, follow the
+(Steps 5-8 ordered by the owner; otherwise the order isn't hugely important, follow the
 dependencies.)
+
+Window and port (owner rulings):
+- The long-term window is the browser (the Rust engine compiled to WebAssembly), since online
+  play needs it. Tk stays as a development and test window only; before the port build only
+  minimal Tk versions of the demo, favourites and new dialogs; full versions once, in the
+  browser.
+- Python is retired as the reference once the port replays every golden game identically;
+  the tests and booklet checks are ported with the engine.
+- Rust determinism is designed in, not assumed: a pure-Rust maths crate (libm) or fixed
+  point for all game maths (std sin / cos use the platform library); no HashMap iteration
+  order in game logic; no multithreaded game state; a seeded RNG that is part of the record.
 Done: To do 2, 3, 6; most of 7.
 
 1. On hold until the owner says to start (owner); when built, kept separate from the current
@@ -2545,9 +2567,10 @@ Done: To do 2, 3, 6; most of 7.
    Spire. Catalog today: speeds / armour / batteries parse; the Spire's torpedoes and Impaler
    bay don't. Tyranids (`13_tyranids.md`): Instinctive Behaviour, synapse, spore clouds,
    weapon configurations; no Ld roll.
-20. Port the engine to a faster language in a new branch (owner: third-last task, before online play; plan
-   section 7; Rust suggested). Python stays the reference that defines the rules; the port
-   must reproduce Python games exactly from the same seed and events (To do 21's records and
+20. Port the engine to Rust in a new branch (owner: third-last task, before online play; plan
+   section 7; determinism and the window: "Window and port" under the agreed order). Python
+   is the reference until the port replays every golden game identically, then retired (the
+   tests and booklet checks ported too); the port must reproduce Python games exactly from the same seed and events (To do 21's records and
    golden games), which is what keeps the two from drifting; every booklet export and owner
    ruling lands in Python first. Order inside the port: the replay reader first, then the
    engine until every golden game replays identically, then the AI. Measure with the
@@ -2575,11 +2598,12 @@ Done: To do 2, 3, 6; most of 7.
    System 3's choice per team). Victory points, holding the field, scenario roles and turn
    order per team. Plan: a controller per ship (`Ship.controller`), team rosters on
    `GameState`, the UI's action filter by the seat at the screen, AI seats per controller,
-   setup screens for teams. Questions for the owner before building: one fleet commander and
-   re-roll pool per team or per player; one fleet list per team or per player (and how the
-   points are split); who decides team-wide choices (Brace of a squadron split across
-   players can't happen if squadrons stay with one player; the System 3 first-activation
-   choice; blast marker removal).
+   setup screens for teams. Owner rulings (no rules source, the owner's calls): each player
+   has their own fleet list, commander and re-roll pool; points are split equally by default,
+   adjustable at setup; fleets of different factions on one team follow their factions'
+   normal allies rules; team-wide choices (System 3 first activation, end-phase blast marker
+   removal, anything else the rules give "the player") are made by a nominated team leader,
+   by default the player whose commander has the highest Ld.
 
 23. Online play (owner: another task, the second last, just before the ML-trained AI;
    worked on before, not finished). Today: `web/` +
@@ -2789,9 +2813,8 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-None open from the last round; answered (rulings above, "Owner rulings: answers to the open
-questions, round 2"). Still open: the team play questions (To do 22), confirming steps 5-8 of
-the agreed order.
+None open: round 2 answered (below); team play (To do 22), steps 5-8, the window, the port
+language and the Decoy answered too (see the agreed order, "Window and port", To do 22).
 
 ### Owner rulings: answers to the open questions, round 2 (implemented, tested)
 
