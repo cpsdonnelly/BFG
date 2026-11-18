@@ -539,7 +539,10 @@ Owner rulings (fleet lists, export 15):
 Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
 shooting dialog as recorded actions; `src/fire_volley.py`), the ordnance phase (AI
 and every human dialog) and the end phase's decisions as recorded actions, so every phase
-replays from the record; next: alternate activation's per-unit phases (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+replays from the record. Owner report (To do 32): the setup wizard's start buttons, the
+fleet builder's Save / Validate and the ship Edit dialog's lower options are cut off the
+screen, so a game can't be started or a fleet built from the window; not yet fixed. Next: To
+do 32 unless the owner says otherwise, then alternate activation's per-unit phases (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
 owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1585 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
@@ -2819,6 +2822,32 @@ Done: To do 2, 3, 6; most of 7.
    fleet building (personality rolls, carrier counts, escort counts, Mechanicus gift rolls,
    the Necron War upgrade coin, formations, squadron placement...), so the ML-driven AI (To
    do 12, kept separate) can learn better choices there.
+
+32. Playability: the owner's first attempt to play (owner report, not yet fixed). Running
+   `run.py` opens the setup wizard; from there the owner couldn't start a game or build the
+   fleet he wanted. Checked under xvfb, all software problems, not user error:
+   - Setup wizard (`main._show_setup_dialog`): fixed at 540x680 but its contents need
+     ~1820px, with no scrollbar, so the Start Game / Map Editor / Start Blank buttons are off
+     the bottom of the window. The start button is also labelled "Start Game (Demo Fleets)"
+     although it uses the fleets chosen in the wizard.
+   - Fleet builder window (`fleet_builder.FleetBuilderWindow`): fixed at 1000x680 but its top
+     bar needs ~1320px wide, so Load Fleet, Save Fleet and Validate are never drawn (Tk drops
+     them, packed last). The fleet-list restrictions are only checked by Validate / Save, so
+     they look as if they don't work; a fleet can't be saved either.
+   - Ship options, refits and commanders (Lunar / Tyrant nova cannon refit, the Tyrant's 45cm
+     macrobatteries, Vice / Fleet / Solar Admiral, extra re-rolls) are built but live only in
+     the ship's Edit dialog (double-click a ship in the fleet list, or Edit), which nothing on
+     screen points to; that dialog (`_ShipEditDialog`) is fixed at 500x680 and needs
+     ~1080px, so the lower options and its Save button are cut off. With "No fleet list" it
+     offers every list's options at once (a Lunar shows the Space Marine Captain, Bakka's
+     Veteran Captain and Lord Admiral Rath).
+   - The owner's 1000pt fleets (To do 25) aren't built yet: `data/fleets/` holds only the
+     two demo fleets.
+   To fix: scrollable / resizable setup and Edit dialogs with the start / save buttons always
+   visible, a builder top bar that fits (two rows, or the buttons first), the fleet-list
+   check shown live as ships are added, the options reachable from the catalog / fleet list
+   and visible as "variants", the start button's label, then the To do 25 fleets as files.
+   Minimal Tk versions only (owner: the full window is built once, in the browser).
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

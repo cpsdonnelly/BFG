@@ -32,6 +32,14 @@ Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Merged into main (PR #2).
 
 Needs more work (next first):
+0. To do 32 (owner report, playability): the owner couldn't play from `run.py`. Checked, all
+   software problems: the setup wizard (540x680, needs ~1820px, no scrollbar) hides its Start
+   buttons; the fleet builder (1000 wide, needs ~1320) never draws Load / Save / Validate,
+   so fleet-list restrictions seem not to work and fleets can't be saved; ship options and
+   commanders (nova cannon refit, 45cm guns, admirals, re-rolls) exist only in the ship Edit
+   dialog (double-click), which nothing points to and which is cut off too (680 tall, needs
+   ~1080); with "No fleet list" it shows every list's options; the owner's To do 25 fleets
+   aren't files yet. Details and the fix list in CLAUDE.md To do 32.
 1. To do 17 / 18: shooting actions done (the AI's attacks, `actions.fire_weapons` and
    friends; the Fire dialog's volley as `actions.fire_volley` on `src/fire_volley.py`;
    shooting phases replay; the Combine Squadron Fire, Fire at Squadron and Fire at Ordnance
