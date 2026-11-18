@@ -773,14 +773,18 @@ def steer_salvo(gs, marker_id: str, heading: float) -> None:
     """A salvo that can turn takes its new heading and makes its move this
     ordnance phase (guided torpedoes, Tau missiles)."""
     import math
-    o = _marker_dict(gs, marker_id)
-    if o is None:
+    from .models import OrdnanceMarker
+    for i, o in enumerate(gs.ordnance):
+        if o["id"] != marker_id:
+            continue
+        m = OrdnanceMarker.from_dict(o)
+        m.heading = heading
+        rad = math.radians(m.heading)
+        m.x += m.speed * math.cos(rad)
+        m.y += m.speed * math.sin(rad)
+        m.moved_this_phase = True
+        gs.ordnance[i] = m.to_dict()
         return
-    o["heading"] = heading % 360
-    rad = math.radians(o["heading"])
-    o["x"] += (o.get("speed") or 0) * math.cos(rad)
-    o["y"] += (o.get("speed") or 0) * math.sin(rad)
-    o["moved_this_phase"] = True
 
 
 @recorder.logged("act_fire_bombers", lambda r, A: (A["gs"], dict(
