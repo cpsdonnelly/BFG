@@ -546,7 +546,7 @@ check), builder-saved fleets crashing the game, Auto-Place breaking squadrons, t
 Mechanicus refits; six of the owner's fleets built as files. Next: alternate activation's
 per-unit phases (or the rest of To do 25, the owner's call) (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1593 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1600 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2875,6 +2875,11 @@ Done: To do 2, 3, 6; most of 7.
    is only in that list) 1000, Gothic 1000, Bakka 1000, Tau Merchant 990, Space Marines
    1000 (five strike cruisers with Secondary Shields, two with the launch-bay variant),
    Mechanicus 990 (gifts rolled per game by the owner, so none saved), each matching his
+   totals (owner: every strike cruiser takes the Secondary Shield, which has no limit; fixed
+   on the way: with a Chapter tactic the variants' lost Tactical Flexibility was added to
+   the fleet total only, not to the ship's own value, so VP scored a 180pt ship as 170;
+   `FleetBuilderWindow._save_fleet` now adds it per ship, and every owner fleet's ship
+   values add up to its total, `tests/test_owner_fleets.py`), each matching his
    totals and valid; they load, deploy and play to game over AI-vs-AI and replay
    (`tests/test_owner_fleets.py`, `tools/gui_checks/deploy_owner_fleets_check.py`). Still
    to do: the other seven fleets (catalog gaps: Tau Protector's Emissary options, Ork kustom

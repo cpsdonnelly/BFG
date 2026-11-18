@@ -1146,6 +1146,11 @@ class FleetBuilderWindow:
 
         from .fleet_lists import notable_xenos_first, NOTABLE_XENOS_SQUADRON
         notable_first = notable_xenos_first(self._fleet)
+        # A Chapter tactic anywhere in the fleet ends Tactical Flexibility: each
+        # Strike Cruiser Variant then costs its full price, on its own ship's
+        # value too (victory points score that), not only in the fleet total
+        tactic = any(u.startswith("Chapter tactic:") for r in self._fleet
+                     for u in r.get("upgrades", []))
         for row_i, row in enumerate(self._fleet):
             entry = row["entry"]
             ship_dict = entry.to_ship_dict(
@@ -1162,6 +1167,11 @@ class FleetBuilderWindow:
             storable["points_value"] += row.get("base_cost", entry.points_cost) - entry.points_cost
             if row_i in notable_first:              # the Notable Xenos squadron's +30
                 storable["points_value"] += NOTABLE_XENOS_SQUADRON
+            from .fleet_lists import no_tactical_flexibility as _no_tf
+            if tactic and not _no_tf(row.get("list") or ""):
+                from .booklet_options import tactical_flexibility_refund
+                storable["points_value"] += tactical_flexibility_refund(
+                    [row["upgrades"] + ["Chapter tactic:"]], [entry])
             if row.get("list"):
                 storable["fleet_list"] = row["list"]
                 from .fleet_lists import list_stat_changes, no_tactical_flexibility

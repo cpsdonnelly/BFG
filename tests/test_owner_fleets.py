@@ -49,3 +49,23 @@ def test_mechanicus_tyrant_refits():
     assert not any(w["weapon_type"] == "torpedo" for w in d["weapons"])
     # "or refitted torpedoes instead"
     assert ship_option_errors(e, [nova, "Refitted Torpedoes (D6 at game start)"])
+
+
+@pytest.mark.parametrize("fname,total", FLEETS.items())
+def test_ship_values_add_up_to_the_fleet_total(fname, total):
+    """Victory points score each ship's own value, so the values must carry
+    every cost (commanders, re-rolls, list prices, lost Tactical Flexibility)."""
+    data = load_fleet_file(os.path.join(DIR, fname))
+    assert sum(s["points_value"] for s in data["ships"]) == total
+
+
+def test_space_marines_every_strike_cruiser_has_the_secondary_shield():
+    """Owner: all five take it (any number may, +15 each); two also swap their
+    macrobatteries for launch bays, 180 each with Wings of Fury taken."""
+    data = load_fleet_file(os.path.join(DIR, "owner_space_marines_1000.json"))
+    sc = [s for s in data["ships"] if s["ship_class"] == "Strike Cruiser"]
+    assert len(sc) == 5
+    assert all("Secondary Shield (+1 Shield)" in s["upgrades"] and s["shields_max"] == 2
+               for s in sc)
+    bays = [s for s in sc if "Variant: macrobatteries to launch bays" in s["upgrades"]]
+    assert [s["points_value"] for s in bays] == [180, 180]

@@ -93,7 +93,7 @@ by value, `torpedo_bomber_flight_target`; AI waves fire in either player's ordna
 missiles, Tiger Shark salvos included, move 20-40cm in both phases; turning salvos re-target
 through `approach_plan`, within their real turns). No questions open. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Checking a change: `pytest -q` (1593 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
+Checking a change: `pytest -q` (1600 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
 `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
 `tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
 baseline changes whenever a rules fix changes play; regenerate it then).
