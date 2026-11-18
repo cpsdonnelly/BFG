@@ -2775,6 +2775,12 @@ rather than touch a third ship).
   netherfields and polarisation fields (identical to those of the Haven Spire)", but the
   booklet's Haven Spire (MMS) has neither; only XR's note names them, and only the Dark
   Eldar Tormentor Spire defines a polarisation field. What should they do?
+- **A ship's own blast markers and its later weapons (found in To do 18):** when one ship
+  fires several batteries at a target, do the blast markers its earlier batteries put on the
+  target's shields shift its later batteries' column? Today neither the AI nor the Fire
+  dialog does (each reads the markers once, when the ship starts firing), although To do
+  11 d's batteries-before-lances order assumed they would. Squadron volleys have the owner
+  ruling "no" between groups of firers.
 - **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
   next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
 
