@@ -220,7 +220,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
         choose speed (20-40cm), optional 45° turn at start, quick buttons."""
         tau_missiles = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance
                         if o["ordnance_type"] == OrdnanceType.TORPEDO_GUIDED.value
-                        and o["owner_player"] == self.ctx.gs.active_player
+                        and not self.ctx.is_ai_controlled(o["owner_player"])
                         and not o.get("moved_this_phase", False)]
         if not tau_missiles:
             messagebox.showinfo("No Missiles",

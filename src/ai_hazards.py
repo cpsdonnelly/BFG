@@ -1581,7 +1581,7 @@ def _predicted_positions(target, our_phase: bool):
 def approach_plan(x, y, heading, speed, target, gs, player, strength,
                   arc_half=45.0, turn_now=True, max_turn=45.0, p_turn=1.0,
                   our_phase=True, boarding=False, tau=False, friends=(),
-                  committed=0.0, lengths=None):
+                  committed=0.0, lengths=None, max_moves=4):
     """Best path for a salvo at (x, y) that can turn, against `target`: the
     first move's heading (within `arc_half` of `heading`; at launch the arc,
     in flight the 45-degree turn, `turn_now` False when it may not turn this
@@ -1596,8 +1596,9 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
     guided torpedoes test to turn) x 5/6 per later phase for Tau missiles
     (strength lost on 1s) x 1/2 for boarding torpedoes (raids, as marker_hits).
     `lengths`: move lengths to try (Tau missiles choose 20-40cm each move;
-    others move their speed). Returns {"heading", "value", "hits", "armour",
-    "phase"} or None."""
+    others move their speed). `max_moves`: 1 for a torpedo bomber salvo,
+    removed at the end of the phase it is fired in (s.21). Returns {"heading", "length" (the first move's),
+    "value", "hits", "armour", "phase"} or None."""
     import math as _m
     positions = _predicted_positions(target, our_phase)
     rt = target.base_radius + TORP_CONTACT_HALF_W
@@ -1625,11 +1626,13 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
         # Full choice of move lengths on the first two moves; later ones (a
         # guess anyway) at the middle length, to keep the search small
         for ln in (lengths if k <= 1 else (mid_len,)):
+            if k == 0:
+                first_len[0] = ln
             step(px, py, h, k, turns, left, lost, ln)
 
     def step(px, py, h, k, turns, left, lost, ln):
         nonlocal best
-        if k >= 4 or left <= 0:
+        if k >= max_moves or left <= 0:
             return
         rad = _m.radians(h)
         qx, qy = px + ln * _m.cos(rad), py + ln * _m.sin(rad)
@@ -1667,13 +1670,13 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
             dev = abs((first[0] - bearing0 + 180) % 360 - 180)
             key = (round(v, 6), -k, -dev)
             if best is None or key > best["_key"]:
-                best = {"heading": first[0] % 360, "value": v, "hits": hits, "armour": arm,
-                        "phase": k, "_key": key}
+                best = {"heading": first[0] % 360, "length": first_len[0], "value": v,
+                        "hits": hits, "armour": arm, "phase": k, "_key": key}
             return
-        if surv <= 0 or k + 1 >= 4:
+        if surv <= 0 or k + 1 >= max_moves:
             return                                   # dies on the way / out of moves
         nxt = positions[k + 1]
-        if _m.hypot(nxt.x - qx, nxt.y - qy) > (3 - k) * max_len + rt:
+        if _m.hypot(nxt.x - qx, nxt.y - qy) > (max_moves - 1 - k) * max_len + rt:
             return                                   # can no longer reach it
         surv_acc[0] *= surv
         steps = APPROACH_TURN_STEPS if k == 0 else (-1.0, 0.0, 1.0)
@@ -1683,6 +1686,7 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
         surv_acc[0] /= surv
 
     surv_acc = [1.0]
+    first_len = [lengths[0]]
     bearing0 = _m.degrees(_m.atan2(target.y - y, target.x - x))
     for h0 in firsts:
         first = [h0]
@@ -1694,20 +1698,38 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
 
 def salvo_approach(marker, gs, target=None, our_phase=None):
     """approach_plan for a salvo already in flight (the AI's in-flight turn):
-    its target (marker.torp_target_id, else the nearest enemy ship), a turn of
-    up to 45 degrees now, Tau missiles 20-40cm a move, Leadership-guided
-    salvos at the launcher's Ld odds per later turn. None if no target."""
-    from .ordnance import is_boarding_torpedo
+    a turn of up to 45 degrees now, Tau missiles 20-40cm a move, Leadership-
+    guided salvos at the launcher's Ld odds per later turn. The target: the
+    one given; else its planned target (marker.torp_target_id) while that is
+    in play and the salvo can still reach it; else the enemy ship the salvo is
+    worth most against with the turns it can actually make (each enemy
+    through approach_plan, so one behind it or out of its 45-degree turns
+    scores nothing). The plan carries "target" (its ship id). None if no
+    enemy can be reached."""
+    if target is not None:
+        return _salvo_plan(marker, gs, target, our_phase)
     ships = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
     enemies = [s for s in ships if s.player != marker.owner_player and not s.is_hulk]
-    if target is None:
-        target = next((s for s in enemies if s.id == getattr(marker, "torp_target_id", "")),
-                      None)
-    if target is None and enemies:
-        import math as _m
-        target = min(enemies, key=lambda s: _m.hypot(s.x - marker.x, s.y - marker.y))
-    if target is None:
-        return None
+    kept = next((s for s in enemies if s.id == getattr(marker, "torp_target_id", "")), None)
+    if kept is not None:
+        plan = _salvo_plan(marker, gs, kept, our_phase)
+        if plan is not None and plan["value"] > 0:
+            return plan
+    best = None
+    for e in enemies:
+        if kept is not None and e.id == kept.id:
+            continue
+        plan = _salvo_plan(marker, gs, e, our_phase)
+        if plan is not None and plan["value"] > 0 and (best is None
+                                                       or plan["value"] > best["value"]):
+            best = plan
+    return best
+
+
+def _salvo_plan(marker, gs, target, our_phase=None):
+    """salvo_approach against one target."""
+    from .ordnance import is_boarding_torpedo
+    ships = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
     if our_phase is None:
         our_phase = gs.active_player == marker.owner_player
     boarding = is_boarding_torpedo(marker)
@@ -1721,10 +1743,14 @@ def salvo_approach(marker, gs, target=None, our_phase=None):
     friends = [] if boarding else [
         s for s in ships if s.player == marker.owner_player
         and s.id not in (marker.launch_exempt_ships or [])]
-    return approach_plan(marker.x, marker.y, marker.heading, marker.speed or 30.0, target, gs,
+    plan = approach_plan(marker.x, marker.y, marker.heading, marker.speed or 30.0, target, gs,
                          marker.owner_player, marker.strength, arc_half=45.0,
                          p_turn=p_turn, our_phase=our_phase, boarding=boarding, tau=tau,
-                         friends=friends, lengths=(20.0, 30.0, 40.0) if tau else None)
+                         friends=friends, lengths=(20.0, 30.0, 40.0) if tau else None,
+                         max_moves=1 if "limited_fuel" in (marker.special_rules or []) else 4)
+    if plan is not None:
+        plan["target"] = target.id
+    return plan
 
 
 # ── Strikes valued when they land (To do 2) ─────────────────────────────────

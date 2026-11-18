@@ -71,9 +71,11 @@ the open questions, round 2": halving, low orbit facing, the forges' fields, sig
 ruling: torpedo bomber salvos placed on a ship": it attacks at once, turrets first, then
 carries on reduced; friends too; no launch arc; the AI parks its waves on their target and
 aims the carry-on, `ai_hazards.torpedo_bomber_heading`; a wave whose target is gone re-targets
-by value, `torpedo_bomber_flight_target`). No questions open. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
+by value, `torpedo_bomber_flight_target`; AI waves fire in either player's ordnance phase; Tau
+missiles, Tiger Shark salvos included, move 20-40cm in both phases; turning salvos re-target
+through `approach_plan`, within their real turns). No questions open. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Checking a change: `pytest -q` (1579 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
+Checking a change: `pytest -q` (1582 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
 `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
 `tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
 baseline changes whenever a rules fix changes play; regenerate it then).

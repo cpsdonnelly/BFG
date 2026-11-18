@@ -540,7 +540,7 @@ Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and eve
 shooting dialog as recorded actions; `src/fire_volley.py`) and the ordnance phase (AI
 and every human dialog) as actions; next: the end phase as actions (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1579 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1582 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -996,9 +996,9 @@ Done: To do 2, 3, 6; most of 7.
    (`_strike_option`: survivors of the interceptors fire 2 each, turrets 4+ each on the
    facing), fires at the start of its ordnance phase at the ship in salvo reach worth most
    (`ai_hazards.torpedo_bomber_target`); the hazard model counts a salvo of 2 a squadron on
-   the lowest Armour within craft move + salvo move (`marker_hits`). Not yet: firing in the
-   enemy's ordnance phase (the AI fires in its own; a player can fire in either), the salvo
-   aimed by the lead / approach planner, Chaos "not if Stormbird gunships taken"
+   the lowest Armour within craft move + salvo move (`marker_hits`). Firing in the enemy's
+   ordnance phase: built (see "Owner ruling: torpedo bomber salvos placed on a ship"). Not
+   yet: the salvo aimed by the lead / approach planner, Chaos "not if Stormbird gunships taken"
    (Stormbirds, To do 4), the Explorer's Bor'kan price.
 4. Named commanders (built, `booklet_options.NAMED_COMMANDERS`: Lord Admiral Rath, Bakka
    list only, Ld 10, 150, two free re-rolls, +1 defending in boarding; Warmaster Abaddon, 13th
@@ -2885,7 +2885,24 @@ wave together): the AI's torpedo bombers keep the strike planner's target while 
 play; when it is destroyed, hulked or gone they fly at the enemy ship their salvo is worth
 most against, x `phase_weight` of the phases before it is in salvo reach (they used to be
 sent at the nearest enemy every phase, overriding the strike target). Not counted there:
-interceptors and guns on the way (judgement).
+interceptors and guns on the way (judgement). Firing: the AI fires a wave at the start of
+every ordnance phase it can (s.21: any ordnance phase after the launch turn), the enemy's
+too (`OrdnanceMovementMixin._ai_off_turn_ordnance`, IGOUGO; alternate activation already
+runs both players' AI ordnance phases), when the salvo is worth anything; its own phase
+fires before its missiles move (`run_ordnance_phase`), so a Tiger Shark salvo makes its
+20-40cm Tau missile move that phase (it used to be left to the 20cm minimum).
+Reach: standard torpedo bomber salvos 30cm (torpedo speed), Tiger Sharks 40cm.
+Tau missiles (Tau Missiles: "20-40cm each ordnance phase") now move in both players'
+ordnance phases, as other ordnance does: the AI's by plan in either phase, a human's from
+"Move Tau Missiles" in either (unmoved ones still auto-move 20cm at resolution); before,
+they stood still in the opponent's phase. The AI's moves take the approach planner's first
+move length (`approach_plan` returns "length"), no longer always the full 40cm.
+Turning salvos in flight (Tau missiles, Ld-guided, boarding torpedoes; owner: they don't
+manoeuvre like craft) keep their planned target while the planner can still reach it,
+else re-target to the enemy worth most through `approach_plan` itself, i.e. with only the
+45-degree turns, move lengths and Ld odds they really have (`ai_hazards.salvo_approach`,
+recorded as `torp_target_id`); a torpedo bomber salvo plans one move only (`max_moves=1`,
+it is removed at the end of the phase).
 
 Round 2, team play (To do 22), steps 5-8, the window, the port language and the Decoy
 are answered (see below, the agreed order, "Window and port", To do 22).

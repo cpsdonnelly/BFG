@@ -3050,6 +3050,11 @@ class AIPlayer:
     def run_ordnance_phase(self):
         gs = self.gs
 
+        # Torpedo bombers launched on an earlier turn fire their salvos at the
+        # start of the phase (s.21), so a Tiger Shark salvo moves with the
+        # missiles below
+        self._fire_torpedo_bombers()
+
         # Steer this player's guided missiles. Everything else moves when the
         # ordnance phase is resolved (OrdnanceMovementMixin).
         for o_dict in list(gs.ordnance):
@@ -3057,13 +3062,7 @@ class AIPlayer:
             if marker.owner_player != self.player or marker.moved_this_phase:
                 continue
             if marker.can_turn:
-                target = next((s for s in self._live_enemies()
-                               if s.id == marker.torp_target_id), None) \
-                    or self._nearest_enemy_to(marker.x, marker.y)
-                self._steer_guided_missile(marker, target)
-
-        # Torpedo bombers launched on an earlier turn fire their salvos (s.21)
-        self._fire_torpedo_bombers()
+                self._steer_guided_missile(marker)
 
         # Launch new ordnance. Targets are chosen by expected VP from the enemy's
         # actual state (after this turn's shooting) plus what this phase's
@@ -3105,34 +3104,44 @@ class AIPlayer:
             if salvo is not None:
                 self.gs.add_log(f"[AI] torpedo bombers fire at {e.name}")
 
-    def _steer_guided_missile(self, marker: OrdnanceMarker,
-                              target: Optional[Ship]) -> None:
+    def _steer_guided_missile(self, marker: OrdnanceMarker, our_phase: bool = True) -> None:
+        """A Tau missile salvo's move (Tau Missiles: one turn of up to 45
+        degrees at the start of its move, then 20-40cm, every ordnance phase):
+        the approach planner's heading and first move length against its
+        planned target while it can still reach it, else the enemy ship it is
+        worth most against with the turns it can make (`salvo_approach`, owner:
+        turning salvos don't manoeuvre like craft); with no plan, towards where
+        the nearest enemy can end its next move, at full length."""
         gs = self.gs
-        if target is not None:
-            from .ai_hazards import salvo_approach
-            plan = salvo_approach(marker, gs, target=target, our_phase=True)
-            if plan is not None:
-                # Owner: come in on the weakest facing it can reach
-                marker.heading = plan["heading"] % 360
-                target = None
-        if target is not None:
-            # Owner: turning salvos lead too (less than straight ones, since they
-            # steer again): out of reach this phase, head for the middle of where
-            # the target can end its next move (ai_hazards.enemy_move_samples)
-            tx, ty = target.x, target.y
-            if math.hypot(tx - marker.x, ty - marker.y) > (marker.speed or 0) + target.base_radius:
-                from .ai_hazards import enemy_move_samples
-                paths = enemy_move_samples(target)[0]
-                wsum = sum(p.weight for p in paths) or 1.0
-                tx = sum(p.weight * p[-1][0] for p in paths) / wsum
-                ty = sum(p.weight * p[-1][1] for p in paths) / wsum
-            dx = tx - marker.x
-            dy = ty - marker.y
-            desired = math.degrees(math.atan2(dy, dx)) % 360
-            diff = signed_angle_diff(desired, marker.heading)
-            max_t = getattr(marker, "turn_angle", 45)
-            marker.heading = (marker.heading + max(-max_t, min(max_t, diff))) % 360
-        actions.steer_salvo(gs, marker.id, marker.heading)
+        from .ai_hazards import salvo_approach
+        max_t = getattr(marker, "turn_angle", 45) or 45
+        plan = salvo_approach(marker, gs, our_phase=our_phase)
+        if plan is not None:
+            # Owner: come in on the weakest facing it can reach
+            desired, length = plan["heading"] % 360, plan.get("length") or marker.speed
+            for o in gs.ordnance:
+                if o["id"] == marker.id:
+                    o["torp_target_id"] = plan["target"]
+        else:
+            target = self._nearest_enemy_to(marker.x, marker.y)
+            if target is None:
+                desired, length = marker.heading, marker.speed
+            else:
+                # Owner: turning salvos lead too (less than straight ones, since
+                # they steer again): out of reach this phase, head for the middle
+                # of where the target can end its next move
+                tx, ty = target.x, target.y
+                if math.hypot(tx - marker.x, ty - marker.y) > (marker.speed or 0) + target.base_radius:
+                    from .ai_hazards import enemy_move_samples
+                    paths = enemy_move_samples(target)[0]
+                    wsum = sum(p.weight for p in paths) or 1.0
+                    tx = sum(p.weight * p[-1][0] for p in paths) / wsum
+                    ty = sum(p.weight * p[-1][1] for p in paths) / wsum
+                desired = math.degrees(math.atan2(ty - marker.y, tx - marker.x)) % 360
+                length = marker.speed
+        turn = max(-max_t, min(max_t, signed_angle_diff(desired, marker.heading)))
+        length = max(20.0, min(40.0, float(length or 40.0)))
+        actions.move_tau_missile(gs, marker.id, turn, length)
 
     def _launch_ship_ordnance(self, ship: Ship):
         gs = self.gs

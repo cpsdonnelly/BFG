@@ -205,3 +205,52 @@ def test_ai_torpedo_bombers_retarget_when_their_target_is_gone():
         o["craft_target_id"] = "near"
     assign_ai_craft_targets(gs, 1)
     assert {o["craft_target_id"] for o in gs.ordnance} == {"near"}
+
+
+def test_turning_salvo_retargets_by_value_within_its_turns():
+    """A Tau missile salvo whose target is gone picks the enemy it can actually
+    reach with its 45-degree turns, not just the nearest (one close behind it)."""
+    from src.ai_hazards import salvo_approach
+    behind = make_ship(id="behind", player=2, x=-15.0, y=0.0, points_value=150)
+    ahead = make_ship(id="ahead", player=2, x=50.0, y=5.0, points_value=150)
+    gs = make_gs([make_ship(id="me", player=1, x=-80.0), behind, ahead])
+    gs.turn_number = 3
+    m = OrdnanceMarker(id="m", ordnance_type="torpedo_guided", owner_player=1,
+                       launched_by="me", x=0.0, y=0.0, heading=0.0, strength=6, speed=40,
+                       launched_turn=1, can_turn=True, turn_angle=45, torp_target_id="gone")
+    gs.add_ordnance(m)
+    plan = salvo_approach(m, gs, our_phase=True)
+    assert plan is not None and plan["target"] == "ahead"
+
+
+def test_ai_tiger_shark_salvo_moves_its_full_reach():
+    """Tiger Shark salvos are Tau missiles (20-40cm): the AI fires and moves one
+    far enough to reach a ship 35cm away in the same phase (it used to be left to
+    the 20cm minimum move)."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    foe = make_ship(id="e", player=2, x=35.0, y=0.0, points_value=200, turrets=1)
+    gs = make_gs([make_ship(id="cv", player=1, x=-60.0), foe])
+    gs.turn_number = 2
+    gs.add_ordnance(OrdnanceMarker(
+        id="ts", ordnance_type="torpedo_bomber", owner_player=1, launched_by="cv",
+        x=0.0, y=0.0, speed=20, launched_turn=1, special_rules=["tiger_shark"]))
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai._fire_torpedo_bombers()
+    salvo = OrdnanceMarker.from_dict(gs.ordnance[0])
+    ai._steer_guided_missile(salvo)
+    moved = OrdnanceMarker.from_dict(gs.ordnance[0])
+    assert moved.moved_this_phase and moved.x >= 35.0 - foe.base_radius
+
+
+def test_ai_torpedo_bombers_fire_in_the_enemys_ordnance_phase_too():
+    """s.21: any ordnance phase after their launch turn. A parked wave of the
+    AI player whose turn it isn't fires at the start of the enemy's phase."""
+    from src.dice import DiceSource, set_source
+    try:
+        gs, game = _parked_game()
+        gs.active_player = 2                        # the Lunar's own turn
+        game.ordnance._resolve_ordnance_movement()
+        assert any("Torpedoes contact Lunar" in line for line in game.ctx.lines)
+    finally:
+        set_source(DiceSource())

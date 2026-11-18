@@ -20,10 +20,38 @@ def _ai_salvo_turn(marker, gs, fallback: float) -> float:
     plan = salvo_approach(marker, gs)
     if plan is None:
         return fallback
+    # keep the (possibly new) target for its later moves
+    marker.torp_target_id = plan["target"]
+    for o in gs.ordnance:
+        if o["id"] == marker.id:
+            o["torp_target_id"] = plan["target"]
     return max(-45.0, min(45.0, signed_angle_diff(plan["heading"] % 360, marker.heading)))
 
 class OrdnanceMovementMixin:
     """Ordnance-phase resolution methods shared into OrdnancePanel."""
+
+    def _ai_off_turn_ordnance(self):
+        """The non-active AI player's start of this ordnance phase: torpedo
+        bomber salvos (fired first, so a Tiger Shark salvo moves with the
+        missiles) and its Tau missiles' moves, planned from this phase's side
+        of the turn (`AIPlayer._steer_guided_missile(our_phase=False)`)."""
+        from .ordnance import torpedo_bomber_groups
+        gs = self.ctx.gs
+        for p in (1, 2):
+            if p == gs.active_player or not self.ctx.is_ai_controlled(p):
+                continue
+            def unmoved():
+                return [OrdnanceMarker.from_dict(o) for o in gs.ordnance
+                        if o.get("owner_player") == p and o.get("can_turn")
+                        and o.get("ordnance_type") == OrdnanceType.TORPEDO_GUIDED.value
+                        and not o.get("moved_this_phase")]
+            if not torpedo_bomber_groups(gs, p) and not unmoved():
+                continue
+            from .ai_player import AIPlayer
+            ai = AIPlayer(p, self.ctx.tc, gs, self.ctx.dice, getattr(gs, "ai_difficulty", "normal"))
+            ai._fire_torpedo_bombers()
+            for m in unmoved():
+                ai._steer_guided_missile(m, our_phase=False)
 
     def _get_player_bay_capacity(self, player: int) -> int:
         """Total launch bay strength across all non-destroyed, non-disengaged ships for player."""
@@ -782,10 +810,18 @@ class OrdnanceMovementMixin:
         # Degrade Tau missiles from previous turns
         degrade_tau_missiles(self.ctx.gs, self.ctx.dice, self.ctx.gs.turn_number)
 
-        # Check for unmoved Tau missiles - auto-move at minimum speed straight
+        # The AI player whose turn it isn't (IGOUGO; alternate activation runs
+        # both players' AI ordnance phases): at the start of this ordnance phase
+        # its torpedo bombers may fire (s.21: any ordnance phase after their
+        # launch turn) and its Tau missiles make their move (Tau Missiles: each
+        # ordnance phase), as in its own phase
+        if getattr(self, "aa_turn", None) is None:
+            self._ai_off_turn_ordnance()
+
+        # Unmoved Tau missiles (either player's: they move every ordnance
+        # phase) auto-move at minimum speed straight
         for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
             if (o_dict.get("ordnance_type") == OrdnanceType.TORPEDO_GUIDED.value
-                    and o_dict.get("owner_player") == self.ctx.gs.active_player
                     and not o_dict.get("moved_this_phase", False)):
                 marker = OrdnanceMarker.from_dict(o_dict)
                 rad = math.radians(marker.heading)
