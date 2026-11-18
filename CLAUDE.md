@@ -540,7 +540,7 @@ Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and eve
 shooting dialog as recorded actions; `src/fire_volley.py`) and the ordnance phase (AI
 and every human dialog) as actions; next: the end phase as actions (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1376 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1575 pass (BFG_SWEEP=1 adds ~4,500 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2575,7 +2575,21 @@ Done: To do 2, 3, 6; most of 7.
    waves (`launch_bays`), combined squadron launches (`combined_torpedo_launch`,
    `combined_craft_launch`), mines, recalls, torpedo bombers, craft orders and wave splits
    (`set_craft_target`, `split_craft`), Tau missile moves (`move_tau_missile`); every
-   ordnance GUI check passes and a human launch replays (`tests/test_actions.py`). Next: the
+   ordnance GUI check passes and a human launch replays (`tests/test_actions.py`). Owner:
+   every ordnance type of every faction must work: `tests/test_ordnance_coverage.py` sweeps
+   every playable ship with torpedoes, bays or mine launchers, and every option that changes
+   them (27), through every load (9 torpedo kinds incl. boarding / guided / inferno and
+   every bought / rolled type), every craft type (17, CAP for fighters), mines and torpedo
+   bombers' / Tiger Sharks' salvos the turn after, plus the AI's own ordnance phase for each
+   ship and option: launched, moved and resolved against an enemy ship, recorded and
+   replayed to the same state, and each faction's ordnance engaging the enemy (~4,600 cases
+   with BFG_SWEEP=1, a sample per faction / kind / load by default). Fixed on the way: the
+   AI's threat cache (`ai_hazards.ship_threat_vp`) was keyed on `id(gs)`, so a new game
+   could read an old one's values (Python reuses ids) and enemy moves never refreshed it;
+   now kept on the game (`gs._threat_cache`) and keyed by the ship's state and guns and
+   every enemy's position and state; the bracket cache's key now includes the weapons and
+   order, not just their count (both change AI play slightly: the 16-game baseline was
+   regenerated). Next: the
    end phase (damage control, boarding, teleports, blast marker removal) and alternate
    activation's per-unit phases; then games with human players replay in full.
    Plan items:
@@ -2845,8 +2859,14 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-None open: round 2 answered (below); team play (To do 22), steps 5-8, the window, the port
-language and the Decoy answered too (see the agreed order, "Window and port", To do 22).
+- **A torpedo bomber salvo fired from on top of a ship (s.21):** torpedo bombers never
+  attack ships, so a wave can end its move in contact with an enemy ship; its salvo,
+  placed there next turn, doesn't attack that ship (the engine finds contacts along the
+  salvo's move, not where it starts). Should a salvo placed in contact attack the ship at
+  once?
+
+Round 2, team play (To do 22), steps 5-8, the window, the port language and the Decoy
+are answered (see below, the agreed order, "Window and port", To do 22).
 
 ### Owner rulings: answers to the open questions, round 2 (implemented, tested)
 
@@ -2930,6 +2950,8 @@ attacking a ship.
 - GUI / spectator games only when a change touches the game flow or the window, at most one
   or two, run together in the background while the docs are written. The full GUI sweep
   only before a merge to main.
+- The ordnance coverage sweep (`BFG_SWEEP=1 pytest -q tests/test_ordnance_coverage.py`,
+  ~70s) after any change to ordnance and before a merge; the everyday suite runs a sample.
 
 ## Code layout
 

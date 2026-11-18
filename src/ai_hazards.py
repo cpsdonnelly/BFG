@@ -385,9 +385,6 @@ def poisson_at_least(mean: float, k: int) -> float:
     return max(0.0, 1.0 - cdf)
 
 
-_THREAT_CACHE: Dict = {}
-
-
 def _opponent(player: int) -> int:
     return 2 if player == 1 else 1
 
@@ -399,15 +396,21 @@ def ship_threat_vp(ship: Ship, gs) -> float:
     (`bay_threat_vp`: strikes and the denial of the enemy's). Killing it
     removes this, crippling halves it (s.33: half firepower). Cached per
     position and damage."""
-    key = (id(gs), gs.turn_number, gs.current_phase, ship.id, ship.hits_remaining,
-           round(ship.x, 1), round(ship.y, 1), round(ship.heading))
-    if key in _THREAT_CACHE:
-        return _THREAT_CACHE[key]
-    if len(_THREAT_CACHE) > 5000:
-        _THREAT_CACHE.clear()
     foes = [t for t in gs.get_ships() if t.player != ship.player
             and not t.is_destroyed and not t.is_disengaged
             and t.status not in ("drifting_hulk", "burning_hulk")]
+    # Cached on the game itself (never across games: an id(gs) key let a new
+    # game read an old one's values), by everything the value depends on: the
+    # ship's state and guns and every enemy's position and state
+    cache = gs.__dict__.setdefault("_threat_cache", {})
+    key = (gs.turn_number, gs.current_phase, _bracket_state(ship), ship.is_crippled,
+           round(ship.x, 1), round(ship.y, 1), round(ship.heading),
+           tuple((_bracket_state(t), round(t.x, 1), round(t.y, 1), round(t.heading))
+                 for t in foes))
+    if key in cache:
+        return cache[key]
+    if len(cache) > 5000:
+        cache.clear()
     total = 0.0
     for w in ship.weapons:
         wt = w.get("weapon_type")
@@ -420,7 +423,7 @@ def ship_threat_vp(ship: Ship, gs) -> float:
         total += h * best
     # its launch bays too (owner: carrier doctrine; already halved when crippled)
     total += bay_threat_vp(ship, gs)
-    _THREAT_CACHE[key] = total
+    cache[key] = total
     return total
 
 
@@ -2012,7 +2015,9 @@ def _bracket_state(s: Ship) -> tuple:
     """What a ship's bracket values depend on (its guns and their state)."""
     return (s.id, s.ship_class, s.hits_remaining, s.hits_max, s.status, s.shields_max,
             tuple(sorted(c.get("crit_type", "") for c in s.critical_damage)),
-            tuple(s.special_rules), len(s.weapons), s.speed)
+            tuple(s.special_rules), s.speed, s.special_order,
+            tuple((w.get("name"), w.get("weapon_type"), w.get("strength"), w.get("range_cm"),
+                   w.get("range"), tuple(w.get("arcs") or ())) for w in s.weapons))
 
 
 _BRACKET_CACHE: Dict[tuple, float] = {}
