@@ -536,7 +536,9 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+Latest work: To do 17 / 18 (recording, replay, the game flow out of the window, the
+action layer) and the owner's s.11 / s.13 shooting ruling; next: shooting actions and
+replay (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
 owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1366 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
@@ -561,38 +563,24 @@ item below says how):
 - Alternate activation (all three order systems, To do 13); the expected-VP AI (easy, normal,
   expert search); "Auto (best)" on every player prompt; To do 2, 3 and 6.
 
-Discovered this session (code review, `docs/CODE_REVIEW_PLAN.md`; plan only, not acted on):
-- Game modes: hot seat (player vs player), player vs AI (the AI is always Player 2), AI vs AI
-  (spectator; one difficulty for both sides). No more than two sides: the engine is
-  two-sided throughout (`3 - player` ~100 times); one side may mix factions. Team play
-  (owner design, To do 22): two teams of players, each team one side, its ships acting in
-  the team's phases together; no new phases. LAN multiplayer and the web client are on hold.
-- Performance (profiled, 4 v 4 AI movement phase): about 40% is
-  `ai_hazards.ship_bracket_raw`'s `Ship.to_dict` deep copies (cacheable per phase); copying
-  ships (`asdict` / `from_dict`) is over half the phase; function-local imports are ~3%
-  (~90 ns each) and special-rule `in` tests ~27 ns, neither worth changing for speed.
-- Rules bugs found (To do 15): raid crits skip Bridge Smashed's -3 Ld and other crit effects;
-  the raid preview uses the default crit table for every faction; the Eldar sunward edge goes
-  stale after an in-game change; some game rolls (the daemon mine D6, Fleet Engagement's AI
-  formation) use raw `random`, bypassing manual dice and replays; plus reported, unchecked
-  ones (crit slot tests disagreeing, Meteor Storm at 0 hits, stale crit lists, leaky
-  `gs.__dict__` state).
-- AI value gaps (To do 15 / 18): random values like D6+1 are stored as a truncated average (4,
-  not 4.5) and valued at the average firepower instead of over the dice outcomes (the Gunnery
-  table isn't linear); target values ignore crits on 4+ (bombardment cannons, killkannons:
-  the engine is right); `_brace_hull_hits` ignores the Gunnery table; ~8 copies of the
-  "0.35 per firepower point" rule of thumb.
-- Structure (To do 18): string-keyed ladders (scenario modes in parallel functions, crit
-  effects outside the tables, special-order legality in five places); ~170 special-rule tag
-  checks spread over ~20 files, some checked but never produced; `ai_player.py` at 4,600
-  lines; game rules in UI files; judgement weights scattered.
-- Recording (To do 17): phase snapshots (ships, ordnance, markers, phenomena), a thin actions
-  log (13 event kinds) and the text log exist; the dice log isn't saved, there is no seed,
-  snapshots miss scenario / sub-plot / order state, and nothing replays a game.
+Built since the code review (`docs/CODE_REVIEW_PLAN.md`; details in To do 15-18):
+- To do 15 done; To do 16 done (headless runner `--no-display`, ~650 games / hour on 4 cores).
+- To do 17: seeded, recorded dice and AI randomness, decision events, complete snapshots;
+  AI-vs-AI games replay exactly; movement phases replay from recorded actions.
+- To do 18 in progress: `prompts.py` (every question through `ctx.prompt`), `game_flow.py`
+  (the turn flow, `GamePanel(GameFlow)`), `headless_game.py`, `tk_compat.py`, `actions.py`
+  (movement actions), `replay.py`, `tools/refactor_check.sh`.
+- Owner ruling s.11 / s.13 (combined macrobattery rolls, markers at once, mixing gunnery
+  types) built.
+Still true from the review:
+- Game modes: hot seat, player vs AI (the AI is always Player 2), AI vs AI spectator (one
+  difficulty for both). Two sides only (`3 - player` ~100 times); team play is To do 22.
+- Structure (To do 18's remaining items): string-keyed ladders, ~170 special-rule tag checks,
+  `ai_player.py` ~4,700 lines, some rules in UI files, judgement weights scattered, ~8 copies
+  of the "0.35 per firepower point" rule of thumb.
 - Language (To do 20): a full port in its own branch, Python staying the reference, is the
-  third-last task, online play (To do 23) the second last; the ML-trained AI (To do 12, then 1) is the last, built on the faster
-  engine. Python is a real bottleneck for full-rules self-play (rough estimate: 30-60s a game,
-  5,000 games ~55 core-hours before the speed fixes).
+  third-last task, online play (To do 23) the second last; the ML-trained AI (To do 12, then
+  1) is the last, on the faster engine.
 
 Next: the "Agreed order" at the top of the To do list.
 
@@ -2809,6 +2797,10 @@ rather than touch a third ship).
   netherfields and polarisation fields (identical to those of the Haven Spire)", but the
   booklet's Haven Spire (MMS) has neither; only XR's note names them, and only the Dark
   Eldar Tormentor Spire defines a polarisation field. What should they do?
+- **Combined batteries' halving (owner ruling s.13 built):** when a ship's macrobatteries
+  combine, each is reduced by its own modifiers (orders, crippling, Brace) and then totalled
+  (two FP3 on Burn Retros: 2 + 2 = 4), as capital ships halve individually in squadron fire.
+  Or total first, then halve (3)? Built the first way; to confirm.
 - **Sign-off answers still marked Owner** (`bfgxr/notes/OWNER_SIGNOFF_answers.md`): 2 (what
   next), 10 (Navigate the Storm ending as soon as an objective is met?), 16 (AA), 54, 55, 63-66.
 

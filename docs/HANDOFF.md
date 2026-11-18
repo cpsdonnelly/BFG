@@ -8,69 +8,62 @@ Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Factions: Imperial Navy, Chaos, Mechanicus, Space Marines (+ Venerable Strike Cruisers),
   Inquisition / Grey Knights, Orks, Tau (+ Demiurg, Kroot partly), Rogue Traders, Eldar (MMS
   v2.0, 18 of 24 ships), Necrons (the six mobile ships). Fleet lists for the first eight.
-- Fleet commanders, secondary commanders, named commanders, refits / gifts / marks / kustoms,
-  bought torpedo types, mines and torpedo bombers.
-- 31 booklet scenarios: the nine matched-play ones, the introductory, raid and battle
-  scenarios, low orbit with Exterminatus! and Planetary Assault, the campaign set pieces
-  (Pelucidar, Macharia's End, Craftworld Assault) and variants (The Gauntlet, Parol's Bait,
-  Daemon Blockade); sub-plots incl. the faction ones (Decoy aside).
-- Alternate activation (all three order systems), the expected-VP AI (normal, easy, expert
-  search), "Auto (best)" on every player prompt.
-- Game modes: player vs player (hot seat), player vs AI, AI vs AI (spectator).
+- Fleet / secondary / named commanders, refits, gifts, marks, kustoms, bought torpedo types,
+  mines, torpedo bombers.
+- 31 booklet scenarios and the sub-plots (Decoy aside).
+- Alternate activation (all three order systems), the expected-VP AI (easy, normal, expert),
+  an "Auto" button on every player prompt (owner: labelled only "Auto", never "best").
+- To do 15 (code review rules bugs): done.
+- To do 16 (performance, headless runner): done. 4 v 4 movement phase 0.85s -> 0.28s;
+  `tools/headless_runner.py` (`--no-display` needs no Tk or xvfb; `--replay-check`;
+  ~650 games an hour on 4 cores; seeded games repeat exactly with `PYTHONHASHSEED=0`).
+- To do 17 (recording / replay), mostly done: seeded recorded dice (`dice.DiceSource`, typed
+  dice recorded too), seeded AI / cosmetic randomness (`rng.game_random`), decision events
+  (`recorder`, with call depth and player-vs-flow marking), complete snapshots, saved with the
+  game; AI-vs-AI games replay exactly from the roll record in both turn systems; movement
+  phases replay from the recorded actions (`replay.ReplaySeat`).
+- To do 18 (structure), in progress: questions through `ctx.prompt` (`prompts.py`), the turn
+  flow out of the window (`game_flow.GameFlow`; `headless_game.HeadlessGame` runs it with no
+  window), the action layer for movement (`actions.py`), `tools/refactor_check.sh` (16 seeded
+  games; a pure refactor must not change their final-state hashes).
+- Owner ruling s.11 / s.13 built (latest): a ship's macrobatteries of one gunnery type at one
+  target make one combined roll; blast markers count at once for later attacks; mixing
+  gunnery types may fire together (Fire dialog checkbox, AI by value).
+- Merged into main (PR #2).
 
-Left, in the agreed order (CLAUDE.md "To do" has the order and every item's detail; item
-numbers are IDs, not the order):
-1. To do 15: the rules bugs the code review found (raid crits skip Bridge Smashed's -3 Ld and
-   other effects, the raid preview's crit table, the stale Eldar sunward edge, rolls bypassing
-   the dice roller, and reported ones to check), plus the AI value gaps (random values by
-   their exact mean and over the dice outcomes, crits on 4+ in target values, Brace's hit
-   estimate) and misleading docstrings (zzapp gunz).
-2. To do 16: performance and the headless runner, done (4 v 4 movement phase 0.85s ->
-   0.28s, ~655 games an hour on 4 cores, seeded games repeat exactly); left: the runner
-   without a display (with 18), a repeatable expert AI (with 17).
-3. To do 17: recording and replay: seeded, recorded dice, decision events and complete
-   snapshots built; AI-vs-AI games replay exactly (both turn systems). Left: replaying
-   human games (after 18 moves the game flow out of Tk) and the viewer.
-4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split, one
-   weapon-value helper, central AI weights, rules out of the UI), with To do 30 (exact
-   cached hit distributions replacing the Poisson / 0.35 estimates).
-5. To do 25: fleet building completeness (every upgrade, fleet option and leader; the
-   owner's 1000pt fleets as test cases; gaps listed in To do 25).
-6. To do 26 and 27: demo rework (random-terrain Cruiser Clash, pick both fleets and the
-   mode) and favourite fleets saved on quitting.
-7. To do 24 and 31: the AI list builder with personalities, and the log of its random choices.
-8. To do 28 and 29: AI deployment (squadrons, formations, buff ships last) and commander
-   placement after the Ld roll.
-9. To do 22: team play (two teams of players; a team is one side, its members' ships act in
-   its phases together; owner design, questions in CLAUDE.md To do 22).
-10. To do 19: Dark Eldar, then Tyranids.
-11. To do 14: Eldar and Necron gaps.
-12. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
-    fortress weapons.
-13. To do 13: alternate activation's experiments, expert AI per unit.
-14. To do 11, 10 e, 8: the rest of the rules-based AI.
-15. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
-16. To do 21: the replay system as the comparison standard, finished before the port
-    (every event kind covered, a versioned language-neutral record format, a Python replay
-    verifier, a golden set of recorded games for every faction and scenario).
-17. Third last, To do 20: port the engine to a faster language (Rust suggested) in its own
-    branch, Python staying the reference; its first milestone is replaying the golden games,
-    then every one must match exactly.
-18. Second last, To do 23: online play, peer-to-peer lockstep (owner): each client runs the
-    ported engine from the same seed and they exchange only decisions, with a state hash
-    each phase; the Pyodide `web/` client and LAN `network.py` aren't online play.
-19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
-    engine; on hold until the owner says so; separate from the current AI.
-(Steps 5-8 placed by Claude, owner to confirm.)
+Needs more work (next first):
+1. To do 17 / 18: the action layer for shooting (one engine action applying a shot's hits for
+   the AI and the Fire dialogs, then `ReplaySeat` for shooting), then ordnance, the end
+   phase and alternate activation's per-unit phases; then human games replay in full; then
+   the replay viewer. Found, not changed (changes AI play): AI ships meet ordnance they moved
+   into only after the whole AI movement phase, a human's after each move (s.15).
+2. The rest of To do 18's plan items (tag constants and coverage test, crit-effect tables,
+   one `order_allowed`, `ScenarioDef` registry, `ai_player.py` split, `mount_expected_hits` with
+   To do 30's exact cached distributions (owner: exact wherever possible, DP for chains such
+   as waves through CAP and turrets), `ai/weights.py`, rules out of the UI, long functions).
+3. Then the agreed order in CLAUDE.md "To do": 25 (fleet building completeness, the owner's
+   1000pt fleets as tests), 26-27 (demo rework, favourite fleets), 24 + 31 (AI list builder,
+   random-choice log), 28-29 (AI deployment, commander placement), 22 (team play), 19 (Dark
+   Eldar, Tyranids), 14 (Eldar / Necron gaps), 4-5, 13, 11 / 10 e / 8, 7 / 9, 21 (replay as the
+   comparison standard), third last 20 (port, Rust), second last 23 (online play), last 12
+   then 1 (ML AI, on hold until the owner says, kept separate from the current AI).
 
-Owner questions open: CLAUDE.md "Open questions for the owner". Code review, profile and
-plans: `docs/CODE_REVIEW_PLAN.md` (sections 1-7; nothing refactored yet).
+Owner decisions this session worth knowing:
+- Online play (To do 23): peer-to-peer lockstep; online dice default "cheat-proof"
+  (commit-reveal per roll from hash chains), "shared seed" an option; typed dice off by
+  default online; a disconnect pauses (no automatic forfeit), resumable; play by mail with
+  shared seed (default) or a signing dice service.
+- Exact solutions over sampling wherever an exact answer costs about the same (To do 30).
+- Team play design (To do 22); Meteor Storm wrecks roll catastrophic damage after deployment.
 
-Game modes today: hot seat, player vs AI (AI always Player 2), AI vs AI spectator (one
-difficulty for both). Recording today: phase snapshots, a thin actions log and the text log;
-no saved dice, no seed, no replay.
+Owner questions open: CLAUDE.md "Open questions for the owner" (low orbit placement, Craftworld
+forges' fields, combined batteries' halving order, sign-off answers 2 / 10 / 16 / 54 / 55 /
+63-66). Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Not supported yet: teams of players (To do 22, owner design: two teams, each one side).
+Checking a change: `pytest -q` (1366 pass); `flake8 --select=E9,F src/`; GUI checks under
+`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
+`tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
+baseline changes whenever a rules fix changes play; regenerate it then).
 
 Read this first, then `CLAUDE.md` (the living source: every owner ruling, conventions, module
 notes) and `bfgxr/CLAUDE.md` (rules authority). This file is a snapshot at the end of a long
