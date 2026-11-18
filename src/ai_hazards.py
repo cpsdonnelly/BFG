@@ -2162,6 +2162,42 @@ def torpedo_bomber_heading(gs, group, player: int, target: Ship) -> float:
                key=lambda h: _bomber_salvo_value(gs, group, player, h))
 
 
+def torpedo_bomber_flight_target(gs, group, player: int) -> str:
+    """The enemy ship a torpedo bomber wave (or lone squadron) in flight
+    flies at (s.18): the target the strike planner launched it at while
+    that ship is still in play (`_strike_option` chose it with the whole
+    timeline), otherwise a new one by the VP of its salvo there (2 a squadron, Tiger Sharks 5/6 of
+    it through; turret kills 4+ each, the facing it comes from) x
+    `phase_weight` of the ordnance phases before the salvo can be fired
+    with the ship in reach (it flies its speed a phase, then fires from up
+    to a salvo move away; landing on the ship makes contact certain, owner
+    ruling s.21). A ship destroyed, hulked or gone is never kept. Hulks are left
+    out (judgement: a ship in play is worth more). Not counted: interceptors
+    and guns on the way (judgement). "" when no enemy ship is left."""
+    from .ordnance import TORPEDO_SPEED_DEFAULT
+    lead = group[0]
+    tiger = "tiger_shark" in lead.special_rules
+    reach = 40.0 if tiger else float(TORPEDO_SPEED_DEFAULT)
+    speed = min((m.speed or 20) for m in group)
+    strength = 2 * len(group) * (5 / 6 if tiger else 1.0)
+    kept = gs.get_ship_by_id(lead.craft_target_id) if lead.craft_target_id else None
+    if (kept is not None and kept.player != player and not kept.is_destroyed
+            and not kept.is_disengaged and kept.status not in ("drifting_hulk", "burning_hulk")):
+        return kept.id
+    best, best_v = "", -1.0
+    for e in gs.get_ships():
+        if (e.player == player or e.is_destroyed or e.is_disengaged
+                or e.status in ("drifting_hulk", "burning_hulk")):
+            continue
+        gap = math.hypot(e.x - lead.x, e.y - lead.y) - e.base_radius - reach
+        k = 0 if gap <= 0 else int(math.ceil(gap / speed))
+        hits, _left = _salvo_attack_hits(strength, e, lead.x, lead.y)
+        v = hull_hits_vp(e, gs, 0.0, hits) * phase_weight(k)
+        if v > best_v:
+            best, best_v = e.id, v
+    return best
+
+
 def torpedo_bomber_target(gs, group, player: int):
     """(VP, ship) for a torpedo bomber wave's salvo this phase (s.21: 2 a
     squadron; Tiger Sharks a Tau missile salvo, 40cm, 5/6 of it through): the

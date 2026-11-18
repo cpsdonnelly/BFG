@@ -196,13 +196,27 @@ def assign_ai_craft_targets(game_state: GameState, player: int) -> int:
     # with focus, fleet-wide (ai_hazards.plan_strike_targets)
     from .ai_hazards import plan_strike_targets
     strikes = plan_strike_targets(game_state, player)
+    # Torpedo bombers / Tiger Sharks (s.21) never attack ships: their wave
+    # flies at the ship its salvo is worth most against (re-chosen each phase,
+    # so a destroyed target is replaced), the whole wave together
+    from .ai_hazards import torpedo_bomber_flight_target
+    tb_target = {}
+    for g in _torpedo_bomber_flights(game_state, player):
+        t = torpedo_bomber_flight_target(game_state, g, player)
+        for m in g:
+            tb_target[m.id] = t
+            if m.wave_id:
+                tb_target.update({o["id"]: t for o in game_state.ordnance
+                                  if o.get("wave_id") == m.wave_id})
     n = 0
     for i, o in enumerate(game_state.ordnance):
         if (o["owner_player"] != player or o["ordnance_type"] not in ATTACK_CRAFT_TYPES
                 or o.get("cap_ship_id")):
             continue
         m = OrdnanceMarker.from_dict(o)
-        if m.id in strikes and (m.wave_id or attacks_ships(m.ordnance_type)):
+        if m.id in tb_target:
+            m.craft_target_id = tb_target[m.id]
+        elif m.id in strikes and (m.wave_id or attacks_ships(m.ordnance_type)):
             m.craft_target_id = strikes[m.id]
         elif m.id in plan:
             m.craft_target_id = plan[m.id]
@@ -1574,6 +1588,23 @@ def short_burn_fuel_checks(game_state: GameState, dice: DiceRoller,
 
 
 TORPEDO_BOMBER_SALVO = 2          # strength per squadron (s.21)
+
+
+def _torpedo_bomber_flights(game_state: GameState, player: int) -> List[List[OrdnanceMarker]]:
+    """Every torpedo bomber squadron of the player in flight (its launch turn
+    included), grouped by wave, lead first: what flies together."""
+    tbs = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance
+           if o.get("owner_player") == player and not o.get("cap_ship_id")
+           and o.get("ordnance_type") == OrdnanceType.TORPEDO_BOMBER.value]
+    groups, seen = [], set()
+    for m in tbs:
+        if m.id in seen:
+            continue
+        g = (sorted((w for w in tbs if w.wave_id == m.wave_id), key=lambda w: w.wave_order)
+             if m.wave_id else [m])
+        seen |= {w.id for w in g}
+        groups.append(g)
+    return groups
 
 
 def torpedo_bomber_groups(game_state: GameState, player: int) -> List[List[OrdnanceMarker]]:

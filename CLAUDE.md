@@ -540,7 +540,7 @@ Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and eve
 shooting dialog as recorded actions; `src/fire_volley.py`) and the ordnance phase (AI
 and every human dialog) as actions; next: the end phase as actions (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1578 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1579 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2879,8 +2879,13 @@ with the misses) and `torpedo_bomber_heading` points a parked salvo's carry-on w
 most (another enemy, never a friend; 24 headings); the human dialog's "Auto" and heading
 use the same. Defence: the hazard model counts a wave within its move + the salvo move of
 the end position (a parked wave included), and fighters, CAP and gunfire at ordnance value
-it through `marker_hits` (`tests/test_torpedo_bombers.py`). Not yet: re-targeting torpedo
-bombers in flight when their target is destroyed (they carry straight on).
+it through `marker_hits` (`tests/test_torpedo_bombers.py`). In flight
+(`ordnance.assign_ai_craft_targets` -> `ai_hazards.torpedo_bomber_flight_target`, the whole
+wave together): the AI's torpedo bombers keep the strike planner's target while it is in
+play; when it is destroyed, hulked or gone they fly at the enemy ship their salvo is worth
+most against, x `phase_weight` of the phases before it is in salvo reach (they used to be
+sent at the nearest enemy every phase, overriding the strike target). Not counted there:
+interceptors and guns on the way (judgement).
 
 Round 2, team play (To do 22), steps 5-8, the window, the port language and the Decoy
 are answered (see below, the agreed order, "Window and port", To do 22).

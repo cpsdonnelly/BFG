@@ -182,3 +182,26 @@ def test_ai_values_a_parked_wave_and_aims_its_carry_on():
     gs2, _g2 = _parked_game(friend_too=True)
     v2, _e = torpedo_bomber_target(gs2, torpedo_bomber_groups(gs2, 1)[0], 1)
     assert v2 < v
+
+
+def test_ai_torpedo_bombers_retarget_when_their_target_is_gone():
+    """A wave whose target is destroyed flies at the enemy ship its salvo is
+    worth most against (not just the nearest); a live target is kept."""
+    from src.ordnance import assign_ai_craft_targets
+    near = make_ship(id="near", player=2, x=30.0, y=0.0, points_value=15, hits_remaining=1,
+                     hits_max=1, turrets=1)
+    dear = make_ship(id="dear", player=2, x=45.0, y=0.0, points_value=300, turrets=1)
+    dead = make_ship(id="dead", player=2, x=10.0, y=0.0, status="destroyed")
+    gs = make_gs([make_ship(id="cv", player=1, x=-50.0), near, dear, dead])
+    gs.turn_number = 2
+    for i in range(2):
+        gs.add_ordnance(OrdnanceMarker(
+            id=f"tb{i}", ordnance_type="torpedo_bomber", owner_player=1, launched_by="cv",
+            x=0.0, y=0.0, speed=20, launched_turn=1, wave_id="w", wave_order=i,
+            craft_target_id="dead"))
+    assign_ai_craft_targets(gs, 1)
+    assert {o["craft_target_id"] for o in gs.ordnance} == {"dear"}
+    for o in gs.ordnance:
+        o["craft_target_id"] = "near"
+    assign_ai_craft_targets(gs, 1)
+    assert {o["craft_target_id"] for o in gs.ordnance} == {"near"}
