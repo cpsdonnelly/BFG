@@ -2866,6 +2866,16 @@ attacking a ship.
 - The Tkinter panels can't be unit-tested here; drive the real `GamePanel` under `xvfb-run`
   with a Python that has tkinter when a change touches UI flow.
 
+### How much to test (owner: keep it lean)
+
+- One full `pytest -q` run per slice (about 10s), not test files one by one first; only on a
+  failure, run the failing files alone.
+- `tools/refactor_check.sh` (16 games, minutes) only for pure refactors, where an unchanged
+  result is the point; not for rules changes, which are expected to change games.
+- GUI / spectator games only when a change touches the game flow or the window, at most one
+  or two, run together in the background while the docs are written. The full GUI sweep
+  only before a merge to main.
+
 ## Code layout
 
 - Pure-logic engine (no Tk, unit-tested): `models.py`, `game_state.py`, `movement.py`,
