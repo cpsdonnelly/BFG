@@ -37,21 +37,25 @@ Needs more work (next first):
    fleets (Tau Protector, Orks, Necrons, Eldar; `docs/OWNER_FLEETS.md`). The Dark Eldar
    plan, in three slices with the hooks to use, is in CLAUDE.md To do 19; nothing of it is
    built yet (the rules were read, `bfgxr/rules/08_dark-eldar.md` + Appendix 3).
-0. To do 32 (owner report, playability): the owner couldn't play from `run.py`. Checked, all
-   software problems: the setup wizard (540x680, needs ~1820px, no scrollbar) hides its Start
+0. To do 32 (owner report, playability), DONE: the owner couldn't play from `run.py`. Checked,
+   all software problems (as found): the setup wizard (540x680, needs ~1820px, no scrollbar) hides its Start
    buttons; the fleet builder (1000 wide, needs ~1320) never draws Load / Save / Validate,
    so fleet-list restrictions seem not to work and fleets can't be saved; ship options and
    commanders (nova cannon refit, 45cm guns, admirals, re-rolls) exist only in the ship Edit
    dialog (double-click), which nothing points to and which is cut off too (680 tall, needs
-   ~1080); with "No fleet list" it shows every list's options; the owner's To do 25 fleets
-   aren't files yet. Windows fixed: scrolling setup and Edit dialogs with their buttons
+   ~1080); with "No fleet list" it shows every list's options (kept: s.4). Windows fixed: scrolling setup and Edit dialogs with their buttons
    always shown, the builder's buttons first on its top row, "Add with options...", options
    under headings, the fleet list's rules checked live (`src/tk_scroll.py`,
    `tools/gui_checks/layout_check.py`). Also fixed: builder-saved fleets crashed the game
    (no ship ids), Auto-Place broke a 4-escort squadron's coherency, the Mechanicus refits
    weren't offered. Six of the owner's thirteen fleets are files (`data/fleets/owner_*`,
    `tools/build_owner_fleets.py`, lists in `docs/OWNER_FLEETS.md`); the other seven wait on
-   catalog gaps. Details in CLAUDE.md To do 32.
+   catalog gaps (Dark Eldar / Tyranids, Tau Protector, Orks, Necrons, Eldar). Space Marines:
+   all five strike cruisers take the Secondary Shield (owner: no limit); fixed, a variant's
+   lost Tactical Flexibility now goes on the ship's own value (VP), not only the fleet
+   total; every owner fleet's ship values add up to its total. Still open from the report:
+   the AI doesn't deploy its own ships (press Auto-Place; To do 28). Details in CLAUDE.md
+   To do 32.
 1. To do 17 / 18: shooting actions done (the AI's attacks, `actions.fire_weapons` and
    friends; the Fire dialog's volley as `actions.fire_volley` on `src/fire_volley.py`;
    shooting phases replay; the Combine Squadron Fire, Fire at Squadron and Fire at Ordnance
