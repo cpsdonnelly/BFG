@@ -32,6 +32,11 @@ Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Merged into main (PR #2).
 
 Needs more work (next first):
+00. Owner's latest task: make the other factions playable. Dark Eldar (0 / 7 ships
+   playable) first, then Tyranids (0 / 9), then the catalog gaps blocking the owner's other
+   fleets (Tau Protector, Orks, Necrons, Eldar; `docs/OWNER_FLEETS.md`). The Dark Eldar
+   plan, in three slices with the hooks to use, is in CLAUDE.md To do 19; nothing of it is
+   built yet (the rules were read, `bfgxr/rules/08_dark-eldar.md` + Appendix 3).
 0. To do 32 (owner report, playability): the owner couldn't play from `run.py`. Checked, all
    software problems: the setup wizard (540x680, needs ~1820px, no scrollbar) hides its Start
    buttons; the fleet builder (1000 wide, needs ~1320) never draws Load / Save / Validate,

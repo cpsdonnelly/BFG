@@ -544,7 +544,9 @@ fleet builder's Save / Validate and the ship Edit dialog's lower options were cu
 screen; fixed (scrolling dialogs, buttons always shown, options under headings, live fleet
 check), builder-saved fleets crashing the game, Auto-Place breaking squadrons, the missing
 Mechanicus refits; six of the owner's fleets built as files. Next: alternate activation's
-per-unit phases (or the rest of To do 25, the owner's call) (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+per-unit phases; owner since: "try to get the other factions playable", so next is
+To do 19 (Dark Eldar first; plan in To do 19), then Tyranids, then the gaps in the owner's
+other fleets (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
 owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1600 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
@@ -2632,6 +2634,49 @@ Done: To do 2, 3, 6; most of 7.
    Spire. Catalog today: speeds / armour / batteries parse; the Spire's torpedoes and Impaler
    bay don't. Tyranids (`13_tyranids.md`): Instinctive Behaviour, synapse, spore clouds,
    weapon configurations; no Ld roll.
+   Owner (latest): "try to get the other factions playable": Dark Eldar first, then
+   Tyranids, then the gaps blocking the owner's other fleets (`docs/OWNER_FLEETS.md`:
+   Tau Protector, Orks, Necrons, Eldar). Playable today: Dark Eldar 0 / 7, Tyranids 0 / 9
+   (both greyed out by `booklet_ships.UNBUILT_FACTION_RULES`); the rest mostly playable.
+   Dark Eldar plan (read `bfgxr/rules/08_dark-eldar.md` and Appendix 3's Dark Eldar table;
+   nothing built yet), in slices, each with tests, following how the Eldar were wired:
+   1. Catalog and fleet building: `booklet_ships.convert_row` gives Dark Eldar ships
+      `dark_eldar` and `shadowfield` rules (shields 0; Ld already on the Eldar column, the
+      +1), weapon flags like `_ELDAR_WEAPON_FLAGS` (`de_battery`: left shift; `de_phantom`:
+      1 hit on a 4, 2 on 5+, NOT the Eldar 4-5 / 6); Kabal Variants as options, exactly one
+      per Mortalis / Torture / Succubus / Corsair / Subjugation (a "required group" check in
+      `booklet_options.ship_option_errors`); craft in `ordnance.CRAFT_STATS`: Raptor (fighter
+      30cm, 4+ resilient), Razorwing (bomber 20cm), Slavebringer (assault boat 30cm),
+      Voidraven (torpedo bomber 20cm, plasma salvo); torpedoes: plasma = standard that
+      re-roll misses (extend the Eldar re-roll in `resolve_torpedo_attack`), leech (a new
+      `EXTRA_TORPEDO_TYPES` kind: each hit a Thrusters Damaged crit, no damage), boarding;
+      the Impaler bay as its own weapon type; Raiders fleet list in
+      `fleet_list_data_other` (Dread Archon +2 Ld 50, re-rolls 25 / 50 / 100; up to three
+      Dracons +1 Ld 25; Mortalis one per three cruisers; at least three escorts per capital
+      ship, squadrons 2-6; one of Wych Cult 15 / Incubi 20 / Haemonculi 25 per capital ship).
+   2. Combat / movement: shadowfields (one right shift vs gunnery; a tracking mark per
+      attacking ship or squadron that hits, to the end of the turn; a 2+ save vs lance and
+      ordnance hits and raids, +1 per mark, max 6+: best in `_apply_damage`, which already
+      handles Brace / Necron saves, given the attack kind; ram tests +2D6; nova +1D6
+      scatter), flickerfields (`ordnance.turret_hit_on` +2 vs Dark Eldar ordnance but
+      mines, max 6+; markers carry the launcher's rules), movement (no minimum move, no
+      turning distance, Come to New Heading passes automatically; `movement.
+      validate_movement`, `get_effective_speed`, `do_command_check`), Spectral Plating (no
+      blast marker / gas cloud damage), the crit table (`tables.crit_table_for`; Appendix 3:
+      control circuit, keel / prow armament, graviton harness, bladevanes, superstructure,
+      thrusters, commanders slain, shadowfield generators, hull breach, bulkhead).
+   3. Special rules: Impalers (capacity limited like bays, removed at the start of the
+      owner's turn, 4+ resilient; on contact a D6: 1 nothing, else two raids or one crit,
+      +1 damage if the D6 >= the target's Armour), Pain Frenzy (+1 boarding crew, +1 raids,
+      re-roll raids / boarding crits vs crippled ships), slave-taking (forgo a raid for +5
+      VP, an Impaler D6x5; boarding +5 VP a hit, +100 for Bridge Smashed), Insatiable Greed
+      (an uncrippled ship disengaging counts destroyed unless the fleet has 25% of its value
+      in VP), the Mimic Engine (a 15cm move after deployment; untargetable beyond 30cm in the
+      first game turn until it attacks; none against Necrons / Tyranids), Wych / Incubi /
+      Haemonculi effects, the Tormentor Spire (own crit table, night shields, docking,
+      webway reserves). Then the AI (shadowfield saves in its hit values) and the owner's
+      Dark Eldar fleet as a file (Succubus Burning Scale + Voidravens 170, 6 Corsairs with
+      Impalers, 4 Subjugations with torpedoes, 5 with batteries, Archon + 2 re-rolls: 990).
 20. Port the engine to Rust in a new branch (owner: third-last task, before online play; plan
    section 7; determinism and the window: "Window and port" under the agreed order). Python
    is the reference until the port replays every golden game identically, then retired (the
