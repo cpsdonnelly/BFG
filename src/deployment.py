@@ -264,3 +264,84 @@ class DeploymentState:
             if self.groups_remaining(other) > 0:
                 self.active_player = other
             # else stay with current player if they still have ships
+
+
+# ── Engine-side deployment (To do 32: the window's auto-place, also for games
+# with no window, e.g. tools/headless_runner.py with builder-saved fleets) ──
+
+def deployment_state(gs, mode: str = "sequential") -> "DeploymentState":
+    """The deployment of `gs`'s ships: the scenario's fixed placements made
+    (Rescue's flagship), reserves left out, the scenario's zones and rules."""
+    from .scenarios import deployment_zones, fixed_placements, placement_errors
+    fixed = fixed_placements(gs)
+    for sd in gs.ships:
+        if sd["id"] in fixed:
+            sd["x"], sd["y"], sd["heading"] = fixed[sd["id"]]
+    ships = {p: [Ship.from_dict(s) for s in gs.ships if s["player"] == p
+                 and s["id"] not in fixed and s.get("status") != "reserve"] for p in (1, 2)}
+    zones = deployment_zones(gs) or get_default_zones(gs.table_width, gs.table_height)
+    state = DeploymentState(
+        ships[1], ships[2], zones, mode=mode,
+        extra_check=lambda g, pos, hd, placed: placement_errors(gs, g, pos, hd, placed))
+    state.placed_ships.extend(Ship.from_dict(s) for s in gs.ships if s["id"] in fixed)
+    return state
+
+
+def grid_positions(group, zone: DeploymentZone, placed) -> List[Tuple[float, float]]:
+    """Positions for `group` in `zone`: a compact block (two rows, 6cm apart,
+    so a squadron of up to six keeps well within 15cm coherency), at the spot
+    nearest the zone's centre that is clear of ships already placed (8cm,
+    judgement) and inside the zone."""
+    import math
+    n = len(group)
+    cols = n if n <= 3 else (n + 1) // 2
+    rows = 1 if n <= 3 else 2
+    step = 6.0
+    offsets = [((i % cols - (cols - 1) / 2.0) * step, (i // cols - (rows - 1) / 2.0) * step)
+               for i in range(n)]
+    cx, cy = (zone.x_min + zone.x_max) / 2.0, (zone.y_min + zone.y_max) / 2.0
+    margin = 2.5
+    best = None
+    for ring in range(0, 40):
+        for dx_i in range(-ring, ring + 1):
+            for dy_i in range(-ring, ring + 1):
+                if max(abs(dx_i), abs(dy_i)) != ring:
+                    continue
+                px, py = cx + dx_i * 4.0, cy + dy_i * 4.0
+                pos = [(px + ox, py + oy) for ox, oy in offsets]
+                if not all(zone.x_min + margin <= x <= zone.x_max - margin and
+                           zone.y_min + margin <= y <= zone.y_max - margin for x, y in pos):
+                    continue
+                if all(math.hypot(x - s.x, y - s.y) >= 8.0 for x, y in pos for s in placed):
+                    best = pos
+                    break
+            if best:
+                break
+        if best:
+            break
+    return best or [(cx + ox, cy + oy) for ox, oy in offsets]
+
+
+def auto_place(gs, state: "DeploymentState") -> List[str]:
+    """Place every group still to deploy (the window's Auto-Place): the
+    scenario's positions where it has them (scenarios.auto_positions), else a
+    row in the zone; headings from the scenario or facing the enemy. Placed
+    ships are written to `gs`. Returns the errors of a group that couldn't be
+    placed (it stops there)."""
+    from .scenarios import auto_positions, auto_heading
+    while not state.is_complete():
+        group = state.current_group()
+        if group is None:
+            break
+        p = state.active_player
+        zone = state.zones[p]
+        positions = (auto_positions(gs, group, zone, state.placed_ships, state.next_idx[p])
+                     or grid_positions(group, zone, state.placed_ships))
+        headings = [auto_heading(gs, p, x, y) or (0.0 if p == 1 else 180.0)
+                    for x, y in positions]
+        ok, errors = state.place_group(positions, headings)
+        if not ok:
+            return [f"{group[0].name}: {e}" for e in errors]
+        for ship in state.placed_ships[-len(group):]:
+            gs.update_ship(ship)
+    return []

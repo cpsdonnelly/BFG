@@ -1,0 +1,485 @@
+{
+  "fleet_name": "Mechanicus Explorator 1000",
+  "faction": "adeptus_mechanicus",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 990,
+  "fleet_list": "admech_explorator",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Mechanicus Dictator Cruiser",
+      "ship_class": "Mechanicus Dictator Cruiser",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 4,
+      "hits_max": 8,
+      "leadership": 9,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "fighter",
+            "bomber"
+          ],
+          "craft_speeds": {
+            "fighter": 30,
+            "bomber": 20
+          },
+          "craft_speed": 30
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "fighter",
+            "bomber"
+          ],
+          "craft_speeds": {
+            "fighter": 30,
+            "bomber": 20
+          },
+          "craft_speed": 30
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Dorsal Lance",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30
+        }
+      ],
+      "special_rules": [
+        "fleet_commander"
+      ],
+      "upgrades": [
+        "Archmagos Explorator (Ld 9)",
+        "Commander: 1 extra re-roll"
+      ],
+      "points_value": 320,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 1,
+      "squadron_id": "",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Tyrant Cruiser",
+      "ship_class": "Mechanicus Tyrant Cruiser",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Dorsal Lance",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Nova Cannon",
+          "weapon_type": "nova_cannon",
+          "range_cm": 150,
+          "strength": 0,
+          "arcs": [
+            "front"
+          ],
+          "min_range_cm": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [
+        "Refit: prow nova cannon for the torpedoes",
+        "Refit: plasma-boosted gunnery (30cm macrobatteries to 45cm)"
+      ],
+      "points_value": 245,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Tyrant Cruiser",
+      "ship_class": "Mechanicus Tyrant Cruiser",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Dorsal Lance",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Nova Cannon",
+          "weapon_type": "nova_cannon",
+          "range_cm": 150,
+          "strength": 0,
+          "arcs": [
+            "front"
+          ],
+          "min_range_cm": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [
+        "Refit: prow nova cannon for the torpedoes",
+        "Refit: plasma-boosted gunnery (30cm macrobatteries to 45cm)"
+      ],
+      "points_value": 245,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Nova Frigate",
+      "ship_class": "Mechanicus Nova Frigate",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 35,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 45,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "novas",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Nova Frigate",
+      "ship_class": "Mechanicus Nova Frigate",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 35,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 45,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "novas",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Nova Frigate",
+      "ship_class": "Mechanicus Nova Frigate",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 35,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 45,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "novas",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Nova Frigate",
+      "ship_class": "Mechanicus Nova Frigate",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 35,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 45,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "novas",
+      "fleet_list": "admech_explorator"
+    }
+  ]
+}

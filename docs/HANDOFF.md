@@ -42,8 +42,11 @@ Needs more work (next first):
    aren't files yet. Windows fixed: scrolling setup and Edit dialogs with their buttons
    always shown, the builder's buttons first on its top row, "Add with options...", options
    under headings, the fleet list's rules checked live (`src/tk_scroll.py`,
-   `tools/gui_checks/layout_check.py`). Left: the owner's fleets as files. Details in
-   CLAUDE.md To do 32.
+   `tools/gui_checks/layout_check.py`). Also fixed: builder-saved fleets crashed the game
+   (no ship ids), Auto-Place broke a 4-escort squadron's coherency, the Mechanicus refits
+   weren't offered. Six of the owner's thirteen fleets are files (`data/fleets/owner_*`,
+   `tools/build_owner_fleets.py`, lists in `docs/OWNER_FLEETS.md`); the other seven wait on
+   catalog gaps. Details in CLAUDE.md To do 32.
 1. To do 17 / 18: shooting actions done (the AI's attacks, `actions.fire_weapons` and
    friends; the Fire dialog's volley as `actions.fire_volley` on `src/fire_volley.py`;
    shooting phases replay; the Combine Squadron Fire, Fire at Squadron and Fire at Ordnance
@@ -90,7 +93,7 @@ by value, `torpedo_bomber_flight_target`; AI waves fire in either player's ordna
 missiles, Tiger Shark salvos included, move 20-40cm in both phases; turning salvos re-target
 through `approach_plan`, within their real turns). No questions open. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Checking a change: `pytest -q` (1585 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
+Checking a change: `pytest -q` (1593 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
 `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
 `tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
 baseline changes whenever a rules fix changes play; regenerate it then).

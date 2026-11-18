@@ -1,0 +1,591 @@
+{
+  "fleet_name": "Tau Merchant 1000",
+  "faction": "tau_kororvesh",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 990,
+  "fleet_list": "tau_empire",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Explorer Starship",
+      "ship_class": "Explorer Starship",
+      "faction": "tau_kororvesh",
+      "ship_type": "battleship",
+      "base_size": "large",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "4+",
+      "turrets": 5,
+      "hits_max": 12,
+      "leadership": 9,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Railguns",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        }
+      ],
+      "special_rules": [
+        "kor_vattra",
+        "ponderous",
+        "hooks:orca:3",
+        "fleet_commander"
+      ],
+      "upgrades": [
+        "Kor'O (Ld 9)",
+        "Commander: 1 extra re-roll"
+      ],
+      "points_value": 325,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 2,
+      "squadron_id": "",
+      "fleet_list": "tau_empire"
+    },
+    {
+      "name": "Orca Gunship",
+      "ship_class": "Orca Gunship",
+      "faction": "tau_kororvesh",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Railguns",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "special_rules": [
+        "kor_vattra",
+        "towed"
+      ],
+      "upgrades": [],
+      "points_value": 25,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "orcas",
+      "fleet_list": "tau_empire"
+    },
+    {
+      "name": "Orca Gunship",
+      "ship_class": "Orca Gunship",
+      "faction": "tau_kororvesh",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Railguns",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "special_rules": [
+        "kor_vattra",
+        "towed"
+      ],
+      "upgrades": [],
+      "points_value": 25,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "orcas",
+      "fleet_list": "tau_empire"
+    },
+    {
+      "name": "Orca Gunship",
+      "ship_class": "Orca Gunship",
+      "faction": "tau_kororvesh",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Railguns",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "special_rules": [
+        "kor_vattra",
+        "towed"
+      ],
+      "upgrades": [],
+      "points_value": 25,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "orcas",
+      "fleet_list": "tau_empire"
+    },
+    {
+      "name": "Hero Starship",
+      "ship_class": "Hero Starship",
+      "faction": "tau_kororvesh",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front"
+          ]
+        },
+        {
+          "name": "Starboard Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Prow Railguns",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Gravitic Launcher",
+          "weapon_type": "torpedo",
+          "range_cm": 40,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "guided",
+          "torpedo_speed": 40,
+          "torpedo_speed_min": 20
+        },
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        }
+      ],
+      "special_rules": [
+        "kor_vattra"
+      ],
+      "upgrades": [],
+      "points_value": 180,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "tau_empire"
+    },
+    {
+      "name": "Hero Starship",
+      "ship_class": "Hero Starship",
+      "faction": "tau_kororvesh",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front"
+          ]
+        },
+        {
+          "name": "Starboard Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Prow Railguns",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Gravitic Launcher",
+          "weapon_type": "torpedo",
+          "range_cm": 40,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "guided",
+          "torpedo_speed": 40,
+          "torpedo_speed_min": 20
+        },
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        }
+      ],
+      "special_rules": [
+        "kor_vattra"
+      ],
+      "upgrades": [],
+      "points_value": 180,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "tau_empire"
+    },
+    {
+      "name": "Hero Starship",
+      "ship_class": "Hero Starship",
+      "faction": "tau_kororvesh",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front"
+          ]
+        },
+        {
+          "name": "Starboard Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Prow Railguns",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Gravitic Launcher",
+          "weapon_type": "torpedo",
+          "range_cm": 40,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "guided",
+          "torpedo_speed": 40,
+          "torpedo_speed_min": 20
+        },
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        }
+      ],
+      "special_rules": [
+        "kor_vattra"
+      ],
+      "upgrades": [],
+      "points_value": 180,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "tau_empire"
+    },
+    {
+      "name": "Messenger Starship",
+      "ship_class": "Messenger Starship",
+      "faction": "tau_kororvesh",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Railgun",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "kor_vattra"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "tau_empire"
+    }
+  ]
+}

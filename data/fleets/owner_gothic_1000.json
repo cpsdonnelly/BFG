@@ -1,0 +1,614 @@
+{
+  "fleet_name": "Gothic Sector 1000",
+  "faction": "imperial_navy_gothic",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 1000,
+  "fleet_list": "navy_gothic",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Mars Battlecruiser",
+      "ship_class": "Mars Battlecruiser",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 8,
+      "leadership": 8,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "fury_fighter",
+            "starhawk_bomber"
+          ],
+          "craft_speeds": {
+            "fury_fighter": 30,
+            "starhawk_bomber": 20
+          },
+          "craft_speed": 30
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "fury_fighter",
+            "starhawk_bomber"
+          ],
+          "craft_speeds": {
+            "fury_fighter": 30,
+            "starhawk_bomber": 20
+          },
+          "craft_speed": 30
+        },
+        {
+          "name": "Dorsal Lances",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Nova Cannon",
+          "weapon_type": "nova_cannon",
+          "range_cm": 150,
+          "strength": 0,
+          "arcs": [
+            "front"
+          ],
+          "min_range_cm": 30
+        }
+      ],
+      "special_rules": [
+        "fleet_commander"
+      ],
+      "upgrades": [
+        "Vice Admiral (Ld 8)",
+        "Commander: 1 extra re-roll"
+      ],
+      "points_value": 335,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 2,
+      "squadron_id": "",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Lunar Cruiser",
+      "ship_class": "Lunar Cruiser",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 180,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Tyrant Cruiser",
+      "ship_class": "Tyrant Cruiser",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [
+        "Refit: 30cm macrobatteries to 45cm"
+      ],
+      "points_value": 185,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Dauntless Light Cruiser",
+      "ship_class": "Dauntless Light Cruiser",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30
+        }
+      ],
+      "special_rules": [
+        "improved_thrusters"
+      ],
+      "upgrades": [
+        "Refit: prow torpedoes (S6) for the lances"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Firestorm Frigate",
+      "ship_class": "Firestorm Frigate",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 35,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "firestorms",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Firestorm Frigate",
+      "ship_class": "Firestorm Frigate",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 35,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "firestorms",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Cobra Destroyer",
+      "ship_class": "Cobra Destroyer",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobattery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 30,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "cobras",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Cobra Destroyer",
+      "ship_class": "Cobra Destroyer",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobattery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 30,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "cobras",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Cobra Destroyer",
+      "ship_class": "Cobra Destroyer",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobattery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 30,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "cobras",
+      "fleet_list": "navy_gothic"
+    },
+    {
+      "name": "Cobra Destroyer",
+      "ship_class": "Cobra Destroyer",
+      "faction": "imperial_navy_gothic",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobattery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [],
+      "points_value": 30,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "cobras",
+      "fleet_list": "navy_gothic"
+    }
+  ]
+}

@@ -38,7 +38,8 @@ def fleet_to_ships(fleet_data: dict, player: int) -> List[Ship]:
     so that forward-compatible fleet files don't crash the loader.
     """
     ships: List[Ship] = []
-    for raw in fleet_data.get("ships", []):
+    used = set()
+    for i, raw in enumerate(fleet_data.get("ships", [])):
         d: dict = {}
 
         # Map spawn_* → x/y/heading; keep the rest if they are real Ship fields.
@@ -50,6 +51,17 @@ def fleet_to_ships(fleet_data: dict, player: int) -> List[Ship]:
             # Drop unrecognised fleet-file-only keys silently.
 
         d["player"] = player
+        # The fleet builder saves no ids (To do 32: such a fleet crashed the game
+        # at start): a stable one from the player and the ship's place in the
+        # file, so a seeded game and its replay give the ships the same ids
+        if not d.get("id") or d["id"] in used:
+            base = d.get("id") or f"p{player}_s{i + 1}"
+            n, sid = 1, base
+            while sid in used:
+                n += 1
+                sid = f"{base}_{n}"
+            d["id"] = sid
+        used.add(d["id"])
         ships.append(Ship(**d))
 
     return ships

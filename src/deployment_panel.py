@@ -18,16 +18,12 @@ The panel also draws deployment zone outlines on the board canvas.
 """
 from __future__ import annotations
 
-import math
 import tkinter as tk
 from tkinter import messagebox
 from typing import List, Optional, Callable, Tuple
 
-from .models import Ship
 from .game_state import GameState
-from .deployment import (
-    DeploymentState, DeploymentZone, get_default_zones, COHERENCY_CM
-)
+from .deployment import COHERENCY_CM
 
 
 # Colours for zones / highlights
@@ -71,25 +67,10 @@ class DeploymentPanel:
         self.on_complete = on_complete
         self.mode = mode
 
-        # Ships the scenario places itself (Rescue's flagship) aren't deployed
-        from .scenarios import deployment_zones, fixed_placements, placement_errors
-        fixed = fixed_placements(gs)
-        for sd in gs.ships:
-            if sd["id"] in fixed:
-                sd["x"], sd["y"], sd["heading"] = fixed[sd["id"]]
-        # Load ships from GameState
-        # (reinforcements held in reserve aren't deployed either)
-        p1_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 1
-                    and s["id"] not in fixed and s.get("status") != "reserve"]
-        p2_ships = [Ship.from_dict(s) for s in gs.ships if s["player"] == 2
-                    and s["id"] not in fixed and s.get("status") != "reserve"]
-
-        self.zones = (deployment_zones(gs)
-                      or get_default_zones(gs.table_width, gs.table_height))
-        self.state = DeploymentState(
-            p1_ships, p2_ships, self.zones, mode=mode,
-            extra_check=lambda g, pos, hd, placed: placement_errors(gs, g, pos, hd, placed))
-        self.state.placed_ships.extend(Ship.from_dict(s) for s in gs.ships if s["id"] in fixed)
+        # Fixed placements, reserves left out, the scenario's zones and rules
+        from .deployment import deployment_state
+        self.state = deployment_state(gs, mode)
+        self.zones = list(self.state.zones.values())
 
         # Track sub-placement within the current group
         self._pending_positions: List[Tuple[float, float]] = []
@@ -394,73 +375,13 @@ class DeploymentPanel:
 
         self._pending_positions.clear()
         self._pending_headings.clear()
-
-        while not self.state.is_complete():
-            group = self.state.current_group()
-            if group is None:
-                break
-            p = self.state.active_player
-            zone = self.state.zones[p]
-            from .scenarios import auto_positions
-            positions = (auto_positions(self.gs, group, zone, self.state.placed_ships,
-                                        self.state.next_idx[p])
-                         or self._find_auto_positions(group, zone))
-            from .scenarios import auto_heading
-            headings = [auto_heading(self.gs, p, x, y) or (0.0 if p == 1 else 180.0)
-                        for x, y in positions]
-            ok, errors = self.state.place_group(positions, headings)
-            if not ok:
-                messagebox.showerror(
-                    "Auto-Place Failed",
-                    f"Could not auto-place {group[0].name}:\n" + "\n".join(errors),
-                    parent=self.root)
-                break
-            for ship in self.state.placed_ships[-len(group):]:
-                self.gs.update_ship(ship)
-
+        from .deployment import auto_place
+        errors = auto_place(self.gs, self.state)
+        if errors:
+            messagebox.showerror("Auto-Place Failed",
+                                 "Could not auto-place:\n" + "\n".join(errors),
+                                 parent=self.root)
         self._refresh()
-
-    def _find_auto_positions(
-        self,
-        group: List[Ship],
-        zone: DeploymentZone,
-    ) -> List[Tuple[float, float]]:
-        """
-        Find non-overlapping positions for *group* inside *zone*.
-        Ships are arranged in a horizontal row near the centre of the zone.
-        """
-        cx = (zone.x_min + zone.x_max) / 2.0
-        cy = (zone.y_min + zone.y_max) / 2.0
-
-        spacing = 6.0  # cm between ship centres
-        n = len(group)
-        x_start = cx - spacing * (n - 1) / 2.0
-
-        placed: List[Tuple[float, float]] = []
-        for i in range(n):
-            x = x_start + i * spacing
-            # Clamp to zone
-            x = max(zone.x_min + 3.0, min(zone.x_max - 3.0, x))
-            # Try to avoid placed_ships
-            y = cy
-            for _attempt in range(10):
-                ok = True
-                for sx, sy in placed:
-                    if math.hypot(x - sx, y - sy) < 5.0:
-                        ok = False
-                        break
-                for s in self.state.placed_ships:
-                    if math.hypot(x - s.x, y - s.y) < 5.0:
-                        ok = False
-                        break
-                if ok:
-                    break
-                y += 5.0
-                if y > zone.y_max - 2.0:
-                    y = zone.y_min + 2.0
-                    x += 4.0
-            placed.append((x, y))
-        return placed
 
     # ── Completion ────────────────────────────────────────────────────────────
 

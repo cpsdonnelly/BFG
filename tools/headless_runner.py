@@ -64,9 +64,19 @@ def play(args) -> dict:
     gs.ai_difficulty = difficulty
     gs.turn_limit = turns
     gs.turn_system = system
+    unplaced = False
     for p, f in ((1, fleet1), (2, fleet2)):
-        for sh in fleet_to_ships(load_fleet_file(os.path.join(ROOT, f)), p):
+        data = load_fleet_file(os.path.join(ROOT, f))
+        unplaced |= any("spawn_x" not in r and "x" not in r for r in data.get("ships", []))
+        for sh in fleet_to_ships(data, p):
             gs.add_ship(sh)
+    if unplaced:
+        # Fleets saved by the fleet builder carry no positions: deploy both
+        # fleets as the window's Auto-Place does (deployment.auto_place)
+        from src.deployment import deployment_state, auto_place
+        problems = auto_place(gs, deployment_state(gs))
+        if problems:
+            errors.extend(problems)
     dice = DiceRoller(mode="auto")
     roll_starting_leadership(gs, dice, ai_dice=dice)
     tc = TurnController(gs, dice)

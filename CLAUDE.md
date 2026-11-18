@@ -542,9 +542,11 @@ and every human dialog) and the end phase's decisions as recorded actions, so ev
 replays from the record. Owner report (To do 32): the setup wizard's start buttons, the
 fleet builder's Save / Validate and the ship Edit dialog's lower options were cut off the
 screen; fixed (scrolling dialogs, buttons always shown, options under headings, live fleet
-check). Next: the owner's fleets as files (To do 25), then alternate activation's per-unit phases (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+check), builder-saved fleets crashing the game, Auto-Place breaking squadrons, the missing
+Mechanicus refits; six of the owner's fleets built as files. Next: alternate activation's
+per-unit phases (or the rest of To do 25, the owner's call) (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1585 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1593 pass (BFG_SWEEP=1 adds ~4,650 ordnance cases); all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2857,8 +2859,29 @@ Done: To do 2, 3, 6; most of 7.
    (`FleetBuilderWindow._live_check`, the Validate check shown under the fleet).
    `tools/gui_checks/layout_check.py` (run with `xvfb-run -a -s "-screen 0 1366x768x24"`)
    checks every one of those buttons is drawn inside its window; the old layout fails it.
-   Still to do: the owner's To do 25 fleets as files in `data/fleets/`; with "No fleet list"
-   the Edit dialog still offers every list's options (s.4: no restrictions, kept).
+   Also found and fixed: fleets saved by the fleet builder carry no ship ids, so the game's
+   loader crashed on them at Start Game (`fleet_loader.fleet_to_ships` now gives stable ids,
+   `p<player>_s<n>`); Auto-Place spread a 4-escort squadron 18cm apart, past the 15cm
+   coherency, and stopped (now `deployment.grid_positions`: a compact block, two rows 6cm
+   apart, at the clear spot nearest the zone's centre); deployment set-up and Auto-Place
+   moved out of the window into `deployment.deployment_state` / `auto_place` (the headless
+   runner deploys builder-saved fleets with it); the Mechanicus profiles' "Mechanicus
+   Refits" weren't offered at all (`booklet_options.mechanicus_refit_options`: the prow
+   nova cannon swap, the light cruisers' dorsal lance swap, both "or refitted torpedoes
+   instead", and plasma-boosted gunnery 30cm -> 45cm, on all eight Mechanicus ships that
+   print them). The owner's fleets: six of thirteen built as files
+   (`data/fleets/owner_*.json`, by `tools/build_owner_fleets.py` through the real fleet
+   builder; his lists verbatim in `docs/OWNER_FLEETS.md`): 13th Black Crusade (the Inferno
+   is only in that list) 1000, Gothic 1000, Bakka 1000, Tau Merchant 990, Space Marines
+   1000 (five strike cruisers with Secondary Shields, two with the launch-bay variant),
+   Mechanicus 990 (gifts rolled per game by the owner, so none saved), each matching his
+   totals and valid; they load, deploy and play to game over AI-vs-AI and replay
+   (`tests/test_owner_fleets.py`, `tools/gui_checks/deploy_owner_fleets_check.py`). Still
+   to do: the other seven fleets (catalog gaps: Tau Protector's Emissary options, Ork kustom
+   force field / zzapp gun swap / looted vessels, Necron Dynasty upgrades, Eldar commanders,
+   Dark Eldar and Tyranids, To do 19 / 25); the AI doesn't deploy its own ships (the human
+   places them or presses Auto-Place; To do 28); with "No fleet list" the Edit dialog
+   still offers every list's options (s.4: no restrictions, kept).
 
 ### Owner rulings: answers to the open questions (implemented, tested)
 

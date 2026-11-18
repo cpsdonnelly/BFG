@@ -1,0 +1,488 @@
+{
+  "fleet_name": "13th Black Crusade 1000",
+  "faction": "chaos",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 1000,
+  "fleet_list": "chaos_black_crusade",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Styx Heavy Cruiser",
+      "ship_class": "Styx Heavy Cruiser",
+      "faction": "chaos",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 9,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [],
+          "craft_types": [
+            "fighter",
+            "bomber",
+            "assault_boat"
+          ],
+          "craft_speeds": {
+            "fighter": 30,
+            "bomber": 20,
+            "assault_boat": 30
+          },
+          "craft_speed": 30
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [],
+          "craft_types": [
+            "fighter",
+            "bomber",
+            "assault_boat"
+          ],
+          "craft_speeds": {
+            "fighter": 30,
+            "bomber": 20,
+            "assault_boat": 30
+          },
+          "craft_speed": 30
+        },
+        {
+          "name": "Dorsal Lances",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 60,
+          "strength": 6,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "chaos_crew",
+        "fleet_commander"
+      ],
+      "upgrades": [
+        "Chaos Warmaster (Ld 9)",
+        "Commander: 1 extra re-roll"
+      ],
+      "points_value": 360,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 2,
+      "squadron_id": "",
+      "fleet_list": "chaos_black_crusade"
+    },
+    {
+      "name": "Devastation Cruiser",
+      "ship_class": "Devastation Cruiser",
+      "faction": "chaos",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "fighter",
+            "bomber",
+            "assault_boat"
+          ],
+          "craft_speeds": {
+            "fighter": 30,
+            "bomber": 20,
+            "assault_boat": 30
+          },
+          "craft_speed": 30
+        },
+        {
+          "name": "Starboard Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "fighter",
+            "bomber",
+            "assault_boat"
+          ],
+          "craft_speeds": {
+            "fighter": 30,
+            "bomber": 20,
+            "assault_boat": 30
+          },
+          "craft_speed": 30
+        },
+        {
+          "name": "Port Lances",
+          "weapon_type": "lance",
+          "range_cm": 45,
+          "strength": 2,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Lances",
+          "weapon_type": "lance",
+          "range_cm": 45,
+          "strength": 2,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "chaos_crew"
+      ],
+      "upgrades": [],
+      "points_value": 190,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "chaos_black_crusade"
+    },
+    {
+      "name": "Inferno Cruiser",
+      "ship_class": "Inferno Cruiser",
+      "faction": "chaos",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Lances",
+          "weapon_type": "lance",
+          "range_cm": 45,
+          "strength": 2,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Lances",
+          "weapon_type": "lance",
+          "range_cm": 45,
+          "strength": 2,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 60,
+          "strength": 6,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "chaos_crew"
+      ],
+      "upgrades": [],
+      "points_value": 180,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "chaos_black_crusade"
+    },
+    {
+      "name": "Murder Cruiser",
+      "ship_class": "Murder Cruiser",
+      "faction": "chaos",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 10,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 10,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Lances",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ]
+        }
+      ],
+      "special_rules": [
+        "chaos_crew"
+      ],
+      "upgrades": [],
+      "points_value": 170,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "chaos_black_crusade"
+    },
+    {
+      "name": "Iconoclast Destroyer",
+      "ship_class": "Iconoclast Destroyer",
+      "faction": "chaos",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "chaos_crew"
+      ],
+      "upgrades": [],
+      "points_value": 25,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "iconoclasts",
+      "fleet_list": "chaos_black_crusade"
+    },
+    {
+      "name": "Iconoclast Destroyer",
+      "ship_class": "Iconoclast Destroyer",
+      "faction": "chaos",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "chaos_crew"
+      ],
+      "upgrades": [],
+      "points_value": 25,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "iconoclasts",
+      "fleet_list": "chaos_black_crusade"
+    },
+    {
+      "name": "Iconoclast Destroyer",
+      "ship_class": "Iconoclast Destroyer",
+      "faction": "chaos",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "chaos_crew"
+      ],
+      "upgrades": [],
+      "points_value": 25,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "iconoclasts",
+      "fleet_list": "chaos_black_crusade"
+    },
+    {
+      "name": "Iconoclast Destroyer",
+      "ship_class": "Iconoclast Destroyer",
+      "faction": "chaos",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "chaos_crew"
+      ],
+      "upgrades": [],
+      "points_value": 25,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "iconoclasts",
+      "fleet_list": "chaos_black_crusade"
+    }
+  ]
+}

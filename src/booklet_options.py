@@ -699,6 +699,44 @@ def _opt(name, desc, cost, effect, restrictions=()):
             "restrictions": list(restrictions)}
 
 
+def mechanicus_refit_options(row: dict) -> List[Dict]:
+    """The "Mechanicus Refits" printed in Adeptus Mechanicus profiles (To do 32:
+    they weren't offered). Matched on the note text like the Navy's. The prow
+    swap is "or refitted torpedoes instead", so it excludes the torpedo types
+    (refitted torpedoes are refitted_torpedo_options, group torpedo_type)."""
+    notes = row.get("notes") or ""
+    if "Mechanicus Refits" not in notes:
+        return []
+    opts: List[Dict] = []
+    m = re.search(r"swap prow torpedoes for a prow nova cannon \(30-150cm Template F\) "
+                  r"\+(\d+)pts", notes)
+    if m:
+        cost = int(m.group(1))
+        opts.append(_opt("Refit: prow nova cannon for the torpedoes",
+                         f"+{cost}pts. A prow nova cannon (30-150cm, F) instead of the prow "
+                         "torpedoes (not with refitted torpedoes).",
+                         cost, {"remove_weapons": ["Prow Torps"], "add_weapon": dict(_NC)},
+                         ["group:mech_prow", "excludes_group:torpedo_type"]))
+    if "swap prow torpedoes for a dorsal lance (30cm FP1 L/F/R) free" in notes:
+        opts.append(_opt("Refit: dorsal lance for the prow torpedoes",
+                         "Free. A dorsal lance 30cm FP1 (L/F/R) instead of the prow torpedoes "
+                         "(not with refitted torpedoes).", 0,
+                         {"remove_weapons": ["Prow Torps"],
+                          "add_weapon": {"name": "Dorsal Lance", "weapon_type": "lance",
+                                         "range_cm": 30, "strength": 1,
+                                         "arcs": ["left", "front", "right"]}},
+                         ["group:mech_prow", "excludes_group:torpedo_type"]))
+    if "plasma-boosted gunnery (30cm Macrobatteries to 45cm) +10pts" in notes or \
+            "plasma-boosted gunnery (Macrobatteries to 45cm) +10pts" in notes:
+        opts.append(_opt("Refit: plasma-boosted gunnery (30cm macrobatteries to 45cm)",
+                         "+10pts.", 10,
+                         {"modify_weapons": [
+                             {"match": {"name": f"{side} Macrobatteries", "range_cm": 30},
+                              "set": {"range_cm": 45}}
+                             for side in ("Port", "Starboard", "Prow")]}))
+    return opts
+
+
 def navy_refit_options(row: dict) -> List[Dict]:
     """The refits printed in Imperial Navy profiles. Each is matched on its note
     text, so a reworded export drops the option instead of keeping a stale one.
@@ -1092,6 +1130,7 @@ def _options_for(row: dict) -> List[Dict]:
     elif "Adeptus Mechanicus" in rules or "Orks" in rules:
         opts = refitted_torpedo_options(row)
         if "Adeptus Mechanicus" in rules:
+            opts += mechanicus_refit_options(row)
             opts += mechanicus_gift_options(row)       # Tech-Priest Enginseers
     elif "Inquisition & Grey Knights" in rules or "Grey Knights" in rules:
         return inquisition_options(row)
