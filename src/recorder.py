@@ -18,6 +18,23 @@ import os
 from typing import Dict, List, Optional
 
 _EVENTS: Optional[List[Dict]] = None
+_DEPTH = 0      # how deep in recorded calls we are (a replay repeats depth 0 only)
+_FLOW = 0       # inside the game flow's own steps (not a player's decision)
+
+
+class flow:
+    """Context: the game flow resolving things itself (ordnance moving, the
+    end phase, a phase starting), not a player deciding; events recorded
+    inside have "seat": False, and a replay leaves them to the flow."""
+
+    def __enter__(self):
+        global _FLOW
+        _FLOW += 1
+
+    def __exit__(self, *exc):
+        global _FLOW
+        _FLOW -= 1
+        return False
 
 
 def start_recording(events: List[Dict] = None) -> List[Dict]:
@@ -50,14 +67,18 @@ def _jsonable(v):
     return str(v)
 
 
-def event(gs, kind: str, **data) -> None:
-    """Record one decision (no-op unless recording)."""
+def event(gs, kind: str, _depth: int = None, **data) -> None:
+    """Record one decision (no-op unless recording). `depth`: 0 for a call
+    made directly by a player (the window, the AI, a replay), more when made
+    inside another recorded call (a replay repeats only depth 0)."""
     if _EVENTS is None:
         return
     from .dice import current_source
     rec = current_source().record
     _EVENTS.append({
         "n": len(_EVENTS), "kind": kind,
+        "depth": _DEPTH if _depth is None else _depth,
+        "seat": _FLOW == 0,
         "turn": getattr(gs, "turn_number", 0), "phase": getattr(gs, "current_phase", ""),
         "player": getattr(gs, "active_player", 0),
         "roll": len(rec) if rec is not None else None,
@@ -90,7 +111,13 @@ def logged(kind: str, extract):
 
         @functools.wraps(fn)
         def wrapper(*a, **k):
-            res = fn(*a, **k)
+            global _DEPTH
+            level = _DEPTH
+            _DEPTH += 1
+            try:
+                res = fn(*a, **k)
+            finally:
+                _DEPTH = level
             if _EVENTS is not None:
                 try:
                     ba = sig.bind(*a, **k)
@@ -101,7 +128,7 @@ def logged(kind: str, extract):
                         raise
                     out = None
                 if out:
-                    event(out[0], kind, **out[1])
+                    event(out[0], kind, _depth=level, **out[1])
             return res
         return wrapper
     return deco

@@ -794,6 +794,7 @@ def aaf_bonus_dice(ship: Ship) -> int:
     return n
 
 
+@_rec.logged("aaf", lambda r, A: (_rec.current_gs(), dict(ships=[s.id for s in A["ships"]])))
 def squadron_aaf_bonuses(ships: List[Ship], dice: DiceRoller) -> dict:
     """A squadron on All Ahead Full rolls once and every member adds the result.
     If members roll different numbers of dice, roll the most any member is
@@ -811,6 +812,7 @@ def squadron_aaf_bonuses(ships: List[Ship], dice: DiceRoller) -> dict:
     return {s.id: sum(rolls[:aaf_bonus_dice(s)]) for s in ships}
 
 
+@_rec.logged("aaf", lambda r, A: (_rec.current_gs(), dict(ship=A["ship"].id)))
 def resolve_aaf_speed(ship: Ship, dice: DiceRoller) -> int:
     """Roll the All Ahead Full bonus speed (aaf_bonus_dice D6s)."""
     if "necron" in ship.special_rules:

@@ -160,7 +160,7 @@ class AAPanelMixin:
                 continue
             ships = [s for s in self.ctx.gs.get_ships() if not s.is_destroyed
                      and not s.is_disengaged]
-            pick = self.ctx.pick_ship(ships, "Ship to activate first")
+            pick = self.ctx.prompt.pick_ship("Ship to activate first", ships)
             if pick is not None:
                 unit = next((u for us in self.aa.scheduler.eligible.values() for u in us
                              if pick.id in u.ship_ids), None)

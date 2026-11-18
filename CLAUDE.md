@@ -504,7 +504,7 @@ Owner rulings (fleet lists, export 15):
 
 Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1359 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1361 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2482,10 +2482,26 @@ Done: To do 2, 3, 6; most of 7.
    (`tests/test_actions.py`). Found, not yet changed (it changes AI play): the AI's ships
    meet the ordnance they moved into only after the whole AI movement phase, a human's
    after each move (s.15: each ship's move is resolved as it is made), so two AI ships
-   moving through one salvo both face it whole. Next: the other movement-phase actions
-   (orders and re-rolls, ram and boarding declarations, holding position), a replay seat
-   that plays a phase from its act events, checked by replaying AI games phase by phase,
-   then shooting, ordnance and the end phase.
+   moving through one salvo both face it whole. Movement phase replay built: the recorder
+   notes each event's call depth (a replay repeats depth 0 only; calls inside a recorded
+   call happen again by themselves) and whether a player made it or the game flow did
+   (`recorder.flow()` around GameFlow's own steps: the first turn, `_end_phase`, resolving
+   the ordnance ships moved into, the AI's end phase; events inside are `seat: False`).
+   New actions shared by the AI and the window: `declare_ram`, `resolve_declared_ram` (and
+   `resolve_kill`, the one catastrophic-roll check), `declare_boarding`; recorded engine
+   calls replayed as they are: special orders and their re-rolls (`order`, `order_reroll`),
+   All Ahead Full speed rolls (`aaf`), `mark_moved`, disengage tests. Decisions inside an
+   action ask `ctx.prompt.pick_ship` (the ram, boarding and teleport targets, the AA forcing
+   pick; recorded and replayed); picking the ship to act with stays window navigation
+   (`ctx.pick_ship`). `src/replay.py`: `ReplaySeat` plays a phase from the player's
+   recorded depth-0 seat events (`actions.replay_event`, `ReplayDivergence` on a kind it
+   can't replay or a result that differs); `HeadlessGame(replay_events=, replay_phases=)`.
+   Checked: games with every movement phase replayed from the record and the rest played by
+   the AI end in exactly the same state (`tests/test_headless_game.py`; Navy v Tau and Orks v
+   Space Marines with ramming and boarding on); ram / boarding declarations replay
+   (`tests/test_actions.py`); the 16 games unchanged. Next: shooting (a shot's hits applied
+   by one action for the AI and the Fire dialogs), then ordnance, the end phase and alternate
+   activation's per-unit phases; then games with human players replay in full.
    Plan items:
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /

@@ -41,3 +41,30 @@ def test_headless_game_plays_to_the_end_and_replays(tmp_path):
     res2, h2, _ = _game(tmp_path, DiceSource(0, replay=[list(e) for e in record]))
     assert h2 == h and res2 == res                   # the record replays it exactly
     recorder.stop_recording()
+
+
+def test_movement_phases_replay_from_the_recorded_actions(tmp_path):
+    """Every movement phase played from the record (replay.ReplaySeat) instead
+    of decided, the other phases by the AI: the same game (To do 17)."""
+    def state(gs):
+        return json.dumps({"ships": gs.ships, "ordnance": gs.ordnance,
+                           "bm": gs.blast_markers}, sort_keys=True, default=str)
+    _res, _h, game = _game(tmp_path, DiceSource(11, record=True))
+    s1 = state(game.ctx.gs)
+    record, evs = current_source().record, recorder.events()
+    assert any(e["kind"] == "act_move" and e["depth"] == 0 and e["seat"] for e in evs)
+
+    set_source(DiceSource(0, replay=[list(e) for e in record]))
+    recorder.start_recording()
+    gs = GameState(game_name="headless", game_seed=11)
+    gs.table_width, gs.table_height, gs.dice_mode, gs.turn_limit = 120.0, 90.0, "auto", 4
+    for p, names, x in ((1, ["Lunar Class Cruiser", "Dauntless Class Light Cruiser"], 40.0),
+                        (2, ["Murder Class Cruiser", "Infidel Class Raider"], 80.0)):
+        for i, n in enumerate(names):
+            d = find_ship_class(n).to_ship_dict(n, p, ship_id=f"p{p}_{i}")
+            d.update(x=x, y=30.0 + 25 * i, heading=0.0 if p == 1 else 180.0, leadership=8)
+            gs.add_ship(Ship.from_dict(d))
+    tc = TurnController(gs, DiceRoller(mode="auto"), save_dir=str(tmp_path / "r"))
+    HeadlessGame(tc, replay_events=evs, replay_phases=("movement",)).play(timeout=120)
+    assert state(gs) == s1
+    recorder.stop_recording()

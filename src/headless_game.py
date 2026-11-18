@@ -89,11 +89,15 @@ class HeadlessContext(GameContext):
 class HeadlessGame(GameFlow):
     """GameFlow with no window: every seat is the AI's."""
 
-    def __init__(self, tc):
+    def __init__(self, tc, replay_events=None, replay_phases=()):
+        """replay_events / replay_phases: play those phases from a recorded
+        game's actions (replay.ReplaySeat) instead of deciding them."""
         tc.gs.ai_spectator = True
         self.parent = None
         self._init_flow(HeadlessContext(tc, tc.gs, tc.dice), QueueRoot())
         self.game_result = None
+        self.replay_events = replay_events or []
+        self.replay_phases = tuple(replay_phases)
 
     def play(self, timeout: float = 600.0):
         """Deployment is the start state; play from the first turn to game

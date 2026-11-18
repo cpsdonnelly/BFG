@@ -77,36 +77,43 @@ class GameContext:
     # ── Ship picker ───────────────────────────────────────────────────────────
 
     def pick_ship(self, ships: list, title: str) -> Optional[Ship]:
-        """Show a modal list dialog and return the selected Ship, or None."""
-        if len(ships) == 1:
-            return ships[0]
+        """Show a modal list dialog and return the selected Ship, or None (which
+        ship to act with: window navigation; a decision inside an action asks
+        ctx.prompt.pick_ship, which is recorded)."""
+        return pick_ship_dialog(self.root, ships, title)
 
-        dialog = tk.Toplevel(self.root)
-        dialog.title(title)
-        dialog.geometry("350x400")
-        dialog.transient(self.root)
 
-        tk.Label(dialog, text=title,
-                 font=("Consolas", 10, "bold")).pack(pady=5)
+def pick_ship_dialog(root, ships: list, title: str):
+    """Show a modal list dialog and return the selected Ship, or None."""
+    if len(ships) == 1:
+        return ships[0]
 
-        selected = [None]
-        listbox = tk.Listbox(dialog, font=("Consolas", 9), height=15)
-        listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+    dialog = tk.Toplevel(root)
+    dialog.title(title)
+    dialog.geometry("350x400")
+    dialog.transient(root)
 
-        for s in ships:
-            status = " [CRIPPLED]" if s.is_crippled else ""
-            order = f" ({s.special_order})" if s.special_order != "none" else ""
-            listbox.insert(tk.END, f"{s.name} ({s.ship_class}){status}{order}")
+    tk.Label(dialog, text=title,
+             font=("Consolas", 10, "bold")).pack(pady=5)
 
-        def on_select():
-            sel = listbox.curselection()
-            if sel:
-                selected[0] = ships[sel[0]]
-            dialog.destroy()
+    selected = [None]
+    listbox = tk.Listbox(dialog, font=("Consolas", 9), height=15)
+    listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        listbox.bind("<Double-Button-1>", lambda e: on_select())
-        tk.Button(dialog, text="Select", command=on_select,
-                  font=("Consolas", 10)).pack(pady=5)
+    for s in ships:
+        status = " [CRIPPLED]" if s.is_crippled else ""
+        order = f" ({s.special_order})" if s.special_order != "none" else ""
+        listbox.insert(tk.END, f"{s.name} ({s.ship_class}){status}{order}")
 
-        self.root.wait_window(dialog)
-        return selected[0]
+    def on_select():
+        sel = listbox.curselection()
+        if sel:
+            selected[0] = ships[sel[0]]
+        dialog.destroy()
+
+    listbox.bind("<Double-Button-1>", lambda e: on_select())
+    tk.Button(dialog, text="Select", command=on_select,
+              font=("Consolas", 10)).pack(pady=5)
+
+    root.wait_window(dialog)
+    return selected[0]

@@ -202,23 +202,15 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                         "Declare Ramming Target",
                         f"{ship.name} is on All Ahead Full.\n"
                         f"Declare a ramming target before the speed roll?"):
-                    ram_target = self.ctx.pick_ship(enemies, "Select Ramming Target")
+                    ram_target = self.ctx.prompt.pick_ship("Select Ramming Target", enemies)
                     if ram_target:
-                        from .combat import ram_ld_dice
-                        n_dice = ram_ld_dice(ship.ship_type, ram_target.ship_type)
-                        goffs = "goffs" in ship.special_rules   # always pass (Goffs)
-                        rolls = [] if goffs else self.ctx.dice.roll_d6(n_dice, "ram command check")
-                        total = sum(rolls)
-                        if goffs or total <= ship.leadership:
-                            ship.ramming_target_id = ram_target.id
-                            self.ctx.gs.update_ship(ship)
-                            self.ctx.log(
-                                f"{ship.name} declares ram on {ram_target.name}! "
-                                f"Ld check {n_dice}D6={total} ≤ {ship.leadership} PASSED")
+                        from .actions import declare_ram
+                        if declare_ram(self.ctx.gs, self.ctx.dice, ship.id, ram_target.id):
+                            ship = self.ctx.gs.get_ship_by_id(ship.id)
+                            self.ctx.log(f"{ship.name} declares ram on {ram_target.name}! "
+                                         f"Ld check PASSED")
                         else:
-                            self.ctx.log(
-                                f"{ship.name} ram attempt failed — "
-                                f"{n_dice}D6={total} > {ship.leadership} Ld")
+                            self.ctx.log(f"{ship.name} ram attempt failed its Ld check")
             aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
             self.ctx.log(f"{ship.name} AAF speed bonus: +{aaf_bonus}cm")
             move_dist = float(base + aaf_bonus)
@@ -278,28 +270,15 @@ class MovementPanel(SpecialOrderMixin, MovementDialogMixin):
                            contacts=self.ctx.ordnance._resolve_moving_ship_contacts,
                            log=self.ctx.log)     # the terrain tests too (it skipped them)
 
-        # Resolve ramming if a target was declared
+        # Resolve ramming if a target was declared (actions.resolve_declared_ram)
         if ship.ramming_target_id:
-            from .geometry import line_passes_near
-            from .combat import resolve_ram
-            ram_target = self.ctx.gs.get_ship_by_id(ship.ramming_target_id)
-            ship = self.ctx.gs.get_ship_by_id(ship_id)
-            if ram_target and ship:
-                threshold = ship.base_radius + ram_target.base_radius
-                if line_passes_near(start_x, start_y, ship.x, ship.y,
-                                    ram_target.x, ram_target.y, threshold):
-                    self.ctx.log(f"  {ship.name} rams {ram_target.name}!")
-                    from .aa_turn import defer_ram
-                    if not defer_ram(self.ctx.gs, ship.id, ram_target.id):
-                        resolve_ram(ship, ram_target, self.ctx.dice, self.ctx.gs)
-                        self.ctx.check_destruction(ram_target)
-                        self.ctx.check_destruction(ship)
-                    self.ctx.board.redraw()
-                else:
-                    self.ctx.log(f"  {ship.name} missed the ram — {ram_target.name} not contacted")
+            from .actions import resolve_declared_ram
+            target = self.ctx.gs.get_ship_by_id(ship.ramming_target_id)
+            if resolve_declared_ram(self.ctx.gs, self.ctx.dice, ship_id, (start_x, start_y),
+                                    log=self.ctx.log) and target is not None:
+                self.ctx.log(f"  {ship.name} rams {target.name}!")
+            self.ctx.board.redraw()
             ship = self.ctx.gs.get_ship_by_id(ship_id) or ship
-            ship.ramming_target_id = None
-            self.ctx.gs.update_ship(ship)
 
         # Offer boarding declaration if rule is on and ship is in base contact with enemy
         self._offer_boarding(ship_id)

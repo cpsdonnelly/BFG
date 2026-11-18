@@ -629,47 +629,22 @@ class AIPlayer:
             return
         target = cand[1]
         n = ram_ld_dice(ship.ship_type, target.ship_type)
-        if "goffs" in ship.special_rules:
-            passed, total = True, 0
-        else:
-            total = sum(self.dice.roll_d6(n, f"{ship.name} ram Leadership test ({n}D6)"))
-            passed = total <= ship.leadership
-        if passed:
-            ship.ramming_target_id = target.id
-            self.gs.update_ship(ship)
+        from .actions import declare_ram
+        if declare_ram(self.gs, self.dice, ship.id, target.id):
             self.gs.add_log(f"[AI] {ship.name} declares a ram on {target.name}")
         else:
             self.gs.add_log(f"[AI] {ship.name} ram on {target.name} fails its Leadership "
-                            f"test ({n}D6 = {total})")
+                            f"test ({n}D6)")
 
     def _resolve_ram(self, ship: Optional[Ship], start) -> None:
         """After the move: a declared ram connects if the path touched the
         target's base (combat.resolve_ram); then it is cleared."""
         if ship is None or not ship.ramming_target_id:
             return
-        from .geometry import line_passes_near
-        from .combat import resolve_ram
-        gs = self.gs
-        target = gs.get_ship_by_id(ship.ramming_target_id)
-        if target is not None and not target.is_destroyed and line_passes_near(
-                start[0], start[1], ship.x, ship.y, target.x, target.y,
-                ship.base_radius + target.base_radius):
-            gs.add_log(f"[AI] {ship.name} rams {target.name}!")
-            from .aa_turn import defer_ram
-            if defer_ram(gs, ship.id, target.id):
-                ship = gs.get_ship_by_id(ship.id)
-                ship.ramming_target_id = None
-                gs.update_ship(ship)
-                return
-            resolve_ram(ship, target, self.dice, gs)
-            for sid in (target.id, ship.id):
-                s2 = gs.get_ship_by_id(sid)
-                if s2 is not None:
-                    self._resolve_kill(s2)
-        ship = gs.get_ship_by_id(ship.id)
-        if ship is not None:
-            ship.ramming_target_id = None
-            gs.update_ship(ship)
+        target = self.gs.get_ship_by_id(ship.ramming_target_id)
+        from .actions import resolve_declared_ram
+        if resolve_declared_ram(self.gs, self.dice, ship.id, start) and target is not None:
+            self.gs.add_log(f"[AI] {ship.name} rams {target.name}!")
 
     def _boarding_gain(self, ship: Ship, enemy: Ship) -> float:
         """A boarding action's expected VP (ai_hazards.boarding_vp) less what the
@@ -699,11 +674,8 @@ class AIPlayer:
                 best = (g, e)
         if best is None:
             return
-        ship.boarding_target_id = best[1].id
-        ship.has_boarded = True
-        gs.update_ship(ship)
-        from .aa_turn import lock_boarding
-        lock_boarding(gs, ship.id, best[1].id)
+        from .actions import declare_boarding
+        declare_boarding(gs, ship.id, best[1].id)
         gs.add_log(f"[AI] {ship.name} declares a boarding action against {best[1].name} "
                    f"(worth about {best[0]:.0f} VP)")
 

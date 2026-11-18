@@ -173,8 +173,8 @@ class EndPhasePanel:
                 if len(eligible_targets) == 1:
                     target = eligible_targets[0]
                 else:
-                    target = self.ctx.pick_ship(eligible_targets,
-                                                "Select teleport target")
+                    target = self.ctx.prompt.pick_ship("Select teleport target",
+                                                       eligible_targets)
                     if not target:
                         continue
 

@@ -19,6 +19,7 @@ from .combat_panel import CombatPanel
 from .ordnance_panel import OrdnancePanel
 from .end_phase_panel import EndPhasePanel
 from .aa_panel import AAPanelMixin
+from . import recorder
 
 
 class GameFlow(AAPanelMixin):
@@ -388,6 +389,10 @@ class GameFlow(AAPanelMixin):
         self.ctx.board.redraw()
 
     def _begin_turn1(self):
+        with recorder.flow():                 # the flow's own steps (recorder)
+            return self._begin_turn1_steps()
+
+    def _begin_turn1_steps(self):
         """Called by DeploymentPanel when all ships are placed."""
         tc = self.ctx.tc
         gs = self.ctx.gs
@@ -493,6 +498,10 @@ class GameFlow(AAPanelMixin):
         self.ctx.board.redraw()
 
     def _end_phase(self, from_ai: bool = False):
+        with recorder.flow():
+            return self._end_phase_steps(from_ai)
+
+    def _end_phase_steps(self, from_ai: bool = False):
         """Advance to the next phase.
 
         from_ai: the AI driver already resolved this phase, so skip the
@@ -647,10 +656,15 @@ class GameFlow(AAPanelMixin):
         # Targets decide on Brace for Impact before the AI's attacks are rolled
         ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
             att.id, att.name, tgt, exp, None, grp, att))
+        # A replay (replay.py): this phase's actions come from the record
+        replaying = phase in getattr(self, "replay_phases", ()) and phase != "end"
+        if replaying:
+            from .replay import ReplaySeat
+            ai = ReplaySeat(self, ai_player_num, self.replay_events)
 
         # Expert movement is slow (minimax depth-5); run off-thread so UI stays
         # live. The worker never touches Tk: the main thread polls for it.
-        if gs.ai_difficulty == "expert" and phase == "movement":
+        if gs.ai_difficulty == "expert" and phase == "movement" and not replaying:
             outcome = {}
 
             def _do_movement():
@@ -665,7 +679,8 @@ class GameFlow(AAPanelMixin):
                     return
                 if "error" not in outcome:
                     # Main thread: ordnance the AI's ships ran into attacks them
-                    self.ordnance._resolve_moving_ship_contacts()
+                    with recorder.flow():
+                        self.ordnance._resolve_moving_ship_contacts()
                 restore_dice()
                 self._ai_thinking = False
                 if "error" in outcome:
@@ -686,13 +701,15 @@ class GameFlow(AAPanelMixin):
             if phase == "movement":
                 ai.run_movement_phase()
                 # Ordnance the AI's ships ran into attacks them (s.15)
-                self.ordnance._resolve_moving_ship_contacts()
+                with recorder.flow():
+                    self.ordnance._resolve_moving_ship_contacts()
             elif phase == "shooting":
                 ai.run_shooting_phase()
             elif phase == "ordnance":
                 ai.run_ordnance_phase()
             elif phase == "end":
-                self._resolve_end_phase_auto(ai)
+                with recorder.flow():
+                    self._resolve_end_phase_auto(ai)
         except Exception as exc:
             self._report_ai_error(phase, exc)
         finally:

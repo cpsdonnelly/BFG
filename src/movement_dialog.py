@@ -784,13 +784,10 @@ class MovementDialogMixin:
                 f"(Ship cannot fire weapons or launch ordnance this turn)"):
             return
         board_target = (contacted[0] if len(contacted) == 1
-                        else self.ctx.pick_ship(contacted, "Select boarding target"))
+                        else self.ctx.prompt.pick_ship("Select boarding target", contacted))
         if board_target:
-            ship.boarding_target_id = board_target.id
-            ship.has_boarded = True
-            self.ctx.gs.update_ship(ship)
-            from .aa_turn import lock_boarding
-            lock_boarding(self.ctx.gs, ship.id, board_target.id)
+            from .actions import declare_boarding
+            declare_boarding(self.ctx.gs, ship.id, board_target.id)
             self.ctx.log(
                 f"{ship.name} declares boarding action against {board_target.name}!")
 

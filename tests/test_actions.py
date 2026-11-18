@@ -26,3 +26,38 @@ def test_apply_move_runs_terrain_tests_and_records_the_move():
     assert (again.final_x, again.final_y, again.path) == (r.final_x, r.final_y,
                                                           [tuple(p) for p in r.path])
     recorder.stop_recording()
+
+
+def test_ram_and_boarding_declarations_replay(tmp_path):
+    from src.actions import declare_ram, declare_boarding, replay_event
+    from src.dice import DiceRoller, DiceSource, set_source
+    from src.turn_controller import TurnController
+    import copy
+
+    def setup():
+        a = make_ship(id="a", x=20.0, y=50.0, heading=0.0, leadership=8)
+        b = make_ship(id="b", player=2, x=30.0, y=50.0, heading=180.0)
+        return make_gs([a, b])
+    gs = setup()
+    start = copy.deepcopy(gs.ships)
+    set_source(DiceSource(5, record=True))
+    recorder.start_recording()
+    dice = DiceRoller(mode="auto")
+    passed = declare_ram(gs, dice, "a", "b")
+    declare_boarding(gs, "a", "b")
+    evs = [e for e in recorder.events() if e["depth"] == 0]
+    assert [e["kind"] for e in evs] == ["declare_ram", "declare_boarding"]
+    from src.dice import current_source
+    rec = current_source().record
+    after = copy.deepcopy(gs.ships)
+
+    gs2 = setup()
+    gs2.ships = start
+    set_source(DiceSource(0, replay=[list(e) for e in rec]))
+    tc = TurnController(gs2, DiceRoller(mode="auto"), save_dir=str(tmp_path))
+    for e in evs:
+        replay_event(gs2, tc, DiceRoller(mode="auto"), e)
+    assert gs2.ships == after
+    assert gs2.get_ship_by_id("a").ramming_target_id == ("b" if passed else None)
+    recorder.stop_recording()
+    set_source(DiceSource())

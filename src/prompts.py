@@ -40,6 +40,13 @@ class Prompter:
         v = self._number(title, text, default, lo, hi, integer)
         return self._answered("number", title, v, default)
 
+    def pick_ship(self, title: str, ships, best=None):
+        """One of the ships (a decision inside an action: a ram, boarding or
+        teleport target); None if the player picks none."""
+        pick = self._pick_ship(title, ships, best)
+        self._answered("pick_ship", title, getattr(pick, "id", None), getattr(best, "id", None))
+        return pick
+
     def pick_many(self, title: str, text: str, options: List[str], most: int,
                   best: List[str]) -> List[str]:
         """Up to `most` of the options (e.g. the criticals to repair)."""
@@ -61,6 +68,9 @@ class Prompter:
         return default
 
     def _pick_many(self, title, text, options, most, best):
+        return best
+
+    def _pick_ship(self, title, ships, best):
         return best
 
     def _notify(self, title, text, level):
@@ -91,6 +101,10 @@ class TkPrompter(Prompter):
         if default is not None:
             kw["initialvalue"] = round(default) if not integer else int(default)
         return ask(title, text, **kw)
+
+    def _pick_ship(self, title, ships, best):
+        from .game_context import pick_ship_dialog
+        return pick_ship_dialog(self.root, ships, title)
 
     def _pick_many(self, title, text, options, most, best):
         import tkinter as tk
@@ -175,3 +189,7 @@ class ReplayPrompter(Prompter):
 
     def _pick_many(self, title, text, options, most, best):
         return self._next("pick_many", title)
+
+    def _pick_ship(self, title, ships, best):
+        sid = self._next("pick_ship", title)
+        return next((s for s in ships if s.id == sid), None)

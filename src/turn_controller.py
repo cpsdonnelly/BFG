@@ -575,7 +575,8 @@ class TurnController:
         return result
 
     @_rec.logged("order", lambda r, A: (A["self"].gs, dict(
-        ships=[s.id for s in A["ships"]], order=A["order"], passed=r.get("success"))))
+        ships=[s.id for s in A["ships"]], order=A["order"], passed=r.get("success"),
+        squadron=True)))
     def issue_squadron_order(self, ships: List[Ship], order: str) -> Dict:
         """
         Roll once (using the highest-Ld ship) to issue the same special order
@@ -804,6 +805,8 @@ class TurnController:
             description=f"Fleet re-roll used ({flagship.rerolls_remaining} left)")
         return True
 
+    @_rec.logged("order_reroll", lambda r, A: (A["self"].gs, dict(
+        ship=A["ship"].id, order=A["order"], passed=r.get("success"))))
     def attempt_reroll_command_check(self, ship: Ship, order: str) -> Dict:
         """
         Re-roll a failed command check using a fleet commander re-roll.
@@ -873,6 +876,7 @@ class TurnController:
                     and s.id not in self.ships_fired and self._aa_ok(s)
                     and not _standby(self.gs, s))]
 
+    @_rec.logged("mark_moved", lambda r, A: (A["self"].gs, dict(ship=A["ship_id"])))
     def mark_ship_moved(self, ship_id: str):
         self.ships_moved.append(ship_id)
 
