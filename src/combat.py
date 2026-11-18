@@ -1426,6 +1426,19 @@ def add_fire_crits(target: Ship, n: int, game_state: GameState, write: bool = Tr
         game_state.update_ship(fresh)
 
 
+def add_thrusters_crits(target: Ship, n: int, game_state: GameState) -> None:
+    """n automatic Thrusters Damaged critical hits with no extra damage (Dark
+    Eldar leech torpedoes, Xenos p.5), even on ships whose table has none."""
+    fresh = game_state.get_ship_by_id(target.id) or target
+    # A fresh list: copies of a ship may share one (models.ship_copy)
+    crits = list(fresh.critical_damage) + [
+        {"crit_type": "thrusters_damaged", "description": "Thrusters Damaged",
+         "repairable": True, "turn_inflicted": game_state.turn_number} for _ in range(n)]
+    fresh.critical_damage = crits
+    target.critical_damage = list(crits)
+    game_state.update_ship(fresh)
+
+
 # Orientation difficulty (from attacker's perspective): lower = easier to target = better column
 # If attacker picks difficulty D, eligible ships are those with difficulty ≤ D
 ORIENTATION_DIFFICULTY = {"closing": 0, "moving_away": 1, "abeam": 2}

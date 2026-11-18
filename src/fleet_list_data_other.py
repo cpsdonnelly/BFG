@@ -433,4 +433,28 @@ RT_LISTS = [
          "detachments."]},
 ]
 
-OTHER_LISTS: List[Dict] = CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS
+# ── Dark Eldar (08_dark-eldar.md, Xenos p.13) ─────────────────────────────────
+DE_LISTS = [
+    {"key": "dark_eldar_raiders", "faction": "dark_eldar",
+     "name": "Dark Eldar Raiders (Xenos p.13)",
+     # A Dread Archon always leads (booklet_options.dark_eldar_options)
+     "commander": {"options": ["Dread Archon (+2 Ld)"], "required_at": 0},
+     # "at least three escorts for every capital ship in the fleet"
+     "escorts_per_capital": 3,
+     "sections": [
+         {"name": "Grand Cruisers", "ratio": (3, ["Cruisers"]),
+          "ships": {"Mortalis Class Grand Cruiser": 300}},
+         {"name": "Cruisers",
+          "ships": {"Torture Class Cruiser": 230, "Succubus Class Light Cruiser": 140}},
+         {"name": "Escorts",
+          "ships": {"Corsair Class Frigate": 60, "Subjugation Class Raider": 40}},
+     ],
+     "reserves": [],
+     "unenforced": [
+         "Escort squadrons of two to six vessels: not checked.",
+         "The Tormentor class spire and its webway reserves aren't playable yet.",
+         "Only the Strong May Lead (optional rule) isn't built.",
+         "Attack rating 4. Never gives or takes reserves."]},
+]
+
+OTHER_LISTS: List[Dict] = CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS + DE_LISTS

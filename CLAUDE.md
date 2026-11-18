@@ -2639,7 +2639,9 @@ Done: To do 2, 3, 6; most of 7.
    Tau Protector, Orks, Necrons, Eldar). Playable today: Dark Eldar 0 / 7, Tyranids 0 / 9
    (both greyed out by `booklet_ships.UNBUILT_FACTION_RULES`); the rest mostly playable.
    Dark Eldar plan (read `bfgxr/rules/08_dark-eldar.md` and Appendix 3's Dark Eldar table;
-   nothing built yet), in slices, each with tests, following how the Eldar were wired:
+   slice 1 built, `tests/test_dark_eldar_catalog.py`: the Raiders list is
+   `dark_eldar_raiders` with `escorts_per_capital`; the Kabal Variant check is the
+   `required_group:` restriction; leech crits via `combat.add_thrusters_crits`), in slices, each with tests, following how the Eldar were wired:
    1. Catalog and fleet building: `booklet_ships.convert_row` gives Dark Eldar ships
       `dark_eldar` and `shadowfield` rules (shields 0; Ld already on the Eldar column, the
       +1), weapon flags like `_ELDAR_WEAPON_FLAGS` (`de_battery`: left shift; `de_phantom`:

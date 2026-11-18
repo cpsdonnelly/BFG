@@ -634,10 +634,13 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         f"Torpedoes vs {target.name} (need {armor}+)")
     result["hits"] = sum(1 for d in attack_rolls if d >= armor)
     misses = len(attack_rolls) - result["hits"]
-    if misses and is_eldar_ordnance(marker):
-        # Eldar torpedoes must re-roll misses (MMS p.4)
+    if misses and (is_eldar_ordnance(marker) or (
+            "dark_eldar" in (marker.special_rules or [])
+            and marker.ordnance_type == OrdnanceType.TORPEDO_STANDARD.value)):
+        # Eldar torpedoes must re-roll misses (MMS p.4); so must Dark Eldar
+        # plasma torpedoes (their standard torpedoes, Xenos p.5)
         result["hits"] += sum(1 for d in dice.roll_d6(
-            misses, f"Eldar torpedoes re-roll misses (need {armor}+)") if d >= armor)
+            misses, f"Torpedoes re-roll misses (need {armor}+)") if d >= armor)
 
     # Torpedoes that scored hits are spent; the rest pass through and keep moving.
     result["remaining_strength"] = max(0, result["remaining_strength"] - result["hits"])
@@ -661,6 +664,15 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         fresh = game_state.get_ship_by_id(target.id) or target
         fresh.turrets_halved_turn = target.turrets_halved_turn = game_state.turn_number
         game_state.update_ship(fresh)
+    elif result["hits"] > 0 and marker.ordnance_type == OrdnanceType.TORPEDO_LEECH.value:
+        # Leech torpedoes: no damage; each hit an automatic Thrusters Damaged
+        # crit, its extra damage not applied (Xenos p.5)
+        game_state.add_log(f"Leech torpedoes hit {target.name} {result['hits']} time(s): "
+                           f"{result['hits']} Thrusters Damaged crit(s), no damage; "
+                           f"{result['remaining_strength']} pass through")
+        if not is_hulk:
+            from .combat import add_thrusters_crits
+            add_thrusters_crits(target, result["hits"], game_state)
     elif result["hits"] > 0 and marker.ordnance_type == OrdnanceType.TORPEDO_MELTA.value:
         # Melta: no damage; each hit is an automatic Fire critical hit, even on
         # ships whose critical hit table has no Fire result. A hulk takes no damage.
@@ -1461,6 +1473,8 @@ EXTRA_TORPEDO_TYPES = {
     "vortex": (OrdnanceType.TORPEDO_VORTEX.value, "Vortex torpedoes (1 damage + automatic crit per hit; once per game)"),
     # Ordo Hereticus Inferno Torpedoes: melta torpedoes usable any number of times
     "inferno": (OrdnanceType.TORPEDO_MELTA.value, "Inferno torpedoes (melta: Fire crit per hit, no damage)"),
+    # Dark Eldar (Xenos p.5): every Dark Eldar torpedo launcher also carries them
+    "leech": (OrdnanceType.TORPEDO_LEECH.value, "Leech torpedoes (Thrusters Damaged crit per hit, no damage)"),
 }
 ONCE_PER_GAME_TORPEDOES = ("seeking", "melta", "vortex")
 # Game-start torpedo rolls (ship rule "torpedo_roll:<table>"), rolled per ship
@@ -1771,6 +1785,13 @@ CRAFT_STATS = {
     "eldar_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
     "eldar_bomber": (OrdnanceType.BOMBER.value, 20, 0),
     "vampire_assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+    # Dark Eldar (Xenos p.5): Raptor fighters 4+ resilient, Razorwing bombers,
+    # Slavebringer assault boats, Voidraven torpedo bombers (plasma salvos);
+    # flickerfields against turrets come with the launcher's dark_eldar rule
+    "raptor": (OrdnanceType.FIGHTER.value, 30, 4),
+    "razorwing": (OrdnanceType.BOMBER.value, 20, 0),
+    "slavebringer": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+    "voidraven": (OrdnanceType.TORPEDO_BOMBER.value, 20, 0),
 }
 
 # What each attack craft type can act as. Multi-role craft follow the rules of

@@ -35,8 +35,15 @@ Needs more work (next first):
 00. Owner's latest task: make the other factions playable. Dark Eldar (0 / 7 ships
    playable) first, then Tyranids (0 / 9), then the catalog gaps blocking the owner's other
    fleets (Tau Protector, Orks, Necrons, Eldar; `docs/OWNER_FLEETS.md`). The Dark Eldar
-   plan, in three slices with the hooks to use, is in CLAUDE.md To do 19; nothing of it is
-   built yet (the rules were read, `bfgxr/rules/08_dark-eldar.md` + Appendix 3).
+   plan, in three slices with the hooks to use, is in CLAUDE.md To do 19. Slice 1 (catalog
+   and fleet building) is built: `dark_eldar` / `shadowfield` rules and weapon flags
+   (`de_battery`, `de_phantom`), Kabal Variants (`booklet_options.dark_eldar_options`, a
+   `required_group:` restriction: exactly one), Dread Archon / re-rolls / Dracons / crew
+   upgrades, the craft (Raptor, Razorwing, Slavebringer, Voidraven), plasma torpedoes
+   re-rolling misses and leech torpedoes (Thrusters Damaged crits), the Raiders list
+   (`dark_eldar_raiders`, `escorts_per_capital` 3, Mortalis one per three cruisers,
+   Archon always required) (`tests/test_dark_eldar_catalog.py`). The ships stay greyed
+   out (`UNBUILT_FACTION_RULES`) until slice 2 (shadowfields, movement, crit table).
 0. To do 32 (owner report, playability), DONE: the owner couldn't play from `run.py`. Checked,
    all software problems (as found): the setup wizard (540x680, needs ~1820px, no scrollbar) hides its Start
    buttons; the fleet builder (1000 wide, needs ~1320) never draws Load / Save / Validate,

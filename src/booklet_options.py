@@ -1120,6 +1120,8 @@ def _options_for(row: dict) -> List[Dict]:
             o for o in space_marine_options(row) if not o["name"].startswith("Torpedoes")]
     if "Space Marines" in rules:
         return space_marine_options(row)
+    if row.get("faction") == "Dark Eldar":
+        return dark_eldar_options(row)
     opts: List[Dict] = []
     if "Imperial Navy" in rules or "Chaos" in rules:
         opts = torpedo_type_options(row)
@@ -1143,6 +1145,139 @@ def _options_for(row: dict) -> List[Dict]:
 def _ship_type_of(row: dict) -> str:
     from .booklet_ships import _ship_type
     return _ship_type(row)
+
+
+# ── Dark Eldar (Xenos p.4-13) ───────────────────────────────────────────────
+DE_CRAFT = ["raptor", "razorwing", "slavebringer"]
+DE_CRAFT_SPEEDS = {"raptor": 30, "razorwing": 20, "slavebringer": 30, "voidraven": 20}
+
+
+def _de_bay(strength: int, voidravens: bool = False) -> Dict:
+    craft = DE_CRAFT + (["voidraven"] if voidravens else [])
+    return {"name": "Keel Launch Bays", "weapon_type": "launch_bay", "range_cm": 30,
+            "strength": strength, "arcs": [], "craft_types": craft,
+            "craft_speeds": {c: DE_CRAFT_SPEEDS[c] for c in craft}, "craft_speed": 30}
+
+
+def _de_torps(where: str, strength: int) -> Dict:
+    # plasma (standard torpedoes that re-roll misses, the dark_eldar rule),
+    # leech (a bought-type kind, torpedo_type:leech) and boarding torpedoes
+    return {"name": f"{where} Torps", "weapon_type": "torpedo", "range_cm": 30,
+            "strength": strength, "arcs": ["front"], "torpedo_type": "standard",
+            "torpedo_speed": 30, "boarding_torpedoes": True, "plasma_torpedoes": True}
+
+
+def _de_lance(fp: int) -> Dict:
+    return {"name": "Prow Phantom Lance", "weapon_type": "lance", "range_cm": 30,
+            "strength": fp, "arcs": ["front"], "de_phantom": True}
+
+
+def _de_impaler(modules: int) -> Dict:
+    return {"name": "Prow Impaler Bay", "weapon_type": "impaler", "range_cm": 30,
+            "strength": modules, "arcs": ["front"], "craft_speed": 30}
+
+
+def _de_battery(fp: int) -> Dict:
+    return {"name": "Weapons Battery (variant)", "weapon_type": "battery", "range_cm": 30,
+            "strength": fp, "arcs": ["front"], "de_battery": True}
+
+
+# Kabal Variants (Xenos p.7-10): (variant name, cost, effect) per class; exactly one
+_KABAL = {
+    "Mortalis Class Grand Cruiser": [
+        ("Obsidian Rose (prow phantom lance FP3)", 0, {"add_weapon": _de_lance(3)}),
+        ("Iron Thorn (keel launch bays, 6)", 20, {"add_weapon": _de_bay(6)}),
+        ("Iron Thorn (keel launch bays, 6, with Voidravens)", 80,
+         {"add_weapon": _de_bay(6, True)}),
+        ("Iron Thorn (keel mine launcher, S6)", 80,
+         {"add_weapon": {"name": "Keel Mine Launcher", "weapon_type": "mine_launcher",
+                         "strength": 6, "range_cm": 0, "arcs": ["left", "front", "right"],
+                         "mine_speed": 10}}),
+        ("Dying Sun (prow impaler bay, 3 modules)", 0, {"add_weapon": _de_impaler(3)}),
+        ("Falling Moon (keel torpedo salvo S6)", 0, {"add_weapon": _de_torps("Keel", 6)}),
+    ],
+    "Torture Class Cruiser": [
+        ("Flayed Skull (prow phantom lance FP2)", 0, {"add_weapon": _de_lance(2)}),
+        ("Fiend Ascendant (keel launch bays, 4)", 20, {"add_weapon": _de_bay(4)}),
+        ("Fiend Ascendant (keel launch bays, 4, with Voidravens)", 60,
+         {"add_weapon": _de_bay(4, True)}),
+        ("Fiend Ascendant (keel mine launcher, S4)", 60,
+         {"add_weapon": {"name": "Keel Mine Launcher", "weapon_type": "mine_launcher",
+                         "strength": 4, "range_cm": 0, "arcs": ["left", "front", "right"],
+                         "mine_speed": 10}}),
+        ("Bleaksoul (prow impaler bay, 2 modules)", 0, {"add_weapon": _de_impaler(2)}),
+        ("Bloodied Claw (keel torpedo salvo S4)", 0, {"add_weapon": _de_torps("Keel", 4)}),
+    ],
+    "Succubus Class Light Cruiser": [
+        ("Dark Mirror (prow phantom lance FP2)", 0, {"add_weapon": _de_lance(2)}),
+        ("Burning Scale (keel launch bays, 2)", 10, {"add_weapon": _de_bay(2)}),
+        ("Burning Scale (keel launch bays, 2, with Voidravens)", 30,
+         {"add_weapon": _de_bay(2, True)}),
+        ("Burning Scale (keel mine launcher, S2)", 30,
+         {"add_weapon": {"name": "Keel Mine Launcher", "weapon_type": "mine_launcher",
+                         "strength": 2, "range_cm": 0, "arcs": ["left", "front", "right"],
+                         "mine_speed": 10}}),
+        ("Baleful Gaze (prow impaler bay, 2 modules)", 10, {"add_weapon": _de_impaler(2)}),
+        ("Bladed Lotus (keel torpedo salvo S4)", 10, {"add_weapon": _de_torps("Keel", 4)}),
+    ],
+    "Corsair Class Frigate": [
+        ("Phantom lance FP1", 0, {"add_weapon": _de_lance(1)}),
+        ("Impaler bay, 1 module", 0, {"add_weapon": _de_impaler(1)}),
+        ("Torpedo salvo S2", 0, {"add_weapon": _de_torps("Prow", 2)}),
+        ("Weapons battery FP3", 0, {"add_weapon": _de_battery(3)}),
+    ],
+    "Subjugation Class Raider": [
+        ("Weapons battery FP3", 0, {"add_weapon": _de_battery(3)}),
+        ("Torpedo salvo S2", 0, {"add_weapon": _de_torps("Prow", 2)}),
+    ],
+}
+DE_CREW = [("Wych Cult", 15, "Doubles its troop rating; counts enemy capital ships as "
+            "crippled for Pain Frenzy and boarding modifiers.", ["wych_cult", "doubles_troops"]),
+           ("Incubi", 20, "Its raids roll 2D6 and choose (both vs a crippled ship); enemy "
+            "raids on it -1.", ["incubi"]),
+           ("Haemonculi Coven", 25, "Boarding / Impaler crits are Fire results; +1 hit.",
+            ["haemonculi"])]
+DE_ARCHON_REROLLS = [(1, 25), (2, 50), (3, 100)]
+
+
+def dark_eldar_options(row: dict) -> List[Dict]:
+    """Kabal Variants (exactly one each), the Dread Archon (+2 Ld, re-rolls
+    bought one 25 / two 50 / three 100), up to three Dracons (+1 Ld), and one
+    of Wych Cult / Incubi / Haemonculi Coven per capital ship (Raiders list,
+    Xenos p.13)."""
+    from .booklet_ships import _ship_type
+    name = row["name"]
+    opts: List[Dict] = []
+    for vname, cost, effect in _KABAL.get(name, []):
+        eff = dict(effect)
+        w = eff.get("add_weapon", {})
+        if w.get("plasma_torpedoes"):
+            eff = {**eff, "add_special_rules": ["torpedo_type:leech"]}
+        opts.append(_opt(f"Kabal Variant: {vname}",
+                         (f"+{cost}pts." if cost else "Free.") + " One Kabal Variant required.",
+                         cost, eff, ["group:kabal_variant", "required_group:kabal_variant"]))
+    if _ship_type(row) in ("cruiser", "battleship"):
+        opts.append({"name": "Dread Archon (+2 Ld)",
+                     "description": "Fleet commander, 50pts: +2 Ld (max 10); no free re-roll.",
+                     "points_cost": 50,
+                     "effect": {"add_special_rules": ["ld_bonus:2:10", "fleet_commander"],
+                                "rerolls": 0, "flagship": True},
+                     "restrictions": ["fleet_unique", "group:fleet_commander"]})
+        opts += [{"name": f"Dread Archon: {k} re-roll{'s' if k > 1 else ''}",
+                  "description": f"{cost}pts.", "points_cost": cost, "effect": {"rerolls": k},
+                  "restrictions": ["group:commander_rerolls", "requires:Dread Archon (+2 Ld)"]}
+                 for k, cost in DE_ARCHON_REROLLS]
+        opts += [_opt(n, f"+{c}pts. {d}", c,
+                      {"add_special_rules": rules,
+                       **({"stat_delta": {"hits_max": 1}} if n == "Haemonculi Coven" else {})},
+                      ["group:de_crew"]) for n, c, d, rules in DE_CREW]
+    if name not in ("Dark Eldar Transport", "Tormentor Class Spire"):
+        opts.append({"name": "Dracon (+1 Ld)",
+                     "description": "Secondary commander, 25pts (up to three): +1 Ld (max 10).",
+                     "points_cost": 25,
+                     "effect": {"add_special_rules": ["ld_bonus:1:10", "secondary_commander"]},
+                     "restrictions": ["group:fleet_commander", "fleet_max:3"]})
+    return opts
 
 
 def ship_option_errors(entry, chosen: List[str]) -> List[str]:
@@ -1171,6 +1306,12 @@ def ship_option_errors(entry, chosen: List[str]) -> List[str]:
     for names in groups.values():
         if len(names) > 1:
             errors.append(f"Choose only one of: {', '.join(names)}.")
+    # Groups one option of which must be taken (Dark Eldar Kabal Variants)
+    required = {r[len("required_group:"):] for u in entry.upgrades_available
+                for r in u.restrictions if r.startswith("required_group:")}
+    for g in sorted(required):
+        if g not in groups:
+            errors.append(f"Choose one {g.replace('_', ' ').title()}.")
     errors += kustom_count_errors(chosen)
     return errors
 

@@ -59,6 +59,7 @@ class OrdnanceType(str, Enum):
     TORPEDO_SEEKING = "torpedo_seeking"           # turn 45° at the nearest enemy (s.16)
     TORPEDO_MELTA = "torpedo_melta"               # each hit: a Fire crit, no damage (s.16)
     TORPEDO_VORTEX = "torpedo_vortex"             # each hit: 1 damage + automatic crit (s.16)
+    TORPEDO_LEECH = "torpedo_leech"               # Dark Eldar: each hit a Thrusters Damaged crit, no damage
     FIGHTER = "fighter"
     BOMBER = "bomber"
     ASSAULT_BOAT = "assault_boat"

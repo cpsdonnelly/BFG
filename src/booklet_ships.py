@@ -429,6 +429,9 @@ def convert_row(row: dict) -> dict:
         craft_map = dict(_TAU_CRAFT)
     elif row["faction"] == "Eldar":
         craft_map = dict(_ELDAR_CRAFT)
+    elif row["faction"] == "Dark Eldar":
+        craft_map = {"Raptors": "raptor", "Razorwings": "razorwing",
+                     "Slavebringers": "slavebringer", "Voidravens": "voidraven"}
     else:
         craft_map = {}
     if row["faction"] in MR_CRAFT:
@@ -532,6 +535,15 @@ def convert_row(row: dict) -> dict:
         from .necrons import parse_reactive_hull
         rh = parse_reactive_hull(row.get("shields_raw"))
         special_rules += ["necron"] + ([f"reactive_hull:{rh}"] if rh else [])
+    if row["faction"] == "Dark Eldar":
+        # Dark Eldar (Xenos p.4-6): shadowfields instead of shields, their own
+        # weapons rules (flags below), crit table, movement, ordnance flickerfields
+        special_rules += ["dark_eldar", "shadowfield"]
+        for d in weapons:
+            if d.get("weapon_type") == "battery":
+                d["de_battery"] = True
+            if "Phantom Lance" in d.get("name", ""):
+                d["de_phantom"] = True
     if row["faction"] == "Eldar":
         # MMS v2.0 faction rules (src/eldar.py); Ghostships keep 6+ crits
         special_rules += ["eldar_mms", "fragile"] + (["holofield"] if holo is not None else [])
