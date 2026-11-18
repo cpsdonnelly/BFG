@@ -205,6 +205,13 @@ def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
         _same(ev, "passed", attempt_brace(ship, gs, dice).get("passed"))
     elif k == "act_fired":
         mark_fired(tc, ev["ship"])
+    elif k == "act_shoot_ordnance":
+        shoot_ordnance(gs, dice, ev["ship"], ev["weapon"], ev["marker"], ev["closest"])
+    elif k == "act_fire_combined":
+        fire_combined(panel, ev["ship"], ev["target"], ev["rows"], ev.get("aspects"))
+    elif k == "act_fire_squadron":
+        fire_at_squadron_ships(panel, ev["ship"], ev["members"], ev["squadron"], ev["orient"],
+                               ev["weapon"])
     elif k == "act_volley_fire":
         if panel is None:
             raise ReplayDivergence(f"event {ev['n']}: a Fire dialog volley needs the panel")
@@ -480,3 +487,246 @@ def fire_volley(panel, ship_id: str, orders, together: bool = False, log=None,
     from .fire_volley import FireVolley
     FireVolley(panel, ship_id, [tuple(o) for o in orders], together, log=log,
                context=context).run()
+
+
+@recorder.logged("act_shoot_ordnance", lambda r, A: (A["gs"], dict(
+    ship=A["ship_id"], weapon=A["w_idx"], marker=A["marker_id"], closest=A["closest_id"])))
+def shoot_ordnance(gs, dice, ship_id: str, w_idx: int, marker_id: str, closest_id: str,
+                   log=None) -> dict:
+    """A player's "Fire at Ordnance" (s.30): range, the ordnance-only target
+    priority test when the marker isn't the closest enemy ordnance
+    (`closest_id`), the weapon's firepower fixed, the dice
+    (combat.fire_at_ordnance), the weapon marked used. Returns the result, or
+    {"error": ...} when it can't fire (nothing rolled)."""
+    import math
+    from .chapter_tactics import weapon_range
+    from .combat import weapon_fire_pool, fire_at_ordnance, ordnance_fire_dice
+    from .movement import do_command_check, fleet_reroll_offered
+    log = log or gs.add_log
+    attacker = gs.get_ship_by_id(ship_id)
+    weapon = attacker.weapons[w_idx]
+    wr = attacker.weapons_remaining or {}
+    idx_key = str(w_idx)
+    marker = next((o for o in gs.ordnance if o["id"] == marker_id), None)
+    if marker is None:
+        return {"error": "That ordnance is no longer in play"}
+    dist = math.hypot(marker["x"] - attacker.x, marker["y"] - attacker.y)
+    if dist > (weapon_range(attacker, weapon) or 999):
+        return {"title": "Out of Range",
+                "error": f"Target at {dist:.0f}cm, weapon range {weapon['range_cm']}cm"}
+    if marker_id != closest_id:
+        check = do_command_check(attacker, "target_priority", dice, gs=gs)
+        if not check["passed"] and fleet_reroll_offered(
+                gs, attacker, "target priority", check["roll"], check["needed"]):
+            check = do_command_check(attacker, "target_priority", dice, gs=gs)
+        if not check["passed"]:
+            log(f"  Target priority FAILED (rolled {check['roll']} vs Ld {check['needed']}). "
+                f"Must fire at closest ordnance.")
+            marker = next(o for o in gs.ordnance if o["id"] == closest_id)
+            dist = math.hypot(marker["x"] - attacker.x, marker["y"] - attacker.y)
+    avail, _mode, err = weapon_fire_pool(attacker, weapon, w_idx, dist, dice)
+    if err:
+        return {"title": "Heavy Gunz", "error": err}
+    if weapon.get("strength_dice") and idx_key not in wr:
+        log(f"  {weapon['name']}: rolled {weapon['strength_dice']} = {avail}")
+    dice_count = ordnance_fire_dice(attacker, weapon, marker["x"], marker["y"], gs, avail)
+    if dice_count <= 0:
+        log("  No dice to roll")
+        return {"dice": 0, "hits": 0}
+    log(f"  {weapon['name']} FP{avail} vs ordnance: {dice_count} dice")
+    res = fire_at_ordnance(attacker, weapon, marker["id"], gs, dice, avail)
+    attacker = gs.get_ship_by_id(ship_id)
+    wr = dict(attacker.weapons_remaining or {})
+    wr[idx_key] = 0
+    attacker.weapons_remaining = wr
+    if w_idx not in attacker.weapons_fired_indices:
+        attacker.weapons_fired_indices.append(w_idx)
+    gs.update_ship(attacker)
+    if res["hits"] > 0:
+        log(f"  HIT! {marker['ordnance_type']} Str{marker.get('strength')} destroyed! "
+            f"({res['hits']} hit(s))")
+    else:
+        log(f"  MISS! ({dice_count} dice)")
+    return res
+
+
+def _aspect_choice(aspects):
+    """Recorded aspect choices [[view, aspect], ...] back to {view: aspect}
+    (a view: the target squadron's (ship id, aspect) pairs a group of firers sees)."""
+    return {tuple(tuple(p) for p in view): a for view, a in (aspects or [])}
+
+
+@recorder.logged("act_fire_combined", lambda r, A: (A["panel"].ctx.gs, dict(
+    ship=A["primary_id"], target=A["target_id"], rows=[list(x) for x in A["rows"]],
+    aspects=A["aspects"])))
+def fire_combined(panel, primary_id: str, target_id: str, rows, aspects=(), log=None) -> dict:
+    """A player's Combine Squadron Fire (s.8): Brace before the rolls, the
+    chosen batteries ([ship id, weapon index]) with their firepower fixed,
+    one planned volley at the target or its squadron with the aspects chosen
+    per group of firers, hits applied nearest first, the weapons marked used.
+    Returns {"hits"} or {"error"} when nothing could fire."""
+    from .combat import (squadron_group, expected_hits, weapon_fire_pool, shot_weapon,
+                         plan_squadron_volley, resolve_squadron_volley)
+    from .models import SpecialOrder
+    ctx = panel.ctx
+    gs = ctx.gs
+    log = log or ctx.log
+    primary, target = gs.get_ship_by_id(primary_id), gs.get_ship_by_id(target_id)
+    in_asteroid_field = "in_asteroid_field" in (primary.special_rules or [])
+    lock_on = primary.special_order == SpecialOrder.LOCK_ON.value
+    chosen = []
+    for sid, w_idx in rows:
+        m = gs.get_ship_by_id(sid)
+        w = m.weapons[w_idx]
+        chosen.append((m, w_idx, w, (m.weapons_remaining or {}).get(str(w_idx), w["strength"])))
+    t_group = squadron_group(target, gs.get_ships())
+    braced = panel._brace_before_attack(
+        primary.id, primary.name, target,
+        sum(expected_hits(m, dict(w, strength=avail), target) for m, _i, w, avail in chosen),
+        log, group=t_group, attacker=primary)
+    selected = []
+    for m, w_idx, w, _avail in chosen:
+        pool, _mode, err = weapon_fire_pool(m, w, w_idx, m.distance_to(target), ctx.dice)
+        if err:
+            log(f"  {m.name}: {err}")
+            continue
+        if w.get("strength_dice") and str(w_idx) not in (m.weapons_remaining or {}):
+            log(f"  {m.name} {w['name']}: rolled {w['strength_dice']} = {pool}")
+        selected.append((m, shot_weapon(w, pool)))
+    if not selected:
+        return {"error": "Select at least one weapon."}
+    plan = plan_squadron_volley(selected, t_group, gs.get_blast_markers(), gs.get_phenomena(),
+                                gs.get_ships(), no_column_shifts=in_asteroid_field,
+                                aspect_choice=_aspect_choice(aspects))
+    for a in plan["attacks"]:
+        log(f"  Attack: {a['label']}")
+    for m, w, why in plan["skipped"]:
+        log(f"  {m.name} {w['name']}: {why}")
+
+    def _apply_to(member, n):
+        fresh = gs.get_ship_by_id(member.id)
+        if not fresh or fresh.is_destroyed:
+            return n, True
+        log(f"  >> {fresh.name}: {n} hits")
+        return panel._apply_hits_to_target(primary, fresh, n, log, braced=braced)
+
+    applied = resolve_squadron_volley(plan, t_group, ctx.dice, _apply_to, lock_on, game_state=gs)
+    total_hits = sum(applied.values())
+    used = {}
+    for m, w_idx, _w, avail in chosen:
+        used.setdefault(m.id, []).append(w_idx)
+    for sid, idxs in used.items():
+        fresh = gs.get_ship_by_id(sid)
+        if not fresh:
+            continue
+        wr = dict(fresh.weapons_remaining or {})
+        wfi = list(fresh.weapons_fired_indices or [])
+        for w_idx in idxs:
+            wr[str(w_idx)] = 0
+            if w_idx not in wfi:
+                wfi.append(w_idx)
+        fresh.weapons_remaining, fresh.weapons_fired_indices = wr, wfi
+        fresh.has_fired = all(
+            wr.get(str(i), w["strength"]) <= 0 for i, w in enumerate(fresh.weapons)
+            if w.get("weapon_type") not in ("torpedo", "launch_bay")
+            and not panel._weapon_disabled_by_crit(fresh, w))
+        gs.update_ship(fresh)
+    ctx.log(f"Squadron combined fire: {len(selected)} weapons vs "
+            f"{target.name if len(t_group) == 1 else 'squadron'} — {total_hits} hits")
+    return {"hits": total_hits}
+
+
+@recorder.logged("act_fire_squadron", lambda r, A: (A["panel"].ctx.gs, dict(
+    ship=A["attacker_id"], members=list(A["member_ids"]), squadron=A["squadron"],
+    orient=A["orient"], weapon=A["w_idx"])))
+def fire_at_squadron_ships(panel, attacker_id: str, member_ids, squadron: str, orient: str,
+                           w_idx: int, log=None) -> dict:
+    """A player's "Fire at Squadron" (s.8): one battery at an enemy squadron at
+    the chosen aspect; the members that aspect, arc, range and line of fire
+    allow, nearest first; Brace once for the squadron; the firepower fixed
+    (halved in an asteroid field); hits nearest first until each is
+    destroyed; the weapon marked used. Returns {"hits"}, or {"error"} with
+    nothing rolled when no member can be hit."""
+    from .chapter_tactics import weapon_range
+    from .combat import (check_weapon_in_arc, check_los_clear, gunnery_target_type,
+                         expected_hits, weapon_fire_pool, shot_weapon,
+                         resolve_batteries_vs_squadron, allocate_squadron_hits,
+                         eligible_orientations)
+    from .models import SpecialOrder
+    from .terrain_effects import check_ship_terrain_contact
+    ctx = panel.ctx
+    gs = ctx.gs
+    log = log or ctx.log
+    attacker = gs.get_ship_by_id(attacker_id)
+    squad_members = [gs.get_ship_by_id(i) for i in member_ids if gs.get_ship_by_id(i)]
+    blast_markers, phenomena = gs.get_blast_markers(), gs.get_phenomena()
+    lock_on = attacker.special_order == SpecialOrder.LOCK_ON.value
+    in_asteroid_field = any(c["type"] == "asteroid_field"
+                            for c in check_ship_terrain_contact(attacker, phenomena))
+    weapon = attacker.weapons[w_idx]
+    wr = attacker.weapons_remaining or {}
+    full_avail = wr.get(str(w_idx), weapon.get("strength", 0))
+    elig_orientations = eligible_orientations(orient)
+    eligible = []
+    for m in squad_members:
+        if attacker.get_target_orientation(m) not in elig_orientations:
+            continue
+        if not check_weapon_in_arc(attacker, weapon, m.x, m.y):
+            continue
+        eff_range = min(weapon_range(attacker, weapon) or 999, 10 if in_asteroid_field else 9999)
+        if attacker.distance_to(m) > eff_range:
+            continue
+        los = check_los_clear(attacker, m, phenomena, blast_markers, gs.ships)
+        if not los["clear"]:
+            log(f"  {m.name}: no LoS ({los['blocked_by']}) — skipped")
+            continue
+        eligible.append(m)
+    if not eligible:
+        log("  No eligible targets after filtering — check arc/range/LoS.")
+        return {"error": "no eligible target"}
+    eligible.sort(key=lambda s: attacker.distance_to(s))
+    target_type = gunnery_target_type(eligible[0])
+    braced = panel._brace_before_attack(
+        attacker.id, attacker.name, eligible[0],
+        expected_hits(attacker, dict(weapon, strength=full_avail), eligible[0]),
+        log, group=squad_members, attacker=attacker)
+    full_avail, _mode, err = weapon_fire_pool(
+        attacker, weapon, w_idx, attacker.distance_to(eligible[0]), ctx.dice)
+    if err:
+        log(f"  {err}")
+        return {"error": err}
+    if weapon.get("strength_dice") and str(w_idx) not in wr:
+        log(f"  {weapon['name']}: rolled {weapon['strength_dice']} = {full_avail}")
+    avail = max(1, (full_avail + 1) // 2) if in_asteroid_field else full_avail
+    sr = resolve_batteries_vs_squadron(
+        attacker, shot_weapon(weapon, avail), target_type, orient, eligible, ctx.dice,
+        blast_markers, lock_on, phenomena, gs.ships, no_column_shifts=in_asteroid_field)
+    log(f"  {sr.description}")
+
+    def _apply_to(member, n):
+        fresh = gs.get_ship_by_id(member.id)
+        if not fresh or fresh.is_destroyed:
+            return n, True
+        log(f"  >> {fresh.name}: {n} hits")
+        return panel._apply_hits_to_target(attacker, fresh, n, log,
+                                           crit_on=weapon.get("crit_on", 6), braced=braced)
+
+    applied = allocate_squadron_hits(sr.dice_rolled, eligible, lambda m: sr.armors[m.id],
+                                     _apply_to)
+    total_hits = sum(applied.values())
+    fresh_att = gs.get_ship_by_id(attacker.id)
+    if fresh_att:
+        wr2 = dict(fresh_att.weapons_remaining or {})
+        wfi = list(fresh_att.weapons_fired_indices or [])
+        wr2[str(w_idx)] = 0
+        if w_idx not in wfi:
+            wfi.append(w_idx)
+        fresh_att.weapons_remaining, fresh_att.weapons_fired_indices = wr2, wfi
+        fresh_att.has_fired = all(
+            wr2.get(str(i2), w2.get("strength", 0)) <= 0
+            for i2, w2 in enumerate(fresh_att.weapons)
+            if w2.get("weapon_type") not in ("torpedo", "launch_bay")
+            and not panel._weapon_disabled_by_crit(fresh_att, w2))
+        gs.update_ship(fresh_att)
+    ctx.log(f"{attacker.name} fires at squadron {squadron}: {total_hits} total hits")
+    return {"hits": total_hits}

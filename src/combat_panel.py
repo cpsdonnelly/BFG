@@ -4,11 +4,7 @@ import math
 from typing import Optional, Tuple
 
 from .models import Ship, SpecialOrder, OrdnanceMarker
-from .chapter_tactics import weapon_range
-from .combat import (check_weapon_in_arc, apply_damage, check_los_clear,
-                     resolve_batteries_vs_squadron, eligible_orientations,
-                     gunnery_target_type, allocate_squadron_hits,
-                     weapon_fire_pool, shot_weapon, expected_hits, squadron_group)
+from .combat import check_weapon_in_arc, apply_damage, squadron_group
 from .game_context import GameContext
 from .combat_dialog import CombatDialogMixin
 
@@ -126,73 +122,12 @@ class CombatPanel(CombatDialogMixin):
                 return
             target_ord = enemy_ordnance[sel[0]]
             w_idx = int(weapon_var.get())
-
-            # Find the weapon
-            weapon = attacker.weapons[w_idx]
-            wr = attacker.weapons_remaining or {}
-            idx_key = str(w_idx)
-            avail = wr.get(idx_key, weapon.get("strength", 0))
-
-            dist = math.sqrt((target_ord.x - attacker.x)**2 +
-                             (target_ord.y - attacker.y)**2)
-
-            # Range check
-            if dist > (weapon_range(attacker, weapon) or 999):
-                messagebox.showerror("Out of Range",
-                    f"Target at {dist:.0f}cm, weapon range {weapon['range_cm']}cm")
+            from .actions import shoot_ordnance
+            res = shoot_ordnance(self.ctx.gs, self.ctx.dice, attacker.id, w_idx,
+                                 target_ord.id, enemy_ordnance[0].id, log=self.ctx.log)
+            if res.get("error"):
+                messagebox.showerror(res.get("title", "Can't fire"), res["error"])
                 return
-
-            # Ordnance-only target priority: check if this is the closest ordnance
-            # If not, no Ld test needed (ordnance priority only counts other ordnance)
-            closest_ord = enemy_ordnance[0]  # already sorted by distance
-            if target_ord.id != closest_ord.id:
-                from .movement import do_command_check
-                check = do_command_check(attacker, "target_priority", self.ctx.dice, gs=self.ctx.gs)
-                from .movement import fleet_reroll_offered
-                if not check["passed"] and fleet_reroll_offered(
-                        self.ctx.gs, attacker, "target priority", check["roll"], check["needed"]):
-                    check = do_command_check(attacker, "target_priority", self.ctx.dice, gs=self.ctx.gs)
-                if not check["passed"]:
-                    self.ctx.log(
-                        f"  Target priority FAILED (rolled {check['roll']} vs Ld {check['needed']}). "
-                        f"Must fire at closest ordnance.")
-                    target_ord = closest_ord
-                    dist = math.hypot(target_ord.x - attacker.x, target_ord.y - attacker.y)
-
-            # Firepower fixed when fired: random values rolled, Heavy Gunz by range
-            avail, _mode, err = weapon_fire_pool(attacker, weapon, w_idx, dist, self.ctx.dice)
-            if err:
-                messagebox.showerror("Heavy Gunz", err)
-                return
-            if weapon.get("strength_dice") and idx_key not in wr:
-                self.ctx.log(f"  {weapon['name']}: rolled {weapon['strength_dice']} = {avail}")
-
-            # Dice and resolution (s.30): engine combat.fire_at_ordnance
-            from .combat import fire_at_ordnance, ordnance_fire_dice
-            dice_count = ordnance_fire_dice(attacker, weapon, target_ord.x, target_ord.y,
-                                            self.ctx.gs, avail)
-            if dice_count <= 0:
-                self.ctx.log("  No dice to roll")
-                dialog.destroy()
-                return
-            self.ctx.log(f"  {weapon['name']} FP{avail} vs ordnance: {dice_count} dice")
-            res = fire_at_ordnance(attacker, weapon, target_ord.id, self.ctx.gs,
-                                   self.ctx.dice, avail)
-
-            # Track weapon as used
-            wr[idx_key] = 0
-            attacker.weapons_remaining = wr
-            if w_idx not in attacker.weapons_fired_indices:
-                attacker.weapons_fired_indices.append(w_idx)
-            self.ctx.gs.update_ship(attacker)
-
-            if res["hits"] > 0:
-                self.ctx.log(
-                    f"  HIT! {target_ord.ordnance_type} Str{target_ord.strength} "
-                    f"destroyed! ({res['hits']} hit(s))")
-            else:
-                self.ctx.log(f"  MISS! ({dice_count} dice)")
-
             dialog.destroy()
             self.ctx.board.redraw()
 
@@ -394,7 +329,6 @@ class CombatPanel(CombatDialogMixin):
         blast_markers = self.ctx.gs.get_blast_markers()
         phenomena = self.ctx.gs.get_phenomena()
         in_asteroid_field = "in_asteroid_field" in (primary.special_rules or [])
-        lock_on = primary.special_order == SpecialOrder.LOCK_ON.value
         # Firing at a squadron targets the whole squadron (s.8)
         t_group = squadron_group(target, self.ctx.gs.get_ships())
 
@@ -453,7 +387,7 @@ class CombatPanel(CombatDialogMixin):
 
         # Squadron against squadron: each group of firing ships that sees a
         # different mix of target aspects chooses the aspect it fires at (s.8)
-        from .combat import plan_squadron_volley, resolve_squadron_volley
+        from .combat import plan_squadron_volley
         aspect_vars = {}
         if len(t_group) > 1:
             from .combat import best_aspect_choice
@@ -509,90 +443,13 @@ class CombatPanel(CombatDialogMixin):
             self.ctx.log(msg)
 
         def _confirm():
-            # Brace for Impact is declared before any combat rolls (s.7)
-            chosen_rows = [row for row, var in zip(weapon_rows, chk_vars) if var.get()]
-            t_group = squadron_group(target, self.ctx.gs.get_ships())
-            braced = self._brace_before_attack(
-                primary.id, primary.name, target,
-                sum(expected_hits(r[0], dict(r[2], strength=r[3]), target) for r in chosen_rows),
-                _log, group=t_group, attacker=primary)
-            # Firepower fixed when fired: random values rolled, Heavy Gunz by range
-            selected = []
-            for row, var in zip(weapon_rows, chk_vars):
-                if not var.get():
-                    continue
-                member, w_idx, w = row[0], row[1], row[2]
-                pool, _mode, err = weapon_fire_pool(
-                    member, w, w_idx, member.distance_to(target), self.ctx.dice)
-                if err:
-                    _log(f"  {member.name}: {err}")
-                    continue
-                if w.get("strength_dice") and str(w_idx) not in (member.weapons_remaining or {}):
-                    _log(f"  {member.name} {w['name']}: rolled {w['strength_dice']} = {pool}")
-                selected.append((member, shot_weapon(w, pool)))
-            if not selected:
-                messagebox.showwarning("Nothing Selected",
-                                       "Select at least one weapon.")
+            from .actions import fire_combined
+            rows = [[row[0].id, row[1]] for row, var in zip(weapon_rows, chk_vars) if var.get()]
+            aspects = [[[list(p) for p in view], var.get()] for view, var in aspect_vars.items()]
+            res = fire_combined(self, primary.id, target.id, rows, aspects, log=_log)
+            if res.get("error"):
+                messagebox.showwarning("Nothing Selected", res["error"])
                 return
-
-            # Different aspects / ranges: one gunnery lookup per group, dice
-            # combined per set of targets and Armour values (s.8)
-            plan = plan_squadron_volley(
-                selected, t_group, blast_markers, phenomena, self.ctx.gs.get_ships(),
-                no_column_shifts=in_asteroid_field,
-                aspect_choice={v: var.get() for v, var in aspect_vars.items()})
-            for a in plan["attacks"]:
-                _log(f"  Attack: {a['label']}")
-            for member, w, why in plan["skipped"]:
-                _log(f"  {member.name} {w['name']}: {why}")
-
-            def _apply_to(member, n):
-                fresh = self.ctx.gs.get_ship_by_id(member.id)
-                if not fresh or fresh.is_destroyed:
-                    return n, True
-                _log(f"  >> {fresh.name}: {n} hits")
-                return self._apply_hits_to_target(primary, fresh, n, _log, braced=braced)
-
-            applied = resolve_squadron_volley(plan, t_group, self.ctx.dice, _apply_to,
-                                              lock_on, game_state=self.ctx.gs)
-
-            total_hits = sum(applied.values())
-
-            # Mark each contributing weapon as fired
-            used_by_ship: dict = {}
-            for row_idx, (member, w_idx, _w, avail, _) in enumerate(weapon_rows):
-                if not chk_vars[row_idx].get():
-                    continue
-                used_by_ship.setdefault(member.id, []).append((w_idx, avail))
-
-            for ship_id, fired_list in used_by_ship.items():
-                fresh = self.ctx.gs.get_ship_by_id(ship_id)
-                if not fresh:
-                    continue
-                wr = dict(fresh.weapons_remaining or {})
-                wfi = list(fresh.weapons_fired_indices or [])
-                for w_idx, fire_str in fired_list:
-                    wr[str(w_idx)] = 0
-                    if w_idx not in wfi:
-                        wfi.append(w_idx)
-                fresh.weapons_remaining = wr
-                fresh.weapons_fired_indices = wfi
-                # Check if all direct-fire weapons are spent
-                all_done = True
-                for i, w in enumerate(fresh.weapons):
-                    if w.get("weapon_type") in ("torpedo", "launch_bay"):
-                        continue
-                    if self._weapon_disabled_by_crit(fresh, w):
-                        continue
-                    if wr.get(str(i), w["strength"]) > 0:
-                        all_done = False
-                        break
-                fresh.has_fired = all_done
-                self.ctx.gs.update_ship(fresh)
-
-            self.ctx.log(
-                f"Squadron combined fire: {len(selected)} weapons vs "
-                f"{target.name if len(t_group) == 1 else 'squadron'} — {total_hits} hits")
             dialog.destroy()
             self.ctx.board.redraw()
 
@@ -690,9 +547,7 @@ class CombatPanel(CombatDialogMixin):
             o = attacker.get_target_orientation(m)
             orient_groups[o].append(m)
 
-        blast_markers = self.ctx.gs.get_blast_markers()
         phenomena = self.ctx.gs.get_phenomena()
-        lock_on = attacker.special_order == SpecialOrder.LOCK_ON.value
 
         from .terrain_effects import check_ship_terrain_contact
         attacker_contacts = check_ship_terrain_contact(attacker, phenomena)
@@ -767,105 +622,12 @@ class CombatPanel(CombatDialogMixin):
             log_text.config(state=tk.DISABLED)
 
         def _fire():
-            chosen_orient = orient_var.get()
-            w_idx = int(weapon_idx_var.get())
-            weapon = attacker.weapons[w_idx]
-            wr = attacker.weapons_remaining or {}
-            full_avail = wr.get(str(w_idx), weapon.get("strength", 0))
-
-            # Filter eligible members: orientation ≤ chosen AND in arc AND in range AND LoS
-            elig_orientations = eligible_orientations(chosen_orient)
-            eligible = []
-            for m in squad_members:
-                m_orient = attacker.get_target_orientation(m)
-                if m_orient not in elig_orientations:
-                    continue
-                if not check_weapon_in_arc(attacker, weapon, m.x, m.y):
-                    continue
-                eff_range = min(weapon_range(attacker, weapon) or 999,
-                                10 if in_asteroid_field else 9999)
-                if attacker.distance_to(m) > eff_range:
-                    continue
-                los = check_los_clear(attacker, m, phenomena, blast_markers,
-                                      self.ctx.gs.ships)
-                if not los["clear"]:
-                    _log(f"  {m.name}: no LoS ({los['blocked_by']}) — skipped")
-                    continue
-                eligible.append(m)
-
-            if not eligible:
-                _log("  No eligible targets after filtering — check arc/range/LoS.")
+            from .actions import fire_at_squadron_ships
+            res = fire_at_squadron_ships(self, attacker.id, [m.id for m in squad_members],
+                                         chosen_squad_id.get(), orient_var.get(),
+                                         int(weapon_idx_var.get()), log=_log)
+            if res.get("error"):
                 return
-
-            # Sort nearest-first
-            eligible.sort(key=lambda s: attacker.distance_to(s))
-
-            target_type = gunnery_target_type(eligible[0])
-
-            # Brace for Impact is declared before any combat rolls (s.7): one
-            # test for the squadron
-            braced = self._brace_before_attack(
-                attacker.id, attacker.name, eligible[0],
-                expected_hits(attacker, dict(weapon, strength=full_avail), eligible[0]),
-                _log, group=squad_members, attacker=attacker)
-
-            # Firepower fixed when fired: random values rolled, Heavy Gunz by
-            # range to the nearest eligible ship (as for the range shift)
-            full_avail, _mode, err = weapon_fire_pool(
-                attacker, weapon, w_idx, attacker.distance_to(eligible[0]), self.ctx.dice)
-            if err:
-                _log(f"  {err}")
-                return
-            if weapon.get("strength_dice") and str(w_idx) not in wr:
-                _log(f"  {weapon['name']}: rolled {weapon['strength_dice']} = {full_avail}")
-            avail = max(1, (full_avail + 1) // 2) if in_asteroid_field else full_avail
-            fire_weapon = shot_weapon(weapon, avail)
-            sr = resolve_batteries_vs_squadron(
-                attacker, fire_weapon, target_type, chosen_orient, eligible,
-                self.ctx.dice, blast_markers, lock_on, phenomena,
-                self.ctx.gs.ships, no_column_shifts=in_asteroid_field)
-            _log(f"  {sr.description}")
-
-            # Nearest eligible ship takes hits until destroyed, then the next (s.8)
-            def _apply_to(member, n):
-                fresh = self.ctx.gs.get_ship_by_id(member.id)
-                if not fresh or fresh.is_destroyed:
-                    return n, True      # already gone (e.g. a chained explosion)
-                _log(f"  >> {fresh.name}: {n} hits")
-                return self._apply_hits_to_target(attacker, fresh, n, _log,
-                                                  crit_on=weapon.get("crit_on", 6),
-                                                  braced=braced)
-
-            applied = allocate_squadron_hits(
-                sr.dice_rolled, eligible, lambda m: sr.armors[m.id], _apply_to)
-            total_hits = sum(applied.values())
-
-            # Mark weapon fired
-            fresh_att = self.ctx.gs.get_ship_by_id(attacker.id)
-            if fresh_att:
-                wr2 = dict(fresh_att.weapons_remaining or {})
-                wfi = list(fresh_att.weapons_fired_indices or [])
-                wr2[str(w_idx)] = 0
-                if w_idx not in wfi:
-                    wfi.append(w_idx)
-                fresh_att.weapons_remaining = wr2
-                fresh_att.weapons_fired_indices = wfi
-                # Check if all direct-fire weapons spent
-                all_done = True
-                for i2, w2 in enumerate(fresh_att.weapons):
-                    if w2.get("weapon_type") in ("torpedo", "launch_bay"):
-                        continue
-                    if self._weapon_disabled_by_crit(fresh_att, w2):
-                        continue
-                    if wr2.get(str(i2), w2.get("strength", 0)) > 0:
-                        all_done = False
-                        break
-                fresh_att.has_fired = all_done
-                self.ctx.gs.update_ship(fresh_att)
-
-            self.ctx.log(
-                f"{attacker.name} fires at squadron {chosen_squad_id.get()}: "
-                f"{total_hits} total hits")
             dialog.destroy()
             self.ctx.board.redraw()
 

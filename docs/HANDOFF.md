@@ -34,8 +34,8 @@ Finished (playable for humans and the AI, IGOUGO and alternate activation):
 Needs more work (next first):
 1. To do 17 / 18: shooting actions done (the AI's attacks, `actions.fire_weapons` and
    friends; the Fire dialog's volley as `actions.fire_volley` on `src/fire_volley.py`;
-   shooting phases replay); left in shooting: the Combine Squadron Fire and squadron-target
-   dialogs and the fire-at-ordnance dialog as actions. Then ordnance, the end
+   shooting phases replay; the Combine Squadron Fire, Fire at Squadron and Fire at Ordnance
+   dialogs are actions too). Next: ordnance, the end
    phase and alternate activation's per-unit phases; then human games replay in full; then
    the replay viewer. Found, not changed (changes AI play): AI ships meet ordnance they moved
    into only after the whole AI movement phase, a human's after each move (s.15).
@@ -69,7 +69,7 @@ Owner questions: the last round is answered and built (CLAUDE.md "Owner rulings:
 the open questions, round 2": halving, low orbit facing, the forges' fields, sign-off 2 / 10 /
 16 / 54 / 55 / 63-66); still open: team play (To do 22), steps 5-8 of the order. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Checking a change: `pytest -q` (1373 pass); `flake8 --select=E9,F src/`; GUI checks under
+Checking a change: `pytest -q` (1374 pass); `flake8 --select=E9,F src/`; GUI checks under
 `xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
 `tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
 baseline changes whenever a rules fix changes play; regenerate it then).

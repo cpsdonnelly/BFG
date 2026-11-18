@@ -137,3 +137,59 @@ def test_a_nova_cannon_miss_places_a_blast_marker():
     finally:
         combat.resolve_nova_cannon = real
     assert [(m.x, m.y) for m in gs.get_blast_markers()] == [(90.0, 40.0)]
+
+
+def test_fire_at_squadron_action_replays():
+    """The "Fire at Squadron" dialog's shot as one recorded action
+    (actions.fire_at_squadron_ships): the same orders and dice, the same result."""
+    import json
+    from src import recorder, actions
+    from src.dice import DiceRoller, DiceSource, set_source, current_source
+    from src.game_state import GameState
+    from src.headless_game import HeadlessContext
+    from src.combat_panel import CombatPanel
+    from src.models import Ship
+    from src.ship_catalog import find_ship_class
+    from src.turn_controller import TurnController
+
+    def setup():
+        gs = GameState(game_name="sq", game_seed=4)
+        gs.ai_player = 2
+        d = find_ship_class("Lunar Class Cruiser").to_ship_dict("Lunar Class Cruiser", 1,
+                                                               ship_id="att")
+        d.update(x=40.0, y=30.0, heading=0.0, leadership=8)
+        gs.add_ship(Ship.from_dict(d))
+        for i in range(3):
+            n = "Sword Class Frigate"
+            e = find_ship_class(n).to_ship_dict(n, 2, ship_id=f"e{i}")
+            e.update(x=34.0 + 6 * i, y=48.0, heading=270.0, leadership=7, squadron_id="sq")
+            gs.add_ship(Ship.from_dict(e))
+        gs.current_phase, gs.active_player = "shooting", 1
+        tc = TurnController(gs, DiceRoller(mode="auto"), save_dir=None)
+        recorder.set_current_gs(gs)
+        return gs, CombatPanel(HeadlessContext(tc, gs, tc.dice))
+
+    def state(gs):
+        return json.dumps({"ships": gs.ships, "bm": gs.blast_markers}, sort_keys=True,
+                          default=str)
+
+    set_source(DiceSource(9, record=True))
+    recorder.start_recording()
+    gs, panel = setup()
+    att = gs.get_ship_by_id("att")
+    from src.combat import check_weapon_in_arc
+    e1 = gs.get_ship_by_id("e1")
+    w_idx = next(i for i, w in enumerate(att.weapons) if w.get("weapon_type") == "battery"
+                 and check_weapon_in_arc(att, w, e1.x, e1.y))
+    res = actions.fire_at_squadron_ships(panel, "att", ["e0", "e1", "e2"], "sq", "abeam", w_idx)
+    s1, record, evs = state(gs), current_source().record, recorder.events()
+    top = [e for e in evs if e["depth"] == 0 and e["kind"] != "prompt"]
+    set_source(DiceSource(0, replay=[list(e) for e in record]))
+    recorder.start_recording()
+    gs2, panel2 = setup()
+    for e in top:
+        actions.replay_event(gs2, panel2.ctx.tc, panel2.ctx.dice, e, panel=panel2)
+    set_source(DiceSource())
+    recorder.stop_recording()
+    assert "hits" in res and [e["kind"] for e in top] == ["act_fire_squadron"]
+    assert state(gs2) == s1

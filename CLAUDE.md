@@ -536,11 +536,11 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and the Fire
-dialog's volley as recorded actions; `src/fire_volley.py`); next: the squadron fire dialogs
-as actions, then ordnance actions and replay (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
+Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
+shooting dialog as recorded actions; `src/fire_volley.py`); next: ordnance actions and
+replay (see docs/HANDOFF.md "Status at a glance"). Booklet installed: zip 14 (CHANGES.md update 60; rules files: Dark Eldar 08, Eldar 09,
 Necrons 10, Orks 11, Tau 12, Tyranids 13, scenarios 14, campaigns 15, appendices 16-22; the
-owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1373 pass; all
+owner's sign-off answers are `bfgxr/notes/OWNER_SIGNOFF_answers.md`). Tests: 1374 pass; all
 GUI checks pass (`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py`; spectator checks
 take a difficulty, e.g. `gui_spectator_demo.py normal` / `expert`; scenarios
 `gui_spectator_scenario.py igougo|aa <scenario> [subplots]`). After every new export, diff the
@@ -2559,10 +2559,13 @@ Done: To do 2, 3, 6; most of 7.
    placed no blast marker (s.14; the dialog did), now `fire_nova_cannon` places it. Found,
    not changed: the AI's squadron volleys after the first use the markers from when the
    phase's volleys were planned, not those the earlier volley placed (s.11 says at once; kept
-   for the pure refactor). Not yet as actions: the Combine Squadron Fire and squadron-target
-   dialogs, shooting at ordnance from its dialog. Next: those, then ordnance, the end phase
-   and alternate activation's per-unit phases; then games with human players replay in
-   full.
+   for the pure refactor). The other shooting dialogs are actions too, their rules out of
+   the window: Combine Squadron Fire (`actions.fire_combined`, the aspect choices recorded),
+   Fire at Squadron (`fire_at_squadron_ships`) and Fire at Ordnance (`shoot_ordnance`, the
+   ordnance-only target priority test inside); every human shooting path is now one recorded
+   action (`tests/test_actions.py`). Next: ordnance (launches, craft orders, the ordnance
+   phase's resolution), the end phase and alternate activation's per-unit phases; then games
+   with human players replay in full.
    Plan items:
    special-rule tag constants and a test that every tag checked is produced and vice versa;
    crit entries carrying their effects; one `order_allowed`; one effective launch strength /
