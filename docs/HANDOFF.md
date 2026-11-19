@@ -32,7 +32,10 @@ Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Merged into main (PR #2).
 
 Needs more work (next first):
-00. Owner's latest task: make the other factions playable. Dark Eldar (0 / 7 ships
+00. Owner's latest task: make the other factions playable. STATUS: Dark Eldar done and
+   playable (details below); next Tyranids, then the owner fleets' gaps. Open problems: the
+   AI's Dark Eldar play (backs off until it leaves the table), torpedo salvo combining, the
+   contact bonus priced by its gain, AI squadron forming (To do 28). Dark Eldar (0 / 7 ships
    playable) first, then Tyranids (0 / 9), then the catalog gaps blocking the owner's other
    fleets (Tau Protector, Orks, Necrons, Eldar; `docs/OWNER_FLEETS.md`). The Dark Eldar
    plan, in three slices with the hooks to use, is in CLAUDE.md To do 19. Slice 1 (catalog
@@ -153,6 +156,11 @@ Needs more work (next first):
    nearest same-ordnance mate; `_combine_squadron_waves` merges Impalers only with Impalers
    and other craft only with other craft. Squadrons by ordnance (the AI forming them) is in
    To do 28. Not yet: torpedo salvos combined, the bonus priced by what combining gains.
+   Owner report: the fleet builder's armament / stats were hard to see; now a ship card
+   (`fleet_builder.ship_card` / `weapon_line`, a read-only text box under the catalog) shows
+   the selected catalog ship, or the selected fleet ship with its options applied: points,
+   hits, speed, turns, shields, Armour, turrets, Ld, every weapon (range, FP / S, arcs,
+   craft types, special flags), rules and options. Not yet: a GUI check that clicks rows.
    Owner: the tester plays with every advanced rule on: `tools/headless_runner.py --rules`
    now defaults to "all" (the set-up's eight: sunward, flares, bursts, boarding, ramming,
    teleport, hit and run, sub-plots; `ADVANCED_RULES`), "none" or a list; it now rolls the

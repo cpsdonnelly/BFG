@@ -671,6 +671,13 @@ class FleetBuilderWindow:
         self._catalog_info = tk.Label(left, text="", font=_FONT_BODY, bg=_BG, fg=_FG,
                                       justify=tk.LEFT, anchor="w", wraplength=300)
         self._catalog_info.pack(fill=tk.X, pady=(2, 0))
+        # Ship card (owner: the armament and stats were hard to see): the
+        # selected catalog or fleet ship's stats, every weapon and its rules
+        self._card_text = tk.Text(left, height=11, font=_FONT_BODY, bg=_BG, fg=_FG,
+                                  wrap=tk.WORD, relief=tk.SUNKEN, borderwidth=1)
+        self._card_text.pack(fill=tk.X, pady=(2, 0))
+        self._card_text.insert(tk.END, "Select a ship to see its stats and armament.")
+        self._card_text.config(state=tk.DISABLED)
 
         add_row = tk.Frame(left, bg=_BG)
         add_row.pack(pady=4)
@@ -698,6 +705,7 @@ class FleetBuilderWindow:
         self._fleet_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self._fleet_list.config(yscrollcommand=self._fleet_scroll.set)
         self._fleet_list.bind("<Double-Button-1>", lambda _: self._edit_selected())
+        self._fleet_list.bind("<<ListboxSelect>>", lambda _: self._show_fleet_entry())
 
         btn_row = tk.Frame(right, bg=_BG)
         btn_row.pack(fill=tk.X, pady=4)
@@ -876,7 +884,32 @@ class FleetBuilderWindow:
         sel = self._catalog_list.curselection()
         if not sel or self._catalog_entries[sel[0]] is None:
             return
-        self._catalog_info.config(text=catalog_entry_summary(self._catalog_entries[sel[0]]))
+        entry = self._catalog_entries[sel[0]]
+        self._catalog_info.config(text=catalog_entry_summary(entry))
+        self._show_card(entry.to_ship_dict(entry.ship_class, 1), entry.ship_class)
+
+    def _show_fleet_entry(self):
+        """The selected fleet ship's card, with its options applied."""
+        sel = self._fleet_list.curselection()
+        if not sel or sel[0] >= len(self._fleet):
+            return
+        row = self._fleet[sel[0]]
+        entry = row.get("entry")
+        if entry is None:
+            return
+        d = entry.to_ship_dict(row.get("custom_name") or entry.ship_class, 1,
+                               upgrades=row.get("upgrades") or [])
+        d["upgrades"] = list(row.get("upgrades") or [])
+        self._show_card(d, f"{row.get('custom_name') or entry.ship_class} (in the fleet)")
+
+    def _show_card(self, d: dict, title: str):
+        card = getattr(self, "_card_text", None)
+        if card is None:
+            return
+        card.config(state=tk.NORMAL)
+        card.delete("1.0", tk.END)
+        card.insert(tk.END, ship_card(d, title))
+        card.config(state=tk.DISABLED)
 
     # ── Homebrew ship creation ────────────────────────────────────────────────
 
@@ -1315,6 +1348,62 @@ class FleetBuilderWindow:
 # ---------------------------------------------------------------------------
 # fleet_list_to_ships: convert saved fleet data → list of Ship dicts for game
 # ---------------------------------------------------------------------------
+
+_ARC_SHORT = {"front": "F", "left": "L", "right": "R", "rear": "Rear", "all": "All round"}
+
+
+def weapon_line(w: dict) -> str:
+    """One weapon for the fleet builder's ship card: name, type, range,
+    firepower / strength, arcs, and what makes it special."""
+    wt = w.get("weapon_type", "")
+    kind = {"battery": "FP", "lance": "FP", "torpedo": "S", "launch_bay": "S",
+            "mine_launcher": "S", "nova_cannon": ""}.get(wt, "")
+    val = w.get("strength_dice") or w.get("strength", "")
+    rng = w.get("range_cm")
+    rng_txt = (f"{w['range_min_cm']}-{rng}cm" if w.get("range_min_cm") else
+               f"{rng}cm" if rng else "")
+    arcs = "/".join(_ARC_SHORT.get(a, a) for a in (w.get("arcs") or []))
+    extra = []
+    if w.get("craft_types"):
+        extra.append("craft: " + ", ".join(w["craft_types"]))
+    if w.get("strength_close"):
+        extra.append(f"FP{w['strength_close']} within 15cm")
+    for flag, txt in (("de_phantom", "phantom lance: 1 hit on 4, 2 on 5+"),
+                      ("phantom", "phantom lance"), ("pulsar", "pulsar"),
+                      ("de_battery", "left shift"), ("eldar_battery", "left shift"),
+                      ("plasma_torpedoes", "plasma: re-roll misses"),
+                      ("boarding_torpedoes", "boarding torpedoes"),
+                      ("impaler_bay", "Impalers"), ("particle_whip", "particle whip"),
+                      ("lightning_arc", "lightning arc")):
+        if w.get(flag):
+            extra.append(txt)
+    parts = [w.get("name", wt), f"{rng_txt}" if rng_txt else "",
+             f"{kind}{val}" if kind else (str(val) if val else ""),
+             f"({arcs})" if arcs else ""]
+    line = "  " + " ".join(p for p in parts if p)
+    return line + (f" - {'; '.join(extra)}" if extra else "")
+
+
+def ship_card(d: dict, title: str = "") -> str:
+    """Stats, armament and special rules of a ship (a ship dict as the game
+    builds it, options applied) for the fleet builder (owner: the armament
+    and stats were hard to see)."""
+    arm = f"{d.get('armor_prow')}/{d.get('armor_side')}" + (
+        f"/{d['armor_rear']}" if d.get("armor_rear") else "")
+    lines = [title or d.get("ship_class", ""),
+             f"Points {d.get('points_value')}   Hits {d.get('hits_max')}   "
+             f"Speed {d.get('speed')}cm   Turns {d.get('turn_angle')}\u00b0",
+             f"Shields {d.get('shields_max')}   Armour {arm}   Turrets {d.get('turrets')}"
+             f"   Ld {d.get('leadership') or ('rolled (' + str(d.get('leadership_table')) + ')')}",
+             "Armament:"]
+    lines += [weapon_line(w) for w in d.get("weapons") or []] or ["  none"]
+    rules = [r for r in d.get("special_rules") or [] if ":" not in r or r.startswith("torpedo_type")]
+    if rules:
+        lines.append("Rules: " + ", ".join(rules))
+    if d.get("upgrades"):
+        lines.append("Options: " + "; ".join(d["upgrades"]))
+    return "\n".join(lines)
+
 
 def catalog_entry_summary(entry: ShipClassEntry) -> str:
     """One-glance description of a catalog ship for the fleet builder."""

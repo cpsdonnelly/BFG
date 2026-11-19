@@ -545,7 +545,37 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Latest work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
+Latest session (Dark Eldar and owner UI reports; all committed, 1691 tests pass, the
+ordnance sweep 5250 cases pass):
+- Done: Dark Eldar PLAYABLE (To do 19 slices 1-3: catalog, Kabal Variants, Raiders list,
+  shadowfields, flickerfields, crit table, movement, Spectral Plating, plasma / leech torps,
+  Impalers incl. fuel and own launch pool, Pain Frenzy, Incubi, Wych Cult, slave-taking with
+  a human prompt, Insatiable Greed); the owner's Dark Eldar fleet `owner_dark_eldar_1000.json`
+  (990, valid). Owner UI reports fixed: deployment faces the enemy by default, rotate
+  buttons, right-click turns a placed ship, Undo Last Group; setup's AI mode is one choice,
+  Player 1's own spectator difficulty, "All advanced rules" switch; a fleet relying on an
+  optional rule that is off is flagged at Start Game (`fleet_rule_check.py`); the fleet
+  builder shows a ship card (stats, every weapon with range / firepower / arcs / special
+  flags, rules, options) for the selected catalog or fleet ship (`fleet_builder.ship_card`,
+  `weapon_line`). Headless runner: `--rules all` by default, `--difficulty1`, sub-plots
+  rolled. General AI fixes: squadrons take one command check (s.8, with a squadron re-roll),
+  out-of-formation ships get no order, a squadron is under fire if any member touches a blast
+  marker; coherency term and same-ordnance base contact bonus per mate in the chain;
+  combined waves of the same ordnance; legal Come to New Heading for ships with no turning
+  distance; the move picker no longer falls back off the table; flickerfields / Eldar
+  stealth / plasma re-rolls in every AI ordnance value; Insatiable Greed in disengaging.
+- Problems found, still open: the AI plays Dark Eldar badly (it backs fragile ships off the
+  enemy guns until they leave the table; loses ~650-950 VP to the Gothic fleet; needs
+  multi-turn planning, and its hit values ignore shadowfield saves); torpedo salvos are not
+  combined by the AI; the contact bonus is a flat 0.5 a mate, not priced by what combining
+  gains; the AI doesn't form squadrons (To do 28; owner: same-ordnance escorts together).
+- Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
+  roll, Pain Frenzy's re-roll vs crippled ships, Incubi's 2D6 raid choice, Only the Strong
+  May Lead, escort squadron sizes 2-6 checked.
+- Next (owner order): Tyranids (To do 19), then the other owner fleets' gaps (Tau Protector,
+  Orks, Necrons, Eldar; To do 25).
+
+Earlier work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
 shooting dialog as recorded actions; `src/fire_volley.py`), the ordnance phase (AI
 and every human dialog) and the end phase's decisions as recorded actions, so every phase
 replays from the record. Owner report (To do 32): the setup wizard's start buttons, the
