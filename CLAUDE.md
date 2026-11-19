@@ -581,8 +581,8 @@ Built since the code review (`docs/CODE_REVIEW_PLAN.md`; details in To do 15-18)
 - Owner ruling s.11 / s.13 (combined macrobattery rolls, markers at once, mixing gunnery
   types) built.
 Still true from the review:
-- Game modes: hot seat, player vs AI (the AI is always Player 2), AI vs AI spectator (one
-  difficulty for both). Two sides only (`3 - player` ~100 times); team play is To do 22.
+- Game modes: hot seat, player vs AI (the AI is always Player 2), AI vs AI spectator (each
+  player its own difficulty, `GameState.difficulty_for`). Two sides only (`3 - player` ~100 times); team play is To do 22.
 - Structure (To do 18's remaining items): string-keyed ladders, ~170 special-rule tag checks,
   `ai_player.py` ~4,700 lines, some rules in UI files, judgement weights scattered, ~8 copies
   of the "0.35 per firepower point" rule of thumb.
@@ -2641,7 +2641,15 @@ Done: To do 2, 3, 6; most of 7.
    Dark Eldar plan (read `bfgxr/rules/08_dark-eldar.md` and Appendix 3's Dark Eldar table;
    slice 1 built, `tests/test_dark_eldar_catalog.py`: the Raiders list is
    `dark_eldar_raiders` with `escorts_per_capital`; the Kabal Variant check is the
-   `required_group:` restriction; leech crits via `combat.add_thrusters_crits`), in slices, each with tests, following how the Eldar were wired:
+   `required_group:` restriction; leech crits via `combat.add_thrusters_crits`; slice 2
+   built too, `src/dark_eldar.py`, `tests/test_dark_eldar_rules.py`: shadowfields with
+   `Ship.tracking_marks` placed by `apply_damage(gunnery=True)`, saves vs lances /
+   ordnance / ordnance raids, ram +2D6, nova +1D6, de_battery / de_phantom, flickerfields,
+   movement, Spectral Plating, `tables.DARK_ELDAR_CRITICAL_HITS`; not yet Superstructure
+   Damaged's turn roll; slice 3 built, `tests/test_dark_eldar_special.py`: Impalers,
+   Pain Frenzy, Incubi / Wych Cult, slave-taking (`GameState.slave_vp`), Insatiable Greed;
+   Dark Eldar are PLAYABLE (not the Tormentor Spire; no Mimic Engine yet); details in
+   docs/HANDOFF.md item 00), in slices, each with tests, following how the Eldar were wired:
    1. Catalog and fleet building: `booklet_ships.convert_row` gives Dark Eldar ships
       `dark_eldar` and `shadowfield` rules (shields 0; Ld already on the Eldar column, the
       +1), weapon flags like `_ELDAR_WEAPON_FLAGS` (`de_battery`: left shift; `de_phantom`:

@@ -83,7 +83,7 @@ def declare_ram(gs, dice, ship_id: str, target_id: str) -> bool:
     set. Returns whether the test passed."""
     from .combat import ram_ld_dice
     ship, target = gs.get_ship_by_id(ship_id), gs.get_ship_by_id(target_id)
-    n = ram_ld_dice(ship.ship_type, target.ship_type)
+    n = ram_ld_dice(ship.ship_type, target.ship_type, target)
     if "goffs" in ship.special_rules:
         passed = True
     else:
@@ -284,7 +284,8 @@ def _markers(gs, ids):
     target=A["target_id"], hits=A["hits"], crit_on=A["crit_on"], attacker=A["attacker_id"],
     bypass=A["bypass_hits"], origin=A["origin"], tag=A["tag"])))
 def apply_hits(gs, dice, target_id: str, hits: int, crit_on: int = 6, attacker_id: str = "",
-               bypass_hits: int = 0, origin=None, log=None, tag: str = ""):
+               bypass_hits: int = 0, origin=None, log=None, tag: str = "",
+               gunnery: bool = False):
     """Hits from one attack applied to one ship (apply_damage: shields, Brace
     saves if it is braced, criticals), then a ship reduced to 0 rolls
     catastrophic damage. A hulk takes hits too (it re-rolls catastrophic
@@ -302,7 +303,7 @@ def apply_hits(gs, dice, target_id: str, hits: int, crit_on: int = 6, attacker_i
         origin = (src.x, src.y) if src else None
     dmg = apply_damage(t, hits, dice, gs, target_braced=braced, crit_on=crit_on,
                        attacker_key=attacker_id, origin=tuple(origin) if origin else None,
-                       bypass_hits=bypass_hits)
+                       bypass_hits=bypass_hits, gunnery=gunnery)
     if log:
         for c in dmg.get("crits") or []:
             log(f"{tag}  CRIT: {c}")
@@ -314,8 +315,9 @@ def apply_hits(gs, dice, target_id: str, hits: int, crit_on: int = 6, attacker_i
     return dmg["unused_hits"], dmg["destroyed"]
 
 
-def _hits_fn(gs, dice, crit_on, attacker_id, log, tag):
-    return lambda m, n: apply_hits(gs, dice, m.id, n, crit_on, attacker_id, log=log, tag=tag)
+def _hits_fn(gs, dice, crit_on, attacker_id, log, tag, gunnery=False):
+    return lambda m, n: apply_hits(gs, dice, m.id, n, crit_on, attacker_id, log=log, tag=tag,
+                                   gunnery=gunnery)
 
 
 @recorder.logged("act_fire", lambda r, A: (A["gs"], dict(
@@ -344,7 +346,8 @@ def fire_weapons(gs, dice, ship_id: str, target_id: str, w_idxs, lock_on: bool,
         shots.append(shot_weapon(w, pool))
     group = squadron_group(target, gs.get_ships())
     crit_on = weapons[0].get("crit_on", 6)
-    hits_fn = _hits_fn(gs, dice, crit_on, ship.id, log, tag)
+    gunnery = weapons[0].get("weapon_type") == "battery"
+    hits_fn = _hits_fn(gs, dice, crit_on, ship.id, log, tag, gunnery)
     phenomena = gs.get_phenomena()
     if weapons[0].get("weapon_type") == "battery":
         sr, applied = resolve_battery_group(
@@ -366,7 +369,7 @@ def fire_weapons(gs, dice, ship_id: str, target_id: str, w_idxs, lock_on: bool,
         f"{sr.hits} hit(s)")
     if sr.hits > 0:
         apply_hits(gs, dice, target.id, sr.hits, crit_on, ship.id,
-                   bypass_hits=sr.bypass_hits, log=log, tag=tag)
+                   bypass_hits=sr.bypass_hits, log=log, tag=tag, gunnery=gunnery)
     return sr
 
 
@@ -390,9 +393,9 @@ def fire_siege_cannons(gs, dice, ship_id: str, target_id: str, macro, bc, lock_o
         gs.get_blast_markers(), lock_on, gs.get_phenomena(), gs.get_ships())
     log(f"{tag}{ship.name} → {target.name}: Siege Cannons {m_res.hits}+{b_res.hits} hit(s)")
     if m_res.hits:
-        apply_hits(gs, dice, target.id, m_res.hits, 6, ship.id, log=log, tag=tag)
+        apply_hits(gs, dice, target.id, m_res.hits, 6, ship.id, log=log, tag=tag, gunnery=True)
     if b_res.hits:
-        apply_hits(gs, dice, target.id, b_res.hits, 4, ship.id, log=log, tag=tag)
+        apply_hits(gs, dice, target.id, b_res.hits, 4, ship.id, log=log, tag=tag, gunnery=True)
     return m_res, b_res
 
 
@@ -420,7 +423,7 @@ def fire_squadron_volley(gs, dice, lead_id: str, firers, target_id: str, aspects
     plan = plan_squadron_volley(pairs, group, bms, phen, all_ships, aspect_choice=choice)
     applied = resolve_squadron_volley(
         plan, group, dice,
-        lambda t, n: apply_hits(gs, dice, t.id, n, 6, lead_id, log=log, tag=tag),
+        lambda t, n: apply_hits(gs, dice, t.id, n, 6, lead_id, log=log, tag=tag, gunnery=True),
         lock_on=lock_on, game_state=gs)
     lead = gs.get_ship_by_id(lead_id)
     log(f"{tag}squadron {lead.squadron_id if lead else ''} combined batteries at "
@@ -647,7 +650,8 @@ def fire_combined(panel, primary_id: str, target_id: str, rows, aspects=(), log=
         if not fresh or fresh.is_destroyed:
             return n, True
         log(f"  >> {fresh.name}: {n} hits")
-        return panel._apply_hits_to_target(primary, fresh, n, log, braced=braced)
+        return panel._apply_hits_to_target(primary, fresh, n, log, braced=braced,
+                                           gunnery=True)
 
     applied = resolve_squadron_volley(plan, t_group, ctx.dice, _apply_to, lock_on, game_state=gs)
     total_hits = sum(applied.values())
@@ -748,7 +752,8 @@ def fire_at_squadron_ships(panel, attacker_id: str, member_ids, squadron: str, o
             return n, True
         log(f"  >> {fresh.name}: {n} hits")
         return panel._apply_hits_to_target(attacker, fresh, n, log,
-                                           crit_on=weapon.get("crit_on", 6), braced=braced)
+                                           crit_on=weapon.get("crit_on", 6), braced=braced,
+                                           gunnery=weapon.get("weapon_type") == "battery")
 
     applied = allocate_squadron_hits(sr.dice_rolled, eligible, lambda m: sr.armors[m.id],
                                      _apply_to)

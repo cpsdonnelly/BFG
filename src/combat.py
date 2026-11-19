@@ -108,6 +108,13 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
         shifts += 1                    # lightning arcs ignore holofields' gunnery effects
     if weapon and weapon.get("eldar_battery"):
         shifts -= 1
+    # Dark Eldar (Xenos p.5): shadowfields one right shift; their gunnery
+    # weapons an automatic left shift
+    from .dark_eldar import has_shadowfield
+    if has_shadowfield(target_ship):
+        shifts += 1
+    if weapon and weapon.get("de_battery"):
+        shifts -= 1
 
     # Pleasure Fleet of Slaanesh, Veil of Lust: an automatic right shift
     if "veil_of_lust" in target_ship.special_rules:
@@ -685,10 +692,26 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
     result.dice_rolled = dice.roll_d6(
         strength, f"{attacker.name} lances vs {target.name} (need {need}+)")
 
+    if weapon.get("de_phantom"):
+        # Dark Eldar phantom lances (Xenos p.5): 1 hit on a 4, 2 on 5+
+        def _de_value(d):
+            return 2 if d >= need + 1 else (1 if d >= need else 0)
+        result.hits = sum(_de_value(d) for d in result.dice_rolled)
+        misses = [d for d in result.dice_rolled if d < need]
+        if lock_on and misses:
+            result.reroll_dice = dice.roll_d6(len(misses), f"{attacker.name} Lock On re-rolls")
+            result.hits += sum(_de_value(d) for d in result.reroll_dice)
+        result.hits -= _holofield(attacker, target, result.hits, dice)
+        result.hits -= _shadowfield(target, result.hits, dice)
+        result.description = (f"{weapon['name']}: Str {strength} vs {target.name} = "
+                              f"{result.hits} hits")
+        return result
+
     if weapon.get("pulsar") or weapon.get("phantom"):
         result.hits = _eldar_lance_hits(attacker, target, weapon, result, dice, need,
                                         lock_on)
         result.hits -= _holofield(attacker, target, result.hits, dice)
+        result.hits -= _shadowfield(target, result.hits, dice)
         result.description = (f"{weapon['name']}: Str {strength} vs {target.name} = "
                               f"{result.hits} hits")
         return result
@@ -711,11 +734,22 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
                                  if d == 6)
     result.hits -= _holofield(attacker, target, result.hits - getattr(result, "bypass_hits", 0),
                               dice)
+    saved = _shadowfield(target, result.hits, dice)
+    if saved:
+        result.hits -= saved
+        result.bypass_hits = min(getattr(result, "bypass_hits", 0), result.hits)
     result.description = (
         f"{weapon['name']}: Str {strength} lances vs {target.name} "
         f"(4+) = {result.hits} hits")
 
     return result
+
+
+def _shadowfield(target: Ship, hits: int, dice: DiceRoller) -> int:
+    """Dark Eldar shadowfields (Xenos p.5) against lance hits: 2+, +1 per
+    tracking mark, at most 6+."""
+    from .dark_eldar import shadowfield_saves
+    return shadowfield_saves(dice, target, hits, "lances")
 
 
 def _holofield(attacker: Ship, target: Ship, hits: int, dice: DiceRoller) -> int:
@@ -795,10 +829,24 @@ def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
     else:
         scatter_dice = 3
 
+    # Dark Eldar shadowfields (Xenos p.5): aimed at a shadowfielded ship, the
+    # nova cannon scatters +1D6cm, even on a 'Hit' (reading: the ship whose
+    # base the aim point is on, else the nearest within the template)
+    from .dark_eldar import has_shadowfield
+    near = [s for s in game_state.get_ships() if not s.is_destroyed and math.hypot(
+        s.x - target_x, s.y - target_y) <= s.base_radius + NOVA_CANNON_TEMPLATE_RADIUS_CM]
+    aimed = min(near, key=lambda s: math.hypot(s.x - target_x, s.y - target_y), default=None)
+    shadow = aimed is not None and has_shadowfield(aimed)
+
     is_hit = dice.roll_scatter(f"Nova cannon scatter ({scatter_dice}D6 if miss)")
 
     result = {"hit": False, "scatter_distance": 0, "template_x": target_x,
               "template_y": target_y, "ship_hits": {}, "blast_markers": []}
+
+    if shadow:
+        game_state.add_log(f"  {aimed.name} shadowfield: the nova cannon scatters +1D6cm")
+        scatter_dice = scatter_dice + 1 if not is_hit else 1
+        is_hit = False
 
     if not is_hit:
         scatter_roll = dice.roll_d6(scatter_dice, "Scatter distance")
@@ -1011,7 +1059,8 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  origin: Optional[Tuple[float, float]] = None,
                  auto_crit: bool = False,
                  rolled_to_hit: bool = True,
-                 bypass_hits: int = 0) -> Dict:
+                 bypass_hits: int = 0,
+                 gunnery: bool = False) -> Dict:
     """
     Apply hits to a ship, handling shields, damage, crits. auto_crit: every
     hull hit is a critical hit, with no D6 check (vortex torpedoes).
@@ -1027,6 +1076,12 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
     }
 
     remaining_hits = hits
+    if gunnery and hits > 0 and game_state is not None:
+        # Dark Eldar shadowfields (Xenos p.5): a gunnery hit places a tracking
+        # mark (once per attacking ship or squadron), even if saved by bracing
+        from .dark_eldar import add_tracking_mark
+        add_tracking_mark(game_state, target, game_state.get_ship_by_id(attacker_key)
+                          if attacker_key else None)
     # Eldar are Fragile (MMS p.4): critical hits on 5+ (Ghostships excepted)
     from .eldar import crit_threshold
     crit_on = min(crit_on, crit_threshold(target))
@@ -1233,6 +1288,10 @@ def apply_crit_effects(target: Ship, crit_data: Dict, game_state: GameState) -> 
         target.leadership = max(1, target.leadership - 1)     # Eldar: -1 Ld per hit
     if crit_data["crit_type"] == "holofield_destroyed":
         target.special_rules = [r for r in target.special_rules if r != "holofield"]
+    if crit_data["crit_type"] == "control_circuit":
+        target.leadership = max(1, target.leadership - 1)     # given back when repaired
+    if crit_data["crit_type"] == "shadowfield_destroyed":
+        target.special_rules = [r for r in target.special_rules if r != "shadowfield"]
     if crit_data["crit_type"] == "bridge_smashed":
         if "demiurg_commerce" in target.special_rules:
             # Demiurg: one extra point of damage instead of -3 Ld
@@ -1803,19 +1862,20 @@ def resolve_batteries_vs_squadron(
 _RAM_SIZE_RANK = {"escort": 1, "cruiser": 2, "battleship": 3, "defense": 4}
 
 
-def ram_ld_dice(rammer_type: str, target_type: str) -> int:
+def ram_ld_dice(rammer_type: str, target_type: str, target=None) -> int:
     """Return number of d6 to roll for the ramming leadership test.
 
     Target larger → 1D6 (easier); same size → 2D6; target smaller → 3D6 (harder).
-    Defences count as the largest type (most immobile).
+    Defences count as the largest type (most immobile). A target behind
+    Dark Eldar shadowfields: +2D6 (Xenos p.5).
     """
     r = _RAM_SIZE_RANK.get(rammer_type, 2)
     t = _RAM_SIZE_RANK.get(target_type, 2)
-    if t > r:
-        return 1
-    if t < r:
-        return 3
-    return 2
+    n = 1 if t > r else (3 if t < r else 2)
+    from .dark_eldar import has_shadowfield
+    if target is not None and has_shadowfield(target):
+        n += 2
+    return n
 
 
 @_rec.logged("ram", lambda r, A: (A["game_state"], dict(

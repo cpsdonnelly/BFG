@@ -42,8 +42,51 @@ Needs more work (next first):
    upgrades, the craft (Raptor, Razorwing, Slavebringer, Voidraven), plasma torpedoes
    re-rolling misses and leech torpedoes (Thrusters Damaged crits), the Raiders list
    (`dark_eldar_raiders`, `escorts_per_capital` 3, Mortalis one per three cruisers,
-   Archon always required) (`tests/test_dark_eldar_catalog.py`). The ships stay greyed
-   out (`UNBUILT_FACTION_RULES`) until slice 2 (shadowfields, movement, crit table).
+   Archon always required) (`tests/test_dark_eldar_catalog.py`). Slice 2 (combat and
+   movement) is built too, `src/dark_eldar.py` + `tests/test_dark_eldar_rules.py`:
+   shadowfields' right shift (`combat.get_column_shifts`), tracking marks
+   (`Ship.tracking_marks`, one per attacking ship / squadron, placed by `apply_damage(...,
+   gunnery=True)`, which every gunnery path now passes: `actions.apply_hits`, the Fire
+   dialog, squadron fire; cleared in `end_phase.remove_brace_orders`), the 2+ (+1 a mark,
+   max 6+) save against lances (`combat._shadowfield`), torpedoes of every kind (before
+   boarding raids), bombers, mines and assault boat raids; ram tests +2D6
+   (`ram_ld_dice(..., target)`), nova cannon +1D6 scatter even on a Hit (reading: aimed at
+   the ship whose base the aim point is on, else the nearest under the template); their
+   gunnery left shift (`de_battery`), phantom lances 1 hit on a 4 / 2 on 5+ (`de_phantom`);
+   flickerfields (`ordnance.turret_hit_on` +2, not mines, max 6+); no minimum speed or
+   turning distance, Come to New Heading passed automatically; Spectral Plating (no blast
+   marker / cloud damage); the crit table (`tables.DARK_ELDAR_CRITICAL_HITS`: Control
+   Circuit -1 Ld given back on repair, `end_phase._on_repaired`; Graviton Harness no turns;
+   Bladevanes -5cm; Commanders Slain -1 Ld; Shadowfield Generators Destroyed removes the
+   rule). Not yet: Superstructure Damaged's D6 per turn (1-2: a hit; Eldar have the same
+   gap), the AI's values ignoring shadowfield saves. Slice 3 built
+   (`tests/test_dark_eldar_special.py`): Impalers (craft "impaler", an assault boat 30cm 4+
+   resilient from an impaler bay; `dark_eldar.resolve_impaler`: D6, 1 nothing, damage if >=
+   Armour, then a crit vs capital ships / two raids vs escorts (judgement for the attacker's
+   choice), Haemonculi make it a Fire, Brace 4+ per effect; removed at the start of the
+   owner's turn, `TurnController.begin_phase`; not yet a launch capacity separate from bays),
+   Pain Frenzy (+1 boarding crew, +1 raids; not yet the re-roll vs crippled ships), Incubi
+   (enemy raids -1; not yet the 2D6 choose), Wych Cult (doubles troops), slave-taking
+   (`take_slaves` in `resolve_raids`: +5 VP instead of a raid, Impalers D6x5, boarding +5 a
+   hit / +100 Bridge Smashed; `GameState.slave_vp`, added as scenario VP; a human is asked
+   via `GameState.slave_hook` (not wired to a dialog yet: humans get the expected-value
+   choice), the AI takes slaves when they beat the raid's expected VP), Insatiable Greed
+   (`victory_points._insatiable_greed`; the AI's `disengage_gain` knows it,
+   `dark_eldar.greed_binds`). Dark Eldar are PLAYABLE now (off `UNBUILT_FACTION_RULES`; the
+   Tormentor Spire still unsupported; the Transport has no cost). The owner's fleet:
+   `data/fleets/owner_dark_eldar_1000.json` (990, valid). Not yet: the Mimic Engine, the
+   Tormentor Spire, Only the Strong May Lead. AI problem found: in headless games against
+   the Gothic fleet the Dark Eldar escorts fly off the table one by one (each loss forces a
+   squadron disengage test) and lose by ~900 VP; under investigation.
+   Owner UI report (same session), done: deployment headings default to facing the enemy's
+   zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
+   along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-
+   click a placed ship to turn it 45 degrees (`DeploymentState.rotate_placed`), "Undo Last
+   Group" to re-place (`undo_group`); the setup wizard's AI choice is one radio (no AI / AI
+   opponent / spectator; both could be ticked before), with Player 1's own difficulty in
+   spectator mode (`GameState.ai_difficulty_p1`, `difficulty_for`; headless runner
+   `--difficulty1`), and an "All advanced rules on / off" switch (sunward, flares, bursts,
+   boarding, ramming, teleport, hit and run, sub-plots) (`tests/test_deployment_headings.py`).
 0. To do 32 (owner report, playability), DONE: the owner couldn't play from `run.py`. Checked,
    all software problems (as found): the setup wizard (540x680, needs ~1820px, no scrollbar) hides its Start
    buttons; the fleet builder (1000 wide, needs ~1320) never draws Load / Save / Validate,

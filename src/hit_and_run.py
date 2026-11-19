@@ -165,10 +165,12 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
 _RAID_ATTACK_BONUS = {
     "space_marine_crew": 1,  # Space Marine boarders / ordnance: +1 to raid results
     "mega_armoured_boarders": 1,   # Ork Mega Armoured Boarding Parties
+    "dark_eldar": 1,         # Dark Eldar Pain Frenzy (Xenos p.4), their ordnance too
 }
 _RAID_DEFENSE_PENALTY = {
     "space_marine_crew": 1,  # raids against a Space Marine ship: -1 to the roll
     "mega_armoured_boarders": 1,
+    "incubi": 1,             # Dark Eldar Incubi: enemy raids on the ship -1
 }
 
 
@@ -481,7 +483,11 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
     if mod:
         gs.add_log(f"  Raid modifier: {mod:+d} to each result (crew quality)")
 
+    from .dark_eldar import take_slaves
     for i in range(num_raids):
+        # Dark Eldar slave-taking (Xenos p.4): forgo the raid for +5 VP
+        if take_slaves(gs, attacker_rules or [], target, brace_passed, dice, 5):
+            continue
         if preset_rolls is not None:
             roll = preset_rolls[i]          # chosen from an honour guard's dice
         else:
@@ -592,6 +598,22 @@ def resolve_hit_and_run(marker: OrdnanceMarker, target: Ship,
         if answer is None:              # no player to ask (AI, tests): expected-value choice
             return best_raid_reroll(roll, effective, tgt, gs, _owner)
         return answer
+    # Dark Eldar shadowfields (Xenos p.5): a save against raids by ordnance
+    from .dark_eldar import shadowfield_saves, resolve_impaler
+    if "impaler" in (marker.special_rules or []):
+        summary = resolve_impaler(marker, target, brace_passed, dice, gs)
+        summary["brace_wanted"] = wanted_brace
+        summary["brace_passed"] = brace_passed
+        from .ordnance import end_ordnance_attack
+        end_ordnance_attack(target, gs)
+        return summary
+    if shadowfield_saves(dice, target, num_raids, "the raid"):
+        gs.add_log(f"  {target.name} shadowfield: the raid fails to find its target")
+        from .ordnance import end_ordnance_attack
+        end_ordnance_attack(target, gs)
+        return {"raid_rolls": [], "failures": 0, "repelled": 0, "crits_applied": [],
+                "damage": 0, "shadowfield_saved": 1, "brace_wanted": wanted_brace,
+                "brace_passed": brace_passed}
     summary = resolve_raids(num_raids, target, brace_passed, dice, gs,
                             source_name=marker.ordnance_type,
                             attacker_rules=marker.special_rules,

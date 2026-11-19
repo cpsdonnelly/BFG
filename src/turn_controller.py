@@ -310,6 +310,13 @@ class TurnController:
                     sd["rerolls_remaining"] = 1
             # Necron Deadly Awakening (Xenos p.39): at the start of each Necron turn
             self._necron_awakening(self.gs.active_player)
+            # Dark Eldar Impalers left on the table at the start of the owner's
+            # turn are removed (lack of fuel, Xenos p.5)
+            gone = [o for o in self.gs.ordnance if o.get("owner_player") == self.gs.active_player
+                    and "impaler" in (o.get("special_rules") or [])]
+            if gone:
+                self.gs.ordnance = [o for o in self.gs.ordnance if o not in gone]
+                self.gs.add_log(f"{len(gone)} Impaler(s) removed: out of fuel")
             # Booklet scenarios' start-of-turn effects (The Raiders' alert)
             from .scenarios import turn_start as _scenario_turn_start
             _scenario_turn_start(self.gs, self.dice)

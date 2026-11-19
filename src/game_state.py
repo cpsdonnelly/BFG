@@ -43,6 +43,15 @@ class GameState:
     ai_player: Optional[int] = None    # player number controlled by AI (None = hotseat)
     ai_difficulty: str = "normal"      # "easy" | "normal" | "hard" | "expert"
     ai_spectator: bool = False         # True = both players AI (spectator mode)
+    # Spectator mode: Player 1's AI difficulty when it differs from
+    # ai_difficulty (Player 2's), for testing one AI against another
+    ai_difficulty_p1: Optional[str] = None
+    # Dark Eldar slave-taking VP (Xenos p.4), {"<player>": VP}; added to the
+    # score by victory_points
+    slave_vp: Dict = field(default_factory=dict)
+    # A human Dark Eldar player's slave-taking choice: hook(player, target,
+    # what) -> True / False / None (None: the expected-value choice)
+    slave_hook = None
 
     # Turn limit and scenario settings
     turn_limit: Optional[int] = None           # None = unlimited turns
@@ -119,6 +128,13 @@ class GameState:
 
     # Turn log
     log: List[str] = field(default_factory=list)
+
+    def difficulty_for(self, player: int) -> str:
+        """The AI difficulty playing `player` (spectator mode may give Player 1
+        its own, `ai_difficulty_p1`)."""
+        if player == 1 and self.ai_spectator and self.ai_difficulty_p1:
+            return self.ai_difficulty_p1
+        return self.ai_difficulty
 
     def next_serial(self) -> int:
         self.id_serial += 1

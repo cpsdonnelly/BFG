@@ -184,6 +184,9 @@ class Ship:
     turrets_halved_turn: int = -1  # Promethean Unguents: next ordnance attack this turn faces half turrets
     turrets_used_vs: str = ""  # "craft" or "torp" - turrets can only fire at one type per phase
     brace_failed_vs: List[str] = field(default_factory=list)  # ship IDs that brace failed against
+    # Dark Eldar shadowfields (Xenos p.5): one tracking mark per attacking ship
+    # or squadron whose gunnery hit this unit, cleared in the end phase
+    tracking_marks: List[str] = field(default_factory=list)
 
     # Staged movement tracking (reset at movement phase start)
     distance_moved_this_turn: float = 0.0   # cm already moved this phase
@@ -346,6 +349,8 @@ class Ship:
             spd -= 10
         if any(c.get("crit_type") == "impulse_power" for c in self.critical_damage):
             spd -= 5                         # Necron Impulse Power Disrupted
+        if any(c.get("crit_type") == "bladevanes" for c in self.critical_damage):
+            spd -= 5                         # Dark Eldar Bladevanes Scarred
         if self.is_crippled and "emergency_energy_reserves" in self.special_rules:
             spd = max(spd, min(15, self.speed))      # can't drop below 15cm
         return max(0, spd)

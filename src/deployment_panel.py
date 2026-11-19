@@ -80,6 +80,10 @@ class DeploymentPanel:
         # Bind board click for placement
         self._orig_click = board_view.canvas.bind("<Button-1>")
         board_view.canvas.bind("<Button-1>", self._on_board_click)
+        # Right-click a ship you've placed: turn it 45 degrees (Shift: the other way)
+        self._orig_rclick = board_view.canvas.bind("<Button-3>")
+        board_view.canvas.bind("<Button-3>", lambda e: self._rotate_placed_at(e, 45))
+        board_view.canvas.bind("<Shift-Button-3>", lambda e: self._rotate_placed_at(e, -45))
 
         self._build_ui()
         self._draw_zones()
@@ -132,14 +136,23 @@ class DeploymentPanel:
         tk.Label(heading_frame, text="Heading (°):",
                  bg="#1a1a2e", fg="#AAAAAA",
                  font=("Consolas", 9)).pack(side=tk.LEFT)
-        self._heading_entry_val = tk.StringVar(value="0")
+        # "auto": face the enemy's zone (or the scenario's required facing)
+        self._heading_entry_val = tk.StringVar(value="auto")
         tk.Entry(heading_frame, textvariable=self._heading_entry_val,
                  width=6, font=("Consolas", 9),
                  bg="#0a0a1a", fg="#FFFFFF",
                  insertbackground="white").pack(side=tk.LEFT, padx=4)
-        tk.Label(heading_frame, text="(0=north, 90=east)",
-                 bg="#1a1a2e", fg="#666666",
-                 font=("Consolas", 7)).pack(side=tk.LEFT)
+        for txt, d in (("⟲45", -45), ("⟳45", 45)):
+            tk.Button(heading_frame, text=txt, command=lambda d=d: self._nudge_heading(d),
+                      bg="#334455", fg="white", font=("Consolas", 8)).pack(side=tk.LEFT, padx=1)
+        tk.Button(heading_frame, text="Auto", command=lambda: self._heading_entry_val.set("auto"),
+                  bg="#334455", fg="white", font=("Consolas", 8)).pack(side=tk.LEFT, padx=1)
+        tk.Label(self.frame, text="Heading: auto = face the enemy; 0 = right, 90 = down,\n"
+                 "180 = left, 270 = up. Right-click a placed ship to turn it 45°\n"
+                 "(Shift+right-click the other way). Undo Last Group takes the\n"
+                 "last placed group back to place it again.",
+                 bg="#1a1a2e", fg="#888888", font=("Consolas", 7),
+                 justify=tk.LEFT).pack(anchor=tk.W, padx=4)
 
         # Buttons
         btn_frame = tk.Frame(self.frame, bg="#1a1a2e")
@@ -151,6 +164,9 @@ class DeploymentPanel:
             bg="#553333", fg="white",
             font=("Consolas", 9), width=12)
         self.undo_btn.pack(side=tk.LEFT, padx=2)
+        tk.Button(btn_frame, text="Undo Last Group", command=self._undo_group,
+                  bg="#553333", fg="white", font=("Consolas", 9),
+                  width=14).pack(side=tk.LEFT, padx=2)
 
         self.skip_btn = tk.Button(
             btn_frame, text="Auto-Place All",
@@ -278,11 +294,59 @@ class DeploymentPanel:
 
     # ── Click handling ────────────────────────────────────────────────────────
 
-    def _get_heading(self) -> float:
+    def _get_heading(self, x: float = None, y: float = None) -> float:
+        """The heading entered, or for "auto" (or anything not a number) the
+        facing the scenario requires there, else towards the enemy's zone."""
         try:
             return float(self._heading_entry_val.get()) % 360.0
         except (ValueError, AttributeError):
-            return 0.0
+            from .deployment import placement_heading
+            if x is None:
+                return 0.0
+            return placement_heading(self.gs, self.state, self.state.active_player, x, y)
+
+    def _nudge_heading(self, d: float):
+        try:
+            h = float(self._heading_entry_val.get())
+        except (ValueError, AttributeError):
+            group = self.state.current_group()
+            zone = self.state.zones[self.state.active_player]
+            h = self._get_heading((zone.x_min + zone.x_max) / 2, (zone.y_min + zone.y_max) / 2) \
+                if group else 0.0
+        self._heading_entry_val.set(f"{(h + d) % 360:.0f}")
+
+    def _undo_group(self):
+        """Take back the last placed group, to place it again."""
+        self._pending_positions.clear()
+        self._pending_headings.clear()
+        group = self.state.undo_group()
+        if group is None:
+            self.board.status_var.set("Nothing placed to take back")
+            return
+        for ship in group:              # off the table again until re-placed
+            ship.x, ship.y = -1000.0, -1000.0
+            self.gs.update_ship(ship)
+        self.board.redraw()
+        self._draw_zones()
+        self._refresh()
+
+    def _rotate_placed_at(self, event, degrees: float):
+        """Right-click on a ship you have placed: turn it (and its squadron)."""
+        cx, cy = self.board.screen_to_cm(event.x, event.y)
+        mine = [s for s in self.state.placed_ships if s.player == self.state.active_player]
+        hit = min(mine, key=lambda s: (s.x - cx) ** 2 + (s.y - cy) ** 2, default=None)
+        if hit is None or (hit.x - cx) ** 2 + (hit.y - cy) ** 2 > (hit.base_radius + 2) ** 2:
+            return
+        if self.state.rotate_placed(hit.id, degrees) is None:
+            self.board.status_var.set(f"{hit.name} can't face that way here")
+            return
+        for s in self.state.placed_ships:
+            if s is hit or (hit.squadron_id and s.squadron_id == hit.squadron_id
+                            and s.player == hit.player):
+                self.gs.update_ship(s)
+        self.board.redraw()
+        self._draw_zones()
+        self._draw_pending()
 
     def _on_board_click(self, event):
         cx, cy = self.board.screen_to_cm(event.x, event.y)
@@ -290,7 +354,7 @@ class DeploymentPanel:
         if group is None:
             return
 
-        heading = self._get_heading()
+        heading = self._get_heading(cx, cy)
 
         # Validate this position before accepting it
         zone = self.state.zones[self.state.active_player]
@@ -398,6 +462,8 @@ class DeploymentPanel:
         self.board.canvas.delete("deploy_pending")
         # Restore original canvas click handler
         self.board.canvas.bind("<Button-1>", self._orig_click)
+        self.board.canvas.bind("<Button-3>", self._orig_rclick or "")
+        self.board.canvas.unbind("<Shift-Button-3>")
         self.frame.destroy()
         self.board.redraw()
         self.on_complete()

@@ -48,7 +48,7 @@ class OrdnanceMovementMixin:
             if not torpedo_bomber_groups(gs, p) and not unmoved():
                 continue
             from .ai_player import AIPlayer
-            ai = AIPlayer(p, self.ctx.tc, gs, self.ctx.dice, getattr(gs, "ai_difficulty", "normal"))
+            ai = AIPlayer(p, self.ctx.tc, gs, self.ctx.dice, gs.difficulty_for(p))
             ai._fire_torpedo_bombers()
             for m in unmoved():
                 ai._steer_guided_missile(m, our_phase=False)

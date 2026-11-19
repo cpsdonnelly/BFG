@@ -62,6 +62,7 @@ def play(args) -> dict:
     gs.dice_mode = "auto"
     gs.ai_spectator = True
     gs.ai_difficulty = difficulty
+    gs.ai_difficulty_p1 = os.environ.get("BFG_DIFFICULTY1") or None   # --difficulty1
     gs.turn_limit = turns
     gs.turn_system = system
     unplaced = False
@@ -146,7 +147,8 @@ def main():
     ap.add_argument("--fleet2", default="data/fleets/tau_kororvesh_demo.json")
     ap.add_argument("--games", type=int, default=4)
     ap.add_argument("--procs", type=int, default=max(1, (os.cpu_count() or 2) - 1))
-    ap.add_argument("--difficulty", default="normal")
+    ap.add_argument("--difficulty", default="normal", help="Player 2's AI (and Player 1's)")
+    ap.add_argument("--difficulty1", default="", help="Player 1's AI, if different")
     ap.add_argument("--turns", type=int, default=12, help="turn limit (player turns, AA rounds)")
     ap.add_argument("--system", default="igougo", choices=("igougo", "aa"))
     ap.add_argument("--seed", type=int, default=1)
@@ -157,6 +159,8 @@ def main():
     ap.add_argument("--replay-check", action="store_true",
                     help="replay each game from its recorded dice and check the final state matches")
     a = ap.parse_args()
+    if a.difficulty1:
+        os.environ["BFG_DIFFICULTY1"] = a.difficulty1   # inherited by the workers
     jobs = [(a.fleet1, a.fleet2, a.difficulty, a.turns, a.system, a.seed + i, a.timeout,
              None, not a.no_display) for i in range(a.games)]
     t0 = time.time()

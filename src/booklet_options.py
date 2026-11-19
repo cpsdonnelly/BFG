@@ -1173,8 +1173,11 @@ def _de_lance(fp: int) -> Dict:
 
 
 def _de_impaler(modules: int) -> Dict:
-    return {"name": "Prow Impaler Bay", "weapon_type": "impaler", "range_cm": 30,
-            "strength": modules, "arcs": ["front"], "craft_speed": 30}
+    # Launched like attack craft (craft "impaler"); not yet a separate launch
+    # capacity from the fleet's launch bays
+    return {"name": "Prow Impaler Bay", "weapon_type": "launch_bay", "range_cm": 30,
+            "strength": modules, "arcs": ["front"], "craft_types": ["impaler"],
+            "craft_speeds": {"impaler": 30}, "craft_speed": 30, "impaler_bay": True}
 
 
 def _de_battery(fp: int) -> Dict:

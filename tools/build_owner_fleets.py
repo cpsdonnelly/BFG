@@ -57,6 +57,16 @@ FLEETS = [
     ] + [("Mechanicus Tyrant Cruiser", ["Refit: prow nova cannon for the torpedoes",
           "Refit: plasma-boosted gunnery (30cm macrobatteries to 45cm)"], False, "")] * 2
       + [("Mechanicus Nova Frigate", [], False, "novas")] * 4),
+    ("owner_dark_eldar_1000.json", "Dark Eldar Raiders 990", "Dark Eldar", "dark_eldar_raiders", [
+        ("Succubus Class Light Cruiser", [
+            "Dread Archon (+2 Ld)", "Dread Archon: 2 re-rolls",
+            "Kabal Variant: Burning Scale (keel launch bays, 2, with Voidravens)"], True, ""),
+    ] + [("Corsair Class Frigate", ["Kabal Variant: Impaler bay, 1 module"], False,
+          "corsairs")] * 6
+      + [("Subjugation Class Raider", ["Kabal Variant: Torpedo salvo S2"], False,
+          "torp_raiders")] * 4
+      + [("Subjugation Class Raider", ["Kabal Variant: Weapons battery FP3"], False,
+          "gun_raiders")] * 5),
 ]
 
 # Owner's lists (all 1000pt or under). Mechanicus Gifts: the owner rolls them on the table
@@ -65,7 +75,7 @@ FLEETS = [
 GAPS = ["Tau Protector (Emissary options: ion cannons for hooks, mine launchers, deflector)",
         "Orks (kustom force field, the Onslaught's zzapp gun swap, looted vessels)",
         "Necrons (Dynasty upgrades: Cartouche, Khopesh, War, nightmare field, Bloodswarm)",
-        "Eldar (commanders and fleet lists)", "Dark Eldar and Tyranids (To do 19)"]
+        "Eldar (commanders and fleet lists)", "Tyranids (To do 19)"]
 
 
 def build(root, spec, out_dir):

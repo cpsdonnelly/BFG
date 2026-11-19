@@ -879,6 +879,9 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
         if to_cripple > 0:
             risk += max(0.0, _poisson_at_least(lam, to_cripple) - p_kill) * 0.25 * v
     extra = 0.0 if ship.is_crippled else 0.10 * v
+    from .dark_eldar import greed_binds
+    if greed_binds(gs, ship):
+        extra = v                          # Insatiable Greed: leaving counts destroyed
     # Warp Storm: a ship that leaves may be lost in the warp at the end (the
     # full value instead of the 10% / 25% it concedes)
     q_warp = warp_loss_chance(gs, ship)
@@ -896,6 +899,8 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
         p_wipe, v_sq, crippled = esc
         risk = p_wipe * v_sq
         extra = (0.25 if crippled else 0.10) * v_sq
+        if not crippled and greed_binds(gs, ship):
+            extra = v_sq                   # Insatiable Greed
         if getattr(gs, "turn_limit", None):
             fire = fire_outcomes or [(1.0, contribution)]
             dmg = [(p_wipe, -v_sq), (1 - p_wipe, 0.0)]

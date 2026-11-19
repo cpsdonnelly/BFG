@@ -73,6 +73,7 @@ _CREW_DAMAGE_BONUSES = {
     "chaos_crew": 1,         # Chaos: +1
     "ork_crew": 1,           # Orks: +1
     "mega_armoured_boarders": 2,   # Ork kustom upgrade: crew damage bonus +2
+    "dark_eldar": 1,         # Dark Eldar Pain Frenzy (Xenos p.4)
 }
 
 
@@ -294,6 +295,10 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
         if d_crit:
             summary["defender_crits"].append(d_crit)
 
+    # Dark Eldar slave-taking (Xenos p.4): +5 VP a hit inflicted in the
+    # boarding action, +100 for a Bridge Smashed on the enemy
+    from .dark_eldar import boarding_slave_vp
+    boarding_slave_vp(gs, attackers, target, summary)
     return summary
 
 

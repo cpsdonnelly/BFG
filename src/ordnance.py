@@ -502,6 +502,11 @@ def turret_hit_on(ship: Ship, marker=None) -> int:
         need -= 1
     if marker is not None and is_eldar_ordnance(marker):
         need += 2
+    if marker is not None:
+        # Dark Eldar flickerfields (Xenos p.5): +2 against their torpedoes and
+        # attack craft, not mines, to a maximum of 6+
+        from .dark_eldar import flickerfield_penalty
+        need += flickerfield_penalty(marker)
     return max(2, min(6, need))
 
 
@@ -644,6 +649,13 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
 
     # Torpedoes that scored hits are spent; the rest pass through and keep moving.
     result["remaining_strength"] = max(0, result["remaining_strength"] - result["hits"])
+    if result["hits"] > 0 and not is_hulk:
+        # Dark Eldar shadowfields (Xenos p.5): a save against each ordnance hit
+        from .dark_eldar import shadowfield_saves
+        saved = shadowfield_saves(dice, target, result["hits"], "torpedoes")
+        if saved:
+            game_state.add_log(f"  {target.name} shadowfield saves {saved} torpedo hit(s)")
+            result["hits"] -= saved
 
     if result["hits"] > 0 and is_boarding_torpedo(marker):
         game_state.add_log(
@@ -802,6 +814,8 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     attack_rolls = dice.roll_d6(attack_dice,
                                  f"Mine vs {ship.name} ({armor}+)")
     result["hits"] = sum(1 for r in attack_rolls if r >= armor)
+    from .dark_eldar import shadowfield_saves
+    result["hits"] -= shadowfield_saves(dice, ship, result["hits"], "mine")
 
     if result["hits"] > 0:
         from .combat import apply_damage
@@ -924,6 +938,11 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
         armor = target.lowest_armor_value
         hit_rolls = dice.roll_d6(total_attacks, f"Bomber hits vs {target.name} ({armor}+)")
         result["hits"] = sum(1 for d in hit_rolls if d >= armor)
+        from .dark_eldar import shadowfield_saves
+        saved = shadowfield_saves(dice, target, result["hits"], "bombers")
+        if saved:
+            game_state.add_log(f"  {target.name} shadowfield saves {saved} bomber hit(s)")
+            result["hits"] -= saved
 
         if result["hits"] > 0:
             from .combat import apply_damage
@@ -1791,6 +1810,9 @@ CRAFT_STATS = {
     "raptor": (OrdnanceType.FIGHTER.value, 30, 4),
     "razorwing": (OrdnanceType.BOMBER.value, 20, 0),
     "slavebringer": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+    # Dark Eldar Impaler assault modules (Xenos p.5): resilient 4+, resolved by
+    # dark_eldar.resolve_impaler (the marker carries the "impaler" rule)
+    "impaler": (OrdnanceType.ASSAULT_BOAT.value, 30, 4),
     "voidraven": (OrdnanceType.TORPEDO_BOMBER.value, 20, 0),
 }
 
@@ -1968,7 +1990,8 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
             launched_turn=game_state.turn_number,
             resilient_save=resilient,
             special_rules=list(ship.special_rules) + (
-                ["tiger_shark"] if craft_type == "tiger_shark" else []),
+                ["tiger_shark"] if craft_type == "tiger_shark" else [])
+            + (["impaler"] if craft_type == "impaler" else []),
         )
         markers.append(marker)
         game_state.add_ordnance(marker)

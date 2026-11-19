@@ -251,6 +251,42 @@ class DeploymentState:
         self._advance_player()
         return True, []
 
+    def undo_group(self) -> Optional[List[Ship]]:
+        """Take back the last group placed (by either player in sequential
+        deployment, the one just placed in alternating): it returns to the
+        list to place again. Returns the group, or None."""
+        for p in ((self.active_player, 3 - self.active_player)
+                  if self.mode == "sequential" else (3 - self.active_player, self.active_player)):
+            idx = self.next_idx[p] - 1
+            if idx < 0:
+                continue
+            group = self.groups[p][idx]
+            if not all(s in self.placed_ships for s in group):
+                continue
+            ids = {s.id for s in group}
+            self.placed_ships = [s for s in self.placed_ships if s.id not in ids]
+            self.next_idx[p] = idx
+            self.active_player = p
+            return group
+        return None
+
+    def rotate_placed(self, ship_id: str, degrees: float) -> Optional[Ship]:
+        """Turn a ship already placed (and the rest of its squadron) by
+        degrees, if the scenario's checks still pass. Returns the ship."""
+        ship = next((s for s in self.placed_ships if s.id == ship_id), None)
+        if ship is None:
+            return None
+        group = [s for s in self.placed_ships if s is ship or (
+            ship.squadron_id and s.squadron_id == ship.squadron_id and s.player == ship.player)]
+        new = [(s.heading + degrees) % 360.0 for s in group]
+        if self.extra_check is not None:
+            others = [s for s in self.placed_ships if s not in group]
+            if self.extra_check(group, [(s.x, s.y) for s in group], new, others):
+                return None
+        for s, h in zip(group, new):
+            s.heading = h
+        return ship
+
     def _advance_player(self):
         """Move to the next player / deployment turn."""
         if self.mode == "sequential":
@@ -322,13 +358,35 @@ def grid_positions(group, zone: DeploymentZone, placed) -> List[Tuple[float, flo
     return best or [(cx + ox, cy + oy) for ox, oy in offsets]
 
 
+def facing_enemy(state: "DeploymentState", player: int, x: float, y: float) -> float:
+    """The heading from (x, y) towards the centre of the enemy's deployment
+    zone, to the nearest 5 degrees (headings: 0 = +x, 90 = +y)."""
+    import math
+    other = state.zones.get(3 - player)
+    if other is None:
+        return 0.0
+    cx, cy = (other.x_min + other.x_max) / 2, (other.y_min + other.y_max) / 2
+    h = math.degrees(math.atan2(cy - y, cx - x)) % 360.0
+    return (round(h / 5.0) * 5.0) % 360.0
+
+
+def placement_heading(gs, state: "DeploymentState", player: int, x: float, y: float) -> float:
+    """A ship's default heading where it is placed: the scenario's required
+    facing if it has one (scenarios.auto_heading), else facing the enemy's
+    zone. (Before, Auto-Place faced every ship along the table, and a
+    scenario's 0-degree facing was taken for "none".)"""
+    from .scenarios import auto_heading
+    h = auto_heading(gs, player, x, y)
+    return facing_enemy(state, player, x, y) if h is None else h
+
+
 def auto_place(gs, state: "DeploymentState") -> List[str]:
     """Place every group still to deploy (the window's Auto-Place): the
     scenario's positions where it has them (scenarios.auto_positions), else a
     row in the zone; headings from the scenario or facing the enemy. Placed
     ships are written to `gs`. Returns the errors of a group that couldn't be
     placed (it stops there)."""
-    from .scenarios import auto_positions, auto_heading
+    from .scenarios import auto_positions
     while not state.is_complete():
         group = state.current_group()
         if group is None:
@@ -337,8 +395,7 @@ def auto_place(gs, state: "DeploymentState") -> List[str]:
         zone = state.zones[p]
         positions = (auto_positions(gs, group, zone, state.placed_ships, state.next_idx[p])
                      or grid_positions(group, zone, state.placed_ships))
-        headings = [auto_heading(gs, p, x, y) or (0.0 if p == 1 else 180.0)
-                    for x, y in positions]
+        headings = [placement_heading(gs, state, p, x, y) for x, y in positions]
         ok, errors = state.place_group(positions, headings)
         if not ok:
             return [f"{group[0].name}: {e}" for e in errors]

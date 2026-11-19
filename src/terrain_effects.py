@@ -270,7 +270,8 @@ def resolve_gas_dust_contact(ship: Ship, dice: DiceRoller,
         result["speed_penalty"] = 0
 
     # Shieldless means no shields at all or collapsed, not merely knocked down
-    if ship.effective_shields == 0:
+    # Dark Eldar Spectral Plating (Xenos p.5): never damaged by gas clouds
+    if ship.effective_shields == 0 and "dark_eldar" not in ship.special_rules:
         roll = dice.roll_d6(1, f"{ship.name} dust cloud damage (no shields, 6=1 damage)")[0]
         if roll == 6:
             result["damage"] = 1

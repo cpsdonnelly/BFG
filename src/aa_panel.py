@@ -24,7 +24,8 @@ class AAPanelMixin:
         if player not in ais:
             from .ai_player import AIPlayer
             gs = self.ctx.gs
-            diff = gs.ai_difficulty if gs.ai_difficulty != "expert" else "hard"
+            diff = gs.difficulty_for(player)
+            diff = diff if diff != "expert" else "hard"
             ai = AIPlayer(player, self.ctx.tc, gs, self.ctx.dice, diff)
             ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
                 att.id, att.name, tgt, exp, None, grp, att))

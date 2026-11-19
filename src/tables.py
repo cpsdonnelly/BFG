@@ -148,6 +148,24 @@ ELDAR_CRITICAL_HITS = {
 }
 
 
+# Dark Eldar Critical Hits Table (Appendix 3, Xenos p.6); "ld_loss" for
+# Commanders Slain (never repaired); Control Circuit's -1 is given back when
+# repaired ("ld_repairable")
+DARK_ELDAR_CRITICAL_HITS = {
+    2:  {"name": "Control Circuit Damaged", "extra_damage": 0, "crit_type": "control_circuit", "repairable": True},
+    3:  {"name": "Keel Armament Damaged", "extra_damage": 0, "crit_type": "keel_armament", "repairable": True},
+    4:  {"name": "Prow Armament Damaged", "extra_damage": 0, "crit_type": "prow_armament", "repairable": True},
+    5:  {"name": "Graviton Harness Severed", "extra_damage": 0, "crit_type": "graviton_harness", "repairable": True},
+    6:  {"name": "Bladevanes Scarred", "extra_damage": 0, "crit_type": "bladevanes", "repairable": True},
+    7:  {"name": "Superstructure Damaged", "extra_damage": 0, "crit_type": "de_superstructure", "repairable": True},
+    8:  {"name": "Thrusters Damaged", "extra_damage": 1, "crit_type": "thrusters_damaged", "repairable": True},
+    9:  {"name": "Commanders Slain", "extra_damage": 0, "crit_type": "commanders_slain", "repairable": False, "ld_loss": 1},
+    10: {"name": "Shadowfield Generators Destroyed", "extra_damage": 0, "crit_type": "shadowfield_destroyed", "repairable": False},
+    11: {"name": "Hull Breach", "extra_damage": "D3", "crit_type": "hull_breach", "repairable": False},
+    12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
+}
+
+
 # Necron Critical Hits Table (Appendix 3, Xenos p.41); "ld_loss" is a Leadership
 # penalty applied each time, never removed during the game (even when repaired)
 NECRON_CRITICAL_HITS = {
@@ -190,6 +208,8 @@ def crit_table_for(ship) -> dict:
         return ELDAR_CRITICAL_HITS
     if "necron" in (getattr(ship, "special_rules", None) or []):
         return NECRON_CRITICAL_HITS
+    if "dark_eldar" in (getattr(ship, "special_rules", None) or []):
+        return DARK_ELDAR_CRITICAL_HITS
     return CRITICAL_HITS
 
 

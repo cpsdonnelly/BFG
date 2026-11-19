@@ -29,7 +29,7 @@ def _apply_rules(gs, setup):
                  "rule_turret_suppression_remastered", "rule_subplots", "allow_movement_pass",
                  "turn_limit", "ftl_available_turn", "scenario_mode",
                  "scenario_attacker", "attacker_by_rating", "artefact_submode",
-                 "ai_player", "ai_difficulty", "ai_spectator"):
+                 "ai_player", "ai_difficulty", "ai_spectator", "ai_difficulty_p1"):
         if key in setup:
             setattr(gs, key, setup[key])
     # Place artefact token at board centre for race mode
@@ -375,11 +375,25 @@ def _show_setup_dialog(root) -> Optional[dict]:
          "Turret Suppression: Remastered mode (default: XR — fighters give 3 fixed attacks)", False),
         ("subplots", "Sub-plots (booklet p.80: each player rolls one)", False),
     ]
+    # Owner request: one switch for all the advanced rules (not the Remastered
+    # suppression mode, which is a choice of version rather than a rule)
+    advanced_keys = ("fighting_sunward", "solar_flares", "radiation_bursts", "boarding",
+                     "ramming", "teleport", "hit_and_run", "subplots")
+    all_var = tk.BooleanVar(value=False)
+
+    def _set_all():
+        for k in advanced_keys:
+            rule_vars[k].set(all_var.get())
+
+    def _sync_all(*_a):
+        all_var.set(all(rule_vars[k].get() for k in advanced_keys))
+    tk.Checkbutton(rules_frame, text="All advanced rules on / off", variable=all_var,
+                   command=_set_all, font=("Consolas", 8, "bold")).pack(anchor=tk.W)
     for key, label, default in rules_list:
         var = tk.BooleanVar(value=default)
         rule_vars[key] = var
-        tk.Checkbutton(rules_frame, text=label, variable=var,
-                       font=("Consolas", 8)).pack(anchor=tk.W)
+        tk.Checkbutton(rules_frame, text=label, variable=var, command=_sync_all,
+                       font=("Consolas", 8)).pack(anchor=tk.W, padx=(12, 0))
 
     # Movement enforcement setting
     movement_frame = tk.Frame(body)
@@ -496,22 +510,39 @@ def _show_setup_dialog(root) -> Optional[dict]:
     ai_frame = tk.LabelFrame(body, text="AI Opponent", font=("Consolas", 9, "bold"),
                               padx=8, pady=4)
     ai_frame.pack(fill=tk.X, padx=20, pady=4)
-    ai_enabled_var = tk.BooleanVar(value=False)
-    tk.Checkbutton(ai_frame, text="Enable AI opponent (controls Player 2)",
-                   variable=ai_enabled_var,
-                   font=("Consolas", 8)).pack(anchor=tk.W)
-    ai_spectator_var = tk.BooleanVar(value=False)
-    tk.Checkbutton(ai_frame, text="Spectator mode (AI controls both players)",
-                   variable=ai_spectator_var,
-                   font=("Consolas", 8)).pack(anchor=tk.W)
+    # One choice (owner: "AI opponent" and "Spectator" could both be ticked)
+    ai_mode_var = tk.StringVar(value="none")
+    for lbl, val in (("No AI (players take turns at this screen)", "none"),
+                     ("AI opponent (controls Player 2)", "opponent"),
+                     ("Spectator mode (AI controls both players)", "spectator")):
+        tk.Radiobutton(ai_frame, text=lbl, variable=ai_mode_var, value=val,
+                       font=("Consolas", 8)).pack(anchor=tk.W)
+    diff_levels = [("Easy", "easy"), ("Normal", "normal"), ("Hard", "hard"),
+                   ("Expert", "expert")]
     diff_row = tk.Frame(ai_frame)
     diff_row.pack(anchor=tk.W, padx=10)
-    tk.Label(diff_row, text="Difficulty:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    tk.Label(diff_row, text="Player 2 AI:", font=("Consolas", 8)).pack(side=tk.LEFT)
     ai_diff_var = tk.StringVar(value="normal")
-    for lbl, val in [("Easy", "easy"), ("Normal", "normal"),
-                     ("Hard", "hard"), ("Expert", "expert")]:
+    for lbl, val in diff_levels:
         tk.Radiobutton(diff_row, text=lbl, variable=ai_diff_var, value=val,
                        font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+    # Spectator mode: Player 1's AI may play at another difficulty (owner:
+    # useful for testing the AI)
+    diff1_row = tk.Frame(ai_frame)
+    diff1_row.pack(anchor=tk.W, padx=10)
+    tk.Label(diff1_row, text="Player 1 AI:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    ai_diff1_var = tk.StringVar(value="normal")
+    diff1_buttons = [tk.Radiobutton(diff1_row, text=lbl, variable=ai_diff1_var, value=val,
+                                    font=("Consolas", 8)) for lbl, val in diff_levels]
+    for b in diff1_buttons:
+        b.pack(side=tk.LEFT, padx=4)
+
+    def _ai_mode_changed(*_a):
+        state = tk.NORMAL if ai_mode_var.get() == "spectator" else tk.DISABLED
+        for b in diff1_buttons:
+            b.config(state=state)
+    ai_mode_var.trace_add("write", _ai_mode_changed)
+    _ai_mode_changed()
     tk.Label(ai_frame,
              text="Easy: random targets  Normal: weakest target  "
                   "Hard: focus-fire crippled  Expert: 5-turn lookahead minimax",
@@ -535,10 +566,11 @@ def _show_setup_dialog(root) -> Optional[dict]:
                 and rules["artefact_submode"] == "carrier_escape"
                 and rules["ftl_available_turn"] is None):
             rules["ftl_available_turn"] = 3
-        spectator = ai_spectator_var.get()
+        spectator = ai_mode_var.get() == "spectator"
         rules["ai_spectator"] = spectator
-        rules["ai_player"] = 2 if (ai_enabled_var.get() or spectator) else None
+        rules["ai_player"] = 2 if ai_mode_var.get() != "none" else None
         rules["ai_difficulty"] = ai_diff_var.get()
+        rules["ai_difficulty_p1"] = ai_diff1_var.get() if spectator else None
         return rules
 
     def _get_fleets():

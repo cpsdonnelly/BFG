@@ -127,6 +127,14 @@ def calculate_victory_points(gs: GameState) -> Dict:
     from .scenarios import vp_bonus
     vp_bonus(gs, result)
 
+    _insatiable_greed(gs, ships, result)
+    # Dark Eldar slave-taking (Xenos p.4), counted in the scenario VP
+    for p in (1, 2):
+        sv = int((getattr(gs, "slave_vp", None) or {}).get(str(p), 0))
+        if sv:
+            result[p]["scenario"] = result[p].get("scenario", 0) + sv
+            result[p]["details"].append(f"Slave-taking: +{sv} VP")
+
     # Totals
     for p in [1, 2]:
         result[p]["total"] = (result[p]["destroyed"] +
@@ -136,6 +144,51 @@ def calculate_victory_points(gs: GameState) -> Dict:
                                result[p].get("scenario", 0))
 
     return result
+
+
+def _insatiable_greed(gs: GameState, ships: List[Ship], result: Dict) -> None:
+    """Dark Eldar Insatiable Greed (Xenos p.4): non-crippled Dark Eldar ships
+    that disengaged count as destroyed unless their fleet has scored at least
+    25% of its own value in VP (reading: the VP scored before this rule; ships
+    whose disengaging a scenario scores itself are left alone; an escort
+    squadron scattered whole counts destroyed whole)."""
+    from .scenarios import scores_normally
+    for p in (1, 2):
+        own = [s for s in ships if s.player == p and "dark_eldar" in s.special_rules]
+        if not own:
+            continue
+        opp = 3 - p
+        fleet_value = sum(s.points_value for s in ships if s.player == p)
+        scored = sum(result[p][k] for k in ("destroyed", "crippled", "disengaged",
+                                            "holding_field")) + result[p].get("scenario", 0)
+        if scored * 4 >= fleet_value:
+            continue
+        squads = {}
+        for s in own:
+            if not scores_normally(gs, s) or s.points_value <= 0:
+                continue
+            if s.squadron_id and s.ship_type == "escort":
+                squads.setdefault(s.squadron_id, []).append(s)
+            elif s.is_disengaged and not s.damage_crippled and s.hits_remaining > 0:
+                was = max(1, s.points_value // 10)
+                result[opp]["disengaged"] -= was
+                result[opp]["destroyed"] += s.points_value
+                result[opp]["details"].append(
+                    f"{s.name} disengaged (Insatiable Greed: counts destroyed): "
+                    f"+{s.points_value - was} VP")
+        for sq in squads.values():
+            # every member of the squadron, not only Dark Eldar ones
+            members = [s for s in ships if s.squadron_id == sq[0].squadron_id]
+            total = sum(s.points_value for s in members)
+            dead = sum(1 for s in members if s.status == "destroyed" or s.hits_remaining <= 0)
+            gone = sum(1 for s in members if s.is_disengaged)
+            if gone and dead + gone == len(members) and dead < (len(members) + 1) // 2:
+                was = max(1, total // 10)
+                result[opp]["disengaged"] -= was
+                result[opp]["destroyed"] += total
+                result[opp]["details"].append(
+                    f"Squadron {members[0].ship_class} disengaged (Insatiable Greed: counts "
+                    f"destroyed): +{total - was} VP")
 
 
 def _score_squadron(squadron: List[Ship], opponent: int, result: Dict,

@@ -43,8 +43,7 @@ UNBUILT_FACTION_RULES = {
     # listed in CLAUDE.md To do 14
     # Necrons are playable too (src/necrons.py); the ground defences and Deathseed
     # mines stay unsupported for their own reasons (no movement / profile)
-    "Dark Eldar": "Dark Eldar faction rules (shadowfields, Mimic Engine, Slave-Taking, "
-                  "Kabal Variants...) not built yet",
+    # Dark Eldar are playable too (src/dark_eldar.py; gaps in CLAUDE.md To do 19)
     "Tyranids": "Tyranid faction rules (Instinctive Behaviour, synapse, spore clouds, "
                 "weapon configurations...) not built yet",
 }

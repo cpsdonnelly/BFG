@@ -54,6 +54,13 @@ def forge_hit_recovery(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]
     return [f"{ship.name}: the forges restore {back} damage ({n} dice)"]
 
 
+def _on_repaired(ship: Ship, crit: dict) -> None:
+    """Effects given back on repair: Dark Eldar Control Circuit Damaged's -1 Ld
+    ("until the damage is repaired")."""
+    if crit.get("crit_type") == "control_circuit":
+        ship.leadership = min(10, ship.leadership + 1)
+
+
 def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
                            repair_choices: List[str] = None) -> List[str]:
     """
@@ -110,6 +117,7 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
             for c in ship.critical_damage:
                 if c.get("description") == choice and c.get("repairable", False):
                     ship.critical_damage.remove(c)
+                    _on_repaired(ship, c)
                     logs.append(f"  Repaired: {c['description']}")
                     break
     else:
@@ -142,6 +150,7 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
                     best = c
             if best:
                 ship.critical_damage.remove(best)
+                _on_repaired(ship, best)
                 logs.append(f"  Repaired: {best['description']}")
 
     gs.update_ship(ship)
@@ -195,6 +204,7 @@ def apply_repair_choices(ship: Ship, choices: List[str], gs: GameState) -> List[
         for c in ship.critical_damage:
             if c.get("description") == choice and c.get("repairable", False):
                 ship.critical_damage.remove(c)
+                _on_repaired(ship, c)
                 logs.append(f"  Repaired: {c['description']}")
                 break
     gs.update_ship(ship)
@@ -273,6 +283,9 @@ def remove_brace_orders(gs: GameState) -> List[str]:
         # Clear per-turn failed brace tracking (regardless of brace status)
         if ship.brace_failed_vs:
             ship.brace_failed_vs = []
+            needs_update = True
+        if ship.tracking_marks:              # Dark Eldar: until the end of the turn
+            ship.tracking_marks = []
             needs_update = True
 
         if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:

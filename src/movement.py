@@ -99,6 +99,8 @@ def get_effective_speed(ship: Ship, special_order: str, aaf_bonus: int = 0,
         min_spd = min(min_spd, max_spd)
     if "in_low_orbit" in ship.special_rules:
         min_spd = 0          # s.39: ships in low orbit don't have to move
+    if "dark_eldar" in ship.special_rules:
+        min_spd = 0          # Dark Eldar (Xenos p.4): no minimum speed
 
     return (min_spd, max_spd)
 
@@ -174,7 +176,8 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
     # Engine Room Damaged: no turns at all until repaired
     for crit in ship.critical_damage:
         # Engine Room Damaged; Necron Main Drive Damaged / Eldar Mast Lines Severed
-        if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines"):
+        if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines",
+                                     "graviton_harness"):
             return 0
     if "overcharging" in ship.special_rules:
         return 0       # Macharia's End: the Planet Killer can't turn while charging
@@ -301,7 +304,8 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
 
     # Burn Retros: no minimum distance before turning; in low orbit capital
     # ships need none either (s.39)
-    if special_order == SpecialOrder.BURN_RETROS.value or "in_low_orbit" in ship.special_rules:
+    if (special_order == SpecialOrder.BURN_RETROS.value or "in_low_orbit" in ship.special_rules
+            or "dark_eldar" in ship.special_rules):     # Dark Eldar: no turning distance
         min_turn_dist = 0
     elif "turn_distance_plus5" in ship.special_rules:
         min_turn_dist += 5          # Experimental Ship (Quest) side effect
@@ -632,6 +636,8 @@ def _blast_marker_damage(ship: Ship, gs: GameState, dice: DiceRoller) -> bool:
     per move). Returns True if the ship was destroyed."""
     if ship.effective_shields > 0 or "necron" in ship.special_rules:
         return False             # Necrons: immune to blast marker damage (Xenos p.40)
+    if "dark_eldar" in ship.special_rules:
+        return False             # Dark Eldar Spectral Plating (Xenos p.5)
     from .craftworld import forge_fields
     if forge_fields(ship):
         return False             # docked at a forge: polarisation field
@@ -687,6 +693,10 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if order == SpecialOrder.ALL_AHEAD_FULL.value and "ere_we_go" in ship.special_rules:
         return {"passed": True, "roll": 0, "needed": ship.leadership,
                 "mods": ["'Ere We Go! (automatic pass)"]}
+    # Dark Eldar (Xenos p.4): automatically pass Come to New Heading
+    if order == SpecialOrder.COME_TO_NEW_HEADING.value and "dark_eldar" in ship.special_rules:
+        return {"passed": True, "roll": 0, "needed": ship.leadership,
+                "mods": ["Dark Eldar (automatic pass)"]}
     if gs is not None:
         # Mark of Chaos Undivided: before a command check (07_chaos.md)
         from .chaos_undivided import offer as _undivided

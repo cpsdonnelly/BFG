@@ -606,7 +606,7 @@ class AIPlayer:
             if along <= 0 or along - e.base_radius > reach or \
                     side > ship.base_radius + e.base_radius:
                 continue
-            n = ram_ld_dice(ship.ship_type, e.ship_type)
+            n = ram_ld_dice(ship.ship_type, e.ship_type, e)
             p = p_sum_at_most(n, ship.leadership) if "goffs" not in ship.special_rules else 1.0
             v = p * ram_vp(ship, e, self.gs)
             if v > 0 and (best is None or v > best[0]):
@@ -621,7 +621,7 @@ class AIPlayer:
         if cand is None:
             return
         target = cand[1]
-        n = ram_ld_dice(ship.ship_type, target.ship_type)
+        n = ram_ld_dice(ship.ship_type, target.ship_type, target)
         from .actions import declare_ram
         if declare_ram(self.gs, self.dice, ship.id, target.id):
             self.gs.add_log(f"[AI] {ship.name} declares a ram on {target.name}")

@@ -698,11 +698,12 @@ class GameFlow(AAPanelMixin):
         def restore_dice():
             gs.dice_mode, dice.mode = old_modes
 
-        if gs.ai_difficulty == "expert":
+        difficulty = gs.difficulty_for(ai_player_num)
+        if difficulty == "expert":
             from .lookahead_ai import LookaheadAI
-            ai = LookaheadAI(ai_player_num, tc, gs, dice, gs.ai_difficulty)
+            ai = LookaheadAI(ai_player_num, tc, gs, dice, difficulty)
         else:
-            ai = AIPlayer(ai_player_num, tc, gs, dice, gs.ai_difficulty)
+            ai = AIPlayer(ai_player_num, tc, gs, dice, difficulty)
         # Targets decide on Brace for Impact before the AI's attacks are rolled
         ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
             att.id, att.name, tgt, exp, None, grp, att))
@@ -714,7 +715,7 @@ class GameFlow(AAPanelMixin):
 
         # Expert movement is slow (minimax depth-5); run off-thread so UI stays
         # live. The worker never touches Tk: the main thread polls for it.
-        if gs.ai_difficulty == "expert" and phase == "movement" and not replaying:
+        if difficulty == "expert" and phase == "movement" and not replaying:
             outcome = {}
 
             def _do_movement():

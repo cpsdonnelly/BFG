@@ -237,7 +237,8 @@ class FireVolley:
                     return self.panel._apply_hits_to_target(
                         self.attacker, fresh, n, self._log,
                         crit_on=weapon.get("crit_on", 6),
-                        braced=self._braced.get(fresh.id, False))
+                        braced=self._braced.get(fresh.id, False),
+                        gunnery=wtype == "battery")
 
                 sr, _ = fire_at_squadron(
                     self.attacker, fire_weapon, target, group, self.ctx.dice,
@@ -431,7 +432,7 @@ class FireVolley:
                 self._log(f"  >> {fresh.name}: {n} hits")
                 return self.panel._apply_hits_to_target(
                     self.attacker, fresh, n, self._log, crit_on=_c,
-                    braced=self._braced.get(fresh.id, False))
+                    braced=self._braced.get(fresh.id, False), gunnery=True)
             markers = start_markers if together else gs.get_blast_markers()
             sr, applied = resolve_battery_group(
                 self.attacker, target, shots, self.ctx.dice, markers, self.lock_on,
@@ -482,9 +483,11 @@ class FireVolley:
                 self._log(f"  >> {target.name}: {total} total hits"
                           + (f" (crits on {crit_on}+)" if crit_on != 6 else "")
                           + (" (braced)" if was_braced else ""))
+                gunnery = any(e[1] == "battery" for e in hit_list
+                              if (e[3], e[4]) == (crit_on, was_braced))
                 self.panel._apply_hits_to_target(self.attacker, target, total, self._log,
                                                  crit_on=crit_on, braced=was_braced,
-                                                 bypass_hits=bypass)
+                                                 bypass_hits=bypass, gunnery=gunnery)
             del all_damage[target_id]
 
     def _brace_targets(self, kinds=("battery", "lance", "nova_cannon")) -> dict:
