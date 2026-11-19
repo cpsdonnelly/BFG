@@ -209,8 +209,8 @@ class GameFlow(AAPanelMixin):
         from .hit_and_run import describe_raid_result
         shown = f"{roll}" + (f" ({effective} after modifiers)" if effective != roll else "")
         from .hit_and_run import best_raid_reroll
-        return self.ctx.prompt.choose("Wings of Fury",
-            f"Thunderhawk raid on {target.name} rolled {shown}: "
+        return self.ctx.prompt.choose("Raid re-roll (Wings of Fury / Pain Frenzy)",
+            f"Hit-and-run result against {target.name} rolled {shown}: "
             f"{describe_raid_result(effective, target)}. Re-roll it? The second result "
             f"stands, even if it is worse.",
             [("Re-roll", True), ("Keep", False)],

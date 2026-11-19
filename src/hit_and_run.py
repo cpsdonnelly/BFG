@@ -483,7 +483,11 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
     if mod:
         gs.add_log(f"  Raid modifier: {mod:+d} to each result (crew quality)")
 
-    from .dark_eldar import take_slaves
+    from .dark_eldar import take_slaves, pain_frenzy_applies, frenzy_raid_reroll
+    if reroll_fn is None and pain_frenzy_applies(attacker_rules, target):
+        # Dark Eldar Pain Frenzy (Xenos p.4): may re-roll a raid on a crippled ship
+        def reroll_fn(roll, effective, tgt, _owner=3 - target.player):
+            return frenzy_raid_reroll(gs, _owner, roll, effective, tgt)
     for i in range(num_raids):
         # Dark Eldar slave-taking (Xenos p.4): forgo the raid for +5 VP
         if take_slaves(gs, attacker_rules or [], target, brace_passed, dice, 5):

@@ -75,3 +75,57 @@ def test_spectator_difficulty_per_player():
     assert gs.difficulty_for(1) == "easy" and gs.difficulty_for(2) == "normal"
     gs.ai_spectator = False
     assert gs.difficulty_for(1) == "normal"
+
+
+def _crippled(**kw):
+    s = make_ship(id="t", player=1, hits_max=8, **kw)
+    s.hits_remaining = 4                              # crippled
+    return s
+
+
+def test_pain_frenzy_rerolls_a_raid_only_against_crippled_ships():
+    from src.hit_and_run import resolve_raids
+    from src.dark_eldar import pain_frenzy_applies
+    t = _crippled()
+    gs = make_gs([t])
+    assert pain_frenzy_applies(DE, t)
+    assert not pain_frenzy_applies(DE, make_ship(hits_max=8))
+    assert pain_frenzy_applies(DE + ["wych_cult"], make_ship(hits_max=8))    # Wych Cult
+    gs.slave_hook = lambda *a: False                  # raid, not slaves
+    asked = []
+    gs.raid_reroll_hook = lambda *a: asked.append(a) or True   # the player re-rolls
+    dice = DiceStub([1, 5] + [1] * 10)                 # first result, then the re-roll
+    resolve_raids(1, gs.get_ship_by_id("t"), False, dice, gs, attacker_rules=DE)
+    assert asked and dice._idx >= 2
+    asked.clear()
+    gs2 = make_gs([make_ship(id="u", player=1, hits_max=8)])
+    gs2.slave_hook = lambda *a: False
+    gs2.raid_reroll_hook = lambda *a: asked.append(a) or True
+    resolve_raids(1, gs2.get_ship_by_id("u"), False, DiceStub([1] * 10), gs2, attacker_rules=DE)
+    assert not asked                                   # not crippled: no re-roll offered
+
+
+def test_pain_frenzy_rerolls_a_boarding_crit_on_a_crippled_ship():
+    from src.boarding import _boarding_crit_check
+    t = _crippled()
+    gs = make_gs([t])
+    de = make_ship(id="d", player=2, special_rules=list(DE))
+    asked = []
+    gs.raid_reroll_hook = lambda *a: asked.append(a) or True
+    dice = DiceStub([3, 6, 1, 1, 1, 1])      # auto crit: 3, re-rolled to 6
+    _boarding_crit_check(gs.get_ship_by_id("t"), 0, dice, gs, inflicted_by=[de])
+    assert asked and dice._idx >= 2
+    asked.clear()
+    u = make_ship(id="u", player=1, hits_max=8)
+    gs2 = make_gs([u])
+    gs2.raid_reroll_hook = lambda *a: asked.append(a) or True
+    _boarding_crit_check(gs2.get_ship_by_id("u"), 0, DiceStub([3, 1, 1, 1]), gs2,
+                         inflicted_by=[de])     # not crippled: no re-roll offered
+    assert not asked
+
+
+def test_pain_frenzy_impaler_crit_reroll_choice():
+    from src.dark_eldar import frenzy_crit_reroll
+    t = _crippled()
+    assert frenzy_crit_reroll(t, 7, {"extra_damage": 0})          # no extra damage: re-roll
+    assert not frenzy_crit_reroll(t, 12, {"extra_damage": "D6"})  # bulkhead collapse: keep

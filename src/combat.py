@@ -1234,7 +1234,7 @@ def demiurg_leadership(ship: Ship) -> None:
 
 
 def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
-                      summary: Optional[Dict] = None) -> bool:
+                      summary: Optional[Dict] = None, reroll_fn=None) -> bool:
     """Roll 2D6 on the critical hits table for a ship that uses it, apply the
     result (cascading, extra damage) and any torpedo-launcher explosion.
     Changes target in place (the caller writes it back). True if the ship is
@@ -1243,6 +1243,10 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
     crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
     if _tzeentch_reroll(target, crit_2d6, crit_data, game_state, summary):
         crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name} (Mark of Tzeentch re-roll)")
+        crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
+    elif reroll_fn is not None and reroll_fn(crit_2d6, crit_data):
+        # e.g. Dark Eldar Pain Frenzy against a crippled ship: the second stands
+        crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name} (Pain Frenzy re-roll)")
         crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
     if crit_data is None:
         game_state.add_log(f"Critical on {target.name}: rolled {crit_2d6}, "

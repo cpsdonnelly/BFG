@@ -156,6 +156,14 @@ Needs more work (next first):
    nearest same-ordnance mate; `_combine_squadron_waves` merges Impalers only with Impalers
    and other craft only with other craft. Squadrons by ordnance (the AI forming them) is in
    To do 28. Not yet: torpedo salvos combined, the bonus priced by what combining gains.
+   Pain Frenzy completed (owner check): against a crippled enemy vessel (a Wych Cult: any
+   enemy capital ship) Dark Eldar may re-roll a hit-and-run raid (`hit_and_run.
+   resolve_raids`, their ordnance too), a boarding critical hit (`boarding._frenzy_crit_roll`,
+   `inflicted_by`) or an Impaler critical hit (`combat.roll_critical_hit(reroll_fn=)`); a
+   human is asked through the raid re-roll prompt (now titled "Raid re-roll (Wings of Fury /
+   Pain Frenzy)"), the AI and Auto by `best_raid_reroll` for D6 results and, for the
+   Impaler's 2D6 crit, when its extra damage is below a fresh roll's average
+   (`dark_eldar.frenzy_crit_reroll`, judgement) (`tests/test_dark_eldar_special.py`).
    Owner report: the fleet builder's armament / stats were hard to see; now a ship card
    (`fleet_builder.ship_card` / `weapon_line`, a read-only text box under the catalog) shows
    the selected catalog ship, or the selected fleet ship with its options applied: points,

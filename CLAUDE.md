@@ -550,7 +550,9 @@ ordnance sweep 5250 cases pass):
 - Done: Dark Eldar PLAYABLE (To do 19 slices 1-3: catalog, Kabal Variants, Raiders list,
   shadowfields, flickerfields, crit table, movement, Spectral Plating, plasma / leech torps,
   Impalers incl. fuel and own launch pool, Pain Frenzy, Incubi, Wych Cult, slave-taking with
-  a human prompt, Insatiable Greed); the owner's Dark Eldar fleet `owner_dark_eldar_1000.json`
+  a human prompt, Insatiable Greed, Pain Frenzy in full: +1 boarding crew, +1 raids, and
+  the re-roll of a raid / boarding crit / Impaler crit against a crippled ship (a Wych Cult
+  counts enemy capital ships as crippled), `dark_eldar.pain_frenzy_applies`); the owner's Dark Eldar fleet `owner_dark_eldar_1000.json`
   (990, valid). Owner UI reports fixed: deployment faces the enemy by default, rotate
   buttons, right-click turns a placed ship, Undo Last Group; setup's AI mode is one choice,
   Player 1's own spectator difficulty, "All advanced rules" switch; a fleet relying on an
@@ -570,7 +572,7 @@ ordnance sweep 5250 cases pass):
   combined by the AI; the contact bonus is a flat 0.5 a mate, not priced by what combining
   gains; the AI doesn't form squadrons (To do 28; owner: same-ordnance escorts together).
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
-  roll, Pain Frenzy's re-roll vs crippled ships, Incubi's 2D6 raid choice, Only the Strong
+  roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.
 - Next (owner order): Tyranids (To do 19), then the other owner fleets' gaps (Tau Protector,
   Orks, Necrons, Eldar; To do 25).

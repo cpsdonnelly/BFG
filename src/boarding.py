@@ -102,7 +102,8 @@ def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
 
 
 def _boarding_crit_check(ship: Ship, threshold: Optional[int],
-                          dice: DiceRoller, gs: GameState) -> Optional[Dict]:
+                          dice: DiceRoller, gs: GameState,
+                          inflicted_by=None) -> Optional[Dict]:
     """Roll 1D6 for a boarding crit check. Return the applied crit or None.
 
     Escorts take 1 point of damage instead of rolling on the crit table, so an
@@ -126,14 +127,27 @@ def _boarding_crit_check(ship: Ship, threshold: Optional[int],
         # Auto-crit: use a fresh roll to determine which crit
         roll = dice.roll_d6(1, f"Auto boarding crit on {ship.name}")[0]
         # Clamp to 2 (minimum valid crit roll on the raid crit table)
-        roll = max(2, roll)
+        roll = _frenzy_crit_roll(max(2, roll), ship, inflicted_by, dice, gs)
         return _crit_damage_reopens_hulk(ship, _apply_raid_crit(roll, ship, gs, dice), gs)
     roll = dice.roll_d6(1, f"Boarding crit check on {ship.name} (need {threshold}+)")[0]
     gs.add_log(f"  {ship.name} crit check: rolled {roll} (need {threshold}+)")
     if roll >= threshold:
         crit_roll = max(2, dice.roll_d6(1, f"Boarding crit type on {ship.name}")[0])
+        crit_roll = _frenzy_crit_roll(crit_roll, ship, inflicted_by, dice, gs)
         return _crit_damage_reopens_hulk(ship, _apply_raid_crit(crit_roll, ship, gs, dice), gs)
     return None
+
+
+def _frenzy_crit_roll(roll: int, ship: Ship, inflicted_by, dice, gs) -> int:
+    """Dark Eldar Pain Frenzy (Xenos p.4): a boarding critical hit they inflict
+    on a crippled ship may be re-rolled (the second stands)."""
+    from .dark_eldar import pain_frenzy_applies, frenzy_raid_reroll
+    rules = [r for s in (inflicted_by or []) for r in (s.special_rules or [])]
+    if not pain_frenzy_applies(rules, ship):
+        return roll
+    if frenzy_raid_reroll(gs, 3 - ship.player, roll, roll, ship):
+        roll = max(2, dice.roll_d6(1, f"Boarding crit on {ship.name} (Pain Frenzy re-roll)")[0])
+    return roll
 
 
 def _crit_damage_reopens_hulk(ship: Ship, crit: Optional[Dict],
@@ -260,7 +274,8 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
             attackers[0], crit_row["winner_crit"], dice, gs)
         if attacker_crit:
             summary["attacker_crits"].append(attacker_crit)
-        defender_crit = _boarding_crit_check(target, crit_row["loser_crit"], dice, gs)
+        defender_crit = _boarding_crit_check(target, crit_row["loser_crit"], dice, gs,
+                                             inflicted_by=attackers)
         if defender_crit:
             summary["defender_crits"].append(defender_crit)
 
@@ -277,7 +292,8 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
         if defender_crit:
             summary["defender_crits"].append(defender_crit)
         for attacker in attackers:
-            a_crit = _boarding_crit_check(attacker, crit_row["loser_crit"], dice, gs)
+            a_crit = _boarding_crit_check(attacker, crit_row["loser_crit"], dice, gs,
+                                          inflicted_by=[target])
             if a_crit:
                 summary["attacker_crits"].append(a_crit)
 
@@ -288,10 +304,12 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
         # Still apply crit checks on a draw (both treated as if diff=1 each side)
         draw_row = BOARDING_RESULTS[1]
         for attacker in attackers:
-            a_crit = _boarding_crit_check(attacker, draw_row["winner_crit"], dice, gs)
+            a_crit = _boarding_crit_check(attacker, draw_row["winner_crit"], dice, gs,
+                                          inflicted_by=[target])
             if a_crit:
                 summary["attacker_crits"].append(a_crit)
-        d_crit = _boarding_crit_check(target, draw_row["winner_crit"], dice, gs)
+        d_crit = _boarding_crit_check(target, draw_row["winner_crit"], dice, gs,
+                                      inflicted_by=attackers)
         if d_crit:
             summary["defender_crits"].append(d_crit)
 

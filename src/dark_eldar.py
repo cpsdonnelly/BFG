@@ -124,7 +124,9 @@ def resolve_impaler(marker, target, braced: bool, dice, gs) -> dict:
         out["crits_applied"].append({"crit_type": "fire"})
     else:
         before = len(target.critical_damage)
-        roll_critical_hit(target, dice, gs)
+        rr = ((lambda r, c: frenzy_crit_reroll(target, r, c))
+              if pain_frenzy_applies(marker.special_rules, target) else None)
+        roll_critical_hit(target, dice, gs, reroll_fn=rr)
         fresh = gs.get_ship_by_id(target.id) or target
         out["crits_applied"] += fresh.critical_damage[before:]
     return out
@@ -236,3 +238,46 @@ def remove_spent_impalers(gs, player: int) -> int:
         gs.ordnance = [o for o in gs.ordnance if o["id"] not in ids]
         gs.add_log(f"{len(gone)} Impaler(s) removed: out of fuel")
     return len(gone)
+
+
+# ── Pain Frenzy re-rolls (Xenos p.4) ────────────────────────────────────────
+
+def pain_frenzy_applies(attacker_rules, target) -> bool:
+    """Against crippled enemy vessels Dark Eldar may re-roll a hit-and-run raid,
+    a boarding critical hit or an Impaler critical hit (the second result
+    stands). A Wych Cult counts every enemy capital ship as crippled for it."""
+    rules = attacker_rules or []
+    if "dark_eldar" not in rules or target is None:
+        return False
+    if target.damage_crippled:
+        return True
+    return "wych_cult" in rules and target.ship_type != "escort"
+
+
+def frenzy_raid_reroll(gs, owner: int, roll: int, effective: int, target) -> bool:
+    """Re-roll this raid (or boarding crit, rolled the same way on the D6
+    table)? A human owner is asked (`GameState.raid_reroll_hook`, the Wings of
+    Fury prompt); otherwise by expected value (`hit_and_run.best_raid_reroll`)."""
+    hook = getattr(gs, "raid_reroll_hook", None)
+    answer = hook(owner, roll, effective, target) if hook else None
+    if answer is None:
+        from .hit_and_run import best_raid_reroll
+        return best_raid_reroll(roll, effective, target, gs, owner)
+    return bool(answer)
+
+
+def frenzy_crit_reroll(target, crit_2d6: int, crit_data) -> bool:
+    """Re-roll an Impaler's 2D6 critical hit? (judgement, also "Auto"): when its
+    extra damage is below the average of a fresh roll on the target's table."""
+    from .tables import crit_table_for
+    table = crit_table_for(target)
+    dist = {t: 0 for t in range(2, 13)}
+    for a in range(1, 7):
+        for b in range(1, 7):
+            dist[a + b] += 1
+
+    def extra(row):
+        x = (row or {}).get("extra_damage", 0)
+        return {"D3": 2.0, "D6": 3.5}.get(x, x) if isinstance(x, str) else float(x or 0)
+    avg = sum(n * extra(table.get(t)) for t, n in dist.items()) / 36.0
+    return extra(crit_data) < avg
