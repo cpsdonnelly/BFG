@@ -732,13 +732,21 @@ class AIPlayer:
                 self._last_move_source = src
                 return cmds
         if order == SpecialOrder.COME_TO_NEW_HEADING.value:
-            ctnh = self._ctnh_moves(ship, enemy)
+            # only legal moves: an illegal choice fell back to a straight move
+            # at full speed, which could leave the table
+            from .movement import validate_movement as _vm
+            bms = self.gs.get_blast_markers()
+            ctnh = [t for t in self._ctnh_moves(ship, enemy)
+                    if _vm(ship, t[1], order, aaf_bonus, bms, self.gs.table_width,
+                           self.gs.table_height).valid]
             if ctnh:
                 sc, cmds, src = max(ctnh, key=lambda t: t[0])
                 self._last_move_source = src
                 return cmds
         best_cmds: Optional[List[MoveCommand]] = None
-        best_score = -1.0
+        # -inf, not -1: when every move scores below -1 (a ship cornered and
+        # out-gunned) the fallback below, straight ahead, could leave the table
+        best_score = float("-inf")
         best_src = None
         scored = []
         for cand in self._move_candidates(ship, enemy, order, aaf_bonus):
@@ -955,7 +963,8 @@ class AIPlayer:
         command check's odds, which isn't counted (judgement). Immobile and
         escorts (they turn anywhere) excepted. In move-score units."""
         if ship.ship_type == "escort" or "immobile" in ship.special_rules \
-                or "in_low_orbit" in ship.special_rules:     # no minimum move there
+                or "in_low_orbit" in ship.special_rules \
+                or "dark_eldar" in ship.special_rules:       # no minimum move there
             return 0.0
         from .movement import MIN_TURN_DISTANCE
         gs = self.gs
@@ -2277,8 +2286,11 @@ class AIPlayer:
                 td, dist, tat = c[:3]
                 if m + dist < min_spd - 1e-9:
                     continue
-                if abs(td) > 0.5 and (tat is None or tat < m - 1e-9):
-                    continue                      # the second turn needs m again
+                if abs(td) > 0.5 and (tat is None or tat < max(m, 0.5) - 1e-9):
+                    # the second turn needs m again; with no turning distance
+                    # (escorts, Dark Eldar) some forward movement between the
+                    # turns, or the two merge into one turn past the limit
+                    continue
                 sc = self._move_score(leg, enemy, "", td, dist, tat)
                 cmds = first + self._move_cmds(leg, td, dist, tat)
                 out.append((sc, cmds, "come to new heading (" + c[3] + ")",

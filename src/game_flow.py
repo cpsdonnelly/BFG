@@ -44,6 +44,7 @@ class GameFlow(AAPanelMixin):
         # asteroid fields may brace first (s.7)
         tc.gs.brace_hook = self._brace_hook
         tc.gs.raid_reroll_hook = self._raid_reroll_hook
+        tc.gs.slave_hook = self._slave_hook
         tc.gs.ld_reroll_hook = self._ld_reroll_hook
         tc.gs.undivided_hook = self._undivided_hook
         tc.gs.crit_reroll_hook = self._crit_reroll_hook
@@ -214,6 +215,21 @@ class GameFlow(AAPanelMixin):
             f"stands, even if it is worse.",
             [("Re-roll", True), ("Keep", False)],
             best_raid_reroll(roll, effective, target, gs, owner))
+
+    def _slave_hook(self, owner, target, what, best):
+        """GameState.slave_hook (Dark Eldar slave-taking, Xenos p.4): ask a
+        human owner whether to take slaves instead of resolving the raid /
+        Impaler. None lets the engine decide (AI owner, off the main thread)."""
+        import threading
+        gs = self.ctx.gs
+        if (threading.current_thread() is not threading.main_thread()
+                or gs.ai_spectator or (gs.ai_player is not None and owner == gs.ai_player)):
+            return None
+        gain = "D6 x 5 VP" if what == "Impaler" else "+5 VP"
+        return self.ctx.prompt.choose("Slave-taking",
+            f"Your {what} reaches {target.name}. Take slaves ({gain}) instead of "
+            f"resolving the attack? A braced target still saves on 4+.",
+            [("Take slaves", True), ("Attack", False)], best)
 
     def _is_ai_turn(self) -> bool:
         gs = self.ctx.gs

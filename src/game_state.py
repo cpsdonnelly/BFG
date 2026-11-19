@@ -50,7 +50,7 @@ class GameState:
     # score by victory_points
     slave_vp: Dict = field(default_factory=dict)
     # A human Dark Eldar player's slave-taking choice: hook(player, target,
-    # what) -> True / False / None (None: the expected-value choice)
+    # what, best) -> True / False / None (None: the expected-value choice, best)
     slave_hook = None
 
     # Turn limit and scenario settings

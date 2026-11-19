@@ -75,9 +75,20 @@ Needs more work (next first):
    `dark_eldar.greed_binds`). Dark Eldar are PLAYABLE now (off `UNBUILT_FACTION_RULES`; the
    Tormentor Spire still unsupported; the Transport has no cost). The owner's fleet:
    `data/fleets/owner_dark_eldar_1000.json` (990, valid). Not yet: the Mimic Engine, the
-   Tormentor Spire, Only the Strong May Lead. AI problem found: in headless games against
-   the Gothic fleet the Dark Eldar escorts fly off the table one by one (each loss forces a
-   squadron disengage test) and lose by ~900 VP; under investigation.
+   Tormentor Spire, Only the Strong May Lead. Slave-taking asks a human (`GameFlow.
+   _slave_hook`, "Take slaves / Attack" with Auto). AI problems found in headless games
+   against the Gothic fleet (the Dark Eldar lose ~20-990): two general AI bugs, fixed: (1)
+   Come to New Heading moves for ships with no turning distance (every escort, Dark Eldar)
+   put both turns back to back, which the engine merges into one illegal turn, and the AI
+   then fell back to a straight move that could leave the table (`_ctnh_moves` now needs
+   movement between the turns, `_plan_move_toward` keeps only legal ones; the Navy's Cobras
+   hit this too); (2) the move picker started its best score at -1, so when every move
+   scored below -1 it took the straight-ahead fallback, often off the table (now -inf). Also
+   no edge-trap penalty for Dark Eldar (no minimum move). Still open (AI play, not rules):
+   the AI backs its fast, fragile Dark Eldar away from the Imperial guns every turn until
+   they are pinned on an edge and leaving scores best, so they rarely fight; a one-turn
+   horizon can't plan "strike and fall back" (it needs the expert / multi-turn planning,
+   To do 14 in the port), and its hit values don't count the shadowfield saves yet.
    Owner UI report (same session), done: deployment headings default to facing the enemy's
    zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
    along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-

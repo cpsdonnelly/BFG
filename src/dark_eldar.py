@@ -162,12 +162,13 @@ def wants_slaves(gs, player: int, target, what: str, value_now: float, slaves: f
     """Take slaves instead of resolving the attack? A human player is asked
     (`GameState.slave_hook`); otherwise (the AI, "Auto") by expected VP:
     slaves when they are worth more than the attack (judgement)."""
+    best = slaves > value_now
     hook = getattr(gs, "slave_hook", None)
     if hook is not None:
-        answer = hook(player, target, what)
+        answer = hook(player, target, what, best)
         if answer is not None:
             return bool(answer)
-    return slaves > value_now
+    return best
 
 
 def take_slaves(gs, attacker_rules, target, braced: bool, dice, vp: int) -> bool:

@@ -11,7 +11,7 @@ DE = ["dark_eldar", "shadowfield"]
 
 def test_slave_taking_raid_scores_five_unless_braced_save():
     gs = make_gs([make_ship(id="t", player=1)])
-    gs.slave_hook = lambda p, t, what: True
+    gs.slave_hook = lambda p, t, what, best: True
     t = gs.get_ship_by_id("t")
     assert take_slaves(gs, DE, t, False, DiceStub([]), 5)
     assert gs.slave_vp == {"2": 5}
@@ -33,7 +33,7 @@ def test_boarding_slaves_per_hit_and_bridge_smashed():
 def test_impaler_slaves_roll_d6_x5():
     t = make_ship(id="t", player=1, x=0.0, y=0.0)
     gs = make_gs([t])
-    gs.slave_hook = lambda p, tg, what: True
+    gs.slave_hook = lambda p, tg, what, best: True
     m = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value, owner_player=2,
                        launched_by="d", x=0.0, y=3.0, special_rules=["dark_eldar", "impaler"])
     out = resolve_impaler(m, gs.get_ship_by_id("t"), False, DiceStub([4]), gs)
@@ -44,7 +44,7 @@ def test_impaler_damage_and_crit():
     t = make_ship(id="t", player=1, x=0.0, y=0.0, hits_max=8, armor_prow="5+",
                   armor_side="5+", armor_rear="5+")
     gs = make_gs([t])
-    gs.slave_hook = lambda p, tg, what: False
+    gs.slave_hook = lambda p, tg, what, best: False
     m = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value, owner_player=2,
                        launched_by="d", x=0.0, y=3.0, special_rules=["dark_eldar", "impaler"])
     rolls = [5,          # Impaler D6: >= 5+ Armour, 1 damage
