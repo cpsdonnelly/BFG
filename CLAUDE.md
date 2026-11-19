@@ -1674,7 +1674,9 @@ Done: To do 2, 3, 6; most of 7.
    losing it costs more than the entire fleet and sinking the enemy's scores more than its
    whole fleet, in every AI value that reads the bonus (`damage_vp`, disengaging, lost ships);
    a Bridge Smashed (or result 9 on the Dark Eldar, Eldar, Necron and Tyranid tables,
-   update 62) kills the admiral and ends the game
+   update 62) kills the admiral and ends the game, and so does the flagship disengaging (owner
+   ruling; by a test or off the table; `disengage_gain` concedes the admiral bonus, so the
+   AI never takes its flagship away)
    (`scenario.check_scenario_end`), so `damage_vp` adds the chance the hull hits short of a
    kill crit the bridge (crits on 6, `bridge_smashed_chance` from the ship's own table:
    4/36 on the standard and alien tables), bombardment cannons' extra crits
@@ -3190,8 +3192,7 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-- **Kill the Admiral, the flagship leaving the table:** should a disengaged flagship count as
-  the admiral lost? Today it doesn't.
+None open.
 
 ### Owner ruling: torpedo bomber salvos placed on a ship (s.21; implemented, tested)
 

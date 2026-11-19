@@ -70,6 +70,10 @@ def check_scenario_end(gs: GameState) -> Optional[dict]:
             if ship.is_flagship and ship.is_destroyed:
                 return {"winner": 3 - ship.player,
                         "reason": "admiral_killed", "detail": ship.name}
+            # Owner ruling: a flagship that disengages counts as the admiral lost
+            if ship.is_flagship and ship.status == "disengaged":
+                return {"winner": 3 - ship.player, "reason": "admiral_killed",
+                        "detail": f"{ship.name} (disengaged)"}
             # Owner rulings: a Bridge Smashed (or Dark Eldar Commanders Slain)
             # critical hit kills the admiral too
             from .scenarios import admiral_killed_by_crit

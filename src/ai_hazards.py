@@ -922,6 +922,10 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
     # full value instead of the 10% / 25% it concedes)
     q_warp = warp_loss_chance(gs, ship)
     extra += q_warp * v * (0.75 if ship.is_crippled else 0.90)
+    # Kill the Admiral (owner): a flagship that leaves the table loses the
+    # admiral, and the game, as surely as one destroyed
+    from .scenarios import admiral_bonus_vp
+    extra += admiral_bonus_vp(gs, ship)
     p_pass = p_sum_at_most(2, ld) if ld > 1 else 0.0
     if "necron" in ship.special_rules:
         p_pass = 1.0                       # Without a Trace: no test needed

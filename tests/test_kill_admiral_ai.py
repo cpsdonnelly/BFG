@@ -52,3 +52,16 @@ def test_dark_eldar_commanders_slain_kills_the_admiral():
     gs.update_ship(de)
     end = check_scenario_end(gs)
     assert end and end["winner"] == 1
+
+
+def test_a_disengaged_flagship_loses_and_the_ai_counts_it():
+    from src.ai_hazards import disengage_gain
+    gs = _fleet()
+    flag = gs.get_ship_by_id("f")
+    other = gs.get_ship_by_id("o1")
+    # leaving costs the flagship the admiral bonus; another ship only its 10%
+    assert disengage_gain(flag, gs, 12, 0.0) < disengage_gain(other, gs, 12, 0.0) - 500
+    flag.status, flag.is_disengaged = "disengaged", True
+    gs.update_ship(flag)
+    end = check_scenario_end(gs)
+    assert end and end["winner"] == 1 and "disengaged" in end["detail"]
