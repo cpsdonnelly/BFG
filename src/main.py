@@ -576,8 +576,47 @@ def _show_setup_dialog(root) -> Optional[dict]:
     def _get_fleets():
         return {"p1_fleet": p1_fleet_var.get(), "p2_fleet": p2_fleet_var.get()}
 
+    def _rules_ok() -> bool:
+        """Owner request: a fleet relying on an optional rule that is switched
+        off (assault boats / Impalers without hit-and-run, portals or a Soopa
+        Tellyporta without teleports, boarding upgrades without boarding) is
+        flagged before the game starts: switch the rules on, start anyway, or go
+        back (src/fleet_rule_check.py)."""
+        from .fleet_rule_check import fleet_rule_warnings, warning_text
+        from .fleet_loader import load_fleet_file, fleet_to_ships
+        enabled = {k: v.get() for k, v in rule_vars.items()}
+        found = {}
+        for p, var in ((1, p1_fleet_var), (2, p2_fleet_var)):
+            try:
+                ships = fleet_to_ships(load_fleet_file(var.get()), p)
+            except Exception:
+                continue                  # an unreadable fleet is reported later
+            w = fleet_rule_warnings(ships, enabled)
+            if w:
+                found[p] = w
+        if not found:
+            return True
+        from tkinter import messagebox
+        answer = messagebox.askyesnocancel(
+            "Fleet uses optional rules that are off",
+            warning_text(found) + "\n\nAre you sure you want to start with these rules "
+            "off? Those weapons and upgrades will do nothing.\n\n"
+            "Yes: turn those rules on and start\nNo: start anyway, rules off\n"
+            "Cancel: go back to the set-up", parent=dialog)
+        if answer is None:
+            return False
+        if answer:
+            for warns in found.values():
+                for key in warns:
+                    if key in rule_vars:
+                        rule_vars[key].set(True)
+            _sync_all()
+        return True
+
     # Buttons
     def start_demo():
+        if not _rules_ok():
+            return
         result[0] = {
             "mode": "demo",
             "width": float(width_var.get()),
@@ -592,6 +631,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
         dialog.destroy()
 
     def start_blank():
+        if not _rules_ok():
+            return
         result[0] = {
             "mode": "blank",
             "width": float(width_var.get()),

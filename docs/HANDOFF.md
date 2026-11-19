@@ -114,6 +114,15 @@ Needs more work (next first):
    with a commander re-roll by importance (`should_reroll`). Not yet: combining torpedo
    salvos, the Impaler under the hit-and-run toggle (it is an assault boat, so off with
    raids; owner question).
+   Owner request, built: a fleet relying on an optional rule that is off is flagged when
+   the game starts (`src/fleet_rule_check.py`, `main._show_setup_dialog._rules_ok`): bays
+   carrying only assault boats / Impalers or bought assault boats, Incubi (hit and run);
+   portals, a Soopa Tellyporta, honour guards (teleport + hit and run); Mega Armoured
+   Boarding Parties, a Wych Cult, a Plague Ark (boarding). Innate faction bonuses (Space
+   Marine teleport assault, crew raid bonuses) aren't flagged. "Yes" turns those rules on
+   and starts, "No" starts anyway, "Cancel" goes back (`tests/test_fleet_rule_check.py`,
+   `tools/gui_checks/fleet_rules_warning_check.py`). Not yet: the same check when a fleet
+   is loaded in the fleet builder (it doesn't know the game's rules yet).
    Owner UI report (same session), done: deployment headings default to facing the enemy's
    zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
    along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-
