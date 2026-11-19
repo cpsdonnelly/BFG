@@ -3015,7 +3015,34 @@ Done: To do 2, 3, 6; most of 7.
    with synapse nodes). Squadrons formable in list building and in deployment, with an auto
    tight / dispersed line / box formation setter for players.
 29. Commander placement (owner): Leadership is rolled before the game and commanders are
-   assigned during deployment, so the AI sees the rolled values when it chooses. Where the
+   assigned during deployment, so the AI sees the rolled values when it chooses. Owner
+   (latest): a commander may move to another ship after the Ld roll (a weak-Ld ship replaced
+   by a good one) where the fleet list allows it, so the placement must be checked against
+   each list. Booklet (checked): the core rules make it general, pre-battle step 6 rolls Ld
+   and step 7 deploys, "All commanders must be assigned to an appropriate ship during
+   deployment" (s.5, 14_scenarios step 7); the lists' restrictions: Chaos the most expensive
+   capital ship (Abaddon the Planet Killer if present; the Slaverer and a battle barge "need
+   not be the flagship unless the most expensive"); Rogue Traders the most expensive man o'
+   war (points + Fortune), Pirate Captains the most expensive non-xenos capital ships; Necron
+   Harvest the Monument automatically on the largest capital ship (Sepulchre a tombship,
+   Monolith a tombship or harvest ship), Dynasty Lord any capital ship; Eldar never a
+   Ghostship (Saim-Hann the most expensive ship); Mechanicus the Ark Mechanicus if present,
+   else any capital ship; Space Marines a battle barge (the Chapter flagship) if any, else any
+   capital ship (Dominion: a Space Marine one); Inquisition / Grey Knights a battleship or
+   battle barge if present, Inquisitors any capital ship; Navy any ship (Armageddon: an
+   Admiral not on a Space Marine vessel, a Master of the Fleet on a battle barge); Tau
+   O'Mesme on the Se'arle O'Mesme if taken (a Custodian needs a Kor'O); Orks any ship;
+   Dark Eldar's Dread Archon no restriction printed, Dracons any ship or squadron; Tyranids
+   the hive ship that bought the Hive Mind re-rolls; Battlefleet Cadia's Veteran Captains
+   explicitly after the Ld roll. Build: the commander bought for the fleet, not a ship
+   (its options that belong to the commander travel with it: re-rolls, Chapter tactic, honour
+   guards, Mark of Chaos Undivided, an Ork Boss's kustoms and clan); a per-list placement
+   check (`fleet_lists`: allowed ships, forced ones); placement in deployment after the Ld
+   roll (a human dialog with "Auto", the AI by expected VP: the lowest-Ld rule below in
+   ordinary games, the hardest-to-kill ship in Kill the Admiral, owner); the commander's
+   fixed Ld replacing the ship's rolled one (kept for the ship if he moves), and his points
+   in that ship's VP value. Secondary commanders (Strategic Commanders, Dracons, Veteran
+   Captains, Farseers, Elite Captains...) the same where their lists allow. Where the
    rules don't fix the ship (the Chaos Warmaster must lead the Styx in the test fleet; a
    Custodian needs a Kor'O), the commander goes on the capital ship with the lowest Ld,
    unless the dearest capital ship costs far more than the next (Cairn 500 vs Shroud 155:
