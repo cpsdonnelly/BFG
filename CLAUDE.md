@@ -2799,7 +2799,9 @@ Done: To do 2, 3, 6; most of 7.
    (`data/fleets/owner_tyranid_gestating_990.json`, `_vanguard_1000`, `_hive_980`, through
    `tools/build_owner_fleets.py`, all valid at his totals) and each played an AI-vs-AI game
    to game over against the Gothic fleet (Hive won 515-100, Gestating lost 80-207, Vanguard
-   lost 113-225). Still open (slice 3 / 4): grappling's movement and squadron rules,
+   lost 113-225); the Hive game replays from its record to the same state, and the
+   Gestating fleet played an alternate activation game against the Chaos fleet to game
+   over (lost by 79). Still open (slice 3 / 4): grappling's movement and squadron rules,
    phage mines (each hull hit a Fire), the launch-gland double attack craft limit, Living
    Barrier, Slow Gestation, the Proteus's ponderous rules (no CtNH, done via `ponderous`;
    Charybdis CtNH with both biomorphs), Massive Haemorrhage's spray, the Tyranid
