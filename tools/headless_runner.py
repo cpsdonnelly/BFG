@@ -72,6 +72,8 @@ def play(args) -> dict:
         setattr(gs, f"rule_{r.strip()}", True)
     gs.turn_limit = turns
     gs.turn_system = system
+    if os.environ.get("BFG_SCENARIO"):                 # --scenario (the generic modes)
+        gs.scenario_mode = os.environ["BFG_SCENARIO"]
     unplaced = False
     for p, f in ((1, fleet1), (2, fleet2)):
         data = load_fleet_file(os.path.join(ROOT, f))
@@ -165,6 +167,8 @@ def main():
     ap.add_argument("--turns", type=int, default=12, help="turn limit (player turns, AA rounds)")
     ap.add_argument("--system", default="igougo", choices=("igougo", "aa"))
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--scenario", default="",
+                    help="GameState.scenario_mode, e.g. kill_admiral (generic modes)")
     ap.add_argument("--timeout", type=float, default=600.0, help="seconds per game")
     ap.add_argument("--json", help="write the results to this file")
     ap.add_argument("--no-display", action="store_true",
@@ -174,6 +178,8 @@ def main():
     a = ap.parse_args()
     if a.difficulty1:
         os.environ["BFG_DIFFICULTY1"] = a.difficulty1   # inherited by the workers
+    if a.scenario:
+        os.environ["BFG_SCENARIO"] = a.scenario
     rules = {"all": ",".join(ADVANCED_RULES), "none": ""}.get(a.rules, a.rules)
     os.environ["BFG_RULES"] = rules
     print(f"optional rules on: {rules or 'none'}", flush=True)

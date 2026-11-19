@@ -2064,8 +2064,44 @@ def kill_bonus_vp(gs, ship) -> float:
     return sub + _scenario_kill_bonus(gs, ship)
 
 
+def admiral_alive(ship) -> bool:
+    """Kill the Admiral: the fleet's flagship is in play and its admiral alive
+    (a Bridge Smashed critical hit kills the admiral, owner ruling)."""
+    return (getattr(ship, "is_flagship", False) and ship.status == "active"
+            and not any(c.get("crit_type") == "bridge_smashed" for c in ship.critical_damage))
+
+
+def admiral_bonus_vp(gs, ship) -> float:
+    """Kill the Admiral (owner): the game is lost with the admiral, so losing
+    the flagship (destroyed, or its bridge smashed) is worth more than losing
+    the entire fleet: a bonus of the whole fleet's points on top of the ship's
+    own value. 0 in other modes or for other ships."""
+    if getattr(gs, "scenario_mode", "") != "kill_admiral" or not admiral_alive(ship):
+        return 0.0
+    return float(sum(s.points_value or 0 for s in gs.player_ships(ship.player))) + 1.0
+
+
+def bridge_smashed_chance(ship) -> float:
+    """The chance a critical hit on the ship is Bridge Smashed (its table's
+    2D6 results for it; other factions' tables have none)."""
+    from .tables import crit_table_for
+    ways = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1}
+    table = crit_table_for(ship)
+    return sum(ways[r] for r, e in table.items()
+               if e.get("crit_type") == "bridge_smashed" and r in ways) / 36.0
+
+
+def admiral_crit_vp(gs, ship) -> float:
+    """What one critical hit on the ship is worth through its chance of
+    killing the admiral (Bridge Smashed), in Kill the Admiral."""
+    bonus = admiral_bonus_vp(gs, ship)
+    return bonus * bridge_smashed_chance(ship) if bonus else 0.0
+
+
 def _scenario_kill_bonus(gs, ship) -> float:
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "kill_admiral":
+        return admiral_bonus_vp(gs, ship)
     if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
         return 100.0        # a convoy ship escaping would give the defender 100
     if mode in ("exterminatus", "planetary_assault", "craftworld_assault"):

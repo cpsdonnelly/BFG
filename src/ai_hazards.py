@@ -592,6 +592,14 @@ def damage_vp(target: Ship, gs, mean_hits: float) -> float:
         crip_bonus = 0.0
     base = crip_bonus + (p_kill * (v + kill_bonus_vp(gs, target)) + max(0.0, p_crip - p_kill) * v * 0.25
             + min(mean_hits, rem) * value_per_hit(target, gs) * 0.2)
+    from .scenarios import admiral_crit_vp, admiral_bonus_vp
+    per_crit = admiral_crit_vp(gs, target)
+    if per_crit and target.ship_type != "escort":
+        # Kill the Admiral: each hull hit short of the kill crits on a 6, and a
+        # crit may smash the bridge (the admiral dies: the whole bonus)
+        q = per_crit / admiral_bonus_vp(gs, target)
+        p_bridge = 1.0 - math.exp(-min(mean_hits, rem - 1) * q / 6.0) if rem > 1 else 0.0
+        base += (1.0 - p_kill) * p_bridge * admiral_bonus_vp(gs, target)
     if p_kill <= 0 and p_crip <= 0:
         return base
     threat = ship_threat_vp(target, gs)
@@ -622,8 +630,10 @@ def shot_vp(attacker: Ship, weapon: dict, target: Ship, gs, committed: float = 0
     crit_on = weapon.get("crit_on", 6)
     crit_extra = 0.0
     if crit_on < 6 and target.ship_type != "escort":
+        from .scenarios import admiral_crit_vp
         crit_extra = ((after - before) * ((7 - crit_on) / 6.0 - 1 / 6.0)
-                      * CRIT_VP_PER_HIT * value_per_hit(target, gs) * alive)
+                      * (CRIT_VP_PER_HIT * value_per_hit(target, gs)
+                         + admiral_crit_vp(gs, target)) * alive)
     return (damage_vp(target, gs, after) - damage_vp(target, gs, before)
             + shield_hits * value_per_hit(target, gs) * 0.1 * alive + crit_extra)
 

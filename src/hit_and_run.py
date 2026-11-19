@@ -413,6 +413,8 @@ def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int,
         value += armament_threat_value(target, ct, gs, owner, end_phases)
     elif ct == "bridge_smashed":
         value += ship_value(target, gs) * 0.1
+        from .scenarios import admiral_bonus_vp
+        value += admiral_bonus_vp(gs, target)       # Kill the Admiral: the admiral dies
     elif ct == "shields_collapse":
         value += ship_value(target, gs) * 0.15
     elif ct == "thrusters_damaged":

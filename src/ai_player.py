@@ -1933,7 +1933,14 @@ class AIPlayer:
         from .ai_hazards import position_exposure_hits, value_per_hit
         hits = position_exposure_hits(ship, x, y, h, self.gs)
         per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
-        return 0.5 * hits * max(1.0, value_per_hit(ship, self.gs)) / max(1.0, per_fp)
+        from .scenarios import admiral_bonus_vp, admiral_crit_vp
+        # Kill the Admiral: every hit on our flagship brings the lost game
+        # nearer (its share of the bonus), and each may crit the bridge
+        admiral = admiral_bonus_vp(self.gs, ship)
+        per_hit = max(1.0, value_per_hit(ship, self.gs))
+        if admiral:
+            per_hit += admiral / max(1, ship.hits_remaining) + admiral_crit_vp(self.gs, ship) / 6.0
+        return 0.5 * hits * per_hit / max(1.0, per_fp)
 
     def _simulate_final_pos(self, ship: Ship, turn_deg: float,
                             total_dist: float, turn_at: Optional[float] = None):
