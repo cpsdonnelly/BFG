@@ -2142,7 +2142,9 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
     # Armament crit types (in table order by roll value)
     ARMAMENT_CRITS = {"dorsal_armament", "starboard_armament",
                       "port_armament", "prow_armament", "keel_armament",
-                      "station_lances", "station_batteries", "station_bays"}
+                      "station_lances", "station_batteries", "station_bays",
+                      # Tyranids: thorax weapons; spore cysts on a ship with none
+                      "thorax_armament", "spores_injured", "spores_ruptured"}
     from .tables import crit_table_for
     table = crit_table_for(ship)
 

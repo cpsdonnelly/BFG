@@ -122,3 +122,28 @@ def test_crit_table_and_control_circuit_repair():
     assert t.leadership == 8 and t.critical_damage == []
     apply_crit_effects(t, DARK_ELDAR_CRITICAL_HITS[10], gs)
     assert "shadowfield" not in t.special_rules and shadowfield_need(t) is None
+
+
+def test_critical_hits_roll_on_the_dark_eldar_table_from_every_source():
+    from src.combat import roll_critical_hit
+    from src.hit_and_run import _apply_raid_crit
+    gs = make_gs([_de(weapons=[{"name": "Keel Phantom Lance", "weapon_type": "lance",
+                                "strength": 2, "range_cm": 30, "arcs": ["front"]}])])
+    s = gs.get_ship_by_id("de")
+    roll_critical_hit(s, DiceStub([5]), gs)                  # gunnery / ordnance crit: 5
+    assert s.critical_damage[-1]["crit_type"] == "graviton_harness"
+    _apply_raid_crit(6, s, gs, DiceStub([]))                 # raids and boarding crits: 6
+    assert s.critical_damage[-1]["crit_type"] == "bladevanes"
+
+
+def test_tyranid_thorax_and_spore_crits_cascade_when_they_cant_apply():
+    from src.combat import roll_critical_hit
+    k = make_ship(id="k", player=2, hits_max=6, turrets=0, special_rules=["tyranid"],
+                  weapons=[{"name": "Prow Pyro-Acid Battery", "weapon_type": "battery",
+                            "strength": 4, "range_cm": 30, "arcs": ["front"]}])
+    gs = make_gs([k])
+    s = gs.get_ship_by_id("k")
+    roll_critical_hit(s, DiceStub([2]), gs)        # spore cysts injured: none, cascades
+    assert s.critical_damage[-1]["crit_type"] == "prow_armament"   # 3, 4 have no weapons
+    roll_critical_hit(s, DiceStub([6]), gs)        # thorax: none, cascades to Deep Wound
+    assert s.critical_damage[-1]["crit_type"] == "fire"
