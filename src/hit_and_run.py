@@ -415,6 +415,9 @@ def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int,
         value += ship_value(target, gs) * 0.1
         from .scenarios import admiral_bonus_vp
         value += admiral_bonus_vp(gs, target)       # Kill the Admiral: the admiral dies
+    elif ct == "commanders_slain":
+        from .scenarios import admiral_bonus_vp
+        value += admiral_bonus_vp(gs, target)       # Kill the Admiral: Dark Eldar
     elif ct == "shields_collapse":
         value += ship_value(target, gs) * 0.15
     elif ct == "thrusters_damaged":

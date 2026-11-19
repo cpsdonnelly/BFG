@@ -40,3 +40,15 @@ def test_crits_count_and_bridge_smashed_ends_the_game():
     end = check_scenario_end(gs)
     assert end and end["winner"] == 1 and end["reason"] == "admiral_killed"
     assert admiral_bonus_vp(gs, gs.get_ship_by_id("f")) == 0    # already dead: no more value
+
+
+def test_dark_eldar_commanders_slain_kills_the_admiral():
+    de = make_ship(id="d", player=2, is_flagship=True, hits_max=8, points_value=200,
+                   special_rules=["dark_eldar", "shadowfield"])
+    gs = make_gs([de, make_ship(id="x", player=1)])
+    gs.scenario_mode = "kill_admiral"
+    assert abs(bridge_smashed_chance(de) - 4 / 36) < 1e-9        # 9 on the DE table
+    de.critical_damage = [{"crit_type": "commanders_slain"}]
+    gs.update_ship(de)
+    end = check_scenario_end(gs)
+    assert end and end["winner"] == 1

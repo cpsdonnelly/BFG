@@ -70,11 +70,12 @@ def check_scenario_end(gs: GameState) -> Optional[dict]:
             if ship.is_flagship and ship.is_destroyed:
                 return {"winner": 3 - ship.player,
                         "reason": "admiral_killed", "detail": ship.name}
-            # Owner ruling: a Bridge Smashed critical hit kills the admiral too
-            if ship.is_flagship and any(c.get("crit_type") == "bridge_smashed"
-                                        for c in ship.critical_damage):
+            # Owner rulings: a Bridge Smashed (or Dark Eldar Commanders Slain)
+            # critical hit kills the admiral too
+            from .scenarios import admiral_killed_by_crit
+            if ship.is_flagship and admiral_killed_by_crit(ship):
                 return {"winner": 3 - ship.player, "reason": "admiral_killed",
-                        "detail": f"{ship.name} (bridge smashed)"}
+                        "detail": f"{ship.name} (command crew killed)"}
 
     elif gs.scenario_mode in ("destroy_ship", "protect_ship"):
         if gs.objective_ship_id:

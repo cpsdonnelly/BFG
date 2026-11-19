@@ -1673,10 +1673,11 @@ Done: To do 2, 3, 6; most of 7.
    of its whole fleet's points (`scenarios.admiral_bonus_vp`, through `kill_bonus_vp`), so
    losing it costs more than the entire fleet and sinking the enemy's scores more than its
    whole fleet, in every AI value that reads the bonus (`damage_vp`, disengaging, lost ships);
-   owner ruling: a Bridge Smashed kills the admiral and ends the game
+   owner ruling: a Bridge Smashed (Dark Eldar: Commanders Slain, 9 on their table) kills the
+   admiral and ends the game
    (`scenario.check_scenario_end`), so `damage_vp` adds the chance the hull hits short of a
    kill crit the bridge (crits on 6, `bridge_smashed_chance` from the ship's own table:
-   4/36 on the standard one, none on tables without it), bombardment cannons' extra crits
+   4/36 on the standard and Dark Eldar tables, none on tables without either), bombardment cannons' extra crits
    (`shot_vp`) and raid results (`raid_result_value`) count it, and our flagship's exposure
    in the move score carries its share of the bonus per hit (`_exposure_penalty`).
    `tools/headless_runner.py --scenario kill_admiral` plays it (`tests/test_kill_admiral_ai.py`).
