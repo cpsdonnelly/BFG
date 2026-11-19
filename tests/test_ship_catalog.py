@@ -172,8 +172,10 @@ def test_every_playable_ship_has_complete_stats():
             assert e.hits_max > 0, e.ship_class
             assert e.armor_prow.endswith("+") and e.armor_side.endswith("+"), e.ship_class
             # unarmed convoy ships (Fast Clipper) carry cargo, not guns
-            assert e.weapons or any(r.startswith("transport:") for r in e.special_rules), \
-                e.ship_class
+            # Tyranid escorts choose their one weapon in the fleet builder
+            assert e.weapons or any(r.startswith("transport:") for r in e.special_rules) \
+                or any(r.startswith("tyranid_slot:weapon") for u in e.upgrades_available
+                       for r in u.restrictions), e.ship_class
 
 
 # ── Leadership and upgrades ──────────────────────────────────────────────────

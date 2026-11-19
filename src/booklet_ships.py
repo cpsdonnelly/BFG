@@ -44,8 +44,7 @@ UNBUILT_FACTION_RULES = {
     # Necrons are playable too (src/necrons.py); the ground defences and Deathseed
     # mines stay unsupported for their own reasons (no movement / profile)
     # Dark Eldar are playable too (src/dark_eldar.py; gaps in CLAUDE.md To do 19)
-    "Tyranids": "Tyranid faction rules (Instinctive Behaviour, synapse, spore clouds, "
-                "weapon configurations...) not built yet",
+    # Tyranids are playable too (src/tyranids.py; gaps in CLAUDE.md To do 19)
 }
 
 # Convoy ships whose capacity is in their faction's special rule, not their

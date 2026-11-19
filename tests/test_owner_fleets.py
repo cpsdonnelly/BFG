@@ -11,7 +11,9 @@ from src.ship_catalog import find_ship_class, get_upgrades_for_ship
 
 FLEETS = {"owner_chaos_1000.json": 1000, "owner_gothic_1000.json": 1000,
           "owner_bakka_1000.json": 1000, "owner_tau_merchant_1000.json": 990,
-          "owner_space_marines_1000.json": 1000, "owner_mechanicus_1000.json": 990}
+          "owner_space_marines_1000.json": 1000, "owner_mechanicus_1000.json": 990,
+          "owner_dark_eldar_1000.json": 990, "owner_tyranid_gestating_990.json": 990,
+          "owner_tyranid_vanguard_1000.json": 1000, "owner_tyranid_hive_980.json": 980}
 DIR = os.path.join(os.path.dirname(__file__), "..", "data", "fleets")
 
 
@@ -21,7 +23,8 @@ def test_owner_fleet_files_load_with_their_totals(fname, total):
     assert data["total_points"] == total
     ships = fleet_to_ships(data, 1)
     assert len({s.id for s in ships}) == len(ships)          # builder files have no ids
-    assert sum(s.is_flagship for s in ships) == 1
+    # a Tyranid Vanguard fleet has no hive ship to lead it
+    assert sum(s.is_flagship for s in ships) == (0 if "vanguard" in fname else 1)
 
 
 def test_builder_saved_fleets_get_stable_ids_and_auto_deploy():

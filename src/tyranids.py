@@ -1091,3 +1091,106 @@ def may_fire_at_ordnance(gs, attacker, marker) -> bool:
                 math.hypot(s.x - marker.x, s.y - marker.y) <= 15.0 + 1e-9:
             return True
     return False
+
+
+# ── Contact weapons (Xenos p.106), slice 3 ─────────────────────────────────────
+
+def _in_contact(a, b) -> bool:
+    return a.distance_to(b) <= a.base_radius + b.base_radius + 0.05
+
+
+def contact_weapons(ship) -> List[Dict]:
+    return [w for w in ship.weapons
+            if w.get("weapon_type") in ("feeder_tendrils", "massive_claws")]
+
+
+def contact_attacks(gs, dice, ship_id: str, log=None) -> List[Dict]:
+    """After a Tyranid ship moves: its feeder tendrils and massive claws must
+    attack an enemy vessel it is in base contact with (reading: at the end of
+    the move; the nearest such enemy). Each weapon once a turn, never while
+    the ship is crippled, unaffected by special orders. Tendrils: a roll per
+    point against the target's lowest Armour, each hit 1 damage ignoring
+    shields + D3 hit-and-run raids, no normal critical hits. Claws: 4+ a point
+    (misses re-rolled when ramming), 1 damage a hit ignoring shields; two hits
+    on a surviving target grapple it (recorded; the grapple's movement rules
+    aren't built). Brace saves the damage and the raids as normal. An
+    instinct "board" action then declares its boarding action (if boarding is
+    on). Returns what happened."""
+    from .combat import apply_damage
+    from .hit_and_run import resolve_raids
+    from .models import SpecialOrder as SO
+    log = log or gs.add_log
+    ship = gs.get_ship_by_id(ship_id)
+    out: List[Dict] = []
+    if ship is None or not is_tyranid(ship) or ship.status != "active":
+        return out
+    foes = [s for s in gs.get_ships() if s.player != ship.player and s.status == "active"
+            and not s.is_disengaged and _in_contact(ship, s)]
+    if not foes:
+        return out
+    target = min(foes, key=lambda s: (ship.distance_to(s), s.id))
+    mine = _state(gs, ship.player)
+    used = set(mine.get("contact_used", []))
+    if not ship.is_crippled:
+        for idx, w in enumerate(ship.weapons):
+            key = f"{ship.id}:{idx}"
+            if w.get("weapon_type") not in ("feeder_tendrils", "massive_claws") or key in used:
+                continue
+            from .combat import weapon_disabled_by_crit
+            if weapon_disabled_by_crit(ship, w):
+                continue
+            used.add(key)
+            target = gs.get_ship_by_id(target.id)
+            if target is None or target.status != "active":
+                break
+            n = int(w.get("strength", 0))
+            braced = target.special_order == SO.BRACE_FOR_IMPACT.value
+            if w["weapon_type"] == "feeder_tendrils":
+                need = min(int(str(a).rstrip("+") or 6) for a in
+                           (target.armor_prow, target.armor_side, target.armor_rear) if a)
+                rolls = dice.roll_d6(n, f"{ship.name} feeder tendrils vs {target.name} ({need}+)")
+                hits = sum(1 for r in rolls if r >= need)
+            else:
+                need = 4
+                rolls = dice.roll_d6(n, f"{ship.name} massive claws vs {target.name} (4+)")
+                hits = sum(1 for r in rolls if r >= need)
+                if getattr(ship, "ramming_target_id", "") == target.id and hits < n:
+                    again = dice.roll_d6(n - hits, f"{ship.name} massive claws re-roll (ramming)")
+                    hits += sum(1 for r in again if r >= need)
+            rec = {"weapon": w["name"], "target": target.id, "hits": hits}
+            log(f"{ship.name}: {w['name']} attack {target.name}: {hits} hit(s)")
+            if hits:
+                apply_damage(target, hits, dice, gs, ignores_shields=True, target_braced=braced,
+                             attacker_key=ship.id,
+                             no_crits=w["weapon_type"] == "feeder_tendrils")
+                target = gs.get_ship_by_id(target.id)
+                if w["weapon_type"] == "feeder_tendrils" and target is not None \
+                        and target.status == "active" and target.hits_remaining > 0:
+                    raids = sum(dice.roll_d3(f"{ship.name} feeder tendril raids (D3)")
+                                for _ in range(hits))
+                    rec["raids"] = raids
+                    resolve_raids(raids, target, braced, dice, gs, source_name="Feeder tendrils",
+                                  attacker_rules=list(ship.special_rules))
+                    target = gs.get_ship_by_id(target.id)
+                if w["weapon_type"] == "massive_claws" and hits >= 2 and target is not None \
+                        and target.hits_remaining > 0:
+                    grapples = dict(mine.get("grapples", {}))
+                    grapples[ship.id] = target.id
+                    mine["grapples"] = grapples
+                    rec["grapple"] = True
+                    log(f"  {ship.name} grapples {target.name}")
+            if target is not None and target.hits_remaining <= 0 and target.status == "active":
+                from .actions import resolve_kill
+                resolve_kill(gs, dice, target.id, log)
+            out.append(rec)
+    mine["contact_used"] = sorted(used)
+    _save(gs, ship.player, mine)
+    act = instinct_of(gs, ship)
+    target = gs.get_ship_by_id(target.id)
+    if (act and act.get("action") == "board" and getattr(gs, "rule_boarding", False)
+            and target is not None and target.status == "active" and not ship.has_boarded):
+        from .actions import declare_boarding
+        declare_boarding(gs, ship.id, target.id)
+        log(f"{ship.name} declares a boarding action against {target.name} (Instinctive "
+            f"Behaviour)")
+    return out

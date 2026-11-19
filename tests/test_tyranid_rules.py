@@ -96,3 +96,26 @@ def test_boarding_raids_and_navigation():
     other = make_ship(id="o", player=1)
     assert raid_modifier(["tyranid"], other) == 1
     assert raid_modifier([], t) == -1
+
+
+def test_feeder_tendrils_and_claws_on_contact():
+    from src.tyranids import contact_attacks
+    tyr = make_ship(id="ty", player=1, x=0.0, y=0.0, hits_max=6, special_rules=["tyranid"],
+                    weapons=[{"name": "Prow Feeder Tendrils", "weapon_type": "feeder_tendrils",
+                              "strength": 2, "range_cm": 0, "arcs": []},
+                             {"name": "Prow Massive Claws", "weapon_type": "massive_claws",
+                              "strength": 2, "range_cm": 0, "arcs": []}])
+    foe = make_ship(id="f", player=2, x=0.0, y=1.0, hits_max=8, shields_max=2,
+                    armor_prow="6+", armor_side="5+", armor_rear="4+")
+    gs = make_gs([tyr, foe])
+    rolls = [4, 2,        # tendrils vs the lowest Armour 4+: one hit (no shields, no crit)
+             1,           # D3 raids: 1
+             1,           # the raid roll (1 +1 Tyranid: a result of 2)
+             5, 6,        # claws: two hits, a grapple
+             1, 2]        # their crit checks
+    dice = DiceStub(rolls)
+    out = contact_attacks(gs, dice, "ty")
+    assert dice._idx == len(rolls)
+    assert gs.get_ship_by_id("f").hits_remaining <= 5      # 3 damage, plus the raid's result
+    assert out[0]["raids"] == 1 and out[1].get("grapple") and gs.tyranid_state["1"]["grapples"] == {"ty": "f"}
+    assert contact_attacks(gs, DiceStub([]), "ty") == []       # once a turn

@@ -1071,7 +1071,8 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  auto_crit: bool = False,
                  rolled_to_hit: bool = True,
                  bypass_hits: int = 0,
-                 gunnery: bool = False) -> Dict:
+                 gunnery: bool = False,
+                 no_crits: bool = False) -> Dict:
     """
     Apply hits to a ship, handling shields, damage, crits. auto_crit: every
     hull hit is a critical hit, with no D6 check (vortex torpedoes).
@@ -1204,6 +1205,8 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                 summary["destroyed"] = True
                 break
 
+            if no_crits:
+                continue                   # Tyranid feeder tendrils: no normal crits
             # Critical hit check: D6 per hull hit, 6 = crit (crit_on 4 for
             # bombardment cannons and killkannons)
             if auto_crit:

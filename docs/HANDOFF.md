@@ -33,7 +33,9 @@ Finished (playable for humans and the AI, IGOUGO and alternate activation):
 
 Needs more work (next first):
 00. Owner's latest task: make the other factions playable. STATUS: Dark Eldar done and
-   playable (details below); next Tyranids, then the owner fleets' gaps. Open problems: the
+   playable (details below); Tyranids playable too (slices 1-3, `src/tyranids.py`, the
+   owner's three Tyranid fleets as files; gaps and readings in CLAUDE.md To do 19's Tyranid
+   plan); next the owner fleets' gaps (Tau Protector, Orks, Necrons, Eldar). Open problems: the
    AI's Dark Eldar play (backs off until it leaves the table), torpedo salvo combining, the
    contact bonus priced by its gain, AI squadron forming (To do 28). Dark Eldar (0 / 7 ships
    playable) first, then Tyranids (0 / 9), then the catalog gaps blocking the owner's other

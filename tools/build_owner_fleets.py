@@ -67,6 +67,31 @@ FLEETS = [
           "torp_raiders")] * 4
       + [("Subjugation Class Raider", ["Kabal Variant: Weapons battery FP3"], False,
           "gun_raiders")] * 5),
+    ("owner_tyranid_gestating_990.json", "Tyranid Gestating 990", "Tyranid", "tyranid_gestating",
+     [("Scylla Strain Bio-Cruiser w/ Synapse Node",
+       ["Prow: Pyro-acid Battery", "Thorax: Pyro-acid Battery",
+        "Port / Starboard: Launch Glands x2", "Phage mines (glands S4)"], i == 0, "")
+      for i in range(2)]
+     + [("Tyranid Bio-Cruiser (Guardian)", ["Thorax: Pyro-acid Battery",
+                                            "Port / Starboard: Launch Glands"], False, "")] * 2
+     + [("Tyranid Bio-Cruiser (Guardian)", ["Thorax: Excretion Ducts",
+                                            "Port / Starboard: Launch Glands"], False, ""),
+        ("Tyranid Bio-Cruiser (Carnivore)", ["Prow: Massive Claws", "Thorax: Bio-plasma Spines",
+                                             "Thorax: Pyro-acid Battery"], False, "")]
+     + [("Escort Drone", ["Weapon: Pyro-acid Battery"], False, "drones_a")] * 5
+     + [("Escort Drone", ["Weapon: Pyro-acid Battery"], False, "drones_b")] * 5),
+    ("owner_tyranid_vanguard_1000.json", "Tyranid Vanguard 1000", "Tyranid", "tyranid_vanguard",
+     [("Tyranid Bio-Cruiser (Prowler)", ["Prow: Pyro-acid Battery", "Thorax: Pyro-acid Battery"],
+       False, f"prowlers_{i // 3}") for i in range(8)]
+     + [("Tyranid Bio-Cruiser (Prowler)", ["Prow: Pyro-acid Battery", "Thorax: Pyro-acid Battery",
+                                           "Biomorph: Extra Discharge Vents"], False, "prowlers_2")]),
+    ("owner_tyranid_hive_980.json", "Tyranid Hive Fleet 980", "Tyranid", "tyranid_hive",
+     [("Charybdis Class Hive Ship", ["Prow: Excretion Ducts", "Thorax: Launch Glands",
+                                     "Port / Starboard: Launch Glands x3",
+                                     "Biomorph: Reinforced Carapace"], i == 0, "") for i in range(2)]
+     + [("Kraken", ["Weapon: Excretion Ducts"], False, "kraken")] * 4
+     + [("Escort Drone", ["Weapon: Pyro-acid Battery"], False, "drones_a")] * 6
+     + [("Escort Drone", ["Weapon: Pyro-acid Battery"], False, "drones_b")] * 6),
 ]
 
 # Owner's lists (all 1000pt or under). Mechanicus Gifts: the owner rolls them on the table
@@ -75,7 +100,7 @@ FLEETS = [
 GAPS = ["Tau Protector (Emissary options: ion cannons for hooks, mine launchers, deflector)",
         "Orks (kustom force field, the Onslaught's zzapp gun swap, looted vessels)",
         "Necrons (Dynasty upgrades: Cartouche, Khopesh, War, nightmare field, Bloodswarm)",
-        "Eldar (commanders and fleet lists)", "Tyranids (To do 19)"]
+        "Eldar (commanders and fleet lists)"]
 
 
 def build(root, spec, out_dir):

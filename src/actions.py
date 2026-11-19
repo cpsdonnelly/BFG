@@ -57,7 +57,11 @@ def apply_move(gs, dice, ship, result: MovementResult, commands, on_aaf: bool,
         resolve_post_move_terrain(gs, ship.id, dice, on_aaf, log=log)
     from .dark_eldar import superstructure_strain
     superstructure_strain(gs, dice, ship.id, commands)
-    return record_staged_move(gs, ship.id, result, list(commands or []))
+    staged = record_staged_move(gs, ship.id, result, list(commands or []))
+    from .tyranids import contact_attacks
+    if contact_attacks(gs, dice, ship.id, log):          # Tyranid tendrils / claws
+        staged = gs.get_ship_by_id(ship.id) or staged
+    return staged
 
 
 def commands_from(data) -> list:

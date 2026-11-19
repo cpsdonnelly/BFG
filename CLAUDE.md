@@ -574,7 +574,7 @@ ordnance sweep 5250 cases pass):
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.
-- Next (owner order): Tyranids (To do 19; slice 1, the catalog, built), then the other owner fleets' gaps (Tau Protector,
+- Next (owner order): Tyranids (To do 19; playable now, slices 1-3 built, gaps listed there), then the other owner fleets' gaps (Tau Protector,
   Orks, Necrons, Eldar; To do 25).
 
 Earlier work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
@@ -2787,7 +2787,26 @@ Done: To do 2, 3, 6; most of 7.
    `_enforce_target_priority`, `FireVolley._check_target_priority`); ordnance only when
    highlighted (`may_fire_at_ordnance`). Not yet: the AI valuing which units to control
    (dearest first) and planning with instinct in its move values, boarding declared after
-   a "board" move (contact weapons, slice 3), Living Barrier, Psychic Scream:
+   a "board" move (contact weapons, slice 3), Living Barrier, Psychic Scream. Slice 3
+   (first part) BUILT: contact weapons (`tyranids.contact_attacks`, after every move in
+   `actions.apply_move`: the nearest enemy in base contact at the end of the move, reading;
+   tendrils a roll a point against its lowest Armour, 1 damage + D3 raids a hit, shields
+   ignored, no normal crits (`apply_damage(no_crits=)`); claws 4+, misses re-rolled when
+   ramming, two hits record a grapple; once a turn, not crippled; Brace saves; an instinct
+   "board" then declares boarding when the rule is on). Tyranids are PLAYABLE (off
+   `UNBUILT_FACTION_RULES`; the Infested Space Station, Spore Field and Orbital Defence
+   Spores stay unsupported for their own reasons); the owner's three fleets are files
+   (`data/fleets/owner_tyranid_gestating_990.json`, `_vanguard_1000`, `_hive_980`, through
+   `tools/build_owner_fleets.py`, all valid at his totals) and each played an AI-vs-AI game
+   to game over against the Gothic fleet (Hive won 515-100, Gestating lost 80-207, Vanguard
+   lost 113-225). Still open (slice 3 / 4): grappling's movement and squadron rules,
+   phage mines (each hull hit a Fire), the launch-gland double attack craft limit, Living
+   Barrier, Slow Gestation, the Proteus's ponderous rules (no CtNH, done via `ponderous`;
+   Charybdis CtNH with both biomorphs), Massive Haemorrhage's spray, the Tyranid
+   Catastrophic Damage table, scenario rules (Cruiser Clash, Convoy attacker, Planetary
+   Assault capacity, Escalating +1, Exterminatus defender), the biomorph effects left as
+   rules, ordnance swarms, and the AI's Tyranid play (control choices by value, instinct in
+   its move values, contact weapons in the move score):
    1. Catalog and fleet building: `booklet_ships.convert_row` gives Tyranid ships `tyranid`,
       no Ld roll (synapse creatures' fixed Ld: Proteus 10 / 60cm, Charybdis 8 / 45cm, a Scylla
       minor synapse node +5pts Ld 7 / 30cm; others none), spore cysts as turrets, no shields;
