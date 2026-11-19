@@ -634,7 +634,9 @@ class AIPlayer:
         if ship.must_flee:                 # failed a forced disengage test
             commands = self._plan_flee(ship, order, aaf_bonus)
         else:
-            commands = None
+            # Tyranid Instinctive Behaviour: the move its action prescribes
+            from .tyranids import instinct_commands
+            commands = instinct_commands(gs, ship, order, aaf_bonus)
         if commands is None and enemy is not None:
             # Coordination pass (To do 11 a): plan against where the ships still
             # to move are planned to end, not where they stand
@@ -2152,6 +2154,9 @@ class AIPlayer:
         pass chance p is tried only if p x g beats (1 - p) x the expected gain
         of the later ships' orders (planned at the start of the phase,
         `_order_plan`)."""
+        from .tyranids import order_rule
+        if order_rule(self.gs, ship, "lock_on")[0] == "deny":
+            return None       # Tyranid on Instinctive Behaviour: its order is set already
         order = self._pick_special_order(ship)
         plan = getattr(self, "_order_plan", None)
         if order is None or not plan or ship.id not in plan.get("seq", []):
@@ -2699,8 +2704,9 @@ class AIPlayer:
                 flushed = True
                 self._fire_battery_groups(ship, battery_plans, lock_on, phenomena)
                 ship = gs.get_ship_by_id(ship.id)
-            if wtype in ("torpedo", "launch_bay", "mine_launcher") or w_idx in siege_done:
-                continue
+            if wtype in ("torpedo", "launch_bay", "mine_launcher", "feeder_tendrils",
+                         "massive_claws") or w_idx in siege_done:
+                continue                        # Tyranid contact weapons attack on contact
             if weapon_disabled_by_crit(ship, weapon):
                 continue                        # armament critical hit
             if (ship.id, w_idx) in getattr(self, "_volley_fired", set()):
@@ -2725,6 +2731,10 @@ class AIPlayer:
 
             # Shoot an incoming mine / salvo / wave instead, when that's worth more
             ordshot = self._ordnance_shot(ship, weapon, w_idx) if self.difficulty != "easy" else None
+            if ordshot:
+                from .tyranids import may_fire_at_ordnance
+                if not may_fire_at_ordnance(gs, ship, ordshot["marker"]):
+                    ordshot = None              # Tyranids: highlighted ordnance only
             if ordshot:
                 m = ordshot["marker"]
                 res = actions.fire_at_marker(gs, self.dice, ship.id, w_idx, m.id, ordshot["avail"])
@@ -3160,6 +3170,13 @@ class AIPlayer:
         the result stands). A closer hulk may be fired on without a test (s.34).
         Same rule as the player's Fire dialog (`_check_target_priority`)."""
         gs = self.gs
+        if "tyranid" in ship.special_rules:
+            # Tyranids (Xenos p.105): the closest enemy ship in range and arc or a
+            # highlighted target; no target priority test needed or allowed
+            from .tyranids import highlighted
+            if highlighted(gs, ship, wanted) or not valid:
+                return wanted
+            return min(valid, key=lambda v: (ship.distance_to(v), v.id))
         visible = sorted((e for e in self._live_enemies() if e.status == "active"
                           and check_los_clear(ship, e, gs.get_phenomena(),
                                               gs.get_blast_markers(), gs.ships).get("clear", True)),

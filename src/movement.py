@@ -708,6 +708,10 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
                 ship.leadership = fresh.leadership
     from .subplots import leadership as _sp_ld
     ld = _sp_ld(gs, ship)            # Fleet Experience / Blood Bond
+    if gs is not None and order == SpecialOrder.BRACE_FOR_IMPACT.value \
+            and "tyranid" in ship.special_rules:
+        from .tyranids import brace_ld
+        ld = brace_ld(gs, ship)      # nearest synapse creature in range, else 7
     mods = []
     if gs is not None and _sirens_summon(ship, gs):
         # Siren's Summon (Pleasure Fleet of Slaanesh): no special orders or

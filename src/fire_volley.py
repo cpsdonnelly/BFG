@@ -103,6 +103,26 @@ class FireVolley:
 
     def _check_target_priority(self, weapon, target):
         """Enforce target priority; returns the ship that must actually be fired at."""
+        if "tyranid" in self.attacker.special_rules:
+            # Tyranids (Xenos p.105): the closest enemy ship in range and arc, or
+            # one highlighted by Pheromone Sprayers; no target priority test
+            from .tyranids import highlighted
+            if highlighted(self.ctx.gs, self.attacker, target):
+                return target
+            rng = weapon_range(self.attacker, weapon) or 999
+            cands = [s for s in self.ctx.gs.get_ships() if s.player != self.attacker.player
+                     and s.status == "active" and not s.is_disengaged
+                     and self.attacker.distance_to(s) <= rng
+                     and (self.attacker.get_target_arc(s.x, s.y).value in weapon.get("arcs", [])
+                          or not weapon.get("arcs"))]
+            if not cands:
+                return target
+            near = min(cands, key=lambda c: (self.attacker.distance_to(c), c.id))
+            if self.attacker.distance_to(target) > self.attacker.distance_to(near) + 1e-6:
+                self._log(f"  {self.attacker.name} (Tyranid) must fire at the closest enemy "
+                          f"ship, {near.name}")
+                return near
+            return target
         cv = self.closest_visible
         from .subplots import punitive_target
         pt = punitive_target(self.ctx.gs, self.attacker,

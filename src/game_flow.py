@@ -45,6 +45,7 @@ class GameFlow(AAPanelMixin):
         tc.gs.brace_hook = self._brace_hook
         tc.gs.raid_reroll_hook = self._raid_reroll_hook
         tc.gs.slave_hook = self._slave_hook
+        tc.gs.synapse_hook = self._synapse_hook
         tc.gs.ld_reroll_hook = self._ld_reroll_hook
         tc.gs.undivided_hook = self._undivided_hook
         tc.gs.crit_reroll_hook = self._crit_reroll_hook
@@ -230,6 +231,28 @@ class GameFlow(AAPanelMixin):
             f"Your {what} reaches {target.name}. Take slaves ({gain}) instead of "
             f"resolving the attack? A braced target still saves on 4+.",
             [("Take slaves", True), ("Attack", False)], best)
+
+    def _synapse_hook(self, creature, candidates):
+        """GameState.synapse_hook (Tyranids, Xenos p.104): which unit the
+        synapse creature tries to control next, or None to stop (a Vanguard
+        fleet: whether this unit tests to ignore its instinct). A human player
+        is asked, with "Auto" the default order; the AI uses the default."""
+        import threading
+        from .tyranids import default_control_order, unit_of
+        gs = self.ctx.gs
+        best = default_control_order(gs, creature, candidates)
+        if (threading.current_thread() is not threading.main_thread()
+                or gs.ai_spectator or (gs.ai_player is not None
+                                       and creature.player == gs.ai_player)):
+            return best
+        opts = [(f"{c.name}" + (f" (squadron of {len(unit_of(gs, c))})"
+                                if len(unit_of(gs, c)) > 1 else ""), c.id) for c in candidates]
+        opts.append(("Stop (no more attempts)", None))
+        pick = self.ctx.prompt.choose(
+            "Synaptic control", f"{creature.name}: which unit should it try to control next? "
+            f"A failed command check ends its synaptic control this turn; uncontrolled units "
+            f"act on Instinctive Behaviour.", opts, best.id if best else None)
+        return next((c for c in candidates if c.id == pick), None)
 
     def _is_ai_turn(self) -> bool:
         gs = self.ctx.gs

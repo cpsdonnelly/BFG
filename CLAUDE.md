@@ -2765,7 +2765,29 @@ Done: To do 2, 3, 6; most of 7.
    Catastrophic Damage table, enemy ships in contact treating a spore cloud base as a blast
    marker, Mucous Membrane / Vanguard Link / Tenacity / Psychic Scream / Accelerated
    Healing effects, the AI's boarding value with 2D6. Every Tyranid ship stays unsupported
-   until slice 2b (synapse and Instinctive Behaviour) and slice 3's contact weapons:
+   until slice 3's contact weapons. Slice 2b BUILT (`tests/test_tyranid_synapse.py`):
+   `tyranids.start_turn` before the Tyranid player moves (IGOUGO `begin_phase("movement")`,
+   AA round start): each synapse creature (Ld / range from `synapse:<ld>:<range>`, none with
+   Synapse Link Severed) tries command checks on units in range, itself included, until one
+   fails (`GameState.synapse_hook`: a human picks with "Auto" = dearest unit first; AI the
+   same); a Vanguard fleet (no synapse creatures, reading: ships don't carry their list)
+   tests each unit's own Ld (`unit_ld`: escorts = squadron size 6-10, Prowlers 7 +1 per other
+   Prowler). Then every uncontrolled non-synapse unit gets its Instinctive Behaviour action
+   (`instinct`: hazard ahead Burn Retros, nearest enemy in front under 15cm board (not with
+   bio-plasma), over 60cm AAF, escorts with it in the rear CtNH, a front target for
+   bio-weapons Lock On, Reload, else close on a planet / synapse creature or half speed
+   straight); its order is set with no check (`GameState.tyranid_state`). Orders
+   (`order_rule` in `TurnController.issue_special_order` / `issue_squadron_order`):
+   controlled units take any order automatically, others only their instinct order, synapse
+   creatures need control; Brace on the nearest synapse creature's Ld in range else 7
+   (`brace_ld` in `do_command_check`). Moves: the AI flies the prescribed move
+   (`instinct_commands`); a human's move dialogs check it (`instinct_move_errors`, through
+   `disengage.flee_move_errors`). Shooting: the closest enemy ship in range and arc or a
+   target within 15cm of a Pheromone Sprayer, no target priority test (AI
+   `_enforce_target_priority`, `FireVolley._check_target_priority`); ordnance only when
+   highlighted (`may_fire_at_ordnance`). Not yet: the AI valuing which units to control
+   (dearest first) and planning with instinct in its move values, boarding declared after
+   a "board" move (contact weapons, slice 3), Living Barrier, Psychic Scream:
    1. Catalog and fleet building: `booklet_ships.convert_row` gives Tyranid ships `tyranid`,
       no Ld roll (synapse creatures' fixed Ld: Proteus 10 / 60cm, Charybdis 8 / 45cm, a Scylla
       minor synapse node +5pts Ld 7 / 30cm; others none), spore cysts as turrets, no shields;

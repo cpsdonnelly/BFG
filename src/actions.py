@@ -542,6 +542,12 @@ def fire_volley(panel, ship_id: str, orders, together: bool = False, log=None,
 
 @recorder.logged("act_shoot_ordnance", lambda r, A: (A["gs"], dict(
     ship=A["ship_id"], weapon=A["w_idx"], marker=A["marker_id"], closest=A["closest_id"])))
+class _Pt:
+    """A stored ordnance dict read as a point."""
+    def __init__(self, d):
+        self.x, self.y = d["x"], d["y"]
+
+
 def shoot_ordnance(gs, dice, ship_id: str, w_idx: int, marker_id: str, closest_id: str,
                    log=None) -> dict:
     """A player's "Fire at Ordnance" (s.30): range, the ordnance-only target
@@ -565,6 +571,10 @@ def shoot_ordnance(gs, dice, ship_id: str, w_idx: int, marker_id: str, closest_i
     if dist > (weapon_range(attacker, weapon) or 999):
         return {"title": "Out of Range",
                 "error": f"Target at {dist:.0f}cm, weapon range {weapon['range_cm']}cm"}
+    from .tyranids import may_fire_at_ordnance
+    if not may_fire_at_ordnance(gs, attacker, _Pt(marker)):
+        return {"title": "Tyranid shooting",
+                "error": "Tyranids may only fire at ordnance highlighted by Pheromone Sprayers"}
     if marker_id != closest_id:
         check = do_command_check(attacker, "target_priority", dice, gs=gs)
         if not check["passed"] and fleet_reroll_offered(

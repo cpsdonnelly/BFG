@@ -49,6 +49,9 @@ class GameState:
     # Dark Eldar slave-taking VP (Xenos p.4), {"<player>": VP}; added to the
     # score by victory_points
     slave_vp: Dict = field(default_factory=dict)
+    # Tyranid synaptic control / Instinctive Behaviour this turn, per player
+    # (src/tyranids.py)
+    tyranid_state: Dict = field(default_factory=dict)
     # A human Dark Eldar player's slave-taking choice: hook(player, target,
     # what, best) -> True / False / None (None: the expected-value choice, best)
     slave_hook = None

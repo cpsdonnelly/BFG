@@ -586,3 +586,508 @@ def fleet_errors(kind: str, rows: List[Dict], fleet_points: int) -> List[str]:
         if esc > need + extra:
             errors.append(f"Escorts: {esc} (Kraken count two), at most {need + extra}.")
     return errors
+
+
+# ── Synapse and Instinctive Behaviour (Xenos p.104-105), slice 2b ──────────────
+#
+# Turn state lives in GameState.tyranid_state[str(player)]:
+#   {"turn": turn key, "controlled": [ship ids], "failed": [creature ids],
+#    "instinct": {ship id: {"action", "order", "target"}}}
+
+def synapse(ship) -> Optional[Tuple[int, float]]:
+    """(Ld, range) of a synapse creature that can use synaptic control now:
+    not destroyed or a hulk, not with its synapse link severed."""
+    for r in getattr(ship, "special_rules", None) or []:
+        if r.startswith("synapse:"):
+            if ship.status != "active" or any(
+                    c.get("crit_type") == "synapse_severed" for c in ship.critical_damage):
+                return None
+            _t, ld, rng = r.split(":")
+            return int(ld), float(rng)
+    return None
+
+
+def is_synapse_creature(ship) -> bool:
+    return any(r.startswith("synapse:") for r in (getattr(ship, "special_rules", None) or []))
+
+
+def is_tyranid(ship) -> bool:
+    return "tyranid" in (getattr(ship, "special_rules", None) or [])
+
+
+def _live(gs, player):
+    return [s for s in gs.player_ships(player) if s.status == "active" and not s.is_disengaged]
+
+
+def unit_of(gs, ship) -> List:
+    """A ship's unit: its squadron's members in play, or the ship alone."""
+    if not ship.squadron_id:
+        return [ship]
+    mates = [s for s in _live(gs, ship.player) if s.squadron_id == ship.squadron_id]
+    return mates or [ship]
+
+
+def creatures(gs, player) -> List:
+    return [s for s in _live(gs, player) if synapse(s)]
+
+
+def vanguard_fleet(gs, player) -> bool:
+    """A Tyranid fleet with no synapse creatures (the Vanguard Fleet list;
+    reading: ships don't carry their list, so a fleet without synapse
+    creatures is played as one): every ship or squadron may try a command
+    check of its own to ignore Instinctive Behaviour."""
+    own = [s for s in gs.player_ships(player) if is_tyranid(s)]
+    return bool(own) and not any(is_synapse_creature(s) for s in own)
+
+
+def unit_ld(gs, ship) -> int:
+    """A Vanguard fleet's Leadership: Prowlers Ld7 +1 per other Prowler in
+    their squadron (max 10), escort squadrons Ld = surviving ships (Kraken two,
+    min 6, max 10). Otherwise the ship's own Ld."""
+    unit = unit_of(gs, ship)
+    if vanguard_fleet(gs, ship.player):
+        if ship.ship_type == "escort":
+            n = sum(2 if s.ship_class == "Kraken" else 1 for s in unit)
+            return max(6, min(10, n))
+        if "pheromone_sprayers" in ship.special_rules and ship.ship_type != "escort":
+            others = sum(1 for s in unit if s.id != ship.id and "pheromone_sprayers" in s.special_rules)
+            return min(10, 7 + others)
+    return ship.leadership
+
+
+def _state(gs, player) -> Dict:
+    st = dict(getattr(gs, "tyranid_state", None) or {})
+    mine = st.get(str(player)) or {}
+    key = f"{gs.turn_number}:{player}"
+    if mine.get("turn") != key:
+        mine = {"turn": key, "controlled": [], "failed": [], "instinct": {}}
+        st[str(player)] = mine
+        gs.tyranid_state = st
+    return mine
+
+
+def _save(gs, player, mine) -> None:
+    st = dict(getattr(gs, "tyranid_state", None) or {})
+    st[str(player)] = mine
+    gs.tyranid_state = st
+
+
+def controlled(gs, ship) -> bool:
+    return ship.id in _state(gs, ship.player)["controlled"]
+
+
+def in_range(creature, ship) -> bool:
+    syn = synapse(creature)
+    return bool(syn) and creature.distance_to(ship) <= syn[1] + 1e-9
+
+
+def control_candidates(gs, creature) -> List:
+    """Units (their lead ship) the creature may still try to control: any of
+    their ships within its synapse range (itself included), not yet controlled
+    this turn, not with a severed synapse link, Tyranid."""
+    mine = _state(gs, creature.player)
+    if creature.id in mine["failed"] or not synapse(creature):
+        return []
+    out, seen = [], set()
+    for s in _live(gs, creature.player):
+        if not is_tyranid(s) or s.id in mine["controlled"]:
+            continue
+        unit = unit_of(gs, s)
+        key = s.squadron_id or s.id
+        if key in seen:
+            continue
+        if any(c.get("crit_type") == "synapse_severed" for u in unit for c in u.critical_damage):
+            continue                       # "cannot use or benefit from synaptic control"
+        if any(in_range(creature, u) for u in unit):
+            seen.add(key)
+            out.append(unit[0])
+    return out
+
+
+def try_control(gs, dice, creature, target) -> bool:
+    """One synaptic control attempt: a command check on the creature's Ld
+    (its own modifiers). Passed: the target's unit ignores Instinctive
+    Behaviour this turn and may take any order without a second check.
+    Failed: this creature's attempts end for the turn."""
+    from .movement import do_command_check
+    from .geometry import count_blast_markers_touching
+    mine = _state(gs, creature.player)
+    enemy_orders = any(s.special_order not in ("none", "") for s in gs.get_ships()
+                       if s.player != creature.player and s.status == "active")
+    in_blast = count_blast_markers_touching(creature, gs.get_blast_markers()) > 0
+    chk = do_command_check(creature, "synaptic control", dice, enemy_orders, in_blast, gs=gs)
+    unit = unit_of(gs, target)
+    if chk["passed"]:
+        mine["controlled"] = list(mine["controlled"]) + [u.id for u in unit]
+        for u in unit:
+            mine["instinct"].pop(u.id, None)
+        gs.add_log(f"{creature.name}: synaptic control of {target.name}"
+                   f"{' and its squadron' if len(unit) > 1 else ''} passed "
+                   f"({chk['roll']} vs Ld {chk['needed']})")
+    else:
+        mine["failed"] = list(mine["failed"]) + [creature.id]
+        gs.add_log(f"{creature.name}: synaptic control of {target.name} failed "
+                   f"({chk['roll']} vs Ld {chk['needed']}); its synaptic control ends")
+    _save(gs, creature.player, mine)
+    return chk["passed"]
+
+
+def try_self_control(gs, dice, ship) -> bool:
+    """Vanguard fleet: before moving a ship or squadron may test its own
+    Leadership (unit_ld); passed, it ignores Instinctive Behaviour."""
+    from .movement import do_command_check
+    mine = _state(gs, ship.player)
+    unit = unit_of(gs, ship)
+    saved = ship.leadership
+    ship.leadership = unit_ld(gs, ship)
+    chk = do_command_check(ship, "ignore instinct", dice, False, False, gs=gs)
+    ship.leadership = saved
+    if chk["passed"]:
+        mine["controlled"] = list(mine["controlled"]) + [u.id for u in unit]
+        _save(gs, ship.player, mine)
+    gs.add_log(f"{ship.name}: command check to ignore Instinctive Behaviour "
+               f"{'passed' if chk['passed'] else 'failed'} ({chk['roll']} vs {chk['needed']})")
+    return chk["passed"]
+
+
+def default_control_order(gs, creature, candidates) -> Optional[object]:
+    """Judgement (the AI, "Auto"): the dearest unit first (each success frees
+    one; a failure ends the creature's chain)."""
+    if not candidates:
+        return None
+    return max(candidates, key=lambda s: (sum(u.points_value for u in unit_of(gs, s)), s.id))
+
+
+def run_synapse(gs, dice, player, choose=None) -> None:
+    """Before moving: every synapse creature in turn tries to control units in
+    its range until it fails or none are left. choose(creature, candidates) ->
+    a candidate or None (stop); None uses default_control_order. A Vanguard
+    fleet tests each unit's own Leadership instead."""
+    if vanguard_fleet(gs, player):
+        seen = set()
+        for s in _live(gs, player):
+            key = s.squadron_id or s.id
+            if is_tyranid(s) and key not in seen and not controlled(gs, s):
+                seen.add(key)
+                pick = s if choose is None else choose(s, [s])
+                if pick is not None:
+                    try_self_control(gs, dice, s)
+        return
+    for creature in sorted(creatures(gs, player), key=lambda c: -synapse(c)[0]):
+        while True:
+            fresh = gs.get_ship_by_id(creature.id)
+            cands = control_candidates(gs, fresh)
+            if not cands:
+                break
+            pick = (choose or (lambda c, cs: default_control_order(gs, c, cs)))(fresh, cands)
+            if pick is None:
+                break
+            if not try_control(gs, dice, fresh, pick):
+                break
+
+
+HAZARDS = ("asteroid_field", "gas_dust_cloud", "warp_rift")
+
+
+def _point_in(p, x, y, margin: float = 0.0) -> bool:
+    if p.radius:
+        return math.hypot(x - p.x, y - p.y) <= p.radius + margin
+    a = math.radians(-(p.rotation or 0.0))
+    dx, dy = x - p.x, y - p.y
+    rx, ry = dx * math.cos(a) - dy * math.sin(a), dx * math.sin(a) + dy * math.cos(a)
+    return abs(rx) <= p.width / 2 + margin and abs(ry) <= p.height / 2 + margin
+
+
+def hazard_ahead(gs, ship) -> Optional[object]:
+    """The hazardous phenomenon (gas cloud, asteroid field, warp rift) a normal
+    straight move at full speed would take the ship into, if any."""
+    speed = max(1.0, float(getattr(ship, "effective_speed", ship.speed) or ship.speed))
+    h = math.radians(ship.heading)
+    hz = [p for p in gs.get_phenomena() if p.phenomenon_type in HAZARDS]
+    for p in hz:
+        if _point_in(p, ship.x, ship.y):
+            continue                        # already in it: not "into"
+        for i in range(1, 21):
+            d = speed * i / 20.0
+            if _point_in(p, ship.x + d * math.cos(h), ship.y + d * math.sin(h), 1.0):
+                return p
+    return None
+
+
+def _nearest_enemy(gs, ship):
+    foes = [s for s in gs.get_ships() if s.player != ship.player and s.status == "active"
+            and not s.is_disengaged]
+    return min(foes, key=lambda s: (ship.distance_to(s), s.id)) if foes else None
+
+
+def _has_bio_weapons_on(ship, target) -> bool:
+    """Operational bio-weapons (pyro-acid, bio-plasma) in range and arc."""
+    from .combat import check_weapon_in_arc, weapon_disabled_by_crit
+    d = ship.distance_to(target)
+    for w in ship.weapons:
+        if not (w.get("pyro_acid") or w.get("bio_plasma")) or weapon_disabled_by_crit(ship, w):
+            continue
+        if d <= w.get("range_cm", 0) and check_weapon_in_arc(ship, w, target.x, target.y):
+            return True
+    return False
+
+
+def _needs_reload(ship) -> bool:
+    torps = any(w.get("weapon_type") == "torpedo" for w in ship.weapons)
+    bays = any(w.get("weapon_type") == "launch_bay" for w in ship.weapons)
+    return (torps and not ship.ordnance_loaded_torps) or (bays and not ship.ordnance_loaded_craft)
+
+
+def instinct(gs, ship) -> Dict:
+    """The first Instinctive Behaviour action that applies to the unit led by
+    `ship` (the chart, Xenos p.104). {"action", "order", "target"}."""
+    from .models import Arc, SpecialOrder as SO
+    hz = hazard_ahead(gs, ship)
+    if hz is not None:
+        return {"action": "evade", "order": SO.BURN_RETROS.value, "target": hz.id}
+    foe = _nearest_enemy(gs, ship)
+    arc = ship.get_target_arc(foe.x, foe.y) if foe is not None else None
+    d = ship.distance_to(foe) if foe is not None else 999.0
+    bio_plasma = any(w.get("bio_plasma") for w in ship.weapons)
+    if foe is not None and arc == Arc.FRONT and d < 15 and not bio_plasma:
+        return {"action": "board", "order": "", "target": foe.id}
+    if foe is not None and arc == Arc.FRONT and d > 60:
+        return {"action": "aaf", "order": SO.ALL_AHEAD_FULL.value, "target": foe.id}
+    if foe is not None and arc == Arc.REAR and ship.ship_type == "escort":
+        return {"action": "ctnh", "order": SO.COME_TO_NEW_HEADING.value, "target": foe.id}
+    foes = [s for s in gs.get_ships() if s.player != ship.player and s.status == "active"
+            and not s.is_disengaged]
+    if any(ship.get_target_arc(f.x, f.y) == Arc.FRONT and _has_bio_weapons_on(ship, f)
+           for f in foes):
+        return {"action": "lock_on", "order": SO.LOCK_ON.value, "target": None}
+    if _needs_reload(ship):
+        return {"action": "reload", "order": SO.RELOAD_ORDNANCE.value, "target": None}
+    goal = _drift_goal(gs, ship)
+    return {"action": "close" if goal else "drift", "order": "", "target": goal}
+
+
+def _drift_goal(gs, ship) -> Optional[List[float]]:
+    """Where an idle bio-ship goes: the nearest planet or (other) synapse
+    creature it isn't already touching, else None (half speed straight)."""
+    pts = []
+    for p in gs.get_phenomena():
+        if p.phenomenon_type.startswith("planet") or p.phenomenon_type == "moon":
+            if math.hypot(p.x - ship.x, p.y - ship.y) > (p.radius or 0) + 3:
+                pts.append((p.x, p.y))
+    for c in creatures(gs, ship.player):
+        if c.id != ship.id and ship.distance_to(c) > 6:
+            pts.append((c.x, c.y))
+    if not pts:
+        return None
+    x, y = min(pts, key=lambda q: math.hypot(q[0] - ship.x, q[1] - ship.y))
+    return [x, y]
+
+
+def assign_instinct(gs, tc, player) -> None:
+    """After synaptic control: every uncontrolled Tyranid unit that isn't a
+    synapse creature acts on Instinctive Behaviour. Its order is applied with
+    no command check; a braced unit keeps Brace and only follows the
+    movement restrictions."""
+    mine = _state(gs, player)
+    from .models import SpecialOrder as SO
+    seen = set()
+    for s in _live(gs, player):
+        if not is_tyranid(s) or is_synapse_creature(s) or s.id in mine["controlled"]:
+            continue
+        key = s.squadron_id or s.id
+        if key in seen:
+            continue
+        seen.add(key)
+        unit = unit_of(gs, s)
+        act = instinct(gs, unit[0])
+        braced = any(u.special_order == SO.BRACE_FOR_IMPACT.value for u in unit)
+        for u in unit:
+            mine["instinct"][u.id] = dict(act)
+            if act["order"] and not braced:
+                tc.apply_passed_order(u, act["order"])
+        gs.add_log(f"{unit[0].name}{' (squadron)' if len(unit) > 1 else ''}: Instinctive "
+                   f"Behaviour - {act['action']}"
+                   + (f", {act['order']}" if act["order"] and not braced else ""))
+    _save(gs, player, mine)
+
+
+def start_turn(gs, tc, dice, player, choose=None) -> None:
+    """Synaptic control, then Instinctive Behaviour, before the Tyranid
+    player's ships move (IGOUGO movement phase; the AA command phase)."""
+    if not any(is_tyranid(s) for s in _live(gs, player)):
+        return
+    _state(gs, player)
+    run_synapse(gs, dice, player, choose)
+    assign_instinct(gs, tc, player)
+
+
+def order_rule(gs, ship, order: str) -> Tuple[str, str]:
+    """How a Tyranid ship's special order is resolved: ("auto", "") passes with
+    no check (a controlled unit; its instinct order), ("brace", "") tests on
+    brace_ld, ("deny", reason) refused, ("normal", "") not a Tyranid ship."""
+    from .models import SpecialOrder as SO
+    if not is_tyranid(ship):
+        return "normal", ""
+    if order == SO.BRACE_FOR_IMPACT.value:
+        return "brace", ""
+    mine = _state(gs, ship.player)
+    if ship.id in mine["controlled"]:
+        return "auto", ""
+    act = mine["instinct"].get(ship.id)
+    if act and act.get("order") == order:
+        return "auto", ""
+    if is_synapse_creature(ship):
+        return "deny", (f"{ship.name}: a synapse creature needs synaptic control (from itself "
+                        f"or another creature) before it can take special orders")
+    return "deny", (f"{ship.name} acts on Instinctive Behaviour "
+                    f"({(act or {}).get('action', 'not yet assigned')}): no other orders "
+                    f"without synaptic control")
+
+
+def brace_ld(gs, ship) -> int:
+    """Brace for Impact: the Ld of the nearest synapse creature in range, else
+    7 (a Vanguard fleet: its own, at least 7)."""
+    if vanguard_fleet(gs, ship.player):
+        return max(NOMINAL_LD, unit_ld(gs, ship))
+    near = [c for c in creatures(gs, ship.player) if in_range(c, ship)]
+    if not near:
+        return NOMINAL_LD
+    return synapse(min(near, key=lambda c: (c.distance_to(ship), c.id)))[0]
+
+
+def instinct_of(gs, ship) -> Optional[Dict]:
+    if not is_tyranid(ship):
+        return None
+    return _state(gs, ship.player)["instinct"].get(ship.id)
+
+
+def instinct_commands(gs, ship, order: str, aaf_bonus: int = 0):
+    """The move an instinct action prescribes, or None when the player moves
+    freely (All Ahead Full, Come to New Heading, Lock On, Reload). Board: the
+    best simple move ending nearest the enemy (base contact if it can);
+    close: nearest the planet or synapse creature; drift: half speed straight
+    ahead; evade: Burn Retros, turning as far away from the hazard as it can."""
+    from .movement import (MoveCommand, validate_movement, get_effective_speed,
+                           MIN_TURN_DISTANCE)
+    act = instinct_of(gs, ship)
+    if not act or act["action"] not in ("board", "close", "drift", "evade"):
+        return None
+    mn, mx = get_effective_speed(ship, order, aaf_bonus)
+    left = max(0.0, mx - (ship.distance_moved_this_turn or 0.0))
+    if act["action"] == "drift":
+        return [MoveCommand("forward", max(mn, ship.speed / 2.0))]
+    if act["action"] == "evade":
+        hz = next((p for p in gs.get_phenomena() if p.id == act["target"]), None)
+        best, best_d = None, None
+        for turn in ("turn_left", "turn_right"):
+            cmds = [MoveCommand(turn, ship.turn_angle), MoveCommand("forward", max(1.0, left / 2))]
+            r = validate_movement(ship, cmds, special_order=order, aaf_bonus=aaf_bonus,
+                                  table_width=gs.table_width, table_height=gs.table_height)
+            if r.valid and hz is not None:
+                d = math.hypot(r.final_x - hz.x, r.final_y - hz.y)
+                if best_d is None or d > best_d:
+                    best, best_d = cmds, d
+        return best
+    if act["action"] == "board":
+        foe = gs.get_ship_by_id(act["target"])
+        if foe is None or foe.status != "active":
+            return None
+        goal = (foe.x, foe.y)
+    else:
+        goal = tuple(act["target"])
+    td = min(MIN_TURN_DISTANCE.get(ship.ship_type, 0), left)
+    best, best_d = None, None
+    cands = []
+    for frac in (1.0, 0.75, 0.5):
+        dist = max(mn, left * frac)
+        cands.append([MoveCommand("forward", dist)])
+        for turn in ("turn_left", "turn_right"):
+            for ang in (ship.turn_angle, ship.turn_angle / 2, ship.turn_angle / 4):
+                c = ([MoveCommand("forward", td)] if td else []) + [MoveCommand(turn, ang)]
+                if dist - td > 0:
+                    c.append(MoveCommand("forward", dist - td))
+                cands.append(c)
+    for cmds in cands:
+        r = validate_movement(ship, cmds, special_order=order, aaf_bonus=aaf_bonus,
+                              table_width=gs.table_width, table_height=gs.table_height,
+                              distance_already_moved=ship.distance_moved_this_turn or 0.0)
+        if not r.valid:
+            continue
+        d = math.hypot(r.final_x - goal[0], r.final_y - goal[1])
+        if best_d is None or d < best_d - 1e-9:
+            best, best_d = cmds, d
+    return best
+
+
+def instinct_move_errors(gs, ship, result, order: str = "", aaf_bonus: int = 0,
+                         tolerance: float = 2.0) -> List[str]:
+    """Errors for a human's move that ignores its instinct action (a move
+    ending more than `tolerance` cm further from the goal than the prescribed
+    one; drift: not straight ahead at half speed)."""
+    act = instinct_of(gs, ship)
+    if not act or act["action"] not in ("board", "close", "drift", "evade"):
+        return []
+    ref = instinct_commands(gs, ship, order, aaf_bonus)
+    if not ref:
+        return []
+    from .movement import validate_movement
+    r = validate_movement(ship, ref, special_order=order, aaf_bonus=aaf_bonus,
+                          table_width=gs.table_width, table_height=gs.table_height,
+                          distance_already_moved=ship.distance_moved_this_turn or 0.0)
+    if not r.valid:
+        return []
+    off = math.hypot(result.final_x - r.final_x, result.final_y - r.final_y)
+    what = {"board": "move into base contact with the nearest enemy and board it",
+            "close": "move closer to the nearest planet or synapse creature",
+            "drift": "move half speed straight ahead",
+            "evade": "Burn Retros and turn away from the hazard as much as possible"}[act["action"]]
+    if act["action"] in ("board", "close") and act.get("target"):
+        foe = gs.get_ship_by_id(act["target"]) if act["action"] == "board" else None
+        gx, gy = (foe.x, foe.y) if foe is not None else tuple(act["target"])
+        if math.hypot(result.final_x - gx, result.final_y - gy) <= \
+                math.hypot(r.final_x - gx, r.final_y - gy) + tolerance:
+            return []
+    elif off <= tolerance:
+        return []
+    return [f"{ship.name} acts on Instinctive Behaviour: it must {what} "
+            f"(without synaptic control)."]
+
+
+# ── Shooting (Xenos p.105) ─────────────────────────────────────────────────────
+
+def highlighted(gs, attacker, target) -> bool:
+    """A target within 15cm of a friendly ship with Pheromone Sprayers."""
+    for s in _live(gs, attacker.player):
+        if "pheromone_sprayers" in s.special_rules and \
+                math.hypot(s.x - target.x, s.y - target.y) <= 15.0 + 1e-9:
+            return True
+    return False
+
+
+def shooting_target_error(gs, attacker, target, candidates) -> str:
+    """Tyranid direct fire: the closest enemy ship within range and arc
+    (`candidates`, the ships the weapon can fire at), or a highlighted target,
+    with no target priority test needed or allowed. "" if allowed."""
+    if not is_tyranid(attacker) or target is None:
+        return ""
+    if highlighted(gs, attacker, target):
+        return ""
+    ships = [c for c in candidates if hasattr(c, "hits_max")]
+    if not ships:
+        return ""
+    nearest = min(ships, key=lambda c: (attacker.distance_to(c), c.id))
+    if attacker.distance_to(target) <= attacker.distance_to(nearest) + 1e-6:
+        return ""
+    return (f"{attacker.name} (Tyranid) must fire at the closest enemy ship in range and arc "
+            f"({nearest.name}) or a target highlighted by Pheromone Sprayers")
+
+
+def may_fire_at_ordnance(gs, attacker, marker) -> bool:
+    """Tyranids may only shoot ordnance highlighted by Pheromone Sprayers."""
+    if not is_tyranid(attacker):
+        return True
+    for s in _live(gs, attacker.player):
+        if "pheromone_sprayers" in s.special_rules and \
+                math.hypot(s.x - marker.x, s.y - marker.y) <= 15.0 + 1e-9:
+            return True
+    return False

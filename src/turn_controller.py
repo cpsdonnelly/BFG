@@ -310,6 +310,12 @@ class TurnController:
                     sd["rerolls_remaining"] = 1
             # Necron Deadly Awakening (Xenos p.39): at the start of each Necron turn
             self._necron_awakening(self.gs.active_player)
+            # Tyranids (Xenos p.104): synaptic control, then Instinctive Behaviour,
+            # before moving (GameState.synapse_hook(creature, candidates) asks a
+            # human which unit to control next; the AI / no hook use the default)
+            from .tyranids import start_turn as _tyranid_start
+            _tyranid_start(self.gs, self, self.dice, self.gs.active_player,
+                           getattr(self.gs, "synapse_hook", None))
             # Dark Eldar Impalers left on the table at the start of the owner's
             # turn are removed (lack of fuel, Xenos p.5)
             from .dark_eldar import remove_spent_impalers
@@ -516,6 +522,21 @@ class TurnController:
         if why:
             result["error"] = why
             return result
+        from .tyranids import order_rule
+        how, why = order_rule(self.gs, ship, order)
+        if how == "deny":
+            result["error"] = why
+            return result
+        if how == "auto":
+            # Tyranids: a unit under synaptic control (or its instinct order)
+            # takes its order with no command check (Xenos p.104)
+            if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+                result["error"] = "A braced Tyranid ship can't be placed on special orders"
+                return result
+            self.apply_passed_order(ship, order)
+            result.update(success=True, needed=ship.leadership)
+            self.gs.add_log(f"{ship.name}: {order} (Tyranid, no command check)")
+            return result
         if not self.can_issue_special_order(ship):
             result["error"] = "Cannot issue orders (check already failed or ship braced)"
             return result
@@ -605,6 +626,16 @@ class TurnController:
                     "error": "No ships in squadron coherency — cannot issue a squadron order."}
 
         leader = max(ships, key=lambda s: s.leadership)
+        from .tyranids import order_rule
+        how, why = order_rule(self.gs, leader, order)
+        if how == "deny":
+            return {"success": False, "error": why}
+        if how == "auto":
+            # Tyranid squadron under synaptic control / on its instinct order
+            for s in ships:
+                self.apply_passed_order(s, order)
+            return {"success": True, "order": order, "roll": 0, "needed": leader.leadership,
+                    "leader": leader.id, "ships_affected": [s.id for s in ships]}
 
         if order == SpecialOrder.COME_TO_NEW_HEADING.value:
             ponderous = [s for s in ships if "ponderous" in s.special_rules]

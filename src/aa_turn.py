@@ -94,6 +94,13 @@ class AATurn:
                 for sd in self.gs.ships:
                     if sd["player"] == p and sd.get("special_order") == "brace_for_impact":
                         sd["special_order"] = "none"
+        for p in (1, 2):
+            # Tyranids: synaptic control and Instinctive Behaviour in the
+            # command phase, before anything moves
+            self.gs.active_player = p
+            from .tyranids import start_turn as _tyranid_start
+            _tyranid_start(self.gs, self.tc, self.tc.dice, p,
+                           getattr(self.gs, "synapse_hook", None))
         self.gs.active_player = keep
         self.tc.ships_moved.clear()
         self.tc.ships_fired.clear()

@@ -366,7 +366,10 @@ def flee_move_errors(ship, result, gs, order: str = "", aaf_bonus: int = 0,
     from .movement import (get_effective_speed, validate_movement, MoveCommand,
                            MIN_TURN_DISTANCE)
     if not getattr(ship, "must_flee", False):
-        return []
+        # Tyranid Instinctive Behaviour restricts a move the same way
+        # (move-dialog checks share this function)
+        from .tyranids import instinct_move_errors
+        return instinct_move_errors(gs, ship, result, order, aaf_bonus, tolerance)
     _, max_spd = get_effective_speed(ship, order, aaf_bonus)
     left = max(0.0, max_spd - (ship.distance_moved_this_turn or 0.0))
     errs = []
