@@ -132,3 +132,33 @@ def test_impaler_value_beats_a_plain_raid_against_a_capital_ship():
     plain = raid_squadron_value(t, gs, 1, ["dark_eldar"])
     imp = raid_squadron_value(t, gs, 1, ["dark_eldar", "impaler"])
     assert imp > plain
+
+
+def test_impalers_get_flickerfields_and_mines_dont():
+    from src.ordnance import launch_attack_craft, turret_hit_on
+    from tests.conftest import make_gs_raids
+    de = make_ship(id="c", player=1, special_rules=list(DE), weapons=[dict(IMPALER_BAY)])
+    gs = make_gs_raids([de, make_ship(id="t", player=2, x=50.0, y=0.0)])
+    imp = launch_attack_craft(gs.get_ship_by_id("c"), dict(IMPALER_BAY), "impaler", 1, gs)[0]
+    t = gs.get_ship_by_id("t")
+    assert "impaler" in imp.special_rules and turret_hit_on(t, imp) == 6
+    mine = OrdnanceMarker(id="m", ordnance_type=OrdnanceType.MINE_FIELD.value,
+                          owner_player=1, launched_by="c", special_rules=list(DE))
+    assert turret_hit_on(t, mine) == 4
+
+
+def test_ai_hazard_counts_flickerfields_on_incoming_impalers():
+    from src.ai_hazards import marker_hits
+    t = make_ship(id="t", player=2, x=0.0, y=0.0, turrets=3, armor_prow="5+",
+                  armor_side="5+", armor_rear="5+")
+    gs = make_gs([t])
+    imp = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value,
+                         owner_player=1, launched_by="c", x=10.0, y=0.0, speed=30,
+                         special_rules=list(DE) + ["impaler"])
+    plain = OrdnanceMarker(id="p", ordnance_type=OrdnanceType.ASSAULT_BOAT.value,
+                           owner_player=1, launched_by="c", x=10.0, y=0.0, speed=30)
+    h_imp, _ = marker_hits(t, imp, (0.0, 0.0), [(0.0, 0.0)], [], gs)
+    h_plain, _ = marker_hits(t, plain, (0.0, 0.0), [(0.0, 0.0)], [], gs)
+    # 6+ to shoot an Impaler down (3 turrets: (5/6)^3 survive) vs 4+ for a boat
+    assert abs(h_imp - (5 / 6) ** 3 * (5 / 6 + 2 / 6)) < 1e-9
+    assert abs(h_plain - 0.125 * 0.5) < 1e-9

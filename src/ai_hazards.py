@@ -114,10 +114,12 @@ def mine_attack_dice(ship: Ship) -> float:
     return 8.0 - 4.0 * p_any
 
 
-def _turret_kills(ship: Ship) -> float:
-    """Expected torpedoes a ship's turrets shoot down: 4+ each (Orks 5+)."""
-    need = 5 if "ork_turrets" in ship.special_rules else 4
-    return ship.effective_turrets * (7 - need) / 6.0
+def _turret_kills(ship: Ship, marker=None) -> float:
+    """Expected torpedoes a ship's turrets shoot down: 4+ each (Orks 5+, Eldar
+    turrets +1), worse against Eldar stealth and Dark Eldar flickerfields (the
+    marker's rules, `ordnance.turret_hit_on`)."""
+    from .ordnance import turret_hit_on
+    return ship.effective_turrets * max(0, 7 - turret_hit_on(ship, marker)) / 6.0
 
 
 def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
@@ -142,7 +144,7 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
             return h, f"mine ({h:.1f} hits)"
         return 0.0, ""
     if "torpedo" in otype and otype != "torpedo_bomber":
-        strength = max(0.0, m.strength - _turret_kills(ship))
+        strength = max(0.0, m.strength - _turret_kills(ship, m))
         if strength <= 0:
             return 0.0, ""
         h = strength * ph * (0.5 if "boarding" in otype else 1.0)   # raids, not hull
@@ -169,7 +171,7 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
         tiger = "tiger_shark" in (m.special_rules or [])
         salvo = 40.0 if tiger else 30.0
         if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + salvo + r:
-            h = max(0.0, 2.0 - 0.5 * _turret_kills(ship)) * p_hit(ship.lowest_armor_value)
+            h = max(0.0, 2.0 - 0.5 * _turret_kills(ship, m)) * p_hit(ship.lowest_armor_value)
             h *= 5 / 6 if tiger else 1.0
             return h, f"torpedo bombers ({h:.1f} hits)"
         return 0.0, ""
@@ -181,7 +183,18 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
             h = (sum(max(0, k - ship.effective_turrets) for k in range(1, 7)) / 6.0
                  * p_hit(ship.lowest_armor_value))
         elif "assault" in otype or otype == "gun_cutter":
-            h = 0.5 * max(0.0, 1 - 0.5 * ship.effective_turrets / 2)
+            # survives the turrets (each die kills it on its hit roll, worse
+            # against Eldar / Dark Eldar craft), then half a hit a raid; a Dark
+            # Eldar Impaler connects on 2+ for a crit (or two raids) and a hull
+            # hit on a roll equal to or above the Armour (judgement: a crit as 1)
+            from .ordnance import turret_hit_on
+            p_kill = max(0, 7 - turret_hit_on(ship, m)) / 6.0
+            survive = (1.0 - p_kill) ** max(0, ship.effective_turrets)
+            if "impaler" in (m.special_rules or []):
+                dmg = sum(1 for r in range(2, 7) if r >= ship.lowest_armor_value) / 6.0
+                h = survive * (5.0 / 6.0 + dmg)
+            else:
+                h = survive * 0.5
         else:
             return 0.0, ""                       # fighters don't attack ships
         return h, f"{otype} ({h:.1f} hits)"

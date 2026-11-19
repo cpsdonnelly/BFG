@@ -123,6 +123,14 @@ Needs more work (next first):
    and starts, "No" starts anyway, "Cancel" goes back (`tests/test_fleet_rule_check.py`,
    `tools/gui_checks/fleet_rules_warning_check.py`). Not yet: the same check when a fleet
    is loaded in the fleet builder (it doesn't know the game's rules yet).
+   Flickerfields on every Dark Eldar torpedo and attack craft, Impalers included, not on
+   mines (owner): the engine already gave Impalers the +2 (the marker carries the
+   launcher's `dark_eldar` rule; `ordnance.turret_hit_on`), now tested; fixed the AI's
+   side of it: its threat model for incoming ordnance counted its turrets at 4+ against
+   every torpedo and craft (`ai_hazards._turret_kills(ship, marker)` now uses
+   `turret_hit_on`, so Eldar stealth and flickerfields count), and an incoming Impaler is
+   valued as one (`marker_hits`: survives the turrets, then 5/6 for its crit plus the hull
+   hit chance; other assault boats now survive turrets by their real hit roll).
    Owner UI report (same session), done: deployment headings default to facing the enemy's
    zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
    along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-
