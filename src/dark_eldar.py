@@ -281,3 +281,28 @@ def frenzy_crit_reroll(target, crit_2d6: int, crit_data) -> bool:
         return {"D3": 2.0, "D6": 3.5}.get(x, x) if isinstance(x, str) else float(x or 0)
     avg = sum(n * extra(table.get(t)) for t, n in dist.items()) / 36.0
     return extra(crit_data) < avg
+
+
+def superstructure_strain(gs, dice, ship_id: str, commands) -> int:
+    """Dark Eldar Superstructure Damaged (Appendix 3, crit 7): until repaired,
+    a D6 each time the ship turns in its movement phase, 1-2 one point of
+    damage. Called after every move (`actions.apply_move`). Returns damage."""
+    ship = gs.get_ship_by_id(ship_id)
+    if ship is None or ship.is_destroyed or not any(
+            c.get("crit_type") == "de_superstructure" for c in ship.critical_damage):
+        return 0
+    turns = sum(1 for c in commands or []
+                if getattr(c, "action", "") in ("turn_left", "turn_right")
+                and abs(getattr(c, "value", 0) or 0) > 1e-9)
+    hits = 0
+    for _ in range(turns):
+        if dice.roll_d6(1, f"{ship.name} superstructure strain on turning (1-2: 1 damage)")[0] <= 2:
+            hits += 1
+    if hits:
+        from .combat import apply_damage
+        gs.add_log(f"{ship.name}: superstructure damaged, {hits} damage from turning")
+        apply_damage(gs.get_ship_by_id(ship_id), hits, dice, gs, ignores_shields=True,
+                     rolled_to_hit=False)
+        from .actions import resolve_kill
+        resolve_kill(gs, dice, ship_id)
+    return hits

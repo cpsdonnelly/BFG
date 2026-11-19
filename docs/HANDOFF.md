@@ -164,6 +164,11 @@ Needs more work (next first):
    Pain Frenzy)"), the AI and Auto by `best_raid_reroll` for D6 results and, for the
    Impaler's 2D6 crit, when its extra damage is below a fresh roll's average
    (`dark_eldar.frenzy_crit_reroll`, judgement) (`tests/test_dark_eldar_special.py`).
+   Incubi built (`hit_and_run.resolve_raids`: 2D6 per raid, the better by
+   `raid_result_value`, both against a crippled ship) and Superstructure Damaged
+   (`dark_eldar.superstructure_strain`, called by `actions.apply_move`: a D6 per turn
+   command, 1-2 one damage). Dark Eldar still open: Mimic Engine, Tormentor Spire, Only the
+   Strong May Lead, squadron sizes 2-6.
    Owner report: the fleet builder's armament / stats were hard to see; now a ship card
    (`fleet_builder.ship_card` / `weapon_line`, a read-only text box under the catalog) shows
    the selected catalog ship, or the selected fleet ship with its options applied: points,

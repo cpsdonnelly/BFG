@@ -484,7 +484,24 @@ def resolve_raids(num_raids: int, target: Ship, brace_passed: bool,
         gs.add_log(f"  Raid modifier: {mod:+d} to each result (crew quality)")
 
     from .dark_eldar import take_slaves, pain_frenzy_applies, frenzy_raid_reroll
-    if reroll_fn is None and pain_frenzy_applies(attacker_rules, target):
+    incubi = "incubi" in (attacker_rules or []) and preset_rolls is None
+    if incubi:
+        # Dark Eldar Incubi (Xenos p.5): each raid rolls 2D6 and applies the
+        # better result; against a crippled ship both results (two raids),
+        # which replaces Pain Frenzy's re-roll (reading: "crippled" as Pain
+        # Frenzy counts it, so a Wych Cult's capital-ship rule applies too)
+        owner = 3 - target.player
+        if pain_frenzy_applies(attacker_rules, target):
+            num_raids *= 2
+            gs.add_log(f"  Incubi: both results apply against the crippled {target.name}")
+        else:
+            best_of = []
+            for i in range(num_raids):
+                pair = dice.roll_d6(2, f"Incubi raid {i + 1} on {target.name} (choose one)")
+                best_of.append(max(pair, key=lambda r: (raid_result_value(r + mod, target, gs, owner), r)))
+            preset_rolls = best_of
+            gs.add_log(f"  Incubi choose {best_of}")
+    elif reroll_fn is None and pain_frenzy_applies(attacker_rules, target):
         # Dark Eldar Pain Frenzy (Xenos p.4): may re-roll a raid on a crippled ship
         def reroll_fn(roll, effective, tgt, _owner=3 - target.player):
             return frenzy_raid_reroll(gs, _owner, roll, effective, tgt)

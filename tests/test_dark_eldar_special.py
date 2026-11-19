@@ -129,3 +129,33 @@ def test_pain_frenzy_impaler_crit_reroll_choice():
     t = _crippled()
     assert frenzy_crit_reroll(t, 7, {"extra_damage": 0})          # no extra damage: re-roll
     assert not frenzy_crit_reroll(t, 12, {"extra_damage": "D6"})  # bulkhead collapse: keep
+
+
+def test_incubi_choose_the_better_of_two_or_both_against_crippled():
+    from src.hit_and_run import resolve_raids
+    t = make_ship(id="t", player=1, hits_max=8)
+    gs = make_gs([t])
+    gs.slave_hook = lambda *a: False
+    dice = DiceStub([1, 6] + [1] * 10)     # 2D6, keep one; then the crit rolls
+    r = resolve_raids(1, gs.get_ship_by_id("t"), False, dice, gs,
+                      attacker_rules=DE + ["incubi"])
+    assert r["raid_rolls"] == [6]
+    c = _crippled()
+    gs2 = make_gs([c])
+    gs2.slave_hook = lambda *a: False
+    r2 = resolve_raids(1, gs2.get_ship_by_id("t"), False, DiceStub([3, 4] + [1] * 10), gs2,
+                       attacker_rules=DE + ["incubi"])
+    assert len(r2["raid_rolls"]) == 2         # both results apply
+
+
+def test_superstructure_damaged_costs_hits_when_turning():
+    from src.dark_eldar import superstructure_strain
+    from src.movement import MoveCommand
+    s = make_ship(id="d", player=1, hits_max=6, special_rules=list(DE))
+    s.critical_damage = [{"crit_type": "de_superstructure", "repairable": True}]
+    gs = make_gs([s])
+    cmds = [MoveCommand("forward", 10), MoveCommand("turn_left", 45),
+            MoveCommand("forward", 5), MoveCommand("turn_right", 30)]
+    dice = DiceStub([2, 5, 1, 1, 1])         # two turns: 2 (damage), 5; then crit checks
+    assert superstructure_strain(gs, dice, "d", cmds) == 1
+    assert gs.get_ship_by_id("d").hits_remaining == 5

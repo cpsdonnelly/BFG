@@ -55,6 +55,8 @@ def apply_move(gs, dice, ship, result: MovementResult, commands, on_aaf: bool,
         resolve_post_move_terrain(gs, ship.id, dice, on_aaf)
     else:
         resolve_post_move_terrain(gs, ship.id, dice, on_aaf, log=log)
+    from .dark_eldar import superstructure_strain
+    superstructure_strain(gs, dice, ship.id, commands)
     return record_staged_move(gs, ship.id, result, list(commands or []))
 
 
