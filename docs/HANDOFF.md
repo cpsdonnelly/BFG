@@ -153,6 +153,11 @@ Needs more work (next first):
    nearest same-ordnance mate; `_combine_squadron_waves` merges Impalers only with Impalers
    and other craft only with other craft. Squadrons by ordnance (the AI forming them) is in
    To do 28. Not yet: torpedo salvos combined, the bonus priced by what combining gains.
+   Owner: the tester plays with every advanced rule on: `tools/headless_runner.py --rules`
+   now defaults to "all" (the set-up's eight: sunward, flares, bursts, boarding, ramming,
+   teleport, hit and run, sub-plots; `ADVANCED_RULES`), "none" or a list; it now rolls the
+   sub-plots before the first turn as the window does (`_roll_subplots`). The refactor check
+   passes `--rules none` (its saved results were recorded with the rules off).
    Owner UI report (same session), done: deployment headings default to facing the enemy's
    zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
    along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-

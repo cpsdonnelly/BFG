@@ -3136,6 +3136,8 @@ attacking a ship.
 
 - One full `pytest -q` run per slice (about 10s), not test files one by one first; only on a
   failure, run the failing files alone.
+- The headless runner plays with every advanced rule on by default (owner; `--rules all`,
+  or `none` / a list); `tools/refactor_check.sh` uses `--rules none`.
 - `tools/refactor_check.sh` (16 games, minutes) only for pure refactors, where an unchanged
   result is the point; not for rules changes, which are expected to change games.
 - GUI / spectator games only when a change touches the game flow or the window, at most one

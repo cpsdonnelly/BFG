@@ -34,6 +34,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 
+# The set-up's "All advanced rules on / off" switch (main._show_setup_dialog)
+ADVANCED_RULES = ("fighting_sunward", "solar_flares", "radiation_bursts", "boarding",
+                  "ramming", "teleport", "hit_and_run", "subplots")
+
+
 def play(args) -> dict:
     """One game; returns its result. Runs in a worker process."""
     fleet1, fleet2, difficulty, turns, system, seed, timeout = args[:7]
@@ -97,6 +102,7 @@ def play(args) -> dict:
                     errors.append(f"{title}: {text}")
         game = HeadlessGame(tc)
         game.ctx.prompt = _Errors()
+        game._roll_subplots()                # with sub-plots on, as the window does
         res = game.play(timeout)
         if res is not None:
             over.append(res["winner"])
@@ -137,6 +143,7 @@ def _play_in_window(tc, over, errors, timeout, start):
     frame.pack()
     panel = GamePanel(frame, tc, board, root)
     panel._show_game_over_dialog = lambda w, **k: over.append(w)
+    panel._roll_subplots()                   # with sub-plots on, as GamePanel._start_game
     panel._begin_turn1()
     while not panel._game_over and time.time() - start < timeout:
         root.update()
@@ -151,7 +158,10 @@ def main():
     ap.add_argument("--procs", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--difficulty", default="normal", help="Player 2's AI (and Player 1's)")
     ap.add_argument("--difficulty1", default="", help="Player 1's AI, if different")
-    ap.add_argument("--rules", default="", help="optional rules on, e.g. hit_and_run,boarding")
+    ap.add_argument("--rules", default="all",
+                    help="optional rules on: 'all' (the default: every advanced rule, as the "
+                         "set-up's 'All advanced rules' switch), 'none', or a list such as "
+                         "hit_and_run,boarding")
     ap.add_argument("--turns", type=int, default=12, help="turn limit (player turns, AA rounds)")
     ap.add_argument("--system", default="igougo", choices=("igougo", "aa"))
     ap.add_argument("--seed", type=int, default=1)
@@ -164,8 +174,9 @@ def main():
     a = ap.parse_args()
     if a.difficulty1:
         os.environ["BFG_DIFFICULTY1"] = a.difficulty1   # inherited by the workers
-    if a.rules:
-        os.environ["BFG_RULES"] = a.rules
+    rules = {"all": ",".join(ADVANCED_RULES), "none": ""}.get(a.rules, a.rules)
+    os.environ["BFG_RULES"] = rules
+    print(f"optional rules on: {rules or 'none'}", flush=True)
     jobs = [(a.fleet1, a.fleet2, a.difficulty, a.turns, a.system, a.seed + i, a.timeout,
              None, not a.no_display) for i in range(a.games)]
     t0 = time.time()
