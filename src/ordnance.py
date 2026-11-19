@@ -1690,7 +1690,10 @@ def fire_torpedo_bombers(game_state: GameState, marker_ids: List[str],
         speed=40.0 if tiger else float(TORPEDO_SPEED_DEFAULT),
         launched_turn=game_state.turn_number,
         can_turn=tiger, turn_angle=45 if tiger else 0,
-        special_rules=["limited_fuel"] + (["tau_missile"] if tiger else []))
+        special_rules=["limited_fuel"] + (["tau_missile"] if tiger else [])
+        # Dark Eldar Voidravens launch plasma torpedoes (re-roll misses) under
+        # flickerfields (Xenos p.5): the salvo keeps the faction rule
+        + (["dark_eldar"] if "dark_eldar" in lead.special_rules else []))
     ids = {m.id for m in ms}
     game_state.ordnance = [o for o in game_state.ordnance if o["id"] not in ids]
     from .waves import tidy_waves
@@ -1881,32 +1884,44 @@ def bay_launch_capacity(ship: Ship, bay_weapons: List[Dict],
     return total, log
 
 
-def fleet_craft_slots(game_state: GameState, player: int) -> int:
-    """Attack craft markers the player may still put in play: launch bays
-    remaining in the fleet (random bays count their maximum) minus markers
-    already in play (s.15)."""
+def impaler_bays(bays) -> bool:
+    """Dark Eldar Impaler bays: a launch pool of their own (Xenos p.5: no more
+    Impalers in play than the fleet's Impaler launch capacity)."""
+    return bool(bays) and all(w.get("impaler_bay") for w in bays)
+
+
+def _craft_pool(game_state: GameState, player: int, impaler: bool) -> Tuple[int, int]:
+    """(bays, markers in play) of one launch pool: Impalers or everything else."""
     bays = sum(w.get("strength", 0)
                for s in game_state.player_ships(player)
                if not s.is_destroyed and not s.is_disengaged
-               for w in s.weapons if w.get("weapon_type") == "launch_bay")
+               for w in s.weapons if w.get("weapon_type") == "launch_bay"
+               and bool(w.get("impaler_bay")) == impaler)
     in_play = sum(1 for o in game_state.ordnance
                   if o.get("owner_player") == player
-                  and o.get("ordnance_type") in ATTACK_CRAFT_TYPES)
+                  and o.get("ordnance_type") in ATTACK_CRAFT_TYPES
+                  and ("impaler" in (o.get("special_rules") or [])) == impaler)
+    return bays, in_play
+
+
+def fleet_craft_slots(game_state: GameState, player: int, impaler: bool = False) -> int:
+    """Attack craft markers the player may still put in play: launch bays
+    remaining in the fleet (random bays count their maximum) minus markers
+    already in play (s.15). Impalers have their own pool (`impaler`)."""
+    bays, in_play = _craft_pool(game_state, player, impaler)
     return max(0, bays - in_play)
 
 
-def fleet_craft_excess(game_state: GameState, player: int) -> int:
+def fleet_craft_excess(game_state: GameState, player: int, impaler: Optional[bool] = None) -> int:
     """Attack craft markers in play beyond the fleet's remaining launch bays
     (after critical damage or lost ships). The owner must remove that many the
-    next time a new squadron is launched (s.15)."""
-    bays = sum(w.get("strength", 0)
-               for s in game_state.player_ships(player)
-               if not s.is_destroyed and not s.is_disengaged
-               for w in s.weapons if w.get("weapon_type") == "launch_bay")
-    in_play = sum(1 for o in game_state.ordnance
-                  if o.get("owner_player") == player
-                  and o.get("ordnance_type") in ATTACK_CRAFT_TYPES)
-    return max(0, in_play - bays)
+    next time a new squadron is launched (s.15). Both pools unless one is named."""
+    pools = (False, True) if impaler is None else (impaler,)
+    total = 0
+    for imp in pools:
+        bays, in_play = _craft_pool(game_state, player, imp)
+        total += max(0, in_play - bays)
+    return total
 
 
 def recall_craft(game_state: GameState, player: int, marker_ids: List[str]) -> int:

@@ -474,8 +474,32 @@ def raid_squadron_value(target, gs, owner: int, rules=None, end_phases: int = No
     raid lands later (ai_hazards.strike_timeline); default: as if now."""
     from .hit_and_run import raid_result_value, _raid_roll_modifier
     mod = _raid_roll_modifier(list(rules or []), target)
-    return sum(raid_result_value(r + mod, target, gs, owner, end_phases)
+    raid = sum(raid_result_value(r + mod, target, gs, owner, end_phases)
                for r in range(1, 7)) / 6.0
+    if "impaler" in (rules or []):
+        return impaler_value(target, gs, owner, rules, end_phases, raid)
+    return raid
+
+
+def impaler_value(target, gs, owner: int, rules, end_phases, raid: float) -> float:
+    """Expected VP of a Dark Eldar Impaler that reaches the target (Xenos
+    p.5): its D6 fails on a 1; otherwise two raids against an escort or one
+    critical hit against a capital ship (the AI's choice in resolve_impaler),
+    plus one damage when the D6 equals or beats the Armour (the lowest facing,
+    judgement). A critical hit is valued as the average successful raid result
+    (rolls 2-6 with the crew's modifiers, judgement); its shadowfield save and
+    slave-taking aren't counted."""
+    from .hit_and_run import raid_result_value, _raid_roll_modifier
+    from .ai_hazards import hull_hits_vp
+    mod = _raid_roll_modifier(list(rules or []), target)
+    if target.ship_type == "escort":
+        effect = 2 * raid
+    else:
+        effect = sum(raid_result_value(max(2, r + mod), target, gs, owner, end_phases)
+                     for r in range(2, 7)) / 5.0
+    armour = target.lowest_armor_value
+    p_dmg = sum(1 for r in range(2, 7) if r >= armour) / 6.0
+    return 5.0 / 6.0 * effect + p_dmg * hull_hits_vp(target, gs, 0.0, 1.0)
 
 
 def expected_survivors(n: int, shots: int, cap: int, p_turret: float = 0.5,

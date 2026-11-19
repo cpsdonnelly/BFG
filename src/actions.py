@@ -158,7 +158,12 @@ def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
                else tc.issue_special_order(ships[0], ev["order"]))
         _same(ev, "passed", res.get("success"))
     elif k == "order_reroll":
-        _same(ev, "passed", tc.attempt_reroll_command_check(ship, ev["order"]).get("success"))
+        if ev.get("squadron"):
+            res = tc.reroll_squadron_order([gs.get_ship_by_id(i) for i in ev["ships"]],
+                                           ev["order"])
+        else:
+            res = tc.attempt_reroll_command_check(ship, ev["order"])
+        _same(ev, "passed", res.get("success"))
     elif k == "aaf":
         from .movement import resolve_aaf_speed, squadron_aaf_bonuses
         if "ships" in ev:
@@ -229,6 +234,8 @@ def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
         launch_craft(gs, ev["ship"], ev["bay"], ev["craft"], ev["count"], ev.get("cap"))
     elif k == "act_form_wave":
         form_craft_wave(gs, ev["markers"], ev.get("formation", "close"))
+    elif k == "act_place_craft":
+        place_craft(gs, ev["markers"], ev["x"], ev["y"])
     elif k == "act_craft_target":
         set_craft_target(gs, ev["markers"], ev["target"])
     elif k == "act_target_priority":
@@ -898,6 +905,17 @@ def form_craft_wave(gs, marker_ids, formation: str = "close") -> str:
     """Attack craft launched together formed into one wave (s.25)."""
     from .waves import form_wave
     return form_wave(gs, list(marker_ids), formation)
+
+
+@recorder.logged("act_place_craft", lambda r, A: (A["gs"], dict(
+    markers=list(A["marker_ids"]), x=A["x"], y=A["y"])))
+def place_craft(gs, marker_ids, x: float, y: float) -> None:
+    """A combined wave launched by a squadron starts from the member furthest
+    from its destination (s.15)."""
+    ids = set(marker_ids)
+    for o in gs.ordnance:
+        if o["id"] in ids:
+            o["x"], o["y"] = x, y
 
 
 @recorder.logged("act_craft_target", lambda r, A: (A["gs"], dict(

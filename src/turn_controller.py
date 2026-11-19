@@ -623,7 +623,8 @@ class TurnController:
                 self.gs.update_ship(leader)
             blast_markers = self.gs.get_blast_markers()
         from .geometry import count_blast_markers_touching
-        in_blast = count_blast_markers_touching(leader, blast_markers) > 0
+        # s.8: a squadron is under fire if any member touches a blast marker
+        in_blast = any(count_blast_markers_touching(m, blast_markers) > 0 for m in ships)
         enemy_on_special = any(
             s.get("special_order", "none") != "none"
             for s in self.gs.ships
@@ -811,6 +812,28 @@ class TurnController:
             details={"remaining": flagship.rerolls_remaining},
             description=f"Fleet re-roll used ({flagship.rerolls_remaining} left)")
         return True
+
+    @_rec.logged("order_reroll", lambda r, A: (A["self"].gs, dict(
+        ship=A["ships"][0].id, ships=[x.id for x in A["ships"]], squadron=True,
+        order=A["order"], passed=r.get("success"))))
+    def reroll_squadron_order(self, ships: List[Ship], order: str) -> Dict:
+        """Re-roll a squadron's failed command check (s.8: one test for the
+        squadron, taken by its best Ld; s.5 re-roll). On a pass the order goes
+        to every ship given (the squadron in coherency) not braced."""
+        leader = max(ships, key=lambda s: s.leadership)
+        rr = self.attempt_reroll_command_check(leader, order)
+        if rr.get("success"):
+            affected = [leader.name]
+            for s in ships:
+                if s.id == leader.id:
+                    continue
+                fresh = self.gs.get_ship_by_id(s.id)
+                if fresh and fresh.special_order != SpecialOrder.BRACE_FOR_IMPACT.value:
+                    self.apply_passed_order(fresh, order)
+                    affected.append(fresh.name)
+                    self.gs.add_log(f"  {fresh.name}: {order} (squadron re-roll)")
+            rr["ships_affected"] = affected
+        return rr
 
     @_rec.logged("order_reroll", lambda r, A: (A["self"].gs, dict(
         ship=A["ship"].id, order=A["order"], passed=r.get("success"))))

@@ -960,14 +960,30 @@ def added_vp(target: Ship, gs, committed: float, hits: float, shields: bool = Tr
     return damage_vp(target, gs, after) - damage_vp(target, gs, before)
 
 
-def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy) -> float:
+class _OrdnanceRules:
+    """Stand-in marker for turret_hit_on: the launcher's rules (Eldar stealth,
+    Dark Eldar flickerfields) on a torpedo or craft."""
+    def __init__(self, rules, kind="torpedo_standard"):
+        self.special_rules = list(rules or [])
+        self.ordnance_type = kind
+
+
+def craft_turret_p(target: Ship, rules=None) -> float:
+    """Chance one of `target`'s turret dice destroys one of our attack craft
+    (4+, Ork 5+, Eldar turrets +1; our Eldar stealth / Dark Eldar flickerfields
+    +2, at most 6+)."""
+    from .ordnance import turret_hit_on
+    return max(0, 7 - turret_hit_on(target, _OrdnanceRules(rules, "bomber"))) / 6.0
+
+
+def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None) -> float:
     """Expected hits (torpedoes ignore shields) of a torpedo salvo of `strength` reaching
     `target`: its turrets (plus massed turrets) shoot torpedoes down first,
     each success one torpedo (Ork turrets 5+), then each torpedo hits its
     Armour facing the launcher's side."""
     from .ordnance import ordnance_turrets, get_massed_turret_bonus, turret_hit_on
     shots = ordnance_turrets(target, gs) + get_massed_turret_bonus(target, gs.get_ships())
-    p_turret = max(0, 7 - turret_hit_on(target)) / 6.0
+    p_turret = max(0, 7 - turret_hit_on(target, _OrdnanceRules(rules))) / 6.0
     left = max(0.0, strength - shots * p_turret)
     return left * p_hit(target.armor_vs(*from_xy))
 
@@ -1106,7 +1122,7 @@ def plan_strike_targets(gs, player: int) -> dict:
                     v += w * (hull_hits_vp(e, gs, c, h) if h else 0.0)
             if a or mr:
                 inp = wave_plan_inputs(e, gs)
-                p = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                p = craft_turret_p(e, lead.special_rules)
                 n = a + len(mr)
                 through = sum(w * expected_survivors(n, inp["turrets"] + inp["massed"],
                                                      inp["cap"] + ec, p) for w, ec in cases)

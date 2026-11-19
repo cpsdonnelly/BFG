@@ -89,6 +89,31 @@ Needs more work (next first):
    they are pinned on an edge and leaving scores best, so they rarely fight; a one-turn
    horizon can't plan "strike and fall back" (it needs the expert / multi-turn planning,
    To do 14 in the port), and its hit values don't count the shadowfield saves yet.
+   Owner's Dark Eldar checklist (checked, `tests/test_dark_eldar_checks.py`): Ld on the
+   Eldar column (7-10), yes; Dark Eldar gunnery left shift and phantom lances (1 on a 4, 2
+   on 5+), yes; Spectral Plating, yes (no blast marker or cloud damage roll); shadowfields,
+   yes. Fixed from the list: Voidraven salvos lost the Dark Eldar rule (no plasma re-roll,
+   no flickerfields; `fire_torpedo_bombers` keeps it); Impalers shared the fleet's launch
+   bay pool (now their own, `ordnance.fleet_craft_slots(..., impaler=)` / `impaler_bays`);
+   the AI valued an Impaler as one plain raid (`waves.impaler_value`: 5/6 x a crit or two
+   raids + the damage chance); the AI's turret maths ignored Eldar stealth / flickerfields
+   for craft and torpedoes (`ai_hazards.craft_turret_p`, `torpedo_salvo_hits(rules=)`).
+   General AI fixes from the list (every faction): squadrons now take ONE command check
+   (s.8; before, each escort tested its own order, so a squadron could be split and a fail
+   by any member ended the fleet's orders): `AIPlayer._issue_squadron_order` through
+   `TurnController.issue_squadron_order`, a failed check re-rolled for the squadron
+   (`reroll_squadron_order`, recorded and replayed), ships out of formation get no order;
+   a squadron is under fire if any member touches a blast marker (was the leader only);
+   the AI keeps squadrons in coherency (`_coherency_term`: an end more than 15cm from every
+   other member costs `COHERENCY_WEIGHT` 3.0 and more the further, judgement; "squadron"
+   and "squadron contact" move goals so stragglers can rejoin) and members with ordnance
+   gain `CONTACT_WEIGHT` 0.5 for base contact; after launching, members in contiguous base
+   contact combine their strike craft into one wave at the target most of them chose,
+   placed at the member furthest from it (`_combine_squadron_waves`, `actions.place_craft`;
+   s.15). Reload Ordnance: valued per ship (`_reload_value`), now taken once for a squadron,
+   with a commander re-roll by importance (`should_reroll`). Not yet: combining torpedo
+   salvos, the Impaler under the hit-and-run toggle (it is an assault boat, so off with
+   raids; owner question).
    Owner UI report (same session), done: deployment headings default to facing the enemy's
    zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
    along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-
