@@ -329,7 +329,8 @@
         }
       ],
       "special_rules": [
-        "kor_vattra"
+        "kor_vattra",
+        "deflector"
       ],
       "upgrades": [],
       "points_value": 180,
@@ -433,7 +434,8 @@
         }
       ],
       "special_rules": [
-        "kor_vattra"
+        "kor_vattra",
+        "deflector"
       ],
       "upgrades": [],
       "points_value": 180,
@@ -537,7 +539,8 @@
         }
       ],
       "special_rules": [
-        "kor_vattra"
+        "kor_vattra",
+        "deflector"
       ],
       "upgrades": [],
       "points_value": 180,

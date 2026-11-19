@@ -645,7 +645,10 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
             lk = r.get("list") or main_key
             lk = lk.split(":", 1)[1] if lk.startswith("reserve:") else lk
             sec = section_of(LISTS.get(lk, main), r["entry"].ship_class) or {}
-            if sec.get("name") != "Cruisers":
+            sname = sec.get("name", "")
+            if not (sname == "Cruisers" or (sname.endswith("Cruisers")
+                                            and "Light" not in sname
+                                            and "Battle" not in sname)):
                 errors.append(f"{r['entry'].ship_class}: mine launchers only for up to two "
                               f"cruisers; this list places it under "
                               f"{sec.get('name', 'another category')}.")

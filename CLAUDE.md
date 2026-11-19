@@ -574,8 +574,17 @@ ordnance sweep 5250 cases pass):
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.
-- Next (owner order): Tyranids (To do 19; playable now, slices 1-3 built, gaps listed there), then the other owner fleets' gaps (Tau Protector,
-  Orks, Necrons, Eldar; To do 25).
+- Next (owner order): Tyranids (To do 19; playable now, slices 1-3 built, gaps listed there), then the other owner fleets' gaps (Tau Protector
+  done: `owner_tau_protector_980.json`; Orks, Necrons, Eldar next; To do 25).
+- Tau Protector gaps built: the Emissary's Bor'kan / Sa'cea configurations (ion cannons for
+  the hooks, free; a prow gravitic launcher for the launch bays, free) and Deflector +10
+  (`booklet_options.tau_profile_options`); the mine swap now offered to the Emissary (a light
+  cruiser in the Tau list's Kor'or'vesh Cruisers category, update 58 ruling; never with the
+  launcher swap, `group:emissary_bays`); Deflectors as a rule (`deflector`, from "6+D" armour
+  or "Has a Deflector"): a prow critical takes the front back to the side Armour until
+  repaired (`Ship.armor_prow_value`) (`tests/test_tau_emissary.py`). Not yet: the Hero's and
+  Protector's own swaps (ion cannons for railguns; the Protector's prow railguns to FP4 for
+  45cm ion cannons), the Explorer's Bor'kan configuration.
 
 Earlier work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
 shooting dialog as recorded actions; `src/fire_volley.py`), the ordnance phase (AI

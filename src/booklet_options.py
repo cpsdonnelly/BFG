@@ -1042,7 +1042,9 @@ def mine_launcher_options(row: dict) -> List[Dict]:
                                        "mine_speed": 10}]},
                      ["fleet_max:2"])]
     if fac == "Tau & Allies":
-        if _ship_type_of(row) != "cruiser" or "Light" in name:
+        # "Up to two cruisers": the Emissary light cruiser counts, as the Tau
+        # list places it under Kor'or'vesh Cruisers (update 58 ruling)
+        if _ship_type_of(row) != "cruiser":
             return []
     elif fac not in MINE_SWAP_GROUPS or (group not in MINE_SWAP_GROUPS[fac]
                                          and LIGHT_CRUISER_GROUPS.get(fac) != group):
@@ -1068,11 +1070,40 @@ def mine_launcher_options(row: dict) -> List[Dict]:
                           "mine_speed": 10})
             total += n
     cost = 5 * total
+    extra = ["group:emissary_bays"] if name == "Emissary Light Cruiser" else []
     return [_opt(MINE_SWAP, f"+{cost}pts (5 per bay): {total} mine launcher"
                  f"{'s' if total > 1 else ''} instead of the launch bays; up to two ships "
                  "in the fleet.", cost,
                  {"remove_weapons": sorted(set(removed)), "add_weapons": added},
-                 ["fleet_max:2"])]
+                 ["fleet_max:2"] + extra)]
+
+
+def tau_profile_options(row: dict) -> List[Dict]:
+    """The Emissary's Bor'kan / Sa'cea Configurations (no extra cost): ion
+    cannons (30cm S1, L/F and R/F) for the gravitic hooks, and / or a prow
+    gravitic launcher (20-40cm S3, F) for the prow launch bays; a Deflector
+    +10pts (6+ prow Armour, lost to a prow critical)."""
+    if row["name"] != "Emissary Light Cruiser":
+        return []
+    ion = [{"name": "Port Ion Cannon", "weapon_type": "lance", "range_cm": 30, "strength": 1,
+            "arcs": ["left", "front"]},
+           {"name": "Starboard Ion Cannon", "weapon_type": "lance", "range_cm": 30,
+            "strength": 1, "arcs": ["right", "front"]}]
+    launcher = {"name": "Prow Gravitic Launcher", "weapon_type": "torpedo", "range_cm": 40,
+                "strength": 3, "arcs": ["front"], "torpedo_type": "guided",
+                "torpedo_speed": 40, "torpedo_speed_min": 20}
+    return [
+        _opt("Configuration: ion cannons for the gravitic hooks", "Free (Bor'kan / Sa'cea): "
+             "port and starboard ion cannons 30cm S1 (L/F, R/F); no Wardens towed.", 0,
+             {"add_weapons": ion, "remove_special_rules": ["hooks:warden:2"]}),
+        _opt("Configuration: prow gravitic launcher for the launch bays", "Free (Bor'kan / "
+             "Sa'cea): prow gravitic launcher 20-40cm S3 (F) instead of the launch bays.", 0,
+             {"remove_weapons": ["Launch Bays"], "add_weapon": launcher},
+             ["group:emissary_bays"]),
+        _opt("Deflector", "+10pts: 6+ prow Armour against all attacks to that facing; "
+             "disabled by a prow critical (restored when repaired).", 10,
+             {"set": {"armor_prow": "6+"}, "add_special_rules": ["deflector"]}),
+    ]
 
 
 def torpedo_bomber_options(row: dict) -> List[Dict]:
@@ -1107,7 +1138,8 @@ def torpedo_bomber_options(row: dict) -> List[Dict]:
 def options_for(row: dict) -> List[Dict]:
     """Every option for one booklet ship (_options_for) plus the mine launcher
     swap its fleet lists allow and torpedo bomber purchases."""
-    return _options_for(row) + mine_launcher_options(row) + torpedo_bomber_options(row)
+    return (_options_for(row) + mine_launcher_options(row) + torpedo_bomber_options(row)
+            + tau_profile_options(row))
 
 
 def _options_for(row: dict) -> List[Dict]:

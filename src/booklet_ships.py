@@ -492,6 +492,10 @@ def convert_row(row: dict) -> dict:
         special_rules.append("ponderous")
     if "towed" in (row.get("hull_type") or "").lower():
         special_rules.append("towed")
+    if ((row.get("armour") or {}).get("front_note") == "D"
+            or "Has a Deflector" in notes):
+        # Tau Deflector (Xenos, Tau rules): 6+ prow Armour, lost to a prow crit
+        special_rules.append("deflector")
     if "Ablative Prow Armour" in notes:
         # Ignores Prow Armament Damaged crits; lost if prow torpedoes are taken
         special_rules.append("ablative_prow_armor")

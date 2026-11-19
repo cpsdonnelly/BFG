@@ -294,6 +294,11 @@ class Ship:
 
     @property
     def armor_prow_value(self):
+        if "deflector" in self.special_rules and any(
+                c.get("crit_type") == "prow_armament" for c in self.critical_damage):
+            # Tau Deflector: "disabled by a prow critical (restored when
+            # repaired)"; the front then takes the ship's other Armour
+            return int(self.armor_side.replace("+", ""))
         return int(self.armor_prow.replace("+", ""))
 
     @property

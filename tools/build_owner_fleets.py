@@ -67,6 +67,13 @@ FLEETS = [
           "torp_raiders")] * 4
       + [("Subjugation Class Raider", ["Kabal Variant: Weapons battery FP3"], False,
           "gun_raiders")] * 5),
+    ("owner_tau_protector_980.json", "Tau Protector 980", "Tau", "tau_empire", [
+        ("Custodian Battleship", ["Kor'O (Ld 9)", "Commander: 2 extra re-rolls"], True, ""),
+    ] + [("Emissary Light Cruiser", ["Configuration: ion cannons for the gravitic hooks",
+                                     "Mine launchers (replace all launch bays)", "Deflector"],
+          False, "emissaries")] * 2
+      + [("Warden Gunship", [], False, "wardens")] * 3
+      + [("Protector Cruiser", [], False, "")]),
     ("owner_tyranid_gestating_990.json", "Tyranid Gestating 990", "Tyranid", "tyranid_gestating",
      [("Scylla Strain Bio-Cruiser w/ Synapse Node",
        ["Prow: Pyro-acid Battery", "Thorax: Pyro-acid Battery",
@@ -97,8 +104,7 @@ FLEETS = [
 # Owner's lists (all 1000pt or under). Mechanicus Gifts: the owner rolls them on the table
 # and keeps a good, affordable result (never Fleet Defence Turrets): random, left to the
 # player / the AI list builder (To do 24).
-GAPS = ["Tau Protector (Emissary options: ion cannons for hooks, mine launchers, deflector)",
-        "Orks (kustom force field, the Onslaught's zzapp gun swap, looted vessels)",
+GAPS = ["Orks (kustom force field, the Onslaught's zzapp gun swap, looted vessels)",
         "Necrons (Dynasty upgrades: Cartouche, Khopesh, War, nightmare field, Bloodswarm)",
         "Eldar (commanders and fleet lists)"]
 
