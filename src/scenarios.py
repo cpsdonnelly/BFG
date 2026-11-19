@@ -2091,6 +2091,42 @@ def admiral_bonus_vp(gs, ship) -> float:
     return float(sum(s.points_value or 0 for s in gs.player_ships(ship.player))) + 1.0
 
 
+def flagship_durability(ship) -> float:
+    """Judgement, for picking a Kill the Admiral flagship: how much it takes
+    to kill (hits, shields, Armour by its weakest facing, a 4+ save)."""
+    from .models import parse_armor
+    arm = min(parse_armor(a) for a in (ship.armor_prow, ship.armor_side, ship.armor_rear) if a) \
+        if (ship.armor_prow or ship.armor_side) else 5
+    save = any(r.startswith("reactive_hull:") or r in ("bonded_exo_plating", "shadowfield")
+               for r in ship.special_rules)
+    return (ship.hits_remaining + 2 * ship.shields_max) * (arm / 5.0) * (1.5 if save else 1.0)
+
+
+def designate_flagships(gs, pick=None) -> list:
+    """Kill the Admiral (owner): a player whose fleet has no flagship must
+    designate one ship as its flagship, for the scenario only (no commander or
+    re-rolls). pick(player, ships, best) -> the chosen ship (a human's choice);
+    None picks the best by `flagship_durability` (the AI, "Auto": capital
+    ships before escorts, then the hardest to kill). Returns (player, ship)."""
+    if getattr(gs, "scenario_mode", "") != "kill_admiral":
+        return []
+    out = []
+    for p in (1, 2):
+        mine = [s for s in gs.player_ships(p) if s.status == "active" and not s.is_disengaged]
+        if not mine or any(s.is_flagship for s in mine):
+            continue
+        best = max(mine, key=lambda s: (s.ship_type != "escort", flagship_durability(s),
+                                        s.points_value, s.id))
+        ship = (pick(p, mine, best) if pick else None) or best
+        ship = gs.get_ship_by_id(ship.id)
+        ship.is_flagship = True
+        ship.special_rules = list(ship.special_rules) + ["designated_flagship"]
+        gs.update_ship(ship)
+        gs.add_log(f"Kill the Admiral: player {p} designates {ship.name} its flagship")
+        out.append((p, ship))
+    return out
+
+
 def bridge_smashed_chance(ship) -> float:
     """The chance a critical hit on the ship kills its admiral: Bridge Smashed,
     or result 9 on an alien table (its table's 2D6 results for them)."""

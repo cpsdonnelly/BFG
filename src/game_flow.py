@@ -449,6 +449,15 @@ class GameFlow(AAPanelMixin):
         """Called by DeploymentPanel when all ships are placed."""
         tc = self.ctx.tc
         gs = self.ctx.gs
+        # Kill the Admiral: a fleet without a flagship designates one (owner)
+        from .scenarios import designate_flagships
+
+        def _pick_flag(player, ships, best):
+            if self.ctx.is_ai_controlled(player):
+                return best
+            return self.ctx.prompt.pick_ship(
+                f"Kill the Admiral: player {player}, designate your flagship", ships, best)
+        designate_flagships(gs, _pick_flag)
         # Meteor Storm wrecks: catastrophic damage where they stand, once
         # deployment is finished (owner ruling)
         from .subplots import deployed_wrecks

@@ -1676,7 +1676,12 @@ Done: To do 2, 3, 6; most of 7.
    a Bridge Smashed (or result 9 on the Dark Eldar, Eldar, Necron and Tyranid tables,
    update 62) kills the admiral and ends the game, and so does the flagship disengaging (owner
    ruling; by a test or off the table; `disengage_gain` concedes the admiral bonus, so the
-   AI never takes its flagship away)
+   AI never takes its flagship away). A fleet with no flagship must designate one for the
+   scenario (owner; no commander or re-rolls): after deployment, before the first turn
+   (`scenarios.designate_flagships` from `GameFlow._begin_turn1_steps`; a human picks with
+   `ctx.prompt.pick_ship`, the AI and the default take a capital ship before an escort, then
+   the hardest to kill, `flagship_durability`, judgement: hits + 2 x shields, x the weakest
+   Armour / 5, x 1.5 with a 4+ / reactive / shadowfield save)
    (`scenario.check_scenario_end`), so `damage_vp` adds the chance the hull hits short of a
    kill crit the bridge (crits on 6, `bridge_smashed_chance` from the ship's own table:
    4/36 on the standard and alien tables), bombardment cannons' extra crits

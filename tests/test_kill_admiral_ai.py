@@ -65,3 +65,24 @@ def test_a_disengaged_flagship_loses_and_the_ai_counts_it():
     gs.update_ship(flag)
     end = check_scenario_end(gs)
     assert end and end["winner"] == 1 and "disengaged" in end["detail"]
+
+
+def test_a_fleet_without_a_flagship_designates_one():
+    from src.scenarios import designate_flagships
+    esc = make_ship(id="e1", player=1, ship_type="escort", hits_max=1, points_value=40)
+    weak = make_ship(id="c1", player=1, hits_max=6, points_value=150)
+    tough = make_ship(id="c2", player=1, hits_max=10, shields_max=2, points_value=120)
+    gs = _fleet()
+    for s in (esc, weak, tough):
+        gs.add_ship(s)
+    out = designate_flagships(gs)
+    assert [(p, s.id) for p, s in out] == [(1, "c2")]          # player 2 already has one
+    assert gs.get_ship_by_id("c2").is_flagship
+    # a human's own pick stands
+    gs2 = _fleet()
+    for s in (make_ship(id="a", player=1), make_ship(id="b", player=1)):
+        gs2.add_ship(s)
+    designate_flagships(gs2, lambda p, ships, best: next(s for s in ships if s.id == "a"))
+    assert gs2.get_ship_by_id("a").is_flagship and not gs2.get_ship_by_id("b").is_flagship
+    gs2.scenario_mode = "cruiser_clash"
+    assert designate_flagships(gs2) == []
