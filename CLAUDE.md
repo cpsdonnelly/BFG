@@ -2728,6 +2728,38 @@ Done: To do 2, 3, 6; most of 7.
       webway reserves). Then the AI (shadowfield saves in its hit values) and the owner's
       Dark Eldar fleet as a file (Succubus Burning Scale + Voidravens 170, 6 Corsairs with
       Impalers, 4 Subjugations with torpedoes, 5 with batteries, Archon + 2 re-rolls: 990).
+   Tyranid plan (next; read `bfgxr/rules/13_tyranids.md`, 317 lines, and Appendix 3's
+   Tyranid table; nothing built yet), slices like the Dark Eldar's, each with tests:
+   1. Catalog and fleet building: `booklet_ships.convert_row` gives Tyranid ships `tyranid`,
+      no Ld roll (synapse creatures' fixed Ld: Proteus 10 / 60cm, Charybdis 8 / 45cm, a Scylla
+      minor synapse node +5pts Ld 7 / 30cm; others none), spore cysts as turrets, no shields;
+      weapon configurations as required option groups (the Charybdis: one prow, one thorax, up
+      to three port / starboard choices, copies combined; bio-cruiser gene templates Scylla /
+      Guardian / Carnivore / Prowler, each with its own weapon choices; Kraken / Vanguard /
+      Escort Drone one weapon each, the same across a squadron); weapons: pyro-acid batteries,
+      bio-plasma, feeder tendrils and massive claws (Strength, owner ruling: contact weapons),
+      excretion ducts (hull-borer torpedoes), launch glands (antibodies: multi-role fighter /
+      assault boat, 15cm), phage mines (+points, launch glands count as mine launchers);
+      biomorphs as options; the Proteus a Defence moving as a battleship (owner ruling);
+      the Gestating, Vanguard and Hive fleet lists (attack rating 2, 3 with Pheromone Rage);
+      `UNBUILT_FACTION_RULES` lifted once slice 2 plays.
+   2. Instinctive Behaviour and synapse: each turn units outside synapse control act on
+      instinct (the rule's table); a synapse creature takes command checks to control ships
+      or squadrons in range (each success: no Instinctive Behaviour, any special order with no
+      second check; a failure ends its chain); Brace on the nearest synapse creature's Ld, else
+      7; Ld 10 for navigation; shooting only at the closest enemy in range and arc or a
+      highlighted target (Pheromone Sprayers 15cm), no ordnance unless highlighted; spore cysts
+      as turrets with their own exceptions (rule text "Spores"); boarding: troop rating
+      doubled, 2D6 keep the best, never counting blast-marker contact for enemy bonuses.
+   3. Contact weapons (feeder tendrils: lowest Armour, 1 damage + D3 raids a hit, no crits;
+      massive claws: 4+, re-roll misses when ramming; both on moving into base contact), phage
+      mines (each hull hit a Fire crit), the Tyranid crit table, Living Barrier (-1 Ld target
+      priority behind an escort drone within 15cm), Slow Gestation, the Proteus's ponderous /
+      thorax / spore-cyst crit rules, scenario rules (Cruiser Clash, Convoy attacker,
+      Planetary Assault capacity = spore cysts, Escalating +1, Exterminatus defender).
+   4. AI: instinct-aware orders and synapse chains, closest-target shooting, contact weapons
+      in the move score (base contact for tendrils / claws), the owner's three Tyranid fleets
+      as files (docs/OWNER_FLEETS.md).
 20. Port the engine to Rust in a new branch (owner: third-last task, before online play; plan
    section 7; determinism and the window: "Window and port" under the agreed order). Python
    is the reference until the port replays every golden game identically, then retired (the
