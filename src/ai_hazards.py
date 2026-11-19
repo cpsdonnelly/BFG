@@ -57,6 +57,18 @@ def p_hit(armour: int) -> float:
     return max(1, 7 - armour) / 6.0
 
 
+def torpedo_p_hit(armour: int, rules=None, otype: str = "torpedo_standard") -> float:
+    """One torpedo against Armour N+, re-rolling a miss where the launcher's rules
+    say so: Eldar torpedoes (MMS p.4) and Dark Eldar plasma torpedoes, which are
+    standard torpedoes that must re-roll missed attacks (Xenos p.5; not leech or
+    boarding torpedoes), as `ordnance.resolve_torpedo_attack` rolls them."""
+    p = p_hit(armour)
+    rules = rules or []
+    if "eldar_mms" in rules or ("dark_eldar" in rules and otype == "torpedo_standard"):
+        p = 1.0 - (1.0 - p) ** 2
+    return p
+
+
 # ── Values ───────────────────────────────────────────────────────────────────
 
 def ship_value(ship: Ship, gs) -> float:
@@ -144,6 +156,7 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
             return h, f"mine ({h:.1f} hits)"
         return 0.0, ""
     if "torpedo" in otype and otype != "torpedo_bomber":
+        ph = torpedo_p_hit(ship.armor_vs(m.x, m.y), m.special_rules, otype)
         strength = max(0.0, m.strength - _turret_kills(ship, m))
         if strength <= 0:
             return 0.0, ""
@@ -998,7 +1011,7 @@ def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None) -> 
     shots = ordnance_turrets(target, gs) + get_massed_turret_bonus(target, gs.get_ships())
     p_turret = max(0, 7 - turret_hit_on(target, _OrdnanceRules(rules))) / 6.0
     left = max(0.0, strength - shots * p_turret)
-    return left * p_hit(target.armor_vs(*from_xy))
+    return left * torpedo_p_hit(target.armor_vs(*from_xy), rules)
 
 
 def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,
@@ -2159,13 +2172,17 @@ def best_bracket(table) -> Tuple[float, float]:
     return max(table, key=lambda r: r[1] - r[2])[0]
 
 
-def _salvo_attack_hits(strength: float, ship: Ship, x: float, y: float) -> Tuple[float, float]:
+def _salvo_attack_hits(strength: float, ship: Ship, x: float, y: float,
+                       rules=None) -> Tuple[float, float]:
     """(expected hits, strength left) of a salvo of `strength` attacking `ship`
-    from (x, y): turrets kill 4+ each first (half a point a turret), then each
-    point hits on the facing it touches; hits and kills are spent, the misses
+    from (x, y): turrets kill first (4+, worse against Eldar / Dark Eldar
+    salvos), then each point hits on the facing it touches (Dark Eldar plasma
+    and Eldar torpedoes re-roll misses); hits and kills are spent, the misses
     carry on (s.17)."""
-    through = max(0.0, strength - 0.5 * ship.effective_turrets)
-    hits = through * p_hit(ship.armor_vs(x, y))
+    from .ordnance import turret_hit_on
+    p_t = max(0, 7 - turret_hit_on(ship, _OrdnanceRules(rules))) / 6.0
+    through = max(0.0, strength - p_t * ship.effective_turrets)
+    hits = through * torpedo_p_hit(ship.armor_vs(x, y), rules)
     return hits, max(0.0, through - hits)
 
 
@@ -2205,7 +2222,7 @@ def _bomber_salvo_value(gs, group, player: int, heading: float) -> float:
     for _, s in sorted(touched, key=lambda t: t[0]):
         if strength <= 0:
             break
-        hits, strength = _salvo_attack_hits(strength, s, lead.x, lead.y)
+        hits, strength = _salvo_attack_hits(strength, s, lead.x, lead.y, lead.special_rules)
         v = hull_hits_vp(s, gs, 0.0, hits)
         total += v if s.player != player else -v
     return total
@@ -2257,7 +2274,7 @@ def torpedo_bomber_flight_target(gs, group, player: int) -> str:
             continue
         gap = math.hypot(e.x - lead.x, e.y - lead.y) - e.base_radius - reach
         k = 0 if gap <= 0 else int(math.ceil(gap / speed))
-        hits, _left = _salvo_attack_hits(strength, e, lead.x, lead.y)
+        hits, _left = _salvo_attack_hits(strength, e, lead.x, lead.y, lead.special_rules)
         v = hull_hits_vp(e, gs, 0.0, hits) * phase_weight(k)
         if v > best_v:
             best, best_v = e.id, v

@@ -140,6 +140,12 @@ Needs more work (next first):
    strike that lands before the fuel runs out (this ordnance phase or the enemy's next;
    in flight, in the enemy's phase only that one: `_strike_option`,
    `ai_hazards.plan_strike_targets`).
+   Owner: plasma torpedoes re-roll misses (checked for ship-launched salvos and Voidraven
+   salvos; leech and boarding don't); the AI now counts the re-roll (and Eldar's) in every
+   torpedo value (`ai_hazards.torpedo_p_hit` in `torpedo_salvo_hits`, `marker_hits`,
+   `_salvo_attack_hits` for torpedo bomber salvos, which also use the flickerfield turret
+   chance now). Owner ruling: Impalers count as a special type of assault boat (so they stay
+   off with the hit-and-run toggle; the question is closed).
    Owner UI report (same session), done: deployment headings default to facing the enemy's
    zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
    along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-

@@ -218,3 +218,49 @@ def test_ai_launches_no_impaler_strike_it_cannot_land_before_its_fuel_runs_out()
         opt = ai._strike_option(gs.get_ship_by_id("c"), ["impaler"], 1,
                                 [s for s in gs.get_ships() if s.player == 2])
         assert (opt is not None and opt[0] > 0) == expect, (setup[1].id, opt)
+
+
+def _torp_target():
+    return make_ship(id="t", player=2, x=50.0, y=50.0, heading=0.0, hits_max=8, turrets=0,
+                     shields_max=0, armor_prow="5+", armor_side="5+", armor_rear="5+")
+
+
+def test_voidraven_salvo_rerolls_misses():
+    gs = make_gs([make_ship(id="s", player=1, special_rules=list(DE)), _torp_target()])
+    gs.add_ordnance(OrdnanceMarker(id="v", ordnance_type=OrdnanceType.TORPEDO_BOMBER.value,
+                                   owner_player=1, launched_by="s", launched_turn=0,
+                                   x=50.0, y=56.0, special_rules=list(DE)))
+    gs.turn_number = 2
+    fire_torpedo_bombers(gs, ["v"], 270.0)
+    salvo = OrdnanceMarker.from_dict(next(o for o in gs.ordnance
+                                          if "limited_fuel" in (o.get("special_rules") or [])))
+    assert salvo.ordnance_type == OrdnanceType.TORPEDO_STANDARD.value
+    from src.ordnance import resolve_torpedo_attack
+    rolls = [5, 2,          # vs 5+: one hit, one miss
+             6,             # the plasma re-roll of the miss hits
+             1, 1]          # crit checks
+    dice = DiceStub(rolls)
+    r = resolve_torpedo_attack(salvo, gs.get_ship_by_id("t"), dice, gs)
+    assert dice._idx == len(rolls) and r["hits"] == 2
+
+
+def test_boarding_torpedoes_do_not_reroll():
+    from src.ordnance import resolve_torpedo_attack
+    from tests.conftest import make_gs_raids
+    gs = make_gs_raids([_torp_target()])
+    m = OrdnanceMarker(id="b", ordnance_type=OrdnanceType.TORPEDO_BOARDING.value,
+                       owner_player=1, launched_by="a", x=50.0, y=55.0, heading=270.0,
+                       strength=2, special_rules=list(DE))
+    dice = DiceStub([1, 2])            # both miss, no re-roll
+    r = resolve_torpedo_attack(m, gs.get_ship_by_id("t"), dice, gs)
+    assert dice._idx == 2 and r["hits"] == 0
+
+
+def test_ai_counts_plasma_rerolls():
+    from src.ai_hazards import torpedo_p_hit, torpedo_salvo_hits
+    assert abs(torpedo_p_hit(5, DE) - (1 - (2 / 3) ** 2)) < 1e-9
+    assert torpedo_p_hit(5, DE, "torpedo_leech") == 1 / 3
+    t = _torp_target()
+    gs = make_gs([t])
+    assert torpedo_salvo_hits(3, t, gs, (50.0, 60.0), rules=DE) > \
+        torpedo_salvo_hits(3, t, gs, (50.0, 60.0))

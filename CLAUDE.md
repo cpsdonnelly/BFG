@@ -217,6 +217,15 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   vs a 3-turret Devastation, no CAP, turrets kill three fighters: 3 bombers + 5 fighters ->
   D6-3 each + 3; 4 + 4 -> D6-3 each + 4) in `tests/test_remastered_suppression.py` and
   `tools/gui_checks/remastered_suppression_check.py`.
+- **Dark Eldar ordnance (owner):** every Dark Eldar torpedo and attack craft but mines has
+  flickerfields (fighters, bombers, torpedo bombers, assault boats, Impalers: enemy turrets
+  +2 to hit, max 6+); Raptors and Impalers are resilient 4+; plasma torpedoes are standard
+  torpedoes that must re-roll misses (Voidraven salvos too; not leech or boarding
+  torpedoes); Impalers are a special type of assault boat, so they follow the assault boat
+  rules (off with the hit-and-run toggle, like every raid) and leave at the start of their
+  owner's turn (both turn systems). The AI counts all of it (`ai_hazards.torpedo_p_hit`,
+  `craft_turret_p`, `_turret_kills(ship, marker)`, `waves.impaler_value`, the Impaler fuel
+  deadline in `_strike_option` / `plan_strike_targets`).
 - **Attack craft orders (s.18):** each squadron keeps a target (`craft_target_id`: enemy ship,
   enemy ordnance, or a friendly ship to escort) and flies straight at it up to its speed every
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
