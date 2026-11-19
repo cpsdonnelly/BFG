@@ -1122,6 +1122,10 @@ def _options_for(row: dict) -> List[Dict]:
         return space_marine_options(row)
     if row.get("faction") == "Dark Eldar":
         return dark_eldar_options(row)
+    if row.get("faction") == "Tyranids":
+        from .booklet_ships import _ship_type
+        from .tyranids import options as tyranid_options
+        return tyranid_options(row, _ship_type(row) or "cruiser")
     opts: List[Dict] = []
     if "Imperial Navy" in rules or "Chaos" in rules:
         opts = torpedo_type_options(row)
@@ -1316,6 +1320,9 @@ def ship_option_errors(entry, chosen: List[str]) -> List[str]:
         if g not in groups:
             errors.append(f"Choose one {g.replace('_', ' ').title()}.")
     errors += kustom_count_errors(chosen)
+    if entry.faction == "tyranids":
+        from .tyranids import config_errors
+        errors += config_errors(entry, chosen)
     return errors
 
 

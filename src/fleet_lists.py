@@ -780,6 +780,9 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
         if n_esc < need:
             errors.append(f"{main['name']}: {n_cap} capital ship(s) need at least {need} "
                           f"escorts ({n_esc} taken).")
+    if main.get("tyranid"):
+        from .tyranids import fleet_errors as tyranid_fleet_errors
+        errors += tyranid_fleet_errors(main["tyranid"], rows, points_limit)
     if main.get("demiurg_war_host"):
         errors += _war_host_errors(rows)
     if main.get("chaos_options"):

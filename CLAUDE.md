@@ -574,7 +574,7 @@ ordnance sweep 5250 cases pass):
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.
-- Next (owner order): Tyranids (To do 19), then the other owner fleets' gaps (Tau Protector,
+- Next (owner order): Tyranids (To do 19; slice 1, the catalog, built), then the other owner fleets' gaps (Tau Protector,
   Orks, Necrons, Eldar; To do 25).
 
 Earlier work: To do 17 / 18 shooting actions and replay (the AI's attacks and every human
@@ -2728,8 +2728,30 @@ Done: To do 2, 3, 6; most of 7.
       webway reserves). Then the AI (shadowfield saves in its hit values) and the owner's
       Dark Eldar fleet as a file (Succubus Burning Scale + Voidravens 170, 6 Corsairs with
       Impalers, 4 Subjugations with torpedoes, 5 with batteries, Archon + 2 re-rolls: 990).
-   Tyranid plan (next; read `bfgxr/rules/13_tyranids.md`, 317 lines, and Appendix 3's
-   Tyranid table; nothing built yet), slices like the Dark Eldar's, each with tests:
+   Tyranid plan (read `bfgxr/rules/13_tyranids.md`, 317 lines, and Appendix 3's
+   Tyranid table), slices like the Dark Eldar's, each with tests. Slice 1 BUILT
+   (`src/tyranids.py`, `tests/test_tyranid_catalog.py`): Tyranid rules / fixed Ld
+   (synapse creatures their own, others the nominal 7, no table), shields = spore cysts
+   (`spore_cloud`), the Proteus's raw armament, weapons (`pyro_acid` batteries,
+   `bio_plasma` lances, `feeder_tendrils` / `massive_claws` contact weapons with Strength,
+   excretion ducts as `hull_borer` boarding torpedoes 20cm, launch glands with `antibody`
+   craft: gun-cutter type, 15cm, no save); the bio-cruiser's gene templates are catalog
+   classes "Tyranid Bio-Cruiser (Guardian / Scylla / Prowler / Carnivore)" (70 / 85 / 90 /
+   95, template changes built in) plus the Gestating list's "Scylla Strain Bio-Cruiser w/
+   Synapse Node" (100, Ld8 30cm); weapon configurations as options with
+   `tyranid_slot:<loc>[:n]` restrictions checked by `tyranids.config_errors` (required
+   counts per location and template; port / starboard sets give both sides; copies of one
+   weapon in one location combined, `merge_weapons` effect); biomorphs (limits 3 / 2 / 1;
+   Solar Vanes, Reinforced Carapace, Extra Spore Cysts as stats; Adrenaline Sacs +2D6 and
+   the Proteus's +2D6 AAF and Extra Discharge Vents' -5cm turning distance in movement; the
+   rest as rules for later slices; reading: an escort's 10% cost is 10% of its own cost, not
+   rounded to 5); phage mines priced by gland strength (variants checked against the
+   glands); Minor Synapse Node, Alpha Synapse Node, Hive Mind re-rolls (reading: one per
+   primary hive ship, fleet-unique while the engine keeps one pool; Scylla own re-rolls);
+   the Hive, Vanguard and Gestating lists (`TYR_LISTS`, per-hive-ship limits in
+   `tyranids.fleet_errors`). Not yet: ordnance swarms, escort squadrons' same weapon and
+   sizes, Pheromone Rage, the Infested Space Station (Lance Battery, orbital station), Spore
+   Field and Orbital Defence Spores. Every Tyranid ship stays unsupported until slice 2:
    1. Catalog and fleet building: `booklet_ships.convert_row` gives Tyranid ships `tyranid`,
       no Ld roll (synapse creatures' fixed Ld: Proteus 10 / 60cm, Charybdis 8 / 45cm, a Scylla
       minor synapse node +5pts Ld 7 / 30cm; others none), spore cysts as turrets, no shields;

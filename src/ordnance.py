@@ -1817,6 +1817,8 @@ CRAFT_STATS = {
     # dark_eldar.resolve_impaler (the marker carries the "impaler" rule)
     "impaler": (OrdnanceType.ASSAULT_BOAT.value, 30, 4),
     "voidraven": (OrdnanceType.TORPEDO_BOMBER.value, 20, 0),
+    # Tyranid antibodies (Xenos p.106): slow multi-role fighter + assault boat
+    "antibody": (OrdnanceType.GUN_CUTTER.value, 15, 0),
 }
 
 # What each attack craft type can act as. Multi-role craft follow the rules of

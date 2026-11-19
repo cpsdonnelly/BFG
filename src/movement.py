@@ -309,6 +309,8 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
         min_turn_dist = 0
     elif "turn_distance_plus5" in ship.special_rules:
         min_turn_dist += 5          # Experimental Ship (Quest) side effect
+    if "turn_distance_minus5" in ship.special_rules:
+        min_turn_dist = max(0, min_turn_dist - 5)   # Tyranid Extra Discharge Vents
 
     # Track state
     distance_moved = 0.0
@@ -804,6 +806,10 @@ def aaf_bonus_dice(ship: Ship) -> int:
         n += 2                         # Evil Sunz: an extra +2D6cm on All Ahead Full
     if "secondary_reactors" in ship.special_rules:
         n += 2                         # Secondary Reactors: +2D6cm (Advanced Engines)
+    if "aaf_2d6" in ship.special_rules:
+        n = 2                          # Proteus: only +2D6cm on All Ahead Full
+    if "adrenaline_sacs" in ship.special_rules:
+        n += 2                         # Tyranid Adrenaline Sacs: an extra +2D6cm
     return n
 
 

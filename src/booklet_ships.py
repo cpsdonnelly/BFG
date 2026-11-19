@@ -416,7 +416,10 @@ def convert_row(row: dict) -> dict:
         transport = (RULE_TRANSPORT[row["name"]], False)
     if row.get("points") is None and not (transport and row.get("points_raw") == "Free"):
         problems.append(f"points cost '{row.get('points_raw')}' is not a fixed number")
-    if not row["weapons"] and not (transport and ship_type in ("escort", "cruiser")):
+    tyranid_configured = (row["faction"] == "Tyranids"
+                          and "configuration" in (row.get("armament_raw") or ""))
+    if not row["weapons"] and not (transport and ship_type in ("escort", "cruiser")) \
+            and not tyranid_configured:
         # unarmed convoy ships (Fast Clipper) are playable; their cargo is the point
         problems.append(f"no weapon profile ({row.get('armament_raw')})")
     if row["faction"] in UNBUILT_FACTION_RULES:
@@ -457,6 +460,10 @@ def convert_row(row: dict) -> dict:
             else:
                 keep.append(w)
         rows_w = keep
+    if row["faction"] == "Tyranids" and row["name"] != "Infested Space Station":
+        # Tyranid weapons are built by src/tyranids.py (finish_profile): the
+        # export leaves tendrils, glands and ducts as raw text
+        rows_w = []
     weapons = [d for w in rows_w for d in _convert_weapon(w, craft_map, problems)]
     weapons += necron_extra
     if row["faction"] == "Necrons":
@@ -543,6 +550,9 @@ def convert_row(row: dict) -> dict:
                 d["de_battery"] = True
             if "Phantom Lance" in d.get("name", ""):
                 d["de_phantom"] = True
+    if row["faction"] == "Tyranids" and row["name"] != "Infested Space Station":
+        from .tyranids import base_rules
+        special_rules += base_rules(row)
     if row["faction"] == "Eldar":
         # MMS v2.0 faction rules (src/eldar.py); Ghostships keep 6+ crits
         special_rules += ["eldar_mms", "fragile"] + (["holofield"] if holo is not None else [])
@@ -561,7 +571,7 @@ def convert_row(row: dict) -> dict:
     if re.search(r"\+5D6cm on All Ahead Full instead of \+3D6cm", notes):
         special_rules.append("aaf_5d6")      # Fast Clipper
 
-    return {
+    kw = {
         "ship_class": row["name"],
         "faction": faction_id,
         "ship_type": ship_type or "cruiser",
@@ -583,6 +593,10 @@ def convert_row(row: dict) -> dict:
         "source": row.get("source") or "",
         "unsupported": sorted(set(problems)),
     }
+    if row["faction"] == "Tyranids" and row["name"] != "Infested Space Station":
+        from .tyranids import finish_profile
+        finish_profile(row, kw)
+    return kw
 
 
 def load_rows(path: str = SHIPS_JSON) -> List[dict]:

@@ -26,7 +26,12 @@ def test_all_thirteen_booklet_factions_present():
 def test_every_booklet_ship_is_in_the_catalog():
     entries = [e for f in list_factions() for e in get_faction_ships(f, include_unsupported=True)]
     designed = [e for e in entries if e.ship_class.startswith("Venerable Strike Cruiser (")]
-    assert len(entries) - len(designed) == len(BOOKLET) == 228
+    # The Tyranid Bio-Cruiser is listed once per gene template (four), plus the
+    # Gestating Fleet's Scylla with its synapse node (src/tyranids.py)
+    bio = [e for e in entries if e.ship_class.startswith("Tyranid Bio-Cruiser (")
+           or e.ship_class == "Scylla Strain Bio-Cruiser w/ Synapse Node"]
+    assert len(bio) == 5
+    assert len(entries) - len(designed) - len(bio) == len(BOOKLET) - 1 == 227
     assert len(designed) == 17          # every non-unique Navy / Chaos GC, BC and heavy cruiser
 
 

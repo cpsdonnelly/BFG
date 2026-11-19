@@ -457,4 +457,48 @@ DE_LISTS = [
          "Attack rating 4. Never gives or takes reserves."]},
 ]
 
-OTHER_LISTS: List[Dict] = CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS + DE_LISTS
+# ── Tyranids (13_tyranids.md, Xenos pp.118-120) ───────────────────────────────
+# The bio-cruiser's gene templates are catalog classes (src/tyranids.py); the
+# per-hive-ship limits are checked by tyranids.fleet_errors ("tyranid" key).
+_TYR_BIO = {"Tyranid Bio-Cruiser (Guardian)": 70, "Tyranid Bio-Cruiser (Scylla)": 85,
+            "Tyranid Bio-Cruiser (Prowler)": 90, "Tyranid Bio-Cruiser (Carnivore)": 95}
+_TYR_ESC = {"Kraken": 30, "Vanguard Drone": 30, "Escort Drone": 20}
+_TYR_UNENFORCED = [
+    "Ordnance swarms (hull-borer salvos 15, antibody squadrons 10; up to 10% of the "
+    "points) aren't in the fleet builder yet.",
+    "Escort squadrons of 1-12 in any mix (Kraken count two, at most 4 a squadron), and every "
+    "escort of a squadron armed with the same weapon: not checked.",
+    "Pheromone Rage (attack rating 3, +10pts) isn't offered; attack rating 2.",
+    "Never gives or takes reserves or allies."]
+TYR_LISTS = [
+    {"key": "tyranid_hive", "faction": "tyranids", "tyranid": "hive",
+     "name": "Tyranid Hive Fleet (Xenos p.118)",
+     "sections": [
+         {"name": "Primary hive ships", "class_max": {"Proteus Class Hive Ship": 1},
+          "ships": {"Proteus Class Hive Ship": 600, "Charybdis Class Hive Ship": 165}},
+         {"name": "Bio-cruisers", "ships": dict(_TYR_BIO)},
+         {"name": "Escorts", "ships": dict(_TYR_ESC)},
+     ],
+     "reserves": [], "unenforced": list(_TYR_UNENFORCED)},
+    {"key": "tyranid_vanguard", "faction": "tyranids", "tyranid": "vanguard",
+     "name": "Tyranid Vanguard Fleet (Xenos p.119)",
+     "sections": [
+         {"name": "Bio-cruisers", "ships": {"Tyranid Bio-Cruiser (Prowler)": 90}},
+         {"name": "Escorts", "ships": {"Kraken": 30, "Vanguard Drone": 30}},
+     ],
+     "reserves": [],
+     "unenforced": ["Escort squadrons of 6-12 (Kraken count two, at most 4 a squadron): not "
+                    "checked."] + _TYR_UNENFORCED[2:]},
+    {"key": "tyranid_gestating", "faction": "tyranids", "tyranid": "gestating",
+     "name": "Tyranid Gestating Fleet (Xenos p.120)",
+     "sections": [
+         {"name": "Primary hive ships",
+          "ships": {"Scylla Strain Bio-Cruiser w/ Synapse Node": 100}},
+         {"name": "Bio-cruisers", "ships": {k: v for k, v in _TYR_BIO.items()
+                                            if "Scylla" not in k}},
+         {"name": "Escorts", "ships": dict(_TYR_ESC)},
+     ],
+     "reserves": [], "unenforced": list(_TYR_UNENFORCED)},
+]
+
+OTHER_LISTS: List[Dict] = CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS + DE_LISTS + TYR_LISTS
