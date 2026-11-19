@@ -3760,6 +3760,11 @@ class AIPlayer:
                     options.append((risk_value(vals, disc, _tl), [(bomber, count)],
                                     f"{count} bombers", target, ev))
             got = timeline(stats[boat][1] or 20) if boat else None
+            if got and boat == "impaler" and got[0]["phase"] > 1:
+                # Impalers are removed at the start of our next turn (lack of
+                # fuel, Xenos p.5): only a strike landing in this ordnance phase
+                # or the enemy's next one counts
+                got = None
             if got:
                 tl, disc, caps = got
                 raid = raid_squadron_value(

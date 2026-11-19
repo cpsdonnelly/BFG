@@ -1122,6 +1122,12 @@ def plan_strike_targets(gs, player: int) -> dict:
                                  max(1.0, route[2] / d), gs.active_player == player)
             if tl is None:
                 continue
+            if any("impaler" in (m.special_rules or []) for m in g):
+                # Impalers are removed at the start of their owner's turn (lack
+                # of fuel, Xenos p.5): in our ordnance phase they have this
+                # one and the enemy's left, in the enemy's only that one
+                if tl["phase"] > (1 if gs.active_player == player else 0):
+                    continue
             c = committed.get(e.id, 0.0)
             # every interception case on the way: the target's reactive CAP,
             # other carriers' launches, fighters already flying (as planned

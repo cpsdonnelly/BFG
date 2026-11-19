@@ -162,3 +162,59 @@ def test_ai_hazard_counts_flickerfields_on_incoming_impalers():
     # 6+ to shoot an Impaler down (3 turrets: (5/6)^3 survive) vs 4+ for a boat
     assert abs(h_imp - (5 / 6) ** 3 * (5 / 6 + 2 / 6)) < 1e-9
     assert abs(h_plain - 0.125 * 0.5) < 1e-9
+
+
+ALL_BAY = {"name": "Keel Launch Bays", "weapon_type": "launch_bay", "strength": 5,
+           "craft_types": ["raptor", "razorwing", "slavebringer", "voidraven"]}
+
+
+def test_every_dark_eldar_craft_has_flickerfields_and_raptors_impalers_save():
+    from src.ordnance import launch_attack_craft, turret_hit_on
+    from tests.conftest import make_gs_raids
+    de = make_ship(id="c", player=1, special_rules=list(DE), weapons=[dict(ALL_BAY),
+                                                                      dict(IMPALER_BAY)])
+    gs = make_gs_raids([de, make_ship(id="t", player=2, x=50.0, y=0.0)])
+    t = gs.get_ship_by_id("t")
+    saves = {}
+    for ct, bay in (("raptor", ALL_BAY), ("razorwing", ALL_BAY), ("slavebringer", ALL_BAY),
+                    ("voidraven", ALL_BAY), ("impaler", IMPALER_BAY)):
+        m = launch_attack_craft(gs.get_ship_by_id("c"), dict(bay), ct, 1, gs)[0]
+        assert turret_hit_on(t, m) == 6, ct
+        saves[ct] = m.resilient_save
+    assert saves == {"raptor": 4, "razorwing": 0, "slavebringer": 0, "voidraven": 0,
+                     "impaler": 4}
+
+
+def test_impalers_run_out_of_fuel_in_both_turn_systems():
+    from src.dark_eldar import remove_spent_impalers
+    from src.aa_turn import AATurn
+    gs = make_gs([make_ship(id="c", player=1, special_rules=list(DE))])
+    for i, rules in enumerate((["dark_eldar", "impaler"], ["dark_eldar"])):
+        gs.add_ordnance(OrdnanceMarker(id=f"o{i}", ordnance_type=OrdnanceType.ASSAULT_BOAT.value,
+                                       owner_player=1, launched_by="c", special_rules=rules))
+    assert remove_spent_impalers(gs, 2) == 0
+    assert remove_spent_impalers(gs, 1) == 1 and [o["id"] for o in gs.ordnance] == ["o1"]
+    # alternate activation: removed at the start of the round
+    gs.add_ordnance(OrdnanceMarker(id="o2", ordnance_type=OrdnanceType.ASSAULT_BOAT.value,
+                                   owner_player=1, launched_by="c",
+                                   special_rules=["dark_eldar", "impaler"]))
+    gs.turn_system = "aa"
+    dice = DiceStub([3] * 40)
+    aa = AATurn(TurnController(gs, dice))
+    aa.start_game()
+    assert "o2" not in [o["id"] for o in gs.ordnance]
+
+
+def test_ai_launches_no_impaler_strike_it_cannot_land_before_its_fuel_runs_out():
+    de = make_ship(id="c", player=1, x=0.0, y=0.0, special_rules=list(DE),
+                   weapons=[dict(IMPALER_BAY)])
+    near = make_ship(id="n", player=2, x=40.0, y=0.0, speed=0)
+    far = make_ship(id="f", player=2, x=85.0, y=0.0, speed=0)
+    for setup, expect in (([de, near], True), ([de, far], False)):
+        from tests.conftest import make_gs_raids
+        gs = make_gs_raids(setup)
+        dice = DiceStub([])
+        ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+        opt = ai._strike_option(gs.get_ship_by_id("c"), ["impaler"], 1,
+                                [s for s in gs.get_ships() if s.player == 2])
+        assert (opt is not None and opt[0] > 0) == expect, (setup[1].id, opt)

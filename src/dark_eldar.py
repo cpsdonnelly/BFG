@@ -222,3 +222,17 @@ def boarding_slave_vp(gs, attackers, target, summary) -> None:
         vp += 100
     if vp:
         _add_slave_vp(gs, side[0].player, vp, "boarding action")
+
+
+def remove_spent_impalers(gs, player: int) -> int:
+    """Impalers left on the table at the start of the owning player's turn are
+    removed for lack of fuel (Xenos p.5). Called at the start of the player's
+    movement phase (IGOUGO, `TurnController.begin_phase`) and of each round
+    (alternate activation, `AATurn._start_round`). Returns how many went."""
+    gone = [o for o in gs.ordnance if o.get("owner_player") == player
+            and "impaler" in (o.get("special_rules") or [])]
+    if gone:
+        ids = {o["id"] for o in gone}
+        gs.ordnance = [o for o in gs.ordnance if o["id"] not in ids]
+        gs.add_log(f"{len(gone)} Impaler(s) removed: out of fuel")
+    return len(gone)

@@ -76,6 +76,11 @@ class AATurn:
 
     def _start_round(self) -> None:
         self.tracker.turn_start(self.gs)
+        # Dark Eldar Impalers out of fuel at the start of their owner's turn
+        # (Xenos p.5): in AA a round is both players' turn
+        from .dark_eldar import remove_spent_impalers
+        for p in (1, 2):
+            remove_spent_impalers(self.gs, p)
         from .scenarios import turn_start as _scenario_turn_start
         _scenario_turn_start(self.gs, self.tc.dice)
         self.command_check_failed = {1: False, 2: False}

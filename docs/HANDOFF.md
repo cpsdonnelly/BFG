@@ -131,6 +131,15 @@ Needs more work (next first):
    `turret_hit_on`, so Eldar stealth and flickerfields count), and an incoming Impaler is
    valued as one (`marker_hits`: survives the turrets, then 5/6 for its crit plus the hull
    hit chance; other assault boats now survive turrets by their real hit roll).
+   Owner (all Dark Eldar ordnance but mines has flickerfields: fighters, bombers, torpedo
+   bombers, assault boats, Impalers; Raptors and Impalers are resilient 4+; Impalers out of
+   fuel at the start of the owner's turn): every craft type checked by test (turrets need
+   6+, saves Raptor / Impaler 4+). Fixed: the fuel removal never ran in alternate
+   activation (`dark_eldar.remove_spent_impalers`, now called by `TurnController.
+   begin_phase` and `AATurn._start_round` for both players); the AI only plans an Impaler
+   strike that lands before the fuel runs out (this ordnance phase or the enemy's next;
+   in flight, in the enemy's phase only that one: `_strike_option`,
+   `ai_hazards.plan_strike_targets`).
    Owner UI report (same session), done: deployment headings default to facing the enemy's
    zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
    along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-
