@@ -162,6 +162,9 @@ def main():
         map_phenomena = editor.get_phenomena()
         map_settings = editor.get_map_settings()
         editor_root.destroy()
+        if editor.cancelled:
+            root.destroy()
+            return
 
         # Create game with editor map
         p1_info = get_fleet_info(setup["p1_fleet"])

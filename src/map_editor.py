@@ -43,10 +43,7 @@ class MapEditor:
         self.drag_offset = (0, 0)  # offset from click to phenomenon center
         self.selected_id = None    # selected terrain piece
         self.placing_type = None   # terrain type being placed from palette
-
-        # Main layout
-        main_frame = tk.Frame(root)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        self.cancelled = False     # closed with the window's X: no game
 
         # Board viewer (reuse existing)
         self.board = BoardView(root, self.gs)
@@ -56,6 +53,7 @@ class MapEditor:
             w.destroy()
 
         self._build_palette()
+        self.root.protocol("WM_DELETE_WINDOW", self._cancel)
 
         # Override board mouse bindings for editor mode
         self.board.canvas.bind("<Button-1>", self._on_click)
@@ -75,6 +73,11 @@ class MapEditor:
 
         tk.Label(panel, text="MAP EDITOR", bg="#1a1a2e", fg="white",
                  font=("Consolas", 11, "bold")).pack(pady=2)
+
+        tk.Button(panel, text="Done - Start Game",
+                  command=self._finish,
+                  bg="#336633", fg="white",
+                  font=("Consolas", 9, "bold"), width=22).pack(padx=5, pady=3)
 
         tk.Label(panel, text="Click terrain, then board.\nScroll to rotate. Right-click to resize.",
                  bg="#1a1a2e", fg="#888888", font=("Consolas", 7),
@@ -140,17 +143,6 @@ class MapEditor:
                   bg="#333355", fg="white",
                   font=("Consolas", 8), width=22).pack(padx=5, pady=1)
 
-        tk.Button(panel, text="Done - Start Game",
-                  command=self._finish,
-                  bg="#336633", fg="white",
-                  font=("Consolas", 9, "bold"), width=22).pack(padx=5, pady=5)
-
-        # Status
-        self.status_var = tk.StringVar(value="Select terrain from palette")
-        tk.Label(panel, textvariable=self.status_var, bg="#1a1a2e",
-                 fg="#AAAAAA", font=("Consolas", 7),
-                 wraplength=250).pack(padx=5, pady=2)
-
         # Status
         self.status_var = tk.StringVar(value="Select terrain from palette")
         tk.Label(panel, textvariable=self.status_var, bg="#1a1a2e",
@@ -158,8 +150,8 @@ class MapEditor:
                  wraplength=250).pack(padx=5, pady=5)
 
         # Key bindings
-        self.root.bind("Escape", lambda e: self._select_mode())
-        self.root.bind("Delete", lambda e: self._delete_selected())
+        self.root.bind("<Escape>", lambda e: self._select_mode())
+        self.root.bind("<Delete>", lambda e: self._delete_selected())
 
     def _select_palette(self, template):
         """Select a terrain type from the palette for placement."""
@@ -410,6 +402,16 @@ class MapEditor:
 
     def _finish(self):
         """Close map editor and return phenomena for use in game."""
+        self.root.quit()
+
+    def _cancel(self):
+        """The window's X: leave the editor without starting a game (before,
+        the editor's mainloop never returned and nothing happened)."""
+        if not messagebox.askyesno("Map Editor", "Quit without starting a game?\n"
+                                   "(Use 'Done - Start Game' to play on this map.)",
+                                   parent=self.root):
+            return
+        self.cancelled = True
         self.root.quit()
 
     def get_phenomena(self) -> List[dict]:

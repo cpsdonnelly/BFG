@@ -47,7 +47,8 @@ class BoardView:
         self.master.title(f"BFG:XR - {game_state.game_name}")
 
         # Window layout
-        self.master.geometry("1200x900")
+        from .tk_scroll import fit_height
+        self.master.geometry(f"1200x{fit_height(self.master, 900)}")
 
         # Main frame
         main_frame = tk.Frame(master)
