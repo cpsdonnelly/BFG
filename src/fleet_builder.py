@@ -518,6 +518,11 @@ class _ShipBuilderDialog:
 # Fleet entry (in-memory row)
 # ---------------------------------------------------------------------------
 
+def _lists():
+    from .fleet_lists import LISTS
+    return LISTS
+
+
 def _make_fleet_row(entry: ShipClassEntry, custom_name: str = "",
                     upgrades: Optional[List[str]] = None,
                     is_flagship: bool = False,
@@ -1217,6 +1222,10 @@ class FleetBuilderWindow:
                         storable["special_rules"] = list(storable["special_rules"]) + delta
                     else:
                         storable[stat] = storable.get(stat, 0) + delta   # Bakka +1 Turret
+            if (row.get("list") or "").startswith("reserve:") and \
+                    (_lists().get(self._list_key) or {}).get("looted_reserves"):
+                from .orks import loot          # Ork fleets: reserves are looted vessels
+                storable = loot(storable)
             # Write non-default damage state for campaign/scenario use
             dmg = row.get("damage", {})
             if "hits_remaining" in dmg:

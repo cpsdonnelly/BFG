@@ -310,6 +310,10 @@ class TurnController:
                     sd["rerolls_remaining"] = 1
             # Necron Deadly Awakening (Xenos p.39): at the start of each Necron turn
             self._necron_awakening(self.gs.active_player)
+            # Ork kustom force fields: +D3 shields, rolled each game turn
+            if self.gs.active_player == (getattr(self.gs, "first_player", 0) or 1):
+                from .orks import roll_force_fields
+                roll_force_fields(self.gs, self.dice)
             # Tyranids (Xenos p.104): synaptic control, then Instinctive Behaviour,
             # before moving (GameState.synapse_hook(creature, candidates) asks a
             # human which unit to control next; the AI / no hook use the default)

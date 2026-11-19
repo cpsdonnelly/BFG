@@ -389,7 +389,8 @@ class Ship:
                 return 0
         if any(c.get("crit_type") == "station_reactors" for c in self.critical_damage):
             s = (s + 1) // 2           # Space Station Reactors Damaged: halved, round up
-        return s
+        from .orks import force_field_bonus
+        return s + force_field_bonus(self)        # Ork kustom force field: +D3
 
     @property
     def effective_turrets(self):

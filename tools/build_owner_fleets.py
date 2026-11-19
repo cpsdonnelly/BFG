@@ -74,6 +74,12 @@ FLEETS = [
           False, "emissaries")] * 2
       + [("Warden Gunship", [], False, "wardens")] * 3
       + [("Protector Cruiser", [], False, "")]),
+    ("owner_orks_980.json", "Ork Green Tide 980", "Ork", "orks_green_tide", [
+        ("Dethdeala (0-1)", ["Ork Big Mek", "Boss title: Big Boss", "Kustom: Extra Power Field",
+                             "Kustom force field"], True, ""),
+    ] + [("Basha Lite Kroozer", ["Kustom force field"], False, "")] * 3
+      + [("Onslaught Attack Ship", ["Zzapp gun (gunz to FP2)"], False, ""),
+         ("reserve:Dominator Cruiser", [], False, "")]),
     ("owner_tyranid_gestating_990.json", "Tyranid Gestating 990", "Tyranid", "tyranid_gestating",
      [("Scylla Strain Bio-Cruiser w/ Synapse Node",
        ["Prow: Pyro-acid Battery", "Thorax: Pyro-acid Battery",
@@ -104,8 +110,7 @@ FLEETS = [
 # Owner's lists (all 1000pt or under). Mechanicus Gifts: the owner rolls them on the table
 # and keeps a good, affordable result (never Fleet Defence Turrets): random, left to the
 # player / the AI list builder (To do 24).
-GAPS = ["Orks (kustom force field, the Onslaught's zzapp gun swap, looted vessels)",
-        "Necrons (Dynasty upgrades: Cartouche, Khopesh, War, nightmare field, Bloodswarm)",
+GAPS = ["Necrons (Dynasty upgrades: Cartouche, Khopesh, War, nightmare field, Bloodswarm)",
         "Eldar (commanders and fleet lists)"]
 
 
@@ -121,8 +126,11 @@ def build(root, spec, out_dir):
     w._pts_limit_var.set("1000")
     meta = w._catalog_meta
     for cls, opts, flag, sq in ships:
+        reserve = cls.startswith("reserve:")       # e.g. an Ork fleet's looted vessel
+        cls = cls.split(":", 1)[1] if reserve else cls
         j = next((j for j, e in enumerate(w._catalog_entries)
-                  if e and e.ship_class == cls and not meta[j][0].startswith("reserve")), None)
+                  if e and e.ship_class == cls and meta[j][0].startswith("reserve") == reserve),
+                 None)
         if j is None:
             raise SystemExit(f"{name}: {cls} not in the {list_key} catalog")
         entry = w._catalog_entries[j]

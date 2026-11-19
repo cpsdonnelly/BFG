@@ -208,6 +208,7 @@ _NAVY_KEYS = ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion"]
 
 ORK_LISTS = [
     {"key": "orks_green_tide", "faction": "orks", "name": "Green Tide Fleet (Xenos p.73)",
+     "looted_reserves": True,
      "sections": [
          {"name": "Battleships", "max": 4, "ratio": (2, ["Kroozers"]),
           "class_max": {"Gorbag's Revenge (0-1)": 1, "Slamblasta (0-1)": 1,
@@ -232,9 +233,9 @@ ORK_LISTS = [
          "kustom upgrades are not in the fleet builder yet.",
          "Da Ork Clanz (+50% of the commander's cost) and Snakebite affiliation: not checked.",
          "Escort squadrons of 3-10: not checked. Attack rating 3.",
-         "Reserves are looted cruisers only (from any Imperial Navy, Chaos or Tau fleet "
-         "list); taking a battleship or escort as a reserve isn't stopped here. The Chaos "
-         "god-dedicated fleets give no reserves, so they aren't offered.",
+         "Reserves are looted cruisers (from any Imperial Navy, Chaos or Tau fleet list), made "
+         "looted vessels when the fleet is saved (src/orks.py). The Chaos god-dedicated fleets "
+         "give no reserves, so they aren't offered.",
          "Battleship and battlekroozer ratios count the Kroozers section (\"one per two "
          "kroozers\")."]},
 ]

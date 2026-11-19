@@ -575,7 +575,22 @@ ordnance sweep 5250 cases pass):
   roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.
 - Next (owner order): Tyranids (To do 19; playable now, slices 1-3 built, gaps listed there), then the other owner fleets' gaps (Tau Protector
-  done: `owner_tau_protector_980.json`; Orks, Necrons, Eldar next; To do 25).
+  done: `owner_tau_protector_980.json`; Orks done: `owner_orks_980.json`; Necrons, Eldar
+  next; To do 25).
+- Ork gaps built (`src/orks.py`, `tests/test_ork_options.py`): the Kustom force field option
+  (`booklet_options.ork_profile_options`, from "Kustom force field +Npts": -1 shield, +D3
+  shields rolled at the start of each game turn, reading: rolled up front rather than "when
+  first attacked", `roll_force_fields` from `TurnController.begin_phase` / `AATurn`,
+  `Ship.effective_shields`); the Onslaught's free zzapp gun (gunz to FP2, a 30cm FP1 front
+  zzapp gun; the squadron-must-match rule isn't checked); looted vessels: an Ork list's
+  reserves (`looted_reserves`) become looted when the fleet is saved (`orks.loot` from
+  `FleetBuilderWindow._save_fleet`: Ork Leadership table, orders, boarding and turrets
+  (`ere_we_go`, `ork_crew`, `ork_turrets`), lances to zzapp gunz, attack craft to fighta-
+  bommerz / assault boats, a nova cannon to a killkannon 30cm FP6 front), cruisers only and
+  no nova cannon upgrades (`looted_errors`), and a failed command check costs a looted ship
+  a hit on 1-3 (`own_goal` in `do_command_check`; not yet the other Leadership tests:
+  disengage, navigation). Not yet: soopa boostas, grabbin' klaws, magno-tracktor beams,
+  the other ships' zzapp gunz swaps.
 - Tau Protector gaps built: the Emissary's Bor'kan / Sa'cea configurations (ion cannons for
   the hooks, free; a prow gravitic launcher for the launch bays, free) and Deflector +10
   (`booklet_options.tau_profile_options`); the mine swap now offered to the Emissary (a light

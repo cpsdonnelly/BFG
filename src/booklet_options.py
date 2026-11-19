@@ -1078,6 +1078,32 @@ def mine_launcher_options(row: dict) -> List[Dict]:
                  ["fleet_max:2"] + extra)]
 
 
+def ork_profile_options(row: dict) -> List[Dict]:
+    """Ork profile options built so far: the Kustom force field ("+Npts":
+    one shield replaced by +D3 shields rolled each game turn, src/orks.py) and
+    the Onslaught's free swap ("reduce gunz to FP2 to add a zzapp gun (30cm FP1
+    F)"). Not yet: soopa boostas, grabbin' klaws, magno-tracktor beams, the
+    other ships' zzapp gunz swaps."""
+    notes = row.get("notes") or ""
+    opts = []
+    m = re.search(r"Kustom force field \+(\d+)pts", notes)
+    if m:
+        cost = int(m.group(1))
+        opts.append(_opt("Kustom force field", f"+{cost}pts: one shield replaced by +D3 "
+                         "shields, rolled each game turn.", cost,
+                         {"stat_delta": {"shields_max": -1},
+                          "add_special_rules": ["kustom_force_field"]}))
+    if "reduce gunz to FP2 to add a zzapp gun (30cm FP1 F)" in notes:
+        opts.append(_opt("Zzapp gun (gunz to FP2)", "Free: the gunz drop to FP2 and the ship "
+                         "gains a zzapp gun (30cm FP1, front). The squadron must match.", 0,
+                         {"modify_weapons": [{"match": {"name": "Gunz"},
+                                              "set": {"strength": 2, "strength_dice": None}}],
+                          "add_weapon": {"name": "Prow Zzapp Gunz", "weapon_type": "lance",
+                                         "range_cm": 30, "strength": 1, "arcs": ["front"],
+                                         "hits_on": 5, "zzapp": True}}))
+    return opts
+
+
 def tau_profile_options(row: dict) -> List[Dict]:
     """The Emissary's Bor'kan / Sa'cea Configurations (no extra cost): ion
     cannons (30cm S1, L/F and R/F) for the gravitic hooks, and / or a prow
@@ -1139,7 +1165,7 @@ def options_for(row: dict) -> List[Dict]:
     """Every option for one booklet ship (_options_for) plus the mine launcher
     swap its fleet lists allow and torpedo bomber purchases."""
     return (_options_for(row) + mine_launcher_options(row) + torpedo_bomber_options(row)
-            + tau_profile_options(row))
+            + tau_profile_options(row) + ork_profile_options(row))
 
 
 def _options_for(row: dict) -> List[Dict]:

@@ -84,6 +84,8 @@ class AATurn:
         from .scenarios import turn_start as _scenario_turn_start
         _scenario_turn_start(self.gs, self.tc.dice)
         self.command_check_failed = {1: False, 2: False}
+        from .orks import roll_force_fields
+        roll_force_fields(self.gs, self.tc.dice)      # kustom force fields, each round
         keep = self.gs.active_player
         for p in (1, 2):
             # Orders last until the ship's next command phase (the AA notes);

@@ -748,6 +748,9 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     roll = dice.roll_2d6(
         f"{ship.name} command check for {order} (need <= {ld}{mod_str})")
     passed = roll <= ld
+    if not passed:
+        from .orks import own_goal
+        own_goal(ship, dice, gs)          # a looted vessel: 1-3 the Orks damage it
 
     return {"passed": passed, "roll": roll, "needed": ld, "mods": mods}
 
