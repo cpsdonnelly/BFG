@@ -1336,8 +1336,15 @@ def apply_crit_effects(target: Ship, crit_data: Dict, game_state: GameState) -> 
         target.leadership = max(1, target.leadership - crit_data["ld_loss"])
     if crit_data["crit_type"] == "infinity_circuit":
         target.leadership = max(1, target.leadership - 1)     # Eldar: -1 Ld per hit
-    if crit_data["crit_type"] == "holofield_destroyed":
+    if crit_data["crit_type"] in ("holofield_destroyed", "field_generators"):
+        # Eldar Field Generators Destroyed (XR, update 62): no holofields nor shields
         target.special_rules = [r for r in target.special_rules if r != "holofield"]
+    from .models import COMMAND_CRITS
+    if crit_data["crit_type"] in COMMAND_CRITS and "commander_slain" not in target.special_rules:
+        # Bridge Smashed and the alien tables' result 9 (update 62): the commander
+        # aboard is killed for scoring and its re-rolls are lost for the rest of
+        # the battle, even if the crit is later repaired
+        target.special_rules = list(target.special_rules) + ["commander_slain"]
     if crit_data["crit_type"] == "control_circuit":
         target.leadership = max(1, target.leadership - 1)     # given back when repaired
     if crit_data["crit_type"] == "shadowfield_destroyed":
@@ -1452,6 +1459,13 @@ def weapon_disabled_by_crit(ship: Ship, weapon: Dict) -> bool:
         return True
     if "station_bays" in crits and wt in ("launch_bay", "torpedo", "mine_launcher"):
         return True
+    if "eldar_mms" in ship.special_rules and sum(
+            1 for c in ship.critical_damage if c.get("crit_type") == "prow_armament") >= 2:
+        # Eldar (XR table, crit 4): a second prow hit disables the port and
+        # starboard weapons as well, until it is repaired
+        if weapon_in_crit_slot(weapon, "port_armament") or \
+                weapon_in_crit_slot(weapon, "starboard_armament"):
+            return True
     return any(weapon_in_crit_slot(weapon, c.get("crit_type", ""))
                for c in ship.critical_damage)
 

@@ -1673,11 +1673,11 @@ Done: To do 2, 3, 6; most of 7.
    of its whole fleet's points (`scenarios.admiral_bonus_vp`, through `kill_bonus_vp`), so
    losing it costs more than the entire fleet and sinking the enemy's scores more than its
    whole fleet, in every AI value that reads the bonus (`damage_vp`, disengaging, lost ships);
-   owner ruling: a Bridge Smashed (Dark Eldar: Commanders Slain, 9 on their table) kills the
-   admiral and ends the game
+   a Bridge Smashed (or result 9 on the Dark Eldar, Eldar, Necron and Tyranid tables,
+   update 62) kills the admiral and ends the game
    (`scenario.check_scenario_end`), so `damage_vp` adds the chance the hull hits short of a
    kill crit the bridge (crits on 6, `bridge_smashed_chance` from the ship's own table:
-   4/36 on the standard and Dark Eldar tables, none on tables without either), bombardment cannons' extra crits
+   4/36 on the standard and alien tables), bombardment cannons' extra crits
    (`shot_vp`) and raid results (`raid_result_value`) count it, and our flagship's exposure
    in the move score carries its share of the bonus per hit (`_exposure_penalty`).
    `tools/headless_runner.py --scenario kill_admiral` plays it (`tests/test_kill_admiral_ai.py`).
@@ -3115,6 +3115,28 @@ Done: To do 2, 3, 6; most of 7.
    places them or presses Auto-Place; To do 28); with "No fleet list" the Edit dialog
    still offers every list's options (s.4: no restrictions, kept).
 
+### Booklet update 62: the commander's death on alien tables (implemented, tested)
+
+Result 9 on the Dark Eldar (Commanders Slain), Eldar (Infinity Circuit Smashed), Necron
+(Monument Damaged) and Tyranid (Synapse Link Severed) tables counts as Bridge Smashed (s.5;
+Necron Command Core Damaged, 10, doesn't): `models.COMMAND_CRITS` / `commander_dead`; the
+crit marks the ship `commander_slain` (`combat.apply_crit_effects`), kept after a repair (the
+Necron and Tyranid results are repairable, the loss isn't). The commander's re-rolls on that
+ship are lost (`TurnController._commander_rerolls`, `use_fleet_reroll`, `_own_reroll_holder`:
+fleet, secondary and Tyranid Hive Mind re-rolls), the opponent scores the commander's VPs
+(`victory_points.commander_points`: the options in the commander groups or giving re-rolls;
+the ship then scores on the rest of its points, a destroyed ship already counts them all), and
+Kill the Admiral ends (`scenarios.ADMIRAL_KILLING_CRITS` is the same set, so the AI's
+`bridge_smashed_chance` counts result 9 on every table). Bridge Smashed now scores the
+commander's points too (it only lost the re-rolls before). Eldar use XR's critical hits table
+(`tables.ELDAR_CRITICAL_HITS`, update 62): 2 infinity circuit -1 Ld given back on repair, 4 a
+second prow hit also disables port / starboard weapons (`weapon_disabled_by_crit`), 7
+superstructure +1 and a D6 per turn, 1-2 one damage (`dark_eldar.superstructure_strain`; the
+engine has no solar jibes), 9 Infinity Circuit Smashed +1, -3 Ld, unrepairable, 10 Field
+Generators Destroyed: no holofields nor shields (`Ship.effective_shields`)
+(`tests/test_commander_crits.py`). Booklet installed: zip 15 (CHANGES.md update 62; the
+catalog is unchanged by it, diffed).
+
 ### Owner rulings: answers to the open questions (implemented, tested)
 
 All implemented: Fleet Defence Turrets (a crippled ship gives no +1, `ordnance.get_massed_turret_bonus`);
@@ -3168,7 +3190,8 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-None open.
+- **Kill the Admiral, the flagship leaving the table:** should a disengaged flagship count as
+  the admiral lost? Today it doesn't.
 
 ### Owner ruling: torpedo bomber salvos placed on a ship (s.21; implemented, tested)
 

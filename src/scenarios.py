@@ -2064,19 +2064,19 @@ def kill_bonus_vp(gs, ship) -> float:
     return sub + _scenario_kill_bonus(gs, ship)
 
 
-# Critical hits that kill the admiral (owner rulings): Bridge Smashed, and the
-# Dark Eldar table's Commanders Slain ("explosions kill most of the command staff")
-ADMIRAL_KILLING_CRITS = ("bridge_smashed", "commanders_slain")
+# Critical hits that kill the admiral (s.5, booklet update 62): Bridge Smashed,
+# and result 9 on the Dark Eldar, Eldar, Necron and Tyranid tables
+from .models import COMMAND_CRITS as ADMIRAL_KILLING_CRITS  # noqa: E402
 
 
 def admiral_killed_by_crit(ship) -> bool:
-    return any(c.get("crit_type") in ADMIRAL_KILLING_CRITS for c in ship.critical_damage)
+    from .models import commander_dead
+    return commander_dead(ship)
 
 
 def admiral_alive(ship) -> bool:
     """Kill the Admiral: the fleet's flagship is in play and its admiral alive
-    (a Bridge Smashed or Commanders Slain critical hit kills the admiral,
-    owner rulings)."""
+    (Bridge Smashed or an alien table's result 9 kills the admiral)."""
     return (getattr(ship, "is_flagship", False) and ship.status == "active"
             and not admiral_killed_by_crit(ship))
 
@@ -2093,8 +2093,7 @@ def admiral_bonus_vp(gs, ship) -> float:
 
 def bridge_smashed_chance(ship) -> float:
     """The chance a critical hit on the ship kills its admiral: Bridge Smashed,
-    or Commanders Slain on the Dark Eldar table (its table's 2D6 results for
-    them; tables without either give 0)."""
+    or result 9 on an alien table (its table's 2D6 results for them)."""
     from .tables import crit_table_for
     ways = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1}
     table = crit_table_for(ship)

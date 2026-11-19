@@ -131,18 +131,18 @@ CRITICAL_HITS = {
     12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
 }
 
-# Eldar Critical Hits Table (Appendix 3, MMS p.5): all Corsair and Craftworld
-# Eldar vessels
+# Eldar Critical Hits Table (Appendix 3; update 62: XR's, Xenos p.17, in place of
+# MMS p.5): all Corsair and Craftworld Eldar vessels
 ELDAR_CRITICAL_HITS = {
     2:  {"name": "Infinity Circuit Damaged", "extra_damage": 0, "crit_type": "infinity_circuit", "repairable": True},
     3:  {"name": "Keel Armament Damaged", "extra_damage": 0, "crit_type": "keel_armament", "repairable": True},
     4:  {"name": "Prow Armament Damaged", "extra_damage": 0, "crit_type": "prow_armament", "repairable": True},
     5:  {"name": "Mast Lines Severed", "extra_damage": 0, "crit_type": "mast_lines", "repairable": True},
     6:  {"name": "Mainsail Scarred", "extra_damage": 0, "crit_type": "mainsail_scarred", "repairable": True},
-    7:  {"name": "Superstructure Damaged", "extra_damage": 1, "crit_type": "superstructure", "repairable": True},
+    7:  {"name": "Superstructure Damaged", "extra_damage": 1, "crit_type": "eldar_superstructure", "repairable": True},
     8:  {"name": "Mainsail Shredded", "extra_damage": 0, "crit_type": "mainsail_shredded", "repairable": True},
-    9:  {"name": "Holofield Generators Destroyed", "extra_damage": 1, "crit_type": "holofield_destroyed", "repairable": False},
-    10: {"name": "Shields Collapse", "extra_damage": 1, "crit_type": "shields_collapse", "repairable": False},
+    9:  {"name": "Infinity Circuit Smashed", "extra_damage": 1, "crit_type": "infinity_circuit_smashed", "repairable": False, "ld_loss": 3},
+    10: {"name": "Field Generators Destroyed", "extra_damage": 0, "crit_type": "field_generators", "repairable": False},
     11: {"name": "Hull Breach", "extra_damage": "D3", "crit_type": "hull_breach", "repairable": False},
     12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
 }

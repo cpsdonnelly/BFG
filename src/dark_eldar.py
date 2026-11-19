@@ -288,8 +288,11 @@ def superstructure_strain(gs, dice, ship_id: str, commands) -> int:
     a D6 each time the ship turns in its movement phase, 1-2 one point of
     damage. Called after every move (`actions.apply_move`). Returns damage."""
     ship = gs.get_ship_by_id(ship_id)
+    # The Eldar table's Superstructure Damaged (XR, update 62) is the same test
+    # ("other than a solar jibe": the engine has no solar jibes)
     if ship is None or ship.is_destroyed or not any(
-            c.get("crit_type") == "de_superstructure" for c in ship.critical_damage):
+            c.get("crit_type") in ("de_superstructure", "eldar_superstructure")
+            for c in ship.critical_damage):
         return 0
     turns = sum(1 for c in commands or []
                 if getattr(c, "action", "") in ("turn_left", "turn_right")

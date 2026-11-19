@@ -173,7 +173,7 @@ The effects of any commander's special rules may be combined with the special ru
 
 No single capital ship or escort squadron may embark or be led by more than one commander of any kind.
 
-**Fleet Commander Re-rolls:** Most commanders have a number of command check re-rolls available to them, as indicated in the Fleet Commander or Secondary Commander section of the fleet list. Each of these re-rolls can only be used once per game and allows you to re-roll a failed command check or leadership test for a ship or squadron in the fleet. Remember that you can only use one re-roll at a time, so it is not possible to use several re-rolls on the same test. If a ship suffers a Bridge Smashed critical hit or is destroyed, any re-rolls from an embarked commander are lost for the remainder of the battle.
+**Fleet Commander Re-rolls:** Most commanders have a number of command check re-rolls available to them, as indicated in the Fleet Commander or Secondary Commander section of the fleet list. Each of these re-rolls can only be used once per game and allows you to re-roll a failed command check or leadership test for a ship or squadron in the fleet. Remember that you can only use one re-roll at a time, so it is not possible to use several re-rolls on the same test. If a ship suffers a Bridge Smashed critical hit or is destroyed, any re-rolls from an embarked commander are lost for the remainder of the battle. Result 9 on the Dark Eldar (Commanders Slain), Eldar (Infinity Circuit Smashed), Necron (Monument Damaged) and Tyranid (Synapse Link Severed) critical hits tables counts as Bridge Smashed for this rule.
 
 **Note also:** during a radiation burst, Fleet Commanders may only use their re-rolls on command checks for their own ship or squadron.
 

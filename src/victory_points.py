@@ -4,6 +4,31 @@ from .models import Ship
 from .game_state import GameState
 
 
+_COMMANDER_GROUPS = ("group:fleet_commander", "group:commander_rerolls", "group:boss_title",
+                     "group:scylla_rerolls")
+
+
+def commander_points(ship: Ship) -> int:
+    """The commander's VPs on a ship: the cost of its commander, the
+    commander's re-rolls and upgrades (s.5, update 34): the options bought in
+    the commander groups or giving re-rolls."""
+    from .ship_catalog import find_ship_class
+    entry = find_ship_class(ship.ship_class)
+    if entry is None:
+        return 0
+    total = 0
+    for u in entry.upgrades_available:
+        if u.name not in (ship.upgrades or []):
+            continue
+        eff = u.effect or {}
+        rules = eff.get("add_special_rules", [])
+        if (any(r in _COMMANDER_GROUPS for r in u.restrictions) or eff.get("rerolls")
+                or (eff.get("set") or {}).get("own_rerolls")
+                or "fleet_commander" in rules or "secondary_commander" in rules):
+            total += u.points_cost
+    return total
+
+
 def calculate_victory_points(gs: GameState) -> Dict:
     """
     Calculate victory points for both players at end of game.
@@ -38,6 +63,18 @@ def calculate_victory_points(gs: GameState) -> Dict:
         pts = s.points_value
         if pts <= 0 or not scores_normally(gs, s) or s.status == "reserve":
             continue            # (reinforcements that never arrived score nothing, reading)            # (convoy ships in Convoy are scored by vp_bonus)
+        from .models import commander_dead
+        if commander_dead(s) and not (s.status in ("destroyed", "drifting_hulk", "burning_hulk")
+                                      or s.hits_remaining <= 0):
+            # Bridge Smashed / an alien table's result 9 (s.5, updates 34 and 62):
+            # "The opponent scores the commander's VPs"; the ship itself scores
+            # on the rest of its points (a destroyed ship already counts them all)
+            cmd = min(pts, commander_points(s))
+            if cmd:
+                result[opponent]["destroyed"] += cmd
+                result[opponent]["details"].append(
+                    f"{s.name}: commander killed: +{cmd} VP")
+                pts -= cmd
 
         # Skip escorts that are part of a squadron (handled below)
         if s.squadron_id and s.ship_type == "escort":

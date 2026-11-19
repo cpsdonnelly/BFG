@@ -57,7 +57,8 @@ def forge_hit_recovery(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]
 def _on_repaired(ship: Ship, crit: dict) -> None:
     """Effects given back on repair: Dark Eldar Control Circuit Damaged's -1 Ld
     ("until the damage is repaired")."""
-    if crit.get("crit_type") == "control_circuit":
+    if crit.get("crit_type") in ("control_circuit", "infinity_circuit"):
+        # Dark Eldar Control Circuit / Eldar Infinity Circuit Damaged (XR table)
         ship.leadership = min(10, ship.leadership + 1)
 
 

@@ -6,7 +6,7 @@ import time
 import zipfile
 from typing import List, Dict, Optional
 from .game_state import GameState
-from .models import Ship, SpecialOrder
+from .models import commander_dead, Ship, SpecialOrder
 from .dice import DiceRoller
 from . import recorder as _rec
 
@@ -738,8 +738,8 @@ class TurnController:
         for s in self.gs.get_ships():
             if s.own_rerolls <= 0 or s.player != ship.player or s.is_destroyed:
                 continue
-            if any(c.get("crit_type") == "bridge_smashed" for c in s.critical_damage):
-                continue
+            if commander_dead(s):
+                continue            # Bridge Smashed or an alien table's result 9
             if s.id == ship.id or (ship.squadron_id and s.squadron_id == ship.squadron_id):
                 return s
         return None
@@ -765,10 +765,10 @@ class TurnController:
         flagship = self.get_flagship(player)
         if not flagship:
             return 0
-        # Bridge Smashed on flagship = all re-rolls lost
-        for crit in flagship.critical_damage:
-            if crit.get("crit_type") == "bridge_smashed":
-                return 0
+        # Bridge Smashed (or an alien table's result 9) on the flagship = all
+        # re-rolls lost (s.5, update 62)
+        if commander_dead(flagship):
+            return 0
         # Re-rolls are lost if the commander's ship suffers Bridge Smashed or
         # is destroyed (booklet update 33, owner ruling)
         if flagship.is_destroyed:
@@ -811,12 +811,11 @@ class TurnController:
             return True
         if not flagship or flagship.rerolls_remaining <= 0:
             return False
-        # Check bridge smashed
-        for crit in flagship.critical_damage:
-            if crit.get("crit_type") == "bridge_smashed":
-                self.gs.add_log(
-                    f"Re-roll unavailable: {flagship.name} bridge is smashed!")
-                return False
+        # Bridge Smashed (or an alien table's result 9): the commander is dead
+        if commander_dead(flagship):
+            self.gs.add_log(
+                f"Re-roll unavailable: the commander aboard {flagship.name} is dead")
+            return False
         if flagship.is_destroyed:
             return False                 # the commander is lost with his ship
         if self._radiation_blocks(player, ship):

@@ -84,6 +84,21 @@ class PhenomenonType(str, Enum):
     RING = "ring"
 
 
+# Critical hits that kill the commander aboard (s.5, update 62): Bridge Smashed,
+# and result 9 on the Dark Eldar (Commanders Slain), Eldar (Infinity Circuit
+# Smashed), Necron (Monument Damaged) and Tyranid (Synapse Link Severed) tables
+COMMAND_CRITS = ("bridge_smashed", "commanders_slain", "infinity_circuit_smashed",
+                 "monument", "synapse_severed")
+
+
+def commander_dead(ship) -> bool:
+    """The commander aboard has been killed by a critical hit (kept after a
+    repair: the Necron and Tyranid results can be repaired, the loss can't)."""
+    return ("commander_slain" in (getattr(ship, "special_rules", None) or [])
+            or any(c.get("crit_type") in COMMAND_CRITS
+                   for c in (getattr(ship, "critical_damage", None) or [])))
+
+
 def parse_armor(armor_str, default: int = 5) -> int:
     """Parse an armor string like '5+' to its numeric value, with fallback."""
     try:
@@ -365,7 +380,7 @@ class Ship:
             s = self.crippled_value(s)  # halve rounding up
         # Check for shields collapse crit
         for c in self.critical_damage:
-            if c.get("crit_type") == "shields_collapse":
+            if c.get("crit_type") in ("shields_collapse", "field_generators"):
                 return 0
         if any(c.get("crit_type") == "station_reactors" for c in self.critical_damage):
             s = (s + 1) // 2           # Space Station Reactors Damaged: halved, round up

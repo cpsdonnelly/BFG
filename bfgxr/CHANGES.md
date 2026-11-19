@@ -919,3 +919,16 @@ Data:
 
 New note: `notes/OWNER_SIGNOFF_answers.md` gives the booklet-side answers to OWNER_SIGNOFF.md. It has
 rule changes for items 6, 9, 13, 14, 17, 44, 49, 50 and 58, and the low-orbit answer for item 1.
+
+# Sixty-first update: owner rulings on halving and Eldar fields
+
+No booklet change. New standing rulings in CLAUDE.md: halve each of a capital ship's weapons separately
+(round up) before totalling; the Haven Spire has no Netherfield or Polarization Field; the Craftworld
+Assault forges give docked ships XR's fields.
+
+# Sixty-second update: Eldar crit table and the commander's death on alien tables
+
+Booklet: Appendix 3's Eldar table is now XR's (Xenos p.17) instead of MMS's, by owner ruling; result 10
+removes holofields and shields. A note lists the MMS results. New standing rulings in CLAUDE.md: result 9
+on the Dark Eldar, Eldar, Necron and Tyranid tables counts as Bridge Smashed (commander dies for
+scoring, re-rolls lost). The booklet's core rules (s.5, Fleet Commander Re-rolls) now say so too.
