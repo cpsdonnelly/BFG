@@ -480,15 +480,23 @@ def torpedo_may_attack(marker: OrdnanceMarker, ship: Ship,
     return last is None or game_state.turn_number - last >= 2
 
 
-def turret_dice(dice, ship: Ship, n: int, need: int, label: str) -> List[int]:
+def turret_dice(dice, ship: Ship, n: int, need: int, label: str,
+                game_state: Optional[GameState] = None) -> List[int]:
     """Roll a ship's turret dice; a Mechanicus Experimental Ship with the
-    "re-roll missed turret hits" improvement re-rolls the misses."""
+    "re-roll missed turret hits" improvement re-rolls the misses. Tyranid
+    spore cysts (Xenos p.105): for each blast marker the ship touches one
+    turret attack hits only on a 6 (a separate group: those dice are listed
+    first, a result below 6 among them returned as a miss, 1)."""
     rolls = dice.roll_d6(n, label)
     if "turret_reroll" in (ship.special_rules or []):
         misses = [r for r in rolls if r < need]
         if misses:
             again = dice.roll_d6(len(misses), f"{ship.name} re-rolls missed turret hits")
             rolls = [r for r in rolls if r >= need] + list(again)
+    if "tyranid" in (ship.special_rules or []) and game_state is not None:
+        from .geometry import count_blast_markers_touching
+        k = min(len(rolls), count_blast_markers_touching(ship, game_state.get_blast_markers()))
+        rolls = [r if r == 6 else 1 for r in rolls[:k]] + list(rolls[k:])
     return rolls
 
 
@@ -520,8 +528,8 @@ def turrets_blocked(ship: Ship, kind: str) -> bool:
     """s.28: a ship that uses its turrets against attack craft ("craft") may not
     use them against torpedoes or mines ("torp") in the same phase, and vice
     versa. Ork ships always use their turrets against all ordnance."""
-    if "ork_turrets" in ship.special_rules:
-        return False
+    if "ork_turrets" in ship.special_rules or "tyranid" in ship.special_rules:
+        return False          # Tyranid spore cysts: "always ... against any type of ordnance"
     return bool(ship.turrets_used_vs) and ship.turrets_used_vs != kind
 
 
@@ -619,7 +627,8 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     if turrets > 0:
         need = turret_hit_on(target, marker)
         turret_rolls = turret_dice(dice, target, turrets,
-                                   need, f"{target.name} turrets vs torpedoes ({need}+)")
+                                   need, f"{target.name} turrets vs torpedoes ({need}+)",
+                                   game_state)
         turret_kills = sum(1 for d in turret_rolls if d >= need)
         result["turret_kills"] = turret_kills
         result["remaining_strength"] = max(0, marker.strength - turret_kills)
@@ -796,7 +805,8 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     if turrets > 0:
         need = turret_hit_on(ship, marker)
         turret_rolls = turret_dice(
-            dice, ship, turrets, need, f"{ship.name} turrets vs mine (any {need}+ reduces to 4D6)")
+            dice, ship, turrets, need, f"{ship.name} turrets vs mine (any {need}+ reduces to 4D6)",
+            game_state)
         mark_turrets_used(ship, "torp", game_state)
         if any(r >= need for r in turret_rolls):
             attack_dice = 4
@@ -858,7 +868,8 @@ def resolve_bomber_interception(bomber_count: int,
     need = turret_hit_on(target, marker)
     rolls = turret_dice(
         dice, target, turrets, need,
-        f"Phase 1 interception: {target.name} vs {bomber_count} attack craft ({need}+)")
+        f"Phase 1 interception: {target.name} vs {bomber_count} attack craft ({need}+)",
+        game_state)
     kills = min(sum(1 for r in rolls if r >= need), bomber_count)
 
     bonus_str = f" +{bonus} massed" if bonus else ""

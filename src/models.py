@@ -357,6 +357,9 @@ class Ship:
 
     @property
     def effective_shields(self):
+        if "spore_cloud" in self.special_rules:
+            # Tyranid spore cloud: shields equal to its spore cysts (not massed)
+            return self.effective_turrets
         s = self.shields_max
         if self.is_crippled:
             s = self.crippled_value(s)  # halve rounding up
@@ -373,7 +376,11 @@ class Ship:
         if self.status in ("drifting_hulk", "burning_hulk"):
             return 0                   # hulks have no turrets (s.34)
         t = self.turrets
-        if self.is_crippled:
+        crits = [c.get("crit_type") for c in self.critical_damage]
+        if "spores_injured" in crits or "spores_ruptured" in crits:
+            return 0                   # Tyranid spore cysts injured / ruptured
+        t = max(0, t - crits.count("spores_injured_1"))     # Proteus: -1 each
+        if self.is_crippled and "spore_overdrive" not in self.special_rules:
             t = self.crippled_value(t)
         if any(c.get("crit_type") == "station_reactors" for c in self.critical_damage):
             t = (t + 1) // 2           # Space Station Reactors Damaged: halved, round up
@@ -387,8 +394,10 @@ class Ship:
                    "station_bays": ("launch_bay", "torpedo", "mine_launcher")}
         if crit_type in station:
             return any(w.get("weapon_type") in station[crit_type] for w in self.weapons)
+        if crit_type in ("spores_injured", "spores_ruptured"):
+            return self.turrets > 0     # no spore cysts (Kraken): cascades
         if crit_type not in ("dorsal_armament", "starboard_armament", "port_armament",
-                             "prow_armament", "keel_armament"):
+                             "prow_armament", "keel_armament", "thorax_armament"):
             return True  # non-armament crits always apply
         # The same location test that decides which weapons the crit disables
         # (combat.weapon_in_crit_slot: by name, then by arcs), so a crit that

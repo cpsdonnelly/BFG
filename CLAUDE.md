@@ -2751,7 +2751,21 @@ Done: To do 2, 3, 6; most of 7.
    the Hive, Vanguard and Gestating lists (`TYR_LISTS`, per-hive-ship limits in
    `tyranids.fleet_errors`). Not yet: ordnance swarms, escort squadrons' same weapon and
    sizes, Pheromone Rage, the Infested Space Station (Lance Battery, orbital station), Spore
-   Field and Orbital Defence Spores. Every Tyranid ship stays unsupported until slice 2:
+   Field and Orbital Defence Spores. Slice 2a BUILT (`tests/test_tyranid_rules.py`):
+   spore cloud shields = current spore cysts (`Ship.effective_shields`; crippled halves them
+   unless Spore Overdrive), spore cysts fire at every ordnance type (`turrets_blocked`) and
+   one turret die per touching blast marker needs a 6 (`ordnance.turret_dice(game_state)`),
+   bio-plasma ignores shields (all hits `bypass_hits`) and hits beyond 15cm only on a 6,
+   bonded exo-plating 4+ save (Brace ignored), a pyro-acid (Tyranid gunnery) crit adds a
+   Fire, `tables.TYRANID_CRITICAL_HITS` (Deep Wound as a Fire, discharge vents no turns,
+   spore cysts injured / ruptured, the Proteus's thorax crit on keel 1-3 / dorsal 4-6 and
+   -1 spore cyst a hit, thorax weapons as a crit slot), boarding (troop rating doubled, 2D6
+   keep the highest, never touching blast markers for the enemy's +1), raids +1 / enemy
+   raids -1, navigation at Ld 10. Not yet: Massive Haemorrhage's 2D6cm spray, the Tyranid
+   Catastrophic Damage table, enemy ships in contact treating a spore cloud base as a blast
+   marker, Mucous Membrane / Vanguard Link / Tenacity / Psychic Scream / Accelerated
+   Healing effects, the AI's boarding value with 2D6. Every Tyranid ship stays unsupported
+   until slice 2b (synapse and Instinctive Behaviour) and slice 3's contact weapons:
    1. Catalog and fleet building: `booklet_ships.convert_row` gives Tyranid ships `tyranid`,
       no Ld roll (synapse creatures' fixed Ld: Proteus 10 / 60cm, Charybdis 8 / 45cm, a Scylla
       minor synapse node +5pts Ld 7 / 30cm; others none), spore cysts as turrets, no shields;

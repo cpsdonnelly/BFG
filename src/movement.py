@@ -176,7 +176,7 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
     # Engine Room Damaged: no turns at all until repaired
     for crit in ship.critical_damage:
         # Engine Room Damaged; Necron Main Drive Damaged / Eldar Mast Lines Severed
-        if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines",
+        if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines", "discharge_vents",
                                      "graviton_harness"):
             return 0
     if "overcharging" in ship.special_rules:

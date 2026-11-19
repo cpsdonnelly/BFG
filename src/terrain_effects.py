@@ -100,6 +100,8 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
     num_dice = 3 if on_aaf else 2
     from .subplots import leadership as _sp_ld
     ld = _sp_ld(gs, ship)            # Fleet Experience / Blood Bond
+    if "tyranid" in ship.special_rules:
+        ld = 10                      # Tyranid navigation: always Ld 10 (Xenos p.105)
 
     # Shadow Engines: escort squadrons automatically pass to navigate asteroids;
     # so do Eldar escorts (MMS p.3)
@@ -198,7 +200,7 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
     """
     eldar = "eldar_mms" in ship.special_rules
     from .subplots import leadership as _sp_ld
-    ld = _sp_ld(gs, ship) - (2 if eldar else 0)
+    ld = (10 if "tyranid" in ship.special_rules else _sp_ld(gs, ship)) - (2 if eldar else 0)
     from .movement import fleet_reroll_offered, sirens_summon
     siren = sirens_summon(ship, gs)
     if siren:

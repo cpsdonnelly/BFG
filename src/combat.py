@@ -687,8 +687,11 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
         result.description = f"{weapon['name']}: no strength available"
         return result
 
-    # Lances hit on 4+ regardless of armor (Ork Zzapp Gunz on 5+)
+    # Lances hit on 4+ regardless of armor (Ork Zzapp Gunz on 5+); Tyranid
+    # bio-plasma hits targets more than 15cm away only on a 6 (Xenos p.106)
     need = weapon.get("hits_on", 4)
+    if weapon.get("bio_plasma") and attacker.distance_to(target) > 15:
+        need = 6
     result.dice_rolled = dice.roll_d6(
         strength, f"{attacker.name} lances vs {target.name} (need {need}+)")
 
@@ -727,6 +730,14 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
             extra_hits = sum(1 for d in result.reroll_dice if d >= need)
             result.hits += extra_hits
 
+    if weapon.get("bio_plasma"):
+        # Bio-plasma passes through shields; holofields and other defences work
+        result.hits -= _holofield(attacker, target, result.hits, dice)
+        result.hits -= _shadowfield(target, result.hits, dice)
+        result.bypass_hits = result.hits
+        result.description = (f"{weapon['name']}: Str {strength} bio-plasma vs {target.name} "
+                              f"({need}+) = {result.hits} hits (ignore shields)")
+        return result
     if weapon.get("particle_whip") or weapon.get("shield_bypass_6"):
         # 6s bypass shields and holofields (anything but Brace); also a
         # Mechanicus Experimental Ship's dorsal / prow lances
@@ -1124,6 +1135,15 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
         remaining_hits -= saves
         target_braced = False             # its save replaces Brace's
 
+    # Tyranid bonded exo-plating (Kraken, Carnivore; Xenos p.114): a 4+ save
+    # wherever a Brace save could be used, and unaffected by Brace
+    if "bonded_exo_plating" in target.special_rules and remaining_hits > 0:
+        rolls = dice.roll_d6(remaining_hits, f"{target.name} bonded exo-plating save (4+)")
+        saves = sum(1 for r in rolls if r >= 4)
+        summary["brace_saves"] = saves
+        remaining_hits -= saves
+        target_braced = False
+
     # Brace saves (4+ per HULL hit only, not shield hits)
     if target_braced and remaining_hits > 0:
         saves = 0
@@ -1203,6 +1223,11 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                 if roll_critical_hit(target, dice, game_state, summary):
                     summary["destroyed"] = True
                     break
+                if gunnery and _pyro_acid_attacker(game_state, attacker_key):
+                    # Pyro-acid batteries (Xenos p.107): a critical hit they
+                    # cause comes with an extra Fire
+                    add_fire_crits(target, 1, game_state, write=False)
+                    summary.setdefault("crits", []).append("Fire! (pyro-acid)")
 
         if summary["destroyed"]:
             summary["unused_hits"] = summary["hull_hits"] - hull_hits_applied
@@ -1221,6 +1246,14 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
     return summary
 
 
+
+
+def _pyro_acid_attacker(game_state: GameState, attacker_key: str) -> bool:
+    """A Tyranid ship's gunnery is its pyro-acid batteries (their only
+    gunnery weapon)."""
+    shooter = game_state.get_ship_by_id(attacker_key) if attacker_key else None
+    return shooter is not None and "tyranid" in shooter.special_rules and any(
+        w.get("pyro_acid") for w in shooter.weapons)
 
 
 def demiurg_leadership(ship: Ship) -> None:
@@ -1257,6 +1290,16 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
         extra = dice.roll_d3("Hull Breach extra damage")
     elif extra == "D6":
         extra = sum(dice.roll_d6(1, "Bulkhead Collapse extra damage"))
+    if crit_data["crit_type"] == "thorax_armament" and "extremely_ponderous" in target.special_rules:
+        # Proteus (Xenos p.110): a thorax crit falls on the keel weapons on 1-3,
+        # the dorsal ones on 4-6
+        r = dice.roll_d6(1, f"{target.name} thorax critical: 1-3 keel, 4-6 dorsal")[0]
+        side = "keel" if r <= 3 else "dorsal"
+        crit_data = {**crit_data, "crit_type": f"{side}_armament",
+                     "name": f"Thorax ({side.title()}) Armament Wounded"}
+    if crit_data["crit_type"] == "spores_injured" and "extremely_ponderous" in target.special_rules:
+        crit_data = {**crit_data, "crit_type": "spores_injured_1",
+                     "name": "Spore Cysts Injured (-1)"}      # Proteus: only -1 each
     target.critical_damage.append({
         "crit_type": crit_data["crit_type"],
         "description": crit_data["name"],
@@ -1362,11 +1405,14 @@ def weapon_in_crit_slot(weapon: Dict, crit_type: str) -> bool:
     arcs = weapon.get("arcs") or []
     word = {"dorsal_armament": "dorsal", "port_armament": "port",
             "starboard_armament": "starboard", "prow_armament": "prow",
-            "keel_armament": "keel"}.get(crit_type)
+            "keel_armament": "keel", "thorax_armament": "thorax"}.get(crit_type)
     if word is None:
         return False
     if word in name:
         return True
+    if crit_type == "thorax_armament":
+        # the Proteus's thorax crit lands on its keel or dorsal weapons
+        return "keel" in name or "dorsal" in name
     if any(w in name for w in ("dorsal", "port", "starboard", "prow")):
         return False                         # named for another location
     if crit_type == "port_armament":

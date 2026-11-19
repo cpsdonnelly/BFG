@@ -166,11 +166,13 @@ _RAID_ATTACK_BONUS = {
     "space_marine_crew": 1,  # Space Marine boarders / ordnance: +1 to raid results
     "mega_armoured_boarders": 1,   # Ork Mega Armoured Boarding Parties
     "dark_eldar": 1,         # Dark Eldar Pain Frenzy (Xenos p.4), their ordnance too
+    "tyranid": 1,            # Tyranids and their ordnance (Xenos p.105)
 }
 _RAID_DEFENSE_PENALTY = {
     "space_marine_crew": 1,  # raids against a Space Marine ship: -1 to the roll
     "mega_armoured_boarders": 1,
     "incubi": 1,             # Dark Eldar Incubi: enemy raids on the ship -1
+    "tyranid": 1,            # a bio-ship's innards: enemy raids -1 (Xenos p.105)
 }
 
 

@@ -200,6 +200,24 @@ SPACE_STATION_CRITICAL_HITS = {
 }
 
 
+# Tyranid Critical Hits Table (Appendix 3, Xenos p.107). Deep Wound "functions
+# exactly like a Fire critical hit"; Massive Haemorrhage's 2D6cm bio-plasma
+# spray isn't built yet (its D6 damage is)
+TYRANID_CRITICAL_HITS = {
+    2:  {"name": "Spore Cysts Injured", "extra_damage": 0, "crit_type": "spores_injured", "repairable": True},
+    3:  {"name": "Starboard Armament Wounded", "extra_damage": 0, "crit_type": "starboard_armament", "repairable": True},
+    4:  {"name": "Port Armament Wounded", "extra_damage": 0, "crit_type": "port_armament", "repairable": True},
+    5:  {"name": "Prow Armament Wounded", "extra_damage": 0, "crit_type": "prow_armament", "repairable": True},
+    6:  {"name": "Thorax Armament Wounded", "extra_damage": 1, "crit_type": "thorax_armament", "repairable": True},
+    7:  {"name": "Deep Wound!", "extra_damage": 0, "crit_type": "fire", "repairable": True},
+    8:  {"name": "Discharge Vents Wounded", "extra_damage": 1, "crit_type": "discharge_vents", "repairable": True},
+    9:  {"name": "Synapse Link Severed", "extra_damage": 0, "crit_type": "synapse_severed", "repairable": True},
+    10: {"name": "Spore Cysts Ruptured", "extra_damage": 0, "crit_type": "spores_ruptured", "repairable": False},
+    11: {"name": "Severe Wound", "extra_damage": "D3", "crit_type": "severe_wound", "repairable": False},
+    12: {"name": "Massive Haemorrhage", "extra_damage": "D6", "crit_type": "massive_haemorrhage", "repairable": False},
+}
+
+
 def crit_table_for(ship) -> dict:
     """The critical hits table a ship rolls on (Appendix 3 / 5)."""
     if "space_station_crits" in (getattr(ship, "special_rules", None) or []):
@@ -210,6 +228,8 @@ def crit_table_for(ship) -> dict:
         return NECRON_CRITICAL_HITS
     if "dark_eldar" in (getattr(ship, "special_rules", None) or []):
         return DARK_ELDAR_CRITICAL_HITS
+    if "tyranid" in (getattr(ship, "special_rules", None) or []):
+        return TYRANID_CRITICAL_HITS
     return CRITICAL_HITS
 
 

@@ -32,6 +32,7 @@ def troop_rating(ship: Ship, grappled: bool = False, defending: bool = False) ->
         return 0
     base = ship.hits_remaining
     if ("mark:khorne" in ship.special_rules or "warboss" in ship.special_rules
+            or "tyranid" in ship.special_rules             # Tyranids (Xenos p.105)
             or "doubles_troops" in ship.special_rules):     # Abaddon's Bringers of Despair
         base *= 2
     if "kor_vattra" in ship.special_rules or ("frail_crew" in ship.special_rules and defending):
@@ -96,9 +97,16 @@ def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
         mod += 1
     blast_markers = gs.get_blast_markers()
     touching = count_blast_markers_touching(ship, blast_markers)
-    if touching > 0:
-        mod += 1
+    if touching > 0 and "tyranid" not in ship.special_rules:
+        mod += 1          # Tyranids never count as touching blast markers here (Xenos p.105)
     return mod
+
+
+def _boarding_d6(dice, tyranid: bool, label: str) -> int:
+    """A side's boarding roll: Tyranids roll 2D6 and choose the highest."""
+    if tyranid:
+        return max(dice.roll_d6(2, f"{label} (Tyranid: 2D6, highest)"))
+    return dice.roll_d6(1, label)[0]
 
 
 def _boarding_crit_check(ship: Ship, threshold: Optional[int],
@@ -219,8 +227,10 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
     a_crew = max(_crew_damage_bonus(a) for a in attackers)
     d_crew = _crew_damage_bonus(target)
 
-    a_roll = dice.roll_d6(1, "boarding attacker roll")[0]
-    d_roll = dice.roll_d6(1, "boarding defender roll")[0]
+    a_tyr = any("tyranid" in a.special_rules for a in attackers)
+    d_tyr = "tyranid" in target.special_rules
+    a_roll = _boarding_d6(dice, a_tyr, "boarding attacker roll")
+    d_roll = _boarding_d6(dice, d_tyr, "boarding defender roll")
 
     # Lord Admiral Rath, Inspiring Presence: +1 defending against boarding
     d_rath = 1 if "inspiring_presence" in target.special_rules else 0
@@ -235,8 +245,8 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
     if (a_gk and a_total < d_total) or (d_gk and d_total < a_total):
         gs.add_log(f"  Knights of Titan: {'attackers' if a_gk else target.name} "
                    f"re-roll the boarding action ({a_total} vs {d_total})")
-        a_roll = dice.roll_d6(1, "boarding attacker re-roll")[0]
-        d_roll = dice.roll_d6(1, "boarding defender re-roll")[0]
+        a_roll = _boarding_d6(dice, a_tyr, "boarding attacker re-roll")
+        d_roll = _boarding_d6(dice, d_tyr, "boarding defender re-roll")
         a_total = a_roll + a_mod + a_troop_bonus + a_crew
         d_total = d_roll + d_mod + d_troop_bonus + d_crew + d_rath
 
