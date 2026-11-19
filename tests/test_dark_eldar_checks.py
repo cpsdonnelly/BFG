@@ -264,3 +264,52 @@ def test_ai_counts_plasma_rerolls():
     gs = make_gs([t])
     assert torpedo_salvo_hits(3, t, gs, (50.0, 60.0), rules=DE) > \
         torpedo_salvo_hits(3, t, gs, (50.0, 60.0))
+
+
+TORPS = {"name": "Prow Torps", "weapon_type": "torpedo", "strength": 2, "range_cm": 30,
+         "arcs": ["front"]}
+
+
+def test_contact_bonus_counts_only_same_ordnance_and_grows_with_the_chain():
+    # e0 has torpedoes; e1 (torpedoes) touches its end point, e2 (Impalers)
+    # touches it too, e3 (torpedoes) touches e1: chain of 2 torpedo mates
+    def esc(i, x, w):
+        return make_ship(id=f"e{i}", player=1, ship_type="escort", squadron_id="sq",
+                         x=x, y=20.0, weapons=[dict(w)])
+    e0 = esc(0, 0.0, TORPS)
+    r = e0.base_radius
+    ships = [e0, esc(1, 22.0, TORPS), esc(2, 18.0, IMPALER_BAY), esc(3, 22.0 + 2 * r, TORPS),
+             make_ship(id="foe", player=2, x=60.0, y=80.0)]
+    ships[2].y = 20.0 + 2 * r                    # touching the end point from above
+    gs = make_gs(ships)
+    dice = DiceStub([])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    fx, fy = 22.0 - 2 * r, 20.0                   # e0 ends touching e1
+    t = ai._coherency_term(gs.get_ship_by_id("e0"), fx, fy)
+    assert abs(t - 2 * ai.CONTACT_WEIGHT) < 1e-9  # e1 and e3, not the Impaler ship
+    alone = ai._coherency_term(gs.get_ship_by_id("e0"), 22.0 - 2 * r, 30.0)
+    assert alone == 0.0                           # in coherency, nobody touching
+
+
+def test_combined_waves_keep_impalers_apart_from_other_craft():
+    BAYS = {"name": "Launch Bays", "weapon_type": "launch_bay", "strength": 1,
+            "craft_types": ["raptor"]}
+    ships = [make_ship(id="c0", player=1, ship_type="escort", squadron_id="sq", x=20.0, y=20.0,
+                       weapons=[dict(IMPALER_BAY)]),
+             make_ship(id="c1", player=1, ship_type="escort", squadron_id="sq", x=22.0, y=20.0,
+                       weapons=[dict(IMPALER_BAY)]),
+             make_ship(id="c2", player=1, ship_type="escort", squadron_id="sq", x=24.0, y=20.0,
+                       weapons=[dict(BAYS)]),
+             make_ship(id="foe", player=2, x=60.0, y=80.0)]
+    gs = make_gs(ships)
+    gs.turn_number = 3
+    for i, rules in enumerate((["dark_eldar", "impaler"], ["dark_eldar", "impaler"], ["dark_eldar"])):
+        gs.add_ordnance(OrdnanceMarker(
+            id=f"m{i}", ordnance_type=(OrdnanceType.ASSAULT_BOAT.value if i < 2
+                                       else OrdnanceType.FIGHTER.value),
+            owner_player=1, launched_by=f"c{i}", launched_turn=3, x=20.0 + 2 * i, y=20.0,
+            craft_target_id="foe", special_rules=rules))
+    dice = DiceStub([])
+    AIPlayer(1, TurnController(gs, dice), gs, dice)._combine_squadron_waves()
+    by_id = {o["id"]: o.get("wave_id") for o in gs.ordnance}
+    assert by_id["m0"] and by_id["m0"] == by_id["m1"] and not by_id["m2"]

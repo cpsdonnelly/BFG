@@ -164,6 +164,20 @@ def _scored_on_snapshot(fn):
     return wrapper
 
 
+def ordnance_kinds(ship) -> set:
+    """The kinds of ordnance a ship launches that can combine with a squadron
+    mate's (s.15, owner: only the same ordnance): "torpedo", "impaler" (Dark
+    Eldar Impaler bays) and "craft" (other launch bays: their craft can share a
+    wave). Mines don't combine."""
+    out = set()
+    for w in ship.weapons:
+        if w.get("weapon_type") == "torpedo":
+            out.add("torpedo")
+        elif w.get("weapon_type") == "launch_bay":
+            out.add("impaler" if w.get("impaler_bay") else "craft")
+    return out
+
+
 class AIPlayer:
     """
     Drives one player's movement, shooting, and ordnance phases
@@ -1394,7 +1408,7 @@ class AIPlayer:
     COVERAGE_WEIGHT = 0.5    # judgement: a mount busy on another enemy vs the target
     COHERENCY_WEIGHT = 3.0   # judgement: out of formation (s.8) loses squadron orders,
                              # combined fire and launches, and must rejoin at once
-    CONTACT_WEIGHT = 0.5     # judgement: base contact lets a squadron's launchers combine
+    CONTACT_WEIGHT = 0.5     # judgement: per same-ordnance mate in the base contact chain
 
     def _coherency_term(self, ship: Ship, fx: float, fy: float) -> float:
         """Squadron coherency (s.8): each member within 15cm of another, and a
@@ -1418,12 +1432,31 @@ class AIPlayer:
         if d > COHERENCY_RANGE:
             term -= self.COHERENCY_WEIGHT * (1.0 + (d - COHERENCY_RANGE) / COHERENCY_RANGE)
 
-        def launcher(sh):
-            return any(w.get("weapon_type") in ("torpedo", "launch_bay") for w in sh.weapons)
-        if launcher(ship) and any(
-                dd <= ship.base_radius + m.base_radius + 0.5 and launcher(m) for dd, m in dists):
-            term += self.CONTACT_WEIGHT
+        # Combining ordnance (s.15) needs a chain of base contact, and only the
+        # same ordnance combines (owner: torpedoes with torpedoes, Impalers with
+        # Impalers): CONTACT_WEIGHT for each squadron mate with a kind of
+        # ordnance this ship carries in the contact chain from its end position
+        kinds = ordnance_kinds(ship)
+        if kinds:
+            best = 0
+            for kind in kinds:
+                pool = [m for m in mates if kind in ordnance_kinds(m)]
+                chain = [(fx, fy, ship.base_radius)]
+                joined = 0
+                grew = True
+                while grew and pool:
+                    grew = False
+                    for m in list(pool):
+                        if any(math.hypot(m.x - cx, m.y - cy) <= m.base_radius + cr + 0.5
+                               for cx, cy, cr in chain):
+                            chain.append((m.x, m.y, m.base_radius))
+                            pool.remove(m)
+                            joined += 1
+                            grew = True
+                best = max(best, joined)
+            term += self.CONTACT_WEIGHT * best
         return term
+
     EASY_TEMPERATURE = 2.0   # judgement: Easy's softmax temperature (move-score units)
     KITE_WEIGHT = 0.5        # judgement: the band bonus, a share of the guns that bear
 
@@ -1655,6 +1688,11 @@ class AIPlayer:
             if mates:
                 m = min(mates, key=lambda q: ship.distance_to(q))
                 goals.append(((m.x, m.y), "squadron"))
+                # base contact: alongside the nearest mate with the same
+                # ordnance (only the same ordnance combines, owner)
+                kinds = ordnance_kinds(ship)
+                same = [q for q in mates if kinds & ordnance_kinds(q)]
+                m = min(same, key=lambda q: ship.distance_to(q)) if same else m
                 side = ship.base_radius + m.base_radius
                 hr = math.radians(m.heading + 90)
                 for sgn in (1, -1):
@@ -3239,21 +3277,28 @@ class AIPlayer:
                            and o.get("ordnance_type") in ATTACK_CRAFT_TYPES
                            and o.get("launched_turn") == gs.turn_number
                            and not o.get("cap_ship_id") and not o.get("moved_this_phase")]
-                if len({o["launched_by"] for o in markers}) < 2:
-                    continue
-                targets = [o.get("craft_target_id") for o in markers if o.get("craft_target_id")]
-                target = max(set(targets), key=targets.count) if targets else None
-                ids_m = [o["id"] for o in markers]
-                actions.form_craft_wave(gs, ids_m, "close")
-                if target:
-                    actions.set_craft_target(gs, ids_m, target)
-                    t = gs.get_ship_by_id(target)
-                    if t is not None:
-                        # measured from the member furthest from the target
-                        far = max(comp, key=lambda s: s.distance_to(t))
-                        actions.place_craft(gs, ids_m, far.x, far.y)
-                gs.add_log(f"[AI] squadron {comp[0].squadron_id}: {len(ids_m)} attack craft "
-                           f"combined into one wave")
+                # only the same ordnance combines (owner): Impalers with
+                # Impalers, other attack craft with other attack craft
+                for kind in ("impaler", "craft"):
+                    group = [o for o in markers
+                             if ("impaler" in (o.get("special_rules") or [])) == (kind == "impaler")]
+                    if len({o["launched_by"] for o in group}) < 2:
+                        continue
+                    targets = [o.get("craft_target_id") for o in group if o.get("craft_target_id")]
+                    target = max(set(targets), key=targets.count) if targets else None
+                    ids_m = [o["id"] for o in group]
+                    actions.form_craft_wave(gs, ids_m, "close")
+                    if target:
+                        actions.set_craft_target(gs, ids_m, target)
+                        t = gs.get_ship_by_id(target)
+                        if t is not None:
+                            # measured from the member furthest from the target
+                            launchers = [s for s in comp if s.id in {o["launched_by"] for o in group}]
+                            far = max(launchers, key=lambda s: s.distance_to(t))
+                            actions.place_craft(gs, ids_m, far.x, far.y)
+                    gs.add_log(f"[AI] squadron {comp[0].squadron_id}: {len(ids_m)} "
+                               f"{'Impalers' if kind == 'impaler' else 'attack craft'} "
+                               f"combined into one wave")
 
     def _fire_torpedo_bombers(self):
         """At the start of the ordnance phase, each torpedo bomber wave (or

@@ -146,6 +146,13 @@ Needs more work (next first):
    `_salvo_attack_hits` for torpedo bomber salvos, which also use the flickerfield turret
    chance now). Owner ruling: Impalers count as a special type of assault boat (so they stay
    off with the hit-and-run toggle; the question is closed).
+   Owner: the base contact bonus is only for squadron mates armed with the same ordnance,
+   and grows with the number in contact: `ai_player.ordnance_kinds` ("torpedo", "impaler",
+   "craft"), `_coherency_term` counts the same-kind mates in the contact chain from the end
+   point, CONTACT_WEIGHT 0.5 each (judgement); the "squadron contact" goal aims beside the
+   nearest same-ordnance mate; `_combine_squadron_waves` merges Impalers only with Impalers
+   and other craft only with other craft. Squadrons by ordnance (the AI forming them) is in
+   To do 28. Not yet: torpedo salvos combined, the bonus priced by what combining gains.
    Owner UI report (same session), done: deployment headings default to facing the enemy's
    zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
    along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-

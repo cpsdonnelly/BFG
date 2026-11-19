@@ -2843,6 +2843,12 @@ Done: To do 2, 3, 6; most of 7.
    class, start a new squadron when the class changes; a lone escort joins a squadron of
    its class, splitting it in half if that breaks the list's maximum; a squadron of 1 only
    when the list has a single escort-sized ship or its rules say (the Tau Messenger).
+   Owner: escorts armed with the same ordnance are squadroned together (torpedo escorts
+   with torpedo escorts, Impaler escorts with Impaler escorts), since only the same ordnance
+   combines (s.15); the AI's move score already rewards a chain of base contact with
+   same-ordnance mates (`_coherency_term`, `ordnance_kinds`: CONTACT_WEIGHT per mate in the
+   chain) and only merges the same ordnance into a wave (`_combine_squadron_waves`), but it
+   doesn't form squadrons yet (they come from the fleet file).
    Squadrons placed at random in the zone, line or box formation and in base contact or
    not, chosen at random, always coherent. Capital ships squadroned only with similar roles
    (carriers, torpedo armament, direct fire in the same range bracket), at most 3 (Tyranids
