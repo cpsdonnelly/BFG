@@ -486,12 +486,15 @@ def impaler_value(target, gs, owner: int, rules, end_phases, raid: float = 0.0) 
     p.5): its D6 fails on a 1; otherwise the better of two raids and one
     critical hit (dark_eldar.impaler_effect_values, the choice the AI and
     "Auto" make), plus one damage when the D6 equals or beats the Armour (the
-    lowest facing, judgement). Its shadowfield save and slave-taking aren't
-    counted. (`raid`: unused, kept for callers.)"""
+    lowest facing, judgement); slave-taking (D6 x 5 VP) replaces the raids /
+    crit when worth more. Its shadowfield save isn't counted. (`raid`:
+    unused, kept for callers.)"""
     from .dark_eldar import impaler_effect_values
     from .ai_hazards import hull_hits_vp
     vals = impaler_effect_values(rules, target, gs, owner, end_phases)
     effect = max(vals["raids"], vals["crit"])
+    if "dark_eldar" in (rules or []):
+        effect = max(effect, 17.5)       # or slaves instead, D6 x 5 VP (owner ruling)
     armour = target.lowest_armor_value
     p_dmg = sum(1 for r in range(2, 7) if r >= armour) / 6.0
     return 5.0 / 6.0 * effect + p_dmg * hull_hits_vp(target, gs, 0.0, 1.0)

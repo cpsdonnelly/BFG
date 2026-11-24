@@ -82,9 +82,6 @@ def resolve_impaler(marker, target, braced: bool, dice, gs) -> dict:
         gs.add_log(f"  {target.name} shadowfield: the Impaler misses")
         out["shadowfield_saved"] = 1
         return out
-    if impaler_slaves(gs, marker, target, braced, dice):
-        out["slaves"] = 1
-        return out
     roll = dice.roll_d6(1, f"Impaler vs {target.name} (1 no effect)")[0]
     out["impaler_roll"] = roll
     if roll == 1:
@@ -107,6 +104,12 @@ def resolve_impaler(marker, target, braced: bool, dice, gs) -> dict:
         out["damage"] += 1
     target = gs.get_ship_by_id(target.id) or target
     if target.hits_remaining <= 0:
+        return out
+    # Slave-taking (owner ruling): only once the module has connected (a 1
+    # fails, slaves too) and after the bladed prow's damage; D6 x 5 VP
+    # instead of the raids or the critical hit
+    if impaler_slaves(gs, marker, target, braced, dice):
+        out["slaves"] = 1
         return out
     choice = choose_impaler_effect(gs, marker, target)
     out["choice"] = choice
@@ -259,8 +262,8 @@ def impaler_slaves(gs, marker, target, braced: bool, dice) -> bool:
     """An Impaler may score D6 x 5 VP instead of its raids / crit (a single
     attack for a braced target's save). True if taken."""
     player = marker.owner_player
-    from .waves import impaler_value
-    value = impaler_value(target, gs, player, marker.special_rules, None, 0.0)
+    vals = impaler_effect_values(marker.special_rules, target, gs, player)
+    value = max(vals["raids"], vals["crit"])      # what the slaves replace
     if not wants_slaves(gs, player, target, "Impaler", value, 17.5):
         return False
     if braced and dice.roll_d6(1, f"{target.name} Brace vs slave-taking (4+)")[0] >= 4:

@@ -3331,21 +3331,22 @@ rather than touch a third ship).
   remaining hits, any doubling / halving, then current innate turrets (crippled-halved, after
   Fleet Defence Turrets' -2, never massed) (`boarding.troop_rating`, `Ship.effective_turrets`).
 
+### Owner rulings: Impaler slave-taking (implemented, tested)
+
+- **The Impaler's D6 comes first:** a 1 fails to connect and nothing happens, slave-taking
+  included; on a 2+, a roll at or above the target's Armour does the bladed prow's 1 damage, and
+  then slave-taking (D6 x 5 VP) may replace the raids / critical hit (`dark_eldar.resolve_impaler`
+  -> `impaler_slaves` after the roll; the AI weighs the slaves against the better of the raids
+  and the crit, and its strike value counts slaves as a third option, `waves.impaler_value`).
+- **Each hit-and-run attack may be swapped for +5 VP,** an Impaler's two raids included (as
+  built: `resolve_raids` -> `take_slaves`).
+
 ### Open questions for the owner
 
 1. **Raid modifiers that cancel out (owner: pinned, unsure the rules support it).** The engine
    adds every raid modifier together, so a Dark Eldar raid (+1 Pain Frenzy) on a Space Marine
    ship (enemy raids -1) is a plain roll (`hit_and_run._raid_roll_modifier`). Do an attacker's
    bonus and a defender's penalty cancel like that?
-2. **Impaler slave-taking and its D6.** When an Impaler takes slaves (D6 x 5 VP "instead of
-   resolving any hit-and-run raids or critical hits"), is its D6 still rolled first, so a 1
-   (fails to connect) earns nothing and a roll at or above the Armour still does the bladed
-   prow's 1 damage? Built reading: slave-taking replaces the whole attack, no D6, no prow
-   damage (`dark_eldar.impaler_slaves`).
-3. **The Impaler's two raids and the +5 slave option.** When an Impaler chooses its two
-   hit-and-run raids, may each raid still be swapped for +5 VP (the general Dark Eldar raid
-   rule)? Built reading: yes, each raid is offered it (`resolve_raids` -> `take_slaves`).
-
 ### Owner ruling: torpedo bomber salvos placed on a ship (s.21; implemented, tested)
 
 A salvo placed overlapping a ship's base is in contact and attacks it at once (s.15 "comes

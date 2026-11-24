@@ -36,8 +36,33 @@ def test_impaler_slaves_roll_d6_x5():
     gs.slave_hook = lambda p, tg, what, best: True
     m = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value, owner_player=2,
                        launched_by="d", x=0.0, y=3.0, special_rules=["dark_eldar", "impaler"])
-    out = resolve_impaler(m, gs.get_ship_by_id("t"), False, DiceStub([4]), gs)
-    assert out.get("slaves") and gs.slave_vp == {"2": 20}
+    dice = DiceStub([3,         # the Impaler connects (under the Armour: no prow damage)
+                     4])        # slaves: 4 x 5 VP
+    out = resolve_impaler(m, gs.get_ship_by_id("t"), False, dice, gs)
+    assert dice._idx == 2 and out.get("slaves") and gs.slave_vp == {"2": 20}
+
+
+def test_impaler_slaves_need_the_module_to_connect_and_keep_the_prow_damage():
+    """Owner ruling: the Impaler's D6 comes first; a 1 fails with no effect
+    (no slaves either); a roll at or above the Armour still does the bladed
+    prow's 1 damage before the slaves replace the raids / crit."""
+    t = make_ship(id="t", player=1, x=0.0, y=0.0, hits_max=8, armor_prow="5+",
+                  armor_side="5+", armor_rear="5+")
+    gs = make_gs([t])
+    gs.slave_hook = lambda p, tg, what, best: True
+    m = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value, owner_player=2,
+                       launched_by="d", x=0.0, y=3.0, special_rules=["dark_eldar", "impaler"])
+    dice = DiceStub([1])
+    out = resolve_impaler(m, gs.get_ship_by_id("t"), False, dice, gs)
+    assert dice._idx == 1 and out["failures"] == 1 and not out.get("slaves")
+    assert not gs.slave_vp
+    rolls = [5,        # connects, >= 5+ Armour: 1 damage
+             3,        # its crit check
+             6]        # slaves: 30 VP
+    dice = DiceStub(rolls)
+    out = resolve_impaler(m, gs.get_ship_by_id("t"), False, dice, gs)
+    assert dice._idx == len(rolls) and out["damage"] == 1 and out.get("slaves")
+    assert gs.slave_vp == {"2": 30} and gs.get_ship_by_id("t").hits_remaining == 7
 
 
 def test_impaler_damage_and_crit():
