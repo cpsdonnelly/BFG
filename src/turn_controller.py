@@ -478,9 +478,18 @@ class TurnController:
 
     # --- Movement Phase Helpers ---
 
+    def checks_blocked(self, ships) -> bool:
+        """A command check failed earlier this turn (s.2) stops these ships
+        trying one, unless one of them is led by an Eldar Gryphon Knight (MMS
+        p.13: "may attempt a command check even if one has been failed")."""
+        if not self.command_check_failed:
+            return False
+        ships = ships if isinstance(ships, (list, tuple)) else [ships]
+        return not any("gryphon_knight" in (s.special_rules or []) for s in ships)
+
     def can_issue_special_order(self, ship: Ship) -> bool:
         """Check if this ship can attempt a special order."""
-        if self.command_check_failed:
+        if self.checks_blocked(ship):
             return False  # a check already failed this turn
         if ship.player != self.gs.active_player:
             return False
@@ -618,7 +627,7 @@ class TurnController:
         """
         from .movement import do_command_check
 
-        if self.command_check_failed:
+        if self.checks_blocked(list(ships)):
             return {"success": False,
                     "error": "A command check already failed this turn."}
 

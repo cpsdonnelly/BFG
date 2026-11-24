@@ -587,6 +587,24 @@ committed, 1793 tests pass, the ordnance sweep 5491 cases pass):
   prompt, slaves only after it connects, prow damage with its crit check), slave VP in the
   AI's boarding value, escort damage valued by the finishing chance and escort kills by the
   squadron's score, every point of damage taking its critical check.
+- Eldar (the owner's last fleet, `owner_eldar_1000.json`, `tests/test_eldar_fleets.py`): the
+  Corsair and Craftworld fleet lists (`fleet_list_data_other.ELDAR_LISTS`: Void Dragon with a
+  Hero / High Admiral (`class_needs_option`), Void Stalkers one per full 1000pts (reading),
+  Supernovas one per two cruisers, Wyrmships per Dragonship, Dragonships per two
+  Wraithships, Ghostships 0-3, the specials 0-1 (Bahzhakhain and Wild Serpent over 1000pts),
+  each the other's reserves, a commander over 750pts and a Dragon Prince / High Admiral over
+  2000 (`commander_upgrade`)); `booklet_options.eldar_options`: Shadow / Dragon Prince,
+  Admiral / High Admiral (Ld 9 / 10, 1 re-roll; the Ld 10s +1 in boarding,
+  `eldar_bodyguard`), Hero +50, extra re-rolls / Farseers, Gryphon Knights 0-3 (MMS: a command
+  check even after one has failed, `TurnController.checks_blocked`), Farseers 0-3 (a ship
+  re-roll), Aspect Warriors (+1 boarding and raids), Seer Council (offered, Foresight not
+  modelled); commanders never on Ghostships. AI fixes found by the games: an Eldar move was
+  scored where its first leg ended, so second legs carried escorts off the table on turn 2
+  (`_eldar_moves` now scores the end of both moves, MMS makes both in the movement phase);
+  holofields in the AI's damage estimate (`mount_hits`: the lance save by range, one column
+  shift against gunnery as `HOLOFIELD_SHIFT` 0.7, judgement). Still open: the five either/or
+  Craftworld ships (Dragonship, Wraithship, two Ghostships, Shadowhunter) unsupported; the Seer
+  Council's Foresight; XR's Corsair / Craftworld movement differences (MMS used).
 - Raised this session, still open (see each section): open question 1 (raid modifiers that
   cancel); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
   not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
@@ -3131,10 +3149,10 @@ Done: To do 2, 3, 6; most of 7.
    nova cannon and range, 4 Novas; gifts rolled on the table and kept when good and
    affordable, never Fleet Defence Turrets); Tyranid Gestating, Vanguard and Hive fleets
    (bio-cruiser / drone configurations with their bought weapons, synapse escorts required).
-   Built as files (`tools/build_owner_fleets.py`, `data/fleets/owner_*.json`): every fleet
-   but the Eldar (Chaos, Gothic, Bakka, Tau Merchant, Tau Protector, Space Marines,
-   Mechanicus, Orks, Necrons both ways round the War coin, Dark Eldar, the three Tyranid
-   fleets). Left: Eldar commanders and the Corsair / Craftworld fleet lists.
+   Built as files (`tools/build_owner_fleets.py`, `data/fleets/owner_*.json`): ALL the
+   owner's fleets (Chaos, Gothic, Bakka, Tau Merchant, Tau Protector, Space Marines,
+   Mechanicus, Orks, Necrons both ways round the War coin, Eldar (Corsair), Dark Eldar, the
+   three Tyranid fleets).
    Earlier notes: checked against the catalog (Claude): buildable now: Chaos, Gothic, Bakka, Tau Merchant,
    Space Marines, Mechanicus (to check the Mechanicus Tyrant's nova / range refits). Gaps:
    Emissary options (ion cannons for hooks, mine launchers, deflector); Ork kustom force

@@ -878,9 +878,24 @@ def mount_hits(e: Ship, w: dict, t: Ship) -> float:
     from .necrons import veil_hidden
     if veil_hidden(t):
         f *= p_sum_at_most(2, max(0, min(10, e.leadership or 0)))   # its target priority test
+    if "holofield" in (t.special_rules or []) and not any(
+            c.get("crit_type") == "field_generators" for c in t.critical_damage):
+        # Eldar holofields (MMS): a save against lances (5+ beyond 30cm, 6+ at
+        # 15-30cm) and one right column shift against gunnery (not under 15cm;
+        # lightning arcs ignore it), HOLOFIELD_SHIFT a judgement for the shift
+        from .eldar import p_holofield_save
+        d = math.hypot(e.x - t.x, e.y - t.y)
+        if w.get("weapon_type") == "lance":
+            f *= 1.0 - p_holofield_save(d)
+        elif d >= 15.0 and not w.get("lightning_arc"):
+            f *= HOLOFIELD_SHIFT
     if w.get("weapon_type") == "lance":
         return st * lance_p(w) * f
     return st * 0.35 * p_hit(t.armor_vs(e.x, e.y)) / p_hit(5) * f
+
+
+# One right column shift on the Gunnery table, as a share of the hits (judgement)
+HOLOFIELD_SHIFT = 0.7
 
 
 def hull_save_factor(t: Ship) -> float:

@@ -601,6 +601,62 @@ def necron_options(row: dict) -> List[Dict]:
     return opts
 
 
+# Eldar commanders and upgrades (MMS v2.0, 09_eldar.md "Commanders & Upgrades"
+# and the fleet lists): Corsair Lords and Gryphon Knights, Craftworld Admirals,
+# Farseers, the Seer Council and Aspect Warriors. Each list allows only its own
+# (fleet_lists `list_options`). Fleet commanders never go on a Ghostship.
+ELDAR_CORSAIR_LORDS = [("Shadow Prince (Ld 9)", 9, 50, []),
+                       ("Dragon Prince (Ld 10)", 10, 100, ["eldar_bodyguard"])]
+ELDAR_CRAFTWORLD_LORDS = [("Admiral (Ld 9)", 9, 50, []),
+                          ("High Admiral (Ld 10)", 10, 100, ["eldar_bodyguard"])]
+
+
+def eldar_options(row: dict) -> List[Dict]:
+    name = row["name"]
+    group = row.get("roster_group") or ""
+    ghost = "Ghostship" in name
+    capital = "Escorts" not in group and (row.get("hull_type") or "").lower() != "escort" \
+        and "Miscellaneous" not in group
+    opts: List[Dict] = []
+    if capital and not ghost:
+        for lords, hero_of, extra, label in (
+                (ELDAR_CORSAIR_LORDS, "Dragon Prince (Ld 10)", [25, 50, 100], "Corsair Lord"),
+                (ELDAR_CRAFTWORLD_LORDS, "High Admiral (Ld 10)", [25, 50], "Admiral")):
+            names = [n for n, *_ in lords]
+            for n, ld, cost, rules in lords:
+                opts.append(_opt(n, f"Fleet commander, {cost}pts: Ld {ld}, 1 re-roll"
+                                    + (", +1 in boarding actions" if rules else "") + ".", cost,
+                                 {"set": {"leadership": ld, "leadership_table": ""}, "rerolls": 1,
+                                  "add_special_rules": ["fleet_commander"] + rules,
+                                  "flagship": True},
+                                 ["fleet_unique", "group:fleet_commander"]))
+            opts.append(_opt(f"{hero_of.split(' (')[0]}: Hero", "+50pts: Hero status (a Void "
+                             "Dragon may be taken; reserves 2:1).", 50,
+                             {"add_special_rules": ["eldar_hero"]},
+                             [f"requires:{hero_of}", "group:eldar_hero_council"]))
+            what = "Farseer" if label == "Admiral" else "re-roll"
+            opts += [_opt(f"{label}: {k} extra {what}{'s' if k > 1 else ''}",
+                          f"+{c}pts: {k} more fleet re-roll{'s' if k > 1 else ''}.", c,
+                          {"rerolls": 1 + k},
+                          ["group:commander_rerolls", "requires_any:" + "|".join(names)])
+                     for k, c in enumerate(extra, start=1)]
+        opts.append(_opt("Seer Council", "+50pts (High Admiral only, not a Hero): Foresight, "
+                         "once a battle a retroactive Brace for the commander's ship (not "
+                         "modelled yet).", 50, {"add_special_rules": ["seer_council"]},
+                         ["requires:High Admiral (Ld 10)", "group:eldar_hero_council"]))
+    if capital and not ghost and group.startswith("Craftworld"):
+        opts.append(_opt("Aspect Warriors", "+20pts: +1 to its boarding actions and all its "
+                         "hit-and-run attacks.", 20, {"add_special_rules": ["aspect_warriors"]}))
+    if capital:
+        opts.append(_opt("Farseer (ship re-roll)", "+15pts, 0-3: one re-roll for this ship "
+                         "only (may go on a Ghostship).", 15, {"set": {"own_rerolls": 1}},
+                         ["fleet_max:3"]))
+    opts.append(_opt("Gryphon Knight", "+25pts, 0-3: its ship or squadron may attempt a "
+                     "command check even if one has been failed this turn.", 25,
+                     {"add_special_rules": ["gryphon_knight"]}, ["fleet_max:3"]))
+    return opts
+
+
 # Secondary commanders (s.5): +Ld (or a fixed Ld) and re-rolls usable only
 # for their own ship or squadron (`own_rerolls`). (name, Ld effect, cost,
 # fleet maximum, re-roll cost or None)
@@ -1245,6 +1301,8 @@ def _options_for(row: dict) -> List[Dict]:
         return space_marine_options(row)
     if row.get("faction") == "Dark Eldar":
         return dark_eldar_options(row)
+    if row.get("faction") == "Eldar":
+        return eldar_options(row)
     if row.get("faction") == "Tyranids":
         from .booklet_ships import _ship_type
         from .tyranids import options as tyranid_options

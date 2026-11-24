@@ -770,6 +770,12 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
                     else "needs")
             errors.append(f"{fl['name']}: {what} a fleet commander "
                           f"({' or '.join(cmd['options'])}).")
+        up = fl.get("commander_upgrade")
+        if up and points_limit >= up[0] and not any(
+                u in up[1] for r in mine for u in r.get("upgrades", [])):
+            # Eldar: a fleet over 2000pts needs a Dragon Prince / High Admiral
+            errors.append(f"{fl['name']}: a fleet of more than {up[0] - 1} pts needs "
+                          f"{' or '.join(up[1])}.")
         if cmd.get("per_points") and n_cmd > max(1, -(-points_limit // cmd["per_points"])):
             errors.append(f"{fl['name']}: {n_cmd} commanders, at most one per "
                           f"{cmd['per_points']}pts.")

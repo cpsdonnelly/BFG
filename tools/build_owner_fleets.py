@@ -92,6 +92,11 @@ FLEETS = [
      [_CAIRN] + [("Shroud Class Light Cruiser", _SHROUD + ["Shroud refit: War Configuration"],
                   False, "")] * 2
      + [("Dirge Class Raider", [], False, "dirges")] * 2),
+    ("owner_eldar_1000.json", "Corsair Eldar 1000", "Eldar", "eldar_corsair",
+     [("Eclipse Class Cruiser", ["Shadow Prince (Ld 9)"], True, "")]
+     + [("Hemlock Class Destroyer", [], False, "hemlocks")] * 4
+     + [("Nightshade Class Destroyer", [], False, "nightshades")] * 5
+     + [("Aconite Class Frigate", [], False, "aconites")] * 4),
     ("owner_tyranid_gestating_990.json", "Tyranid Gestating 990", "Tyranid", "tyranid_gestating",
      [("Scylla Strain Bio-Cruiser w/ Synapse Node",
        ["Prow: Pyro-acid Battery", "Thorax: Pyro-acid Battery",
@@ -122,7 +127,7 @@ FLEETS = [
 # Owner's lists (all 1000pt or under). Mechanicus Gifts: the owner rolls them on the table
 # and keeps a good, affordable result (never Fleet Defence Turrets): random, left to the
 # player / the AI list builder (To do 24).
-GAPS = ["Eldar (commanders and fleet lists)"]
+GAPS = []
 
 
 def build(root, spec, out_dir):

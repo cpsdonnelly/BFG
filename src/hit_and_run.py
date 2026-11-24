@@ -168,6 +168,7 @@ _RAID_ATTACK_BONUS = {
     "dark_eldar": 1,         # Dark Eldar Pain Frenzy (Xenos p.4), their ordnance too
     "tyranid": 1,            # Tyranids and their ordnance (Xenos p.105)
     "bloodswarm": 1,         # Necron Bloodswarm Nanoscarabs: +1 to its portal attacks
+    "aspect_warriors": 1,    # Eldar Aspect Warriors: +1 to all its hit-and-run attacks (MMS)
 }
 _RAID_DEFENSE_PENALTY = {
     "space_marine_crew": 1,  # raids against a Space Marine ship: -1 to the roll

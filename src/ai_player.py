@@ -527,7 +527,7 @@ class AIPlayer:
         group = self._order_group(ship)
         if group is not None:
             return self._issue_squadron_order(ship, group)
-        if self.difficulty != "easy" and not tc.command_check_failed:
+        if self.difficulty != "easy" and not tc.checks_blocked(ship):
             chosen = self._choose_special_order(ship)
             if chosen:
                 res = tc.issue_special_order(ship, chosen)
@@ -587,7 +587,7 @@ class AIPlayer:
         ids = {s.id for s in group}
         if key not in done:
             done[key] = ""
-            if (self.difficulty != "easy" and not tc.command_check_failed
+            if (self.difficulty != "easy" and not tc.checks_blocked(list(group))
                     and ship.id in ids):
                 chosen = self._choose_special_order(ship)
                 if chosen:
@@ -2455,8 +2455,9 @@ class AIPlayer:
         spot then a move up to the speed for the new heading, no minimum. A
         grid of first turns and lengths, second turns and lengths (no turns on
         Lock On / All Ahead Full, AAF's bonus on the first leg; Come to New
-        Heading's extra turn not used yet), each scored by the move score from
-        the end of the first leg (its own path hazards not counted, judgement).
+        Heading's extra turn not used yet), each scored by the move score where
+        the second leg ends (both moves are made in the movement phase; its own
+        path hazards not counted, judgement).
         Only legal moves (`movement.validate_movement`). [(score, commands,
         source)]."""
         from . import eldar
@@ -2488,8 +2489,13 @@ class AIPlayer:
                     for d2 in sorted({0.0, cap2 / 2, cap2}):
                         if one_move and d2:
                             continue
+                        # MMS: both moves are made in the movement phase, so the
+                        # ship ends (and fires, and may leave the table) where the
+                        # second one ends
                         leg = Ship.from_dict(ship.to_dict())
-                        leg.x, leg.y, leg.heading = x1, y1, h2
+                        leg.x = x1 + d2 * math.cos(r(h2))
+                        leg.y = y1 + d2 * math.sin(r(h2))
+                        leg.heading = h2
                         cmds = []
                         if t1:
                             cmds.append(MoveCommand("turn_left" if t1 > 0 else "turn_right",
@@ -2503,7 +2509,7 @@ class AIPlayer:
                             cmds.append(MoveCommand("forward", d2))
                         if not cmds or not validate_movement(ship, cmds, **kw).valid:
                             continue
-                        sc = self._move_score(leg, enemy, order, 0.0, max(d2, 0.01), None)
+                        sc = self._move_score(leg, enemy, order, 0.0, max(d1 + d2, 0.01), None)
                         out.append((sc, cmds, "eldar mms"))
         return out
 

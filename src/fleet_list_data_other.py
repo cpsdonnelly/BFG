@@ -548,5 +548,71 @@ NEC_LISTS = [
      "unenforced": _NEC_UNENFORCED + ["Attack rating 3."]},
 ]
 
+# ── Eldar (09_eldar.md, MMS v2.0 pp.13, 23) ────────────────────────────────────
+_ELDAR_UNENFORCED = [
+    "Escort squadrons of two to six (Corsair: at most four two-hit escorts a squadron): not "
+    "checked.",
+    "Reserves 2:1 instead of 3:1 with a Hero: not checked (3:1 used).",
+    "Fleet commanders never on a Ghostship: not offered there."]
+ELDAR_LISTS = [
+    {"key": "eldar_corsair", "faction": "eldar",
+     "name": "Corsair Eldar Fleet (MMS p.13)",
+     "commander": {"options": ["Shadow Prince (Ld 9)", "Dragon Prince (Ld 10)"],
+                   "required_at": 751},
+     "commander_upgrade": (2001, ["Dragon Prince (Ld 10)"]),
+     "list_options": ["Shadow Prince", "Dragon Prince", "Corsair Lord:", "Gryphon Knight"],
+     "class_needs_option": {"Void Dragon Class Grand Cruiser": (0, ["Dragon Prince: Hero"])},
+     "sections": [
+         {"name": "Void Dragon", "class_max": {"Void Dragon Class Grand Cruiser": 1},
+          "ships": {"Void Dragon Class Grand Cruiser": 320}},
+         {"name": "Void Stalkers", "per_points": 1000,
+          "ships": {"Void Stalker Class Battleship": 470}},
+         {"name": "Supernovas", "ratio": (2, ["Cruisers"]),
+          "ships": {"Supernova Class Grand Cruiser": 270}},
+         {"name": "Cruisers", "max": 12,
+          "ships": {"Eclipse Class Cruiser": 260, "Shadow Class Cruiser": 230,
+                    "Aurora Class Light Cruiser": 140, "Solaris Class Light Cruiser": 125}},
+         {"name": "Escorts",
+          "ships": {"Hellebore Class Frigate": 75, "Aconite Class Frigate": 60,
+                    "Nightshade Class Destroyer": 50, "Hemlock Class Destroyer": 50}},
+     ],
+     "reserves": ["eldar_craftworld"],
+     "unenforced": _ELDAR_UNENFORCED + ["Attack rating 4."]},
+    {"key": "eldar_craftworld", "faction": "eldar",
+     "name": "Craftworld Eldar Fleet (MMS p.23)",
+     "commander": {"options": ["Admiral (Ld 9)", "High Admiral (Ld 10)"], "required_at": 751},
+     "commander_upgrade": (2001, ["High Admiral (Ld 10)"]),
+     "list_options": ["Admiral (Ld 9)", "High Admiral", "Admiral:", "Seer Council",
+                      "Aspect Warriors", "Farseer (ship"],
+     "class_needs_option": {"Void Dragon Class Grand Cruiser": (0, ["High Admiral (Ld 10)"])},
+     "sections": [
+         {"name": "Void Dragon", "class_max": {"Void Dragon Class Grand Cruiser": 1},
+          "ships": {"Void Dragon Class Grand Cruiser": 320}},
+         {"name": "Wyrmships", "ratio": (1, ["Dragonships"]),
+          "ships": {"Wyrm Class Battleship": 470}},
+         {"name": "Dragonships", "ratio": (2, ["Wraithships"]),
+          "ships": {"Dragonship Class Battle Cruiser": 270}},
+         {"name": "Wraithships", "ships": {"Wraithship Class Attack Cruiser": 180}},
+         {"name": "Ghostships", "max": 3,
+          "ships": {"Ghost Dragon (Ghostship)": 270, "Ghost Wraith (Ghostship)": 180}},
+         {"name": "Escorts", "ships": {"Shadowhunter Class Destroyer": 45}},
+         {"name": "Craftworld specials",
+          "class_max": {"Bahzhakhain (Biel-Tan)": 1, "Wild Serpent (Saim-Hann)": 1,
+                        "Flame of Asuryan (Iyanden)": 1, "Shadow Point (Ulthwé)": 1,
+                        "Sword of Eldanesh (Alaitoc)": 1},
+          "class_min_points": {"Bahzhakhain (Biel-Tan)": 1001, "Wild Serpent (Saim-Hann)": 1001},
+          "ships": {"Bahzhakhain (Biel-Tan)": 575, "Wild Serpent (Saim-Hann)": 485,
+                    "Flame of Asuryan (Iyanden)": 450, "Shadow Point (Ulthwé)": 550,
+                    "Sword of Eldanesh (Alaitoc)": 80}},
+     ],
+     "reserves": ["eldar_corsair"],
+     "unenforced": _ELDAR_UNENFORCED + [
+         "A Dragonship carrying the Admiral not counting towards the Wraithship limit, and the "
+         "specials counting as Dragonships: not checked.",
+         "The Craftworld fleet guidelines (Biel-Tan, Saim-Hann, Ulthwé, Alaitoc, Iyanden) are "
+         "advice, not checked.",
+         "Attack rating 3."]},
+]
+
 OTHER_LISTS: List[Dict] = (CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS + DE_LISTS + TYR_LISTS
-                           + NEC_LISTS)
+                           + NEC_LISTS + ELDAR_LISTS)

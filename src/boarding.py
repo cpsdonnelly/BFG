@@ -84,8 +84,17 @@ def _crew_damage_bonus(ship: Ship) -> int:
     Defaults to 0. Keyed off ``ship.special_rules`` so factions/upgrades can
     grant varying bonuses (e.g. Space Marine crews add +2).
     """
-    # "Ships may only use the largest applicable bonus" (s.32)
-    return max([_CREW_DAMAGE_BONUSES.get(rule, 0) for rule in ship.special_rules] or [0])
+    # "Ships may only use the largest applicable bonus" (s.32); Eldar (MMS)
+    # +1s from a High Admiral's / Dragon Prince's bodyguard and Aspect Warriors
+    # are their own boarding modifiers, added on top
+    crew = max([_CREW_DAMAGE_BONUSES.get(rule, 0) for rule in ship.special_rules] or [0])
+    return crew + sum(_EXTRA_BOARDING.get(r, 0) for r in ship.special_rules)
+
+
+_EXTRA_BOARDING = {
+    "eldar_bodyguard": 1,    # High Admiral / Dragon Prince and bodyguard (MMS p.13, p.22)
+    "aspect_warriors": 1,    # Craftworld Aspect Warriors (MMS p.22)
+}
 
 
 def _get_ship_modifier(ship: Ship, gs: GameState) -> int:

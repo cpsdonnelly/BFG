@@ -1,0 +1,678 @@
+{
+  "fleet_name": "Corsair Eldar 1000",
+  "faction": "eldar",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 1000,
+  "fleet_list": "eldar_corsair",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Eclipse Class Cruiser",
+      "ship_class": "Eclipse Class Cruiser",
+      "faction": "eldar",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 6,
+      "leadership": 9,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pulsar Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "pulsar": true
+        },
+        {
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [],
+          "craft_types": [
+            "eldar_fighter",
+            "eldar_bomber"
+          ],
+          "craft_speeds": {
+            "eldar_fighter": 30,
+            "eldar_bomber": 20
+          },
+          "craft_speed": 30
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:10/20/25",
+        "fleet_commander"
+      ],
+      "upgrades": [
+        "Shadow Prince (Ld 9)"
+      ],
+      "points_value": 310,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 1,
+      "squadron_id": "",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Hemlock Class Destroyer",
+      "ship_class": "Hemlock Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Keel Pulsar Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "pulsar": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "hemlocks",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Hemlock Class Destroyer",
+      "ship_class": "Hemlock Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Keel Pulsar Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "pulsar": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "hemlocks",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Hemlock Class Destroyer",
+      "ship_class": "Hemlock Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Keel Pulsar Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "pulsar": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "hemlocks",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Hemlock Class Destroyer",
+      "ship_class": "Hemlock Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Keel Pulsar Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "pulsar": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "hemlocks",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Nightshade Class Destroyer",
+      "ship_class": "Nightshade Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        },
+        {
+          "name": "Keel Torpedoes",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "eldar_torpedo": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "nightshades",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Nightshade Class Destroyer",
+      "ship_class": "Nightshade Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        },
+        {
+          "name": "Keel Torpedoes",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "eldar_torpedo": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "nightshades",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Nightshade Class Destroyer",
+      "ship_class": "Nightshade Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        },
+        {
+          "name": "Keel Torpedoes",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "eldar_torpedo": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "nightshades",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Nightshade Class Destroyer",
+      "ship_class": "Nightshade Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        },
+        {
+          "name": "Keel Torpedoes",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "eldar_torpedo": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "nightshades",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Nightshade Class Destroyer",
+      "ship_class": "Nightshade Class Destroyer",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        },
+        {
+          "name": "Keel Torpedoes",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "eldar_torpedo": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:20/25/30"
+      ],
+      "upgrades": [],
+      "points_value": 50,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "nightshades",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Aconite Class Frigate",
+      "ship_class": "Aconite Class Frigate",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 5,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:15/20/30"
+      ],
+      "upgrades": [],
+      "points_value": 60,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "aconites",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Aconite Class Frigate",
+      "ship_class": "Aconite Class Frigate",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 5,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:15/20/30"
+      ],
+      "upgrades": [],
+      "points_value": 60,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "aconites",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Aconite Class Frigate",
+      "ship_class": "Aconite Class Frigate",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 5,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:15/20/30"
+      ],
+      "upgrades": [],
+      "points_value": 60,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "aconites",
+      "fleet_list": "eldar_corsair"
+    },
+    {
+      "name": "Aconite Class Frigate",
+      "ship_class": "Aconite Class Frigate",
+      "faction": "eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 5,
+          "arcs": [
+            "front"
+          ],
+          "eldar_battery": true
+        }
+      ],
+      "special_rules": [
+        "eldar_mms",
+        "fragile",
+        "holofield",
+        "eldar_speeds:15/20/30"
+      ],
+      "upgrades": [],
+      "points_value": 60,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "aconites",
+      "fleet_list": "eldar_corsair"
+    }
+  ]
+}
