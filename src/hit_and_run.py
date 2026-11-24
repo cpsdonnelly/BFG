@@ -363,7 +363,10 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
                 wt = _weapon_can_bear(target, w, f, reach)
                 if wt:
                     best = max(best, wt * max(1.0, value_per_hit(f, gs)))
-            threat += (w.get("strength") or 0) * _THREAT_PER_DIE[w["weapon_type"]] * best
+            st = w.get("strength") or 0
+            if target.is_crippled:
+                st = target.crippled_value(st)        # a crippled ship's guns fire at half
+            threat += st * _THREAT_PER_DIE[w["weapon_type"]] * best
         total += phase_weight(2 * j) * p_left * threat
     return total
 
@@ -405,6 +408,15 @@ def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int,
     ct = raid_crit_preview(effective, target)
     if ct is None:
         return 0.0
+    return crit_type_value(ct, target, gs, owner, end_phases)
+
+
+def crit_type_value(ct: str, target: Ship, gs: GameState, owner: int,
+                    end_phases: int = None) -> float:
+    """Expected VP of one critical hit of type `ct` on a crit-table target:
+    its extra damage plus its effect (raid_result_value's crit part)."""
+    from .ai_hazards import ship_value, value_per_hit
+    vph = max(1.0, value_per_hit(target, gs))
     from .combat import ARMAMENT_CRIT_TYPES
     extra = _CRIT_EXTRA.get(ct, 0.0)
     value = extra * vph
@@ -424,6 +436,38 @@ def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int,
     elif ct == "thrusters_damaged":
         value += vph * 0.5
     return value
+
+
+def crit_roll_value(roll_2d6: int, target: Ship, gs: GameState, owner: int,
+                    end_phases: int = None) -> float:
+    """Expected VP of a critical hit rolled as `roll_2d6` (2-12) on the
+    target's own table, after the cascade. A ship off the crit table (small
+    escorts and defences) takes 1 damage instead."""
+    from .ai_hazards import ship_value, value_per_hit
+    if not uses_crit_table(target):
+        vph = max(1.0, value_per_hit(target, gs))
+        return max(vph, ship_value(target, gs)) if target.hits_remaining <= 1 else vph
+    from .combat import _resolve_crit_cascade
+    data = _resolve_crit_cascade(max(2, min(12, roll_2d6)), target, _SilentLog())
+    if data is None:
+        return 0.0
+    return crit_type_value(data["crit_type"], target, gs, owner, end_phases)
+
+
+_TWO_D6 = {n: sum(1 for a in range(1, 7) for b in range(1, 7) if a + b == n) / 36.0
+           for n in range(2, 13)}
+
+
+def critical_hit_value(target: Ship, gs: GameState, owner: int, end_phases: int = None,
+                       reroll: bool = False) -> float:
+    """Expected VP of one critical hit rolled on 2D6. `reroll`: a re-roll may
+    be taken (Pain Frenzy against a crippled ship), kept when the first is
+    worth more than a fresh roll on average."""
+    vals = {n: crit_roll_value(n, target, gs, owner, end_phases) for n in _TWO_D6}
+    mean = sum(_TWO_D6[n] * v for n, v in vals.items())
+    if reroll:
+        return sum(_TWO_D6[n] * max(v, mean) for n, v in vals.items())
+    return mean
 
 
 def best_raid_reroll(roll: int, effective: int, target: Ship, gs: GameState,

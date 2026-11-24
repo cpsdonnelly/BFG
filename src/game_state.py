@@ -56,6 +56,7 @@ class GameState:
     # A human Dark Eldar player's slave-taking choice: hook(player, target,
     # what, best) -> True / False / None (None: the expected-value choice, best)
     slave_hook = None
+    impaler_hook = None        # Dark Eldar Impaler: two raids or a critical hit (human)
 
     # Turn limit and scenario settings
     turn_limit: Optional[int] = None           # None = unlimited turns

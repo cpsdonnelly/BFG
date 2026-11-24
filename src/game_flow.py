@@ -45,6 +45,7 @@ class GameFlow(AAPanelMixin):
         tc.gs.brace_hook = self._brace_hook
         tc.gs.raid_reroll_hook = self._raid_reroll_hook
         tc.gs.slave_hook = self._slave_hook
+        tc.gs.impaler_hook = self._impaler_hook
         tc.gs.synapse_hook = self._synapse_hook
         tc.gs.ld_reroll_hook = self._ld_reroll_hook
         tc.gs.undivided_hook = self._undivided_hook
@@ -216,6 +217,21 @@ class GameFlow(AAPanelMixin):
             f"stands, even if it is worse.",
             [("Re-roll", True), ("Keep", False)],
             best_raid_reroll(roll, effective, target, gs, owner))
+
+    def _impaler_hook(self, owner, target, vals, best):
+        """GameState.impaler_hook (Dark Eldar Impaler, Xenos p.5): ask a human
+        owner for two hit-and-run raids or one critical hit, with "Auto"
+        (the option worth more expected VP). None lets the engine decide."""
+        import threading
+        gs = self.ctx.gs
+        if (threading.current_thread() is not threading.main_thread()
+                or gs.ai_spectator or (gs.ai_player is not None and owner == gs.ai_player)):
+            return None
+        return self.ctx.prompt.choose(
+            "Impaler",
+            f"Your Impaler connects with {target.name}. Two hit-and-run raids (a D6 each) "
+            f"or one critical hit (2D6)?",
+            [("Two hit-and-run raids", "raids"), ("One critical hit", "crit")], best)
 
     def _slave_hook(self, owner, target, what, best):
         """GameState.slave_hook (Dark Eldar slave-taking, Xenos p.4): ask a

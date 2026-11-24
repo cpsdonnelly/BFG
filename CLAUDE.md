@@ -601,6 +601,15 @@ ordnance sweep 5250 cases pass):
   multi-turn planning, and its hit values ignore shadowfield saves); torpedo salvos are not
   combined by the AI; the contact bonus is a flat 0.5 a mate, not priced by what combining
   gains; the AI doesn't form squadrons (To do 28; owner: same-ordnance escorts together).
+- Impaler choice (owner question): after its D6 connects, two hit-and-run raids (a D6 each)
+  or one critical hit (2D6 on the target's table, a Fire with Haemonculi, 1 damage on a ship
+  off the table) by expected VP (`dark_eldar.impaler_effect_values` / `choose_impaler_effect`;
+  Pain Frenzy's re-roll counted; two raids on a small escort valued together, it dies once);
+  a human is asked with "Auto" (`GameState.impaler_hook`, `GameFlow._impaler_hook`); the AI's
+  strike values use the same (`waves.impaler_value`; the crit was valued as one raid result
+  before). Shared: `hit_and_run.crit_type_value`, `crit_roll_value`, `critical_hit_value`.
+  Fixed on the way: a silenced weapon on a crippled ship now counts at half strength
+  (`armament_threat_value`; it was full, so raids on crippled ships were over-valued).
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.

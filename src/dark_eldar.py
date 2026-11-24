@@ -108,7 +108,11 @@ def resolve_impaler(marker, target, braced: bool, dice, gs) -> dict:
     target = gs.get_ship_by_id(target.id) or target
     if target.hits_remaining <= 0:
         return out
-    if target.ship_type == "escort":
+    choice = choose_impaler_effect(gs, marker, target)
+    out["choice"] = choice
+    gs.add_log(f"  The Impaler makes {'two hit-and-run raids' if choice == 'raids' else 'a critical hit'}"
+               f" on {target.name}")
+    if choice == "raids":
         res = resolve_raids(2, target, braced, dice, gs, source_name="Impaler",
                             attacker_rules=marker.special_rules)
         for k in ("raid_rolls", "crits_applied"):
@@ -117,6 +121,14 @@ def resolve_impaler(marker, target, braced: bool, dice, gs) -> dict:
             out[k] += res.get(k, 0)
         return out
     if _saved("critical hit"):
+        return out
+    from .hit_and_run import uses_crit_table
+    if not uses_crit_table(target):
+        # a ship off the critical hits table takes 1 damage instead (s.33)
+        gs.add_log(f"  The Impaler's critical hit on {target.name}: 1 damage instead")
+        apply_damage(target, 1, dice, gs, ignores_shields=True, attacker_key=marker.id,
+                     no_crits=True)
+        out["damage"] += 1
         return out
     if "haemonculi" in (marker.special_rules or []):
         gs.add_log(f"  Haemonculi: the Impaler's critical hit on {target.name} is a Fire")
@@ -194,11 +206,65 @@ def take_slaves(gs, attacker_rules, target, braced: bool, dice, vp: int) -> bool
     return True
 
 
+def impaler_effect_values(rules, target, gs, owner: int, end_phases: int = None) -> dict:
+    """Expected VP of an Impaler's two options once its D6 has connected
+    (Xenos p.5): "raids", two hit-and-run raids (a D6 each with the crew's
+    modifiers); "crit", one critical hit (2D6 on the target's table, a Fire
+    with Haemonculi; 1 damage against a ship off the table). Pain Frenzy's
+    re-roll against a crippled ship is counted for both. A braced target saves
+    on 4+ against each effect, which scales both alike."""
+    from .hit_and_run import (raid_result_value, _raid_roll_modifier, critical_hit_value,
+                              crit_type_value, uses_crit_table)
+    rules = list(rules or [])
+    mod = _raid_roll_modifier(rules, target)
+    frenzy = pain_frenzy_applies(rules, target)
+    raid = [raid_result_value(r + mod, target, gs, owner, end_phases) for r in range(1, 7)]
+    mean = sum(raid) / 6.0
+    one = sum(max(v, mean) for v in raid) / 6.0 if frenzy else mean
+    if not uses_crit_table(target):
+        # a ship off the crit table takes 1 damage a successful raid: the two
+        # raids together, as it can only be destroyed once
+        from .ai_hazards import ship_value, value_per_hit
+        p = sum(1 for v in raid if v > 0) / 6.0
+        if frenzy:
+            p = 1 - (1 - p) ** 2
+        rem = max(1, target.hits_remaining)
+        vph = max(1.0, value_per_hit(target, gs))
+
+        def worth(k):
+            k = min(k, rem)                       # it can only lose what it has left
+            return max(vph * k, ship_value(target, gs)) if k >= rem else vph * k
+        raids = sum(q * worth(k) for k, q in ((1, 2 * p * (1 - p)), (2, p * p)))
+    if "haemonculi" in rules and uses_crit_table(target):
+        crit = crit_type_value("fire", target, gs, owner, end_phases)
+    else:
+        crit = critical_hit_value(target, gs, owner, end_phases, reroll=frenzy)
+    if not uses_crit_table(target):
+        return {"raids": raids, "crit": crit}
+    return {"raids": 2 * one, "crit": crit}
+
+
+def choose_impaler_effect(gs, marker, target) -> str:
+    """"raids" or "crit", the attacker's choice: a human owner is asked
+    (`GameState.impaler_hook`, with "Auto"); the AI and "Auto" take the one
+    worth more expected VP (impaler_effect_values)."""
+    owner = marker.owner_player
+    vals = impaler_effect_values(marker.special_rules, target, gs, owner)
+    best = "crit" if vals["crit"] > vals["raids"] else "raids"
+    hook = getattr(gs, "impaler_hook", None)
+    if hook is not None:
+        answer = hook(owner, target, vals, best)
+        if answer in ("raids", "crit"):
+            return answer
+    return best
+
+
 def impaler_slaves(gs, marker, target, braced: bool, dice) -> bool:
     """An Impaler may score D6 x 5 VP instead of its raids / crit (a single
     attack for a braced target's save). True if taken."""
     player = marker.owner_player
-    value = 1.5 * (2 if target.ship_type == "escort" else 3)   # judgement: the attack's worth
+    from .waves import impaler_value
+    value = impaler_value(target, gs, player, marker.special_rules, None, 0.0)
     if not wants_slaves(gs, player, target, "Impaler", value, 17.5):
         return False
     if braced and dice.roll_d6(1, f"{target.name} Brace vs slave-taking (4+)")[0] >= 4:

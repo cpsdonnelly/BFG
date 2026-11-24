@@ -45,6 +45,7 @@ def test_impaler_damage_and_crit():
                   armor_side="5+", armor_rear="5+")
     gs = make_gs([t])
     gs.slave_hook = lambda p, tg, what, best: False
+    gs.impaler_hook = lambda p, tg, vals, best: "crit"     # the player chooses the crit
     m = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value, owner_player=2,
                        launched_by="d", x=0.0, y=3.0, special_rules=["dark_eldar", "impaler"])
     rolls = [5,          # Impaler D6: >= 5+ Armour, 1 damage
@@ -159,3 +160,44 @@ def test_superstructure_damaged_costs_hits_when_turning():
     dice = DiceStub([2, 5, 1, 1, 1])         # two turns: 2 (damage), 5; then crit checks
     assert superstructure_strain(gs, dice, "d", cmds) == 1
     assert gs.get_ship_by_id("d").hits_remaining == 5
+
+
+def test_impaler_choice_by_expected_vp():
+    """The Impaler's choice (Xenos p.5): two raids (a D6 each) or one critical
+    hit (2D6); the AI and "Auto" take the one worth more expected VP."""
+    from src.dark_eldar import impaler_effect_values, choose_impaler_effect
+    from src.hit_and_run import critical_hit_value
+    rules = ["dark_eldar", "impaler"]
+    m = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value, owner_player=2,
+                       launched_by="d", x=0.0, y=3.0, special_rules=rules)
+    cruiser = make_ship(id="c", player=1, hits_max=8, points_value=180,
+                        weapons=[{"name": "Port", "weapon_type": "battery", "strength": 6,
+                                  "range_cm": 30, "arcs": ["left"]}])
+    escort = make_ship(id="e", player=1, ship_type="escort", hits_max=1, points_value=35)
+    gs = make_gs([cruiser, escort])
+    for t in (gs.get_ship_by_id("c"), gs.get_ship_by_id("e")):
+        v = impaler_effect_values(rules, t, gs, 2)
+        assert v["raids"] > 0 and v["crit"] > 0
+        best = "crit" if v["crit"] > v["raids"] else "raids"
+        assert choose_impaler_effect(gs, m, t) == best
+    # a 1-hit escort: a crit is 1 damage (it dies); two raids each need a 4+ (+1 Pain
+    # Frenzy) to do it, so the crit is the surer thing
+    e = gs.get_ship_by_id("e")
+    assert critical_hit_value(e, gs, 2) >= impaler_effect_values(rules, e, gs, 2)["raids"] / 2
+    # a human's answer is followed
+    gs.impaler_hook = lambda p, t, vals, best: "raids"
+    assert choose_impaler_effect(gs, m, gs.get_ship_by_id("c")) == "raids"
+
+
+def test_impaler_crit_on_an_escort_is_one_damage():
+    esc = make_ship(id="e", player=1, x=0.0, y=0.0, ship_type="escort", hits_max=2,
+                    armor_prow="6+", armor_side="6+", armor_rear="6+")
+    gs = make_gs([esc])
+    gs.slave_hook = lambda p, tg, what, best: False
+    gs.impaler_hook = lambda p, tg, vals, best: "crit"
+    m = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value, owner_player=2,
+                       launched_by="d", x=0.0, y=3.0, special_rules=["dark_eldar", "impaler"])
+    dice = DiceStub([3])                              # connects, under the 6+ Armour
+    out = resolve_impaler(m, gs.get_ship_by_id("e"), False, dice, gs)
+    assert dice._idx == 1 and out["choice"] == "crit" and out["damage"] == 1
+    assert gs.get_ship_by_id("e").hits_remaining == 1
