@@ -285,3 +285,23 @@ def test_escort_kills_scored_by_squadron():
         d.hits_remaining, d.status = 0, "destroyed"
         gs.update_ship(d)
     assert escort_kill_vp(gs.get_ship_by_id("c3"), gs) == 90.0      # the last: 120 - 30
+
+
+def test_impaler_prow_damage_rolls_for_a_critical():
+    """The bladed prow's point of damage is a normal hit: it takes the
+    critical check (a 6 rolls on the critical hits table), then the slaves."""
+    t = make_ship(id="t", player=1, x=0.0, y=0.0, hits_max=8, armor_prow="5+",
+                  armor_side="5+", armor_rear="5+")
+    gs = make_gs([t])
+    gs.slave_hook = lambda p, tg, what, best: True
+    m = OrdnanceMarker(id="i", ordnance_type=OrdnanceType.ASSAULT_BOAT.value, owner_player=2,
+                       launched_by="d", x=0.0, y=3.0, special_rules=["dark_eldar", "impaler"])
+    rolls = [6,        # connects, >= 5+ Armour: the prow's 1 damage
+             6,        # its critical check: a crit
+             7,        # 2D6 on the critical hits table
+             2]        # slaves: 10 VP
+    dice = DiceStub(rolls)
+    out = resolve_impaler(m, gs.get_ship_by_id("t"), False, dice, gs)
+    fresh = gs.get_ship_by_id("t")
+    assert dice._idx == len(rolls) and out["damage"] == 1 and out.get("slaves")
+    assert fresh.critical_damage and gs.slave_vp == {"2": 10}
