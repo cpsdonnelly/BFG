@@ -243,7 +243,8 @@ def test_fire_put_out_by_damage_control_deals_no_damage():
 def test_fire_left_burning_deals_damage_after_damage_control():
     from src.end_phase import resolve_end_phase
     gs = make_gs([_burning_ship()])
-    rolls = [1] * 8            # damage control: 8 dice at full HP, no 6s
+    rolls = [1] * 8 + [2]      # damage control: 8 dice at full HP, no 6s; the
+                               # fire's 1 damage takes its critical check (no crit)
     dice = DiceStub(rolls)
     resolve_end_phase(gs, dice, active_player=1)
     assert dice._idx == len(rolls)

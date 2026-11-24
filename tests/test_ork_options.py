@@ -43,7 +43,7 @@ def test_looted_dominator():
 def test_looted_ship_damages_itself_on_a_failed_test():
     s = make_ship(id="L", hits_max=8, special_rules=["looted"], leadership=6)
     gs = make_gs([s])
-    dice = DiceStub([11, 2])                 # fails the check, then 2: 1 damage
+    dice = DiceStub([11, 2, 3])              # fails the check, then 2: 1 damage; its crit check
     do_command_check(gs.get_ship_by_id("L"), "lock_on", dice, gs=gs)
-    assert dice._idx == 2 and gs.get_ship_by_id("L").hits_remaining == 7
+    assert dice._idx == 3 and gs.get_ship_by_id("L").hits_remaining == 7
     assert not own_goal(gs.get_ship_by_id("L"), DiceStub([5]), gs)

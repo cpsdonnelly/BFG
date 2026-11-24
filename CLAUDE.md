@@ -55,6 +55,16 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
 - **Ship names:** the game's "Hero Class Cruiser" is the booklet's Hero Starship, and the
   "Messenger" is the booklet's Messenger Starship, an escort (the game wrongly lists it as a
   light cruiser).
+- **Any damage can cause a critical hit (owner):** every point of damage goes through
+  `combat.apply_damage`, which rolls the critical check (a 6, or the weapon's own lower
+  number; small escorts take +1 damage instead): gunnery, lances, torpedoes, bombers, mines,
+  ramming, the nova cannon, explosions, the Impaler's bladed prow, and (fixed this session)
+  asteroid impacts, gas / dust cloud damage, fire damage in the end phase and an Ork looted
+  ship's own goal (they used to take hits off directly). The exceptions follow their own
+  rules: boarding actions, hit-and-run raids (assault boats, boarding torpedoes, teleports),
+  a crit's own extra damage, Tyranid feeder tendrils (no normal crits), and Extended Duty's
+  damage before the game. The unused old `terrain_effects.TabletopEffects` (a solar flare that
+  logged its crit without applying it) was removed; `celestial.py` is the live one.
 - **Escorts never become hulks:** they are too small. An escort reduced to 0 by anything,
   boarding included, is replaced by a blast marker (s.34). The "drifting hulk" result for
   ships boarded to 0 (s.32) applies to capital ships.

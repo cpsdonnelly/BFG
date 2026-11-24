@@ -17,17 +17,16 @@ def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str
     """
     logs = []
     fires = [c for c in ship.critical_damage if c.get("crit_type") == "fire"]
-    if not fires:
+    if not fires or ship.status in ("drifting_hulk", "burning_hulk"):
         return logs
-
-    for fire in fires:
-        ship.hits_remaining -= 1
+    from .combat import apply_damage
+    for _fire in fires:
+        # normal damage: it takes its critical check like any other hit (owner)
+        apply_damage(ship, 1, dice, gs, ignores_shields=True, rolled_to_hit=False)
         logs.append(f"{ship.name}: Fire! deals 1 damage (now {ship.hits_remaining} HP)")
-
         if ship.hits_remaining <= 0:
             logs.append(f"{ship.name} destroyed by fire!")
             break
-
     gs.update_ship(ship)
     return logs
 

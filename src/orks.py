@@ -92,10 +92,12 @@ def own_goal(ship, dice, gs) -> bool:
     if r > 3:
         return False
     fresh = gs.get_ship_by_id(ship.id) or ship
-    fresh.hits_remaining = max(0, fresh.hits_remaining - 1)
-    gs.update_ship(fresh)
-    ship.hits_remaining = fresh.hits_remaining
     gs.add_log(f"{ship.name}: the Orks damage their own looted ship (1 hit)")
+    # "no saves of any kind", but a hit like any other: its critical check (owner)
+    from .combat import apply_damage
+    apply_damage(fresh, 1, dice, gs, ignores_shields=True, rolled_to_hit=False)
+    fresh = gs.get_ship_by_id(ship.id) or fresh
+    ship.hits_remaining = fresh.hits_remaining
     if fresh.hits_remaining <= 0:
         from .actions import resolve_kill
         resolve_kill(gs, dice, fresh.id)

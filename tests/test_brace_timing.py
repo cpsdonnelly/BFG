@@ -67,7 +67,8 @@ def test_asteroid_brace_after_failed_test():
     gs.brace_hook = _hook(gs, True, calls)
     rolls = [6, 6,       # 2D6 = 12 vs Ld 6: failed
              3,          # D6 asteroid damage = 3
-             4, 1, 5]    # brace saves: 2 of 3
+             4, 1, 5,    # brace saves: 2 of 3
+             2]          # the damage's critical check (owner: any damage can crit)
     dice = DiceStub(rolls)
     r = resolve_asteroid_navigation(s, dice, gs)
     assert dice._idx == len(rolls) and calls == [("s", "asteroid_field")]
