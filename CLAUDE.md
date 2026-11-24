@@ -612,6 +612,16 @@ ordnance sweep 5250 cases pass):
   and crits on ships off the crit table (`raid_result_value`, `crit_roll_value`) and the
   Impaler's two raids. So against a 2-hit escort at a plain 4+ two raids (25% kill now) beat
   the certain single hit unless our guns are sure to finish it.
+  Owner correction: an escort kill isn't worth the escort either, as escorts are scored by
+  squadron (s.38: nothing until half are gone, a quarter then, everything when the last goes;
+  Remastered: only the whole squadron). `ai_hazards.escort_kill_vp`: the change in the
+  squadron's expected score, i.e. the threshold the loss crosses now plus how much likelier the
+  squadron becomes to be crippled / wiped out by its enemies' next turn of fire (shared between
+  the escorts left, `_fire_on`; a Poisson-binomial over them; one turn, undiscounted,
+  judgement; a lone escort is a squadron of one). Used for an escort's kill in `damage_vp` (so
+  gunnery, bombers) and `escort_hits_vp` (raids, crits, the Impaler); escorts get no
+  individual "crippled" term. Capital ships keep their own value. Not changed: disengage
+  values for escorts (`disengage_gain`, its Remastered special case aside).
 - Slave-taking (owner check): a raid's +5 VP, an Impaler's D6 x 5 VP (a braced target saves
   on 4+, a single attack) and boarding's +5 a hit / +100 Bridge Smashed are built
   (`dark_eldar.take_slaves`, `impaler_slaves`, `boarding_slave_vp`); a human is asked with

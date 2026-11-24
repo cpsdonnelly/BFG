@@ -578,6 +578,12 @@ def finish_chance(target: Ship, gs, hits_left: int) -> float:
     phase and escort state (judgement: one turn's fire, undiscounted)."""
     if hits_left <= 0:
         return 1.0
+    return poisson_at_least(_fire_on(target, gs), hits_left)
+
+
+def _fire_on(target: Ship, gs) -> float:
+    """Expected hits (past shields, hull saves counted) the target's enemies
+    can put on it in their next shooting phase; cached by both sides' state."""
     from .geometry import current_shields
     cache = gs.__dict__.setdefault("_finish_cache", {})
     foes = [e for e in gs.get_ships() if e.player != target.player and not e.is_destroyed
@@ -598,21 +604,68 @@ def finish_chance(target: Ship, gs, hits_left: int) -> float:
                     lam += mount_hits(e, w, target)
         lam = past_shields(lam, current_shields(target, gs.get_blast_markers()))
         cache[key] = lam
-    return poisson_at_least(lam, hits_left)
+    return lam
+
+
+def _squadron_score(gs, n: int, destroyed: int, pts: float) -> float:
+    """What an escort squadron of `n` ships with `destroyed` of them gone
+    scores (s.38, `victory_points._score_squadron`): all gone its points,
+    at least half gone (rounding up) a quarter, else nothing; the Remastered
+    option scores only the whole squadron destroyed."""
+    if destroyed >= n:
+        return pts
+    if getattr(gs, "rule_remastered_escort_vp", False):
+        return 0.0
+    return pts / 4.0 if destroyed >= (n + 1) // 2 else 0.0
+
+
+def escort_kill_vp(target: Ship, gs) -> float:
+    """VP of destroying this escort now (owner: escorts are scored by
+    squadron, s.38): the change in the squadron's expected score, i.e. the
+    threshold the loss crosses now plus how much likelier the squadron becomes
+    to be crippled or wiped out by its enemies' next turn of fire (shared
+    between the escorts left, `_fire_on`; judgement: one turn, undiscounted).
+    A lone escort is a squadron of one."""
+    sq = [s for s in gs.get_ships() if s.player == target.player and s.squadron_id
+          and s.squadron_id == target.squadron_id] if target.squadron_id else []
+    if not any(s.id == target.id for s in sq):
+        sq = [target]
+    n = len(sq)
+    pts = sum(ship_value(s, gs) for s in sq)
+    gone = sum(1 for s in sq if s.is_destroyed or s.hits_remaining <= 0)
+    alive = [s for s in sq if not s.is_destroyed and not s.is_disengaged
+             and s.hits_remaining > 0]
+    others = [s for s in alive if s.id != target.id]
+
+    def expected(dead: int, ships) -> float:
+        # the squadron's expected score when each of `ships` may still die
+        # next turn, the fire shared between them (a Poisson-binomial count)
+        k = max(1, len(ships))
+        dist = [1.0]
+        for s in ships:
+            q = poisson_at_least(_fire_on(s, gs) / k, max(1, s.hits_remaining))
+            new = [0.0] * (len(dist) + 1)
+            for i, p in enumerate(dist):
+                new[i] += p * (1 - q)
+                new[i + 1] += p * q
+            dist = new
+        return sum(p * _squadron_score(gs, n, dead + i, pts) for i, p in enumerate(dist))
+
+    return max(0.0, expected(gone + 1, others) - expected(gone, alive))
 
 
 def escort_hits_vp(target: Ship, gs, k: int) -> float:
     """VP of `k` hull hits on an escort (owner): the hits that destroy it are
-    worth the escort; hits that leave it alive score nothing themselves (an
-    escort isn't crippled, its squadron is scored as a unit), so they are worth
-    only what they add to the chance it is finished off later
-    (`finish_chance`): value x (P(finished from its new hits) - P(from now))."""
+    worth the kill to its squadron's score (`escort_kill_vp`); hits that leave
+    it alive score nothing themselves, so they are worth only what they add to
+    the chance it is finished off later (`finish_chance`): the kill's value x
+    (P(finished from its new hits) - P(from now))."""
     rem = max(1, target.hits_remaining)
-    v = ship_value(target, gs)
+    v = escort_kill_vp(target, gs)           # scored by squadron (owner)
     if k <= 0:
         return 0.0
     if k >= rem:
-        return max(v, value_per_hit(target, gs) * rem)
+        return v
     return v * max(0.0, finish_chance(target, gs, rem - k) - finish_chance(target, gs, rem))
 
 
@@ -628,6 +681,8 @@ def damage_vp(target: Ship, gs, mean_hits: float) -> float:
     p_kill = poisson_at_least(mean_hits, rem)
     to_cripple = rem - target.hits_max // 2
     p_crip = 0.0 if target.is_crippled or to_cripple <= 0 else poisson_at_least(mean_hits, to_cripple)
+    if target.ship_type == "escort":
+        p_crip = 0.0              # escorts aren't crippled one by one (squadron VP, s.38)
     from .scenarios import kill_bonus_vp
     from .scenarios import cripple_bonus_vp
     crip_bonus = cripple_bonus_vp(gs, target)
@@ -646,8 +701,9 @@ def damage_vp(target: Ship, gs, mean_hits: float) -> float:
             partial += pk * escort_hits_vp(target, gs, k)
     else:
         partial = min(mean_hits, rem) * value_per_hit(target, gs) * 0.2
-    base = crip_bonus + (p_kill * (v + kill_bonus_vp(gs, target)) + max(0.0, p_crip - p_kill) * v * 0.25
-            + partial)
+    v_kill = escort_kill_vp(target, gs) if target.ship_type == "escort" else v
+    base = crip_bonus + (p_kill * (v_kill + kill_bonus_vp(gs, target))
+                         + max(0.0, p_crip - p_kill) * v * 0.25 + partial)
     from .scenarios import admiral_crit_vp, admiral_bonus_vp
     per_crit = admiral_crit_vp(gs, target)
     if per_crit and target.ship_type != "escort":

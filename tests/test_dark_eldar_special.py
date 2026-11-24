@@ -260,4 +260,28 @@ def test_escort_partial_hits_worth_the_finishing_chance():
     j = gs.get_ship_by_id("j")
     part = escort_hits_vp(j, gs, 1)
     assert 0 < part < 60
-    assert abs(part - 60 * (finish_chance(j, gs, 1) - finish_chance(j, gs, 2))) < 1e-9
+    from src.ai_hazards import escort_kill_vp
+    kill = escort_kill_vp(j, gs)          # less than 60: the guns might kill it anyway
+    assert 0 < kill < 60
+    assert abs(part - kill * (finish_chance(j, gs, 1) - finish_chance(j, gs, 2))) < 1e-9
+
+
+def test_escort_kills_scored_by_squadron():
+    """Owner: escorts are scored by squadron (s.38): nothing until half are
+    gone, a quarter then, all of it when the last goes."""
+    from src.ai_hazards import escort_kill_vp
+    ships = [make_ship(id=f"c{i}", player=1, x=float(i * 5), y=0.0, ship_type="escort",
+                       hits_max=1, points_value=30, squadron_id="cobras") for i in range(4)]
+    gs = make_gs(ships)
+    first = escort_kill_vp(gs.get_ship_by_id("c0"), gs)
+    assert first == 0.0                          # 1 of 4 gone: no VP yet, no guns near
+    for i in (0,):
+        d = gs.get_ship_by_id(f"c{i}")
+        d.hits_remaining, d.status = 0, "destroyed"
+        gs.update_ship(d)
+    assert escort_kill_vp(gs.get_ship_by_id("c1"), gs) == 30.0      # 2 of 4: a quarter of 120
+    for i in (1, 2):
+        d = gs.get_ship_by_id(f"c{i}")
+        d.hits_remaining, d.status = 0, "destroyed"
+        gs.update_ship(d)
+    assert escort_kill_vp(gs.get_ship_by_id("c3"), gs) == 90.0      # the last: 120 - 30
