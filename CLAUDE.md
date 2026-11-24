@@ -601,6 +601,14 @@ ordnance sweep 5250 cases pass):
   multi-turn planning, and its hit values ignore shadowfield saves); torpedo salvos are not
   combined by the AI; the contact bonus is a flat 0.5 a mate, not priced by what combining
   gains; the AI doesn't form squadrons (To do 28; owner: same-ordnance escorts together).
+- Slave-taking (owner check): a raid's +5 VP, an Impaler's D6 x 5 VP (a braced target saves
+  on 4+, a single attack) and boarding's +5 a hit / +100 Bridge Smashed are built
+  (`dark_eldar.take_slaves`, `impaler_slaves`, `boarding_slave_vp`); a human is asked with
+  "Auto" (`GameState.slave_hook`), the AI and "Auto" take slaves when they are worth more than
+  the attack in expected VP (`wants_slaves`: a raid against `raid_squadron_value`, an Impaler
+  against `waves.impaler_value`, both now priced as above). The AI's boarding value now adds
+  the slave VP for the hits each side inflicts (`ai_hazards.boarding_vp`). Not yet: an Incubi
+  crew's 2D6-best raid in the raid's value when weighing slaves.
 - Impaler choice (owner question): after its D6 connects, two hit-and-run raids (a D6 each)
   or one critical hit (2D6 on the target's table, a Fire with Haemonculi, 1 damage on a ship
   off the table) by expected VP (`dark_eldar.impaler_effect_values` / `choose_impaler_effect`;
@@ -3314,7 +3322,18 @@ rather than touch a third ship).
 
 ### Open questions for the owner
 
-None open.
+1. **Raid modifiers that cancel out (owner: pinned, unsure the rules support it).** The engine
+   adds every raid modifier together, so a Dark Eldar raid (+1 Pain Frenzy) on a Space Marine
+   ship (enemy raids -1) is a plain roll (`hit_and_run._raid_roll_modifier`). Do an attacker's
+   bonus and a defender's penalty cancel like that?
+2. **Impaler slave-taking and its D6.** When an Impaler takes slaves (D6 x 5 VP "instead of
+   resolving any hit-and-run raids or critical hits"), is its D6 still rolled first, so a 1
+   (fails to connect) earns nothing and a roll at or above the Armour still does the bladed
+   prow's 1 damage? Built reading: slave-taking replaces the whole attack, no D6, no prow
+   damage (`dark_eldar.impaler_slaves`).
+3. **The Impaler's two raids and the +5 slave option.** When an Impaler chooses its two
+   hit-and-run raids, may each raid still be swapped for +5 VP (the general Dark Eldar raid
+   rule)? Built reading: yes, each raid is offered it (`resolve_raids` -> `take_slaves`).
 
 ### Owner ruling: torpedo bomber salvos placed on a ship (s.21; implemented, tested)
 

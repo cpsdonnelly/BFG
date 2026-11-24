@@ -201,3 +201,14 @@ def test_impaler_crit_on_an_escort_is_one_damage():
     out = resolve_impaler(m, gs.get_ship_by_id("e"), False, dice, gs)
     assert dice._idx == 1 and out["choice"] == "crit" and out["damage"] == 1
     assert gs.get_ship_by_id("e").hits_remaining == 1
+
+
+def test_boarding_value_counts_slave_vp():
+    """The AI's boarding value adds the +5 VP a hit Dark Eldar score for the
+    hits they inflict in a boarding action."""
+    from src.ai_hazards import boarding_vp
+    t = make_ship(id="t", player=1, x=0.0, y=0.0, hits_max=8)
+    gs = make_gs([t])
+    plain = make_ship(id="p", player=2, x=0.0, y=2.0, hits_max=8)
+    de = make_ship(id="d", player=2, x=0.0, y=2.0, hits_max=8, special_rules=["dark_eldar"])
+    assert boarding_vp(de, gs.get_ship_by_id("t"), gs) > boarding_vp(plain, gs.get_ship_by_id("t"), gs)

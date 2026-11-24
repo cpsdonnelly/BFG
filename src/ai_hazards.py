@@ -2386,8 +2386,9 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
     uses (troop ratings, crew bonuses, crippled / special orders / blast
     markers); the loser takes the difference in damage (hull_hits_vp: full
     value a hit, thresholds), each side's crit chance by the result table at a
-    hit's value each (judgement), a draw (grapple) counts nothing. Knights of
-    Titan and Mechanicus re-rolls aren't counted."""
+    hit's value each (judgement), a draw (grapple) counts nothing, Dark Eldar
+    slave VP for the hits each side inflicts. Knights of Titan and Mechanicus
+    re-rolls aren't counted."""
     from .boarding import (troop_rating, _troop_advantage_bonus, _crew_damage_bonus,
                            _get_ship_modifier)
     a_rating = troop_rating(attacker, attacker.is_grappled)
@@ -2397,6 +2398,12 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
     d_bonus = _get_ship_modifier(attacker, gs) + _troop_advantage_bonus(d_rating, a_rating) \
         + _crew_damage_bonus(target)
     vph_a, vph_t = value_per_hit(attacker, gs), value_per_hit(target, gs)
+    # Dark Eldar slave-taking (Xenos p.4): +5 VP to the Dark Eldar player for
+    # each hit its side inflicts in a boarding action (the +100 for Bridge
+    # Smashed can't come from a boarding crit's D6 on the standard table)
+    from .dark_eldar import is_dark_eldar
+    slaves_a = 5.0 if is_dark_eldar(attacker) else 0.0
+    slaves_t = 5.0 if is_dark_eldar(target) else 0.0
 
     def p_at_least(t):
         return 1.0 if t is None or t <= 1 else max(0.0, (7 - t) / 6.0)
@@ -2413,9 +2420,11 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
             if diff > 0:
                 total += hull_hits_vp(target, gs, 0.0, diff) + p_lose_crit * vph_t
                 total -= p_win_crit * vph_a
+                total += slaves_a * min(diff, max(0, target.hits_remaining))
             else:
                 total -= hull_hits_vp(attacker, gs, 0.0, -diff) + p_lose_crit * vph_a
                 total += p_win_crit * vph_t
+                total -= slaves_t * min(-diff, max(0, attacker.hits_remaining))
     return total / 36.0
 
 
