@@ -1311,11 +1311,7 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
     else:
         points = [(marker.x, marker.y)]
 
-    cleared = {r.split(":", 1)[1] for r in (marker.special_rules or [])
-               if r.startswith("launched_in:")}
     for p in phenomena:
-        if getattr(p, "id", None) in cleared:
-            continue                   # tested when it was launched inside it
         if "planet" in p.phenomenon_type and p.radius > 0:
             in_contact = any(math.hypot(x - p.x, y - p.y) <= p.radius + marker_r
                              for x, y in points)
@@ -2051,47 +2047,31 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
 
 
 def launch_in_asteroids(gs: GameState, marker_ids, dice: Optional[DiceRoller] = None) -> List[str]:
-    """Ordnance launched inside an asteroid field meets it at once (owner
-    ruling): a torpedo salvo placed in contact with a field detonates; each
-    attack craft squadron (each point of launch strength, waves included: the
-    owner's per-squadron reading for launches; s.25's one roll a wave stays
-    for waves moving through later) is destroyed on a D6 roll of 6. Survivors
-    don't roll again for that field on their first move out of it
-    (`launched_in:<field id>`, dropped after that move). Returns the ids
+    """Torpedoes launched inside an asteroid field: a salvo placed in contact
+    with a field detonates at once (s.39: torpedoes that strike one detonate),
+    before it can reach anything. Attack craft launched there aren't rolled
+    for here: they test as they move out of the field on their first move
+    (`check_ordnance_vs_phenomena(start=)`), a wave once for the whole wave
+    and a lone squadron for itself, as for blast markers (s.25, s.39; owner
+    confirmed). `dice` is unused (kept for the callers). Returns the ids
     removed."""
     fields = [p for p in gs.get_phenomena() if p.phenomenon_type == "asteroid_field"]
     ids = set(marker_ids)
     if not fields or not ids:
         return []
-    if dice is None:
-        dice = DiceRoller(mode="auto")         # the game's seeded, recorded dice
     gone = []
     for o in gs.ordnance:
         if o["id"] not in ids:
             continue
         m = OrdnanceMarker.from_dict(o)
-        is_torp = m.ordnance_type in _TORP_LIKE and m.ordnance_type != OrdnanceType.MINE_FIELD.value
-        is_craft = m.ordnance_type in CRAFT_STATS
-        if not (is_torp or is_craft):
+        if m.ordnance_type not in _TORP_LIKE or m.ordnance_type == OrdnanceType.MINE_FIELD.value:
             continue
-        r = TORP_BODY_HALF_W_CM if is_torp else ATTACK_CRAFT_HALF_SIDE_CM
-        inside = [p for p in fields if abs(m.x - p.x) <= p.width / 2 + r
-                  and abs(m.y - p.y) <= p.height / 2 + r]
-        if not inside:
-            continue
-        if is_torp:
+        r = TORP_BODY_HALF_W_CM
+        if any(abs(m.x - p.x) <= p.width / 2 + r and abs(m.y - p.y) <= p.height / 2 + r
+               for p in fields):
             gone.append(m.id)
             gs.report(f"{m.ordnance_type.replace('_', ' ')} launched inside an asteroid field "
                       f"detonates")
-            continue
-        roll = dice.roll_d6(1, f"{m.ordnance_type} launched in an asteroid field (6 = destroyed)")[0]
-        if roll == 6:
-            gone.append(m.id)
-            gs.report(f"{m.ordnance_type.replace('_', ' ')} squadron launched inside an asteroid "
-                      f"field is destroyed (rolled 6)")
-        else:
-            o["special_rules"] = list(o.get("special_rules") or []) + [
-                f"launched_in:{p.id}" for p in inside]
     if gone:
         gs.ordnance = [o for o in gs.ordnance if o["id"] not in set(gone)]
     return gone
