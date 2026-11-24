@@ -398,13 +398,13 @@ def raid_result_value(effective: int, target: Ship, gs: GameState, owner: int,
     extra damage (Engine Room +1 hit) plus its effect: an armament critical by
     the weapons it silences (armament_threat_value), Bridge Smashed and
     Shields Collapse a share of the ship's value."""
-    from .ai_hazards import ship_value, value_per_hit
     if raid_has_no_effect(effective, target):
         return 0.0
-    vph = max(1.0, value_per_hit(target, gs))       # points unknown: still worth something
     if not uses_crit_table(target):
-        # the hit that destroys it is worth the ship (not its value per hit on top)
-        return max(vph, ship_value(target, gs)) if target.hits_remaining <= 1 else vph
+        # 1 damage: the ship if it destroys it, else what it adds to finishing
+        # it off later (ai_hazards.escort_hits_vp, owner)
+        from .ai_hazards import escort_hits_vp
+        return max(1.0, escort_hits_vp(target, gs, 1))
     ct = raid_crit_preview(effective, target)
     if ct is None:
         return 0.0
@@ -443,10 +443,9 @@ def crit_roll_value(roll_2d6: int, target: Ship, gs: GameState, owner: int,
     """Expected VP of a critical hit rolled as `roll_2d6` (2-12) on the
     target's own table, after the cascade. A ship off the crit table (small
     escorts and defences) takes 1 damage instead."""
-    from .ai_hazards import ship_value, value_per_hit
     if not uses_crit_table(target):
-        vph = max(1.0, value_per_hit(target, gs))
-        return max(vph, ship_value(target, gs)) if target.hits_remaining <= 1 else vph
+        from .ai_hazards import escort_hits_vp
+        return max(1.0, escort_hits_vp(target, gs, 1))
     from .combat import _resolve_crit_cascade
     data = _resolve_crit_cascade(max(2, min(12, roll_2d6)), target, _SilentLog())
     if data is None:

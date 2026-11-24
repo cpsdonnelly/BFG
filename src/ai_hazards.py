@@ -570,6 +570,52 @@ def plasma_ordnance_vp(centre, gs, player: int) -> float:
     return total
 
 
+def finish_chance(target: Ship, gs, hits_left: int) -> float:
+    """Chance the escort's enemies destroy it later with `hits_left` hits to go:
+    the expected hits their guns can put on it in their next shooting phase
+    (every battery / lance mount that can bear, `_mount_bears` / `mount_hits`,
+    hull saves included), past its shields, as a Poisson count. Cached per
+    phase and escort state (judgement: one turn's fire, undiscounted)."""
+    if hits_left <= 0:
+        return 1.0
+    from .geometry import current_shields
+    cache = gs.__dict__.setdefault("_finish_cache", {})
+    foes = [e for e in gs.get_ships() if e.player != target.player and not e.is_destroyed
+            and not e.is_disengaged and e.status == "active"]
+    key = (target.id, target.hits_remaining, round(target.x, 1), round(target.y, 1),
+           len(gs.blast_markers),
+           target.special_order,
+           tuple((e.id, round(e.x, 1), round(e.y, 1), round(e.heading), e.hits_remaining,
+                  e.special_order) for e in foes))
+    lam = cache.get(key)
+    if lam is None:
+        if len(cache) > 4096:
+            cache.clear()
+        lam = 0.0
+        for e in foes:
+            for w in e.weapons:
+                if w.get("weapon_type") in ("battery", "lance") and _mount_bears(e, w, target):
+                    lam += mount_hits(e, w, target)
+        lam = past_shields(lam, current_shields(target, gs.get_blast_markers()))
+        cache[key] = lam
+    return poisson_at_least(lam, hits_left)
+
+
+def escort_hits_vp(target: Ship, gs, k: int) -> float:
+    """VP of `k` hull hits on an escort (owner): the hits that destroy it are
+    worth the escort; hits that leave it alive score nothing themselves (an
+    escort isn't crippled, its squadron is scored as a unit), so they are worth
+    only what they add to the chance it is finished off later
+    (`finish_chance`): value x (P(finished from its new hits) - P(from now))."""
+    rem = max(1, target.hits_remaining)
+    v = ship_value(target, gs)
+    if k <= 0:
+        return 0.0
+    if k >= rem:
+        return max(v, value_per_hit(target, gs) * rem)
+    return v * max(0.0, finish_chance(target, gs, rem - k) - finish_chance(target, gs, rem))
+
+
 def damage_vp(target: Ship, gs, mean_hits: float) -> float:
     """Expected VP from `mean_hits` hull hits on a target (s.38): its value if
     destroyed, a quarter if crippled, plus a little for each hit (later
@@ -590,8 +636,18 @@ def damage_vp(target: Ship, gs, mean_hits: float) -> float:
         crip_bonus *= max(p_c, p_kill)
     else:
         crip_bonus = 0.0
+    if target.ship_type == "escort" and rem > 1 and mean_hits > 0:
+        # an escort's hits short of the kill: what they add to finishing it
+        # off later (escort_hits_vp), not a flat share per hit (owner)
+        pk = math.exp(-mean_hits)
+        partial = 0.0
+        for k in range(1, rem):
+            pk *= mean_hits / k
+            partial += pk * escort_hits_vp(target, gs, k)
+    else:
+        partial = min(mean_hits, rem) * value_per_hit(target, gs) * 0.2
     base = crip_bonus + (p_kill * (v + kill_bonus_vp(gs, target)) + max(0.0, p_crip - p_kill) * v * 0.25
-            + min(mean_hits, rem) * value_per_hit(target, gs) * 0.2)
+            + partial)
     from .scenarios import admiral_crit_vp, admiral_bonus_vp
     per_crit = admiral_crit_vp(gs, target)
     if per_crit and target.ship_type != "escort":
@@ -1125,6 +1181,10 @@ def hull_hits_vp(target: Ship, gs, committed: float, hits: float) -> float:
     rem = max(1, target.hits_remaining)
     hull = max(0.0, min(committed + hits, rem) - min(committed, rem))
     vph = max(1.0, value_per_hit(target, gs))
+    if target.ship_type == "escort":
+        # an escort: the kill and the finishing chance are already in
+        # damage_vp (escort_hits_vp); no flat share a hit on top (owner)
+        return added_vp(target, gs, committed, hits, shields=False)
     return added_vp(target, gs, committed, hits, shields=False) + 0.8 * vph * hull
 
 

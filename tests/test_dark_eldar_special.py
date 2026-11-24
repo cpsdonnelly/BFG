@@ -212,3 +212,27 @@ def test_boarding_value_counts_slave_vp():
     plain = make_ship(id="p", player=2, x=0.0, y=2.0, hits_max=8)
     de = make_ship(id="d", player=2, x=0.0, y=2.0, hits_max=8, special_rules=["dark_eldar"])
     assert boarding_vp(de, gs.get_ship_by_id("t"), gs) > boarding_vp(plain, gs.get_ship_by_id("t"), gs)
+
+
+def test_escort_partial_hits_worth_the_finishing_chance():
+    """Owner: a hit that leaves an escort alive is worth only what it adds to
+    the chance it is finished off later. Against a 2-hit escort at a plain 4+
+    (no Pain Frenzy) two raids then beat the certain single hit."""
+    from src.dark_eldar import impaler_effect_values
+    from src.ai_hazards import escort_hits_vp, finish_chance
+    jackal = make_ship(id="j", player=1, x=0.0, y=0.0, ship_type="escort", hits_max=2,
+                       points_value=60)
+    gs = make_gs([jackal])
+    j = gs.get_ship_by_id("j")
+    assert finish_chance(j, gs, 1) == 0.0 and escort_hits_vp(j, gs, 1) == 0.0
+    assert escort_hits_vp(j, gs, 2) == 60
+    v = impaler_effect_values(["impaler"], j, gs, 2)
+    assert v["raids"] > 10 > v["crit"]             # 25% kill now vs a hit that leads nowhere
+    # our guns in reach next turn: the hit is worth the extra chance of a kill
+    gun = {"name": "Port", "weapon_type": "battery", "strength": 6, "range_cm": 30,
+           "arcs": ["left", "front", "right"]}
+    gs.add_ship(make_ship(id="g", player=2, x=0.0, y=20.0, heading=270.0, weapons=[gun]))
+    j = gs.get_ship_by_id("j")
+    part = escort_hits_vp(j, gs, 1)
+    assert 0 < part < 60
+    assert abs(part - 60 * (finish_chance(j, gs, 1) - finish_chance(j, gs, 2))) < 1e-9

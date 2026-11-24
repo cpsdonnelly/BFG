@@ -601,6 +601,17 @@ ordnance sweep 5250 cases pass):
   multi-turn planning, and its hit values ignore shadowfield saves); torpedo salvos are not
   combined by the AI; the contact bonus is a flat 0.5 a mate, not priced by what combining
   gains; the AI doesn't form squadrons (To do 28; owner: same-ordnance escorts together).
+- Escort damage short of a kill (owner): an escort's hits that leave it alive score nothing
+  themselves (escorts aren't crippled; the squadron is scored as a unit), so the AI values
+  them by what they add to the chance it is finished off later:
+  `ai_hazards.escort_hits_vp(target, gs, k)` = value x (P(finished from its new hits) - P(from
+  now)), the killing hit the whole escort; `finish_chance` from the fire its enemies can bring
+  next shooting phase (`_mount_bears` / `mount_hits`, hull saves, past shields; Poisson;
+  undiscounted, judgement; cached by both sides' state). Used by gunnery (`damage_vp`'s
+  per-hit term for escorts), bombers (`hull_hits_vp`: no flat share a hit on escorts), raids
+  and crits on ships off the crit table (`raid_result_value`, `crit_roll_value`) and the
+  Impaler's two raids. So against a 2-hit escort at a plain 4+ two raids (25% kill now) beat
+  the certain single hit unless our guns are sure to finish it.
 - Slave-taking (owner check): a raid's +5 VP, an Impaler's D6 x 5 VP (a braced target saves
   on 4+, a single attack) and boarding's +5 a hit / +100 Bridge Smashed are built
   (`dark_eldar.take_slaves`, `impaler_slaves`, `boarding_slave_vp`); a human is asked with

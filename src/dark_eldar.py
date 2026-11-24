@@ -224,17 +224,13 @@ def impaler_effect_values(rules, target, gs, owner: int, end_phases: int = None)
     if not uses_crit_table(target):
         # a ship off the crit table takes 1 damage a successful raid: the two
         # raids together, as it can only be destroyed once
-        from .ai_hazards import ship_value, value_per_hit
+        from .ai_hazards import escort_hits_vp
         p = sum(1 for v in raid if v > 0) / 6.0
         if frenzy:
             p = 1 - (1 - p) ** 2
         rem = max(1, target.hits_remaining)
-        vph = max(1.0, value_per_hit(target, gs))
-
-        def worth(k):
-            k = min(k, rem)                       # it can only lose what it has left
-            return max(vph * k, ship_value(target, gs)) if k >= rem else vph * k
-        raids = sum(q * worth(k) for k, q in ((1, 2 * p * (1 - p)), (2, p * p)))
+        raids = sum(q * escort_hits_vp(target, gs, min(k, rem))
+                    for k, q in ((1, 2 * p * (1 - p)), (2, p * p)))
     if "haemonculi" in rules and uses_crit_table(target):
         crit = crit_type_value("fire", target, gs, owner, end_phases)
     else:
