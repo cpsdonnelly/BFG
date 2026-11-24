@@ -250,16 +250,9 @@ class CombatPanel(CombatDialogMixin):
                            target_braced=brace, crit_on=crit_on,
                            attacker_key=attacker.id, origin=(attacker.x, attacker.y),
                            bypass_hits=bypass_hits, gunnery=gunnery)
-        log_fn(f"     Shields: {dmg['shield_hits']}, "
-               f"Hull: {dmg['hull_hits']}, "
-               f"Saves: {dmg['brace_saves']}")
-        if dmg.get("crits"):
-            for crit in dmg["crits"]:
-                log_fn(f"     CRITICAL: {crit}")
-        if dmg["crippled"]:
-            log_fn(f"     {target.name} is CRIPPLED!")
+        # the damage, crits, crippling and destruction are reported by the
+        # engine (GameState.report), shown with the next log line
         if dmg["destroyed"]:
-            log_fn(f"     {target.name} DESTROYED!")
             self.ctx.check_destruction(target)
         return dmg["unused_hits"], dmg["destroyed"]
 

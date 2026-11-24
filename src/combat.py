@@ -1061,6 +1061,25 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller, game_state: GameStat
     return result
 
 
+def _report_damage(gs, target: Ship, hits: int, summary: dict):
+    """The on-screen line for one attack's hits on a ship (owner: the log
+    must say when a ship is hit), written before its crits / crippling."""
+    if hits <= 0 or target.status in ("drifting_hulk", "burning_hulk"):
+        return
+    parts = []
+    if summary.get("shield_hits"):
+        parts.append(f"{summary['shield_hits']} on shields")
+    saved = summary.get("brace_saves", 0)
+    if saved:
+        parts.append(f"{saved} saved")
+    hull = summary.get("hull_hits", 0) - summary.get("unused_hits", 0)
+    parts.append(f"{hull} damage" if hull else "no damage")
+    left = max(0, target.hits_remaining)
+    gs.report(f"{target.name} takes {hits} hit{'' if hits == 1 else 's'}: " + ", ".join(parts)
+              + (" - reduced to 0" if summary.get("destroyed")
+                 else f" ({left}/{target.hits_max} hits left)"))
+
+
 def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  game_state: GameState,
                  ignores_shields: bool = False,
@@ -1189,7 +1208,7 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
     if target.status in ("drifting_hulk", "burning_hulk"):
         if summary["hull_hits"] > 0:
             target.hits_remaining = 0
-            game_state.add_log(f"{target.name} (hulk) takes {summary['hull_hits']} "
+            game_state.report(f"{target.name} (hulk) takes {summary['hull_hits']} "
                                f"damage: rolls on the Catastrophic Damage table again")
             summary["catastrophic"] = resolve_catastrophic(target, dice, game_state)
             summary["destroyed"] = target.status == "destroyed"
@@ -1218,7 +1237,7 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
             if is_crit and not uses_crit_table(target):
                 # Small escorts/defenses take +1 damage instead of a critical
                 target.hits_remaining -= 1
-                game_state.add_log(f"Critical on {target.name}: +1 damage")
+                game_state.report(f"  Critical on {target.name}: +1 damage")
                 if target.hits_remaining <= 0:
                     summary["destroyed"] = True
                     break
@@ -1237,7 +1256,9 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
         if not was_crippled and target.is_crippled and not summary["destroyed"]:
             summary["crippled"] = True
-            game_state.add_log(f"{target.name} is now CRIPPLED")
+            game_state.report(f"  {target.name} is now CRIPPLED")
+
+    _report_damage(game_state, target, hits, summary)
 
     # Place blast markers for SHIELD hits only (not hull damage), s.11
     if summary["blast_markers_placed"] > 0:
@@ -1311,10 +1332,10 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
     })
     if summary is not None:
         summary.setdefault("crits", []).append(crit_data["name"])
-    game_state.add_log(f"CRITICAL HIT on {target.name}: {crit_data['name']}")
+    game_state.report(f"  CRITICAL HIT on {target.name}: {crit_data['name']}")
     if isinstance(extra, int) and extra > 0:
         target.hits_remaining = max(0, target.hits_remaining - extra)
-        game_state.add_log(f"  Extra damage: {extra} HP")
+        game_state.report(f"    Extra damage: {extra} HP")
         if target.hits_remaining <= 0:
             return True
     if apply_crit_effects(target, crit_data, game_state):
@@ -2032,7 +2053,7 @@ def replace_with_blast_marker(ship: Ship, game_state: GameState) -> None:
     ship.status = "destroyed"
     ship.hits_remaining = 0
     game_state.update_ship(ship)
-    game_state.add_log(f"{ship.name} destroyed - replaced with blast marker")
+    game_state.report(f"  {ship.name} DESTROYED (replaced with a blast marker)")
     marker_id = f"wreck_{ship.id}"
     if not any(bm["id"] == marker_id for bm in game_state.blast_markers):
         game_state.add_blast_marker(BlastMarker(
@@ -2052,19 +2073,19 @@ def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) ->
     else:
         roll = dice.roll_2d6(f"Catastrophic Damage for {ship.name}")
     result = lookup_catastrophic(roll)
-    game_state.add_log(f"Catastrophic Damage on {ship.name}: {result} (rolled {roll})")
+    game_state.report(f"Catastrophic Damage on {ship.name}: {result} (rolled {roll})")
 
     if result == "drifting_hulk":
         ship.status = "drifting_hulk"
         ship.hits_remaining = 0
         game_state.update_ship(ship)
-        game_state.add_log(f"  {ship.name} is now a DRIFTING HULK")
+        game_state.report(f"  {ship.name} is now a DRIFTING HULK")
 
     elif result == "burning_hulk":
         ship.status = "burning_hulk"
         ship.hits_remaining = 0
         game_state.update_ship(ship)
-        game_state.add_log(f"  {ship.name} is now a BURNING HULK")
+        game_state.report(f"  {ship.name} is now a BURNING HULK")
 
     elif result in ("plasma_drive_overload", "warp_drive_implosion"):
         ship.status = "destroyed"

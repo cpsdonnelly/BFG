@@ -317,7 +317,7 @@ def apply_hits(gs, dice, target_id: str, hits: int, crit_on: int = 6, attacker_i
     dmg = apply_damage(t, hits, dice, gs, target_braced=braced, crit_on=crit_on,
                        attacker_key=attacker_id, origin=tuple(origin) if origin else None,
                        bypass_hits=bypass_hits, gunnery=gunnery)
-    if log:
+    if log and log != gs.report:        # the engine reports these on screen itself
         for c in dmg.get("crits") or []:
             log(f"{tag}  CRIT: {c}")
         if dmg.get("crippled"):
@@ -348,7 +348,7 @@ def fire_weapons(gs, dice, ship_id: str, target_id: str, w_idxs, lock_on: bool,
     Returns the ShotResult."""
     from .combat import (weapon_fire_pool, shot_weapon, squadron_group, fire_at_squadron,
                          resolve_battery_group, resolve_lances, spend_kustom_kannon)
-    log = log or gs.add_log
+    log = log or gs.report
     ship, target = gs.get_ship_by_id(ship_id), gs.get_ship_by_id(target_id)
     weapons = [ship.weapons[i] for i in w_idxs]
     shots = []
@@ -394,7 +394,7 @@ def fire_siege_cannons(gs, dice, ship_id: str, target_id: str, macro, bc, lock_o
     """Siege Cannons: macrobatteries and bombardment cannons in one lookup
     (resolve_siege_cannons), each kind's hits applied with its own crits."""
     from .combat import weapon_fire_pool, shot_weapon, resolve_siege_cannons
-    log = log or gs.add_log
+    log = log or gs.report
     ship, target = gs.get_ship_by_id(ship_id), gs.get_ship_by_id(target_id)
     shots = {}
     for i in list(macro) + list(bc):
@@ -423,7 +423,7 @@ def fire_squadron_volley(gs, dice, lead_id: str, firers, target_id: str, aspects
     applied nearest first. Returns {ship id: hits applied}."""
     from .combat import (plan_squadron_volley, resolve_squadron_volley, squadron_group,
                          best_aspect_choice)
-    log = log or gs.add_log
+    log = log or gs.report
     target = gs.get_ship_by_id(target_id)
     bms, phen, all_ships = _markers(gs, marker_ids), gs.get_phenomena(), gs.get_ships()
     group = squadron_group(target, all_ships)
@@ -451,7 +451,7 @@ def fire_nova_cannon(gs, dice, ship_id: str, x: float, y: float, log=None, tag: 
     """The Nova Cannon aimed at (x, y) (s.14): the scatter, then each ship
     under the template takes its hits from where the template landed."""
     from .combat import resolve_nova_cannon
-    log = log or gs.add_log
+    log = log or gs.report
     ship = gs.get_ship_by_id(ship_id)
     nc = resolve_nova_cannon(ship, x, y, dice, gs)
     if "error" in nc:

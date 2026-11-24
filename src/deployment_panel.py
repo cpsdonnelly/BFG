@@ -34,6 +34,15 @@ _PLACED_COLOR = "#44FF44"
 _SQUAD_COLORS = ["#FFAA00", "#FF44FF", "#44FFFF", "#FF8844"]
 
 
+def _group_info(group) -> str:
+    """One line per kind of ship in the group (not one per escort)."""
+    lines = {}
+    for sh in group:
+        key = f"{sh.ship_class}: {sh.ship_type}, Spd {sh.speed}, Ld {sh.leadership}"
+        lines[key] = lines.get(key, 0) + 1
+    return "\n".join(f"{n} × {k}" if n > 1 else k for k, n in lines.items())
+
+
 class DeploymentPanel:
     """
     Manages the deployment phase UI.
@@ -76,6 +85,7 @@ class DeploymentPanel:
         self._pending_positions: List[Tuple[float, float]] = []
         self._pending_headings: List[float] = []
         self._heading_entry_val: Optional[tk.StringVar] = None
+        self._list_player = None        # whose groups the list shows
 
         # Bind board click for placement
         self._orig_click = board_view.canvas.bind("<Button-1>")
@@ -88,10 +98,24 @@ class DeploymentPanel:
         self._build_ui()
         self._draw_zones()
         self._refresh()
+        from .dice import spectating_auto
+        if spectating_auto(gs):              # spectator: the fleets deploy themselves
+            self.root.after(300, lambda: self._auto_place_remaining(ask=False))
 
     # ── UI construction ───────────────────────────────────────────────────────
 
     def _build_ui(self):
+        # The deployment panel takes the whole side panel while it is open
+        # (owner: the ship list was squeezed into a small box below the
+        # game's buttons and log); _finish puts them back in their order
+        self._hidden = []
+        info = getattr(self.board, "info_text", None)      # the empty ship info box
+        if info is not None and info.winfo_manager() == "pack":
+            self._hidden.append((info, info.pack_info()))
+            info.pack_forget()
+        for w in self.parent.pack_slaves():
+            self._hidden.append((w, w.pack_info()))
+            w.pack_forget()
         self.frame = tk.Frame(self.parent, bg="#1a1a2e")
         self.frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
@@ -112,7 +136,9 @@ class DeploymentPanel:
         tk.Frame(self.frame, bg="#333355", height=2).pack(fill=tk.X, pady=4)
 
         # Group list
-        tk.Label(self.frame, text="Ships to deploy:",
+        tk.Label(self.frame, text="Ships to deploy (click one to place it next; "
+                 "double-click a placed one to take it back):",
+                 wraplength=250, justify=tk.LEFT,
                  bg="#1a1a2e", fg="#AAAAAA",
                  font=("Consolas", 8)).pack(anchor=tk.W, padx=4)
 
@@ -122,18 +148,19 @@ class DeploymentPanel:
         self.group_listbox = tk.Listbox(
             list_frame, bg="#0a0a1a", fg="#CCCCCC",
             selectbackground="#334466", font=("Consolas", 9),
-            height=8, exportselection=False)
+            height=6, exportselection=False)
         self.group_listbox.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
         scrollbar = tk.Scrollbar(list_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.group_listbox.config(yscrollcommand=scrollbar.set)
         scrollbar.config(command=self.group_listbox.yview)
         self.group_listbox.bind("<<ListboxSelect>>", self._on_group_select)
+        self.group_listbox.bind("<Double-Button-1>", lambda _e: self._take_back_selected())
 
         # Heading control
         heading_frame = tk.Frame(self.frame, bg="#1a1a2e")
         heading_frame.pack(fill=tk.X, padx=4, pady=4)
-        tk.Label(heading_frame, text="Heading (°):",
+        tk.Label(heading_frame, text="Heading:",
                  bg="#1a1a2e", fg="#AAAAAA",
                  font=("Consolas", 9)).pack(side=tk.LEFT)
         # "auto": face the enemy's zone (or the scenario's required facing)
@@ -147,33 +174,34 @@ class DeploymentPanel:
                       bg="#334455", fg="white", font=("Consolas", 8)).pack(side=tk.LEFT, padx=1)
         tk.Button(heading_frame, text="Auto", command=lambda: self._heading_entry_val.set("auto"),
                   bg="#334455", fg="white", font=("Consolas", 8)).pack(side=tk.LEFT, padx=1)
-        tk.Label(self.frame, text="Heading: auto = face the enemy; 0 = right, 90 = down,\n"
-                 "180 = left, 270 = up. Right-click a placed ship to turn it 45°\n"
-                 "(Shift+right-click the other way). Undo Last Group takes the\n"
-                 "last placed group back to place it again.",
-                 bg="#1a1a2e", fg="#888888", font=("Consolas", 7),
+        tk.Label(self.frame, text="Heading: auto = face the enemy; 0 = right, 90 = down, "
+                 "180 = left, 270 = up. Right-click a placed ship to turn it 45° "
+                 "(Shift+right-click the other way). Ctrl+Z takes back the last "
+                 "ship or group placed.",
+                 bg="#1a1a2e", fg="#888888", font=("Consolas", 7), wraplength=255,
                  justify=tk.LEFT).pack(anchor=tk.W, padx=4)
 
-        # Buttons
+        # Buttons, two rows so every one fits the side panel's width
         btn_frame = tk.Frame(self.frame, bg="#1a1a2e")
         btn_frame.pack(fill=tk.X, padx=4, pady=4)
-
+        btn_frame.columnconfigure(0, weight=1)
+        btn_frame.columnconfigure(1, weight=1)
         self.undo_btn = tk.Button(
-            btn_frame, text="Undo Last",
-            command=self._undo_last,
-            bg="#553333", fg="white",
-            font=("Consolas", 9), width=12)
-        self.undo_btn.pack(side=tk.LEFT, padx=2)
-        tk.Button(btn_frame, text="Undo Last Group", command=self._undo_group,
-                  bg="#553333", fg="white", font=("Consolas", 9),
-                  width=14).pack(side=tk.LEFT, padx=2)
-
+            btn_frame, text="Undo (Ctrl+Z)", command=self._undo_any,
+            bg="#553333", fg="white", font=("Consolas", 9))
+        self.undo_btn.grid(row=0, column=0, sticky="ew", padx=2, pady=1)
+        tk.Button(btn_frame, text="Take back selected", command=self._take_back_selected,
+                  bg="#553333", fg="white", font=("Consolas", 9)
+                  ).grid(row=0, column=1, sticky="ew", padx=2, pady=1)
+        tk.Button(btn_frame, text="Start over", command=self._start_over,
+                  bg="#553333", fg="white", font=("Consolas", 9)
+                  ).grid(row=1, column=0, sticky="ew", padx=2, pady=1)
         self.skip_btn = tk.Button(
             btn_frame, text="Auto-Place All",
             command=self._auto_place_remaining,
-            bg="#334455", fg="white",
-            font=("Consolas", 9), width=12)
-        self.skip_btn.pack(side=tk.LEFT, padx=2)
+            bg="#334455", fg="white", font=("Consolas", 9))
+        self.skip_btn.grid(row=1, column=1, sticky="ew", padx=2, pady=1)
+        self.root.bind("<Control-z>", lambda _e: self._undo_any())
 
         tk.Frame(self.frame, bg="#333355", height=2).pack(fill=tk.X, pady=4)
 
@@ -182,6 +210,18 @@ class DeploymentPanel:
             bg="#1a1a2e", fg="#AAAAAA",
             font=("Consolas", 8), wraplength=220, justify=tk.LEFT)
         self.info_label.pack(padx=4, anchor=tk.W)
+
+        # Everything below the list keeps its room and the list takes what is
+        # left: repack those widgets from the bottom up, same order on screen
+        slaves = self.frame.pack_slaves()
+        below = slaves[slaves.index(list_frame) + 1:]
+        infos = [w.pack_info() for w in below]
+        for w in below:
+            w.pack_forget()
+        for w, info in reversed(list(zip(below, infos))):
+            info.pop("in", None)
+            info["side"] = tk.BOTTOM
+            w.pack(**info)
 
     # ── Board overlay ─────────────────────────────────────────────────────────
 
@@ -252,7 +292,10 @@ class DeploymentPanel:
         else:
             placed = len(self._pending_positions)
             total = len(group)
-            names = ", ".join(s.name for s in group)
+            classes = {}
+            for sh in group:
+                classes[sh.ship_class] = classes.get(sh.ship_class, 0) + 1
+            names = ", ".join(f"{c} ×{n}" if n > 1 else c for c, n in classes.items())
             self.status_label.config(
                 text=f"Squadron: {names}\n"
                      f"Place ship {placed + 1} of {total}.\n"
@@ -260,6 +303,7 @@ class DeploymentPanel:
                      f"({remaining} group(s) remaining)")
 
         # Rebuild listbox
+        self._list_player = p
         self.group_listbox.delete(0, tk.END)
         for idx, grp in enumerate(self.state.groups[p]):
             if idx < self.state.next_idx[p]:
@@ -282,11 +326,7 @@ class DeploymentPanel:
 
         # Info for selected group
         if group:
-            info_lines = []
-            for s in group:
-                info_lines.append(
-                    f"{s.name}: {s.ship_type}, Spd {s.speed}, Ld {s.leadership}")
-            self.info_label.config(text="\n".join(info_lines))
+            self.info_label.config(text=_group_info(group))
 
         self.board.redraw()
         self._draw_zones()
@@ -323,9 +363,7 @@ class DeploymentPanel:
         if group is None:
             self.board.status_var.set("Nothing placed to take back")
             return
-        for ship in group:              # off the table again until re-placed
-            ship.x, ship.y = -1000.0, -1000.0
-            self.gs.update_ship(ship)
+        self._off_table(group)
         self.board.redraw()
         self._draw_zones()
         self._refresh()
@@ -407,29 +445,74 @@ class DeploymentPanel:
             self._draw_pending()
             self._refresh()
 
+    def _undo_any(self):
+        """Ctrl+Z: the last ship of a squadron being placed, else the last
+        group placed."""
+        if self._pending_positions:
+            self._undo_last()
+        else:
+            self._undo_group()
+
+    def _off_table(self, group):
+        for ship in group:              # off the table again until re-placed
+            ship.x, ship.y = -1000.0, -1000.0
+            self.gs.update_ship(ship)
+
+    def _take_back_selected(self):
+        """Take back the placed group selected in the list (any of them)."""
+        sel = self.group_listbox.curselection()
+        p = self.state.active_player
+        idx = sel[0] if sel else -1
+        if self._list_player is not None:
+            p = self._list_player
+        group = self.state.unplace_group(p, idx) if idx >= 0 else None
+        if group is None:
+            self.board.status_var.set("Select a placed ship (✓) in the list to take it back")
+            return
+        self._pending_positions.clear()
+        self._pending_headings.clear()
+        self._off_table(group)
+        self._refresh()
+
+    def _start_over(self):
+        """Take back every ship placed by players at this screen."""
+        if not messagebox.askyesno("Start over", "Take back every ship placed so far?",
+                                   parent=self.root):
+            return
+        self._pending_positions.clear()
+        self._pending_headings.clear()
+        while True:
+            group = self.state.undo_group()
+            if group is None:
+                break
+            self._off_table(group)
+        self._refresh()
+
     # ── Group list selection ──────────────────────────────────────────────────
 
     def _on_group_select(self, _event):
-        """Allow clicking a future group to pre-select it (display info only)."""
+        """Clicking a ship / squadron not yet placed makes it the one to place
+        next (any order, owner); a placed one is selected to take back."""
         sel = self.group_listbox.curselection()
         if not sel:
             return
         p = self.state.active_player
         idx = sel[0]
+        if idx > self.state.next_idx[p] and self.state.select_group(idx):
+            self._pending_positions.clear()
+            self._pending_headings.clear()
+            self._refresh()
+            return
         groups = self.state.groups[p]
         if 0 <= idx < len(groups):
             grp = groups[idx]
-            info_lines = []
-            for s in grp:
-                info_lines.append(
-                    f"{s.name}: {s.ship_type}, Spd {s.speed}, Ld {s.leadership}")
-            self.info_label.config(text="\n".join(info_lines))
+            self.info_label.config(text=_group_info(grp))
 
     # ── Auto-placement ────────────────────────────────────────────────────────
 
-    def _auto_place_remaining(self):
+    def _auto_place_remaining(self, ask: bool = True):
         """Auto-place all remaining ships for the current (and next) player."""
-        answer = messagebox.askyesno(
+        answer = (not ask) or messagebox.askyesno(
             "Auto-Place",
             "Auto-place all remaining ships at default positions within their "
             "deployment zone?\n\nThis will arrange them in a grid pattern.",
@@ -464,6 +547,13 @@ class DeploymentPanel:
         self.board.canvas.bind("<Button-1>", self._orig_click)
         self.board.canvas.bind("<Button-3>", self._orig_rclick or "")
         self.board.canvas.unbind("<Shift-Button-3>")
+        self.root.unbind("<Control-z>")
         self.frame.destroy()
+        for w, info in self._hidden:        # the game's side panel back, in order
+            info.pop("in", None)
+            if w is getattr(self.board, "info_text", None):
+                w.pack(before=self.parent, **info)
+            else:
+                w.pack(**info)
         self.board.redraw()
         self.on_complete()

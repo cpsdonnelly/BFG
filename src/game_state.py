@@ -43,6 +43,7 @@ class GameState:
     ai_player: Optional[int] = None    # player number controlled by AI (None = hotseat)
     ai_difficulty: str = "normal"      # "easy" | "normal" | "hard" | "expert"
     ai_spectator: bool = False         # True = both players AI (spectator mode)
+    spectator_auto: bool = True        # spectator: roll every die and answer every pop-up
     # Spectator mode: Player 1's AI difficulty when it differs from
     # ai_difficulty (Player 2's), for testing one AI against another
     ai_difficulty_p1: Optional[str] = None
@@ -220,6 +221,21 @@ class GameState:
 
     def add_log(self, msg: str):
         self.log.append(f"[T{self.turn_number} {self.current_phase}] {msg}")
+
+    def report(self, msg: str):
+        """A line the players should see (a ship hit, crippled, destroyed or
+        disengaging, owner request): kept in the game log and queued for the
+        on-screen log, which shows it the next time it writes
+        (GameContext.log). Safe off the Tk thread: nothing is drawn here."""
+        self.add_log(msg)
+        pending = self.__dict__.setdefault("_screen_pending", [])
+        pending.append(msg)
+
+    def take_screen_lines(self):
+        """The reported lines not yet shown, oldest first (and forget them)."""
+        pending = self.__dict__.get("_screen_pending") or []
+        self.__dict__["_screen_pending"] = []
+        return pending
 
     def player_ships(self, player: int) -> List[Ship]:
         return [Ship.from_dict(s) for s in self.ships if s["player"] == player]

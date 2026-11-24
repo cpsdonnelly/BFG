@@ -29,7 +29,8 @@ def _apply_rules(gs, setup):
                  "rule_turret_suppression_remastered", "rule_subplots", "allow_movement_pass",
                  "turn_limit", "ftl_available_turn", "scenario_mode",
                  "scenario_attacker", "attacker_by_rating", "artefact_submode",
-                 "ai_player", "ai_difficulty", "ai_spectator", "ai_difficulty_p1"):
+                 "ai_player", "ai_difficulty", "ai_spectator", "ai_difficulty_p1",
+                 "spectator_auto"):
         if key in setup:
             setattr(gs, key, setup[key])
     # Place artefact token at board centre for race mode
@@ -208,7 +209,8 @@ def main():
 
     # Create turn controller and dice
     gs.game_seed = seed
-    dice = DiceRoller(mode=gs.dice_mode, root=root)
+    from .dice import mode_for
+    dice = DiceRoller(mode=mode_for(gs), root=root)
     from .chapter_tactics import apply_fleet_tactics
     for line in apply_fleet_tactics(gs):          # Space Marine Chapter tactics
         gs.add_log(line)
@@ -540,9 +542,15 @@ def _show_setup_dialog(root) -> Optional[dict]:
     for b in diff1_buttons:
         b.pack(side=tk.LEFT, padx=4)
 
+    spectator_auto_var = tk.BooleanVar(value=True)
+    spectator_auto_cb = tk.Checkbutton(
+        ai_frame, text="Spectator: auto-roll every dice pop-up and answer every prompt",
+        variable=spectator_auto_var, font=("Consolas", 8))
+    spectator_auto_cb.pack(anchor=tk.W, padx=10)
+
     def _ai_mode_changed(*_a):
         state = tk.NORMAL if ai_mode_var.get() == "spectator" else tk.DISABLED
-        for b in diff1_buttons:
+        for b in diff1_buttons + [spectator_auto_cb]:
             b.config(state=state)
     ai_mode_var.trace_add("write", _ai_mode_changed)
     _ai_mode_changed()
@@ -574,6 +582,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
         rules["ai_player"] = 2 if ai_mode_var.get() != "none" else None
         rules["ai_difficulty"] = ai_diff_var.get()
         rules["ai_difficulty_p1"] = ai_diff1_var.get() if spectator else None
+        rules["spectator_auto"] = spectator_auto_var.get()
         return rules
 
     def _get_fleets():

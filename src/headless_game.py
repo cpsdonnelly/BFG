@@ -83,6 +83,7 @@ class HeadlessContext(GameContext):
         self.lines = []
 
     def log(self, text: str):
+        self.lines.extend(self.gs.take_screen_lines())
         self.lines.append(text)
 
 

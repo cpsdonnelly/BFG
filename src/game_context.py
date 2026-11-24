@@ -49,8 +49,12 @@ class GameContext:
     # ── Logging ──────────────────────────────────────────────────────────────
 
     def log(self, text: str):
-        """Append one line to the game log widget."""
+        """Append one line to the game log widget, after any lines the engine
+        reported since (GameState.report: hits, damage, disengaging)."""
+        lines = self.gs.take_screen_lines() if hasattr(self.gs, "take_screen_lines") else []
         self._log_widget.config(state=tk.NORMAL)
+        for line in lines:
+            self._log_widget.insert(tk.END, line + "\n")
         self._log_widget.insert(tk.END, text + "\n")
         self._log_widget.see(tk.END)
         self._log_widget.config(state=tk.DISABLED)

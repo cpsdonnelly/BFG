@@ -270,6 +270,34 @@ class DeploymentState:
             return group
         return None
 
+    def select_group(self, idx: int) -> bool:
+        """Place the active player's groups in any order (owner): the chosen
+        unplaced group becomes the one to place next (swapped into the slot
+        `current_group` reads). False if it is placed already or out of range."""
+        p = self.active_player
+        nxt = self.next_idx[p]
+        if not nxt <= idx < len(self.groups[p]):
+            return False
+        g = self.groups[p]
+        g[nxt], g[idx] = g[idx], g[nxt]
+        return True
+
+    def unplace_group(self, player: int, idx: int) -> Optional[List[Ship]]:
+        """Take back any group already placed (not only the last one): it
+        goes back to the list to place again, and that player places next.
+        Returns the group, or None."""
+        last = self.next_idx[player] - 1
+        if not 0 <= idx <= last:
+            return None
+        g = self.groups[player]
+        g[idx], g[last] = g[last], g[idx]
+        group = g[last]
+        ids = {s.id for s in group}
+        self.placed_ships = [s for s in self.placed_ships if s.id not in ids]
+        self.next_idx[player] = last
+        self.active_player = player
+        return group
+
     def rotate_placed(self, ship_id: str, degrees: float) -> Optional[Ship]:
         """Turn a ship already placed (and the rest of its squadron) by
         degrees, if the scenario's checks still pass. Returns the ship."""

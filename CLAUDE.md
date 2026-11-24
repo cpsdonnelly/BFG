@@ -566,6 +566,16 @@ ordnance sweep 5250 cases pass):
   combined waves of the same ordnance; legal Come to New Heading for ships with no turning
   distance; the move picker no longer falls back off the table; flickerfields / Eldar
   stealth / plasma re-rolls in every AI ordnance value; Insatiable Greed in disengaging.
+- Owner UI reports (latest), fixed: the map editor (empty strip above the board, Done
+  button off a 768px screen, the X left the program waiting; windows now fit the screen);
+  spectator mode's "auto-roll every pop-up" (`GameState.spectator_auto`, setup and
+  Settings checkbox, on by default: dice by `dice.mode_for`, prompts take "Auto" and
+  notices go to the log, `TkPrompter(root, gs)`, the fleets auto-deploy); deployment in
+  any order (`DeploymentState.select_group`), taking back any placed group
+  (`unplace_group`), Ctrl+Z, Start over, the panel taking the whole side panel; the
+  on-screen log shows hits, damage, crippling, crits, destruction, hulks and disengaging
+  (`GameState.report` queues a line, `GameContext.log` shows the queue first; AI shots
+  through the shooting actions' default log; `combat._report_damage`).
 - Problems found, still open: the AI plays Dark Eldar badly (it backs fragile ships off the
   enemy guns until they leave the table; loses ~650-950 VP to the Gothic fleet; needs
   multi-turn planning, and its hit values ignore shadowfield saves); torpedo salvos are not

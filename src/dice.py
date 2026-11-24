@@ -115,6 +115,19 @@ class RecordedRandom:
         return v
 
 
+def mode_for(gs) -> str:
+    """The dice mode a game's roller uses: its setting, or "auto" when the AI
+    plays both sides and the spectator chose to auto-roll every pop-up."""
+    if getattr(gs, "ai_spectator", False) and getattr(gs, "spectator_auto", True):
+        return "auto"
+    return getattr(gs, "dice_mode", "auto")
+
+
+def spectating_auto(gs) -> bool:
+    """Spectator mode with every pop-up answered automatically."""
+    return bool(getattr(gs, "ai_spectator", False) and getattr(gs, "spectator_auto", True))
+
+
 class DiceRoller:
     """Handles all dice rolling with configurable input mode. Every roller
     draws from the game's DiceSource (current_source), so all of a game's

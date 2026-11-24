@@ -80,14 +80,23 @@ class Prompter:
 class TkPrompter(Prompter):
     """The desktop dialogs."""
 
-    def __init__(self, root):
+    def __init__(self, root, gs=None):
         self.root = root
+        self.gs = gs              # spectator auto mode: no dialogs (dice.spectating_auto)
+
+    def _auto(self) -> bool:
+        from .dice import spectating_auto
+        return self.gs is not None and spectating_auto(self.gs)
 
     def _choose(self, title, text, options, best):
+        if self._auto():
+            return best
         from . import choice_dialog
         return choice_dialog.choose(self.root, title, text, options, best)
 
     def _yes_no(self, title, text, best):
+        if self._auto():
+            return bool(best) if best is not None else False
         if best is not None:
             from . import choice_dialog
             return choice_dialog.yes_no(self.root, title, text, best)
@@ -95,6 +104,8 @@ class TkPrompter(Prompter):
         return messagebox.askyesno(title, text)
 
     def _number(self, title, text, default, lo, hi, integer):
+        if self._auto():
+            return default
         from tkinter import simpledialog
         ask = simpledialog.askinteger if integer else simpledialog.askfloat
         kw = {"minvalue": lo, "maxvalue": hi, "parent": self.root}
@@ -103,10 +114,14 @@ class TkPrompter(Prompter):
         return ask(title, text, **kw)
 
     def _pick_ship(self, title, ships, best):
+        if self._auto():
+            return best
         from .game_context import pick_ship_dialog
         return pick_ship_dialog(self.root, ships, title)
 
     def _pick_many(self, title, text, options, most, best):
+        if self._auto():
+            return best
         import tkinter as tk
         from tkinter import messagebox
         dialog = tk.Toplevel(self.root)
@@ -147,6 +162,9 @@ class TkPrompter(Prompter):
         return result[0] if result[0] is not None else []
 
     def _notify(self, title, text, level):
+        if self._auto():
+            self.gs.add_log(f"{title}: {text}")
+            return
         from tkinter import messagebox
         {"warning": messagebox.showwarning, "error": messagebox.showerror}.get(
             level, messagebox.showinfo)(title, text)

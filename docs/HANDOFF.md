@@ -2,6 +2,13 @@
 
 ## Status at a glance (latest; the dated sections below are history)
 
+Latest owner UI reports (fixed; details in CLAUDE.md "Session status"): the map editor's
+blank strip and off-screen Done button; spectator "auto-roll every pop-up" (on by default;
+the fleets also deploy themselves); deployment in any order with undo / take back / start
+over and a full-height panel; the on-screen log reports every hit, damage, crit, crippling,
+destruction, hulk and disengage (`GameState.report`). Not yet: the AI deploying its own
+ships in player-vs-AI games (To do 28).
+
 Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Every core rules section the engine plays, all optional rules (boarding, ramming, teleports,
   hit-and-run, s.40 celestial effects, Remastered blast markers / suppression / escort VP).

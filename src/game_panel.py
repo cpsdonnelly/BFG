@@ -35,7 +35,7 @@ class GamePanel(GameFlow):
                                board=board_view, root=root,
                                log_widget=self.log_text)
         from .prompts import TkPrompter
-        self.ctx.prompt = TkPrompter(root)         # the desktop dialogs
+        self.ctx.prompt = TkPrompter(root, gs)     # the desktop dialogs
         self._init_flow(self.ctx, root)            # panels, engine hooks (GameFlow)
 
         # Build the rest of the UI and wire drag callbacks
@@ -299,6 +299,11 @@ class GamePanel(GameFlow):
                  text="Mixed: each roll shows a popup — enter dice manually or click Auto-Roll.\n"
                       "      Both per-die entry and number-of-successes shortcut are always available.",
                  font=("Consolas", 7), fg="#888888", justify=tk.LEFT).pack(anchor=tk.W)
+        spectator_auto_var = tk.BooleanVar(value=gs.spectator_auto)
+        tk.Checkbutton(dice_frame,
+                       text="Spectator mode: auto-roll every dice pop-up and answer every prompt",
+                       variable=spectator_auto_var, font=("Consolas", 8),
+                       state=tk.NORMAL if gs.ai_spectator else tk.DISABLED).pack(anchor=tk.W)
 
         move_frame = tk.LabelFrame(dialog, text="Movement", font=("Consolas", 9, "bold"),
                                    padx=8, pady=4)
@@ -494,7 +499,9 @@ class GamePanel(GameFlow):
 
         def on_apply():
             gs.dice_mode = dice_var.get()
-            self.ctx.dice.mode = dice_var.get()
+            gs.spectator_auto = spectator_auto_var.get()
+            from .dice import mode_for
+            self.ctx.dice.mode = mode_for(gs)
             gs.allow_movement_pass = pass_var.get()
             for attr, var in rule_vars.items():
                 setattr(gs, attr, var.get())
@@ -585,7 +592,8 @@ class GamePanel(GameFlow):
                 set_suppression_rules(self.ctx.gs.rule_turret_suppression_remastered)
                 from .optional_rules import set_sunward
                 set_sunward(self.ctx.gs.rule_fighting_sunward, self.ctx.gs.sunward_edge)
-                self.ctx.dice.mode = self.ctx.gs.dice_mode
+                from .dice import mode_for
+                self.ctx.dice.mode = mode_for(self.ctx.gs)
                 self.ctx.tc.reset_after_load()
             except Exception as exc:
                 from tkinter import messagebox as _mb
