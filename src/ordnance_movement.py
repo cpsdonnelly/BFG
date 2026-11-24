@@ -901,6 +901,10 @@ class OrdnanceMovementMixin:
                 destroyed, terrain_type = check_ordnance_vs_phenomena(
                     marker, phenomena, self.ctx.dice,
                     start=self._ord_path_start.get(marker.id))
+                if any(r.startswith("launched_in:") for r in marker.special_rules or []):
+                    # launched inside a field: tested at launch, this move only
+                    marker.special_rules = [r for r in marker.special_rules
+                                            if not r.startswith("launched_in:")]
                 if destroyed:
                     to_remove.add(marker.id)
                     self.ctx.log(

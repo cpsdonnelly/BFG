@@ -79,3 +79,25 @@ def test_bombers_leaving_the_field_roll_the_six():
     assert check_ordnance_vs_phenomena(m, gs.get_phenomena(), dice,
                                        start=(60.0, 75.0)) == (True, "asteroid_field")
     assert dice._idx == 1
+
+
+def test_launching_inside_a_field():
+    """Owner ruling: torpedoes launched in an asteroid field detonate; each
+    attack craft squadron launched there rolls a D6 (6 = destroyed), once."""
+    from src.ordnance import launch_in_asteroids
+    gs = _game(_carrier())
+    torp = make_marker(id="t", ordnance_type="torpedo_standard", x=62.0, y=75.0)
+    craft = [make_marker(id=f"b{i}", ordnance_type="bomber", x=60.0, y=75.0) for i in range(3)]
+    outside = make_marker(id="o", ordnance_type="bomber", x=10.0, y=10.0)
+    for m in [torp, outside] + craft:
+        gs.add_ordnance(m)
+    dice = DiceStub([6, 3, 5])                     # one roll per squadron in the field
+    gone = launch_in_asteroids(gs, ["t", "o", "b0", "b1", "b2"], dice)
+    assert dice._idx == 3 and set(gone) == {"t", "b0"}
+    b1 = next(o for o in gs.ordnance if o["id"] == "b1")
+    assert "launched_in:ast" in b1["special_rules"]
+    from src.models import OrdnanceMarker
+    m = OrdnanceMarker.from_dict(b1)
+    m.x, m.y = 60.0, 95.0                          # its first move out of the field
+    assert check_ordnance_vs_phenomena(m, gs.get_phenomena(), DiceStub([]),
+                                       start=(60.0, 75.0)) == (False, "")

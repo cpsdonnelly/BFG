@@ -865,6 +865,10 @@ def launch_salvo(gs, dice, ship_id: str, w_idx: int, heading: float, kind: str =
     from .ordnance import launch_torpedoes
     ship = gs.get_ship_by_id(ship_id)
     m = launch_torpedoes(ship, ship.weapons[w_idx], gs, heading=heading, dice=dice, kind=kind)
+    if m is not None:
+        from .ordnance import launch_in_asteroids
+        if launch_in_asteroids(gs, [m.id], dice):
+            return None                        # detonated inside an asteroid field
     if m is not None and target_id:
         o = _marker_dict(gs, m.id)
         if o is not None:
@@ -920,7 +924,9 @@ def launch_craft(gs, ship_id: str, bay_idx: int, craft_type: str, count: int,
             if o["id"] in ids and guard:
                 o["cap_ship_id"] = cap_ship_id
                 o["x"], o["y"] = guard.x, guard.y
-    return launched
+    from .ordnance import launch_in_asteroids
+    gone = set(launch_in_asteroids(gs, [m.id for m in launched]))
+    return [m for m in launched if m.id not in gone]
 
 
 @recorder.logged("act_form_wave", lambda r, A: (A["gs"], dict(
@@ -1100,6 +1106,10 @@ def launch_bays(gs, dice, ship_id: str, bay_idxs, heading: float, composition, c
         if extra_counts.get("lone") or extra_counts.get("cap"):
             log(f"  {extra_counts.get('lone', 0)} lone fighter(s), "
                 f"{extra_counts.get('cap', 0)} on CAP for {protect_name} (not in the wave)")
+    from .ordnance import launch_in_asteroids
+    gone = set(launch_in_asteroids(gs, launched_ids, dice))  # launched inside an asteroid field
+    launched_ids = [i for i in launched_ids if i not in gone]
+    wave_ids = [i for i in wave_ids if i not in gone]
     if total_launched == 0:
         return {"title": "No Craft", "error": "Set at least one craft type to a non-zero count",
                 "warning": True}
@@ -1180,6 +1190,9 @@ def launch_torpedo_volley(gs, dice, ship_id: str, w_idx: int, heading: float, st
             log(f"{ship.name} launched {torpedo_kind_name(o_type)} Str {st} heading {hd:.0f}°")
         else:
             log(f"  Split salvo: second volley Str {st} heading {hd:.0f}°")
+    from .ordnance import launch_in_asteroids
+    gone = set(launch_in_asteroids(gs, made, dice))     # launched inside an asteroid field
+    made = [m for m in made if m not in gone]
     ship_fresh = gs.get_ship_by_id(ship.id)
     if ship_fresh:
         ship_fresh.mark_launched("torps")
@@ -1230,6 +1243,8 @@ def combined_torpedo_launch(gs, dice, ship_ids, heading: float, kind: str, at, e
         launched_turn=gs.turn_number, can_turn=is_guided, turn_angle=45 if is_guided else 0,
         launch_exempt_ships=list(exempt), special_rules=sorted(common_rules))
     gs.add_ordnance(marker)
+    from .ordnance import launch_in_asteroids
+    launch_in_asteroids(gs, [marker.id], dice)          # launched inside an asteroid field
     log(f"Combined {torpedo_kind_name(o_type)} launch: {names} — "
         f"Str {launch_strength} heading {heading:.0f}°")
     for s in contributors:
@@ -1289,6 +1304,9 @@ def combined_craft_launch(gs, dice, ship_ids, heading: float, composition, at, r
             gs.add_ordnance(marker)
             launched_ids.append(marker.id)
             total_launched += 1
+    from .ordnance import launch_in_asteroids
+    gone = set(launch_in_asteroids(gs, launched_ids, dice))  # launched inside an asteroid field
+    launched_ids = [i for i in launched_ids if i not in gone]
     if total_launched == 0:
         return {"error": "Set at least one craft type to a non-zero count."}
     if wave and len(launched_ids) > 1:

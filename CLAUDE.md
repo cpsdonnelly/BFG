@@ -282,6 +282,13 @@ UI-only, so the AI kept firing knocked-out weapons).
   (`los.check_los_ships`); every other line through a field is blocked. So a carrier can park
   inside a field in a gravity well, untouchable by direct fire from outside, launching bombers
   that each roll a 6 to leave; the AI doesn't seek this out (`tests/test_asteroid_high_orbit.py`).
+  Owner ruling (launching inside a field): ordnance launched in contact with an asteroid field
+  meets it at launch: a torpedo salvo detonates, and each attack craft squadron (each point of
+  launch strength, even when launched as a wave) is destroyed on a D6 roll of 6
+  (`ordnance.launch_in_asteroids`, from every launch path in `actions`: `launch_salvo`,
+  `launch_craft`, `launch_torpedo_volley`, `combined_torpedo_launch`, `launch_bays`,
+  `combined_craft_launch`); survivors don't roll again for that field on their first move out
+  (`launched_in:<field id>`). Waves moving through a field later still roll once (s.25).
 
 ### Brace for Impact (s.7)
 
