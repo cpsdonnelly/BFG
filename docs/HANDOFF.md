@@ -2,6 +2,10 @@
 
 ## Status at a glance (latest; the dated sections below are history)
 
+Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
+Impaler and slave-taking rulings, escort values by squadron, critical checks on every point
+of damage; open question 1 (raid modifiers cancelling) is pinned. Next: Eldar.
+
 Necrons (latest): the owner's Dynasty fleet is built and plays (`owner_necrons_1000.json`,
 `owner_necrons_war_1000.json`): Harvest / Dynasty lists, Shroud refits, Lord's vessel
 upgrades, Crypteks, the nightmare field, bloodswarm, the negative energy veil and nebuloscope

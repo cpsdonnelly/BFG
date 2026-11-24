@@ -575,8 +575,27 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Latest session (Dark Eldar and owner UI reports; all committed, 1691 tests pass, the
-ordnance sweep 5250 cases pass):
+Latest session (owner fleets, Tyranids, Kill the Admiral, owner UI and rules reports; all
+committed, 1793 tests pass, the ordnance sweep 5491 cases pass):
+- Done: Tyranids PLAYABLE (To do 19); Kill the Admiral AI (To do 7); booklet update 62
+  (result 9 kills the commander on alien tables, Eldar on XR's crit table); the owner's Tau
+  Protector, Ork and Necron fleets as files (To do 25; only Eldar left); owner UI reports (map
+  editor, spectator auto-roll, deployment in any order with undo, hits and disengages in the
+  on-screen log); rules / AI from the owner's questions: high orbit and asteroid fields
+  (parking, tests along the path, fire inside a field, torpedoes launched inside detonate,
+  craft roll moving out, a wave once), the Impaler (raids or crit by expected VP with a human
+  prompt, slaves only after it connects, prow damage with its crit check), slave VP in the
+  AI's boarding value, escort damage valued by the finishing chance and escort kills by the
+  squadron's score, every point of damage taking its critical check.
+- Raised this session, still open (see each section): open question 1 (raid modifiers that
+  cancel); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
+  not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
+  orbit's free turns; the AI never parks in a field in high orbit; escort disengage values
+  still per ship (not by squadron); an Incubi raid's 2D6-best not in the slave-taking
+  comparison; the AI doesn't deploy its own ships in player-vs-AI games (To do 28); Kill the
+  Admiral in the expert search's leaf.
+
+Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 cases):
 - Done: Dark Eldar PLAYABLE (To do 19 slices 1-3: catalog, Kabal Variants, Raiders list,
   shadowfields, flickerfields, crit table, movement, Spectral Plating, plasma / leech torps,
   Impalers incl. fuel and own launch pool, Pain Frenzy, Incubi, Wych Cult, slave-taking with
@@ -3112,7 +3131,11 @@ Done: To do 2, 3, 6; most of 7.
    nova cannon and range, 4 Novas; gifts rolled on the table and kept when good and
    affordable, never Fleet Defence Turrets); Tyranid Gestating, Vanguard and Hive fleets
    (bio-cruiser / drone configurations with their bought weapons, synapse escorts required).
-   Checked against the catalog (Claude): buildable now: Chaos, Gothic, Bakka, Tau Merchant,
+   Built as files (`tools/build_owner_fleets.py`, `data/fleets/owner_*.json`): every fleet
+   but the Eldar (Chaos, Gothic, Bakka, Tau Merchant, Tau Protector, Space Marines,
+   Mechanicus, Orks, Necrons both ways round the War coin, Dark Eldar, the three Tyranid
+   fleets). Left: Eldar commanders and the Corsair / Craftworld fleet lists.
+   Earlier notes: checked against the catalog (Claude): buildable now: Chaos, Gothic, Bakka, Tau Merchant,
    Space Marines, Mechanicus (to check the Mechanicus Tyrant's nova / range refits). Gaps:
    Emissary options (ion cannons for hooks, mine launchers, deflector); Ork kustom force
    field, the Onslaught's zzapp gun swap, looted vessels; Necron Dynasty refits / upgrades
