@@ -13,6 +13,9 @@ from src import fleet_builder as FB   # noqa: E402
 # (file, fleet name, faction picker text, list key, ships); a ship is
 # (catalog class, options, flagship, squadron id). The commander goes on the
 # dearest capital ship (owner's To do 29 placement waits).
+_SHROUD = ["Shroud refit: Khopesh Configuration", "Shroud refit: Cartouche Configuration"]
+_CAIRN = ("Cairn Class Tombship", ["Necron Lord: Nemesor", "Lord's vessel: Nightmare Field",
+                                   "Lord's vessel: Bloodswarm Nanoscarabs"], True, "")
 FLEETS = [
     ("owner_chaos_1000.json", "13th Black Crusade 1000", "Chaos", "chaos_black_crusade", [
         ("Styx Heavy Cruiser", ["Chaos Warmaster (Ld 9)", "Commander: 1 extra re-roll"], True, ""),
@@ -80,6 +83,15 @@ FLEETS = [
     ] + [("Basha Lite Kroozer", ["Kustom force field"], False, "")] * 3
       + [("Onslaught Attack Ship", ["Zzapp gun (gunz to FP2)"], False, ""),
          ("reserve:Dominator Cruiser", [], False, "")]),
+    # The owner flips a coin for whether both Shrouds take the War configuration:
+    # both outcomes are saved (it is free either way)
+    ("owner_necrons_1000.json", "Necron Dynasty 1000", "Necron", "necron_dynasty",
+     [_CAIRN] + [("Shroud Class Light Cruiser", list(_SHROUD), False, "")] * 2
+     + [("Dirge Class Raider", [], False, "dirges")] * 2),
+    ("owner_necrons_war_1000.json", "Necron Dynasty 1000 (War)", "Necron", "necron_dynasty",
+     [_CAIRN] + [("Shroud Class Light Cruiser", _SHROUD + ["Shroud refit: War Configuration"],
+                  False, "")] * 2
+     + [("Dirge Class Raider", [], False, "dirges")] * 2),
     ("owner_tyranid_gestating_990.json", "Tyranid Gestating 990", "Tyranid", "tyranid_gestating",
      [("Scylla Strain Bio-Cruiser w/ Synapse Node",
        ["Prow: Pyro-acid Battery", "Thorax: Pyro-acid Battery",
@@ -110,8 +122,7 @@ FLEETS = [
 # Owner's lists (all 1000pt or under). Mechanicus Gifts: the owner rolls them on the table
 # and keeps a good, affordable result (never Fleet Defence Turrets): random, left to the
 # player / the AI list builder (To do 24).
-GAPS = ["Necrons (Dynasty upgrades: Cartouche, Khopesh, War, nightmare field, Bloodswarm)",
-        "Eldar (commanders and fleet lists)"]
+GAPS = ["Eldar (commanders and fleet lists)"]
 
 
 def build(root, spec, out_dir):

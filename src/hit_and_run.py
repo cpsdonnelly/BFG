@@ -167,6 +167,7 @@ _RAID_ATTACK_BONUS = {
     "mega_armoured_boarders": 1,   # Ork Mega Armoured Boarding Parties
     "dark_eldar": 1,         # Dark Eldar Pain Frenzy (Xenos p.4), their ordnance too
     "tyranid": 1,            # Tyranids and their ordnance (Xenos p.105)
+    "bloodswarm": 1,         # Necron Bloodswarm Nanoscarabs: +1 to its portal attacks
 }
 _RAID_DEFENSE_PENALTY = {
     "space_marine_crew": 1,  # raids against a Space Marine ship: -1 to the roll

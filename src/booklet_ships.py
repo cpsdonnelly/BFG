@@ -544,6 +544,12 @@ def convert_row(row: dict) -> dict:
         from .necrons import parse_reactive_hull
         rh = parse_reactive_hull(row.get("shields_raw"))
         special_rules += ["necron"] + ([f"reactive_hull:{rh}"] if rh else [])
+        notes = (row.get("notes") or "").lower()
+        # Shroud / Reaper notes (Xenos p.43-45)
+        if "negative energy veil" in notes:
+            special_rules.append("negative_energy_veil")
+        if "nebuloscope pylons" in notes:
+            special_rules.append("nebuloscope_pylons")
     if row["faction"] == "Dark Eldar":
         # Dark Eldar (Xenos p.4-6): shadowfields instead of shields, their own
         # weapons rules (flags below), crit table, movement, ordnance flickerfields

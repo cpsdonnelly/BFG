@@ -762,9 +762,28 @@ def mount_hits(e: Ship, w: dict, t: Ship) -> float:
     from e's position; To do 8 a: a 6+ prow really is safer than a 5+ side);
     lances 0.5 a lance whatever the Armour (they hit on 4+)."""
     st = w.get("strength") or 0
+    f = hull_save_factor(t)
+    from .necrons import veil_hidden
+    if veil_hidden(t):
+        f *= p_sum_at_most(2, max(0, min(10, e.leadership or 0)))   # its target priority test
     if w.get("weapon_type") == "lance":
-        return st * lance_p(w)
-    return st * 0.35 * p_hit(t.armor_vs(e.x, e.y)) / p_hit(5)
+        return st * lance_p(w) * f
+    return st * 0.35 * p_hit(t.armor_vs(e.x, e.y)) / p_hit(5) * f
+
+
+def hull_save_factor(t: Ship) -> float:
+    """The share of hits that get past a hull save the ship always has: a
+    Necron reactive hull ("RH 4+": a save on 4+, 2+ when braced) or Tyranid
+    bonded exo-plating (4+). 1 for everyone else. (Brace's own 4+ is priced
+    separately, `ai_player.brace_value`.)"""
+    rules = t.special_rules or []
+    rh = next((int(r.split(":")[1]) for r in rules if r.startswith("reactive_hull:")), None)
+    if rh is not None:
+        need = 2 if t.special_order == "brace_for_impact" else rh
+        return (need - 1) / 6.0
+    if "bonded_exo_plating" in rules:
+        return 0.5
+    return 1.0
 
 
 def enemy_fire_plan(gs, player: int) -> dict:
@@ -904,24 +923,27 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
     turn limit the risk is the certainty equivalent of staying (owner: play
     for the win; certainty_equivalent)."""
     v = ship_value(ship, gs)
+    # VP terms by damage only: a Necron capital ship conserving power counts as
+    # crippled for everything but scoring (`Ship.damage_crippled`, update 59)
+    crippled = ship.damage_crippled
     lam = incoming_hits(ship, gs)
     left = max(1, ship.hits_remaining)
     p_kill = _poisson_at_least(lam, left)
     from .scenarios import kill_bonus_vp, warp_loss_chance
     bonus = kill_bonus_vp(gs, ship)
-    risk = p_kill * (v * (0.75 if ship.is_crippled else 1.0) + bonus)
-    if not ship.is_crippled:
+    risk = p_kill * (v * (0.75 if crippled else 1.0) + bonus)
+    if not crippled:
         to_cripple = left - ship.hits_max // 2
         if to_cripple > 0:
             risk += max(0.0, _poisson_at_least(lam, to_cripple) - p_kill) * 0.25 * v
-    extra = 0.0 if ship.is_crippled else 0.10 * v
+    extra = 0.0 if crippled else 0.10 * v
     from .dark_eldar import greed_binds
     if greed_binds(gs, ship):
         extra = v                          # Insatiable Greed: leaving counts destroyed
     # Warp Storm: a ship that leaves may be lost in the warp at the end (the
     # full value instead of the 10% / 25% it concedes)
     q_warp = warp_loss_chance(gs, ship)
-    extra += q_warp * v * (0.75 if ship.is_crippled else 0.90)
+    extra += q_warp * v * (0.75 if crippled else 0.90)
     # Kill the Admiral (owner): a flagship that leaves the table loses the
     # admiral, and the game, as surely as one destroyed
     from .scenarios import admiral_bonus_vp
@@ -955,9 +977,9 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
         # untouched), leaving a sure loss: compared by certainty equivalent,
         # so a fleet behind near the end fights on and one ahead leaves.
         p_crip = 0.0
-        if not ship.is_crippled and left - ship.hits_max // 2 > 0:
+        if not crippled and left - ship.hits_max // 2 > 0:
             p_crip = max(0.0, _poisson_at_least(lam, left - ship.hits_max // 2) - p_kill)
-        loss_kill = v * (0.75 if ship.is_crippled else 1.0) + bonus
+        loss_kill = v * (0.75 if crippled else 1.0) + bonus
         dmg = [(p_kill, -loss_kill), (p_crip, -0.25 * v), (1 - p_kill - p_crip, 0.0)]
         # The guns given up are a gamble too (To do 2): staying is both
         # gambles together; trying gives a sure -extra on a pass and the damage

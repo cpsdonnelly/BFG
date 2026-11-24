@@ -480,6 +480,14 @@ def fire_area_weapon(gs, dice, ship_id: str, what: str):
     return res
 
 
+@recorder.logged("act_nightmare", lambda r, A: (A["gs"], dict(ship=A["ship_id"],
+                                                             target=A["target_id"])))
+def fire_nightmare_field(gs, dice, ship_id: str, target_id: str):
+    """A Necron nightmare field at one enemy capital ship or escort squadron."""
+    from .combat import resolve_nightmare_field
+    return resolve_nightmare_field(gs.get_ship_by_id(ship_id), gs, dice, target_id)
+
+
 @recorder.logged("act_fire_ordnance", lambda r, A: (A["gs"], dict(
     ship=A["ship_id"], weapon=A["w_idx"], marker=A["marker_id"], avail=A["avail"])))
 def fire_at_marker(gs, dice, ship_id: str, w_idx: int, marker_id: str, avail: int):

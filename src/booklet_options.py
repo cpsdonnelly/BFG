@@ -536,6 +536,71 @@ def necron_commander_options(row: dict) -> List[Dict]:
     return opts
 
 
+# Necron weapons and upgrades bought in the fleet builder (Xenos p.40-51)
+NIGHTMARE_FIELD = {"name": "Nightmare Field", "weapon_type": "nightmare_field", "range_cm": 20,
+                   "strength": 1, "arcs": []}
+_WHIP_1 = {"name": "Particle Whip", "weapon_type": "lance", "range_cm": 45, "strength": 1,
+           "arcs": ["left", "front", "right"], "particle_whip": True}
+NECRON_LORDS = ["Necron Lord: Overlord", "Necron Lord: Nemesor"]
+
+
+def necron_options(row: dict) -> List[Dict]:
+    """Necron fleet-builder options: the commanders (Monuments in a Harvest
+    fleet, Necron Lords in a Dynasty fleet; each list allows only its own,
+    `list_options`), the Sepulchre's free nightmare field, the Lord's vessel
+    upgrades, Crypteks, and the Shroud's Dynasty special refits."""
+    name = row["name"]
+    capital = (row.get("hull_type") or "").lower() != "escort" and "Raider" not in name
+    opts = necron_commander_options(row) if capital else []
+    for o in opts:
+        if o["name"] == "Monument: Sepulchre":
+            o["effect"]["add_weapons"] = [dict(NIGHTMARE_FIELD)]
+            o["description"] += " A free nightmare field."
+    if capital:
+        lord = "requires_any:" + "|".join(NECRON_LORDS)
+        opts += [
+            _opt("Lord's vessel: Bloodswarm Nanoscarabs",
+                 "+10pts: +1 to the results of its portal attacks.", 10,
+                 {"add_special_rules": ["bloodswarm"]}, [lord]),
+            _opt("Lord's vessel: Reciprocating Tesla Pylons",
+                 "+15pts: lightning arc firepower +50%, divided equally between its arcs.", 15,
+                 {"add_special_rules": ["tesla_pylons"]}, [lord])]
+        if name in ("Cairn Class Tombship", "Reaper Class Grand Harvest Ship"):
+            opts.append(_opt("Lord's vessel: Nightmare Field",
+                             "+25pts (tombship or grand harvest ship).", 25,
+                             {"add_weapons": [dict(NIGHTMARE_FIELD)]},
+                             [lord]))
+    opts += [
+        _opt("Cryptek (+1 Ld)", "Secondary commander, 30pts: +1 Ld; 0-2 in the fleet.", 30,
+             {"add_special_rules": ["ld_bonus:1:10", "secondary_commander"]},
+             ["group:fleet_commander", "fleet_max:2"]),
+        _opt("Cryptek: re-roll", "+15pts: one re-roll for this ship or its squadron only.", 15,
+             {"set": {"own_rerolls": 1}}, ["requires:Cryptek (+1 Ld)"])]
+    if name == "Shroud Class Light Cruiser":
+        # Dynasty fleets only: remove the nebuloscope pylons for any
+        # combination at no cost; Khopesh + Cartouche make one FP2 whip
+        pylons = ["nebuloscope_pylons"]
+        opts += [
+            _opt("Shroud refit: War Configuration",
+                 "Free (no nebuloscope pylons): +2 Hits and +1 Turrets for its negative "
+                 "energy veil.", 0,
+                 {"remove_special_rules": pylons + ["negative_energy_veil"],
+                  "stat_delta": {"hits_max": 2, "turrets": 1}}),
+            _opt("Shroud refit: Khopesh Configuration",
+                 "Free (no nebuloscope pylons): lightning arc Left / Right only, + a particle "
+                 "whip 45cm FP1 (L/F/R).", 0,
+                 {"remove_special_rules": pylons, "merge_weapons": [dict(_WHIP_1)],
+                  "modify_weapons": [{"match": {"name": "Lightning Arc"},
+                                      "set": {"arcs": ["left", "right"]}}]}),
+            _opt("Shroud refit: Cartouche Configuration",
+                 "Free (no nebuloscope pylons): lightning arc FP8, + a particle whip 45cm FP1 "
+                 "(L/F/R).", 0,
+                 {"remove_special_rules": pylons, "merge_weapons": [dict(_WHIP_1)],
+                  "modify_weapons": [{"match": {"name": "Lightning Arc"},
+                                      "set": {"strength": 8}}]})]
+    return opts
+
+
 # Secondary commanders (s.5): +Ld (or a fixed Ld) and re-rolls usable only
 # for their own ship or squadron (`own_rerolls`). (name, Ld effect, cost,
 # fleet maximum, re-roll cost or None)
@@ -653,7 +718,7 @@ def fleet_commander_options(row: dict) -> List[Dict]:
                  for t, r, cost in ORK_TITLES]
         return opts
     if "Necrons" in rules:
-        return necron_commander_options(row)
+        return necron_options(row)
     faction = next((f for f in COMMANDERS if f in rules), None)
     if faction is None:
         return []

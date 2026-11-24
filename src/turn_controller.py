@@ -396,6 +396,8 @@ class TurnController:
             _undivided_end(self.gs, self.gs.active_player)
             from .celestial import end_of_turn as _celestial_end
             _celestial_end(self.gs, self.gs.active_player)
+            from .necrons import end_of_turn_nightmare
+            end_of_turn_nightmare(self.gs, self.gs.active_player)
             # Craftworld Assault: damage to the fortresses / the Spear; undocking
             from .craftworld import end_phase as _cw_end
             _cw_end(self.gs, self.gs.active_player,

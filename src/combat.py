@@ -2332,6 +2332,83 @@ def resolve_armageddon_gun(ship: Ship, gs, dice: DiceRoller) -> Dict:
 
 
 
+def nightmare_targets(ship: Ship, gs) -> List[List[Ship]]:
+    """The units a nightmare field may target: each enemy capital ship and each
+    enemy escort squadron (as a list of its ships, nearest first) within 20cm
+    (to the base, as the star pulse generator)."""
+    from .necrons import FIELD_RANGE
+    seen, out = set(), []
+    for t in sorted(gs.get_ships(), key=lambda t: ship.distance_to(t)):
+        if (t.player == ship.player or t.is_destroyed or t.is_disengaged
+                or t.status != "active" or ship.distance_to(t) > FIELD_RANGE + t.base_radius):
+            continue
+        if t.ship_type == "escort" and t.squadron_id:
+            if t.squadron_id in seen:
+                continue
+            seen.add(t.squadron_id)
+            unit = [t] + [o for o in gs.get_ships() if o.id != t.id and o.player == t.player
+                          and o.squadron_id == t.squadron_id and not o.is_destroyed
+                          and not o.is_disengaged]
+        else:
+            unit = [t]
+        out.append(unit)
+    return out
+
+
+def nightmare_field_error(ship: Ship) -> Optional[str]:
+    from .necrons import field_usable
+    if not field_usable(ship.is_crippled, ship.special_order or ""):
+        return "a nightmare field can't be used while crippled or on special orders other than Lock On"
+    if any(c.get("crit_type") == "monument" for c in ship.critical_damage):
+        return "Monument damaged: no nightmare field until repaired"
+    return None
+
+
+def resolve_nightmare_field(ship: Ship, gs, dice: DiceRoller, target_id: str) -> Dict:
+    """A Necron nightmare field (Xenos p.40): every enemy attack craft and
+    boarding torpedo within 20cm is destroyed on 4+ (each marker, waves
+    included), then the target (an enemy capital ship or escort squadron
+    within 20cm) takes a Leadership test: failed, -1 Ld for the rest of the
+    game and no special orders, Brace included, until after the end of its
+    next turn (`necrons.strike_with_nightmare`). Readings: no line of sight
+    needed (Remastered: an area effect); the test uses the target's own Ld.
+    Returns {"failed": bool, "ordnance_destroyed": n} or {"error": ...}."""
+    import math as _m
+    from .necrons import FIELD_RANGE, field_ordnance_kills, nightmare_field, \
+        strike_with_nightmare
+    from .ordnance import CRAFT_STATS
+    why = nightmare_field_error(ship)
+    if why:
+        return {"error": why}
+    unit = next((u for u in nightmare_targets(ship, gs) if any(t.id == target_id for t in u)),
+                None)
+    if unit is None:
+        return {"error": "the nightmare field's target must be an enemy capital ship or "
+                         "escort squadron within 20cm"}
+    out = {"failed": False, "ordnance_destroyed": 0}
+    boarding = ("torpedo_boarding", "torpedo_boarding_guided")
+    near = [o for o in gs.ordnance if o.get("owner_player") != ship.player
+            and (o.get("ordnance_type") in CRAFT_STATS or o.get("ordnance_type") in boarding)
+            and _m.hypot(o["x"] - ship.x, o["y"] - ship.y) <= FIELD_RANGE]
+    gone = {m["id"] for m in field_ordnance_kills(dice, near, f"{ship.name} nightmare field")}
+    if gone:
+        gs.ordnance = [o for o in gs.ordnance if o["id"] not in gone]
+        out["ordnance_destroyed"] = len(gone)
+        gs.report(f"{ship.name} nightmare field destroys {len(gone)} attack craft / "
+                  f"boarding torpedo marker(s)")
+    target = unit[0]
+    if nightmare_field(dice, target.leadership or 0):
+        out["failed"] = True
+        strike_with_nightmare(gs, unit, own_turn=gs.active_player == target.player)
+        gs.report(f"{ship.name} nightmare field: {target.name}"
+                  + (" and its squadron" if len(unit) > 1 else "")
+                  + " fail the Leadership test: -1 Ld, no special orders until after the "
+                    "end of their next turn")
+    else:
+        gs.report(f"{ship.name} nightmare field: {target.name} passes its Leadership test")
+    return out
+
+
 def resolve_star_pulse(ship: Ship, gs, dice: DiceRoller) -> Dict:
     """A Necron star pulse generator (Xenos p.40): a single roll to hit
     against the nearest Armour of each non-Necron ship within 20cm, and every

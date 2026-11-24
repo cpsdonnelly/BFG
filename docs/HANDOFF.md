@@ -2,6 +2,12 @@
 
 ## Status at a glance (latest; the dated sections below are history)
 
+Necrons (latest): the owner's Dynasty fleet is built and plays (`owner_necrons_1000.json`,
+`owner_necrons_war_1000.json`): Harvest / Dynasty lists, Shroud refits, Lord's vessel
+upgrades, Crypteks, the nightmare field, bloodswarm, the negative energy veil and nebuloscope
+pylons (CLAUDE.md "Necron gaps built"). Next in the owner's order: Eldar (commanders and the
+Corsair / Craftworld fleet lists).
+
 Latest owner UI reports (fixed; details in CLAUDE.md "Session status"): the map editor's
 blank strip and off-screen Done button; spectator "auto-roll every pop-up" (on by default;
 the fleets also deploy themselves); deployment in any order with undo / take back / start

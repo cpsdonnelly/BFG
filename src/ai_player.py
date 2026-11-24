@@ -2730,6 +2730,12 @@ class AIPlayer:
                     actions.fire_area_weapon(gs, self.dice, ship.id, "star_pulse")
                     ship = gs.get_ship_by_id(ship.id)
                 continue
+            if wtype == "nightmare_field":
+                pick = self._nightmare_target(ship)
+                if pick is not None:
+                    actions.fire_nightmare_field(gs, self.dice, ship.id, pick)
+                    ship = gs.get_ship_by_id(ship.id)
+                continue
             if wtype == "armageddon_gun":
                 if self._armageddon_value(ship) > 0:
                     actions.fire_area_weapon(gs, self.dice, ship.id, "armageddon_gun")
@@ -2985,6 +2991,24 @@ class AIPlayer:
 
     NOVA_FRIEND_CLEARANCE = 12.0    # cm from the aim point (judgement: scatter + template)
 
+    def _nightmare_target(self, ship):
+        """The unit a nightmare field is worth most against: the chance it
+        fails its Leadership test x its points (judgement: losing orders and
+        Brace for a turn and a point of Ld scale with what the unit is worth).
+        Using the field costs nothing, so it is always used when there is a
+        target; None when none (or it can't be used)."""
+        from .combat import nightmare_targets, nightmare_field_error
+        if nightmare_field_error(ship):
+            return None
+        best, best_v = None, -1.0
+        for unit in nightmare_targets(ship, self.gs):
+            ld = unit[0].leadership or 0
+            p_fail = sum(1 for a in range(1, 7) for b in range(1, 7) if a + b > ld) / 36.0
+            v = p_fail * sum(t.points_value or 0 for t in unit)
+            if v > best_v:
+                best, best_v = unit[0].id, v
+        return best
+
     def _armageddon_value(self, ship: Ship) -> float:
         """Expected VP of firing the Armageddon Gun now: along its track, 3.5
         hits on ships under the centre hole and 1 on those the template
@@ -3150,6 +3174,7 @@ class AIPlayer:
             if shadow_engines_hidden(ship, e, enemies):
                 continue
             valid.append(e)
+        valid = self._veil_filter(ship, valid)
         if not valid:
             return None
 
@@ -3170,6 +3195,27 @@ class AIPlayer:
         self._committed = committed
         return best
 
+    def _veil_filter(self, ship: Ship, valid: List[Ship]) -> List[Ship]:
+        """Negative energy veils (Xenos p.45): a conserving Shroud can't be fired
+        on without a passed target priority test. The test is taken only when
+        every target is veiled (judgement: otherwise not worth spending it)."""
+        from .necrons import veil_hidden
+        if not any(veil_hidden(e) for e in valid):
+            return valid
+        gs = self.gs
+        att = gs.get_ship_by_id(ship.id) or ship
+        if att.target_priority_turn != gs.turn_number and all(veil_hidden(e) for e in valid):
+            from .ai_rerolls import should_reroll
+
+            def _want(a):
+                left = self.tc.get_fleet_rerolls(a.player, a)
+                return bool(left and should_reroll(a, "target priority", gs, left))
+            actions.target_priority_test(gs, self.dice, self.tc, att.id, _want, tag="[AI] ")
+            att = gs.get_ship_by_id(ship.id) or att
+        if att.target_priority_turn == gs.turn_number and att.target_priority_passed:
+            return valid
+        return [e for e in valid if not veil_hidden(e)]
+
     def _enforce_target_priority(self, ship: Ship, weapon: Dict, wanted: Ship,
                                  valid: List[Ship]) -> Ship:
         """Target priority (s.13): a weapon fires at the nearest enemy in its arc
@@ -3184,7 +3230,9 @@ class AIPlayer:
             if highlighted(gs, ship, wanted) or not valid:
                 return wanted
             return min(valid, key=lambda v: (ship.distance_to(v), v.id))
+        from .necrons import veil_hidden
         visible = sorted((e for e in self._live_enemies() if e.status == "active"
+                          and not veil_hidden(e)
                           and check_los_clear(ship, e, gs.get_phenomena(),
                                               gs.get_blast_markers(), gs.ships).get("clear", True)),
                          key=ship.distance_to)

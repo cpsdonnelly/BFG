@@ -169,3 +169,79 @@ def portal_strength(strength: int, halvings: int) -> int:
 # Portals may be used against targets with more hits than the attacker, and
 # while crippled or on special orders (unlike teleport attacks)
 PORTAL_IGNORES_HITS_LIMIT = True
+
+
+# --- Nightmare field: its effect on the target (Xenos p.40) -----------------
+# A failed test: -1 Ld for the rest of the game, and it (or its squadron) can't
+# use special orders, Brace included, "until after the end of its next turn".
+# Kept as the rule "nightmare_struck:<n>": n of the target player's end phases
+# still to pass (1 when struck in the enemy's turn, 2 in its own: AA rounds).
+NIGHTMARE_RULE = "nightmare_struck:"
+
+
+def nightmare_blocked(ship) -> bool:
+    return any(r.startswith(NIGHTMARE_RULE) for r in getattr(ship, "special_rules", None) or [])
+
+
+def strike_with_nightmare(gs, ships, own_turn: bool) -> None:
+    """Apply a failed nightmare field test to the target (the first ship) and
+    its squadron: the target's Ld -1 (an escort squadron's shared Ld: every
+    member), every one barred from special orders."""
+    n = 2 if own_turn else 1
+    first = True
+    for s in ships:
+        fresh = gs.get_ship_by_id(s.id)
+        if fresh is None:
+            continue
+        if first or fresh.ship_type == "escort":
+            fresh.leadership = max(0, (fresh.leadership or 0) - 1)
+        first = False
+        fresh.special_rules = [r for r in fresh.special_rules if not r.startswith(NIGHTMARE_RULE)] \
+            + [f"{NIGHTMARE_RULE}{n}"]
+        gs.update_ship(fresh)
+
+
+def end_of_turn_nightmare(gs, player: int) -> None:
+    """At the end of a player's turn its nightmare-struck ships count down."""
+    for d in gs.ships:
+        if d.get("player") != player:
+            continue
+        rules = d.get("special_rules") or []
+        out = []
+        for r in rules:
+            if r.startswith(NIGHTMARE_RULE):
+                left = int(r.split(":")[1]) - 1
+                if left > 0:
+                    out.append(f"{NIGHTMARE_RULE}{left}")
+            else:
+                out.append(r)
+        if out != rules:
+            d["special_rules"] = out
+
+
+# --- Shroud / Reaper systems (Xenos p.43-45) -------------------------------
+
+def veil_hidden(ship) -> bool:
+    """A negative energy veil while conserving power: it "cannot be fired upon
+    unless the attacker first passes a target priority check (even if it is
+    the closest, or only, target)"."""
+    return "negative_energy_veil" in (getattr(ship, "special_rules", None) or []) \
+        and conserving_power(ship)
+
+
+def enemy_contacts(gs, ship) -> bool:
+    """Enemy Contacts (s.6) for this ship's command check: an enemy ship on
+    special orders, a negative energy veil's ship never counting."""
+    return any(s.player != ship.player and not s.is_destroyed and not s.is_disengaged
+               and (s.special_order or "none") not in ("none", "")
+               and "negative_energy_veil" not in s.special_rules
+               for s in gs.get_ships())
+
+
+def nebuloscope_bonus(gs, ship) -> int:
+    """Nebuloscope pylons: every vessel in the fleet gains an extra +1 from
+    Enemy Contacts (once, however many pylons), not while the pylons' ship is
+    crippled by damage (conserving power is fine)."""
+    return int(any(s.player == ship.player and "nebuloscope_pylons" in s.special_rules
+                   and not s.is_destroyed and not s.is_disengaged and s.status == "active"
+                   and not s.damage_crippled for s in gs.get_ships()))

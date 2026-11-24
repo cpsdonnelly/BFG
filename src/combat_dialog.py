@@ -40,7 +40,7 @@ class _Tooltip:
 # Fire order within one ship's volley: batteries, then lances, then the nova
 # cannon (the target is asked about bracing before each kind, s.7)
 _FIRE_ORDER = {"battery": 0, "lance": 1, "nova_cannon": 2, "armageddon_gun": 3,
-               "star_pulse": 4}
+               "star_pulse": 4, "nightmare_field": 5}
 
 
 class _FireDialog:
@@ -140,6 +140,9 @@ class _FireDialog:
             elif wtype == "star_pulse":
                 desc = "Star Pulse Generator: every non-Necron ship within 20cm (any target)"
                 avail_str = 1
+            elif wtype == "nightmare_field":
+                desc = "Nightmare Field: Ld test for a capital ship / escort squadron within 20cm"
+                avail_str = 1
             else:
                 desc = weapon["name"]
 
@@ -149,7 +152,8 @@ class _FireDialog:
 
             # "all" fires the whole pool; a number splits it (s.13 Splitting Fire)
             str_var = tk.StringVar(value="all" if pool_later else str(avail_str))
-            if wtype not in ("nova_cannon", "armageddon_gun", "star_pulse") and (
+            if wtype not in ("nova_cannon", "armageddon_gun", "star_pulse",
+                             "nightmare_field") and (
                     avail_str > 1 or pool_later):
                 tk.Label(row, text="Fire:", font=("Consolas", 8)).pack(side=tk.LEFT)
                 tk.Entry(row, textvariable=str_var, width=3,

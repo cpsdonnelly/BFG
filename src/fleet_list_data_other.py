@@ -502,4 +502,51 @@ TYR_LISTS = [
      "reserves": [], "unenforced": list(_TYR_UNENFORCED)},
 ]
 
-OTHER_LISTS: List[Dict] = CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS + DE_LISTS + TYR_LISTS
+# ── Necrons (10_necrons.md, Xenos pp.50-51) ───────────────────────────────────
+_NEC_ESCORTS = {"name": "Escorts", "max": 24,
+                "class_max": {"Jackal Class Raider": 12, "Dirge Class Raider": 12},
+                "ships": {"Jackal Class Raider": 60, "Dirge Class Raider": 40}}
+_NEC_UNENFORCED = [
+    "Escort squadrons of two to six, at most four two-hit escorts a squadron: not checked.",
+    "Planetary defences (tomb complex, pylons, deathseed mines) aren't playable yet.",
+    "Never gives or takes reserves or allies."]
+NEC_LISTS = [
+    {"key": "necron_harvest", "faction": "necrons",
+     "name": "Necron Harvest Fleet (Xenos p.50)",
+     # 1 Monument (required), automatically on the largest capital ship
+     "commander": {"options": ["Monument: Obelisk", "Monument: Monolith",
+                               "Monument: Sepulchre"], "required_at": 0},
+     "list_options": ["Monument:"],
+     "min_capital": 1,
+     "sections": [
+         {"name": "Tombships", "ratio": (1, ["Harvest Ships"]),
+          "ships": {"Cairn Class Tombship": 500}},
+         {"name": "Harvest Ships", "max": 6, "ships": {"Scythe Class Harvest Ship": 275}},
+         {"name": "Light Cruisers", "max": 3, "ships": {"Shroud Class Light Cruiser": 155}},
+         dict(_NEC_ESCORTS),
+     ],
+     "reserves": [],
+     "unenforced": ["The Monument goes on the largest capital ship: not checked."]
+                   + _NEC_UNENFORCED + ["Attack rating 4."]},
+    {"key": "necron_dynasty", "faction": "necrons",
+     "name": "Necron Dynasty Fleet (Xenos p.51)",
+     # 0-1 Necron Lord, required at 750 points ("at least 750")
+     "commander": {"options": ["Necron Lord: Overlord", "Necron Lord: Nemesor"],
+                   "required_at": 750},
+     "list_options": ["Necron Lord:", "Lord's vessel:", "Cryptek", "Shroud refit:"],
+     "min_capital": 1,
+     "sections": [
+         {"name": "Tombships", "ratio": (2, ["Harvest Ships", "Light Cruisers"]),
+          "ships": {"Cairn Class Tombship": 500}},
+         {"name": "Grand Harvest Ships", "ratio": (2, ["Harvest Ships", "Light Cruisers"]),
+          "ships": {"Reaper Class Grand Harvest Ship": 355}},
+         {"name": "Harvest Ships", "max": 3, "ships": {"Scythe Class Harvest Ship": 275}},
+         {"name": "Light Cruisers", "max": 6, "ships": {"Shroud Class Light Cruiser": 155}},
+         dict(_NEC_ESCORTS),
+     ],
+     "reserves": [],
+     "unenforced": _NEC_UNENFORCED + ["Attack rating 3."]},
+]
+
+OTHER_LISTS: List[Dict] = (CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS + DE_LISTS + TYR_LISTS
+                           + NEC_LISTS)

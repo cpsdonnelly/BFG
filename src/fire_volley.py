@@ -17,7 +17,7 @@ from .combat import (weapon_fire_pool, shot_weapon, resolve_siege_cannons, expec
 # Fire order within one ship's volley: batteries, then lances, then the nova
 # cannon (the target is asked about bracing before each kind, s.7)
 _FIRE_ORDER = {"battery": 0, "lance": 1, "nova_cannon": 2, "armageddon_gun": 3,
-               "star_pulse": 4}
+               "star_pulse": 4, "nightmare_field": 5}
 
 
 class _Val:
@@ -46,9 +46,11 @@ def volley_setup(gs, attacker):
     enemies.sort(key=lambda e: attacker.distance_to(e))
     phenomena = gs.get_phenomena()
     blast_markers = gs.get_blast_markers()
+    from .necrons import veil_hidden
     closest_visible = next(
         (e for e in enemies
          if e.status == "active"          # a closest hulk may be ignored (s.34)
+         and not veil_hidden(e)           # a veiled Shroud is never the forced target
          and check_los_clear(attacker, e, phenomena, blast_markers, gs.ships)["clear"]),
         None)
     lock_on = attacker.special_order == SpecialOrder.LOCK_ON.value
@@ -103,6 +105,16 @@ class FireVolley:
 
     def _check_target_priority(self, weapon, target):
         """Enforce target priority; returns the ship that must actually be fired at."""
+        if weapon.get("weapon_type") == "nightmare_field":
+            return target        # reading: an area effect (Remastered), no target priority
+        from .necrons import veil_hidden
+        if veil_hidden(target):
+            # Negative energy veil: never fired on without a passed test
+            if self._priority_test(weapon):
+                return target
+            self._log(f"  {weapon['name']}: {target.name} is hidden by its negative energy "
+                      f"veil (target priority failed)")
+            return None
         if "tyranid" in self.attacker.special_rules:
             # Tyranids (Xenos p.105): the closest enemy ship in range and arc, or
             # one highlighted by Pheromone Sprayers; no target priority test
@@ -151,14 +163,17 @@ class FireVolley:
                                  self.ctx.gs.get_phenomena(), self.blast_markers, self.ctx.gs.ships)
         if not (cv_in_arc and cv_in_range and cv_los["clear"]):
             return target  # closest visible isn't valid for this weapon
-        # One target priority test per ship per turn (s.7): the result stands
+        return target if self._priority_test(weapon, cv) else cv
+
+    def _priority_test(self, weapon, cv=None) -> bool:
+        """The ship's target priority test (one per ship per turn, s.7: the
+        result stands), taken now if it hasn't been. True if passed."""
         att = self.ctx.gs.get_ship_by_id(self.attacker.id) or self.attacker
         if att.target_priority_turn == self.ctx.gs.turn_number:
-            if att.target_priority_passed:
-                return target
-            self._log(f"  {weapon['name']}: target priority already failed this turn — "
-                      f"must fire at closest visible: {cv.name}")
-            return cv
+            if not att.target_priority_passed and cv is not None:
+                self._log(f"  {weapon['name']}: target priority already failed this turn — "
+                          f"must fire at closest visible: {cv.name}")
+            return att.target_priority_passed
         from .movement import do_command_check
         check = do_command_check(self.attacker, "target_priority", self.ctx.dice, gs=self.ctx.gs)
         from .movement import fleet_reroll_offered
@@ -171,13 +186,13 @@ class FireVolley:
         if not check["passed"]:
             self._log(
                 f"  {weapon['name']}: Target priority FAILED "
-                f"(rolled {check['roll']} vs Ld {check['needed']}). "
-                f"Must fire at closest visible: {cv.name}")
-            return cv
+                f"(rolled {check['roll']} vs Ld {check['needed']})"
+                + (f". Must fire at closest visible: {cv.name}" if cv is not None else ""))
+            return False
         self._log(
             f"  {weapon['name']}: Target priority passed "
             f"(rolled {check['roll']} vs Ld {check['needed']})")
-        return target
+        return True
 
     def _fire_all(self):
         """Fire all selected weapons at their assigned targets."""
@@ -217,7 +232,7 @@ class FireVolley:
 
             weapon_actually_fired = True
             wtype = weapon.get("weapon_type", "")
-            if wtype in _FIRE_ORDER and wtype not in asked_kinds:
+            if wtype in _FIRE_ORDER and wtype not in asked_kinds and wtype != "nightmare_field":
                 asked_kinds.add(wtype)
                 self._apply_volley_damage(all_damage, final=False)
                 self._brace_targets((wtype,))
@@ -305,6 +320,17 @@ class FireVolley:
                         if hs is not None:
                             self._log(f"  Star pulse hits {hs.name}")
                             self.ctx.check_destruction(hs)
+
+            elif wtype == "nightmare_field":
+                from .combat import resolve_nightmare_field
+                res = resolve_nightmare_field(self.attacker, self.ctx.gs, self.ctx.dice,
+                                              target.id)
+                if "error" in res:
+                    self._log(f"  Nightmare field: {res['error']}")
+                    weapon_actually_fired = False
+                else:
+                    self._log(f"  Nightmare field at {target.name}: "
+                              + ("FAILED its Ld test" if res["failed"] else "passed its Ld test"))
 
             elif wtype == "armageddon_gun":
                 from .combat import resolve_armageddon_gun

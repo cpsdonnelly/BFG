@@ -38,9 +38,12 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState, dice=None):
     # Mine fields home on the nearest enemy ship automatically
     if marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
         ships = game_state.get_ships()
+        # a negative energy veil can't be detected by mines (Xenos p.45); a mine
+        # in base contact still attacks it (the contact check, not this one)
         enemies = [s for s in ships
                    if s.player != marker.owner_player
-                   and not s.is_destroyed and not s.is_disengaged]
+                   and not s.is_destroyed and not s.is_disengaged
+                   and "negative_energy_veil" not in s.special_rules]
         if not enemies:
             return
         nearest = min(enemies,

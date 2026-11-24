@@ -1805,6 +1805,9 @@ def orders_forbidden(gs, ship) -> Optional[str]:
     """Why `ship` may not go on special orders now (Brace included), or None.
     Ambush: no defending ship during the defender's first turn. Rescue: the
     defending flagship during the defender's first turn."""
+    from .necrons import nightmare_blocked
+    if nightmare_blocked(ship):
+        return "Nightmare field: no special orders until after the end of its next turn"
     from .subplots import orders_forbidden as _subplot_forbidden
     why = _subplot_forbidden(gs, ship)
     if why:

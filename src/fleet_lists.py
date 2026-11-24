@@ -775,6 +775,10 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
                           f"{cmd['per_points']}pts.")
 
     errors += xenos_cutter_errors(rows)
+    if main.get("min_capital") and sum(1 for r in rows if r["entry"].ship_type != "escort") \
+            < main["min_capital"]:
+        # Necron fleets "must include at least one capital ship"
+        errors.append(f"{main['name']}: needs at least {main['min_capital']} capital ship(s).")
     if main.get("escorts_per_capital"):
         # Dark Eldar Raiders: "at least three escorts for every capital ship"
         n_cap = sum(1 for r in rows if r["entry"].ship_type != "escort")

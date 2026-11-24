@@ -600,8 +600,35 @@ ordnance sweep 5250 cases pass):
   roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.
 - Next (owner order): Tyranids (To do 19; playable now, slices 1-3 built, gaps listed there), then the other owner fleets' gaps (Tau Protector
-  done: `owner_tau_protector_980.json`; Orks done: `owner_orks_980.json`; Necrons, Eldar
-  next; To do 25).
+  done: `owner_tau_protector_980.json`; Orks done: `owner_orks_980.json`; Necrons done:
+  `owner_necrons_1000.json` and `owner_necrons_war_1000.json` (the owner's coin for the War
+  refit, both saved); Eldar next; To do 25).
+- Necron gaps built (`tests/test_necron_dynasty.py`): the Harvest and Dynasty fleet lists
+  (`fleet_list_data_other.NEC_LISTS`: Monuments only in Harvest, Necron Lords, the Lord's
+  vessel upgrades, Crypteks and Shroud refits only in Dynasty via `list_options`; tombship /
+  grand harvest ratios, escorts 0-12 each, at least one capital ship, `min_capital`);
+  `booklet_options.necron_options`: the Shroud's free Dynasty refits (War +2 hits +1 turret for
+  the veil, Khopesh lightning arc L/R + whip, Cartouche arc FP8 + whip, both whips one FP2,
+  each removing the nebuloscope pylons), the Lord's vessel's Bloodswarm Nanoscarabs (+1 to its
+  portal raids, `hit_and_run._RAID_ATTACK_BONUS`), Reciprocating Tesla Pylons (offered, not
+  modelled yet) and Nightmare Field (tombship / grand harvest ship; the Sepulchre's comes
+  free), Crypteks (+1 Ld, 0-2, re-roll +15); the nightmare field in play
+  (`combat.resolve_nightmare_field`, `actions.fire_nightmare_field`, the Fire dialog, the AI's
+  `_nightmare_target`: P(fail) x the unit's points; enemy attack craft and boarding torpedoes
+  within 20cm die on 4+; a failed Ld test: -1 Ld and no orders, Brace included, until after
+  the end of its next turn, `necrons.strike_with_nightmare` / `end_of_turn_nightmare` through
+  `scenarios.orders_forbidden`; readings: no line of sight or target priority, the target's
+  own Ld, no Monument damaged); the negative energy veil (`negative_energy_veil` from the notes:
+  no Enemy Contacts from it, `necrons.enemy_contacts` in `do_command_check`; not detected by
+  mines; while conserving power, fired on only after a passed target priority test,
+  `veil_hidden` in the Fire dialog and the AI's `_veil_filter`, and never the forced closest
+  target) and nebuloscope pylons (+1 more Enemy Contacts for the fleet, `nebuloscope_bonus`).
+  AI fixes found by the games: the AI's hit estimates now count reactive hull and bonded
+  exo-plating saves (`ai_hazards.hull_save_factor` in `mount_hits`) and a veiled ship's target
+  priority test, and `disengage_gain` scores by damage, not power conservation (conserving
+  Necrons phased out at once). Still open: the Necron AI phases small ships out early (an
+  undamaged Shroud leaves on turn 2-3 against a full enemy fleet; one-turn horizon), Tesla
+  Pylons, the Harvest Monument's "largest capital ship" placement (To do 29).
 - Ork gaps built (`src/orks.py`, `tests/test_ork_options.py`): the Kustom force field option
   (`booklet_options.ork_profile_options`, from "Kustom force field +Npts": -1 shield, +D3
   shields rolled at the start of each game turn, reading: rolled up front rather than "when

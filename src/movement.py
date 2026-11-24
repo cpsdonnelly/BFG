@@ -769,12 +769,17 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if order == SpecialOrder.RELOAD_ORDNANCE.value and "grot_riggers" in ship.special_rules:
         ld += 1
         mods.append("Grot Riggers +1")
+    if gs is not None:
+        from .necrons import enemy_contacts, nebuloscope_bonus
+        enemy_on_special = enemy_contacts(gs, ship)     # a veiled Shroud doesn't count
     if enemy_on_special:
         # Cobra improved sensor array: +2 instead of +1; a Mechanicus
         # Experimental Ship within 15cm adds +1 (Quest for Knowledge)
         bonus = 2 if "improved_sensor_array" in ship.special_rules else 1
         from .subplots import mech_ld_aura
         bonus += mech_ld_aura(gs, ship)
+        if gs is not None:
+            bonus += nebuloscope_bonus(gs, ship)          # Necron nebuloscope pylons
         ld += bonus
         mods.append(f"Enemy Contacts +{bonus}")
     # Modifiers can't take Ld above 10 or below 0 (s.6); at Ld 1 or less a
