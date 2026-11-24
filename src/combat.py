@@ -72,7 +72,10 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     edge = sunward_edge()
     from .celestial import is_sunward
     rng = 2 if edge and is_sunward(ship, target_ship, edge) else 1
-    if dist < 15:
+    from .optional_rules import shared_asteroid_field
+    in_field = shared_asteroid_field(ship, target_ship, phenomena) is not None \
+        if phenomena else False
+    if dist < 15 and not in_field:     # s.39: no close range shift inside an asteroid field
         shifts -= rng  # left shift (better)
     elif (dist > 30 and not (weapon and dark_age_batteries(ship, weapon))
           and "fraal_targeting" not in ship.special_rules):     # Fra'al targeting matrix
@@ -389,7 +392,15 @@ def effective_battery_firepower(attacker: Ship, weapon: Dict,
         fp = (fp + 1) // 2
     if "half_armament" in attacker.special_rules:
         fp = (fp + 1) // 2         # Navigate the Storm: recovering from the warp
+    if target is not None and _in_field_together(attacker, target):
+        fp = (fp + 1) // 2         # s.39: firing inside an asteroid field, half firepower
     return fp
+
+
+def _in_field_together(a: Ship, b: Ship) -> bool:
+    from .optional_rules import shared_asteroid_field, phenomena
+    phen = phenomena()
+    return bool(phen) and shared_asteroid_field(a, b, phen) is not None
 
 
 def _battery_orientation(attacker: Ship, target: Ship, weapon: Optional[Dict],
@@ -675,6 +686,8 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
         strength = (strength + 1) // 2
     if "half_armament" in attacker.special_rules:
         strength = (strength + 1) // 2     # Navigate the Storm: recovering from the warp
+    if _in_field_together(attacker, target):
+        strength = (strength + 1) // 2     # s.39: firing inside an asteroid field
     # Low orbit (s.39): lances need a 4+ to fire at all
     from .low_orbit import needs_fire_roll
     if strength > 0 and needs_fire_roll(attacker):

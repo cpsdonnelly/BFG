@@ -82,6 +82,8 @@ def make_gs(ships=None) -> GameState:
     gs = GameState()
     for s in (ships or []):
         gs.add_ship(s)
+    from src.optional_rules import set_phenomena_source
+    set_phenomena_source(gs.get_phenomena)       # this game's terrain, not a previous test's
     return gs
 
 

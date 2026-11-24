@@ -617,10 +617,12 @@ class GameFlow(AAPanelMixin):
 
         if phase == "movement" and not from_ai:
             unmoved = tc.get_unmoved_ships()
+            from .movement import movement_budget
             unmoved_obligated = [
                 s for s in unmoved
                 if not s.is_destroyed
                 and s.special_order != SpecialOrder.BURN_RETROS.value
+                and movement_budget(s, s.special_order or "")[0] > 0   # high orbit etc.
             ]
             if unmoved_obligated:
                 names = "\n  ".join(s.name for s in unmoved_obligated[:8])

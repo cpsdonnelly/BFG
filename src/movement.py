@@ -101,6 +101,9 @@ def get_effective_speed(ship: Ship, special_order: str, aaf_bonus: int = 0,
         min_spd = 0          # s.39: ships in low orbit don't have to move
     if "dark_eldar" in ship.special_rules:
         min_spd = 0          # Dark Eldar (Xenos p.4): no minimum speed
+    from .optional_rules import high_orbit_planet
+    if special_order != SpecialOrder.ALL_AHEAD_FULL.value and high_orbit_planet(ship) is not None:
+        min_spd = 0          # s.41 High Orbit: "ships do not need to move"
 
     return (min_spd, max_spd)
 
@@ -489,8 +492,9 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     # Check <5cm defense rule
     if phase_distance < 5:
         result.counts_as_defense = True
-        if special_order != SpecialOrder.BURN_RETROS.value and phase_distance == 0:
-            result.add_error("Ships must move unless on Burn Retros")
+        if (special_order != SpecialOrder.BURN_RETROS.value and phase_distance == 0
+                and min_spd > 0):
+            result.add_error("Ships must move unless on Burn Retros or in high orbit")
         elif phase_distance > 0:
             result.add_warning("Moved <5cm: counts as Defences on Gunnery table")
 
@@ -540,6 +544,25 @@ def ordnance_touched_along_path(ship: Ship, path: List[Tuple[float, float]],
                 touched.append((i, o["id"]))
                 break
     return [mid for _, mid in sorted(touched)]
+
+
+def _asteroid_fields_on_path(ship: Ship, points, phenomena) -> list:
+    """The asteroid fields the ship's base touches anywhere along its move
+    (points: start, waypoints, end), sampled every 0.5cm."""
+    fields = [p for p in phenomena if p.phenomenon_type == "asteroid_field"]
+    if not fields:
+        return []
+    r = ship.base_radius
+    hit = []
+    for p in fields:
+        hw, hh = p.width / 2 + r, p.height / 2 + r
+        for (x0, y0), (x1, y1) in zip(points, points[1:] or points):
+            n = max(1, int(math.hypot(x1 - x0, y1 - y0) / 0.5))
+            if any(abs(x0 + (x1 - x0) * k / n - p.x) <= hw and abs(y0 + (y1 - y0) * k / n - p.y) <= hh
+                   for k in range(n + 1)):
+                hit.append(p)
+                break
+    return hit
 
 
 def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
@@ -607,6 +630,20 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
     # Navigate the Storm: a materialising ship interacts with nothing
     contacts = [] if "materialising" in ship.special_rules else \
         check_ship_terrain_contact(ship, phenomena)
+    # Asteroid fields (s.39): "ships moving through an asteroid field, or
+    # coming into base contact with the edge of one" test, so the whole path
+    # counts (not only where the move ends) and a ship that doesn't move (high
+    # orbit, Burn Retros) doesn't test
+    if "materialising" not in ship.special_rules:
+        moved = (result.total_distance or 0) > 0.01
+        contacts = [c for c in contacts if c["type"] != "asteroid_field"]
+        if moved:
+            ids = {c["phenomenon"].id for c in contacts}
+            for p in _asteroid_fields_on_path(ship, _pts, phenomena):
+                if p.id not in ids:
+                    from .terrain_effects import get_phenomenon_effects
+                    contacts.append({"phenomenon": p, "type": p.phenomenon_type,
+                                     "effects": get_phenomenon_effects(p)})
     for contact in contacts:
         ptype = contact["type"]
         effects = contact["effects"]

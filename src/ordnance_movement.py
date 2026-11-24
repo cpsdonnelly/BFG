@@ -899,7 +899,8 @@ class OrdnanceMovementMixin:
                 # Torpedoes/mines: asteroid/planet/warp rift = auto-destroyed; dust = D6=6.
                 # Attack craft: asteroid = D6=6; warp rift/planet = auto-destroyed.
                 destroyed, terrain_type = check_ordnance_vs_phenomena(
-                    marker, phenomena, self.ctx.dice)
+                    marker, phenomena, self.ctx.dice,
+                    start=self._ord_path_start.get(marker.id))
                 if destroyed:
                     to_remove.add(marker.id)
                     self.ctx.log(

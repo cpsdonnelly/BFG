@@ -77,6 +77,8 @@ class TurnController:
         set_sunward(getattr(game_state, "rule_fighting_sunward", False),
                     getattr(game_state, "sunward_edge", "north"))
         set_ship_source(game_state.get_ships)
+        from .optional_rules import set_phenomena_source
+        set_phenomena_source(game_state.get_phenomena)
         _rec.set_current_gs(game_state)          # the game the decision events belong to
         self.save_dir = save_dir or os.path.join("saves", game_state.game_name)
         self.snapshots_dir = os.path.join(self.save_dir, "snapshots")

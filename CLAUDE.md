@@ -268,6 +268,21 @@ damage on 4+, so Space Marines (+1) re-roll a 1 or 2. Armament crits now also si
 AI's weapons (`combat.weapon_disabled_by_crit`, shared with the fire dialogs; it used to be
 UI-only, so the AI kept firing knocked-out weapons).
 
+- **Parking in an asteroid field in high orbit (owner check):** high orbit (s.41, "ships do
+  not need to move") is built as no minimum move in a planet's gravity well
+  (`optional_rules.high_orbit_planet`, `movement.get_effective_speed`; the end of the movement
+  phase no longer demands a move from a ship with none; the table's terrain registered by
+  `TurnController` through `set_phenomena_source`); not yet its free turns towards the planet.
+  Asteroid fields (s.39): the navigation test is taken by a ship whose move passes through or
+  touches a field anywhere along its path (`movement._asteroid_fields_on_path`), never by one
+  that doesn't move; ordnance meets terrain anywhere along its move
+  (`check_ordnance_vs_phenomena(start=)`: bombers launched from inside a field roll the 6);
+  ships both inside one field may fire at each other within 10cm, half firepower
+  (`combat._in_field_together`), no close range shift, never when crippled or braced
+  (`los.check_los_ships`); every other line through a field is blocked. So a carrier can park
+  inside a field in a gravity well, untouchable by direct fire from outside, launching bombers
+  that each roll a 6 to leave; the AI doesn't seek this out (`tests/test_asteroid_high_orbit.py`).
+
 ### Brace for Impact (s.7)
 
 Declared before any combat rolls for an attack (to hit, scatter, turrets, weapon strength,

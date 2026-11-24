@@ -1266,7 +1266,7 @@ _PLANET_IMMUNE = _ATTACK_CRAFT | {
 
 def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
                                  phenomena,
-                                 dice: DiceRoller) -> Tuple[bool, str]:
+                                 dice: DiceRoller, start=None) -> Tuple[bool, str]:
     """
     Check if ordnance is destroyed by terrain phenomena.
 
@@ -1283,6 +1283,11 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
         planets = no effect
         gas/dust cloud = D6=6 destroys (owner ruling)
 
+    start: where the marker began this move; with it, terrain anywhere along
+    the move counts (s.39: craft "which move through an asteroid field"),
+    e.g. bombers launched from a carrier parked inside one. Without it only
+    where the marker ends.
+
     Returns (destroyed: bool, reason: str).
     """
     is_torp = marker.ordnance_type in _TORP_LIKE
@@ -1295,13 +1300,21 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
     # Approximate marker half-size for terrain contact (circular bounding radius)
     marker_r = TORP_BODY_HALF_W_CM if is_torp else ATTACK_CRAFT_HALF_SIDE_CM
 
+    if start is not None:
+        sx, sy = start
+        n = max(1, int(math.hypot(marker.x - sx, marker.y - sy) / 0.5))
+        points = [(sx + (marker.x - sx) * k / n, sy + (marker.y - sy) * k / n)
+                  for k in range(n + 1)]
+    else:
+        points = [(marker.x, marker.y)]
+
     for p in phenomena:
         if "planet" in p.phenomenon_type and p.radius > 0:
-            dist = math.sqrt((marker.x - p.x)**2 + (marker.y - p.y)**2)
-            in_contact = dist <= p.radius + marker_r
+            in_contact = any(math.hypot(x - p.x, y - p.y) <= p.radius + marker_r
+                             for x, y in points)
         else:
-            in_contact = (abs(marker.x - p.x) <= p.width / 2 + marker_r and
-                          abs(marker.y - p.y) <= p.height / 2 + marker_r)
+            in_contact = any(abs(x - p.x) <= p.width / 2 + marker_r and
+                             abs(y - p.y) <= p.height / 2 + marker_r for x, y in points)
 
         if not in_contact:
             continue
