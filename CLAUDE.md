@@ -644,8 +644,8 @@ table, see To do 30):
   not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
   orbit's free turns; the AI never parks in a field in high orbit; escort disengage values
   still per ship (not by squadron); an Incubi raid's 2D6-best not in the slave-taking
-  comparison; the AI doesn't deploy its own ships in player-vs-AI games (To do 28); Kill the
-  Admiral in the expert search's leaf.
+  comparison; Kill the Admiral in the expert search's leaf. (The AI now deploys its own
+  ships, To do 28's first slice.)
 
 Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 cases):
 - Done: Dark Eldar PLAYABLE (To do 19 slices 1-3: catalog, Kabal Variants, Raiders list,
@@ -3270,6 +3270,21 @@ Done: To do 2, 3, 6; most of 7.
    and Orks 5); ships whose rules forbid squadrons never (Tyranid primary hive ships, Scylla
    with synapse nodes). Squadrons formable in list building and in deployment, with an auto
    tight / dispersed line / box formation setter for players.
+   First slice built (`src/ai_deployment.py`, `tests/test_ai_deployment.py`,
+   `tools/gui_checks/ai_deploy_check.py`): the AI places its own ships when its turn to
+   deploy comes (`DeploymentPanel._ai_deploys` / `_ai_deploy_turn`: the AI's side against a
+   human, both sides in spectator mode; the human's Auto-Place now places only the human's
+   ships against the AI; the headless runner deploys with it, `ai_deploy_all`). Buff ships
+   last (`buff_range`: synapse range, tracking systems, Fleet Defence Turrets' 15cm), at the
+   spot in the zone with the most placed friends in reach; squadrons in a line across the
+   facing or a box of two rows, in base contact or loose (5cm), drawn at random from the
+   game's generator (`rng.game_random(gs, "deploy")`, so games replay) and logged to the
+   on-screen log (To do 31), squeezed to keep every pair within 15cm; the rest nearest the
+   zone's centre clear of placed ships, facing the enemy or as the scenario requires
+   (scenario positions first, `scenarios.auto_positions`). Not yet: forming squadrons
+   (2D3 escorts of one class / one ordnance, the list's sizes; they come from the fleet file
+   today), capital squadrons, deployment by strategy (where in the zone suits the matchup),
+   the alternating deployment orders, the players' formation setter.
 29. Commander placement (owner): Leadership is rolled before the game and commanders are
    assigned during deployment, so the AI sees the rolled values when it chooses. Owner
    (latest): a commander may move to another ship after the Ld roll (a weak-Ld ship replaced

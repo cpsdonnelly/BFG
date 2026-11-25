@@ -98,9 +98,8 @@ class DeploymentPanel:
         self._build_ui()
         self._draw_zones()
         self._refresh()
-        from .dice import spectating_auto
-        if spectating_auto(gs):              # spectator: the fleets deploy themselves
-            self.root.after(300, lambda: self._auto_place_remaining(ask=False))
+        # The AI places its own ships when its turn to deploy comes (To do 28;
+        # spectator games: both fleets), from _refresh
 
     # ── UI construction ───────────────────────────────────────────────────────
 
@@ -275,6 +274,9 @@ class DeploymentPanel:
             return
 
         p = self.state.active_player
+        if self._ai_deploys(p) and not getattr(self, "_ai_deploying", False):
+            self._ai_deploying = True
+            self.root.after(300, lambda: self._ai_deploy_turn(p))
         pname = self.gs.player1_name if p == 1 else self.gs.player2_name
         self.player_label.config(text=f"{pname}'s turn")
 
@@ -512,6 +514,29 @@ class DeploymentPanel:
 
     # ── Auto-placement ────────────────────────────────────────────────────────
 
+    def _ai_deploys(self, player: int) -> bool:
+        """The AI places this player's ships: the AI's side in a game against
+        the AI, both sides in spectator mode with pop-ups answered for them."""
+        from .dice import spectating_auto
+        gs = self.gs
+        if getattr(gs, "ai_spectator", False):
+            return spectating_auto(gs)
+        return getattr(gs, "ai_player", None) == player
+
+    def _ai_deploy_turn(self, player: int):
+        """The AI places its groups for this turn to deploy (ai_deployment)."""
+        from .ai_deployment import ai_deploy
+        self._pending_positions.clear()
+        self._pending_headings.clear()
+        errors = ai_deploy(self.gs, self.state, player, log=self.gs.report)
+        self._ai_deploying = False
+        if errors:
+            messagebox.showerror("AI deployment failed",
+                                 "The AI could not place:\n" + "\n".join(errors),
+                                 parent=self.root)
+            return
+        self._refresh()
+
     def _auto_place_remaining(self, ask: bool = True):
         """Auto-place all remaining ships for the current (and next) player."""
         answer = (not ask) or messagebox.askyesno(
@@ -525,7 +550,10 @@ class DeploymentPanel:
         self._pending_positions.clear()
         self._pending_headings.clear()
         from .deployment import auto_place
-        errors = auto_place(self.gs, self.state)
+        p = self.state.active_player
+        # against the AI, only the human's own ships (the AI places its own)
+        errors = auto_place(self.gs, self.state,
+                            p if self._ai_deploys(3 - p) and not self._ai_deploys(p) else None)
         if errors:
             messagebox.showerror("Auto-Place Failed",
                                  "Could not auto-place:\n" + "\n".join(errors),

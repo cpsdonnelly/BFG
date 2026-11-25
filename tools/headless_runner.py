@@ -82,9 +82,10 @@ def play(args) -> dict:
             gs.add_ship(sh)
     if unplaced:
         # Fleets saved by the fleet builder carry no positions: deploy both
-        # fleets as the window's Auto-Place does (deployment.auto_place)
-        from src.deployment import deployment_state, auto_place
-        problems = auto_place(gs, deployment_state(gs))
+        # fleets as the AI does in the window (ai_deployment, To do 28)
+        from src.deployment import deployment_state
+        from src.ai_deployment import ai_deploy_all
+        problems = ai_deploy_all(gs, deployment_state(gs))
         if problems:
             errors.extend(problems)
     dice = DiceRoller(mode="auto")

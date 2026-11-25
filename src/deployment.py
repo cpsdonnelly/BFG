@@ -408,14 +408,17 @@ def placement_heading(gs, state: "DeploymentState", player: int, x: float, y: fl
     return facing_enemy(state, player, x, y) if h is None else h
 
 
-def auto_place(gs, state: "DeploymentState") -> List[str]:
+def auto_place(gs, state: "DeploymentState", player: Optional[int] = None) -> List[str]:
     """Place every group still to deploy (the window's Auto-Place): the
     scenario's positions where it has them (scenarios.auto_positions), else a
     row in the zone; headings from the scenario or facing the enemy. Placed
     ships are written to `gs`. Returns the errors of a group that couldn't be
-    placed (it stops there)."""
+    placed (it stops there). `player`: only that player's groups (the AI
+    places its own, ai_deployment)."""
     from .scenarios import auto_positions
     while not state.is_complete():
+        if player is not None and state.active_player != player:
+            break
         group = state.current_group()
         if group is None:
             break
