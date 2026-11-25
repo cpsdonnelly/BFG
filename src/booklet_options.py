@@ -791,6 +791,33 @@ def commander_names(faction_rule: str) -> List[str]:
     return [f"{n} (Ld {ld})" for n, ld, _ in tiers]
 
 
+# Wolf-Pack Pirate Fleet (Imperium p.128-129): Pirate Captains (Ld 8, 50pts,
+# one free re-roll, up to two more for 25 / 50) on the list's non-xenos
+# capital ships, Chaos and Space Marine classes counting as Rogue Trader ships;
+# offered only in that list (fleet_lists `list_options`). Not yet: 0-3 captains
+# (one per 500pts; the engine keeps one re-roll pool), "most expensive capital
+# ship" placement (To do 29), A Problem with Authority (-1 Ld re-rolling).
+WOLF_PACK_CAPITALS = ("Murder Cruiser", "Slaughter Cruiser", "Strike Cruiser",
+                      "Fanatic Light Cruiser", "Schismatic Light Cruiser",
+                      "Heretic Light Cruiser")
+
+
+def pirate_captain_options(row: dict) -> List[Dict]:
+    if row["name"] not in WOLF_PACK_CAPITALS:
+        return []
+    name = "Pirate Captain (Ld 8)"
+    opts = [{"name": name, "description": "Fleet commander (Wolf-Pack), 50pts: Ld 8, "
+             "1 free re-roll.", "points_cost": 50,
+             "effect": {"set": {"leadership": 8, "leadership_table": ""}, "rerolls": 1,
+                        "add_special_rules": ["fleet_commander"], "flagship": True},
+             "restrictions": ["fleet_unique", "group:fleet_commander"]}]
+    opts += [{"name": f"Pirate Captain: {k} extra re-roll{'s' if k > 1 else ''}",
+              "description": f"{cost}pts.", "points_cost": cost, "effect": {"rerolls": 1 + k},
+              "restrictions": ["group:commander_rerolls", f"requires:{name}"]}
+             for k, cost in ((1, 25), (2, 50))]
+    return opts
+
+
 def fleet_commander_options(row: dict) -> List[Dict]:
     """The faction's fleet commander as options on a capital ship: fixed Ld
     (it supersedes the ship's), free and bought re-rolls, flagship. Ork
@@ -1355,7 +1382,8 @@ def options_for(row: dict) -> List[Dict]:
     """Every option for one booklet ship (_options_for) plus the mine launcher
     swap its fleet lists allow and torpedo bomber purchases."""
     return (_options_for(row) + mine_launcher_options(row) + torpedo_bomber_options(row)
-            + tau_profile_options(row) + ork_profile_options(row))
+            + tau_profile_options(row) + ork_profile_options(row)
+            + pirate_captain_options(row))
 
 
 def _options_for(row: dict) -> List[Dict]:

@@ -1048,7 +1048,8 @@ are fixed by the owner):
 5. To do 25: fleet building completeness (every ship upgrade, fleet option and leader
    selectable; the owner's 1000pt fleets as validation test cases).
 6. To do 24 and 31: the AI list builder (personalities, validation and repair; for players
-   too), with the log of the places it decides at random.
+   too), with the log of the places it decides at random. Built (engine and a command-line
+   tool; the window button with To do 26).
 7. To do 28 and 29: AI deployment (buff ships last, escort squadrons and formations, capital
    squadrons, squadron sizes from the fleet list) and commander placement.
 8. To do 26 and 27: the demo reworked (the old demo fleets removed, random terrain Cruiser
@@ -3145,6 +3146,38 @@ Done: To do 2, 3, 6; most of 7.
    Ships are categorised by armament for the builder (30cm macrobatteries, 45cm lances,
    torpedoes, carrier, nova cannon...). Upgrades and leaders are bought too (see To do 25,
    29). Every random choice is logged (To do 31).
+   Built (`src/list_builder.py`, `tools/random_fleet.py --list <key> --points N
+   [--personality P] [--seed S]`, `tests/test_list_builder.py`): `ListBuilder` on the
+   window-free fleet model (`src/fleet_model.py`: rows, totals, `validate_fleet`,
+   `fleet_data`, `list_catalog`, used by the fleet builder window too). Steps: the
+   personality (one of the seven, or random; one the list can't do is logged as
+   unavailable and another drawn; the booklet's Bakka list does have carriers: the
+   Dominion and the Mechanicus cruisers in its battlecruiser places); standouts (carrier,
+   battleship, grand cruiser heavy) take the biggest such ship first; its requirements
+   next (`_satisfy`: capital ships added one, two or three at a time while they leave
+   fewer fleet-list problems, matching the personality first, so an Emperor gets its
+   three cruisers); a second personality roll (`SECOND_SAME` 0.4); escorts 2D3 of one or
+   two classes (escort heavy: as many as fit), squadroned by class 2-6 a squadron; the rest
+   of the points on capital ships weighted to the personality (`PERSONALITY_WEIGHT` 4,
+   `HEAVY_WEIGHT` 8 for "<class> heavy", judgement), escorts only in escort heavy fleets;
+   required options drawn as each ship is added (Kabal Variants, Eldar weapon choices,
+   Tyranid weapons per location, redrawn until the ship's own checks pass); the list's
+   fleet commander on the dearest capital ship (points reserved for it); spare points on
+   random options kept only if the fleet stays valid. Then `validate_fleet`, and a repair
+   search when a rule is broken (drop a ship, add one / two / three of a class, add 2-6
+   escorts, trade a capital ship for escorts, drop and refill; best by problems, then their
+   shortfall read from the text, `_shortfall`, then unused points), up to six fresh
+   attempts. 168 random fleets (every fleet list, 1000 and 1500pts, three seeds) all keep
+   their list's rules; random fleets load, play to game over and replay. The fleet file
+   carries `personality`, `problems` and `random_choices` (To do 31: every draw with what
+   it was drawn from). Found on the way: the Wolf-Pack list required a commander it
+   couldn't buy; the Pirate Captain (Ld 8, 50, one free re-roll, +1 / +2 for 25 / 50) is
+   now an option on its non-xenos capital ships, only in that list
+   (`booklet_options.pirate_captain_options`; not yet 0-3 captains, the most expensive
+   ship placement, A Problem with Authority). Not yet: reserves and detachments, the
+   builder in the window (a minimal Tk button, To do 26's demo), squadron formations and
+   capital squadrons (To do 28), commander placement after the Ld roll (To do 29),
+   upgrades bought by role rather than at random.
 25. Fleet building completeness (owner: make sure ships can be upgraded; ship-specific and
    fleet-wide upgrades and leaders selectable). The owner's 1000pt fleets are the test
    cases (`tests/` and the new demo fleets, To do 26), each built and validated exactly:

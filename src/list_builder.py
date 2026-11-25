@@ -138,19 +138,55 @@ class ListBuilder:
         from .ship_catalog import get_upgrades_for_ship
         return [u for u in get_upgrades_for_ship(entry) if self._allowed(u.name)]
 
-    def _row(self, entry, key: str, cost: int) -> dict:
-        """A row with one option of each required group chosen at random."""
+    def _required(self, entry):
+        """What a ship must choose: one option of each required group (Kabal
+        Variants, Eldar weapon choices) and, for Tyranids, a number of weapons
+        per location (`tyranids.slot_limits`, each option's `tyranid_slot:`
+        count). Returns (groups {name: [options]}, slots {loc: (lo, hi,
+        [(option, count)])})."""
         opts = self._options(entry)
         groups: Dict[str, list] = {}
+        slots: Dict[str, tuple] = {}
+        limits = {}
+        if entry.faction == "tyranids":
+            from .tyranids import slot_limits
+            limits = slot_limits(entry.ship_class)
         for u in opts:
             for r in u.restrictions:
                 if r.startswith("required_group:"):
                     groups.setdefault(r.split(":", 1)[1], []).append(u)
-        ups = []
-        for g, us in sorted(groups.items()):
-            u = self._choose(f"{entry.ship_class}: {g}", us, label=lambda u: u.name)
-            ups.append(u.name)
-        # Tyranid configurations: a required weapon per slot (tyranids.config_errors)
+                elif r.startswith("tyranid_slot:"):
+                    parts = r.split(":")
+                    loc = parts[1]
+                    if loc in limits:
+                        lo, hi = limits[loc]
+                        n = int(parts[2]) if len(parts) > 2 else 1
+                        slots.setdefault(loc, (lo, hi, []))[2].append((u, n))
+        return groups, slots
+
+    def _row(self, entry, key: str, cost: int, log: bool = True) -> dict:
+        """A row with its required choices made at random (redrawn until the
+        ship's own option checks pass, up to 30 draws); logged once, as the
+        options taken."""
+        from .booklet_options import ship_option_errors
+        groups, slots = self._required(entry)
+        ups: List[str] = []
+        for _try in range(30):
+            ups = [self.rng.choice(us).name for _g, us in sorted(groups.items())]
+            for loc, (lo, hi, options) in sorted(slots.items()):
+                want = self.rng.randint(lo, hi) if hi > lo else lo
+                got, tries = 0, 0
+                while got < want and tries < 20:
+                    tries += 1
+                    u, n = self.rng.choice(options)
+                    if got + n <= want and u.name not in ups:
+                        ups.append(u.name)
+                        got += n
+            if not ship_option_errors(entry, ups):
+                break
+        if (groups or slots) and log:
+            self.choices.append({"what": f"{entry.ship_class}: required choices",
+                                 "chose": list(ups)})
         return make_fleet_row(entry, upgrades=ups, list_key=key, base_cost=cost)
 
     def _total(self, rows) -> int:
@@ -204,18 +240,47 @@ class ListBuilder:
             rows.append(self._row(e, k, c))
 
     def _row_quiet(self, e, k, c) -> dict:
-        """A row priced with its cheapest required options, for fit checks
+        """A row priced with its cheapest required choices, for fit checks
         (no choice logged)."""
-        opts = self._options(e)
-        groups: Dict[str, int] = {}
-        for u in opts:
-            for r in u.restrictions:
-                if r.startswith("required_group:"):
-                    g = r.split(":", 1)[1]
-                    groups[g] = min(groups.get(g, 10 ** 6), u.points_cost)
+        groups, slots = self._required(e)
         row = make_fleet_row(e, list_key=k, base_cost=c)
-        row["points"] += sum(groups.values())
+        row["points"] += sum(min(u.points_cost for u in us) for us in groups.values())
+        row["points"] += sum(lo * min(u.points_cost / max(1, n) for u, n in opts)
+                             for lo, _hi, opts in slots.values() if opts)
         return row
+
+    def _satisfy(self, rows):
+        """The standout ship's requirements (owner: an Emperor needs three
+        cruisers): capital ships added one at a time while one leaves fewer
+        fleet-list problems (then a smaller shortfall), those matching the
+        personality first; a carrier heavy fleet's supports are carriers when
+        they do as well."""
+        def score(trial):
+            e = self._errors(trial)
+            return (len(e), sum(_shortfall(x) for x in e))
+        cur = score(rows)
+        for _ in range(8):
+            if cur[0] == 0:
+                return
+            best = None
+            for t in self.catalog:
+                if ship_size(t[0]) == "escort":
+                    continue
+                for k in (1, 2, 3):           # "one per 3 cruisers": one alone shows nothing
+                    if self._total(rows) + k * self._row_quiet(*t)["points"] > \
+                            self.points - self._reserve(rows):
+                        break
+                    trial = rows + [self._row(*t, log=False) for _ in range(k)]
+                    sc = score(trial) + (k, -self._weight(t[0]))
+                    if best is None or sc < best[0]:
+                        best = (sc, t, k)
+            if best is None or best[0][:2] >= cur:
+                return
+            for _ in range(best[2]):
+                rows.append(self._row(*best[1]))
+            self.choices.append({"what": "requirement", "chose": best[1][0].ship_class,
+                                 "count": best[2]})
+            cur = best[0][:2]
 
     def _add_escorts(self, rows):
         escorts = [t for t in self.catalog if ship_size(t[0]) == "escort"]
@@ -249,16 +314,26 @@ class ListBuilder:
                 w *= HEAVY_WEIGHT if p in HEAVY else mult
         return w
 
-    def _fill(self, rows):
+    def _fill(self, rows, quiet: bool = False, exclude: str = ""):
+        """Ships at random, weighted to the personality, while any fits.
+        quiet: a repair trial (nothing logged); exclude: a class not to add."""
+        # escorts come from _add_escorts (2D3 of at most two classes, owner),
+        # unless the fleet is escort heavy
+        heavy = "escort" in (self.personality, self.second)
         while True:
-            fits = [t for t in self.catalog if self._fits(rows, self._row_quiet(*t))]
+            fits = [t for t in self.catalog if t[0].ship_class != exclude
+                    and (heavy or ship_size(t[0]) != "escort")
+                    and self._fits(rows, self._row_quiet(*t))]
             if not fits:
                 return
-            t = self._choose("ship", fits, [self._weight(t[0]) for t in fits],
-                             label=lambda t: t[0].ship_class)
-            rows.append(self._row(*t))
+            weights = [self._weight(t[0]) for t in fits]
+            if quiet:
+                t = self.rng.choices(fits, weights=weights, k=1)[0]
+            else:
+                t = self._choose("ship", fits, weights, label=lambda t: t[0].ship_class)
+            rows.append(self._row(*t, log=not quiet))
 
-    def _add_commander(self, rows):
+    def _add_commander(self, rows, log: bool = True):
         cmd = self.fl.get("commander") or {}
         if not cmd or self._has_commander(rows) or (cmd.get("required_at") or 0) > self.points:
             return
@@ -270,12 +345,16 @@ class ListBuilder:
             opts = [u for u in self._options(r["entry"]) if u.name in names
                     and u.points_cost <= spare]
             if opts:
-                u = self._choose("fleet commander", opts, label=lambda u: u.name)
+                if log:
+                    u = self._choose("fleet commander", opts, label=lambda u: u.name)
+                    self.choices.append({"what": "commander's ship",
+                                         "chose": r["entry"].ship_class,
+                                         "rule": "dearest capital ship"})
+                else:
+                    u = self.rng.choice(opts)
                 r["upgrades"].append(u.name)
                 r["is_flagship"] = True
                 reprice_row(r)
-                self.choices.append({"what": "commander's ship", "chose": r["entry"].ship_class,
-                                     "rule": "dearest capital ship"})
                 return
 
     def _spend_spare(self, rows):
@@ -316,43 +395,76 @@ class ListBuilder:
             n += k
 
     def _repair(self, rows) -> List[str]:
-        """Local search on the fleet's problems: try random additions and
-        removals, keep the best that leaves fewer problems (then less unused
-        points)."""
-        errs = self._errors(rows)
+        """Local search on the fleet's problems. Each step tries every move of
+        a few kinds: drop one ship of a class, add one of a class, add several
+        escorts of a class (2-6), trade a capital ship for as many escorts of
+        a class as its points buy (lists with escorts per capital ship). The
+        move leaving the fewest problems, then the smallest shortfall in them
+        (`_shortfall`: "9 needed, 5 taken"), then the fewest unused points, is
+        kept while it improves; otherwise this attempt gives up."""
+        def score(trial):
+            e = self._errors(trial)
+            return (len(e), sum(_shortfall(x) for x in e), self.points - self._total(trial)), e
+        cur, errs = score(rows)
+        escorts = [t for t in self.catalog if ship_size(t[0]) == "escort"]
         for _ in range(REPAIR_STEPS):
             if not errs:
                 return errs
             best = None
-            for _try in range(10):
-                trial = [dict(r, upgrades=list(r["upgrades"])) for r in rows]
-                if self.rng.random() < 0.5 and trial:
-                    victims = [r for r in trial if not r["is_flagship"]] or trial
-                    trial.remove(self.rng.choice(victims))
-                else:
-                    fits = [t for t in self.catalog
-                            if self._total(trial + [self._row_quiet(*t)]) <= self.points]
-                    if not fits:
-                        continue
-                    t = self.rng.choice(fits)
-                    trial.append(self._row_quiet_logged(t))
-                self._add_commander(trial)
+            for name, trial in self._moves(rows, escorts):
+                self._add_commander(trial, log=False)
                 self._squadrons(trial)
-                e = self._errors(trial)
-                score = (len(e), self.points - self._total(trial))
-                if best is None or score < best[0]:
-                    best = (score, trial, e)
-            if best is None or best[0][0] > len(errs):
-                break                     # nothing tried helps: start again
+                sc, e = score(trial)
+                if best is None or sc < best[0]:
+                    best = (sc, trial, e, name)
+            if best is None or best[0][:2] >= cur[:2]:
+                break                     # nothing helps: start again
             rows[:] = best[1]
-            errs = best[2]
-            self.choices.append({"what": "repair", "problems_left": len(errs)})
+            cur, errs = best[0], best[2]
+            self.choices.append({"what": "repair", "move": best[3], "problems_left": len(errs)})
         return errs
 
-    def _row_quiet_logged(self, t) -> dict:
-        e, k, c = t
-        self.choices.append({"what": "repair: add", "chose": e.ship_class})
-        return self._row(e, k, c)
+    def _moves(self, rows, escorts):
+        """(description, trial fleet) for every repair move."""
+        def copy(rs):
+            return [dict(r, upgrades=list(r["upgrades"])) for r in rs]
+
+        def fits(trial, t, k=1):
+            return self._total(trial) + k * self._row_quiet(*t)["points"] <= self.points
+        seen = set()
+        for i, r in enumerate(rows):                       # drop one of a class
+            cls = r["entry"].ship_class
+            if cls in seen:
+                continue
+            seen.add(cls)
+            trial = copy(rows[:i] + rows[i + 1:])      # a dropped flagship's commander moves
+            yield f"drop {cls}", trial
+            if r["entry"].ship_type != "escort":          # trade it for escorts
+                for t in escorts:
+                    tr = copy(trial)
+                    k = 0
+                    while k < 6 and fits(tr, t):
+                        tr.append(self._row(*t, log=False))
+                        k += 1
+                    if k:
+                        yield f"trade {cls} for {k} {t[0].ship_class}", tr
+        for t in self.catalog:                             # add one of a class
+            if fits(rows, t):
+                yield f"add {t[0].ship_class}", copy(rows) + [self._row(*t, log=False)]
+        for t in self.catalog:                             # add several of a class
+            for k in ((2, 3, 4, 6) if ship_size(t[0]) == "escort" else (2, 3)):
+                if fits(rows, t, k):
+                    yield (f"add {k} {t[0].ship_class}",
+                           copy(rows) + [self._row(*t, log=False) for _ in range(k)])
+        seen = set()
+        for i, r in enumerate(rows):                       # drop one and refill
+            cls = r["entry"].ship_class
+            if cls in seen or r["entry"].ship_type == "escort":
+                continue
+            seen.add(cls)
+            trial = copy(rows[:i] + rows[i + 1:])
+            self._fill(trial, quiet=True, exclude=cls)
+            yield f"drop {cls} and refill", trial
 
     def build(self) -> Tuple[List[dict], List[str]]:
         """(rows, problems): the best fleet over ATTEMPTS tries ([] problems
@@ -369,6 +481,7 @@ class ListBuilder:
             self.choices.append({"what": "second personality", "same_roll": same,
                                  "chose": self.second})
             self._add_standout(rows)
+            self._satisfy(rows)
             self._add_escorts(rows)
             self._fill(rows)
             self._add_commander(rows)
@@ -383,6 +496,28 @@ class ListBuilder:
             if not errs:
                 break
         return best
+
+
+def _shortfall(err: str) -> int:
+    """How far a fleet-list problem is from being met, read from its text:
+    "need at least 9 escorts (5 taken)" 4, "3 taken, at most 1" 2, "8, at most ...
+    (3)" 5, "5 towed ... hooks for only 0" 5; 1 otherwise.
+    A tie-breaker for the repair search only."""
+    import re
+    text = re.sub(r"p\.\d+", "", err)
+    nums = [int(n) for n in re.findall(r"\d+", text)]
+    if not nums:
+        return 1
+    m = re.search(r"(\d+) taken", text)
+    if m:
+        taken = int(m.group(1))
+        rest = [n for n in nums if n != taken] or [taken]
+        if "at most" in text:
+            return max(1, taken - min(rest))          # too many
+        return max(1, max(rest) - taken)              # too few
+    if len(nums) >= 2:
+        return max(1, abs(nums[0] - nums[-1]))        # "8, at most (3)", "5 ... only 0"
+    return 1
 
 
 def build_random_fleet(list_key: str, points: int, personality: Optional[str] = None,

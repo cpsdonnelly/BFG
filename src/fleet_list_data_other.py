@@ -419,9 +419,12 @@ RT_LISTS = [
          {"name": "Other Xenos Allies", "max": 4, "ships": {"Stryxis Caravan Vessel": 80}},
      ],
      "reserves": [],
+     # Pirate Captains (booklet_options.pirate_captain_options) only in this list
+     "list_options": ["Pirate Captain"],
      "unenforced": [
-         "Fleet commanders (0-3 Pirate Captains, one per 500pts, one required at 750+pts) "
-         "are not in the fleet builder yet. A Problem with Authority: -1Ld while re-rolling.",
+         "Fleet commanders: one Pirate Captain is built (required over 750pts); 0-3 "
+         "(one per 500pts) and the most expensive capital ship placement aren't checked. "
+         "A Problem with Authority: -1Ld while re-rolling.",
          _RT_MOW + " They count as Infamous Pirate Ships (grand galleon, ship of the line) "
          "or Pirate Cruisers (brig, galleon).",
          "The Space Marine Strike Cruiser rolls Leadership on the standard table and takes "

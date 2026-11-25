@@ -236,6 +236,10 @@ Needs more work (next first):
    teleports / rams, `tests/test_headless_game.py`). Next: alternate activation's per-unit
    phases; then human games replay in full (seats as recorded); then the replay viewer. Found, not changed (changes AI play): AI ships meet ordnance they moved
    into only after the whole AI movement phase, a human's after each move (s.15).
+1b. Built since: To do 24 / 31 (the AI list builder, `src/list_builder.py`,
+   `tools/random_fleet.py`; 168 random fleets across every list keep their rules), the
+   window-free fleet model (`src/fleet_model.py`), hard = a one-turn lookahead and expert
+   three (owner), the shortcut audit's fixes (CLAUDE.md To do 30).
 2. The rest of To do 18's plan items (tag constants and coverage test, crit-effect tables,
    one `order_allowed`, `ScenarioDef` registry, `ai_player.py` split, `mount_expected_hits` with
    To do 30's exact cached distributions (first slice built: `ai_hazards.battery_hits` on the
