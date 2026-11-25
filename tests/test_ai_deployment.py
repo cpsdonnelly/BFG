@@ -55,3 +55,11 @@ def test_only_its_own_turn():
     gs = _fleet()
     state = deployment_state(gs)              # sequential: player 1 first
     assert ai_deploy(gs, state, 2) == [] and state.next_idx[2] == 0
+
+
+def test_tyranid_hive_ships_are_buff_ships():
+    """Owner: hive ships buff friendly ships (synapse): placed last, friends in reach."""
+    from src.ship_catalog import find_ship_class
+    assert buff_range(find_ship_class("Proteus Class Hive Ship")) == 60
+    assert buff_range(find_ship_class("Charybdis Class Hive Ship")) == 45
+    assert buff_range(find_ship_class("Scylla Strain Bio-Cruiser w/ Synapse Node")) == 30
