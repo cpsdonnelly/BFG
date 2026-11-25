@@ -199,9 +199,10 @@ def _armor_facing(target: SimShip, x: float, y: float) -> int:
 def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
                           target: SimShip) -> float:
     """Expected hull hits from one weapon (deterministic, no dice), as the
-    normal AI counts them (ai_hazards): a battery point BATTERY_HITS_PER_FP (the
-    Gunnery table's average, To do 30) hits against Armour 5+, scaled by the Armour it fires at; a lance 0.5 (4+ whatever the
-    Armour, s.13)."""
+    normal AI counts them: batteries on the Gunnery table (target type, aspect,
+    range shift, the Armour facing; crippled at half; faction shifts such as
+    holofields aren't in the sim yet); a lance 0.5 (4+ whatever the Armour,
+    s.13)."""
     wtype = weapon.get("weapon_type", "")
     if wtype not in ("battery", "lance"):
         return 0.0
@@ -216,9 +217,18 @@ def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
     strength = weapon.get("strength", 1) or 0
     if wtype == "lance":
         return strength * (7 - (weapon.get("hits_on") or 4)) / 6.0
-    armor = _armor_facing(target, attacker.x, attacker.y)
-    from .ai_hazards import BATTERY_HITS_PER_FP
-    return strength * BATTERY_HITS_PER_FP * _p_hit(armor) / _p_hit(5)
+    # The real Gunnery table (To do 30): the sim knows both ships where the
+    # shot is made, so the target's type, its aspect and the range are known
+    from .ai_hazards import table_battery_hits
+    from .tables import get_gunnery_column
+    if attacker.is_crippled:
+        strength = (strength + 1) // 2
+    aspect = {"front": "closing", "rear": "moving_away"}.get(
+        target.get_arc(attacker.x, attacker.y), "abeam")
+    ttype = {"escort": "escort", "defense": "defense"}.get(target.ship_type, "capital")
+    shifts = -1 if dist < 15 else (1 if dist > 30 else 0)
+    need = weapon.get("hits_on") or _armor_facing(target, attacker.x, attacker.y)
+    return table_battery_hits(strength, get_gunnery_column(ttype, aspect), shifts, need)
 
 
 def _torpedo_hits(attacker: SimShip, target: SimShip) -> float:

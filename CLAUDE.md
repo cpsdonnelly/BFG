@@ -617,7 +617,8 @@ table, see To do 30):
   Gothic fleet to game over and replayed (`tests/test_eldar_fleets.py`). Still open: the Seer
   Council's Foresight; XR's Corsair / Craftworld movement differences (MMS used).
 - Raised this session, still open (see each section): open question 1 (raid modifiers that
-  cancel); faction lances' expected hits in the AI (pinned, To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
+  cancel); faction lances' expected hits in the AI and the estimated range in `battery_hits`
+  (both pinned, To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
   not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
   orbit's free turns; the AI never parks in a field in high orbit; escort disengage values
   still per ship (not by squadron); an Incubi raid's 2D6-best not in the slave-taking
@@ -3271,14 +3272,19 @@ Done: To do 2, 3, 6; most of 7.
    range-free shifts such as holofields / shadowfields / Eldar batteries / targeting matrix
    read at a 20cm stand-in, the Armour facing the firer, a random firepower over its
    outcomes, crippled halving; range shifts left out because the shot comes after a move,
-   judgement; cached table lookups, `table_battery_hits`), used by `mount_hits` (exposure,
+   judgement (pinned, owner: estimate the range instead, e.g. from the enemy's predicted
+   moves, `enemy_move_samples` / `_predicted_positions`, or the range bracket it would
+   choose, and read the range shift from it); cached table lookups, `table_battery_hits`), used by `mount_hits` (exposure,
    the enemy fire plan, disengaging; the old `HOLOFIELD_SHIFT` 0.7 is gone, the table does
    it), `ship_threat_vp` (each target it bears on at its own hits), `fleet_hits_on`,
    `fleet_focus_targets`, `_ship_hits_on` (`_gun_hits`). Where the target isn't known:
    `BATTERY_HITS_PER_FP` 0.176, the table's own average for a point against 5+ (FP 2-12, a
    capital ship closing / moving away / abeam, no shifts; 0.35 was about twice that): the
    enemy fire plan's mount order, the flagship exposure, Wings of Fury's armament values
-   (`hit_and_run._THREAT_PER_DIE`), the re-roll threat check and the expert's sim. The move
+   (`hit_and_run._THREAT_PER_DIE`), the re-roll threat check. The expert's sim now reads the table too
+   (`lookahead_ai._expected_weapon_hits`: target type, aspect, the range at the shot,
+   Armour facing, crippled; faction shifts such as holofields not yet, the sim ships carry no
+   special rules; a cached lookup, about 0.4 microseconds a weapon). The move
    score keeps firepower points as its unit, now at `FP_HITS` (= 0.176) a point
    (`ai_player`), with lances at lance_p / FP_HITS points and torpedoes at
    `TORPEDO_FP_EQUIV` (0.35 / FP_HITS: the 0.35 hits a torpedo the move score always gave
@@ -3292,7 +3298,8 @@ Done: To do 2, 3, 6; most of 7.
    rather than 5); 16 AI-vs-AI games (Gothic v Chaos, Tau Merchant v Orks) played normally,
    results much as before (each 2-6 both before and after), with lower VP totals. Not yet:
    exact distributions in place of the Poisson counts (`poisson_at_least`), the wave / CAP /
-   turret chain by DP, the expert's sim per aspect.
+   turret chain by DP, the estimated range in `battery_hits` (pinned), Wings of Fury's
+   armament values on the table (the friend each weapon would fire at is known).
    Pinned (owner): faction lances need their own expected hits, not the standard 0.5 a
    point (`ai_hazards.lance_p` reads only `hits_on`, so today only Ork zzapp gunz' 5+ is
    counted, and the holofield save in `mount_hits`): Eldar pulsars (follow-up hits) and
