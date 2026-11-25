@@ -209,6 +209,26 @@ def _turret_kills(ship: Ship, marker=None) -> float:
     return ship.effective_turrets * max(0, 7 - turret_hit_on(ship, marker)) / 6.0
 
 
+def _raid_hits(ship: Ship, m: OrdnanceMarker, gs) -> float:
+    """An enemy assault boat squadron (or Impaler) reaching `ship`, in hits:
+    its exact raid value (`waves.raid_squadron_value`: the D6 over the raid
+    table with the crews' modifiers, an Impaler's own choice) over the ship's
+    value a hit. Cached per ship and marker for the phase. Without a game
+    state, half a hit (the old estimate)."""
+    if gs is None:
+        return 0.5
+    cache = gs.__dict__.setdefault("_raid_hits_cache", {})
+    key = (gs.turn_number, gs.current_phase, ship.id, m.id, ship.hits_remaining,
+           len(ship.critical_damage))
+    if key not in cache:
+        if len(cache) > 2000:
+            cache.clear()
+        from .waves import raid_squadron_value
+        vp = raid_squadron_value(ship, gs, m.owner_player, rules=m.special_rules)
+        cache[key] = vp / max(1.0, value_per_hit(ship, gs))
+    return cache[key]
+
+
 def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
                 my_ships: Sequence[Ship], gs=None) -> Tuple[float, str]:
     """Expected hits one enemy marker does to a ship that ends at `end` having
@@ -278,11 +298,7 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
             from .ordnance import turret_hit_on
             p_kill = max(0, 7 - turret_hit_on(ship, m)) / 6.0
             survive = (1.0 - p_kill) ** max(0, ship.effective_turrets)
-            if "impaler" in (m.special_rules or []):
-                dmg = sum(1 for r in range(2, 7) if r >= ship.lowest_armor_value) / 6.0
-                h = survive * (5.0 / 6.0 + dmg)
-            else:
-                h = survive * 0.5
+            h = survive * _raid_hits(ship, m, gs)
         else:
             return 0.0, ""                       # fighters don't attack ships
         return h, f"{otype} ({h:.1f} hits)"
@@ -1814,7 +1830,7 @@ def enemy_move_samples(ship):
     """Polylines for `ship`'s next movement: (normal, dodge). Normal moves go
     half to full speed, turning up to its turn angle after its turning
     distance; dodges need a special order: Burn Retros (0 to half speed, turn
-    at once) or All Ahead Full (straight, +4D6cm: 14 on average)."""
+    at once) or All Ahead Full (straight, +4D6cm: five bands of the roll, `aaf_p`)."""
     import math as _m
     spd = ship.effective_speed or 0
     start = (ship.x, ship.y)
@@ -1842,8 +1858,33 @@ def enemy_move_samples(ship):
     dodge = [poly(d, turn, 0.0) if d else _Path([start])
              for d in (0.0, spd / 4.0, spd / 2.0) for turn in (-ta, 0.0, ta)
              if d or not turn]
-    dodge.append(poly(spd + 14.0, 0.0, spd + 14.0))
+    # All Ahead Full: straight, +4D6cm, rolled after the order, so the dodge is
+    # its spread, not its average: five bands of the 4D6 total, each at its
+    # mean and with its probability (`aaf_p`; the users combine them into one
+    # outcome, the player doesn't choose the roll)
+    for extra, prob in AAF_BANDS:
+        path = poly(spd + extra, 0.0, spd + extra)
+        path.aaf_p = prob
+        dodge.append(path)
     return normal, dodge
+
+
+def _aaf_bands():
+    """(mean extra cm, probability) for 4D6 in five bands: 4-9, 10-12, 13-15,
+    16-18, 19-24."""
+    from itertools import product as _prod
+    counts = {}
+    for r in _prod(range(1, 7), repeat=4):
+        counts[sum(r)] = counts.get(sum(r), 0) + 1
+    out = []
+    for lo, hi in ((4, 9), (10, 12), (13, 15), (16, 18), (19, 24)):
+        n = sum(counts[v] for v in range(lo, hi + 1))
+        mean = sum(v * counts[v] for v in range(lo, hi + 1)) / n
+        out.append((mean, n / 6 ** 4))
+    return out
+
+
+AAF_BANDS = _aaf_bands()
 
 
 def torpedo_path_survival(x1, y1, x2, y2, gs, kind: str = "torpedo",

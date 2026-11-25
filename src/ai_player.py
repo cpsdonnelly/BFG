@@ -2116,18 +2116,16 @@ class AIPlayer:
 
     def _flagship_exposure_vp(self, ship: Ship, x: float, y: float) -> float:
         """Owner guidance: keep the commander's ship out of harm. Expected VP of
-        the enemy direct fire that could reach it at (x, y) next turn (weapons in
-        range, arcs ignored: the enemy will turn), half-weighted since not all
-        of it will be aimed there."""
-        from .ai_hazards import value_per_hit
-        hits = 0.0
-        for e in self._live_enemies():
-            d = math.hypot(e.x - x, e.y - y) - e.base_radius - ship.base_radius
-            for w in e.weapons:
-                if w.get("weapon_type") in ("battery", "lance") and d <= (w.get("range_cm") or 0) + e.speed:
-                    hits += (w.get("strength") or 0) * (lance_p(w) if w.get("weapon_type") == "lance"
-                                                        else FP_HITS)
-        from .ai_hazards import past_shields
+        the enemy direct fire that could reach it at (x, y) next turn: every
+        enemy mount that can bear there within its move and one turn
+        (`_mount_bears`), at its expected hits on the Gunnery table and the
+        Armour it would hit (`mount_hits`; the ship's heading as it is now, the
+        end heading isn't passed here), past the shields; half-weighted since not
+        all of it will be aimed there."""
+        from .ai_hazards import value_per_hit, past_shields, _mount_bears, mount_hits
+        at = _dc_replace(ship, x=x, y=y)
+        hits = sum(mount_hits(e, w, at) for e in self._live_enemies() for w in e.weapons
+                   if w.get("weapon_type") in ("battery", "lance") and _mount_bears(e, w, at))
         hits = past_shields(hits, ship.effective_shields)
         return hits * value_per_hit(ship, self.gs) * 0.5
 
@@ -4689,7 +4687,14 @@ class AIPlayer:
                                                  hh, shields=False)
                 return LATER_TURN_WEIGHT, v
             outs_n = [outcome(p) for p in normal]
-            outs_d = [outcome(p) for p in dodge]
+            # an All Ahead Full dodge is one choice whose distance is rolled
+            # after it: its bands (aaf_p) make one expected outcome
+            outs_d = [outcome(p) for p in dodge if not getattr(p, "aaf_p", 0)]
+            aaf = [(p.aaf_p, outcome(p)) for p in dodge if getattr(p, "aaf_p", 0)]
+            if aaf:
+                tot = sum(q for q, _o in aaf) or 1.0
+                outs_d.append((sum(q * o[0] for q, o in aaf) / tot,
+                               sum(q * o[1] for q, o in aaf) / tot))
             wts = [getattr(p, "weight", 1.0) for p in normal]
             wsum = sum(wts) or 1.0
             mean_v = sum(w * v for w, (_h, v) in zip(wts, outs_n)) / wsum

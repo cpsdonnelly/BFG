@@ -159,9 +159,11 @@ def test_ai_hazard_counts_flickerfields_on_incoming_impalers():
                            owner_player=1, launched_by="c", x=10.0, y=0.0, speed=30)
     h_imp, _ = marker_hits(t, imp, (0.0, 0.0), [(0.0, 0.0)], [], gs)
     h_plain, _ = marker_hits(t, plain, (0.0, 0.0), [(0.0, 0.0)], [], gs)
-    # 6+ to shoot an Impaler down (3 turrets: (5/6)^3 survive) vs 4+ for a boat
-    assert abs(h_imp - (5 / 6) ** 3 * (5 / 6 + 2 / 6)) < 1e-9
-    assert abs(h_plain - 0.125 * 0.5) < 1e-9
+    # 6+ to shoot an Impaler down (3 turrets: (5/6)^3 survive) vs 4+ for a boat;
+    # what gets through is worth its exact raid value (`_raid_hits`, audit fix)
+    from src.ai_hazards import _raid_hits
+    assert abs(h_imp - (5 / 6) ** 3 * _raid_hits(t, imp, gs)) < 1e-9
+    assert abs(h_plain - 0.125 * _raid_hits(t, plain, gs)) < 1e-9
 
 
 ALL_BAY = {"name": "Keel Launch Bays", "weapon_type": "launch_bay", "strength": 5,

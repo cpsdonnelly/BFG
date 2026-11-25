@@ -3316,11 +3316,15 @@ Done: To do 2, 3, 6; most of 7.
      binomial of their lance shots (`binomial_pmf`), with the chance of finishing a ship;
      the expert's sim blows ships up at P(3D6 >= d) of reaching them with
      `binomial_past_shields`, not a fixed 10.5cm.
-   - Enemy dodges (`enemy_move_samples`) take All Ahead Full at its +14cm average only,
-     not a few points of 4D6.
-   - The incoming-ordnance hazard values an assault boat raid at a flat 0.5 hit
-     (`marker_hits`) though `raid_result_value` prices raids exactly.
-   - The flagship exposure ignores arcs and uses the average battery value.
+   - FIXED: enemy dodges (`enemy_move_samples`) take All Ahead Full in five bands of
+     4D6 (`AAF_BANDS`, `aaf_p`), combined into one expected outcome in the torpedo lead
+     plan (the roll comes after the order), not at +14cm.
+   - FIXED: the incoming-ordnance hazard prices an assault boat / Impaler that gets
+     through at its exact raid value (`_raid_hits`: `waves.raid_squadron_value` over the
+     ship's value a hit), not a flat 0.5 hit.
+   - FIXED: the flagship exposure counts the enemy mounts that can bear after a turn
+     (`_mount_bears`) at their table hits (`mount_hits`), not every gun in range at the
+     average (the ship's present heading: the end heading isn't passed there).
    - Rules timing found during To do 18 and left for the pure refactor: AI ships meet
      the ordnance they moved into only after the whole AI movement phase (s.15: as each
      ship moves; FIXED: `AIPlayer.contacts_fn`, the window's resolver passed to

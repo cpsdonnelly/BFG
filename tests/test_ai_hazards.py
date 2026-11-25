@@ -81,9 +81,10 @@ def test_commanders_ship_counts_its_exposure_and_braces_earlier():
     foe = make_ship(id="e", player=2, x=40.0, y=0.0, weapons=[gun])
     gs = make_gs([flag, plain, foe])
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
-    near = ai._position_penalty(20.0, 0.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (20.0, 0.0)])
+    # off the foe's port side (its battery bears there; astern it wouldn't)
+    near = ai._position_penalty(40.0, 20.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (40.0, 20.0)])
     far = ai._position_penalty(-60.0, 0.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (-60.0, 0.0)])
-    other = ai._position_penalty(20.0, 0.0, gs.get_ship_by_id("p"), [(0.0, 0.0), (20.0, 0.0)])
+    other = ai._position_penalty(40.0, 20.0, gs.get_ship_by_id("p"), [(0.0, 0.0), (40.0, 20.0)])
     assert near > far and near > other
     # Priced brace (To do 11 c): 4 hits at 2 shields; bracing halves each ship's
     # fire next turn (a foe 20cm off), but the commander's ship is worth double
