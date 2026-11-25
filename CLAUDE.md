@@ -576,7 +576,9 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Latest session (owner fleets, Tyranids, Kill the Admiral, owner UI and rules reports; all
-committed, 1793 tests pass, the ordnance sweep 5491 cases pass):
+committed, 1802 tests pass, the ordnance sweep 5579 cases pass). Since: the Eldar either/or
+ships, and To do 30's first slice (the AI's 0.35 rule of thumb replaced by the Gunnery
+table, see To do 30):
 - Done: Tyranids PLAYABLE (To do 19); Kill the Admiral AI (To do 7); booklet update 62
   (result 9 kills the commander on alien tables, Eldar on XR's crit table); the owner's Tau
   Protector, Ork and Necron fleets as files (To do 25; only Eldar left); owner UI reports (map
@@ -800,8 +802,8 @@ Still true from the review:
 - Game modes: hot seat, player vs AI (the AI is always Player 2), AI vs AI spectator (each
   player its own difficulty, `GameState.difficulty_for`). Two sides only (`3 - player` ~100 times); team play is To do 22.
 - Structure (To do 18's remaining items): string-keyed ladders, ~170 special-rule tag checks,
-  `ai_player.py` ~4,700 lines, some rules in UI files, judgement weights scattered, ~8 copies
-  of the "0.35 per firepower point" rule of thumb.
+  `ai_player.py` ~4,700 lines, some rules in UI files, judgement weights scattered. The
+  "0.35 per firepower point" rule of thumb is gone (To do 30, see there).
 - Language (To do 20): a full port to Rust in its own branch, Python retired once it replays
   every golden game, is the third-last task, online play (To do 23) the second last; the ML-trained AI (To do 12, then
   1) is the last, on the faster engine.
@@ -846,8 +848,7 @@ depends on the matchup": every one should come out of the expected-VP values, no
 
 All AI choices are in expected VP (`ai_hazards.py`, `ai_rerolls.py`, `waves.py`, `AIPlayer` in
 `ai_player.py`; the expert AI in `lookahead_ai.py`). Weights marked "judgement" are mine;
-tuning them is on hold (owner: keep it in mind, but it is hard work, so leave it for now): re-roll bars 45 / 25 / 15 / 10 VP, 0.35 expected hits per battery
-point, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT` 0.5,
+tuning them is on hold (owner: keep it in mind, but it is hard work, so leave it for now): re-roll bars 45 / 25 / 15 / 10 VP, half-weight flagship exposure, `PHASE_DISCOUNT` 0.85, `LATER_TURN_WEIGHT` 0.5,
 `DODGE_WEIGHT` 0.5, `CRIT_HORIZON` 3 shooting phases, `RISK_TIEBREAK` 0.1, `MOVE_TURN_WEIGHTS` 40% straight / 15% per turn, `ANTICIPATED_STRIKE_WEIGHT`
 0.5 (scaled by the air balance), `AIR_THREAT_WEIGHT` 0.5, `ENEMY_FIRE_AT_WAVE` 0.5,
 `REACTIVE_CAP_WEIGHT` 0.5, `AIRBORNE_INTERCEPT_WEIGHT` 0.75, CAP free fighters 0.75, the
@@ -1016,8 +1017,8 @@ Ordnance:
 Re-rolls and choices: importance-based re-rolls (`ai_rerolls.should_reroll`); Wings of Fury raid
 re-rolls and the "Auto (best)" prompts (see above).
 
-Expert AI (`lookahead_ai`): minimax over a deterministic sim using the same terms (battery 0.35
-scaled by Armour, lances 0.5, focus without overkill, torpedoes once, explosions at their odds,
+Expert AI (`lookahead_ai`): minimax over a deterministic sim using the same terms (battery
+`BATTERY_HITS_PER_FP` scaled by Armour, shields by `past_shields`, lances 0.5, focus without overkill, torpedoes once, explosions at their odds,
 shields each turn, the real table, its own ordnance in flight); leaf = VP banked + next turn's expected swing at
 `LATER_TURN_WEIGHT`; with a turn limit, the chance of winning from that margin
 (`win_score`, To do 2); root moves are the normal AI's candidates, best first, at most
@@ -1099,7 +1100,8 @@ Done: To do 2, 3, 6; most of 7.
    the LOWEST priority, after To do 11 and 12. Method agreed: CMA-ES (not a genetic
    algorithm); tune the judgement weights only, never rule-derived values (25% / 100% / 10%
    VP, Tau 5/6, the 10.5cm explosion radius, +14cm All Ahead Full, 0.5 per lance), and first
-   replace the 0.35-per-battery-point rule of thumb with the exact Gunnery table; paired
+   replace the 0.35-per-battery-point rule of thumb with the exact Gunnery table (done, To
+   do 30); paired
    evaluation with common random numbers (same seeds and scenarios, sides swapped), VP margin
    as fitness; an opponent pool (earlier weight sets, the untuned AI, hand-made styles);
    normal AI only (the expert takes ~75s a game); the harness doubles as a rules test (an
@@ -1882,7 +1884,7 @@ Done: To do 2, 3, 6; most of 7.
    Protector speed 20, 6+ prow, railguns / ion cannons all bearing forward (L/F, R/F, F).
    Plan:
    a. First, a shared prerequisite: exposure should respect our Armour facing. Built:
-      `ai_hazards.mount_hits(e, w, t)` (batteries 0.35 a point vs 5+ scaled to the Armour
+      `ai_hazards.mount_hits(e, w, t)` (batteries on the Gunnery table since To do 30, on the Armour
       facing the enemy would hit, `Ship.armor_vs` from its position at our end heading; lances
       0.5 whatever the Armour), used by `position_exposure_hits` and `enemy_fire_plan` (so
       `incoming_hits`, disengaging and the move score's exposure). Prow-on to an enemy
@@ -2652,8 +2654,7 @@ Done: To do 2, 3, 6; most of 7.
    back (kept in step anyway). Left: `optional_rules.set_ship_source` binding the live
    state (harmless while the expert's sim doesn't use a GameState; revisit in To do 18),
    Fleet Engagement's AI formation pick by `random` (an AI choice: seeded with the AI's
-   choices in To do 17), the ~8 "0.35 per point" estimates still reading the truncated
-   average (To do 18's `mount_expected_hits`).
+   choices in To do 17), the "0.35 per point" estimates (replaced by the Gunnery table, To do 30).
 16. Performance and a headless runner (plan section 2). Done so far:
    - `ai_hazards.ship_bracket_hits` cached by both ships' state;
    - shallow `dataclasses.replace` copies for the AI's trial positions and
@@ -2857,7 +2858,7 @@ Done: To do 2, 3, 6; most of 7.
    fire pool (UI halving inline today); a `ScenarioDef` registry replacing the scenario-mode
    ladders; `ai_player.py` split (movement, scenario terms, orders, shooting, ordnance, AA)
    with `_move_score` as a list of terms; one `mount_expected_hits` helper replacing the
-   0.35 copies (To do 1's prerequisite); `ai/weights.py` for every judgement weight; rules out
+   0.35 copies (done as `ai_hazards.battery_hits` / `_gun_hits`, To do 30); `ai/weights.py` for every judgement weight; rules out
    of the UI (squadron limits in fleet_builder, hull repair in game_panel); the long functions
    (`_resolve_ship_contacts`, `_apply_damage`, `validate_movement`, `setup_scenario`).
 19. Dark Eldar and Tyranids (export 14, listed but unsupported, `UNBUILT_FACTION_RULES`).
@@ -3261,6 +3262,33 @@ Done: To do 2, 3, 6; most of 7.
    explodes, and then say so in the code. Replaces the AI's Poisson
    approximations (`poisson_at_least`) and the 0.35 rule of thumb (To do 18's
    `mount_expected_hits`).
+   Built, first slice (the 0.35 rule of thumb replaced): `ai_hazards.battery_hits(e, w, t)`
+   (the real Gunnery table from where both ships stand: target type and aspect, the
+   range-free shifts such as holofields / shadowfields / Eldar batteries / targeting matrix
+   read at a 20cm stand-in, the Armour facing the firer, a random firepower over its
+   outcomes, crippled halving; range shifts left out because the shot comes after a move,
+   judgement; cached table lookups, `table_battery_hits`), used by `mount_hits` (exposure,
+   the enemy fire plan, disengaging; the old `HOLOFIELD_SHIFT` 0.7 is gone, the table does
+   it), `ship_threat_vp` (each target it bears on at its own hits), `fleet_hits_on`,
+   `fleet_focus_targets`, `_ship_hits_on` (`_gun_hits`). Where the target isn't known:
+   `BATTERY_HITS_PER_FP` 0.176, the table's own average for a point against 5+ (FP 2-12, a
+   capital ship closing / moving away / abeam, no shifts; 0.35 was about twice that): the
+   enemy fire plan's mount order, the flagship exposure, Wings of Fury's armament values
+   (`hit_and_run._THREAT_PER_DIE`), the re-roll threat check and the expert's sim. The move
+   score keeps firepower points as its unit, now at `FP_HITS` (= 0.176) a point
+   (`ai_player`), with lances at lance_p / FP_HITS points and torpedoes at
+   `TORPEDO_FP_EQUIV` (0.35 / FP_HITS: the 0.35 hits a torpedo the move score always gave
+   it, judgement). Shields: the exposure, the enemy fire plan, the flagship exposure and the
+   expert's sim now take `past_shields` (E[max(0, H - shields)], H Poisson) rather than
+   max(0, hits - shields), so a volley averaging below the shields still counts. Effects:
+   guns are worth about half what the AI thought, so VP terms (hazards, objectives,
+   disengaging) weigh twice as much against them, a lance twice as much against a battery
+   point, a 6+ prow facing a closing enemy no safer than a 5+ side abeam (the closing
+   column gives twice the dice), and the AI braces a hit earlier (4 hits at 2 shields
+   rather than 5); 16 AI-vs-AI games (Gothic v Chaos, Tau Merchant v Orks) played normally,
+   results much as before (each 2-6 both before and after), with lower VP totals. Not yet:
+   exact distributions in place of the Poisson counts (`poisson_at_least`), the wave / CAP /
+   turret chain by DP, the expert's sim per aspect.
 31. Log of random decisions (owner): keep track of every place the AI decides at random in
    fleet building (personality rolls, carrier counts, escort counts, Mechanicus gift rolls,
    the Necron War upgrade coin, formations, squadron placement...), so the ML-driven AI (To

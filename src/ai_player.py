@@ -6,7 +6,12 @@ with no Tkinter dialogs. Caller must set dice.mode = "auto" before use.
 import math
 
 from . import actions
-from .ai_hazards import craft_turret_p
+from .ai_hazards import craft_turret_p, lance_p, BATTERY_HITS_PER_FP as FP_HITS
+# The move score counts guns in firepower points: a battery point is FP_HITS
+# expected hits (the Gunnery table's average, To do 30), a lance lance_p / FP_HITS
+# points, a torpedo TORPEDO_FP_EQUIV (0.35 hits a torpedo against 5+ after
+# turrets, the value the move score has always given a torpedo; judgement)
+TORPEDO_FP_EQUIV = 0.35 / FP_HITS
 from .rng import game_random
 from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
 from typing import List, Optional, Dict
@@ -364,7 +369,7 @@ class AIPlayer:
                 continue
             for e in self._live_enemies():
                 v = self._arc_score(s, s.x, s.y, s.heading, e, guns_only=True,
-                                    in_range_only=True) * 0.35 * value_per_hit(e, self.gs)
+                                    in_range_only=True) * FP_HITS * value_per_hit(e, self.gs)
                 best = max(best, v)
         return best if phase == "shooting" else -best
 
@@ -914,7 +919,7 @@ class AIPlayer:
             return 0.0
         from .ai_hazards import value_per_hit
         win = self.MACHARIA_WEIGHT * sum(s.points_value for s in gs.get_ships())
-        unit = 0.35 * max(1.0, value_per_hit(enemy, gs)) if enemy is not None else 1.0
+        unit = FP_HITS * max(1.0, value_per_hit(enemy, gs)) if enemy is not None else 1.0
         rad = math.radians(h)
         dx, dy = pl.x - x, pl.y - y
         along = dx * math.cos(rad) + dy * math.sin(rad) - ship.base_radius
@@ -960,7 +965,7 @@ class AIPlayer:
         if not _pa(gs) or self.difficulty == "easy":
             return 0.0
         from .ai_hazards import value_per_hit, ship_value
-        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        units = FP_HITS * max(1.0, value_per_hit(enemy, gs))
         goal = self._planet_objective_vp(ship)
         if lo.in_low_orbit(ship):
             pl = lo.planet(gs)
@@ -1015,7 +1020,7 @@ class AIPlayer:
         from . import low_orbit as lo
         from .ai_hazards import value_per_hit, ship_value
         gs = self.gs
-        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        units = FP_HITS * max(1.0, value_per_hit(enemy, gs))
         goal = self._planet_objective_vp(ship)
         if y + ship.base_radius > lo.planet_edge_y():
             if lo.lands(ship):
@@ -1076,7 +1081,7 @@ class AIPlayer:
         from .ai_rerolls import firepower_outcomes
         from .scenarios import off_table_destroyed
         gs = self.gs
-        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        units = FP_HITS * max(1.0, value_per_hit(enemy, gs))
         moved = _dc_replace(ship, x=x, y=y)
         if off_table_destroyed(gs, moved):
             return -2.0 * ship_value(ship, gs) / units
@@ -1146,7 +1151,7 @@ class AIPlayer:
         d1 = max(0.0, math.hypot(x - pl.x, y - pl.y) - reach)
         full = 0.5 * bombardment_points(gs, ship) * self.bombard_point_vp()
         progress = 1.0 if d1 <= 0 else max(0.0, d0 - d1) / max(1.0, d0)
-        return full * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return full * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     CONVOY_RUN_WEIGHT = 0.5      # judgement: the share of its points a convoy ship saves by escaping
 
@@ -1189,7 +1194,7 @@ class AIPlayer:
             # Navigate the Storm: the exit point on the right edge
             from .navigate_storm import exit_progress
             return g * exit_progress(gs, ship, x, y) / (
-                0.35 * max(1.0, value_per_hit(enemy, gs)))
+                FP_HITS * max(1.0, value_per_hit(enemy, gs)))
         if gs.scenario_mode in ("convoy_narrative", "gauntlet"):
             # the short edge opposite the entry point
             from .convoy_narrative import exit_edge_for
@@ -1200,13 +1205,13 @@ class AIPlayer:
             else:
                 progress = 1.0 if x - ship.base_radius < 0 else \
                     max(0.0, ship.x - x) / max(1.0, ship.x)
-            return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+            return g * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
         h = gs.table_height
         if y + ship.base_radius > h:
             progress = 1.0
         else:
             progress = max(0.0, y - ship.y) / max(1.0, h - ship.y)
-        return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return g * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     BREAKTHROUGH_WEIGHT = 0.5    # judgement: winning Line Breaker ~ half the points on the table
 
@@ -1234,7 +1239,7 @@ class AIPlayer:
         from .ai_hazards import value_per_hit
         win = self.BREAKTHROUGH_WEIGHT * sum(s.points_value for s in gs.get_ships())
         progress = 1.0 if y - ship.base_radius < 0 else max(0.0, ship.y - y) / max(1.0, ship.y)
-        return win * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return win * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     def _rescue_escape(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
         """Rescue (To do 7): the sabotaged flagship can only disengage by
@@ -1257,7 +1262,7 @@ class AIPlayer:
         if g <= 0:
             return 0.0
         progress = max(0.0, ship.x - x) / max(1.0, ship.x)
-        return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return g * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     from .scenarios import OBJECTIVE_POINT_WEIGHT  # noqa: E402 (judgement, shared)
     OBJECTIVE_DENIAL = 0.5         # judgement: contesting an enemy-held marker
@@ -1342,7 +1347,7 @@ class AIPlayer:
         scores at the end of its turn, after it moves: judgement). Ships still
         to move stand at their planned ends (the coordination pass). A small
         pull towards the nearest marker we don't hold, within two moves, gives
-        ships out of reach a direction. In move-score units (VP / 0.35 x the
+        ships out of reach a direction. In move-score units (VP / FP_HITS x the
         target's value a hit)."""
         from .scenarios import objectives, controller, CONTROL_RANGE
         from .ai_hazards import value_per_hit
@@ -1366,7 +1371,7 @@ class AIPlayer:
                 if CONTROL_RANGE < d < reach:
                     pull = max(pull, 0.25 * (1.0 - (d - CONTROL_RANGE) / reach))
         vp = (gain + pull) * self.objective_point_vp()
-        return vp / (0.35 * max(1.0, value_per_hit(enemy, self.gs)))
+        return vp / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
 
     def _disengage_spot(self, ship: Ship, x: float, y: float, h: float, enemy: Ship) -> float:
         """To do 11 a goal 3 / 11 c (disengaging): the test is taken at the end
@@ -1374,7 +1379,7 @@ class AIPlayer:
         where the test is easier (+3 for a celestial phenomenon within 15cm, +1
         per blast marker within 5cm, -1 per enemy and enemy ordnance marker within
         15cm) and the risk of staying is what it is from there: the move gains
-        max(0, disengage_gain) at the end position, in move-score units (0.35
+        max(0, disengage_gain) at the end position, in move-score units (FP_HITS
         hits a point at the target's value a hit). Only for ships that could
         gain by trying from somewhere (checked at the current position with
         the best modifier, +3), and not escorts in a squadron (they test
@@ -1406,7 +1411,7 @@ class AIPlayer:
         g = disengage_gain(moved, gs, ld, ev, outs)
         if g <= 0:
             return 0.0
-        return g / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return g / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     COVERAGE_WEIGHT = 0.5    # judgement: a mount busy on another enemy vs the target
     COHERENCY_WEIGHT = 3.0   # judgement: out of formation (s.8) loses squadron orders,
@@ -1870,7 +1875,7 @@ class AIPlayer:
         from .ai_hazards import explosion_position_vp, value_per_hit
         vp = explosion_position_vp(ship, x, y, self.gs, getattr(self, "_enemy_plan", {}),
                                    getattr(self, "_our_hits", {}))
-        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
+        per_fp = FP_HITS * max(1.0, value_per_hit(target, self.gs))
         return vp / per_fp
 
     def _screen_bonus(self, ship: Ship, x: float, y: float, h: float, target: Ship) -> float:
@@ -1918,7 +1923,7 @@ class AIPlayer:
         if not threats:
             return 0.0
         saved_hits = 0.5 * p_hit(flag.lowest_armor_value) * min(threats, 3)
-        per_fp = 0.35 * max(1.0, value_per_hit(target, gs))
+        per_fp = FP_HITS * max(1.0, value_per_hit(target, gs))
         # value_per_hit already counts the commander's ship double while it has re-rolls
         return saved_hits * max(1.0, value_per_hit(flag, gs)) / per_fp
 
@@ -1926,14 +1931,14 @@ class AIPlayer:
                           target: Ship) -> float:
         """Half the expected hits the enemy could focus on the ship at this end
         position (ai_hazards.position_exposure_hits), in the planner's
-        firepower units (one point of in-arc firepower ~ 0.35 expected hits on
+        firepower units (one point of in-arc firepower ~ FP_HITS expected hits on
         the target). Half, as the enemy has other targets and our own fire
         thins it first."""
         if self.difficulty == "easy":
             return 0.0
         from .ai_hazards import position_exposure_hits, value_per_hit
         hits = position_exposure_hits(ship, x, y, h, self.gs)
-        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
+        per_fp = FP_HITS * max(1.0, value_per_hit(target, self.gs))
         from .scenarios import admiral_bonus_vp, admiral_crit_vp
         # Kill the Admiral: every hit on our flagship brings the lost game
         # nearer (its share of the bonus), and each may crit the bridge
@@ -2006,8 +2011,8 @@ class AIPlayer:
             if weapon.get("weapon_type") == "torpedo":
                 # Torpedoes launch from where the ship ends its move (s.15), within
                 # the launcher's arc: worth their strength within one torpedo move,
-                # half within two (the lead plan's reach), nothing unloaded. A
-                # torpedo hits about as often as a firepower point does
+                # half within two (the lead plan's reach), nothing unloaded, at
+                # TORPEDO_FP_EQUIV firepower points a torpedo
                 if not ship.ordnance_loaded_torps:
                     continue
                 arcs = weapon.get("arcs", [])
@@ -2015,6 +2020,7 @@ class AIPlayer:
                     continue
                 tspeed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
                 strength = weapon.get("strength") or 0
+                strength *= TORPEDO_FP_EQUIV
                 if dist <= tspeed + target.base_radius:
                     score += strength
                 elif dist <= 2 * tspeed + target.base_radius:
@@ -2026,6 +2032,8 @@ class AIPlayer:
             if arcs and arc not in arcs:
                 continue
             strength = weapon.get("strength", 1)
+            if weapon.get("weapon_type") == "lance":
+                strength *= lance_p(weapon) / FP_HITS     # a lance in firepower points
             w_range  = weapon.get("range_cm", 0)
             if w_range == 0 or dist <= w_range:
                 score += strength
@@ -2052,7 +2060,7 @@ class AIPlayer:
         the ship, the hazards along its path in expected VP (ai_hazards:
         mines, torpedoes, attack craft, asteroid fields, warp rifts, dust
         clouds, blast markers), converted at what one point of in-arc
-        firepower is worth against the enemy (about 0.35 expected hits)."""
+        firepower is worth against the enemy (about FP_HITS expected hits)."""
         if ship is not None:
             from .ai_hazards import move_hazard_vp, value_per_hit
             risk = move_hazard_vp(ship, (final_x, final_y), path or [(ship.x, ship.y),
@@ -2114,8 +2122,10 @@ class AIPlayer:
             d = math.hypot(e.x - x, e.y - y) - e.base_radius - ship.base_radius
             for w in e.weapons:
                 if w.get("weapon_type") in ("battery", "lance") and d <= (w.get("range_cm") or 0) + e.speed:
-                    hits += (w.get("strength") or 0) * 0.35
-        hits = max(0.0, hits - ship.effective_shields)
+                    hits += (w.get("strength") or 0) * (lance_p(w) if w.get("weapon_type") == "lance"
+                                                        else FP_HITS)
+        from .ai_hazards import past_shields
+        hits = past_shields(hits, ship.effective_shields)
         return hits * value_per_hit(ship, self.gs) * 0.5
 
     def _plan_flee(self, ship: Ship, order: str, aaf_bonus: int) -> List[MoveCommand]:
@@ -2191,7 +2201,7 @@ class AIPlayer:
 
     def _order_value(self, ship: Ship, order: str):
         """(order, gain in VP, pass chance) (To do 10 b-c, f): Lock On's move
-        gain at 0.35 hits a firepower point at the target's value a hit; Burn
+        gain at FP_HITS a firepower point at the target's value a hit; Burn
         Retros the hazard it saves less half the firepower; Reload Ordnance
         next turn's launch (judgement: half a hit a torpedo / squadron at the
         nearest enemy's value a hit). Pass chance: the command check (Ld,
@@ -2208,11 +2218,11 @@ class AIPlayer:
         target = self._focus_for(ship) or self._nearest_enemy(ship)
         vph = value_per_hit(target, self.gs) if target else 0.0
         if order == SpecialOrder.LOCK_ON.value:
-            g = max(0.0, self._lock_on_gain(ship)) / max(p, 1e-9) * 0.35 * vph
+            g = max(0.0, self._lock_on_gain(ship)) / max(p, 1e-9) * FP_HITS * vph
         elif order == SpecialOrder.ALL_AHEAD_FULL.value:
-            g = max(0.0, self._aaf_gain(ship)) / max(p, 1e-9) * 0.35 * vph
+            g = max(0.0, self._aaf_gain(ship)) / max(p, 1e-9) * FP_HITS * vph
         elif order == SpecialOrder.COME_TO_NEW_HEADING.value:
-            g = max(0.0, self._ctnh_gain(ship)) / max(p, 1e-9) * 0.35 * vph
+            g = max(0.0, self._ctnh_gain(ship)) / max(p, 1e-9) * FP_HITS * vph
         elif order == SpecialOrder.BURN_RETROS.value:
             g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
         elif order == SpecialOrder.RELOAD_ORDNANCE.value:
@@ -2240,7 +2250,7 @@ class AIPlayer:
                         return SpecialOrder.LOCK_ON.value
         else:
             # Lock On / All Ahead Full against Reload Ordnance, all in expected VP
-            # (To do 10 b): the gun gains at 0.35 hits a point at the target's
+            # (To do 10 b): the gun gains at FP_HITS a point at the target's
             # value a hit, the reload at next turn's launch (_reload_value)
             lock, aaf = self._lock_on_gain(ship), self._aaf_gain(ship)
             ctnh = self._ctnh_gain(ship)
@@ -2248,7 +2258,7 @@ class AIPlayer:
                 from .ai_hazards import value_per_hit
                 target = self._focus_for(ship) or self._nearest_enemy(ship)
                 vph = value_per_hit(target, self.gs) if target else 0.0
-                gun_vp = max(lock, aaf, ctnh) * 0.35 * vph
+                gun_vp = max(lock, aaf, ctnh) * FP_HITS * vph
                 if not (self._ordnance_spent(ship) and self._reload_value(ship) > gun_vp):
                     if lock >= aaf and lock >= ctnh:
                         return SpecialOrder.LOCK_ON.value
@@ -2399,7 +2409,7 @@ class AIPlayer:
         ram = self._ram_candidate(ship)
         if ram is not None:
             from .ai_hazards import value_per_hit
-            fast += ram[0] / (0.35 * max(1.0, value_per_hit(enemy, self.gs)))
+            fast += ram[0] / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
         if "ere_we_go" in ship.special_rules:
             p = 1.0
         else:
@@ -4112,7 +4122,7 @@ class AIPlayer:
             vp += down * raid_squadron_value(ship, gs, e.player, e.special_rules)
         if vp <= 0:
             return 0.0
-        return vp / (0.35 * max(1.0, value_per_hit(target, gs)))
+        return vp / (FP_HITS * max(1.0, value_per_hit(target, gs)))
 
     def _boarding_reach(self, ship: Ship, x: float, y: float, target: Ship) -> float:
         """To do 8 h: an end position in base contact with an enemy gains the
@@ -4129,7 +4139,7 @@ class AIPlayer:
                 best = max(best, self._boarding_gain(at, e))
         if best <= 0:
             return 0.0
-        return best / (0.35 * max(1.0, value_per_hit(target, self.gs)))
+        return best / (FP_HITS * max(1.0, value_per_hit(target, self.gs)))
 
     def _teleport_reach(self, ship: Ship, x: float, y: float, target: Ship,
                         order: str = "") -> float:
@@ -4168,7 +4178,7 @@ class AIPlayer:
             best = max(best, p * raid_squadron_value(e, gs, self.player, ship.special_rules))
         if best <= 0:
             return 0.0
-        return best / (0.35 * max(1.0, value_per_hit(target, gs)))
+        return best / (FP_HITS * max(1.0, value_per_hit(target, gs)))
 
     def _carrier_exposure(self, ship: Ship, x: float, y: float, target: Ship) -> float:
         """Owner: when the enemy has more launch capacity, protect our carriers.
@@ -4215,7 +4225,7 @@ class AIPlayer:
             n = bay_launch_capacity(e, bays, None)[0]
             vp += n * bomber_squadron_value(moved, self.gs) / (1 + others)
         vp *= self._anticipated_weight() * (1 + share) * doctrine
-        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
+        per_fp = FP_HITS * max(1.0, value_per_hit(target, self.gs))
         return vp / per_fp
 
     def _anticipated_strike_slots(self, friends, cap_left=None):

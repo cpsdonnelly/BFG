@@ -62,7 +62,9 @@ def commander_in_danger(gs, player: int) -> bool:
         d = math.hypot(e.x - flag.x, e.y - flag.y)
         for w in e.weapons:
             if w.get("weapon_type") in ("battery", "lance") and d <= (w.get("range_cm") or 0):
-                threat += (w.get("strength") or 0) * 0.35
+                from .ai_hazards import BATTERY_HITS_PER_FP, lance_p
+                threat += (w.get("strength") or 0) * (lance_p(w) if w.get("weapon_type") == "lance"
+                                                      else BATTERY_HITS_PER_FP)
     return threat >= flag.hits_remaining
 
 

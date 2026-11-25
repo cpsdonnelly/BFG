@@ -59,16 +59,17 @@ def test_both_broadsides_at_different_targets():
     a = make_ship(id="a", player=1, x=0.0, y=20.0, shields_max=0)      # its left
     b = make_ship(id="b", player=1, x=0.0, y=-20.0, shields_max=0)     # its right
     gs = make_gs([e, a, b])
-    assert abs(incoming_hits(a, gs) - 8 * 0.35) < 1e-9
-    assert abs(incoming_hits(b, gs) - 8 * 0.35) < 1e-9
+    abeam = 1.0          # FP8 at a capital ship abeam: 3 dice on 5+ (the Gunnery table, To do 30)
+    assert abs(incoming_hits(a, gs) - abeam) < 1e-9
+    assert abs(incoming_hits(b, gs) - abeam) < 1e-9
     # A lone target only ever faces one broadside
     gs1 = make_gs([e, a])
-    assert abs(incoming_hits(a, gs1) - 8 * 0.35) < 1e-9
+    assert abs(incoming_hits(a, gs1) - abeam) < 1e-9
     # Two of ours on the same side: the broadside goes wholly to one of them
     # (focus fire, owner), the more damaged one when it can finish it
     c = make_ship(id="c", player=1, x=10.0, y=20.0, shields_max=0, hits_remaining=2)
     gs2 = make_gs([e, a, c])
-    assert abs(incoming_hits(c, gs2) - 8 * 0.35) < 1e-9 and incoming_hits(a, gs2) == 0.0
+    assert abs(incoming_hits(c, gs2) - abeam) < 1e-9 and incoming_hits(a, gs2) == 0.0
 
 
 def test_focus_fire_moves_on_once_a_target_is_likely_dead():
@@ -166,8 +167,10 @@ def test_brace_follows_the_game_state_risk_preference():
             gs.turn_limit, gs.turn_number = 4, 4
         return brace_value(gs, gs.get_ship_by_id("p2"), hits)
 
-    assert value(None, 5) < 0 < value("ahead", 5)
-    assert value("behind", 6) < 0 < value(None, 6)
+    # (the thresholds moved one hit down when the guns given up were valued on
+    # the real Gunnery table, To do 30)
+    assert value(None, 4) < 0 < value("ahead", 4)
+    assert value("behind", 5) < 0 < value(None, 5)
 
 
 def test_guns_given_up_by_disengaging_are_a_gamble_too():

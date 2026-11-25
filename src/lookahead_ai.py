@@ -199,8 +199,8 @@ def _armor_facing(target: SimShip, x: float, y: float) -> int:
 def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
                           target: SimShip) -> float:
     """Expected hull hits from one weapon (deterministic, no dice), as the
-    normal AI counts them (ai_hazards): a battery point 0.35 hits against
-    Armour 5+, scaled by the Armour it fires at; a lance 0.5 (4+ whatever the
+    normal AI counts them (ai_hazards): a battery point BATTERY_HITS_PER_FP (the
+    Gunnery table's average, To do 30) hits against Armour 5+, scaled by the Armour it fires at; a lance 0.5 (4+ whatever the
     Armour, s.13)."""
     wtype = weapon.get("weapon_type", "")
     if wtype not in ("battery", "lance"):
@@ -217,7 +217,8 @@ def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
     if wtype == "lance":
         return strength * (7 - (weapon.get("hits_on") or 4)) / 6.0
     armor = _armor_facing(target, attacker.x, attacker.y)
-    return strength * 0.35 * _p_hit(armor) / _p_hit(5)
+    from .ai_hazards import BATTERY_HITS_PER_FP
+    return strength * BATTERY_HITS_PER_FP * _p_hit(armor) / _p_hit(5)
 
 
 def _torpedo_hits(attacker: SimShip, target: SimShip) -> float:
@@ -334,9 +335,13 @@ def _sim_value(t: SimShip, hits_remaining: float) -> float:
 
 def _apply_hits(state: SimState, t: SimShip, hits: float, shields: bool = True) -> None:
     if shields:
-        absorbed = min(t.shields_remaining, hits)
+        # the hull takes E[max(0, H - shields)], H a Poisson count (past_shields:
+        # a volley averaging below the shields still gets some through)
+        from .ai_hazards import past_shields
+        hull = past_shields(hits, t.shields_remaining)
+        absorbed = min(t.shields_remaining, hits - hull)
         t.shields_remaining -= absorbed
-        hits -= absorbed
+        hits = hull
     was_alive = not t.is_destroyed
     t.hits_remaining = max(0, t.hits_remaining - hits)
     if t.hits_remaining <= 0:
@@ -381,7 +386,8 @@ def _apply_expected_combat(state: SimState, shooter_player: int) -> float:
             torps = _torpedo_hits(attacker, t)
             if guns + torps <= 0:
                 continue
-            after = t.hits_remaining - max(0.0, guns - t.shields_remaining) - torps
+            from .ai_hazards import past_shields
+            after = t.hits_remaining - past_shields(guns, t.shields_remaining) - torps
             gain = _sim_value(t, after) - _sim_value(t, t.hits_remaining)
             key = (gain, guns + torps)
             if best_key is None or key > best_key:

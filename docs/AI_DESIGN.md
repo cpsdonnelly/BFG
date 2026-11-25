@@ -61,7 +61,10 @@ hit-and-run off, assault boats, boarding torpedoes and teleports are off for eve
 
 - **Batteries (macrobatteries)** (Built): expected hits from the Gunnery table with the real
   column shifts (range, blast markers or dust in the line of fire, target aspect). Planners use
-  a quick 0.35 hits per firepower point against Armour 5+, scaled to the actual Armour. Ork
+  the same table from where the ships stand (aspect, Armour facing, range-free shifts such as
+  holofields; the range left out as the shot comes after a move), or, where the target isn't
+  known, the table's own average of 0.176 hits a firepower point against 5+ (the old rule
+  of thumb was 0.35, about twice the table). Ork
   random firepower is rolled when the gun fires; Heavy Gunz use their bigger close-range value
   within 15cm.
 - **Lances** (Built): 0.5 hits per lance (4+ whatever the Armour); unaffected by column shifts.
@@ -443,7 +446,7 @@ the current AI, whose normal and expert players and weights stay as they are.
 | Values | crippled / destroyed | 25% / 100% | of points (s.38) |
 | Time | phase discount | 0.85 | per ordnance phase of delay |
 | Time | later-turn weight | 0.5 | anything from the next game turn |
-| Guns | battery rule of thumb | 0.35 | hits per firepower point vs 5+ |
+| Guns | battery average (rule-derived, To do 30) | 0.176 | the Gunnery table's hits per firepower point vs 5+ |
 | Guns | lance | 0.5 | hits per lance |
 | Raids | torpedo in a silenced location | 0.3 | hits per point |
 | Raids | weapon brought to bear after a turn | 0.75 | when valuing an armament crit |
@@ -616,8 +619,8 @@ Order of value (Claude's view, not a ruling): rules completeness > candidate gen
 search with dice > learned evaluation > weight tuning. Weight tuning (owner: last, on hold):
 CMA-ES over the judgement weights only, paired games with common random numbers, an opponent
 pool (avoids tuning to one opponent's habits or to engine bugs), the normal AI (the expert takes
-~75s a game), VP margin as fitness; the 0.35 battery rule of thumb gives way to the exact Gunnery
-table first; redo after any structural change. The same harness is a rules test: an optimiser
+~75s a game), VP margin as fitness; the 0.35 battery rule of thumb has given way to the exact Gunnery
+table (done); redo after any structural change. The same harness is a rules test: an optimiser
 finds degenerate strategies in the rules as well as in the AI.
 
 Possible gaps in this plan worth the owner's view: deployment strategy, damage-control choices,

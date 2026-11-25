@@ -238,7 +238,10 @@ Needs more work (next first):
    into only after the whole AI movement phase, a human's after each move (s.15).
 2. The rest of To do 18's plan items (tag constants and coverage test, crit-effect tables,
    one `order_allowed`, `ScenarioDef` registry, `ai_player.py` split, `mount_expected_hits` with
-   To do 30's exact cached distributions (owner: exact wherever possible, DP for chains such
+   To do 30's exact cached distributions (first slice built: `ai_hazards.battery_hits` on the
+   real Gunnery table replaces the 0.35 rule of thumb, `BATTERY_HITS_PER_FP` 0.176 where the
+   target isn't known, `past_shields` for exposure and the expert's sim; see CLAUDE.md To do
+   30; next: exact counts in place of `poisson_at_least`, the wave chain by DP) (owner: exact wherever possible, DP for chains such
    as waves through CAP and turrets), `ai/weights.py`, rules out of the UI, long functions).
 3. Then the agreed order in CLAUDE.md "To do": 25 (fleet building completeness, the owner's
    1000pt fleets as tests), 26-27 (demo rework, favourite fleets), 24 + 31 (AI list builder,

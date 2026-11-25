@@ -34,9 +34,10 @@ def test_sim_shooting_focuses_without_overkill():
     """The first ship finishes the 1-hit enemy; the next goes for the other."""
     ours = [make_ship(id=f"o{i}", player=1, x=20.0, y=10.0 * i, heading=90.0,
                       weapons=[dict(w) for w in GUNS]) for i in range(2)]
-    dying = make_ship(id="dying", player=2, x=40.0, y=0.0, hits_remaining=1, shields_max=1,
+    # unshielded: FP6 is about one expected hit on the real table (To do 30)
+    dying = make_ship(id="dying", player=2, x=40.0, y=0.0, hits_remaining=1, shields_max=0,
                       points_value=200, armor_side="5+", armor_prow="5+")
-    fresh = make_ship(id="fresh", player=2, x=40.0, y=10.0, shields_max=1, points_value=200,
+    fresh = make_ship(id="fresh", player=2, x=40.0, y=10.0, shields_max=0, points_value=200,
                       armor_side="5+", armor_prow="5+")
     st = _state(ours + [dying, fresh])
     scored = _apply_expected_combat(st, 1)

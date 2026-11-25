@@ -4,10 +4,12 @@ from tests.conftest import make_ship, make_gs
 from src.hit_and_run import best_raid_reroll, raid_result_value, raid_crit_preview
 from src.combat import weapon_disabled_by_crit
 
+# FP12 broadsides: on the real Gunnery table (To do 30) a silenced FP6 battery is
+# worth less than a fresh raid die, so these tests use heavier guns
 PORT = {"name": "Port Weapons Battery", "weapon_type": "battery", "range_cm": 45,
-        "strength": 6, "arcs": ["left"]}
+        "strength": 12, "arcs": ["left"]}
 STBD = {"name": "Starboard Weapons Battery", "weapon_type": "battery", "range_cm": 45,
-        "strength": 6, "arcs": ["right"]}
+        "strength": 12, "arcs": ["right"]}
 PROW = {"name": "Prow Lance", "weapon_type": "lance", "range_cm": 30,
         "strength": 2, "arcs": ["front"]}
 DORSAL = {"name": "Dorsal Lances", "weapon_type": "lance", "range_cm": 60,

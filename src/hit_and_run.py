@@ -334,7 +334,7 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     the crit by then; extended to the target's later shooting phases, up to
     CRIT_HORIZON and the turn limit, each with two more end phases of repairs,
     a turn's more movement in the reach and the phase_weight discount). Each weapon there scores its expected hits (lances 0.5 a
-    die, batteries 0.35, torpedoes 0.3) on the most valuable allied ship it
+    die, batteries 0.176 (the Gunnery table's average), torpedoes 0.3) on the most valuable allied ship it
     can bear on then (`_weapon_can_bear`: in reach = range + the movement
     before that phase, i.e. the target's move, plus ours when the crit lands in
     the target's own turn; in arc now, or after one turn at 0.75). A location
@@ -376,7 +376,8 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
 
 
 # Expected hits per die / strength point when valuing a silenced weapon
-_THREAT_PER_DIE = {"lance": 0.5, "battery": 0.35, "torpedo": 0.3}
+# (batteries: ai_hazards.BATTERY_HITS_PER_FP, the Gunnery table's average, To do 30)
+_THREAT_PER_DIE = {"lance": 0.5, "battery": 0.176, "torpedo": 0.3}
 # Shooting phases a crit is valued over (judgement): later ones count less
 # (phase_weight) and are cut short by repairs and the turn limit
 CRIT_HORIZON = 3

@@ -23,7 +23,7 @@ Everything is pure logic (no Tk), so the expert AI's worker thread may use it.
 import math
 from itertools import product
 from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from .models import OrdnanceMarker, Ship
 
@@ -55,6 +55,62 @@ def lance_p(w: dict) -> float:
 def p_hit(armour: int) -> float:
     """One die against Armour N+ (a 6 always hits)."""
     return max(1, 7 - armour) / 6.0
+
+
+# To do 30: battery hits from the real Gunnery table rather than a rule of
+# thumb. BATTERY_HITS_PER_FP is the table's own average for a firepower point
+# against Armour 5+ (firepower 2-12 at a capital ship closing, moving away and
+# abeam, no shifts): where the target or its aspect isn't known (a ship's
+# threat in general, the move score's firepower units). It replaces the old
+# 0.35, which was about twice what the table gives.
+BATTERY_HITS_PER_FP = 0.176
+
+_GUNNERY_CACHE: Dict[tuple, float] = {}
+
+
+def table_battery_hits(fp: int, column: int, shifts: int, armour: int) -> float:
+    """Exact expected hits of `fp` firepower on the Gunnery table: the dice the
+    column (after shifts) gives, each hitting on the Armour. Cached."""
+    key = (fp, column, shifts, armour)
+    v = _GUNNERY_CACHE.get(key)
+    if v is None:
+        from .tables import lookup_gunnery_dice
+        v = lookup_gunnery_dice(fp, column, shifts) * p_hit(armour)
+        _GUNNERY_CACHE[key] = v
+    return v
+
+
+def battery_hits(e: Ship, w: dict, t: Ship, fp: Optional[int] = None) -> float:
+    """Expected hits of ship `e`'s battery `w` on `t` from where both stand,
+    on the real Gunnery table (To do 30): the target's type and aspect, the
+    shifts that don't depend on range (holofields, shadowfields, Eldar / Dark
+    Eldar batteries, targeting matrices, low orbit...), the Armour facing `e`
+    and a random firepower over its outcomes. Range shifts are left out: the
+    shot is made after a move, at a range not known yet (judgement: the 15-30cm
+    middle). Blast markers aren't counted (they change before the shot)."""
+    from .combat import (_battery_orientation, gunnery_target_type, get_column_shifts,
+                         dice_distribution, is_dice_value)
+    from .tables import get_gunnery_column
+    if fp is None:
+        text = w.get("strength_dice")
+        outcomes = (dice_distribution(text) if text and is_dice_value(text)
+                    else [(w.get("strength") or 0, 1.0)])
+    else:
+        outcomes = [(fp, 1.0)]
+    ttype = gunnery_target_type(t)
+    column = get_gunnery_column(ttype, _battery_orientation(e, t, w, ttype))
+    d = math.hypot(e.x - t.x, e.y - t.y)
+    proxy = e
+    if d < 15 or d > 30:
+        # the range-free shifts, read at a 20cm stand-in on the same bearing
+        k = 20.0 / d if d > 1e-6 else 1.0
+        proxy = e if d <= 1e-6 else _dc_replace(e, x=t.x + (e.x - t.x) * k, y=t.y + (e.y - t.y) * k)
+    shifts = get_column_shifts(proxy, t, [], [], [], w)
+    need = w.get("hits_on") or t.armor_vs(e.x, e.y)
+    crippled = fp is None and e.is_crippled
+    return sum(p * table_battery_hits(e.crippled_value(v) if crippled else v,
+                                      column, shifts, need)
+               for v, p in outcomes)
 
 
 def torpedo_p_hit(armour: int, rules=None, otype: str = "torpedo_standard") -> float:
@@ -442,11 +498,18 @@ def ship_threat_vp(ship: Ship, gs) -> float:
         wt = w.get("weapon_type")
         if wt not in ("battery", "lance"):
             continue
-        h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35)
-        if ship.is_crippled:
-            h *= 0.5
-        best = max((value_per_hit(t, gs) for t in foes if _mount_bears(ship, w, t)), default=0.0)
-        total += h * best
+        # each target it bears on at the hits it would score there (To do 30:
+        # batteries on the Gunnery table; crippled halves the firepower)
+        best = 0.0
+        for t in foes:
+            if not _mount_bears(ship, w, t):
+                continue
+            if wt == "lance":
+                h = (w.get("strength") or 0) * lance_p(w) * (0.5 if ship.is_crippled else 1.0)
+            else:
+                h = battery_hits(ship, w, t)
+            best = max(best, h * value_per_hit(t, gs))
+        total += best
     # its launch bays too (owner: carrier doctrine; already halved when crippled)
     total += bay_threat_vp(ship, gs)
     cache[key] = total
@@ -869,33 +932,24 @@ def _mount_bears(e: Ship, w: dict, t: Ship) -> bool:
 
 def mount_hits(e: Ship, w: dict, t: Ship) -> float:
     """Expected hits of enemy `e`'s battery / lance mount `w` on `t` as it
-    stands (its position and heading): batteries 0.35 a firepower point
-    against Armour 5+, scaled to the Armour facing `e` would hit (`armor_vs`
-    from e's position; To do 8 a: a 6+ prow really is safer than a 5+ side);
-    lances 0.5 a lance whatever the Armour (they hit on 4+)."""
+    stands (its position and heading): batteries on the real Gunnery table
+    (`battery_hits`, To do 30: the aspect, the Armour facing `e` would hit,
+    holofield / shadowfield shifts; To do 8 a: a 6+ prow really is safer than a
+    5+ side); lances 0.5 a lance whatever the Armour (they hit on 4+). A
+    crippled `e` fires at half strength."""
     st = w.get("strength") or 0
     f = hull_save_factor(t)
     from .necrons import veil_hidden
     if veil_hidden(t):
         f *= p_sum_at_most(2, max(0, min(10, e.leadership or 0)))   # its target priority test
-    if "holofield" in (t.special_rules or []) and not any(
-            c.get("crit_type") == "field_generators" for c in t.critical_damage):
-        # Eldar holofields (MMS): a save against lances (5+ beyond 30cm, 6+ at
-        # 15-30cm) and one right column shift against gunnery (not under 15cm;
-        # lightning arcs ignore it), HOLOFIELD_SHIFT a judgement for the shift
-        from .eldar import p_holofield_save
-        d = math.hypot(e.x - t.x, e.y - t.y)
-        if w.get("weapon_type") == "lance":
-            f *= 1.0 - p_holofield_save(d)
-        elif d >= 15.0 and not w.get("lightning_arc"):
-            f *= HOLOFIELD_SHIFT
     if w.get("weapon_type") == "lance":
-        return st * lance_p(w) * f
-    return st * 0.35 * p_hit(t.armor_vs(e.x, e.y)) / p_hit(5) * f
-
-
-# One right column shift on the Gunnery table, as a share of the hits (judgement)
-HOLOFIELD_SHIFT = 0.7
+        if "holofield" in (t.special_rules or []):
+            # Eldar holofields (MMS): a save against lances (5+ beyond 30cm,
+            # 6+ at 15-30cm); their gunnery shift is in battery_hits
+            from .eldar import p_holofield_save
+            f *= 1.0 - p_holofield_save(math.hypot(e.x - t.x, e.y - t.y))
+        return (e.crippled_value(st) if e.is_crippled else st) * lance_p(w) * f
+    return battery_hits(e, w, t) * f
 
 
 def hull_save_factor(t: Ship) -> float:
@@ -917,7 +971,7 @@ def enemy_fire_plan(gs, player: int) -> dict:
     """Where the enemy's guns are expected to go in its next turn, assuming it
     focuses fire (owner: optimal play concentrates, it doesn't split): each
     enemy battery / lance mount goes wholly to the ship of `player` it adds the
-    most expected VP against (`_mount_bears`; 0.35 a battery point, 0.5 a
+    most expected VP against (`_mount_bears`; batteries on the Gunnery table, 0.5 a
     lance, scaled to the Armour facing it would hit, mount_hits; that enemy
     ship's first mount on a target loses the target's shields), given the
     hits already planned on it: value per hit up to the
@@ -944,7 +998,7 @@ def enemy_fire_plan(gs, player: int) -> dict:
             wt = w.get("weapon_type")
             if wt not in ("battery", "lance"):
                 continue
-            h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35)
+            h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else BATTERY_HITS_PER_FP)
             if h > 0:
                 mounts.append((h, e, w))
     mounts.sort(key=lambda m: -m[0])
@@ -954,7 +1008,7 @@ def enemy_fire_plan(gs, player: int) -> dict:
             if not _mount_bears(e, w, t):
                 continue
             h = mount_hits(e, w, t)          # on the Armour facing it would hit
-            dh = h if (e.id, t.id) in firing else max(0.0, h - shields[t.id])
+            dh = h if (e.id, t.id) in firing else past_shields(h, shields[t.id])
             gain = value(t, planned[t.id] + dh) - value(t, planned[t.id])
             if gain > best:
                 best, best_t, best_dh = gain, t, dh
@@ -1343,10 +1397,20 @@ def plan_strike_targets(gs, player: int) -> dict:
     return plan
 
 
+def _gun_hits(s: Ship, w: dict, e: Ship) -> float:
+    """One battery / lance mount's expected hits on `e` from where both stand:
+    batteries on the Gunnery table (`battery_hits`), lances 0.5 each (4+);
+    crippled ships at half strength."""
+    if w.get("weapon_type") == "lance":
+        st = w.get("strength") or 0
+        return (s.crippled_value(st) if s.is_crippled else st) * lance_p(w)
+    return battery_hits(s, w, e)
+
+
 def fleet_hits_on(gs, player: int) -> Dict[str, float]:
     """Expected hits `player`'s batteries / lances in reach (range + the firing
-    ship's move) could put on each enemy ship next shooting phase (0.35 a
-    battery point scaled by its Armour, 0.5 a lance), before shields."""
+    ship's move) could put on each enemy ship next shooting phase (batteries on the
+    Gunnery table, `_gun_hits`; 0.5 a lance), before shields."""
     import math as _m
     ours = [s for s in gs.get_ships() if s.player == player
             and not s.is_destroyed and not s.is_disengaged]
@@ -1356,14 +1420,13 @@ def fleet_hits_on(gs, player: int) -> Dict[str, float]:
                 or e.status in ("drifting_hulk", "burning_hulk")):
             continue
         hits = 0.0
-        armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
         for s in ours:
             d = _m.hypot(s.x - e.x, s.y - e.y)
             for w in s.weapons:
                 wt = w.get("weapon_type")
                 if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
                     continue
-                hits += (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
+                hits += _gun_hits(s, w, e)
         out[e.id] = hits
     return out
 
@@ -1414,7 +1477,7 @@ def fleet_focus_targets(gs, player: int) -> list:
     """Enemy ships ranked for the fleet to concentrate on (owner: focus fire,
     easier targets first): for each enemy, the expected hits the fleet's
     batteries / lances could put on it next turn (within range + the firing
-    ship's move; 0.35 a battery point scaled by its Armour, 0.5 a lance), and
+    ship's move; batteries on the Gunnery table, 0.5 a lance), and
     the VP those hits add through its shields and damage thresholds
     (added_vp). Easier (low Armour / shields) and damaged ships rank first.
     Returns [(VP, enemy ship), ...] best first."""
@@ -1427,14 +1490,13 @@ def fleet_focus_targets(gs, player: int) -> list:
                 or e.status in ("drifting_hulk", "burning_hulk")):
             continue
         hits = 0.0
-        armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
         for s in ours:
             d = _m.hypot(s.x - e.x, s.y - e.y)
             for w in s.weapons:
                 wt = w.get("weapon_type")
                 if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
                     continue
-                h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
+                h = _gun_hits(s, w, e)
                 hits += h
         if hits > 0:
             ranked.append((added_vp(e, gs, 0.0, hits), e))
@@ -1447,13 +1509,12 @@ def _ship_hits_on(s: Ship, e: Ship) -> float:
     turn (within range + its move), as fleet_focus_targets counts them."""
     import math as _m
     d = _m.hypot(s.x - e.x, s.y - e.y)
-    armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
     hits = 0.0
     for w in s.weapons:
         wt = w.get("weapon_type")
         if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
             continue
-        hits += (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
+        hits += _gun_hits(s, w, e)
     return hits
 
 
@@ -1497,7 +1558,8 @@ def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -
     """Expected hits the enemy's guns could put on `ship` if it ended its move
     at (x, y) and the enemy focused on it: every enemy battery / lance mount
     that could bear there (_mount_bears), on the Armour facing it would hit at
-    our end heading (mount_hits, To do 8 a), less its shields once per enemy."""
+    our end heading (mount_hits, To do 8 a), less its shields once per enemy
+    (`past_shields`: a volley averaging below them still gets some through)."""
     from .geometry import current_shields
     moved = _dc_replace(ship, x=x, y=y, heading=heading)
     shields = current_shields(ship, gs.get_blast_markers())
@@ -1508,7 +1570,7 @@ def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -
         hits = sum(mount_hits(e, w, moved)
                    for w in e.weapons if w.get("weapon_type") in ("battery", "lance")
                    and _mount_bears(e, w, moved))
-        total += max(0.0, hits - shields)
+        total += past_shields(hits, shields)     # E[max(0, H - shields)], H Poisson
     return total
 
 
