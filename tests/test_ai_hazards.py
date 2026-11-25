@@ -257,3 +257,19 @@ def test_tau_missiles_reach_40cm():
     end, pts = (me.x, me.y), [(me.x, me.y)]
     assert marker_hits(me, std, end, pts, [me])[0] == 0.0
     assert marker_hits(me, tau, end, pts, [me])[0] > 0.0
+
+
+def test_exact_shields_and_dice_in_the_ai_values():
+    """Audit fixes (owner): no averages pushed through a cut-off."""
+    from src.ai_hazards import d6_past_shields, binomial_past_shields, shot_vp
+    # a D6 of asteroid hits against 2 shields: (1 + 2 + 3 + 4) / 6, not 3.5 - 2
+    assert abs(d6_past_shields(2) - 10 / 6) < 1e-12
+    # 4 lance shots on 4+ against 2 shields: 1x P(3) + 2x P(4) = 4/16 + 2/16
+    assert abs(binomial_past_shields(4, 0.5, 2) - 6 / 16) < 1e-12
+    # a battery averaging below the target's shields still has some value
+    gun = {"name": "Port", "weapon_type": "battery", "range_cm": 30, "strength": 2,
+           "arcs": ["left"]}
+    a = make_ship(id="a", player=1, x=0.0, y=0.0)
+    t = make_ship(id="t", player=2, x=0.0, y=20.0, shields_max=2, points_value=180)
+    gs = make_gs([a, t])
+    assert shot_vp(a, gun, t, gs) > 0

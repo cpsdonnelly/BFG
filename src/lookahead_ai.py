@@ -363,19 +363,27 @@ def _apply_hits(state: SimState, t: SimShip, hits: float, shields: bool = True) 
 def _explode(state: SimState, dead: SimShip) -> None:
     """Expected Catastrophic Damage (s.34): a plasma drive overload (half its
     starting hits) or warp drive implosion (all of them) as 4+ lance shots at
-    every ship within the 3D6cm radius (10.5 on average). No chains."""
-    shots = dead.p_plasma * dead.hits_max / 2 + dead.p_warp * dead.hits_max
-    if shots <= 0:
+    every ship the 3D6cm radius may reach, at its chance of reaching it. No
+    chains."""
+    if dead.p_plasma <= 0 and dead.p_warp <= 0:
         return
+    from .ai_hazards import binomial_past_shields, p_sum_at_most
     for s in state.ships:
         if s is dead or not s.is_alive:
             continue
-        if math.hypot(s.x - dead.x, s.y - dead.y) - s.base_radius <= 10.5:
-            h = max(0.0, shots * 0.5 - s.shields_remaining)
-            s.shields_remaining = max(0, s.shields_remaining - shots * 0.5)
-            s.hits_remaining = max(0, s.hits_remaining - h)
-            if s.hits_remaining <= 0:
-                s.is_destroyed = True
+        # the 3D6cm radius reaching it (P(3D6 >= d)), then the lance shots on 4+
+        # past its shields, exactly (plasma: half the dead ship's starting hits,
+        # warp: all of them)
+        d = math.hypot(s.x - dead.x, s.y - dead.y) - s.base_radius
+        p_in = 1.0 - p_sum_at_most(3, max(0, math.ceil(d) - 1))
+        if p_in <= 0:
+            continue
+        sh = int(s.shields_remaining)
+        h = p_in * (dead.p_plasma * binomial_past_shields(dead.hits_max // 2, 0.5, sh)
+                    + dead.p_warp * binomial_past_shields(dead.hits_max, 0.5, sh))
+        s.hits_remaining = max(0, s.hits_remaining - h)
+        if s.hits_remaining <= 0:
+            s.is_destroyed = True
 
 
 def _apply_expected_combat(state: SimState, shooter_player: int) -> float:

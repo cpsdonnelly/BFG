@@ -47,6 +47,25 @@ def p_sum_at_least(n_dice: int, target: int) -> float:
     return 1.0 - p_sum_at_most(n_dice, target - 1)
 
 
+def binomial_pmf(n: int, p: float) -> List[float]:
+    """P(H = k), k = 0..n, for n dice each hitting with chance p (exact)."""
+    n = max(0, int(n))
+    return [math.comb(n, k) * p ** k * (1 - p) ** (n - k) for k in range(n + 1)]
+
+
+def binomial_past_shields(n: int, p: float, shields: int) -> float:
+    """E[max(0, H - shields)] for H ~ Binomial(n, p): the hits that get past
+    the shields when n dice hit on p each (an explosion's lance shots)."""
+    s = max(0, int(shields or 0))
+    return sum(q * max(0, k - s) for k, q in enumerate(binomial_pmf(n, p)))
+
+
+def d6_past_shields(shields: int) -> float:
+    """E[max(0, D6 - shields)]: a D6 of hits, less the shields (asteroid fields)."""
+    s = max(0, int(shields or 0))
+    return sum(max(0, r - s) for r in range(1, 7)) / 6.0
+
+
 def lance_p(w: dict) -> float:
     """A lance die's chance to hit: 4+ (Ork Zzapp Gunz 5+, `hits_on`)."""
     return (7 - (w.get("hits_on") or 4)) / 6.0
@@ -383,7 +402,7 @@ def terrain_threat(ship: Ship, end: Point, path: Sequence[Point], gs,
             fail = 1.0 - p_sum_at_most(n_dice, ld)
             if ship.ship_type == "escort":
                 fail *= fail                         # escorts re-roll
-            h = fail * max(0.0, 3.5 - shields)
+            h = fail * d6_past_shields(shields)       # E[max(0, D6 - shields)]
             hits += h
             why.append(f"asteroid field ({fail:.0%} fail)")
         elif t == "warp_rift":
@@ -794,10 +813,12 @@ def shot_vp(attacker: Ship, weapon: dict, target: Ship, gs, committed: float = 0
         return 0.0
     shields = current_shields(target, gs.get_blast_markers())
     # `committed` counts all expected hits planned so far; shields take the first
-    before = max(0.0, committed - shields)
-    after = max(0.0, committed + raw - shields)
+    # (E[max(0, H - shields)], H Poisson: a total averaging below the shields
+    # still gets some through, `past_shields`)
+    before = past_shields(committed, shields)
+    after = past_shields(committed + raw, shields)
     # shields knocked down open the target to the rest of the fleet's fire
-    shield_hits = min(raw, max(0.0, shields - committed))
+    shield_hits = max(0.0, raw - (after - before))
     alive = 1.0 - poisson_at_least(before, max(1, target.hits_remaining))
     # Bombardment cannons / killkannons crit on 4+ (crit_on): the extra crits
     # over the usual 6+ per hull hit, each worth CRIT_VP_PER_HIT hits
@@ -860,12 +881,15 @@ def explosion_vp(centre, strength: int, gs, player: int, exclude_id: str = "") -
         p_in = 1.0 - p_sum_at_most(3, max(0, _m.ceil(d) - 1))
         if p_in <= 0:
             continue
-        hits = max(0.0, strength * 0.5 - current_shields(s, bms))
-        if hits <= 0:
+        # `strength` lance shots on 4+, exactly: the hull hits past the shields
+        # (capped at what it has left) and the chance they finish it
+        sh = current_shields(s, bms)
+        pmf = binomial_pmf(strength, 0.5)
+        hull = sum(q * min(max(0, k - sh), s.hits_remaining) for k, q in enumerate(pmf))
+        if hull <= 0:
             continue
-        v = min(hits, s.hits_remaining) * value_per_hit(s, gs)
-        if hits >= s.hits_remaining:
-            v += ship_value(s, gs) * 0.3
+        p_dead = sum(q for k, q in enumerate(pmf) if k - sh >= s.hits_remaining)
+        v = hull * value_per_hit(s, gs) + p_dead * ship_value(s, gs) * 0.3
         total += p_in * v * (1 if s.player != player else -1)
     return total
 
@@ -1198,8 +1222,8 @@ def added_vp(target: Ship, gs, committed: float, hits: float, shields: bool = Tr
     then damage_vp's thresholds (destroy, cripple)."""
     from .geometry import current_shields
     sh = current_shields(target, gs.get_blast_markers()) if shields else 0
-    before = max(0.0, committed - sh)
-    after = max(0.0, committed + hits - sh)
+    before = past_shields(committed, sh)               # E[max(0, H - shields)]
+    after = past_shields(committed + hits, sh)
     return damage_vp(target, gs, after) - damage_vp(target, gs, before)
 
 
@@ -1462,9 +1486,13 @@ def explosion_position_vp(ship: Ship, x: float, y: float, gs, enemy_plan: Dict[s
         p_in = 1.0 - p_sum_at_most(3, max(0, _m.ceil(d) - 1))
         if p_in <= 0:
             continue
-        hits = (pp * max(0.0, (o.hits_max // 2) * 0.5 - shields)
-                + pw * max(0.0, o.hits_max * 0.5 - shields))
-        risk += pd * p_in * min(hits, ship.hits_remaining) * vph
+        # plasma: half its starting hits as lance shots, warp: all of them (4+),
+        # exactly, the hull hits past our shields capped at what we have left
+        def hull(n):
+            return sum(q * min(max(0, k - shields), ship.hits_remaining)
+                       for k, q in enumerate(binomial_pmf(n, 0.5)))
+        hits = pp * hull(o.hits_max // 2) + pw * hull(o.hits_max)
+        risk += pd * p_in * hits * vph
     lam_me = enemy_plan.get(ship.id, 0.0)
     pd_me = poisson_at_least(lam_me, max(1, ship.hits_remaining))
     bonus = 0.0

@@ -42,9 +42,7 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
     plus follow-on fire from enemies that haven't fired yet (the attacker's
     other weapons included)."""
     shields = current_shields(target, gs.get_blast_markers())
-    current_hull = max(0, incoming_hits - shields)
-    shields_left = max(0, shields - incoming_hits)
-    future_hull = 0.0
+    total = float(incoming_hits)      # every expected hit this turn, then past the shields
     phenomena = gs.get_phenomena()
     blast_markers = gs.get_blast_markers()
     for enemy in gs.get_ships():
@@ -66,10 +64,11 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
             # the engine's estimate: the Gunnery table for batteries, lances'
             # own roll, hits_on (bombardment cannons / killkannons), random values
             from .combat import expected_hits
-            expected = expected_hits(enemy, weapon, target, gs)
-            future_hull += max(0.0, expected - shields_left)
-            shields_left = max(0.0, shields_left - expected)
-    return current_hull + future_hull
+            total += expected_hits(enemy, weapon, target, gs)
+    # E[max(0, H - shields)], H a Poisson count (shields take the first hits
+    # of the turn, but a total averaging below them still gets some through)
+    from .ai_hazards import past_shields
+    return past_shields(total, shields)
 
 
 def brace_value(gs: GameState, target: Ship, incoming_hits: int,
