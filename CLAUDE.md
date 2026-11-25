@@ -617,7 +617,7 @@ table, see To do 30):
   Gothic fleet to game over and replayed (`tests/test_eldar_fleets.py`). Still open: the Seer
   Council's Foresight; XR's Corsair / Craftworld movement differences (MMS used).
 - Raised this session, still open (see each section): open question 1 (raid modifiers that
-  cancel); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
+  cancel); faction lances' expected hits in the AI (pinned, To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
   not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
   orbit's free turns; the AI never parks in a field in high orbit; escort disengage values
   still per ship (not by squadron); an Incubi raid's 2D6-best not in the slave-taking
@@ -3293,6 +3293,14 @@ Done: To do 2, 3, 6; most of 7.
    results much as before (each 2-6 both before and after), with lower VP totals. Not yet:
    exact distributions in place of the Poisson counts (`poisson_at_least`), the wave / CAP /
    turret chain by DP, the expert's sim per aspect.
+   Pinned (owner): faction lances need their own expected hits, not the standard 0.5 a
+   point (`ai_hazards.lance_p` reads only `hits_on`, so today only Ork zzapp gunz' 5+ is
+   counted, and the holofield save in `mount_hits`): Eldar pulsars (follow-up hits) and
+   phantom lances (1 hit on 4-5, 2 on 6), Dark Eldar phantom lances (1 on 4, 2 on 5+), Ork
+   zzapp gunz' random firepower, Tyranid bio-plasma (only a 6 beyond 15cm, past shields),
+   Necron particle whips (6s past shields). Check each against its rules file before
+   building; one per-weapon expected-hits helper for every AI value (`mount_hits`,
+   `_gun_hits`, `ship_threat_vp`, the move score's lance points, the expert's sim).
 31. Log of random decisions (owner): keep track of every place the AI decides at random in
    fleet building (personality rolls, carrier counts, escort counts, Mechanicus gift rolls,
    the Necron War upgrade coin, formations, squadron placement...), so the ML-driven AI (To
