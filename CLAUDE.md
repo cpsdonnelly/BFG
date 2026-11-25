@@ -244,7 +244,7 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
 - **AI difficulty (owner):** very easy and easy look 0 turns ahead (no search), normal 1,
   hard 3, expert 5, master 10 or to the end of the game, whichever is shorter. Easy plays for
   the most expected VP like normal (every value and planner), only without the lookahead;
-  very easy makes the simplifications (a random valid target, Lock On whenever an enemy is in
+  very easy makes the simplifications (the closest valid target, owner, Lock On whenever an enemy is in
   arc now, moves scored on guns and hazards only and picked by softmax, simple ordnance, no
   squadron volleys / hulk or ordnance shots / disengaging / boarding / ramming / teleports;
   re-rolls and Brace by expected VP as the others): every `difficulty == "very_easy"` in

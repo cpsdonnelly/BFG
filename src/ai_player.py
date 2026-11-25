@@ -3201,7 +3201,10 @@ class AIPlayer:
             return None
 
         if self.difficulty == "very_easy":
-            return self._enforce_target_priority(ship, weapon, game_random(self.gs).choice(valid), valid)
+            # owner: very easy shoots the closest valid target (no target
+            # priority test needed)
+            return self._enforce_target_priority(
+                ship, weapon, min(valid, key=lambda e: ship.distance_to(e)), valid)
         # normal / hard / expert: the most expected VP for this weapon, counting the
         # fire already committed to each target this phase (owner guidance:
         # finish and cripple ships, no overkill, don't spread too thin)

@@ -535,7 +535,7 @@ easy with the rest.
 
 | | Very easy | Easy / Normal | Hard / Expert / Master |
 |---|---|---|---|
-| Targets | random among valid targets | marginal expected VP, focus, no overkill | as normal |
+| Targets | the closest valid target (owner) | marginal expected VP, focus, no overkill | as normal |
 | Re-rolls, Brace | expected VP, as normal | expected VP | as normal |
 | Special orders | Lock On whenever an enemy is in arc and range now (no expected-VP check) | every order by expected VP (To do 10) | as normal |
 | Ordnance | simple launches (its strike craft, at the nearest target) | full planner: CAP vs strikes, strikes on arrival, lanes, leading, co-ordination | as normal |

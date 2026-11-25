@@ -233,7 +233,7 @@ def test_search_depth_by_difficulty():
 
 def test_easy_plays_for_expected_vp_and_very_easy_takes_shortcuts():
     """Owner: easy is the normal AI's expected-VP play without the lookahead;
-    very easy makes the simplifications (a random valid target...)."""
+    very easy makes the simplifications (the closest valid target, owner...)."""
     from src.ai_player import AIPlayer
     from src.lookahead_ai import DEPTH_FOR
     from src.turn_controller import TurnController
@@ -259,4 +259,11 @@ def test_easy_plays_for_expected_vp_and_very_easy_takes_shortcuts():
             seen.add(t.id if t else None)
         picks[d] = seen
     assert picks["easy"] == {"w"}                  # always the kill worth most
-    assert picks["very_easy"] == {"w", "f"}        # any valid target
+    assert picks["very_easy"] == {"w"}             # the closest valid target
+    # ... even when a farther target is worth more
+    gs.update_ship(make_ship(id="w", player=2, x=0.0, y=20.0, points_value=50))
+    gs.update_ship(make_ship(id="f", player=2, x=10.0, y=22.0, hits_remaining=1,
+                             shields_max=0, points_value=300))
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]), "very_easy")
+    assert ai._pick_target(gs.get_ship_by_id("me"), gun,
+                           [gs.get_ship_by_id("w"), gs.get_ship_by_id("f")]).id == "w"
