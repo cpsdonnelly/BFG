@@ -3322,7 +3322,9 @@ Done: To do 2, 3, 6; most of 7.
    - The flagship exposure ignores arcs and uses the average battery value.
    - Rules timing found during To do 18 and left for the pure refactor: AI ships meet
      the ordnance they moved into only after the whole AI movement phase (s.15: as each
-     ship moves); the AI's later squadron volleys use the blast markers from when the
+     ship moves; FIXED: `AIPlayer.contacts_fn`, the window's resolver passed to
+     `actions.apply_move` after each move, handed to the main thread for the hard /
+     expert search's worker, `GameFlow`); the AI's later squadron volleys use the blast markers from when the
      phase's volleys were planned (s.11: at once).
    - Known modelling limits (choices, not oversights): one-turn horizons (disengaging, the
      escort finishing chance), the expert's sim without terrain, faction rules or enemy

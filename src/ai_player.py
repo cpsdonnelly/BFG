@@ -202,6 +202,10 @@ class AIPlayer:
         self.gs = gs
         self.dice = dice
         self.difficulty = difficulty
+        # Resolves the ordnance a ship ran into as it moves (s.15), set by the
+        # game flow (the window's own resolver, as for a human's moves); None:
+        # left for the flow to resolve after the phase
+        self.contacts_fn = None
 
     # ── Movement phase ───────────────────────────────────────────────────────
 
@@ -761,12 +765,12 @@ class AIPlayer:
         )
 
         def execute(result, cmds) -> bool:
-            # The move, the asteroid / warp rift / cloud tests it ran into (s.39)
-            # and its staged-move count (actions.apply_move, shared with the
-            # window); ordnance it touched attacks after the AI's phase
+            # The move, the ordnance it ran into (s.15: as each ship moves, as
+            # for a human's move), the asteroid / warp rift / cloud tests (s.39)
+            # and its staged-move count (actions.apply_move, shared with the window)
             from .actions import apply_move
             apply_move(gs, self.dice, ship, result, cmds,
-                       order == SpecialOrder.ALL_AHEAD_FULL.value)
+                       order == SpecialOrder.ALL_AHEAD_FULL.value, contacts=self.contacts_fn)
             return True
 
         r = validate_movement(ship, commands, **kwargs)

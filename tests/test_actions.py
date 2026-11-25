@@ -244,3 +244,21 @@ def test_human_launches_are_actions_that_replay():
 def current_source_dice():
     from src.dice import DiceRoller
     return DiceRoller(mode="auto")
+
+
+def test_ai_resolves_ordnance_contacts_as_each_ship_moves():
+    """s.15: ordnance a ship moves into attacks it as it moves. The AI uses the
+    game flow's resolver after each ship's move, as a human's moves do (it used
+    to wait for the end of its whole movement phase)."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    from tests.conftest import make_ship, make_gs, DiceStub
+    ships = [make_ship(id=f"a{i}", player=1, x=20.0, y=20.0 + 20 * i) for i in range(2)]
+    gs = make_gs(ships + [make_ship(id="e", player=2, x=100.0, y=60.0)])
+    gs.current_phase, gs.active_player = "movement", 1
+    dice = DiceStub([4])
+    ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
+    calls = []
+    ai.contacts_fn = lambda: calls.append(1)
+    ai.run_movement_phase()
+    assert len(calls) == 2              # once after each of the two moves

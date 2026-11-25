@@ -43,8 +43,8 @@ def result_from(data: dict) -> MovementResult:
 def apply_move(gs, dice, ship, result: MovementResult, commands, on_aaf: bool,
                contacts=None, log=None):
     """Make a validated move: the ship moves (execute_movement), the ordnance
-    it ran into attacks it (`contacts`, s.15; the AI's are resolved after its
-    whole phase for now), the asteroid / warp rift / cloud tests it ran into
+    it ran into attacks it (`contacts`, s.15, as each ship moves: the AI and
+    the window pass the same resolver), the asteroid / warp rift / cloud tests it ran into
     (s.39), and its movement this phase is counted (staged moves).
     Returns the ship as it ends."""
     execute_movement(ship, result, gs, dice)

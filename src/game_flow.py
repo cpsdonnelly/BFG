@@ -773,6 +773,9 @@ class GameFlow(AAPanelMixin):
         # Targets decide on Brace for Impact before the AI's attacks are rolled
         ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
             att.id, att.name, tgt, exp, None, grp, att))
+        # Ordnance a ship moves into attacks it as it moves (s.15), with the
+        # window's resolver; the worker-thread search hands it to the main thread
+        ai.contacts_fn = self.ordnance._resolve_moving_ship_contacts
         # A replay (replay.py): this phase's actions come from the record
         replaying = phase in getattr(self, "replay_phases", ())
         if replaying:
@@ -783,6 +786,27 @@ class GameFlow(AAPanelMixin):
         # so the UI stays live. The worker never touches Tk: the main thread polls.
         if difficulty in ("hard", "expert") and phase == "movement" and not replaying:
             outcome = {}
+            import queue
+            calls = queue.Queue()
+
+            def _on_main(fn):
+                """Run fn on the Tk main thread (_poll) and wait for it: the
+                contact resolver may draw, log and ask a human to brace."""
+                done = threading.Event()
+                box = {}
+
+                def run():
+                    try:
+                        fn()
+                    except Exception as exc:          # noqa: BLE001 (re-raised on the worker)
+                        box["error"] = exc
+                    done.set()
+                calls.put(run)
+                done.wait()
+                if "error" in box:
+                    raise box["error"]
+            resolver = ai.contacts_fn
+            ai.contacts_fn = lambda: _on_main(resolver)
 
             def _do_movement():
                 try:
@@ -791,6 +815,8 @@ class GameFlow(AAPanelMixin):
                     outcome["error"] = exc
 
             def _poll():
+                while not calls.empty():
+                    calls.get_nowait()()
                 if worker.is_alive():
                     self.root.after(self._pace(100), _poll)
                     return
