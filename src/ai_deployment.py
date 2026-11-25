@@ -2,8 +2,10 @@
 
 Owner design:
   - Ships that buff friends in range (Tyranid synapse, Tau tracking systems,
-    Fleet Defence Turrets' massed turret) are placed last, where as many
-    friends as possible (at least one) are in range.
+    Fleet Defence Turrets' massed turret; `buffs.py`) are placed last, where
+    their help is worth most (friends not already covered by another).
+  - With two or more of them the fleet deploys in small groups, one round
+    each (`plan_clusters`), so each goes along with its group.
   - Squadrons in a line or a box, in base contact or not, chosen at random,
     always coherent (every pair within 15cm, s.8).
   - Every random choice is drawn from the game's recorded generator
@@ -23,26 +25,7 @@ from .deployment import (COHERENCY_CM, DeploymentState, DeploymentZone, grid_pos
 from .models import Ship
 
 
-def buff_range(ship: Ship) -> float:
-    """How far the ship's help to its friends reaches (cm), 0 if it has none:
-    Tyranid synapse (`synapse:<ld>:<range>`), Tau tracking systems
-    (`tracking_systems_<range>`), Fleet Defence Turrets (+1 massed turret to
-    allies within 15cm)."""
-    best = 0.0
-    for r in ship.special_rules or []:
-        if r.startswith("synapse:"):
-            try:
-                best = max(best, float(r.split(":")[2]))
-            except (IndexError, ValueError):
-                pass
-        elif r.startswith("tracking_systems"):
-            try:
-                best = max(best, float(r.rsplit("_", 1)[1]))
-            except ValueError:
-                best = max(best, 10.0)
-        elif r == "fleet_defence_turrets":
-            best = max(best, 15.0)
-    return best
+from .buffs import buff_range, buff_value   # noqa: F401  (buff_range used by tests too)
 
 
 def _formation(group: List[Ship], shape: str, spacing: str, heading: float):
@@ -76,9 +59,10 @@ def _clear(pos, zone: DeploymentZone, placed, margin: float = 2.5) -> bool:
         all(math.hypot(x - s.x, y - s.y) >= 8.0 for x, y in pos for s in placed)
 
 
-def _anchors(zone: DeploymentZone):
-    """Candidate centres across the zone, nearest its centre first."""
-    cx, cy = (zone.x_min + zone.x_max) / 2.0, (zone.y_min + zone.y_max) / 2.0
+def _anchors(zone: DeploymentZone, toward=None):
+    """Candidate centres across the zone, nearest its centre (or `toward`,
+    a group's cluster point) first."""
+    cx, cy = toward or ((zone.x_min + zone.x_max) / 2.0, (zone.y_min + zone.y_max) / 2.0)
     pts = []
     x = zone.x_min + 3.0
     while x <= zone.x_max - 3.0:
@@ -92,8 +76,49 @@ def _anchors(zone: DeploymentZone):
     return pts
 
 
+def cluster_points(zone: DeploymentZone, k: int) -> List[Tuple[float, float]]:
+    """k cluster centres spread along the zone's long side, in its middle."""
+    w, h = zone.x_max - zone.x_min, zone.y_max - zone.y_min
+    out = []
+    for i in range(k):
+        f = (i + 0.5) / k
+        if w >= h:
+            out.append((zone.x_min + f * w, zone.y_min + h / 2.0))
+        else:
+            out.append((zone.x_min + w / 2.0, zone.y_min + f * h))
+    return out
+
+
+def plan_clusters(groups: List[List[Ship]], zone: DeploymentZone,
+                  log: Callable[[str], None]) -> dict:
+    """Owner: with ships that help friends in range, deploy in small groups so
+    each of them goes along with one. One cluster per such unit, spread along
+    the zone; the other units shared out, dearest first, to the cluster with
+    the fewest points (judgement), preferring one whose helper they can use.
+    Returns {group's first ship id: cluster point}."""
+    from .buffs import buff_kinds, benefits
+    helpers = [g for g in groups if any(buff_kinds(s) for s in g)]
+    if len(helpers) < 2:
+        return {}
+    pts = cluster_points(zone, len(helpers))
+    load = [sum(s.points_value for s in g) for g in helpers]
+    kinds = [set(k for s in g for k in buff_kinds(s)) for g in helpers]
+    plan = {g[0].id: pts[i] for i, g in enumerate(helpers)}
+    rest = sorted((g for g in groups if g not in helpers),
+                  key=lambda g: -sum(s.points_value for s in g))
+    for g in rest:
+        useful = [i for i in range(len(helpers))
+                  if any(benefits(k, g[0]) for k in kinds[i])] or list(range(len(helpers)))
+        i = min(useful, key=lambda j: load[j])
+        load[i] += sum(s.points_value for s in g)
+        plan[g[0].id] = pts[i]
+    for i, g in enumerate(helpers):
+        log(f"[AI] deploys a group round {g[0].name} ({load[i]} pts)")
+    return plan
+
+
 def _place_positions(gs, state: DeploymentState, player: int, group: List[Ship], rng,
-                     log: Callable[[str], None]) -> List[Tuple[float, float]]:
+                     log: Callable[[str], None], toward=None) -> List[Tuple[float, float]]:
     zone = state.zones[player]
     friends = [s for s in state.placed_ships if s.player == player]
     reach = max(buff_range(s) for s in group)
@@ -104,7 +129,7 @@ def _place_positions(gs, state: DeploymentState, player: int, group: List[Ship],
         log(f"[AI] deploys {group[0].name}'s squadron of {len(group)} in a {shape}"
             f"{', in base contact' if spacing == 'contact' else ', loose'}")
     best, best_key = None, None
-    for ax, ay in _anchors(zone):
+    for ax, ay in _anchors(zone, toward):
         heading = placement_heading(gs, state, player, ax, ay)
         offs = _formation(group, shape, spacing, heading) if shape else [(0.0, 0.0)]
         pos = [(ax + ox, ay + oy) for ox, oy in offs]
@@ -112,13 +137,18 @@ def _place_positions(gs, state: DeploymentState, player: int, group: List[Ship],
             continue
         if not reach:
             return pos                         # nearest the zone's centre
+        # the help it gives friends not yet covered by another helper
+        # (buffs.buff_value), then the friends in reach as a tie-break
+        val = 0.0
+        for s, (x, y) in zip(group, pos):
+            val += buff_value(s, x, y, friends)
         covered = sum(1 for f in friends
                       if min(math.hypot(f.x - x, f.y - y) for x, y in pos) <= reach)
-        key = -covered
+        key = (-val, -covered)
         if best_key is None or key < best_key:
             best, best_key = pos, key
     if best is not None and reach:
-        log(f"[AI] places {group[0].name} last, with {-best_key} friend(s) in its "
+        log(f"[AI] places {group[0].name} last, with {-best_key[1]} friend(s) in its "
             f"{reach:.0f}cm reach")
     return best or grid_positions(group, zone, state.placed_ships)
 
@@ -137,13 +167,15 @@ def ai_deploy(gs, state: DeploymentState, player: int,
     # buff ships last (stable: the rest keep their order)
     rest.sort(key=lambda g: max(buff_range(s) for s in g) > 0)
     state.groups[player][i:] = rest
+    clusters = plan_clusters(rest, state.zones[player], log)
     while not state.is_complete() and state.active_player == player:
         group = state.current_group()
         if group is None:
             break
         positions = (auto_positions(gs, group, state.zones[player], state.placed_ships,
                                     state.next_idx[player])
-                     or _place_positions(gs, state, player, group, rng, log))
+                     or _place_positions(gs, state, player, group, rng, log,
+                                         clusters.get(group[0].id)))
         headings = [placement_heading(gs, state, player, x, y) for x, y in positions]
         ok, errors = state.place_group(positions, headings)
         if not ok:

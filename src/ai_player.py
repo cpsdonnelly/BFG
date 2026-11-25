@@ -463,10 +463,15 @@ class AIPlayer:
         """Move order for fleet coordination (To do 11 a, a first step towards
         the coordination pass): the ships others support move first, so the
         supporters plan against where they end: the commander's ship, then
-        carriers, other capital ships, escorts last (they screen, s.29).
-        Squadrons stay together (a squadron goes at its earliest member's
-        place); otherwise fleet order."""
+        carriers, other capital ships, escorts, then ships that help friends
+        in range (synapse, tracking systems, Fleet Defence Turrets: they plan
+        against where the friends end). Squadrons stay together (a squadron
+        goes at its earliest member's place); otherwise fleet order."""
+        from .buffs import buff_kinds
+
         def rank(s):
+            if buff_kinds(s):
+                return 4
             if s.is_flagship:
                 return 0
             if any(w.get("weapon_type") == "launch_bay" for w in s.weapons):
@@ -902,7 +907,28 @@ class AIPlayer:
         score += self._planet_term(ship, fx, fy, enemy, fh)
         score += self._macharia_approach(ship, fx, fy, fh, enemy)
         score += self._coherency_term(ship, fx, fy)
+        score += self._buff_term(ship, fx, fy, enemy)
         return score
+
+    def _buff_term(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """Owner: ships that help friends in range (Tyranid synapse, Tau
+        tracking systems, Fleet Defence Turrets) move to cover as many friends
+        as they can (`buffs.buff_value`: each friend newly in reach x its share
+        of its points), weighed in VP against everything else in the score, so
+        a spot that costs more (an asteroid field, exposure) isn't taken for
+        it. Friends still to move stand at their planned ends (`_ships_at`).
+        In move-score units."""
+        if self.difficulty == "very_easy":
+            return 0.0
+        from .buffs import buff_kinds, buff_value
+        if not buff_kinds(ship):
+            return 0.0
+        vp = buff_value(ship, x, y, self.gs.player_ships(self.player))
+        if not vp:
+            return 0.0
+        from .ai_hazards import value_per_hit
+        unit = FP_HITS * max(1.0, value_per_hit(enemy, self.gs)) if enemy is not None else 1.0
+        return vp / unit
 
     MACHARIA_WEIGHT = 0.5    # judgement: the share of the points on the table the winning shot is worth
 

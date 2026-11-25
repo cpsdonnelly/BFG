@@ -63,3 +63,45 @@ def test_tyranid_hive_ships_are_buff_ships():
     assert buff_range(find_ship_class("Proteus Class Hive Ship")) == 60
     assert buff_range(find_ship_class("Charybdis Class Hive Ship")) == 45
     assert buff_range(find_ship_class("Scylla Strain Bio-Cruiser w/ Synapse Node")) == 30
+
+
+def _tyranids():
+    ships = [make_ship(id=f"h{i}", player=2, x=0.0, y=0.0, points_value=200,
+                       special_rules=["tyranid", "synapse:8:30"]) for i in range(2)]
+    ships += [make_ship(id=f"c{i}", player=2, x=0.0, y=0.0, points_value=100,
+                        special_rules=["tyranid"]) for i in range(4)]
+    ships += [make_ship(id="p0", player=1, x=0.0, y=0.0)]
+    gs = make_gs(ships)
+    gs.game_seed = 3
+    return gs
+
+
+def test_two_synapse_creatures_each_go_with_a_group():
+    """Owner: with buff ships the fleet deploys in small groups, each helper
+    going along with one; every friend ends up in synapse reach."""
+    gs = _tyranids()
+    state = deployment_state(gs)
+    lines = []
+    assert ai_deploy_all(gs, state, log=lines.append) == []
+    h = [gs.get_ship_by_id(f"h{i}") for i in range(2)]
+    assert math.hypot(h[0].x - h[1].x, h[0].y - h[1].y) > 30     # two groups
+    for i in range(4):
+        c = gs.get_ship_by_id(f"c{i}")
+        assert min(math.hypot(c.x - x.x, c.y - x.y) for x in h) <= 30
+    assert sum("deploys a group round" in ln for ln in lines) == 2
+
+
+def test_buff_value_counts_friends_not_covered_by_another():
+    from src.buffs import buff_value
+    gs = _tyranids()
+    ships = gs.get_ships()
+    h0 = next(s for s in ships if s.id == "h0")
+    for s in ships:
+        s.x, s.y = (50.0, 50.0) if s.id != "h1" else (200.0, 200.0)
+    near = buff_value(h0, 50.0, 60.0, ships)
+    far = buff_value(h0, 150.0, 60.0, ships)
+    assert near == 4 * 0.05 * 100 and far == 0.0
+    for s in ships:                    # h1 covers them all (it controls itself)
+        if s.id == "h1":
+            s.x, s.y = 50.0, 40.0
+    assert buff_value(h0, 50.0, 60.0, ships) == 0.0
