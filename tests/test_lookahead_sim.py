@@ -211,3 +211,14 @@ def test_expert_values_its_own_ordnance_in_flight():
     assert next(s for s in dodges.ships if s.id == "f").hits_remaining == 8
     # the enemy's ordnance isn't simulated (the root's hazard cost counts it)
     assert not SimState.from_gs(gs, ord_player=2).ordnance
+
+
+def test_hard_looks_one_turn_ahead_and_expert_three():
+    """Owner: the expert looks ahead 2 or 3 moves, hard only 1."""
+    from src.lookahead_ai import LookaheadAI
+    from src.turn_controller import TurnController
+    from tests.conftest import DiceStub
+    gs = make_gs([make_ship(id="a", player=1), make_ship(id="b", player=2)])
+    tc = TurnController(gs, DiceStub([]))
+    assert LookaheadAI(1, tc, gs, DiceStub([]), "hard").DEPTH == 1
+    assert LookaheadAI(1, tc, gs, DiceStub([]), "expert").DEPTH == 3

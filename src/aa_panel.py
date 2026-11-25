@@ -25,7 +25,7 @@ class AAPanelMixin:
             from .ai_player import AIPlayer
             gs = self.ctx.gs
             diff = gs.difficulty_for(player)
-            diff = diff if diff != "expert" else "hard"
+            diff = diff if diff not in ("hard", "expert") else "normal"   # no per-unit search yet
             ai = AIPlayer(player, self.ctx.tc, gs, self.ctx.dice, diff)
             ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
                 att.id, att.name, tgt, exp, None, grp, att))

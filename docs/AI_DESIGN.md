@@ -536,7 +536,7 @@ the current AI, whose normal and expert players and weights stay as they are.
 | Special orders | none | Burn Retros / Lock On / Reload (To do 10 to improve) | as normal |
 | Ordnance | simple launches (its strike craft, at the nearest target) | full planner: CAP vs strikes, strikes on arrival, lanes, leading, co-ordination | as normal |
 | Squadron volleys, hulks, shooting ordnance, disengaging, explosions, screening | off | on | as normal |
-| Movement | the same 15 candidates, scored on guns and hazards only (no exposure, focus, explosions or screening) | 15 candidates scored greedily, one turn ahead | 5-turn minimax per ship (9 x search), ~75s a game |
+| Movement | the same 15 candidates, scored on guns and hazards only (no exposure, focus, explosions or screening) | the move candidates scored greedily | hard: minimax one turn ahead (~57s a game); expert: three turns ahead (owner: expert 2-3, hard 1) |
 
 Planned (To do 11 i, suggestion): Easy chooses by a softmax on expected value with a temperature,
 so its mistakes look human rather than random; Hard gets the coordination pass or tuned weights.

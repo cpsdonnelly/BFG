@@ -765,7 +765,7 @@ class GameFlow(AAPanelMixin):
             gs.dice_mode, dice.mode = old_modes
 
         difficulty = gs.difficulty_for(ai_player_num)
-        if difficulty == "expert":
+        if difficulty in ("hard", "expert"):           # the lookahead search
             from .lookahead_ai import LookaheadAI
             ai = LookaheadAI(ai_player_num, tc, gs, dice, difficulty)
         else:
@@ -779,9 +779,9 @@ class GameFlow(AAPanelMixin):
             from .replay import ReplaySeat
             ai = ReplaySeat(self, ai_player_num, self.replay_events)
 
-        # Expert movement is slow (minimax depth-5); run off-thread so UI stays
-        # live. The worker never touches Tk: the main thread polls for it.
-        if difficulty == "expert" and phase == "movement" and not replaying:
+        # Hard / expert movement is slow (the lookahead search); run off-thread
+        # so the UI stays live. The worker never touches Tk: the main thread polls.
+        if difficulty in ("hard", "expert") and phase == "movement" and not replaying:
             outcome = {}
 
             def _do_movement():

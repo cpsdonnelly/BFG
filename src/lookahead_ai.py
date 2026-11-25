@@ -724,10 +724,21 @@ def _minimax(state: SimState, depth: int,
 
 # ── LookaheadAI class ─────────────────────────────────────────────────────────
 
-class LookaheadAI(AIPlayer):
-    """Expert difficulty: uses minimax with 5-turn lookahead for movement."""
+# Turns looked ahead by difficulty (owner): hard looks one turn ahead (our
+# move, the enemy's best reply, both sides' fire, then the leaf), expert two or
+# three (3 here, judgement within the owner's range)
+DEPTH_FOR = {"hard": 1, "expert": 3}
 
-    DEPTH = 5
+
+class LookaheadAI(AIPlayer):
+    """Hard and expert difficulties: minimax over a deterministic sim for
+    movement, DEPTH_FOR[difficulty] turns ahead."""
+
+    DEPTH = DEPTH_FOR["expert"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.DEPTH = DEPTH_FOR.get(self.difficulty, DEPTH_FOR["expert"])
     TIME_BUDGET = 2.0  # seconds per ship decision
     ROOT_MOVES = 12    # root candidates searched, best first by the move score
 

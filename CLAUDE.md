@@ -241,6 +241,13 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
   Craft Orders"; the AI re-targets its craft each ordnance phase.
 
+- **AI difficulty (owner):** the expert looks ahead 2 or 3 moves, hard only 1. Built:
+  `lookahead_ai.DEPTH_FOR` (hard 1, expert 3), both through `LookaheadAI` (minimax over the
+  deterministic sim for movement; the rest of their play is the normal AI's), run off the
+  Tk thread (`GameFlow`); "hard" used to play exactly like normal. Easy and normal don't
+  search. Alternate activation still uses the normal AI for hard and expert (no per-unit
+  search yet).
+
 ### Player choice prompts: "Auto (best)"
 
 Owner request: the player's choice prompts have an "Auto" button that picks what the AI's
@@ -1116,7 +1123,7 @@ Done: To do 2, 3, 6; most of 7.
    ordnance phase the wave lands in, losses on the way (fighters, blast markers, reactive CAP,
    target leaving), enemy guns vs waves (one hit removes a whole wave on 6+, s.25 / s.30) and
    when to split a wave, a risk preference from the game state, the expert AI using the same
-   terms. Owner: the expert AI thinks 5 turns ahead, so it must be aware of a turn limit: if it
+   terms. Owner: the expert AI thinks several turns ahead, so it must be aware of a turn limit: if it
    is behind and the game is near its end it should play riskier moves (and, by the same
    logic, play safe when ahead). Its search already stops simulating at the limit
    (`SimState.is_terminal`), but scores outcomes by expected VP only, which is risk-neutral.
