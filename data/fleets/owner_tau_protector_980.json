@@ -113,6 +113,7 @@
         "ponderous",
         "deflector",
         "hooks:warden:3",
+        "tracking_systems_20",
         "fleet_commander"
       ],
       "upgrades": [

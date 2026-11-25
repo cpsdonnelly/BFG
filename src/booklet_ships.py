@@ -554,6 +554,15 @@ def convert_row(row: dict) -> dict:
             special_rules.append("negative_energy_veil")
         if "nebuloscope pylons" in notes:
             special_rules.append("nebuloscope_pylons")
+    # Tau Tracking Systems (Tau faction rules): "Has tracking systems (standard
+    # 10cm)", "(20cm aura, ...)", "Tracking systems (20cm)"; "no tracking
+    # systems" gives none. tracking_systems_<range> (combat._has_tracking_support,
+    # ordnance.turret_reroll)
+    import re as _re
+    _tn = (row.get("notes") or "")
+    if "tracking systems" in _tn.lower() and "no tracking systems" not in _tn.lower():
+        m = _re.search(r"[Tt]racking systems \((?:standard )?(\d+)cm", _tn)
+        special_rules.append(f"tracking_systems_{m.group(1) if m else 10}")
     if row["faction"] == "Eldar":
         if "Ghostship" in row["name"]:
             special_rules.append("ghostship")           # MMS p.20

@@ -156,9 +156,14 @@ def check_los_clear(ship: Ship, target_ship: Ship,
 
 def _has_tracking_support(ship: Ship, all_ships: list = None) -> bool:
     """
-    Check if this Tau ship is within range of a tracking system.
-    Checks the ship itself AND nearby friendly Tau ships with tracking systems.
+    Check if this Tau ship is within range of a tracking system (Tau faction
+    rules: "any Tau vessel within 10cm of a ship/station with tracking
+    systems"; 20cm for the Custodian and the Orbital City). Checks the ship
+    itself AND nearby friendly ships with tracking systems; it works even while
+    the source is braced. Non-Tau ships never benefit.
     """
+    if not (ship.faction or "").startswith("tau"):
+        return False
     # Check self
     for rule in ship.special_rules:
         if rule.startswith("tracking_systems"):

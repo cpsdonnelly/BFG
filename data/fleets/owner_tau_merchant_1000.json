@@ -580,7 +580,8 @@
         }
       ],
       "special_rules": [
-        "kor_vattra"
+        "kor_vattra",
+        "tracking_systems_10"
       ],
       "upgrades": [],
       "points_value": 50,

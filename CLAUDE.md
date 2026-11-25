@@ -767,6 +767,16 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   a hit on 1-3 (`own_goal` in `do_command_check`; not yet the other Leadership tests:
   disengage, navigation). Not yet: soopa boostas, grabbin' klaws, magno-tracktor beams,
   the other ships' zzapp gunz swaps.
+- Tau Tracking Systems (found while building To do 28's buff placement; they had engine
+  code but no ship carried the rule): `booklet_ships` reads them from the notes
+  (`tracking_systems_<range>`: Messenger 10cm, Custodian and Orbital City 20cm; the Hero and
+  Protector say "no tracking systems"); a Tau vessel within range (itself included) re-rolls
+  missed turret dice (`ordnance.turret_reroll` / `turret_kill_p` in `turret_dice`, the AI's
+  torpedo and craft turret estimates with the game state) and ignores the beyond-30cm gunnery
+  shift (`combat._has_tracking_support`, now Tau vessels only, as the rule says); the owner's
+  Tau Merchant (Messenger) and Protector (Custodian) fleet files rebuilt with it
+  (`tests/test_tau_tracking.py`). Not yet: the wave planner's turret maths
+  (`waves.wave_split_value`) with the re-roll.
 - Tau Protector gaps built: the Emissary's Bor'kan / Sa'cea configurations (ion cannons for
   the hooks, free; a prow gravitic launcher for the launch bays, free) and Deflector +10
   (`booklet_options.tau_profile_options`); the mine swap now offered to the Emissary (a light

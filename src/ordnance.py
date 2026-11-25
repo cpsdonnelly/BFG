@@ -483,15 +483,33 @@ def torpedo_may_attack(marker: OrdnanceMarker, ship: Ship,
     return last is None or game_state.turn_number - last >= 2
 
 
+def turret_reroll(ship: Ship, game_state: Optional[GameState] = None) -> bool:
+    """The ship re-rolls missed turret dice: a Mechanicus Experimental Ship's
+    improvement, or a Tau vessel within range of tracking systems (Tau faction
+    rules; itself included)."""
+    if "turret_reroll" in (ship.special_rules or []):
+        return True
+    from .combat import _has_tracking_support
+    return _has_tracking_support(ship, game_state.get_ships() if game_state is not None else None)
+
+
+def turret_kill_p(ship: Ship, need: int, game_state: Optional[GameState] = None) -> float:
+    """Chance one turret die removes its target: hits on `need`, a miss
+    re-rolled where turret_reroll allows."""
+    p = max(0, 7 - need) / 6.0
+    return 1 - (1 - p) ** 2 if turret_reroll(ship, game_state) else p
+
+
 def turret_dice(dice, ship: Ship, n: int, need: int, label: str,
                 game_state: Optional[GameState] = None) -> List[int]:
     """Roll a ship's turret dice; a Mechanicus Experimental Ship with the
-    "re-roll missed turret hits" improvement re-rolls the misses. Tyranid
+    "re-roll missed turret hits" improvement, or a Tau ship within range of
+    tracking systems, re-rolls the misses (`turret_reroll`). Tyranid
     spore cysts (Xenos p.105): for each blast marker the ship touches one
     turret attack hits only on a 6 (a separate group: those dice are listed
     first, a result below 6 among them returned as a miss, 1)."""
     rolls = dice.roll_d6(n, label)
-    if "turret_reroll" in (ship.special_rules or []):
+    if turret_reroll(ship, game_state):
         misses = [r for r in rolls if r < need]
         if misses:
             again = dice.roll_d6(len(misses), f"{ship.name} re-rolls missed turret hits")

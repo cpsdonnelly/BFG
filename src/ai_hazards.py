@@ -209,12 +209,13 @@ def mine_attack_dice(ship: Ship) -> float:
     return 8.0 - 4.0 * p_any
 
 
-def _turret_kills(ship: Ship, marker=None) -> float:
+def _turret_kills(ship: Ship, marker=None, gs=None) -> float:
     """Expected torpedoes a ship's turrets shoot down: 4+ each (Orks 5+, Eldar
     turrets +1), worse against Eldar stealth and Dark Eldar flickerfields (the
-    marker's rules, `ordnance.turret_hit_on`)."""
-    from .ordnance import turret_hit_on
-    return ship.effective_turrets * max(0, 7 - turret_hit_on(ship, marker)) / 6.0
+    marker's rules, `ordnance.turret_hit_on`); misses re-rolled by Tau tracking
+    systems in range (`ordnance.turret_kill_p`, with the game state)."""
+    from .ordnance import turret_hit_on, turret_kill_p
+    return ship.effective_turrets * turret_kill_p(ship, turret_hit_on(ship, marker), gs)
 
 
 def _raid_hits(ship: Ship, m: OrdnanceMarker, gs) -> float:
@@ -1264,12 +1265,13 @@ class _OrdnanceRules:
         self.ordnance_type = kind
 
 
-def craft_turret_p(target: Ship, rules=None) -> float:
+def craft_turret_p(target: Ship, rules=None, gs=None) -> float:
     """Chance one of `target`'s turret dice destroys one of our attack craft
     (4+, Ork 5+, Eldar turrets +1; our Eldar stealth / Dark Eldar flickerfields
-    +2, at most 6+)."""
-    from .ordnance import turret_hit_on
-    return max(0, 7 - turret_hit_on(target, _OrdnanceRules(rules, "bomber"))) / 6.0
+    +2, at most 6+; misses re-rolled by Tau tracking systems in range, with the
+    game state)."""
+    from .ordnance import turret_hit_on, turret_kill_p
+    return turret_kill_p(target, turret_hit_on(target, _OrdnanceRules(rules, "bomber")), gs)
 
 
 def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None) -> float:
@@ -1278,8 +1280,9 @@ def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None) -> 
     each success one torpedo (Ork turrets 5+), then each torpedo hits its
     Armour facing the launcher's side."""
     from .ordnance import ordnance_turrets, get_massed_turret_bonus, turret_hit_on
+    from .ordnance import turret_kill_p
     shots = ordnance_turrets(target, gs) + get_massed_turret_bonus(target, gs.get_ships())
-    p_turret = max(0, 7 - turret_hit_on(target, _OrdnanceRules(rules))) / 6.0
+    p_turret = turret_kill_p(target, turret_hit_on(target, _OrdnanceRules(rules)), gs)
     left = max(0.0, strength - shots * p_turret)
     return left * torpedo_p_hit(target.armor_vs(*from_xy), rules)
 
