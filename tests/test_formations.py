@@ -75,9 +75,13 @@ def test_incubi_and_wych_raise_raid_values():
     """Incubi's 2D6-choose-one and Pain Frenzy's re-roll (a Wych Cult counts
     capital ships as crippled) are in the AI's raid values (dark_eldar.raid_value)."""
     from src.dark_eldar import raid_value
-    t = make_ship(id="t", player=1, x=50, y=50, hits_max=8, hits_remaining=8, turrets=2)
-    gs = make_gs([t, make_ship(id="d", player=2)])
-    t = gs.get_ship_by_id("t")
+    from src.fleet_loader import load_fleet_file, fleet_to_ships
+    gothic = fleet_to_ships(load_fleet_file("data/fleets/owner_gothic_1000.json"), 1)
+    lunar = next(s for s in gothic if "Lunar" in s.ship_class)
+    lunar.x = lunar.y = 50.0
+    lunar.leadership = 8
+    gs = make_gs([lunar, make_ship(id="d", player=2)])
+    t = gs.get_ship_by_id(lunar.id)
     base = raid_value(["dark_eldar"], t, gs, 2)
     assert raid_value(["dark_eldar", "incubi"], t, gs, 2) > base
     assert raid_value(["dark_eldar", "wych_cult"], t, gs, 2) > base
