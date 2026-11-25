@@ -69,3 +69,15 @@ def test_combined_salvo_action():
     combine_salvos(gs, "m1", ["m1", "m2"])
     assert len(gs.ordnance) == 1 and gs.ordnance[0]["strength"] == 4
     assert gs.ordnance[0]["special_rules"] == ["x"] and "b" in gs.ordnance[0]["launch_exempt_ships"]
+
+
+def test_incubi_and_wych_raise_raid_values():
+    """Incubi's 2D6-choose-one and Pain Frenzy's re-roll (a Wych Cult counts
+    capital ships as crippled) are in the AI's raid values (dark_eldar.raid_value)."""
+    from src.dark_eldar import raid_value
+    t = make_ship(id="t", player=1, x=50, y=50, hits_max=8, hits_remaining=8, turrets=2)
+    gs = make_gs([t, make_ship(id="d", player=2)])
+    t = gs.get_ship_by_id("t")
+    base = raid_value(["dark_eldar"], t, gs, 2)
+    assert raid_value(["dark_eldar", "incubi"], t, gs, 2) > base
+    assert raid_value(["dark_eldar", "wych_cult"], t, gs, 2) > base

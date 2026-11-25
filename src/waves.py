@@ -472,10 +472,8 @@ def raid_squadron_value(target, gs, owner: int, rules=None, end_phases: int = No
     hit_and_run.raid_result_value, with the crews' raid modifiers. `end_phases`:
     the damage control phases its crits face before the target shoots, when the
     raid lands later (ai_hazards.strike_timeline); default: as if now."""
-    from .hit_and_run import raid_result_value, _raid_roll_modifier
-    mod = _raid_roll_modifier(list(rules or []), target)
-    raid = sum(raid_result_value(r + mod, target, gs, owner, end_phases)
-               for r in range(1, 7)) / 6.0
+    from .dark_eldar import raid_value
+    raid = raid_value(rules, target, gs, owner, end_phases)   # Pain Frenzy, Incubi
     if "impaler" in (rules or []):
         return impaler_value(target, gs, owner, rules, end_phases, raid)
     return raid

@@ -209,12 +209,35 @@ def take_slaves(gs, attacker_rules, target, braced: bool, dice, vp: int) -> bool
     return True
 
 
+def raid_value(rules, target, gs, owner: int, end_phases: int = None) -> float:
+    """Expected VP of ONE hit-and-run raid by a ship (or its ordnance) with
+    these rules, as `hit_and_run.resolve_raids` plays it: a D6 with the crews'
+    modifiers; Pain Frenzy's re-roll against a crippled target (Wych Cult:
+    every capital ship) when the result is worth less than a fresh roll;
+    Incubi (Xenos p.5): 2D6 and the better result, or against a crippled
+    target both results (replacing the re-roll)."""
+    from .hit_and_run import raid_result_value, _raid_roll_modifier
+    rules = list(rules or [])
+    mod = _raid_roll_modifier(rules, target)
+    v = [raid_result_value(r + mod, target, gs, owner, end_phases) for r in range(1, 7)]
+    mean = sum(v) / 6.0
+    frenzy = pain_frenzy_applies(rules, target)
+    if "incubi" in rules:
+        if frenzy:
+            return 2 * mean
+        return sum(max(a, b) for a in v for b in v) / 36.0
+    if frenzy:
+        return sum(max(x, mean) for x in v) / 6.0
+    return mean
+
+
 def impaler_effect_values(rules, target, gs, owner: int, end_phases: int = None) -> dict:
     """Expected VP of an Impaler's two options once its D6 has connected
     (Xenos p.5): "raids", two hit-and-run raids (a D6 each with the crew's
-    modifiers); "crit", one critical hit (2D6 on the target's table, a Fire
-    with Haemonculi; 1 damage against a ship off the table). Pain Frenzy's
-    re-roll against a crippled ship is counted for both. A braced target saves
+    modifiers, Pain Frenzy's re-roll and Incubi's 2D6 by `raid_value`);
+    "crit", one critical hit (2D6 on the target's table, a Fire with
+    Haemonculi; 1 damage against a ship off the table), Pain Frenzy's re-roll
+    counted. A braced target saves
     on 4+ against each effect, which scales both alike."""
     from .hit_and_run import (raid_result_value, _raid_roll_modifier, critical_hit_value,
                               crit_type_value, uses_crit_table)
@@ -222,14 +245,13 @@ def impaler_effect_values(rules, target, gs, owner: int, end_phases: int = None)
     mod = _raid_roll_modifier(rules, target)
     frenzy = pain_frenzy_applies(rules, target)
     raid = [raid_result_value(r + mod, target, gs, owner, end_phases) for r in range(1, 7)]
-    mean = sum(raid) / 6.0
-    one = sum(max(v, mean) for v in raid) / 6.0 if frenzy else mean
+    one = raid_value(rules, target, gs, owner, end_phases)   # Pain Frenzy, Incubi
     if not uses_crit_table(target):
         # a ship off the crit table takes 1 damage a successful raid: the two
         # raids together, as it can only be destroyed once
         from .ai_hazards import escort_hits_vp
         p = sum(1 for v in raid if v > 0) / 6.0
-        if frenzy:
+        if frenzy or "incubi" in rules:
             p = 1 - (1 - p) ** 2
         rem = max(1, target.hits_remaining)
         raids = sum(q * escort_hits_vp(target, gs, min(k, rem))
