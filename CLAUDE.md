@@ -3300,6 +3300,27 @@ Done: To do 2, 3, 6; most of 7.
    exact distributions in place of the Poisson counts (`poisson_at_least`), the wave / CAP /
    turret chain by DP, the estimated range in `battery_hits` (pinned), Wings of Fury's
    armament values on the table (the friend each weapon would fire at is known).
+   Audit of shortcuts (owner question, pinned; fix in this order):
+   - Averages pushed through a cut-off where the exact value is cheap: the gunnery target
+     choice (`shot_vp`) and the brace's hull hits (`ai_player._brace_hull_hits`) take
+     shields off as max(0, hits - shields) from the expected hits, not E[max(0, H - S)]
+     from the table's dice (binomial, exact); asteroid fields cost max(0, 3.5 - shields)
+     instead of E[max(0, D6 - shields)]; explosions in the move score take half / all
+     the dead ship's starting hits x 0.5 less shields; the expert's sim blows ships up at a
+     fixed 10.5cm (the 3D6 average) where the normal AI uses P(3D6 >= d).
+   - Enemy dodges (`enemy_move_samples`) take All Ahead Full at its +14cm average only,
+     not a few points of 4D6.
+   - The incoming-ordnance hazard values an assault boat raid at a flat 0.5 hit
+     (`marker_hits`) though `raid_result_value` prices raids exactly.
+   - The flagship exposure ignores arcs and uses the average battery value.
+   - Rules timing found during To do 18 and left for the pure refactor: AI ships meet
+     the ordnance they moved into only after the whole AI movement phase (s.15: as each
+     ship moves); the AI's later squadron volleys use the blast markers from when the
+     phase's volleys were planned (s.11: at once).
+   - Known modelling limits (choices, not oversights): one-turn horizons (disengaging, the
+     escort finishing chance), the expert's sim without terrain, faction rules or enemy
+     ordnance, the move score's torpedo at 0.35 hits and flat 0.5 contact bonus a mate
+     (judgement), Poisson counts (above).
    Pinned (owner): faction lances need their own expected hits, not the standard 0.5 a
    point (`ai_hazards.lance_p` reads only `hits_on`, so today only Ork zzapp gunz' 5+ is
    counted, and the holofield save in `mount_hits`): Eldar pulsars (follow-up hits) and
