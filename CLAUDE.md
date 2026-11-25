@@ -3316,7 +3316,30 @@ Done: To do 2, 3, 6; most of 7.
    order (owner): any group from the list (`select_group` now moves it up, the list keeps its
    order) and any ship of the squadron being placed next ("Next ship in squadron",
    `select_member`) (`tests/test_squadrons.py`, `tests/test_ai_buff_moves.py`,
-   `tools/gui_checks/deploy_squadrons_check.py`). Not yet: the AI valuing a capital squadron
+   `tools/gui_checks/deploy_squadrons_check.py`). Formation by armament (owner: Impaler
+   escorts need tight groups to beat turrets, Firestorms and Swords don't): `src/formations.py`
+   prices base contact. Combined ordnance (s.15) meets the target's turrets once:
+   `combine_gain` / `marginal_gain` = (E[max(0, n - K)] together - the sum apart, K ~
+   Binomial(turret dice incl. massed, the kill chance with flickerfields / Eldar stealth /
+   tracking re-rolls)) x what one squadron or torpedo that gets through is worth
+   (`waves.impaler_value`, `bomber_squadron_value`, a torpedo's hit on the lowest Armour),
+   exact, not sampled; gun-only ships gain nothing. It replaces the flat `CONTACT_WEIGHT` 0.5
+   in `AIPlayer._coherency_term` (against the move's target, half while unloaded,
+   judgement); `_massed_turret_term` prices massed turrets (s.29, +1 a non-crippled friend in
+   contact, max 3) for any armament while enemy torpedoes / mines / bombers / assault boats
+   can reach (`turret_value`, the commander's screen's valuation). Group size: escorts whose
+   ordnance combines get the fewest legal squadrons (`squadrons._sizes(combines=)`: together
+   never gets fewer through than apart, so larger is never worse; gun escorts keep 2D3).
+   Deployment: a squadron that gains by combining (`needs_contact`, against the enemy's
+   dearest ship) starts in base contact, line abreast (a combined wave is measured from the
+   member furthest from the target); gun squadrons draw at random. The AI now combines
+   torpedo salvos too: salvos of one type at one planned target from squadron members in
+   contact become one (`actions.combine_salvos`, recorded and replayed; kept on the member
+   furthest from the target) (`tests/test_formations.py`). Not counted: a bigger squadron's
+   costs (one command check, harder coherency, escort VP by squadron), shape beyond line /
+   box. Owner question pending: the Dark Eldar list's "squadrons of two to six, in any mix"
+   vs core p.58's four 2-hit escorts a squadron (the owner's six Corsairs, 2 hits each, are
+   one squadron; the check flags it and the AI re-forms them 3 + 3). Not yet: the AI valuing a capital squadron
    by expected VP (its combined fire and one check against flexibility; today the chance
    above), Ld for escort squadrons re-formed after the Ld roll (only invalid ones are),
    deployment by strategy, the alternating deployment orders, the players' formation setter.

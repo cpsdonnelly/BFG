@@ -124,10 +124,24 @@ def _place_positions(gs, state: DeploymentState, player: int, group: List[Ship],
     reach = max(buff_range(s) for s in group)
     shape = spacing = None
     if len(group) > 1:
-        shape = rng.choice(["line", "box"])
-        spacing = rng.choice(["contact", "loose"])
-        log(f"[AI] deploys {group[0].name}'s squadron of {len(group)} in a {shape}"
-            f"{', in base contact' if spacing == 'contact' else ', loose'}")
+        # Owner: formation by armament. A squadron whose ordnance gains by
+        # combining (formations.needs_contact, against the enemy's dearest
+        # ship's turrets) starts in base contact, in a line abreast across its
+        # facing (a combined wave is measured from the member furthest from
+        # the target, so abreast loses least); gun squadrons gain nothing from
+        # contact, so their formation is a random draw (logged, To do 31)
+        from .formations import needs_contact
+        enemies = [s for s in gs.get_ships() if s.player != player and s.status == "active"]
+        foe = max(enemies, key=lambda s: s.points_value) if enemies else None
+        if foe is not None and needs_contact(group, foe, gs):
+            shape, spacing = "line", "contact"
+            log(f"[AI] deploys {group[0].name}'s squadron of {len(group)} in base contact, "
+                f"line abreast (its ordnance combines)")
+        else:
+            shape = rng.choice(["line", "box"])
+            spacing = rng.choice(["contact", "loose"])
+            log(f"[AI] deploys {group[0].name}'s squadron of {len(group)} in a {shape}"
+                f"{', in base contact' if spacing == 'contact' else ', loose'}")
     best, best_key = None, None
     for ax, ay in _anchors(zone, toward):
         heading = placement_heading(gs, state, player, ax, ay)

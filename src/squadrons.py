@@ -212,12 +212,25 @@ def _new_sid(used: set, prefix: str) -> str:
     return f"{prefix}{n}"
 
 
-def _sizes(n: int, lim: dict, rng: random.Random) -> List[int]:
+def _sizes(n: int, lim: dict, rng: random.Random, combines: bool = False,
+           two_hit: int = 0) -> List[int]:
     """Squadron sizes for n escorts of one kind (owner): 2D3 or the escorts
     left, whichever is smaller; a single one left over joins the last
     squadron, which splits in half if that breaks the maximum. Lists with
-    other sizes (Tyranids 1-12 / 6-12) split as evenly as their sizes allow."""
+    other sizes (Tyranids 1-12 / 6-12) split as evenly as their sizes allow.
+    Escorts whose ordnance combines (torpedoes, attack craft, Impalers,
+    `combines`) take the fewest squadrons the list allows, split evenly: a
+    combined wave or salvo meets the turrets once, and one of n squadrons
+    always gets at least as many through as smaller ones apart
+    (formations.combine_gain: E[max(0, a + b - K)] >= E[max(0, a - K)] +
+    E[max(0, b - K)]), so larger is never worse there."""
     lo, hi = lim["min"], lim["max"]
+    if combines:
+        k = max(1, -(-n // hi))
+        if lim.get("two_hit_max") and two_hit:
+            k = max(k, -(-two_hit // lim["two_hit_max"]))
+        k = min(k, max(1, n // max(1, lo)))
+        return [n // k + (1 if j < n % k else 0) for j in range(k)]
     if lo != 2 or hi != 6:
         k = max(1, -(-n // hi))
         k = min(k, max(1, n // max(1, lo)))
@@ -272,7 +285,10 @@ def organize_escorts(items: List, list_key: str = "", rng: Optional[random.Rando
         if len(members) == 1 and lim["min"] > 1:
             singles.append(members[0])
             continue
-        sizes = _sizes(weight, lim, rng)
+        combines = any(t in ("torpedo", "launch_bay")
+                       for t in _row_ordnance(_info(members[0])))
+        two = sum(1 for m in members if _info(m).hits >= 2)
+        sizes = _sizes(weight, lim, rng, combines, two)
         pos = 0
         for s in sizes:
             sid = _new_sid(used, "esq")

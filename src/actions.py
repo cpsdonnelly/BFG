@@ -240,6 +240,8 @@ def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
         launch_craft(gs, ev["ship"], ev["bay"], ev["craft"], ev["count"], ev.get("cap"))
     elif k == "act_form_wave":
         form_craft_wave(gs, ev["markers"], ev.get("formation", "close"))
+    elif k == "act_combine_salvos":
+        combine_salvos(gs, ev["keep"], ev["markers"])
     elif k == "act_place_craft":
         place_craft(gs, ev["markers"], ev["x"], ev["y"])
     elif k == "act_craft_target":
@@ -935,6 +937,31 @@ def form_craft_wave(gs, marker_ids, formation: str = "close") -> str:
     """Attack craft launched together formed into one wave (s.25)."""
     from .waves import form_wave
     return form_wave(gs, list(marker_ids), formation)
+
+
+@recorder.logged("act_combine_salvos", lambda r, A: (A["gs"], dict(
+    keep=A["keep_id"], markers=list(A["marker_ids"]))))
+def combine_salvos(gs, keep_id: str, marker_ids) -> None:
+    """Torpedo salvos launched this phase by squadron members in contiguous
+    base contact, made one salvo (s.15): the kept salvo (the one launched by
+    the member furthest from the target, so measured from it) takes the
+    others' strength, passes through every contributor's friends in contact,
+    and carries only the special rules they share; the others are removed."""
+    ids = set(marker_ids) - {keep_id}
+    keep = next((o for o in gs.ordnance if o["id"] == keep_id), None)
+    if keep is None:
+        return
+    rules = set(keep.get("special_rules") or [])
+    exempt = set(keep.get("launch_exempt_ships") or [])
+    for o in gs.ordnance:
+        if o["id"] in ids:
+            keep["strength"] = keep.get("strength", 0) + o.get("strength", 0)
+            rules &= set(o.get("special_rules") or [])
+            exempt |= set(o.get("launch_exempt_ships") or [])
+            exempt.add(o.get("launched_by"))
+    keep["special_rules"] = sorted(rules)
+    keep["launch_exempt_ships"] = sorted(e for e in exempt if e)
+    gs.ordnance = [o for o in gs.ordnance if o["id"] not in ids]
 
 
 @recorder.logged("act_place_craft", lambda r, A: (A["gs"], dict(

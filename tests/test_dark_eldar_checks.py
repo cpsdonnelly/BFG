@@ -287,9 +287,17 @@ def test_contact_bonus_counts_only_same_ordnance_and_grows_with_the_chain():
     dice = DiceStub([])
     ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
     fx, fy = 22.0 - 2 * r, 20.0                   # e0 ends touching e1
-    t = ai._coherency_term(gs.get_ship_by_id("e0"), fx, fy)
-    assert abs(t - 2 * ai.CONTACT_WEIGHT) < 1e-9  # e1 and e3, not the Impaler ship
-    alone = ai._coherency_term(gs.get_ship_by_id("e0"), 22.0 - 2 * r, 30.0)
+    foe = gs.get_ship_by_id("foe")
+    t = ai._coherency_term(gs.get_ship_by_id("e0"), fx, fy, foe)
+    # priced (formations.marginal_gain): e0's 2 torpedoes joining e1 and e3's
+    # 4, not the Impaler ship's craft
+    from src.formations import marginal_gain
+    from src.ai_hazards import value_per_hit
+    from src.ai_player import FP_HITS
+    want = marginal_gain(gs.get_ship_by_id("e0"), "torpedo", 4, foe, gs) / (
+        FP_HITS * max(1.0, value_per_hit(foe, gs)))
+    assert want > 0 and abs(t - want) < 1e-9
+    alone = ai._coherency_term(gs.get_ship_by_id("e0"), 22.0 - 2 * r, 30.0, foe)
     assert alone == 0.0                           # in coherency, nobody touching
 
 

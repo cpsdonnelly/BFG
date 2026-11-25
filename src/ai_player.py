@@ -906,7 +906,8 @@ class AIPlayer:
         score += self._bombard_approach(ship, fx, fy, enemy)
         score += self._planet_term(ship, fx, fy, enemy, fh)
         score += self._macharia_approach(ship, fx, fy, fh, enemy)
-        score += self._coherency_term(ship, fx, fy)
+        score += self._coherency_term(ship, fx, fy, enemy)
+        score += self._massed_turret_term(ship, fx, fy, enemy)
         score += self._buff_term(ship, fx, fy, enemy)
         return score
 
@@ -1445,16 +1446,19 @@ class AIPlayer:
     COVERAGE_WEIGHT = 0.5    # judgement: a mount busy on another enemy vs the target
     COHERENCY_WEIGHT = 3.0   # judgement: out of formation (s.8) loses squadron orders,
                              # combined fire and launches, and must rejoin at once
-    CONTACT_WEIGHT = 0.5     # judgement: per same-ordnance mate in the base contact chain
-
-    def _coherency_term(self, ship: Ship, fx: float, fy: float) -> float:
+    def _coherency_term(self, ship: Ship, fx: float, fy: float,
+                        enemy: Optional[Ship] = None) -> float:
         """Squadron coherency (s.8): each member within 15cm of another, and a
         ship out of formation "must move to restore squadron coherency as soon as
         possible". An end more than 15cm from every other member pays
-        COHERENCY_WEIGHT, more the further it is (judgement). Members carrying
-        ordnance gain CONTACT_WEIGHT for base contact with a member that does
-        too, so their waves and salvos can combine (s.15). Members still to move
-        stand at their planned ends (`_ships_at`)."""
+        COHERENCY_WEIGHT, more the further it is (judgement). Base contact is
+        priced by armament (owner): a member carrying ordnance gains what its
+        load adds to a combined wave / salvo of the same ordnance with the
+        mates in its contact chain, against the target's turrets
+        (`formations.marginal_gain`, exact turret maths), half while unloaded
+        (a Reload Ordnance away, judgement); gun-only ships gain nothing from
+        contact. Members still to move stand at their planned ends
+        (`_ships_at`). In move-score units."""
         if not ship.squadron_id:
             return 0.0
         mates = [s for s in self.gs.player_ships(self.player)
@@ -1468,31 +1472,64 @@ class AIPlayer:
         term = 0.0
         if d > COHERENCY_RANGE:
             term -= self.COHERENCY_WEIGHT * (1.0 + (d - COHERENCY_RANGE) / COHERENCY_RANGE)
+        if self.difficulty == "very_easy" or enemy is None:
+            return term
 
         # Combining ordnance (s.15) needs a chain of base contact, and only the
         # same ordnance combines (owner: torpedoes with torpedoes, Impalers with
-        # Impalers): CONTACT_WEIGHT for each squadron mate with a kind of
-        # ordnance this ship carries in the contact chain from its end position
-        kinds = ordnance_kinds(ship)
-        if kinds:
-            best = 0
-            for kind in kinds:
-                pool = [m for m in mates if kind in ordnance_kinds(m)]
-                chain = [(fx, fy, ship.base_radius)]
-                joined = 0
-                grew = True
-                while grew and pool:
-                    grew = False
-                    for m in list(pool):
-                        if any(math.hypot(m.x - cx, m.y - cy) <= m.base_radius + cr + 0.5
-                               for cx, cy, cr in chain):
-                            chain.append((m.x, m.y, m.base_radius))
-                            pool.remove(m)
-                            joined += 1
-                            grew = True
-                best = max(best, joined)
-            term += self.CONTACT_WEIGHT * best
+        # Impalers)
+        from .formations import kinds_of, load, marginal_gain
+        from .ai_hazards import value_per_hit
+        best = 0.0
+        for kind in kinds_of(ship):
+            pool = [m for m in mates if load(m, kind)]
+            chain = [(fx, fy, ship.base_radius)]
+            joined = 0
+            grew = True
+            while grew and pool:
+                grew = False
+                for m in list(pool):
+                    if any(math.hypot(m.x - cx, m.y - cy) <= m.base_radius + cr + 0.5
+                           for cx, cy, cr in chain):
+                        chain.append((m.x, m.y, m.base_radius))
+                        pool.remove(m)
+                        joined += load(m, kind)
+                        grew = True
+            if not joined:
+                continue
+            loaded = (ship.ordnance_loaded_torps if kind == "torpedo"
+                      else ship.ordnance_loaded_craft)
+            best = max(best, marginal_gain(ship, kind, joined, enemy, self.gs)
+                       * (1.0 if loaded else 0.5))
+        if best:
+            term += best / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
         return term
+
+    def _massed_turret_term(self, ship: Ship, fx: float, fy: float,
+                            enemy: Optional[Ship]) -> float:
+        """Massed turrets (s.29): +1 turret per non-crippled friend in base
+        contact, at most +3, for this ship and (if it isn't crippled) for each
+        friend it touches; worth something only while enemy torpedoes, mines,
+        bombers or assault boats can reach them (`formations.turret_value`;
+        the commander's ship is left to `_screen_bonus`). Any armament gains
+        this, gun escorts too. In move-score units."""
+        if self.difficulty == "very_easy" or enemy is None:
+            return 0.0
+        from .formations import turret_value, attacking_ordnance_near
+        if not attacking_ordnance_near(fx, fy, self.player, self.gs):
+            return 0.0
+        from .ai_hazards import value_per_hit
+        friends = [s for s in self.gs.player_ships(self.player)
+                   if s.id != ship.id and not s.is_destroyed and not s.is_disengaged
+                   and s.status == "active"]
+        touch = [f for f in friends
+                 if math.hypot(f.x - fx, f.y - fy) <= f.base_radius + ship.base_radius + 0.5]
+        if not touch:
+            return 0.0
+        vp = min(3, sum(1 for f in touch if not f.is_crippled)) * turret_value(ship, fx, fy, self.gs)
+        if not ship.is_crippled:
+            vp += sum(turret_value(f, f.x, f.y, self.gs) for f in touch if not f.is_flagship)
+        return vp / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
 
     EASY_TEMPERATURE = 2.0   # judgement: Very easy's softmax temperature (move-score units)
     KITE_WEIGHT = 0.5        # judgement: the band bonus, a share of the guns that bear
@@ -3371,7 +3408,7 @@ class AIPlayer:
         strike craft (not CAP) its squadron members launched this phase, at the
         target most of them were given (judgement): one wave faces the turrets
         once, so more of it gets through (Impalers, bombers, assault boats).
-        Not yet: torpedo salvos combined into one."""
+        Torpedo salvos at one planned target are combined into one too.""" 
         from .ordnance import ATTACK_CRAFT_TYPES
         gs = self.gs
         ships = [s for s in gs.player_ships(self.player)
@@ -3422,6 +3459,29 @@ class AIPlayer:
                     gs.add_log(f"[AI] squadron {comp[0].squadron_id}: {len(ids_m)} "
                                f"{'Impalers' if kind == 'impaler' else 'attack craft'} "
                                f"combined into one wave")
+                # Torpedoes (s.15): salvos of one type at one planned target
+                # become one salvo, so the target's turrets fire at it once
+                # (formations.combine_gain: never worse, often better)
+                torps = [o for o in gs.ordnance
+                         if o.get("launched_by") in ids and o.get("owner_player") == self.player
+                         and str(o.get("ordnance_type", "")).startswith("torpedo")
+                         and o.get("ordnance_type") != "torpedo_bomber"
+                         and o.get("launched_turn") == gs.turn_number
+                         and not o.get("moved_this_phase") and o.get("torp_target_id")]
+                by_key = {}
+                for o in torps:
+                    by_key.setdefault((o["ordnance_type"], o["torp_target_id"]), []).append(o)
+                for (_ot, tid), group in by_key.items():
+                    if len({o["launched_by"] for o in group}) < 2:
+                        continue
+                    t = gs.get_ship_by_id(tid)
+                    if t is None:
+                        continue
+                    far = max(group, key=lambda o: math.hypot(o["x"] - t.x, o["y"] - t.y))
+                    actions.combine_salvos(gs, far["id"], [o["id"] for o in group])
+                    gs.add_log(f"[AI] squadron {comp[0].squadron_id}: "
+                               f"{sum(o.get('strength', 0) for o in group)} torpedoes "
+                               f"combined into one salvo")
 
     def _fire_torpedo_bombers(self):
         """At the start of the ordnance phase, each torpedo bomber wave (or
