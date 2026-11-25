@@ -1024,7 +1024,7 @@ class GamePanel(GameFlow):
         # Build the game-over dialog
         dialog = tk.Toplevel(self.root)
         dialog.title(title)
-        dialog.geometry("420x340")
+        dialog.geometry("420x380")
         dialog.transient(self.root)
         dialog.focus_set()
         tk.Label(dialog, text=headline,
@@ -1040,5 +1040,12 @@ class GamePanel(GameFlow):
                                        vp[1]["total"], vp[2]["total"])),
                   bg="#2a3344", fg="#aabbcc",
                   font=("Consolas", 9)).pack(pady=4)
+        files = getattr(self.root, "_bfg_fleet_files", None)
+        if files:
+            from .favourites_ui import offer_favourites
+            tk.Button(dialog, text="Save fleets to favourites…",
+                      command=lambda: offer_favourites(
+                          self.root, files, getattr(self.root, "_bfg_fleet_names", {})),
+                      font=("Consolas", 9)).pack(pady=2)
         tk.Button(dialog, text="Close", command=dialog.destroy,
                   font=("Consolas", 9)).pack(pady=2)

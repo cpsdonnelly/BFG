@@ -27,7 +27,9 @@ check against lost flexibility); escort squadrons that break the rules are re-fo
 AI at game start, in the window possibly after the Ld roll, so the new squadron's ships keep
 their separate Ld instead of one shared roll (valid squadrons are never touched). Formations
 by armament (`src/formations.py`) since; pending owner question: may a Dark Eldar squadron
-take six 2-hit Corsairs (core p.58: at most four)?
+take six 2-hit Corsairs (core p.58: at most four)? Then To do 26 (Quick Demo: Cruiser Clash on
+random terrain, fleets saved or random, the mode; `src/demo.py`) and 27 (favourite fleets on
+quitting or at game over, `src/favourites.py`) built as minimal Tk versions.
 
 Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Every core rules section the engine plays, all optional rules (boarding, ramming, teleports,

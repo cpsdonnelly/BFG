@@ -42,7 +42,7 @@ def check_setup():
     for w in root.winfo_children():
         if isinstance(w, tk.Toplevel):
             print("setup wizard", w.winfo_width(), "x", w.winfo_height())
-            visible(w, ["Start Game", "Open Map Editor", "Start Game, No Terrain", "Cancel"])
+            visible(w, ["Quick Demo...", "Start Game", "Open Map Editor", "Start Game, No Terrain", "Cancel"])
             w.destroy()
 
 

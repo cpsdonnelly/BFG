@@ -236,6 +236,16 @@ def main():
     from .game_panel import GamePanel
     GamePanel(game_frame, tc, board, root)  # registers its own Tk callbacks
 
+    # Favourite fleets (To do 27): quitting offers to save the fleets played
+    root._bfg_fleet_files = {1: setup.get("p1_fleet"), 2: setup.get("p2_fleet")}
+    root._bfg_fleet_names = {1: gs.player1_name, 2: gs.player2_name}
+
+    def _on_close():
+        from .favourites_ui import offer_favourites
+        offer_favourites(root, root._bfg_fleet_files, root._bfg_fleet_names,
+                         on_done=root.destroy)
+    root.protocol("WM_DELETE_WINDOW", _on_close)
+
     root.mainloop()
 
 
@@ -311,8 +321,12 @@ def _show_setup_dialog(root) -> Optional[dict]:
     fleets_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(fleets_frame, text="Fleet Lists:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
 
-    available_fleets = get_available_fleets("data/fleets")
-    fleet_labels = {p: get_fleet_info(p)["fleet_name"] for p in available_fleets}
+    # Favourites first, with a star (To do 27)
+    from .favourites import favourite_fleets
+    favs = favourite_fleets()
+    available_fleets = favs + get_available_fleets("data/fleets")
+    fleet_labels = {p: ("\u2605 " if p in favs else "") + get_fleet_info(p)["fleet_name"]
+                    for p in available_fleets}
 
     # The demo: the owner's 1000pt Gothic Sector fleet against his Tau Merchant
     # fleet (the old 800pt demo fleets are gone)
@@ -673,8 +687,73 @@ def _show_setup_dialog(root) -> Optional[dict]:
         }
         dialog.destroy()
 
+    def start_quick_demo():
+        """To do 26: the quick demo, a Cruiser Clash on random terrain with
+        the fleets (saved or random) and the mode chosen here (src/demo.py);
+        the board, dice and advanced rules come from the set-up above."""
+        from .demo import demo_setup, RANDOM
+        dlg = tk.Toplevel(dialog)
+        dlg.title("Quick Demo")
+        dlg.transient(dialog)
+        tk.Label(dlg, text="Cruiser Clash on random terrain", font=("Consolas", 10, "bold")
+                 ).pack(padx=10, pady=6)
+        choices = [RANDOM] + list(available_fleets)
+        names = {RANDOM: "Random fleet (AI list builder, 1000pts)",
+                 **{p: fleet_labels.get(p, os.path.basename(p)) for p in available_fleets}}
+        picks = []
+        for label, default in (("Your fleet (Player 1):", p1_fleet_var.get()),
+                               ("Opponent (Player 2):", p2_fleet_var.get())):
+            row = tk.Frame(dlg)
+            row.pack(fill=tk.X, padx=10, pady=2)
+            tk.Label(row, text=label, font=("Consolas", 9), width=22, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar(value=default if default in choices else RANDOM)
+            opt = tk.OptionMenu(row, var, *choices)
+            opt.config(font=("Consolas", 8), width=34)
+            for i, c in enumerate(choices):
+                opt["menu"].entryconfig(i, label=names[c])
+            opt.pack(side=tk.LEFT)
+            picks.append(var)
+        mode_var = tk.StringVar(value="vs_ai")
+        for lbl, val in (("Player vs AI", "vs_ai"), ("Player vs Player", "hot_seat"),
+                         ("AI vs AI", "spectator")):
+            tk.Radiobutton(dlg, text=lbl, variable=mode_var, value=val,
+                           font=("Consolas", 9)).pack(anchor=tk.W, padx=14)
+        diff_var = tk.StringVar(value=ai_diff_var.get())
+        drow = tk.Frame(dlg)
+        drow.pack(anchor=tk.W, padx=14, pady=2)
+        tk.Label(drow, text="AI:", font=("Consolas", 8)).pack(side=tk.LEFT)
+        for lbl, val in diff_levels:
+            tk.Radiobutton(drow, text=lbl, variable=diff_var, value=val,
+                           font=("Consolas", 8)).pack(side=tk.LEFT)
+
+        def go():
+            base = {"width": float(width_var.get()), "height": float(height_var.get()),
+                    "sunward": sunward_var.get(), "dice_mode": dice_var.get(),
+                    **{k: v for k, v in _get_rules().items()
+                       if not k.startswith("ai_") and k not in ("scenario_mode",)}}
+            setup = demo_setup(picks[0].get(), picks[1].get(), mode_var.get(),
+                               diff_var.get(), base=base)
+            p1_fleet_var.set(setup["p1_fleet"])
+            p2_fleet_var.set(setup["p2_fleet"])
+            if not _rules_ok():
+                return
+            setup.update({k: v for k, v in _get_rules().items() if k.startswith("rule_")})
+            result[0] = setup
+            dlg.destroy()
+            dialog.destroy()
+        brow = tk.Frame(dlg)
+        brow.pack(pady=8)
+        tk.Button(brow, text="Start", command=go, bg="#336633", fg="white",
+                  font=("Consolas", 10, "bold")).pack(side=tk.LEFT, padx=4)
+        tk.Button(brow, text="Cancel", command=dlg.destroy,
+                  font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+
     btn_frame = tk.Frame(dialog)
     btn_frame.pack(pady=15)
+    tk.Button(btn_frame, text="Quick Demo...",
+              command=start_quick_demo,
+              bg="#334466", fg="white",
+              font=("Consolas", 10, "bold")).pack(pady=3, fill=tk.X)
     tk.Button(btn_frame, text="Start Game",
               command=start_demo,
               bg="#336633", fg="white",

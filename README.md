@@ -13,7 +13,11 @@ BFG:XR companion booklet export in `bfgxr/`.
 python run.py
 ```
 
-This opens the setup wizard. Its defaults start a demo game: the 1000pt Gothic Sector
+This opens the setup wizard. **Quick Demo...** starts a Cruiser Clash on random terrain:
+pick your fleet and your opponent's (any saved fleet, or a random 1000pt fleet built by
+the AI list builder) and the mode (Player vs AI, Player vs Player, AI vs AI).
+
+Otherwise the wizard's defaults start a game: the 1000pt Gothic Sector
 Imperial Navy fleet against the 1000pt Tau Merchant fleet, on the demo terrain (an asteroid
 field, a dust cloud and a planet). Each player deploys (or presses Auto-Place), then the turns
 begin. In the wizard you can instead:
@@ -32,6 +36,8 @@ builder against its booklet fleet list: 13th Black Crusade (Chaos), Gothic Secto
 Sector, Tau Merchant, Tau Protector, Space Marine Crusade, Mechanicus Explorator, Ork Green
 Tide, Necron Dynasty (with and without the War refit), Corsair Eldar, Dark Eldar Raiders and
 three Tyranid fleets (Gestating, Vanguard, Hive). `tools/build_owner_fleets.py` rebuilds them.
+When you close the game (or from the game-over window) you can save the fleets you played to
+your favourites (`data/fleets/favourites/`); the wizard lists them first, with a star.
 
 ## Controls
 - **Left click** a ship to select and inspect it (stats in the right panel)
@@ -54,7 +60,7 @@ three Tyranid fleets (Gestating, Vanguard, Hive). `tools/build_owner_fleets.py` 
   Demiurg), Rogue Traders, Eldar (MMS v2.0), Dark Eldar, Necrons and Tyranids
 - Fleet builder with live fleet-list checking and a ship card for every ship
 - The booklet's scenarios and sub-plots, low orbit, planets, asteroid fields and other terrain
-- AI opponents (easy, normal, expert) that choose by expected victory points; "Auto" on every
+- AI opponents (very easy to master) that choose by expected victory points; "Auto" on every
   choice prompt picks what the AI would
 - Alternate activation, an optional ruleset (three activation-order systems)
 - Seeded, recorded dice and decisions: games can be saved, loaded and replayed exactly

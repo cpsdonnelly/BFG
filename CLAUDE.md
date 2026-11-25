@@ -3248,9 +3248,24 @@ Done: To do 2, 3, 6; most of 7.
    terrain for a Cruiser Clash, lets the player pick a fleet to play as and one to play
    against (the To do 25 fleets, or random ones from To do 24), and the mode: Player vs AI
    (default), Player vs Player, AI vs AI. GUI checks and the headless runner move to the new
-   fleets.
+   fleets. Built (minimal Tk, owner): the wizard's "Quick Demo..." button (`main.
+   start_quick_demo`, `src/demo.py`: `demo_setup` makes the set-up, Cruiser Clash, random
+   terrain in a random battlezone (D6), the board / dice / advanced rules from the wizard;
+   each side's fleet a saved one or "Random fleet" (`random_fleet_file`: the list builder
+   on a random fleet list at 1000pts, retried on another list if it breaks its rules,
+   saved in `data/fleets/random/`, git-ignored); the mode Player vs AI / Player vs Player /
+   AI vs AI and the AI difficulty) (`tests/test_demo.py`,
+   `tools/gui_checks/quick_demo_check.py`; a Cruiser Clash game, Gothic against a random
+   Space Marine fleet, played to game over and replayed). Not yet: the full version in the
+   browser window.
 27. Favourite fleets (owner): on quitting, mid-game or at the end, offer to save each fleet
-   to a favourites section of the fleet lists.
+   to a favourites section of the fleet lists. Built (minimal Tk): `src/favourites.py`
+   (`save_favourite` copies the fleet file as chosen, not the battle damage, into
+   `data/fleets/favourites/` named after the fleet; the same fleet again is reused, another
+   with that name numbered; `to_offer` skips fleets already favourites), listed first in the
+   wizard with a star; `favourites_ui.offer_favourites` asks with a tick per player on
+   closing the game window (`main._on_close`) and from "Save fleets to favourites..." on the
+   game-over dialog (`tests/test_favourites.py`, `tools/gui_checks/favourites_check.py`).
 28. AI deployment (owner): ships with buffs to friends in range (Tyranid synapse 30-60cm,
    Tau tracking systems 10cm, the Custodian's 20cm...) are placed last, where as many
    friends as possible (at least one) are in range. Squadron sizes always from the fleet
