@@ -17,6 +17,7 @@ messagebox.askyesno = lambda *a, **k: True
 root = tk.Tk()
 gs = GameState()
 gs.game_seed = 11
+gs.dice_mode = "auto"
 for p, f in ((1, "owner_gothic_1000.json"), (2, "owner_chaos_1000.json")):
     for s in fleet_to_ships(load_fleet_file("data/fleets/" + f), p):
         gs.add_ship(s)
@@ -55,6 +56,21 @@ first = panel.state.current_group()[0].id
 panel._next_member()
 ok &= panel.state.current_group()[0].id != first
 print("  next ship in squadron:", panel.state.current_group()[0].name)
+# Move commander (To do 29): the dialog's Auto / Move here moves him
+from src.commanders import commander_options  # noqa: E402
+panel._commander_dialog()
+root.update()
+dlg = [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)][-1]
+lb = next(w for w in dlg.winfo_children() if isinstance(w, tk.Listbox))
+names = lb.get(0, tk.END)
+i = next(i for i, n in enumerate(names) if "Lunar" in n)
+lb.selection_set(i)
+next(w for f in dlg.winfo_children() if isinstance(f, tk.Frame) for w in f.winfo_children()
+     if isinstance(w, tk.Button) and w.cget("text") == "Move here").invoke()
+lunar = next(s for s in gs.player_ships(1) if "Lunar" in s.name)
+moved = bool(commander_options(lunar)) and lunar.is_flagship
+ok &= moved
+print("  commander moved to the Lunar:", moved)
 root.destroy()
 print("RESULT:", "OK" if ok else "FAILED")
 sys.exit(0 if ok else 1)

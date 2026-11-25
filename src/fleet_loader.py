@@ -62,6 +62,13 @@ def fleet_to_ships(fleet_data: dict, player: int) -> List[Ship]:
                 sid = f"{base}_{n}"
             d["id"] = sid
         used.add(d["id"])
+        # The fleet's list (s.4), kept on each ship as a rule tag so the game
+        # can check where its commander may go (commanders.py, To do 29)
+        main_list = fleet_data.get("fleet_list") or ""
+        if main_list:
+            rules = list(d.get("special_rules") or [])
+            if not any(r.startswith("fleet_list:") for r in rules):
+                d["special_rules"] = rules + [f"fleet_list:{main_list}"]
         ships.append(Ship(**d))
 
     return ships

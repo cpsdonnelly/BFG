@@ -80,19 +80,21 @@ def play(args) -> dict:
         unplaced |= any("spawn_x" not in r and "x" not in r for r in data.get("ships", []))
         for sh in fleet_to_ships(data, p):
             gs.add_ship(sh)
+    dice = DiceRoller(mode="auto")
+    roll_starting_leadership(gs, dice, ai_dice=dice)   # pre-battle step 6, before deploying
     if unplaced:
         # Fleets saved by the fleet builder carry no positions: deploy both
         # fleets as the AI does in the window (ai_deployment, To do 28)
         from src.deployment import deployment_state
         from src.ai_deployment import ai_deploy_all
         from src.squadrons import ai_form_squadrons
-        for p in (1, 2):                    # before deployment (s.8)
+        from src.commanders import ai_place_commander
+        for p in (1, 2):                    # before deployment (s.8; commanders s.5)
             ai_form_squadrons(gs, p)
+            ai_place_commander(gs, p, dice)
         problems = ai_deploy_all(gs, deployment_state(gs))
         if problems:
             errors.extend(problems)
-    dice = DiceRoller(mode="auto")
-    roll_starting_leadership(gs, dice, ai_dice=dice)
     tc = TurnController(gs, dice)
     over = []
     start = time.time()

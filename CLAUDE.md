@@ -726,6 +726,12 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   2D6-choose-one (both results against a crippled ship) and Pain Frenzy's re-roll for assault
   boats too (`dark_eldar.raid_value`, used by `waves.raid_squadron_value` and
   `impaler_effect_values`; only the Impaler counted the re-roll before, Incubi nowhere).
+  Wych Cult (owner check): "the ship and its ordnance count all enemy capital ships as
+  crippled for the purpose of Pain Frenzy and boarding modifiers" (capital ships only, not
+  escorts): its Pain Frenzy re-rolls of raids, boarding crits and the Impaler's crit were
+  built (`dark_eldar.pain_frenzy_applies`, in the engine and every AI value); the boarding
+  modifier (+2 against a crippled ship) wasn't, now `boarding._get_ship_modifier(...,
+  opponent_rules)` for both sides of a boarding action and the AI's `boarding_vp`.
   An Impaler hitting an undamaged Lunar, expected VP: none 23.3, Wych Cult 28.8, Incubi
   28.8, Haemonculi 22.4 (its forced Fire, 11.2, is worth less than a random crit, 18.7, so
   the AI takes the two raids; the coven's value is its +1 hit); crippled Lunar: Incubi 41.4.
@@ -737,8 +743,12 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   6 Corsairs (owner; same 990, and four 2-hit escorts a squadron as core p.58 says).
   "-1 to enemy raids" rules in the booklet (owner question): Space Marines (and Chaos Space
   Marine crews, which use their rules), Mega Armoured Boarding Parties, Incubi, every Tyranid
-  ship, all in the engine; not yet: Mucous Membrane (Tyranid biomorph: assault boats a further
-  -1 against it; the rule tag is carried but the raid roll doesn't read it), the Infested
+  ship, all in the engine, and Mucous Membrane (Tyranid biomorph, built since: assault boats,
+  Impalers included, a further -1 to raids against it (`hit_and_run.ASSAULT_BOAT_RAID` tag on
+  their raids; teleport values pass `assault_boat=False`), bombers one attack fewer
+  (Fighta-Bommerz keep their minimum of one, reading), torpedoes count its Armour +1, max 6+;
+  the AI's bomber, torpedo and raid values see it, not yet the wave planner's split;
+  `tests/test_mucous_wych.py`); not yet: the Infested
   Space Station (unplayable), Deathskulls (+1 or -1 to raids they suffer; clan not built);
   XR's Aspect Warriors -1 isn't MMS's, so not applied.
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
@@ -3397,10 +3407,10 @@ Done: To do 2, 3, 6; most of 7.
    contact become one (`actions.combine_salvos`, recorded and replayed; kept on the member
    furthest from the target) (`tests/test_formations.py`). Not counted: a bigger squadron's
    costs (one command check, harder coherency, escort VP by squadron), shape beyond line /
-   box. Owner question pending: the Dark Eldar list's "squadrons of two to six, in any mix"
-   vs core p.58's four 2-hit escorts a squadron (the owner's six Corsairs, 2 hits each, are
+   box. Owner ruling (answered): the Dark Eldar list's "squadrons of two to six, in any mix"
+   only restates the core rule, so core p.58's four 2-hit escorts a squadron still applies (the owner's six Corsairs, 2 hits each, are
    one squadron; the check flagged it. Owner since: that fleet now has 4 Corsairs and 7
-   torpedo Raiders, so the question no longer blocks a file; the ruling itself is still open). Still to do (owner: noted):
+   torpedo Raiders). Still to do (owner: noted):
    (1) the AI's choice to squadron capital ships is a coin-flip-style draw
    (`CAPITAL_SQUADRON_CHANCE`), not an expected-VP judgement of combined fire and one
    command check against losing flexibility; (2) if a fleet file's escort squadrons break
@@ -3460,10 +3470,27 @@ Done: To do 2, 3, 6; most of 7.
    most starting hits), the Wolf-Pack's Pirate Captain the most expensive non-xenos capital
    ship; "most expensive" reads the ship's own list cost without its options (reading); the
    Space Marine battle barge rule was already checked (`_sm_barge_errors`). The list builder
-   puts its commander on the dearest capital ship the rule allows. Not yet: moving the
-   commander at deployment after the Ld roll (waits for the owner's wording), the Rogue
-   Trader detachment's man o' war (men o' war aren't built), secondary commanders'
-   placements.
+   puts its commander on the dearest capital ship the rule allows. Moving the commander at
+   deployment built (owner: where the fleet list doesn't force his ship, e.g. Chaos lists put
+   him on the most expensive capital ship; Tyranid hive ships work differently, so Tyranids
+   never move one): `src/commanders.py`. `commander_options` (the commander, his re-rolls /
+   upgrades as `victory_points.commander_points` counts them, and options requiring one of
+   those: Chapter tactic, honour guards, Undivided, kustoms); `allowed_ships` (capital ships
+   offering all of them, no option restriction broken, `fleet_lists.
+   commander_placement_errors` kept; the fleet's list is on each ship as a `fleet_list:<key>`
+   tag, `fleet_loader.fleet_to_ships`); `move_commander` (the difference his options make to
+   each catalog profile moves across: Ld, re-rolls, flagship, points, rules; the ship he
+   leaves rolls its own Ld then (recorded dice), the ship he joins keeps its rolled Ld as
+   `own_ld:<n>` for a later move; "+1 Ld at all times" refits re-added); the AI and "Auto"
+   (`best_ship`, judgement): Kill the Admiral the hardest ship to kill, else the dearest
+   allowed ship when it costs at least `DEAREST_RATIO` 2 x the next (the Cairn), else the
+   lowest Ld (the commander's own ship counted at its table's average, it never rolled).
+   When: after the Ld roll, before any ship is placed (`DeploymentPanel`: the AI's own
+   fleets, and a "Move commander..." button for players; the headless runner now rolls Ld
+   before deploying) (`tests/test_commander_move.py`, `tools/gui_checks/
+   deploy_squadrons_check.py`). Not yet: secondary commanders (Strategic Commanders,
+   Dracons, Veteran Captains...), the Rogue Trader detachment's man o' war (men o' war aren't
+   built).
 30. Exact hit distributions for the AI's threat and VP values (owner question: lookup tables
    or random sampling?). Answer (Claude): neither as such; exact distributions, computed once
    per parameter set and cached (memoised), which is a lookup table built on demand. Gunnery:
@@ -3723,12 +3750,12 @@ rather than touch a third ship).
 1. **Raid modifiers that cancel out (owner: pinned, unsure the rules support it).** The engine
    adds every raid modifier together, so a Dark Eldar raid (+1 Pain Frenzy) on a Space Marine
    ship (enemy raids -1) is a plain roll (`hit_and_run._raid_roll_modifier`). Do an attacker's
-   bonus and a defender's penalty cancel like that? Owner's reading (not confirmed by the
+   bonus and a defender's penalty cancel like that? (Owner: unsure, still open.) Owner's reading (not confirmed by the
    booklet's author): Incubi state their -1 to enemy raids explicitly, so a rule giving +1
    doesn't also give -1 unless it says so. The engine already works that way: every -1 it
    applies is printed for that unit (Space Marines, Mega Armoured Boarding Parties, Incubi,
    Tyranids); Pain Frenzy and Aspect Warriors give only their +1.
-2. **The plain game's winner when a fleet is gone.** Outside the booklet scenarios
+2. **The plain game's winner when a fleet is gone** (owner: unsure, still open). Outside the booklet scenarios
    (`scenario.check_game_over`), a fleet with no ships left loses outright, whatever the
    victory points; in the booklet scenarios the scenario's own conditions (mostly VP) decide.
    A random-fleet game ended 93-202 VP with the 93 side the winner (the other fleet had

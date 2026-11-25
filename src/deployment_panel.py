@@ -79,9 +79,13 @@ class DeploymentPanel:
         # Capital ship squadrons are formed before any ship is deployed (s.8):
         # the AI forms its own here (squadrons.ai_form_squadrons)
         from .squadrons import ai_form_squadrons
+        from .commanders import ai_place_commander
+        from .dice import DiceRoller
         for p in (1, 2):
             if self._ai_deploys(p):
                 ai_form_squadrons(gs, p, log=gs.report)
+                # commanders are assigned at deployment, after the Ld roll (To do 29)
+                ai_place_commander(gs, p, DiceRoller(mode="auto"), log=gs.report)
         # Fixed placements, reserves left out, the scenario's zones and rules
         from .deployment import deployment_state
         self.state = deployment_state(gs, mode)
@@ -216,6 +220,9 @@ class DeploymentPanel:
                                    command=self._squadron_dialog,
                                    bg="#334455", fg="white", font=("Consolas", 9))
         self.squad_btn.grid(row=2, column=1, sticky="ew", padx=2, pady=1)
+        tk.Button(btn_frame, text="Move commander...", command=self._commander_dialog,
+                  bg="#334455", fg="white", font=("Consolas", 9)
+                  ).grid(row=3, column=0, columnspan=2, sticky="ew", padx=2, pady=1)
         self.root.bind("<Control-z>", lambda _e: self._undo_any())
 
         tk.Frame(self.frame, bg="#333355", height=2).pack(fill=tk.X, pady=4)
@@ -519,6 +526,59 @@ class DeploymentPanel:
             return
         self.state.select_member(k, group[-1].id)    # rotate the unplaced ones
         self._refresh()
+
+    def _commander_dialog(self):
+        """Move the fleet commander to another capital ship after the Ld roll
+        (s.5, To do 29), before any ship is deployed, where the fleet list
+        allows it (commanders.allowed_ships); "Auto" picks what the AI would."""
+        from .commanders import allowed_ships, best_ship, move_commander, commander_options
+        p = self.state.active_player
+        if not self.state.can_regroup():
+            messagebox.showinfo("Move commander", "Commanders are assigned before any ship "
+                                "is deployed.", parent=self.root)
+            return
+        ships = allowed_ships(self.gs, p)
+        if not ships:
+            messagebox.showinfo("Move commander", "Your fleet commander can't move: the "
+                                "fleet list fixes his ship, or there's no other choice.",
+                                parent=self.root)
+            return
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Move commander")
+        dlg.transient(self.root)
+        tk.Label(dlg, text="Choose the ship to lead the fleet (Ld shown is the ship's "
+                 "own rolled Ld; the commander's ship hasn't rolled yet).",
+                 font=("Consolas", 9), wraplength=380).pack(padx=6, pady=4)
+        lb = tk.Listbox(dlg, width=52, height=min(12, len(ships)), font=("Consolas", 9),
+                        exportselection=False)
+        lb.pack(padx=6, pady=4)
+        for s in ships:
+            mark = "  (commander)" if commander_options(s) else ""
+            lb.insert(tk.END, f"{s.name} ({s.ship_class}) Ld {s.leadership}{mark}")
+
+        def apply(target):
+            from .dice import DiceRoller, mode_for
+            move_commander(self.gs, target.id, DiceRoller(mode=mode_for(self.gs),
+                                                          root=self.root), log=self.gs.report)
+            for g in self.state.groups[p]:          # the placed list shows fresh copies
+                for i, s in enumerate(g):
+                    g[i] = self.gs.get_ship_by_id(s.id) or s
+            dlg.destroy()
+            self._refresh()
+
+        def pick():
+            sel = lb.curselection()
+            if sel:
+                apply(ships[sel[0]])
+
+        def auto():
+            b = best_ship(self.gs, p)
+            if b is not None:
+                apply(b)
+        row = tk.Frame(dlg)
+        row.pack(pady=4)
+        for text, cmd in (("Move here", pick), ("Auto", auto), ("Cancel", dlg.destroy)):
+            tk.Button(row, text=text, command=cmd, font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
 
     def _squadron_dialog(self):
         """Form or break up capital ship squadrons (s.8: at the start of the
