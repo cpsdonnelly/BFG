@@ -3325,7 +3325,8 @@ Done: To do 2, 3, 6; most of 7.
      ship moves; FIXED: `AIPlayer.contacts_fn`, the window's resolver passed to
      `actions.apply_move` after each move, handed to the main thread for the hard /
      expert search's worker, `GameFlow`); the AI's later squadron volleys use the blast markers from when the
-     phase's volleys were planned (s.11: at once).
+     phase's volleys were planned (s.11: at once; FIXED: each squadron's volley re-reads the
+     markers and its ships, `AIPlayer._squadron_volleys`).
    - Known modelling limits (choices, not oversights): one-turn horizons (disengaging, the
      escort finishing chance), the expert's sim without terrain, faction rules or enemy
      ordnance, the move score's torpedo at 0.35 hits and flat 0.5 contact bonus a mate

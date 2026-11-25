@@ -2872,8 +2872,12 @@ class AIPlayer:
                     and not s.has_fired and not s.disengage_failed_this_turn
                     and (only is None or s.squadron_id == only)):
                 squads.setdefault(s.squadron_id, []).append(s)
-        bms, phen, all_ships = gs.get_blast_markers(), gs.get_phenomena(), gs.get_ships()
         for members in squads.values():
+            # s.11: blast markers come into effect at once, so each volley sees
+            # those the earlier volleys placed (and the ships as they now are)
+            bms, phen, all_ships = gs.get_blast_markers(), gs.get_phenomena(), gs.get_ships()
+            members = [m for m in (gs.get_ship_by_id(x.id) for x in members)
+                       if m is not None and not m.is_destroyed and not m.is_disengaged]
             if len(members) < 2:
                 continue
             batteries = [(m, i, w) for m in members for i, w in enumerate(m.weapons)
@@ -2913,7 +2917,7 @@ class AIPlayer:
             lead = contrib[0][0]
             self._offer_brace(lead, target, expected=hits)
             lock_on = all(m.special_order == SpecialOrder.LOCK_ON.value for m, _i, _w in contrib)
-            # bms: the markers when this phase's volleys were planned
+            # bms: the markers in play as this volley is planned
             actions.fire_squadron_volley(
                 gs, self.dice, lead.id, [(m.id, i) for m, i, _w in contrib], target.id,
                 "best" if len(group) > 1 else None, lock_on,

@@ -262,3 +262,35 @@ def test_ai_resolves_ordnance_contacts_as_each_ship_moves():
     ai.contacts_fn = lambda: calls.append(1)
     ai.run_movement_phase()
     assert len(calls) == 2              # once after each of the two moves
+
+
+def test_ai_later_squadron_volley_sees_earlier_volleys_blast_markers(monkeypatch):
+    """s.11: blast markers come into effect at once. Two AI squadrons fire in
+    turn: the second plans with the marker the first volley placed."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    from src.models import BlastMarker
+    from src import actions, combat
+    from tests.conftest import make_ship, make_gs, DiceStub
+    gun = {"name": "Prow Battery", "weapon_type": "battery", "range_cm": 30, "strength": 4,
+           "arcs": ["front"]}
+    ours = [make_ship(id=f"s{i}", player=1, ship_type="escort", x=0.0, y=-3.0 + 2 * i,
+                      heading=0.0, squadron_id="A" if i < 2 else "B", weapons=[dict(gun)])
+            for i in range(4)]
+    gs = make_gs(ours + [make_ship(id="t", player=2, x=20.0, y=0.0)])
+    gs.current_phase, gs.active_player = "shooting", 1
+    seen = []
+    real_plan = combat.plan_squadron_volley
+
+    def spy(pairs, group, bms, *a, **k):
+        seen.append(len(bms))
+        return real_plan(pairs, group, bms, *a, **k)
+    monkeypatch.setattr(combat, "plan_squadron_volley", spy)
+
+    def fire(gs_, dice, lead, *a, **k):                  # each volley leaves a marker
+        gs_.add_blast_marker(BlastMarker(id=f"bm{len(gs_.blast_markers)}", x=19.0, y=0.0))
+    monkeypatch.setattr(actions, "fire_squadron_volley", fire)
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai._committed, ai._volley_fired = {}, set()
+    ai._squadron_volleys()
+    assert len(gs.blast_markers) == 2 and seen and seen[-1] == 1
