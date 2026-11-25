@@ -3539,6 +3539,12 @@ rather than touch a third ship).
    adds every raid modifier together, so a Dark Eldar raid (+1 Pain Frenzy) on a Space Marine
    ship (enemy raids -1) is a plain roll (`hit_and_run._raid_roll_modifier`). Do an attacker's
    bonus and a defender's penalty cancel like that?
+2. **The plain game's winner when a fleet is gone.** Outside the booklet scenarios
+   (`scenario.check_game_over`), a fleet with no ships left loses outright, whatever the
+   victory points; in the booklet scenarios the scenario's own conditions (mostly VP) decide.
+   A random-fleet game ended 93-202 VP with the 93 side the winner (the other fleet had
+   disengaged). Should the plain game also go by VP (s.38: "in many scenarios, the winner
+   will be the player who scores the most victory points"; holding the field adds its VP)?
 ### Owner ruling: torpedo bomber salvos placed on a ship (s.21; implemented, tested)
 
 A salvo placed overlapping a ship's base is in contact and attacks it at once (s.15 "comes
