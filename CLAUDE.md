@@ -26,7 +26,7 @@ Tkinter (`python run.py`); the rules engine is pure Python in `src/`.
   older hand-written summary. Where they disagree with `bfgxr/`, `bfgxr/` wins.
 - The ship catalog (`src/ship_catalog.py`) is built at import from `bfgxr/data/ships.json` by
   `src/booklet_ships.py`: all 11 factions, 212 booklet ships plus 17 designed Venerable Strike
-Cruisers. Eldar (MMS v2.0) are playable (18 of 24 ships) and so are Necrons (the six mobile
+Cruisers. Eldar (MMS v2.0) are playable (all 24 ships) and so are Necrons (the six mobile
 ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the gaps. Ships using rules the engine can't play yet
   (special movement, fortress weapons...; immobile defences are playable) are
   listed with `entry.unsupported` reasons and greyed out in the fleet builder. Old catalog names
@@ -602,8 +602,17 @@ committed, 1793 tests pass, the ordnance sweep 5491 cases pass):
   scored where its first leg ended, so second legs carried escorts off the table on turn 2
   (`_eldar_moves` now scores the end of both moves, MMS makes both in the movement phase);
   holofields in the AI's damage estimate (`mount_hits`: the lance save by range, one column
-  shift against gunnery as `HOLOFIELD_SHIFT` 0.7, judgement). Still open: the five either/or
-  Craftworld ships (Dragonship, Wraithship, two Ghostships, Shadowhunter) unsupported; the Seer
+  shift against gunnery as `HOLOFIELD_SHIFT` 0.7, judgement). The five either/or Craftworld
+  ships (Dragonship, Wraithship, Ghost Dragon, Ghost Wraith, Shadowhunter) are playable now:
+  one weapon choice per location is a required option (`booklet_options.ELDAR_CONFIGS` /
+  `eldar_configurations`, groups `eldar_prow` / `eldar_keel`; the Dragonship's and Wraithship's
+  boarding torpedoes and Vampires +10 are their own keel choices); Ghostships (MMS p.20,
+  `ghostship` rule): enemy boarding and raids +1 (`boarding._get_ship_modifier`,
+  `hit_and_run._RAID_DEFENSE_PENALTY`), never initiate boarding or teleports, crits on 6
+  (Fragile ignored); the Shadowhunter's shots at ordnance hit on 4+ (`ordnance_shots_4plus`,
+  `combat.fire_at_ordnance` and the AI's value). Not yet: "a Ghostship which fails a special
+  order may only move in the following turn". A Craftworld test fleet of all five played the
+  Gothic fleet to game over and replayed (`tests/test_eldar_fleets.py`). Still open: the Seer
   Council's Foresight; XR's Corsair / Craftworld movement differences (MMS used).
 - Raised this session, still open (see each section): open question 1 (raid modifiers that
   cancel); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
@@ -768,7 +777,7 @@ item below says how):
   hit-and-run, s.40 celestial effects, Remastered blast markers / suppression / escort VP).
 - Ten factions playable: Imperial Navy, Chaos, Mechanicus, Space Marines (+ Venerable Strike
   Cruisers), Inquisition / Grey Knights, Orks, Tau (+ Demiurg), Rogue Traders, Eldar MMS v2.0
-  (18 of 24 ships), Necrons (the six mobile ships); fleet lists for the first eight.
+  (all 24 ships), Necrons (the six mobile ships); fleet lists for every faction now.
 - Commanders (fleet, secondary, named), refits, gifts, marks, kustoms, bought torpedo types,
   mines, torpedo bombers.
 - 31 booklet scenarios (To do 7): the nine matched-play ones, the introductory, raid and battle
@@ -2526,8 +2535,8 @@ Done: To do 2, 3, 6; most of 7.
    escorts pass asteroid tests and capital ships re-roll failures, warp rifts at -2 Ld with the
    3+ way home; the AI's MMS moves (`AIPlayer._eldar_moves`: a grid of first turn / length and
    second turn / length, legal by `validate_movement`, scored from the first leg's end; ~135
-   moves, ~30ms a ship). Eldar are PLAYABLE now (removed from `UNBUILT_FACTION_RULES`; 18 of 24
-   ships; the rest have either/or armament or no points cost); AI-vs-AI Eldar against Imperial
+   moves, ~30ms a ship). Eldar are PLAYABLE now (removed from `UNBUILT_FACTION_RULES`; all 24
+   ships now, the either/or ones by required weapon options); AI-vs-AI Eldar against Imperial
    Navy plays to game over in IGOUGO and AA (`tools/gui_checks/gui_spectator_eldar.py
    igougo|aa`). Gaps still open (listed above, plus): Eldar fleet lists (Corsair, Craftworld;
    they play with "No fleet list"), Kinship and Heroes, the Void Dragon, Ghostships, the
@@ -2535,7 +2544,8 @@ Done: To do 2, 3, 6; most of 7.
    extra turn in the AI's MMS moves, the move dialog's MMS help.
    Also still open from the slices above: Eldar bombers re-rolling attack dice, fighters' 4+
    save per wave, holofields against non-lance direct attacks, Superstructure Damaged, a
-   second prow crit, the five either/or ships and the one without a points cost.
+   second prow crit (the five either/or ships are built, see the session status; a Ghostship
+   failing an order isn't limited to moving yet).
    Necrons, first slice built (`src/necrons.py`, pure logic, not wired in yet): reactive
    hulls (`parse_reactive_hull` "RH 4+", `hull_save` 2+ when braced, `armour_when_braced` 4+,
    hulks 4+), no Reload Ordnance but the tomb complex, Deadly Awakening (`starting_alert`:

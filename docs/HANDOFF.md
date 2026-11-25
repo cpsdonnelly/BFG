@@ -24,7 +24,7 @@ Finished (playable for humans and the AI, IGOUGO and alternate activation):
   hit-and-run, s.40 celestial effects, Remastered blast markers / suppression / escort VP).
 - Factions: Imperial Navy, Chaos, Mechanicus, Space Marines (+ Venerable Strike Cruisers),
   Inquisition / Grey Knights, Orks, Tau (+ Demiurg, Kroot partly), Rogue Traders, Eldar (MMS
-  v2.0, 18 of 24 ships), Necrons (the six mobile ships). Fleet lists for the first eight.
+  v2.0, all 24 ships), Necrons (the six mobile ships). Fleet lists for the first eight.
 - Fleet / secondary / named commanders, refits, gifts, marks, kustoms, bought torpedo types,
   mines, torpedo bombers.
 - 31 booklet scenarios and the sub-plots (Decoy aside).
@@ -1125,7 +1125,8 @@ Eldar gaps still open (CLAUDE.md To do 14): fleet lists (Corsair, Craftworld), K
 Heroes, Void Dragon, Ghostships, Dying Race, bombers' re-roll and fighters' save per wave,
 holofields against non-lance direct attacks, Superstructure Damaged, a second prow crit, the
 AI's lance values ignoring the holofield save, Come to New Heading's extra turn in the AI's
-MMS moves, the move dialog's MMS help, the five either/or ships and the one without a cost.
+MMS moves, the move dialog's MMS help (the either/or ships are built since: weapon
+choices as required options, Ghostship and Shadowhunter rules).
 Necrons then built and made playable (all pushed, 1226 tests): `src/necrons.py`, the catalog
 (reactive hulls, lightning arcs, particle whips, star pulse generators, portals), reactive
 hull saves and braced / hulk Armour 4+, lightning arcs vs closing, particle whip bypass, the

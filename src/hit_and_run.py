@@ -107,6 +107,8 @@ def check_teleport_eligibility(attacker: Ship, target: Ship,
     from .scenarios import on_standby
     if on_standby(gs, attacker):
         return False, "on standby (Surprise Attack)"
+    if "ghostship" in attacker.special_rules:
+        return False, "Ghostships may not initiate teleport attacks (MMS p.20)"
     portal = portal_weapon(attacker)
     if portal is not None:
         # Necron portals: resolved like teleport attacks, but against targets with
@@ -175,6 +177,7 @@ _RAID_DEFENSE_PENALTY = {
     "mega_armoured_boarders": 1,
     "incubi": 1,             # Dark Eldar Incubi: enemy raids on the ship -1
     "tyranid": 1,            # a bio-ship's innards: enemy raids -1 (Xenos p.105)
+    "ghostship": -1,         # Eldar Ghostships: enemy raids +1 (MMS p.20)
 }
 
 

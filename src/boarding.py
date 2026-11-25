@@ -108,6 +108,8 @@ def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
     touching = count_blast_markers_touching(ship, blast_markers)
     if touching > 0 and "tyranid" not in ship.special_rules:
         mod += 1          # Tyranids never count as touching blast markers here (Xenos p.105)
+    if "ghostship" in ship.special_rules:
+        mod += 1          # Eldar Ghostships: enemy boarding +1 (MMS p.20)
     return mod
 
 

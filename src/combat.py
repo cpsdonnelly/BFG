@@ -638,7 +638,7 @@ def fire_at_ordnance(attacker: Ship, weapon: Dict, marker_id: str, gs, dice,
     n = ordnance_fire_dice(attacker, weapon, m["x"], m["y"], gs, avail)
     if n <= 0:
         return {"dice": 0, "hits": 0, "removed": []}
-    need = weapon.get("hits_on") or 6
+    need = weapon.get("hits_on") or (4 if "ordnance_shots_4plus" in attacker.special_rules else 6)
     rolls = dice.roll_d6(n, f"{weapon['name']} vs {m['ordnance_type']} ({need}+ to hit)")
     hits = sum(1 for r in rolls if r >= need)
     removed = []

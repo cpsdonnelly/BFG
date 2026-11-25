@@ -766,7 +766,8 @@ class MovementDialogMixin:
         if not self.ctx.gs.rule_boarding:
             return
         ship = self.ctx.gs.get_ship_by_id(ship_id)
-        if not ship or ship.has_boarded or ship.is_grappled:
+        if not ship or ship.has_boarded or ship.is_grappled \
+                or "ghostship" in ship.special_rules:    # MMS p.20
             return
         from .boarding import ships_in_base_contact
         enemies = [s for s in self.ctx.gs.get_ships()

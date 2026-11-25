@@ -59,3 +59,53 @@ def test_bodyguard_aspect_warriors_and_gryphon_knights():
     tc.command_check_failed = True
     assert not tc.can_issue_special_order(gs.get_ship_by_id("a"))
     assert tc.can_issue_special_order(gs.get_ship_by_id("b"))
+
+
+# The Craftworld ships with either / or armament (MMS v2.0): one weapon choice
+# per location is required; Ghostships and the Shadowhunter's own rules.
+from src.booklet_options import ship_option_errors
+from src.boarding import _get_ship_modifier
+from src.hit_and_run import check_teleport_eligibility
+from src.combat import fire_at_ordnance
+
+
+def test_either_or_craftworld_ships_are_playable_with_their_choices():
+    dragon = _e("Dragonship Class Battle Cruiser")
+    assert not dragon.unsupported
+    assert sorted(ship_option_errors(dragon, [])) == ["Choose one Eldar Keel.", "Choose one Eldar Prow."]
+    ups = ["Prow: Pulsar Lance FP3", "Keel: Launch Bays S4 with Vampires"]
+    assert ship_option_errors(dragon, ups) == []
+    assert ship_option_errors(dragon, ups + ["Prow: Weapons Battery FP12"]) != []
+    d = dragon.to_ship_dict(name="d", player=1, upgrades=ups)
+    kinds = {w["weapon_type"]: w for w in d["weapons"]}
+    assert kinds["lance"]["pulsar"] and kinds["lance"]["strength"] == 3
+    assert "vampire_assault_boat" in kinds["launch_bay"]["craft_types"]
+    assert d["points_value"] == 280
+    g = _e("Ghost Wraith (Ghostship)").to_ship_dict(
+        name="g", player=1, upgrades=["Prow Pulsar Lance FP2 + Keel Battery FP4"])
+    assert sorted(w["strength"] for w in g["weapons"]) == [2, 4]
+    s = _e("Shadowhunter Class Destroyer").to_ship_dict(
+        name="s", player=1, upgrades=["Prow: Phantom Lance FP1"])
+    assert s["weapons"][0]["phantom"]
+
+
+def test_ghostship_rules():
+    gs = make_gs()
+    gs.rule_hit_and_run = gs.rule_teleport = True
+    ghost = make_ship(special_rules=["ghostship", "fragile"])
+    assert _get_ship_modifier(ghost, gs) == 1           # enemy boarding +1
+    assert _raid_roll_modifier([], ghost) == 1          # enemy raids +1
+    ok, why = check_teleport_eligibility(ghost, make_ship(id="t", player=2), gs)
+    assert not ok and "Ghostship" in why
+
+
+def test_shadowhunter_hits_ordnance_on_4plus():
+    gs = make_gs()
+    gs.ordnance = [{"id": "m1", "ordnance_type": "torpedo", "x": 20, "y": 0, "owner_player": 2,
+                    "strength": 2, "heading": 180}]
+    sh = make_ship(id="s", x=0, y=0, heading=0, special_rules=["ordnance_shots_4plus"])
+    w = {"name": "Prow Phantom Lance", "weapon_type": "lance", "range_cm": 30,
+         "strength": 1, "arcs": ["front"]}
+    dice = DiceStub([4])
+    out = fire_at_ordnance(sh, w, "m1", gs, dice, 1)
+    assert out["hits"] == 1 and dice._idx == 1

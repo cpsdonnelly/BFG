@@ -417,8 +417,12 @@ def convert_row(row: dict) -> dict:
         problems.append(f"points cost '{row.get('points_raw')}' is not a fixed number")
     tyranid_configured = (row["faction"] == "Tyranids"
                           and "configuration" in (row.get("armament_raw") or ""))
+    # Craftworld ships whose weapons are either / or choices: chosen as options
+    # (booklet_options.eldar_configurations)
+    from .booklet_options import ELDAR_CONFIGS
+    eldar_configured = row["name"] in ELDAR_CONFIGS
     if not row["weapons"] and not (transport and ship_type in ("escort", "cruiser")) \
-            and not tyranid_configured:
+            and not tyranid_configured and not eldar_configured:
         # unarmed convoy ships (Fast Clipper) are playable; their cargo is the point
         problems.append(f"no weapon profile ({row.get('armament_raw')})")
     if row["faction"] in UNBUILT_FACTION_RULES:
@@ -550,6 +554,11 @@ def convert_row(row: dict) -> dict:
             special_rules.append("negative_energy_veil")
         if "nebuloscope pylons" in notes:
             special_rules.append("nebuloscope_pylons")
+    if row["faction"] == "Eldar":
+        if "Ghostship" in row["name"]:
+            special_rules.append("ghostship")           # MMS p.20
+        if "ordnance hits on 4+" in (row.get("notes") or ""):
+            special_rules.append("ordnance_shots_4plus")  # Shadowhunter
     if row["faction"] == "Dark Eldar":
         # Dark Eldar (Xenos p.4-6): shadowfields instead of shields, their own
         # weapons rules (flags below), crit table, movement, ordnance flickerfields

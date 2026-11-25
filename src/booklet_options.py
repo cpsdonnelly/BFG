@@ -611,13 +611,82 @@ ELDAR_CRAFTWORLD_LORDS = [("Admiral (Ld 9)", 9, 50, []),
                           ("High Admiral (Ld 10)", 10, 100, ["eldar_bodyguard"])]
 
 
+def _e_batt(loc, fp, arcs=("front",)):
+    return {"name": f"{loc} Weapons Battery", "weapon_type": "battery", "range_cm": 30,
+            "strength": fp, "arcs": list(arcs), "eldar_battery": True}
+
+
+def _e_pulsar(fp):
+    return {"name": "Prow Pulsar Lance", "weapon_type": "lance", "range_cm": 30,
+            "strength": fp, "arcs": ["front"], "pulsar": True}
+
+
+def _e_torps(s, boarding=False):
+    d = {"name": "Keel Torpedoes", "weapon_type": "torpedo", "range_cm": 30, "strength": s,
+         "arcs": ["front"], "torpedo_type": "standard", "torpedo_speed": 30,
+         "eldar_torpedo": True}
+    if boarding:
+        d["boarding_torpedoes"] = True
+    return d
+
+
+def _e_bays(s, vampires=False):
+    types = ["eldar_fighter", "eldar_bomber"] + (["vampire_assault_boat"] if vampires else [])
+    speeds = {"eldar_fighter": 30, "eldar_bomber": 20}
+    if vampires:
+        speeds["vampire_assault_boat"] = 30
+    return {"name": "Launch Bays", "weapon_type": "launch_bay", "range_cm": 30, "strength": s,
+            "arcs": [], "craft_types": types, "craft_speeds": speeds, "craft_speed": 30}
+
+
+def _prow_keel(prow_fp, pulsar_fp, torps, bays):
+    """Dragonship / Wraithship (MMS p.6-7): prow weapons battery or pulsar lance;
+    keel torpedoes (boarding torpedoes +10) or launch bays (Vampires +10)."""
+    return [("prow", f"Prow: Weapons Battery FP{prow_fp}", 0, [_e_batt("Prow", prow_fp)]),
+            ("prow", f"Prow: Pulsar Lance FP{pulsar_fp}", 0, [_e_pulsar(pulsar_fp)]),
+            ("keel", f"Keel: Torpedoes S{torps}", 0, [_e_torps(torps)]),
+            ("keel", f"Keel: Boarding Torpedoes S{torps}", 10, [_e_torps(torps, True)]),
+            ("keel", f"Keel: Launch Bays S{bays}", 0, [_e_bays(bays)]),
+            ("keel", f"Keel: Launch Bays S{bays} with Vampires", 10, [_e_bays(bays, True)])]
+
+
+def _ghost(prow_fp, pulsar_fp, keel_fp):
+    keel = _e_batt("Keel", keel_fp)
+    return [("prow", f"Prow Weapons Battery FP{prow_fp} + Keel Battery FP{keel_fp}", 0,
+             [_e_batt("Prow", prow_fp), keel]),
+            ("prow", f"Prow Pulsar Lance FP{pulsar_fp} + Keel Battery FP{keel_fp}", 0,
+             [_e_pulsar(pulsar_fp), keel])]
+
+
+# Craftworld ships whose armament is an either / or choice per location (MMS
+# v2.0): (location group, option name, cost, weapons). One per location required.
+ELDAR_CONFIGS = {
+    "Dragonship Class Battle Cruiser": _prow_keel(12, 3, 8, 4),
+    "Wraithship Class Attack Cruiser": _prow_keel(8, 2, 4, 2),
+    "Ghost Dragon (Ghostship)": _ghost(12, 3, 8),
+    "Ghost Wraith (Ghostship)": _ghost(8, 2, 4),
+    "Shadowhunter Class Destroyer": [
+        ("prow", "Prow: Weapons Battery FP3", 0, [_e_batt("Prow", 3)]),
+        ("prow", "Prow: Phantom Lance FP1", 0,
+         [{"name": "Prow Phantom Lance", "weapon_type": "lance", "range_cm": 30,
+           "strength": 1, "arcs": ["front"], "phantom": True}])],
+}
+
+
+def eldar_configurations(row: dict) -> List[Dict]:
+    return [_opt(name, (f"+{cost}pts." if cost else "Free.") + f" One {loc} weapon choice "
+                 "required.", cost, {"add_weapons": weapons},
+                 [f"group:eldar_{loc}", f"required_group:eldar_{loc}"])
+            for loc, name, cost, weapons in ELDAR_CONFIGS.get(row["name"], [])]
+
+
 def eldar_options(row: dict) -> List[Dict]:
     name = row["name"]
     group = row.get("roster_group") or ""
     ghost = "Ghostship" in name
     capital = "Escorts" not in group and (row.get("hull_type") or "").lower() != "escort" \
         and "Miscellaneous" not in group
-    opts: List[Dict] = []
+    opts: List[Dict] = eldar_configurations(row)
     if capital and not ghost:
         for lords, hero_of, extra, label in (
                 (ELDAR_CORSAIR_LORDS, "Dragon Prince (Ld 10)", [25, 50, 100], "Corsair Lord"),

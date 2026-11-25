@@ -717,8 +717,9 @@ class AIPlayer:
         worth its guns' value (`ai_rerolls.firepower_swing`)."""
         from .ai_hazards import boarding_vp
         from .ai_rerolls import firepower_swing
-        if "nicassar" in " ".join(ship.special_rules) or "frail_crew" in ship.special_rules:
-            return 0.0                    # Nicassar never initiate boarding
+        if "nicassar" in " ".join(ship.special_rules) or "frail_crew" in ship.special_rules \
+                or "ghostship" in ship.special_rules:
+            return 0.0                    # Nicassar and Eldar Ghostships never initiate boarding
         return boarding_vp(ship, enemy, self.gs) - firepower_swing(ship, self.gs)
 
     def _consider_boarding(self, ship: Optional[Ship]) -> None:
@@ -3104,7 +3105,7 @@ class AIPlayer:
         if ship.is_crippled:
             avail = ship.crippled_value(avail)
         n = ordnance_fire_dice(ship, weapon, m.x, m.y, gs, avail)
-        need = weapon.get("hits_on") or 6
+        need = weapon.get("hits_on") or (4 if "ordnance_shots_4plus" in ship.special_rules else 6)
         p = 1.0 - (1.0 - max(0, 7 - need) / 6.0) ** n
         value = p * threat * (0.33 if covered else 1.0)
         ships = self._valid_targets(ship, weapon, self._live_enemies())
