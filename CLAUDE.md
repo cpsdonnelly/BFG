@@ -241,12 +241,21 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
   Craft Orders"; the AI re-targets its craft each ordnance phase.
 
-- **AI difficulty (owner):** the expert looks ahead 2 or 3 moves, hard only 1. Built:
-  `lookahead_ai.DEPTH_FOR` (hard 1, expert 3), both through `LookaheadAI` (minimax over the
-  deterministic sim for movement; the rest of their play is the normal AI's), run off the
-  Tk thread (`GameFlow`); "hard" used to play exactly like normal. Easy and normal don't
-  search. Alternate activation still uses the normal AI for hard and expert (no per-unit
-  search yet).
+- **AI difficulty (owner):** normal searches 1 turn ahead, hard 3, expert 5, master 10 or to
+  the end of the game, whichever is shorter (easy doesn't search). Built:
+  `lookahead_ai.DEPTH_FOR`, all four through `LookaheadAI` (minimax over the deterministic
+  sim for movement, one level a full turn of both sides' moves and fire; the rest of their
+  play is the normal AI's), `_depth_now` (capped by the turns left), run off the Tk thread
+  (`GameFlow`). Each level keeps the best few lines (`BEAM_FOR`: normal 4; hard 4, 3; expert
+  4, 3, 2; master 4, 3, 2, 1 then one line on to the tenth turn; judgement) within a time
+  budget per ship (`TIME_BUDGET_FOR` 2 / 2 / 4 / 10s; judgement). Measured
+  (`BFG_SEARCH_STATS=1` prints each decision's depth, lines, cuts and time): normal and hard
+  reach their depth on every line; expert its 5 turns with a few lines cut by time; master
+  its 10 turns on every line in 5-7s a ship (a wider master beam didn't fit the budget).
+  Games: normal ~70s (it was ~25s before it searched), hard ~60-90s, master several minutes;
+  a seeded normal game still repeats exactly (no line is cut by time at its depth).
+  Alternate activation uses the normal AI without the search for all of them (no
+  per-unit search yet).
 
 ### Player choice prompts: "Auto (best)"
 

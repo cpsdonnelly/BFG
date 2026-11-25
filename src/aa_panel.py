@@ -25,7 +25,7 @@ class AAPanelMixin:
             from .ai_player import AIPlayer
             gs = self.ctx.gs
             diff = gs.difficulty_for(player)
-            diff = diff if diff not in ("hard", "expert") else "normal"   # no per-unit search yet
+            diff = "easy" if diff == "easy" else "normal"   # no per-unit search yet
             ai = AIPlayer(player, self.ctx.tc, gs, self.ctx.dice, diff)
             ai.contacts_fn = self.ordnance._resolve_moving_ship_contacts     # s.15
             ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(

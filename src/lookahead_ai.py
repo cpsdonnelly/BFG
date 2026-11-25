@@ -1,4 +1,4 @@
-"""BFG:XR Expert AI — alpha-beta minimax with 5-turn lookahead.
+"""BFG:XR lookahead AI (normal, hard, expert, master) — alpha-beta minimax, 1 / 3 / 5 / 10 turns ahead.
 
 Uses a lightweight game-state clone (SimState) with deterministic combat
 (expected hit values, no dice) for the search.  Inherits all heuristic
@@ -685,6 +685,13 @@ def _minimax(state: SimState, depth: int,
              ai_player: int, deadline: float,
              ai_ref: "LookaheadAI") -> float:
     if time.monotonic() > deadline or depth == 0 or state.is_terminal():
+        st = getattr(ai_ref, "search_stats", None)
+        if st is not None:                   # how deep the search really got
+            reached = ai_ref.DEPTH - depth
+            st["leaves"] += 1
+            st["deepest"] = max(st["deepest"], reached)
+            if depth and not state.is_terminal():
+                st["cut"] += 1               # stopped by the time budget
         return _evaluate(state, ai_player)
 
     active = ai_player if maximising else 3 - ai_player
@@ -709,7 +716,7 @@ def _minimax(state: SimState, depth: int,
         candidates.append((score, next_s))
 
     candidates.sort(key=lambda x: -x[0] if maximising else x[0])
-    B = 4  # beam width
+    B = ai_ref.beam(ai_ref.DEPTH - depth) if hasattr(ai_ref, "beam") else 4
 
     if maximising:
         value = -_INF
@@ -733,10 +740,16 @@ def _minimax(state: SimState, depth: int,
 
 # ── LookaheadAI class ─────────────────────────────────────────────────────────
 
-# Turns looked ahead by difficulty (owner): hard looks one turn ahead (our
-# move, the enemy's best reply, both sides' fire, then the leaf), expert two or
-# three (3 here, judgement within the owner's range)
-DEPTH_FOR = {"hard": 1, "expert": 3}
+# Turns looked ahead by difficulty (owner): normal one (our move, the enemy's
+# best reply, both sides' fire, then the leaf), hard three, expert five, master
+# ten or to the end of the game, whichever is shorter. Each turn of search
+# keeps the best few lines (BEAM_FOR, by turns below the root; judgement) and
+# each ship's decision has a time budget (TIME_BUDGET_FOR, seconds; judgement):
+# a search that runs out of time scores the lines it has (search_stats shows
+# how deep it really got).
+DEPTH_FOR = {"normal": 1, "hard": 3, "expert": 5, "master": 10}
+BEAM_FOR = {"normal": (4,), "hard": (4, 3), "expert": (4, 3, 2), "master": (4, 3, 2, 1)}
+TIME_BUDGET_FOR = {"normal": 2.0, "hard": 2.0, "expert": 4.0, "master": 10.0}
 
 
 class LookaheadAI(AIPlayer):
@@ -748,6 +761,22 @@ class LookaheadAI(AIPlayer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.DEPTH = DEPTH_FOR.get(self.difficulty, DEPTH_FOR["expert"])
+        self.TIME_BUDGET = TIME_BUDGET_FOR.get(self.difficulty, self.TIME_BUDGET)
+        self.search_stats = {"leaves": 0, "deepest": 0, "cut": 0}
+
+    def beam(self, level: int) -> int:
+        """Lines kept at `level` turns below the root (the last value repeats)."""
+        b = BEAM_FOR.get(self.difficulty, (4,))
+        return b[min(level, len(b) - 1)]
+
+    def _depth_now(self) -> int:
+        """Master searches to the end of the game when that is nearer than ten
+        turns (the sim stops at the turn limit anyway, SimState.is_terminal)."""
+        d = DEPTH_FOR.get(self.difficulty, DEPTH_FOR["expert"])
+        limit = getattr(self.gs, "turn_limit", None)
+        if limit:
+            d = max(1, min(d, limit - self.gs.turn_number + 1))
+        return d
     TIME_BUDGET = 2.0  # seconds per ship decision
     ROOT_MOVES = 12    # root candidates searched, best first by the move score
 
@@ -756,6 +785,7 @@ class LookaheadAI(AIPlayer):
                           order: str, aaf_bonus: int) -> List[MoveCommand]:
         """Override: choose move using minimax search rather than greedy heuristic."""
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
+        self.DEPTH = self._depth_now()
         deadline = time.monotonic() + self.TIME_BUDGET
 
         state = SimState.from_gs(self.gs, ord_player=self.player)
@@ -798,6 +828,13 @@ class LookaheadAI(AIPlayer):
             if time.monotonic() > deadline:
                 break  # time's up; use best found so far
 
+        import os
+        if os.environ.get("BFG_SEARCH_STATS"):
+            st = self.search_stats
+            print(f"[search] {self.difficulty} {ship.name}: depth {self.DEPTH}, deepest "
+                  f"{st['deepest']}, {st['leaves']} lines, {st['cut']} cut by time, "
+                  f"{time.monotonic() - deadline + self.TIME_BUDGET:.1f}s")
+        self.search_stats = {"leaves": 0, "deepest": 0, "cut": 0}
         return best_cmds or super()._plan_move_toward(ship, enemy, order, aaf_bonus)
 
     def _vp_to_score(self, state: SimState) -> float:
