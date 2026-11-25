@@ -639,7 +639,9 @@ table, see To do 30):
   order may only move in the following turn". A Craftworld test fleet of all five played the
   Gothic fleet to game over and replayed (`tests/test_eldar_fleets.py`). Still open: the Seer
   Council's Foresight; XR's Corsair / Craftworld movement differences (MMS used).
-- Raised this session, still open (see each section): open question 1 (raid modifiers that
+- Raised this session, still open (see each section): the AI's capital squadrons by a draw, not
+  expected VP, and re-formed escort squadrons' Ld after the roll (To do 28); the Dark Eldar
+  Corsairs' 2-hit squadron limit (owner question, To do 28); open question 1 (raid modifiers that
   cancel); exact hit counts in place of Poisson (To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
   not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
   orbit's free turns; the AI never parks in a field in high orbit; escort disengage values
@@ -3339,9 +3341,14 @@ Done: To do 2, 3, 6; most of 7.
    costs (one command check, harder coherency, escort VP by squadron), shape beyond line /
    box. Owner question pending: the Dark Eldar list's "squadrons of two to six, in any mix"
    vs core p.58's four 2-hit escorts a squadron (the owner's six Corsairs, 2 hits each, are
-   one squadron; the check flags it and the AI re-forms them 3 + 3). Not yet: the AI valuing a capital squadron
-   by expected VP (its combined fire and one check against flexibility; today the chance
-   above), Ld for escort squadrons re-formed after the Ld roll (only invalid ones are),
+   one squadron; the check flags it and the AI re-forms them 3 + 3). Still to do (owner: noted):
+   (1) the AI's choice to squadron capital ships is a coin-flip-style draw
+   (`CAPITAL_SQUADRON_CHANCE`), not an expected-VP judgement of combined fire and one
+   command check against losing flexibility; (2) if a fleet file's escort squadrons break
+   the rules, the AI re-forms them at game start (`ai_form_squadrons`), and in the window
+   that can be after their Leadership was rolled, so a re-formed squadron's ships keep
+   different Ld values instead of one shared roll (s.8); valid squadrons are never touched.
+   Also not yet:
    deployment by strategy, the alternating deployment orders, the players' formation setter.
    Squadron sizes (core s.4: escort squadrons are chosen with the fleet list, before the Ld
    roll, so forming them is fleet building's job): `fleet_lists.escort_squadron_limits` /

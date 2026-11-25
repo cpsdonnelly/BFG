@@ -21,7 +21,13 @@ ships (To do 28), buff ships (synapse, tracking systems, Fleet Defence Turrets) 
 group each and move to cover friends (`src/buffs.py`); squadron rules in one place
 (`src/squadrons.py`) with organisers for the AI and players (fleet builder: squadron
 selected / leave / auto escort squadrons; deployment: capital squadrons before placing, any
-ship of a squadron next). Details in CLAUDE.md To do 28.
+ship of a squadron next). Details in CLAUDE.md To do 28. Still to do (owner: noted): the AI squadrons
+capital ships by a coin-flip-style draw, not by expected VP (combined fire and one command
+check against lost flexibility); escort squadrons that break the rules are re-formed by the
+AI at game start, in the window possibly after the Ld roll, so the new squadron's ships keep
+their separate Ld instead of one shared roll (valid squadrons are never touched). Formations
+by armament (`src/formations.py`) since; pending owner question: may a Dark Eldar squadron
+take six 2-hit Corsairs (core p.58: at most four)?
 
 Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Every core rules section the engine plays, all optional rules (boarding, ramming, teleports,
