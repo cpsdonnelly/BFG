@@ -148,6 +148,8 @@ def _boarding_crit_check(ship: Ship, threshold: Optional[int],
         return {"crit_type": "escort_damage", "description": "+1 damage (escort)"}
     if threshold == 0:
         # Auto-crit: use a fresh roll to determine which crit
+        if _haemonculi_fire(ship, inflicted_by, gs):
+            return {"crit_type": "fire", "description": "Fire (Haemonculi)"}
         roll = dice.roll_d6(1, f"Auto boarding crit on {ship.name}")[0]
         # Clamp to 2 (minimum valid crit roll on the raid crit table)
         roll = _frenzy_crit_roll(max(2, roll), ship, inflicted_by, dice, gs)
@@ -155,10 +157,26 @@ def _boarding_crit_check(ship: Ship, threshold: Optional[int],
     roll = dice.roll_d6(1, f"Boarding crit check on {ship.name} (need {threshold}+)")[0]
     gs.add_log(f"  {ship.name} crit check: rolled {roll} (need {threshold}+)")
     if roll >= threshold:
+        if _haemonculi_fire(ship, inflicted_by, gs):
+            return {"crit_type": "fire", "description": "Fire (Haemonculi)"}
         crit_roll = max(2, dice.roll_d6(1, f"Boarding crit type on {ship.name}")[0])
         crit_roll = _frenzy_crit_roll(crit_roll, ship, inflicted_by, dice, gs)
         return _crit_damage_reopens_hulk(ship, _apply_raid_crit(crit_roll, ship, gs, dice), gs)
     return None
+
+
+def _haemonculi_fire(ship: Ship, inflicted_by, gs) -> bool:
+    """Haemonculi Coven (Xenos p.5): a critical hit a Dark Eldar vessel with
+    Haemonculi inflicts via a boarding action is a Fire instead of a random
+    result (reading: any Haemonculi ship among the boarders). Applied here;
+    True if it was."""
+    if not any("haemonculi" in (s.special_rules or []) and "dark_eldar" in (s.special_rules or [])
+               for s in (inflicted_by or [])):
+        return False
+    from .combat import add_fire_crits
+    gs.add_log(f"  Haemonculi: the boarding critical hit on {ship.name} is a Fire")
+    add_fire_crits(ship, 1, gs)
+    return True
 
 
 def _frenzy_crit_roll(roll: int, ship: Ship, inflicted_by, dice, gs) -> int:

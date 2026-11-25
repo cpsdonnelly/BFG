@@ -51,3 +51,22 @@ def test_raid_modifiers_cancel():
     assert _raid_roll_modifier(["space_marine_crew"], csm) == 0
     assert _raid_roll_modifier(["dark_eldar"], csm) == 0
     assert _raid_roll_modifier(["dark_eldar"], SimpleNamespace(special_rules=[])) == 1
+
+
+def test_haemonculi_boarding_crit_is_fire():
+    """Haemonculi Coven (Xenos p.5): a critical hit it inflicts via a
+    boarding action is a Fire, not a random result; no crit-type roll."""
+    from src.boarding import _boarding_crit_check
+    from tests.conftest import make_gs, make_ship, DiceStub
+    de = make_ship(id="de", player=2, special_rules=["dark_eldar", "haemonculi"])
+    t = make_ship(id="t", player=1, ship_type="cruiser")
+    gs = make_gs([de, t])
+    target = gs.get_ship_by_id("t")
+    dice = DiceStub([5])                        # the 4+ crit check, then nothing
+    crit = _boarding_crit_check(target, 4, dice, gs, inflicted_by=[de])
+    assert crit["crit_type"] == "fire" and dice._idx == 1
+    assert [c["crit_type"] for c in gs.get_ship_by_id("t").critical_damage] == ["fire"]
+    plain = make_ship(id="p", player=2, special_rules=["dark_eldar"])
+    dice = DiceStub([5, 3])                     # check, then a random crit type
+    _boarding_crit_check(gs.get_ship_by_id("t"), 4, dice, gs, inflicted_by=[plain])
+    assert dice._idx == 2

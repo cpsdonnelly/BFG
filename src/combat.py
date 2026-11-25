@@ -1652,7 +1652,7 @@ def add_fire_crits(target: Ship, n: int, game_state: GameState, write: bool = Tr
         # add the fires to the stored ship's own list (the caller's copy may be
         # stale: copying its whole list back could drop newer crits)
         fresh = game_state.get_ship_by_id(target.id) or target
-        if fresh is not target:
+        if fresh is not target and fresh.critical_damage is not target.critical_damage:
             for _ in range(n):
                 fresh.critical_damage.append({
                     "crit_type": "fire", "description": "Fire!", "repairable": True,

@@ -750,9 +750,18 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   `tests/test_mucous_wych.py`); not yet: the Infested
   Space Station (unplayable), Deathskulls (+1 or -1 to raids they suffer; clan not built);
   XR's Aspect Warriors -1 isn't MMS's, so not applied.
+- Haemonculi Coven in boarding (found missing, now built): a critical hit a Dark Eldar ship
+  with Haemonculi inflicts via a boarding action is a Fire, no crit-type roll
+  (`boarding._haemonculi_fire`; reading: any Haemonculi ship among the boarders); the
+  Impaler half was already built. Fixed on the way: `combat.add_fire_crits` added the Fire
+  twice when the caller's ship copy shared its crit list with the stored ship.
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
-  roll, Incubi's 2D6 raid choice, Only the Strong
-  May Lead, escort squadron sizes 2-6 checked.
+  roll, Only the Strong May Lead. AI value gaps (found pricing the crews for the owner):
+  `ai_hazards.boarding_vp` values a boarding crit at a flat hit, so Pain Frenzy's crit
+  re-roll and the Haemonculi Fire aren't in it; enemy raids on a Dark Eldar ship are worth
+  0 to the AI (control circuit, graviton harness, bladevanes and ordnance-only armament
+  results value nothing in `raid_result_value`), so the Incubi's -1 to enemy raids isn't
+  priced either.
 - Next (owner order): Tyranids (To do 19; playable now, slices 1-3 built, gaps listed there), then the other owner fleets' gaps (Tau Protector
   done: `owner_tau_protector_980.json`; Orks done: `owner_orks_980.json`; Necrons done:
   `owner_necrons_1000.json` and `owner_necrons_war_1000.json` (the owner's coin for the War
