@@ -4,7 +4,7 @@
 
 Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
 Impaler and slave-taking rulings, escort values by squadron, critical checks on every point
-of damage; open question 1 (raid modifiers cancelling) is pinned. Next: Eldar.
+of damage; raid modifiers cancel (owner ruling; D6 + 1 - 1 = D6). Next: Eldar.
 
 Necrons (latest): the owner's Dynasty fleet is built and plays (`owner_necrons_1000.json`,
 `owner_necrons_war_1000.json`): Harvest / Dynasty lists, Shroud refits, Lord's vessel

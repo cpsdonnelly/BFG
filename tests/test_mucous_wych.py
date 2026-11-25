@@ -39,3 +39,15 @@ def test_wych_cult_counts_capital_ships_as_crippled_for_boarding():
     wych = ["dark_eldar", "wych_cult"]
     assert _get_ship_modifier(cruiser, gs, wych) - _get_ship_modifier(cruiser, gs) == 2
     assert _get_ship_modifier(escort, gs, wych) == _get_ship_modifier(escort, gs)
+
+
+def test_raid_modifiers_cancel():
+    """Owner ruling: modifiers add together, so Space Marines raiding a Chaos
+    Space Marine crewed ship roll a plain D6 (D6 + 1 - 1), as does a Dark
+    Eldar raid on a Space Marine ship."""
+    from src.hit_and_run import _raid_roll_modifier
+    from types import SimpleNamespace
+    csm = SimpleNamespace(special_rules=["csm_crew", "space_marine_crew"])
+    assert _raid_roll_modifier(["space_marine_crew"], csm) == 0
+    assert _raid_roll_modifier(["dark_eldar"], csm) == 0
+    assert _raid_roll_modifier(["dark_eldar"], SimpleNamespace(special_rules=[])) == 1

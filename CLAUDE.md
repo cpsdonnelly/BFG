@@ -641,8 +641,7 @@ table, see To do 30):
   Council's Foresight; XR's Corsair / Craftworld movement differences (MMS used).
 - Raised this session, still open (see each section): the AI's capital squadrons by a draw, not
   expected VP, and re-formed escort squadrons' Ld after the roll (To do 28); the Dark Eldar
-  Corsairs' 2-hit squadron limit (owner question, To do 28); open question 1 (raid modifiers that
-  cancel); exact hit counts in place of Poisson (To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
+  Corsairs' 2-hit squadron limit (owner question, To do 28); exact hit counts in place of Poisson (To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
   not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
   orbit's free turns; the AI never parks in a field in high orbit; escort disengage values
   still per ship (not by squadron); an Incubi raid's 2D6-best not in the slave-taking
@@ -3745,17 +3744,18 @@ rather than touch a third ship).
 - **Each hit-and-run attack may be swapped for +5 VP,** an Impaler's two raids included (as
   built: `resolve_raids` -> `take_slaves`).
 
+### Owner ruling: raid modifiers cancel (implemented, tested)
+
+Every raid modifier is added together (`hit_and_run._raid_roll_modifier`): an attacker's
+bonus and the target's penalty cancel, so Space Marines raiding Chaos Space Marines roll a
+plain D6 (D6 + 1 - 1), as does a Dark Eldar raid (+1 Pain Frenzy) on a Space Marine ship.
+A -1 to enemy raids applies only where a unit's rule prints it (Space Marines and those using
+their rules, Mega Armoured Boarding Parties, Incubi, Tyranids, Mucous Membrane); a +1 rule
+(Pain Frenzy, Aspect Warriors) never also gives a -1.
+
 ### Open questions for the owner
 
-1. **Raid modifiers that cancel out (owner: pinned, unsure the rules support it).** The engine
-   adds every raid modifier together, so a Dark Eldar raid (+1 Pain Frenzy) on a Space Marine
-   ship (enemy raids -1) is a plain roll (`hit_and_run._raid_roll_modifier`). Do an attacker's
-   bonus and a defender's penalty cancel like that? (Owner: unsure, still open.) Owner's reading (not confirmed by the
-   booklet's author): Incubi state their -1 to enemy raids explicitly, so a rule giving +1
-   doesn't also give -1 unless it says so. The engine already works that way: every -1 it
-   applies is printed for that unit (Space Marines, Mega Armoured Boarding Parties, Incubi,
-   Tyranids); Pain Frenzy and Aspect Warriors give only their +1.
-2. **The plain game's winner when a fleet is gone** (owner: unsure, still open). Outside the booklet scenarios
+1. **The plain game's winner when a fleet is gone** (owner: unsure, still open). Outside the booklet scenarios
    (`scenario.check_game_over`), a fleet with no ships left loses outright, whatever the
    victory points; in the booklet scenarios the scenario's own conditions (mostly VP) decide.
    A random-fleet game ended 93-202 VP with the 93 side the winner (the other fleet had
