@@ -740,14 +740,15 @@ def _minimax(state: SimState, depth: int,
 
 # ── LookaheadAI class ─────────────────────────────────────────────────────────
 
-# Turns looked ahead by difficulty (owner): normal one (our move, the enemy's
+# Turns looked ahead by difficulty (owner): easy none (it plays the plain AI
+# with its simpler choices, never this search), normal one (our move, the enemy's
 # best reply, both sides' fire, then the leaf), hard three, expert five, master
 # ten or to the end of the game, whichever is shorter. Each turn of search
 # keeps the best few lines (BEAM_FOR, by turns below the root; judgement) and
 # each ship's decision has a time budget (TIME_BUDGET_FOR, seconds; judgement):
 # a search that runs out of time scores the lines it has (search_stats shows
 # how deep it really got).
-DEPTH_FOR = {"normal": 1, "hard": 3, "expert": 5, "master": 10}
+DEPTH_FOR = {"easy": 0, "normal": 1, "hard": 3, "expert": 5, "master": 10}
 BEAM_FOR = {"normal": (4,), "hard": (4, 3), "expert": (4, 3, 2), "master": (4, 3, 2, 1)}
 TIME_BUDGET_FOR = {"normal": 2.0, "hard": 2.0, "expert": 4.0, "master": 10.0}
 

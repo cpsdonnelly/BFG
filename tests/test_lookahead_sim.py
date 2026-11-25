@@ -214,8 +214,10 @@ def test_expert_values_its_own_ordnance_in_flight():
 
 
 def test_search_depth_by_difficulty():
-    """Owner: normal looks 1 turn ahead, hard 3, expert 5, master 10 or to the
-    end of the game, whichever is shorter."""
+    """Owner: easy looks 0 turns ahead (no search), normal 1, hard 3, expert 5,
+    master 10 or to the end of the game, whichever is shorter."""
+    from src.lookahead_ai import DEPTH_FOR
+    assert DEPTH_FOR["easy"] == 0
     from src.lookahead_ai import LookaheadAI
     from src.turn_controller import TurnController
     from tests.conftest import DiceStub
