@@ -41,7 +41,7 @@ class GameState:
     points_limit: int = 800
     allow_movement_pass: bool = False  # False = strict: must move all ships; True = can skip
     ai_player: Optional[int] = None    # player number controlled by AI (None = hotseat)
-    ai_difficulty: str = "normal"      # "easy" | "normal" | "hard" | "expert"
+    ai_difficulty: str = "normal"      # "very_easy" | "easy" | "normal" | "hard" | "expert" | "master"
     ai_spectator: bool = False         # True = both players AI (spectator mode)
     spectator_auto: bool = True        # spectator: roll every die and answer every pop-up
     # Spectator mode: Player 1's AI difficulty when it differs from

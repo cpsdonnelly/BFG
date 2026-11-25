@@ -528,18 +528,21 @@ the current AI, whose normal and expert players and weights stay as they are.
 
 ---
 
-## 10. Easy, normal, hard and expert
+## 10. Very easy, easy, normal, hard, expert and master
 
-| | Easy | Normal | Hard / Expert |
+Easy plays exactly as normal, without the one-turn lookahead (owner). The table compares very
+easy with the rest.
+
+| | Very easy | Easy / Normal | Hard / Expert / Master |
 |---|---|---|---|
 | Targets | random among valid targets | marginal expected VP, focus, no overkill | as normal |
 | Re-rolls, Brace | expected VP, as normal | expected VP | as normal |
 | Special orders | Lock On whenever an enemy is in arc and range now (no expected-VP check) | every order by expected VP (To do 10) | as normal |
 | Ordnance | simple launches (its strike craft, at the nearest target) | full planner: CAP vs strikes, strikes on arrival, lanes, leading, co-ordination | as normal |
 | Squadron volleys, hulks, shooting ordnance, disengaging, explosions, screening | off | on | as normal |
-| Movement | the same candidates, scored on guns and hazards only (no exposure, focus, explosions or screening), picked by softmax (`EASY_TEMPERATURE` 2.0), not always the best | the move candidates scored greedily, then a one-turn lookahead | hard 3 turns, expert 5, master 10 or to the game's end (owner) |
+| Movement | the same candidates, scored on guns and hazards only (no exposure, focus, explosions or screening), picked by softmax (`EASY_TEMPERATURE` 2.0), not always the best | the move candidates scored greedily; normal adds a one-turn lookahead | hard 3 turns, expert 5, master 10 or to the game's end (owner) |
 
-Built for movement (To do 11 i): Easy picks its move by a softmax on its move score, so its
+Built for movement (To do 11 i): Very easy picks its move by a softmax on its move score, so its
 mistakes look human rather than random; not yet for its targets and orders, which are random /
 fixed rules; Hard gets the coordination pass or tuned weights.
 The expert AI now pays the normal AI's path-hazard cost for each move it chooses between

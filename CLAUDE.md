@@ -241,8 +241,15 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
   Craft Orders"; the AI re-targets its craft each ordnance phase.
 
-- **AI difficulty (owner):** easy looks 0 turns ahead (no search), normal 1, hard 3, expert
-  5, master 10 or to the end of the game, whichever is shorter. Built:
+- **AI difficulty (owner):** very easy and easy look 0 turns ahead (no search), normal 1,
+  hard 3, expert 5, master 10 or to the end of the game, whichever is shorter. Easy plays for
+  the most expected VP like normal (every value and planner), only without the lookahead;
+  very easy makes the simplifications (a random valid target, Lock On whenever an enemy is in
+  arc now, moves scored on guns and hazards only and picked by softmax, simple ordnance, no
+  squadron volleys / hulk or ordnance shots / disengaging / boarding / ramming / teleports;
+  re-rolls and Brace by expected VP as the others): every `difficulty == "very_easy"` in
+  `ai_player.py` (it was "easy" before the split). Game times: very easy ~8s, easy ~80s
+  (the planning is most of normal's cost). Built:
   `lookahead_ai.DEPTH_FOR`, all four through `LookaheadAI` (minimax over the deterministic
   sim for movement, one level a full turn of both sides' moves and fire; the rest of their
   play is the normal AI's), `_depth_now` (capped by the turns left), run off the Tk thread

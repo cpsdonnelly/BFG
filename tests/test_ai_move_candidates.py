@@ -263,15 +263,15 @@ def test_ram_dead_ahead_only_with_ramming_on():
     assert isinstance(o, _S)
 
 
-def test_easy_moves_are_softmax_choices():
-    """To do 11 i: Easy samples moves by softmax on their value: legal, mostly
+def test_very_easy_moves_are_softmax_choices():
+    """To do 11 i: Very easy samples moves by softmax on their value: legal, mostly
     good, not always the best."""
     import random
     random.seed(4)
     me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
     foe = _ship("Lunar Class Cruiser", 2, 110.0, 80.0, 180.0)
     ai, gs = _ai([me, foe])
-    ai.difficulty = "easy"
+    ai.difficulty = "very_easy"
     seen = set()
     for _ in range(15):
         cmds = ai._plan_move_toward(me, foe, "", 0)

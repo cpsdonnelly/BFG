@@ -229,7 +229,7 @@ class AIPlayer:
             self._move_ship(ship)
         self._order_plan = None
         self._planned_ends = {}
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             for ship in my_ships:
                 self._consider_disengage(gs.get_ship_by_id(ship.id))
 
@@ -242,14 +242,14 @@ class AIPlayer:
         # Explosion risk / opportunity for this phase's moves (owner): where the
         # enemy is likely to focus, and what our guns can put on each enemy
         self._enemy_plan, self._our_hits = {}, {}
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             from .ai_hazards import enemy_fire_plan, fleet_hits_on
             self._enemy_plan = enemy_fire_plan(gs, self.player)
             self._our_hits = fleet_hits_on(gs, self.player)
         # Fleet focus (owner): the enemy ship the fleet concentrates on this turn
         self._focus = None
         self._focus_map = {}
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             from .ai_hazards import fleet_focus_targets, fleet_focus_assignment
             ranked = fleet_focus_targets(gs, self.player)
             self._focus = ranked[0][1].id if ranked else None
@@ -268,7 +268,7 @@ class AIPlayer:
                 gs.add_log(f"[AI] focus targets: {names}")
         self._order_plan = None
         self._planned_ends = {}
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             my_ships = self._coordinated_order(my_ships)
             if orders:
                 self._plan_orders(my_ships)
@@ -306,7 +306,7 @@ class AIPlayer:
         reactive Brace is (`brace_value`) against the hits the enemy can bring
         on this ship over the round (`incoming_hits`, the threat model)."""
         from .ai_hazards import incoming_hits
-        if self.difficulty == "easy" or ship.status != "active":
+        if self.difficulty == "very_easy" or ship.status != "active":
             return False
         lam = incoming_hits(ship, self.gs)
         return lam > 0 and brace_value(self.gs, ship, int(round(lam))) > 0.0
@@ -336,7 +336,7 @@ class AIPlayer:
                     gs.add_log(f"[AA] {s.name} is locked in a boarding action: no move")
                     continue
                 self._move_ship(s)
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             for sid in ship_ids:
                 s = gs.get_ship_by_id(sid)
                 if s is not None and "immobile" not in s.special_rules:
@@ -347,7 +347,7 @@ class AIPlayer:
         gs, tc = self.gs, self.tc
         ships = [gs.get_ship_by_id(i) for i in ship_ids]
         ships = [s for s in ships if s is not None]
-        if self.difficulty != "easy" and ships and ships[0].squadron_id and len(ships) > 1:
+        if self.difficulty != "very_easy" and ships and ships[0].squadron_id and len(ships) > 1:
             self._squadron_volleys(only=ships[0].squadron_id)
         for ship in ships:
             ship = gs.get_ship_by_id(ship.id)
@@ -535,7 +535,7 @@ class AIPlayer:
         group = self._order_group(ship)
         if group is not None:
             return self._issue_squadron_order(ship, group)
-        if self.difficulty != "easy" and not tc.checks_blocked(ship):
+        if self.difficulty != "very_easy" and not tc.checks_blocked(ship):
             chosen = self._choose_special_order(ship)
             if chosen:
                 res = tc.issue_special_order(ship, chosen)
@@ -595,7 +595,7 @@ class AIPlayer:
         ids = {s.id for s in group}
         if key not in done:
             done[key] = ""
-            if (self.difficulty != "easy" and not tc.checks_blocked(list(group))
+            if (self.difficulty != "very_easy" and not tc.checks_blocked(list(group))
                     and ship.id in ids):
                 chosen = self._choose_special_order(ship)
                 if chosen:
@@ -674,7 +674,7 @@ class AIPlayer:
         from .ai_hazards import ram_vp, p_sum_at_most
         from .combat import ram_ld_dice
         from .movement import aaf_bonus_dice
-        if self.difficulty == "easy" or not getattr(self.gs, "rule_ramming", False):
+        if self.difficulty == "very_easy" or not getattr(self.gs, "rule_ramming", False):
             return None
         reach = (ship.speed or 0) + aaf_bonus_dice(ship)       # every die a 1
         h = math.radians(ship.heading)
@@ -735,7 +735,7 @@ class AIPlayer:
         in base contact where it is worth most, when its value beats the fire
         given up. Only with the boarding rule on (owner)."""
         gs = self.gs
-        if (ship is None or self.difficulty == "easy" or not getattr(gs, "rule_boarding", False)
+        if (ship is None or self.difficulty == "very_easy" or not getattr(gs, "rule_boarding", False)
                 or ship.has_boarded or ship.is_grappled or ship.is_destroyed):
             return
         from .boarding import ships_in_base_contact
@@ -837,8 +837,8 @@ class AIPlayer:
             if score > best_score:
                 best_score, best_src = score, src
                 best_cmds = self._move_cmds(ship, turn_deg, dist, turn_at)
-        if scored and self.difficulty == "easy":
-            # To do 11 i: Easy picks by softmax on the move score (temperature
+        if scored and self.difficulty == "very_easy":
+            # To do 11 i: Very easy picks by softmax on the move score (temperature
             # EASY_TEMPERATURE, judgement), so it errs like a person: usually a
             # good move, sometimes a worse one, never at random
             top = max(sc for sc, _c in scored)
@@ -847,7 +847,7 @@ class AIPlayer:
             turn_deg, dist, turn_at, src = scored[pick][1]
             self._last_move_source = src + " (easy)"
             return self._move_cmds(ship, turn_deg, dist, turn_at)
-        if scored and self.difficulty != "easy":
+        if scored and self.difficulty != "very_easy":
             # Refine the best few (To do 11 a, coarse-to-fine)
             valid = self._candidate_validator(ship, order, aaf_bonus)
             scored.sort(key=lambda x: -x[0])
@@ -914,7 +914,7 @@ class AIPlayer:
         x the points on the table at the firing position, in proportion to
         the way covered and how well it is aimed. In move-score units."""
         gs = self.gs
-        if gs.scenario_mode != "macharia" or self.difficulty == "easy":
+        if gs.scenario_mode != "macharia" or self.difficulty == "very_easy":
             return 0.0
         from .campaign_scenarios import planet_killer, macharia, OVERCHARGE_RANGE
         pk, pl = planet_killer(gs), macharia(gs)
@@ -965,7 +965,7 @@ class AIPlayer:
         from .planet_scenarios import active as _pa, EXTERMINATUS_RANGE, ASSAULT_RANGE, mode
         from . import low_orbit as lo
         gs = self.gs
-        if not _pa(gs) or self.difficulty == "easy":
+        if not _pa(gs) or self.difficulty == "very_easy":
             return 0.0
         from .ai_hazards import value_per_hit, ship_value
         units = FP_HITS * max(1.0, value_per_hit(enemy, gs))
@@ -1142,7 +1142,7 @@ class AIPlayer:
         covered. In move-score units."""
         gs = self.gs
         if (gs.scenario_mode != "planet_strike" or ship.player != gs.scenario_attacker
-                or self.difficulty == "easy"):
+                or self.difficulty == "very_easy"):
             return 0.0
         from .scenarios import strike_planet, bombardment_points
         pl = strike_planet(gs)
@@ -1187,7 +1187,7 @@ class AIPlayer:
         way covered towards that edge, all of it for leaving there. In
         move-score units."""
         gs = self.gs
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return 0.0
         g = self._exit_value(ship)
         if g <= 0:
@@ -1227,7 +1227,7 @@ class AIPlayer:
         gs = self.gs
         if (gs.scenario_mode not in ("line_breaker", "chance_encounter")
                 or ship.player != gs.scenario_attacker
-                or ship.ship_type == "escort" or self.difficulty == "easy"):
+                or ship.ship_type == "escort" or self.difficulty == "very_easy"):
             return 0.0
         from .scenarios import is_platform, defender, chance_flagship
         if gs.scenario_mode == "chance_encounter":
@@ -1251,7 +1251,7 @@ class AIPlayer:
         value, against the 10% conceded) the move gains that much in
         proportion to the way covered towards the edge. In move-score units."""
         gs = self.gs
-        if (gs.scenario_mode != "rescue" or self.difficulty == "easy"
+        if (gs.scenario_mode != "rescue" or self.difficulty == "very_easy"
                 or ship.id != (gs.scenario_state or {}).get("flagship")):
             return 0.0
         from .ai_hazards import disengage_gain, value_per_hit
@@ -1390,7 +1390,7 @@ class AIPlayer:
         from .ai_hazards import disengage_gain, value_per_hit
         from .ai_rerolls import firepower_outcomes
         from .disengage import get_disengage_ld_modifiers, _ftl_blocked
-        if self.difficulty == "easy" or ship.must_flee or ship.status != "active":
+        if self.difficulty == "very_easy" or ship.must_flee or ship.status != "active":
             return 0.0
         if ship.ship_type == "escort" and ship.squadron_id:
             return 0.0
@@ -1468,7 +1468,7 @@ class AIPlayer:
             term += self.CONTACT_WEIGHT * best
         return term
 
-    EASY_TEMPERATURE = 2.0   # judgement: Easy's softmax temperature (move-score units)
+    EASY_TEMPERATURE = 2.0   # judgement: Very easy's softmax temperature (move-score units)
     KITE_WEIGHT = 0.5        # judgement: the band bonus, a share of the guns that bear
 
     @staticmethod
@@ -1488,7 +1488,7 @@ class AIPlayer:
         KITE_WEIGHT x the guns that bear there. No edge (a brawler such as the
         Slaughter): nothing, so it closes as before. Owner: not a hard rule;
         it adds to the move score's values."""
-        if self.difficulty == "easy" or not self.range_speed_edge(ship, enemy):
+        if self.difficulty == "very_easy" or not self.range_speed_edge(ship, enemy):
             return 0.0
         d = math.hypot(enemy.x - x, enemy.y - y)
         theirs = self._gun_reach(enemy) + (enemy.effective_speed or 0)
@@ -1504,7 +1504,7 @@ class AIPlayer:
         (in arc and range), so a position with an enemy off each beam beats one
         with both off one side; crossing the T comes out of this and the
         Armour-facing exposure (8 a). Mounts knocked out by crits don't count."""
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return 0.0
         others = [e for e in self._live_enemies() if e.id != target.id]
         if not others:
@@ -1615,7 +1615,7 @@ class AIPlayer:
         for t in turns:
             for d in dists:
                 add(t, d, None, "grid")
-        if self.difficulty == "easy" or not ta:
+        if self.difficulty == "very_easy" or not ta:
             return out
         # Turn points: after the minimum move, at the end, at the start (escorts,
         # Burn Retros)
@@ -1678,7 +1678,7 @@ class AIPlayer:
                         add(best, d, p, "second target")
         # f: boarding reach (8 h), only with the boarding rule on: the point in
         # base contact with the target on our side of it
-        if getattr(self.gs, "rule_boarding", False) and self.difficulty != "easy":
+        if getattr(self.gs, "rule_boarding", False) and self.difficulty != "very_easy":
             d0 = ship.distance_to(enemy) or 1.0
             k = (enemy.base_radius + ship.base_radius) / d0
             goals.append(((enemy.x - (enemy.x - ship.x) * k, enemy.y - (enemy.y - ship.y) * k),
@@ -1854,7 +1854,7 @@ class AIPlayer:
         guns to bear on it within about two moves (its longest battery / lance
         range + twice its speed), else None (it plans against its nearest
         enemy as before)."""
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return None
         fid = getattr(self, "_focus_map", {}).get(ship.id) or getattr(self, "_focus", None)
         if not fid:
@@ -1873,7 +1873,7 @@ class AIPlayer:
         """ai_hazards.explosion_position_vp in the planner's firepower units:
         keep clear of ships about to blow up; a ship likely to die gains by
         ending next to enemy ships rather than its own (owner)."""
-        if self.difficulty == "easy" or getattr(self, "_enemy_plan", None) is None:
+        if self.difficulty == "very_easy" or getattr(self, "_enemy_plan", None) is None:
             return 0.0
         from .ai_hazards import explosion_position_vp, value_per_hit
         vp = explosion_position_vp(ship, x, y, self.gs, getattr(self, "_enemy_plan", {}),
@@ -1890,7 +1890,7 @@ class AIPlayer:
         try to mass turrets; enemy fighters don't count). Worth the turret's half chance to stop one of them (a
         torpedo's or bomber's expected hits on the flagship), in the planner's
         firepower units."""
-        if self.difficulty == "easy" or ship.ship_type != "escort" or ship.is_crippled:
+        if self.difficulty == "very_easy" or ship.ship_type != "escort" or ship.is_crippled:
             return 0.0
         if (ship.turrets or 0) <= 0:
             return 0.0
@@ -1937,7 +1937,7 @@ class AIPlayer:
         firepower units (one point of in-arc firepower ~ FP_HITS expected hits on
         the target). Half, as the enemy has other targets and our own fire
         thins it first."""
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return 0.0
         from .ai_hazards import position_exposure_hits, value_per_hit
         hits = position_exposure_hits(ship, x, y, h, self.gs)
@@ -2240,7 +2240,7 @@ class AIPlayer:
 
         # Lock On (To do 10 a): worth it when an enemy WILL be in arc after
         # the move, valued against the best move that may turn
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             enemies = self._live_enemies()
             for enemy in enemies:
                 for weapon in ship.weapons:
@@ -2380,7 +2380,7 @@ class AIPlayer:
         and disengaging plans (8 h)."""
         from .ai_hazards import p_sum_at_most
         from .movement import aaf_bonus_dice
-        if self.difficulty == "easy" or not ship.speed:
+        if self.difficulty == "very_easy" or not ship.speed:
             return 0.0
         key = ("aaf", ship.id, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1),
                ship.hits_remaining, self.gs.turn_number, len(self.gs.ordnance))
@@ -2532,7 +2532,7 @@ class AIPlayer:
         firepower), minus the best move without an order, at the pass chance.
         Ponderous ships can't (s.7)."""
         from .ai_hazards import p_sum_at_most
-        if self.difficulty == "easy" or not ship.speed:
+        if self.difficulty == "very_easy" or not ship.speed:
             return 0.0
         key = ("ctnh", ship.id, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1),
                ship.hits_remaining, self.gs.turn_number, len(self.gs.ordnance))
@@ -2658,7 +2658,7 @@ class AIPlayer:
         costs: special orders halve the ship's firepower this turn, worth half
         what its guns can take off the best target (ai_rerolls.firepower_swing).
         Eldar may not use Burn Retros (MMS p.3)."""
-        if self.difficulty == "easy" or "eldar_mms" in ship.special_rules:
+        if self.difficulty == "very_easy" or "eldar_mms" in ship.special_rules:
             return False
         from .ai_rerolls import firepower_swing
         hold = self._bombard_hold_value(ship)
@@ -2689,7 +2689,7 @@ class AIPlayer:
         tc = self.tc
         self._committed = {}                # expected hits planned per target this phase
         self._volley_fired = set()          # (ship id, weapon index) used in a squadron volley
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             self._squadron_volleys()
         from .scenarios import on_standby
         for ship in gs.player_ships(self.player):
@@ -2761,7 +2761,7 @@ class AIPlayer:
                 continue
 
             # Shoot an incoming mine / salvo / wave instead, when that's worth more
-            ordshot = self._ordnance_shot(ship, weapon, w_idx) if self.difficulty != "easy" else None
+            ordshot = self._ordnance_shot(ship, weapon, w_idx) if self.difficulty != "very_easy" else None
             if ordshot:
                 from .tyranids import may_fire_at_ordnance
                 if not may_fire_at_ordnance(gs, ship, ordshot["marker"]):
@@ -2773,7 +2773,7 @@ class AIPlayer:
                            f"{res['dice']} dice, {'destroyed' if res['hits'] else 'missed'}")
                 continue
 
-            hulk = self._hulk_shot(ship, weapon) if self.difficulty != "easy" else None
+            hulk = self._hulk_shot(ship, weapon) if self.difficulty != "very_easy" else None
             if hulk is not None:
                 enemies = [hulk]                 # worth more than any ship shot (below)
             else:
@@ -3200,7 +3200,7 @@ class AIPlayer:
         if not valid:
             return None
 
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return self._enforce_target_priority(ship, weapon, game_random(self.gs).choice(valid), valid)
         # normal / hard / expert: the most expected VP for this weapon, counting the
         # fire already committed to each target this phase (owner guidance:
@@ -3323,7 +3323,7 @@ class AIPlayer:
             return                    # AA: launches happen in the other ordnance phase
         enemies = self._live_enemies()
         self._fleet_defence = (self._plan_fleet_defence(enemies)
-                               if enemies and self.difficulty != "easy" else None)
+                               if enemies and self.difficulty != "very_easy" else None)
         from .scenarios import on_standby
         for ship in gs.player_ships(self.player):
             if ship.is_destroyed or ship.is_disengaged or ship.has_boarded or ship.aa_locked:
@@ -3332,7 +3332,7 @@ class AIPlayer:
                 continue                          # Surprise Attack: on standby
             self._launch_ship_ordnance(ship)
         self._fleet_defence = None
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             self._combine_squadron_waves()
 
     def _combine_squadron_waves(self):
@@ -3518,12 +3518,12 @@ class AIPlayer:
                 enemy_ord = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
                              if o["owner_player"] != self.player]
                 multi_role = ("thunderhawk", "fighta_bommer", "gun_cutter")
-                if enemy_ord and self.difficulty != "easy":
+                if enemy_ord and self.difficulty != "very_easy":
                     wanted = multi_role + ("fury_fighter", "barracuda", "fighter")
                 else:
                     wanted = multi_role + ("starhawk_bomber", "manta", "bomber")
                 preferred = next((ct for ct in wanted if ct in craft_types), craft_types[0])
-                if not enemy_ord and self.difficulty != "easy":
+                if not enemy_ord and self.difficulty != "very_easy":
                     held = self._hold_bays(ship, bays, craft_types, enemies)
                     if held:
                         gs.add_log(f"[AI] {ship.name} keeps its bays loaded ({held})")
@@ -3537,7 +3537,7 @@ class AIPlayer:
                                           tag="[AI] ")
                 count = min(count, fleet_craft_slots(gs, self.player, impaler_bays(bays)))
                 alloc = (self._bay_allocation(ship, craft_types, count, enemies)
-                         if count > 0 and self.difficulty != "easy" else None)
+                         if count > 0 and self.difficulty != "very_easy" else None)
                 plan = None
                 if alloc is not None:
                     plan = alloc["strike"]
@@ -3703,7 +3703,7 @@ class AIPlayer:
         """[(type, n), ...] for one strike wave (_strike_option) when there are
         2+ squadrons and no enemy ordnance to defend against, else None (then
         the AI keeps launching fighters; used when _bay_allocation can't plan)."""
-        if count < 2 or self.difficulty == "easy" or defending or not enemies:
+        if count < 2 or self.difficulty == "very_easy" or defending or not enemies:
             return None
         opt = self._strike_option(ship, craft_types, count, enemies)
         if opt is None:
@@ -4104,7 +4104,7 @@ class AIPlayer:
         planner's firepower units. Nothing unless teleports and hit-and-run
         raids are on (owner)."""
         gs = self.gs
-        if self.difficulty == "easy" or not (getattr(gs, "rule_teleport", False)
+        if self.difficulty == "very_easy" or not (getattr(gs, "rule_teleport", False)
                                              and getattr(gs, "rule_hit_and_run", False)):
             return 0.0
         if ship.ship_type == "escort" and ship.hits_max < 3:
@@ -4133,7 +4133,7 @@ class AIPlayer:
         """To do 8 h: an end position in base contact with an enemy gains the
         boarding action's net value (`_boarding_gain`), in the planner's
         firepower units. Only with the boarding rule on (owner)."""
-        if self.difficulty == "easy" or not getattr(self.gs, "rule_boarding", False):
+        if self.difficulty == "very_easy" or not getattr(self.gs, "rule_boarding", False):
             return 0.0
         from .geometry import BASE_CONTACT_MARGIN_CM
         from .ai_hazards import value_per_hit
@@ -4157,7 +4157,7 @@ class AIPlayer:
         0.1 (judgement), in the planner's firepower units. Nothing unless
         teleports and hit-and-run raids are on (owner)."""
         gs = self.gs
-        if self.difficulty == "easy" or not (getattr(gs, "rule_teleport", False)
+        if self.difficulty == "very_easy" or not (getattr(gs, "rule_teleport", False)
                                              and getattr(gs, "rule_hit_and_run", False)):
             return 0.0
         if "teleport_assault" not in ship.special_rules or ship.is_crippled:
@@ -4194,7 +4194,7 @@ class AIPlayer:
         counted for carriers only and weighted by the share of our launch
         capacity this ship carries, doubled when the enemy out-carriers us; in
         the planner's firepower units."""
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return 0.0
         from .ai_hazards import air_balance, value_per_hit, _bays
         from .ordnance import craft_roles, craft_stats, bay_launch_capacity
@@ -4758,7 +4758,7 @@ class AIPlayer:
             dist = math.sqrt((ship.x - e.x) ** 2 + (ship.y - e.y) ** 2)
             if dist <= torp_range:
                 candidates.append(e)
-        if candidates and self.difficulty != "easy":
+        if candidates and self.difficulty != "very_easy":
             # Owner: focus by expected VP; easy targets (low Armour / turrets /
             # shields, damaged ships) score most. Counts what the guns have done
             # (ships' actual state) and what this phase's ordnance is planned to do

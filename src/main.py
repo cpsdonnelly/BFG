@@ -525,7 +525,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                      ("Spectator mode (AI controls both players)", "spectator")):
         tk.Radiobutton(ai_frame, text=lbl, variable=ai_mode_var, value=val,
                        font=("Consolas", 8)).pack(anchor=tk.W)
-    diff_levels = [("Easy", "easy"), ("Normal", "normal"), ("Hard", "hard"),
+    diff_levels = [("Very easy", "very_easy"), ("Easy", "easy"), ("Normal", "normal"), ("Hard", "hard"),
                    ("Expert", "expert"), ("Master", "master")]
     diff_row = tk.Frame(ai_frame)
     diff_row.pack(anchor=tk.W, padx=10)
@@ -558,7 +558,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
     ai_mode_var.trace_add("write", _ai_mode_changed)
     _ai_mode_changed()
     tk.Label(ai_frame,
-             text="Easy: no lookahead, simpler choices  Normal: looks 1 turn ahead  "
+             text="Very easy: simpler choices (random targets...)  Easy: best expected VP, no lookahead  "
+                  "Normal: looks 1 turn ahead  "
                   "Hard: 3 turns  Expert: 5 turns  Master: 10 turns or to the game's end "
                   "(slower each step)",
              font=("Consolas", 7), fg="#888888", justify=tk.LEFT,

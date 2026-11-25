@@ -229,3 +229,34 @@ def test_search_depth_by_difficulty():
     gs.turn_limit, gs.turn_number = 6, 3            # four turns left, counting this one
     assert LookaheadAI(1, tc, gs, DiceStub([]), "master")._depth_now() == 4
     assert LookaheadAI(1, tc, gs, DiceStub([]), "expert")._depth_now() == 4
+
+
+def test_easy_plays_for_expected_vp_and_very_easy_takes_shortcuts():
+    """Owner: easy is the normal AI's expected-VP play without the lookahead;
+    very easy makes the simplifications (a random valid target...)."""
+    from src.ai_player import AIPlayer
+    from src.lookahead_ai import DEPTH_FOR
+    from src.turn_controller import TurnController
+    from tests.conftest import DiceStub
+    assert DEPTH_FOR["easy"] == DEPTH_FOR["very_easy"] == 0
+    gun = {"name": "Port", "weapon_type": "battery", "range_cm": 30, "strength": 8,
+           "arcs": ["left"]}
+    me = make_ship(id="me", player=1, x=0.0, y=0.0, heading=0.0, weapons=[dict(gun)])
+    weak = make_ship(id="w", player=2, x=0.0, y=20.0, hits_remaining=1, shields_max=0,
+                     points_value=200)
+    fresh = make_ship(id="f", player=2, x=10.0, y=22.0, points_value=200)
+    gs = make_gs([me, weak, fresh])
+    picks = {}
+    for d in ("easy", "very_easy"):
+        dice = DiceStub([2])                      # target priority tests pass (2D6 = 2)
+        ai = AIPlayer(1, TurnController(gs, dice), gs, dice, d)
+        ai._committed = {}
+        seen = set()
+        for i in range(20):
+            gs.rng_counter = i
+            ai._committed = {}                       # a fresh phase each time
+            t = ai._pick_target(gs.get_ship_by_id("me"), gun, [gs.get_ship_by_id("w"), gs.get_ship_by_id("f")])
+            seen.add(t.id if t else None)
+        picks[d] = seen
+    assert picks["easy"] == {"w"}                  # always the kill worth most
+    assert picks["very_easy"] == {"w", "f"}        # any valid target
