@@ -663,6 +663,8 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     # Determine armor facing (Promethean Unguents barrage bombs always hit on 4+)
     promethean = promethean_barrage(marker)
     armor = 4 if promethean else target.armor_vs(marker.x, marker.y)
+    if "mucous_membrane" in target.special_rules and not promethean:
+        armor = min(6, armor + 1)      # Tyranid Mucous Membrane: torpedoes count Armour +1
 
     attack_rolls = dice.roll_d6(
         result["remaining_strength"],
@@ -964,6 +966,12 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
 
         result["turret_reduction"] = turret_reduction
 
+    if "mucous_membrane" in target.special_rules:
+        # Tyranid Mucous Membrane: bombers make one attack fewer (reading:
+        # Fighta-Bommerz keep their minimum of one)
+        floor = 1 if marker.ordnance_type == OrdnanceType.FIGHTA_BOMMER.value else 0
+        total_attacks = max(floor, total_attacks - 1)
+        game_state.add_log(f"  {target.name}'s mucous membrane: -1 attack")
     result["attacks"] = total_attacks
 
     if total_attacks > 0:

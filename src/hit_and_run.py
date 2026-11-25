@@ -181,6 +181,9 @@ _RAID_DEFENSE_PENALTY = {
 }
 
 
+ASSAULT_BOAT_RAID = "assault_boat_raid"     # a raid made by an assault boat (tag)
+
+
 def _raid_roll_modifier(attacker_rules: List[str], target: Ship) -> int:
     """Net modifier applied to each hit-and-run / teleport raid roll.
 
@@ -189,6 +192,10 @@ def _raid_roll_modifier(attacker_rules: List[str], target: Ship) -> int:
     """
     bonus = sum(_RAID_ATTACK_BONUS.get(r, 0) for r in attacker_rules)
     penalty = sum(_RAID_DEFENSE_PENALTY.get(r, 0) for r in target.special_rules)
+    # Tyranid Mucous Membrane (biomorph): assault boats (Impalers too, a kind
+    # of assault boat) attacking the ship suffer a further -1
+    if ASSAULT_BOAT_RAID in attacker_rules and "mucous_membrane" in target.special_rules:
+        penalty += 1
     return bonus - penalty
 
 
@@ -701,7 +708,7 @@ def resolve_hit_and_run(marker: OrdnanceMarker, target: Ship,
                 "brace_passed": brace_passed}
     summary = resolve_raids(num_raids, target, brace_passed, dice, gs,
                             source_name=marker.ordnance_type,
-                            attacker_rules=marker.special_rules,
+                            attacker_rules=list(marker.special_rules or []) + [ASSAULT_BOAT_RAID],
                             reroll_fn=wings_reroll if wings else None)
     summary["brace_wanted"] = wanted_brace
     summary["brace_passed"] = brace_passed

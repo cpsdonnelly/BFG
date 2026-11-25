@@ -1284,7 +1284,10 @@ def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None) -> 
     shots = ordnance_turrets(target, gs) + get_massed_turret_bonus(target, gs.get_ships())
     p_turret = turret_kill_p(target, turret_hit_on(target, _OrdnanceRules(rules)), gs)
     left = max(0.0, strength - shots * p_turret)
-    return left * torpedo_p_hit(target.armor_vs(*from_xy), rules)
+    armour = target.armor_vs(*from_xy)
+    if "mucous_membrane" in target.special_rules:
+        armour = min(6, armour + 1)         # Tyranid Mucous Membrane
+    return left * torpedo_p_hit(armour, rules)
 
 
 def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,
@@ -2672,9 +2675,9 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
                            _get_ship_modifier)
     a_rating = troop_rating(attacker, attacker.is_grappled)
     d_rating = troop_rating(target, target.is_grappled, defending=True)
-    a_bonus = _get_ship_modifier(target, gs) + _troop_advantage_bonus(a_rating, d_rating) \
+    a_bonus = _get_ship_modifier(target, gs, attacker.special_rules) + _troop_advantage_bonus(a_rating, d_rating) \
         + _crew_damage_bonus(attacker)
-    d_bonus = _get_ship_modifier(attacker, gs) + _troop_advantage_bonus(d_rating, a_rating) \
+    d_bonus = _get_ship_modifier(attacker, gs, target.special_rules) + _troop_advantage_bonus(d_rating, a_rating) \
         + _crew_damage_bonus(target)
     vph_a, vph_t = value_per_hit(attacker, gs), value_per_hit(target, gs)
     # Dark Eldar slave-taking (Xenos p.4): +5 VP to the Dark Eldar player for

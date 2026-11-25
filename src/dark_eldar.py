@@ -116,8 +116,9 @@ def resolve_impaler(marker, target, braced: bool, dice, gs) -> dict:
     gs.add_log(f"  The Impaler makes {'two hit-and-run raids' if choice == 'raids' else 'a critical hit'}"
                f" on {target.name}")
     if choice == "raids":
+        from .hit_and_run import ASSAULT_BOAT_RAID
         res = resolve_raids(2, target, braced, dice, gs, source_name="Impaler",
-                            attacker_rules=marker.special_rules)
+                            attacker_rules=list(marker.special_rules or []) + [ASSAULT_BOAT_RAID])
         for k in ("raid_rolls", "crits_applied"):
             out[k] += res.get(k, [])
         for k in ("failures", "repelled", "damage"):
@@ -245,7 +246,8 @@ def impaler_effect_values(rules, target, gs, owner: int, end_phases: int = None)
     mod = _raid_roll_modifier(rules, target)
     frenzy = pain_frenzy_applies(rules, target)
     raid = [raid_result_value(r + mod, target, gs, owner, end_phases) for r in range(1, 7)]
-    one = raid_value(rules, target, gs, owner, end_phases)   # Pain Frenzy, Incubi
+    from .hit_and_run import ASSAULT_BOAT_RAID
+    one = raid_value(rules + [ASSAULT_BOAT_RAID], target, gs, owner, end_phases)
     if not uses_crit_table(target):
         # a ship off the crit table takes 1 damage a successful raid: the two
         # raids together, as it can only be destroyed once

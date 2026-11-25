@@ -97,10 +97,14 @@ _EXTRA_BOARDING = {
 }
 
 
-def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
-    """Return sum of modifiers that apply to the OPPONENT's roll due to this ship's status."""
+def _get_ship_modifier(ship: Ship, gs: GameState, opponent_rules=None) -> int:
+    """Return sum of modifiers that apply to the OPPONENT's roll due to this ship's status.
+    opponent_rules: the opponent's special rules (a Dark Eldar Wych Cult counts
+    every enemy capital ship as crippled for boarding modifiers, Xenos p.5)."""
     mod = 0
-    if ship.is_crippled:
+    rules = opponent_rules or []
+    wych = "wych_cult" in rules and "dark_eldar" in rules and ship.ship_type != "escort"
+    if ship.is_crippled or wych:
         mod += 2
     if ship.special_order not in ("none", ""):
         mod += 1
@@ -229,9 +233,9 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
 
     # Modifiers: each ship's weaknesses add to the OPPONENT's roll
     # Attacker's modifiers (from target's perspective)
-    a_mod = _get_ship_modifier(target, gs)
+    a_mod = max(_get_ship_modifier(target, gs, a.special_rules) for a in attackers)
     # Defender's modifiers (from attackers' perspective)
-    d_mod = max(_get_ship_modifier(a, gs) for a in attackers)
+    d_mod = max(_get_ship_modifier(a, gs, target.special_rules) for a in attackers)
 
     a_troop_bonus = _troop_advantage_bonus(a_rating, d_rating)
     d_troop_bonus = _troop_advantage_bonus(d_rating, a_rating)

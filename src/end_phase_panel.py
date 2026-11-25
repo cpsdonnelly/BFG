@@ -160,7 +160,8 @@ class EndPhasePanel:
                 from .waves import raid_squadron_value
                 best, best_v = None, 0.0
                 for t in eligible_targets:
-                    v = raid_squadron_value(t, gs, attacker.player, attacker.special_rules)
+                    v = raid_squadron_value(t, gs, attacker.player, attacker.special_rules,
+                                            assault_boat=False)
                     if v > best_v:
                         best, best_v = t.id, v
                 return best

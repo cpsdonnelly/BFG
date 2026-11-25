@@ -458,6 +458,8 @@ def bomber_squadron_value(target, gs, suppressed: bool = False) -> float:
     t = ordnance_turrets(target, gs)
     p_hit = max(1, 7 - target.lowest_armor_value) / 6.0
     counts = [3] if suppressed else [max(0, k - t) for k in range(1, 7)]
+    if "mucous_membrane" in target.special_rules:
+        counts = [max(0, c - 1) for c in counts]    # Tyranid Mucous Membrane
     if target.hits_remaining <= 1:
         # one hit destroys it: worth the ship once, whatever the number of hits
         p_any = sum(1 - (1 - p_hit) ** a for a in counts) / len(counts)
@@ -466,14 +468,18 @@ def bomber_squadron_value(target, gs, suppressed: bool = False) -> float:
     return attacks * p_hit * max(1.0, value_per_hit(target, gs))
 
 
-def raid_squadron_value(target, gs, owner: int, rules=None, end_phases: int = None) -> float:
+def raid_squadron_value(target, gs, owner: int, rules=None, end_phases: int = None,
+                        assault_boat: bool = True) -> float:
     """Expected VP of one assault boat squadron that reaches the target (s.22:
     one hit-and-run raid, no Armour roll): the mean over a D6 of
     hit_and_run.raid_result_value, with the crews' raid modifiers. `end_phases`:
     the damage control phases its crits face before the target shoots, when the
     raid lands later (ai_hazards.strike_timeline); default: as if now."""
     from .dark_eldar import raid_value
-    raid = raid_value(rules, target, gs, owner, end_phases)   # Pain Frenzy, Incubi
+    from .hit_and_run import ASSAULT_BOAT_RAID
+    # an assault boat's raid (Mucous Membrane -1); teleports pass assault_boat=False
+    raid = raid_value(list(rules or []) + ([ASSAULT_BOAT_RAID] if assault_boat else []),
+                      target, gs, owner, end_phases)
     if "impaler" in (rules or []):
         return impaler_value(target, gs, owner, rules, end_phases, raid)
     return raid

@@ -140,7 +140,7 @@ def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
     from .waves import raid_squadron_value
     from .ai_hazards import ship_threat_vp
     saving = 0.5 * raids * raid_squadron_value(target, gs, attacker.player,
-                                               attacker.special_rules)
+                                               attacker.special_rules, assault_boat=False)
     cost = 0.5 * ship_threat_vp(target, gs)
     return saving > cost
 
@@ -2711,7 +2711,8 @@ class AIPlayer:
         for e in self._live_enemies():
             if ship.distance_to(e) <= reach + e.base_radius and \
                     e.hits_remaining <= ship.hits_remaining:
-                best = max(best, raid_squadron_value(e, gs, self.player, ship.special_rules))
+                best = max(best, raid_squadron_value(e, gs, self.player, ship.special_rules,
+                                                     assault_boat=False))
         return 0.5 * best
 
     def _burn_retros_worth_it(self, ship: Ship) -> bool:
@@ -4296,7 +4297,8 @@ class AIPlayer:
             shields = current_shields(ship, gs.get_blast_markers())
             down = 1.0 if blast_markers_at(ship, (x, y), gs) >= shields else \
                 self.TELEPORT_SHIELDS_DOWN
-            vp += down * raid_squadron_value(ship, gs, e.player, e.special_rules)
+            vp += down * raid_squadron_value(ship, gs, e.player, e.special_rules,
+                                             assault_boat=False)
         if vp <= 0:
             return 0.0
         return vp / (FP_HITS * max(1.0, value_per_hit(target, gs)))
@@ -4352,7 +4354,8 @@ class AIPlayer:
                 continue
             sh = current_shields(e, gs.get_blast_markers())
             p = 1.0 if sh <= 0 else (0.6 if ours.get(e.id, 0.0) >= sh else 0.1)
-            best = max(best, p * raid_squadron_value(e, gs, self.player, ship.special_rules))
+            best = max(best, p * raid_squadron_value(e, gs, self.player, ship.special_rules,
+                                                     assault_boat=False))
         if best <= 0:
             return 0.0
         return best / (FP_HITS * max(1.0, value_per_hit(target, gs)))
