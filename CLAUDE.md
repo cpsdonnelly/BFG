@@ -729,10 +729,18 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   An Impaler hitting an undamaged Lunar, expected VP: none 23.3, Wych Cult 28.8, Incubi
   28.8, Haemonculi 22.4 (its forced Fire, 11.2, is worth less than a random crit, 18.7, so
   the AI takes the two raids; the coven's value is its +1 hit); crippled Lunar: Incubi 41.4.
-  An assault boat raid: 7.6 / Wych 12.6 / Incubi 12.6. The owner's second Dark Eldar list
-  (two Tortures, one Impaler + Wych Cult 245, one launch bays + Incubi 270, Dread Archon 50 + 2
-  re-rolls 50, 4 torpedo Raiders 40, 4 Impaler Corsairs 60) is 1015 at the booklet's prices,
-  not 995: waiting for the owner's change before it is built as a file.
+  An assault boat raid: 7.6 / Wych 12.6 / Incubi 12.6. The owner's second Dark Eldar list,
+  `owner_dark_eldar_tortures_1000.json` (1000, valid): a Torture with launch bays, Incubi and
+  the Dread Archon + 2 re-rolls, a Torture with the Impaler bay, a Wych Cult and a Dracon, 3
+  torpedo Raiders, 4 Impaler Corsairs (owner: one Raider dropped and the Dracon added, from
+  1015). The first Dark Eldar fleet now has 4 Corsairs and 7 torpedo Raiders (4 + 3) instead of
+  6 Corsairs (owner; same 990, and four 2-hit escorts a squadron as core p.58 says).
+  "-1 to enemy raids" rules in the booklet (owner question): Space Marines (and Chaos Space
+  Marine crews, which use their rules), Mega Armoured Boarding Parties, Incubi, every Tyranid
+  ship, all in the engine; not yet: Mucous Membrane (Tyranid biomorph: assault boats a further
+  -1 against it; the rule tag is carried but the raid roll doesn't read it), the Infested
+  Space Station (unplayable), Deathskulls (+1 or -1 to raids they suffer; clan not built);
+  XR's Aspect Warriors -1 isn't MMS's, so not applied.
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.
@@ -3391,7 +3399,8 @@ Done: To do 2, 3, 6; most of 7.
    costs (one command check, harder coherency, escort VP by squadron), shape beyond line /
    box. Owner question pending: the Dark Eldar list's "squadrons of two to six, in any mix"
    vs core p.58's four 2-hit escorts a squadron (the owner's six Corsairs, 2 hits each, are
-   one squadron; the check flags it and the AI re-forms them 3 + 3). Still to do (owner: noted):
+   one squadron; the check flagged it. Owner since: that fleet now has 4 Corsairs and 7
+   torpedo Raiders, so the question no longer blocks a file; the ruling itself is still open). Still to do (owner: noted):
    (1) the AI's choice to squadron capital ships is a coin-flip-style draw
    (`CAPITAL_SQUADRON_CHANCE`), not an expected-VP judgement of combined fire and one
    command check against losing flexibility; (2) if a fleet file's escort squadrons break

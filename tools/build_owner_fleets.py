@@ -72,12 +72,29 @@ FLEETS = [
         ("Succubus Class Light Cruiser", [
             "Dread Archon (+2 Ld)", "Dread Archon: 2 re-rolls",
             "Kabal Variant: Burning Scale (keel launch bays, 2, with Voidravens)"], True, ""),
+    # owner: 4 Corsairs (four 2-hit escorts, the most a squadron may hold) and
+    # 3 more torpedo Raiders in place of the six Corsairs, same points
     ] + [("Corsair Class Frigate", ["Kabal Variant: Impaler bay, 1 module"], False,
-          "corsairs")] * 6
+          "corsairs")] * 4
       + [("Subjugation Class Raider", ["Kabal Variant: Torpedo salvo S2"], False,
           "torp_raiders")] * 4
+      + [("Subjugation Class Raider", ["Kabal Variant: Torpedo salvo S2"], False,
+          "torp_raiders_2")] * 3
       + [("Subjugation Class Raider", ["Kabal Variant: Weapons battery FP3"], False,
           "gun_raiders")] * 5),
+    # Owner's second Dark Eldar list: two Tortures for the crew upgrades (one
+    # Raider dropped and a Dracon added to bring it to 1000)
+    ("owner_dark_eldar_tortures_1000.json", "Dark Eldar Tortures 1000", "Dark Eldar",
+     "dark_eldar_raiders", [
+        ("Torture Class Cruiser", ["Kabal Variant: Fiend Ascendant (keel launch bays, 4)",
+                                   "Incubi", "Dread Archon (+2 Ld)",
+                                   "Dread Archon: 2 re-rolls"], True, ""),
+        ("Torture Class Cruiser", ["Kabal Variant: Bleaksoul (prow impaler bay, 2 modules)",
+                                   "Wych Cult", "Dracon (+1 Ld)"], False, ""),
+    ] + [("Subjugation Class Raider", ["Kabal Variant: Torpedo salvo S2"], False,
+          "torp_raiders")] * 3
+      + [("Corsair Class Frigate", ["Kabal Variant: Impaler bay, 1 module"], False,
+          "corsairs")] * 4),
     ("owner_tau_protector_980.json", "Tau Protector 980", "Tau", "tau_empire", [
         ("Custodian Battleship", ["Kor'O (Ld 9)", "Commander: 2 extra re-rolls"], True, ""),
     ] + [("Emissary Light Cruiser", ["Configuration: ion cannons for the gravitic hooks",

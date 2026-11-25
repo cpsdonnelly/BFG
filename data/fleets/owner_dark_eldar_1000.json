@@ -310,19 +310,19 @@
       "fleet_list": "dark_eldar_raiders"
     },
     {
-      "name": "Corsair Class Frigate",
-      "ship_class": "Corsair Class Frigate",
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
       "faction": "dark_eldar",
       "ship_type": "escort",
       "base_size": "small",
-      "speed": 40,
+      "speed": 45,
       "turn_angle": 90,
       "shields_max": 0,
       "armor_prow": "4+",
       "armor_side": "4+",
       "armor_rear": "",
       "turrets": 0,
-      "hits_max": 2,
+      "hits_max": 1,
       "leadership": 0,
       "leadership_table": "Eldar",
       "weapons": [
@@ -330,101 +330,39 @@
           "name": "Weapons Battery",
           "weapon_type": "battery",
           "range_cm": 30,
-          "strength": 2,
+          "strength": 1,
           "arcs": [
             "front"
           ],
           "de_battery": true
         },
         {
-          "name": "Prow Impaler Bay",
-          "weapon_type": "launch_bay",
-          "range_cm": 30,
-          "strength": 1,
-          "arcs": [
-            "front"
-          ],
-          "craft_types": [
-            "impaler"
-          ],
-          "craft_speeds": {
-            "impaler": 30
-          },
-          "craft_speed": 30,
-          "impaler_bay": true
-        }
-      ],
-      "special_rules": [
-        "dark_eldar",
-        "shadowfield"
-      ],
-      "upgrades": [
-        "Kabal Variant: Impaler bay, 1 module"
-      ],
-      "points_value": 60,
-      "is_flagship": false,
-      "admiral_type": "",
-      "rerolls_remaining": 0,
-      "squadron_id": "corsairs",
-      "fleet_list": "dark_eldar_raiders"
-    },
-    {
-      "name": "Corsair Class Frigate",
-      "ship_class": "Corsair Class Frigate",
-      "faction": "dark_eldar",
-      "ship_type": "escort",
-      "base_size": "small",
-      "speed": 40,
-      "turn_angle": 90,
-      "shields_max": 0,
-      "armor_prow": "4+",
-      "armor_side": "4+",
-      "armor_rear": "",
-      "turrets": 0,
-      "hits_max": 2,
-      "leadership": 0,
-      "leadership_table": "Eldar",
-      "weapons": [
-        {
-          "name": "Weapons Battery",
-          "weapon_type": "battery",
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
           "range_cm": 30,
           "strength": 2,
           "arcs": [
             "front"
           ],
-          "de_battery": true
-        },
-        {
-          "name": "Prow Impaler Bay",
-          "weapon_type": "launch_bay",
-          "range_cm": 30,
-          "strength": 1,
-          "arcs": [
-            "front"
-          ],
-          "craft_types": [
-            "impaler"
-          ],
-          "craft_speeds": {
-            "impaler": 30
-          },
-          "craft_speed": 30,
-          "impaler_bay": true
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
         }
       ],
       "special_rules": [
         "dark_eldar",
-        "shadowfield"
+        "shadowfield",
+        "torpedo_type:leech"
       ],
       "upgrades": [
-        "Kabal Variant: Impaler bay, 1 module"
+        "Kabal Variant: Torpedo salvo S2"
       ],
-      "points_value": 60,
+      "points_value": 40,
       "is_flagship": false,
       "admiral_type": "",
       "rerolls_remaining": 0,
-      "squadron_id": "corsairs",
+      "squadron_id": "torp_raiders",
       "fleet_list": "dark_eldar_raiders"
     },
     {
@@ -648,7 +586,119 @@
       "is_flagship": false,
       "admiral_type": "",
       "rerolls_remaining": 0,
-      "squadron_id": "torp_raiders",
+      "squadron_id": "torp_raiders_2",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders_2",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders_2",
       "fleet_list": "dark_eldar_raiders"
     },
     {
