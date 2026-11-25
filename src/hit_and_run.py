@@ -333,8 +333,8 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     next shooting phase, weighted by the chance damage control hasn't repaired
     the crit by then; extended to the target's later shooting phases, up to
     CRIT_HORIZON and the turn limit, each with two more end phases of repairs,
-    a turn's more movement in the reach and the phase_weight discount). Each weapon there scores its expected hits (lances 0.5 a
-    die, batteries 0.176 (the Gunnery table's average), torpedoes 0.3) on the most valuable allied ship it
+    a turn's more movement in the reach and the phase_weight discount). Each weapon there scores its expected hits (batteries on the Gunnery table, lances by
+    their own rules, `ai_hazards._gun_hits`; torpedoes 0.3) on the most valuable allied ship it
     can bear on then (`_weapon_can_bear`: in reach = range + the movement
     before that phase, i.e. the target's move, plus ours when the crit lands in
     the target's own turn; in arc now, or after one turn at 0.75). A location
@@ -361,16 +361,24 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
         threat = 0.0
         for w in weapons:
             best = 0.0
+            st = w.get("strength") or 0
+            if target.is_crippled:
+                st = target.crippled_value(st)        # a crippled ship's guns fire at half
             for f in friends:
                 reach = ((target.speed or 0) * (j + 1)
                          + (f.speed or 0) * (j + (1 if phases > 1 else 0)))
                 wt = _weapon_can_bear(target, w, f, reach)
                 if wt:
-                    best = max(best, wt * max(1.0, value_per_hit(f, gs)))
-            st = w.get("strength") or 0
-            if target.is_crippled:
-                st = target.crippled_value(st)        # a crippled ship's guns fire at half
-            threat += st * _THREAT_PER_DIE[w["weapon_type"]] * best
+                    # the hits it would score on that ship: batteries on the
+                    # Gunnery table, lances by their own rules (To do 30;
+                    # ai_hazards._gun_hits, crippling included); torpedoes 0.3
+                    if w["weapon_type"] in ("battery", "lance"):
+                        from .ai_hazards import _gun_hits
+                        h = _gun_hits(target, w, f)
+                    else:
+                        h = st * _THREAT_PER_DIE[w["weapon_type"]]
+                    best = max(best, wt * h * max(1.0, value_per_hit(f, gs)))
+            threat += best
         total += phase_weight(2 * j) * p_left * threat
     return total
 

@@ -624,8 +624,7 @@ table, see To do 30):
   Gothic fleet to game over and replayed (`tests/test_eldar_fleets.py`). Still open: the Seer
   Council's Foresight; XR's Corsair / Craftworld movement differences (MMS used).
 - Raised this session, still open (see each section): open question 1 (raid modifiers that
-  cancel); faction lances' expected hits in the AI and the estimated range in `battery_hits`
-  (both pinned, To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
+  cancel); exact hit counts in place of Poisson (To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
   not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
   orbit's free turns; the AI never parks in a field in high orbit; escort disengage values
   still per ship (not by squadron); an Incubi raid's 2D6-best not in the slave-taking
@@ -3278,10 +3277,9 @@ Done: To do 2, 3, 6; most of 7.
    (the real Gunnery table from where both ships stand: target type and aspect, the
    range-free shifts such as holofields / shadowfields / Eldar batteries / targeting matrix
    read at a 20cm stand-in, the Armour facing the firer, a random firepower over its
-   outcomes, crippled halving; range shifts left out because the shot comes after a move,
-   judgement (pinned, owner: estimate the range instead, e.g. from the enemy's predicted
-   moves, `enemy_move_samples` / `_predicted_positions`, or the range bracket it would
-   choose, and read the range shift from it); cached table lookups, `table_battery_hits`), used by `mount_hits` (exposure,
+   outcomes, crippled halving; the range estimated (owner): the firer closes as far as its
+   move allows, since closer is never worse on the table (the reach `_mount_bears` gives
+   it), and the range shifts are read there; cached table lookups, `table_battery_hits`), used by `mount_hits` (exposure,
    the enemy fire plan, disengaging; the old `HOLOFIELD_SHIFT` 0.7 is gone, the table does
    it), `ship_threat_vp` (each target it bears on at its own hits), `fleet_hits_on`,
    `fleet_focus_targets`, `_ship_hits_on` (`_gun_hits`). Where the target isn't known:
@@ -3304,9 +3302,9 @@ Done: To do 2, 3, 6; most of 7.
    column gives twice the dice), and the AI braces a hit earlier (4 hits at 2 shields
    rather than 5); 16 AI-vs-AI games (Gothic v Chaos, Tau Merchant v Orks) played normally,
    results much as before (each 2-6 both before and after), with lower VP totals. Not yet:
-   exact distributions in place of the Poisson counts (`poisson_at_least`), the wave / CAP /
-   turret chain by DP, the estimated range in `battery_hits` (pinned), Wings of Fury's
-   armament values on the table (the friend each weapon would fire at is known).
+   exact distributions in place of the Poisson counts (`poisson_at_least`; needs
+   `damage_vp` to take a hit distribution rather than a mean, and the phase's committed
+   fire kept as one per target), the wave / CAP / turret chain by DP.
    Audit of shortcuts (owner question, pinned; fix in this order):
    - FIXED: averages pushed through a cut-off. The gunnery target choice (`shot_vp`),
      `added_vp` and the brace's hull hits (`ai_player._brace_hull_hits`) take shields off
@@ -3336,14 +3334,21 @@ Done: To do 2, 3, 6; most of 7.
      escort finishing chance), the expert's sim without terrain, faction rules or enemy
      ordnance, the move score's torpedo at 0.35 hits and flat 0.5 contact bonus a mate
      (judgement), Poisson counts (above).
-   Pinned (owner): faction lances need their own expected hits, not the standard 0.5 a
-   point (`ai_hazards.lance_p` reads only `hits_on`, so today only Ork zzapp gunz' 5+ is
-   counted, and the holofield save in `mount_hits`): Eldar pulsars (follow-up hits) and
-   phantom lances (1 hit on 4-5, 2 on 6), Dark Eldar phantom lances (1 on 4, 2 on 5+), Ork
-   zzapp gunz' random firepower, Tyranid bio-plasma (only a 6 beyond 15cm, past shields),
-   Necron particle whips (6s past shields). Check each against its rules file before
-   building; one per-weapon expected-hits helper for every AI value (`mount_hits`,
-   `_gun_hits`, `ship_threat_vp`, the move score's lance points, the expert's sim).
+   Built (owner): faction lances' own expected hits. `combat.lance_expected(attacker,
+   weapon, target, now)` mirrors `resolve_lances` (its strength halving, shared as
+   `lance_strength`; the per-die value `lance_die_hits`: 4+ / zzapp gunz 5+, Eldar phantom
+   lances 1 on 4-5 and 2 on 6, Dark Eldar phantom lances 1 on 4 and 2 on 5+, pulsars
+   p + p^2 + p^3; zzapp gunz' random firepower over its outcomes; Tyranid bio-plasma a 6
+   beyond 15cm and all past shields; Necron particle whips' 6s past shields; holofield and
+   shadowfield saves) and returns (hits, the part past shields); `now=False` for next
+   turn's shots (crippling only). Used by `combat.expected_hits` (our own fire),
+   `mount_hits` / `mount_bypass` (exposure and the enemy fire plan: bypass hits added
+   after the shields), `_gun_hits` (threat, focus, Wings of Fury's armament values, which
+   now use each weapon's hits on the friend it would fire at); `lance_p` is
+   `lance_die_hits` where the target isn't known (move score, expert sim). A test checks
+   it against thousands of real `resolve_lances` rolls (`tests/test_lance_expected.py`).
+   Not yet: Lock On's re-rolls and low orbit's 4+ to fire in the estimate; the shield
+   bypass in our own target choice (`shot_vp` takes all hits through the shields).
 31. Log of random decisions (owner): keep track of every place the AI decides at random in
    fleet building (personality rolls, carrier counts, escort counts, Mechanicus gift rolls,
    the Necron War upgrade coin, formations, squadron placement...), so the ML-driven AI (To

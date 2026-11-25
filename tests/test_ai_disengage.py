@@ -59,7 +59,9 @@ def test_both_broadsides_at_different_targets():
     a = make_ship(id="a", player=1, x=0.0, y=20.0, shields_max=0)      # its left
     b = make_ship(id="b", player=1, x=0.0, y=-20.0, shields_max=0)     # its right
     gs = make_gs([e, a, b])
-    abeam = 1.0          # FP8 at a capital ship abeam: 3 dice on 5+ (the Gunnery table, To do 30)
+    # FP8 at a capital ship abeam, the enemy closing to point-blank range with its
+    # 20cm move (a left shift): 4 dice on 5+ (the Gunnery table, To do 30)
+    abeam = 4 / 3
     assert abs(incoming_hits(a, gs) - abeam) < 1e-9
     assert abs(incoming_hits(b, gs) - abeam) < 1e-9
     # A lone target only ever faces one broadside

@@ -126,10 +126,11 @@ def test_exposure_respects_our_armour_facing():
     gs = make_gs([me, foe])
     prow_on = position_exposure_hits(me, 0.0, 0.0, 0.0, gs)       # pointing at it
     side_on = position_exposure_hits(me, 0.0, 0.0, 90.0, gs)      # showing a side
-    # On the real Gunnery table (To do 30) the aspect counts too: prow-on is
-    # "closing" (4 dice for FP6, on the 6+ prow), side-on "abeam" (2 dice on
-    # the 5+ side): the same 2/3 of a hit here
-    assert abs(prow_on - 4 / 6) < 1e-9 and abs(side_on - 2 / 3) < 1e-9
+    # On the real Gunnery table (To do 30) the aspect counts too, and the foe
+    # closes to point-blank range with its move (a left shift): prow-on is
+    # "closing" (5 dice for FP6, on the 6+ prow), side-on "abeam" (3 dice on
+    # the 5+ side)
+    assert abs(prow_on - 5 / 6) < 1e-9 and abs(side_on - 3 / 3) < 1e-9
     # the same aspect with a 5+ prow: twice as exposed as the 6+ one
     soft = make_ship(id="me", player=1, x=0.0, y=0.0, armor_prow="5+", armor_side="5+",
                      shields_max=0)

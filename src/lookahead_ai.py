@@ -216,7 +216,8 @@ def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
         return 0.0
     strength = weapon.get("strength", 1) or 0
     if wtype == "lance":
-        return strength * (7 - (weapon.get("hits_on") or 4)) / 6.0
+        from .combat import lance_die_hits      # each faction's lance rules (To do 30)
+        return strength * lance_die_hits(weapon)
     # The real Gunnery table (To do 30): the sim knows both ships where the
     # shot is made, so the target's type, its aspect and the range are known
     from .ai_hazards import table_battery_hits

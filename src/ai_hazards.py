@@ -67,8 +67,12 @@ def d6_past_shields(shields: int) -> float:
 
 
 def lance_p(w: dict) -> float:
-    """A lance die's chance to hit: 4+ (Ork Zzapp Gunz 5+, `hits_on`)."""
-    return (7 - (w.get("hits_on") or 4)) / 6.0
+    """A lance die's expected hits by its own rules, where the target isn't
+    known (`combat.lance_die_hits`): 4+ (Ork zzapp gunz 5+), Eldar / Dark
+    Eldar phantom lances and pulsars their own values. With a target,
+    `combat.lance_expected` (saves, bio-plasma range, shield bypass)."""
+    from .combat import lance_die_hits
+    return lance_die_hits(w)
 
 
 def p_hit(armour: int) -> float:
@@ -104,9 +108,12 @@ def battery_hits(e: Ship, w: dict, t: Ship, fp: Optional[int] = None) -> float:
     on the real Gunnery table (To do 30): the target's type and aspect, the
     shifts that don't depend on range (holofields, shadowfields, Eldar / Dark
     Eldar batteries, targeting matrices, low orbit...), the Armour facing `e`
-    and a random firepower over its outcomes. Range shifts are left out: the
-    shot is made after a move, at a range not known yet (judgement: the 15-30cm
-    middle). Blast markers aren't counted (they change before the shot)."""
+    and a random firepower over its outcomes. The range (owner: estimate it,
+    don't leave it out): the shot comes after the firer's move, and closer is
+    never worse on the Gunnery table, so the firer is taken to close as far as
+    its move allows (the reach `_mount_bears` gives it), and the range shifts
+    (under 15cm, over 30cm, Fighting Sunward, Miasma...) are read there.
+    Blast markers aren't counted (they change before the shot)."""
     from .combat import (_battery_orientation, gunnery_target_type, get_column_shifts,
                          dice_distribution, is_dice_value)
     from .tables import get_gunnery_column
@@ -120,10 +127,11 @@ def battery_hits(e: Ship, w: dict, t: Ship, fp: Optional[int] = None) -> float:
     column = get_gunnery_column(ttype, _battery_orientation(e, t, w, ttype))
     d = math.hypot(e.x - t.x, e.y - t.y)
     proxy = e
-    if d < 15 or d > 30:
-        # the range-free shifts, read at a 20cm stand-in on the same bearing
-        k = 20.0 / d if d > 1e-6 else 1.0
-        proxy = e if d <= 1e-6 else _dc_replace(e, x=t.x + (e.x - t.x) * k, y=t.y + (e.y - t.y) * k)
+    est = max(1.0, d - (e.effective_speed or 0))       # the range after its move
+    if d > 1e-6 and est < d:
+        # the shifts read at that range, on the same bearing
+        k = est / d
+        proxy = _dc_replace(e, x=t.x + (e.x - t.x) * k, y=t.y + (e.y - t.y) * k)
     shifts = get_column_shifts(proxy, t, [], [], [], w)
     need = w.get("hits_on") or t.armor_vs(e.x, e.y)
     crippled = fp is None and e.is_crippled
@@ -539,10 +547,7 @@ def ship_threat_vp(ship: Ship, gs) -> float:
         for t in foes:
             if not _mount_bears(ship, w, t):
                 continue
-            if wt == "lance":
-                h = (w.get("strength") or 0) * lance_p(w) * (0.5 if ship.is_crippled else 1.0)
-            else:
-                h = battery_hits(ship, w, t)
+            h = _gun_hits(ship, w, t)
             best = max(best, h * value_per_hit(t, gs))
         total += best
     # its launch bays too (owner: carrier doctrine; already halved when crippled)
@@ -975,21 +980,28 @@ def mount_hits(e: Ship, w: dict, t: Ship) -> float:
     stands (its position and heading): batteries on the real Gunnery table
     (`battery_hits`, To do 30: the aspect, the Armour facing `e` would hit,
     holofield / shadowfield shifts; To do 8 a: a 6+ prow really is safer than a
-    5+ side); lances 0.5 a lance whatever the Armour (they hit on 4+). A
+    5+ side); lances by their own rules (`combat.lance_expected`: phantom
+    lances, pulsars, bio-plasma, zzapp gunz, holofield / shadowfield saves). A
     crippled `e` fires at half strength."""
-    st = w.get("strength") or 0
     f = hull_save_factor(t)
     from .necrons import veil_hidden
     if veil_hidden(t):
         f *= p_sum_at_most(2, max(0, min(10, e.leadership or 0)))   # its target priority test
     if w.get("weapon_type") == "lance":
-        if "holofield" in (t.special_rules or []):
-            # Eldar holofields (MMS): a save against lances (5+ beyond 30cm,
-            # 6+ at 15-30cm); their gunnery shift is in battery_hits
-            from .eldar import p_holofield_save
-            f *= 1.0 - p_holofield_save(math.hypot(e.x - t.x, e.y - t.y))
-        return (e.crippled_value(st) if e.is_crippled else st) * lance_p(w) * f
+        # each faction's lance rules, the holofield / shadowfield saves
+        # (combat.lance_expected, next turn's shot: crippling halves it)
+        from .combat import lance_expected
+        return lance_expected(e, w, t, now=False)[0] * f
     return battery_hits(e, w, t) * f
+
+
+def mount_bypass(e: Ship, w: dict, t: Ship) -> float:
+    """The part of mount_hits that bypasses shields (Tyranid bio-plasma,
+    Necron particle whips' 6s)."""
+    if w.get("weapon_type") != "lance":
+        return 0.0
+    from .combat import lance_expected
+    return lance_expected(e, w, t, now=False)[1] * hull_save_factor(t)
 
 
 def hull_save_factor(t: Ship) -> float:
@@ -1048,7 +1060,8 @@ def enemy_fire_plan(gs, player: int) -> dict:
             if not _mount_bears(e, w, t):
                 continue
             h = mount_hits(e, w, t)          # on the Armour facing it would hit
-            dh = h if (e.id, t.id) in firing else past_shields(h, shields[t.id])
+            byp = mount_bypass(e, w, t)
+            dh = h if (e.id, t.id) in firing else past_shields(h - byp, shields[t.id]) + byp
             gain = value(t, planned[t.id] + dh) - value(t, planned[t.id])
             if gain > best:
                 best, best_t, best_dh = gain, t, dh
@@ -1442,8 +1455,8 @@ def _gun_hits(s: Ship, w: dict, e: Ship) -> float:
     batteries on the Gunnery table (`battery_hits`), lances 0.5 each (4+);
     crippled ships at half strength."""
     if w.get("weapon_type") == "lance":
-        st = w.get("strength") or 0
-        return (s.crippled_value(st) if s.is_crippled else st) * lance_p(w)
+        from .combat import lance_expected
+        return lance_expected(s, w, e, now=False)[0]
     return battery_hits(s, w, e)
 
 
@@ -1611,10 +1624,11 @@ def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -
     for e in gs.get_ships():
         if e.player == ship.player or e.is_destroyed or e.is_disengaged:
             continue
-        hits = sum(mount_hits(e, w, moved)
-                   for w in e.weapons if w.get("weapon_type") in ("battery", "lance")
-                   and _mount_bears(e, w, moved))
-        total += past_shields(hits, shields)     # E[max(0, H - shields)], H Poisson
+        bearing = [w for w in e.weapons if w.get("weapon_type") in ("battery", "lance")
+                   and _mount_bears(e, w, moved)]
+        hits = sum(mount_hits(e, w, moved) for w in bearing)
+        bypass = sum(mount_bypass(e, w, moved) for w in bearing)   # never stopped by shields
+        total += past_shields(hits - bypass, shields) + bypass   # E[max(0, H - shields)]
     return total
 
 

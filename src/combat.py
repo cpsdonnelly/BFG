@@ -666,28 +666,7 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
                    dice: DiceRoller, lock_on: bool = False) -> ShotResult:
     """Resolve a lance weapon attack."""
     result = ShotResult(weapon["name"], "lance")
-    strength = weapon["strength"]
-    if weapon.get("cutting_beam"):
-        strength = cutting_beam_firepower(attacker, attacker.distance_to(target))
-
-    # Halve if crippled
-    if attacker.is_crippled:
-        strength = attacker.crippled_value(strength)
-
-    # Halve if on movement special orders
-    if attacker.special_order in (
-        SpecialOrder.ALL_AHEAD_FULL.value,
-        SpecialOrder.BURN_RETROS.value,
-        SpecialOrder.COME_TO_NEW_HEADING.value,
-    ):
-        strength = (strength + 1) // 2
-
-    if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
-        strength = (strength + 1) // 2
-    if "half_armament" in attacker.special_rules:
-        strength = (strength + 1) // 2     # Navigate the Storm: recovering from the warp
-    if _in_field_together(attacker, target):
-        strength = (strength + 1) // 2     # s.39: firing inside an asteroid field
+    strength = lance_strength(attacker, target, weapon, weapon["strength"])
     # Low orbit (s.39): lances need a 4+ to fire at all
     from .low_orbit import needs_fire_roll
     if strength > 0 and needs_fire_roll(attacker):
@@ -767,6 +746,97 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
         f"(4+) = {result.hits} hits")
 
     return result
+
+
+def lance_strength(attacker: Ship, target: Ship, weapon: Dict, strength: int,
+                   now: bool = True) -> int:
+    """A lance's strength as it fires: the Demiurg cutting beam by range, then
+    halved (rounding up) for crippling, movement orders, Brace, Navigate the
+    Storm's recovery and firing inside an asteroid field (s.39). now=False:
+    a shot next turn (the AI's threat estimates), crippling only (this
+    turn's orders will have ended)."""
+    if weapon.get("cutting_beam"):
+        strength = cutting_beam_firepower(attacker, attacker.distance_to(target))
+    if attacker.is_crippled:
+        strength = attacker.crippled_value(strength)
+    if not now:
+        return strength
+    if attacker.special_order in (
+        SpecialOrder.ALL_AHEAD_FULL.value,
+        SpecialOrder.BURN_RETROS.value,
+        SpecialOrder.COME_TO_NEW_HEADING.value,
+    ):
+        strength = (strength + 1) // 2
+    if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+        strength = (strength + 1) // 2
+    if "half_armament" in attacker.special_rules:
+        strength = (strength + 1) // 2     # Navigate the Storm: recovering from the warp
+    if _in_field_together(attacker, target):
+        strength = (strength + 1) // 2     # s.39: firing inside an asteroid field
+    return strength
+
+
+def lance_die_hits(weapon: Dict, need: Optional[int] = None) -> float:
+    """Expected hits from one lance die, by the weapon's own rules (as
+    resolve_lances rolls them): 4+ (or `hits_on`, Ork zzapp gunz 5+); Dark
+    Eldar phantom lances 1 hit on the need, 2 above it; Eldar phantom lances 1
+    on the need to 5, 2 on a 6; pulsars a hit and up to two follow-ups."""
+    if need is None:
+        need = weapon.get("hits_on") or 4
+    if need > 6:
+        return 0.0
+    p = (7 - need) / 6.0
+    if weapon.get("de_phantom"):
+        return 1 / 6.0 + 2 * (6 - need) / 6.0
+    if weapon.get("phantom"):
+        return (6 - need) / 6.0 + 2 / 6.0
+    if weapon.get("pulsar"):
+        return p + p * p + p ** 3
+    return p
+
+
+def lance_expected(attacker: Ship, weapon: Dict, target: Ship,
+                   now: bool = True) -> Tuple[float, float]:
+    """(expected hits, the part that bypasses shields) of a lance weapon fired
+    from where `attacker` stands at `target`, as resolve_lances resolves it
+    (To do 30, owner: each faction's lance rules): its strength as it fires
+    (lance_strength, a random strength over its outcomes), the per-die value
+    (lance_die_hits), Tyranid bio-plasma only on a 6 beyond 15cm and wholly past
+    shields, Necron particle whips' 6s past shields, then the holofield save by
+    range (on the hits that aren't bypassing, all of them for bio-plasma) and
+    the shadowfield save. Lock On's re-rolls and low orbit's 4+ to fire aren't
+    counted. now=False: a shot next turn (lance_strength)."""
+    text = weapon.get("strength_dice")
+    outcomes = (dice_distribution(text) if text and is_dice_value(text)
+                else [(weapon.get("strength", 0) or 0, 1.0)])
+    dist = attacker.distance_to(target)
+    need = weapon.get("hits_on") or 4
+    if weapon.get("bio_plasma") and dist > 15:
+        need = 6
+    per_die = lance_die_hits(weapon, need)
+    if weapon.get("bio_plasma"):
+        bypass_die = per_die
+    elif weapon.get("particle_whip") or weapon.get("shield_bypass_6"):
+        bypass_die = 1 / 6.0 if need <= 6 else 0.0
+    else:
+        bypass_die = 0.0
+    n = sum(q * lance_strength(attacker, target, weapon, v, now) for v, q in outcomes)
+    hits, bypass = n * per_die, n * bypass_die
+    if "holofield" in (target.special_rules or []):
+        from .eldar import p_holofield_save
+        keep = 1.0 - p_holofield_save(dist)
+        if weapon.get("bio_plasma"):
+            hits *= keep
+            bypass *= keep
+        else:
+            hits = bypass + (hits - bypass) * keep
+    from .dark_eldar import shadowfield_need
+    sf = shadowfield_need(target)
+    if sf is not None:
+        keep = 1.0 - (7 - sf) / 6.0
+        hits *= keep
+        bypass *= keep
+    return hits, bypass
 
 
 def _shadowfield(target: Ship, hits: int, dice: DiceRoller) -> int:
@@ -1029,8 +1099,7 @@ def expected_hits(attacker: Ship, weapon: Dict, target: Ship, gs=None) -> float:
     outcomes = (dice_distribution(dice_text) if dice_text and is_dice_value(dice_text)
                 else [(weapon.get("strength", 0), 1.0)])
     if wtype == "lance":
-        p_hit = (7 - (weapon.get("hits_on") or 4)) / 6.0
-        return sum(v * p for v, p in outcomes) * p_hit
+        return lance_expected(attacker, weapon, target)[0]    # each faction's lance rules
     if wtype != "battery":
         return 0.0
     column = get_gunnery_column(gunnery_target_type(target),
