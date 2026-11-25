@@ -3285,6 +3285,14 @@ Done: To do 2, 3, 6; most of 7.
    (2D3 escorts of one class / one ordnance, the list's sizes; they come from the fleet file
    today), capital squadrons, deployment by strategy (where in the zone suits the matchup),
    the alternating deployment orders, the players' formation setter.
+   Squadron sizes (core s.4: escort squadrons are chosen with the fleet list, before the Ld
+   roll, so forming them is fleet building's job): `fleet_lists.escort_squadron_limits` /
+   `escort_squadron_errors` (2-6 and at most four 2-hit escorts; Tyranid Hive / Gestating
+   1-12, Vanguard 6-12, any mix, Kraken count two and at most 4 a squadron) replace the fleet
+   check's hard-coded 2-6 (`fleet_model.validate_fleet`; Tyranid squadrons of 7-12 used to be
+   refused) and size the list builder's squadrons (`ListBuilder._squadrons`: one class to a
+   squadron, owner's preference; mixed where the list allows or a list limit needs it, a
+   repair move, as the core rules allow mixing).
 29. Commander placement (owner): Leadership is rolled before the game and commanders are
    assigned during deployment, so the AI sees the rolled values when it chooses. Owner
    (latest): a commander may move to another ship after the Ld roll (a weak-Ld ship replaced

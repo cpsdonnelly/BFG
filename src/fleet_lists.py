@@ -847,6 +847,43 @@ def _sm_barge_errors(rows: List[Dict], fleet_points: int) -> List[str]:
     return errors
 
 
+def escort_squadron_limits(list_key: Optional[str]) -> Dict:
+    """Escort squadron sizes for a fleet list (core s.4: "usually ... no more
+    than six", "no more than four are 2-hit escorts"; s.8 squadrons of two or
+    more): 2-6 with at most four 2-hit escorts. Tyranids (Xenos p.118-120):
+    the Hive and Gestating fleets 1-12, the Vanguard 6-12, in any mix, Kraken
+    counting as two escorts and at most 4 a squadron. Keys: min, max,
+    two_hit_max (None: no limit), kraken_weight, kraken_max, mix (classes may
+    mix in one squadron)."""
+    fl = LISTS.get(list_key or "") or {}
+    if fl.get("faction") == "tyranids":
+        lo = 6 if fl.get("tyranid") == "vanguard" else 1
+        return {"min": lo, "max": 12, "two_hit_max": None, "kraken_weight": 2,
+                "kraken_max": 4, "mix": True}
+    return {"min": 2, "max": 6, "two_hit_max": 4, "kraken_weight": 1, "kraken_max": None,
+            "mix": False}
+
+
+def escort_squadron_errors(list_key: Optional[str], members: List[Dict], sid: str) -> List[str]:
+    """One escort squadron against its list's sizes (escort_squadron_limits)."""
+    lim = escort_squadron_limits(list_key)
+    entries = [m["entry"] for m in members]
+    kraken = sum(1 for e in entries if e.ship_class == "Kraken")
+    size = len(entries) + (lim["kraken_weight"] - 1) * kraken
+    errors = []
+    if size < lim["min"] or size > lim["max"]:
+        what = " (Kraken count two)" if kraken and lim["kraken_weight"] > 1 else ""
+        errors.append(f"Squadron '{sid}': escort squadrons need {lim['min']}-{lim['max']} "
+                      f"ships{what} (has {size}).")
+    two = sum(1 for e in entries if e.hits_max >= 2)
+    if lim["two_hit_max"] is not None and two > lim["two_hit_max"]:
+        errors.append(f"Squadron '{sid}': at most {lim['two_hit_max']} two-hit escorts "
+                      f"(has {two}).")
+    if lim["kraken_max"] is not None and kraken > lim["kraken_max"]:
+        errors.append(f"Squadron '{sid}': at most {lim['kraken_max']} Kraken (has {kraken}).")
+    return errors
+
+
 def towed_errors(rows: List[Dict]) -> List[str]:
     """Towed escorts (Warden, Orca, Dhow) need gravitic hooks configured to
     carry them in the fleet (owner ruling), one per hook ("hooks:<type>:<n>"

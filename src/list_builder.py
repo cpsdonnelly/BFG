@@ -378,18 +378,34 @@ class ListBuilder:
                 self.choices[-1]["kept"] = False
 
     def _squadrons(self, rows):
-        """Escorts of one class squadroned together, 2-6 a squadron, split as
-        evenly as possible (owner: one class per squadron)."""
+        """Escorts squadroned within the list's sizes (fleet_lists.
+        escort_squadron_limits): one class to a squadron (owner), or any mix
+        where the list allows it (Tyranids); each class's escorts split as
+        evenly as possible into as few squadrons as its maximum, its four
+        2-hit escorts and its Kraken limit allow."""
+        from .fleet_lists import escort_squadron_limits
+        lim = escort_squadron_limits(self.list_key)
+        mix = lim["mix"] or getattr(self, "mix_escorts", False)
         by: Dict[str, list] = {}
         for r in rows:
             r["squadron_id"] = ""
             if r["entry"].ship_type == "escort":
-                by.setdefault(r["entry"].ship_class, []).append(r)
+                key = "all" if mix else r["entry"].ship_class
+                by.setdefault(key, []).append(r)
         n = 0
-        for cls, members in by.items():
-            if len(members) < 2:
-                continue
-            k = -(-len(members) // 6)
+        for _key, members in by.items():
+            weight = sum(lim["kraken_weight"] if m["entry"].ship_class == "Kraken" else 1
+                         for m in members)
+            if weight < max(2, lim["min"]) and lim["min"] > 1:
+                continue                  # too few to squadron (the checks say so)
+            two = sum(1 for m in members if m["entry"].hits_max >= 2)
+            kraken = sum(1 for m in members if m["entry"].ship_class == "Kraken")
+            k = max(1, -(-weight // lim["max"]))
+            if lim["two_hit_max"]:
+                k = max(k, -(-two // lim["two_hit_max"]))
+            if lim["kraken_max"]:
+                k = max(k, -(-kraken // lim["kraken_max"]))
+            k = min(k, max(1, weight // max(1, lim["min"])))
             for i, r in enumerate(members):
                 r["squadron_id"] = f"sq{n + i % k + 1}"
             n += k
@@ -411,12 +427,18 @@ class ListBuilder:
             if not errs:
                 return errs
             best = None
+            was_mixed = getattr(self, "mix_escorts", False)
             for name, trial in self._moves(rows, escorts):
+                # the core rules allow mixed escort squadrons (one class each is
+                # the owner's preference): mixed when a list's squadron limit needs it
+                self.mix_escorts = was_mixed or name == "mix escort classes"
                 self._add_commander(trial, log=False)
                 self._squadrons(trial)
                 sc, e = score(trial)
                 if best is None or sc < best[0]:
                     best = (sc, trial, e, name)
+            self.mix_escorts = was_mixed or (best is not None and best[3] == "mix escort classes"
+                                             and best[0][:2] < cur[:2])
             if best is None or best[0][:2] >= cur[:2]:
                 break                     # nothing helps: start again
             rows[:] = best[1]
@@ -428,6 +450,9 @@ class ListBuilder:
         """(description, trial fleet) for every repair move."""
         def copy(rs):
             return [dict(r, upgrades=list(r["upgrades"])) for r in rs]
+
+        if not getattr(self, "mix_escorts", False):
+            yield "mix escort classes", copy(rows)
 
         def fits(trial, t, k=1):
             return self._total(trial) + k * self._row_quiet(*t)["points"] <= self.points
@@ -471,6 +496,7 @@ class ListBuilder:
         when it keeps every rule)."""
         best = None
         for attempt in range(ATTEMPTS):
+            self.mix_escorts = False
             self.choices.append({"what": "attempt", "n": attempt + 1})
             rows: List[dict] = []
             self.personality = self._pick_personality()

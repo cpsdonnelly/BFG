@@ -49,3 +49,22 @@ def test_ship_sizes():
     assert ship_size(find_ship_class("Emperor Battleship")) == "battleship"
     assert ship_size(find_ship_class("Mars Battlecruiser")) == "heavy_cruiser"
     assert ship_size(find_ship_class("Dauntless Light Cruiser")) == "light_cruiser"
+
+
+def test_escort_squadron_sizes_follow_the_list():
+    from src.fleet_lists import escort_squadron_errors, escort_squadron_limits
+    from src.ship_catalog import find_ship_class
+    assert escort_squadron_limits("tyranid_vanguard")["min"] == 6
+    assert escort_squadron_limits("tyranid_hive")["max"] == 12
+    assert escort_squadron_limits("navy_gothic") == {"min": 2, "max": 6, "two_hit_max": 4,
+                                                     "kraken_weight": 1, "kraken_max": None,
+                                                     "mix": False}
+    kraken = {"entry": find_ship_class("Kraken")}
+    drone = {"entry": find_ship_class("Vanguard Drone")}
+    # Kraken count two: 3 Kraken + 1 drone is 7, fine in the Vanguard's 6-12
+    assert escort_squadron_errors("tyranid_vanguard", [kraken] * 3 + [drone], "a") == []
+    assert escort_squadron_errors("tyranid_vanguard", [drone] * 5, "a") != []      # 5 < 6
+    assert any("Kraken" in e for e in
+               escort_squadron_errors("tyranid_hive", [kraken] * 5, "a"))        # 4 at most
+    cobra = {"entry": find_ship_class("Cobra Destroyer")}
+    assert escort_squadron_errors("navy_gothic", [cobra] * 7, "a") != []         # 2-6

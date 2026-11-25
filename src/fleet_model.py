@@ -119,10 +119,10 @@ def validate_fleet(rows: List[dict], list_key: str = "", detachment: str = "",
         ship_type = next(iter(types))
         count = len(members)
         if ship_type == "escort":
-            if count < 2 or count > 6:
-                errors.append(
-                    f"Squadron '{sid}': escort squadrons need 2–6 ships "
-                    f"(has {count}).")
+            # the list's sizes (Tyranids 1-12 / 6-12, Kraken count two; four 2-hit
+            # escorts at most elsewhere), fleet_lists.escort_squadron_limits
+            from .fleet_lists import escort_squadron_errors
+            errors += escort_squadron_errors(list_key, members, sid)
         elif ship_type == "cruiser":
             if count < 2 or count > 4:
                 errors.append(
