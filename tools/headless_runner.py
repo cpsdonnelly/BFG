@@ -5,8 +5,8 @@ drawing) in its own process; one virtual display serves them all, so run it
 under xvfb-run:
 
     xvfb-run -a /usr/bin/python3.12 tools/headless_runner.py \
-        --fleet1 data/fleets/imperial_navy_demo.json \
-        --fleet2 data/fleets/tau_kororvesh_demo.json \
+        --fleet1 data/fleets/owner_gothic_1000.json \
+        --fleet2 data/fleets/owner_tau_merchant_1000.json \
         --games 8 --procs 4 --difficulty normal --turns 12 [--system aa]
 
 Prints one line per game (winner, VP, turns, seconds) and a summary: win
@@ -154,8 +154,8 @@ def _play_in_window(tc, over, errors, timeout, start):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--fleet1", default="data/fleets/imperial_navy_demo.json")
-    ap.add_argument("--fleet2", default="data/fleets/tau_kororvesh_demo.json")
+    ap.add_argument("--fleet1", default="data/fleets/owner_gothic_1000.json")
+    ap.add_argument("--fleet2", default="data/fleets/owner_tau_merchant_1000.json")
     ap.add_argument("--games", type=int, default=4)
     ap.add_argument("--procs", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--difficulty", default="normal", help="Player 2's AI (and Player 1's)")

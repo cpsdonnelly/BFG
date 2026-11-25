@@ -2675,7 +2675,7 @@ Done: To do 2, 3, 6; most of 7.
    `GamePanel._pace`: no pacing pauses; the board isn't drawn), and reports each game
    (winner, VP, turns, seconds, a hash of the final state; `BFG_DUMP_STATE=<prefix>` writes
    the state), win rates, the mean VP margin and games per hour.
-   - Measured: ~655 games an hour on 4 cores (the demo fleets, 12 player turns, ~20s a
+   - Measured: ~655 games an hour on 4 cores (the old demo fleets, 12 player turns, ~20s a
      game; ~400 before the snapshot).
    - Repeatable: with `PYTHONHASHSEED=0` and the normal AI, a seed gives the same game down
      to the final state hash (wave and torpedo ids now come from `GameState.next_serial`,
@@ -3172,7 +3172,11 @@ Done: To do 2, 3, 6; most of 7.
    Dark Eldar and Tyranids (To do 19; the Tyranid configurations Scylla / Guardian /
    Carnivore / Prowler are built from the Bio-Cruiser and Vanguard Drone profiles).
    Points totals to verify against the booklet when each is built.
-26. Demo rework (owner): remove the current demo fleets; the demo start generates random
+26. Demo rework (owner): remove the current demo fleets (done: the 800pt
+   `imperial_navy_demo` / `tau_kororvesh_demo` files are gone; the setup wizard's default is
+   the 1000pt Gothic Sector fleet against the Tau Merchant fleet, `main._default`, and the
+   headless runner and spectator GUI checks use them too, deployed by `auto_place`; README
+   updated); the demo start generates random
    terrain for a Cruiser Clash, lets the player pick a fleet to play as and one to play
    against (the To do 25 fleets, or random ones from To do 24), and the mode: Player vs AI
    (default), Player vs Player, AI vs AI. GUI checks and the headless runner move to the new

@@ -114,6 +114,8 @@ class DeploymentPanel:
             self._hidden.append((info, info.pack_info()))
             info.pack_forget()
         for w in self.parent.pack_slaves():
+            if any(w is h for h, _i in self._hidden):
+                continue                # the info box itself (panel opened on its frame)
             self._hidden.append((w, w.pack_info()))
             w.pack_forget()
         self.frame = tk.Frame(self.parent, bg="#1a1a2e")
@@ -551,7 +553,8 @@ class DeploymentPanel:
         self.frame.destroy()
         for w, info in self._hidden:        # the game's side panel back, in order
             info.pop("in", None)
-            if w is getattr(self.board, "info_text", None):
+            if (w is getattr(self.board, "info_text", None)
+                    and w.master is self.parent.master):
                 w.pack(before=self.parent, **info)
             else:
                 w.pack(**info)

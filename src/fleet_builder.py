@@ -523,29 +523,9 @@ def _lists():
     return LISTS
 
 
-def _make_fleet_row(entry: ShipClassEntry, custom_name: str = "",
-                    upgrades: Optional[List[str]] = None,
-                    is_flagship: bool = False,
-                    squadron_id: str = "",
-                    damage: Optional[dict] = None,
-                    list_key: str = "", base_cost: Optional[int] = None) -> dict:
-    """A fleet row. list_key: the fleet list the ship was taken from (the main
-    list, a detachment, or "reserve:<key>"); base_cost: its cost in that list."""
-    upgrade_map = {u.name: u for u in get_upgrades_for_ship(entry)}
-    upgrade_cost = sum(upgrade_map[u].points_cost
-                       for u in (upgrades or []) if u in upgrade_map)
-    base = entry.points_cost if base_cost is None else base_cost
-    return {
-        "list":        list_key,
-        "base_cost":   base,
-        "entry":       entry,
-        "custom_name": custom_name or entry.ship_class,
-        "upgrades":    list(upgrades or []),
-        "is_flagship": is_flagship,
-        "squadron_id": squadron_id,
-        "points":      base + upgrade_cost,
-        "damage":      damage or {},
-    }
+# The fleet's rows, totals, checks and saved contents live in fleet_model
+# (no window needed; the AI list builder uses them too)
+from .fleet_model import make_fleet_row as _make_fleet_row  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -854,36 +834,10 @@ class FleetBuilderWindow:
         self._catalog_info.config(text="")
 
     def _list_catalog(self) -> List[tuple]:
-        from .fleet_lists import LISTS
-        from .ship_catalog import find_ship_class
-        out: List[tuple] = []
-        main = LISTS[self._list_key]
-
-        def add_list(fl, key, label_prefix=""):
-            for sec in fl["sections"]:
-                rows = [(find_ship_class(c), key, cost, sec["name"][:3].upper())
-                        for c, cost in sec["ships"].items()]
-                rows = [r for r in rows if r[0] is not None]
-                if rows:
-                    out.append((None, "", 0, f"{label_prefix}{sec['name']}"))
-                    out.extend(rows)
-
-        add_list(main, self._list_key)
-        if self._detachment_key:
-            det = LISTS[self._detachment_key]
-            add_list(det, self._detachment_key, f"{det['name'].split(' (')[0]}: ")
-        for rkey in main.get("reserves", []):
-            if rkey not in LISTS or rkey == self._list_key:
-                continue
-            fl = LISTS[rkey]
-            out.append((None, "", 0, f"Reserves: {fl['name'].split(' (')[0]}"))
-            from .fleet_lists import reserve_allowed
-            for sec in fl["sections"]:
-                for c, cost in sec["ships"].items():
-                    e = find_ship_class(c)
-                    if e is not None and reserve_allowed(self._list_key, rkey, c):
-                        out.append((e, f"reserve:{rkey}", cost, "RES"))
-        return out
+        from .fleet_model import list_catalog
+        return [(e, key, cost, "RES" if key.startswith("reserve:") else
+                 (name if e is None else name.split(": ")[-1][:3].upper()))
+                for e, key, cost, name in list_catalog(self._list_key, self._detachment_key)]
 
     def _show_catalog_entry(self):
         sel = self._catalog_list.curselection()
@@ -1009,19 +963,9 @@ class FleetBuilderWindow:
         self._refresh_totals()
 
     def _fleet_total(self) -> int:
-        """Ship points plus fleet-wide adjustments (a Chapter tactic removes the
-        Tactical Flexibility discount on Strike Cruiser Variants)."""
-        from .booklet_options import tactical_flexibility_refund
-        from .fleet_lists import no_tactical_flexibility
-        # Armageddon: its Space Marine ships never had the discount
-        no_tf = sum(tactical_flexibility_refund([r.get("upgrades", []) + ["Chapter tactic:"]],
-                                                [r["entry"]])
-                    for r in self._fleet if no_tactical_flexibility(r.get("list") or ""))
-        from .fleet_lists import notable_xenos_cost
-        return (sum(r["points"] for r in self._fleet) + no_tf
-                + notable_xenos_cost(self._fleet)
-                + tactical_flexibility_refund([r.get("upgrades", []) for r in self._fleet],
-                                              [r["entry"] for r in self._fleet]))
+        """Ship points plus fleet-wide adjustments (fleet_model.fleet_total)."""
+        from .fleet_model import fleet_total
+        return fleet_total(self._fleet)
 
     def _refresh_totals(self):
         total = self._fleet_total()
@@ -1064,80 +1008,13 @@ class FleetBuilderWindow:
     # ── Validation ────────────────────────────────────────────────────────────
 
     def _validate_fleet(self) -> tuple:
-        errors: List[str] = []
-        if not self._fleet:
-            errors.append("Fleet is empty.")
-            return False, errors
-
-        total = self._fleet_total()
+        from .fleet_model import validate_fleet
         try:
             limit = int(self._pts_limit_var.get())
         except ValueError:
-            limit = 0
-            errors.append("Invalid points limit.")
-
-        if total > limit:
-            errors.append(f"Fleet exceeds points limit: {total} > {limit} pts.")
-
-        # A Master of the Fleet's ship is the flagship
-        from .booklet_options import commander_names, COMMANDERS, INQ_LORD
-        unique_cmds = {"Master of the Fleet (Ld 10)", INQ_LORD} | {
-            n for f in COMMANDERS for n in commander_names(f)}
-        flagship_count = sum(1 for r in self._fleet if r["is_flagship"]
-                             or unique_cmds & set(r.get("upgrades", [])))
-        if flagship_count > 1:
-            errors.append("Fleet has more than one flagship.")
-
-        from .booklet_options import ship_option_errors, fleet_option_errors
-        for r in self._fleet:
-            for p in ship_option_errors(r["entry"], r.get("upgrades", [])):
-                errors.append(f"{r.get('name', r['entry'].ship_class)}: {p}")
-        errors += fleet_option_errors(
-            [(r["entry"], r.get("upgrades", [])) for r in self._fleet], total)
-
-        # Fleet list limits (s.4): points-based limits use what the fleet is
-        # worth (owner ruling); towed escorts need gravitic hooks in any fleet
-        from .fleet_lists import fleet_list_errors, towed_errors
-        errors += fleet_list_errors(
-            self._list_key, [{**r, "list": r.get("list") or self._list_key}
-                             for r in self._fleet],
-            total, [self._detachment_key] if self._detachment_key else [])
-        errors += towed_errors(self._fleet)
-
-        # Check squadrons by ship type
-        squadrons: Dict[str, List[dict]] = {}
-        for r in self._fleet:
-            sid = r.get("squadron_id", "")
-            if sid:
-                squadrons.setdefault(sid, []).append(r)
-        for sid, members in squadrons.items():
-            types = {m["entry"].ship_type for m in members}
-            if len(types) > 1:
-                errors.append(
-                    f"Squadron '{sid}': cannot mix ship types "
-                    f"({', '.join(sorted(types))}).")
-                continue
-            ship_type = next(iter(types))
-            count = len(members)
-            if ship_type == "escort":
-                if count < 2 or count > 6:
-                    errors.append(
-                        f"Squadron '{sid}': escort squadrons need 2–6 ships "
-                        f"(has {count}).")
-            elif ship_type == "cruiser":
-                if count < 2 or count > 4:
-                    errors.append(
-                        f"Squadron '{sid}': cruiser squadrons need 2–4 ships "
-                        f"(has {count}).")
-            elif ship_type == "battleship":
-                if count < 2 or count > 3:
-                    errors.append(
-                        f"Squadron '{sid}': battleship squadrons need 2–3 ships "
-                        f"(has {count}).")
-            elif ship_type == "defense":
-                errors.append(
-                    f"Squadron '{sid}': defence platforms cannot form squadrons.")
-
+            limit = None
+        errors = validate_fleet(self._fleet, self._list_key or "", self._detachment_key or "",
+                                limit)
         return len(errors) == 0, errors
 
     def _validate_and_report(self):
@@ -1171,72 +1048,10 @@ class FleetBuilderWindow:
         except ValueError:
             limit = 0
 
-        data = {
-            "fleet_name":   self._fleet_name_var.get().strip() or "My Fleet",
-            "faction":      self._faction or "",
-            "description":  "",
-            "points_limit": limit,
-            "total_points": self._fleet_total(),
-            "fleet_list":   self._list_key,
-            "detachments":  [self._detachment_key] if self._detachment_key else [],
-            "ships": [],
-        }
-
-        from .fleet_lists import notable_xenos_first, NOTABLE_XENOS_SQUADRON
-        notable_first = notable_xenos_first(self._fleet)
-        # A Chapter tactic anywhere in the fleet ends Tactical Flexibility: each
-        # Strike Cruiser Variant then costs its full price, on its own ship's
-        # value too (victory points score that), not only in the fleet total
-        tactic = any(u.startswith("Chapter tactic:") for r in self._fleet
-                     for u in r.get("upgrades", []))
-        for row_i, row in enumerate(self._fleet):
-            entry = row["entry"]
-            ship_dict = entry.to_ship_dict(
-                name=row["custom_name"],
-                player=1,
-                upgrades=row["upgrades"],
-                is_flagship=row["is_flagship"],
-            )
-            # Strip runtime-only keys; keep only fleet-storable fields
-            storable = {k: v for k, v in ship_dict.items()
-                        if k not in ("id", "player", "x", "y", "heading")}
-            storable["squadron_id"] = row.get("squadron_id", "")
-            # The ship's cost in its fleet list (Bakka's premium, for example)
-            storable["points_value"] += row.get("base_cost", entry.points_cost) - entry.points_cost
-            if row_i in notable_first:              # the Notable Xenos squadron's +30
-                storable["points_value"] += NOTABLE_XENOS_SQUADRON
-            from .fleet_lists import no_tactical_flexibility as _no_tf
-            if tactic and not _no_tf(row.get("list") or ""):
-                from .booklet_options import tactical_flexibility_refund
-                storable["points_value"] += tactical_flexibility_refund(
-                    [row["upgrades"] + ["Chapter tactic:"]], [entry])
-            if row.get("list"):
-                storable["fleet_list"] = row["list"]
-                from .fleet_lists import list_stat_changes, no_tactical_flexibility
-                if no_tactical_flexibility(row["list"]):
-                    from .booklet_options import tactical_flexibility_refund
-                    storable["points_value"] += tactical_flexibility_refund(
-                        [row["upgrades"] + ["Chapter tactic:"]], [entry])
-                for stat, delta in list_stat_changes(row["list"], entry.ship_class).items():
-                    if stat == "special_rules":       # Renegade cruisers: -1 rolled Ld
-                        storable["special_rules"] = list(storable["special_rules"]) + delta
-                    else:
-                        storable[stat] = storable.get(stat, 0) + delta   # Bakka +1 Turret
-            if (row.get("list") or "").startswith("reserve:") and \
-                    (_lists().get(self._list_key) or {}).get("looted_reserves"):
-                from .orks import loot          # Ork fleets: reserves are looted vessels
-                storable = loot(storable)
-            # Write non-default damage state for campaign/scenario use
-            dmg = row.get("damage", {})
-            if "hits_remaining" in dmg:
-                storable["hits_remaining"] = dmg["hits_remaining"]
-            if dmg.get("ordnance_loaded_torps") is False:
-                storable["ordnance_loaded_torps"] = False
-            if dmg.get("ordnance_loaded_craft") is False:
-                storable["ordnance_loaded_craft"] = False
-            if dmg.get("critical_damage"):
-                storable["critical_damage"] = dmg["critical_damage"]
-            data["ships"].append(storable)
+        from .fleet_model import fleet_data
+        data = fleet_data(self._fleet, self._faction or "", self._list_key or "",
+                          self._detachment_key or "",
+                          self._fleet_name_var.get().strip() or "My Fleet", limit)
 
         os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:

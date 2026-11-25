@@ -96,7 +96,7 @@ def main():
             player2_faction=p2_info["faction"],
             player1_color="red",
             player2_color="blue",
-            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 800,
+            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 1000,
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=setup.get("sunward", "north"),
         )
@@ -180,7 +180,7 @@ def main():
             player2_faction=p2_info["faction"],
             player1_color="red",
             player2_color="blue",
-            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 800,
+            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 1000,
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=map_settings["sunward_edge"],
         )
@@ -314,10 +314,13 @@ def _show_setup_dialog(root) -> Optional[dict]:
     available_fleets = get_available_fleets("data/fleets")
     fleet_labels = {p: get_fleet_info(p)["fleet_name"] for p in available_fleets}
 
-    _imp_default = next((p for p in available_fleets if "imperial" in os.path.basename(p).lower()),
-                        available_fleets[0] if available_fleets else "")
-    _tau_default = next((p for p in available_fleets if "tau" in os.path.basename(p).lower()),
-                        available_fleets[-1] if available_fleets else "")
+    # The demo: the owner's 1000pt Gothic Sector fleet against his Tau Merchant
+    # fleet (the old 800pt demo fleets are gone)
+    def _default(name, fallback):
+        return next((p for p in available_fleets if os.path.basename(p) == name), fallback)
+    _imp_default = _default("owner_gothic_1000.json", available_fleets[0] if available_fleets else "")
+    _tau_default = _default("owner_tau_merchant_1000.json",
+                            available_fleets[-1] if available_fleets else "")
 
     p1_fleet_var = tk.StringVar(value=_imp_default)
     p2_fleet_var = tk.StringVar(value=_tau_default)
