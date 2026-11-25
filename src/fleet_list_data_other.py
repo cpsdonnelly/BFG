@@ -12,7 +12,8 @@ from typing import Dict, List
 # ── Chaos (07_chaos.md) ──────────────────────────────────────────────────────
 
 _CHAOS_UNENFORCED = [
-    "The fleet commander rides the most expensive capital ship: not checked.",
+    "The fleet commander rides the most expensive capital ship: checked "
+    "(fleet_lists.commander_placement_errors).",
     "Ratios (owner ruling, export 15): battleships and grand cruisers one per three "
     "cruisers and/or heavy cruisers, heavy cruisers one per two cruisers; light cruisers are "
     "their own 0-6 section and don't count.",
@@ -423,7 +424,7 @@ RT_LISTS = [
      "list_options": ["Pirate Captain"],
      "unenforced": [
          "Fleet commanders: one Pirate Captain is built (required over 750pts); 0-3 "
-         "(one per 500pts) and the most expensive capital ship placement aren't checked. "
+         "(one per 500pts) isn't checked (the placement is). "
          "A Problem with Authority: -1Ld while re-rolling.",
          _RT_MOW + " They count as Infamous Pirate Ships (grand galleon, ship of the line) "
          "or Pirate Cruisers (brig, galleon).",

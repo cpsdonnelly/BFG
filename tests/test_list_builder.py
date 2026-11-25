@@ -68,3 +68,17 @@ def test_escort_squadron_sizes_follow_the_list():
                escort_squadron_errors("tyranid_hive", [kraken] * 5, "a"))        # 4 at most
     cobra = {"entry": find_ship_class("Cobra Destroyer")}
     assert escort_squadron_errors("navy_gothic", [cobra] * 7, "a") != []         # 2-6
+
+
+def test_commander_placement_follows_the_list():
+    from src.fleet_lists import commander_placement_errors
+    from src.fleet_model import make_fleet_row
+    from src.ship_catalog import find_ship_class
+    styx = make_fleet_row(find_ship_class("Styx Heavy Cruiser"), list_key="chaos_incursion")
+    murder = make_fleet_row(find_ship_class("Murder Cruiser"), list_key="chaos_incursion",
+                            upgrades=["Chaos Lord (Ld 8)"])
+    assert commander_placement_errors("chaos_incursion", [styx, murder])    # not the dearest
+    murder["upgrades"], styx["upgrades"] = [], ["Chaos Lord (Ld 8)"]
+    assert commander_placement_errors("chaos_incursion", [styx, murder]) == []
+    d = build_random_fleet("admech_explorator", 1500, "battleship", seed=2)
+    assert d["problems"] == []

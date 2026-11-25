@@ -341,9 +341,15 @@ class ListBuilder:
         spare = self.points - self._total(rows)
         caps = sorted([r for r in rows if r["entry"].ship_type != "escort"],
                       key=lambda r: -r["points"])
-        for r in caps:               # the dearest capital ship that can take one
+        from .fleet_lists import commander_placement_errors
+
+        def placed_ok(r, name):
+            trial = [dict(x, upgrades=list(x["upgrades"]) + ([name] if x is r else []))
+                     for x in rows]
+            return not commander_placement_errors(self.list_key, trial)
+        for r in caps:               # the dearest capital ship the list allows (To do 29)
             opts = [u for u in self._options(r["entry"]) if u.name in names
-                    and u.points_cost <= spare]
+                    and u.points_cost <= spare and placed_ok(r, u.name)]
             if opts:
                 if log:
                     u = self._choose("fleet commander", opts, label=lambda u: u.name)

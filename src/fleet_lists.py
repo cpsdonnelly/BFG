@@ -637,6 +637,8 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
         mine = by_list.get(fl["key"], [])
         errors += _list_errors(fl, mine, points_limit, rows)
 
+    errors += commander_placement_errors(main_key, rows)          # To do 29
+
     # Mine launcher swap on a light cruiser: only where its list places it in
     # the Cruisers category (update 58, sign-off answer 49)
     for r in rows:
@@ -845,6 +847,70 @@ def _sm_barge_errors(rows: List[Dict], fleet_points: int) -> List[str]:
     if flag and fleet_points < 1000:
         errors.append("The Chapter Flagship needs a fleet worth at least 1000pts.")
     return errors
+
+
+# Where the fleet commander may go (To do 29, placement check; the booklet's
+# wording): Chaos "on the most expensive capital ship" (07_chaos.md; Abaddon
+# rides the Planet Killer if present); Mechanicus "must ride the Ark
+# Mechanicus if it is present"; Banisher "assigned to a battleship or battle
+# barge if one is present"; Necron Harvest "automatically assigned to the
+# largest capital ship" (reading: the most starting hits); Wolf-Pack "the most
+# expensive capital ship(s) available (excluding xenos ships)". "Most
+# expensive" reads the ship's own cost in its list, its options left out
+# (reading). The Space Marine battle barge rule is _sm_barge_errors.
+_PLACEMENT = {"chaos": "dearest", "admech_explorator": "ark", "inq_banisher": "battleship",
+              "necron_harvest": "largest", "rt_wolf_pack": "dearest_non_xenos"}
+
+
+def commander_placement_errors(main_key: Optional[str], rows: List[Dict]) -> List[str]:
+    fl = LISTS.get(main_key or "")
+    if not fl:
+        return []
+    rule = _PLACEMENT.get(main_key) or (_PLACEMENT.get("chaos") if fl.get("faction") == "chaos"
+                                        else None)
+    if rule is None:
+        return []
+    from .booklet_options import NAMED_COMMANDERS
+    names = set((fl.get("commander") or {}).get("options", []))
+    named = {n for v in NAMED_COMMANDERS.values() for n, *_r in v}
+    cmd = [r for r in rows if (names | named) & set(r.get("upgrades", []))]
+    if not cmd:
+        return []
+    r = cmd[0]
+    caps = [x for x in rows if x["entry"].ship_type in ("cruiser", "battleship")]
+    who = next(iter((names | named) & set(r["upgrades"])))
+    where = r["entry"].ship_class
+
+    def cost(x):
+        return x.get("base_cost", x["entry"].points_cost)
+    if "Abaddon" in who:
+        pk = [x for x in caps if x["entry"].ship_class.startswith("Planet Killer")]
+        if pk and r not in pk:
+            return [f"{who} must ride the Planet Killer ({where} chosen)."]
+        if pk:
+            return []
+    if rule in ("dearest", "dearest_non_xenos"):
+        pool = caps
+        if rule == "dearest_non_xenos":
+            pool = [x for x in caps if "xenos" not in x["entry"].ship_class.lower()
+                    and x["entry"].faction not in ("eldar", "dark_eldar", "orks", "tau_kororvesh")]
+        if pool and cost(r) < max(cost(x) for x in pool):
+            top = max(pool, key=cost)["entry"].ship_class
+            return [f"{who} must ride the most expensive capital ship ({top}), not the {where}."]
+    elif rule == "ark":
+        ark = [x for x in caps if x["entry"].ship_class.startswith("Ark Mechanicus")]
+        if ark and r not in ark:
+            return [f"{who} must ride the Ark Mechanicus ({where} chosen)."]
+    elif rule == "battleship":
+        big = [x for x in rows if x["entry"].ship_type == "battleship"
+               or "battle barge" in x["entry"].ship_class.lower()]
+        if big and r not in big:
+            return [f"{who} must be on a battleship or battle barge ({where} chosen)."]
+    elif rule == "largest":
+        if caps and r["entry"].hits_max < max(x["entry"].hits_max for x in caps):
+            top = max(caps, key=lambda x: x["entry"].hits_max)["entry"].ship_class
+            return [f"{who} is assigned to the largest capital ship ({top}), not the {where}."]
+    return []
 
 
 def escort_squadron_limits(list_key: Optional[str]) -> Dict:

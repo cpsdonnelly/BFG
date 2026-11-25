@@ -3328,6 +3328,18 @@ Done: To do 2, 3, 6; most of 7.
    the Lord on the Cairn, whose guaranteed high Ld helps it awaken). Today the commander is
    an option bought on one ship in the fleet builder: this needs the purchase kept with
    the fleet and the ship chosen at deployment (owner to confirm the wording).
+   Built, the placement check (`fleet_lists.commander_placement_errors`, in
+   `fleet_list_errors`, so the fleet builder's live check and the list builder see it):
+   Chaos lists on the most expensive capital ship (Abaddon the Planet Killer if present),
+   Mechanicus the Ark Mechanicus if present, the Banisher's Master Daemonhunter a battleship
+   or battle barge if present, the Necron Harvest Monument the largest capital ship (reading:
+   most starting hits), the Wolf-Pack's Pirate Captain the most expensive non-xenos capital
+   ship; "most expensive" reads the ship's own list cost without its options (reading); the
+   Space Marine battle barge rule was already checked (`_sm_barge_errors`). The list builder
+   puts its commander on the dearest capital ship the rule allows. Not yet: moving the
+   commander at deployment after the Ld roll (waits for the owner's wording), the Rogue
+   Trader detachment's man o' war (men o' war aren't built), secondary commanders'
+   placements.
 30. Exact hit distributions for the AI's threat and VP values (owner question: lookup tables
    or random sampling?). Answer (Claude): neither as such; exact distributions, computed once
    per parameter set and cached (memoised), which is a lookup table built on demand. Gunnery:
