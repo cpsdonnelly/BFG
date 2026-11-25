@@ -384,37 +384,18 @@ class ListBuilder:
                 self.choices[-1]["kept"] = False
 
     def _squadrons(self, rows):
-        """Escorts squadroned within the list's sizes (fleet_lists.
-        escort_squadron_limits): one class to a squadron (owner), or any mix
-        where the list allows it (Tyranids); each class's escorts split as
-        evenly as possible into as few squadrons as its maximum, its four
-        2-hit escorts and its Kraken limit allow."""
-        from .fleet_lists import escort_squadron_limits
-        lim = escort_squadron_limits(self.list_key)
-        mix = lim["mix"] or getattr(self, "mix_escorts", False)
-        by: Dict[str, list] = {}
-        for r in rows:
-            r["squadron_id"] = ""
-            if r["entry"].ship_type == "escort":
-                key = "all" if mix else r["entry"].ship_class
-                by.setdefault(key, []).append(r)
-        n = 0
-        for _key, members in by.items():
-            weight = sum(lim["kraken_weight"] if m["entry"].ship_class == "Kraken" else 1
-                         for m in members)
-            if weight < max(2, lim["min"]) and lim["min"] > 1:
-                continue                  # too few to squadron (the checks say so)
-            two = sum(1 for m in members if m["entry"].hits_max >= 2)
-            kraken = sum(1 for m in members if m["entry"].ship_class == "Kraken")
-            k = max(1, -(-weight // lim["max"]))
-            if lim["two_hit_max"]:
-                k = max(k, -(-two // lim["two_hit_max"]))
-            if lim["kraken_max"]:
-                k = max(k, -(-kraken // lim["kraken_max"]))
-            k = min(k, max(1, weight // max(1, lim["min"])))
-            for i, r in enumerate(members):
-                r["squadron_id"] = f"sq{n + i % k + 1}"
-            n += k
+        """Escorts squadroned within the list's rules (`squadrons.
+        organize_escorts`: one class and set-up to a squadron, owner, 2D3
+        a squadron, Tyranid weapons matching; mixed where the list allows it
+        or a repair needs it). The sizes come from one draw per build, so
+        every trial in the repair is squadroned alike."""
+        from .squadrons import organize_escorts
+        if not hasattr(self, "_sq_seed"):
+            self._sq_seed = self.rng.randrange(1 << 30)
+            self.choices.append({"what": "escort squadron sizes (2D3, seed)",
+                                 "result": self._sq_seed})
+        organize_escorts(rows, self.list_key, random.Random(self._sq_seed),
+                         mix=getattr(self, "mix_escorts", False))
 
     def _repair(self, rows) -> List[str]:
         """Local search on the fleet's problems. Each step tries every move of

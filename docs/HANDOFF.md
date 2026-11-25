@@ -16,8 +16,12 @@ Latest owner UI reports (fixed; details in CLAUDE.md "Session status"): the map 
 blank strip and off-screen Done button; spectator "auto-roll every pop-up" (on by default;
 the fleets also deploy themselves); deployment in any order with undo / take back / start
 over and a full-height panel; the on-screen log reports every hit, damage, crit, crippling,
-destruction, hulk and disengage (`GameState.report`). Not yet: the AI deploying its own
-ships in player-vs-AI games (To do 28).
+destruction, hulk and disengage (`GameState.report`). Since (owner): the AI deploys its own
+ships (To do 28), buff ships (synapse, tracking systems, Fleet Defence Turrets) deploy with a
+group each and move to cover friends (`src/buffs.py`); squadron rules in one place
+(`src/squadrons.py`) with organisers for the AI and players (fleet builder: squadron
+selected / leave / auto escort squadrons; deployment: capital squadrons before placing, any
+ship of a squadron next). Details in CLAUDE.md To do 28.
 
 Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Every core rules section the engine plays, all optional rules (boarding, ramming, teleports,

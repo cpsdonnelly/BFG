@@ -53,7 +53,8 @@ fb = FB.FleetBuilderWindow(root)
 fb.win.update()
 print("fleet builder", fb.win.winfo_width(), "x", fb.win.winfo_height())
 visible(fb.win, ["Load Fleet", "Save Fleet", "Validate", "Add to Fleet ▶",
-                 "Add with options... ▶", "Options / Edit...", "Flagship", "Remove"])
+                 "Add with options... ▶", "Options / Edit...", "Flagship", "Remove",
+                 "Squadron selected", "Leave squadron", "Auto escort squadrons"])
 
 for name in ("Lunar Class Cruiser", "Tyrant Class Cruiser"):
     def check_edit(name=name):

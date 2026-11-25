@@ -3281,10 +3281,45 @@ Done: To do 2, 3, 6; most of 7.
    game's generator (`rng.game_random(gs, "deploy")`, so games replay) and logged to the
    on-screen log (To do 31), squeezed to keep every pair within 15cm; the rest nearest the
    zone's centre clear of placed ships, facing the enemy or as the scenario requires
-   (scenario positions first, `scenarios.auto_positions`). Not yet: forming squadrons
-   (2D3 escorts of one class / one ordnance, the list's sizes; they come from the fleet file
-   today), capital squadrons, deployment by strategy (where in the zone suits the matchup),
-   the alternating deployment orders, the players' formation setter.
+   (scenario positions first, `scenarios.auto_positions`). Second slice built (owner):
+   buff ships (`src/buffs.py`: kinds synapse / tracking / fdt, reach, `BUFF_SHARE` 0.05 /
+   0.02 / 0.02 of a covered friend's points a turn, judgement; a friend counts once, not if
+   another helper of that kind already covers it or it has that help itself) are placed where
+   their help is worth most; with two or more the fleet deploys in small groups, one round
+   each (`ai_deployment.plan_clusters`: cluster points along the zone, the other units
+   dearest first to the lightest cluster whose helper they can use, logged); in play they
+   move to cover friends (`AIPlayer._buff_term` in the move score, VP against every other
+   term, so an asteroid field or exposure that costs more isn't taken) and move after the
+   friends they help (`_coordinated_order`). Squadrons (`src/squadrons.py`, core s.8 and
+   XR p.58): one rules check for the fleet builder, the list builder and every organiser
+   (`squadron_errors` / `fleet_squadron_errors`, now in `fleet_model.validate_fleet`: cruisers
+   of any kind 2-4, battleships 2-3, grand cruisers 2-3 (reading: not with other cruisers),
+   escorts by the list's sizes, no lone escort when the fleet has two or more unless allowed
+   alone (transports, support assets, Messengers, the Sword of Eldanesh), never defences /
+   Tyranid synapse capital ships / daemonships / support assets over 10 hits, no factions
+   mixed, xenos cutters only together, Dhows never with Tau escorts, Tyranid Kraken / Vanguard
+   / escort drones one weapon a squadron, support assets six 1-hit or four, own category).
+   `organize_escorts` (fleet building, escorts are chosen with the fleet: one class and set-up
+   a squadron, 2D3 a squadron, a lone escort joining a squadron of the same ordnance, which
+   splits in half if too big, else pairing; Tyranid lists split evenly), used by the list
+   builder (one seed a build, logged) and the fleet builder's "Auto escort squadrons";
+   players also get "Squadron selected" / "Leave squadron" (multi-select). Capital squadrons
+   are formed at the start of the game, before deployment (s.8): the AI's by
+   `ai_form_squadrons` (from `DeploymentPanel` and the headless runner: escort squadrons
+   re-formed only if they break the rules, legal capital squadrons kept, the rest by
+   `form_capital_squadrons`: one size class, faction, speed and role (carrier / torpedoes /
+   guns by range bracket), at most `CAPITAL_SQUADRON_MAX` 3, each group taken with
+   `CAPITAL_SQUADRON_CHANCE` 0.5, judgement, a logged draw from `game_random(gs,
+   "squadrons")`; never the flagship or a buff ship); players by "Capital squadrons..." in
+   the deployment panel (select and Squadron / Break up, rules checked, "Auto" = the AI's
+   way), only before any ship is placed (`DeploymentState.can_regroup` / `regroup`). Any
+   order (owner): any group from the list (`select_group` now moves it up, the list keeps its
+   order) and any ship of the squadron being placed next ("Next ship in squadron",
+   `select_member`) (`tests/test_squadrons.py`, `tests/test_ai_buff_moves.py`,
+   `tools/gui_checks/deploy_squadrons_check.py`). Not yet: the AI valuing a capital squadron
+   by expected VP (its combined fire and one check against flexibility; today the chance
+   above), Ld for escort squadrons re-formed after the Ld roll (only invalid ones are),
+   deployment by strategy, the alternating deployment orders, the players' formation setter.
    Squadron sizes (core s.4: escort squadrons are chosen with the fleet list, before the Ld
    roll, so forming them is fleet building's job): `fleet_lists.escort_squadron_limits` /
    `escort_squadron_errors` (2-6 and at most four 2-hit escorts; Tyranid Hive / Gestating

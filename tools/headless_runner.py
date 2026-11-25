@@ -85,6 +85,9 @@ def play(args) -> dict:
         # fleets as the AI does in the window (ai_deployment, To do 28)
         from src.deployment import deployment_state
         from src.ai_deployment import ai_deploy_all
+        from src.squadrons import ai_form_squadrons
+        for p in (1, 2):                    # before deployment (s.8)
+            ai_form_squadrons(gs, p)
         problems = ai_deploy_all(gs, deployment_state(gs))
         if problems:
             errors.extend(problems)

@@ -7,7 +7,7 @@ the fleet list it was taken from and its cost there. `fleet_total` prices it,
 list's rules, squadrons) and `fleet_data` turns it into the saved fleet file's
 contents (what `fleet_loader` reads). The fleet builder window keeps its rows
 in the same form and calls these."""
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from .ship_catalog import ShipClassEntry, get_upgrades_for_ship
 
@@ -103,39 +103,9 @@ def validate_fleet(rows: List[dict], list_key: str = "", detachment: str = "",
         total, [detachment] if detachment else [])
     errors += towed_errors(rows)
 
-    # Squadrons by ship type
-    squadrons: Dict[str, List[dict]] = {}
-    for r in rows:
-        sid = r.get("squadron_id", "")
-        if sid:
-            squadrons.setdefault(sid, []).append(r)
-    for sid, members in squadrons.items():
-        types = {m["entry"].ship_type for m in members}
-        if len(types) > 1:
-            errors.append(
-                f"Squadron '{sid}': cannot mix ship types "
-                f"({', '.join(sorted(types))}).")
-            continue
-        ship_type = next(iter(types))
-        count = len(members)
-        if ship_type == "escort":
-            # the list's sizes (Tyranids 1-12 / 6-12, Kraken count two; four 2-hit
-            # escorts at most elsewhere), fleet_lists.escort_squadron_limits
-            from .fleet_lists import escort_squadron_errors
-            errors += escort_squadron_errors(list_key, members, sid)
-        elif ship_type == "cruiser":
-            if count < 2 or count > 4:
-                errors.append(
-                    f"Squadron '{sid}': cruiser squadrons need 2–4 ships "
-                    f"(has {count}).")
-        elif ship_type == "battleship":
-            if count < 2 or count > 3:
-                errors.append(
-                    f"Squadron '{sid}': battleship squadrons need 2–3 ships "
-                    f"(has {count}).")
-        elif ship_type == "defense":
-            errors.append(
-                f"Squadron '{sid}': defence platforms cannot form squadrons.")
+    # Squadrons (core s.8, XR p.58; the list's escort sizes): squadrons.py
+    from .squadrons import fleet_squadron_errors
+    errors += fleet_squadron_errors(rows, list_key)
     return errors
 
 

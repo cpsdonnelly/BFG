@@ -568,9 +568,15 @@ hazards), so its strength is long-range manoeuvre. Its other phases are the norm
 
 ## 11. Things the questions didn't cover
 
-- **Deployment** (gap): ships are grouped for set-up (escorts first, squadrons together) but not
-  placed by strategy. Scenarios now set the zones, facings and fixed placements (To do 7), but
-  where to stand inside a zone still isn't chosen for the matchup or the objectives.
+- **Deployment** (partly built, To do 28): the AI places its own ships. Ships that help
+  friends in range (Tyranid synapse, Tau tracking systems, Fleet Defence Turrets) go last,
+  where their help is worth most; with two or more of them the fleet deploys in small
+  groups, one round each. Squadrons go in a random line or box, always coherent. Before
+  deploying, the AI forms capital ship squadrons from ships of one size, faction, speed and
+  role (a random draw at present, not yet by expected VP), keeping the squadron rules. In
+  play, helpers move to keep friends in reach when that is worth more than what the spot
+  costs, and move after the friends they help. Where to stand inside a zone still isn't
+  chosen for the matchup or the objectives.
 - **Damage control** (gap; To do 11 e): each capital ship rolls a D6 per remaining hit, each 6
   repairs one system, dice halved in contact with blast markers (s.36, XR p.35). Repairs follow a
   fixed priority (fires first, then engines, then the rest), not expected VP: a fire costs 1 hit

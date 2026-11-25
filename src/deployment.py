@@ -272,14 +272,40 @@ class DeploymentState:
 
     def select_group(self, idx: int) -> bool:
         """Place the active player's groups in any order (owner): the chosen
-        unplaced group becomes the one to place next (swapped into the slot
-        `current_group` reads). False if it is placed already or out of range."""
+        unplaced group becomes the one to place next (moved into the slot
+        `current_group` reads; the others keep their order, so the list
+        doesn't shuffle). False if it is placed already or out of range."""
         p = self.active_player
         nxt = self.next_idx[p]
         if not nxt <= idx < len(self.groups[p]):
             return False
         g = self.groups[p]
-        g[nxt], g[idx] = g[idx], g[nxt]
+        g.insert(nxt, g.pop(idx))
+        return True
+
+    def select_member(self, placed: int, ship_id: str) -> bool:
+        """Within the squadron being placed (`placed` of its ships placed so
+        far), choose which ship goes next (any order, owner)."""
+        group = self.current_group()
+        if group is None:
+            return False
+        k = next((i for i, s in enumerate(group) if s.id == ship_id), -1)
+        if k < placed:
+            return False
+        group.insert(placed, group.pop(k))
+        return True
+
+    def can_regroup(self) -> bool:
+        """Capital ship squadrons are formed before any ship is deployed (s.8)."""
+        return self.next_idx[1] == 0 and self.next_idx[2] == 0
+
+    def regroup(self, player: int) -> bool:
+        """Rebuild the player's groups from its ships' squadron ids (after
+        squadrons were formed or broken up). Only before any ship is placed."""
+        if not self.can_regroup():
+            return False
+        ships = [s for g in self.groups[player] for s in g]
+        self.groups[player] = group_ships_for_deployment(ships)
         return True
 
     def unplace_group(self, player: int, idx: int) -> Optional[List[Ship]]:

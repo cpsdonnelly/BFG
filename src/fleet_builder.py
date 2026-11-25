@@ -684,7 +684,8 @@ class FleetBuilderWindow:
         self._fleet_list = tk.Listbox(right, font=_FONT_BODY,
                                       bg=_SEL_BG, fg=_FG,
                                       selectbackground="#334466",
-                                      activestyle="none", height=22)
+                                      activestyle="none", height=22,
+                                      selectmode=tk.EXTENDED)
         self._fleet_list.pack(fill=tk.BOTH, expand=True)
         self._fleet_scroll = tk.Scrollbar(right, command=self._fleet_list.yview)
         self._fleet_scroll.pack(side=tk.RIGHT, fill=tk.Y)
@@ -701,6 +702,17 @@ class FleetBuilderWindow:
         ]:
             tk.Button(btn_row, text=text, font=_FONT_BODY,
                       bg=_SEL_BG, fg=_FG, relief=tk.FLAT, padx=8,
+                      command=cmd).pack(side=tk.LEFT, padx=3)
+        # Squadrons (core s.8): select several ships (Ctrl / Shift-click)
+        sq_row = tk.Frame(right, bg=_BG)
+        sq_row.pack(fill=tk.X, pady=(0, 4))
+        for text, cmd in [
+            ("Squadron selected", self._squadron_selected),
+            ("Leave squadron", self._unsquadron_selected),
+            ("Auto escort squadrons", self._auto_squadrons),
+        ]:
+            tk.Button(sq_row, text=text, font=_FONT_BODY,
+                      bg=_SEL_BG, fg=_FG, relief=tk.FLAT, padx=6,
                       command=cmd).pack(side=tk.LEFT, padx=3)
         tk.Label(right, text="Refits, weapon options (e.g. a nova cannon), torpedo types, "
                  "the fleet commander and re-rolls: select a ship and press "
@@ -942,6 +954,46 @@ class FleetBuilderWindow:
         self._fleet[idx]["is_flagship"] = new_val
         self._refresh_fleet_list()
 
+    def _squadron_selected(self):
+        """Put the selected ships in one new squadron, if the squadron rules
+        allow it (squadrons.squadron_errors)."""
+        from .squadrons import squadron_errors
+        sel = list(self._fleet_list.curselection())
+        if len(sel) < 2:
+            self._status_var.set("Select two or more ships (Ctrl / Shift-click) to squadron.")
+            return
+        used = {r.get("squadron_id") for r in self._fleet}
+        n = 1
+        while f"sq{n}" in used:
+            n += 1
+        sid = f"sq{n}"
+        members = [self._fleet[i] for i in sel]
+        errors = squadron_errors(members, sid, self._list_key or "")
+        if errors:
+            messagebox.showwarning("Squadron", "\n".join(errors), parent=self.win)
+            return
+        for r in members:
+            r["squadron_id"] = sid
+        self._status_var.set(f"Squadron {sid}: {len(members)} ships.")
+        self._refresh_fleet_list()
+
+    def _unsquadron_selected(self):
+        for i in self._fleet_list.curselection():
+            self._fleet[i]["squadron_id"] = ""
+        self._refresh_fleet_list()
+
+    def _auto_squadrons(self):
+        """Re-form the escort squadrons by the rules (squadrons.organize_escorts:
+        one class and set-up to a squadron, 2D3 a squadron within the list's
+        sizes). Capital ship squadrons are formed at the start of the game."""
+        from .squadrons import organize_escorts
+        lines = []
+        problems = organize_escorts(self._fleet, self._list_key or "", log=lines.append)
+        self._status_var.set("; ".join(lines[-3:]) or "No escorts to squadron.")
+        if problems:
+            messagebox.showwarning("Squadrons", "\n".join(problems), parent=self.win)
+        self._refresh_fleet_list()
+
     def _remove_selected(self):
         sel = self._fleet_list.curselection()
         if not sel:
@@ -957,9 +1009,10 @@ class FleetBuilderWindow:
             key = row.get("list", "")
             tag = (" (reserve)" if key.startswith("reserve:")
                    else " (detachment)" if key and key == self._detachment_key else "")
+            sq = f" [{row['squadron_id']}]" if row.get("squadron_id") else ""
             self._fleet_list.insert(
                 tk.END,
-                f"{row['custom_name']}{tag}{flagship}  {row['points']}pts{upgrades}")
+                f"{row['custom_name']}{tag}{flagship}{sq}  {row['points']}pts{upgrades}")
         self._refresh_totals()
 
     def _fleet_total(self) -> int:

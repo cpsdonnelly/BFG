@@ -76,6 +76,12 @@ class DeploymentPanel:
         self.on_complete = on_complete
         self.mode = mode
 
+        # Capital ship squadrons are formed before any ship is deployed (s.8):
+        # the AI forms its own here (squadrons.ai_form_squadrons)
+        from .squadrons import ai_form_squadrons
+        for p in (1, 2):
+            if self._ai_deploys(p):
+                ai_form_squadrons(gs, p, log=gs.report)
         # Fixed placements, reserves left out, the scenario's zones and rules
         from .deployment import deployment_state
         self.state = deployment_state(gs, mode)
@@ -202,6 +208,14 @@ class DeploymentPanel:
             command=self._auto_place_remaining,
             bg="#334455", fg="white", font=("Consolas", 9))
         self.skip_btn.grid(row=1, column=1, sticky="ew", padx=2, pady=1)
+        # Any order inside a squadron too, and capital squadrons before deploying
+        tk.Button(btn_frame, text="Next ship in squadron", command=self._next_member,
+                  bg="#334455", fg="white", font=("Consolas", 9)
+                  ).grid(row=2, column=0, sticky="ew", padx=2, pady=1)
+        self.squad_btn = tk.Button(btn_frame, text="Capital squadrons...",
+                                   command=self._squadron_dialog,
+                                   bg="#334455", fg="white", font=("Consolas", 9))
+        self.squad_btn.grid(row=2, column=1, sticky="ew", padx=2, pady=1)
         self.root.bind("<Control-z>", lambda _e: self._undo_any())
 
         tk.Frame(self.frame, bg="#333355", height=2).pack(fill=tk.X, pady=4)
@@ -300,9 +314,11 @@ class DeploymentPanel:
             for sh in group:
                 classes[sh.ship_class] = classes.get(sh.ship_class, 0) + 1
             names = ", ".join(f"{c} ×{n}" if n > 1 else c for c, n in classes.items())
+            nxt = group[placed].name if placed < total else ""
             self.status_label.config(
                 text=f"Squadron: {names}\n"
-                     f"Place ship {placed + 1} of {total}.\n"
+                     f"Place ship {placed + 1} of {total}: {nxt}\n"
+                     f"(Next ship in squadron picks another.)\n"
                      f"All must be within {COHERENCY_CM}cm of each other.\n"
                      f"({remaining} group(s) remaining)")
 
@@ -491,6 +507,88 @@ class DeploymentPanel:
                 break
             self._off_table(group)
         self._refresh()
+
+    # ── Squadrons ─────────────────────────────────────────────────────────────
+
+    def _next_member(self):
+        """Place the squadron's ships in any order: the next unplaced one."""
+        group = self.state.current_group()
+        k = len(self._pending_positions)
+        if not group or len(group) - k < 2:
+            self.board.status_var.set("No other ship of this squadron left to choose")
+            return
+        self.state.select_member(k, group[-1].id)    # rotate the unplaced ones
+        self._refresh()
+
+    def _squadron_dialog(self):
+        """Form or break up capital ship squadrons (s.8: at the start of the
+        game, before any ship is deployed), with the squadron rules checked
+        (squadrons.squadron_errors); "Auto" forms what the AI would."""
+        p = self.state.active_player
+        if not self.state.can_regroup():
+            messagebox.showinfo("Capital squadrons", "Capital ship squadrons are formed "
+                                "before any ship is deployed (s.8).", parent=self.root)
+            return
+        from .squadrons import squadron_errors, form_capital_squadrons
+        ships = [s for g in self.state.groups[p] for s in g if s.ship_type != "escort"]
+        if not ships:
+            return
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Capital ship squadrons")
+        dlg.transient(self.root)
+        tk.Label(dlg, text="Select ships (Ctrl / Shift-click), then Squadron or Break up.",
+                 font=("Consolas", 9)).pack(padx=6, pady=4)
+        lb = tk.Listbox(dlg, selectmode=tk.EXTENDED, width=48, height=min(16, len(ships)),
+                        font=("Consolas", 9), exportselection=False)
+        lb.pack(padx=6, pady=4, fill=tk.BOTH, expand=True)
+
+        def fill():
+            lb.delete(0, tk.END)
+            for s in ships:
+                lb.insert(tk.END, f"{s.name} ({s.ship_class})"
+                          + (f"  [{s.squadron_id}]" if s.squadron_id else ""))
+
+        def apply():
+            for s in ships:
+                self.gs.update_ship(s)
+            self.state.regroup(p)
+            fill()
+            self._refresh()
+
+        def squadron():
+            members = [ships[i] for i in lb.curselection()]
+            used = {s.squadron_id for g in self.state.groups[p] for s in g}
+            n = 1
+            while f"csq{n}" in used:
+                n += 1
+            errors = (["Select two or more ships."] if len(members) < 2
+                      else squadron_errors(members, f"csq{n}"))
+            if errors:
+                messagebox.showwarning("Squadron", "\n".join(errors), parent=dlg)
+                return
+            for s in members:
+                s.squadron_id = f"csq{n}"
+            apply()
+
+        def break_up():
+            sids = {ships[i].squadron_id for i in lb.curselection()} - {""}
+            for s in ships:
+                if s.squadron_id in sids:
+                    s.squadron_id = ""
+            apply()
+
+        def auto():
+            from .rng import game_random
+            form_capital_squadrons(ships, rng=game_random(self.gs, "squadrons"),
+                                   log=self.gs.report)
+            apply()
+
+        row = tk.Frame(dlg)
+        row.pack(pady=4)
+        for text, cmd in (("Squadron", squadron), ("Break up", break_up), ("Auto", auto),
+                          ("Close", dlg.destroy)):
+            tk.Button(row, text=text, command=cmd, font=("Consolas", 9)).pack(side=tk.LEFT, padx=3)
+        fill()
 
     # ── Group list selection ──────────────────────────────────────────────────
 
