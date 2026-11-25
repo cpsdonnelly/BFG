@@ -528,9 +528,9 @@ the current AI, whose normal and expert players and weights stay as they are.
 
 ---
 
-## 10. Easy, normal and expert
+## 10. Easy, normal, hard and expert
 
-| | Easy | Normal (and Hard) | Expert |
+| | Easy | Normal | Hard / Expert |
 |---|---|---|---|
 | Targets | random among valid targets | marginal expected VP, focus, no overkill | as normal |
 | Special orders | none | Burn Retros / Lock On / Reload (To do 10 to improve) | as normal |
