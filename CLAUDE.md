@@ -722,6 +722,17 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   before). Shared: `hit_and_run.crit_type_value`, `crit_roll_value`, `critical_hit_value`.
   Fixed on the way: a silenced weapon on a crippled ship now counts at half strength
   (`armament_threat_value`; it was full, so raids on crippled ships were over-valued).
+- Dark Eldar crews (owner question, how strong): the AI's raid values now count Incubi's
+  2D6-choose-one (both results against a crippled ship) and Pain Frenzy's re-roll for assault
+  boats too (`dark_eldar.raid_value`, used by `waves.raid_squadron_value` and
+  `impaler_effect_values`; only the Impaler counted the re-roll before, Incubi nowhere).
+  An Impaler hitting an undamaged Lunar, expected VP: none 23.3, Wych Cult 28.8, Incubi
+  28.8, Haemonculi 22.4 (its forced Fire, 11.2, is worth less than a random crit, 18.7, so
+  the AI takes the two raids; the coven's value is its +1 hit); crippled Lunar: Incubi 41.4.
+  An assault boat raid: 7.6 / Wych 12.6 / Incubi 12.6. The owner's second Dark Eldar list
+  (two Tortures, one Impaler + Wych Cult 245, one launch bays + Incubi 270, Dread Archon 50 + 2
+  re-rolls 50, 4 torpedo Raiders 40, 4 Impaler Corsairs 60) is 1015 at the booklet's prices,
+  not 995: waiting for the owner's change before it is built as a file.
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Incubi's 2D6 raid choice, Only the Strong
   May Lead, escort squadron sizes 2-6 checked.
@@ -1044,6 +1055,20 @@ Ordnance:
   torpedoes due at its target (`_turret_split_bonus`), torpedo targeting against waves due
   there, planned or already flying (`_craft_due`) (`tests/test_ai_air_doctrine.py`). Not yet:
   assault boats and mines in the split, choosing a later launch to match timings.
+- CAP against torpedoes (owner): a CAP fighter intercepting a salvo removes all of it
+  (s.19 both markers removed, s.26), but only one squadron of a wave. So a salvo's value
+  counts the CAP left when it arrives (`_torp_cap_factor`: each craft squadron of ours due
+  there in that phase, and each salvo planned there before it, uses up one CAP squadron
+  unless that fighter saves, exact binomial; the enemy's later CAP isn't counted); the AI
+  launches its bays fleet-wide before its torpedoes (`run_ordnance_phase`, `only=`), so a
+  Dictator's bombers go ahead of its own salvo; a wave is credited with the torpedoes it
+  unlocks (`_cap_strip_bonus` in `_strike_option`). The moving player chooses which of its
+  ordnance meets a ship's CAP first (it moves markers one at a time): craft first by
+  default, or torpedoes first, a small salvo drawing the CAP off a wave
+  (`OrdnanceMovementMixin._torps_first_vs_cap`; the AI and "Auto" by
+  `formations.contact_order_values`; a human is asked) (`tests/test_cap_vs_torpedoes.py`).
+  Not yet: launching fighters purely to strip CAP when no bomber strike is planned, the
+  enemy's reactive CAP before the salvo lands.
 - Holding bays (`_hold_bays`): out of reach (nothing within three moves of the fastest craft)
   hold; within reach hold when (1 - Reload Ordnance odds) x next turn's launch or CAP value >
   launching now (rarely, with fair Ld).
@@ -2509,6 +2534,14 @@ Done: To do 2, 3, 6; most of 7.
    human against the AI through command, launch and activation steps. Not yet: a human
    command phase that only offers orders (the order button is shown; the IGOUGO checks on
    orders still apply).
+   Impalers (owner): out of fuel at the start of their owner's turn, so two ordnance moves
+   in IGOUGO; in AA they used to get one (launched in the second ordnance phase, removed at
+   the next round's start); now two, removed at the start of the first round after their
+   second move, never a third (`AATurn.impaler_moves`, `may_move_ordnance`,
+   `remove_spent_impalers(keep=)`). Owner idea, open (an AA design choice, not built):
+   ordnance launched before its parent ship moves (shoot first, or the launch phase before
+   movement) lags behind the IGOUGO launch point, so it could get a first-move boost from
+   the parent's movement (e.g. the distance the ship moves that round, or its speed).
    Still to do: the experiments (they need the PDF's Appendix B fleets: Imperial Armageddon
    Sector against Eldar Corsair lists, so Eldar fleet lists or hand-built fleets, and a faster
    runner than the ~80s GUI game), the AI forcing activations, the expert AI per unit, a
@@ -3228,7 +3261,9 @@ Done: To do 2, 3, 6; most of 7.
    nova cannon and range, 4 Novas; gifts rolled on the table and kept when good and
    affordable, never Fleet Defence Turrets); Tyranid Gestating, Vanguard and Hive fleets
    (bio-cruiser / drone configurations with their bought weapons, synapse escorts required).
-   Built as files (`tools/build_owner_fleets.py`, `data/fleets/owner_*.json`): ALL the
+   Built as files (`tools/build_owner_fleets.py`, `data/fleets/owner_*.json`; since: the
+   owner's second Mechanicus list, four Lunars with nova cannons and an Archmagos, 990,
+   `owner_mechanicus_novas_990.json`; the Explorator list puts no limit on nova cannons): ALL the
    owner's fleets (Chaos, Gothic, Bakka, Tau Merchant, Tau Protector, Space Marines,
    Mechanicus, Orks, Necrons both ways round the War coin, Eldar (Corsair), Dark Eldar, the
    three Tyranid fleets).
@@ -3679,7 +3714,11 @@ rather than touch a third ship).
 1. **Raid modifiers that cancel out (owner: pinned, unsure the rules support it).** The engine
    adds every raid modifier together, so a Dark Eldar raid (+1 Pain Frenzy) on a Space Marine
    ship (enemy raids -1) is a plain roll (`hit_and_run._raid_roll_modifier`). Do an attacker's
-   bonus and a defender's penalty cancel like that?
+   bonus and a defender's penalty cancel like that? Owner's reading (not confirmed by the
+   booklet's author): Incubi state their -1 to enemy raids explicitly, so a rule giving +1
+   doesn't also give -1 unless it says so. The engine already works that way: every -1 it
+   applies is printed for that unit (Space Marines, Mega Armoured Boarding Parties, Incubi,
+   Tyranids); Pain Frenzy and Aspect Warriors give only their +1.
 2. **The plain game's winner when a fleet is gone.** Outside the booklet scenarios
    (`scenario.check_game_over`), a fleet with no ships left loses outright, whatever the
    victory points; in the booklet scenarios the scenario's own conditions (mostly VP) decide.

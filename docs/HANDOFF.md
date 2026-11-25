@@ -29,7 +29,14 @@ their separate Ld instead of one shared roll (valid squadrons are never touched)
 by armament (`src/formations.py`) since; pending owner question: may a Dark Eldar squadron
 take six 2-hit Corsairs (core p.58: at most four)? Then To do 26 (Quick Demo: Cruiser Clash on
 random terrain, fleets saved or random, the mode; `src/demo.py`) and 27 (favourite fleets on
-quitting or at game over, `src/favourites.py`) built as minimal Tk versions.
+quitting or at game over, `src/favourites.py`) built as minimal Tk versions. Then the owner's strategy notes:
+CAP against torpedoes (a CAP fighter removes a whole salvo, one squadron of a wave: the AI's
+salvo values count the CAP left, bays launch before torpedoes, waves are credited with the
+torpedoes they unlock, and the moving player chooses craft-first or torpedoes-first contact),
+Dark Eldar raid values with Incubi and Pain Frenzy for assault boats, AA Impalers' two moves,
+the second Mechanicus fleet (four nova Lunars, 990). Pending: the owner's second Dark Eldar
+list costs 1015 at booklet prices; the AA ordnance speed boost from the parent's move is an
+open idea. Details in CLAUDE.md ("AI: how it decides", Dark Eldar notes, To do 13).
 
 Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Every core rules section the engine plays, all optional rules (boarding, ramming, teleports,

@@ -140,3 +140,40 @@ def needs_contact(ships: List, target, gs) -> bool:
         if len(loads) >= 2 and combine_gain(ships[0], kind, loads, target, gs) > 0:
             return True
     return False
+
+
+def contact_order_values(ship, craft_groups, salvos, gs) -> dict:
+    """Owner: which of the moving player's ordnance meets a ship's CAP first.
+    Each CAP fighter intercepts one marker it meets: a whole torpedo salvo,
+    or one squadron of a wave (s.19, s.26). So against CAP c with n craft
+    squadrons and k salvos: craft first loses min(c, n) squadrons (each
+    surviving on its resilient save) and the salvos left facing CAP;
+    torpedoes first (smallest salvo first) loses min(c, k) salvos and the
+    craft the CAP left over. Expected VP of each order:
+    {"craft": v, "torpedoes": v}. Saves of the CAP fighters themselves are
+    left out (judgement)."""
+    from .ai_hazards import torpedo_salvo_hits, hull_hits_vp
+    caps = [o for o in gs.ordnance if o.get("cap_ship_id") == ship.id
+            and o.get("owner_player") == ship.player]
+    c = len(caps)
+    squads = []                       # (value, survival chance when intercepted)
+    for g in craft_groups:
+        for m in g:
+            rules = list(m.special_rules or [])
+            launcher = SimpleNamespace(player=m.owner_player, special_rules=rules)
+            kind = "impaler" if "impaler" in rules else "craft"
+            v = unit_value(launcher, kind, ship, gs)
+            save = getattr(m, "resilient_save", 0) or 0
+            squads.append((v, max(0, 7 - save) / 6.0 if save else 0.0))
+    torps = sorted(salvos, key=lambda m: m.strength)
+    tv = [hull_hits_vp(ship, gs, 0.0, torpedo_salvo_hits(m.strength, ship, gs, (m.x, m.y),
+                                                         rules=m.special_rules))
+          for m in torps]
+
+    def craft_after(cap):
+        lost = sum(v * (1 - p) for v, p in squads[:cap])
+        return sum(v for v, _p in squads) - lost
+
+    craft_first = craft_after(c) + sum(tv[max(0, c - len(squads)):])
+    torps_first = sum(tv[c:]) + craft_after(max(0, c - len(tv)))
+    return {"craft": craft_first, "torpedoes": torps_first}

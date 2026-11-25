@@ -196,14 +196,18 @@ def test_impalers_run_out_of_fuel_in_both_turn_systems():
                                        owner_player=1, launched_by="c", special_rules=rules))
     assert remove_spent_impalers(gs, 2) == 0
     assert remove_spent_impalers(gs, 1) == 1 and [o["id"] for o in gs.ordnance] == ["o1"]
-    # alternate activation: removed at the start of the round
+    # alternate activation (owner): two moves, as in IGOUGO, then removed at
+    # the start of the next round
     gs.add_ordnance(OrdnanceMarker(id="o2", ordnance_type=OrdnanceType.ASSAULT_BOAT.value,
-                                   owner_player=1, launched_by="c",
+                                   owner_player=1, launched_by="c", launched_turn=1,
                                    special_rules=["dark_eldar", "impaler"]))
     gs.turn_system = "aa"
     dice = DiceStub([3] * 40)
     aa = AATurn(TurnController(gs, dice))
     aa.start_game()
+    assert "o2" in [o["id"] for o in gs.ordnance]
+    aa.ord_moves["o2"] = {1: 1, 2: 1}
+    aa._start_round()
     assert "o2" not in [o["id"] for o in gs.ordnance]
 
 

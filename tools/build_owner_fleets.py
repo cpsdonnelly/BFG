@@ -60,6 +60,14 @@ FLEETS = [
     ] + [("Mechanicus Tyrant Cruiser", ["Refit: prow nova cannon for the torpedoes",
           "Refit: plasma-boosted gunnery (30cm macrobatteries to 45cm)"], False, "")] * 2
       + [("Mechanicus Nova Frigate", [], False, "novas")] * 4),
+    # Owner's second Mechanicus list: as many nova cannons as possible (the
+    # Explorator list doesn't limit them)
+    ("owner_mechanicus_novas_990.json", "Mechanicus Nova Lunars 990", "Mechanicus",
+     "admech_explorator", [
+        ("Mechanicus Lunar Cruiser", ["Refit: prow nova cannon for the torpedoes",
+                                      "Archmagos Explorator (Ld 9)"], True, ""),
+    ] + [("Mechanicus Lunar Cruiser", ["Refit: prow nova cannon for the torpedoes"],
+          False, "")] * 3),
     ("owner_dark_eldar_1000.json", "Dark Eldar Raiders 990", "Dark Eldar", "dark_eldar_raiders", [
         ("Succubus Class Light Cruiser", [
             "Dread Archon (+2 Ld)", "Dread Archon: 2 re-rolls",

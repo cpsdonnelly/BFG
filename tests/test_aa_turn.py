@@ -155,3 +155,27 @@ def test_rams_lock_both_ships_and_resolve_in_the_end_phase():
     out = resolve_pending_rams(gs, DiceRoller(mode="auto"), on_hit=lambda s: hit.append(s.id))
     assert len(out) == 1 and gs.aa_state["pending_rams"] == []
     assert sorted(hit) == ["a0", "b0"]                       # destruction checks for both
+
+
+def test_impalers_get_two_moves_in_aa():
+    """Owner: Impalers leave at the start of their owner's turn, which in IGOUGO
+    gives them two ordnance moves; in AA the same two (they used to make one)."""
+    gs, tc, aa = _game()
+    aa.start_game()
+    imp = {"id": "imp1", "ordnance_type": "assault_boat", "owner_player": 1,
+           "special_rules": ["dark_eldar", "impaler"], "aa_round_placed": aa.round,
+           "x": 50.0, "y": 50.0, "heading": 0.0, "strength": 1, "speed": 30.0}
+    gs.ordnance.append(imp)
+    assert aa.may_move_ordnance(imp)
+    aa.record_ordnance_move(imp)                    # its first move, the launch round
+    aa.ord_moves["imp1"] = {aa.round: 1}
+    # next round: still there, one more move, then no third
+    gs.turn_number += 1
+    aa._start_round()
+    assert any(o["id"] == "imp1" for o in gs.ordnance)
+    assert aa.may_move_ordnance(imp)
+    aa.record_ordnance_move(imp)
+    assert not aa.may_move_ordnance(imp)
+    gs.turn_number += 1
+    aa._start_round()
+    assert not any(o["id"] == "imp1" for o in gs.ordnance)

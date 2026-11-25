@@ -566,6 +566,16 @@ hazards), so its strength is long-range manoeuvre. Its other phases are the norm
 
 ---
 
+## CAP against torpedoes (owner note)
+
+A ship's CAP fighter removes a whole torpedo salvo when it intercepts it, but only one
+squadron of an attack craft wave. So the AI launches its attack craft before its torpedoes,
+values a salvo by the chance the target's CAP is already used up when it arrives (by our craft
+or earlier salvos reaching it in the same phase), and credits a wave with the torpedoes it
+lets through. Which ordnance meets the CAP first is the moving player's choice: craft first
+in front of a big salvo, or a small salvo first to draw the CAP away from a wave of Impalers;
+the AI picks by expected VP.
+
 ## 11. Things the questions didn't cover
 
 - **Deployment** (partly built, To do 28): the AI places its own ships. Ships that help

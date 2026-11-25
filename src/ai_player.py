@@ -3391,12 +3391,18 @@ class AIPlayer:
         self._fleet_defence = (self._plan_fleet_defence(enemies)
                                if enemies and self.difficulty != "very_easy" else None)
         from .scenarios import on_standby
-        for ship in gs.player_ships(self.player):
-            if ship.is_destroyed or ship.is_disengaged or ship.has_boarded or ship.aa_locked:
-                continue                          # boarding: no launches (s.32)
-            if on_standby(gs, ship):
-                continue                          # Surprise Attack: on standby
-            self._launch_ship_ordnance(ship)
+        # Attack craft first, fleet-wide, then torpedoes and mines (owner): a
+        # ship's CAP fighter removes a whole torpedo salvo (s.19, s.26), but only
+        # one squadron of a wave, so craft reaching the target in the same phase
+        # strip its CAP first (the engine resolves craft before torpedoes, and
+        # the salvo's value counts the CAP left, `_torp_cap_factor`)
+        for only in ("bays", "rest"):
+            for ship in gs.player_ships(self.player):
+                if ship.is_destroyed or ship.is_disengaged or ship.has_boarded or ship.aa_locked:
+                    continue                      # boarding: no launches (s.32)
+                if on_standby(gs, ship):
+                    continue                      # Surprise Attack: on standby
+                self._launch_ship_ordnance(ship, only)
         self._fleet_defence = None
         if self.difficulty != "very_easy":
             self._combine_squadron_waves()
@@ -3540,7 +3546,9 @@ class AIPlayer:
         length = max(20.0, min(40.0, float(length or 40.0)))
         actions.move_tau_missile(gs, marker.id, turn, length)
 
-    def _launch_ship_ordnance(self, ship: Ship):
+    def _launch_ship_ordnance(self, ship: Ship, only: Optional[str] = None):
+        """Launch the ship's ordnance; only "bays" (launch bays) or "rest"
+        (torpedoes, mines...) when given."""
         gs = self.gs
         enemies = self._live_enemies()
         if not enemies:
@@ -3549,6 +3557,8 @@ class AIPlayer:
         bays_held = False
         for w_i, weapon in enumerate(ship.weapons):
             wtype = weapon.get("weapon_type", "")
+            if only is not None and (wtype == "launch_bay") != (only == "bays"):
+                continue
 
             if wtype == "torpedo" and ship.ordnance_loaded_torps:
                 # Pick target whose predicted next position is best covered
@@ -3722,6 +3732,72 @@ class AIPlayer:
         strength = sum(t[1] for t in torps)
         return turret_split_gain(target, self.gs, strength, fighters, bombers, f_save, b_save,
                                  torps[0][2])
+
+    def _cap_strip_bonus(self, target: Ship, phase: int, squadrons: int,
+                         committed: float = 0.0) -> float:
+        """VP a wave of `squadrons` reaching `target` in `phase` adds by
+        spending its CAP for our loaded torpedoes that can reach it in that
+        phase this turn (launched after the bays, `run_ordnance_phase`): each
+        salvo's expected VP (`torpedo_salvo_hits`) x how much likelier it gets
+        through with the wave there (`_torp_cap_factor` with and without)."""
+        if not any(o.get("cap_ship_id") == target.id for o in self.gs.ordnance):
+            return 0.0
+        from .ai_hazards import torpedo_salvo_hits, hull_hits_vp
+        arrivals = self.__dict__.setdefault("_ord_arrivals", {})
+        before = self._torp_cap_factor(target, phase)
+        entry = arrivals.setdefault(target.id, {})
+        entry.setdefault("craft", []).append((phase, 0, squadrons, 0, 0))
+        try:
+            after = self._torp_cap_factor(target, phase)
+        finally:
+            entry["craft"].pop()
+        if after <= before:
+            return 0.0
+        total = 0.0
+        for sh in self.gs.player_ships(self.player):
+            if sh.is_destroyed or sh.is_disengaged or not sh.ordnance_loaded_torps:
+                continue
+            for w in sh.weapons:
+                if w.get("weapon_type") != "torpedo":
+                    continue
+                speed = w.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
+                reach = 0 if sh.distance_to(target) <= speed + target.base_radius else 1
+                if reach != phase or not check_weapon_in_arc(sh, w, target.x, target.y):
+                    continue
+                hits = torpedo_salvo_hits(w.get("strength") or 0, target, self.gs,
+                                          (sh.x, sh.y), rules=sh.special_rules)
+                total += hull_hits_vp(target, self.gs, committed, hits)
+        return total * (after - before)
+
+    def _torp_cap_factor(self, target: Ship, phase: int) -> float:
+        """The chance a salvo reaching `target` in `phase` meets no CAP (owner):
+        a CAP fighter intercepting a salvo removes all of it (s.19, s.26:
+        both markers removed, a resilient fighter staying on a save), so the
+        salvo only gets through once the CAP is spent. Each of our attack
+        craft squadrons due there in that phase (planned this phase or
+        flying, `_craft_due`; the engine resolves craft before torpedoes) and
+        each salvo of ours planned there earlier uses up one CAP squadron,
+        unless that fighter makes its resilient save (exact binomial). The
+        enemy launching more CAP before it arrives isn't counted."""
+        caps = [o for o in self.gs.ordnance
+                if o.get("cap_ship_id") == target.id and o.get("owner_player") == target.player]
+        if not caps:
+            return 1.0
+        from .ordnance import craft_roles
+        caps = [o for o in caps if "fighter" in craft_roles(o["ordnance_type"])]
+        if not caps:
+            return 1.0
+        save = max((o.get("resilient_save") or 0) for o in caps)
+        q = 1.0 - (max(0, 7 - save) / 6.0 if save else 0.0)   # a strip that sticks
+        due = [d for d in self._craft_due(target) if d[0] == phase]
+        n = sum(d[1] + d[2] for d in due)
+        n += sum(1 for t in getattr(self, "_ord_arrivals", {}).get(target.id, {}).get("torps", [])
+                 if t[0] == phase)
+        need = len(caps)
+        if n < need:
+            return 0.0
+        from math import comb
+        return sum(comb(n, k) * q ** k * (1 - q) ** (n - k) for k in range(need, n + 1))
 
     def _craft_due(self, target: Ship):
         """Attack craft due at `target`, as [(phase, fighters, bombers)]: planned
@@ -3954,6 +4030,13 @@ class AIPlayer:
                         v += sv
                         ev += syn
                         vals = [(w, a + sv) for w, a in vals]
+                    # Owner: the wave also strips the target's CAP for our
+                    # torpedoes reaching it in the same phase (a CAP fighter
+                    # takes a whole salvo, one squadron of a wave)
+                    strip = self._cap_strip_bonus(target, tl_s["phase"], f + b, c)
+                    if strip:
+                        v += strip
+                        vals = [(w, a + strip) for w, a in vals]
                     rv = risk_value(vals, disc, tl_s)
                     if best_split is None or rv > best_split[0] + 1e-9:
                         best_split = (rv, f, b, ev, tl_s["phase"], 1)
@@ -4922,7 +5005,15 @@ class AIPlayer:
                 return ((added_vp(e, self.gs, committed.get(e.id, 0.0), hits, shields=False)
                          * (1.0 if both else 0.6) - friendly * surv)
                         * travel_discount(ship.distance_to(e), speed), hits)
+            raw_score = score
+
+            def score(e):                         # noqa: F811 (the CAP left on e)
+                v, h = raw_score(e)
+                f = self._torp_cap_factor(e, phase_of(e))
+                return (v * f if v > 0 else v), h * f
             best = max(candidates, key=lambda e: score(e)[0])
+            if score(best)[0] <= 0 and self._torp_cap_factor(best, phase_of(best)) == 0:
+                return None                     # its CAP would take the whole salvo
             if score(best)[0] < 0:
                 return None                     # friendly fire would cost more than it gains
             committed[best.id] = committed.get(best.id, 0.0) + score(best)[1]

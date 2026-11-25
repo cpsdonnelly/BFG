@@ -77,10 +77,14 @@ class AATurn:
     def _start_round(self) -> None:
         self.tracker.turn_start(self.gs)
         # Dark Eldar Impalers out of fuel at the start of their owner's turn
-        # (Xenos p.5): in AA a round is both players' turn
+        # (Xenos p.5). In IGOUGO that gives them two ordnance moves; in AA
+        # (owner) the same two: removed at the start of the first round after
+        # their second move (`impaler_moves`; `may_move_ordnance` stops a third)
         from .dark_eldar import remove_spent_impalers
         for p in (1, 2):
-            remove_spent_impalers(self.gs, p)
+            remove_spent_impalers(self.gs, p, keep=lambda o: (
+                self.impaler_moves(o) < 2
+                and self.round - o.get("aa_round_placed", o.get("launched_turn", self.round)) < 2))
         from .scenarios import turn_start as _scenario_turn_start
         _scenario_turn_start(self.gs, self.tc.dice)
         self.command_check_failed = {1: False, 2: False}
@@ -211,8 +215,14 @@ class AATurn:
         counted here by marker id (markers are rebuilt from dicts, so extra
         fields wouldn't survive)."""
         launched = marker.get("aa_round_placed", marker.get("launched_turn", self.round))
+        if "impaler" in (marker.get("special_rules") or []) and self.impaler_moves(marker) >= 2:
+            return False                       # out of fuel after two moves
         used = self.ord_moves.get(marker.get("id"), {}).get(self.round, 0)
         return used < ordnance_moves(launched, self.round, self.cfg)
+
+    def impaler_moves(self, marker: Dict) -> int:
+        """Ordnance moves the marker has made so far (every round)."""
+        return sum(self.ord_moves.get(marker.get("id"), {}).values())
 
     def record_ordnance_move(self, marker: Dict, rnd: int = None) -> None:
         rnd = self.round if rnd is None else rnd

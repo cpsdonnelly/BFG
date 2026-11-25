@@ -128,6 +128,50 @@ class OrdnanceMovementMixin:
 
         return marker.id in to_remove_set
 
+    def _torps_first_vs_cap(self, ships, mover, skip_ids, touching, to_remove_set):
+        """For each ship with CAP touched this pass by both the mover's attack
+        craft (that attack ships) and its torpedo salvos, the mover chooses
+        the order; torpedoes first: those salvos meet the CAP now (it removes a
+        whole salvo, s.19 / s.26), before the craft do."""
+        from .ordnance import ATTACK_CRAFT_TYPES, attacks_ships, is_torpedo_salvo
+        from .formations import contact_order_values
+        gs = self.ctx.gs
+        live = [OrdnanceMarker.from_dict(o) for o in gs.ordnance]
+        for s in ships:
+            if s.is_destroyed or s.is_disengaged:
+                continue
+            if not any(o.get("cap_ship_id") == s.id and o.get("owner_player") == s.player
+                       for o in gs.ordnance):
+                continue
+            mine = [m for m in live if m.owner_player != s.player and m.id not in skip_ids
+                    and m.id not in to_remove_set and not m.cap_ship_id
+                    and (mover is None or m.owner_player == mover) and touching(m, s)]
+            craft = [m for m in mine if m.ordnance_type in ATTACK_CRAFT_TYPES
+                     and attacks_ships(m.ordnance_type)]
+            torps = [m for m in mine if is_torpedo_salvo(m)]
+            if not craft or not torps:
+                continue
+            owner = torps[0].owner_player
+            groups = {}
+            for m in craft:
+                groups.setdefault(m.wave_id or m.id, []).append(m)
+            vals = contact_order_values(s, list(groups.values()), torps, gs)
+            best = "torpedoes" if vals["torpedoes"] > vals["craft"] + 1e-9 else "craft"
+            if self.ctx.is_ai_controlled(owner):
+                choice = best
+            else:
+                choice = self.ctx.prompt.choose(
+                    "Ordnance order",
+                    f"{s.name} has fighters on CAP. Which of your ordnance reaches it "
+                    f"first? A CAP fighter removes a whole torpedo salvo, but only one "
+                    f"squadron of attack craft.",
+                    [("Attack craft first", "craft"), ("Torpedoes first", "torpedoes")], best)
+            if choice != "torpedoes":
+                continue
+            self.ctx.log(f"  Torpedoes reach {s.name} before the attack craft")
+            for m in sorted(torps, key=lambda t: t.strength):
+                self._check_cap_intercept(m, s, to_remove_set)
+
     def _cap_vs_group(self, group, ship, to_remove_set: set):
         """waves.resolve_cap_vs_group for the ship's own CAP fighters against an
         enemy group touching it; removes the casualties and keeps the survivors'
@@ -494,6 +538,13 @@ class OrdnanceMovementMixin:
                              f"{'attack craft' if kind == 'craft' else 'torpedoes / mines'} "
                              f"this phase")
         ships = [self.ctx.gs.get_ship_by_id(s.id) or s for s in ships]
+
+        # Owner: the moving player moves markers one at a time, so it chooses
+        # which of its ordnance meets a ship's CAP first. Craft first is the
+        # default (a wave soaks the CAP up for a big salvo); torpedoes first
+        # lets a small salvo draw the CAP off a wave (the AI and "Auto" by
+        # formations.contact_order_values)
+        self._torps_first_vs_cap(ships, mover, skip_ids, touching, to_remove_after)
 
         # Phase 1: attack craft wave interception — turrets (with massed bonus) fire
         # once per ship at every incoming wave of bombers and assault boats before
