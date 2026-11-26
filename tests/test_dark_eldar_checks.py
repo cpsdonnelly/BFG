@@ -2,7 +2,7 @@
 Impaler launch pool, Voidraven salvos keeping their rules, flickerfields in the
 AI's turret maths, squadron orders taken once for a squadron (s.8), the AI
 keeping squadrons in coherency and combining their attack craft (s.15)."""
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_gunship, make_ship, make_gs, DiceStub
 from src.models import OrdnanceMarker, OrdnanceType, SpecialOrder
 from src.movement import _blast_marker_damage
 from src.terrain_effects import resolve_gas_dust_contact
@@ -285,7 +285,8 @@ def test_contact_bonus_counts_only_same_ordnance_and_grows_with_the_chain():
     e0 = esc(0, 0.0, TORPS)
     r = e0.base_radius
     ships = [e0, esc(1, 22.0, TORPS), esc(2, 18.0, IMPALER_BAY), esc(3, 22.0 + 2 * r, TORPS),
-             make_ship(id="foe", player=2, x=60.0, y=80.0)]
+             make_ship(id="foe", player=2, x=60.0, y=80.0, points_value=200),
+             make_gunship(player=1, x=-150.0, y=-150.0)]
     ships[2].y = 20.0 + 2 * r                    # touching the end point from above
     gs = make_gs(ships)
     dice = DiceStub([])
@@ -314,7 +315,8 @@ def test_combined_waves_keep_impalers_apart_from_other_craft():
                        weapons=[dict(IMPALER_BAY)]),
              make_ship(id="c2", player=1, ship_type="escort", squadron_id="sq", x=24.0, y=20.0,
                        weapons=[dict(BAYS)]),
-             make_ship(id="foe", player=2, x=60.0, y=80.0)]
+             make_ship(id="foe", player=2, x=60.0, y=80.0, points_value=200),
+             make_gunship(player=1, x=-150.0, y=-150.0)]
     gs = make_gs(ships)
     gs.turn_number = 3
     for i, rules in enumerate((["dark_eldar", "impaler"], ["dark_eldar", "impaler"], ["dark_eldar"])):

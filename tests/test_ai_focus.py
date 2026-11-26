@@ -1,6 +1,6 @@
 """Ordnance focus by expected VP (owner: focusing on easier targets should be
 optimal; CLAUDE.md To do 1)."""
-from tests.conftest import make_ship, make_gs, DiceStub, make_marker
+from tests.conftest import make_gunship, make_ship, make_gs, DiceStub, make_marker
 from src.ai_hazards import plan_strike_targets, torpedo_salvo_hits
 
 TORP = {"name": "Prow Torpedoes", "weapon_type": "torpedo", "range_cm": 30, "strength": 6,
@@ -41,7 +41,11 @@ def test_strike_waves_focus_then_move_on():
     from src.waves import form_wave
     mid = make_ship(id="h", player=2, x=40.0, y=0.0, turrets=2, armor_prow="5+",
                     armor_side="5+", points_value=200)
-    gs = make_gs([mid, _easy("e", 40.0, 20.0, hits=1)])
+    # our guns within reach of the mid ship: its hits short of a cripple are
+    # worth the chance they finish it next turn (ai_hazards.hits_vp)
+    gs = make_gs([mid, _easy("e", 40.0, 20.0, hits=1),
+                  make_gunship(player=1, x=40.0, y=-40.0, id="g1"),
+                  make_gunship(player=1, x=50.0, y=-40.0, id="g2")])
     for i in range(3):
         gs.add_ordnance(make_marker(id=f"a{i}", ordnance_type="bomber", owner_player=1,
                                     x=10.0, y=10.0, speed=20))
@@ -230,7 +234,7 @@ def test_plasma_overload_also_removes_ordnance_near_it():
     from src.ai_hazards import plasma_ordnance_vp
     mine = make_ship(id="m", player=1, x=0.0, y=0.0, points_value=200, hits_max=8)
     foe = make_ship(id="f", player=2, x=40.0, y=0.0, points_value=200, hits_max=8)
-    gs = make_gs([mine, foe])
+    gs = make_gs([mine, foe, make_gunship(player=2, x=150.0, y=-150.0)])
     gs.add_ordnance(make_marker(id="t", ordnance_type="torpedo_standard", owner_player=2,
                                 x=30.0, y=0.0, heading=180.0, strength=6, speed=30.0))
     assert plasma_ordnance_vp((32.0, 0.0), gs, 1) > 0

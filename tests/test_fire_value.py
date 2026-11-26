@@ -3,12 +3,12 @@
 hit puts fires out on 6s, each fire left burns a hit, which costs a die."""
 import random
 
-from tests.conftest import make_gs, make_ship
+from tests.conftest import make_gunship, make_gs, make_ship
 from src.ai_hazards import fire_burn_dist, fire_value, FIRE_HORIZON
 
 
 def _ship(hits, fires=0, **kw):
-    s = make_ship(id="t", player=1, ship_type="cruiser", hits_max=8, **kw)
+    s = make_ship(id="t", player=1, ship_type="cruiser", hits_max=8, points_value=200, **kw)
     s.hits_remaining = hits
     s.critical_damage = [{"crit_type": "fire", "repairable": True}] * fires
     return s
@@ -29,7 +29,7 @@ def _mc(hits, fires, phases, n=40000, seed=1):
 
 
 def test_burn_matches_simulation():
-    gs = make_gs([_ship(4)])
+    gs = make_gs([_ship(4), make_gunship(player=2, x=40.0, y=0.0)])
     for hits, fires in ((8, 1), (4, 1), (4, 2)):
         d = fire_burn_dist(_ship(hits), gs, fires)
         exact = sum(k * p for k, p in d.items())
@@ -38,7 +38,7 @@ def test_burn_matches_simulation():
 
 
 def test_fire_worth_more_on_damaged_and_burning_ships():
-    gs = make_gs([_ship(8)])
+    gs = make_gs([_ship(8), make_gunship(player=2, x=40.0, y=0.0)])
     fresh = fire_value(_ship(8), gs)
     hurt = fire_value(_ship(4), gs)
     burning = fire_value(_ship(4, fires=1), gs)
@@ -48,6 +48,6 @@ def test_fire_worth_more_on_damaged_and_burning_ships():
 def test_repairing_a_fire_valued_by_its_burn():
     from src.ai_hazards import repair_value
     s = _ship(4, fires=2)
-    gs = make_gs([s])
+    gs = make_gs([s, make_gunship(player=2, x=40.0, y=0.0)])
     assert repair_value(s, s.critical_damage[0], gs) > repair_value(_ship(8, fires=1),
                                                                     {"crit_type": "fire"}, gs)

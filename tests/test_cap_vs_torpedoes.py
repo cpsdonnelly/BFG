@@ -1,7 +1,7 @@
 """Owner: a CAP fighter removes a whole torpedo salvo but only one squadron
 of a wave, so craft go in first ahead of a big salvo, and a small salvo can
 draw the CAP off a wave (s.19, s.26)."""
-from tests.conftest import make_ship, make_gs, make_marker, DiceStub
+from tests.conftest import make_gunship, make_ship, make_gs, make_marker, DiceStub
 from src.ai_player import AIPlayer
 from src.turn_controller import TurnController
 from src.fleet_loader import load_fleet_file, fleet_to_ships
@@ -12,7 +12,9 @@ def _setup(cap=1):
     lunar = next(s for s in gothic if "Lunar" in s.ship_class)
     lunar.x, lunar.y, lunar.leadership = 50.0, 50.0, 8
     me = make_ship(id="me", player=1, x=50.0, y=20.0, heading=90.0)
-    gs = make_gs([me, lunar])
+    # our guns within reach of the Lunar: hull hits short of a kill are worth
+    # the chance they are finished later (ai_hazards.hits_vp)
+    gs = make_gs([me, lunar, make_gunship(player=1, x=20.0, y=50.0)])
     for i in range(cap):
         gs.add_ordnance(make_marker(id=f"cap{i}", ordnance_type="fighter", owner_player=2,
                                     x=50.0, y=50.0, cap_ship_id=lunar.id, strength=1))

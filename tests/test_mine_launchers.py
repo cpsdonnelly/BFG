@@ -74,7 +74,7 @@ def test_ai_lays_mines_when_an_enemy_is_in_reach():
     ai._launch_ship_ordnance(gs.get_ship_by_id("m"))
     assert not gs.ordnance
     # ... one coming towards the layer is
-    near = make_ship(id="e", player=2, x=40.0, y=0.0, heading=180.0, speed=20)
+    near = make_ship(id="e", player=2, x=40.0, y=0.0, heading=180.0, speed=20, points_value=150)
     gs = make_gs([make_ship(id="m", player=1, weapons=[dict(MINES)]), near])
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
     ai._launch_ship_ordnance(gs.get_ship_by_id("m"))

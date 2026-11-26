@@ -19,7 +19,9 @@ effects measured on a copy of the ship (`hit_and_run.crit_effect_value`, exact r
 `p_system_down`), re-roll values computed per test from exact volley distributions
 (`ai_hazards.weapon_hit_pmf` / `volley_hull_pmf` / `hits_vp`), mines followed to contact
 (`ai_hazards.mine_value`), Burn Retros' exact cost; a recursion found and cut
-(`plasma_ordnance_vp`). Open: the owner's four must-fixes (CLAUDE.md To do 33: a
+(`plasma_ordnance_vp`). Since (owner: "do the fix first, then the planner"): the
+hull-hit scale (`ai_hazards.hits_vp`: thresholds and the finishing chance over the rest of
+the game; CLAUDE.md session status). Next: the planner (To do 34). Open: the owner's four must-fixes (CLAUDE.md To do 33: a
 commander re-roll in the pass chance, Brace's forbidden orders, the boarding crit's flat
 value, enemy raids on Dark Eldar ships at 0), the remaining guessed values (the largest the
 hull-hit scale), strategy candidates for every ship (To do 34, owner), the commander

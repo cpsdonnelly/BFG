@@ -1,6 +1,6 @@
 """Dark Eldar, slice 3 (CLAUDE.md To do 19): slave-taking, Insatiable Greed,
 Impalers, Pain Frenzy; and the spectator mode's per-player AI difficulty."""
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_gunship, make_ship, make_gs, DiceStub
 from src.models import OrdnanceMarker, OrdnanceType
 from src.dark_eldar import take_slaves, resolve_impaler, boarding_slave_vp
 from src.victory_points import calculate_victory_points
@@ -199,7 +199,9 @@ def test_impaler_choice_by_expected_vp():
                         weapons=[{"name": "Port", "weapon_type": "battery", "strength": 6,
                                   "range_cm": 30, "arcs": ["left"]}])
     escort = make_ship(id="e", player=1, ship_type="escort", hits_max=1, points_value=35)
-    gs = make_gs([cruiser, escort])
+    # the raider's guns elsewhere: damage short of a kill is worth the chance
+    # it is finished later (ai_hazards.hits_vp)
+    gs = make_gs([cruiser, escort, make_gunship(player=2)])
     for t in (gs.get_ship_by_id("c"), gs.get_ship_by_id("e")):
         v = impaler_effect_values(rules, t, gs, 2)
         assert v["raids"] > 0 and v["crit"] > 0

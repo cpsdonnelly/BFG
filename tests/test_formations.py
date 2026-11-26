@@ -2,7 +2,7 @@
 contact (their ordnance combines and meets the turrets once), gun escorts
 don't; group size and deployment follow the same value."""
 import random
-from tests.conftest import make_ship, make_gs
+from tests.conftest import make_gunship, make_ship, make_gs
 from src.formations import survivors, combine_gain, needs_contact, load
 
 IMPALER = {"name": "Impaler", "weapon_type": "launch_bay", "strength": 1,
@@ -80,7 +80,7 @@ def test_incubi_and_wych_raise_raid_values():
     lunar = next(s for s in gothic if "Lunar" in s.ship_class)
     lunar.x = lunar.y = 50.0
     lunar.leadership = 8
-    gs = make_gs([lunar, make_ship(id="d", player=2)])
+    gs = make_gs([lunar, make_ship(id="d", player=2), make_gunship(player=2)])
     t = gs.get_ship_by_id(lunar.id)
     base = raid_value(["dark_eldar"], t, gs, 2)
     assert raid_value(["dark_eldar", "incubi"], t, gs, 2) > base

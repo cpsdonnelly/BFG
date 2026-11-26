@@ -1,5 +1,5 @@
 """Torpedo bombers (s.21) and Tiger Sharks (owner ruling), To do 3."""
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_gunship, make_ship, make_gs, DiceStub
 from src.ship_catalog import find_ship_class
 from src.models import Ship, OrdnanceMarker
 from src.ordnance import (launch_attack_craft, torpedo_bomber_groups, fire_torpedo_bombers,
@@ -192,7 +192,11 @@ def test_ai_torpedo_bombers_retarget_when_their_target_is_gone():
                      hits_max=1, turrets=1)
     dear = make_ship(id="dear", player=2, x=45.0, y=0.0, points_value=300, turrets=1)
     dead = make_ship(id="dead", player=2, x=10.0, y=0.0, status="destroyed")
-    gs = make_gs([make_ship(id="cv", player=1, x=-50.0), near, dear, dead])
+    # our guns within reach of the dear ship: its hits short of a kill are worth
+    # the chance they finish it (ai_hazards.hits_vp)
+    gs = make_gs([make_ship(id="cv", player=1, x=-50.0), near, dear, dead,
+                  make_gunship(player=1, x=45.0, y=40.0, id="g1"),
+                  make_gunship(player=1, x=55.0, y=40.0, id="g2")])
     gs.turn_number = 2
     for i in range(2):
         gs.add_ordnance(OrdnanceMarker(

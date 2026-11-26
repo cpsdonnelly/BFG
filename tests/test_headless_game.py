@@ -142,7 +142,7 @@ BOARDERS = ((1, ["Strike Cruiser", "Strike Cruiser"], 45.0),
 
 
 def _boarders_gs(save):
-    gs = GameState(game_name="headless", game_seed=44)
+    gs = GameState(game_name="headless", game_seed=12)
     gs.table_width, gs.table_height, gs.dice_mode, gs.turn_limit = 120.0, 90.0, "auto", 6
     gs.rule_boarding = gs.rule_teleport = gs.rule_hit_and_run = gs.rule_ramming = True
     for p, names, x in BOARDERS:
@@ -161,7 +161,7 @@ def test_every_phase_replays_from_the_recorded_actions(tmp_path):
     def state(gs):
         return json.dumps({"ships": gs.ships, "ordnance": gs.ordnance,
                            "bm": gs.blast_markers}, sort_keys=True, default=str)
-    set_source(DiceSource(44, record=True))
+    set_source(DiceSource(12, record=True))
     recorder.start_recording()
     gs, tc = _boarders_gs(str(tmp_path / "a"))
     HeadlessGame(tc).play(timeout=180)

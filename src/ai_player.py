@@ -85,25 +85,21 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
     by their certainty equivalents (To do 2: ahead, a ship braces more readily,
     as a brace narrows the spread; behind, less). Pass chance: the command
     check, by the engine's rule (movement.command_check_ld)."""
-    from .ai_hazards import (p_sum_at_most, ship_value, ship_threat_vp,
+    from .ai_hazards import (p_sum_at_most, ship_threat_vp,
                              certainty_equivalent, poisson_pmf)
     from .geometry import count_blast_markers_touching
     hull = _brace_hull_hits(gs, target, incoming_hits, attacker)
     if hull <= 0:
         return 0.0
-    v = ship_value(target, gs)
     threat = ship_threat_vp(target, gs)
     rem = max(1, target.hits_remaining)
-    to_cripple = rem - target.hits_max // 2
-    vph = v / max(1, target.hits_max)
+    from .ai_hazards import hits_vp
 
     def loss(k):
-        if k >= rem:
-            return v + (threat * (2.0 if target.is_crippled else 1.0))
-        out = 0.2 * vph * k
-        if not target.is_crippled and to_cripple > 0 and k >= to_cripple:
-            out += 0.25 * v + 0.5 * threat
-        return out
+        # k hull hits on the hull-hit scale (ai_hazards.hits_vp: the
+        # thresholds they cross, its fire lost, its explosion, and what they
+        # add to the chance the enemy finishes it later; it was a flat 0.2 a hit)
+        return hits_vp(target, gs, min(k, rem))
 
     def dist(mean):
         kmax = rem + 1

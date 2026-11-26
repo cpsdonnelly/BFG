@@ -661,6 +661,39 @@ ordnance sweep 5579 cases pass):
     the same (it was half a hit a launcher). A receding enemy 40cm off is never caught.
   - Found on the way: a recursion (a crit's extra damage -> an explosion -> the ordnance it
     sweeps -> an Impaler's crit), cut in `plasma_ordnance_vp` (not re-entered).
+- The hull-hit scale (owner: "do the fix first", To do 33's largest item), built: a hull
+  hit short of a cripple or kill is worth what it adds to the chance the enemy's fire
+  cripples or destroys the ship by the end of the game (s.38 scores nothing until a
+  threshold), the rule escorts already used. `ai_hazards.hits_vp(target, gs, k)`: the
+  thresholds k hits cross now (destroyed: value, kill bonus, its fire, its explosion;
+  crippled: a quarter and half its fire) plus `_future_loss` at `_future_fire` (next turn
+  the fire that can reach it, `_fire_on`; later turns, to the turn limit or `FUTURE_TURNS`
+  6, its share of the enemy fleet's guns, torpedoes and bays at `AIR_THREAT_WEIGHT`;
+  undiscounted, VP are scored at the end). `value_per_hit` is now one hit's `hits_vp`
+  (the shared value `static_value_per_hit` only inside its own computation);
+  `damage_vp` is the Poisson count over `hits_vp`; `hull_hits_vp` lost its 0.8 share a
+  hit (it is `added_vp`); explosions, the enemy fire plan, Brace's losses, bomber
+  squadrons (exact binomial over the D6 of attacks), fires (exact burn totals; they were
+  valued as Poisson means) and crits' extra damage (exact, D3 / D6 too) all on it; the
+  move hazard's x1.5 / x2.5 weights and "half a hit a shield down" replaced (hull hits,
+  and the enemy fire past the lowered shields); shot_vp's 0.1 share for hits on shields
+  and "a crit ~ a hit" (`critical_hit_value` now) gone; the `max(1.0, vph)` floors gone
+  from the value functions. The enemy fire plan values its shots with the future starting
+  the turn after them (`_NEXT_TURN_GUARD`, they'd be counted twice), and a mount that
+  bears fires even when nothing is gained (ties by hits). Loops cut: a ship's threat
+  isn't re-entered (`_THREAT_GUARD`), nor a death explosion inside another
+  (`_BOOM_GUARD`). Caches: `hits_vp` / `damage_vp` / explosions by `_state_stamp`
+  (worked out once per set of stored ship records, `update_ship` replaces a record);
+  an easy-AI movement phase 14.8s against 12.3s before (the normal AI's search has a
+  time budget, so slower values would have cut its lines and broken replays: checked,
+  seeded games replay exactly). Consequences, all by the rules: damage on a ship nothing
+  can follow up is worth little (a 12-hit, 4-shield Emperor facing two gunships barely
+  cares about a 1.2-hit salvo), a ship doomed anyway gains little from protection, the
+  last turn's sub-threshold damage is worth less. Tests whose scenes had no guns or no
+  points (they relied on the old floors) got a distant gunship (`conftest.make_gunship`)
+  or points. Still on the old unit: the move score's firepower units, converted with
+  `FP_HITS * max(1.0, value_per_hit(...))` in `ai_player` (about 25 places); the planner
+  (To do 34) replaces that unit with VP.
 - Still open from this period (owner: must be fixed, To do 33): a commander re-roll's lift
   to the pass chance; Brace not counting the orders it forbids next turn; a boarding crit at a
   flat hit; enemy raids on Dark Eldar ships valued at 0; and the other guessed values there; Dark Eldar flanking is planned one turn ahead (the normal AI; the expert
@@ -1041,9 +1074,10 @@ p.82, `waves.wave_split_value`); of the s.40 effects the AI counts only Fighting
 shifts (through `get_column_shifts`), not flares / bursts (check their flags when it does).
 
 Values:
-- Two VP scales: gunnery `damage_vp` (s.38 thresholds + 0.2 x points / starting hits per hit; checked) for choosing gun / torpedo
-  targets; `hull_hits_vp` (full value per hit + thresholds, the raid scale) wherever bomber hits
-  are compared with raids. Ordnance never loses hits to shields (s.11 / s.15).
+- One hull-hit scale (owner, To do 33): `hits_vp` (the thresholds hits cross now and what
+  they add to the chance the enemy's fire cripples / destroys the ship by the end of the
+  game), `damage_vp` its Poisson count, `hull_hits_vp` the same for ordnance (no shields),
+  `value_per_hit` one hit's worth. Ordnance never loses hits to shields (s.11 / s.15).
 - `damage_vp` adds the threat removed (owner): a kill removes the target's next turn of fire
   (`ship_threat_vp`), a cripple halves it; and a kill may explode (`death_explosion_vp`,
   Catastrophic Damage 9-11 plasma / 12 warp, Mercury 3D6, escorts never), good near enemies,
@@ -3819,15 +3853,16 @@ Done: To do 2, 3, 6; most of 7.
    (engine: `combat.add_thrusters_crits`; AI: the effect only, `crit_effect_value` over
    `torpedo_salvo_pmf`; tests `test_dark_eldar_catalog.py`,
    `test_ai_de_movement_torps.py`).
-   Still guessed, to replace:
-   - A hull hit's value short of a kill or cripple: `hull_hits_vp` gives 0.8 x the ship's
-     value a hit and `damage_vp` 0.2 (s.38 scores nothing until a threshold): should be what
-     the hit adds to the chance it is crippled / destroyed later, as escorts already are
-     (`escort_hits_vp`, `finish_chance`). It is the scale raids, bombers and crits are
-     compared on, so every one of those values moves with it (the largest item).
-   - `brace_value`'s loss terms (0.2 a hit, Poisson counts; exact counts are To do 30);
+   Done since: the hull-hit scale (see the session status), Brace's loss terms on it,
+   `CRIT_VP_PER_HIT` gone. Still guessed, to replace:
+   - The move score's firepower unit and its `max(1.0, value_per_hit)` floors (the
+     planner's VP evaluation replaces them, To do 34); `formations.turret_value`'s "half a
+     chance a threat"; the fire guard's fallback (half a hit, inside a nested fire value);
+     the escort finishing chance still one turn (`finish_chance`), capital ships now the
+     rest of the game.
+   - Poisson counts in `damage_vp` (exact counts are To do 30);
      `boarding_vp`'s crit at a flat hit (Pain Frenzy's re-roll, the Haemonculi Fire not in
-     it); `CRIT_VP_PER_HIT` 1.0 (bombardment cannon crits: `critical_hit_value` exists);
+     it);
      `marker_hits`' boarding torpedoes at half a hit a hit (`raid_squadron_value` exists) and
      torpedo bomber salvos' shared turret kills; `_THREAT_PER_DIE` torpedo 0.3 and the move
      score's `TORPEDO_FP_EQUIV` (`torpedo_salvo_pmf` exists); `lost_ship_vp`'s 0.1 for an

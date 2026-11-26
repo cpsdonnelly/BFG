@@ -126,3 +126,18 @@ def make_blast(x: float = 0.0, y: float = 0.0, heading: float = 0.0,
 @pytest.fixture
 def ship():
     return make_ship()
+
+
+GUNSHIP_GUNS = [{"name": "Batteries", "weapon_type": "battery", "range_cm": 30, "strength": 12,
+                 "arcs": ["left", "front", "right", "rear"]}]
+
+
+def make_gunship(player: int = 2, x: float = 150.0, y: float = 150.0, **kw) -> Ship:
+    """An enemy ship with guns, out of the way: hull hits short of a cripple or
+    kill are worth what they add to the chance the enemy's fire finishes the
+    ship later (ai_hazards.hits_vp), so a scene with no enemy guns at all
+    values such hits at nothing (s.38 scores nothing until a threshold)."""
+    base = dict(id=f"gun{player}", player=player, x=x, y=y, points_value=150, hits_max=8,
+                weapons=[dict(w) for w in GUNSHIP_GUNS])
+    base.update(kw)
+    return make_ship(**base)

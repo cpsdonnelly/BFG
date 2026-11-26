@@ -1,6 +1,6 @@
 """Wings of Fury re-rolls by expected value (owner guidance) and armament
 criticals silencing weapons for the AI."""
-from tests.conftest import make_ship, make_gs
+from tests.conftest import make_gunship, make_ship, make_gs
 from src.hit_and_run import best_raid_reroll, raid_result_value, raid_crit_preview
 from src.combat import weapon_disabled_by_crit
 
@@ -20,7 +20,9 @@ def _setup(friend_xy=(0.0, 20.0), weapons=None):
     target = make_ship(id="t", player=2, points_value=180,
                        weapons=weapons or [dict(PORT), dict(STBD), dict(PROW), dict(DORSAL)])
     friend = make_ship(id="f", player=1, points_value=200, x=friend_xy[0], y=friend_xy[1])
-    return target, make_gs([target, friend])
+    # guns of ours far off: the target's damage short of a kill is worth the
+    # chance they finish it later (ai_hazards.hits_vp)
+    return target, make_gs([target, friend, make_gunship(player=1, x=-150.0, y=-150.0)])
 
 
 def test_escorts_space_marines_reroll_1_and_2_only():
@@ -38,7 +40,9 @@ def test_armament_crit_valued_by_what_bears_on_friends():
     stbd = raid_result_value(3, target, gs, 1)
     assert port > 0 and stbd == 0
     assert best_raid_reroll(3, 3, target, gs, 1) is True      # starboard faces nothing
-    assert best_raid_reroll(4, 4, target, gs, 1) is False     # port bears on the friend
+    # port bears on the friend: kept only if worth more than a fresh die
+    fresh = sum(raid_result_value(r, target, gs, 1) for r in range(1, 7)) / 6.0
+    assert best_raid_reroll(4, 4, target, gs, 1) is (fresh > port)
 
 
 def test_engine_room_kept_and_ablative_prow_rerolled():

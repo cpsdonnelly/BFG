@@ -1,4 +1,5 @@
 """Waves of attack craft (core rules s.25; s.23, s.24, s.27 in waves)."""
+from tests.conftest import make_gunship
 from tests.conftest import make_gs, make_marker, DiceStub
 from src.models import OrdnanceMarker, OrdnanceType
 from src.waves import (form_wave, members, is_lead, wave_speed, split_from_wave,
@@ -198,8 +199,12 @@ def _ai_launch(turrets, enemy_ord=False):
     d.update(x=0.0, y=0.0, heading=0.0, leadership=8)
     emp = Ship.from_dict(d)
     tgt = make_ship(id="t", player=2, x=60.0, y=0.0, turrets=turrets, armor_side="5+",
-                    armor_prow="5+")
-    gs = make_gs([emp, tgt])
+                    armor_prow="5+", points_value=200)
+    # enemy guns elsewhere on the table: hits on our ships short of a kill are
+    # worth the chance they are finished later (ai_hazards.hits_vp)
+    foes = [make_gunship(player=2, x=20.0 + 5 * i, y=(35.0 if i % 2 else -35.0), id=f"g2{i}",
+                         turrets=5, armor_prow="6+", armor_side="6+") for i in range(6)]
+    gs = make_gs([emp, tgt, make_gunship(player=1, x=-150.0, id="g1")] + foes)
     gs.current_phase = "ordnance"
     if enemy_ord:
         gs.add_ordnance(make_marker(id="torp", ordnance_type="torpedo", owner_player=2,
@@ -309,15 +314,19 @@ def test_bombers_vs_assault_boats_owner_example():
     # 4 turrets, Armour 6+ all round, nothing of ours in reach (armament crits worth 0)
     t = make_ship(id="t", player=2, turrets=4, armor_prow="6+", armor_side="6+",
                   points_value=200, weapons=W)
-    gs = make_gs([t])
+    # our guns far off (out of reach of its weapons: armament crits still worth
+    # 0), so its damage short of a kill is worth the chance they finish it
+    gs = make_gs([t, make_gunship(player=1, x=-150.0, y=-150.0)])
     gs.rule_hit_and_run = True
-    vph = value_per_hit(t, gs)
-    assert abs(bomber_squadron_value(t, gs) - 0.5 * (1 / 6) * vph) < 1e-9     # 0.083 hits
-    # Engine Room (a 6): its extra hit on the hull-hit scale; no turns are
-    # worth nothing with no ship of ours on the table (crit_effect_value)
-    from src.ai_hazards import hull_hits_vp
-    assert abs(raid_squadron_value(t, gs, 1) - hull_hits_vp(t, gs, 0.0, 1) / 6) < 1e-9
-    assert best_attack_mode(t, gs, 1) == "assault_boat"
+    from src.ai_hazards import hits_vp
+    one = hits_vp(t, gs, 1)
+    # D6 - 4 attacks: one on a 5, two on a 6, each 6+ (1/6): 0.083 hits
+    want = (one * (1 / 6) + (2 * (1 / 6) * (5 / 6) * one + (1 / 36) * hits_vp(t, gs, 2))) / 6
+    assert abs(bomber_squadron_value(t, gs) - want) < 1e-9
+    # Engine Room (a 6): one extra hit; its "no turns" is worth nothing with
+    # none of our ships in its reach (crit_effect_value)
+    assert abs(raid_squadron_value(t, gs, 1) - one / 6) < 1e-9
+    assert best_attack_mode(t, gs, 1) == "assault_boat"       # 0.167 hits beat 0.083
 
 
 def test_bombers_beat_assault_boats_against_escorts():
@@ -348,7 +357,10 @@ def _carrier_launch(turrets, armour, x=60.0, boat_speed=30):
           "arcs": ["front"]}]
     t = make_ship(id="t", player=2, x=x, heading=180.0, turrets=turrets, armor_prow=armour,
                   armor_side=armour, points_value=200, weapons=W)
-    gs = make_gs([c, t])
+    # our guns in reach of the target too: its damage short of a kill is worth
+    # the chance they finish it (ai_hazards.hits_vp)
+    gs = make_gs([c, t, make_gunship(player=1, x=-150.0, y=-150.0, id="g1"),
+                  make_gunship(player=1, x=-140.0, y=-150.0, id="g2")])
     gs.rule_hit_and_run = True
     gs.current_phase = "ordnance"
     dice = DiceStub([])
@@ -382,7 +394,8 @@ def test_ai_many_threats_go_to_cap():
     d = find_ship_class("Dictator Class Cruiser").to_ship_dict("D", 1, ship_id="d")
     d.update(x=0.0, y=0.0, heading=0.0, leadership=8)
     gs = make_gs([Ship.from_dict(d),
-                  make_ship(id="t", player=2, x=80.0, turrets=4, points_value=150)])
+                  make_ship(id="t", player=2, x=80.0, turrets=4, points_value=150),
+                  make_gunship(player=2)])
     gs.current_phase = "ordnance"
     for i in range(4):
         gs.add_ordnance(make_marker(id=f"m{i}", ordnance_type="torpedo", owner_player=2,
@@ -409,7 +422,11 @@ def test_bombers_always_use_lowest_armour():
                   armor_side="6+", armor_rear="4+", points_value=160)
     gs = make_gs([s])
     assert wave_plan_inputs(s, gs)["armour"] == 4
-    assert abs(bomber_squadron_value(s, gs) - 3.5 * 0.5 * value_per_hit(s, gs)) < 1e-9
+    # D6 attacks, each on the rear's 4+ (p = 1/2), each count of hits by its value
+    from src.ai_hazards import hits_vp, binomial_pmf
+    want = sum(sum(q * hits_vp(s, gs, k) for k, q in enumerate(binomial_pmf(a, 0.5)))
+               for a in range(1, 7)) / 6.0
+    assert abs(bomber_squadron_value(s, gs) - want) < 1e-9
     b = make_marker(id="b", ordnance_type="bomber", owner_player=2, x=5.0, y=0.0, speed=20)
     h, _ = marker_hits(s, b, (0.0, 0.0), [(0.0, 0.0)], [s])     # from the prow (6+)
     assert abs(h - 3.5 * 0.5) < 1e-9                            # but hits the rear's 4+
@@ -427,7 +444,9 @@ def _two_carrier_launch(x2, y2):
         d.update(x=x, y=y, heading=0.0, leadership=8)
         ships.append(Ship.from_dict(d))
     ships.append(make_ship(id="t", player=2, x=60.0, y=0.0, turrets=4, armor_side="5+",
-                           armor_prow="5+"))
+                           armor_prow="5+", points_value=200))
+    ships += [make_gunship(player=2, x=20.0 + 5 * i, y=(35.0 if i % 2 else -35.0), id=f"g2{i}",
+                           turrets=5, armor_prow="6+", armor_side="6+") for i in range(6)]
     gs = make_gs(ships)
     gs.current_phase = "ordnance"
     gs.add_ordnance(make_marker(id="torp", ordnance_type="torpedo", owner_player=2,

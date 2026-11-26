@@ -454,18 +454,17 @@ def bomber_squadron_value(target, gs, suppressed: bool = False) -> float:
     attacks less one per turret (the ship's own, not massed; exactly 3 when a
     fighter suppresses), each hitting on its lowest Armour."""
     from .ordnance import ordnance_turrets
-    from .ai_hazards import value_per_hit, ship_value
+    from .ai_hazards import hits_vp, binomial_pmf
     t = ordnance_turrets(target, gs)
     p_hit = max(1, 7 - target.lowest_armor_value) / 6.0
     counts = [3] if suppressed else [max(0, k - t) for k in range(1, 7)]
     if "mucous_membrane" in target.special_rules:
         counts = [max(0, c - 1) for c in counts]    # Tyranid Mucous Membrane
-    if target.hits_remaining <= 1:
-        # one hit destroys it: worth the ship once, whatever the number of hits
-        p_any = sum(1 - (1 - p_hit) ** a for a in counts) / len(counts)
-        return p_any * ship_value(target, gs)
-    attacks = sum(counts) / len(counts)
-    return attacks * p_hit * max(1.0, value_per_hit(target, gs))
+    # each D6 of attacks, each count of hits by its value (ai_hazards.hits_vp:
+    # thresholds and the finishing chance; ordnance ignores shields)
+    rem = max(1, target.hits_remaining)
+    return sum(sum(q * hits_vp(target, gs, min(k, rem)) for k, q in enumerate(binomial_pmf(a, p_hit)))
+               for a in counts) / len(counts)
 
 
 def raid_squadron_value(target, gs, owner: int, rules=None, end_phases: int = None,

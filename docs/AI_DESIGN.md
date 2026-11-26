@@ -319,6 +319,18 @@ braced ship can't take.
 
 ---
 
+### What a hit is worth (Built, owner: "s.38 scores nothing until a threshold")
+
+A hull hit that doesn't cripple or destroy a ship scores nothing by itself. It is worth what
+it adds to the chance the ship is crippled or destroyed by the end of the game. That chance
+comes from the enemy's fire on it: next turn the guns that can reach it, later turns its
+share of the enemy fleet's guns, torpedoes and bays, to the turn limit (or six turns),
+undiscounted, since VP are scored at the end. Hits that cross a threshold now also count
+the ship's value, its fire removed and its explosion. Every value in hits uses this: gunnery
+targets, bombers and raids, crits' extra damage, fires, explosions, Brace and the enemy's
+fire plan. So damage nothing can follow up is worth little, and a doomed ship gains little
+from protection. Before, every hit counted a flat share of the ship's value.
+
 ### Critical hits and re-rolls, measured (Built)
 
 Owner: no guessed shares where the rules give an answer.

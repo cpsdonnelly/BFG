@@ -1,6 +1,6 @@
 """Critical hits valued by their effect on the ship, measured, not a share of
 its value (owner: "bad and lazy" judgement calls): hit_and_run.crit_effect_value."""
-from tests.conftest import make_ship, make_gs
+from tests.conftest import make_gunship, make_ship, make_gs
 from src.hit_and_run import crit_effect_value, crit_type_value
 
 BAT = {"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 8,
@@ -12,7 +12,10 @@ def _gs(dist=45.0, our_guns=True):
                        shields_max=2, points_value=200, weapons=[dict(BAT)])
     ours = make_ship(id="o", player=1, x=dist, y=0.0, heading=180.0, speed=20, hits_max=8,
                      points_value=200, weapons=[dict(BAT)] if our_guns else [])
-    return target, make_gs([target, ours])
+    # more of our guns within reach: the target's damage short of a kill is
+    # worth the chance it is finished (ai_hazards.hits_vp)
+    return target, make_gs([target, ours] + ([make_gunship(player=1, x=dist, y=12.0, heading=180.0,
+                                                           id="g1")] if our_guns else []))
 
 
 def test_effects_worth_nothing_with_no_enemy_on_the_table():
@@ -47,7 +50,7 @@ def test_several_thruster_hits_keep_the_system_down_until_all_are_repaired():
     hurt = make_ship(id="t", player=2, x=0.0, y=0.0, heading=0.0, speed=20, hits_max=8,
                      shields_max=2, points_value=200, weapons=[dict(BAT)],
                      critical_damage=[{"crit_type": "thrusters_damaged", "repairable": True}])
-    gs2 = make_gs([hurt, gs.get_ship_by_id("o")])
+    gs2 = make_gs([hurt, gs.get_ship_by_id("o"), gs.get_ship_by_id("g1")])
     second = crit_effect_value(hurt, "thrusters_damaged", gs2, 1)
     assert 0 < first < two
     assert abs(second - (two - first)) < 0.01      # (phases under 0.5% are skipped)
@@ -61,8 +64,8 @@ def test_shields_collapse_worth_our_fire_past_the_shields():
 
 
 def test_extra_damage_on_the_hull_hit_scale_and_effect_added():
-    from src.ai_hazards import hull_hits_vp
+    from src.ai_hazards import hits_vp
     target, gs = _gs(45.0)
     v = crit_type_value("thrusters_damaged", target, gs, 1)
     eff = crit_effect_value(target, "thrusters_damaged", gs, 1)
-    assert abs(v - (hull_hits_vp(target, gs, 0.0, 1) + eff)) < 1e-9
+    assert abs(v - (hits_vp(target, gs, 1) + eff)) < 1e-9      # exactly one extra hit

@@ -389,7 +389,7 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     the target's own turn; in arc now, or after one turn at 0.75). A location
     threatening no allied ship then is worth nothing, so Wings of Fury re-rolls
     it. Weapons already knocked out count nothing."""
-    from .ai_hazards import value_per_hit, phase_weight
+    from .ai_hazards import phase_weight, added_vp
     from .combat import weapon_in_crit_slot, weapon_disabled_by_crit
     friends = [f for f in gs.get_ships() if f.player == owner and not f.is_destroyed
                and not f.is_disengaged]
@@ -426,7 +426,7 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
                         h = _gun_hits(target, w, f)
                     else:
                         h = st * _THREAT_PER_DIE[w["weapon_type"]]
-                    best = max(best, wt * h * max(1.0, value_per_hit(f, gs)))
+                    best = max(best, wt * added_vp(f, gs, 0.0, h))
             threat += best
         total += phase_weight(2 * j) * p_left * threat
     return total
@@ -464,14 +464,14 @@ def _exchange(target: Ship, gs: GameState, owner: int, j: int, phases: int,
     copy carrying a crit shows that crit's effect.
     - attack: it closes (its move towards each of our ships, all of it if it can
       turn, else the part along its heading) and so do we; its guns' reach is
-      both moves; ours on it the same with its undamaged move (we close the gap
-      it no longer can);
-    - evade: it runs (away from each ship, as above), our ships chase; both
-      reaches our move less its.
+      both moves before its shot; ours on it, in our shooting phase after our
+      move, its undamaged move plus ours (we close the gap it no longer can);
+    - evade: it runs (away from each ship, as above), our ships chase; its
+      reach our moves before its shot less its, ours our moves less its.
     Its fire: each weapon at the most valuable of our ships it bears on (the
     armament model, `armament_threat_value`); ours: every battery / lance that
     bears, past its shields (`past_shields`), at its value a hit."""
-    from .ai_hazards import value_per_hit, _gun_hits, past_shields
+    from .ai_hazards import _gun_hits, past_shields, added_vp, damage_vp
     from .combat import weapon_disabled_by_crit
     from .movement import get_max_turns
     friends = [f for f in gs.get_ships() if f.player == owner and not f.is_destroyed
@@ -481,7 +481,6 @@ def _exchange(target: Ship, gs: GameState, owner: int, j: int, phases: int,
     can_turn = get_max_turns("", target) > 0
     t_move = (target.effective_speed or 0) * (j + 1)
     t_ref = ref_speed * (j + 1)
-    vph_t = max(1.0, value_per_hit(target, gs))
     shields = target.effective_shields
     weapons = [w for w in target.weapons if w.get("weapon_type") in _THREAT_PER_DIE
                and not weapon_disabled_by_crit(target, w)]
@@ -512,7 +511,7 @@ def _exchange(target: Ship, gs: GameState, owner: int, j: int, phases: int,
                     if target.is_crippled:
                         st = target.crippled_value(st)
                     h = st * _THREAT_PER_DIE[w["weapon_type"]]
-                best = max(best, wt * h * max(1.0, value_per_hit(f, gs)))
+                best = max(best, wt * added_vp(f, gs, 0.0, h))
             tot += best
         return tot
 
@@ -526,12 +525,16 @@ def _exchange(target: Ship, gs: GameState, owner: int, j: int, phases: int,
                 wt = _bears_mobility(f, w, target, r, get_max_turns("", f) > 0)
                 if wt:
                     lam += wt * _gun_hits(f, w, target)
-        return past_shields(lam, shields) * vph_t
+        return damage_vp(target, gs, past_shields(lam, shields))
 
+    # our fire on it comes in our shooting phase, after our own move: one more
+    # of our moves than its shot (j + 1 of each side's moves by then)
+    def our_move(f):
+        return (f.speed or 0) * (j + 1)
     a_threat = threat(lambda f: along(f, 1) + f_move(f))
-    a_fire = our_fire(lambda f: t_ref + f_move(f))
+    a_fire = our_fire(lambda f: t_ref + our_move(f))
     e_threat = threat(lambda f: f_move(f) - along(f, -1))
-    e_fire = our_fire(lambda f: f_move(f) - along(f, -1))
+    e_fire = our_fire(lambda f: our_move(f) - along(f, -1))
     if a_threat - a_fire >= e_threat - e_fire:
         return a_threat - a_fire, a_threat, a_fire
     return e_threat - e_fire, e_threat, e_fire
@@ -691,8 +694,14 @@ def crit_type_value(ct: str, target: Ship, gs: GameState, owner: int,
     extra = _CRIT_EXTRA.get(ct, 0.0)
     # its extra damage as hull hits, the destroy / cripple thresholds included
     # (it used to be a flat hit each plus half the ship "if it may finish it")
-    from .ai_hazards import hull_hits_vp
-    value = hull_hits_vp(target, gs, 0.0, extra) if extra else 0.0
+    from .ai_hazards import hits_vp
+    if ct == "bulkhead_collapse":
+        # D6 extra damage: each roll's exact total (_CRIT_EXTRA's 3.5 is its mean)
+        value = sum(hits_vp(target, gs, r) for r in range(1, 7)) / 6.0
+    elif ct == "hull_breach":
+        value = sum(hits_vp(target, gs, r) for r in range(1, 4)) / 3.0     # D3
+    else:
+        value = hits_vp(target, gs, int(round(extra))) if extra else 0.0
     if ct == "fire":
         # its burn over the end phases left, against the fires already
         # burning (ai_hazards.fire_value, exact)
