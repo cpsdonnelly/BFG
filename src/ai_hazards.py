@@ -1602,6 +1602,22 @@ def game_risk(gs, player: int):
     limit = getattr(gs, "turn_limit", None)
     if not limit:
         return None
+    # cached on the game state alone (table_key, plus what victory points
+    # read beyond the ships): every risk-adjusted value asks it, a Brace
+    # several times, and it sums both fleets' fire
+    key = (table_key(gs), player, repr(getattr(gs, "slave_vp", None)),
+           repr(getattr(gs, "kill_credit", None)))
+    cache = gs.__dict__.setdefault("_game_risk_cache", {})
+    if key in cache:
+        return cache[key]
+    if len(cache) > 500:
+        cache.clear()
+    val = _game_risk(gs, player, limit)
+    cache[key] = val
+    return val
+
+
+def _game_risk(gs, player: int, limit):
     from .victory_points import calculate_victory_points
     vp = calculate_victory_points(gs)
     enemy = 3 - player
