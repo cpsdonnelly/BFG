@@ -349,6 +349,15 @@ targets, bombers and raids, crits' extra damage, fires, explosions, Brace and th
 fire plan. So damage nothing can follow up is worth little, and a doomed ship gains little
 from protection. Before, every hit counted a flat share of the ship's value.
 
+This is a value, not a lookahead (owner question): no ship is moved and no turn played to
+work it out, so it is the same at every difficulty. The difficulty sets how many turns of
+moves the search plays out (section 10); the search's own leaf scores where those turns end
+with its simpler count (VP banked + one more turn's swing), not with this. Whether the
+weaker levels should use a shorter span is an open question for the owner. Is it better in
+play than the flat value? By the rules' reasoning yes (focus where a threshold can be
+reached, finish what can be finished, waste nothing on the last turn), but unproven: it
+would take about 100 paired games to tell, and the owner has pinned that as not worth it.
+
 ### Critical hits and re-rolls, measured (Built)
 
 Owner: no guessed shares where the rules give an answer.
@@ -472,21 +481,28 @@ Each ordnance phase the AI plans fighters across all its carriers:
   grid in crowded or hazard-dense fights or small reachable areas, exposure only on the best
   ~20, then the full fleet coordination pass (built: Armour-facing and rear-arc goals,
   hill-climbing, the support move order).
-- **Expert AI movement**: for each ship, up to 12 of the normal AI's candidates at the root
-  (best first), each followed by a
-  minimax search 5 turns deep that tries 6 variations of each side's moves per step and keeps
-  the best 4 (alpha-beta pruning), within 2 seconds per ship.
+- **Searched movement (normal and up)**: for each ship, up to 12 of the normal AI's
+  candidates at the root (best first) plus every strategy's first move (section 3,
+  Strategies), each followed by a minimax search (normal 2 turns, hard 3, expert 5, master
+  10) that tries a few variations of each side's moves per step and keeps the best few lines
+  (alpha-beta pruning), cut by a fixed number of simulated turns per decision (normal 450 up
+  to master 2800), so the same seed always gives the same game.
 
 ---
 
 ## 7. Thinking over several turns
 
-- **Normal AI** (Built): about one turn ahead, through: the enemy's next turn of fire
+- **Normal AI** (Built): its movement search plays out 2 turns (since the strategy
+  planner: every line is followed for the strategies' two turns, the second along one line);
+  its other choices look about one turn ahead, through: the enemy's next turn of fire
   (exposure, disengaging), the threat a kill removes, explosions before our next move, next
   turn's launch when holding bays, and ordnance planners looking two game turns (four ordnance
   phases) ahead with the time discount. Disengaging uses a one-turn horizon.
-- **Expert AI** (Built): simulates 5 turns of both sides moving and shooting, and stops at the
-  game's turn limit.
+- **Hard, expert, master** (Built): simulate 3, 5 and 10 turns of both sides moving and
+  shooting, and stop at the game's turn limit.
+- **Values that reach further than the search**: a hull hit's worth assumes the enemy keeps
+  firing to the turn limit or 6 turns (section 3, "What a hit is worth"); a formula, not
+  simulated turns.
 - **Built since**: the turn-limit risk preference (the expert's chance-of-winning score, and the
   normal AI's disengaging and re-rolls); crit values over up to 3 of the target's shooting
   phases and the turn limit; the risk preference in brace, strike choices and the guns a
@@ -592,7 +608,7 @@ the current AI, whose normal and expert players and weights stay as they are.
 
 ## 10. Very easy, easy, normal, hard, expert and master
 
-Easy plays exactly as normal, without the one-turn lookahead (owner). The table compares very
+Easy plays exactly as normal, without the movement search (owner). The table compares very
 easy with the rest.
 
 | | Very easy | Easy / Normal | Hard / Expert / Master |
@@ -602,7 +618,7 @@ easy with the rest.
 | Special orders | Lock On whenever an enemy is in arc and range now (no expected-VP check) | every order by pass-weighted expected VP, one pass chance from the engine's rule | as normal |
 | Ordnance | simple launches (its strike craft, at the nearest target) | full planner: CAP vs strikes, strikes on arrival, lanes, leading, co-ordination | as normal |
 | Squadron volleys, hulks, shooting ordnance, disengaging, explosions, screening | off | on | as normal |
-| Movement | the same candidates, scored on guns and hazards only (no exposure, focus, explosions or screening), picked by softmax (`EASY_TEMPERATURE` 2.0), not always the best | the move candidates scored greedily; normal adds a one-turn lookahead | hard 3 turns, expert 5, master 10 or to the game's end (owner) |
+| Movement | the same candidates, scored on guns and hazards only (no exposure, focus, explosions or screening), picked by softmax (`EASY_TEMPERATURE` 2.0), not always the best | the move candidates scored greedily; normal adds a 2-turn search with the strategies | hard 3 turns, expert 5, master 10 or to the game's end (owner) |
 
 Built for movement (To do 11 i): Very easy picks its move by a softmax on its move score, so its
 mistakes look human rather than random; not yet for its targets and orders, which are random /
@@ -622,7 +638,7 @@ blast markers, table edges and the sunward edge, solar flares / radiation bursts
 what it does to ships, never by where it lies, and trained on varied random set-ups (s.39).
 It replaces only the expert's leaf; the normal AI keeps its heuristics.
 
-Hard currently plays like Normal. The expert AI replaces only movement; its simulation is
+The searching levels replace only movement; its simulation is
 dice-free and leaves out attack craft, hazards and blast markers (only its first move pays for
 hazards), so its strength is long-range manoeuvre. Its other phases are the normal AI's.
 
@@ -710,7 +726,7 @@ finds degenerate strategies in the rules as well as in the AI.
 
 Possible gaps in this plan worth the owner's view: deployment strategy, damage-control choices,
 blast-marker removal, whether Hard should differ from Normal, and how much the expert AI should
-think (its 2 seconds per ship and its simplified simulation).
+think (its node budget per decision, ~1-8s a ship, and its simplified simulation).
 
 ---
 

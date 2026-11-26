@@ -2,7 +2,7 @@
 
 ## Status at a glance (latest; the dated sections below are history)
 
-Latest (details in CLAUDE.md "Session status", first block; 1886 tests, the sweep 5579
+Latest (details in CLAUDE.md "Session status", first block; 1902 tests, the sweep 5579
 cases): owner rulings (raid modifiers cancel; Come to New Heading never halves ordnance;
 Subjugation torpedoes are the Raider's; the AA round's default is Command, Movement,
 Shooting, Ordnance A, Ordnance B, End; shadowfield tracking marks can be turned off);
@@ -23,12 +23,19 @@ effects measured on a copy of the ship (`hit_and_run.crit_effect_value`, exact r
 hull-hit scale (`ai_hazards.hits_vp`: thresholds and the finishing chance over the rest of
 the game; CLAUDE.md session status), then the planner's first slice (To do 34:
 `src/strategies.py`, strategy roots followed for two turns in the search, a deterministic
-node budget). Open: the owner's four must-fixes (CLAUDE.md To do 33: a
-commander re-roll in the pass chance, Brace's forbidden orders, the boarding crit's flat
-value, enemy raids on Dark Eldar ships at 0), the remaining guessed values (the largest the
-hull-hit scale), strategy candidates for every ship (To do 34, owner), the commander
-re-roll in the pass chance, Brace's lost orders. Next: the agreed order (To do 22, team
-play) when the owner says.
+node budget). Games: the hull-hit scale 742-126 and 438-111 (Gothic over Dark Eldar), the
+planner 262-105 (Gothic) and 165-342 (Dark Eldar), all replayed exactly; normal ~136s a
+game now. Owner questions answered this session: search depth vs the value horizon (the
+depth is turns of moves played out; a hit's value is a formula assuming enemy fire to the
+turn limit or 6 turns, the same at every level; CLAUDE.md "AI difficulty"); whether the
+new scale is better than the old flat value (better by the rules' reasoning, not proven in
+play: ~100 paired games, not 3; owner: pinned, not worth it now). Open: whether the value
+horizon should shrink with the difficulty (CLAUDE.md Open questions 2, unanswered); the
+owner's four must-fixes (CLAUDE.md To do 33: a commander re-roll in the pass chance,
+Brace's forbidden orders, the boarding crit's flat value, enemy raids on Dark Eldar ships
+at 0); the remaining guessed values (To do 33); the planner's follow-ups (To do 34: easy
+AI, squadron headings, plans carried between turns, the move score's firepower units in
+VP). Next: when the owner says (the must-fixes, the planner, or the agreed order).
 
 Earlier: Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
 Impaler and slave-taking rulings, escort values by squadron, critical checks on every point
@@ -374,8 +381,8 @@ session.
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
 does, with the judgement weights to tune; its first part, "Fleet strategy", lists the owner's
-matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-14), "Open questions"
-(none open now) and every owner ruling. `docs/AI_DESIGN.md` describes the whole AI,
+matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-34), "Open questions"
+(two open) and every owner ruling. `docs/AI_DESIGN.md` describes the whole AI,
 built and planned, in plain language (keep it in step with CLAUDE.md). This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 

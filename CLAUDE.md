@@ -241,8 +241,9 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   time ordnance moves; without one it carries straight on. Players set targets with "Attack
   Craft Orders"; the AI re-targets its craft each ordnance phase.
 
-- **AI difficulty (owner):** very easy and easy look 0 turns ahead (no search), normal 1,
-  hard 3, expert 5, master 10 or to the end of the game, whichever is shorter. Easy plays for
+- **AI difficulty (owner):** very easy and easy look 0 turns ahead (no search), normal 1
+  (now 2 along one line: every root line is judged over the strategies' `PLAN_TURNS` 2, To
+  do 34), hard 3, expert 5, master 10 or to the end of the game, whichever is shorter. Easy plays for
   the most expected VP like normal (every value and planner), only without the lookahead;
   very easy makes the simplifications (the closest valid target, owner, Lock On whenever an enemy is in
   arc now, moves scored on guns and hazards only and picked by softmax, simple ordnance, no
@@ -255,12 +256,23 @@ ships; the tomb complex, pylon and Deathseed mines aren't); To do 14 lists the g
   play is the normal AI's), `_depth_now` (capped by the turns left), run off the Tk thread
   (`GameFlow`). Each level keeps the best few lines (`BEAM_FOR`: normal 4; hard 4, 3; expert
   4, 3, 2; master 4, 3, 2, 1 then one line on to the tenth turn; judgement) within a time
-  budget per ship (`TIME_BUDGET_FOR` 2 / 2 / 4 / 10s; judgement). Measured
+  budget per ship (`TIME_BUDGET_FOR` 2 / 2 / 4 / 10s; judgement), now only a guard: the
+  search is cut by a deterministic node budget (`NODE_BUDGET_FOR` sim turns a decision,
+  normal 450, hard 550, expert 1100, master 2800), so seeded games replay at every level.
+  Measured before the planner
   (`BFG_SEARCH_STATS=1` prints each decision's depth, lines, cuts and time): normal and hard
   reach their depth on every line; expert its 5 turns with a few lines cut by time; master
   its 10 turns on every line in 5-7s a ship (a wider master beam didn't fit the budget).
-  Games: normal ~70s (it was ~25s before it searched), hard ~60-90s, master several minutes;
-  a seeded normal game still repeats exactly (no line is cut by time at its depth).
+  Games: normal ~136s since the planner (~70s before it, ~25s before it searched), hard
+  ~60-90s before the planner, master several minutes; seeded games repeat exactly.
+  Search depth is not the value horizon (owner question, explained): the depth counts turns
+  of moves played out in the sim; the value of a hull hit (`ai_hazards.hits_vp`) is a
+  formula, the same at every level, that assumes the enemy keeps firing to the turn limit or
+  `FUTURE_TURNS` 6 (next turn from the fire that can reach the ship, later turns a share of
+  the enemy fleet's guns; no ship moved). It feeds the one-off decisions (targets, Brace,
+  re-rolls, ordnance, orders) and, through `value_per_hit`, the move score that ranks the
+  search's root moves; the sim's own leaf doesn't use it (VP banked + one more turn's
+  swing). Whether that span should shrink with the difficulty: Open questions 2.
   Alternate activation uses the normal AI without the search for all of them (no
   per-unit search yet).
 
@@ -598,8 +610,9 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Latest (Dark Eldar values and the special orders audit; all committed, 1886 tests pass, the
-ordnance sweep 5579 cases pass):
+Latest (Dark Eldar values, the special orders audit, computed values, the hull-hit scale and
+the strategy planner's first slice; all committed, 1902 tests pass, the ordnance sweep 5579
+cases pass):
 - Owner rulings: raid modifiers cancel (D6 + 1 - 1 = D6, "Owner ruling: raid modifiers
   cancel"); Come to New Heading never halves ordnance (s.7); Subjugation torpedoes are the
   Raider's ("frigate" = Raider); the AA round is now Command, Movement, Shooting, Ordnance
@@ -684,22 +697,31 @@ ordnance sweep 5579 cases pass):
   isn't re-entered (`_THREAT_GUARD`), nor a death explosion inside another
   (`_BOOM_GUARD`). Caches: `hits_vp` / `damage_vp` / explosions by `_state_stamp`
   (worked out once per set of stored ship records, `update_ship` replaces a record);
-  an easy-AI movement phase 14.8s against 12.3s before (the normal AI's search has a
-  time budget, so slower values would have cut its lines and broken replays: checked,
-  seeded games replay exactly). Consequences, all by the rules: damage on a ship nothing
+  an easy-AI movement phase 14.8s against 12.3s before (seeded games replay exactly; the
+  search's cut is now a node budget, so slower values can't change a replay). Consequences, all by the rules: damage on a ship nothing
   can follow up is worth little (a 12-hit, 4-shield Emperor facing two gunships barely
   cares about a 1.2-hit salvo), a ship doomed anyway gains little from protection, the
   last turn's sub-threshold damage is worth less. Tests whose scenes had no guns or no
   points (they relied on the old floors) got a distant gunship (`conftest.make_gunship`)
   or points. Still on the old unit: the move score's firepower units, converted with
-  `FP_HITS * max(1.0, value_per_hit(...))` in `ai_player` (about 25 places); the planner
-  (To do 34) replaces that unit with VP.
+  `FP_HITS * max(1.0, value_per_hit(...))` in `ai_player` (about 25 places); still to
+  convert to VP (To do 34). Games: Gothic v Dark Eldar 742-126 and 438-111, both replayed.
+  Not proven better in play than the old flat value: telling them apart needs ~100 paired
+  games (same seeds, sides swapped), not 3; owner: pinned, not worth it for now (the old
+  value is still in the code, `static_value_per_hit`, if the comparison is ever run).
+- The strategy planner, first slice (To do 34, owner: "a list of strategies all ships try
+  out and then evaluate", for every ship, not Dark Eldar flanking alone): flank left /
+  right, hold the band, kite, close, screen and the edge, each followed for two turns in
+  the search's sim; the deterministic node budget. Games: Gothic v Dark Eldar 262-105
+  (Gothic) and 165-342 (Dark Eldar), both replayed exactly, ~136s a game (too few games
+  to credit the planner with the Dark Eldar win).
 - Still open from this period (owner: must be fixed, To do 33): a commander re-roll's lift
-  to the pass chance; Brace not counting the orders it forbids next turn; a boarding crit at a
-  flat hit; enemy raids on Dark Eldar ships valued at 0; and the other guessed values there; Dark Eldar flanking is planned one turn ahead (the normal AI; the expert
-  searches deeper); `boarding_vp` values a boarding crit at a flat hit (Pain Frenzy's crit
-  re-roll and the Haemonculi Fire not in it); enemy raids on Dark Eldar ships value 0 for
-  several Dark Eldar crit results, so the Incubi's -1 to enemy raids isn't priced.
+  to the pass chance; Brace not counting the orders it forbids next turn; a boarding crit at
+  a flat hit (`boarding_vp`: Pain Frenzy's crit re-roll and the Haemonculi Fire not in it);
+  enemy raids on Dark Eldar ships valued at 0 for several of their crit results (so the
+  Incubi's -1 to enemy raids isn't priced); and the other guessed values there. Planner
+  follow-ups (To do 34): the easy AI tries no strategies, squadrons don't plan one heading,
+  plans aren't carried between turns.
 
 Previous session (owner fleets, Tyranids, Kill the Admiral, owner UI and rules reports; all
 committed, 1802 tests pass, the ordnance sweep 5579 cases pass). Since: the Eldar either/or
@@ -1256,7 +1278,9 @@ Expert AI (`lookahead_ai`): minimax over a deterministic sim using the same term
 shields each turn, the real table, its own ordnance in flight); leaf = VP banked + next turn's expected swing at
 `LATER_TURN_WEIGHT`; with a turn limit, the chance of winning from that margin
 (`win_score`, To do 2); root moves are the normal AI's candidates, best first, at most
-`ROOT_MOVES` 12, and pay the path-hazard cost (To do 11 b); lances valued by their hit roll.
+`ROOT_MOVES` 12, plus every strategy's first move (To do 34, each followed in the sim for
+`PLAN_TURNS` 2), and pay the path-hazard cost (To do 11 b); lances valued by their hit roll;
+cut by `NODE_BUDGET_FOR` (deterministic).
 
 ### To do (detail in docs/HANDOFF.md)
 
@@ -3876,11 +3900,11 @@ Done: To do 2, 3, 6; most of 7.
      the scenario objective weights (what winning a scenario is worth in VP),
      `EASY_TEMPERATURE`.
 34. Strategy candidates for every ship (owner: "a list of strategies all ships try out and
-   then evaluate", not Dark Eldar flanking alone). Today each ship's move comes from
+   then evaluate", not Dark Eldar flanking alone). Before the first slice each ship's move came from
    one-turn goals (guns to bear, range band, prow-on, rear arc, second target, support,
    Lock On next, boarding, safety, objectives), scored one turn ahead; hard / expert /
-   master search deeper but only over those one-turn candidates, so a plan whose first move
-   looks poor (swing wide now to be behind the enemy next turn) is never tried. Plan: a
+   master searched deeper but only over those one-turn candidates, so a plan whose first move
+   looked poor (swing wide now to be behind the enemy next turn) was never tried. Plan: a
    strategy is a 2-3 turn plan with a destination relative to an enemy (or a friend /
    objective): flank left / right into its rear arc (Come to New Heading's two legs, Dark
    Eldar with no turning distance), hold the best range band (8 f), kite (8 c), cross the T
@@ -3911,7 +3935,7 @@ Done: To do 2, 3, 6; most of 7.
    shows the strategy chosen. Not yet: the easy AI (no search: it never tries them),
    squadrons planning one heading, strategies longer than 2 turns, the move score's
    firepower units in VP (its `max(1.0, value_per_hit)` floors), a strategy carried over
-   between turns (each turn re-plans from scratch).
+   between turns (each turn re-plans from scratch). First games: see the session status.
 
 ### Booklet update 62: the commander's death on alien tables (implemented, tested)
 
@@ -4013,6 +4037,13 @@ their rules, Mega Armoured Boarding Parties, Incubi, Tyranids, Mucous Membrane);
    A random-fleet game ended 93-202 VP with the 93 side the winner (the other fleet had
    disengaged). Should the plain game also go by VP (s.38: "in many scenarios, the winner
    will be the player who scores the most victory points"; holding the field adds its VP)?
+2. **Should the value horizon shrink with the difficulty?** (raised this session; no answer
+   yet). A hull hit's value (`hits_vp`) assumes the enemy keeps firing to the turn limit or
+   `FUTURE_TURNS` 6 at every level, while the search depth is 0 / 0 / 2 / 3 / 5 / 10 turns
+   (see "AI difficulty"). Options: (a) keep it the same at every level (Claude's
+   recommendation: difficulty is how far moves are searched, a hit's worth is a fact of the
+   rules); (b) tie it to the depth (easy 1 future turn...; at 0 chip damage would be worth
+   nothing and the AI would spread its fire); (c) only very easy myopic.
 ### Owner ruling: torpedo bomber salvos placed on a ship (s.21; implemented, tested)
 
 A salvo placed overlapping a ship's base is in contact and attacks it at once (s.15 "comes
