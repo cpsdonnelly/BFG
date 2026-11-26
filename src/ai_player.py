@@ -3602,7 +3602,7 @@ class AIPlayer:
         damage (its crit value without the extra damage). Hits after the
         target's turrets, on the Armour facing the launcher. "" = standard."""
         from .ordnance import torpedo_kind_options
-        from .ai_hazards import torpedo_salvo_hits, hull_hits_vp, value_per_hit
+        from .ai_hazards import torpedo_salvo_hits, hull_hits_vp
         gs = self.gs
         keys = {k for k, _ in torpedo_kind_options(ship, weapon, gs.rule_hit_and_run)}
         if not keys & {"boarding", "leech"}:
@@ -3622,10 +3622,16 @@ class AIPlayer:
             vals["boarding"] = hits * raid_squadron_value(target, gs, ship.player, rules,
                                                           assault_boat=False)
         if "leech" in keys:
-            # the Thrusters Damaged effect alone (hit_and_run.crit_type_value's
-            # half a hit, judgement): leech torpedoes do no damage
-            hits = torpedo_salvo_hits(n, target, gs, xy, rules, "torpedo_leech")
-            vals["leech"] = hits * 0.5 * max(1.0, value_per_hit(target, gs))
+            # each hit an automatic Thrusters Damaged, no damage (Xenos p.6):
+            # the effect measured on the target (hit_and_run.crit_effect_value,
+            # its speed lost until every thruster hit is repaired), over the
+            # salvo's exact hit distribution
+            from .ai_hazards import torpedo_salvo_pmf
+            from .hit_and_run import crit_effect_value
+            pmf = torpedo_salvo_pmf(n, target, gs, xy, rules, "torpedo_leech")
+            vals["leech"] = sum(q * crit_effect_value(target, "thrusters_damaged", gs,
+                                                      ship.player, count=k)
+                                for k, q in enumerate(pmf) if k and q > 1e-4)
         return max(vals, key=lambda k: (vals[k], k == ""))
 
     def _launch_ship_ordnance(self, ship: Ship, only: Optional[str] = None):

@@ -95,7 +95,13 @@ def test_next_shooting_phase_reach_and_repairs():
     target, gs = _setup(friend_xy=(0.0, 50.0))
     gs.active_player = 1                       # raid lands in the raider's turn
     v1 = raid_result_value(4, target, gs, 1)
-    assert v1 > 0 and best_raid_reroll(4, 4, target, gs, 1) is False
+    assert v1 > 0
+    # keep it only if worth more than a fresh die: with every crit's effect
+    # measured (hit_and_run.crit_effect_value), Engine Room (+1 hit and no
+    # turns: this abeam friend stays out of its port guns' reach) lifts the
+    # fresh die above it here
+    fresh = sum(raid_result_value(r, target, gs, 1) for r in range(1, 7)) / 6.0
+    assert best_raid_reroll(4, 4, target, gs, 1) is (fresh > v1)
     # Damage control: 8 hits, one crit -> (5/6)^8 survives one end phase
     assert abs(p_crit_unrepaired(target, gs, 1) - (5 / 6) ** 8) < 1e-9
     # Landing in the target's own turn: two end phases before it shoots again

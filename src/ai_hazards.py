@@ -1281,15 +1281,32 @@ def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None,
     `target`: its turrets (plus massed turrets) shoot torpedoes down first,
     each success one torpedo (Ork turrets 5+), then each torpedo hits its
     Armour facing the launcher's side."""
+    return sum(k * q for k, q in enumerate(torpedo_salvo_pmf(strength, target, gs, from_xy,
+                                                             rules, otype)))
+
+
+def torpedo_salvo_pmf(strength: int, target: Ship, gs, from_xy, rules=None,
+                      otype: str = "torpedo_standard") -> List[float]:
+    """P(k hits), k = 0..strength, of a torpedo salvo reaching `target`, exact:
+    the turret dice (plus massed turrets) each shoot one torpedo down on their
+    roll, binomially, never more than the salvo; each torpedo left then hits
+    its Armour facing the launcher's side (`torpedo_p_hit`: re-rolls, leech /
+    plasma kinds), binomially."""
     from .ordnance import ordnance_turrets, get_massed_turret_bonus, turret_hit_on
     from .ordnance import turret_kill_p
+    n = max(0, int(round(strength)))
     shots = ordnance_turrets(target, gs) + get_massed_turret_bonus(target, gs.get_ships())
     p_turret = turret_kill_p(target, turret_hit_on(target, _OrdnanceRules(rules)), gs)
-    left = max(0.0, strength - shots * p_turret)
     armour = target.armor_vs(*from_xy)
     if "mucous_membrane" in target.special_rules:
         armour = min(6, armour + 1)         # Tyranid Mucous Membrane
-    return left * torpedo_p_hit(armour, rules, otype)
+    ph = torpedo_p_hit(armour, rules, otype)
+    out = [0.0] * (n + 1)
+    for kills, qk in enumerate(binomial_pmf(max(0, int(shots)), p_turret)):
+        left = max(0, n - kills)
+        for h, qh in enumerate(binomial_pmf(left, ph)):
+            out[h] += qk * qh
+    return out
 
 
 def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,
@@ -2732,12 +2749,9 @@ def repair_value(ship: Ship, crit: dict, gs) -> float:
     this end phase and the later ones, against the fires left). Armament: what those
     weapons threaten at the next shooting phases (hit_and_run.
     armament_threat_value, the raid model, from the enemy's side). Shields
-    collapsed: the enemy's expected hits next turn its shields would stop.
-    Engines / thrusters / bridge (judgement): a share of its guns' value
-    (`ai_rerolls.firepower_swing`: 0.3 / 0.2) or of its value (0.1)."""
-    from .ai_rerolls import firepower_swing
+    Every other crit (engines, thrusters, Leadership losses...): its effect
+    measured on the ship (`hit_and_run.crit_effect_value`), as if repaired."""
     ct = crit.get("crit_type", "")
-    vph = value_per_hit(ship, gs)
     if ct == "fire":
         # the fire put out now: it would burn this end phase and later ones
         return max(0.0, -fire_value(ship, gs, -1, repair_first=False))
@@ -2748,15 +2762,13 @@ def repair_value(ship: Ship, crit: dict, gs) -> float:
         fixed = _dc_replace(ship, critical_damage=[
             c for c in ship.critical_damage if c is not crit])
         return armament_threat_value(fixed, ct, gs, 3 - ship.player)
-    if ct == "shields_collapse":
-        return min(ship.shields_max, incoming_hits(ship, gs)) * vph
-    if ct == "engine_room":
-        return 0.3 * firepower_swing(ship, gs)
-    if ct == "thrusters_damaged":
-        return 0.2 * firepower_swing(ship, gs)
-    if ct == "bridge_smashed":
-        return 0.1 * ship_value(ship, gs)
-    return 0.05 * ship_value(ship, gs)
+    # every other crit: its effect measured on the ship (speed, turns,
+    # shields, Leadership...) by hit_and_run.crit_effect_value, from the
+    # enemy's side, with the ship as it would be repaired
+    from .hit_and_run import crit_effect_value
+    fixed = _dc_replace(ship, critical_damage=[
+        c for c in ship.critical_damage if c is not crit])
+    return crit_effect_value(fixed, ct, gs, 3 - ship.player)
 
 
 BOARD_CRITS = {1: (5, 5), 2: (5, 4), 3: (6, 3), 4: (6, 2)}   # s.32 (winner, loser)

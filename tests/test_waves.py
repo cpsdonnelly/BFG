@@ -313,7 +313,10 @@ def test_bombers_vs_assault_boats_owner_example():
     gs.rule_hit_and_run = True
     vph = value_per_hit(t, gs)
     assert abs(bomber_squadron_value(t, gs) - 0.5 * (1 / 6) * vph) < 1e-9     # 0.083 hits
-    assert abs(raid_squadron_value(t, gs, 1) - vph / 6) < 1e-9               # Engine Room
+    # Engine Room (a 6): its extra hit on the hull-hit scale; no turns are
+    # worth nothing with no ship of ours on the table (crit_effect_value)
+    from src.ai_hazards import hull_hits_vp
+    assert abs(raid_squadron_value(t, gs, 1) - hull_hits_vp(t, gs, 0.0, 1) / 6) < 1e-9
     assert best_attack_mode(t, gs, 1) == "assault_boat"
 
 

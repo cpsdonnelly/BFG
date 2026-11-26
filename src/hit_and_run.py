@@ -39,6 +39,7 @@ Eligibility:
   - Target has no more remaining hits than attacker has remaining hits
   - Each ship may perform at most one teleport attack per end phase
 """
+import math
 
 from typing import Callable, List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker
@@ -313,6 +314,47 @@ def p_crit_unrepaired(target: Ship, gs: GameState, phases: int = 1, new_crits: i
     return survive ** max(1, phases)
 
 
+def p_system_down(target: Ship, gs: GameState, phases: int, k: int,
+                  others: int = None) -> float:
+    """Chance a system hit by `k` repairable crits of one type is still down
+    after `phases` end phases of damage control (s.36: a D6 per remaining hit,
+    halved rounding up touching a blast marker, each 6 repairs one crit; the
+    system works again only when every one of its crits is repaired, rules
+    "not cumulative; all must be repaired"). Exact: a chain over the crits
+    left, the repairs falling evenly at random among all the repairable crits
+    (`others`: the ship's other repairable crits, by default those it has)."""
+    from math import comb
+    from .geometry import count_blast_markers_touching
+    if k <= 0:
+        return 0.0
+    if target.ship_type in ("escort", "defense") and not uses_crit_table(target):
+        return 1.0
+    n = max(0, target.hits_remaining)
+    if count_blast_markers_touching(target, gs.get_blast_markers()) > 0:
+        n = (n + 1) // 2
+    if others is None:
+        others = sum(1 for c in target.critical_damage if c.get("repairable")) - k
+        others = max(0, others)
+    six = [comb(n, x) * (1 / 6) ** x * (5 / 6) ** (n - x) for x in range(n + 1)]
+    state = {(k, others): 1.0}
+    for _ in range(max(1, phases)):
+        nxt = {}
+        for (a, b), q in state.items():
+            if a == 0:
+                nxt[(a, b)] = nxt.get((a, b), 0.0) + q
+                continue
+            tot = a + b
+            for x, px in enumerate(six):
+                r = min(x, tot)
+                # thruster crits among the r repaired: hypergeometric
+                for ra in range(max(0, r - b), min(a, r) + 1):
+                    ph = comb(a, ra) * comb(b, r - ra) / comb(tot, r)
+                    key = (a - ra, b - (r - ra))
+                    nxt[key] = nxt.get(key, 0.0) + q * px * ph
+        state = nxt
+    return sum(q for (a, _b), q in state.items() if a > 0)
+
+
 def _weapon_can_bear(target: Ship, weapon: Dict, friend: Ship, reach: float) -> float:
     """Threat weight at the target's next shooting phase: 1 if the friend is in
     the weapon's arc now and within range + `reach` (the movement before that
@@ -390,6 +432,216 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     return total
 
 
+def _bears_mobility(shooter: Ship, weapon: Dict, victim: Ship, reach: float,
+                    can_turn: bool) -> float:
+    """`_weapon_can_bear`, with the turn allowed only when the shooter can turn
+    (Engine Room Damaged and its kind take it away)."""
+    from .combat import check_weapon_in_arc
+    from .chapter_tactics import weapon_range
+    rng = weapon_range(shooter, weapon) or (weapon.get("range_cm") or 0)
+    if shooter.distance_to(victim) > rng + reach:
+        return 0.0
+    if check_weapon_in_arc(shooter, weapon, victim.x, victim.y):
+        return 1.0
+    if not can_turn:
+        return 0.0
+    from .models import ship_copy
+    turn = shooter.turn_angle or 0
+    for dh in (-turn, turn):
+        if dh and check_weapon_in_arc(ship_copy(shooter, heading=(shooter.heading + dh) % 360),
+                                      weapon, victim.x, victim.y):
+            return 0.75
+    return 0.0
+
+
+def _exchange(target: Ship, gs: GameState, owner: int, j: int, phases: int,
+              ref_speed: float) -> Tuple[float, float, float]:
+    """The target's exchange with the owner's fleet at its j-th shooting phase
+    from now, from the target's side: (net VP, its threat VP, our fire's VP on
+    it) in the posture it would pick (owner: compute, don't guess). Its speed,
+    turns, shields and guns are read from the ship itself (`effective_speed`,
+    `movement.get_max_turns`, `effective_shields`, `weapon_disabled_by_crit`), so a
+    copy carrying a crit shows that crit's effect.
+    - attack: it closes (its move towards each of our ships, all of it if it can
+      turn, else the part along its heading) and so do we; its guns' reach is
+      both moves; ours on it the same with its undamaged move (we close the gap
+      it no longer can);
+    - evade: it runs (away from each ship, as above), our ships chase; both
+      reaches our move less its.
+    Its fire: each weapon at the most valuable of our ships it bears on (the
+    armament model, `armament_threat_value`); ours: every battery / lance that
+    bears, past its shields (`past_shields`), at its value a hit."""
+    from .ai_hazards import value_per_hit, _gun_hits, past_shields
+    from .combat import weapon_disabled_by_crit
+    from .movement import get_max_turns
+    friends = [f for f in gs.get_ships() if f.player == owner and not f.is_destroyed
+               and not f.is_disengaged]
+    if not friends:
+        return 0.0, 0.0, 0.0
+    can_turn = get_max_turns("", target) > 0
+    t_move = (target.effective_speed or 0) * (j + 1)
+    t_ref = ref_speed * (j + 1)
+    vph_t = max(1.0, value_per_hit(target, gs))
+    shields = target.effective_shields
+    weapons = [w for w in target.weapons if w.get("weapon_type") in _THREAT_PER_DIE
+               and not weapon_disabled_by_crit(target, w)]
+
+    def f_move(f):
+        return (f.speed or 0) * (j + (1 if phases > 1 else 0))
+
+    def along(f, sign):
+        # its move towards (+1) or away from (-1) ship f
+        if can_turn:
+            return t_move
+        b = math.atan2(f.y - target.y, f.x - target.x)
+        c = math.cos(b - math.radians(target.heading or 0))
+        return t_move * max(0.0, sign * c)
+
+    def threat(reach_of):
+        tot = 0.0
+        for w in weapons:
+            best = 0.0
+            for f in friends:
+                wt = _bears_mobility(target, w, f, reach_of(f), can_turn)
+                if not wt:
+                    continue
+                if w["weapon_type"] in ("battery", "lance"):
+                    h = _gun_hits(target, w, f)
+                else:
+                    st = w.get("strength") or 0
+                    if target.is_crippled:
+                        st = target.crippled_value(st)
+                    h = st * _THREAT_PER_DIE[w["weapon_type"]]
+                best = max(best, wt * h * max(1.0, value_per_hit(f, gs)))
+            tot += best
+        return tot
+
+    def our_fire(reach_of):
+        lam = 0.0
+        for f in friends:
+            r = reach_of(f)
+            for w in f.weapons:
+                if w.get("weapon_type") not in ("battery", "lance"):
+                    continue
+                wt = _bears_mobility(f, w, target, r, get_max_turns("", f) > 0)
+                if wt:
+                    lam += wt * _gun_hits(f, w, target)
+        return past_shields(lam, shields) * vph_t
+
+    a_threat = threat(lambda f: along(f, 1) + f_move(f))
+    a_fire = our_fire(lambda f: t_ref + f_move(f))
+    e_threat = threat(lambda f: f_move(f) - along(f, -1))
+    e_fire = our_fire(lambda f: f_move(f) - along(f, -1))
+    if a_threat - a_fire >= e_threat - e_fire:
+        return a_threat - a_fire, a_threat, a_fire
+    return e_threat - e_fire, e_threat, e_fire
+
+
+def _crit_entry(target: Ship, ct: str) -> Dict:
+    from .tables import crit_table_for
+    for e in crit_table_for(target).values():
+        if e.get("crit_type") == ct:
+            return e
+    return {"crit_type": ct, "repairable": True}
+
+
+def _brace_pass(ld: int) -> float:
+    from .ai_hazards import p_sum_at_most
+    return p_sum_at_most(2, max(0, ld))
+
+
+def crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
+                      end_phases: int = None, count: int = 1) -> float:
+    """Expected VP, to the owner, of the EFFECT of `count` critical hits of type
+    `ct` on `target` (no extra damage; owner: computed, not a share of the
+    ship's value). The crit is applied to a copy of the ship by the engine's own
+    rules (its record, then `combat.apply_crit_effects`), and the copy's exchange
+    with our fleet (`_exchange`: its speed, turns, shields and guns as the
+    engine reads them) is compared with the ship's without that crit type, at
+    each of its shooting phases up to CRIT_HORIZON and the turn limit, x the
+    chance the crit is still unrepaired then (`p_crit_unrepaired`; several hits
+    of one type: the system is down until every one is repaired, so one more
+    on a ship that already has it counts only where the others get repaired),
+    x `phase_weight`. Leadership losses (Bridge Smashed -3, Necron losses,
+    Infinity Circuit, Control Circuit) are valued by the Brace they cost: the
+    drop in its pass chance x half our fire on it that phase past what bracing
+    costs it (half its fire). A crit that kills the commander adds the
+    commander's VPs (`victory_points.commander_points`), scored outright.
+    Not counted: the special orders a lower Ld fails, the commander's re-rolls'
+    later use."""
+    cache = gs.__dict__.setdefault("_crit_effect_cache", {})
+    key = (gs.turn_number, gs.current_phase, gs.active_player, ct, owner, end_phases, count,
+           tuple(sorted((s.id, round(s.x, 1), round(s.y, 1), round(s.heading or 0), s.hits_remaining,
+                         len(s.critical_damage), s.status, s.leadership)
+                        for s in gs.get_ships())), target.id, target.hits_remaining,
+           len(target.critical_damage), target.leadership)
+    if key in cache:
+        return cache[key]
+    if len(cache) > 4000:
+        cache.clear()
+    val = _crit_effect_value(target, ct, gs, owner, end_phases, count)
+    cache[key] = val
+    return val
+
+
+def _crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
+                       end_phases: int, count: int) -> float:
+    from .ai_hazards import phase_weight
+    from .combat import apply_crit_effects
+    from .models import ship_copy, COMMAND_CRITS
+    entry = _crit_entry(target, ct)
+    clean = ship_copy(target, critical_damage=[c for c in target.critical_damage
+                                               if c.get("crit_type") != ct])
+    hit = ship_copy(clean, critical_damage=list(clean.critical_damage)
+                    + [dict(entry, crit_type=ct)],
+                    special_rules=list(clean.special_rules))
+    try:
+        apply_crit_effects(hit, dict(entry, crit_type=ct), _QuietState(gs))
+    except Exception:
+        pass
+    old = sum(1 for c in target.critical_damage if c.get("crit_type") == ct)
+    phases = end_phases or _end_phases_before_target_shoots(target, gs)
+    ref = target.effective_speed or 0
+    ref = max(ref, clean.effective_speed or 0)
+    total = 0.0
+    repairable = bool(entry.get("repairable", True))
+    for j in range(_crit_shooting_phases(target, gs, phases)):
+        if repairable:
+            # the system stays down until all its crits are repaired: what the
+            # new ones add to that chance (exact, p_system_down)
+            oth = max(0, sum(1 for c in target.critical_damage if c.get("repairable")) - old)
+            t_ph = phases + 2 * j
+            weight = (p_system_down(target, gs, t_ph, old + max(1, count), oth)
+                      - p_system_down(target, gs, t_ph, old, oth))
+        else:
+            weight = 0.0 if old else 1.0
+        if weight < 0.005:
+            continue
+        n0, _t0, fire0 = _exchange(clean, gs, owner, j, phases, ref)
+        n1, t1, _f1 = _exchange(hit, gs, owner, j, phases, ref)
+        delta = max(0.0, n0 - n1)
+        if hit.leadership < clean.leadership:
+            dp = _brace_pass(clean.leadership) - _brace_pass(hit.leadership)
+            delta += dp * max(0.0, 0.5 * fire0 - 0.5 * t1)
+        total += phase_weight(2 * j) * weight * delta
+    if ct in COMMAND_CRITS and "commander_slain" not in target.special_rules:
+        from .victory_points import commander_points
+        total += commander_points(target)
+    return total
+
+
+class _QuietState:
+    """A game state stand-in for applying a crit to a copy: no log."""
+    def __init__(self, gs):
+        self._gs = gs
+
+    def add_log(self, *a, **k):
+        pass
+
+    def __getattr__(self, name):
+        return getattr(self._gs, name)
+
+
 # Expected hits per die / strength point when valuing a silenced weapon
 # (batteries: ai_hazards.BATTERY_HITS_PER_FP, the Gunnery table's average, To do 30)
 _THREAT_PER_DIE = {"lance": 0.5, "battery": 0.176, "torpedo": 0.3}
@@ -435,31 +687,27 @@ def crit_type_value(ct: str, target: Ship, gs: GameState, owner: int,
                     end_phases: int = None) -> float:
     """Expected VP of one critical hit of type `ct` on a crit-table target:
     its extra damage plus its effect (raid_result_value's crit part)."""
-    from .ai_hazards import ship_value, value_per_hit
-    vph = max(1.0, value_per_hit(target, gs))
     from .combat import ARMAMENT_CRIT_TYPES
     extra = _CRIT_EXTRA.get(ct, 0.0)
-    value = extra * vph
+    # its extra damage as hull hits, the destroy / cripple thresholds included
+    # (it used to be a flat hit each plus half the ship "if it may finish it")
+    from .ai_hazards import hull_hits_vp
+    value = hull_hits_vp(target, gs, 0.0, extra) if extra else 0.0
     if ct == "fire":
         # its burn over the end phases left, against the fires already
         # burning (ai_hazards.fire_value, exact)
         from .ai_hazards import fire_value
         value += fire_value(target, gs, 1)
-    if extra and target.hits_remaining <= extra:
-        value += ship_value(target, gs) * 0.5          # may finish it off
-    if ct in ARMAMENT_CRIT_TYPES:
+    elif ct in ARMAMENT_CRIT_TYPES:
         value += armament_threat_value(target, ct, gs, owner, end_phases)
-    elif ct == "bridge_smashed":
-        value += ship_value(target, gs) * 0.1
+    else:
+        # every other effect (speed, turns, shields, Leadership, the
+        # commander) applied to a copy and measured (crit_effect_value)
+        value += crit_effect_value(target, ct, gs, owner, end_phases)
+    if ct in ("bridge_smashed", "commanders_slain", "infinity_circuit_smashed", "monument",
+              "synapse_severed"):
         from .scenarios import admiral_bonus_vp
-        value += admiral_bonus_vp(gs, target)       # Kill the Admiral: the admiral dies
-    elif ct in ("commanders_slain", "infinity_circuit_smashed", "monument", "synapse_severed"):
-        from .scenarios import admiral_bonus_vp
-        value += admiral_bonus_vp(gs, target)       # Kill the Admiral: result 9 (update 62)
-    elif ct == "shields_collapse":
-        value += ship_value(target, gs) * 0.15
-    elif ct == "thrusters_damaged":
-        value += vph * 0.5
+        value += admiral_bonus_vp(gs, target)       # Kill the Admiral: the admiral dies (update 62)
     return value
 
 
