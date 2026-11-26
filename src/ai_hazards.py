@@ -21,6 +21,7 @@ ship deal:
 Everything is pure logic (no Tk), so the expert AI's worker thread may use it.
 """
 import math
+import threading
 from itertools import product
 from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -2629,6 +2630,13 @@ ARMAMENT_CRITS = ("dorsal_armament", "port_armament", "starboard_armament", "pro
 FIRE_HORIZON = 4            # end phases a fire's burn is followed (judgement)
 
 
+class _FireGuard(threading.local):
+    active = False
+
+
+_FIRE_GUARD = _FireGuard()
+
+
 def _fire_end_phases(gs) -> int:
     """End phases left for a fire to burn in: FIRE_HORIZON, cut by the game's
     turn limit (IGOUGO: both players' end phases each game turn; AA: one a
@@ -2701,11 +2709,19 @@ def fire_value(ship: Ship, gs, change: int = 1, repair_first: bool = True) -> fl
     more (owner question)."""
     have = sum(1 for c in ship.critical_damage if c.get("crit_type") == "fire")
     after = max(0, have + change)
-
-    def worth(n):
-        return sum(p * hull_hits_vp(ship, gs, 0.0, d)
-                   for d, p in fire_burn_dist(ship, gs, n, repair_first).items() if d)
-    return worth(after) - worth(have)
+    if _FIRE_GUARD.active:
+        # valued inside another fire's value (hull hits -> an explosion's
+        # ordnance -> an Impaler's Fire crit...): the flat half a hit a fire,
+        # to break the loop (judgement)
+        return 0.5 * change * max(1.0, value_per_hit(ship, gs))
+    _FIRE_GUARD.active = True
+    try:
+        def worth(n):
+            return sum(p * hull_hits_vp(ship, gs, 0.0, d)
+                       for d, p in fire_burn_dist(ship, gs, n, repair_first).items() if d)
+        return worth(after) - worth(have)
+    finally:
+        _FIRE_GUARD.active = False
 
 
 
