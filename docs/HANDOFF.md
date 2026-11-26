@@ -41,7 +41,7 @@ was ~60s): each brace worth trying now values the ship's next order, an AI order
 Open: whether the value horizon should shrink with the difficulty (CLAUDE.md Open
 questions 2, unanswered); the remaining guessed values (To do 33); the planner's follow-ups (To do 34: easy
 AI, squadron headings, plans carried between turns, the move score's firepower units in
-VP). Next: re-add the must-fixes one at a time (CLAUDE.md session status), then team play (To do 22).
+VP). Must-fixes (a)-(c) re-added and checked (CLAUDE.md session status); next: (d), Brace's forbidden order, by the stored order plan; then team play (To do 22).
 
 Earlier: Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
 Impaler and slave-taking rulings, escort values by squadron, critical checks on every point

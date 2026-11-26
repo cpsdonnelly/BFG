@@ -611,7 +611,7 @@ Owner rulings (fleet lists, export 15):
 ### Session status (details in docs/HANDOFF.md)
 
 Latest (Dark Eldar values, the special orders audit, computed values, the hull-hit scale and
-the strategy planner's first slice; all committed, 1902 tests pass, the ordnance sweep 5579
+the strategy planner's first slice; all committed, 1902 tests pass (+ test_must_fixes), the ordnance sweep 5579
 cases pass):
 - Owner rulings: raid modifiers cancel (D6 + 1 - 1 = D6, "Owner ruling: raid modifiers
   cancel"); Come to New Heading never halves ordnance (s.7); Subjugation torpedoes are the
@@ -735,6 +735,16 @@ cases pass):
   damage_vp...); worth its own check on the reverted code.
   NOTE for profiling: cProfile sees only the main thread; the movement search runs on a
   worker (`threading.setprofile` with a cProfile per thread, as in the profiling done here).
+  RE-ADDED so far (each checked with one seed-1 game + replay, `tests/test_must_fixes.py`):
+  (a) boarding crits + the stamp memo fix: 168s, replay same; (b) Dark Eldar raids (keel
+  bays, salvo hits, superstructure): 160s, same; (c) the re-roll lift (orders and Brace,
+  hand-added without the order cost) + the game_risk cache: 190s (~20% slower), same.
+  LEFT: (d) Brace's forbidden order (`next_order_vp`) and the Leadership crits' order cost
+  (`_order_loss`, patch hunk at `_crit_effect_value`). Plan for (d): don't run an AI order
+  plan inside Brace (0.2s a ship, the slow part); use the order the ship's own AI planned
+  at its last movement phase (`AIPlayer._plan_orders` already computes (order, g, p) for
+  every ship), stored as a GameState field so it replays and survives snapshots; a ship
+  with no plan (a human's) counts 0. Then one game + replay.
   Plan (owner): re-add the four fixes ONE AT A TIME from the patch, each checked with one
   short timed game + replay (`tools/headless_runner.py --no-display --games 1 --procs 1
   --seed 1 --replay-check`, ~160s a game, ~320s with the replay; owner: keep test spend low,
