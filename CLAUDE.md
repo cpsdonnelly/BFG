@@ -756,7 +756,8 @@ cases pass):
   the pass-chance drop). In AA the order a command-phase Brace gives up is this round's,
   counted the same. Not yet: a squadron's one order (each ship its own value), the order's
   gain on guns a brace halves. Fixed on the way: `game_risk`'s cache missed scenario points
-  changed in place (`scenario_state` in its key). Check game: CHECK_RESULT.
+  changed in place (`scenario_state` in its key). Check game (seed 1, normal): 151s, replay
+  same (Gothic won 517-18; the (c) game was 190s, so (d) costs nothing).
   All four must-fixes are back in (1907 tests pass).
   Still open: the other guessed values in To do 33.
   Planner follow-ups (To do 34): the easy AI tries no strategies, squadrons don't plan one
