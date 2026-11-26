@@ -319,6 +319,32 @@ braced ship can't take.
 
 ---
 
+### Critical hits and re-rolls, measured (Built)
+
+Owner: no guessed shares where the rules give an answer.
+
+- **A crit's effect** is measured, not guessed. The crit is applied to a copy of the ship by
+  the engine's own rules, and the copy's exchange with our fleet is compared with the
+  original's at each of its next few shooting phases. The exchange counts its fire on our
+  ships and ours on it, with the target attacking or evading, whichever suits it; its speed,
+  turns, shields and guns are read as the engine reads them. Each phase is weighted by the
+  chance the crit is still unrepaired. That chance is exact: the repair dice over each end
+  phase, and a system with several crits works again only when all of them are repaired.
+- So Thrusters Damaged costs the reach the ship needed, Engine Room the turn it needed (to
+  close, or to bring a broadside round), and Shields Collapse the fire that would then get
+  through. Bridge Smashed costs the Brace its lower Leadership loses, plus the commander's
+  VPs. Extra damage is valued as hull hits.
+- **Re-rolls** are worth what passing gains over failing, test by test:
+  - Brace: its own price, given that it passes.
+  - A warp rift: the ship.
+  - An asteroid field: the D6 damage past its shields.
+  - Disengaging: its disengage value.
+  - Target priority: the guns at the target it wants, less at the closest.
+  - An order: that order's value.
+  - A guided salvo: its plan turning now, less held straight.
+- The guns' value comes from exact hit distributions: the Gunnery table's dice for
+  batteries, and each faction's lance rules and saves, die by die.
+
 ## 4. Target priority
 
 ### Direct fire (Built)
@@ -346,8 +372,8 @@ The target the salvo adds most VP to after turrets, path hazards and friendly fi
   follow it in flight.
 - **The load** (when no once-a-game, guided or short burn load is chosen) by expected VP:
   standard (Dark Eldar plasma re-rolling misses) by hull hits, boarding torpedoes a raid a
-  hit (off with hit-and-run), leech a Thrusters Damaged a hit (valued at half a hit,
-  judgement); plasma wins against ordinary targets.
+  hit (off with hit-and-run), leech a Thrusters Damaged a hit (its measured effect, below, over
+  the salvo's exact hit distribution); plasma wins against ordinary targets.
 - **Co-ordinated with bombers** (owner): salvos and bomber waves reaching one ship in the same
   phase gain the turret split (not against Orks).
 
@@ -375,7 +401,7 @@ AI splits only when the guns matter more than the turrets (e.g. under two gunshi
 
 Built since: the risk preference in strike choices, the expert AI valuing its own craft in
 flight (its search moves our torpedoes and bombers and the enemy's moves dodge them). Planned:
-splitting assault boats or waves already in flight. Built (To do 3): torpedo bombers as a strike option (the squadrons that get past interceptors fire 2 each), fired at the ship in salvo reach worth most, and counted in the hazard model as a salvo; mines laid when an enemy is within three turns.
+splitting assault boats or waves already in flight. Built (To do 3): torpedo bombers as a strike option (the squadrons that get past interceptors fire 2 each), fired at the ship in salvo reach worth most, and counted in the hazard model as a salvo; mines laid when they are worth anything: each mine is followed 10cm an ordnance phase at the nearest enemy over its sampled moves for four ordnance phases, attacking with 8D6 (4D6 if a turret hits) on contact (`mine_value`), so a receding enemy that a mine can't catch gets none.
 
 ---
 

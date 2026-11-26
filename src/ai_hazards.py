@@ -786,12 +786,28 @@ def death_explosion_vp(ship: Ship, gs, player: int, at=None) -> float:
             + pw * explosion_vp(centre, ship.hits_max, gs, player, ship.id))
 
 
+_PLASMA_GUARD = threading.local()
+
+
 def plasma_ordnance_vp(centre, gs, player: int) -> float:
     """A plasma drive overload destroys all ordnance within its 3D6cm radius
     (Appendix 5, 9-11; To do 11 c): for `player`, the threat of the enemy's
     markers removed (marker_threat_vp) minus what our own removed markers would
     have done (their threat to the enemy), each at the chance the radius
-    (3D6, mean 10.5) reaches it."""
+    (3D6, mean 10.5) reaches it. Not re-entered: a marker's threat may itself
+    value a ship's death (an Impaler's crit, its extra damage, an explosion),
+    so inside that valuation the ordnance an explosion sweeps away isn't
+    valued again (second order; it would loop)."""
+    if getattr(_PLASMA_GUARD, "on", False):
+        return 0.0
+    _PLASMA_GUARD.on = True
+    try:
+        return _plasma_ordnance_vp(centre, gs, player)
+    finally:
+        _PLASMA_GUARD.on = False
+
+
+def _plasma_ordnance_vp(centre, gs, player: int) -> float:
     total = 0.0
     for o in gs.ordnance:
         m = OrdnanceMarker.from_dict(o)
@@ -2071,6 +2087,63 @@ def enemy_move_samples(ship):
         path.aaf_p = prob
         dodge.append(path)
     return normal, dodge
+
+
+MINE_PHASES = 4      # ordnance phases a laid mine is followed (to the end of the next game turn)
+
+
+def mine_value(x: float, y: float, gs, player: int, n: int = 1) -> float:
+    """Expected VP of `n` mines laid at (x, y) by `player` (s.17, owner:
+    computed, not half a hit): each moves exactly 10cm straight at the nearest
+    enemy vessel in every ordnance phase (ours first, then the enemy's after
+    its move, then ours again...), and attacks the ship it contacts at once,
+    also a ship that moves into it: 8D6 against its Armour facing the mine,
+    4D6 if one of its turrets hits (`mine_attack_dice`), shields ignored.
+    The target's moves are `enemy_move_samples`' normal moves at their
+    weights, its second move the same again; followed for MINE_PHASES
+    ordnance phases, each contact at `phase_weight` (later is less likely and
+    less certain); each mine's hits added after the earlier ones
+    (`hull_hits_vp(committed=)`). Not counted: fighters removing it, the
+    nearest enemy changing on the way, a contact beyond the horizon."""
+    enemies = [e for e in gs.get_ships() if e.player != player and not e.is_destroyed
+               and not e.is_disengaged and e.status == "active"]
+    if not enemies or n <= 0:
+        return 0.0
+    t = min(enemies, key=lambda e: (math.hypot(e.x - x, e.y - y), e.id))
+    r = t.base_radius + 1.0                          # contact: base + the marker's half width
+    normal, _dodge = enemy_move_samples(t)
+    tot_w = sum(pth.weight for pth in normal) or 1.0
+    p_contact = [0.0] * MINE_PHASES
+    for pth in normal:
+        w = pth.weight / tot_w
+        mx, my = x, y
+        sx, sy = t.x, t.y
+        ex, ey = pth[-1]
+        dx, dy = ex - sx, ey - sy
+        hit_k = None
+        for k in range(MINE_PHASES):
+            # the mine moves 10cm at the target (ours k even, the enemy's odd)
+            d = math.hypot(sx - mx, sy - my)
+            if d - r <= 10.0:
+                hit_k = k
+                break
+            mx += (sx - mx) / d * 10.0
+            my += (sy - my) / d * 10.0
+            if k % 2 == 0:
+                # the enemy moves before its ordnance phase: into the mine?
+                nx, ny = sx + dx, sy + dy
+                if _seg_dist(mx, my, sx, sy, nx, ny) <= r:
+                    hit_k = k + 1
+                    break
+                sx, sy = nx, ny
+        if hit_k is not None:
+            p_contact[hit_k] += w
+    hits = mine_attack_dice(t) * p_hit(t.armor_vs(x, y))
+    value = 0.0
+    for i in range(n):
+        value += sum(phase_weight(k) * p for k, p in enumerate(p_contact)) \
+            * hull_hits_vp(t, gs, i * hits, hits)
+    return value
 
 
 def _aaf_bands():

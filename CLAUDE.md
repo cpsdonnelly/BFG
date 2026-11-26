@@ -630,11 +630,39 @@ ordnance sweep 5579 cases pass):
   third Dark Eldar fleet lost by 744, then 262 and 440 as these went in (AA: lost by 189);
   every game replayed exactly.
 - The owner's third Dark Eldar list (`owner_dark_eldar_succubi_990.json`, 990, valid).
-- Still open from this period: a commander re-roll's lift to the pass chance;
-  `ai_rerolls.firepower_swing` still uses a 0.6-a-battery-point shortcut, not the Gunnery
-  table (asked the owner whether to replace it, no answer yet); Thrusters Damaged (leech
-  torpedoes) and mines valued at half a hit (judgement); Brace doesn't count losing next
-  turn's orders; Dark Eldar flanking is planned one turn ahead (the normal AI; the expert
+- Guesses replaced by computed values (owner: "bad and lazy judgement calls"):
+  - Crit effects: `hit_and_run.crit_effect_value` applies the crit to a copy of the ship by
+    the engine's own rules (its record, `combat.apply_crit_effects`) and compares the copy's
+    exchange with our fleet (`_exchange`: its speed, turns, shields and guns as the engine
+    reads them; the target attacks or evades, whichever is better for it) at each of its
+    shooting phases to `CRIT_HORIZON`, x the chance the system is still down
+    (`p_system_down`: exact repair chain, the system works again only when every crit of
+    that type is repaired, so a second Thrusters hit adds more than the first with few
+    repair dice), x `phase_weight`; Leadership losses by the Brace they cost; a commander
+    killed adds his VPs. Used for every crit but armament (kept: `armament_threat_value`)
+    and fires (`fire_value`): Thrusters, Engine Room, Shields Collapse, Bridge Smashed (it
+    was 0.5 hit / a share of the ship's value), in raids, Impalers, boarding values and
+    damage control (`repair_value`). Extra damage is `hull_hits_vp` (it was a flat hit plus
+    "half the ship if it may finish it"). Leech torpedoes: the effect over the salvo's
+    exact hit distribution (`torpedo_salvo_pmf`; `torpedo_salvo_hits` is now its exact mean).
+  - Re-rolls: `ai_rerolls.firepower_outcomes` from exact volley distributions
+    (`ai_hazards.weapon_hit_pmf`: the Gunnery table's dice, each faction's lance rules,
+    saves; `volley_hull_pmf` past shields; `hits_vp`: the VP of exactly k hull hits), not
+    0.6 a battery point and a linear kill chance; `importance` is what passing gains for
+    each test (Brace's own price given it passes, a warp rift's lost ship, asteroid D6
+    damage past shields, `disengage_gain`, target priority: best target less the closest,
+    the order's value from the AI's plan or `_order_value`, a guided salvo turning vs
+    straight); the flagship's 1.5x and "5% of the ship for other orders" are gone. Burn
+    Retros costs its guns at full less at half, exactly (`firepower_outcomes(halve=True)`).
+  - Mines: `ai_hazards.mine_value` follows each mine 10cm an ordnance phase at the nearest
+    enemy over its sampled moves (contact as it moves into the mine too), 8D6 / 4D6 on its
+    Armour facing the mine, for `MINE_PHASES` 4; the AI lays mines when that is worth
+    anything (it was "an enemy within 60cm") and Reload Ordnance values next turn's mines
+    the same (it was half a hit a launcher). A receding enemy 40cm off is never caught.
+  - Found on the way: a recursion (a crit's extra damage -> an explosion -> the ordnance it
+    sweeps -> an Impaler's crit), cut in `plasma_ordnance_vp` (not re-entered).
+- Still open from this period: a commander re-roll's lift to the pass chance; Brace doesn't
+  count losing next turn's orders; the remaining guessed values (list in To do 33); Dark Eldar flanking is planned one turn ahead (the normal AI; the expert
   searches deeper); `boarding_vp` values a boarding crit at a flat hit (Pain Frenzy's crit
   re-roll and the Haemonculi Fire not in it); enemy raids on Dark Eldar ships value 0 for
   several Dark Eldar crit results, so the Incubi's -1 to enemy raids isn't priced.
@@ -3764,6 +3792,46 @@ Done: To do 2, 3, 6; most of 7.
    Dark Eldar and Tyranids, To do 19 / 25); the AI doesn't deploy its own ships (the human
    places them or presses Auto-Place; To do 28); with "No fleet list" the Edit dialog
    still offers every list's options (s.4: no restrictions, kept).
+
+33. Guessed values to compute (owner: judgement calls where the rules give an answer are
+   "bad and lazy"; audit of the AI's values; computed so far: crit effects, re-roll values,
+   mines, Burn Retros' cost, see the session status). Still guessed, to replace:
+   - A hull hit's value short of a kill or cripple: `hull_hits_vp` gives 0.8 x the ship's
+     value a hit and `damage_vp` 0.2 (s.38 scores nothing until a threshold): should be what
+     the hit adds to the chance it is crippled / destroyed later, as escorts already are
+     (`escort_hits_vp`, `finish_chance`). It is the scale raids, bombers and crits are
+     compared on, so every one of those values moves with it (the largest item).
+   - `brace_value`'s loss terms (0.2 a hit, Poisson counts; exact counts are To do 30);
+     `boarding_vp`'s crit at a flat hit (Pain Frenzy's re-roll, the Haemonculi Fire not in
+     it); `CRIT_VP_PER_HIT` 1.0 (bombardment cannon crits: `critical_hit_value` exists);
+     `marker_hits`' boarding torpedoes at half a hit a hit (`raid_squadron_value` exists) and
+     torpedo bomber salvos' shared turret kills; `_THREAT_PER_DIE` torpedo 0.3 and the move
+     score's `TORPEDO_FP_EQUIV` (`torpedo_salvo_pmf` exists); `lost_ship_vp`'s 0.1 for an
+     attacker's ship lost in the warp; `TELEPORT_SHIELDS_DOWN` 0.3 / 0.6 / 0.1 (the fleet's
+     fire past the shields can give the chance); enemy raids on Dark Eldar ships valuing 0
+     for several of their crit results (now measurable by `crit_effect_value`).
+   - Behaviour priors, harder to compute (the enemy's choice): `MOVE_TURN_WEIGHTS`,
+     `DODGE_WEIGHT`, the re-roll bars (the option value of keeping a re-roll).
+   - Genuine weights (preferences and horizons, for To do 1's tuning, not this item):
+     `PHASE_DISCOUNT`, `LATER_TURN_WEIGHT`, `CRIT_HORIZON`, `FIRE_HORIZON`, `MINE_PHASES`,
+     the scenario objective weights (what winning a scenario is worth in VP),
+     `EASY_TEMPERATURE`.
+34. Strategy candidates for every ship (owner: "a list of strategies all ships try out and
+   then evaluate", not Dark Eldar flanking alone). Today each ship's move comes from
+   one-turn goals (guns to bear, range band, prow-on, rear arc, second target, support,
+   Lock On next, boarding, safety, objectives), scored one turn ahead; hard / expert /
+   master search deeper but only over those one-turn candidates, so a plan whose first move
+   looks poor (swing wide now to be behind the enemy next turn) is never tried. Plan: a
+   strategy is a 2-3 turn plan with a destination relative to an enemy (or a friend /
+   objective): flank left / right into its rear arc (Come to New Heading's two legs, Dark
+   Eldar with no turning distance), hold the best range band (8 f), kite (8 c), cross the T
+   (8 b), prow-on approach (8 d), close to board / ram (8 h), teleport reach (8 j), screen a
+   carrier / the flagship, strike runs and disengaging. Every ship (and squadron, with one
+   heading) generates the strategies its weapons and speed allow, turns each into this
+   turn's first move towards its waypoint, and the strategies are evaluated over their
+   turns in the sim (the expert's `lookahead_ai` machinery, for normal too at a small
+   width), the enemy replying; the best strategy's first move is played, re-planned each
+   turn. Owner's strategy notes and their status: see "AI: how it decides", Fleet strategy.
 
 ### Booklet update 62: the commander's death on alien tables (implemented, tested)
 

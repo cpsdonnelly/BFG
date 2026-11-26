@@ -2328,9 +2328,8 @@ class AIPlayer:
     def _order_value(self, ship: Ship, order: str):
         """(order, gain in VP, pass chance) (To do 10 b-c, f): Lock On's move
         gain at FP_HITS a firepower point at the target's value a hit; Burn
-        Retros the hazard it saves less half the firepower; Reload Ordnance
-        next turn's launch (judgement: half a hit a torpedo / squadron at the
-        nearest enemy's value a hit). Pass chance: `_pass_chance` (the
+        Retros the hazard it saves less its halved guns; Reload Ordnance
+        next turn's launch (`_reload_value`). Pass chance: `_pass_chance` (the
         engine's own command check rule)."""
         from .ai_hazards import value_per_hit
         p = self._pass_chance(ship, order)
@@ -2412,8 +2411,8 @@ class AIPlayer:
         for, whichever is more; torpedoes: the salvo's expected hits on the
         nearest enemy it could reach (two torpedo moves and its move) after
         its turrets, on the Armour it shows (torpedo_salvo_hits), at its value a hit, discounted to next turn
-        (`phase_weight(2)`); mines half a hit a launcher at the nearest enemy
-        within 60cm (judgement); the Armageddon Gun its value from here."""
+        (`phase_weight(2)`); mines by `ai_hazards.mine_value` from where it
+        stands, discounted the same; the Armageddon Gun its value from here."""
         from .ai_hazards import value_per_hit, phase_weight
         enemies = self._live_enemies()
         if not enemies:
@@ -2460,12 +2459,12 @@ class AIPlayer:
                                           list(ship.special_rules or []))
                 v += hits * value_per_hit(e, self.gs) * phase_weight(2)
         if not ship.ordnance_loaded_mines:
-            near = [e for e in enemies if ship.distance_to(e) <= 60.0 + e.base_radius]
-            if near:
-                e = min(near, key=ship.distance_to)
-                n = sum(w.get("strength", 1) or 1 for w in ship.weapons
-                        if w.get("weapon_type") == "mine_launcher")
-                v += 0.5 * n * value_per_hit(e, self.gs)
+            # next turn's mines laid from where it stands (ai_hazards.mine_value)
+            from .ai_hazards import mine_value
+            n = sum(w.get("strength", 1) or 1 for w in ship.weapons
+                    if w.get("weapon_type") == "mine_launcher")
+            if n:
+                v += mine_value(ship.x, ship.y, self.gs, self.player, n) * phase_weight(2)
         if "armageddon_spent" in ship.special_rules:
             try:
                 v += max(0.0, self._armageddon_value(ship))
@@ -3697,9 +3696,9 @@ class AIPlayer:
             elif wtype == "mine_launcher" and ship.ordnance_loaded_mines:
                 # Mines (s.17) home 10cm on the nearest enemy vessel in every
                 # ordnance phase and stay active until destroyed: lay them when
-                # an enemy is within three turns' reach (20cm a turn), where
-                # they can still find it
-                if any(ship.distance_to(e) <= 60.0 + e.base_radius for e in enemies):
+                # they can reach an enemy within the horizon (mine_value > 0)
+                from .ai_hazards import mine_value
+                if mine_value(ship.x, ship.y, gs, self.player, weapon.get("strength", 1) or 1) > 0.0:
                     actions.lay_ship_mines(gs, ship.id, w_i)
                     ship = gs.get_ship_by_id(ship.id)
 

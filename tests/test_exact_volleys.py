@@ -54,3 +54,17 @@ def test_asteroid_reroll_worth_the_d6_damage_past_shields():
     a, t, gs = _pair(shields_max=2)
     want = sum(hits_vp(t, gs, max(0, r - 2)) for r in range(1, 7)) / 6.0
     assert abs(importance(t, "asteroid navigation", gs) - want) < 1e-9
+
+
+def test_mines_worth_what_they_can_reach():
+    from src.ai_hazards import mine_value
+    t = make_ship(id="t", player=2, x=25.0, y=0.0, heading=180.0, speed=20, hits_max=8,
+                  points_value=180, turrets=0)
+    gs = make_gs([t])
+    near = mine_value(0.0, 0.0, gs, 1)
+    assert near > 0
+    # far beyond 4 ordnance phases of 10cm plus its moves: nothing
+    assert mine_value(-200.0, 0.0, gs, 1) == 0.0
+    # two mines: the second's hits come on top of the first's (they may
+    # cross the cripple line, so it can be worth more than the first)
+    assert mine_value(0.0, 0.0, gs, 1, n=2) > near

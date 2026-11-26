@@ -66,7 +66,15 @@ def test_ai_lays_mines_when_an_enemy_is_in_reach():
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
     ai._launch_ship_ordnance(gs.get_ship_by_id("m"))
     assert not gs.ordnance
-    near = make_ship(id="e", player=2, x=40.0, y=0.0)
+    # mines chase at 10cm an ordnance phase (ai_hazards.mine_value): an enemy
+    # 40cm off sailing away at 20cm a turn is never caught...
+    away = make_ship(id="e", player=2, x=40.0, y=0.0, heading=0.0, speed=20)
+    gs = make_gs([make_ship(id="m", player=1, weapons=[dict(MINES)]), away])
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai._launch_ship_ordnance(gs.get_ship_by_id("m"))
+    assert not gs.ordnance
+    # ... one coming towards the layer is
+    near = make_ship(id="e", player=2, x=40.0, y=0.0, heading=180.0, speed=20)
     gs = make_gs([make_ship(id="m", player=1, weapons=[dict(MINES)]), near])
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
     ai._launch_ship_ordnance(gs.get_ship_by_id("m"))

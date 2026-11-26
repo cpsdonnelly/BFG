@@ -14,10 +14,14 @@ engine's own rule (`movement.command_check_ld`), All Ahead Full / Come to New He
 halving guns only, Lock On's exact re-roll gain, every order compared by pass-weighted
 expected VP, Reload's exact salvo hits. The owner's third Dark Eldar fleet
 (`owner_dark_eldar_succubi_990.json`). The Dark Eldar still lose to the Gothic fleet (by
-262-744 in IGOUGO, 189 in AA). Open: the commander re-roll in the pass chance,
-`ai_rerolls.firepower_swing`'s 0.6-a-point shortcut (asked the owner), Thrusters Damaged /
-mines at half a hit, Brace's lost orders, Dark Eldar flanking beyond one turn, the boarding
-crit's flat value, enemy raids on Dark Eldar ships. Next: the agreed order (To do 22, team
+262-744 in IGOUGO, 189 in AA). Since (owner: "bad and lazy judgement calls"): crit
+effects measured on a copy of the ship (`hit_and_run.crit_effect_value`, exact repair chain
+`p_system_down`), re-roll values computed per test from exact volley distributions
+(`ai_hazards.weapon_hit_pmf` / `volley_hull_pmf` / `hits_vp`), mines followed to contact
+(`ai_hazards.mine_value`), Burn Retros' exact cost; a recursion found and cut
+(`plasma_ordnance_vp`). Open: the remaining guessed values (CLAUDE.md To do 33, the largest
+the hull-hit scale), strategy candidates for every ship (To do 34, owner), the commander
+re-roll in the pass chance, Brace's lost orders. Next: the agreed order (To do 22, team
 play) when the owner says.
 
 Earlier: Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
