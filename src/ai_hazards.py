@@ -1146,7 +1146,14 @@ def _state_stamp(gs):
     if memo is not None and memo[0] == ids:
         return memo[1]
     stamp = _compute_stamp(gs)
-    gs.__dict__["_stamp_memo"] = (ids, stamp)
+    # the memo keeps the records (and the scenario / sub-plot objects) it was
+    # made from: while it holds them their ids can't be reused by new records,
+    # so a matching id tuple really is the same records (an id freed and given
+    # to a new record would return a stale stamp, differently in every
+    # process, and break replays)
+    gs.__dict__["_stamp_memo"] = (ids, stamp, list(ships),
+                                  getattr(gs, "scenario_state", None),
+                                  getattr(gs, "subplots", None))
     return stamp
 
 
