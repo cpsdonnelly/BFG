@@ -18,6 +18,12 @@ and is read only when the work needs it:
 - `docs/HANDOFF.md`: longer design notes and the handoff.
 Update those files as work is done; keep this one to the summary below.
 
+## Task claims (several sessions may work at once)
+
+Before starting any task, read `docs/CLAIMS.md` on every working branch (`git fetch
+origin`), claim the task there (one active, up to three next), commit and push at once, and
+follow its rules (own branch, pull requests, own lines only in the shared status files).
+
 ## Rules source of truth
 
 - **`bfgxr/` is the rules authority.** Read `bfgxr/CLAUDE.md` before changing any rule or ship
@@ -59,7 +65,7 @@ Update those files as work is done; keep this one to the summary below.
   the better of Lock On and, when spent, Reload; a squadron its one order and every
   member's fire; the master AI plans afresh (its replay checked). Plain game: a fleet gone
   is decided by the mode's condition, else VP.
-- Next: team play (To do 22).
+- Next: team play (To do 22), claimed in docs/CLAIMS.md with 19, 14 and 33 after it.
 
 ## Agreed order (details in docs/TODO.md)
 
