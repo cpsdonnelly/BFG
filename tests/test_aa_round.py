@@ -116,7 +116,10 @@ def test_passing_only_with_spare_dice():
 
 
 def test_round_settings():
-    assert AARoundConfig().round_phases() == ROUND_SHOOT_FIRST
+    # owner's default: the IGOUGO order with the two ordnance phases together
+    assert AARoundConfig().round_phases() == (
+        "command", "movement", "shooting", "ordnance_a", "ordnance_b", "end")
+    assert AARoundConfig(phase_order="shoot_first").round_phases() == ROUND_SHOOT_FIRST
     assert AARoundConfig(phase_order="move_first").round_phases() == ROUND_MOVE_FIRST
     assert ordnance_moves(3, 3) == 1 and ordnance_moves(3, 4) == 2
     assert ordnance_moves(3, 3, AARoundConfig(first_turn_moves=2)) == 2

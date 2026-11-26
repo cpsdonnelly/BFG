@@ -383,8 +383,9 @@ class GamePanel(GameFlow):
         ttk.Combobox(aa_row2, textvariable=aa_mode_var, values=list(aa_modes.values()),
                      state="disabled" if started else "readonly", width=26,
                      font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
-        aa_order_var = tk.StringVar(value=aa_set.get("phase_order", "shoot_first"))
-        ttk.Combobox(aa_row2, textvariable=aa_order_var, values=["shoot_first", "move_first"],
+        aa_order_var = tk.StringVar(value=aa_set.get("phase_order", "ordnance_last"))
+        ttk.Combobox(aa_row2, textvariable=aa_order_var,
+                     values=["ordnance_last", "shoot_first", "move_first"],
                      state="disabled" if started else "readonly", width=12,
                      font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
         aa_force_var = tk.BooleanVar(value=aa_set.get("allow_forcing", False))

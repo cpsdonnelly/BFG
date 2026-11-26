@@ -2577,7 +2577,12 @@ Done: To do 2, 3, 6; most of 7.
    in IGOUGO; in AA they used to get one (launched in the second ordnance phase, removed at
    the next round's start); now two, removed at the start of the first round after their
    second move, never a third (`AATurn.impaler_moves`, `may_move_ordnance`,
-   `remove_spent_impalers(keep=)`). Owner idea, open (an AA design choice, not built):
+   `remove_spent_impalers(keep=)`). Owner (latest, changes the working round): the
+   default phase order is now the IGOUGO one with both ordnance phases together, Command,
+   Movement, Shooting, Ordnance A, Ordnance B, End (`phase_order` "ordnance_last",
+   `aa_round.ROUND_ORDNANCE_LAST`; simpler for players and no penalty on ordnance-heavy
+   fleets such as the Dark Eldar); "shoot_first" / "move_first" (the old working round,
+   Ordnance A first) stay selectable; launches stay in Ordnance B by default. Owner idea, open (an AA design choice, not built):
    ordnance launched before its parent ship moves (shoot first, or the launch phase before
    movement) lags behind the IGOUGO launch point, so it could get a first-move boost from
    the parent's movement (e.g. the distance the ship moves that round, or its speed).

@@ -50,7 +50,7 @@ def test_a_round_runs_every_phase_and_unit():
         else:
             assert aa.next_activation() is None
         aa.advance()
-    assert phases == ["command", "ordnance_a", "shooting", "movement", "ordnance_b", "end"]
+    assert phases == ["command", "movement", "shooting", "ordnance_a", "ordnance_b", "end"]
     assert aa.round == 2 and aa.phase == "command"
 
 
