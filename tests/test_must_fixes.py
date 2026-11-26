@@ -135,3 +135,20 @@ def test_the_ai_order_plan_is_stored():
 def ai_player_reader(gs):
     from src.ai_player import order_reader
     return order_reader(gs, 1).tc
+
+
+def test_the_master_ai_values_the_order_afresh():
+    """Owner: the master AI uses the slower, more accurate value: a fresh
+    order plan from where the ship stands, not the stored one."""
+    from src import ai_player
+    ship = make_ship(id="m", player=2, x=0.0, y=0.0, heading=0.0, speed=20, hits_max=8,
+                     points_value=200, weapons=[dict(BAT)], leadership=8)
+    foe = make_gunship(player=1, x=25.0, y=0.0, heading=180.0, id="e")
+    gs = make_gs([ship, foe])
+    gs.planned_orders = {"m": ["reload_ordnance", 999.0]}
+    gs.ai_difficulty = "normal"
+    assert not ai_player.master_ai(gs, 2)
+    assert ai_player.next_order(gs, ship) == ("reload_ordnance", 999.0)
+    gs.ai_difficulty = "master"
+    assert ai_player.master_ai(gs, 2) and not ai_player.master_ai(gs, 1)
+    assert ai_player.next_order(gs, ship, full=True)[1] != 999.0

@@ -128,7 +128,7 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
         cost *= 2.0
     # ... and may take no other special order until the end of its next turn
     # (s.7; owner, To do 33 d): that order at its pass chance is lost too
-    cost += next_order_vp(gs, target, full=full_plan)
+    cost += next_order_vp(gs, target, full=full_plan or master_ai(gs, target.player))
     plain = dist(hull)
     if p_pass is None and 0.0 < p < 1.0 and getattr(gs, "ld_reroll_hook", None):
         # a commander re-roll on a failed brace (s.5; owner, To do 33): taken
@@ -166,12 +166,14 @@ def next_order(gs: GameState, ship: Ship, full: bool = False):
     take next (To do 33 d). The value its own AI planned at its last movement
     / AA command phase (`GameState.planned_orders`, carried over between
     plans; a pure part of the state, so replays and saves keep it). With no
-    plan (the first turn before it has moved, a human's ship): `full` runs
-    the AI's own order choice from where it stands (the human's "Auto",
-    rare), else Lock On's re-roll gain on the guns that bear now
-    (`lock_on_estimate`)."""
+    plan (the first turn before it has moved, a human's ship) Lock On's
+    re-roll gain on the guns that bear now (`lock_on_estimate`). `full`
+    (a human's "Auto", and the master AI, owner: it may use the slower,
+    more accurate value) runs the AI's own order choice from where the ship
+    stands now instead, whether or not a plan is stored (a pure function of
+    the state, so replays still match)."""
     rec = (getattr(gs, "planned_orders", None) or {}).get(ship.id)
-    if rec is not None:
+    if rec is not None and not full:
         return rec[0], float(rec[1] or 0.0)
     if full:
         try:
@@ -185,6 +187,19 @@ def next_order(gs: GameState, ship: Ship, full: bool = False):
             pass
         return None, 0.0
     return SpecialOrder.LOCK_ON.value, lock_on_estimate(gs, ship)
+
+
+def master_ai(gs: GameState, player: int) -> bool:
+    """Is `player` played by the master AI (10 turns or to the game's end)?
+    Owner: it uses the slower, more accurate values (a fresh order plan in
+    Brace and Leadership crits, `next_order(full=True)`). Player 1 is human
+    unless in spectator mode."""
+    if player == 1 and not getattr(gs, "ai_spectator", False):
+        return False
+    try:
+        return gs.difficulty_for(player) == "master"
+    except Exception:
+        return False
 
 
 def lock_on_estimate(gs: GameState, ship: Ship) -> float:

@@ -675,7 +675,7 @@ def _crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
             delta += dp * max(0.0, 0.5 * fire0 - 0.5 * t1)
             # ... and its next special order passes less often (owner, To do
             # 33 d): the order its own AI last planned (ai_player.next_order)
-            delta += _order_loss(clean, hit, gs)
+            delta += _order_loss(clean, hit, gs, owner)
         total += phase_weight(2 * j) * weight * delta
     if ct in COMMAND_CRITS and "commander_slain" not in target.special_rules:
         from .victory_points import commander_points
@@ -683,12 +683,15 @@ def _crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
     return total
 
 
-def _order_loss(clean: Ship, hit: Ship, gs: GameState) -> float:
+def _order_loss(clean: Ship, hit: Ship, gs: GameState, owner: int = None) -> float:
     """VP the lower Leadership of `hit` costs the ship's next special order:
-    its planned gain x (pass chance at the old Ld - at the new one)."""
+    its planned gain x (pass chance at the old Ld - at the new one); valued
+    for the master AI (`owner`) by a fresh order plan."""
     try:
-        from .ai_player import next_order_vp
-        return max(0.0, next_order_vp(gs, clean) - next_order_vp(gs, clean, ld_ship=hit))
+        from .ai_player import next_order_vp, master_ai
+        full = owner is not None and master_ai(gs, owner)
+        return max(0.0, next_order_vp(gs, clean, full=full)
+                   - next_order_vp(gs, clean, full=full, ld_ship=hit))
     except Exception:
         return 0.0
 

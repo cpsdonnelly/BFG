@@ -751,7 +751,8 @@ cases pass):
   fleeing ships; no plan yet (turn 1 before it moved, a human's ship):
   `lock_on_estimate` (each battery / lance's re-roll gain, hits x (1 - p), on the nearest
   enemy in arc and range now), and a human's "Auto" runs the full AI order choice
-  (`next_order(full=True)`, rare); Leadership crits: `hit_and_run._order_loss` (the gain x
+  (`next_order(full=True)`, rare; owner: the master AI always uses this slower, fresher
+  value for its own braces and the Leadership crits it inflicts, `master_ai`); Leadership crits: `hit_and_run._order_loss` (the gain x
   the pass-chance drop). In AA the order a command-phase Brace gives up is this round's,
   counted the same. Not yet: a squadron's one order (each ship its own value), the order's
   gain on guns a brace halves. Fixed on the way: `game_risk`'s cache missed scenario points
