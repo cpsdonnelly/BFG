@@ -220,6 +220,24 @@ targets together. Each ship's guns go where they add most VP on top of what the 
 do, so one ship finishes a 1-hit enemy while the rest move on, and two healthy targets each get
 the ships needed to kill them rather than all piling on one.
 
+### Strategies (Built, first slice; owner: "a list of strategies all ships try out")
+
+Each ship lists the strategies its weapons, speed and state allow:
+
+- flank left or right into the target's rear arc;
+- hold the range band where its guns beat the target's;
+- kite (with a range and speed edge);
+- close in (with boarding or ramming on, or when it fights best under 15cm);
+- screen the flagship or a carrier (escorts);
+- run for the nearest edge (crippled).
+
+Each strategy's first move is searched alongside the usual candidates, and the simulated
+ship keeps following the plan the next turn while the enemy replies. So a move that looks
+poor on its own, such as swinging wide now to be behind the enemy next turn, is valued by
+what it leads to. Every line is judged over the same two turns (normal now looks two turns
+ahead along one line). The search stops after a fixed number of simulated turns rather
+than a time limit, so seeded games replay exactly.
+
 ### Matchup-aware manoeuvre (To do 8; owner ideas, not hard rules; a and f built, the rest planned)
 
 - **a.** Exposure by Armour facing (prerequisite; **Built**): the enemy's batteries are scored

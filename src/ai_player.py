@@ -1637,6 +1637,48 @@ class AIPlayer:
             return True
         return valid
 
+    def _strategy_moves(self, ship: Ship, enemy: Ship, order: str, aaf_bonus: int):
+        """[((turn_deg, dist, turn_at, source), Strategy)] (To do 34, owner):
+        this turn's first move towards each strategy's waypoint
+        (`strategies.strategies_for`: flanks, the range band, kiting, closing,
+        screening, the nearest edge), legal by the candidates' own limits.
+        The expert search follows each for its turns (lookahead_ai). Not for
+        Eldar MMS ships (their two-leg moves) or a ship that can't turn."""
+        from .strategies import strategies_for, plan_waypoint
+        from .movement import turn_distance
+        if "eldar_mms" in ship.special_rules:
+            return []
+        min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
+        ta = ship.turn_angle if get_max_turns(order, ship) > 0 else 0
+        if not ta:
+            return []
+        min_td = turn_distance(ship, order)
+        valid = self._candidate_validator(ship, order, aaf_bonus)
+        points = {min_td, max(min_td, min_spd)}
+        if min_td == 0:
+            points.add(0.0)
+        out = []
+        for strat in strategies_for(self, ship, enemy):
+            wp = plan_waypoint(strat, ship, self.gs.get_ships())
+            if wp is None:
+                continue
+            found = []
+
+            def add(turn_deg, dist, turn_at, src, _found=found):
+                if abs(turn_deg) <= 0.5:
+                    turn_deg, turn_at = 0.0, None
+                if valid(turn_deg, dist, turn_at):
+                    _found.append((turn_deg, dist, turn_at, src))
+            self._head_for(ship, wp[0], wp[1], points, min_spd, max_spd, ta, add,
+                           "strategy:" + strat.name)
+            if found:
+                # the turn point ending nearest the waypoint
+                best = min(found, key=lambda c: math.hypot(
+                    *(lambda p: (p[0] - wp[0], p[1] - wp[1]))(
+                        self._simulate_final_pos(ship, c[0], c[1], c[2]))))
+                out.append((best, strat))
+        return out
+
     def _move_candidates(self, ship: Ship, enemy: Ship, order: str, aaf_bonus: int):
         """[(turn_deg, dist, turn_at, source)] (To do 11 a, owner):
           - the even grid kept as the fallback: straight, half and full turn

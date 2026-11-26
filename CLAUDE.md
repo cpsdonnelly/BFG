@@ -3891,6 +3891,27 @@ Done: To do 2, 3, 6; most of 7.
    turns in the sim (the expert's `lookahead_ai` machinery, for normal too at a small
    width), the enemy replying; the best strategy's first move is played, re-planned each
    turn. Owner's strategy notes and their status: see "AI: how it decides", Fleet strategy.
+   First slice built (`src/strategies.py`, `tests/test_strategies.py`): `strategies_for`
+   gives every ship flank left / right (the target's rear arc, 180 +- 45 degrees from its
+   heading, at the range band or 10-30cm), hold the band (`_range_band`), kite (with
+   `range_speed_edge`: between its reach and ours), close (boarding / ramming on, or our
+   best bracket under 15cm), screen (escorts: 8cm off the flagship / a carrier towards the
+   enemy) and the nearest edge (crippled); waypoints relative to the target
+   (`plan_waypoint`: re-read each turn from where it stands). `AIPlayer._strategy_moves`
+   makes each one's first move (`_head_for`, legal by `_candidate_validator`; not for
+   Eldar MMS or a ship that can't turn). `LookaheadAI._plan_move_toward` searches them
+   besides its `ROOT_MOVES` one-turn candidates (always, whatever their one-turn score),
+   the sim ship following its plan for `PLAN_TURNS` 2 (`SimState.plans`,
+   `_generate_best_moves`; the search's perturbations leave it alone), every root line
+   judged over the same horizon (depth at least `PLAN_TURNS`, the extra turns one line,
+   `beam`), so normal now looks 2 turns along one line. Deterministic cut:
+   `NODE_BUDGET_FOR` sim turns a decision (normal 450, hard 550, expert 1100, master
+   2800; about 330 a second, so each falls inside its time budget, which stays as a guard
+   only), so seeded games replay; expert used to be cut by time. `BFG_SEARCH_STATS=1`
+   shows the strategy chosen. Not yet: the easy AI (no search: it never tries them),
+   squadrons planning one heading, strategies longer than 2 turns, the move score's
+   firepower units in VP (its `max(1.0, value_per_hit)` floors), a strategy carried over
+   between turns (each turn re-plans from scratch).
 
 ### Booklet update 62: the commander's death on alien tables (implemented, tested)
 

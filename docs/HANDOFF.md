@@ -21,7 +21,9 @@ effects measured on a copy of the ship (`hit_and_run.crit_effect_value`, exact r
 (`ai_hazards.mine_value`), Burn Retros' exact cost; a recursion found and cut
 (`plasma_ordnance_vp`). Since (owner: "do the fix first, then the planner"): the
 hull-hit scale (`ai_hazards.hits_vp`: thresholds and the finishing chance over the rest of
-the game; CLAUDE.md session status). Next: the planner (To do 34). Open: the owner's four must-fixes (CLAUDE.md To do 33: a
+the game; CLAUDE.md session status), then the planner's first slice (To do 34:
+`src/strategies.py`, strategy roots followed for two turns in the search, a deterministic
+node budget). Open: the owner's four must-fixes (CLAUDE.md To do 33: a
 commander re-roll in the pass chance, Brace's forbidden orders, the boarding crit's flat
 value, enemy raids on Dark Eldar ships at 0), the remaining guessed values (the largest the
 hull-hit scale), strategy candidates for every ship (To do 34, owner), the commander
