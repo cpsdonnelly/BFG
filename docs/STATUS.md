@@ -149,15 +149,18 @@ cases pass):
   (`next_order(full=True)`, rare; owner: the master AI always uses this slower, fresher
   value for its own braces and the Leadership crits it inflicts, `master_ai`); Leadership crits: `hit_and_run._order_loss` (the gain x
   the pass-chance drop). In AA the order a command-phase Brace gives up is this round's,
-  counted the same. TO FIX (owner: on the agenda, next): (i) a squadron's one order (it
-  tests once, s.8; each ship is now valued with its own plan); (ii) the lost order's gain
-  on guns a brace halves (a braced ship's guns and ordnance are halved to the end of its
-  next turn, s.7, so Lock On / All Ahead Full / Come to New Heading / Reload lose half
-  their gun-based gain; Burn Retros' gain mixes hazard and gun cost and needs splitting).
-  PINNED (owner: slow thinking is fine for master, broken replays are not): the master AI's fresh plan costs 0.1-0.8s a call (measured,
-  Gothic v Dark Eldar), once per Brace (twice with a re-roll) and once per Leadership
-  crit valued (`_order_loss`, now worked out once per crit, not per phase); no master game
-  has been run with it, so its game time and replay are unchecked. Fixed on the way: `game_risk`'s cache missed scenario points
+  counted the same. Since: (i) built, a squadron braces together (s.8), so its brace
+  costs every member's halved fire and its one order (`ai_player.squadron_order_vp`: of the
+  orders its members planned, the one worth most summed over them, at the pass chance of
+  the member with the best Ld; `brace_value(group=)`, passed by `CombatPanel.
+  _brace_before_attack`); not yet: the gain side still counts the saves on the attacked
+  ship's hits only. (ii) dropped, it was a mistake: the lost order is valued against not
+  bracing, where the guns are whole, so its gain at full guns is right; the brace's halved
+  guns are already its own cost term (no double count either way).
+  Master AI (owner: slow thinking is fine, broken replays are not): the fresh plan costs
+  0.1-0.8s a call, once per Brace (twice with a re-roll) and once per Leadership crit
+  valued (`_order_loss`, once per crit); checked: a 4-turn master game, seed 1, Gothic v
+  Dark Eldar, 402s, its replay identical. Fixed on the way: `game_risk`'s cache missed scenario points
   changed in place (`scenario_state` in its key). Check game (seed 1, normal): 151s, replay
   same (Gothic won 517-18; the (c) game was 190s, so (d) costs nothing).
   All four must-fixes are back in (1907 tests pass).

@@ -54,11 +54,10 @@ Update those files as work is done; keep this one to the summary below.
   (search depth 0 / 0 / 2 / 3 / 5 / 10 turns); every phase recorded and replayable.
 - Latest: the four must-fixes (To do 33) all back in. (d): Brace and Leadership crits cost
   the order the ship's own AI last planned (`GameState.planned_orders`, recorded); no plan:
-  the better of Lock On and, when spent, Reload; the master AI plans afresh (its replay
-  check is in progress, see docs/STATUS.md). Plain game: a fleet gone is decided by the
-  mode's condition, else VP.
-- Next: (d)'s two fixes (a squadron's one order; the lost order's gain on the guns a brace
-  halves), then team play (To do 22).
+  the better of Lock On and, when spent, Reload; a squadron its one order and every
+  member's fire; the master AI plans afresh (its replay checked). Plain game: a fleet gone
+  is decided by the mode's condition, else VP.
+- Next: team play (To do 22).
 
 ## Agreed order (details in docs/TODO.md)
 

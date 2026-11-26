@@ -47,7 +47,7 @@ was ~60s): each brace worth trying now values the ship's next order, an AI order
 Open: whether the value horizon should shrink with the difficulty (CLAUDE.md Open
 questions 2, unanswered); the remaining guessed values (To do 33); the planner's follow-ups (To do 34: easy
 AI, squadron headings, plans carried between turns, the move score's firepower units in
-VP). Must-fixes (a)-(d) all re-added (CLAUDE.md session status; (d): the AI's last order plan stored as `GameState.planned_orders`, recorded and replayed, read by Brace and Leadership crits); next: (d)'s two fixes (a squadron's one order; the lost order's gain on guns a brace halves; CLAUDE.md session status), then team play (To do 22); pinned: a master-AI game timing (d)'s fresh plan.
+VP). Must-fixes (a)-(d) all re-added (CLAUDE.md session status; (d): the AI's last order plan stored as `GameState.planned_orders`, recorded and replayed, read by Brace and Leadership crits); a squadron's brace costs its one order and every member's fire; the master AI's fresh plan replays (checked); next: team play (To do 22).
 
 Earlier: Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
 Impaler and slave-taking rulings, escort values by squadron, critical checks on every point

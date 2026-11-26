@@ -2589,8 +2589,9 @@ Done: To do 2, 3, 6; most of 7.
      its pass chance (`ai_player.next_order_vp` / `next_order`: the order the ship's own
      AI last planned, `GameState.planned_orders`, carried over between plans; see the
      session status, (d)).
-     Still to fix (owner, next on the agenda): a squadron's one order, and the order's
-     gain on the guns the brace halves; pinned: a master-AI game timing the fresh plan.
+     A squadron's brace costs its one order and every member's halved fire
+     (`squadron_order_vp`); the master AI plans afresh (replay checked). Not yet: the
+     squadron brace's gain from the hits on the other members.
    - Boarding crits on the target's own table: `hit_and_run.boarding_crit_value` (as
      `boarding._boarding_crit_check` rolls it: an escort 1 damage, else a D6 at least 2
      on the raid table after the cascade; a Haemonculi ship's crit a Fire; Pain Frenzy's
