@@ -1,5 +1,10 @@
 """The owner's must-fix AI values (To do 33), re-added one at a time:
-(a) boarding crits valued on the target's own table."""
+(a) boarding crits valued on the target's own table; (b) raids on Dark Eldar ships."""
+import json
+
+from src.fleet_loader import fleet_to_ships
+from src.game_state import GameState
+from src.hit_and_run import raid_result_value, superstructure_value
 from tests.conftest import make_gunship, make_ship, make_gs
 from src.hit_and_run import boarding_crit_value, crit_type_value
 
@@ -30,3 +35,31 @@ def test_boarding_crit_on_the_targets_own_table():
     gs3 = make_gs([esc, gun])
     from src.ai_hazards import escort_hits_vp
     assert boarding_crit_value(esc, gs3, 1) == escort_hits_vp(esc, gs3, 1)
+
+
+def _de_gs():
+    import glob
+    de = fleet_to_ships(json.load(open("data/fleets/owner_dark_eldar_tortures_1000.json")), 2)
+    go = fleet_to_ships(json.load(open(sorted(glob.glob("data/fleets/owner_gothic*.json"))[0])), 1)
+    gs = GameState()
+    for i, s in enumerate(go):
+        s.x, s.y, s.heading, s.leadership = 40 + 8 * i, 40, 0, 8
+        gs.add_ship(s)
+    for i, s in enumerate(de):
+        s.x, s.y, s.heading, s.leadership = 40 + 8 * i, 75, 180, 8
+        gs.add_ship(s)
+    gs.turn_limit = 6
+    return gs
+
+
+def test_raids_on_a_dark_eldar_ship_are_worth_something():
+    gs = _de_gs()
+    torture = next(s for s in gs.get_ships() if s.player == 2 and "Torture" in s.name)
+    # keel armament: its launch bays (they were valued at 0)
+    assert crit_type_value("keel_armament", torture, gs, 1) > 1.0
+    assert raid_result_value(3, torture, gs, 1) > 1.0
+    for ct in ("graviton_harness", "bladevanes", "prow_armament"):
+        assert crit_type_value(ct, torture, gs, 1) > 0
+    # superstructure: the cheaper of turning and risking a hit, or not turning
+    sv = superstructure_value(torture, "de_superstructure", gs, 1)
+    assert 0 < sv <= crit_type_value("graviton_harness", torture, gs, 1) + 1e-9

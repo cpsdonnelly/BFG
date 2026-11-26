@@ -398,7 +398,17 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     weapons = [w for w in target.weapons
                if weapon_in_crit_slot(w, crit_type) and not weapon_disabled_by_crit(target, w)
                and w.get("weapon_type") in _THREAT_PER_DIE]
-    if not weapons:
+    # launch bays in that location (a Dark Eldar Torture's keel bays): their
+    # share of the ship's bays' worth a turn (ai_hazards.bay_threat_vp)
+    bay_vp = 0.0
+    all_bays = [w for w in target.weapons if w.get("weapon_type") == "launch_bay"]
+    hit_bays = [w for w in all_bays if weapon_in_crit_slot(w, crit_type)
+                and not weapon_disabled_by_crit(target, w)]
+    if hit_bays:
+        from .ai_hazards import bay_threat_vp
+        tot = sum(w.get("strength") or 0 for w in all_bays) or 1
+        bay_vp = bay_threat_vp(target, gs) * sum(w.get("strength") or 0 for w in hit_bays) / tot
+    if not weapons and bay_vp <= 0:
         return 0.0
     total = 0.0
     for j in range(_crit_shooting_phases(target, gs, phases)):
@@ -424,10 +434,19 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
                     if w["weapon_type"] in ("battery", "lance"):
                         from .ai_hazards import _gun_hits
                         h = _gun_hits(target, w, f)
+                        best = max(best, wt * added_vp(f, gs, 0.0, h))
+                    elif w["weapon_type"] == "torpedo":
+                        # the salvo's exact hits after the friend's turrets
+                        # (torpedoes ignore shields, s.15)
+                        from .ai_hazards import torpedo_salvo_hits
+                        h = torpedo_salvo_hits(st, f, gs, (target.x, target.y),
+                                               target.special_rules)
+                        best = max(best, wt * added_vp(f, gs, 0.0, h, shields=False))
                     else:
                         h = st * _THREAT_PER_DIE[w["weapon_type"]]
-                    best = max(best, wt * added_vp(f, gs, 0.0, h))
+                        best = max(best, wt * added_vp(f, gs, 0.0, h))
             threat += best
+        threat += bay_vp
         total += phase_weight(2 * j) * p_left * threat
     return total
 
@@ -551,6 +570,34 @@ def _crit_entry(target: Ship, ct: str) -> Dict:
 def _brace_pass(ld: int) -> float:
     from .ai_hazards import p_sum_at_most
     return p_sum_at_most(2, max(0, ld))
+
+
+def superstructure_value(target: Ship, ct: str, gs: GameState, owner: int,
+                         end_phases: int = None) -> float:
+    """Expected VP of a Superstructure Damaged crit (Dark Eldar, Eldar;
+    Appendix 3): until repaired, a D6 each time the ship turns in its
+    movement phase, 1-2 one point of damage (`dark_eldar.superstructure_strain`).
+    The ship chooses: turn (one turn a move, `movement.get_max_turns`) and take
+    the 1 in 3 chance of a hit (`ai_hazards.hits_vp`), or keep straight, which
+    costs what a no-turns crit costs it (the Graviton Harness / Mast Lines
+    effect measured on a copy, `crit_effect_value`); the cheaper of the two,
+    over the movement phases the crit is likely to last (`p_crit_unrepaired`,
+    `phase_weight`)."""
+    from .ai_hazards import hits_vp, phase_weight
+    from .movement import get_max_turns
+    turns = max(0, get_max_turns("", target)) if target.speed else 0
+    if turns <= 0:
+        return 0.0
+    phases = end_phases or _end_phases_before_target_shoots(target, gs)
+    strain = 0.0
+    for j in range(_crit_shooting_phases(target, gs, phases)):
+        p_left = p_crit_unrepaired(target, gs, phases + 2 * j)
+        if p_left < 0.01:
+            break
+        strain += phase_weight(2 * j) * p_left * min(turns, 2) / 3.0 * hits_vp(target, gs, 1)
+    no_turn = crit_effect_value(target, "graviton_harness" if ct == "de_superstructure"
+                                else "mast_lines", gs, owner, end_phases)
+    return min(strain, no_turn)
 
 
 def crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
@@ -707,8 +754,13 @@ def crit_type_value(ct: str, target: Ship, gs: GameState, owner: int,
         # burning (ai_hazards.fire_value, exact)
         from .ai_hazards import fire_value
         value += fire_value(target, gs, 1)
-    elif ct in ARMAMENT_CRIT_TYPES:
+    elif ct in ARMAMENT_CRIT_TYPES or ct in ("keel_armament", "thorax_armament"):
+        # the weapons (and launch bays) it silences in that location
         value += armament_threat_value(target, ct, gs, owner, end_phases)
+    elif ct in ("de_superstructure", "eldar_superstructure"):
+        # a D6 each time it turns, 1-2 one damage (Appendix 3): the ship
+        # either turns and risks it or holds straight as if it couldn't turn
+        value += superstructure_value(target, ct, gs, owner, end_phases)
     else:
         # every other effect (speed, turns, shields, Leadership, the
         # commander) applied to a copy and measured (crit_effect_value)
