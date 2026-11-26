@@ -655,6 +655,7 @@ def _crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
     ref = max(ref, clean.effective_speed or 0)
     total = 0.0
     repairable = bool(entry.get("repairable", True))
+    order_loss = None        # worked out once, on first need (the master AI plans afresh)
     for j in range(_crit_shooting_phases(target, gs, phases)):
         if repairable:
             # the system stays down until all its crits are repaired: what the
@@ -675,7 +676,9 @@ def _crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
             delta += dp * max(0.0, 0.5 * fire0 - 0.5 * t1)
             # ... and its next special order passes less often (owner, To do
             # 33 d): the order its own AI last planned (ai_player.next_order)
-            delta += _order_loss(clean, hit, gs, owner)
+            if order_loss is None:
+                order_loss = _order_loss(clean, hit, gs, owner)
+            delta += order_loss
         total += phase_weight(2 * j) * weight * delta
     if ct in COMMAND_CRITS and "commander_slain" not in target.special_rules:
         from .victory_points import commander_points
@@ -685,13 +688,16 @@ def _crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
 
 def _order_loss(clean: Ship, hit: Ship, gs: GameState, owner: int = None) -> float:
     """VP the lower Leadership of `hit` costs the ship's next special order:
-    its planned gain x (pass chance at the old Ld - at the new one); valued
-    for the master AI (`owner`) by a fresh order plan."""
+    its gain (`ai_player.next_order`, once) x (pass chance at the old Ld - at
+    the new one); valued for the master AI (`owner`) by a fresh order plan."""
     try:
-        from .ai_player import next_order_vp, master_ai
+        from .ai_player import next_order, master_ai, order_reader
         full = owner is not None and master_ai(gs, owner)
-        return max(0.0, next_order_vp(gs, clean, full=full)
-                   - next_order_vp(gs, clean, full=full, ld_ship=hit))
+        order, g = next_order(gs, clean, full)
+        if not order or g <= 0:
+            return 0.0
+        ai = order_reader(gs, clean.player)
+        return max(0.0, g * (ai._pass_chance(clean, order) - ai._pass_chance(hit, order)))
     except Exception:
         return 0.0
 

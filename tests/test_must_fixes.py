@@ -152,3 +152,19 @@ def test_the_master_ai_values_the_order_afresh():
     gs.ai_difficulty = "master"
     assert ai_player.master_ai(gs, 2) and not ai_player.master_ai(gs, 1)
     assert ai_player.next_order(gs, ship, full=True)[1] != 999.0
+
+
+def test_no_plan_a_spent_torpedo_ship_counts_reload():
+    """No stored plan: a ship whose ordnance is spent counts Reload Ordnance
+    when it is worth more than Lock On (torpedo boats, carriers)."""
+    from src import ai_player
+    torp = {"name": "Prow Torpedoes", "weapon_type": "torpedo", "range_cm": 30,
+            "strength": 6, "arcs": ["front"]}
+    ship = make_ship(id="t", player=1, x=0.0, y=0.0, heading=0.0, speed=20, hits_max=6,
+                     points_value=150, weapons=[torp], leadership=8)
+    ship.ordnance_loaded_torps = False
+    foe = make_ship(id="e", player=2, x=40.0, y=0.0, heading=180.0, hits_max=8,
+                    points_value=200, weapons=[dict(BAT)])
+    gs = make_gs([ship, foe])
+    order, g = ai_player.next_order(gs, gs.get_ship_by_id("t"))
+    assert order == "reload_ordnance" and g > 0

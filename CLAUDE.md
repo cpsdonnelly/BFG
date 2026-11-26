@@ -748,14 +748,22 @@ cases pass):
   enemy's movement (rams) or shooting all read a value at most about half a turn old;
   `ai_player.next_order_vp`: that gain at the pass chance from the ship's Ld NOW
   (`_pass_chance`, so a Bridge Smashed since counts), 0 on the last turn, braced or
-  fleeing ships; no plan yet (turn 1 before it moved, a human's ship):
+  fleeing ships; no plan yet (turn 1 before it moved, a human's ship): the better of
   `lock_on_estimate` (each battery / lance's re-roll gain, hits x (1 - p), on the nearest
-  enemy in arc and range now), and a human's "Auto" runs the full AI order choice
+  enemy in arc and range now) and, with its ordnance spent (torpedo boats, carriers),
+  Reload Ordnance (`_reload_value`; owner), and a human's "Auto" runs the full AI order choice
   (`next_order(full=True)`, rare; owner: the master AI always uses this slower, fresher
   value for its own braces and the Leadership crits it inflicts, `master_ai`); Leadership crits: `hit_and_run._order_loss` (the gain x
   the pass-chance drop). In AA the order a command-phase Brace gives up is this round's,
-  counted the same. Not yet: a squadron's one order (each ship its own value), the order's
-  gain on guns a brace halves. Fixed on the way: `game_risk`'s cache missed scenario points
+  counted the same. TO FIX (owner: on the agenda, next): (i) a squadron's one order (it
+  tests once, s.8; each ship is now valued with its own plan); (ii) the lost order's gain
+  on guns a brace halves (a braced ship's guns and ordnance are halved to the end of its
+  next turn, s.7, so Lock On / All Ahead Full / Come to New Heading / Reload lose half
+  their gun-based gain; Burn Retros' gain mixes hazard and gun cost and needs splitting).
+  PINNED (owner: check later): the master AI's fresh plan costs 0.1-0.8s a call (measured,
+  Gothic v Dark Eldar), once per Brace (twice with a re-roll) and once per Leadership
+  crit valued (`_order_loss`, now worked out once per crit, not per phase); no master game
+  has been run with it, so its game time and replay are unchecked. Fixed on the way: `game_risk`'s cache missed scenario points
   changed in place (`scenario_state` in its key). Check game (seed 1, normal): 151s, replay
   same (Gothic won 517-18; the (c) game was 190s, so (d) costs nothing).
   All four must-fixes are back in (1907 tests pass).
@@ -3910,6 +3918,8 @@ Done: To do 2, 3, 6; most of 7.
      its pass chance (`ai_player.next_order_vp` / `next_order`: the order the ship's own
      AI last planned, `GameState.planned_orders`, carried over between plans; see the
      session status, (d)).
+     Still to fix (owner, next on the agenda): a squadron's one order, and the order's
+     gain on the guns the brace halves; pinned: a master-AI game timing the fresh plan.
    - Boarding crits on the target's own table: `hit_and_run.boarding_crit_value` (as
      `boarding._boarding_crit_check` rolls it: an escort 1 damage, else a D6 at least 2
      on the raid table after the cascade; a Haemonculi ship's crit a Fire; Pain Frenzy's

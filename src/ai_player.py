@@ -166,8 +166,9 @@ def next_order(gs: GameState, ship: Ship, full: bool = False):
     take next (To do 33 d). The value its own AI planned at its last movement
     / AA command phase (`GameState.planned_orders`, carried over between
     plans; a pure part of the state, so replays and saves keep it). With no
-    plan (the first turn before it has moved, a human's ship) Lock On's
-    re-roll gain on the guns that bear now (`lock_on_estimate`). `full`
+    plan (the first turn before it has moved, a human's ship) the better of
+    Lock On's re-roll gain on the guns that bear now (`lock_on_estimate`)
+    and, with its ordnance spent, Reload Ordnance (`_reload_value`). `full`
     (a human's "Auto", and the master AI, owner: it may use the slower,
     more accurate value) runs the AI's own order choice from where the ship
     stands now instead, whether or not a plan is stored (a pure function of
@@ -186,7 +187,19 @@ def next_order(gs: GameState, ship: Ship, full: bool = False):
         except Exception:
             pass
         return None, 0.0
-    return SpecialOrder.LOCK_ON.value, lock_on_estimate(gs, ship)
+    # no plan: the better of Lock On (the guns that bear now) and, for a ship
+    # whose ordnance is spent (torpedo boats, carriers), Reload Ordnance
+    # (`AIPlayer._reload_value`: next turn's strike / CAP / salvo)
+    best = (SpecialOrder.LOCK_ON.value, lock_on_estimate(gs, ship))
+    if AIPlayer._ordnance_spent(ship):
+        try:
+            with gs.ships_snapshot():
+                rv = order_reader(gs, ship.player)._reload_value(ship)
+        except Exception:
+            rv = 0.0
+        if rv > best[1]:
+            best = (SpecialOrder.RELOAD_ORDNANCE.value, rv)
+    return best
 
 
 def master_ai(gs: GameState, player: int) -> bool:
