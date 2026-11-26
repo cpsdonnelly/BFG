@@ -1,10 +1,12 @@
 """The owner's must-fix AI values (To do 33), re-added one at a time:
-(a) boarding crits valued on the target's own table; (b) raids on Dark Eldar ships."""
+(a) boarding crits valued on the target's own table; (b) raids on Dark Eldar ships; (c) a commander re-roll in
+the pass chance."""
 import json
 
 from src.fleet_loader import fleet_to_ships
 from src.game_state import GameState
 from src.hit_and_run import raid_result_value, superstructure_value
+from src.ai_rerolls import with_reroll, spend_bar
 from tests.conftest import make_gunship, make_ship, make_gs
 from src.hit_and_run import boarding_crit_value, crit_type_value
 
@@ -63,3 +65,29 @@ def test_raids_on_a_dark_eldar_ship_are_worth_something():
     # superstructure: the cheaper of turning and risking a hit, or not turning
     sv = superstructure_value(torture, "de_superstructure", gs, 1)
     assert 0 < sv <= crit_type_value("graviton_harness", torture, gs, 1) + 1e-9
+
+
+def _flagship_gs(rerolls=1):
+    flag = make_ship(id="f", player=1, x=0.0, y=0.0, heading=0.0, speed=20, hits_max=8,
+                     points_value=1500, is_flagship=True, rerolls_remaining=rerolls,
+                     weapons=[dict(BAT)])
+    ship = make_ship(id="s", player=1, x=10.0, y=0.0, heading=0.0, speed=20, hits_max=8,
+                     points_value=200, weapons=[dict(BAT)])
+    foe = make_gunship(player=2, x=40.0, y=0.0, heading=180.0, id="e")
+    return ship, make_gs([flag, ship, foe])
+
+
+def test_a_reroll_lifts_an_order_worth_spending_one_on():
+    ship, gs = _flagship_gs(rerolls=1)
+    bar = spend_bar(ship, gs, 1)
+    p = 0.58                                  # Ld 7 on 2D6
+    big = 4 * bar
+    # worth a re-roll: p g + (1 - p)(p g - the re-roll's worth)
+    assert abs(with_reroll(ship, gs, p, big) - (p * big + (1 - p) * (p * big - bar))) < 1e-9
+    # not worth spending one on: no lift
+    assert with_reroll(ship, gs, p, 0.5 * bar) == p * 0.5 * bar
+    # no re-rolls left: no lift
+    ship0, gs0 = _flagship_gs(rerolls=0)
+    assert with_reroll(ship0, gs0, p, big) == p * big
+    # the later orders a failure would block count towards spending one
+    assert with_reroll(ship, gs, p, 0.5 * bar, extra=2 * bar) > p * 0.5 * bar
