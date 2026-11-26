@@ -1,5 +1,11 @@
 # Handoff brief for the next Claude session
 
+> Where CLAUDE.md's old sections went (owner: CLAUDE.md kept small): "Owner rulings" and the
+> rules-area notes -> docs/RULINGS.md; "Session status" -> docs/STATUS.md; "AI: how it
+> decides" -> docs/AI_DECIDES.md; "To do" -> docs/TODO.md. References below to those
+> CLAUDE.md sections mean those files.
+
+
 ## Status at a glance (latest; the dated sections below are history)
 
 Latest (details in CLAUDE.md "Session status", first block; 1902 tests, the sweep 5579

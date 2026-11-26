@@ -1,5 +1,11 @@
 # How the BFG:XR AI thinks: current and planned
 
+> Where CLAUDE.md's old sections went (owner: CLAUDE.md kept small): "Owner rulings" and the
+> rules-area notes -> docs/RULINGS.md; "Session status" -> docs/STATUS.md; "AI: how it
+> decides" -> docs/AI_DECIDES.md; "To do" -> docs/TODO.md. References below to those
+> CLAUDE.md sections mean those files.
+
+
 This describes the computer opponent as it is built today and as planned from the owner's
 feedback. Each feature is marked **Built** or **Planned (To do N)**; the numbers refer to the
 To do list in `CLAUDE.md`, which has the implementation detail. Code lives mainly in
