@@ -9,7 +9,9 @@ and is read only when the work needs it:
   ship options and commanders, blast markers, squadron fire, waves, fleet lists, torpedo
   types, engine gaps, booklet update 62, answered questions). Read the section for the area
   you change before changing it.
-- `docs/TODO.md`: the full To do list (items 1-34; numbers are IDs cited in code).
+- `docs/TODO.md`: the open To do items only (1-34; numbers are IDs cited in code);
+  `docs/TODO_DONE.md` every item in full, built work included, for revisions. When an
+  item is finished, move its lines from TODO.md to TODO_DONE.md.
 - `docs/STATUS.md`: session status and history, latest first.
 - `docs/AI_DECIDES.md`: how the AI decides, in detail; `docs/AI_DESIGN.md` the plain-language
   design (keep both in step with the code).

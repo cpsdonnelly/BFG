@@ -2,7 +2,7 @@
 
 > Where CLAUDE.md's old sections went (owner: CLAUDE.md kept small): "Owner rulings" and the
 > rules-area notes -> docs/RULINGS.md; "Session status" -> docs/STATUS.md; "AI: how it
-> decides" -> docs/AI_DECIDES.md; "To do" -> docs/TODO.md. References below to those
+> decides" -> docs/AI_DECIDES.md; "To do" -> docs/TODO.md (open items) and docs/TODO_DONE.md (full history). References below to those
 > CLAUDE.md sections mean those files.
 
 
