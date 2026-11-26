@@ -156,7 +156,8 @@ cases pass):
   _brace_before_attack`); not yet: the gain side still counts the saves on the attacked
   ship's hits only. (ii) dropped, it was a mistake: the lost order is valued against not
   bracing, where the guns are whole, so its gain at full guns is right; the brace's halved
-  guns are already its own cost term (no double count either way).
+  guns are already its own cost term (no double count either way). Check game (seed 1, normal): 143s, replay
+  same, the same final state as before it (no squadron braced in that game).
   Master AI (owner: slow thinking is fine, broken replays are not): the fresh plan costs
   0.1-0.8s a call, once per Brace (twice with a re-roll) and once per Leadership crit
   valued (`_order_loss`, once per crit); checked: a 4-turn master game, seed 1, Gothic v
