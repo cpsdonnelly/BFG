@@ -108,6 +108,11 @@ class GameState:
     turn_system: str = "igougo"
     aa_settings: Dict = field(default_factory=dict)
     aa_state: Dict = field(default_factory=dict)
+    # Each ship's special order as its own AI last planned it ({ship id:
+    # [order, gain in VP if it passes]}), written by AIPlayer._plan_orders at
+    # that player's movement / AA command phase and carried over until the
+    # next plan: what a Brace or a Leadership crit costs (s.7, To do 33 (d))
+    planned_orders: Dict = field(default_factory=dict)
     # Booklet scenarios (src/scenarios.py): e.g. Domination's layout, objective
     # markers and points
     scenario_state: Dict = field(default_factory=dict)

@@ -1,6 +1,6 @@
 """The owner's must-fix AI values (To do 33), re-added one at a time:
 (a) boarding crits valued on the target's own table; (b) raids on Dark Eldar ships; (c) a commander re-roll in
-the pass chance."""
+the pass chance; (d) Brace and Leadership crits cost the order the AI last planned."""
 import json
 
 from src.fleet_loader import fleet_to_ships
@@ -91,3 +91,47 @@ def test_a_reroll_lifts_an_order_worth_spending_one_on():
     assert with_reroll(ship0, gs0, p, big) == p * big
     # the later orders a failure would block count towards spending one
     assert with_reroll(ship, gs, p, 0.5 * bar, extra=2 * bar) > p * 0.5 * bar
+
+
+def test_brace_counts_the_order_it_forbids():
+    """(d): Brace gives up the order the ship's own AI last planned (stored on
+    the game state, carried over), at its pass chance from its Ld now."""
+    from src import ai_player
+    target = make_ship(id="t", player=1, x=0.0, y=0.0, heading=0.0, speed=20, hits_max=4,
+                       shields_max=1, points_value=200, weapons=[dict(BAT)], leadership=6)
+    foe = make_gunship(player=2, x=20.0, y=0.0, heading=180.0, id="e")
+    gs = make_gs([target, foe])
+    gs.planned_orders = {"t": [None, 0.0]}               # planned: no order
+    base = ai_player.brace_value(gs, target, 8)
+    gs.planned_orders = {"t": ["reload_ordnance", 40.0]}
+    p = ai_player.order_reader(gs, 1)._pass_chance(target, "reload_ordnance")
+    assert abs(ai_player.next_order_vp(gs, target) - p * 40.0) < 1e-9
+    # lost only if the brace passes (also Ld 6 here: the same chance p)
+    assert ai_player.brace_value(gs, target, 8) < base - 0.9 * p * p * 40.0
+    # the game's last turn: nothing to give up
+    gs.turn_limit = gs.turn_number
+    assert ai_player.next_order_vp(gs, target) == 0.0
+    gs.turn_limit = None
+    # a lower Ld (a Leadership crit) costs the order its pass chance
+    import copy
+    low = copy.copy(target)
+    low.leadership = 4
+    assert ai_player.next_order_vp(gs, target, ld_ship=low) < p * 40.0
+    # no plan yet: Lock On's re-roll gain on the guns that bear now
+    gs.planned_orders = {}
+    assert ai_player.next_order(gs, target)[0] == "lock_on"
+    assert ai_player.next_order(gs, target)[1] == ai_player.lock_on_estimate(gs, target) > 0
+
+
+def test_the_ai_order_plan_is_stored():
+    ship, gs = _flagship_gs()
+    from src.ai_player import AIPlayer
+    ai = AIPlayer(1, ai_player_reader(gs), gs, None)
+    ai._plan_orders([ship])
+    assert "s" in gs.planned_orders
+    assert "planned_orders" in gs.to_snapshot()
+
+
+def ai_player_reader(gs):
+    from src.ai_player import order_reader
+    return order_reader(gs, 1).tc

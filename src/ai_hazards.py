@@ -1613,7 +1613,9 @@ def game_risk(gs, player: int):
     # read beyond the ships): every risk-adjusted value asks it, a Brace
     # several times, and it sums both fleets' fire
     key = (table_key(gs), player, repr(getattr(gs, "slave_vp", None)),
-           repr(getattr(gs, "kill_credit", None)))
+           repr(getattr(gs, "kill_credit", None)),
+           # scenario points change in place (the stamp sees only the dict)
+           repr(getattr(gs, "scenario_state", None)))
     cache = gs.__dict__.setdefault("_game_risk_cache", {})
     if key in cache:
         return cache[key]

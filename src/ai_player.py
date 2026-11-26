@@ -72,7 +72,8 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
 
 
 def brace_value(gs: GameState, target: Ship, incoming_hits: int,
-                attacker: Ship = None, p_pass: float = None) -> float:
+                attacker: Ship = None, p_pass: float = None,
+                full_plan: bool = False) -> float:
     """Expected VP (risk-adjusted) of trying Brace for Impact now (s.7; To do
     11 c, priced instead of a fixed share of the hits left). Gain: a 4+ save on
     every hull hit from here to the end of the ship's next turn (hits ~ Poisson,
@@ -125,6 +126,9 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
     cost = 0.5 * threat
     if gs.active_player == target.player and not target.has_fired:
         cost *= 2.0
+    # ... and may take no other special order until the end of its next turn
+    # (s.7; owner, To do 33 d): that order at its pass chance is lost too
+    cost += next_order_vp(gs, target, full=full_plan)
     plain = dist(hull)
     if p_pass is None and 0.0 < p < 1.0 and getattr(gs, "ld_reroll_hook", None):
         # a commander re-roll on a failed brace (s.5; owner, To do 33): taken
@@ -134,7 +138,8 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
         from .ai_rerolls import rerolls_left, spend_bar
         left = rerolls_left(gs, target)
         if left > 0:
-            gain = brace_value(gs, target, incoming_hits, attacker, p_pass=1.0)
+            gain = brace_value(gs, target, incoming_hits, attacker, p_pass=1.0,
+                               full_plan=full_plan)
             bar = spend_bar(target, gs, left)
             if gain >= bar and p * gain > bar:
                 reroll_cost = (1.0 - p) * bar
@@ -144,6 +149,87 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
     player = target.player
     return (certainty_equivalent(gs, player, braced) - certainty_equivalent(gs, player, plain)
             - reroll_cost)
+
+
+def order_reader(gs: GameState, player: int) -> "AIPlayer":
+    """An AIPlayer reading the game state only (no turn controller, no dice),
+    for valuing orders outside the AI's own turn: no check failed yet."""
+    from .turn_controller import TurnController
+    reader = TurnController.__new__(TurnController)   # reads gs only
+    reader.gs = gs
+    reader.checks_blocked = lambda _s: False          # next turn: no check failed yet
+    return AIPlayer(player, reader, gs, None)
+
+
+def next_order(gs: GameState, ship: Ship, full: bool = False):
+    """(order, gain in VP if it passes) of the special order the ship would
+    take next (To do 33 d). The value its own AI planned at its last movement
+    / AA command phase (`GameState.planned_orders`, carried over between
+    plans; a pure part of the state, so replays and saves keep it). With no
+    plan (the first turn before it has moved, a human's ship): `full` runs
+    the AI's own order choice from where it stands (the human's "Auto",
+    rare), else Lock On's re-roll gain on the guns that bear now
+    (`lock_on_estimate`)."""
+    rec = (getattr(gs, "planned_orders", None) or {}).get(ship.id)
+    if rec is not None:
+        return rec[0], float(rec[1] or 0.0)
+    if full:
+        try:
+            ai = order_reader(gs, ship.player)
+            with gs.ships_snapshot():
+                order = ai._pick_special_order(ship)
+                if order:
+                    o, g, _p = ai._order_value(ship, order)
+                    return o, g
+        except Exception:
+            pass
+        return None, 0.0
+    return SpecialOrder.LOCK_ON.value, lock_on_estimate(gs, ship)
+
+
+def lock_on_estimate(gs: GameState, ship: Ship) -> float:
+    """VP Lock On would add from where the ship stands: each battery / lance
+    with an enemy ship in arc and range now (the nearest) re-rolls its misses,
+    hits x (1 - p) for a die's to-hit p (batteries on the Armour facing the
+    ship, lances `lance_p`), at the target's value a hit (`value_per_hit`)."""
+    from .ai_hazards import mount_hits, lance_p, value_per_hit
+    enemies = [e for e in gs.get_ships() if e.player != ship.player
+               and not e.is_destroyed and not e.is_disengaged and e.status == "active"]
+    total = 0.0
+    for w in ship.weapons:
+        kind = w.get("weapon_type")
+        if kind not in ("battery", "lance"):
+            continue
+        cands = [e for e in enemies if check_weapon_in_arc(ship, w, e.x, e.y)
+                 and check_weapon_in_range(ship, w, e.x, e.y)]
+        if not cands:
+            continue
+        e = min(cands, key=lambda t: (t.x - ship.x) ** 2 + (t.y - ship.y) ** 2)
+        h = mount_hits(ship, w, e)
+        if kind == "battery":
+            p = min(1.0, max(1.0 / 6.0, (7 - e.armor_vs(ship.x, ship.y)) / 6.0))
+        else:
+            p = min(1.0, lance_p(w))
+        total += h * (1.0 - p) * value_per_hit(e, gs)
+    return total
+
+
+def next_order_vp(gs: GameState, ship: Ship, full: bool = False, ld_ship: Ship = None) -> float:
+    """Expected VP of the order a Brace forbids (s.7): `next_order`'s gain at
+    its pass chance now (`AIPlayer._pass_chance`, from the ship's current
+    Leadership, or `ld_ship`'s). 0 on the game's last turn, for a ship already
+    braced or that must flee."""
+    limit = getattr(gs, "turn_limit", None)
+    if limit and gs.turn_number >= limit:
+        return 0.0
+    if (getattr(ship, "must_flee", False)
+            or ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value):
+        return 0.0
+    order, g = next_order(gs, ship, full)
+    if not order or g <= 0:
+        return 0.0
+    ai = order_reader(gs, ship.player)
+    return max(0.0, g * ai._pass_chance(ld_ship or ship, order))
 
 
 def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
@@ -162,14 +248,15 @@ def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
 
 
 def ai_should_brace(gs: GameState, target: Ship,
-                    incoming_hits: int, attacker: Ship = None) -> bool:
+                    incoming_hits: int, attacker: Ship = None,
+                    full_plan: bool = False) -> bool:
     """Decide whether an AI-controlled ship should attempt Brace For Impact:
     when its priced value is positive (`brace_value`). incoming_hits: hits
     from the current volley before shields."""
     from .scenarios import orders_forbidden
     if orders_forbidden(gs, target):
         return False
-    return brace_value(gs, target, incoming_hits, attacker) > 0.0
+    return brace_value(gs, target, incoming_hits, attacker, full_plan=full_plan) > 0.0
 
 
 def _scored_on_snapshot(fn):
@@ -2341,6 +2428,12 @@ class AIPlayer:
             o = self._pick_special_order(s)
             if o:
                 orders[s.id] = self._order_value(s, o)
+        # kept on the game state (saves, snapshots and replays carry it) for
+        # Brace / Leadership crits until each ship's next plan (To do 33 d)
+        from .actions import store_order_plan
+        store_order_plan(self.gs, {s.id: [orders.get(s.id, (None,))[0],
+                                          float(orders.get(s.id, (None, 0.0))[1])]
+                                   for s in ships})
         self._order_plan = {"seq": [s.id for s in ships], "orders": orders}
 
     def _pass_chance(self, ship: Ship, order: str, gain_vp: float = None) -> float:

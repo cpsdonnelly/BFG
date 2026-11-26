@@ -617,8 +617,8 @@ def crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
     drop in its pass chance x half our fire on it that phase past what bracing
     costs it (half its fire). A crit that kills the commander adds the
     commander's VPs (`victory_points.commander_points`), scored outright.
-    Not counted: the special orders a lower Ld fails, the commander's re-rolls'
-    later use."""
+    The special orders a lower Ld fails are counted (`_order_loss`); not
+    counted: the commander's re-rolls' later use."""
     cache = gs.__dict__.setdefault("_crit_effect_cache", {})
     key = (gs.turn_number, gs.current_phase, gs.active_player, ct, owner, end_phases, count,
            tuple(sorted((s.id, round(s.x, 1), round(s.y, 1), round(s.heading or 0), s.hits_remaining,
@@ -673,11 +673,24 @@ def _crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
         if hit.leadership < clean.leadership:
             dp = _brace_pass(clean.leadership) - _brace_pass(hit.leadership)
             delta += dp * max(0.0, 0.5 * fire0 - 0.5 * t1)
+            # ... and its next special order passes less often (owner, To do
+            # 33 d): the order its own AI last planned (ai_player.next_order)
+            delta += _order_loss(clean, hit, gs)
         total += phase_weight(2 * j) * weight * delta
     if ct in COMMAND_CRITS and "commander_slain" not in target.special_rules:
         from .victory_points import commander_points
         total += commander_points(target)
     return total
+
+
+def _order_loss(clean: Ship, hit: Ship, gs: GameState) -> float:
+    """VP the lower Leadership of `hit` costs the ship's next special order:
+    its planned gain x (pass chance at the old Ld - at the new one)."""
+    try:
+        from .ai_player import next_order_vp
+        return max(0.0, next_order_vp(gs, clean) - next_order_vp(gs, clean, ld_ship=hit))
+    except Exception:
+        return 0.0
 
 
 class _QuietState:

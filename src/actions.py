@@ -149,6 +149,16 @@ class ReplayDivergence(Exception):
     """A replayed action came out differently from the record."""
 
 
+@recorder.logged("plan_orders", lambda r, A: (A["gs"], dict(plans=A["plans"])))
+def store_order_plan(gs, plans: dict) -> None:
+    """Keep each ship's planned order ({ship id: [order, gain VP]}) on the
+    game state (`GameState.planned_orders`, To do 33 d): what a Brace or a
+    Leadership crit costs it until its next plan. An action, so a movement
+    phase replayed from its record (no AI planning) keeps the same values."""
+    for sid, rec in plans.items():
+        gs.planned_orders[sid] = [rec[0], float(rec[1])]
+
+
 def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
     """Do a recorded depth-0 action again, with the same inputs (its dice come
     from the roll record). `contacts`: the flow's resolver for ordnance a
@@ -178,6 +188,8 @@ def replay_event(gs, tc, dice, ev: dict, contacts=None, panel=None) -> None:
             resolve_aaf_speed(ship, dice)
     elif k == "mark_moved":
         tc.mark_ship_moved(ev["ship"])
+    elif k == "plan_orders":
+        store_order_plan(gs, ev["plans"])
     elif k == "declare_ram":
         _same(ev, "passed", declare_ram(gs, dice, ev["ship"], ev["target"]))
     elif k == "resolve_ram":

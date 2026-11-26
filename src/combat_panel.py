@@ -173,7 +173,8 @@ class CombatPanel(CombatDialogMixin):
                 f"Attempt Brace For Impact before the attack is rolled?\n"
                 f"(Ld test, then 4+ save per hull hit; braced ships fire at half.)\n"
                 f"If failed: cannot brace against {attacker_name} again this turn.",
-                ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker))
+                ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker,
+                                full_plan=True))
         if not want:
             return False
         from .actions import declare_brace

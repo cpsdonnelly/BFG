@@ -101,6 +101,8 @@ def test_commanders_ship_counts_its_exposure_and_braces_earlier():
     foe2 = make_ship(id="e2", player=2, x=20.0, y=0.0, points_value=200, hits_max=8)
     gs2 = make_gs([f2, p2, foe2])
     gs2.active_player = 2
+    # both planned no order next turn (To do 33 d: a brace gives that order up)
+    gs2.planned_orders = {"c2": [None, 0.0], "p2": [None, 0.0]}
     from src.ai_player import brace_value
     assert ai_should_brace(gs2, gs2.get_ship_by_id("c2"), 4)
     assert (brace_value(gs2, gs2.get_ship_by_id("c2"), 4)
