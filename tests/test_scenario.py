@@ -37,3 +37,18 @@ def test_game_continues_before_turn_limit():
     gs = _turn_limit_gs(p2_destroyed=False)
     gs.turn_number = 3
     assert check_game_over(gs) is None
+
+
+def test_plain_game_fleet_gone_goes_by_victory_points():
+    """Owner (open question 1): when a fleet is gone in the plain game the
+    winner is the one with more VP, not simply the side left on the table."""
+    from tests.conftest import make_ship, make_gs
+    from src.scenario import check_game_over
+    left = make_ship(id="a", player=1, points_value=100)
+    gone = make_ship(id="b", player=2, points_value=600, hits_max=8,
+                     status="disengaged", is_disengaged=True)   # 10% of 600 to player 1
+    big = make_ship(id="c", player=1, points_value=600, hits_max=8,
+                    hits_remaining=0, status="destroyed")   # 600 to player 2
+    gs = make_gs([left, gone, big])
+    res = check_game_over(gs)
+    assert res["reason"] == "no_ships" and res["winner"] == 2
