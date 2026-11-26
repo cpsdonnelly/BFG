@@ -755,6 +755,19 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   (`boarding._haemonculi_fire`; reading: any Haemonculi ship among the boarders); the
   Impaler half was already built. Fixed on the way: `combat.add_fire_crits` added the Fire
   twice when the caller's ship copy shared its crit list with the stored ship.
+- Fire crits valued exactly (owner question, To do 30): `ai_hazards.fire_burn_dist` follows
+  the burn over the end phases left (`FIRE_HORIZON` 4, judgement, cut by the turn limit):
+  damage control's D6 a remaining hit (halved touching a blast marker in the first one, +4
+  at the forges, a Big Mek's die, 4+ for Necrons / Mad Meks) puts fires out first, each fire
+  still burning deals a hit past any reactive hull / exo-plating save and costs a die next
+  time; `fire_value` = the burn with the new fire less without, as hull hits
+  (`hull_hits_vp`), so a fire is worth more on a damaged or already burning ship. Used for
+  every Fire crit (`hit_and_run.crit_type_value`: Impaler, raids, boarding values) and for
+  putting one out (`repair_value`; it was a flat 0.5 / 1.5 hits). E.g. the Haemonculi
+  Impaler Fire: 8.7 VP on an undamaged Lunar, 47.1 on a crippled one (the best option
+  there). Not counted: the crit check each point of fire damage takes. The owner's third
+  Dark Eldar list, `owner_dark_eldar_succubi_990.json` (990, valid): the Dread Archon on a
+  launch-bay Torture, two Impaler Succubi with Wych Cults, 6 torpedo and 3 gun Raiders.
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Only the Strong May Lead. AI value gaps (found pricing the crews for the owner):
   `ai_hazards.boarding_vp` values a boarding crit at a flat hit, so Pain Frenzy's crit

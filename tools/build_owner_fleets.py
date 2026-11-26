@@ -95,6 +95,18 @@ FLEETS = [
           "torp_raiders")] * 3
       + [("Corsair Class Frigate", ["Kabal Variant: Impaler bay, 1 module"], False,
           "corsairs")] * 4),
+    # Owner's third Dark Eldar list: two Impaler Succubi with Wych Cults, a
+    # launch-bay Torture (the Dread Archon on it: the list doesn't fix his ship)
+    ("owner_dark_eldar_succubi_990.json", "Dark Eldar Succubi 990", "Dark Eldar",
+     "dark_eldar_raiders", [
+        ("Torture Class Cruiser", ["Kabal Variant: Fiend Ascendant (keel launch bays, 4)",
+                                   "Dread Archon (+2 Ld)"], True, ""),
+    ] + [("Succubus Class Light Cruiser", ["Kabal Variant: Baleful Gaze (prow impaler bay, 2 modules)",
+                                           "Wych Cult"], False, "")] * 2
+      + [("Subjugation Class Raider", ["Kabal Variant: Torpedo salvo S2"], False,
+          "torp_raiders")] * 6
+      + [("Subjugation Class Raider", ["Kabal Variant: Weapons battery FP3"], False,
+          "gun_raiders")] * 3),
     ("owner_tau_protector_980.json", "Tau Protector 980", "Tau", "tau_empire", [
         ("Custodian Battleship", ["Kor'O (Ld 9)", "Commander: 2 extra re-rolls"], True, ""),
     ] + [("Emissary Light Cruiser", ["Configuration: ion cannons for the gravitic hooks",

@@ -6,22 +6,34 @@ PORT = {"name": "Port Lances", "weapon_type": "lance", "range_cm": 30, "strength
         "arcs": ["left"]}
 
 
-def _ship(**kw):
+def _ship(hits_remaining_=1, **kw):
     crits = [{"crit_type": "fire", "description": "Fire!", "repairable": True},
              {"crit_type": "port_armament", "description": "Port Armament Damaged",
               "repairable": True}]
     return make_ship(id="s", player=1, x=0.0, y=0.0, heading=0.0, hits_max=8,
-                     hits_remaining=1, points_value=120, weapons=[dict(PORT)],
+                     hits_remaining=hits_remaining_, points_value=120, weapons=[dict(PORT)],
                      critical_damage=crits, **kw)
 
 
 def test_repairs_the_guns_that_threaten_a_valuable_enemy():
-    foe = make_ship(id="e", player=2, x=0.0, y=20.0, points_value=400, hits_max=8)
+    # a healthy ship: the fire's burn (ai_hazards.fire_value) is worth less
+    # than the broadside back on a 1000pt enemy
+    foe = make_ship(id="e", player=2, x=0.0, y=20.0, points_value=1000, hits_max=8)
+    gs = make_gs([_ship(hits_remaining_=8), foe])
+    s = gs.get_ship_by_id("s")
+    resolve_damage_control(s, DiceStub([6] + [1] * 7), gs)
+    left = [c["crit_type"] for c in gs.get_ship_by_id("s").critical_damage]
+    assert left == ["fire"]
+
+
+def test_puts_out_a_fire_that_would_destroy_the_ship():
+    # 1 hit left: the fire left burning destroys it this end phase
+    foe = make_ship(id="e", player=2, x=0.0, y=20.0, points_value=1000, hits_max=8)
     gs = make_gs([_ship(), foe])
     s = gs.get_ship_by_id("s")
     resolve_damage_control(s, DiceStub([6]), gs)
     left = [c["crit_type"] for c in gs.get_ship_by_id("s").critical_damage]
-    assert left == ["fire"]
+    assert left == ["port_armament"]
 
 
 def test_puts_the_fire_out_when_the_guns_threaten_nothing():

@@ -587,11 +587,13 @@ the AI picks by expected VP.
   play, helpers move to keep friends in reach when that is worth more than what the spot
   costs, and move after the friends they help. Where to stand inside a zone still isn't
   chosen for the matchup or the objectives.
-- **Damage control** (gap; To do 11 e): each capital ship rolls a D6 per remaining hit, each 6
-  repairs one system, dice halved in contact with blast markers (s.36, XR p.35). Repairs follow a
-  fixed priority (fires first, then engines, then the rest), not expected VP: a fire costs 1 hit
-  per end phase, a weapon is worth its next turn of fire if it will bear, an engine crit what is lost by not turning; escorts don't repair. The
-  fixed order stays as the fallback.
+- **Damage control** (built; To do 11 e): each ship rolls a D6 per remaining hit, each 6
+  repairs one system, dice halved in contact with blast markers (s.36, XR p.35). Repairs go by
+  expected VP (`repair_value`): a fire by its exact burn (`fire_burn_dist` / `fire_value`: the
+  fires still burning each cost a hit an end phase and a damage-control die, so a fire on a
+  damaged or burning ship is worth more; the same value prices a Fire crit we inflict), a
+  weapon by what it threatens at the next shooting phases, the rest by judgement shares. The
+  fixed order breaks ties.
 - **First turn** (gap; To do 11 e): the roll-off winner chooses to move first or second (s.2);
   the AI should choose, alongside deployment.
 - **Shooting order** (suggestion, To do 11 d): against shielded targets fire batteries before

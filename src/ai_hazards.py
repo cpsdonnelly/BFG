@@ -2626,11 +2626,93 @@ def torpedo_bomber_target(gs, group, player: int):
 
 ARMAMENT_CRITS = ("dorsal_armament", "port_armament", "starboard_armament", "prow_armament")
 
+FIRE_HORIZON = 4            # end phases a fire's burn is followed (judgement)
+
+
+def _fire_end_phases(gs) -> int:
+    """End phases left for a fire to burn in: FIRE_HORIZON, cut by the game's
+    turn limit (IGOUGO: both players' end phases each game turn; AA: one a
+    round)."""
+    n = FIRE_HORIZON
+    limit = getattr(gs, "turn_limit", None)
+    if limit:
+        per = 1 if getattr(gs, "turn_system", "igougo") == "aa" else 2
+        n = min(n, max(1, (limit - gs.turn_number) * per + 1))
+    return n
+
+
+def fire_burn_dist(ship: Ship, gs, fires: int, repair_first: bool = True) -> dict:
+    """{total burn damage: chance} for `fires` fires on the ship over the end
+    phases left (exact, To do 30): each end phase damage control rolls a D6
+    per remaining hit (halved, rounding up, while a blast marker touches it
+    now: judgement, the first end phase only; +4 at the Craftworld forges; a
+    Big Mek's extra die), each 6 (4+ Necrons / Mad Meks) putting out one fire
+    (fires first: the AI and Auto repair them first, repair_value), then each
+    fire still burning deals a hit (Appendix 3, Fire!; past a reactive hull /
+    bonded exo-plating save, hull_save_factor), which takes a die off the
+    next end phase. `repair_first=False`: this end phase's dice are already
+    spent (repair_value). The ship burning out ends it."""
+    from .geometry import count_blast_markers_touching
+    from .end_phase import _forge
+    if fires <= 0 or ship.status in ("drifting_hulk", "burning_hulk"):
+        return {0: 1.0}
+    rules = ship.special_rules or []
+    need = 4 if ("mad_meks" in rules or "necron" in rules) else 6
+    q = (7 - need) / 6.0
+    save = hull_save_factor(ship)
+    forge = _forge(ship, gs)
+    halve = not forge and count_blast_markers_touching(ship, gs.get_blast_markers()) > 0
+    extra = (4 if forge else 0) + (1 if "big_mek" in rules else 0)
+    h0 = max(0, ship.hits_remaining)
+    states = {(fires, h0): 1.0}
+    for phase in range(_fire_end_phases(gs)):
+        nxt: dict = {}
+        for (f, h), pr in states.items():
+            if f == 0 or h <= 0:
+                nxt[(f, h)] = nxt.get((f, h), 0.0) + pr
+                continue
+            if phase == 0 and not repair_first:
+                left = [(f, 1.0)]
+            else:
+                n = h + extra
+                if halve and phase == 0:
+                    n = (n + 1) // 2
+                left = {}
+                for k, pk in enumerate(binomial_pmf(n, q)):
+                    left[max(0, f - k)] = left.get(max(0, f - k), 0.0) + pk
+                left = list(left.items())
+            for f2, pf in left:
+                for d, pd in enumerate(binomial_pmf(f2, save)):
+                    key = (f2, max(0, h - d))
+                    nxt[key] = nxt.get(key, 0.0) + pr * pf * pd
+        states = nxt
+    out: dict = {}
+    for (f, h), pr in states.items():
+        out[h0 - h] = out.get(h0 - h, 0.0) + pr
+    return out
+
+
+def fire_value(ship: Ship, gs, change: int = 1, repair_first: bool = True) -> float:
+    """Expected VP of `change` more fires on the ship (negative: fires put
+    out), against the fires it already has: the burn damage with them less
+    the burn without, each total valued as hull hits (hull_hits_vp: per hit
+    plus the cripple / destroy thresholds). More fires already burning, fewer
+    hits left or a blast marker in contact all make one more fire worth
+    more (owner question)."""
+    have = sum(1 for c in ship.critical_damage if c.get("crit_type") == "fire")
+    after = max(0, have + change)
+
+    def worth(n):
+        return sum(p * hull_hits_vp(ship, gs, 0.0, d)
+                   for d, p in fire_burn_dist(ship, gs, n, repair_first).items() if d)
+    return worth(after) - worth(have)
+
+
 
 def repair_value(ship: Ship, crit: dict, gs) -> float:
     """Expected VP of repairing one critical hit now (damage control, s.36;
-    To do 11 e). Fire: the hit it would cost each end phase it burns
-    (judgement: 1.5 hits at the ship's value a hit). Armament: what those
+    To do 11 e). Fire: the burn it would still do, exactly (fire_value:
+    this end phase and the later ones, against the fires left). Armament: what those
     weapons threaten at the next shooting phases (hit_and_run.
     armament_threat_value, the raid model, from the enemy's side). Shields
     collapsed: the enemy's expected hits next turn its shields would stop.
@@ -2640,7 +2722,8 @@ def repair_value(ship: Ship, crit: dict, gs) -> float:
     ct = crit.get("crit_type", "")
     vph = value_per_hit(ship, gs)
     if ct == "fire":
-        return 1.5 * vph
+        # the fire put out now: it would burn this end phase and later ones
+        return max(0.0, -fire_value(ship, gs, -1, repair_first=False))
     if ct in ARMAMENT_CRITS:
         # valued as if repaired: the raid model counts a location already
         # knocked out as worth nothing

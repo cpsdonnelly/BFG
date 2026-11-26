@@ -17,7 +17,8 @@ FLEETS = {"owner_chaos_1000.json": 1000, "owner_gothic_1000.json": 1000,
           "owner_tau_protector_980.json": 980, "owner_orks_980.json": 980,
           "owner_necrons_1000.json": 1000, "owner_necrons_war_1000.json": 1000,
           "owner_eldar_1000.json": 1000, "owner_mechanicus_novas_990.json": 990,
-          "owner_dark_eldar_tortures_1000.json": 1000}
+          "owner_dark_eldar_tortures_1000.json": 1000,
+          "owner_dark_eldar_succubi_990.json": 990}
 DIR = os.path.join(os.path.dirname(__file__), "..", "data", "fleets")
 
 

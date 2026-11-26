@@ -282,7 +282,7 @@ class _SilentLog:
 
 # Expected extra damage of each critical (D3 = 2, D6 = 3.5)
 _CRIT_EXTRA = {"engine_room": 1.0, "thrusters_damaged": 1.0, "hull_breach": 2.0,
-               "bulkhead_collapse": 3.5, "fire": 0.5}
+               "bulkhead_collapse": 3.5}
 
 
 def _end_phases_before_target_shoots(target: Ship, gs: GameState) -> int:
@@ -440,6 +440,11 @@ def crit_type_value(ct: str, target: Ship, gs: GameState, owner: int,
     from .combat import ARMAMENT_CRIT_TYPES
     extra = _CRIT_EXTRA.get(ct, 0.0)
     value = extra * vph
+    if ct == "fire":
+        # its burn over the end phases left, against the fires already
+        # burning (ai_hazards.fire_value, exact)
+        from .ai_hazards import fire_value
+        value += fire_value(target, gs, 1)
     if extra and target.hits_remaining <= extra:
         value += ship_value(target, gs) * 0.5          # may finish it off
     if ct in ARMAMENT_CRIT_TYPES:

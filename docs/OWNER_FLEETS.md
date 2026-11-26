@@ -29,6 +29,8 @@ The owner's lists, verbatim:
 
 990 point Dark Eldar Fleet 50 (+2 Ld) 50 (2 extra rerolls) 170 (Succubus with launch bays + torpedo bombers) 60 (Corsair with Impaler bay) x6 40 (Raider with Torp salvo) x4 40 (Raider with macrobatteries) x5
 
+990 point Dark Eldar Fleet (third) 50 (Dread Archon) 165 (Succubus with Impalers & Wych Cults) x2 250 (Torture with launch bays) 40 (Raider with torps) x6 40 (Raider with extra guns) x3
+
 990 point Mechanicus Fleet (Mechanicus Capital ships may purchase upgrades from the Mechanicus Gifts table. Any upgrade except fleet defence turrets is worthwhile, so roll on the table, and if it is a good result and the remaining points can be spent on it, apply it.) 50 (Ld 9) 25 (1 extra reroll) 245 (Dictator) 245 (Tyrant with Nova Cannon & upgraded range) x2 45 (Nova) x4
 
 990 point Tyranid Gestating Fleet
