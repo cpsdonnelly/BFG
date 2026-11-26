@@ -715,11 +715,36 @@ cases pass):
   the search's sim; the deterministic node budget. Games: Gothic v Dark Eldar 262-105
   (Gothic) and 165-342 (Dark Eldar), both replayed exactly, ~136s a game (too few games
   to credit the planner with the Dark Eldar win).
-- The owner's four must-fixes (To do 33), done: a commander re-roll in the pass chance of
-  every order and of Brace; Brace's cost in the order it forbids next turn; boarding crits
-  on the target's own table (Haemonculi Fire, Pain Frenzy re-roll); raids on Dark Eldar
-  ships valued for keel armament (launch bays), superstructure strain and Leadership
-  losses' orders (details in To do 33). Still open: the other guessed values in To do 33.
+- The owner's four must-fixes (To do 33): BUILT, THEN REVERTED (owner: "do that then", re-add
+  one at a time). The code is back at the planner commit's state (0159146); the full change is
+  kept as `docs/patches/must_fixes_todo33.patch` (`git apply` it, or take pieces; it includes
+  `tests/test_must_fixes.py`). Why: with it, a normal Gothic v Dark Eldar game (seed 1,
+  `--rules all`) ran past the runner's 600s limit after 3 turns (~160s a whole game before),
+  and seed 1's replay diverged. Findings so far (fixes tried, NOT proven, all in the patch):
+  (1) `ai_hazards.game_risk` is uncached and sums both fleets' fire (`fleet_hits_on`: 82,878
+  calls, 379s in a 3-turn profile); Brace now values itself several times (with / without
+  the order cost, the re-roll's gain), each doing two certainty equivalents, so it is called
+  far more; cached on the state in the patch, still slow and still diverging after that.
+  (2) `boarding_vp` 5x slower (each crit valued in full, 4 a call, in move scoring with
+  boarding on); cached on a 2cm grid in the patch (warm 0.25ms vs 6.5ms before).
+  (3) `next_order` (an AI order plan, ~0.2s a ship) cached once a turn first: order-dependent,
+  so replays diverged; keyed on the state in the patch.
+  (4) Found: `_state_stamp`'s memo trusts the records' ids, which Python reuses for new
+  records (stale stamp, different in each process): the patch keeps the records alive in
+  the memo. Possibly a real, older replay risk for every stamp-keyed cache (hits_vp,
+  damage_vp...); worth its own check on the reverted code.
+  NOTE for profiling: cProfile sees only the main thread; the movement search runs on a
+  worker (`threading.setprofile` with a cProfile per thread, as in the profiling done here).
+  Plan (owner): re-add the four fixes ONE AT A TIME from the patch, each checked with one
+  short timed game + replay (`tools/headless_runner.py --no-display --games 1 --procs 1
+  --seed 1 --replay-check`, ~160s a game, ~320s with the replay; owner: keep test spend low,
+  ask before long runs): (a) the boarding crit value (+ its cache), (b) Dark Eldar raids
+  (keel bays, superstructure, Leadership orders' cost: `_order_loss` needs `next_order`, so
+  leave that part for (d)), (c) the re-roll lift (`ai_rerolls.with_reroll`, cheap), (d)
+  Brace's forbidden order (`next_order_vp`: the costly and order-sensitive one; needs a
+  cheap, state-keyed value, perhaps the order the AI's own last plan gave the ship, stored
+  as game state).
+  Still open: the other guessed values in To do 33.
   Planner follow-ups (To do 34): the easy AI tries no strategies, squadrons don't plan one
   heading, plans aren't carried between turns.
 
@@ -3855,7 +3880,9 @@ Done: To do 2, 3, 6; most of 7.
 33. Guessed values to compute (owner: judgement calls where the rules give an answer are
    "bad and lazy"; audit of the AI's values; computed so far: crit effects, re-roll values,
    mines, Burn Retros' cost, see the session status). The owner's four must-fixes (named
-   by the owner) are DONE (`tests/test_must_fixes.py`):
+   by the owner) were built and then REVERTED (slow games, a replay divergence; see the
+   session status): the design below is in `docs/patches/must_fixes_todo33.patch`, to be
+   re-added one at a time:
    - A commander re-roll in an order's pass chance: `ai_rerolls.with_reroll` (p x g +
      (1 - p) x (p x (g + the later orders a failure blocks) - the re-roll's worth), taken
      only when the AI would spend one, `should_reroll`; the re-roll's worth is its bar,

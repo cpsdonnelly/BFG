@@ -321,7 +321,7 @@ too?"; several shortcuts were found and fixed):
   with a turn limit both by certainty equivalent. The commander's ship braces earlier only
   because it is worth more.
 
-A commander re-roll is counted in every order's and Brace's pass chance (Built, owner): a
+Planned (owner; built once and reverted, see CLAUDE.md To do 33): a commander re-roll counted in every order's and Brace's pass chance: a
 failed check is re-rolled when the AI would spend one on it, passing at the same chance
 again, less what the AI holds a kept re-roll to be worth. Brace also pays for the order it
 forbids next turn (the AI's own choice from where the ship stands, at its pass chance).
@@ -376,12 +376,12 @@ Owner: no guessed shares where the rules give an answer.
   close, or to bring a broadside round), and Shields Collapse the fire that would then get
   through. Bridge Smashed costs the Brace its lower Leadership loses, plus the commander's
   VPs. Extra damage is valued as hull hits.
-- **Lower Leadership** also costs the special order the ship would take next turn: the
+- **Planned (built, then reverted; To do 33):** lower Leadership also costs the special order the ship would take next turn: the
   order's worth times the drop in its pass chance.
-- **Boarding crits** are valued as the engine rolls them on the ship's own table (a D6 on
+- **Planned (built, then reverted):** boarding crits valued as the engine rolls them on the ship's own table (a D6 on
   the raid table; an escort's 1 damage), with the Haemonculi's Fire and Pain Frenzy's
   re-roll when a Dark Eldar ship inflicts them. They used to count a flat hit.
-- **Raids on Dark Eldar ships** are worth something for every result: keel armament by
+- **Planned (built, then reverted):** raids on Dark Eldar ships worth something for every result: keel armament by
   the launch bays it silences, Superstructure Damaged by the cheaper of turning with a 1 in
   3 chance of a hit or holding straight. Silenced torpedoes count their salvo's real hits.
 - **Re-rolls** are worth what passing gains over failing, test by test:

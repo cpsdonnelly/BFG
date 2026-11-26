@@ -212,14 +212,12 @@ def _order_vp(ship: Ship, label: str, gs, tc=None) -> float:
     return max(0.0, ai._order_value(ship, order)[1])
 
 
-def spend_bar(ship: Ship, gs, left: int) -> float:
-    """The importance a failed test needs before one of `left` re-rolls is
-    spent on it (`should_reroll`), which is also what the AI holds a re-roll
-    to be worth when it keeps one for later: 0 when the commander's ship is
-    about to be lost (the re-rolls go with it), and on the last game turn the
-    lowest bar (left-over re-rolls are worth nothing after it)."""
+def should_reroll(ship: Ship, label: str, gs, left: int, context: Optional[dict] = None) -> bool:
+    """Spend one of `left` re-rolls on this failed test?"""
+    if left <= 0:
+        return False
     if commander_in_danger(gs, ship.player):
-        return 0.0                                 # use them before they're lost
+        return True                                # use them before they're lost
     bar = _bar(left, gs)
     limit = getattr(gs, "turn_limit", None)
     if limit and gs.turn_number >= limit:
@@ -227,51 +225,4 @@ def spend_bar(ship: Ship, gs, left: int) -> float:
         # over are worth nothing after it, so the bars that save them for
         # later turns drop to the lowest (some tests may still come this turn)
         bar = min(bar, _bar(len(_BAR) + 1, gs))
-    return bar
-
-
-def should_reroll(ship: Ship, label: str, gs, left: int, context: Optional[dict] = None) -> bool:
-    """Spend one of `left` re-rolls on this failed test?"""
-    if left <= 0:
-        return False
-    bar = spend_bar(ship, gs, left)
-    if bar <= 0:
-        return True
     return importance(ship, label, gs, context) >= bar
-
-
-def rerolls_left(gs, ship: Ship) -> int:
-    """Re-rolls this ship could use on a failed test now, by the turn
-    controller's own rule (`TurnController.get_fleet_rerolls`: a secondary
-    commander's own, the fleet commander's unless a radiation burst or
-    Signaling Problems blocks them, Demiurg War Host re-rolls), read from the
-    game state alone."""
-    from .turn_controller import TurnController
-    reader = TurnController.__new__(TurnController)   # no __init__: reads gs only
-    reader.gs = gs
-    try:
-        return reader.get_fleet_rerolls(ship.player, ship)
-    except Exception:
-        return 0
-
-
-def with_reroll(ship: Ship, gs, p: float, gain: float,
-                extra: float = 0.0) -> float:
-    """Expected VP of trying a test worth `gain` if passed, at pass chance
-    `p`, counting a commander re-roll (owner, To do 33): a failed test is
-    re-rolled when the AI would spend one on it (`should_reroll`: `gain` plus
-    `extra`, the later orders a failure would block, against the bar), which
-    passes at `p` again (one re-roll per test, s.5) and unblocks the later
-    orders too, so p x g + (1 - p) x (p x (g + extra) - the re-roll's worth),
-    the re-roll's worth being its bar (what the AI holds a kept re-roll to be
-    worth); never less than without it."""
-    base = p * gain
-    if gain <= 0 or p <= 0.0 or p >= 1.0:
-        return base
-    left = rerolls_left(gs, ship)
-    if left <= 0:
-        return base
-    bar = spend_bar(ship, gs, left)
-    if gain + extra < bar:
-        return base                     # the AI wouldn't spend one on it
-    return base + (1.0 - p) * max(0.0, p * (gain + extra) - bar)

@@ -2,7 +2,7 @@
 
 ## Status at a glance (latest; the dated sections below are history)
 
-Latest (details in CLAUDE.md "Session status", first block; 1906 tests, the sweep 5579
+Latest (details in CLAUDE.md "Session status", first block; 1902 tests, the sweep 5579
 cases): owner rulings (raid modifiers cancel; Come to New Heading never halves ordnance;
 Subjugation torpedoes are the Raider's; the AA round's default is Command, Movement,
 Shooting, Ordnance A, Ordnance B, End; shadowfield tracking marks can be turned off);
@@ -30,7 +30,9 @@ depth is turns of moves played out; a hit's value is a formula assuming enemy fi
 turn limit or 6 turns, the same at every level; CLAUDE.md "AI difficulty"); whether the
 new scale is better than the old flat value (better by the rules' reasoning, not proven in
 play: ~100 paired games, not 3; owner: pinned, not worth it now). Then the owner's four
-must-fixes (CLAUDE.md To do 33, done, `tests/test_must_fixes.py`): a commander re-roll in
+must-fixes (CLAUDE.md To do 33) were built and REVERTED (games 4x slower, a replay
+divergence; the change is `docs/patches/must_fixes_todo33.patch`; the findings and the
+one-at-a-time plan are in CLAUDE.md's session status). As built: a commander re-roll in
 every order's and Brace's pass chance (`ai_rerolls.with_reroll`), Brace paying for the order
 it forbids next turn (`ai_player.next_order_vp`), boarding crits on the target's own table
 (`hit_and_run.boarding_crit_value`), raids on Dark Eldar ships valued for keel armament,
@@ -39,7 +41,7 @@ was ~60s): each brace worth trying now values the ship's next order, an AI order
 Open: whether the value horizon should shrink with the difficulty (CLAUDE.md Open
 questions 2, unanswered); the remaining guessed values (To do 33); the planner's follow-ups (To do 34: easy
 AI, squadron headings, plans carried between turns, the move score's firepower units in
-VP). Next: team play (To do 22), the agreed order.
+VP). Next: re-add the must-fixes one at a time (CLAUDE.md session status), then team play (To do 22).
 
 Earlier: Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
 Impaler and slave-taking rulings, escort values by squadron, critical checks on every point
