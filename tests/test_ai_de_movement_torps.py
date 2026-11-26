@@ -80,3 +80,38 @@ def test_torpedo_load_by_value():
         assert ai._torpedo_kind_by_value(a, w, t) != "boarding"
     finally:
         ah.hull_hits_vp, wv.raid_squadron_value = orig_h, orig_r
+
+
+def test_pass_chance_follows_the_engine_rule():
+    """One pass chance from movement.command_check_ld: Under Fire -1 (not for
+    Necrons), automatic passes, 0 once a check has failed this turn (s.2)."""
+    from tests.conftest import make_ship
+    from src.models import BlastMarker
+    from src.ai_hazards import p_sum_at_most
+    me = make_ship(id="m", player=2, x=50.0, y=50.0, leadership=8)
+    nec = make_ship(id="n", player=2, x=80.0, y=50.0, leadership=8, special_rules=["necron"])
+    gs, ai = _ai([me, nec, make_ship(id="e", player=1, x=150.0, y=50.0)])
+    assert abs(ai._pass_chance(gs.get_ship_by_id("m"), "lock_on") - p_sum_at_most(2, 8)) < 1e-9
+    gs.add_blast_marker(BlastMarker(id="b1", x=50.0, y=52.0))
+    gs.add_blast_marker(BlastMarker(id="b2", x=80.0, y=52.0))
+    assert abs(ai._pass_chance(gs.get_ship_by_id("m"), "lock_on") - p_sum_at_most(2, 7)) < 1e-9
+    assert abs(ai._pass_chance(gs.get_ship_by_id("n"), "lock_on") - p_sum_at_most(2, 8)) < 1e-9
+    ai.tc.command_check_failed = True
+    assert ai._pass_chance(gs.get_ship_by_id("m"), "lock_on") == 0.0
+
+
+def test_lock_on_reroll_gain_by_armour():
+    """Re-rolling misses adds 1 - p a die: more against harder Armour."""
+    from tests.conftest import make_ship
+    bat = {"name": "B", "weapon_type": "battery", "strength": 6, "range_cm": 30,
+           "arcs": ["front"]}
+    me = make_ship(id="m", player=2, x=50.0, y=50.0, heading=0.0, weapons=[bat])
+    t4 = make_ship(id="t4", player=1, x=70.0, y=50.0, armor_prow="4+", armor_side="4+")
+    t6 = make_ship(id="t6", player=1, x=70.0, y=50.0, armor_prow="6+", armor_side="6+")
+    gs, ai = _ai([me, t4, t6])
+    m = gs.get_ship_by_id("m")
+    g4 = ai._arc_score(m, 50.0, 50.0, 0.0, gs.get_ship_by_id("t4"), guns_only=True,
+                       reroll_gain=True)
+    g6 = ai._arc_score(m, 50.0, 50.0, 0.0, gs.get_ship_by_id("t6"), guns_only=True,
+                       reroll_gain=True)
+    assert abs(g4 - 6 * 0.5) < 1e-9 and abs(g6 - 6 * (5 / 6)) < 1e-9

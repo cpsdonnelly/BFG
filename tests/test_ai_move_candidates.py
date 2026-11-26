@@ -415,5 +415,10 @@ def test_coordination_pass_plans_every_ship_and_restores_positions():
     with ai._ships_at({b.id: (90.0, 90.0, 45.0)}):
         assert (gs.get_ship_by_id(b.id).x, gs.get_ship_by_id(b.id).y) == (90.0, 90.0)
     assert (gs.get_ship_by_id(b.id).x, gs.get_ship_by_id(b.id).y) == (60.0, 70.0)
-    ai.run_movement_phase()                       # the whole phase still plays
+    # the whole phase still plays (with real dice: the Lunars may take All
+    # Ahead Full to bring their torpedoes into reach, s.7 halving only guns)
+    from src.dice import DiceRoller
+    dice = DiceRoller(mode="auto")
+    ai.dice = ai.tc.dice = dice
+    ai.run_movement_phase()
     assert all(gs.get_ship_by_id(s).x != 60.0 for s in (a.id, b.id))

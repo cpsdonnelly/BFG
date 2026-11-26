@@ -1009,15 +1009,27 @@ Movement:
   ship of ours likely to die ends next to enemies.
 - Special orders (To do 10, partly rebuilt): Burn Retros by expected VP
   (`_burn_retros_worth_it`); Lock On by value (`_lock_on_gain`, 10 a: the best straight move
-  under Lock On with its batteries / lances counted `LOCK_ON_GAIN` 0.5 more, minus the best
-  move that may turn, at the check's pass chance; the target is the one the move plans
-  against; only guns in range after the move count); All Ahead Full by value (`_aaf_gain`,
-  10 b: the best straight move at full speed + the expected bonus, guns in range halved,
-  minus the best free move; Orks pass automatically), the higher of the two; Reload Ordnance
-  when spent (now by value, `_reload_value`); Come to New Heading by value (`_ctnh_gain`, two-leg
-  moves `_ctnh_moves`). Check
+  under Lock On with each battery / lance counted by what re-rolling its misses adds, 1 - p a
+  die (`_arc_score(reroll_gain=True)`: +50% at 4+, +67% at 5+, +83% at 6+; it was a flat
+  0.5), minus the best move that may turn, at the check's pass chance; the target is the one
+  the move plans against; only guns in range after the move count); All Ahead Full by value
+  (`_aaf_gain`, 10 b: the best straight move at full speed + the expected bonus, batteries and
+  lances in range halved, never torpedoes or bays (s.7; it halved everything before), minus
+  the best free move); Reload Ordnance by value (`_reload_value`, a reloaded salvo's hits now
+  after turrets and re-rolls, `torpedo_salvo_hits`); Come to New Heading by value
+  (`_ctnh_gain`, two-leg moves `_ctnh_moves`, guns only halved). The choice
+  (`_pick_special_order`): every order's pass-weighted expected VP on one scale, the best
+  taken (Burn Retros used to win whenever it beat its own cost, and Reload's value was
+  compared unweighted); a spent ship with nothing better still reloads. One pass chance for
+  every order and Brace (`AIPlayer._pass_chance`, `brace_value`), from the engine's own rule
+  `movement.command_check_ld` (split out of `do_command_check`: Fleet Experience / Blood Bond,
+  Under Fire (not Necrons), Slaanesh, sub-plots, Grot Riggers, Enemy Contacts with the Cobra's
+  sensors / nebuloscope / veiled Shrouds, Tyranid synapse Ld for Brace, automatic passes,
+  Siren's Summon), 0 when orders can't be tried (a failed check this turn, a scenario, a
+  Tyranid on instinct); before, five hand-written copies each missed some of these. Not
+  counted: a commander re-roll's lift to the pass chance. Check
   order (10 c): `_plan_orders` values every ship's order at the start of the phase
-  (`_order_value`: VP gain, pass chance with Enemy Contacts / Under Fire) and
+  (`_order_value`: VP gain, `_pass_chance`) and
   `_choose_special_order` skips an order when p x g < (1 - p) x the later orders' expected
   gain (a failed check ends the later ones, s.2). Escorts screen the commander's ship for
   massed turrets (s.29, `_screen_bonus`) only while enemy torpedoes, torpedo bombers, bombers,

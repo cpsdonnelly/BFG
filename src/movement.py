@@ -726,28 +726,19 @@ def _sirens_summon(ship: Ship, gs) -> bool:
 sirens_summon = _sirens_summon
 
 
-def do_command_check(ship: Ship, order: str, dice: DiceRoller,
-                     enemy_on_special: bool = False,
-                     in_blast: bool = False, gs=None) -> dict:
-    """
-    Perform a command check for special orders.
-    Returns dict with 'passed', 'roll', 'needed' (effective Ld).
-    """
+def command_check_ld(ship: Ship, order: str, gs=None, enemy_on_special: bool = False,
+                     in_blast: bool = False) -> dict:
+    """What a command check needs, with no dice and no side effects (shared by
+    do_command_check and the AI's pass chances): {"auto": "pass" / "fail" /
+    None, "needed": effective Ld (0-10), "mods": [...]}."""
     # Orks, 'Ere We Go!: automatically pass command checks for All Ahead Full
     if order == SpecialOrder.ALL_AHEAD_FULL.value and "ere_we_go" in ship.special_rules:
-        return {"passed": True, "roll": 0, "needed": ship.leadership,
+        return {"auto": "pass", "needed": ship.leadership,
                 "mods": ["'Ere We Go! (automatic pass)"]}
     # Dark Eldar (Xenos p.4): automatically pass Come to New Heading
     if order == SpecialOrder.COME_TO_NEW_HEADING.value and "dark_eldar" in ship.special_rules:
-        return {"passed": True, "roll": 0, "needed": ship.leadership,
+        return {"auto": "pass", "needed": ship.leadership,
                 "mods": ["Dark Eldar (automatic pass)"]}
-    if gs is not None:
-        # Mark of Chaos Undivided: before a command check (07_chaos.md)
-        from .chaos_undivided import offer as _undivided
-        if _undivided(gs, ship, order):
-            fresh = gs.get_ship_by_id(ship.id)
-            if fresh is not None:
-                ship.leadership = fresh.leadership
     from .subplots import leadership as _sp_ld
     ld = _sp_ld(gs, ship)            # Fleet Experience / Blood Bond
     if gs is not None and order == SpecialOrder.BRACE_FOR_IMPACT.value \
@@ -758,7 +749,7 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if gs is not None and _sirens_summon(ship, gs):
         # Siren's Summon (Pleasure Fleet of Slaanesh): no special orders or
         # Leadership tests within 15cm of it; a forced test fails
-        return {"passed": False, "roll": 0, "needed": 0,
+        return {"auto": "fail", "needed": 0,
                 "mods": ["Siren's Summon: no orders or Leadership tests"]}
     if in_blast and "necron" not in ship.special_rules:   # Necrons: no blast marker Ld penalty
         ld -= 1
@@ -789,7 +780,32 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
         mods.append(f"Enemy Contacts +{bonus}")
     # Modifiers can't take Ld above 10 or below 0 (s.6); at Ld 1 or less a
     # ship always fails (s.3), which a 2D6 roll against it does
-    ld = max(0, min(10, ld))
+    return {"auto": None, "needed": max(0, min(10, ld)), "mods": mods}
+
+
+def do_command_check(ship: Ship, order: str, dice: DiceRoller,
+                     enemy_on_special: bool = False,
+                     in_blast: bool = False, gs=None) -> dict:
+    """
+    Perform a command check for special orders.
+    Returns dict with 'passed', 'roll', 'needed' (effective Ld).
+    """
+    if gs is not None and not (
+            (order == SpecialOrder.ALL_AHEAD_FULL.value and "ere_we_go" in ship.special_rules)
+            or (order == SpecialOrder.COME_TO_NEW_HEADING.value
+                and "dark_eldar" in ship.special_rules)):
+        # Mark of Chaos Undivided: before a command check (07_chaos.md)
+        from .chaos_undivided import offer as _undivided
+        if _undivided(gs, ship, order):
+            fresh = gs.get_ship_by_id(ship.id)
+            if fresh is not None:
+                ship.leadership = fresh.leadership
+    need = command_check_ld(ship, order, gs, enemy_on_special, in_blast)
+    if need["auto"] == "pass":
+        return {"passed": True, "roll": 0, "needed": need["needed"], "mods": need["mods"]}
+    if need["auto"] == "fail":
+        return {"passed": False, "roll": 0, "needed": 0, "mods": need["mods"]}
+    ld, mods = need["needed"], need["mods"]
 
     mod_str = f" ({', '.join(mods)})" if mods else ""
     roll = dice.roll_2d6(
