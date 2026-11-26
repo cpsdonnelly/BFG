@@ -73,7 +73,7 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
 
 def brace_value(gs: GameState, target: Ship, incoming_hits: int,
                 attacker: Ship = None, p_pass: float = None,
-                full_plan: bool = False) -> float:
+                full_plan: bool = False, group=None) -> float:
     """Expected VP (risk-adjusted) of trying Brace for Impact now (s.7; To do
     11 c, priced instead of a fixed share of the hits left). Gain: a 4+ save on
     every hull hit from here to the end of the ship's next turn (hits ~ Poisson,
@@ -123,12 +123,22 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
     if p_pass is not None:
         p = p_pass          # a re-roll's worth: the brace given it passes (ai_rerolls)
     # s.7: a braced ship halves its gunnery, lances and ordnance strength
-    cost = 0.5 * threat
-    if gs.active_player == target.player and not target.has_fired:
-        cost *= 2.0
+    # (a squadron tests once and braces together, s.8: every member's)
+    members = [m for m in (group or []) if not m.is_destroyed] or [target]
+    if target.id not in {m.id for m in members}:
+        members = [target] + members
+    cost = 0.0
+    for m in members:
+        c = 0.5 * (threat if m.id == target.id else ship_threat_vp(m, gs))
+        if gs.active_player == m.player and not m.has_fired:
+            c *= 2.0
+        cost += c
     # ... and may take no other special order until the end of its next turn
-    # (s.7; owner, To do 33 d): that order at its pass chance is lost too
-    cost += next_order_vp(gs, target, full=full_plan or master_ai(gs, target.player))
+    # (s.7; owner, To do 33 d): that order at its pass chance is lost too; a
+    # squadron's one order (s.8) for all its members
+    full = full_plan or master_ai(gs, target.player)
+    cost += (squadron_order_vp(gs, members, full) if len(members) > 1
+             else next_order_vp(gs, target, full=full))
     plain = dist(hull)
     if p_pass is None and 0.0 < p < 1.0 and getattr(gs, "ld_reroll_hook", None):
         # a commander re-roll on a failed brace (s.5; owner, To do 33): taken
@@ -139,7 +149,7 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
         left = rerolls_left(gs, target)
         if left > 0:
             gain = brace_value(gs, target, incoming_hits, attacker, p_pass=1.0,
-                               full_plan=full_plan)
+                               full_plan=full_plan, group=group)
             bar = spend_bar(target, gs, left)
             if gain >= bar and p * gain > bar:
                 reroll_cost = (1.0 - p) * bar
@@ -260,6 +270,31 @@ def next_order_vp(gs: GameState, ship: Ship, full: bool = False, ld_ship: Ship =
     return max(0.0, g * ai._pass_chance(ld_ship or ship, order))
 
 
+def squadron_order_vp(gs: GameState, members, full: bool = False) -> float:
+    """Expected VP of the one order a squadron would take (s.8: one command
+    check for every member): of the orders its members planned (`next_order`),
+    the one whose gains summed over the members planning it are largest, at
+    the pass chance of the member with the best Leadership (the squadron's
+    test). 0 on the last turn or for a squadron already braced."""
+    limit = getattr(gs, "turn_limit", None)
+    if limit and gs.turn_number >= limit:
+        return 0.0
+    live = [m for m in members if not getattr(m, "must_flee", False)
+            and m.special_order != SpecialOrder.BRACE_FOR_IMPACT.value]
+    if not live:
+        return 0.0
+    sums = {}
+    for m in live:
+        order, g = next_order(gs, m, full)
+        if order and g > 0:
+            sums[order] = sums.get(order, 0.0) + g
+    if not sums:
+        return 0.0
+    order = max(sums, key=sums.get)
+    leader = max(live, key=lambda m: m.leadership)
+    return max(0.0, sums[order] * order_reader(gs, leader.player)._pass_chance(leader, order))
+
+
 def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
                             raids: int = 1) -> bool:
     """Brace against a teleport attack (To do 8 j (3)): a passed brace saves
@@ -277,14 +312,15 @@ def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
 
 def ai_should_brace(gs: GameState, target: Ship,
                     incoming_hits: int, attacker: Ship = None,
-                    full_plan: bool = False) -> bool:
+                    full_plan: bool = False, group=None) -> bool:
     """Decide whether an AI-controlled ship should attempt Brace For Impact:
     when its priced value is positive (`brace_value`). incoming_hits: hits
     from the current volley before shields."""
     from .scenarios import orders_forbidden
     if orders_forbidden(gs, target):
         return False
-    return brace_value(gs, target, incoming_hits, attacker, full_plan=full_plan) > 0.0
+    return brace_value(gs, target, incoming_hits, attacker, full_plan=full_plan,
+                       group=group) > 0.0
 
 
 def _scored_on_snapshot(fn):

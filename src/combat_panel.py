@@ -163,7 +163,8 @@ class CombatPanel(CombatDialogMixin):
             return False            # e.g. Ambush: the defender is caught unawares
         if self.ctx.is_ai_controlled(target.player):
             from .ai_player import ai_should_brace
-            want = ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker)
+            want = ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker,
+                                   group=group)
         else:
             who = (f"{target.name}'s squadron" if group and len(group) > 1 else target.name)
             from .ai_player import ai_should_brace
@@ -174,7 +175,7 @@ class CombatPanel(CombatDialogMixin):
                 f"(Ld test, then 4+ save per hull hit; braced ships fire at half.)\n"
                 f"If failed: cannot brace against {attacker_name} again this turn.",
                 ai_should_brace(self.ctx.gs, target, int(round(expected)), attacker,
-                                full_plan=True))
+                                full_plan=True, group=group))
         if not want:
             return False
         from .actions import declare_brace

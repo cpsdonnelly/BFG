@@ -168,3 +168,23 @@ def test_no_plan_a_spent_torpedo_ship_counts_reload():
     gs = make_gs([ship, foe])
     order, g = ai_player.next_order(gs, gs.get_ship_by_id("t"))
     assert order == "reload_ordnance" and g > 0
+
+
+def test_a_squadron_bracing_gives_up_its_one_order_and_every_members_fire():
+    """s.8: a squadron tests once and braces together, so the brace costs every
+    member's halved fire and the squadron's one order (the order its members
+    planned worth most in total, at the best Leadership's pass chance)."""
+    from src import ai_player
+    a = make_ship(id="a", player=1, x=0.0, y=0.0, heading=0.0, hits_max=4, shields_max=1,
+                  points_value=200, weapons=[dict(BAT)], leadership=7, squadron_id="sq")
+    b = make_ship(id="b", player=1, x=6.0, y=0.0, heading=0.0, hits_max=4, shields_max=1,
+                  points_value=200, weapons=[dict(BAT)], leadership=8, squadron_id="sq")
+    foe = make_gunship(player=2, x=20.0, y=0.0, heading=180.0, id="e")
+    gs = make_gs([a, b, foe])
+    gs.planned_orders = {"a": ["lock_on", 10.0], "b": ["lock_on", 10.0]}
+    ta, tb = gs.get_ship_by_id("a"), gs.get_ship_by_id("b")
+    p_b = ai_player.order_reader(gs, 1)._pass_chance(tb, "lock_on")
+    assert abs(ai_player.squadron_order_vp(gs, [ta, tb]) - 20.0 * p_b) < 1e-9
+    lone = ai_player.brace_value(gs, ta, 8)
+    sq = ai_player.brace_value(gs, ta, 8, group=[ta, tb])
+    assert sq < lone
