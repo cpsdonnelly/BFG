@@ -760,7 +760,7 @@ cases pass):
   on guns a brace halves (a braced ship's guns and ordnance are halved to the end of its
   next turn, s.7, so Lock On / All Ahead Full / Come to New Heading / Reload lose half
   their gun-based gain; Burn Retros' gain mixes hazard and gun cost and needs splitting).
-  PINNED (owner: check later): the master AI's fresh plan costs 0.1-0.8s a call (measured,
+  PINNED (owner: slow thinking is fine for master, broken replays are not): the master AI's fresh plan costs 0.1-0.8s a call (measured,
   Gothic v Dark Eldar), once per Brace (twice with a re-roll) and once per Leadership
   crit valued (`_order_loss`, now worked out once per crit, not per phase); no master game
   has been run with it, so its game time and replay are unchecked. Fixed on the way: `game_risk`'s cache missed scenario points
@@ -4090,19 +4090,25 @@ their rules, Mega Armoured Boarding Parties, Incubi, Tyranids, Mucous Membrane);
 
 ### Open questions for the owner
 
-1. **The plain game's winner when a fleet is gone** (owner: unsure, still open). Outside the booklet scenarios
-   (`scenario.check_game_over`), a fleet with no ships left loses outright, whatever the
-   victory points; in the booklet scenarios the scenario's own conditions (mostly VP) decide.
-   A random-fleet game ended 93-202 VP with the 93 side the winner (the other fleet had
-   disengaged). Should the plain game also go by VP (s.38: "in many scenarios, the winner
-   will be the player who scores the most victory points"; holding the field adds its VP)?
+1. ANSWERED (owner: "Victory Points and Win Conditions can be more important than pure
+   elimination"), built: in the plain game a fleet gone no longer wins outright for the
+   other side; the generic mode's own condition decides first (Kill the Admiral, the
+   objective ship, the artefact), else the most VP, holding the field included
+   (`scenario.check_game_over`, `tests/test_scenario.py`); booklet scenarios already used
+   their own conditions.
 2. **Should the value horizon shrink with the difficulty?** (raised this session; no answer
    yet). A hull hit's value (`hits_vp`) assumes the enemy keeps firing to the turn limit or
    `FUTURE_TURNS` 6 at every level, while the search depth is 0 / 0 / 2 / 3 / 5 / 10 turns
    (see "AI difficulty"). Options: (a) keep it the same at every level (Claude's
    recommendation: difficulty is how far moves are searched, a hit's worth is a fact of the
    rules); (b) tie it to the depth (easy 1 future turn...; at 0 chip damage would be worth
-   nothing and the AI would spread its fire); (c) only very easy myopic.
+   nothing and the AI would spread its fire); (c) only very easy myopic. Owner: "it
+   depends", keep it open and circle back later; don't spend test games on it now, focus on
+   features. When it comes back: today the search looks 0 / 0 / 2 / 3 / 5 / 10 turns
+   (very easy / easy / normal / hard / expert / master) and every level values a hit over
+   the turns left or 6; a shorter value horizon at low levels would make them weaker by
+   undervaluing damage that doesn't cripple or kill at once (spread fire, fewer braces,
+   later disengaging), a longer one changes nothing at master (the turn limit caps it).
 ### Owner ruling: torpedo bomber salvos placed on a ship (s.21; implemented, tested)
 
 A salvo placed overlapping a ship's base is in contact and attacks it at once (s.15 "comes
