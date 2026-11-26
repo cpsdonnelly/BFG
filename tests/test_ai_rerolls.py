@@ -16,14 +16,24 @@ def test_warp_rift_is_worth_the_last_reroll_minor_order_is_not():
 
 
 def test_target_priority_worth_more_when_a_kill_is_in_reach():
+    # passing lets the port guns leave the closest enemy (a fresh decoy) for
+    # the ship further off: worth what they do there less at the decoy, each
+    # by its exact hit distribution (ai_rerolls.importance)
     s = make_ship(id="s", player=1, x=0.0, y=0.0, weapons=GUNS, points_value=180, hits_max=8)
-    weak = make_ship(id="w", player=2, x=20.0, y=0.0, points_value=180, hits_max=8,
+
+    def decoy():
+        return make_ship(id="d", player=2, x=0.0, y=10.0, points_value=180, hits_max=8,
+                         shields_max=2)
+    weak = make_ship(id="w", player=2, x=0.0, y=20.0, points_value=180, hits_max=8,
                      hits_remaining=2, shields_max=0)
-    fresh = make_ship(id="f", player=2, x=20.0, y=0.0, points_value=180, hits_max=8,
+    fresh = make_ship(id="f", player=2, x=0.0, y=20.0, points_value=180, hits_max=8,
                       hits_remaining=8, shields_max=2)
-    a = importance(s, "target priority", make_gs([s, weak]))
-    b = importance(s, "target priority", make_gs([s, fresh]))
-    assert a > b and should_reroll(s, "target priority", make_gs([s, weak]), 2)
+    a = importance(s, "target priority", make_gs([s, decoy(), weak]))
+    b = importance(s, "target priority", make_gs([s, decoy(), fresh]))
+    assert a > b and b == 0.0
+    assert should_reroll(s, "target priority", make_gs([s, decoy(), weak]), 2)
+    # alone, the enemy is the closest: the test changes nothing
+    assert importance(s, "target priority", make_gs([s, weak])) == 0.0
 
 
 def test_spend_everything_when_the_commanders_ship_is_about_to_go():

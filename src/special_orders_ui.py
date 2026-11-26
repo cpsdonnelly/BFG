@@ -177,7 +177,8 @@ class SpecialOrderMixin:
                     f"Rolled {result.get('roll')} vs Leadership {result.get('needed')}\n\n"
                     f"Fleet commander has {rerolls} re-roll(s) remaining.\n"
                     f"Use a re-roll? (Cannot be undone)",
-                    should_reroll(ship, order_str, self.ctx.gs, rerolls))
+                    should_reroll(ship, order_str, self.ctx.gs, rerolls,
+                                  {"tc": self.ctx.tc}))
                 if use_reroll:
                     reroll_result = self.ctx.tc.attempt_reroll_command_check(
                         ship, order_str)
@@ -264,7 +265,8 @@ class SpecialOrderMixin:
                             f"{err}\n\n"
                             f"Fleet commander has {rerolls} re-roll(s) remaining.\n"
                             f"Use a re-roll? (Cannot be undone)",
-                            should_reroll(leader_ship, order, self.ctx.gs, rerolls))
+                            should_reroll(leader_ship, order, self.ctx.gs, rerolls,
+                                          {"tc": self.ctx.tc}))
                         if use_rr:
                             rr = self.ctx.tc.attempt_reroll_command_check(
                                 leader_ship, order)

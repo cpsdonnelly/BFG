@@ -104,6 +104,139 @@ def table_battery_hits(fp: int, column: int, shifts: int, armour: int) -> float:
     return v
 
 
+def battery_dice(e: Ship, w: dict, t: Ship, fp: Optional[int] = None,
+                 halve: bool = False) -> List[Tuple[int, float, float]]:
+    """The Gunnery table's dice for ship `e`'s battery `w` at `t` (as
+    `battery_hits` reads it): [(dice, chance each hits, probability)], one per
+    outcome of a random firepower. `halve`: the firepower halved, rounding up
+    (s.7: All Ahead Full, Burn Retros, Come to New Heading, Brace)."""
+    from .combat import (_battery_orientation, gunnery_target_type, get_column_shifts,
+                         dice_distribution, is_dice_value)
+    from .tables import get_gunnery_column, lookup_gunnery_dice
+    if fp is None:
+        text = w.get("strength_dice")
+        outcomes = (dice_distribution(text) if text and is_dice_value(text)
+                    else [(w.get("strength") or 0, 1.0)])
+    else:
+        outcomes = [(fp, 1.0)]
+    ttype = gunnery_target_type(t)
+    column = get_gunnery_column(ttype, _battery_orientation(e, t, w, ttype))
+    d = math.hypot(e.x - t.x, e.y - t.y)
+    proxy = e
+    est = max(1.0, d - (e.effective_speed or 0))
+    if d > 1e-6 and est < d:
+        k = est / d
+        proxy = _dc_replace(e, x=t.x + (e.x - t.x) * k, y=t.y + (e.y - t.y) * k)
+    shifts = get_column_shifts(proxy, t, [], [], [], w)
+    need = w.get("hits_on") or t.armor_vs(e.x, e.y)
+    crippled = fp is None and e.is_crippled
+    out = []
+    for v, q in outcomes:
+        v = e.crippled_value(v) if crippled else v
+        if halve:
+            v = (v + 1) // 2
+        out.append((lookup_gunnery_dice(v, column, shifts), p_hit(need), q))
+    return out
+
+
+def weapon_hit_pmf(e: Ship, w: dict, t: Ship, halve: bool = False) -> Dict[Tuple[int, int], float]:
+    """Exact distribution of one battery / lance mount's hits on `t` next
+    shooting phase: {(hits shields can stop, hits past shields): chance}.
+    Batteries: the Gunnery table's dice (`battery_dice`), binomial. Lances by
+    their own rules die by die (as `combat.resolve_lances`): 4+ (zzapp gunz
+    5+), Dark Eldar phantom lances 1 on the need / 2 above, Eldar phantom 1
+    to 5 / 2 on a 6, pulsars a hit and up to two follow-ups, particle whips'
+    6s and bio-plasma (a 6 beyond 15cm) past the shields; then holofield and
+    shadowfield saves, each hit kept binomially. Random strength over its
+    outcomes; crippled at half (next turn's shot, `lance_strength(now=False)`)."""
+    out: Dict[Tuple[int, int], float] = {}
+    if w.get("weapon_type") == "battery":
+        for n, ph, q in battery_dice(e, w, t, halve=halve):
+            for k, pk in enumerate(binomial_pmf(n, ph)):
+                if pk:
+                    out[(k, 0)] = out.get((k, 0), 0.0) + q * pk
+        return out
+    from .combat import lance_strength, dice_distribution, is_dice_value
+    text = w.get("strength_dice")
+    outcomes = (dice_distribution(text) if text and is_dice_value(text)
+                else [(w.get("strength", 0) or 0, 1.0)])
+    dist = e.distance_to(t)
+    need = w.get("hits_on") or 4
+    if w.get("bio_plasma") and dist > 15:
+        need = 6
+    if need > 6:
+        return {(0, 0): 1.0}
+    p = (7 - need) / 6.0
+    # one die: {(regular, bypass): chance}
+    if w.get("de_phantom"):
+        die = {(0, 0): (need - 1) / 6.0, (1, 0): 1 / 6.0, (2, 0): (6 - need) / 6.0}
+    elif w.get("phantom"):
+        die = {(0, 0): (need - 1) / 6.0, (1, 0): (6 - need) / 6.0, (2, 0): 1 / 6.0}
+    elif w.get("pulsar"):
+        die = {(0, 0): 1 - p, (1, 0): p * (1 - p), (2, 0): p * p * (1 - p), (3, 0): p ** 3}
+    elif w.get("bio_plasma"):
+        die = {(0, 0): 1 - p, (0, 1): p}
+    elif w.get("particle_whip") or w.get("shield_bypass_6"):
+        die = {(0, 0): 1 - p, (1, 0): p - 1 / 6.0, (0, 1): 1 / 6.0}
+    else:
+        die = {(0, 0): 1 - p, (1, 0): p}
+    keep = 1.0
+    if "holofield" in (t.special_rules or []):
+        from .eldar import p_holofield_save
+        keep *= 1.0 - p_holofield_save(dist)
+    from .dark_eldar import shadowfield_need
+    sf = shadowfield_need(t)
+    if sf is not None:
+        keep *= 1.0 - (7 - sf) / 6.0
+    holo_only_regular = "holofield" in (t.special_rules or []) and not w.get("bio_plasma")
+    for v, q in outcomes:
+        n = lance_strength(e, t, w, v, now=False)
+        if halve:
+            n = (n + 1) // 2
+        acc = {(0, 0): 1.0}
+        for _ in range(max(0, n)):
+            acc = _convolve2(acc, die)
+        for (a, b), pa in acc.items():
+            # saves: each hit kept with `keep` (the holofield doesn't save the
+            # whip's bypassing 6s; the shadowfield saves everything)
+            ka = keep
+            kb = keep if not holo_only_regular else (1.0 - (7 - sf) / 6.0 if sf is not None else 1.0)
+            for i, pi in enumerate(binomial_pmf(a, ka)):
+                for jj, pj in enumerate(binomial_pmf(b, kb)):
+                    key = (i, jj)
+                    out[key] = out.get(key, 0.0) + q * pa * pi * pj
+    return out
+
+
+def _convolve2(a: Dict[Tuple[int, int], float], b: Dict[Tuple[int, int], float]):
+    out: Dict[Tuple[int, int], float] = {}
+    for (x1, y1), p1 in a.items():
+        for (x2, y2), p2 in b.items():
+            k = (x1 + x2, y1 + y2)
+            out[k] = out.get(k, 0.0) + p1 * p2
+    return out
+
+
+def volley_hull_pmf(mounts, t: Ship, shields: int) -> List[float]:
+    """P(k hull hits) on `t` from several mounts fired together, exact:
+    [(shooter, weapon, weight)] each by `weapon_hit_pmf` (weight 1 when it
+    bears, 0.75 when a turn would bring it in: a mixture with no hits),
+    convolved; the shields take the first stoppable hits."""
+    acc = {(0, 0): 1.0}
+    for e, w, wt, halve in mounts:
+        pmf = weapon_hit_pmf(e, w, t, halve=halve)
+        if wt < 1.0:
+            pmf = {k: v * wt for k, v in pmf.items()}
+            pmf[(0, 0)] = pmf.get((0, 0), 0.0) + (1.0 - wt)
+        acc = _convolve2(acc, pmf)
+    n = max((a + b for a, b in acc), default=0)
+    out = [0.0] * (n + 1)
+    s = max(0, int(shields or 0))
+    for (a, b), q in acc.items():
+        out[max(0, a - s) + b] += q
+    return out
+
+
 def battery_hits(e: Ship, w: dict, t: Ship, fp: Optional[int] = None) -> float:
     """Expected hits of ship `e`'s battery `w` on `t` from where both stand,
     on the real Gunnery table (To do 30): the target's type and aspect, the
@@ -772,6 +905,38 @@ def escort_hits_vp(target: Ship, gs, k: int) -> float:
     if k >= rem:
         return v
     return v * max(0.0, finish_chance(target, gs, rem - k) - finish_chance(target, gs, rem))
+
+
+def hits_vp(target: Ship, gs, k: int) -> float:
+    """VP of exactly `k` hull hits on `target` now, on damage_vp's terms with
+    the count known (for exact hit distributions, To do 30): destroyed (k at
+    least its hits left) its value, its scenario kill bonus, its next turn of
+    fire and its explosion; newly crippled a quarter and half its fire; a
+    little a hit (damage_vp's per-hit share); Kill the Admiral's bridge chance
+    on each hit short of the kill; escorts by `escort_hits_vp`."""
+    if k <= 0:
+        return 0.0
+    if target.ship_type == "escort":
+        return escort_hits_vp(target, gs, k)
+    from .scenarios import kill_bonus_vp, cripple_bonus_vp, admiral_crit_vp, admiral_bonus_vp
+    v = ship_value(target, gs)
+    rem = max(1, target.hits_remaining)
+    to_cripple = rem - target.hits_max // 2
+    out = min(k, rem) * value_per_hit(target, gs) * 0.2
+    kill = k >= rem
+    crip = (not target.is_crippled) and to_cripple > 0 and k >= to_cripple
+    if (kill or crip) and not target.damage_crippled:
+        out += cripple_bonus_vp(gs, target)
+    if kill:
+        out += v + kill_bonus_vp(gs, target) + ship_threat_vp(target, gs)
+        out += death_explosion_vp(target, gs, _opponent(target.player))
+    elif crip:
+        out += 0.25 * v + 0.5 * ship_threat_vp(target, gs)
+    per_crit = admiral_crit_vp(gs, target)
+    if per_crit and not kill:
+        q = per_crit / admiral_bonus_vp(gs, target)
+        out += (1.0 - (1.0 - q / 6.0) ** min(k, rem - 1)) * admiral_bonus_vp(gs, target)
+    return out
 
 
 def damage_vp(target: Ship, gs, mean_hits: float) -> float:

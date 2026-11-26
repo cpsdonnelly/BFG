@@ -72,7 +72,7 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
 
 
 def brace_value(gs: GameState, target: Ship, incoming_hits: int,
-                attacker: Ship = None) -> float:
+                attacker: Ship = None, p_pass: float = None) -> float:
     """Expected VP (risk-adjusted) of trying Brace for Impact now (s.7; To do
     11 c, priced instead of a fixed share of the hits left). Gain: a 4+ save on
     every hull hit from here to the end of the ship's next turn (hits ~ Poisson,
@@ -122,6 +122,8 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
     need = command_check_ld(target, "brace_for_impact", gs, in_blast=count_blast_markers_touching(
         target, gs.get_blast_markers()) > 0)
     p = {"pass": 1.0, "fail": 0.0}.get(need["auto"], p_sum_at_most(2, need["needed"]))
+    if p_pass is not None:
+        p = p_pass          # a re-roll's worth: the brace given it passes (ai_rerolls)
     # s.7: a braced ship halves its gunnery, lances and ordnance strength
     cost = 0.5 * threat
     if gs.active_player == target.player and not target.has_fired:
@@ -574,8 +576,11 @@ class AIPlayer:
                                                       if ship.id in seq else [])
                                   for _oo, gg, pp in [plan.get("orders", {}).get(
                                       sid, (None, 0.0, 0.0))])
-                    if left and should_reroll(ship, chosen, gs, left,
-                                              {"blocked_orders_vp": blocked}):
+                    own = plan.get("orders", {}).get(ship.id)
+                    ctx = {"blocked_orders_vp": blocked, "tc": tc}
+                    if own and own[0] == chosen:
+                        ctx["order_vp"] = own[1]
+                    if left and should_reroll(ship, chosen, gs, left, ctx):
                         rr = tc.attempt_reroll_command_check(ship, chosen)
                         gs.add_log(f"[AI] {ship.name}: re-roll for {chosen} "
                                    f"{'passed' if rr.get('success') else 'failed'}")
@@ -624,7 +629,7 @@ class AIPlayer:
                         from .ai_rerolls import should_reroll
                         leader = max(group, key=lambda s: s.leadership)
                         left = tc.get_fleet_rerolls(ship.player, leader)
-                        if left and should_reroll(leader, chosen, gs, left):
+                        if left and should_reroll(leader, chosen, gs, left, {"tc": tc}):
                             rr = tc.reroll_squadron_order(list(group), chosen)
                             gs.add_log(f"[AI] squadron {ship.squadron_id}: re-roll for "
                                        f"{chosen} {'passed' if rr.get('success') else 'failed'}")
@@ -2764,15 +2769,18 @@ class AIPlayer:
         """Burn Retros (s.7: half speed) when the safest normal move risks more
         expected VP from hazards (asteroids, warp rifts, mines, torpedoes, blast
         markers...) than the safest half-speed move, by more than the order
-        costs: special orders halve the ship's firepower this turn, worth half
-        what its guns can take off the best target (ai_rerolls.firepower_swing).
+        costs: Burn Retros halves its batteries and lances this turn (s.7),
+        worth what its guns at full strength take off the best target less
+        what they take at half (`ai_rerolls.firepower_outcomes`, exact).
         Eldar may not use Burn Retros (MMS p.3)."""
         if self.difficulty == "very_easy" or "eldar_mms" in ship.special_rules:
             return False
-        from .ai_rerolls import firepower_swing
+        from .ai_rerolls import firepower_swing, firepower_outcomes
+        halved = max(0.0, firepower_swing(ship, self.gs)
+                     - firepower_outcomes(ship, self.gs, halve=True)[0])
         hold = self._bombard_hold_value(ship)
         if hold > 0:
-            cost = 0.5 * firepower_swing(ship, self.gs) + self._teleport_given_up(ship)
+            cost = halved + self._teleport_given_up(ship)
             self.__dict__.setdefault("_retros_saved", {})[ship.id] = max(0.0, hold - cost)
             if hold > cost:
                 self.gs.add_log(f"[AI] {ship.name}: Burn Retros to hold over the planet "
@@ -2783,7 +2791,7 @@ class AIPlayer:
         saved = normal - retros
         if saved <= 0:
             return False
-        cost = 0.5 * firepower_swing(ship, self.gs) + self._teleport_given_up(ship)
+        cost = halved + self._teleport_given_up(ship)
         self.__dict__.setdefault("_retros_saved", {})[ship.id] = max(0.0, saved - cost)
         if saved > cost:
             self.gs.add_log(f"[AI] {ship.name}: Burn Retros avoids about {saved:.0f} VP of "

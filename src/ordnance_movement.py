@@ -273,7 +273,8 @@ class OrdnanceMovementMixin:
         if self.ctx.is_ai_controlled(player):
             from .ai_rerolls import should_reroll
             if not should_reroll(ship, "guided torpedoes", self.ctx.gs,
-                                 tc.get_fleet_rerolls(player, ship)):
+                                 tc.get_fleet_rerolls(player, ship),
+                                 {"marker": getattr(self, "_guided_marker", None)}):
                 return False
         else:
             from .ai_rerolls import should_reroll
@@ -282,7 +283,8 @@ class OrdnanceMovementMixin:
                           f"{ship.name} rolled {roll} against Leadership {ship.leadership}. "
                           f"Use a fleet commander re-roll ({left} left)?",
                           [("Re-roll", True), ("Don't", False)],
-                          should_reroll(ship, "guided torpedoes", self.ctx.gs, left)):
+                          should_reroll(ship, "guided torpedoes", self.ctx.gs, left,
+                                        {"marker": getattr(self, "_guided_marker", None)})):
                 return False
         return tc.use_fleet_reroll(player, ship)
 
@@ -318,6 +320,7 @@ class OrdnanceMovementMixin:
                 deg = seeking_turn(marker, ships)
                 label = "Seeking torpedoes"
             elif marker.ordnance_type == OrdnanceType.TORPEDO_GUIDED_LD.value:
+                self._guided_marker = marker        # the re-roll's value (ai_rerolls)
                 controller, logs = guided_control(marker, gs, self.ctx.dice,
                                                   reroll_fn=self._guided_reroll,
                                                   choose_enemy_fn=self._guided_enemy_choice)
