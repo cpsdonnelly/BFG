@@ -2,7 +2,25 @@
 
 ## Status at a glance (latest; the dated sections below are history)
 
-Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
+Latest (details in CLAUDE.md "Session status", first block; 1886 tests, the sweep 5579
+cases): owner rulings (raid modifiers cancel; Come to New Heading never halves ordnance;
+Subjugation torpedoes are the Raider's; the AA round's default is Command, Movement,
+Shooting, Ordnance A, Ordnance B, End; shadowfield tracking marks can be turned off);
+Haemonculi boarding crits are Fires; Fire crits valued by their exact burn
+(`ai_hazards.fire_burn_dist`); one turning-distance rule (`movement.turn_distance`, Dark
+Eldar turn at once in every AI planner); torpedo loads by expected VP; and the special
+orders audit (owner: "were you lazy with the other orders too?"): one pass chance from the
+engine's own rule (`movement.command_check_ld`), All Ahead Full / Come to New Heading
+halving guns only, Lock On's exact re-roll gain, every order compared by pass-weighted
+expected VP, Reload's exact salvo hits. The owner's third Dark Eldar fleet
+(`owner_dark_eldar_succubi_990.json`). The Dark Eldar still lose to the Gothic fleet (by
+262-744 in IGOUGO, 189 in AA). Open: the commander re-roll in the pass chance,
+`ai_rerolls.firepower_swing`'s 0.6-a-point shortcut (asked the owner), Thrusters Damaged /
+mines at half a hit, Brace's lost orders, Dark Eldar flanking beyond one turn, the boarding
+crit's flat value, enemy raids on Dark Eldar ships. Next: the agreed order (To do 22, team
+play) when the owner says.
+
+Earlier: Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
 Impaler and slave-taking rulings, escort values by squadron, critical checks on every point
 of damage; raid modifiers cancel (owner ruling; D6 + 1 - 1 = D6). Next: Eldar.
 
@@ -26,16 +44,16 @@ capital ships by a coin-flip-style draw, not by expected VP (combined fire and o
 check against lost flexibility); escort squadrons that break the rules are re-formed by the
 AI at game start, in the window possibly after the Ld roll, so the new squadron's ships keep
 their separate Ld instead of one shared roll (valid squadrons are never touched). Formations
-by armament (`src/formations.py`) since; pending owner question: may a Dark Eldar squadron
-take six 2-hit Corsairs (core p.58: at most four)? Then To do 26 (Quick Demo: Cruiser Clash on
+by armament (`src/formations.py`) since; owner answered: a Dark Eldar squadron keeps core
+p.58's four 2-hit escorts (his first fleet now has 4 Corsairs and 7 torpedo Raiders). Then To do 26 (Quick Demo: Cruiser Clash on
 random terrain, fleets saved or random, the mode; `src/demo.py`) and 27 (favourite fleets on
 quitting or at game over, `src/favourites.py`) built as minimal Tk versions. Then the owner's strategy notes:
 CAP against torpedoes (a CAP fighter removes a whole salvo, one squadron of a wave: the AI's
 salvo values count the CAP left, bays launch before torpedoes, waves are credited with the
 torpedoes they unlock, and the moving player chooses craft-first or torpedoes-first contact),
 Dark Eldar raid values with Incubi and Pain Frenzy for assault boats, AA Impalers' two moves,
-the second Mechanicus fleet (four nova Lunars, 990). Pending: the owner's second Dark Eldar
-list costs 1015 at booklet prices; the AA ordnance speed boost from the parent's move is an
+the second Mechanicus fleet (four nova Lunars, 990). The owner's second Dark Eldar
+list now costs 1000 (one Raider dropped, a Dracon added); the AA ordnance speed boost from the parent's move is an
 open idea. Details in CLAUDE.md ("AI: how it decides", Dark Eldar notes, To do 13).
 
 Finished (playable for humans and the AI, IGOUGO and alternate activation):

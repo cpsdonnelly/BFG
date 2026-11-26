@@ -598,7 +598,48 @@ Owner rulings (fleet lists, export 15):
 
 ### Session status (details in docs/HANDOFF.md)
 
-Latest session (owner fleets, Tyranids, Kill the Admiral, owner UI and rules reports; all
+Latest (Dark Eldar values and the special orders audit; all committed, 1886 tests pass, the
+ordnance sweep 5579 cases pass):
+- Owner rulings: raid modifiers cancel (D6 + 1 - 1 = D6, "Owner ruling: raid modifiers
+  cancel"); Come to New Heading never halves ordnance (s.7); Subjugation torpedoes are the
+  Raider's ("frigate" = Raider); the AA round is now Command, Movement, Shooting, Ordnance
+  A, Ordnance B, End by default (`phase_order` "ordnance_last", To do 13); shadowfield
+  tracking marks can be turned off (`GameState.rule_tracking_marks`, setup and Advanced).
+- Crew values per interaction (owner question): the Dark Eldar crews priced per raid,
+  Impaler and boarding (see "Dark Eldar crews"); found and built on the way: Haemonculi
+  boarding crits are Fires (`boarding._haemonculi_fire`), and `add_fire_crits` no longer
+  adds a Fire twice through a shared crit list.
+- Fire crits valued exactly (owner: several fires are likelier to outlast repairs):
+  `ai_hazards.fire_burn_dist` / `fire_value` over the end phases left, for every Fire crit
+  and for putting one out (`repair_value`); a thread-local guard (`_FIRE_GUARD`) stops the
+  recursion through explosions and Impaler crits (nested calls fall back to half a hit).
+- Dark Eldar movement and torpedoes in the AI (owner questions): one turning-distance rule,
+  `movement.turn_distance(ship, order)`, shared by the engine, dialogs and every AI planner
+  incl. the expert's sim (before, the AI gave Dark Eldar capital ships 10cm before turning);
+  25% / 50% moves for ships with no minimum move; automatic passes (`ai_player.auto_pass`);
+  torpedo loads by expected VP (`_torpedo_kind_by_value`: plasma, boarding, leech).
+- Special orders audit (owner: "were you lazy with the other orders too?"; yes, several
+  shortcuts, all fixed): one pass chance for every order and Brace from the engine's own
+  rule (`movement.command_check_ld`, replacing five hand copies that each missed modifiers);
+  All Ahead Full and Come to New Heading halve batteries and lances only (AAF halved
+  everything, CtNH the whole arc score); Lock On's re-roll gain is 1 - p a die by the
+  weapon's real to-hit (was a flat 0.5); `_pick_special_order` compares every order's
+  pass-weighted expected VP on one scale (Burn Retros used to win whenever it beat its own
+  cost; Reload was compared unweighted); Reload's torpedo value is the salvo's real hits
+  after turrets (`torpedo_salvo_hits`); Brace's odds use the same rule. Games: Gothic v the
+  third Dark Eldar fleet lost by 744, then 262 and 440 as these went in (AA: lost by 189);
+  every game replayed exactly.
+- The owner's third Dark Eldar list (`owner_dark_eldar_succubi_990.json`, 990, valid).
+- Still open from this period: a commander re-roll's lift to the pass chance;
+  `ai_rerolls.firepower_swing` still uses a 0.6-a-battery-point shortcut, not the Gunnery
+  table (asked the owner whether to replace it, no answer yet); Thrusters Damaged (leech
+  torpedoes) and mines valued at half a hit (judgement); Brace doesn't count losing next
+  turn's orders; Dark Eldar flanking is planned one turn ahead (the normal AI; the expert
+  searches deeper); `boarding_vp` values a boarding crit at a flat hit (Pain Frenzy's crit
+  re-roll and the Haemonculi Fire not in it); enemy raids on Dark Eldar ships value 0 for
+  several Dark Eldar crit results, so the Incubi's -1 to enemy raids isn't priced.
+
+Previous session (owner fleets, Tyranids, Kill the Admiral, owner UI and rules reports; all
 committed, 1802 tests pass, the ordnance sweep 5579 cases pass). Since: the Eldar either/or
 ships, and To do 30's first slice (the AI's 0.35 rule of thumb replaced by the Gunnery
 table, see To do 30):
@@ -640,8 +681,7 @@ table, see To do 30):
   Gothic fleet to game over and replayed (`tests/test_eldar_fleets.py`). Still open: the Seer
   Council's Foresight; XR's Corsair / Craftworld movement differences (MMS used).
 - Raised this session, still open (see each section): the AI's capital squadrons by a draw, not
-  expected VP, and re-formed escort squadrons' Ld after the roll (To do 28); the Dark Eldar
-  Corsairs' 2-hit squadron limit (owner question, To do 28); exact hit counts in place of Poisson (To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
+  expected VP, and re-formed escort squadrons' Ld after the roll (To do 28); exact hit counts in place of Poisson (To do 30); the Necron AI phasing small ships out early; Reciprocating Tesla Pylons (offered,
   not modelled); the Harvest Monument's "largest capital ship" placement (To do 29); high
   orbit's free turns; the AI never parks in a field in high orbit; escort disengage values
   still per ship (not by squadron); an Incubi raid's 2D6-best not in the slave-taking
@@ -2213,6 +2253,11 @@ Done: To do 2, 3, 6; most of 7.
    for spent bays, the salvo's expected hits on the nearest enemy in reach for torpedoes at
    `phase_weight(2)`, mines half a hit a launcher, the Armageddon Gun; weighed against Lock On /
    All Ahead Full in VP; with nothing better a spent ship still reloads, it costs no firepower).
+   Audit (owner, built): one pass chance (`movement.command_check_ld`, `_pass_chance`), AAF /
+   CtNH halving guns only, Lock On's exact re-roll gain, every order compared by
+   pass-weighted expected VP (`_pick_special_order`), Reload's salvo hits exact (see "AI: how
+   it decides", Special orders). Not yet: the commander re-roll's lift to the pass chance,
+   Brace's lost orders next turn (e), re-ordering the checks.
    a. Lock On is worth it when an enemy WILL or CAN be in arc after the move: value = the
       best straight move under Lock On (no turn), its guns' expected hits at the next
       shooting phase against the enemy's predicted positions with missed dice re-rolled,

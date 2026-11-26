@@ -144,7 +144,10 @@ before modifiers), just after its minimum move (half speed), or at the end. Thes
 rules: for a 20cm cruiser both are 10cm, for a 25cm cruiser 10cm and 12.5cm. Escorts turn
 anywhere, even at the very start (reaching places no capital ship can); Burn Retros needs no
 movement before turning; only forward movement this phase counts toward the turning distance;
-any angle up to the maximum is legal. Distances run from the minimum move (ending as short as
+any angle up to the maximum is legal. The turning distance is one rule shared with the engine (`movement.turn_distance`: none for
+Burn Retros, low orbit and Dark Eldar, 20cm for Necrons on All Ahead Full, Quest +5cm, Tyranid
+Extra Discharge Vents -5cm); ships with no minimum move also try quarter and half moves.
+Distances run from the minimum move (ending as short as
 legally possible often keeps a ship out of range; under 5cm a ship counts as Defences on the
 Gunnery table, which matters for Burn Retros) to full speed.
 
@@ -265,55 +268,54 @@ non-crippled ship that disengages gives 10% ("Enemies Scattered", s.38).
 
 ### Special orders
 
-**Built today**: Burn Retros when the safest half-speed move saves more hazard than half
-the ship's firepower is worth; otherwise Lock On or All Ahead Full by the value of the move
-each allows (the target in arc after the move), against Reload Ordnance valued as next turn's
-launch (a strike or CAP for spent bays, the salvo's expected hits for spent torpedoes), all in
-expected VP; with nothing better a spent ship reloads (it costs no firepower). Each ship's
-order is skipped when its failure would block more valuable later orders. Come to New Heading
-is valued the same way: its two-turn moves (a first leg and turn, then a normal one-turn move)
-at half firepower against the best free move, so a forward-firing ship with a 90-degree turn
-and an enemy close behind turns twice. Brace for Impact is a reaction, priced
-(built): the VP its 4+ saves are expected to keep (this attack and enemies still to fire)
-against half the ship's fire until the end of its next turn, at the command check's odds; with a
-turn limit both by certainty equivalent (ahead it braces more readily). The commander's ship
-braces earlier only because it is worth more.
+**Built** (rebuilt after the owner's audit question, "were you lazy with the other orders
+too?"; several shortcuts were found and fixed):
 
-**Planned (To do 10, owner notes)**:
-
-- Orders come before the move, so **Lock On** is worth it when an enemy **will or can** be in
-  arc after the move: the best straight move with re-rolled misses, against the best move
-  without the order (which may turn).
-- Every order valued the same way, as expected VP over the best no-order move, with its
-  firepower cost: Burn Retros to avoid a hazard, Lock On for more hits, Come to New Heading to
-  turn twice (e.g. into a rear arc), All Ahead Full to close, ram or escape, Reload Ordnance for
-  next turn's launch.
-- **Prioritise**: a failed command check ends all movement-phase orders that turn (s.2; it never
-  stops a brace later, see below), so take the most
-  valuable, most reliable orders first and skip a low-value order whose failure would block
-  more valuable ones. A commander re-roll on a failed check is worth the order plus everything
-  the failure would block.
-- **Command check modifiers** (s.6) in every pass chance: Enemy Contacts +1 Ld when any enemy
-  ship is on special orders, Under Fire -1 with blast markers in contact (Ld 0-10; command checks
-  only, not Leadership tests). Both directions: our ship on orders makes the enemy's checks
-  easier next turn; an enemy on orders makes ours easier, so our orders are cheaper.
+- **One pass chance** for every order and for Brace, taken from the engine's own rule
+  (`movement.command_check_ld`, the same function the real command check uses): Leadership,
+  Under Fire (not Necrons), Enemy Contacts (incl. the Cobra's sensors, nebuloscope pylons,
+  veiled Shrouds), Fleet Experience / Blood Bond, Slaanesh, sub-plots, Grot Riggers, Siren's
+  Summon, Tyranid synapse Ld for Brace, and automatic passes (Dark Eldar Come to New Heading,
+  Orks' All Ahead Full). It is 0 when no order can be tried (a failed check this turn, a
+  scenario forbidding orders, a Tyranid on instinct). Before, five hand-written copies each
+  missed some of these.
+- **Each order's value** is the best move it allows against the best free move, in expected
+  VP, with only the firepower cost the rules give it (s.7): All Ahead Full, Come to New
+  Heading and Burn Retros halve batteries and lances, never torpedoes or launch bays (AAF
+  used to halve everything, Come to New Heading the whole arc score); Lock On costs nothing
+  and is worth what re-rolling the misses adds, 1 - p a die by the weapon's real to-hit
+  (+50% at 4+, +67% at 5+, +83% at 6+; it was a flat half); Reload Ordnance is worth next
+  turn's launch (a strike or CAP for spent bays, the reloaded salvo's real hits after turrets
+  and re-rolls for torpedoes); Burn Retros the hazard it avoids. Come to New Heading's moves
+  are two-leg (a first leg and turn, then a normal move), so a forward-firing ship with an
+  enemy close behind turns twice, and a Dark Eldar ship (no turning distance, an automatic
+  pass) can get behind an enemy.
+- **The choice**: every order's value times its pass chance on one scale, the best taken (Burn
+  Retros used to win whenever it beat its own cost); with nothing better a spent ship still
+  reloads. An order is skipped when its failure would block more valuable later orders (a
+  failed check ends the turn's orders, s.2); a commander re-roll on a failed check is worth
+  the orders the failure would block.
 - A teleport-capable ship on any order but Lock On / Reload Ordnance gives up its end-phase
   raid (s.31); that counts against the order.
-- **Brace for Impact** (rules, s.7): a failed movement-phase check doesn't stop a ship bracing
-  later; a failed brace blocks only that ship until that attacker has finished all its
+- Brace is priced: the VP its 4+ saves are expected to keep (this attack and enemies still to
+  fire) against half the ship's fire until the end of its next turn, at the same pass chance;
+  with a turn limit both by certainty equivalent. The commander's ship braces earlier only
+  because it is worth more.
+
+**Not yet**: a commander re-roll's lift to the pass chance; Brace counting the orders the ship
+can't take next turn; re-ordering the checks (it would break the support move order).
+
+**Brace for Impact** (rules, s.7): a failed movement-phase check doesn't stop a ship bracing
+later; a failed brace blocks only that ship until that attacker has finished all its
   attacks; a ship decides separately against each of an attacker's weapons (it may brace
   against the lances after not bracing against the gunnery) but tries only once per attacker
   per turn: a ship that fails against a ship's macrobatteries can't brace when that ship then
   fires its lances (the engine enforces this). When the AI fires, the target is asked before
   each weapon; the player's Fire dialog fires batteries, then lances, then the nova cannon and
-  asks before each kind (Built). Planned (To do 11 c): price Brace by what it really costs until the end of the
-  ship's next turn (guns, lances and ordnance halved, halved again if crippled; no special
-  orders; no firing at all inside an asteroid field, s.39) against the hits it saves over this
-  and every later attack until then; trying now also uses up the one try against this
-  attacker's later weapons, so a failure leaves its lances unbraceable (saves count only for
-  hits past shields). This replaces the fixed quarter-of-hits rule and the commander bias (the
-  commander's ship should still brace earlier, because its loss is worth more, but that comes
-  out of the values).
+  asks before each kind (Built). Its price (above) replaced the fixed quarter-of-hits rule and
+the commander bias. Not yet: trying against the weapon where the saving is worth most (a
+failed try against the batteries leaves the lances unbraceable), and the special orders a
+braced ship can't take.
 
 ---
 
@@ -342,6 +344,10 @@ The target the salvo adds most VP to after turrets, path hazards and friendly fi
 - **Turning salvos** (Tau missiles, Leadership-guided, boarding) plan a path, four moves deep,
   onto the weakest Armour facing they can reach (e.g. round to an Ork cruiser's 4+ rear), and
   follow it in flight.
+- **The load** (when no once-a-game, guided or short burn load is chosen) by expected VP:
+  standard (Dark Eldar plasma re-rolling misses) by hull hits, boarding torpedoes a raid a
+  hit (off with hit-and-run), leech a Thrusters Damaged a hit (valued at half a hit,
+  judgement); plasma wins against ordinary targets.
 - **Co-ordinated with bombers** (owner): salvos and bomber waves reaching one ship in the same
   phase gain the turret split (not against Orks).
 
@@ -537,7 +543,7 @@ easy with the rest.
 |---|---|---|---|
 | Targets | the closest valid target (owner) | marginal expected VP, focus, no overkill | as normal |
 | Re-rolls, Brace | expected VP, as normal | expected VP | as normal |
-| Special orders | Lock On whenever an enemy is in arc and range now (no expected-VP check) | every order by expected VP (To do 10) | as normal |
+| Special orders | Lock On whenever an enemy is in arc and range now (no expected-VP check) | every order by pass-weighted expected VP, one pass chance from the engine's rule | as normal |
 | Ordnance | simple launches (its strike craft, at the nearest target) | full planner: CAP vs strikes, strikes on arrival, lanes, leading, co-ordination | as normal |
 | Squadron volleys, hulks, shooting ordnance, disengaging, explosions, screening | off | on | as normal |
 | Movement | the same candidates, scored on guns and hazards only (no exposure, focus, explosions or screening), picked by softmax (`EASY_TEMPERATURE` 2.0), not always the best | the move candidates scored greedily; normal adds a one-turn lookahead | hard 3 turns, expert 5, master 10 or to the game's end (owner) |
