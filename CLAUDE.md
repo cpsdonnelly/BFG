@@ -715,13 +715,13 @@ cases pass):
   the search's sim; the deterministic node budget. Games: Gothic v Dark Eldar 262-105
   (Gothic) and 165-342 (Dark Eldar), both replayed exactly, ~136s a game (too few games
   to credit the planner with the Dark Eldar win).
-- Still open from this period (owner: must be fixed, To do 33): a commander re-roll's lift
-  to the pass chance; Brace not counting the orders it forbids next turn; a boarding crit at
-  a flat hit (`boarding_vp`: Pain Frenzy's crit re-roll and the Haemonculi Fire not in it);
-  enemy raids on Dark Eldar ships valued at 0 for several of their crit results (so the
-  Incubi's -1 to enemy raids isn't priced); and the other guessed values there. Planner
-  follow-ups (To do 34): the easy AI tries no strategies, squadrons don't plan one heading,
-  plans aren't carried between turns.
+- The owner's four must-fixes (To do 33), done: a commander re-roll in the pass chance of
+  every order and of Brace; Brace's cost in the order it forbids next turn; boarding crits
+  on the target's own table (Haemonculi Fire, Pain Frenzy re-roll); raids on Dark Eldar
+  ships valued for keel armament (launch bays), superstructure strain and Leadership
+  losses' orders (details in To do 33). Still open: the other guessed values in To do 33.
+  Planner follow-ups (To do 34): the easy AI tries no strategies, squadrons don't plan one
+  heading, plans aren't carried between turns.
 
 Previous session (owner fleets, Tyranids, Kill the Admiral, owner UI and rules reports; all
 committed, 1802 tests pass, the ordnance sweep 5579 cases pass). Since: the Eldar either/or
@@ -1157,8 +1157,8 @@ Movement:
   Under Fire (not Necrons), Slaanesh, sub-plots, Grot Riggers, Enemy Contacts with the Cobra's
   sensors / nebuloscope / veiled Shrouds, Tyranid synapse Ld for Brace, automatic passes,
   Siren's Summon), 0 when orders can't be tried (a failed check this turn, a scenario, a
-  Tyranid on instinct); before, five hand-written copies each missed some of these. Not
-  counted: a commander re-roll's lift to the pass chance. Check
+  Tyranid on instinct); before, five hand-written copies each missed some of these. A
+  commander re-roll is counted (`ai_rerolls.with_reroll`, To do 33). Check
   order (10 c): `_plan_orders` values every ship's order at the start of the phase
   (`_order_value`: VP gain, `_pass_chance`) and
   `_choose_special_order` skips an order when p x g < (1 - p) x the later orders' expected
@@ -1185,7 +1185,8 @@ Shooting:
   turn before it fires), at the command check's odds (Under Fire, Enemy Contacts); both choices
   by certainty equivalent, so ahead near the end it braces more readily, behind less. The
   commander's ship braces earlier because it is worth double while it has re-rolls (no fixed
-  bias). Not modelled: losing special orders while braced, the engine doesn't stop a braced
+  bias). It also pays for the order it forbids next turn (`next_order_vp`) and counts a
+  commander re-roll on a failed brace (To do 33). Not modelled: the engine doesn't stop a braced
   ship firing inside an asteroid field (s.39), so neither does the AI.
 - Fire order: each ship fires batteries, then other weapons, then lances (11 d); boarded ships
   don't fire or launch; the Armageddon Gun and Kustom Kannon are fired by value.
@@ -2343,8 +2344,8 @@ Done: To do 2, 3, 6; most of 7.
    Audit (owner, built): one pass chance (`movement.command_check_ld`, `_pass_chance`), AAF /
    CtNH halving guns only, Lock On's exact re-roll gain, every order compared by
    pass-weighted expected VP (`_pick_special_order`), Reload's salvo hits exact (see "AI: how
-   it decides", Special orders). Not yet: the commander re-roll's lift to the pass chance,
-   Brace's lost orders next turn (e), re-ordering the checks.
+   it decides", Special orders). Done since (To do 33): the commander re-roll's lift to
+   the pass chance, Brace's lost orders next turn (e). Not yet: re-ordering the checks.
    a. Lock On is worth it when an enemy WILL or CAN be in arc after the move: value = the
       best straight move under Lock On (no turn), its guns' expected hits at the next
       shooting phase against the enemy's predicted positions with missed dice re-rolled,
@@ -2530,8 +2531,8 @@ Done: To do 2, 3, 6; most of 7.
       - Price Brace instead of the 1/4-of-hits rule (owner: the feedback is right that Brace
         has a cost). Built (`ai_player.brace_value`, see "Shooting"); not yet: trying
         against the attacker's weapon where the saving is worth most rather than the first
-        one asked about (today greedy: each question counts the attacker's other weapons),
-        the special orders a braced ship can't take. Gain: 4+ saves on hull hits from this attack and every later attack until
+        one asked about (today greedy: each question counts the attacker's other weapons).
+        The special orders a braced ship can't take are counted (To do 33). Gain: 4+ saves on hull hits from this attack and every later attack until
         the end of the ship's next turn. Because a ship tries only once per attacker, trying
         now also spends the chance against that attacker's later weapons: a failed test leaves
         its lances unbraceable too, while declining now keeps that option, so try against the
@@ -2963,9 +2964,8 @@ Done: To do 2, 3, 6; most of 7.
    Profile now flat (no function above ~7% of a movement phase; the rest is the bracket
    cache's cold first phase, arcs, crit checks and local imports): further gains need To
    do 18's structure. Dropped: one hits matrix for the focus loops (they run twice a phase).
-   Still to do:
-   - the runner without a display: done (`--no-display`, To do 18's GameFlow);
-   - the expert AI repeatable (a node budget instead of a time budget, To do 17).
+   Done since: the runner without a display (`--no-display`, To do 18's GameFlow) and a
+   repeatable expert (the search is cut by a node budget, `NODE_BUDGET_FOR`, To do 34).
 17. Recording and replay (plan section 6): a game seed and every roll saved in order;
    structured events for every decision (move commands, orders, weapon / target, launches,
    craft orders, brace, re-rolls, prompts) recorded at the engine API for humans and the AI
@@ -3854,24 +3854,36 @@ Done: To do 2, 3, 6; most of 7.
 
 33. Guessed values to compute (owner: judgement calls where the rules give an answer are
    "bad and lazy"; audit of the AI's values; computed so far: crit effects, re-roll values,
-   mines, Burn Retros' cost, see the session status). Owner: these MUST be fixed (named
-   by the owner, don't drop them):
-   - A commander re-roll's lift to an order's pass chance: `_pass_chance` gives one roll;
-     with re-rolls left the chance is 1 - (1 - p)^2 for an order worth a re-roll (by
-     `ai_rerolls.should_reroll`), less the re-roll's own value spent (it is gone for later
-     tests); Brace's pass chance likewise.
-   - Brace's cost of the orders it forbids: a braced ship can't take special orders until
-     the end of its next turn (s.7), so `brace_value` should count next turn's best order
-     value (`_order_value`, at its pass chance) as lost, as well as half its fire.
-   - A boarding action's crit valued at a flat hit (`ai_hazards.boarding_vp`): value it on
-     the target's own table (`hit_and_run.critical_hit_value` / `crit_type_value`, the s.32
-     crit rolls), with Pain Frenzy's crit re-roll and the Haemonculi Fire.
-   - Enemy raids on Dark Eldar ships valued at 0 for most results (`raid_result_value`:
-     control circuit, graviton harness, bladevanes, superstructure, ordnance-only armament
-     were unvalued): every result now has a measurable effect (`crit_effect_value` reads
-     the copy's speed / turns / Ld; check each Dark Eldar crit's effect is one the engine
-     applies and `_exchange` sees, add the rest), so the Incubi's -1 to enemy raids is
-     priced too.
+   mines, Burn Retros' cost, see the session status). The owner's four must-fixes (named
+   by the owner) are DONE (`tests/test_must_fixes.py`):
+   - A commander re-roll in an order's pass chance: `ai_rerolls.with_reroll` (p x g +
+     (1 - p) x (p x (g + the later orders a failure blocks) - the re-roll's worth), taken
+     only when the AI would spend one, `should_reroll`; the re-roll's worth is its bar,
+     `spend_bar`; `rerolls_left` reads the turn controller's own rule from the game
+     state), through `AIPlayer._pass_chance(ship, order, gain_vp)` for every order
+     (`_weighted_gain` for Lock On / All Ahead Full / Come to New Heading, Burn Retros and
+     Reload in `_pick_special_order`, the skip rule's p in `_order_value`); Brace too
+     (`brace_value`: 1 - (1 - p)^2 less the re-roll's worth when the AI would spend one,
+     only where the game offers Brace re-rolls, `ld_reroll_hook`).
+   - Brace's cost of the orders it forbids (s.7): `brace_value` adds next turn's order at
+     its pass chance (`ai_player.next_order_vp` / `next_order`: the AI's own order choice
+     from where the ship stands, worked out once a player turn for the ship, through
+     `order_reader`, an AIPlayer on the game state alone).
+   - Boarding crits on the target's own table: `hit_and_run.boarding_crit_value` (as
+     `boarding._boarding_crit_check` rolls it: an escort 1 damage, else a D6 at least 2
+     on the raid table after the cascade; a Haemonculi ship's crit a Fire; Pain Frenzy's
+     re-roll of a weaker result), used for all four crits in `ai_hazards.boarding_vp`.
+     Not counted: the crit's extra damage on top of the boarding damage (valued on the
+     ship as it stands).
+   - Raids on Dark Eldar ships: keel armament (a Torture's launch bays) now counts the
+     bays it silences (`armament_threat_value`: a share of `bay_threat_vp`; torpedoes there
+     by their exact salvo hits, `torpedo_salvo_hits`, no longer 0.3 a torpedo), the
+     Superstructure Damaged strain is valued (`superstructure_value`: the cheaper of
+     turning with a 1 in 3 chance of a hit and holding straight as with no turns), and a
+     Leadership loss (control circuit, Bridge Smashed, commanders slain, Necron losses) now
+     also costs its next order's pass chance (`_order_loss`). Graviton harness, bladevanes
+     and prow armament were already valued (by the measured exchange); the control
+     circuit's -1 Ld is worth little where the ship has no order worth taking.
    Rule to keep (owner): leech torpedoes do no damage, "do not apply any extra damage from
    this result"; each hit is an automatic Thrusters Damaged even on tables without one
    (engine: `combat.add_thrusters_crits`; AI: the effect only, `crit_effect_value` over
@@ -3885,14 +3897,10 @@ Done: To do 2, 3, 6; most of 7.
      the escort finishing chance still one turn (`finish_chance`), capital ships now the
      rest of the game.
    - Poisson counts in `damage_vp` (exact counts are To do 30);
-     `boarding_vp`'s crit at a flat hit (Pain Frenzy's re-roll, the Haemonculi Fire not in
-     it);
      `marker_hits`' boarding torpedoes at half a hit a hit (`raid_squadron_value` exists) and
-     torpedo bomber salvos' shared turret kills; `_THREAT_PER_DIE` torpedo 0.3 and the move
-     score's `TORPEDO_FP_EQUIV` (`torpedo_salvo_pmf` exists); `lost_ship_vp`'s 0.1 for an
+     torpedo bomber salvos' shared turret kills; the move score's `TORPEDO_FP_EQUIV` (`torpedo_salvo_pmf` exists); `lost_ship_vp`'s 0.1 for an
      attacker's ship lost in the warp; `TELEPORT_SHIELDS_DOWN` 0.3 / 0.6 / 0.1 (the fleet's
-     fire past the shields can give the chance); enemy raids on Dark Eldar ships valuing 0
-     for several of their crit results (now measurable by `crit_effect_value`).
+     fire past the shields can give the chance).
    - Behaviour priors, harder to compute (the enemy's choice): `MOVE_TURN_WEIGHTS`,
      `DODGE_WEIGHT`, the re-roll bars (the option value of keeping a re-roll).
    - Genuine weights (preferences and horizons, for To do 1's tuning, not this item):

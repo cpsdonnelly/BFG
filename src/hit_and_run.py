@@ -398,7 +398,17 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
     weapons = [w for w in target.weapons
                if weapon_in_crit_slot(w, crit_type) and not weapon_disabled_by_crit(target, w)
                and w.get("weapon_type") in _THREAT_PER_DIE]
-    if not weapons:
+    # launch bays in that location (a Dark Eldar Torture's keel bays): their
+    # share of the ship's bays' worth a turn (ai_hazards.bay_threat_vp)
+    bay_vp = 0.0
+    all_bays = [w for w in target.weapons if w.get("weapon_type") == "launch_bay"]
+    hit_bays = [w for w in all_bays if weapon_in_crit_slot(w, crit_type)
+                and not weapon_disabled_by_crit(target, w)]
+    if hit_bays:
+        from .ai_hazards import bay_threat_vp
+        tot = sum(w.get("strength") or 0 for w in all_bays) or 1
+        bay_vp = bay_threat_vp(target, gs) * sum(w.get("strength") or 0 for w in hit_bays) / tot
+    if not weapons and bay_vp <= 0:
         return 0.0
     total = 0.0
     for j in range(_crit_shooting_phases(target, gs, phases)):
@@ -424,10 +434,19 @@ def armament_threat_value(target: Ship, crit_type: str, gs: GameState, owner: in
                     if w["weapon_type"] in ("battery", "lance"):
                         from .ai_hazards import _gun_hits
                         h = _gun_hits(target, w, f)
+                        best = max(best, wt * added_vp(f, gs, 0.0, h))
+                    elif w["weapon_type"] == "torpedo":
+                        # the salvo's exact hits after the friend's turrets
+                        # (torpedoes ignore shields, s.15)
+                        from .ai_hazards import torpedo_salvo_hits
+                        h = torpedo_salvo_hits(st, f, gs, (target.x, target.y),
+                                               target.special_rules)
+                        best = max(best, wt * added_vp(f, gs, 0.0, h, shields=False))
                     else:
                         h = st * _THREAT_PER_DIE[w["weapon_type"]]
-                    best = max(best, wt * added_vp(f, gs, 0.0, h))
+                        best = max(best, wt * added_vp(f, gs, 0.0, h))
             threat += best
+        threat += bay_vp
         total += phase_weight(2 * j) * p_left * threat
     return total
 
@@ -553,6 +572,34 @@ def _brace_pass(ld: int) -> float:
     return p_sum_at_most(2, max(0, ld))
 
 
+def superstructure_value(target: Ship, ct: str, gs: GameState, owner: int,
+                         end_phases: int = None) -> float:
+    """Expected VP of a Superstructure Damaged crit (Dark Eldar, Eldar;
+    Appendix 3): until repaired, a D6 each time the ship turns in its
+    movement phase, 1-2 one point of damage (`dark_eldar.superstructure_strain`).
+    The ship chooses: turn (one turn a move, `movement.get_max_turns`) and take
+    the 1 in 3 chance of a hit (`ai_hazards.hits_vp`), or keep straight, which
+    costs what a no-turns crit costs it (the Graviton Harness / Mast Lines
+    effect measured on a copy, `crit_effect_value`); the cheaper of the two,
+    over the movement phases the crit is likely to last (`p_crit_unrepaired`,
+    `phase_weight`)."""
+    from .ai_hazards import hits_vp, phase_weight
+    from .movement import get_max_turns
+    turns = max(0, get_max_turns("", target)) if target.speed else 0
+    if turns <= 0:
+        return 0.0
+    phases = end_phases or _end_phases_before_target_shoots(target, gs)
+    strain = 0.0
+    for j in range(_crit_shooting_phases(target, gs, phases)):
+        p_left = p_crit_unrepaired(target, gs, phases + 2 * j)
+        if p_left < 0.01:
+            break
+        strain += phase_weight(2 * j) * p_left * min(turns, 2) / 3.0 * hits_vp(target, gs, 1)
+    no_turn = crit_effect_value(target, "graviton_harness" if ct == "de_superstructure"
+                                else "mast_lines", gs, owner, end_phases)
+    return min(strain, no_turn)
+
+
 def crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
                       end_phases: int = None, count: int = 1) -> float:
     """Expected VP, to the owner, of the EFFECT of `count` critical hits of type
@@ -570,7 +617,7 @@ def crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
     drop in its pass chance x half our fire on it that phase past what bracing
     costs it (half its fire). A crit that kills the commander adds the
     commander's VPs (`victory_points.commander_points`), scored outright.
-    Not counted: the special orders a lower Ld fails, the commander's re-rolls'
+    The special orders a lower Ld fails are counted (`_order_loss`); not counted: the commander's re-rolls'
     later use."""
     cache = gs.__dict__.setdefault("_crit_effect_cache", {})
     key = (gs.turn_number, gs.current_phase, gs.active_player, ct, owner, end_phases, count,
@@ -626,11 +673,29 @@ def _crit_effect_value(target: Ship, ct: str, gs: GameState, owner: int,
         if hit.leadership < clean.leadership:
             dp = _brace_pass(clean.leadership) - _brace_pass(hit.leadership)
             delta += dp * max(0.0, 0.5 * fire0 - 0.5 * t1)
+            # ... and the special order it would take that turn passes less
+            # often (owner, To do 33): the order's worth x the drop in its
+            # pass chance, by the AI's own order choice (ai_player.next_order)
+            delta += _order_loss(clean, hit, gs)
         total += phase_weight(2 * j) * weight * delta
     if ct in COMMAND_CRITS and "commander_slain" not in target.special_rules:
         from .victory_points import commander_points
         total += commander_points(target)
     return total
+
+
+def _order_loss(clean: Ship, hit: Ship, gs: GameState) -> float:
+    """VP the lower Leadership of `hit` costs the ship's next special order:
+    the order's gain x (pass chance at the old Ld - at the new one)."""
+    try:
+        from .ai_player import next_order, order_reader
+        order, g, _p = next_order(gs, clean)
+        if not order or g <= 0:
+            return 0.0
+        ai = order_reader(gs, clean.player)
+        return max(0.0, g * (ai._pass_chance(clean, order) - ai._pass_chance(hit, order)))
+    except Exception:
+        return 0.0
 
 
 class _QuietState:
@@ -707,8 +772,13 @@ def crit_type_value(ct: str, target: Ship, gs: GameState, owner: int,
         # burning (ai_hazards.fire_value, exact)
         from .ai_hazards import fire_value
         value += fire_value(target, gs, 1)
-    elif ct in ARMAMENT_CRIT_TYPES:
+    elif ct in ARMAMENT_CRIT_TYPES or ct in ("keel_armament", "thorax_armament"):
+        # the weapons (and launch bays) it silences in that location
         value += armament_threat_value(target, ct, gs, owner, end_phases)
+    elif ct in ("de_superstructure", "eldar_superstructure"):
+        # a D6 each time it turns, 1-2 one damage (Appendix 3): the ship
+        # either turns and risks it or holds straight as if it couldn't turn
+        value += superstructure_value(target, ct, gs, owner, end_phases)
     else:
         # every other effect (speed, turns, shields, Leadership, the
         # commander) applied to a copy and measured (crit_effect_value)
@@ -718,6 +788,35 @@ def crit_type_value(ct: str, target: Ship, gs: GameState, owner: int,
         from .scenarios import admiral_bonus_vp
         value += admiral_bonus_vp(gs, target)       # Kill the Admiral: the admiral dies (update 62)
     return value
+
+
+def boarding_crit_value(target: Ship, gs: GameState, owner: int,
+                        inflicted_by_rules=None) -> float:
+    """Expected VP, to `owner`, of one boarding critical hit on `target`, as
+    `boarding._boarding_crit_check` rolls it (s.32): an escort takes 1 point of
+    damage (`ai_hazards.escort_hits_vp`); any other ship a D6 on the raid
+    critical table (at least 2) on its own table, after the cascade
+    (`raid_crit_preview`, `crit_type_value`). When the crit is inflicted by a
+    Dark Eldar ship: Haemonculi make it a Fire (`fire` by `crit_type_value`),
+    and Pain Frenzy against a crippled ship (a Wych Cult: any capital ship)
+    re-rolls a result worth less than a fresh roll (`dark_eldar.frenzy_raid_reroll`'s
+    rule, the second roll standing). A winner's own crit has no
+    `inflicted_by_rules`."""
+    rules = list(inflicted_by_rules or [])
+    if target.ship_type == "escort":
+        from .ai_hazards import escort_hits_vp
+        return escort_hits_vp(target, gs, 1)
+    if "dark_eldar" in rules and "haemonculi" in rules:
+        return crit_type_value("fire", target, gs, owner)
+    vals = []
+    for r in range(1, 7):
+        ct = raid_crit_preview(max(2, r), target)
+        vals.append(crit_type_value(ct, target, gs, owner) if ct else 0.0)
+    mean = sum(vals) / 6.0
+    from .dark_eldar import pain_frenzy_applies
+    if pain_frenzy_applies(rules, target):
+        return sum(max(v, mean) for v in vals) / 6.0
+    return mean
 
 
 def crit_roll_value(roll_2d6: int, target: Ship, gs: GameState, owner: int,

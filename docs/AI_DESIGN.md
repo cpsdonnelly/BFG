@@ -84,7 +84,8 @@ hit-and-run off, assault boats, boarding torpedoes and teleports are off for eve
 - **Attack craft** (Built): see sections 4 and 5.
 - **Teleport attacks** (Built, basic): in its end phase, if teleports and hit-and-run are on, it
   raids the eligible target worth most per raid. Planned (To do 8 j): positioning for them.
-- **Boarding and ramming** (Planned, To do 8 h): the AI plans neither today.
+- **Boarding and ramming** (Built, To do 8 h, only with those rules on): it moves for base
+  contact and declares a boarding action or a ram when the expected VP is worth it.
 - **Weapons knocked out by critical hits** never fire (Built).
 
 ### Enemy weapons
@@ -320,8 +321,11 @@ too?"; several shortcuts were found and fixed):
   with a turn limit both by certainty equivalent. The commander's ship braces earlier only
   because it is worth more.
 
-**Not yet**: a commander re-roll's lift to the pass chance; Brace counting the orders the ship
-can't take next turn; re-ordering the checks (it would break the support move order).
+A commander re-roll is counted in every order's and Brace's pass chance (Built, owner): a
+failed check is re-rolled when the AI would spend one on it, passing at the same chance
+again, less what the AI holds a kept re-roll to be worth. Brace also pays for the order it
+forbids next turn (the AI's own choice from where the ship stands, at its pass chance).
+**Not yet**: re-ordering the checks (it would break the support move order).
 
 **Brace for Impact** (rules, s.7): a failed movement-phase check doesn't stop a ship bracing
 later; a failed brace blocks only that ship until that attacker has finished all its
@@ -332,8 +336,7 @@ later; a failed brace blocks only that ship until that attacker has finished all
   each weapon; the player's Fire dialog fires batteries, then lances, then the nova cannon and
   asks before each kind (Built). Its price (above) replaced the fixed quarter-of-hits rule and
 the commander bias. Not yet: trying against the weapon where the saving is worth most (a
-failed try against the batteries leaves the lances unbraceable), and the special orders a
-braced ship can't take.
+failed try against the batteries leaves the lances unbraceable).
 
 ---
 
@@ -373,6 +376,14 @@ Owner: no guessed shares where the rules give an answer.
   close, or to bring a broadside round), and Shields Collapse the fire that would then get
   through. Bridge Smashed costs the Brace its lower Leadership loses, plus the commander's
   VPs. Extra damage is valued as hull hits.
+- **Lower Leadership** also costs the special order the ship would take next turn: the
+  order's worth times the drop in its pass chance.
+- **Boarding crits** are valued as the engine rolls them on the ship's own table (a D6 on
+  the raid table; an escort's 1 damage), with the Haemonculi's Fire and Pain Frenzy's
+  re-roll when a Dark Eldar ship inflicts them. They used to count a flat hit.
+- **Raids on Dark Eldar ships** are worth something for every result: keel armament by
+  the launch bays it silences, Superstructure Damaged by the cheaper of turning with a 1 in
+  3 chance of a hit or holding straight. Silenced torpedoes count their salvo's real hits.
 - **Re-rolls** are worth what passing gains over failing, test by test:
   - Brace: its own price, given that it passes.
   - A warp rift: the ship.

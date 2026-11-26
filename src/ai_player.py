@@ -72,7 +72,8 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
 
 
 def brace_value(gs: GameState, target: Ship, incoming_hits: int,
-                attacker: Ship = None, p_pass: float = None) -> float:
+                attacker: Ship = None, p_pass: float = None,
+                _orders: bool = True) -> float:
     """Expected VP (risk-adjusted) of trying Brace for Impact now (s.7; To do
     11 c, priced instead of a fixed share of the hits left). Gain: a 4+ save on
     every hull hit from here to the end of the ship's next turn (hits ~ Poisson,
@@ -118,17 +119,91 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
     need = command_check_ld(target, "brace_for_impact", gs, in_blast=count_blast_markers_touching(
         target, gs.get_blast_markers()) > 0)
     p = {"pass": 1.0, "fail": 0.0}.get(need["auto"], p_sum_at_most(2, need["needed"]))
+    reroll_cost = 0.0
     if p_pass is not None:
         p = p_pass          # a re-roll's worth: the brace given it passes (ai_rerolls)
     # s.7: a braced ship halves its gunnery, lances and ordnance strength
     cost = 0.5 * threat
     if gs.active_player == target.player and not target.has_fired:
         cost *= 2.0
+    # ... and may take no other special order until the end of its next turn
+    # (s.7; owner, To do 33): the order it would take next turn, at its pass
+    # chance, is lost too
+    if _orders:
+        # the lost order only lowers the value: a brace not worth trying
+        # without it isn't with it (every caller compares with 0), so it is
+        # worked out (an AI order plan, the costly part) only when it matters
+        first = brace_value(gs, target, incoming_hits, attacker, p_pass, _orders=False)
+        if first <= 0:
+            return first
+        cost += next_order_vp(gs, target)
     plain = dist(hull)
+    if p_pass is None and 0.0 < p < 1.0 and getattr(gs, "ld_reroll_hook", None):
+        # a commander re-roll on a failed brace (s.5; owner, To do 33): taken
+        # when the AI would spend one on it (ai_rerolls.should_reroll: the
+        # brace's worth given it passes against the bar), so the brace passes
+        # at 1 - (1 - p)^2 for the re-roll's own worth spent on a failure
+        from .ai_rerolls import rerolls_left, spend_bar
+        left = rerolls_left(gs, target)
+        if left > 0:
+            gain = brace_value(gs, target, incoming_hits, attacker, p_pass=1.0)
+            bar = spend_bar(target, gs, left)
+            if gain >= bar and p * gain > bar:
+                reroll_cost = (1.0 - p) * bar
+                p = 1.0 - (1.0 - p) ** 2
     braced = ([(p * q, d - cost) for q, d in dist(hull / 2.0)]
               + [((1 - p) * q, d) for q, d in plain])
     player = target.player
-    return certainty_equivalent(gs, player, braced) - certainty_equivalent(gs, player, plain)
+    return (certainty_equivalent(gs, player, braced) - certainty_equivalent(gs, player, plain)
+            - reroll_cost)
+
+
+def next_order_vp(gs: GameState, ship: Ship) -> float:
+    """The expected VP of the special order the ship would take next turn
+    (the AI's own choice from where it stands, `AIPlayer._pick_special_order`,
+    at its pass chance, `_order_value`): what bracing now gives up (s.7: a
+    braced ship takes no other order until the end of its next turn)."""
+    _order, g, p = next_order(gs, ship)
+    return max(0.0, p * g)
+
+
+def order_reader(gs: GameState, player: int) -> "AIPlayer":
+    """An AIPlayer reading the game state only (no turn controller, no dice),
+    for valuing orders outside the AI's own turn: no check failed yet."""
+    from .turn_controller import TurnController
+    reader = TurnController.__new__(TurnController)   # reads gs only
+    reader.gs = gs
+    reader.checks_blocked = lambda _s: False          # next turn: no check failed yet
+    return AIPlayer(player, reader, gs, None)
+
+
+def next_order(gs: GameState, ship: Ship):
+    """(order, gain in VP if it passes, pass chance) of the special order the
+    ship would take next turn from where it stands (the AI's own choice).
+    An estimate of next turn's choice from the present, so it is worked out
+    once a player turn for the ship (its position, crippling, Leadership and
+    loads at that moment; the hits it takes during the enemy's shooting don't
+    re-plan it)."""
+    if "immobile" in ship.special_rules:
+        return None, 0.0, 0.0
+    key = (ship.id, gs.turn_number, gs.active_player, ship.is_crippled, ship.leadership,
+           ship.ordnance_loaded_torps, ship.ordnance_loaded_craft)
+    cache = gs.__dict__.setdefault("_next_order_cache", {})
+    if key in cache:
+        return cache[key]
+    if len(cache) > 500:
+        cache.clear()
+    val = (None, 0.0, 0.0)
+    try:
+        ai = order_reader(gs, ship.player)
+        with gs.ships_snapshot():
+            order = ai._pick_special_order(ship)
+            if order:
+                val = ai._order_value(ship, order)
+    except Exception:
+        val = (None, 0.0, 0.0)
+    cache[key] = val
+    return val
 
 
 def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
@@ -2328,7 +2403,7 @@ class AIPlayer:
                 orders[s.id] = self._order_value(s, o)
         self._order_plan = {"seq": [s.id for s in ships], "orders": orders}
 
-    def _pass_chance(self, ship: Ship, order: str) -> float:
+    def _pass_chance(self, ship: Ship, order: str, gain_vp: float = None) -> float:
         """The chance the ship's command check for `order` passes, from the
         engine's own rule (movement.command_check_ld: Ld with Fleet Experience
         / Blood Bond, Under Fire -1 (not Necrons), Mark of Slaanesh -1,
@@ -2336,9 +2411,11 @@ class AIPlayer:
         Cobra's sensors +2, nebuloscope pylons, a veiled Shroud not counted),
         the Ld 0-10 clamp; automatic passes; Siren's Summon), and 0 when the
         order can't be tried at all (a failed check earlier this turn, s.2;
-        a scenario forbidding orders; a Tyranid on instinct). A commander
-        re-roll isn't counted (whether the AI spends one depends on the
-        order's worth, ai_rerolls.should_reroll)."""
+        a scenario forbidding orders; a Tyranid on instinct). With `gain_vp` (the order's worth if it
+        passes) a commander re-roll is counted (owner, To do 33): the
+        effective chance `ai_rerolls.with_reroll` gives, a failure re-rolled
+        when the AI would spend one on an order worth that much, less the
+        re-roll's own worth."""
         from .ai_hazards import p_sum_at_most
         from .geometry import count_blast_markers_touching
         from .movement import command_check_ld
@@ -2361,7 +2438,31 @@ class AIPlayer:
             return 1.0
         if need["auto"] == "fail":
             return 0.0
-        return p_sum_at_most(2, need["needed"])
+        p = p_sum_at_most(2, need["needed"])
+        if gain_vp is None or gain_vp <= 0:
+            return p
+        from .ai_rerolls import with_reroll
+        return with_reroll(ship, gs, p, gain_vp, self._later_orders_vp(ship)) / gain_vp
+
+    def _later_orders_vp(self, ship: Ship) -> float:
+        """The expected VP of the orders planned after this ship's this phase
+        (`_order_plan`), which a failed check would block (s.2)."""
+        plan = getattr(self, "_order_plan", None) or {}
+        seq = plan.get("seq", [])
+        if ship.id not in seq:
+            return 0.0
+        return sum(pp * gg for sid in seq[seq.index(ship.id) + 1:]
+                   for _oo, gg, pp in [plan.get("orders", {}).get(sid, (None, 0.0, 0.0))])
+
+    def _units_vp(self, ship: Ship, units: float) -> float:
+        """Move-score units (firepower points) as VP at the target's value a hit."""
+        from .ai_hazards import value_per_hit
+        target = self._focus_for(ship) or self._nearest_enemy(ship)
+        return units * FP_HITS * value_per_hit(target, self.gs) if target else 0.0
+
+    @staticmethod
+    def _gain_key(ship: Ship, order: str):
+        return (ship.id, order, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1))
 
     def _order_value(self, ship: Ship, order: str):
         """(order, gain in VP, pass chance) (To do 10 b-c, f): Lock On's move
@@ -2369,22 +2470,21 @@ class AIPlayer:
         Retros the hazard it saves less its halved guns; Reload Ordnance
         next turn's launch (`_reload_value`). Pass chance: `_pass_chance` (the
         engine's own command check rule)."""
-        from .ai_hazards import value_per_hit
-        p = self._pass_chance(ship, order)
-        target = self._focus_for(ship) or self._nearest_enemy(ship)
-        vph = value_per_hit(target, self.gs) if target else 0.0
-        if order == SpecialOrder.LOCK_ON.value:
-            g = max(0.0, self._lock_on_gain(ship)) / max(p, 1e-9) * FP_HITS * vph
-        elif order == SpecialOrder.ALL_AHEAD_FULL.value:
-            g = max(0.0, self._aaf_gain(ship)) / max(p, 1e-9) * FP_HITS * vph
-        elif order == SpecialOrder.COME_TO_NEW_HEADING.value:
-            g = max(0.0, self._ctnh_gain(ship)) / max(p, 1e-9) * FP_HITS * vph
+        gains = {SpecialOrder.LOCK_ON.value: self._lock_on_gain,
+                 SpecialOrder.ALL_AHEAD_FULL.value: self._aaf_gain,
+                 SpecialOrder.COME_TO_NEW_HEADING.value: self._ctnh_gain}
+        if order in gains:
+            gains[order](ship)        # computes (or reuses) the raw move gain
+            raw = getattr(self, "_raw_gain", {}).get(self._gain_key(ship, order), 0.0)
+            g = self._units_vp(ship, max(0.0, raw))
         elif order == SpecialOrder.BURN_RETROS.value:
             g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
         elif order == SpecialOrder.RELOAD_ORDNANCE.value:
             g = self._reload_value(ship)
         else:
             g = 0.0
+        # the pass chance with a commander re-roll counted for an order worth g
+        p = self._pass_chance(ship, order, g)
         return order, g, p
 
     def _pick_special_order(self, ship: Ship) -> Optional[str]:
@@ -2417,8 +2517,8 @@ class AIPlayer:
         vph = value_per_hit(target, self.gs) if target else 0.0
         vals = {}
         if self._burn_retros_worth_it(ship):
-            vals[SO.BURN_RETROS.value] = self._pass_chance(ship, SO.BURN_RETROS.value) * \
-                getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
+            g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
+            vals[SO.BURN_RETROS.value] = self._pass_chance(ship, SO.BURN_RETROS.value, g) * g
         for order, gain in ((SO.LOCK_ON.value, self._lock_on_gain(ship)),
                             (SO.ALL_AHEAD_FULL.value, self._aaf_gain(ship)),
                             (SO.COME_TO_NEW_HEADING.value, self._ctnh_gain(ship))):
@@ -2426,8 +2526,9 @@ class AIPlayer:
                 vals[order] = gain * FP_HITS * vph
         spent = self._ordnance_spent(ship)
         if spent:
+            g = self._reload_value(ship)
             vals[SO.RELOAD_ORDNANCE.value] = self._pass_chance(
-                ship, SO.RELOAD_ORDNANCE.value) * self._reload_value(ship)
+                ship, SO.RELOAD_ORDNANCE.value, g) * g
         best = max(vals, key=vals.get, default=None)
         if best is not None and vals[best] > 0:
             return best
@@ -2574,7 +2675,7 @@ class AIPlayer:
         if ram is not None:
             from .ai_hazards import value_per_hit
             fast += ram[0] / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
-        cache[key] = self._pass_chance(ship, aaf_o) * (fast - free)
+        cache[key] = self._weighted_gain(ship, aaf_o, fast - free)
         return cache[key]
 
     def _ctnh_moves(self, ship: Ship, enemy: Ship):
@@ -2716,7 +2817,8 @@ class AIPlayer:
         if free is None or best is None:
             cache[key] = 0.0
             return 0.0
-        cache[key] = self._pass_chance(ship, SpecialOrder.COME_TO_NEW_HEADING.value) * (best - free)
+        cache[key] = self._weighted_gain(ship, SpecialOrder.COME_TO_NEW_HEADING.value,
+                                         best - free)
         return cache[key]
 
     @staticmethod
@@ -2755,7 +2857,16 @@ class AIPlayer:
             self._move_nearest = prev
         if free is None or locked is None:
             return 0.0
-        return self._pass_chance(ship, lock) * (locked - free)
+        return self._weighted_gain(ship, lock, locked - free)
+
+    def _weighted_gain(self, ship: Ship, order: str, units: float) -> float:
+        """A move gain (move-score units) weighted by the order's pass chance,
+        a commander re-roll counted at the gain's worth in VP; the raw gain
+        is kept for `_order_value`."""
+        self.__dict__.setdefault("_raw_gain", {})[self._gain_key(ship, order)] = units
+        if units <= 0:
+            return self._pass_chance(ship, order) * units
+        return self._pass_chance(ship, order, self._units_vp(ship, units)) * units
 
     def _safest_move_vp(self, ship: Ship, order: str) -> float:
         """The least hazard (ai_hazards.move_hazard_vp, along the path) of the
