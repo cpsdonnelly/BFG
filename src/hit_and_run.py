@@ -803,6 +803,24 @@ def boarding_crit_value(target: Ship, gs: GameState, owner: int,
     rule, the second roll standing). A winner's own crit has no
     `inflicted_by_rules`."""
     rules = list(inflicted_by_rules or [])
+    # cached on the game state and the ship's own state, its position on a
+    # 2cm grid (a boarder's trial moves land near each other) and valued at
+    # that spot: a pure function of the state, so games replay exactly
+    from .ai_hazards import table_key, ship_key, placed_at_key
+    sk = ship_key(target, grid=2.0)
+    key = (table_key(gs), sk, owner, tuple(sorted(set(rules) & {"dark_eldar", "haemonculi",
+                                                                "wych_cult"})))
+    cache = gs.__dict__.setdefault("_boarding_crit_cache", {})
+    if key in cache:
+        return cache[key]
+    if len(cache) > 4000:
+        cache.clear()
+    val = _boarding_crit_value(placed_at_key(target, sk), gs, owner, rules)
+    cache[key] = val
+    return val
+
+
+def _boarding_crit_value(target: Ship, gs: GameState, owner: int, rules) -> float:
     if target.ship_type == "escort":
         from .ai_hazards import escort_hits_vp
         return escort_hits_vp(target, gs, 1)

@@ -180,14 +180,13 @@ def order_reader(gs: GameState, player: int) -> "AIPlayer":
 def next_order(gs: GameState, ship: Ship):
     """(order, gain in VP if it passes, pass chance) of the special order the
     ship would take next turn from where it stands (the AI's own choice).
-    An estimate of next turn's choice from the present, so it is worked out
-    once a player turn for the ship (its position, crippling, Leadership and
-    loads at that moment; the hits it takes during the enemy's shooting don't
-    re-plan it)."""
+    Cached on the game state and the ship's own state (`ai_hazards.table_key`,
+    `ship_key`): a pure function of the state, so it is the same whenever and
+    in whatever order it is asked for (seeded games replay)."""
     if "immobile" in ship.special_rules:
         return None, 0.0, 0.0
-    key = (ship.id, gs.turn_number, gs.active_player, ship.is_crippled, ship.leadership,
-           ship.ordnance_loaded_torps, ship.ordnance_loaded_craft)
+    from .ai_hazards import table_key, ship_key
+    key = (table_key(gs), ship_key(ship))
     cache = gs.__dict__.setdefault("_next_order_cache", {})
     if key in cache:
         return cache[key]

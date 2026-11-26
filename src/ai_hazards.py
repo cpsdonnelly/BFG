@@ -1150,6 +1150,38 @@ def _state_stamp(gs):
     return stamp
 
 
+def table_key(gs):
+    """A key for values that depend on the whole table: every ship
+    (`_state_stamp`), the ordnance and the blast markers where they stand.
+    A function of the game state only, so a cache keyed on it gives the same
+    answer whenever and in whatever order it is asked (seeded games replay)."""
+    return (_state_stamp(gs),
+            tuple((o.get("id"), round(o.get("x") or 0, 1), round(o.get("y") or 0, 1),
+                   o.get("strength")) for o in (gs.ordnance or ())),
+            tuple((round(b.get("x") or 0, 1), round(b.get("y") or 0, 1))
+                  for b in (gs.blast_markers or ())))
+
+
+def ship_key(ship, grid: float = 0.0):
+    """The ship's own state for a cache key; with `grid`, its position rounded
+    to that many cm and its heading to 15 degrees (the value is then worked
+    out at the rounded spot, `placed_at_key`, so it is still exact for it)."""
+    if grid:
+        x, y = round(ship.x / grid) * grid, round(ship.y / grid) * grid
+        h = round((ship.heading or 0) / 15.0) * 15.0
+    else:
+        x, y, h = round(ship.x, 2), round(ship.y, 2), round(ship.heading or 0, 1)
+    return (ship.id, x, y, h, ship.hits_remaining, ship.status, ship.leadership,
+            ship.special_order, ship.ordnance_loaded_torps, ship.ordnance_loaded_craft,
+            tuple(sorted(c.get("crit_type", "") for c in ship.critical_damage)))
+
+
+def placed_at_key(ship, key):
+    """A copy of the ship standing where its `ship_key` (with a grid) says."""
+    from .models import ship_copy
+    return ship_copy(ship, x=key[1], y=key[2], heading=key[3])
+
+
 def _compute_stamp(gs):
     return (gs.turn_number, gs.current_phase, gs.active_player, len(gs.blast_markers),
             len(gs.ordnance), getattr(gs, "scenario_mode", ""), getattr(gs, "turn_limit", None),
