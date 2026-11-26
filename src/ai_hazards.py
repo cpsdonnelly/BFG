@@ -1275,7 +1275,8 @@ def craft_turret_p(target: Ship, rules=None, gs=None) -> float:
     return turret_kill_p(target, turret_hit_on(target, _OrdnanceRules(rules, "bomber")), gs)
 
 
-def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None) -> float:
+def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None,
+                       otype: str = "torpedo_standard") -> float:
     """Expected hits (torpedoes ignore shields) of a torpedo salvo of `strength` reaching
     `target`: its turrets (plus massed turrets) shoot torpedoes down first,
     each success one torpedo (Ork turrets 5+), then each torpedo hits its
@@ -1288,7 +1289,7 @@ def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None) -> 
     armour = target.armor_vs(*from_xy)
     if "mucous_membrane" in target.special_rules:
         armour = min(6, armour + 1)         # Tyranid Mucous Membrane
-    return left * torpedo_p_hit(armour, rules)
+    return left * torpedo_p_hit(armour, rules, otype)
 
 
 def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,

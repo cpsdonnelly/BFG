@@ -45,6 +45,7 @@ class SimShip:
     base_radius: float = 1.6
     p_plasma: float = 0.0       # Catastrophic Damage odds when destroyed (s.34)
     p_warp: float = 0.0
+    turn_dist: float = -1.0     # movement before a turn (movement.turn_distance); -1: by type
 
     @property
     def is_crippled(self) -> bool:
@@ -66,7 +67,7 @@ class SimShip:
             is_destroyed=self.is_destroyed, is_disengaged=self.is_disengaged,
             armor_rear=self.armor_rear, turrets=self.turrets,
             torps_loaded=self.torps_loaded, base_radius=self.base_radius,
-            p_plasma=self.p_plasma, p_warp=self.p_warp,
+            p_plasma=self.p_plasma, p_warp=self.p_warp, turn_dist=self.turn_dist,
         )
 
     @classmethod
@@ -78,6 +79,7 @@ class SimShip:
             torps_loaded=bool(ship.ordnance_loaded_torps) and any(
                 w.get("weapon_type") == "torpedo" for w in ship.weapons),
             base_radius=ship.base_radius, p_plasma=p_plasma, p_warp=p_warp,
+            turn_dist=_turn_distance(ship),
             id=ship.id, player=ship.player, x=ship.x, y=ship.y,
             heading=ship.heading, speed=ship.speed,
             turn_angle=ship.turn_angle, ship_type=ship.ship_type,
@@ -436,10 +438,25 @@ _TURN_FRACS = ((0.0, 0.6), (0.0, 0.8), (0.0, 1.0),
                (0.5, 1.0), (-0.5, 1.0))  # (turn_mult, speed_frac)
 
 
+def _turn_distance(ship) -> float:
+    from .movement import turn_distance
+    return float(turn_distance(ship))
+
+
+def _sim_turn_dist(ship) -> float:
+    """Turning distance of a sim ship (its own, Dark Eldar none) or a real one."""
+    td = getattr(ship, "turn_dist", None)
+    if td is not None and td >= 0 and not hasattr(ship, "special_rules"):
+        return td
+    if hasattr(ship, "special_rules"):
+        return _turn_distance(ship)
+    return MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+
+
 def _apply_move(ship: SimShip, turn_deg: float, dist: float) -> None:
     """Move ship in place (SimShip). Mirrors _simulate_final_pos logic."""
     r = math.radians
-    min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+    min_td = _sim_turn_dist(ship)
     if abs(turn_deg) < 0.5:
         ship.x += dist * math.cos(r(ship.heading))
         ship.y += dist * math.sin(r(ship.heading))
@@ -478,7 +495,7 @@ def _generate_best_moves(state: SimState, player: int,
         for turn_mult, speed_frac in _TURN_FRACS:
             turn_deg = ta * turn_mult
             dist = max(1, int(ship.speed * speed_frac))
-            min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+            min_td = _sim_turn_dist(ship)
             if abs(turn_deg) > 0.5 and min_td > 0 and dist <= min_td:
                 continue
             # Simulate position
@@ -496,7 +513,7 @@ def _generate_best_moves(state: SimState, player: int,
 
 def _sim_pos(ship: SimShip, turn_deg: float, dist: float) -> Tuple[float, float, float]:
     r = math.radians
-    min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+    min_td = _sim_turn_dist(ship)
     if abs(turn_deg) < 0.5:
         h = ship.heading
         return (ship.x + dist * math.cos(r(h)),
@@ -863,7 +880,7 @@ def _vp_scale_for(state: SimState, gs, player: int) -> float:
 def _cmds_for_move(ship: Ship, turn_deg: float, dist: float,
                    order: str) -> List[MoveCommand]:
     """Convert (turn_deg, dist) to a MoveCommand sequence."""
-    min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+    min_td = _sim_turn_dist(ship)
     cmds: List[MoveCommand] = []
     if abs(turn_deg) < 0.5:
         cmds.append(MoveCommand("forward", dist))

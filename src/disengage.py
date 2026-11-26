@@ -364,7 +364,7 @@ def flee_move_errors(ship, result, gs, order: str = "", aaf_bonus: int = 0,
     best simple move (straight, or one turn of up to its turn angle after the
     turning distance) would. Disengaging instead is done with its own button."""
     from .movement import (get_effective_speed, validate_movement, MoveCommand,
-                           MIN_TURN_DISTANCE)
+                           turn_distance)
     if not getattr(ship, "must_flee", False):
         # Tyranid Instinctive Behaviour restricts a move the same way
         # (move-dialog checks share this function)
@@ -376,7 +376,7 @@ def flee_move_errors(ship, result, gs, order: str = "", aaf_bonus: int = 0,
     if result.total_distance < left - 0.05:
         errs.append(f"{ship.name} failed a forced disengage test: it must move its full "
                     f"{left:g}cm towards the nearest table edge (or try to disengage).")
-    td = min(MIN_TURN_DISTANCE.get(ship.ship_type, 0), left)
+    td = min(turn_distance(ship, order), left)
     best = None
     cands = [[MoveCommand("forward", left)]]
     for turn in ("turn_left", "turn_right"):

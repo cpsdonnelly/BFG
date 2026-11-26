@@ -768,6 +768,20 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   there). Not counted: the crit check each point of fire damage takes. The owner's third
   Dark Eldar list, `owner_dark_eldar_succubi_990.json` (990, valid): the Dread Archon on a
   launch-bay Torture, two Impaler Succubi with Wych Cults, 6 torpedo and 3 gun Raiders.
+- The AI and Dark Eldar movement / torpedoes (owner questions): the turning distance is one
+  rule, `movement.turn_distance(ship, order)` (Burn Retros, low orbit, Dark Eldar none; Necron
+  AAF 20cm; Quest +5; Extra Discharge Vents -5), used by the engine, the move dialogs, the
+  flee planner and every AI planner incl. the expert search (`SimShip.turn_dist`); before,
+  the AI's candidates gave Dark Eldar capital ships 10cm before turning. Ships with no
+  minimum move also get 25% / 50% moves in the candidate grid. Orders passed automatically
+  (`ai_player.auto_pass`: Dark Eldar Come to New Heading, Orks' All Ahead Full) count at a
+  pass chance of 1 in `_order_value` / `_ctnh_gain`, and Come to New Heading's cost halves
+  only batteries and lances (s.7), never torpedoes or bays. Torpedo loads by expected VP
+  (`AIPlayer._torpedo_kind_by_value`, among `ordnance.torpedo_kind_options` when no
+  once-a-game / guided / short burn load is chosen): standard (plasma re-rolls) by hull hits,
+  boarding a raid a hit (Chaos too; off with hit-and-run), leech a Thrusters Damaged a hit
+  (half a hit, judgement, no damage); plasma wins against ordinary targets (5/9 against 5+,
+  a hit worth more than a raid), boarding / leech where raids or crits are worth more.
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Only the Strong May Lead. AI value gaps (found pricing the crews for the owner):
   `ai_hazards.boarding_vp` values a boarding crit at a flat hit, so Pain Frenzy's crit

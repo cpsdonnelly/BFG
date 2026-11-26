@@ -182,6 +182,15 @@ def ordnance_kinds(ship) -> set:
     return out
 
 
+def auto_pass(ship, order: str) -> bool:
+    """Orders whose command check is passed automatically
+    (movement.do_command_check): Orks' All Ahead Full ('Ere We Go), Dark
+    Eldar Come to New Heading (Xenos p.4)."""
+    rules = ship.special_rules or []
+    return ((order == SpecialOrder.ALL_AHEAD_FULL.value and "ere_we_go" in rules)
+            or (order == SpecialOrder.COME_TO_NEW_HEADING.value and "dark_eldar" in rules))
+
+
 class AIPlayer:
     """
     Drives one player's movement, shooting, and ordnance phases
@@ -1075,11 +1084,11 @@ class AIPlayer:
                 or "in_low_orbit" in ship.special_rules \
                 or "dark_eldar" in ship.special_rules:       # no minimum move there
             return 0.0
-        from .movement import MIN_TURN_DISTANCE
+        from .movement import turn_distance
         gs = self.gs
         r = ship.base_radius
         lo = max(1.0, (ship.speed or 0) / 2.0)
-        td = min(lo, MIN_TURN_DISTANCE.get(ship.ship_type, 10))
+        td = min(lo, turn_distance(ship))
         ta = math.radians(ship.turn_angle or 0)
 
         from .low_orbit import bounds_for
@@ -1592,10 +1601,10 @@ class AIPlayer:
                    turn_at: Optional[float]) -> List[MoveCommand]:
         """Commands for a move of `dist` with one turn after `turn_at` cm (by
         default right after the minimum distance before turning)."""
-        from .movement import MIN_TURN_DISTANCE
+        from .movement import turn_distance
         if abs(turn_deg) <= 0.5:
             return [MoveCommand("forward", dist)]
-        t = MIN_TURN_DISTANCE.get(ship.ship_type, 0) if turn_at is None else turn_at
+        t = turn_distance(ship, ship.special_order) if turn_at is None else turn_at
         t = max(0.0, min(dist, t))
         cmds: List[MoveCommand] = []
         if t > 0:
@@ -1608,12 +1617,10 @@ class AIPlayer:
     def _candidate_validator(self, ship: Ship, order: str, aaf_bonus: int):
         """valid(turn_deg, dist, turn_at): the same limits `_move_candidates`
         applies (speed, turn angle, turning distance)."""
-        from .movement import MIN_TURN_DISTANCE
-        from .models import SpecialOrder
+        from .movement import turn_distance
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
         max_t = get_max_turns(order, ship)
-        min_td = 0 if order == SpecialOrder.BURN_RETROS.value else \
-            MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        min_td = turn_distance(ship, order)
         ta = ship.turn_angle if max_t > 0 else 0
 
         def valid(turn_deg, dist, turn_at):
@@ -1643,12 +1650,10 @@ class AIPlayer:
             where this ship beats the target most, ai_hazards.bracket_matchup;
             none when it beats the target nowhere).
         Candidates propose, the move score decides (owner: not hard rules)."""
-        from .movement import MIN_TURN_DISTANCE
-        from .models import SpecialOrder
+        from .movement import turn_distance
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
         max_t = get_max_turns(order, ship)
-        min_td = 0 if order == SpecialOrder.BURN_RETROS.value else \
-            MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        min_td = turn_distance(ship, order)
         ta = ship.turn_angle if max_t > 0 else 0
         out, seen = [], set()
 
@@ -1673,6 +1678,10 @@ class AIPlayer:
                 out.append((turn_deg, dist, turn_at, src))
 
         dists = sorted({min_spd, max_spd * 0.6, max_spd * 0.8, max_spd})
+        if min_spd < max_spd * 0.5:
+            # no minimum move (Dark Eldar, Burn Retros, high / low orbit):
+            # shorter moves too, down to a quarter of the speed
+            dists = sorted(set(dists) | {max_spd * 0.25, max_spd * 0.5})
         dists = [d for d in dists if d >= min_spd]
         turns = [0.0] + ([-ta, -ta * 0.5, ta * 0.5, ta] if ta else [])
         for t in turns:
@@ -2019,8 +2028,8 @@ class AIPlayer:
         """Return (x, y, heading) after moving total_dist with one turn of
         turn_deg: after `turn_at` cm of forward movement (To do 11 a turn
         points), by default right after the minimum distance before turning."""
-        from .movement import MIN_TURN_DISTANCE
-        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        from .movement import turn_distance
+        min_td = turn_distance(ship, ship.special_order)
         r = math.radians
         if turn_at is not None and abs(turn_deg) >= 0.5:
             t = max(0.0, min(total_dist, turn_at))
@@ -2110,8 +2119,8 @@ class AIPlayer:
     def _simulate_path(self, ship: Ship, turn_deg: float, total_dist: float,
                        turn_at: Optional[float] = None):
         """[(x, y), ...] of a move: start, turn point, end."""
-        from .movement import MIN_TURN_DISTANCE
-        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0) if turn_at is None else turn_at
+        from .movement import turn_distance
+        min_td = turn_distance(ship, ship.special_order) if turn_at is None else turn_at
         pts = [(ship.x, ship.y)]
         if abs(turn_deg) >= 0.5 and 0 < min_td <= total_dist:
             r = math.radians(ship.heading)
@@ -2195,10 +2204,10 @@ class AIPlayer:
     def _plan_flee(self, ship: Ship, order: str, aaf_bonus: int) -> List[MoveCommand]:
         """As fast as possible towards the nearest table edge (s.37; Demiurg
         Mercenaries): the candidate move that ends closest to it."""
-        from .movement import MIN_TURN_DISTANCE
+        from .movement import turn_distance
         gs = self.gs
         _, max_spd = get_effective_speed(ship, order, aaf_bonus)
-        td = min(MIN_TURN_DISTANCE.get(ship.ship_type, 0), max_spd)
+        td = min(turn_distance(ship, order), max_spd)
         ta = ship.turn_angle
         cands = [[MoveCommand("forward", max_spd)]]
         for turn in ("turn_left", "turn_right"):
@@ -2278,7 +2287,7 @@ class AIPlayer:
             ld += 1
         if count_blast_markers_touching(ship, self.gs.get_blast_markers()) > 0:
             ld -= 1
-        p = p_sum_at_most(2, max(0, min(10, ld)))
+        p = 1.0 if auto_pass(ship, order) else p_sum_at_most(2, max(0, min(10, ld)))
         target = self._focus_for(ship) or self._nearest_enemy(ship)
         vph = value_per_hit(target, self.gs) if target else 0.0
         if order == SpecialOrder.LOCK_ON.value:
@@ -2474,7 +2483,7 @@ class AIPlayer:
         if ram is not None:
             from .ai_hazards import value_per_hit
             fast += ram[0] / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
-        if "ere_we_go" in ship.special_rules:
+        if auto_pass(ship, SpecialOrder.ALL_AHEAD_FULL.value):
             p = 1.0
         else:
             ld = ship.leadership + (1 if any(
@@ -2492,12 +2501,12 @@ class AIPlayer:
         the end of the first leg, with the speed left). [(score, commands,
         source)], scored by the move score from the first leg's end (judgement:
         hazards on the first leg aren't counted)."""
-        from .movement import MIN_TURN_DISTANCE, get_effective_speed as _ges
+        from .movement import turn_distance, get_effective_speed as _ges
         o = SpecialOrder.COME_TO_NEW_HEADING.value
         if get_max_turns(o, ship) < 2 or not ship.turn_angle:
             return []
         min_spd, max_spd = _ges(ship, o, 0)
-        m = float(MIN_TURN_DISTANCE.get(ship.ship_type, 0))
+        m = float(turn_distance(ship, o))
         if max_spd < m + 1:
             return []
         ta = ship.turn_angle
@@ -2614,17 +2623,24 @@ class AIPlayer:
             best = None
             for sc, cmds, _src in self._ctnh_moves(ship, enemy):
                 fx, fy, fh = self._cmds_end(ship, cmds)
-                v = sc - 0.5 * self._arc_score(ship, fx, fy, fh, enemy, in_range_only=True)
+                # s.7: Come to New Heading halves weapons batteries and lances
+                # only; torpedoes and attack craft launch at full strength
+                v = sc - 0.5 * self._arc_score(ship, fx, fy, fh, enemy, guns_only=True,
+                                               in_range_only=True)
                 best = v if best is None else max(best, v)
         finally:
             self._move_nearest = prev
         if free is None or best is None:
             cache[key] = 0.0
             return 0.0
-        ld = ship.leadership + (1 if any(
-            e.player != ship.player and e.special_order not in ("none", "")
-            and not e.is_destroyed for e in self.gs.get_ships()) else 0)
-        cache[key] = p_sum_at_most(2, min(10, ld)) * (best - free)
+        if auto_pass(ship, SpecialOrder.COME_TO_NEW_HEADING.value):
+            p = 1.0                      # Dark Eldar (Xenos p.4)
+        else:
+            ld = ship.leadership + (1 if any(
+                e.player != ship.player and e.special_order not in ("none", "")
+                and not e.is_destroyed for e in self.gs.get_ships()) else 0)
+            p = p_sum_at_most(2, min(10, ld))
+        cache[key] = p * (best - free)
         return cache[key]
 
     @staticmethod
@@ -2675,12 +2691,12 @@ class AIPlayer:
         moves this order allows: straight or one turn of the ship's turn angle,
         at its minimum, middle and maximum speed."""
         from .ai_hazards import move_hazard_vp
-        from .movement import MIN_TURN_DISTANCE
+        from .movement import turn_distance
         min_spd, max_spd = get_effective_speed(ship, order, 0)
         turns = [0.0]
         if get_max_turns(order, ship) > 0:
             turns += [-ship.turn_angle, ship.turn_angle]
-        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        min_td = turn_distance(ship, order)
         best = None
         for turn in turns:
             for dist in sorted({min_spd, (min_spd + max_spd) / 2.0, max_spd}):
@@ -3547,6 +3563,42 @@ class AIPlayer:
         length = max(20.0, min(40.0, float(length or 40.0)))
         actions.move_tau_missile(gs, marker.id, turn, length)
 
+    def _torpedo_kind_by_value(self, ship: Ship, weapon: dict, target: Ship) -> str:
+        """The torpedo load worth most expected VP against `target` among the
+        launcher's standard kinds (ordnance.torpedo_kind_options): standard
+        torpedoes (Dark Eldar plasma re-roll their misses) by their hull hits
+        (hull_hits_vp); boarding torpedoes one hit-and-run raid a hit
+        (waves.raid_squadron_value, not an assault boat; off with the
+        hit-and-run toggle); leech torpedoes one Thrusters Damaged a hit and no
+        damage (its crit value without the extra damage). Hits after the
+        target's turrets, on the Armour facing the launcher. "" = standard."""
+        from .ordnance import torpedo_kind_options
+        from .ai_hazards import torpedo_salvo_hits, hull_hits_vp, value_per_hit
+        gs = self.gs
+        keys = {k for k, _ in torpedo_kind_options(ship, weapon, gs.rule_hit_and_run)}
+        if not keys & {"boarding", "leech"}:
+            return ""
+        n = int(weapon.get("strength") or 0)
+        if ship.is_crippled:
+            n = (n + 1) // 2
+        if n <= 0:
+            return ""
+        rules = list(ship.special_rules or [])
+        xy = (ship.x, ship.y)
+        vals = {"": hull_hits_vp(target, gs, 0.0,
+                                 torpedo_salvo_hits(n, target, gs, xy, rules))}
+        if "boarding" in keys:
+            from .waves import raid_squadron_value
+            hits = torpedo_salvo_hits(n, target, gs, xy, rules, "torpedo_boarding")
+            vals["boarding"] = hits * raid_squadron_value(target, gs, ship.player, rules,
+                                                          assault_boat=False)
+        if "leech" in keys:
+            # the Thrusters Damaged effect alone (hit_and_run.crit_type_value's
+            # half a hit, judgement): leech torpedoes do no damage
+            hits = torpedo_salvo_hits(n, target, gs, xy, rules, "torpedo_leech")
+            vals["leech"] = hits * 0.5 * max(1.0, value_per_hit(target, gs))
+        return max(vals, key=lambda k: (vals[k], k == ""))
+
     def _launch_ship_ordnance(self, ship: Ship, only: Optional[str] = None):
         """Launch the ship's ordnance; only "bays" (launch bays) or "rest"
         (torpedoes, mines...) when given."""
@@ -3585,6 +3637,10 @@ class AIPlayer:
                                 "torpedo_speed", TORPEDO_SPEED_DEFAULT)):
                         kind = "short_burn"
                         aim_weapon = {**weapon, "torpedo_speed": SHORT_BURN_SPEED}
+                    if not kind:
+                        # plasma / standard, boarding or leech torpedoes by
+                        # expected VP (owner: the AI must know its torpedo types)
+                        kind = self._torpedo_kind_by_value(ship, weapon, target)
                     aim = self._torpedo_aim_heading(ship, aim_weapon, target)
                     # its in-flight turns follow the plan (torp_target_id)
                     m = actions.launch_salvo(gs, self.dice, ship.id, w_i, aim, kind, target.id)

@@ -20,6 +20,25 @@ MIN_TURN_DISTANCE = {
 }
 
 
+def turn_distance(ship, special_order: str = "") -> float:
+    """The forward movement a ship needs before each turn (s.10), with every
+    rule that changes it: Burn Retros, low orbit and Dark Eldar (Xenos p.4)
+    none; a Necron inertialess drive on All Ahead Full 20cm; the Quest's +5cm
+    side effect; Tyranid Extra Discharge Vents -5cm. One rule for the engine,
+    the move dialogs and every AI planner."""
+    rules = getattr(ship, "special_rules", None) or []
+    d = MIN_TURN_DISTANCE.get(getattr(ship, "ship_type", ""), 10)
+    if special_order == "all_ahead_full" and "necron" in rules:
+        d = 20               # inertialess drive (reading: a turn every further 20cm)
+    if special_order == "burn_retros" or "in_low_orbit" in rules or "dark_eldar" in rules:
+        d = 0
+    elif "turn_distance_plus5" in rules:
+        d += 5
+    if "turn_distance_minus5" in rules:
+        d = max(0, d - 5)
+    return d
+
+
 class MoveCommand:
     """A single step in a movement sequence."""
     def __init__(self, action: str, value: float = 0):
@@ -299,21 +318,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     # Lightning Thrusters vanguards turn at most 45 degrees on All Ahead Full
     turn_cap = (min(ship.turn_angle, 45)
                 if special_order == SpecialOrder.ALL_AHEAD_FULL.value else ship.turn_angle)
-    min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
-    if special_order == SpecialOrder.ALL_AHEAD_FULL.value and "necron" in ship.special_rules:
-        # Inertialess drive (Xenos p.39): a turn for every 20cm travelled
-        # (reading: each turn after a further 20cm)
-        min_turn_dist = 20
-
-    # Burn Retros: no minimum distance before turning; in low orbit capital
-    # ships need none either (s.39)
-    if (special_order == SpecialOrder.BURN_RETROS.value or "in_low_orbit" in ship.special_rules
-            or "dark_eldar" in ship.special_rules):     # Dark Eldar: no turning distance
-        min_turn_dist = 0
-    elif "turn_distance_plus5" in ship.special_rules:
-        min_turn_dist += 5          # Experimental Ship (Quest) side effect
-    if "turn_distance_minus5" in ship.special_rules:
-        min_turn_dist = max(0, min_turn_dist - 5)   # Tyranid Extra Discharge Vents
+    min_turn_dist = turn_distance(ship, special_order)
 
     # Track state
     distance_moved = 0.0

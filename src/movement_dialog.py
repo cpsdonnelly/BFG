@@ -4,7 +4,7 @@ import math
 
 from .models import SpecialOrder
 from .movement import (MoveCommand, validate_movement,
-                       resolve_aaf_speed, MIN_TURN_DISTANCE, get_max_turns,
+                       resolve_aaf_speed, turn_distance, get_max_turns,
                        movement_budget)
 
 
@@ -33,7 +33,7 @@ class _MoveShipDialog:
 
         # Pre-compute movement budget (AAF roll happens here, before UI opens)
         self.order = ship.special_order
-        self.min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
+        self.min_turn_dist = turn_distance(ship, ship.special_order)
         self.aaf_bonus = 0
         if self.order == SpecialOrder.ALL_AHEAD_FULL.value:
             self.aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
@@ -578,7 +578,7 @@ class _MoveSquadronDialog:
         min_spd = self._agg_min()
         max_spd = self._agg_max()
         ta = min(s.turn_angle for s in ships_in)
-        mtd = max(MIN_TURN_DISTANCE.get(s.ship_type, 0) for s in ships_in)
+        mtd = max(turn_distance(s, s.special_order) for s in ships_in)
         orders_str = ", ".join(
             f"{s.name}:{s.special_order}" for s in ships_in
             if s.special_order != "none"
