@@ -115,3 +115,30 @@ def test_lock_on_reroll_gain_by_armour():
     g6 = ai._arc_score(m, 50.0, 50.0, 0.0, gs.get_ship_by_id("t6"), guns_only=True,
                        reroll_gain=True)
     assert abs(g4 - 6 * 0.5) < 1e-9 and abs(g6 - 6 * (5 / 6)) < 1e-9
+
+
+def test_leech_value_is_the_thrusters_effect_only_no_damage():
+    """Xenos p.6: each leech hit is an automatic Thrusters Damaged, "do not
+    apply any extra damage": the AI's value is the effect alone over the
+    salvo's exact hits (crit_effect_value), no hull hit."""
+    g, d = _fleets()
+    raider = copy.deepcopy(next(s for s in d if "Subjugation" in s.ship_class
+                                and any(w.get("weapon_type") == "torpedo" for w in s.weapons)))
+    raider.x, raider.y, raider.heading, raider.leadership = 50.0, 75.0, 90.0, 8
+    lunar = copy.deepcopy(next(s for s in g if "Lunar" in s.ship_class))
+    lunar.x, lunar.y, lunar.heading, lunar.leadership = 50.0, 50.0, 270.0, 8
+    gs, ai = _ai([lunar, raider])
+    w = next(w for w in raider.weapons if w.get("weapon_type") == "torpedo")
+    a, t = gs.get_ship_by_id(raider.id), gs.get_ship_by_id(lunar.id)
+    import src.hit_and_run as hr
+    orig = hr.crit_effect_value
+    try:
+        # with the effect worth nothing, leech is worth nothing (no damage term)
+        hr.crit_effect_value = lambda *a_, **k: 0.0
+        import src.waves as wv
+        orig_r = wv.raid_squadron_value
+        wv.raid_squadron_value = lambda *a_, **k: 0.0
+        assert ai._torpedo_kind_by_value(a, w, t) != "leech"
+        wv.raid_squadron_value = orig_r
+    finally:
+        hr.crit_effect_value = orig

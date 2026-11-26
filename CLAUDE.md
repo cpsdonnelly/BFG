@@ -661,8 +661,9 @@ ordnance sweep 5579 cases pass):
     the same (it was half a hit a launcher). A receding enemy 40cm off is never caught.
   - Found on the way: a recursion (a crit's extra damage -> an explosion -> the ordnance it
     sweeps -> an Impaler's crit), cut in `plasma_ordnance_vp` (not re-entered).
-- Still open from this period: a commander re-roll's lift to the pass chance; Brace doesn't
-  count losing next turn's orders; the remaining guessed values (list in To do 33); Dark Eldar flanking is planned one turn ahead (the normal AI; the expert
+- Still open from this period (owner: must be fixed, To do 33): a commander re-roll's lift
+  to the pass chance; Brace not counting the orders it forbids next turn; a boarding crit at a
+  flat hit; enemy raids on Dark Eldar ships valued at 0; and the other guessed values there; Dark Eldar flanking is planned one turn ahead (the normal AI; the expert
   searches deeper); `boarding_vp` values a boarding crit at a flat hit (Pain Frenzy's crit
   re-roll and the Haemonculi Fire not in it); enemy raids on Dark Eldar ships value 0 for
   several Dark Eldar crit results, so the Incubi's -1 to enemy raids isn't priced.
@@ -862,7 +863,7 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   re-roll and the Haemonculi Fire aren't in it; enemy raids on a Dark Eldar ship are worth
   0 to the AI (control circuit, graviton harness, bladevanes and ordnance-only armament
   results value nothing in `raid_result_value`), so the Incubi's -1 to enemy raids isn't
-  priced either.
+  priced either. Both are owner must-fixes in To do 33.
 - Next (owner order): Tyranids (To do 19; playable now, slices 1-3 built, gaps listed there), then the other owner fleets' gaps (Tau Protector
   done: `owner_tau_protector_980.json`; Orks done: `owner_orks_980.json`; Necrons done:
   `owner_necrons_1000.json` and `owner_necrons_war_1000.json` (the owner's coin for the War
@@ -3795,7 +3796,30 @@ Done: To do 2, 3, 6; most of 7.
 
 33. Guessed values to compute (owner: judgement calls where the rules give an answer are
    "bad and lazy"; audit of the AI's values; computed so far: crit effects, re-roll values,
-   mines, Burn Retros' cost, see the session status). Still guessed, to replace:
+   mines, Burn Retros' cost, see the session status). Owner: these MUST be fixed (named
+   by the owner, don't drop them):
+   - A commander re-roll's lift to an order's pass chance: `_pass_chance` gives one roll;
+     with re-rolls left the chance is 1 - (1 - p)^2 for an order worth a re-roll (by
+     `ai_rerolls.should_reroll`), less the re-roll's own value spent (it is gone for later
+     tests); Brace's pass chance likewise.
+   - Brace's cost of the orders it forbids: a braced ship can't take special orders until
+     the end of its next turn (s.7), so `brace_value` should count next turn's best order
+     value (`_order_value`, at its pass chance) as lost, as well as half its fire.
+   - A boarding action's crit valued at a flat hit (`ai_hazards.boarding_vp`): value it on
+     the target's own table (`hit_and_run.critical_hit_value` / `crit_type_value`, the s.32
+     crit rolls), with Pain Frenzy's crit re-roll and the Haemonculi Fire.
+   - Enemy raids on Dark Eldar ships valued at 0 for most results (`raid_result_value`:
+     control circuit, graviton harness, bladevanes, superstructure, ordnance-only armament
+     were unvalued): every result now has a measurable effect (`crit_effect_value` reads
+     the copy's speed / turns / Ld; check each Dark Eldar crit's effect is one the engine
+     applies and `_exchange` sees, add the rest), so the Incubi's -1 to enemy raids is
+     priced too.
+   Rule to keep (owner): leech torpedoes do no damage, "do not apply any extra damage from
+   this result"; each hit is an automatic Thrusters Damaged even on tables without one
+   (engine: `combat.add_thrusters_crits`; AI: the effect only, `crit_effect_value` over
+   `torpedo_salvo_pmf`; tests `test_dark_eldar_catalog.py`,
+   `test_ai_de_movement_torps.py`).
+   Still guessed, to replace:
    - A hull hit's value short of a kill or cripple: `hull_hits_vp` gives 0.8 x the ship's
      value a hit and `damage_vp` 0.2 (s.38 scores nothing until a threshold): should be what
      the hit adds to the chance it is crippled / destroyed later, as escorts already are

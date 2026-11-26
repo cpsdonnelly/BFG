@@ -19,8 +19,10 @@ effects measured on a copy of the ship (`hit_and_run.crit_effect_value`, exact r
 `p_system_down`), re-roll values computed per test from exact volley distributions
 (`ai_hazards.weapon_hit_pmf` / `volley_hull_pmf` / `hits_vp`), mines followed to contact
 (`ai_hazards.mine_value`), Burn Retros' exact cost; a recursion found and cut
-(`plasma_ordnance_vp`). Open: the remaining guessed values (CLAUDE.md To do 33, the largest
-the hull-hit scale), strategy candidates for every ship (To do 34, owner), the commander
+(`plasma_ordnance_vp`). Open: the owner's four must-fixes (CLAUDE.md To do 33: a
+commander re-roll in the pass chance, Brace's forbidden orders, the boarding crit's flat
+value, enemy raids on Dark Eldar ships at 0), the remaining guessed values (the largest the
+hull-hit scale), strategy candidates for every ship (To do 34, owner), the commander
 re-roll in the pass chance, Brace's lost orders. Next: the agreed order (To do 22, team
 play) when the owner says.
 
