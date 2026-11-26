@@ -25,8 +25,10 @@ def attacker_unit_key(attacker) -> str:
 def add_tracking_mark(gs, target, attacker) -> None:
     """A gunnery hit on a shadowfielded ship or squadron: one mark per
     attacking ship or squadron, on every ship of the target's unit, to the end
-    of the turn (applied even if the hit was saved by bracing)."""
-    if not has_shadowfield(target):
+    of the turn (applied even if the hit was saved by bracing). Owner: an
+    option turns tracking marks off (GameState.rule_tracking_marks); then a
+    shadowfield always saves on 2+."""
+    if not has_shadowfield(target) or not getattr(gs, "rule_tracking_marks", True):
         return
     key = attacker_unit_key(attacker)
     unit = [s for s in gs.get_ships() if target.squadron_id

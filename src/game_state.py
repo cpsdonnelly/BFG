@@ -85,6 +85,7 @@ class GameState:
     contact_margin_cm: float = 0.2  # wiggle room added to base contact distance checks
     blast_marker_rules: str = "standard"  # s.11: standard | modern | remastered (optional_rules)
     rule_remastered_spillover: bool = False  # s.11 Remastered: one round's markers touch <= 2 ships
+    rule_tracking_marks: bool = True   # Dark Eldar shadowfield tracking marks (owner: can be turned off)
     rule_remastered_escort_vp: bool = False  # Remastered p.121 escort squadron VP (XR default)
     # s.40 celestial effects (src/celestial.py)
     solar_flare_dice: int = 1

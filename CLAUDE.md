@@ -782,6 +782,12 @@ Previous session (Dark Eldar and owner UI reports; 1691 tests, the sweep 5250 ca
   boarding a raid a hit (Chaos too; off with hit-and-run), leech a Thrusters Damaged a hit
   (half a hit, judgement, no damage); plasma wins against ordinary targets (5/9 against 5+,
   a hit worth more than a raid), boarding / leech where raids or crits are worth more.
+- Shadowfield tracking marks can be turned off (owner): `GameState.rule_tracking_marks`
+  (on by default, the booklet rule), a checkbox in the setup wizard's Optional Rules (not part
+  of "All advanced rules") and in the in-game Advanced settings (turning it off clears marks
+  already placed); off, `dark_eldar.add_tracking_mark` places none, so a shadowfield always
+  saves on 2+; the AI's shadowfield values read the same marks, so they follow it
+  (`tests/test_dark_eldar_rules.py`).
 - Dark Eldar not yet: the Mimic Engine, the Tormentor Spire, Superstructure Damaged's turn
   roll, Only the Strong May Lead. AI value gaps (found pricing the crews for the owner):
   `ai_hazards.boarding_vp` values a boarding crit at a flat hit, so Pain Frenzy's crit

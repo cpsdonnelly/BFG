@@ -359,6 +359,10 @@ class GamePanel(GameFlow):
         tk.Checkbutton(adv_frame, text="Remastered spill-over limit (one round's blast markers "
                        "touch at most the target and one other ship)",
                        variable=spill_var, font=("Consolas", 8)).pack(anchor=tk.W)
+        track_var = tk.BooleanVar(value=getattr(gs, "rule_tracking_marks", True))
+        tk.Checkbutton(adv_frame, text="Dark Eldar shadowfield tracking marks (off: shadowfields "
+                       "always save on 2+)", variable=track_var,
+                       font=("Consolas", 8)).pack(anchor=tk.W)
         esc_vp_var = tk.BooleanVar(value=getattr(gs, "rule_remastered_escort_vp", False))
         tk.Checkbutton(adv_frame, text="Remastered escort squadron VP (p.121: only a whole "
                        "squadron destroyed scores; disengaged 25% if crippled, else 10%)",
@@ -517,6 +521,12 @@ class GamePanel(GameFlow):
             from .optional_rules import set_suppression_rules
             set_suppression_rules(gs.rule_turret_suppression_remastered)
             gs.rule_remastered_spillover = spill_var.get()
+            gs.rule_tracking_marks = track_var.get()
+            if not gs.rule_tracking_marks:
+                for sh in gs.get_ships():           # marks already placed this turn go
+                    if sh.tracking_marks:
+                        sh.tracking_marks = []
+                        gs.update_ship(sh)
             from .optional_rules import set_sunward
             set_sunward(gs.rule_fighting_sunward, gs.sunward_edge)
             gs.rule_remastered_escort_vp = esc_vp_var.get()

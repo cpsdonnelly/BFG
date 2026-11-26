@@ -50,6 +50,18 @@ def test_gunnery_hit_places_one_tracking_mark_per_attacker():
     assert gs.get_ship_by_id("de").tracking_marks == []
 
 
+def test_tracking_marks_can_be_turned_off():
+    """Owner option: with GameState.rule_tracking_marks off, gunnery hits place
+    no marks, so the shadowfield keeps saving on 2+."""
+    de, gun = _de(), _gun()
+    gs = make_gs([de, gun])
+    gs.rule_tracking_marks = False
+    dice = DiceStub([1, 1])                  # crit checks
+    apply_damage(gs.get_ship_by_id("de"), 2, dice, gs, attacker_key="g", gunnery=True)
+    t = gs.get_ship_by_id("de")
+    assert t.tracking_marks == [] and shadowfield_need(t) == 2
+
+
 def test_lances_face_the_shadowfield_save():
     de, gun = _de(tracking_marks=["a", "b"]), _gun()
     lance = {"name": "Lance", "weapon_type": "lance", "strength": 3, "range_cm": 30}
