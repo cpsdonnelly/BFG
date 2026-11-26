@@ -720,6 +720,53 @@ def crit_type_value(ct: str, target: Ship, gs: GameState, owner: int,
     return value
 
 
+def boarding_crit_value(target: Ship, gs: GameState, owner: int,
+                        inflicted_by_rules=None) -> float:
+    """Expected VP, to `owner`, of one boarding critical hit on `target`, as
+    `boarding._boarding_crit_check` rolls it (s.32): an escort takes 1 point of
+    damage (`ai_hazards.escort_hits_vp`); any other ship a D6 on the raid
+    critical table (at least 2) on its own table, after the cascade
+    (`raid_crit_preview`, `crit_type_value`). When the crit is inflicted by a
+    Dark Eldar ship: Haemonculi make it a Fire (`fire` by `crit_type_value`),
+    and Pain Frenzy against a crippled ship (a Wych Cult: any capital ship)
+    re-rolls a result worth less than a fresh roll (`dark_eldar.frenzy_raid_reroll`'s
+    rule, the second roll standing). A winner's own crit has no
+    `inflicted_by_rules`."""
+    rules = list(inflicted_by_rules or [])
+    # cached on the game state and the ship's own state, its position on a
+    # 2cm grid (a boarder's trial moves land near each other) and valued at
+    # that spot: a pure function of the state, so games replay exactly
+    from .ai_hazards import table_key, ship_key, placed_at_key
+    sk = ship_key(target, grid=2.0)
+    key = (table_key(gs), sk, owner, tuple(sorted(set(rules) & {"dark_eldar", "haemonculi",
+                                                                "wych_cult"})))
+    cache = gs.__dict__.setdefault("_boarding_crit_cache", {})
+    if key in cache:
+        return cache[key]
+    if len(cache) > 4000:
+        cache.clear()
+    val = _boarding_crit_value(placed_at_key(target, sk), gs, owner, rules)
+    cache[key] = val
+    return val
+
+
+def _boarding_crit_value(target: Ship, gs: GameState, owner: int, rules) -> float:
+    if target.ship_type == "escort":
+        from .ai_hazards import escort_hits_vp
+        return escort_hits_vp(target, gs, 1)
+    if "dark_eldar" in rules and "haemonculi" in rules:
+        return crit_type_value("fire", target, gs, owner)
+    vals = []
+    for r in range(1, 7):
+        ct = raid_crit_preview(max(2, r), target)
+        vals.append(crit_type_value(ct, target, gs, owner) if ct else 0.0)
+    mean = sum(vals) / 6.0
+    from .dark_eldar import pain_frenzy_applies
+    if pain_frenzy_applies(rules, target):
+        return sum(max(v, mean) for v in vals) / 6.0
+    return mean
+
+
 def crit_roll_value(roll_2d6: int, target: Ship, gs: GameState, owner: int,
                     end_phases: int = None) -> float:
     """Expected VP of a critical hit rolled as `roll_2d6` (2-12) on the

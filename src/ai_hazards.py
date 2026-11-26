@@ -1146,8 +1146,47 @@ def _state_stamp(gs):
     if memo is not None and memo[0] == ids:
         return memo[1]
     stamp = _compute_stamp(gs)
-    gs.__dict__["_stamp_memo"] = (ids, stamp)
+    # the memo keeps the records (and the scenario / sub-plot objects) it was
+    # made from: while it holds them their ids can't be reused by new records,
+    # so a matching id tuple really is the same records (an id freed and given
+    # to a new record would return a stale stamp, differently in every
+    # process, and break replays)
+    gs.__dict__["_stamp_memo"] = (ids, stamp, list(ships),
+                                  getattr(gs, "scenario_state", None),
+                                  getattr(gs, "subplots", None))
     return stamp
+
+
+def table_key(gs):
+    """A key for values that depend on the whole table: every ship
+    (`_state_stamp`), the ordnance and the blast markers where they stand.
+    A function of the game state only, so a cache keyed on it gives the same
+    answer whenever and in whatever order it is asked (seeded games replay)."""
+    return (_state_stamp(gs),
+            tuple((o.get("id"), round(o.get("x") or 0, 1), round(o.get("y") or 0, 1),
+                   o.get("strength")) for o in (gs.ordnance or ())),
+            tuple((round(b.get("x") or 0, 1), round(b.get("y") or 0, 1))
+                  for b in (gs.blast_markers or ())))
+
+
+def ship_key(ship, grid: float = 0.0):
+    """The ship's own state for a cache key; with `grid`, its position rounded
+    to that many cm and its heading to 15 degrees (the value is then worked
+    out at the rounded spot, `placed_at_key`, so it is still exact for it)."""
+    if grid:
+        x, y = round(ship.x / grid) * grid, round(ship.y / grid) * grid
+        h = round((ship.heading or 0) / 15.0) * 15.0
+    else:
+        x, y, h = round(ship.x, 2), round(ship.y, 2), round(ship.heading or 0, 1)
+    return (ship.id, x, y, h, ship.hits_remaining, ship.status, ship.leadership,
+            ship.special_order, ship.ordnance_loaded_torps, ship.ordnance_loaded_craft,
+            tuple(sorted(c.get("crit_type", "") for c in ship.critical_damage)))
+
+
+def placed_at_key(ship, key):
+    """A copy of the ship standing where its `ship_key` (with a grid) says."""
+    from .models import ship_copy
+    return ship_copy(ship, x=key[1], y=key[2], heading=key[3])
 
 
 def _compute_stamp(gs):
@@ -3292,10 +3331,15 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
     To do 8 h): both D6 rolls enumerated with the modifiers resolve_boarding
     uses (troop ratings, crew bonuses, crippled / special orders / blast
     markers); the loser takes the difference in damage (hull_hits_vp: full
-    value a hit, thresholds), each side's crit chance by the result table at a
-    hit's value each (judgement), a draw (grapple) counts nothing, Dark Eldar
-    slave VP for the hits each side inflicts. Knights of Titan and Mechanicus
-    re-rolls aren't counted."""
+    value a hit, thresholds), each side's crit chance by the result table,
+    each crit valued as the engine rolls it on the ship's own table
+    (`hit_and_run.boarding_crit_value`: escorts 1 damage, a D6 on the raid
+    critical table, Haemonculi Fires and Pain Frenzy's re-roll for crits a
+    Dark Eldar ship inflicts; owner, To do 33: it was a flat hit), a draw
+    (grapple) counts nothing, Dark Eldar slave VP for the hits each side
+    inflicts. Knights of Titan and Mechanicus re-rolls aren't counted; a
+    crit's extra damage is valued on the ship as it stands, before the
+    boarding damage that comes with it."""
     from .boarding import (troop_rating, _troop_advantage_bonus, _crew_damage_bonus,
                            _get_ship_modifier)
     a_rating = troop_rating(attacker, attacker.is_grappled)
@@ -3304,7 +3348,13 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
         + _crew_damage_bonus(attacker)
     d_bonus = _get_ship_modifier(attacker, gs, target.special_rules) + _troop_advantage_bonus(d_rating, a_rating) \
         + _crew_damage_bonus(target)
-    vph_a, vph_t = value_per_hit(attacker, gs), value_per_hit(target, gs)
+    from .hit_and_run import boarding_crit_value
+    # crits: the loser's is inflicted by the winner (Haemonculi, Pain Frenzy);
+    # the winner's own crit check has no inflicter (boarding._boarding_crit_check)
+    crit_t_lose = boarding_crit_value(target, gs, attacker.player, attacker.special_rules)
+    crit_a_win = boarding_crit_value(attacker, gs, target.player)
+    crit_a_lose = boarding_crit_value(attacker, gs, target.player, target.special_rules)
+    crit_t_win = boarding_crit_value(target, gs, attacker.player)
     # Dark Eldar slave-taking (Xenos p.4): +5 VP to the Dark Eldar player for
     # each hit its side inflicts in a boarding action (the +100 for Bridge
     # Smashed can't come from a boarding crit's D6 on the standard table)
@@ -3325,12 +3375,12 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
             p_win_crit = 0.0 if win is None else p_at_least(win)
             p_lose_crit = 1.0 if lose == 0 else p_at_least(lose)
             if diff > 0:
-                total += hull_hits_vp(target, gs, 0.0, diff) + p_lose_crit * vph_t
-                total -= p_win_crit * vph_a
+                total += hull_hits_vp(target, gs, 0.0, diff) + p_lose_crit * crit_t_lose
+                total -= p_win_crit * crit_a_win
                 total += slaves_a * min(diff, max(0, target.hits_remaining))
             else:
-                total -= hull_hits_vp(attacker, gs, 0.0, -diff) + p_lose_crit * vph_a
-                total += p_win_crit * vph_t
+                total -= hull_hits_vp(attacker, gs, 0.0, -diff) + p_lose_crit * crit_a_lose
+                total += p_win_crit * crit_t_win
                 total -= slaves_t * min(-diff, max(0, attacker.hits_remaining))
     return total / 36.0
 
