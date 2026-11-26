@@ -715,7 +715,7 @@ cases pass):
   the search's sim; the deterministic node budget. Games: Gothic v Dark Eldar 262-105
   (Gothic) and 165-342 (Dark Eldar), both replayed exactly, ~136s a game (too few games
   to credit the planner with the Dark Eldar win).
-- The owner's four must-fixes (To do 33): BUILT, THEN REVERTED (owner: "do that then", re-add
+- The owner's four must-fixes (To do 33): BUILT, REVERTED, NOW ALL RE-ADDED one at a time (owner: "do that then", re-add
   one at a time). The code is back at the planner commit's state (0159146); the full change is
   kept as `docs/patches/must_fixes_todo33.patch` (`git apply` it, or take pieces; it includes
   `tests/test_must_fixes.py`). Why: with it, a normal Gothic v Dark Eldar game (seed 1,
@@ -739,21 +739,24 @@ cases pass):
   (a) boarding crits + the stamp memo fix: 168s, replay same; (b) Dark Eldar raids (keel
   bays, salvo hits, superstructure): 160s, same; (c) the re-roll lift (orders and Brace,
   hand-added without the order cost) + the game_risk cache: 190s (~20% slower), same.
-  LEFT: (d) Brace's forbidden order (`next_order_vp`) and the Leadership crits' order cost
-  (`_order_loss`, patch hunk at `_crit_effect_value`). Plan for (d): don't run an AI order
-  plan inside Brace (0.2s a ship, the slow part); use the order the ship's own AI planned
-  at its last movement phase (`AIPlayer._plan_orders` already computes (order, g, p) for
-  every ship), stored as a GameState field so it replays and survives snapshots; a ship
-  with no plan (a human's) counts 0. Then one game + replay.
-  Plan (owner): re-add the four fixes ONE AT A TIME from the patch, each checked with one
-  short timed game + replay (`tools/headless_runner.py --no-display --games 1 --procs 1
-  --seed 1 --replay-check`, ~160s a game, ~320s with the replay; owner: keep test spend low,
-  ask before long runs): (a) the boarding crit value (+ its cache), (b) Dark Eldar raids
-  (keel bays, superstructure, Leadership orders' cost: `_order_loss` needs `next_order`, so
-  leave that part for (d)), (c) the re-roll lift (`ai_rerolls.with_reroll`, cheap), (d)
-  Brace's forbidden order (`next_order_vp`: the costly and order-sensitive one; needs a
-  cheap, state-keyed value, perhaps the order the AI's own last plan gave the ship, stored
-  as game state).
+  (d) Brace's forbidden order and the Leadership crits' order cost (owner: option 5 with
+  his feedback, "carry over last turn's calculation"): `GameState.planned_orders` {ship id:
+  [order, gain VP]} written by `AIPlayer._plan_orders` (its movement / AA command phase)
+  through a recorded action, `actions.store_order_plan` (replayed: a movement phase
+  replayed from its record has no AI planning), and carried over until the ship's next
+  plan, so a brace in its own movement phase (torpedoes after a failed Burn Retros), the
+  enemy's movement (rams) or shooting all read a value at most about half a turn old;
+  `ai_player.next_order_vp`: that gain at the pass chance from the ship's Ld NOW
+  (`_pass_chance`, so a Bridge Smashed since counts), 0 on the last turn, braced or
+  fleeing ships; no plan yet (turn 1 before it moved, a human's ship):
+  `lock_on_estimate` (each battery / lance's re-roll gain, hits x (1 - p), on the nearest
+  enemy in arc and range now), and a human's "Auto" runs the full AI order choice
+  (`next_order(full=True)`, rare); Leadership crits: `hit_and_run._order_loss` (the gain x
+  the pass-chance drop). In AA the order a command-phase Brace gives up is this round's,
+  counted the same. Not yet: a squadron's one order (each ship its own value), the order's
+  gain on guns a brace halves. Fixed on the way: `game_risk`'s cache missed scenario points
+  changed in place (`scenario_state` in its key). Check game: CHECK_RESULT.
+  All four must-fixes are back in (1907 tests pass).
   Still open: the other guessed values in To do 33.
   Planner follow-ups (To do 34): the easy AI tries no strategies, squadrons don't plan one
   heading, plans aren't carried between turns.
@@ -3890,9 +3893,8 @@ Done: To do 2, 3, 6; most of 7.
 33. Guessed values to compute (owner: judgement calls where the rules give an answer are
    "bad and lazy"; audit of the AI's values; computed so far: crit effects, re-roll values,
    mines, Burn Retros' cost, see the session status). The owner's four must-fixes (named
-   by the owner) were built and then REVERTED (slow games, a replay divergence; see the
-   session status): the design below is in `docs/patches/must_fixes_todo33.patch`, to be
-   re-added one at a time:
+   by the owner) were built, reverted (slow games, a replay divergence) and re-added one
+   at a time (all four back in; (d) in a cheaper form, see the session status):
    - A commander re-roll in an order's pass chance: `ai_rerolls.with_reroll` (p x g +
      (1 - p) x (p x (g + the later orders a failure blocks) - the re-roll's worth), taken
      only when the AI would spend one, `should_reroll`; the re-roll's worth is its bar,
@@ -3903,9 +3905,9 @@ Done: To do 2, 3, 6; most of 7.
      (`brace_value`: 1 - (1 - p)^2 less the re-roll's worth when the AI would spend one,
      only where the game offers Brace re-rolls, `ld_reroll_hook`).
    - Brace's cost of the orders it forbids (s.7): `brace_value` adds next turn's order at
-     its pass chance (`ai_player.next_order_vp` / `next_order`: the AI's own order choice
-     from where the ship stands, worked out once a player turn for the ship, through
-     `order_reader`, an AIPlayer on the game state alone).
+     its pass chance (`ai_player.next_order_vp` / `next_order`: the order the ship's own
+     AI last planned, `GameState.planned_orders`, carried over between plans; see the
+     session status, (d)).
    - Boarding crits on the target's own table: `hit_and_run.boarding_crit_value` (as
      `boarding._boarding_crit_check` rolls it: an escort 1 damage, else a D6 at least 2
      on the raid table after the cascade; a Haemonculi ship's crit a Fire; Pain Frenzy's
