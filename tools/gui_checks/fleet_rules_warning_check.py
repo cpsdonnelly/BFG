@@ -14,7 +14,8 @@ os.chdir(ROOT)
 import src.main as M  # noqa: E402
 
 DE = "data/fleets/owner_dark_eldar_1000.json"
-M.get_available_fleets = lambda _d: [DE, "data/fleets/owner_gothic_1000.json"]
+# the wizard defaults Player 1 to the Gothic fleet and Player 2 to the last one listed
+M.get_available_fleets = lambda _d: ["data/fleets/owner_gothic_1000.json", DE]
 
 
 def run(answer):
