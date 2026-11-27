@@ -31,6 +31,18 @@ to do next, so no two sessions start the same work. Task numbers are the To do I
 | 14 | Eldar and Necron gaps | next | claude/battlefleet-gothic-simulator-3sUkl | 2026-11-26 |
 | 33 | The remaining guessed AI values | next | claude/battlefleet-gothic-simulator-3sUkl | 2026-11-26 |
 
+## Scenario bundles (fan-zine scenarios: extract -> build -> AI)
+
+Each bundle moves through three stages, each claimed separately: `extract` (the
+extraction session: scans to `scenarios/fanzine/<bundle>/<name>.md`, see
+`docs/BRIEFING_SCENARIO_EXTRACTION.md`), `build` (a simulator session: engine, tests,
+playable by humans) and `AI` (a simulator session: objectives in expected VP, played to game
+over in both turn systems). A stage starts when the previous one is merged; on finishing a
+stage set the row to the next stage, `unclaimed`.
+
+| Bundle | Source | Scenarios | Stage | Status | Branch | Since |
+| --- | --- | --- | --- | --- | --- | --- |
+
 Unclaimed, in the agreed order: 4 and 5 (daemonships, Ordos, Inquisitors, special
 movement units), 13 (a small comparison of the AA order systems), 7 and 9 (small gaps incl.
 the Decoy), 34 (strategy planner follow-ups), 18's leftovers, 21 (the replay standard).
