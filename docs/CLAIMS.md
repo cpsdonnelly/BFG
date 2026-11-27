@@ -40,6 +40,14 @@ playable by humans) and `AI` (a simulator session: objectives in expected VP, pl
 over in both turn systems). A stage starts when the previous one is merged; on finishing a
 stage set the row to the next stage, `unclaimed`.
 
+The extraction session's agreements with the owner are in
+`docs/SCENARIO_EXTRACTION_AGREEMENTS.md` (branch `claude/blissful-meitner-4kdr30` until
+merged): extraction happens in `cpsdonnelly/BFG-Scenarios`; this table is the one claims
+list for all three stages; the `BFG-Scenarios` copy of a bundle is the master until it merges
+here, then `scenarios/fanzine/` here is (fixes and owner rulings only here); build sessions
+read the scenario's entry in `BFG-Scenarios/catalogue/scenarios.md` (its XR dependencies and
+conflicts) before building it.
+
 | Bundle | Source | Scenarios | Stage | Status | Branch | Since |
 | --- | --- | --- | --- | --- | --- | --- |
 
