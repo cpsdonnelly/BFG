@@ -17,9 +17,7 @@ branch until merged). Agreed with Ciarán, written by the extraction session wor
   no fluff, no whole articles. Non-profit; Battlefleet Gothic is no longer supported by Games
   Workshop.
   The reasoning (Ciarán's): a non-commercial hobby project for a game Games Workshop no longer
-  supports, working from community-shared zines. Games Workshop still owns the setting; some
-  sources are official zines, not fan work, so the same strict scope applies. Nothing extracted
-  may be sold. If a request goes beyond the scope, tell Ciarán and don't do it.
+  supports, working from community-shared zines. Nothing extracted may be sold.
 - **Collaborators** get Write access to both repos from the owner, work on their own branch and
   never push to `main`. The owner approves merges. Pull requests are opened when the owner asks.
 - **Catalogue.** `BFG-Scenarios/catalogue/scenarios.md` lists every scenario with the XR rules it
