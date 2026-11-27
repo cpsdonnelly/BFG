@@ -59,6 +59,7 @@ class OrdnanceType(str, Enum):
     TORPEDO_SEEKING = "torpedo_seeking"           # turn 45° at the nearest enemy (s.16)
     TORPEDO_MELTA = "torpedo_melta"               # each hit: a Fire crit, no damage (s.16)
     TORPEDO_VORTEX = "torpedo_vortex"             # each hit: 1 damage + automatic crit (s.16)
+    TORPEDO_LEECH = "torpedo_leech"               # Dark Eldar: each hit a Thrusters Damaged crit, no damage
     FIGHTER = "fighter"
     BOMBER = "bomber"
     ASSAULT_BOAT = "assault_boat"
@@ -81,6 +82,21 @@ class PhenomenonType(str, Enum):
     MOON = "moon"
     WARP_RIFT = "warp_rift"
     RING = "ring"
+
+
+# Critical hits that kill the commander aboard (s.5, update 62): Bridge Smashed,
+# and result 9 on the Dark Eldar (Commanders Slain), Eldar (Infinity Circuit
+# Smashed), Necron (Monument Damaged) and Tyranid (Synapse Link Severed) tables
+COMMAND_CRITS = ("bridge_smashed", "commanders_slain", "infinity_circuit_smashed",
+                 "monument", "synapse_severed")
+
+
+def commander_dead(ship) -> bool:
+    """The commander aboard has been killed by a critical hit (kept after a
+    repair: the Necron and Tyranid results can be repaired, the loss can't)."""
+    return ("commander_slain" in (getattr(ship, "special_rules", None) or [])
+            or any(c.get("crit_type") in COMMAND_CRITS
+                   for c in (getattr(ship, "critical_damage", None) or [])))
 
 
 def parse_armor(armor_str, default: int = 5) -> int:
@@ -183,6 +199,9 @@ class Ship:
     turrets_halved_turn: int = -1  # Promethean Unguents: next ordnance attack this turn faces half turrets
     turrets_used_vs: str = ""  # "craft" or "torp" - turrets can only fire at one type per phase
     brace_failed_vs: List[str] = field(default_factory=list)  # ship IDs that brace failed against
+    # Dark Eldar shadowfields (Xenos p.5): one tracking mark per attacking ship
+    # or squadron whose gunnery hit this unit, cleared in the end phase
+    tracking_marks: List[str] = field(default_factory=list)
 
     # Staged movement tracking (reset at movement phase start)
     distance_moved_this_turn: float = 0.0   # cm already moved this phase
@@ -275,6 +294,11 @@ class Ship:
 
     @property
     def armor_prow_value(self):
+        if "deflector" in self.special_rules and any(
+                c.get("crit_type") == "prow_armament" for c in self.critical_damage):
+            # Tau Deflector: "disabled by a prow critical (restored when
+            # repaired)"; the front then takes the ship's other Armour
+            return int(self.armor_side.replace("+", ""))
         return int(self.armor_prow.replace("+", ""))
 
     @property
@@ -345,29 +369,39 @@ class Ship:
             spd -= 10
         if any(c.get("crit_type") == "impulse_power" for c in self.critical_damage):
             spd -= 5                         # Necron Impulse Power Disrupted
+        if any(c.get("crit_type") == "bladevanes" for c in self.critical_damage):
+            spd -= 5                         # Dark Eldar Bladevanes Scarred
         if self.is_crippled and "emergency_energy_reserves" in self.special_rules:
             spd = max(spd, min(15, self.speed))      # can't drop below 15cm
         return max(0, spd)
 
     @property
     def effective_shields(self):
+        if "spore_cloud" in self.special_rules:
+            # Tyranid spore cloud: shields equal to its spore cysts (not massed)
+            return self.effective_turrets
         s = self.shields_max
         if self.is_crippled:
             s = self.crippled_value(s)  # halve rounding up
         # Check for shields collapse crit
         for c in self.critical_damage:
-            if c.get("crit_type") == "shields_collapse":
+            if c.get("crit_type") in ("shields_collapse", "field_generators"):
                 return 0
         if any(c.get("crit_type") == "station_reactors" for c in self.critical_damage):
             s = (s + 1) // 2           # Space Station Reactors Damaged: halved, round up
-        return s
+        from .orks import force_field_bonus
+        return s + force_field_bonus(self)        # Ork kustom force field: +D3
 
     @property
     def effective_turrets(self):
         if self.status in ("drifting_hulk", "burning_hulk"):
             return 0                   # hulks have no turrets (s.34)
         t = self.turrets
-        if self.is_crippled:
+        crits = [c.get("crit_type") for c in self.critical_damage]
+        if "spores_injured" in crits or "spores_ruptured" in crits:
+            return 0                   # Tyranid spore cysts injured / ruptured
+        t = max(0, t - crits.count("spores_injured_1"))     # Proteus: -1 each
+        if self.is_crippled and "spore_overdrive" not in self.special_rules:
             t = self.crippled_value(t)
         if any(c.get("crit_type") == "station_reactors" for c in self.critical_damage):
             t = (t + 1) // 2           # Space Station Reactors Damaged: halved, round up
@@ -381,8 +415,10 @@ class Ship:
                    "station_bays": ("launch_bay", "torpedo", "mine_launcher")}
         if crit_type in station:
             return any(w.get("weapon_type") in station[crit_type] for w in self.weapons)
+        if crit_type in ("spores_injured", "spores_ruptured"):
+            return self.turrets > 0     # no spore cysts (Kraken): cascades
         if crit_type not in ("dorsal_armament", "starboard_armament", "port_armament",
-                             "prow_armament", "keel_armament"):
+                             "prow_armament", "keel_armament", "thorax_armament"):
             return True  # non-armament crits always apply
         # The same location test that decides which weapons the crit disables
         # (combat.weapon_in_crit_slot: by name, then by arcs), so a crit that
@@ -453,6 +489,23 @@ def _copy_plain(v):
 
 
 _SHIP_FIELDS = frozenset(f.name for f in fields(Ship))
+
+
+def ship_copy(ship, **changes):
+    """dataclasses.replace(ship, **changes) without re-running __init__ (a
+    large share of the AI's time, To do 16): a shallow copy of the fields
+    with the changes. Same result: Ship's only __post_init__ fills a missing
+    hits_remaining, which then takes the normal path."""
+    d = ship.__dict__
+    if type(ship) is not Ship or d.get("hits_remaining") is None \
+            or len(d) != len(_SHIP_FIELDS):
+        import dataclasses
+        return dataclasses.replace(ship, **changes)
+    obj = Ship.__new__(Ship)
+    nd = obj.__dict__
+    nd.update(d)
+    nd.update(changes)
+    return obj
 
 
 @dataclass

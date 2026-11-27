@@ -165,6 +165,12 @@ def apply_upgrade_effect(d: dict, effect: dict) -> None:
     if "add_weapon" in effect:
         d["weapons"].append(effect["add_weapon"].copy())
     d["weapons"] += [w.copy() for w in effect.get("add_weapons", [])]
+    if effect.get("merge_weapons"):
+        # Tyranid weapon configurations: copies of one weapon in one location
+        # are combined into a single weapon system (Xenos p.111)
+        from .tyranids import merge_weapon
+        for w in effect["merge_weapons"]:
+            merge_weapon(d["weapons"], w)
     if "stat_delta" in effect:
         for stat, delta in effect["stat_delta"].items():
             if stat in d:
@@ -188,7 +194,9 @@ def _build_catalogs() -> Dict[str, List[ShipClassEntry]]:
     catalogs: Dict[str, List[ShipClassEntry]] = {fid: [] for fid, _, _ in FACTIONS.values()}
     from .booklet_options import options_for
     rows = load_rows()
-    for row in rows + venerable_strike_cruiser_rows(rows):
+    from .tyranids import template_rows, BIO_CRUISER
+    rows = [r for r in rows if not (r["faction"] == "Tyranids" and r["name"] == BIO_CRUISER)]
+    for row in rows + venerable_strike_cruiser_rows(rows) + template_rows(load_rows()):
         kw = convert_row(row)
         kw["upgrades_available"] = [UpgradeEntry(**o) for o in options_for(row)]
         entry = ShipClassEntry(**kw)

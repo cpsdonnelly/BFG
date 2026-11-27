@@ -1,6 +1,6 @@
 """AI shooting enemy hulks when their re-rolled catastrophic damage would
 blow up among enemy ships (CLAUDE.md To do 1: when hulks are worth shooting)."""
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_gunship, make_ship, make_gs, DiceStub
 from src.ai_hazards import hulk_shot_vp
 
 LANCE = {"name": "Prow Lances", "weapon_type": "lance", "range_cm": 25, "strength": 4,
@@ -39,6 +39,12 @@ def test_ai_fires_at_hulk_among_enemies_not_near_friends():
         if friend_near:
             ships.append(make_ship(id="f", player=1, x=22.0, y=8.0, shields_max=1,
                                    points_value=250))
+        # guns on both sides (hits short of a kill are worth the chance they
+        # are finished later, ai_hazards.hits_vp)
+        ships += [make_gunship(player=1, x=-150.0, y=-150.0),
+                  # enemy guns that reach our friend (its damage would be finished off)
+                  make_gunship(player=2, x=22.0, y=50.0, id="g2a"),
+                  make_gunship(player=2, x=10.0, y=50.0, id="g2b")]
         gs = make_gs(ships)
         gs.current_phase = "shooting"
         dice = DiceStub([1] * 4)                       # the lance shots all miss

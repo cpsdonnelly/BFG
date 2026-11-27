@@ -11,7 +11,6 @@ Against a ship it must attack, the ship's turrets fire once at the whole wave
 (each success removes one squadron, lead first), the rest attack together, and
 then the whole wave is removed.
 """
-import uuid
 from typing import Dict, List, Optional
 
 from .models import OrdnanceMarker
@@ -38,6 +37,16 @@ def order_for_wave(markers: List[OrdnanceMarker]) -> List[OrdnanceMarker]:
     return sorted(markers, key=wave_rank)
 
 
+def _serial(game_state) -> str:
+    """A new id part from the game's own counter (repeatable from the seed,
+    unlike uuid; To do 17)."""
+    nxt = getattr(game_state, "next_serial", None)
+    if nxt is None:
+        import uuid
+        return uuid.uuid4().hex[:8]
+    return f"{nxt():08d}"
+
+
 def form_wave(game_state, marker_ids: List[str], formation: str = "close") -> str:
     """Combine attack craft markers (launched together) into one wave, stacked
     on the lead marker's position. Returns the wave id ("" if fewer than two)."""
@@ -47,7 +56,7 @@ def form_wave(game_state, marker_ids: List[str], formation: str = "close") -> st
                if o["id"] in set(marker_ids)]
     if len(markers) < 2:
         return ""
-    wid = f"wave_{uuid.uuid4().hex[:8]}"
+    wid = f"wave_{_serial(game_state)}"
     ordered = order_for_wave(markers)
     lead = ordered[0]
     for i, m in enumerate(ordered):
@@ -101,7 +110,7 @@ def split_from_wave(game_state, marker_ids: List[str]) -> str:
         _write(game_state, m)
         new = ""
     else:
-        new = f"wave_{uuid.uuid4().hex[:8]}"
+        new = f"wave_{_serial(game_state)}"
         for i, m in enumerate(order_for_wave(split)):
             m.wave_id, m.wave_order, m.wave_formation = new, i, formation
             _write(game_state, m)
@@ -445,28 +454,53 @@ def bomber_squadron_value(target, gs, suppressed: bool = False) -> float:
     attacks less one per turret (the ship's own, not massed; exactly 3 when a
     fighter suppresses), each hitting on its lowest Armour."""
     from .ordnance import ordnance_turrets
-    from .ai_hazards import value_per_hit, ship_value
+    from .ai_hazards import hits_vp, binomial_pmf
     t = ordnance_turrets(target, gs)
     p_hit = max(1, 7 - target.lowest_armor_value) / 6.0
     counts = [3] if suppressed else [max(0, k - t) for k in range(1, 7)]
-    if target.hits_remaining <= 1:
-        # one hit destroys it: worth the ship once, whatever the number of hits
-        p_any = sum(1 - (1 - p_hit) ** a for a in counts) / len(counts)
-        return p_any * ship_value(target, gs)
-    attacks = sum(counts) / len(counts)
-    return attacks * p_hit * max(1.0, value_per_hit(target, gs))
+    if "mucous_membrane" in target.special_rules:
+        counts = [max(0, c - 1) for c in counts]    # Tyranid Mucous Membrane
+    # each D6 of attacks, each count of hits by its value (ai_hazards.hits_vp:
+    # thresholds and the finishing chance; ordnance ignores shields)
+    rem = max(1, target.hits_remaining)
+    return sum(sum(q * hits_vp(target, gs, min(k, rem)) for k, q in enumerate(binomial_pmf(a, p_hit)))
+               for a in counts) / len(counts)
 
 
-def raid_squadron_value(target, gs, owner: int, rules=None, end_phases: int = None) -> float:
+def raid_squadron_value(target, gs, owner: int, rules=None, end_phases: int = None,
+                        assault_boat: bool = True) -> float:
     """Expected VP of one assault boat squadron that reaches the target (s.22:
     one hit-and-run raid, no Armour roll): the mean over a D6 of
     hit_and_run.raid_result_value, with the crews' raid modifiers. `end_phases`:
     the damage control phases its crits face before the target shoots, when the
     raid lands later (ai_hazards.strike_timeline); default: as if now."""
-    from .hit_and_run import raid_result_value, _raid_roll_modifier
-    mod = _raid_roll_modifier(list(rules or []), target)
-    return sum(raid_result_value(r + mod, target, gs, owner, end_phases)
-               for r in range(1, 7)) / 6.0
+    from .dark_eldar import raid_value
+    from .hit_and_run import ASSAULT_BOAT_RAID
+    # an assault boat's raid (Mucous Membrane -1); teleports pass assault_boat=False
+    raid = raid_value(list(rules or []) + ([ASSAULT_BOAT_RAID] if assault_boat else []),
+                      target, gs, owner, end_phases)
+    if "impaler" in (rules or []):
+        return impaler_value(target, gs, owner, rules, end_phases, raid)
+    return raid
+
+
+def impaler_value(target, gs, owner: int, rules, end_phases, raid: float = 0.0) -> float:
+    """Expected VP of a Dark Eldar Impaler that reaches the target (Xenos
+    p.5): its D6 fails on a 1; otherwise the better of two raids and one
+    critical hit (dark_eldar.impaler_effect_values, the choice the AI and
+    "Auto" make), plus one damage when the D6 equals or beats the Armour (the
+    lowest facing, judgement); slave-taking (D6 x 5 VP) replaces the raids /
+    crit when worth more. Its shadowfield save isn't counted. (`raid`:
+    unused, kept for callers.)"""
+    from .dark_eldar import impaler_effect_values
+    from .ai_hazards import hull_hits_vp
+    vals = impaler_effect_values(rules, target, gs, owner, end_phases)
+    effect = max(vals["raids"], vals["crit"])
+    if "dark_eldar" in (rules or []):
+        effect = max(effect, 17.5)       # or slaves instead, D6 x 5 VP (owner ruling)
+    armour = target.lowest_armor_value
+    p_dmg = sum(1 for r in range(2, 7) if r >= armour) / 6.0
+    return 5.0 / 6.0 * effect + p_dmg * hull_hits_vp(target, gs, 0.0, 1.0)
 
 
 def expected_survivors(n: int, shots: int, cap: int, p_turret: float = 0.5,

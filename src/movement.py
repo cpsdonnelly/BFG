@@ -3,6 +3,7 @@ import math
 from typing import List, Optional, Tuple
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
+from . import recorder as _rec
 from .dice import DiceRoller
 from .geometry import (first_contact_along_segment, count_blast_markers_touching,
                        BLAST_MARKER_RADIUS_CM)
@@ -17,6 +18,25 @@ MIN_TURN_DISTANCE = {
     "escort": 0,
     "defense": 0,
 }
+
+
+def turn_distance(ship, special_order: str = "") -> float:
+    """The forward movement a ship needs before each turn (s.10), with every
+    rule that changes it: Burn Retros, low orbit and Dark Eldar (Xenos p.4)
+    none; a Necron inertialess drive on All Ahead Full 20cm; the Quest's +5cm
+    side effect; Tyranid Extra Discharge Vents -5cm. One rule for the engine,
+    the move dialogs and every AI planner."""
+    rules = getattr(ship, "special_rules", None) or []
+    d = MIN_TURN_DISTANCE.get(getattr(ship, "ship_type", ""), 10)
+    if special_order == "all_ahead_full" and "necron" in rules:
+        d = 20               # inertialess drive (reading: a turn every further 20cm)
+    if special_order == "burn_retros" or "in_low_orbit" in rules or "dark_eldar" in rules:
+        d = 0
+    elif "turn_distance_plus5" in rules:
+        d += 5
+    if "turn_distance_minus5" in rules:
+        d = max(0, d - 5)
+    return d
 
 
 class MoveCommand:
@@ -98,6 +118,11 @@ def get_effective_speed(ship: Ship, special_order: str, aaf_bonus: int = 0,
         min_spd = min(min_spd, max_spd)
     if "in_low_orbit" in ship.special_rules:
         min_spd = 0          # s.39: ships in low orbit don't have to move
+    if "dark_eldar" in ship.special_rules:
+        min_spd = 0          # Dark Eldar (Xenos p.4): no minimum speed
+    from .optional_rules import high_orbit_planet
+    if special_order != SpecialOrder.ALL_AHEAD_FULL.value and high_orbit_planet(ship) is not None:
+        min_spd = 0          # s.41 High Orbit: "ships do not need to move"
 
     return (min_spd, max_spd)
 
@@ -173,7 +198,8 @@ def get_max_turns(special_order: str, ship: Ship) -> int:
     # Engine Room Damaged: no turns at all until repaired
     for crit in ship.critical_damage:
         # Engine Room Damaged; Necron Main Drive Damaged / Eldar Mast Lines Severed
-        if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines"):
+        if crit.get("crit_type") in ("engine_room", "main_drive", "mast_lines", "discharge_vents",
+                                     "graviton_harness"):
             return 0
     if "overcharging" in ship.special_rules:
         return 0       # Macharia's End: the Planet Killer can't turn while charging
@@ -292,18 +318,7 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     # Lightning Thrusters vanguards turn at most 45 degrees on All Ahead Full
     turn_cap = (min(ship.turn_angle, 45)
                 if special_order == SpecialOrder.ALL_AHEAD_FULL.value else ship.turn_angle)
-    min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
-    if special_order == SpecialOrder.ALL_AHEAD_FULL.value and "necron" in ship.special_rules:
-        # Inertialess drive (Xenos p.39): a turn for every 20cm travelled
-        # (reading: each turn after a further 20cm)
-        min_turn_dist = 20
-
-    # Burn Retros: no minimum distance before turning; in low orbit capital
-    # ships need none either (s.39)
-    if special_order == SpecialOrder.BURN_RETROS.value or "in_low_orbit" in ship.special_rules:
-        min_turn_dist = 0
-    elif "turn_distance_plus5" in ship.special_rules:
-        min_turn_dist += 5          # Experimental Ship (Quest) side effect
+    min_turn_dist = turn_distance(ship, special_order)
 
     # Track state
     distance_moved = 0.0
@@ -482,8 +497,9 @@ def validate_movement(ship: Ship, commands: List[MoveCommand],
     # Check <5cm defense rule
     if phase_distance < 5:
         result.counts_as_defense = True
-        if special_order != SpecialOrder.BURN_RETROS.value and phase_distance == 0:
-            result.add_error("Ships must move unless on Burn Retros")
+        if (special_order != SpecialOrder.BURN_RETROS.value and phase_distance == 0
+                and min_spd > 0):
+            result.add_error("Ships must move unless on Burn Retros or in high orbit")
         elif phase_distance > 0:
             result.add_warning("Moved <5cm: counts as Defences on Gunnery table")
 
@@ -535,6 +551,25 @@ def ordnance_touched_along_path(ship: Ship, path: List[Tuple[float, float]],
     return [mid for _, mid in sorted(touched)]
 
 
+def _asteroid_fields_on_path(ship: Ship, points, phenomena) -> list:
+    """The asteroid fields the ship's base touches anywhere along its move
+    (points: start, waypoints, end), sampled every 0.5cm."""
+    fields = [p for p in phenomena if p.phenomenon_type == "asteroid_field"]
+    if not fields:
+        return []
+    r = ship.base_radius
+    hit = []
+    for p in fields:
+        hw, hh = p.width / 2 + r, p.height / 2 + r
+        for (x0, y0), (x1, y1) in zip(points, points[1:] or points):
+            n = max(1, int(math.hypot(x1 - x0, y1 - y0) / 0.5))
+            if any(abs(x0 + (x1 - x0) * k / n - p.x) <= hw and abs(y0 + (y1 - y0) * k / n - p.y) <= hh
+                   for k in range(n + 1)):
+                hit.append(p)
+                break
+    return hit
+
+
 def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
                      dice: DiceRoller = None):
     """Apply a validated movement result to the ship and game state.
@@ -542,6 +577,10 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
     dice: needed for the blast marker test a shieldless ship makes when it
     moves through markers; without it the test is skipped.
     """
+    _rec.event(gs, "move", ship=ship.id, frm=[ship.x, ship.y, ship.heading],
+               path=result.path, to=[result.final_x, result.final_y, result.final_heading],
+               distance=result.total_distance, turns=result.turns_used,
+               order=ship.special_order)
     # Ordnance the ship runs into on the way attacks it once the move is made
     touched = ordnance_touched_along_path(ship, result.path, gs)
     if touched:
@@ -596,6 +635,20 @@ def execute_movement(ship: Ship, result: MovementResult, gs: GameState,
     # Navigate the Storm: a materialising ship interacts with nothing
     contacts = [] if "materialising" in ship.special_rules else \
         check_ship_terrain_contact(ship, phenomena)
+    # Asteroid fields (s.39): "ships moving through an asteroid field, or
+    # coming into base contact with the edge of one" test, so the whole path
+    # counts (not only where the move ends) and a ship that doesn't move (high
+    # orbit, Burn Retros) doesn't test
+    if "materialising" not in ship.special_rules:
+        moved = (result.total_distance or 0) > 0.01
+        contacts = [c for c in contacts if c["type"] != "asteroid_field"]
+        if moved:
+            ids = {c["phenomenon"].id for c in contacts}
+            for p in _asteroid_fields_on_path(ship, _pts, phenomena):
+                if p.id not in ids:
+                    from .terrain_effects import get_phenomenon_effects
+                    contacts.append({"phenomenon": p, "type": p.phenomenon_type,
+                                     "effects": get_phenomenon_effects(p)})
     for contact in contacts:
         ptype = contact["type"]
         effects = contact["effects"]
@@ -627,6 +680,11 @@ def _blast_marker_damage(ship: Ship, gs: GameState, dice: DiceRoller) -> bool:
     per move). Returns True if the ship was destroyed."""
     if ship.effective_shields > 0 or "necron" in ship.special_rules:
         return False             # Necrons: immune to blast marker damage (Xenos p.40)
+    if "dark_eldar" in ship.special_rules:
+        return False             # Dark Eldar Spectral Plating (Xenos p.5)
+    from .craftworld import forge_fields
+    if forge_fields(ship):
+        return False             # docked at a forge: polarisation field
     roll = dice.roll_d6(1, f"{ship.name} through blast markers, no shields (6 = 1 damage)")[0]
     if roll != 6:
         return False
@@ -668,31 +726,30 @@ def _sirens_summon(ship: Ship, gs) -> bool:
 sirens_summon = _sirens_summon
 
 
-def do_command_check(ship: Ship, order: str, dice: DiceRoller,
-                     enemy_on_special: bool = False,
-                     in_blast: bool = False, gs=None) -> dict:
-    """
-    Perform a command check for special orders.
-    Returns dict with 'passed', 'roll', 'needed' (effective Ld).
-    """
+def command_check_ld(ship: Ship, order: str, gs=None, enemy_on_special: bool = False,
+                     in_blast: bool = False) -> dict:
+    """What a command check needs, with no dice and no side effects (shared by
+    do_command_check and the AI's pass chances): {"auto": "pass" / "fail" /
+    None, "needed": effective Ld (0-10), "mods": [...]}."""
     # Orks, 'Ere We Go!: automatically pass command checks for All Ahead Full
     if order == SpecialOrder.ALL_AHEAD_FULL.value and "ere_we_go" in ship.special_rules:
-        return {"passed": True, "roll": 0, "needed": ship.leadership,
+        return {"auto": "pass", "needed": ship.leadership,
                 "mods": ["'Ere We Go! (automatic pass)"]}
-    if gs is not None:
-        # Mark of Chaos Undivided: before a command check (07_chaos.md)
-        from .chaos_undivided import offer as _undivided
-        if _undivided(gs, ship, order):
-            fresh = gs.get_ship_by_id(ship.id)
-            if fresh is not None:
-                ship.leadership = fresh.leadership
+    # Dark Eldar (Xenos p.4): automatically pass Come to New Heading
+    if order == SpecialOrder.COME_TO_NEW_HEADING.value and "dark_eldar" in ship.special_rules:
+        return {"auto": "pass", "needed": ship.leadership,
+                "mods": ["Dark Eldar (automatic pass)"]}
     from .subplots import leadership as _sp_ld
     ld = _sp_ld(gs, ship)            # Fleet Experience / Blood Bond
+    if gs is not None and order == SpecialOrder.BRACE_FOR_IMPACT.value \
+            and "tyranid" in ship.special_rules:
+        from .tyranids import brace_ld
+        ld = brace_ld(gs, ship)      # nearest synapse creature in range, else 7
     mods = []
     if gs is not None and _sirens_summon(ship, gs):
         # Siren's Summon (Pleasure Fleet of Slaanesh): no special orders or
         # Leadership tests within 15cm of it; a forced test fails
-        return {"passed": False, "roll": 0, "needed": 0,
+        return {"auto": "fail", "needed": 0,
                 "mods": ["Siren's Summon: no orders or Leadership tests"]}
     if in_blast and "necron" not in ship.special_rules:   # Necrons: no blast marker Ld penalty
         ld -= 1
@@ -708,22 +765,55 @@ def do_command_check(ship: Ship, order: str, dice: DiceRoller,
     if order == SpecialOrder.RELOAD_ORDNANCE.value and "grot_riggers" in ship.special_rules:
         ld += 1
         mods.append("Grot Riggers +1")
+    if gs is not None:
+        from .necrons import enemy_contacts, nebuloscope_bonus
+        enemy_on_special = enemy_contacts(gs, ship)     # a veiled Shroud doesn't count
     if enemy_on_special:
         # Cobra improved sensor array: +2 instead of +1; a Mechanicus
         # Experimental Ship within 15cm adds +1 (Quest for Knowledge)
         bonus = 2 if "improved_sensor_array" in ship.special_rules else 1
         from .subplots import mech_ld_aura
         bonus += mech_ld_aura(gs, ship)
+        if gs is not None:
+            bonus += nebuloscope_bonus(gs, ship)          # Necron nebuloscope pylons
         ld += bonus
         mods.append(f"Enemy Contacts +{bonus}")
     # Modifiers can't take Ld above 10 or below 0 (s.6); at Ld 1 or less a
     # ship always fails (s.3), which a 2D6 roll against it does
-    ld = max(0, min(10, ld))
+    return {"auto": None, "needed": max(0, min(10, ld)), "mods": mods}
+
+
+def do_command_check(ship: Ship, order: str, dice: DiceRoller,
+                     enemy_on_special: bool = False,
+                     in_blast: bool = False, gs=None) -> dict:
+    """
+    Perform a command check for special orders.
+    Returns dict with 'passed', 'roll', 'needed' (effective Ld).
+    """
+    if gs is not None and not (
+            (order == SpecialOrder.ALL_AHEAD_FULL.value and "ere_we_go" in ship.special_rules)
+            or (order == SpecialOrder.COME_TO_NEW_HEADING.value
+                and "dark_eldar" in ship.special_rules)):
+        # Mark of Chaos Undivided: before a command check (07_chaos.md)
+        from .chaos_undivided import offer as _undivided
+        if _undivided(gs, ship, order):
+            fresh = gs.get_ship_by_id(ship.id)
+            if fresh is not None:
+                ship.leadership = fresh.leadership
+    need = command_check_ld(ship, order, gs, enemy_on_special, in_blast)
+    if need["auto"] == "pass":
+        return {"passed": True, "roll": 0, "needed": need["needed"], "mods": need["mods"]}
+    if need["auto"] == "fail":
+        return {"passed": False, "roll": 0, "needed": 0, "mods": need["mods"]}
+    ld, mods = need["needed"], need["mods"]
 
     mod_str = f" ({', '.join(mods)})" if mods else ""
     roll = dice.roll_2d6(
         f"{ship.name} command check for {order} (need <= {ld}{mod_str})")
     passed = roll <= ld
+    if not passed:
+        from .orks import own_goal
+        own_goal(ship, dice, gs)          # a looted vessel: 1-3 the Orks damage it
 
     return {"passed": passed, "roll": roll, "needed": ld, "mods": mods}
 
@@ -738,6 +828,7 @@ def fleet_reroll_offered(gs: GameState, ship: Ship, label: str, roll: int, neede
     return bool(hook and hook(ship, label, roll, needed))
 
 
+@_rec.logged("brace", lambda r, A: (A["gs"], dict(ship=A["ship"].id, passed=r.get("passed"))))
 def attempt_brace(ship: Ship, gs: GameState, dice: DiceRoller) -> dict:
     """
     Roll a Brace For Impact command check and, on success, apply the order:
@@ -785,9 +876,14 @@ def aaf_bonus_dice(ship: Ship) -> int:
         n += 2                         # Evil Sunz: an extra +2D6cm on All Ahead Full
     if "secondary_reactors" in ship.special_rules:
         n += 2                         # Secondary Reactors: +2D6cm (Advanced Engines)
+    if "aaf_2d6" in ship.special_rules:
+        n = 2                          # Proteus: only +2D6cm on All Ahead Full
+    if "adrenaline_sacs" in ship.special_rules:
+        n += 2                         # Tyranid Adrenaline Sacs: an extra +2D6cm
     return n
 
 
+@_rec.logged("aaf", lambda r, A: (_rec.current_gs(), dict(ships=[s.id for s in A["ships"]])))
 def squadron_aaf_bonuses(ships: List[Ship], dice: DiceRoller) -> dict:
     """A squadron on All Ahead Full rolls once and every member adds the result.
     If members roll different numbers of dice, roll the most any member is
@@ -805,6 +901,7 @@ def squadron_aaf_bonuses(ships: List[Ship], dice: DiceRoller) -> dict:
     return {s.id: sum(rolls[:aaf_bonus_dice(s)]) for s in ships}
 
 
+@_rec.logged("aaf", lambda r, A: (_rec.current_gs(), dict(ship=A["ship"].id)))
 def resolve_aaf_speed(ship: Ship, dice: DiceRoller) -> int:
     """Roll the All Ahead Full bonus speed (aaf_bonus_dice D6s)."""
     if "necron" in ship.special_rules:

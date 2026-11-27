@@ -536,6 +536,196 @@ def necron_commander_options(row: dict) -> List[Dict]:
     return opts
 
 
+# Necron weapons and upgrades bought in the fleet builder (Xenos p.40-51)
+NIGHTMARE_FIELD = {"name": "Nightmare Field", "weapon_type": "nightmare_field", "range_cm": 20,
+                   "strength": 1, "arcs": []}
+_WHIP_1 = {"name": "Particle Whip", "weapon_type": "lance", "range_cm": 45, "strength": 1,
+           "arcs": ["left", "front", "right"], "particle_whip": True}
+NECRON_LORDS = ["Necron Lord: Overlord", "Necron Lord: Nemesor"]
+
+
+def necron_options(row: dict) -> List[Dict]:
+    """Necron fleet-builder options: the commanders (Monuments in a Harvest
+    fleet, Necron Lords in a Dynasty fleet; each list allows only its own,
+    `list_options`), the Sepulchre's free nightmare field, the Lord's vessel
+    upgrades, Crypteks, and the Shroud's Dynasty special refits."""
+    name = row["name"]
+    capital = (row.get("hull_type") or "").lower() != "escort" and "Raider" not in name
+    opts = necron_commander_options(row) if capital else []
+    for o in opts:
+        if o["name"] == "Monument: Sepulchre":
+            o["effect"]["add_weapons"] = [dict(NIGHTMARE_FIELD)]
+            o["description"] += " A free nightmare field."
+    if capital:
+        lord = "requires_any:" + "|".join(NECRON_LORDS)
+        opts += [
+            _opt("Lord's vessel: Bloodswarm Nanoscarabs",
+                 "+10pts: +1 to the results of its portal attacks.", 10,
+                 {"add_special_rules": ["bloodswarm"]}, [lord]),
+            _opt("Lord's vessel: Reciprocating Tesla Pylons",
+                 "+15pts: lightning arc firepower +50%, divided equally between its arcs.", 15,
+                 {"add_special_rules": ["tesla_pylons"]}, [lord])]
+        if name in ("Cairn Class Tombship", "Reaper Class Grand Harvest Ship"):
+            opts.append(_opt("Lord's vessel: Nightmare Field",
+                             "+25pts (tombship or grand harvest ship).", 25,
+                             {"add_weapons": [dict(NIGHTMARE_FIELD)]},
+                             [lord]))
+    opts += [
+        _opt("Cryptek (+1 Ld)", "Secondary commander, 30pts: +1 Ld; 0-2 in the fleet.", 30,
+             {"add_special_rules": ["ld_bonus:1:10", "secondary_commander"]},
+             ["group:fleet_commander", "fleet_max:2"]),
+        _opt("Cryptek: re-roll", "+15pts: one re-roll for this ship or its squadron only.", 15,
+             {"set": {"own_rerolls": 1}}, ["requires:Cryptek (+1 Ld)"])]
+    if name == "Shroud Class Light Cruiser":
+        # Dynasty fleets only: remove the nebuloscope pylons for any
+        # combination at no cost; Khopesh + Cartouche make one FP2 whip
+        pylons = ["nebuloscope_pylons"]
+        opts += [
+            _opt("Shroud refit: War Configuration",
+                 "Free (no nebuloscope pylons): +2 Hits and +1 Turrets for its negative "
+                 "energy veil.", 0,
+                 {"remove_special_rules": pylons + ["negative_energy_veil"],
+                  "stat_delta": {"hits_max": 2, "turrets": 1}}),
+            _opt("Shroud refit: Khopesh Configuration",
+                 "Free (no nebuloscope pylons): lightning arc Left / Right only, + a particle "
+                 "whip 45cm FP1 (L/F/R).", 0,
+                 {"remove_special_rules": pylons, "merge_weapons": [dict(_WHIP_1)],
+                  "modify_weapons": [{"match": {"name": "Lightning Arc"},
+                                      "set": {"arcs": ["left", "right"]}}]}),
+            _opt("Shroud refit: Cartouche Configuration",
+                 "Free (no nebuloscope pylons): lightning arc FP8, + a particle whip 45cm FP1 "
+                 "(L/F/R).", 0,
+                 {"remove_special_rules": pylons, "merge_weapons": [dict(_WHIP_1)],
+                  "modify_weapons": [{"match": {"name": "Lightning Arc"},
+                                      "set": {"strength": 8}}]})]
+    return opts
+
+
+# Eldar commanders and upgrades (MMS v2.0, 09_eldar.md "Commanders & Upgrades"
+# and the fleet lists): Corsair Lords and Gryphon Knights, Craftworld Admirals,
+# Farseers, the Seer Council and Aspect Warriors. Each list allows only its own
+# (fleet_lists `list_options`). Fleet commanders never go on a Ghostship.
+ELDAR_CORSAIR_LORDS = [("Shadow Prince (Ld 9)", 9, 50, []),
+                       ("Dragon Prince (Ld 10)", 10, 100, ["eldar_bodyguard"])]
+ELDAR_CRAFTWORLD_LORDS = [("Admiral (Ld 9)", 9, 50, []),
+                          ("High Admiral (Ld 10)", 10, 100, ["eldar_bodyguard"])]
+
+
+def _e_batt(loc, fp, arcs=("front",)):
+    return {"name": f"{loc} Weapons Battery", "weapon_type": "battery", "range_cm": 30,
+            "strength": fp, "arcs": list(arcs), "eldar_battery": True}
+
+
+def _e_pulsar(fp):
+    return {"name": "Prow Pulsar Lance", "weapon_type": "lance", "range_cm": 30,
+            "strength": fp, "arcs": ["front"], "pulsar": True}
+
+
+def _e_torps(s, boarding=False):
+    d = {"name": "Keel Torpedoes", "weapon_type": "torpedo", "range_cm": 30, "strength": s,
+         "arcs": ["front"], "torpedo_type": "standard", "torpedo_speed": 30,
+         "eldar_torpedo": True}
+    if boarding:
+        d["boarding_torpedoes"] = True
+    return d
+
+
+def _e_bays(s, vampires=False):
+    types = ["eldar_fighter", "eldar_bomber"] + (["vampire_assault_boat"] if vampires else [])
+    speeds = {"eldar_fighter": 30, "eldar_bomber": 20}
+    if vampires:
+        speeds["vampire_assault_boat"] = 30
+    return {"name": "Launch Bays", "weapon_type": "launch_bay", "range_cm": 30, "strength": s,
+            "arcs": [], "craft_types": types, "craft_speeds": speeds, "craft_speed": 30}
+
+
+def _prow_keel(prow_fp, pulsar_fp, torps, bays):
+    """Dragonship / Wraithship (MMS p.6-7): prow weapons battery or pulsar lance;
+    keel torpedoes (boarding torpedoes +10) or launch bays (Vampires +10)."""
+    return [("prow", f"Prow: Weapons Battery FP{prow_fp}", 0, [_e_batt("Prow", prow_fp)]),
+            ("prow", f"Prow: Pulsar Lance FP{pulsar_fp}", 0, [_e_pulsar(pulsar_fp)]),
+            ("keel", f"Keel: Torpedoes S{torps}", 0, [_e_torps(torps)]),
+            ("keel", f"Keel: Boarding Torpedoes S{torps}", 10, [_e_torps(torps, True)]),
+            ("keel", f"Keel: Launch Bays S{bays}", 0, [_e_bays(bays)]),
+            ("keel", f"Keel: Launch Bays S{bays} with Vampires", 10, [_e_bays(bays, True)])]
+
+
+def _ghost(prow_fp, pulsar_fp, keel_fp):
+    keel = _e_batt("Keel", keel_fp)
+    return [("prow", f"Prow Weapons Battery FP{prow_fp} + Keel Battery FP{keel_fp}", 0,
+             [_e_batt("Prow", prow_fp), keel]),
+            ("prow", f"Prow Pulsar Lance FP{pulsar_fp} + Keel Battery FP{keel_fp}", 0,
+             [_e_pulsar(pulsar_fp), keel])]
+
+
+# Craftworld ships whose armament is an either / or choice per location (MMS
+# v2.0): (location group, option name, cost, weapons). One per location required.
+ELDAR_CONFIGS = {
+    "Dragonship Class Battle Cruiser": _prow_keel(12, 3, 8, 4),
+    "Wraithship Class Attack Cruiser": _prow_keel(8, 2, 4, 2),
+    "Ghost Dragon (Ghostship)": _ghost(12, 3, 8),
+    "Ghost Wraith (Ghostship)": _ghost(8, 2, 4),
+    "Shadowhunter Class Destroyer": [
+        ("prow", "Prow: Weapons Battery FP3", 0, [_e_batt("Prow", 3)]),
+        ("prow", "Prow: Phantom Lance FP1", 0,
+         [{"name": "Prow Phantom Lance", "weapon_type": "lance", "range_cm": 30,
+           "strength": 1, "arcs": ["front"], "phantom": True}])],
+}
+
+
+def eldar_configurations(row: dict) -> List[Dict]:
+    return [_opt(name, (f"+{cost}pts." if cost else "Free.") + f" One {loc} weapon choice "
+                 "required.", cost, {"add_weapons": weapons},
+                 [f"group:eldar_{loc}", f"required_group:eldar_{loc}"])
+            for loc, name, cost, weapons in ELDAR_CONFIGS.get(row["name"], [])]
+
+
+def eldar_options(row: dict) -> List[Dict]:
+    name = row["name"]
+    group = row.get("roster_group") or ""
+    ghost = "Ghostship" in name
+    capital = "Escorts" not in group and (row.get("hull_type") or "").lower() != "escort" \
+        and "Miscellaneous" not in group
+    opts: List[Dict] = eldar_configurations(row)
+    if capital and not ghost:
+        for lords, hero_of, extra, label in (
+                (ELDAR_CORSAIR_LORDS, "Dragon Prince (Ld 10)", [25, 50, 100], "Corsair Lord"),
+                (ELDAR_CRAFTWORLD_LORDS, "High Admiral (Ld 10)", [25, 50], "Admiral")):
+            names = [n for n, *_ in lords]
+            for n, ld, cost, rules in lords:
+                opts.append(_opt(n, f"Fleet commander, {cost}pts: Ld {ld}, 1 re-roll"
+                                    + (", +1 in boarding actions" if rules else "") + ".", cost,
+                                 {"set": {"leadership": ld, "leadership_table": ""}, "rerolls": 1,
+                                  "add_special_rules": ["fleet_commander"] + rules,
+                                  "flagship": True},
+                                 ["fleet_unique", "group:fleet_commander"]))
+            opts.append(_opt(f"{hero_of.split(' (')[0]}: Hero", "+50pts: Hero status (a Void "
+                             "Dragon may be taken; reserves 2:1).", 50,
+                             {"add_special_rules": ["eldar_hero"]},
+                             [f"requires:{hero_of}", "group:eldar_hero_council"]))
+            what = "Farseer" if label == "Admiral" else "re-roll"
+            opts += [_opt(f"{label}: {k} extra {what}{'s' if k > 1 else ''}",
+                          f"+{c}pts: {k} more fleet re-roll{'s' if k > 1 else ''}.", c,
+                          {"rerolls": 1 + k},
+                          ["group:commander_rerolls", "requires_any:" + "|".join(names)])
+                     for k, c in enumerate(extra, start=1)]
+        opts.append(_opt("Seer Council", "+50pts (High Admiral only, not a Hero): Foresight, "
+                         "once a battle a retroactive Brace for the commander's ship (not "
+                         "modelled yet).", 50, {"add_special_rules": ["seer_council"]},
+                         ["requires:High Admiral (Ld 10)", "group:eldar_hero_council"]))
+    if capital and not ghost and group.startswith("Craftworld"):
+        opts.append(_opt("Aspect Warriors", "+20pts: +1 to its boarding actions and all its "
+                         "hit-and-run attacks.", 20, {"add_special_rules": ["aspect_warriors"]}))
+    if capital:
+        opts.append(_opt("Farseer (ship re-roll)", "+15pts, 0-3: one re-roll for this ship "
+                         "only (may go on a Ghostship).", 15, {"set": {"own_rerolls": 1}},
+                         ["fleet_max:3"]))
+    opts.append(_opt("Gryphon Knight", "+25pts, 0-3: its ship or squadron may attempt a "
+                     "command check even if one has been failed this turn.", 25,
+                     {"add_special_rules": ["gryphon_knight"]}, ["fleet_max:3"]))
+    return opts
+
+
 # Secondary commanders (s.5): +Ld (or a fixed Ld) and re-rolls usable only
 # for their own ship or squadron (`own_rerolls`). (name, Ld effect, cost,
 # fleet maximum, re-roll cost or None)
@@ -601,6 +791,33 @@ def commander_names(faction_rule: str) -> List[str]:
     return [f"{n} (Ld {ld})" for n, ld, _ in tiers]
 
 
+# Wolf-Pack Pirate Fleet (Imperium p.128-129): Pirate Captains (Ld 8, 50pts,
+# one free re-roll, up to two more for 25 / 50) on the list's non-xenos
+# capital ships, Chaos and Space Marine classes counting as Rogue Trader ships;
+# offered only in that list (fleet_lists `list_options`). Not yet: 0-3 captains
+# (one per 500pts; the engine keeps one re-roll pool), "most expensive capital
+# ship" placement (To do 29), A Problem with Authority (-1 Ld re-rolling).
+WOLF_PACK_CAPITALS = ("Murder Cruiser", "Slaughter Cruiser", "Strike Cruiser",
+                      "Fanatic Light Cruiser", "Schismatic Light Cruiser",
+                      "Heretic Light Cruiser")
+
+
+def pirate_captain_options(row: dict) -> List[Dict]:
+    if row["name"] not in WOLF_PACK_CAPITALS:
+        return []
+    name = "Pirate Captain (Ld 8)"
+    opts = [{"name": name, "description": "Fleet commander (Wolf-Pack), 50pts: Ld 8, "
+             "1 free re-roll.", "points_cost": 50,
+             "effect": {"set": {"leadership": 8, "leadership_table": ""}, "rerolls": 1,
+                        "add_special_rules": ["fleet_commander"], "flagship": True},
+             "restrictions": ["fleet_unique", "group:fleet_commander"]}]
+    opts += [{"name": f"Pirate Captain: {k} extra re-roll{'s' if k > 1 else ''}",
+              "description": f"{cost}pts.", "points_cost": cost, "effect": {"rerolls": 1 + k},
+              "restrictions": ["group:commander_rerolls", f"requires:{name}"]}
+             for k, cost in ((1, 25), (2, 50))]
+    return opts
+
+
 def fleet_commander_options(row: dict) -> List[Dict]:
     """The faction's fleet commander as options on a capital ship: fixed Ld
     (it supersedes the ship's), free and bought re-rolls, flagship. Ork
@@ -653,7 +870,7 @@ def fleet_commander_options(row: dict) -> List[Dict]:
                  for t, r, cost in ORK_TITLES]
         return opts
     if "Necrons" in rules:
-        return necron_commander_options(row)
+        return necron_options(row)
     faction = next((f for f in COMMANDERS if f in rules), None)
     if faction is None:
         return []
@@ -697,6 +914,44 @@ def _macro(side_range: int, sets: Dict) -> List[Dict]:
 def _opt(name, desc, cost, effect, restrictions=()):
     return {"name": name, "description": desc, "points_cost": cost, "effect": effect,
             "restrictions": list(restrictions)}
+
+
+def mechanicus_refit_options(row: dict) -> List[Dict]:
+    """The "Mechanicus Refits" printed in Adeptus Mechanicus profiles (To do 32:
+    they weren't offered). Matched on the note text like the Navy's. The prow
+    swap is "or refitted torpedoes instead", so it excludes the torpedo types
+    (refitted torpedoes are refitted_torpedo_options, group torpedo_type)."""
+    notes = row.get("notes") or ""
+    if "Mechanicus Refits" not in notes:
+        return []
+    opts: List[Dict] = []
+    m = re.search(r"swap prow torpedoes for a prow nova cannon \(30-150cm Template F\) "
+                  r"\+(\d+)pts", notes)
+    if m:
+        cost = int(m.group(1))
+        opts.append(_opt("Refit: prow nova cannon for the torpedoes",
+                         f"+{cost}pts. A prow nova cannon (30-150cm, F) instead of the prow "
+                         "torpedoes (not with refitted torpedoes).",
+                         cost, {"remove_weapons": ["Prow Torps"], "add_weapon": dict(_NC)},
+                         ["group:mech_prow", "excludes_group:torpedo_type"]))
+    if "swap prow torpedoes for a dorsal lance (30cm FP1 L/F/R) free" in notes:
+        opts.append(_opt("Refit: dorsal lance for the prow torpedoes",
+                         "Free. A dorsal lance 30cm FP1 (L/F/R) instead of the prow torpedoes "
+                         "(not with refitted torpedoes).", 0,
+                         {"remove_weapons": ["Prow Torps"],
+                          "add_weapon": {"name": "Dorsal Lance", "weapon_type": "lance",
+                                         "range_cm": 30, "strength": 1,
+                                         "arcs": ["left", "front", "right"]}},
+                         ["group:mech_prow", "excludes_group:torpedo_type"]))
+    if "plasma-boosted gunnery (30cm Macrobatteries to 45cm) +10pts" in notes or \
+            "plasma-boosted gunnery (Macrobatteries to 45cm) +10pts" in notes:
+        opts.append(_opt("Refit: plasma-boosted gunnery (30cm macrobatteries to 45cm)",
+                         "+10pts.", 10,
+                         {"modify_weapons": [
+                             {"match": {"name": f"{side} Macrobatteries", "range_cm": 30},
+                              "set": {"range_cm": 45}}
+                             for side in ("Port", "Starboard", "Prow")]}))
+    return opts
 
 
 def navy_refit_options(row: dict) -> List[Dict]:
@@ -1004,7 +1259,9 @@ def mine_launcher_options(row: dict) -> List[Dict]:
                                        "mine_speed": 10}]},
                      ["fleet_max:2"])]
     if fac == "Tau & Allies":
-        if _ship_type_of(row) != "cruiser" or "Light" in name:
+        # "Up to two cruisers": the Emissary light cruiser counts, as the Tau
+        # list places it under Kor'or'vesh Cruisers (update 58 ruling)
+        if _ship_type_of(row) != "cruiser":
             return []
     elif fac not in MINE_SWAP_GROUPS or (group not in MINE_SWAP_GROUPS[fac]
                                          and LIGHT_CRUISER_GROUPS.get(fac) != group):
@@ -1030,11 +1287,66 @@ def mine_launcher_options(row: dict) -> List[Dict]:
                           "mine_speed": 10})
             total += n
     cost = 5 * total
+    extra = ["group:emissary_bays"] if name == "Emissary Light Cruiser" else []
     return [_opt(MINE_SWAP, f"+{cost}pts (5 per bay): {total} mine launcher"
                  f"{'s' if total > 1 else ''} instead of the launch bays; up to two ships "
                  "in the fleet.", cost,
                  {"remove_weapons": sorted(set(removed)), "add_weapons": added},
-                 ["fleet_max:2"])]
+                 ["fleet_max:2"] + extra)]
+
+
+def ork_profile_options(row: dict) -> List[Dict]:
+    """Ork profile options built so far: the Kustom force field ("+Npts":
+    one shield replaced by +D3 shields rolled each game turn, src/orks.py) and
+    the Onslaught's free swap ("reduce gunz to FP2 to add a zzapp gun (30cm FP1
+    F)"). Not yet: soopa boostas, grabbin' klaws, magno-tracktor beams, the
+    other ships' zzapp gunz swaps."""
+    notes = row.get("notes") or ""
+    opts = []
+    m = re.search(r"Kustom force field \+(\d+)pts", notes)
+    if m:
+        cost = int(m.group(1))
+        opts.append(_opt("Kustom force field", f"+{cost}pts: one shield replaced by +D3 "
+                         "shields, rolled each game turn.", cost,
+                         {"stat_delta": {"shields_max": -1},
+                          "add_special_rules": ["kustom_force_field"]}))
+    if "reduce gunz to FP2 to add a zzapp gun (30cm FP1 F)" in notes:
+        opts.append(_opt("Zzapp gun (gunz to FP2)", "Free: the gunz drop to FP2 and the ship "
+                         "gains a zzapp gun (30cm FP1, front). The squadron must match.", 0,
+                         {"modify_weapons": [{"match": {"name": "Gunz"},
+                                              "set": {"strength": 2, "strength_dice": None}}],
+                          "add_weapon": {"name": "Prow Zzapp Gunz", "weapon_type": "lance",
+                                         "range_cm": 30, "strength": 1, "arcs": ["front"],
+                                         "hits_on": 5, "zzapp": True}}))
+    return opts
+
+
+def tau_profile_options(row: dict) -> List[Dict]:
+    """The Emissary's Bor'kan / Sa'cea Configurations (no extra cost): ion
+    cannons (30cm S1, L/F and R/F) for the gravitic hooks, and / or a prow
+    gravitic launcher (20-40cm S3, F) for the prow launch bays; a Deflector
+    +10pts (6+ prow Armour, lost to a prow critical)."""
+    if row["name"] != "Emissary Light Cruiser":
+        return []
+    ion = [{"name": "Port Ion Cannon", "weapon_type": "lance", "range_cm": 30, "strength": 1,
+            "arcs": ["left", "front"]},
+           {"name": "Starboard Ion Cannon", "weapon_type": "lance", "range_cm": 30,
+            "strength": 1, "arcs": ["right", "front"]}]
+    launcher = {"name": "Prow Gravitic Launcher", "weapon_type": "torpedo", "range_cm": 40,
+                "strength": 3, "arcs": ["front"], "torpedo_type": "guided",
+                "torpedo_speed": 40, "torpedo_speed_min": 20}
+    return [
+        _opt("Configuration: ion cannons for the gravitic hooks", "Free (Bor'kan / Sa'cea): "
+             "port and starboard ion cannons 30cm S1 (L/F, R/F); no Wardens towed.", 0,
+             {"add_weapons": ion, "remove_special_rules": ["hooks:warden:2"]}),
+        _opt("Configuration: prow gravitic launcher for the launch bays", "Free (Bor'kan / "
+             "Sa'cea): prow gravitic launcher 20-40cm S3 (F) instead of the launch bays.", 0,
+             {"remove_weapons": ["Launch Bays"], "add_weapon": launcher},
+             ["group:emissary_bays"]),
+        _opt("Deflector", "+10pts: 6+ prow Armour against all attacks to that facing; "
+             "disabled by a prow critical (restored when repaired).", 10,
+             {"set": {"armor_prow": "6+"}, "add_special_rules": ["deflector"]}),
+    ]
 
 
 def torpedo_bomber_options(row: dict) -> List[Dict]:
@@ -1069,7 +1381,9 @@ def torpedo_bomber_options(row: dict) -> List[Dict]:
 def options_for(row: dict) -> List[Dict]:
     """Every option for one booklet ship (_options_for) plus the mine launcher
     swap its fleet lists allow and torpedo bomber purchases."""
-    return _options_for(row) + mine_launcher_options(row) + torpedo_bomber_options(row)
+    return (_options_for(row) + mine_launcher_options(row) + torpedo_bomber_options(row)
+            + tau_profile_options(row) + ork_profile_options(row)
+            + pirate_captain_options(row))
 
 
 def _options_for(row: dict) -> List[Dict]:
@@ -1082,6 +1396,14 @@ def _options_for(row: dict) -> List[Dict]:
             o for o in space_marine_options(row) if not o["name"].startswith("Torpedoes")]
     if "Space Marines" in rules:
         return space_marine_options(row)
+    if row.get("faction") == "Dark Eldar":
+        return dark_eldar_options(row)
+    if row.get("faction") == "Eldar":
+        return eldar_options(row)
+    if row.get("faction") == "Tyranids":
+        from .booklet_ships import _ship_type
+        from .tyranids import options as tyranid_options
+        return tyranid_options(row, _ship_type(row) or "cruiser")
     opts: List[Dict] = []
     if "Imperial Navy" in rules or "Chaos" in rules:
         opts = torpedo_type_options(row)
@@ -1092,6 +1414,7 @@ def _options_for(row: dict) -> List[Dict]:
     elif "Adeptus Mechanicus" in rules or "Orks" in rules:
         opts = refitted_torpedo_options(row)
         if "Adeptus Mechanicus" in rules:
+            opts += mechanicus_refit_options(row)
             opts += mechanicus_gift_options(row)       # Tech-Priest Enginseers
     elif "Inquisition & Grey Knights" in rules or "Grey Knights" in rules:
         return inquisition_options(row)
@@ -1104,6 +1427,142 @@ def _options_for(row: dict) -> List[Dict]:
 def _ship_type_of(row: dict) -> str:
     from .booklet_ships import _ship_type
     return _ship_type(row)
+
+
+# ── Dark Eldar (Xenos p.4-13) ───────────────────────────────────────────────
+DE_CRAFT = ["raptor", "razorwing", "slavebringer"]
+DE_CRAFT_SPEEDS = {"raptor": 30, "razorwing": 20, "slavebringer": 30, "voidraven": 20}
+
+
+def _de_bay(strength: int, voidravens: bool = False) -> Dict:
+    craft = DE_CRAFT + (["voidraven"] if voidravens else [])
+    return {"name": "Keel Launch Bays", "weapon_type": "launch_bay", "range_cm": 30,
+            "strength": strength, "arcs": [], "craft_types": craft,
+            "craft_speeds": {c: DE_CRAFT_SPEEDS[c] for c in craft}, "craft_speed": 30}
+
+
+def _de_torps(where: str, strength: int) -> Dict:
+    # plasma (standard torpedoes that re-roll misses, the dark_eldar rule),
+    # leech (a bought-type kind, torpedo_type:leech) and boarding torpedoes
+    return {"name": f"{where} Torps", "weapon_type": "torpedo", "range_cm": 30,
+            "strength": strength, "arcs": ["front"], "torpedo_type": "standard",
+            "torpedo_speed": 30, "boarding_torpedoes": True, "plasma_torpedoes": True}
+
+
+def _de_lance(fp: int) -> Dict:
+    return {"name": "Prow Phantom Lance", "weapon_type": "lance", "range_cm": 30,
+            "strength": fp, "arcs": ["front"], "de_phantom": True}
+
+
+def _de_impaler(modules: int) -> Dict:
+    # Launched like attack craft (craft "impaler"); not yet a separate launch
+    # capacity from the fleet's launch bays
+    return {"name": "Prow Impaler Bay", "weapon_type": "launch_bay", "range_cm": 30,
+            "strength": modules, "arcs": ["front"], "craft_types": ["impaler"],
+            "craft_speeds": {"impaler": 30}, "craft_speed": 30, "impaler_bay": True}
+
+
+def _de_battery(fp: int) -> Dict:
+    return {"name": "Weapons Battery (variant)", "weapon_type": "battery", "range_cm": 30,
+            "strength": fp, "arcs": ["front"], "de_battery": True}
+
+
+# Kabal Variants (Xenos p.7-10): (variant name, cost, effect) per class; exactly one
+_KABAL = {
+    "Mortalis Class Grand Cruiser": [
+        ("Obsidian Rose (prow phantom lance FP3)", 0, {"add_weapon": _de_lance(3)}),
+        ("Iron Thorn (keel launch bays, 6)", 20, {"add_weapon": _de_bay(6)}),
+        ("Iron Thorn (keel launch bays, 6, with Voidravens)", 80,
+         {"add_weapon": _de_bay(6, True)}),
+        ("Iron Thorn (keel mine launcher, S6)", 80,
+         {"add_weapon": {"name": "Keel Mine Launcher", "weapon_type": "mine_launcher",
+                         "strength": 6, "range_cm": 0, "arcs": ["left", "front", "right"],
+                         "mine_speed": 10}}),
+        ("Dying Sun (prow impaler bay, 3 modules)", 0, {"add_weapon": _de_impaler(3)}),
+        ("Falling Moon (keel torpedo salvo S6)", 0, {"add_weapon": _de_torps("Keel", 6)}),
+    ],
+    "Torture Class Cruiser": [
+        ("Flayed Skull (prow phantom lance FP2)", 0, {"add_weapon": _de_lance(2)}),
+        ("Fiend Ascendant (keel launch bays, 4)", 20, {"add_weapon": _de_bay(4)}),
+        ("Fiend Ascendant (keel launch bays, 4, with Voidravens)", 60,
+         {"add_weapon": _de_bay(4, True)}),
+        ("Fiend Ascendant (keel mine launcher, S4)", 60,
+         {"add_weapon": {"name": "Keel Mine Launcher", "weapon_type": "mine_launcher",
+                         "strength": 4, "range_cm": 0, "arcs": ["left", "front", "right"],
+                         "mine_speed": 10}}),
+        ("Bleaksoul (prow impaler bay, 2 modules)", 0, {"add_weapon": _de_impaler(2)}),
+        ("Bloodied Claw (keel torpedo salvo S4)", 0, {"add_weapon": _de_torps("Keel", 4)}),
+    ],
+    "Succubus Class Light Cruiser": [
+        ("Dark Mirror (prow phantom lance FP2)", 0, {"add_weapon": _de_lance(2)}),
+        ("Burning Scale (keel launch bays, 2)", 10, {"add_weapon": _de_bay(2)}),
+        ("Burning Scale (keel launch bays, 2, with Voidravens)", 30,
+         {"add_weapon": _de_bay(2, True)}),
+        ("Burning Scale (keel mine launcher, S2)", 30,
+         {"add_weapon": {"name": "Keel Mine Launcher", "weapon_type": "mine_launcher",
+                         "strength": 2, "range_cm": 0, "arcs": ["left", "front", "right"],
+                         "mine_speed": 10}}),
+        ("Baleful Gaze (prow impaler bay, 2 modules)", 10, {"add_weapon": _de_impaler(2)}),
+        ("Bladed Lotus (keel torpedo salvo S4)", 10, {"add_weapon": _de_torps("Keel", 4)}),
+    ],
+    "Corsair Class Frigate": [
+        ("Phantom lance FP1", 0, {"add_weapon": _de_lance(1)}),
+        ("Impaler bay, 1 module", 0, {"add_weapon": _de_impaler(1)}),
+        ("Torpedo salvo S2", 0, {"add_weapon": _de_torps("Prow", 2)}),
+        ("Weapons battery FP3", 0, {"add_weapon": _de_battery(3)}),
+    ],
+    "Subjugation Class Raider": [
+        ("Weapons battery FP3", 0, {"add_weapon": _de_battery(3)}),
+        ("Torpedo salvo S2", 0, {"add_weapon": _de_torps("Prow", 2)}),
+    ],
+}
+DE_CREW = [("Wych Cult", 15, "Doubles its troop rating; counts enemy capital ships as "
+            "crippled for Pain Frenzy and boarding modifiers.", ["wych_cult", "doubles_troops"]),
+           ("Incubi", 20, "Its raids roll 2D6 and choose (both vs a crippled ship); enemy "
+            "raids on it -1.", ["incubi"]),
+           ("Haemonculi Coven", 25, "Boarding / Impaler crits are Fire results; +1 hit.",
+            ["haemonculi"])]
+DE_ARCHON_REROLLS = [(1, 25), (2, 50), (3, 100)]
+
+
+def dark_eldar_options(row: dict) -> List[Dict]:
+    """Kabal Variants (exactly one each), the Dread Archon (+2 Ld, re-rolls
+    bought one 25 / two 50 / three 100), up to three Dracons (+1 Ld), and one
+    of Wych Cult / Incubi / Haemonculi Coven per capital ship (Raiders list,
+    Xenos p.13)."""
+    from .booklet_ships import _ship_type
+    name = row["name"]
+    opts: List[Dict] = []
+    for vname, cost, effect in _KABAL.get(name, []):
+        eff = dict(effect)
+        w = eff.get("add_weapon", {})
+        if w.get("plasma_torpedoes"):
+            eff = {**eff, "add_special_rules": ["torpedo_type:leech"]}
+        opts.append(_opt(f"Kabal Variant: {vname}",
+                         (f"+{cost}pts." if cost else "Free.") + " One Kabal Variant required.",
+                         cost, eff, ["group:kabal_variant", "required_group:kabal_variant"]))
+    if _ship_type(row) in ("cruiser", "battleship"):
+        opts.append({"name": "Dread Archon (+2 Ld)",
+                     "description": "Fleet commander, 50pts: +2 Ld (max 10); no free re-roll.",
+                     "points_cost": 50,
+                     "effect": {"add_special_rules": ["ld_bonus:2:10", "fleet_commander"],
+                                "rerolls": 0, "flagship": True},
+                     "restrictions": ["fleet_unique", "group:fleet_commander"]})
+        opts += [{"name": f"Dread Archon: {k} re-roll{'s' if k > 1 else ''}",
+                  "description": f"{cost}pts.", "points_cost": cost, "effect": {"rerolls": k},
+                  "restrictions": ["group:commander_rerolls", "requires:Dread Archon (+2 Ld)"]}
+                 for k, cost in DE_ARCHON_REROLLS]
+        opts += [_opt(n, f"+{c}pts. {d}", c,
+                      {"add_special_rules": rules,
+                       **({"stat_delta": {"hits_max": 1}} if n == "Haemonculi Coven" else {})},
+                      ["group:de_crew"]) for n, c, d, rules in DE_CREW]
+    if name not in ("Dark Eldar Transport", "Tormentor Class Spire"):
+        opts.append({"name": "Dracon (+1 Ld)",
+                     "description": "Secondary commander, 25pts (up to three): +1 Ld (max 10).",
+                     "points_cost": 25,
+                     "effect": {"add_special_rules": ["ld_bonus:1:10", "secondary_commander"]},
+                     "restrictions": ["group:fleet_commander", "fleet_max:3"]})
+    return opts
 
 
 def ship_option_errors(entry, chosen: List[str]) -> List[str]:
@@ -1132,7 +1591,16 @@ def ship_option_errors(entry, chosen: List[str]) -> List[str]:
     for names in groups.values():
         if len(names) > 1:
             errors.append(f"Choose only one of: {', '.join(names)}.")
+    # Groups one option of which must be taken (Dark Eldar Kabal Variants)
+    required = {r[len("required_group:"):] for u in entry.upgrades_available
+                for r in u.restrictions if r.startswith("required_group:")}
+    for g in sorted(required):
+        if g not in groups:
+            errors.append(f"Choose one {g.replace('_', ' ').title()}.")
     errors += kustom_count_errors(chosen)
+    if entry.faction == "tyranids":
+        from .tyranids import config_errors
+        errors += config_errors(entry, chosen)
     return errors
 
 

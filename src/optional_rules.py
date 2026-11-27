@@ -39,6 +39,49 @@ def remastered_suppression() -> bool:
     return _remastered_suppression
 
 
+_phenomena_source = None
+
+
+def set_phenomena_source(fn) -> None:
+    """fn() -> the table's phenomena (TurnController registers the game's), for
+    rules the engine checks without a game state: high orbit (s.41) and ships
+    firing at each other inside an asteroid field (s.39)."""
+    global _phenomena_source
+    _phenomena_source = fn
+
+
+def phenomena() -> list:
+    return list(_phenomena_source()) if _phenomena_source is not None else []
+
+
+def high_orbit_planet(ship, phen=None):
+    """The planet whose gravity well the ship is in (high orbit, s.41: "ships
+    do not need to move"), or None. Ships on the low orbit table aren't."""
+    if "in_low_orbit" in (getattr(ship, "special_rules", None) or []):
+        return None
+    for p in (phen if phen is not None else phenomena()):
+        gw = getattr(p, "gravity_well_radius", 0) or 0
+        if gw and math.hypot(ship.x - p.x, ship.y - p.y) <= gw:
+            return p
+    return None
+
+
+def asteroid_fields_touching(ship, phen=None) -> list:
+    """The asteroid fields the ship's base is in or touches."""
+    r = getattr(ship, "base_radius", 0) or 0
+    return [p for p in (phen if phen is not None else phenomena())
+            if p.phenomenon_type == "asteroid_field"
+            and abs(ship.x - p.x) <= p.width / 2 + r and abs(ship.y - p.y) <= p.height / 2 + r]
+
+
+def shared_asteroid_field(a, b, phen=None):
+    """An asteroid field both ships are in (s.39: they may fire at each other,
+    within 10cm, at half firepower), or None."""
+    fa = asteroid_fields_touching(a, phen)
+    ids = {p.id for p in asteroid_fields_touching(b, phen)}
+    return next((p for p in fa if p.id in ids), None)
+
+
 _ships_source = None
 
 

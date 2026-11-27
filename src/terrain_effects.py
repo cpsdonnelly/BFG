@@ -1,8 +1,8 @@
 """BFG:XR Terrain Effects - Asteroid fields, dust clouds, warp rifts, tabletop effects"""
 import math
-import random
+import random  # noqa: F401 (tests patch it)
 from typing import List, Dict
-from .models import Ship, Phenomenon, BlastMarker
+from .models import Ship, Phenomenon
 from .game_state import GameState
 from .dice import DiceRoller
 from .geometry import current_shields
@@ -99,6 +99,8 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
     num_dice = 3 if on_aaf else 2
     from .subplots import leadership as _sp_ld
     ld = _sp_ld(gs, ship)            # Fleet Experience / Blood Bond
+    if "tyranid" in ship.special_rules:
+        ld = 10                      # Tyranid navigation: always Ld 10 (Xenos p.105)
 
     # Shadow Engines: escort squadrons automatically pass to navigate asteroids;
     # so do Eldar escorts (MMS p.3)
@@ -169,8 +171,11 @@ def resolve_asteroid_navigation(ship: Ship, dice: DiceRoller,
             gs.add_log(f"  Brace saves: {saves} of {hull_dmg}")
             hull_dmg -= saves
         if hull_dmg > 0:
-            ship.hits_remaining = max(0, ship.hits_remaining - hull_dmg)
             gs.add_log(f"  {absorbed} absorbed by shields, {hull_dmg} hull damage")
+            # normal damage: each point takes its critical check (owner: any
+            # damage can cause a crit, raids and boarding aside)
+            from .combat import apply_damage
+            apply_damage(ship, hull_dmg, dice, gs, ignores_shields=True, rolled_to_hit=False)
 
         # Speed reduction: ship is forced back 5cm along reverse heading
         result["speed_reduction"] = 5
@@ -197,7 +202,7 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
     """
     eldar = "eldar_mms" in ship.special_rules
     from .subplots import leadership as _sp_ld
-    ld = _sp_ld(gs, ship) - (2 if eldar else 0)
+    ld = (10 if "tyranid" in ship.special_rules else _sp_ld(gs, ship)) - (2 if eldar else 0)
     from .movement import fleet_reroll_offered, sirens_summon
     siren = sirens_summon(ship, gs)
     if siren:
@@ -217,9 +222,8 @@ def resolve_warp_rift_navigation(ship: Ship, dice: DiceRoller,
         # Reposition 2D6 x 10cm away
         dist_dice = dice.roll_d6(2, "Reposition distance (2D6 x 10cm)")
         reposition_dist = sum(dist_dice) * 10
-        # Pick random direction
-        import random
-        angle = random.uniform(0, 360)
+        # A random direction (a game roll: from the dice, so it is recorded)
+        angle = dice.roll_direction(f"{ship.name} warp rift reposition direction")
         new_x = ship.x + reposition_dist * math.cos(math.radians(angle))
         new_y = ship.y + reposition_dist * math.sin(math.radians(angle))
         # Clamp to table
@@ -270,121 +274,16 @@ def resolve_gas_dust_contact(ship: Ship, dice: DiceRoller,
         result["speed_penalty"] = 0
 
     # Shieldless means no shields at all or collapsed, not merely knocked down
-    if ship.effective_shields == 0:
+    # Dark Eldar Spectral Plating (Xenos p.5): never damaged by gas clouds
+    if ship.effective_shields == 0 and "dark_eldar" not in ship.special_rules:
         roll = dice.roll_d6(1, f"{ship.name} dust cloud damage (no shields, 6=1 damage)")[0]
         if roll == 6:
             result["damage"] = 1
-            ship.hits_remaining = max(0, ship.hits_remaining - 1)
-            gs.update_ship(ship)
             gs.add_log(f"  {ship.name} takes 1 damage from gas/dust cloud")
+            from .combat import apply_damage
+            apply_damage(ship, 1, dice, gs, ignores_shields=True, rolled_to_hit=False)
 
     return result
-
-
-# --- Tabletop Effects ---
-
-class TabletopEffects:
-    """Manages game-wide effects like solar flares and radiation bursts."""
-
-    def __init__(self):
-        self.solar_flare_count = 0      # number of solar flare entries
-        self.radiation_burst_count = 0  # number of radiation burst entries
-        self.solar_flare_occurred = False  # max once per game
-        self.fighting_sunward = False    # inner biosphere or closer
-        self.enabled = True
-
-    def check_start_of_turn(self, gs: GameState, dice: DiceRoller) -> List[str]:
-        """Check for tabletop effects at the start of a turn."""
-        logs = []
-        if not self.enabled:
-            return logs
-
-        # Solar Flare check
-        if self.solar_flare_count > 0 and not self.solar_flare_occurred:
-            for _ in range(self.solar_flare_count):
-                roll = dice.roll_d6(1, "Solar flare check (6=flare)")[0]
-                if roll == 6:
-                    self.solar_flare_occurred = True
-                    logs.extend(self._resolve_solar_flare(gs, dice))
-                    break
-
-        # Radiation Burst check
-        if self.radiation_burst_count > 0:
-            for _ in range(self.radiation_burst_count):
-                roll = dice.roll_d6(1, "Radiation burst check (5+=burst)")[0]
-                if roll >= 5:
-                    logs.extend(self._resolve_radiation_burst(gs, dice))
-                    break
-
-        return logs
-
-    def _resolve_solar_flare(self, gs: GameState, dice: DiceRoller) -> List[str]:
-        """Resolve a solar flare event."""
-        logs = ["SOLAR FLARE!"]
-
-        # Each ship gets a blast marker
-        for s in gs.get_ships():
-            if s.is_destroyed or s.is_disengaged:
-                continue
-            if "demiurg_commerce" in s.special_rules:
-                continue                # Absorber fields: immune to solar flares
-
-            bm = BlastMarker(
-                id=f"flare_{s.id}",
-                x=s.x + s.base_radius * 0.5,
-                y=s.y,
-                source="solar_flare",
-                heading=random.uniform(0, 360))
-            gs.add_blast_marker(bm)
-
-            # Ships without shields (none at all, or collapsed) take damage
-            if s.effective_shields == 0:
-                s.hits_remaining = max(0, s.hits_remaining - 1)
-                # Critical on 4+ instead of 6
-                crit_roll = dice.roll_d6(1, f"Solar flare crit check on {s.name} (4+)")[0]
-                if crit_roll >= 4:
-                    logs.append(f"  {s.name}: CRITICAL from solar flare!")
-                gs.update_ship(s)
-                logs.append(f"  {s.name}: 1 damage (no shields)")
-
-        # Ordnance: 4+ removed
-        to_remove = []
-        for o_dict in gs.ordnance:
-            roll = dice.roll_d6(1, "Ordnance solar flare survival")[0]
-            if roll >= 4:
-                to_remove.append(o_dict["id"])
-        gs.ordnance = [o for o in gs.ordnance if o["id"] not in to_remove]
-        if to_remove:
-            logs.append(f"  {len(to_remove)} ordnance markers destroyed")
-
-        return logs
-
-    def _resolve_radiation_burst(self, gs: GameState, dice: DiceRoller) -> List[str]:
-        """Resolve a radiation burst event."""
-        interference = dice.roll_d6(1, "Radiation interference level")[0]
-        logs = [f"RADIATION BURST! All ships -{interference} Leadership this turn"]
-
-        # Apply to all ships
-        for i, s_dict in enumerate(gs.ships):
-            s = Ship.from_dict(s_dict)
-            if s.is_destroyed or s.is_disengaged:
-                continue
-            if "demiurg_commerce" in s.special_rules:
-                continue                # Absorber fields: immune to radiation bursts
-            # Temporarily reduce leadership (will need to be restored at end of turn)
-            # Store original Ld for restoration
-            gs.ships[i]["_original_ld"] = s.leadership
-            gs.ships[i]["leadership"] = max(1, s.leadership - interference)
-
-        logs.append("  Fleet commanders may only re-roll for their own ship")
-        return logs
-
-    def restore_leadership(self, gs: GameState):
-        """Restore leadership values after radiation burst."""
-        for i, s_dict in enumerate(gs.ships):
-            if "_original_ld" in s_dict:
-                gs.ships[i]["leadership"] = s_dict["_original_ld"]
-                del gs.ships[i]["_original_ld"]
 
 
 def resolve_post_move_terrain(gs: GameState, ship_id: str, dice: DiceRoller,

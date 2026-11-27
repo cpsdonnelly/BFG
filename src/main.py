@@ -26,10 +26,12 @@ def _apply_rules(gs, setup):
     """Apply optional rule settings from setup dict to GameState."""
     for key in ("rule_fighting_sunward", "rule_solar_flares", "rule_radiation_bursts",
                  "rule_boarding", "rule_ramming", "rule_teleport", "rule_hit_and_run",
-                 "rule_turret_suppression_remastered", "rule_subplots", "allow_movement_pass",
+                 "rule_turret_suppression_remastered", "rule_subplots", "rule_tracking_marks",
+                 "allow_movement_pass",
                  "turn_limit", "ftl_available_turn", "scenario_mode",
                  "scenario_attacker", "attacker_by_rating", "artefact_submode",
-                 "ai_player", "ai_difficulty", "ai_spectator"):
+                 "ai_player", "ai_difficulty", "ai_spectator", "ai_difficulty_p1",
+                 "spectator_auto"):
         if key in setup:
             setattr(gs, key, setup[key])
     # Place artefact token at board centre for race mode
@@ -73,6 +75,14 @@ def main():
     if setup is None:
         root.destroy()
         return
+    # The game's seed (To do 17): every roll from here on comes from it and is
+    # recorded (dice.DiceSource), so the game can be replayed
+    import secrets
+    from .dice import start_game_dice
+    seed = setup.get("seed") or secrets.randbits(31)
+    start_game_dice(seed)
+    from .recorder import start_recording
+    start_recording()                            # and every player's decisions
 
     if setup["mode"] == "demo":
         p1_info = get_fleet_info(setup["p1_fleet"])
@@ -87,7 +97,7 @@ def main():
             player2_faction=p2_info["faction"],
             player1_color="red",
             player2_color="blue",
-            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 800,
+            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 1000,
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=setup.get("sunward", "north"),
         )
@@ -154,6 +164,9 @@ def main():
         map_phenomena = editor.get_phenomena()
         map_settings = editor.get_map_settings()
         editor_root.destroy()
+        if editor.cancelled:
+            root.destroy()
+            return
 
         # Create game with editor map
         p1_info = get_fleet_info(setup["p1_fleet"])
@@ -168,7 +181,7 @@ def main():
             player2_faction=p2_info["faction"],
             player1_color="red",
             player2_color="blue",
-            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 800,
+            points_limit=int(p1_info["total_points"]) if p1_info["total_points"].isdigit() else 1000,
             dice_mode=setup.get("dice_mode", "mixed"),
             sunward_edge=map_settings["sunward_edge"],
         )
@@ -196,7 +209,9 @@ def main():
                 gs.add_ship(ship)
 
     # Create turn controller and dice
-    dice = DiceRoller(mode=gs.dice_mode, root=root)
+    gs.game_seed = seed
+    from .dice import mode_for
+    dice = DiceRoller(mode=mode_for(gs), root=root)
     from .chapter_tactics import apply_fleet_tactics
     for line in apply_fleet_tactics(gs):          # Space Marine Chapter tactics
         gs.add_log(line)
@@ -222,6 +237,16 @@ def main():
     from .game_panel import GamePanel
     GamePanel(game_frame, tc, board, root)  # registers its own Tk callbacks
 
+    # Favourite fleets (To do 27): quitting offers to save the fleets played
+    root._bfg_fleet_files = {1: setup.get("p1_fleet"), 2: setup.get("p2_fleet")}
+    root._bfg_fleet_names = {1: gs.player1_name, 2: gs.player2_name}
+
+    def _on_close():
+        from .favourites_ui import offer_favourites
+        offer_favourites(root, root._bfg_fleet_files, root._bfg_fleet_names,
+                         on_done=root.destroy)
+    root.protocol("WM_DELETE_WINDOW", _on_close)
+
     root.mainloop()
 
 
@@ -231,7 +256,9 @@ def _show_setup_dialog(root) -> Optional[dict]:
 
     dialog = tk.Toplevel(root)
     dialog.title("BFG:XR - Game Setup")
-    dialog.geometry("540x680")
+    from .tk_scroll import scroll_body, fit_height
+    dialog.geometry(f"560x{fit_height(dialog, 760)}")
+    dialog.minsize(480, 360)
     dialog.protocol("WM_DELETE_WINDOW", lambda: (result.__setitem__(0, None), dialog.destroy()))
 
     tk.Label(dialog, text="BATTLEFLEET GOTHIC: XR",
@@ -239,8 +266,10 @@ def _show_setup_dialog(root) -> Optional[dict]:
     tk.Label(dialog, text="Game Setup",
              font=("Consolas", 10)).pack()
 
+    body = scroll_body(dialog)
+
     # Board size
-    size_frame = tk.Frame(dialog)
+    size_frame = tk.Frame(body)
     size_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(size_frame, text="Board size (cm):", font=("Consolas", 9)).pack(side=tk.LEFT)
     width_var = tk.StringVar(value="120")
@@ -250,7 +279,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
     tk.Entry(size_frame, textvariable=height_var, width=5, font=("Consolas", 10)).pack(side=tk.LEFT, padx=3)
 
     # Sunward edge
-    sun_frame = tk.Frame(dialog)
+    sun_frame = tk.Frame(body)
     sun_frame.pack(pady=3, padx=20, fill=tk.X)
     tk.Label(sun_frame, text="Sunward edge:", font=("Consolas", 9)).pack(side=tk.LEFT)
     sunward_var = tk.StringVar(value="north")
@@ -259,7 +288,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        value=edge, font=("Consolas", 8)).pack(side=tk.LEFT, padx=3)
 
     # Dice mode
-    dice_frame = tk.Frame(dialog)
+    dice_frame = tk.Frame(body)
     dice_frame.pack(pady=3, padx=20, fill=tk.X)
     tk.Label(dice_frame, text="Dice mode:", font=("Consolas", 9)).pack(side=tk.LEFT)
     dice_var = tk.StringVar(value="mixed")
@@ -268,7 +297,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        value=mode[1], font=("Consolas", 8)).pack(side=tk.LEFT, padx=3)
 
     # Terrain
-    terrain_frame = tk.Frame(dialog)
+    terrain_frame = tk.Frame(body)
     terrain_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(terrain_frame, text="Terrain:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
     terrain_var = tk.StringVar(value="demo")
@@ -279,7 +308,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        value=val, font=("Consolas", 8)).pack(anchor=tk.W)
 
     # Battlezone (for random)
-    bz_frame = tk.Frame(dialog)
+    bz_frame = tk.Frame(body)
     bz_frame.pack(pady=3, padx=20, fill=tk.X)
     tk.Label(bz_frame, text="Battlezone (for random):", font=("Consolas", 9)).pack(side=tk.LEFT)
     bz_var = tk.StringVar(value="4")
@@ -289,17 +318,24 @@ def _show_setup_dialog(root) -> Optional[dict]:
                        value=str(i), font=("Consolas", 7)).pack(side=tk.LEFT)
 
     # Fleet selection
-    fleets_frame = tk.Frame(dialog)
+    fleets_frame = tk.Frame(body)
     fleets_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(fleets_frame, text="Fleet Lists:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
 
-    available_fleets = get_available_fleets("data/fleets")
-    fleet_labels = {p: get_fleet_info(p)["fleet_name"] for p in available_fleets}
+    # Favourites first, with a star (To do 27)
+    from .favourites import favourite_fleets
+    favs = favourite_fleets()
+    available_fleets = favs + get_available_fleets("data/fleets")
+    fleet_labels = {p: ("\u2605 " if p in favs else "") + get_fleet_info(p)["fleet_name"]
+                    for p in available_fleets}
 
-    _imp_default = next((p for p in available_fleets if "imperial" in os.path.basename(p).lower()),
-                        available_fleets[0] if available_fleets else "")
-    _tau_default = next((p for p in available_fleets if "tau" in os.path.basename(p).lower()),
-                        available_fleets[-1] if available_fleets else "")
+    # The demo: the owner's 1000pt Gothic Sector fleet against his Tau Merchant
+    # fleet (the old 800pt demo fleets are gone)
+    def _default(name, fallback):
+        return next((p for p in available_fleets if os.path.basename(p) == name), fallback)
+    _imp_default = _default("owner_gothic_1000.json", available_fleets[0] if available_fleets else "")
+    _tau_default = _default("owner_tau_merchant_1000.json",
+                            available_fleets[-1] if available_fleets else "")
 
     p1_fleet_var = tk.StringVar(value=_imp_default)
     p2_fleet_var = tk.StringVar(value=_tau_default)
@@ -345,7 +381,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
              font=("Consolas", 7), fg="#888888", wraplength=480, justify=tk.LEFT).pack(anchor=tk.W)
 
     # Optional rules
-    rules_frame = tk.Frame(dialog)
+    rules_frame = tk.Frame(body)
     rules_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(rules_frame, text="Optional Rules:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
 
@@ -361,15 +397,31 @@ def _show_setup_dialog(root) -> Optional[dict]:
         ("turret_suppression_remastered",
          "Turret Suppression: Remastered mode (default: XR — fighters give 3 fixed attacks)", False),
         ("subplots", "Sub-plots (booklet p.80: each player rolls one)", False),
+        ("tracking_marks", "Dark Eldar shadowfield tracking marks (booklet rule; off: "
+         "shadowfields always save on 2+)", True),
     ]
+    # Owner request: one switch for all the advanced rules (not the Remastered
+    # suppression mode, which is a choice of version rather than a rule)
+    advanced_keys = ("fighting_sunward", "solar_flares", "radiation_bursts", "boarding",
+                     "ramming", "teleport", "hit_and_run", "subplots")
+    all_var = tk.BooleanVar(value=False)
+
+    def _set_all():
+        for k in advanced_keys:
+            rule_vars[k].set(all_var.get())
+
+    def _sync_all(*_a):
+        all_var.set(all(rule_vars[k].get() for k in advanced_keys))
+    tk.Checkbutton(rules_frame, text="All advanced rules on / off", variable=all_var,
+                   command=_set_all, font=("Consolas", 8, "bold")).pack(anchor=tk.W)
     for key, label, default in rules_list:
         var = tk.BooleanVar(value=default)
         rule_vars[key] = var
-        tk.Checkbutton(rules_frame, text=label, variable=var,
-                       font=("Consolas", 8)).pack(anchor=tk.W)
+        tk.Checkbutton(rules_frame, text=label, variable=var, command=_sync_all,
+                       font=("Consolas", 8)).pack(anchor=tk.W, padx=(12, 0))
 
     # Movement enforcement setting
-    movement_frame = tk.Frame(dialog)
+    movement_frame = tk.Frame(body)
     movement_frame.pack(pady=5, padx=20, fill=tk.X)
     tk.Label(movement_frame, text="Movement Enforcement:",
              font=("Consolas", 9, "bold")).pack(anchor=tk.W)
@@ -383,7 +435,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
              font=("Consolas", 7), fg="#888888").pack(anchor=tk.W)
 
     # Turn limit and FTL charge
-    turn_frame = tk.Frame(dialog)
+    turn_frame = tk.Frame(body)
     turn_frame.pack(pady=4, padx=20, fill=tk.X)
     tk.Label(turn_frame, text="Game Options:", font=("Consolas", 9, "bold")).pack(anchor=tk.W)
 
@@ -406,7 +458,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
              font=("Consolas", 7), fg="#888888").pack(side=tk.LEFT)
 
     # Scenario mode
-    scen_frame = tk.LabelFrame(dialog, text="Scenario Mode", font=("Consolas", 9, "bold"),
+    scen_frame = tk.LabelFrame(body, text="Scenario Mode", font=("Consolas", 9, "bold"),
                                 padx=8, pady=4)
     scen_frame.pack(fill=tk.X, padx=20, pady=4)
     scenario_var = tk.StringVar(value="standard")
@@ -480,28 +532,53 @@ def _show_setup_dialog(root) -> Optional[dict]:
                    value="rating", font=("Consolas", 7)).pack(side=tk.LEFT)
 
     # AI opponent
-    ai_frame = tk.LabelFrame(dialog, text="AI Opponent", font=("Consolas", 9, "bold"),
+    ai_frame = tk.LabelFrame(body, text="AI Opponent", font=("Consolas", 9, "bold"),
                               padx=8, pady=4)
     ai_frame.pack(fill=tk.X, padx=20, pady=4)
-    ai_enabled_var = tk.BooleanVar(value=False)
-    tk.Checkbutton(ai_frame, text="Enable AI opponent (controls Player 2)",
-                   variable=ai_enabled_var,
-                   font=("Consolas", 8)).pack(anchor=tk.W)
-    ai_spectator_var = tk.BooleanVar(value=False)
-    tk.Checkbutton(ai_frame, text="Spectator mode (AI controls both players)",
-                   variable=ai_spectator_var,
-                   font=("Consolas", 8)).pack(anchor=tk.W)
+    # One choice (owner: "AI opponent" and "Spectator" could both be ticked)
+    ai_mode_var = tk.StringVar(value="none")
+    for lbl, val in (("No AI (players take turns at this screen)", "none"),
+                     ("AI opponent (controls Player 2)", "opponent"),
+                     ("Spectator mode (AI controls both players)", "spectator")):
+        tk.Radiobutton(ai_frame, text=lbl, variable=ai_mode_var, value=val,
+                       font=("Consolas", 8)).pack(anchor=tk.W)
+    diff_levels = [("Very easy", "very_easy"), ("Easy", "easy"), ("Normal", "normal"), ("Hard", "hard"),
+                   ("Expert", "expert"), ("Master", "master")]
     diff_row = tk.Frame(ai_frame)
     diff_row.pack(anchor=tk.W, padx=10)
-    tk.Label(diff_row, text="Difficulty:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    tk.Label(diff_row, text="Player 2 AI:", font=("Consolas", 8)).pack(side=tk.LEFT)
     ai_diff_var = tk.StringVar(value="normal")
-    for lbl, val in [("Easy", "easy"), ("Normal", "normal"),
-                     ("Hard", "hard"), ("Expert", "expert")]:
+    for lbl, val in diff_levels:
         tk.Radiobutton(diff_row, text=lbl, variable=ai_diff_var, value=val,
                        font=("Consolas", 8)).pack(side=tk.LEFT, padx=4)
+    # Spectator mode: Player 1's AI may play at another difficulty (owner:
+    # useful for testing the AI)
+    diff1_row = tk.Frame(ai_frame)
+    diff1_row.pack(anchor=tk.W, padx=10)
+    tk.Label(diff1_row, text="Player 1 AI:", font=("Consolas", 8)).pack(side=tk.LEFT)
+    ai_diff1_var = tk.StringVar(value="normal")
+    diff1_buttons = [tk.Radiobutton(diff1_row, text=lbl, variable=ai_diff1_var, value=val,
+                                    font=("Consolas", 8)) for lbl, val in diff_levels]
+    for b in diff1_buttons:
+        b.pack(side=tk.LEFT, padx=4)
+
+    spectator_auto_var = tk.BooleanVar(value=True)
+    spectator_auto_cb = tk.Checkbutton(
+        ai_frame, text="Spectator: auto-roll every dice pop-up and answer every prompt",
+        variable=spectator_auto_var, font=("Consolas", 8))
+    spectator_auto_cb.pack(anchor=tk.W, padx=10)
+
+    def _ai_mode_changed(*_a):
+        state = tk.NORMAL if ai_mode_var.get() == "spectator" else tk.DISABLED
+        for b in diff1_buttons + [spectator_auto_cb]:
+            b.config(state=state)
+    ai_mode_var.trace_add("write", _ai_mode_changed)
+    _ai_mode_changed()
     tk.Label(ai_frame,
-             text="Easy: random targets  Normal: weakest target  "
-                  "Hard: focus-fire crippled  Expert: 5-turn lookahead minimax",
+             text="Very easy: simpler choices (random targets...)  Easy: best expected VP, no lookahead  "
+                  "Normal: looks 1 turn ahead  "
+                  "Hard: 3 turns  Expert: 5 turns  Master: 10 turns or to the game's end "
+                  "(slower each step)",
              font=("Consolas", 7), fg="#888888", justify=tk.LEFT,
              wraplength=440).pack(anchor=tk.W)
 
@@ -522,17 +599,58 @@ def _show_setup_dialog(root) -> Optional[dict]:
                 and rules["artefact_submode"] == "carrier_escape"
                 and rules["ftl_available_turn"] is None):
             rules["ftl_available_turn"] = 3
-        spectator = ai_spectator_var.get()
+        spectator = ai_mode_var.get() == "spectator"
         rules["ai_spectator"] = spectator
-        rules["ai_player"] = 2 if (ai_enabled_var.get() or spectator) else None
+        rules["ai_player"] = 2 if ai_mode_var.get() != "none" else None
         rules["ai_difficulty"] = ai_diff_var.get()
+        rules["ai_difficulty_p1"] = ai_diff1_var.get() if spectator else None
+        rules["spectator_auto"] = spectator_auto_var.get()
         return rules
 
     def _get_fleets():
         return {"p1_fleet": p1_fleet_var.get(), "p2_fleet": p2_fleet_var.get()}
 
+    def _rules_ok() -> bool:
+        """Owner request: a fleet relying on an optional rule that is switched
+        off (assault boats / Impalers without hit-and-run, portals or a Soopa
+        Tellyporta without teleports, boarding upgrades without boarding) is
+        flagged before the game starts: switch the rules on, start anyway, or go
+        back (src/fleet_rule_check.py)."""
+        from .fleet_rule_check import fleet_rule_warnings, warning_text
+        from .fleet_loader import load_fleet_file, fleet_to_ships
+        enabled = {k: v.get() for k, v in rule_vars.items()}
+        found = {}
+        for p, var in ((1, p1_fleet_var), (2, p2_fleet_var)):
+            try:
+                ships = fleet_to_ships(load_fleet_file(var.get()), p)
+            except Exception:
+                continue                  # an unreadable fleet is reported later
+            w = fleet_rule_warnings(ships, enabled)
+            if w:
+                found[p] = w
+        if not found:
+            return True
+        from tkinter import messagebox
+        answer = messagebox.askyesnocancel(
+            "Fleet uses optional rules that are off",
+            warning_text(found) + "\n\nAre you sure you want to start with these rules "
+            "off? Those weapons and upgrades will do nothing.\n\n"
+            "Yes: turn those rules on and start\nNo: start anyway, rules off\n"
+            "Cancel: go back to the set-up", parent=dialog)
+        if answer is None:
+            return False
+        if answer:
+            for warns in found.values():
+                for key in warns:
+                    if key in rule_vars:
+                        rule_vars[key].set(True)
+            _sync_all()
+        return True
+
     # Buttons
     def start_demo():
+        if not _rules_ok():
+            return
         result[0] = {
             "mode": "demo",
             "width": float(width_var.get()),
@@ -547,6 +665,8 @@ def _show_setup_dialog(root) -> Optional[dict]:
         dialog.destroy()
 
     def start_blank():
+        if not _rules_ok():
+            return
         result[0] = {
             "mode": "blank",
             "width": float(width_var.get()),
@@ -570,9 +690,74 @@ def _show_setup_dialog(root) -> Optional[dict]:
         }
         dialog.destroy()
 
+    def start_quick_demo():
+        """To do 26: the quick demo, a Cruiser Clash on random terrain with
+        the fleets (saved or random) and the mode chosen here (src/demo.py);
+        the board, dice and advanced rules come from the set-up above."""
+        from .demo import demo_setup, RANDOM
+        dlg = tk.Toplevel(dialog)
+        dlg.title("Quick Demo")
+        dlg.transient(dialog)
+        tk.Label(dlg, text="Cruiser Clash on random terrain", font=("Consolas", 10, "bold")
+                 ).pack(padx=10, pady=6)
+        choices = [RANDOM] + list(available_fleets)
+        names = {RANDOM: "Random fleet (AI list builder, 1000pts)",
+                 **{p: fleet_labels.get(p, os.path.basename(p)) for p in available_fleets}}
+        picks = []
+        for label, default in (("Your fleet (Player 1):", p1_fleet_var.get()),
+                               ("Opponent (Player 2):", p2_fleet_var.get())):
+            row = tk.Frame(dlg)
+            row.pack(fill=tk.X, padx=10, pady=2)
+            tk.Label(row, text=label, font=("Consolas", 9), width=22, anchor=tk.W).pack(side=tk.LEFT)
+            var = tk.StringVar(value=default if default in choices else RANDOM)
+            opt = tk.OptionMenu(row, var, *choices)
+            opt.config(font=("Consolas", 8), width=34)
+            for i, c in enumerate(choices):
+                opt["menu"].entryconfig(i, label=names[c])
+            opt.pack(side=tk.LEFT)
+            picks.append(var)
+        mode_var = tk.StringVar(value="vs_ai")
+        for lbl, val in (("Player vs AI", "vs_ai"), ("Player vs Player", "hot_seat"),
+                         ("AI vs AI", "spectator")):
+            tk.Radiobutton(dlg, text=lbl, variable=mode_var, value=val,
+                           font=("Consolas", 9)).pack(anchor=tk.W, padx=14)
+        diff_var = tk.StringVar(value=ai_diff_var.get())
+        drow = tk.Frame(dlg)
+        drow.pack(anchor=tk.W, padx=14, pady=2)
+        tk.Label(drow, text="AI:", font=("Consolas", 8)).pack(side=tk.LEFT)
+        for lbl, val in diff_levels:
+            tk.Radiobutton(drow, text=lbl, variable=diff_var, value=val,
+                           font=("Consolas", 8)).pack(side=tk.LEFT)
+
+        def go():
+            base = {"width": float(width_var.get()), "height": float(height_var.get()),
+                    "sunward": sunward_var.get(), "dice_mode": dice_var.get(),
+                    **{k: v for k, v in _get_rules().items()
+                       if not k.startswith("ai_") and k not in ("scenario_mode",)}}
+            setup = demo_setup(picks[0].get(), picks[1].get(), mode_var.get(),
+                               diff_var.get(), base=base)
+            p1_fleet_var.set(setup["p1_fleet"])
+            p2_fleet_var.set(setup["p2_fleet"])
+            if not _rules_ok():
+                return
+            setup.update({k: v for k, v in _get_rules().items() if k.startswith("rule_")})
+            result[0] = setup
+            dlg.destroy()
+            dialog.destroy()
+        brow = tk.Frame(dlg)
+        brow.pack(pady=8)
+        tk.Button(brow, text="Start", command=go, bg="#336633", fg="white",
+                  font=("Consolas", 10, "bold")).pack(side=tk.LEFT, padx=4)
+        tk.Button(brow, text="Cancel", command=dlg.destroy,
+                  font=("Consolas", 9)).pack(side=tk.LEFT, padx=4)
+
     btn_frame = tk.Frame(dialog)
     btn_frame.pack(pady=15)
-    tk.Button(btn_frame, text="Start Game (Demo Fleets)",
+    tk.Button(btn_frame, text="Quick Demo...",
+              command=start_quick_demo,
+              bg="#334466", fg="white",
+              font=("Consolas", 10, "bold")).pack(pady=3, fill=tk.X)
+    tk.Button(btn_frame, text="Start Game",
               command=start_demo,
               bg="#336633", fg="white",
               font=("Consolas", 10, "bold")).pack(pady=3, fill=tk.X)
@@ -580,7 +765,7 @@ def _show_setup_dialog(root) -> Optional[dict]:
               command=start_editor,
               bg="#335533", fg="white",
               font=("Consolas", 9)).pack(pady=3, fill=tk.X)
-    tk.Button(btn_frame, text="Start Blank (Demo Fleets, No Terrain)",
+    tk.Button(btn_frame, text="Start Game, No Terrain",
               command=start_blank,
               font=("Consolas", 9)).pack(pady=3, fill=tk.X)
     tk.Button(btn_frame, text="Cancel",

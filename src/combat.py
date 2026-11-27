@@ -1,6 +1,6 @@
 """BFG:XR Combat System - Shooting phase resolution"""
 import math
-import random
+import random  # noqa: F401 (tests patch it)
 import re
 from typing import List, Dict, Tuple, Optional
 from .models import Ship, BlastMarker, Arc, SpecialOrder
@@ -8,6 +8,8 @@ from .game_state import GameState
 from .tables import (lookup_gunnery_dice, get_gunnery_column, CRITICAL_HITS,  # noqa: F401 (re-exported)
                      lookup_catastrophic)
 from .dice import DiceRoller
+from .rng import cosmetic_heading
+from . import recorder as _rec
 from .geometry import (current_shields,
                        EXPLOSION_BLAST_OFFSET_CM,
                        NOVA_CANNON_TEMPLATE_RADIUS_CM,
@@ -70,7 +72,10 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
     edge = sunward_edge()
     from .celestial import is_sunward
     rng = 2 if edge and is_sunward(ship, target_ship, edge) else 1
-    if dist < 15:
+    from .optional_rules import shared_asteroid_field
+    in_field = shared_asteroid_field(ship, target_ship, phenomena) is not None \
+        if phenomena else False
+    if dist < 15 and not in_field:     # s.39: no close range shift inside an asteroid field
         shifts -= rng  # left shift (better)
     elif (dist > 30 and not (weapon and dark_age_batteries(ship, weapon))
           and "fraal_targeting" not in ship.special_rules):     # Fra'al targeting matrix
@@ -106,9 +111,21 @@ def get_column_shifts(ship: Ship, target_ship: Ship,
         shifts += 1                    # lightning arcs ignore holofields' gunnery effects
     if weapon and weapon.get("eldar_battery"):
         shifts -= 1
+    # Dark Eldar (Xenos p.5): shadowfields one right shift; their gunnery
+    # weapons an automatic left shift
+    from .dark_eldar import has_shadowfield
+    if has_shadowfield(target_ship):
+        shifts += 1
+    if weapon and weapon.get("de_battery"):
+        shifts -= 1
 
     # Pleasure Fleet of Slaanesh, Veil of Lust: an automatic right shift
     if "veil_of_lust" in target_ship.special_rules:
+        shifts += 1
+    # Craftworld Assault: a ship docked at the forges has their netherfield
+    # (owner ruling, XR Xenos p.32: one more right shift for all gunnery)
+    from .craftworld import forge_fields
+    if forge_fields(target_ship):
         shifts += 1
     # Plague Fleet of Nurgle, Miasma of Pestilence: no left shift within 15cm
     if "miasma" in target_ship.special_rules and dist < 15:
@@ -139,9 +156,14 @@ def check_los_clear(ship: Ship, target_ship: Ship,
 
 def _has_tracking_support(ship: Ship, all_ships: list = None) -> bool:
     """
-    Check if this Tau ship is within range of a tracking system.
-    Checks the ship itself AND nearby friendly Tau ships with tracking systems.
+    Check if this Tau ship is within range of a tracking system (Tau faction
+    rules: "any Tau vessel within 10cm of a ship/station with tracking
+    systems"; 20cm for the Custodian and the Orbital City). Checks the ship
+    itself AND nearby friendly ships with tracking systems; it works even while
+    the source is braced. Non-Tau ships never benefit.
     """
+    if not (ship.faction or "").startswith("tau"):
+        return False
     # Check self
     for rule in ship.special_rules:
         if rule.startswith("tracking_systems"):
@@ -288,6 +310,59 @@ def shot_weapon(weapon: Dict, strength: int) -> Dict:
     return d
 
 
+def gunnery_kind(weapon: Dict) -> tuple:
+    """Which gunnery weapon type a battery is, for s.13: a ship's macrobatteries
+    of one type firing at one target total their firepower into one Gunnery
+    table roll, while distinct types (a strike cruiser's bombardment cannon,
+    a Kustom Kannon, Eldar or lightning-arc batteries) roll separately."""
+    return (weapon.get("hits_on"), weapon.get("crit_on", 6), bool(weapon.get("eldar_battery")),
+            bool(weapon.get("lightning_arc")), bool(weapon.get("kustom_kannon")))
+
+
+def combined_battery(attacker: Ship, shots: List[Dict], target: Ship) -> Dict:
+    """Owner ruling, s.13: every macrobattery of one gunnery type a ship fires
+    at one target makes ONE Gunnery table roll on their total firepower.
+    `shots` are the weapons with their firepower for this shot decided
+    (shot_weapon); each is reduced by its own modifiers (orders, crippling,
+    Brace), as capital ships in a squadron halve individually, then totalled
+    (standing ruling: two FP3 on Burn Retros make 2 + 2 = 4). Escorts are the
+    exception (s.8, Shooting by Squadrons): total first, then halve.
+    Returns one weapon dict for resolve_batteries / fire_at_squadron."""
+    if len(shots) == 1:
+        return shots[0]
+    d = {k: v for k, v in shots[0].items() if k not in ("strength_close", "strength_dice")}
+    d["name"] = " + ".join(w.get("name", "battery") for w in shots)
+    if attacker.ship_type == "escort":
+        d["strength"] = sum(battery_base_firepower(attacker, w, target) for w in shots)
+        d["combined_fp"] = effective_battery_firepower(attacker, d, target)
+    else:
+        d["combined_fp"] = sum(effective_battery_firepower(attacker, w, target) for w in shots)
+    d["strength"] = d["combined_fp"]
+    d["combined_of"] = len(shots)
+    return d
+
+
+def resolve_battery_group(attacker: Ship, target: Ship, shots: List[Dict], dice,
+                          blast_markers, lock_on: bool = False, phenomena: list = None,
+                          all_ships: list = None, no_column_shifts: bool = False,
+                          group: List[Ship] = None, apply_hits=None,
+                          range_cap: Optional[float] = None):
+    """Fire a ship's macrobatteries of one gunnery type at one target as one
+    attack (s.13, combined_battery). A target in a squadron of 2+ is fired on
+    as the squadron, hits nearest first through apply_hits(ship, n) (s.8).
+    `blast_markers` are the ones in play now (s.11: markers come into effect
+    at once), or those from before the volley when different gunnery weapon
+    types fire simultaneously. Returns (ShotResult, hits applied per ship id
+    or None for a single target, whose hits the caller applies)."""
+    weapon = combined_battery(attacker, shots, target)
+    if group is not None and len(group) > 1:
+        return fire_at_squadron(attacker, weapon, target, group, dice, apply_hits, lock_on,
+                                blast_markers, phenomena, all_ships,
+                                no_column_shifts=no_column_shifts, range_cap=range_cap)
+    return resolve_batteries(attacker, target, weapon, dice, blast_markers, lock_on,
+                             phenomena, all_ships, no_column_shifts=no_column_shifts), None
+
+
 def battery_base_firepower(attacker: Ship, weapon: Dict,
                            target: Optional[Ship] = None) -> int:
     """Printed firepower for this shot. Ork Heavy Gunz have two values: the
@@ -302,6 +377,8 @@ def battery_base_firepower(attacker: Ship, weapon: Dict,
 def effective_battery_firepower(attacker: Ship, weapon: Dict,
                                 target: Optional[Ship] = None) -> int:
     """Return the effective firepower of a battery weapon after all modifiers."""
+    if "combined_fp" in weapon:        # combined_battery: already totalled after modifiers
+        return weapon["combined_fp"]
     from .chapter_tactics import reduce_for_movement_order, lightning_vanguard
     fp = battery_base_firepower(attacker, weapon, target)
     if attacker.is_crippled:
@@ -320,7 +397,15 @@ def effective_battery_firepower(attacker: Ship, weapon: Dict,
         fp = (fp + 1) // 2
     if "half_armament" in attacker.special_rules:
         fp = (fp + 1) // 2         # Navigate the Storm: recovering from the warp
+    if target is not None and _in_field_together(attacker, target):
+        fp = (fp + 1) // 2         # s.39: firing inside an asteroid field, half firepower
     return fp
+
+
+def _in_field_together(a: Ship, b: Ship) -> bool:
+    from .optional_rules import shared_asteroid_field, phenomena
+    phen = phenomena()
+    return bool(phen) and shared_asteroid_field(a, b, phen) is not None
 
 
 def _battery_orientation(attacker: Ship, target: Ship, weapon: Optional[Dict],
@@ -347,6 +432,9 @@ def gunnery_target_type(ship: Ship) -> str:
     return "defense"
 
 
+@_rec.logged("fire", lambda r, A: (_rec.current_gs(), dict(
+    ship=A["attacker"].id, target=A["target"].id, what="battery", hits=r.hits,
+    weapon=_rec.weapon_label(A["attacker"], A["weapon"]), lock_on=A["lock_on"])))
 def resolve_batteries(attacker: Ship, target: Ship, weapon: Dict,
                       dice: DiceRoller, blast_markers: List[BlastMarker],
                       lock_on: bool = False,
@@ -555,7 +643,7 @@ def fire_at_ordnance(attacker: Ship, weapon: Dict, marker_id: str, gs, dice,
     n = ordnance_fire_dice(attacker, weapon, m["x"], m["y"], gs, avail)
     if n <= 0:
         return {"dice": 0, "hits": 0, "removed": []}
-    need = weapon.get("hits_on") or 6
+    need = weapon.get("hits_on") or (4 if "ordnance_shots_4plus" in attacker.special_rules else 6)
     rolls = dice.roll_d6(n, f"{weapon['name']} vs {m['ordnance_type']} ({need}+ to hit)")
     hits = sum(1 for r in rolls if r >= need)
     removed = []
@@ -576,30 +664,14 @@ def cutting_beam_firepower(ship: Ship, dist: float) -> int:
     return min(8, 1 + max(0, markers))
 
 
+@_rec.logged("fire", lambda r, A: (_rec.current_gs(), dict(
+    ship=A["attacker"].id, target=A["target"].id, what="lance", hits=r.hits,
+    weapon=_rec.weapon_label(A["attacker"], A["weapon"]), lock_on=A["lock_on"])))
 def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
                    dice: DiceRoller, lock_on: bool = False) -> ShotResult:
     """Resolve a lance weapon attack."""
     result = ShotResult(weapon["name"], "lance")
-    strength = weapon["strength"]
-    if weapon.get("cutting_beam"):
-        strength = cutting_beam_firepower(attacker, attacker.distance_to(target))
-
-    # Halve if crippled
-    if attacker.is_crippled:
-        strength = attacker.crippled_value(strength)
-
-    # Halve if on movement special orders
-    if attacker.special_order in (
-        SpecialOrder.ALL_AHEAD_FULL.value,
-        SpecialOrder.BURN_RETROS.value,
-        SpecialOrder.COME_TO_NEW_HEADING.value,
-    ):
-        strength = (strength + 1) // 2
-
-    if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
-        strength = (strength + 1) // 2
-    if "half_armament" in attacker.special_rules:
-        strength = (strength + 1) // 2     # Navigate the Storm: recovering from the warp
+    strength = lance_strength(attacker, target, weapon, weapon["strength"])
     # Low orbit (s.39): lances need a 4+ to fire at all
     from .low_orbit import needs_fire_roll
     if strength > 0 and needs_fire_roll(attacker):
@@ -612,15 +684,34 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
         result.description = f"{weapon['name']}: no strength available"
         return result
 
-    # Lances hit on 4+ regardless of armor (Ork Zzapp Gunz on 5+)
+    # Lances hit on 4+ regardless of armor (Ork Zzapp Gunz on 5+); Tyranid
+    # bio-plasma hits targets more than 15cm away only on a 6 (Xenos p.106)
     need = weapon.get("hits_on", 4)
+    if weapon.get("bio_plasma") and attacker.distance_to(target) > 15:
+        need = 6
     result.dice_rolled = dice.roll_d6(
         strength, f"{attacker.name} lances vs {target.name} (need {need}+)")
+
+    if weapon.get("de_phantom"):
+        # Dark Eldar phantom lances (Xenos p.5): 1 hit on a 4, 2 on 5+
+        def _de_value(d):
+            return 2 if d >= need + 1 else (1 if d >= need else 0)
+        result.hits = sum(_de_value(d) for d in result.dice_rolled)
+        misses = [d for d in result.dice_rolled if d < need]
+        if lock_on and misses:
+            result.reroll_dice = dice.roll_d6(len(misses), f"{attacker.name} Lock On re-rolls")
+            result.hits += sum(_de_value(d) for d in result.reroll_dice)
+        result.hits -= _holofield(attacker, target, result.hits, dice)
+        result.hits -= _shadowfield(target, result.hits, dice)
+        result.description = (f"{weapon['name']}: Str {strength} vs {target.name} = "
+                              f"{result.hits} hits")
+        return result
 
     if weapon.get("pulsar") or weapon.get("phantom"):
         result.hits = _eldar_lance_hits(attacker, target, weapon, result, dice, need,
                                         lock_on)
         result.hits -= _holofield(attacker, target, result.hits, dice)
+        result.hits -= _shadowfield(target, result.hits, dice)
         result.description = (f"{weapon['name']}: Str {strength} vs {target.name} = "
                               f"{result.hits} hits")
         return result
@@ -636,6 +727,14 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
             extra_hits = sum(1 for d in result.reroll_dice if d >= need)
             result.hits += extra_hits
 
+    if weapon.get("bio_plasma"):
+        # Bio-plasma passes through shields; holofields and other defences work
+        result.hits -= _holofield(attacker, target, result.hits, dice)
+        result.hits -= _shadowfield(target, result.hits, dice)
+        result.bypass_hits = result.hits
+        result.description = (f"{weapon['name']}: Str {strength} bio-plasma vs {target.name} "
+                              f"({need}+) = {result.hits} hits (ignore shields)")
+        return result
     if weapon.get("particle_whip") or weapon.get("shield_bypass_6"):
         # 6s bypass shields and holofields (anything but Brace); also a
         # Mechanicus Experimental Ship's dorsal / prow lances
@@ -643,11 +742,113 @@ def resolve_lances(attacker: Ship, target: Ship, weapon: Dict,
                                  if d == 6)
     result.hits -= _holofield(attacker, target, result.hits - getattr(result, "bypass_hits", 0),
                               dice)
+    saved = _shadowfield(target, result.hits, dice)
+    if saved:
+        result.hits -= saved
+        result.bypass_hits = min(getattr(result, "bypass_hits", 0), result.hits)
     result.description = (
         f"{weapon['name']}: Str {strength} lances vs {target.name} "
         f"(4+) = {result.hits} hits")
 
     return result
+
+
+def lance_strength(attacker: Ship, target: Ship, weapon: Dict, strength: int,
+                   now: bool = True) -> int:
+    """A lance's strength as it fires: the Demiurg cutting beam by range, then
+    halved (rounding up) for crippling, movement orders, Brace, Navigate the
+    Storm's recovery and firing inside an asteroid field (s.39). now=False:
+    a shot next turn (the AI's threat estimates), crippling only (this
+    turn's orders will have ended)."""
+    if weapon.get("cutting_beam"):
+        strength = cutting_beam_firepower(attacker, attacker.distance_to(target))
+    if attacker.is_crippled:
+        strength = attacker.crippled_value(strength)
+    if not now:
+        return strength
+    if attacker.special_order in (
+        SpecialOrder.ALL_AHEAD_FULL.value,
+        SpecialOrder.BURN_RETROS.value,
+        SpecialOrder.COME_TO_NEW_HEADING.value,
+    ):
+        strength = (strength + 1) // 2
+    if attacker.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
+        strength = (strength + 1) // 2
+    if "half_armament" in attacker.special_rules:
+        strength = (strength + 1) // 2     # Navigate the Storm: recovering from the warp
+    if _in_field_together(attacker, target):
+        strength = (strength + 1) // 2     # s.39: firing inside an asteroid field
+    return strength
+
+
+def lance_die_hits(weapon: Dict, need: Optional[int] = None) -> float:
+    """Expected hits from one lance die, by the weapon's own rules (as
+    resolve_lances rolls them): 4+ (or `hits_on`, Ork zzapp gunz 5+); Dark
+    Eldar phantom lances 1 hit on the need, 2 above it; Eldar phantom lances 1
+    on the need to 5, 2 on a 6; pulsars a hit and up to two follow-ups."""
+    if need is None:
+        need = weapon.get("hits_on") or 4
+    if need > 6:
+        return 0.0
+    p = (7 - need) / 6.0
+    if weapon.get("de_phantom"):
+        return 1 / 6.0 + 2 * (6 - need) / 6.0
+    if weapon.get("phantom"):
+        return (6 - need) / 6.0 + 2 / 6.0
+    if weapon.get("pulsar"):
+        return p + p * p + p ** 3
+    return p
+
+
+def lance_expected(attacker: Ship, weapon: Dict, target: Ship,
+                   now: bool = True) -> Tuple[float, float]:
+    """(expected hits, the part that bypasses shields) of a lance weapon fired
+    from where `attacker` stands at `target`, as resolve_lances resolves it
+    (To do 30, owner: each faction's lance rules): its strength as it fires
+    (lance_strength, a random strength over its outcomes), the per-die value
+    (lance_die_hits), Tyranid bio-plasma only on a 6 beyond 15cm and wholly past
+    shields, Necron particle whips' 6s past shields, then the holofield save by
+    range (on the hits that aren't bypassing, all of them for bio-plasma) and
+    the shadowfield save. Lock On's re-rolls and low orbit's 4+ to fire aren't
+    counted. now=False: a shot next turn (lance_strength)."""
+    text = weapon.get("strength_dice")
+    outcomes = (dice_distribution(text) if text and is_dice_value(text)
+                else [(weapon.get("strength", 0) or 0, 1.0)])
+    dist = attacker.distance_to(target)
+    need = weapon.get("hits_on") or 4
+    if weapon.get("bio_plasma") and dist > 15:
+        need = 6
+    per_die = lance_die_hits(weapon, need)
+    if weapon.get("bio_plasma"):
+        bypass_die = per_die
+    elif weapon.get("particle_whip") or weapon.get("shield_bypass_6"):
+        bypass_die = 1 / 6.0 if need <= 6 else 0.0
+    else:
+        bypass_die = 0.0
+    n = sum(q * lance_strength(attacker, target, weapon, v, now) for v, q in outcomes)
+    hits, bypass = n * per_die, n * bypass_die
+    if "holofield" in (target.special_rules or []):
+        from .eldar import p_holofield_save
+        keep = 1.0 - p_holofield_save(dist)
+        if weapon.get("bio_plasma"):
+            hits *= keep
+            bypass *= keep
+        else:
+            hits = bypass + (hits - bypass) * keep
+    from .dark_eldar import shadowfield_need
+    sf = shadowfield_need(target)
+    if sf is not None:
+        keep = 1.0 - (7 - sf) / 6.0
+        hits *= keep
+        bypass *= keep
+    return hits, bypass
+
+
+def _shadowfield(target: Ship, hits: int, dice: DiceRoller) -> int:
+    """Dark Eldar shadowfields (Xenos p.5) against lance hits: 2+, +1 per
+    tracking mark, at most 6+."""
+    from .dark_eldar import shadowfield_saves
+    return shadowfield_saves(dice, target, hits, "lances")
 
 
 def _holofield(attacker: Ship, target: Ship, hits: int, dice: DiceRoller) -> int:
@@ -692,6 +893,8 @@ def _eldar_lance_hits(attacker: Ship, target: Ship, weapon: Dict, result, dice: 
     return hits
 
 
+@_rec.logged("fire", lambda r, A: (A["game_state"], dict(
+    ship=A["attacker"].id, at=[A["target_x"], A["target_y"]], what="nova_cannon", result=r)))
 def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
                         dice: DiceRoller, game_state: GameState) -> Dict:
     """
@@ -725,10 +928,24 @@ def resolve_nova_cannon(attacker: Ship, target_x: float, target_y: float,
     else:
         scatter_dice = 3
 
+    # Dark Eldar shadowfields (Xenos p.5): aimed at a shadowfielded ship, the
+    # nova cannon scatters +1D6cm, even on a 'Hit' (reading: the ship whose
+    # base the aim point is on, else the nearest within the template)
+    from .dark_eldar import has_shadowfield
+    near = [s for s in game_state.get_ships() if not s.is_destroyed and math.hypot(
+        s.x - target_x, s.y - target_y) <= s.base_radius + NOVA_CANNON_TEMPLATE_RADIUS_CM]
+    aimed = min(near, key=lambda s: math.hypot(s.x - target_x, s.y - target_y), default=None)
+    shadow = aimed is not None and has_shadowfield(aimed)
+
     is_hit = dice.roll_scatter(f"Nova cannon scatter ({scatter_dice}D6 if miss)")
 
     result = {"hit": False, "scatter_distance": 0, "template_x": target_x,
               "template_y": target_y, "ship_hits": {}, "blast_markers": []}
+
+    if shadow:
+        game_state.add_log(f"  {aimed.name} shadowfield: the nova cannon scatters +1D6cm")
+        scatter_dice = scatter_dice + 1 if not is_hit else 1
+        is_hit = False
 
     if not is_hit:
         scatter_roll = dice.roll_d6(scatter_dice, "Scatter distance")
@@ -887,8 +1104,7 @@ def expected_hits(attacker: Ship, weapon: Dict, target: Ship, gs=None) -> float:
     outcomes = (dice_distribution(dice_text) if dice_text and is_dice_value(dice_text)
                 else [(weapon.get("strength", 0), 1.0)])
     if wtype == "lance":
-        p_hit = (7 - (weapon.get("hits_on") or 4)) / 6.0
-        return sum(v * p for v, p in outcomes) * p_hit
+        return lance_expected(attacker, weapon, target)[0]    # each faction's lance rules
     if wtype != "battery":
         return 0.0
     column = get_gunnery_column(gunnery_target_type(target),
@@ -932,6 +1148,25 @@ def apply_damage(target: Ship, hits: int, dice: DiceRoller, game_state: GameStat
     return result
 
 
+def _report_damage(gs, target: Ship, hits: int, summary: dict):
+    """The on-screen line for one attack's hits on a ship (owner: the log
+    must say when a ship is hit), written before its crits / crippling."""
+    if hits <= 0 or target.status in ("drifting_hulk", "burning_hulk"):
+        return
+    parts = []
+    if summary.get("shield_hits"):
+        parts.append(f"{summary['shield_hits']} on shields")
+    saved = summary.get("brace_saves", 0)
+    if saved:
+        parts.append(f"{saved} saved")
+    hull = summary.get("hull_hits", 0) - summary.get("unused_hits", 0)
+    parts.append(f"{hull} damage" if hull else "no damage")
+    left = max(0, target.hits_remaining)
+    gs.report(f"{target.name} takes {hits} hit{'' if hits == 1 else 's'}: " + ", ".join(parts)
+              + (" - reduced to 0" if summary.get("destroyed")
+                 else f" ({left}/{target.hits_max} hits left)"))
+
+
 def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  game_state: GameState,
                  ignores_shields: bool = False,
@@ -941,7 +1176,9 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                  origin: Optional[Tuple[float, float]] = None,
                  auto_crit: bool = False,
                  rolled_to_hit: bool = True,
-                 bypass_hits: int = 0) -> Dict:
+                 bypass_hits: int = 0,
+                 gunnery: bool = False,
+                 no_crits: bool = False) -> Dict:
     """
     Apply hits to a ship, handling shields, damage, crits. auto_crit: every
     hull hit is a critical hit, with no D6 check (vortex torpedoes).
@@ -957,6 +1194,12 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
     }
 
     remaining_hits = hits
+    if gunnery and hits > 0 and game_state is not None:
+        # Dark Eldar shadowfields (Xenos p.5): a gunnery hit places a tracking
+        # mark (once per attacking ship or squadron), even if saved by bracing
+        from .dark_eldar import add_tracking_mark
+        add_tracking_mark(game_state, target, game_state.get_ship_by_id(attacker_key)
+                          if attacker_key else None)
     # Eldar are Fragile (MMS p.4): critical hits on 5+ (Ghostships excepted)
     from .eldar import crit_threshold
     crit_on = min(crit_on, crit_threshold(target))
@@ -998,6 +1241,15 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
         summary["brace_saves"] = saves
         remaining_hits -= saves
         target_braced = False             # its save replaces Brace's
+
+    # Tyranid bonded exo-plating (Kraken, Carnivore; Xenos p.114): a 4+ save
+    # wherever a Brace save could be used, and unaffected by Brace
+    if "bonded_exo_plating" in target.special_rules and remaining_hits > 0:
+        rolls = dice.roll_d6(remaining_hits, f"{target.name} bonded exo-plating save (4+)")
+        saves = sum(1 for r in rolls if r >= 4)
+        summary["brace_saves"] = saves
+        remaining_hits -= saves
+        target_braced = False
 
     # Brace saves (4+ per HULL hit only, not shield hits)
     if target_braced and remaining_hits > 0:
@@ -1043,7 +1295,7 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
     if target.status in ("drifting_hulk", "burning_hulk"):
         if summary["hull_hits"] > 0:
             target.hits_remaining = 0
-            game_state.add_log(f"{target.name} (hulk) takes {summary['hull_hits']} "
+            game_state.report(f"{target.name} (hulk) takes {summary['hull_hits']} "
                                f"damage: rolls on the Catastrophic Damage table again")
             summary["catastrophic"] = resolve_catastrophic(target, dice, game_state)
             summary["destroyed"] = target.status == "destroyed"
@@ -1059,6 +1311,8 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                 summary["destroyed"] = True
                 break
 
+            if no_crits:
+                continue                   # Tyranid feeder tendrils: no normal crits
             # Critical hit check: D6 per hull hit, 6 = crit (crit_on 4 for
             # bombardment cannons and killkannons)
             if auto_crit:
@@ -1070,7 +1324,7 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
             if is_crit and not uses_crit_table(target):
                 # Small escorts/defenses take +1 damage instead of a critical
                 target.hits_remaining -= 1
-                game_state.add_log(f"Critical on {target.name}: +1 damage")
+                game_state.report(f"  Critical on {target.name}: +1 damage")
                 if target.hits_remaining <= 0:
                     summary["destroyed"] = True
                     break
@@ -1078,13 +1332,20 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
                 if roll_critical_hit(target, dice, game_state, summary):
                     summary["destroyed"] = True
                     break
+                if gunnery and _pyro_acid_attacker(game_state, attacker_key):
+                    # Pyro-acid batteries (Xenos p.107): a critical hit they
+                    # cause comes with an extra Fire
+                    add_fire_crits(target, 1, game_state, write=False)
+                    summary.setdefault("crits", []).append("Fire! (pyro-acid)")
 
         if summary["destroyed"]:
             summary["unused_hits"] = summary["hull_hits"] - hull_hits_applied
 
         if not was_crippled and target.is_crippled and not summary["destroyed"]:
             summary["crippled"] = True
-            game_state.add_log(f"{target.name} is now CRIPPLED")
+            game_state.report(f"  {target.name} is now CRIPPLED")
+
+    _report_damage(game_state, target, hits, summary)
 
     # Place blast markers for SHIELD hits only (not hull damage), s.11
     if summary["blast_markers_placed"] > 0:
@@ -1098,6 +1359,14 @@ def _apply_damage(target: Ship, hits: int, dice: DiceRoller,
 
 
 
+def _pyro_acid_attacker(game_state: GameState, attacker_key: str) -> bool:
+    """A Tyranid ship's gunnery is its pyro-acid batteries (their only
+    gunnery weapon)."""
+    shooter = game_state.get_ship_by_id(attacker_key) if attacker_key else None
+    return shooter is not None and "tyranid" in shooter.special_rules and any(
+        w.get("pyro_acid") for w in shooter.weapons)
+
+
 def demiurg_leadership(ship: Ship) -> None:
     """Demiurg commerce vessels lose 1 Ld per point of damage suffered, to a
     minimum of Ld 5, from their nominal (automated) Ld."""
@@ -1109,7 +1378,7 @@ def demiurg_leadership(ship: Ship) -> None:
 
 
 def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
-                      summary: Optional[Dict] = None) -> bool:
+                      summary: Optional[Dict] = None, reroll_fn=None) -> bool:
     """Roll 2D6 on the critical hits table for a ship that uses it, apply the
     result (cascading, extra damage) and any torpedo-launcher explosion.
     Changes target in place (the caller writes it back). True if the ship is
@@ -1118,6 +1387,10 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
     crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
     if _tzeentch_reroll(target, crit_2d6, crit_data, game_state, summary):
         crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name} (Mark of Tzeentch re-roll)")
+        crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
+    elif reroll_fn is not None and reroll_fn(crit_2d6, crit_data):
+        # e.g. Dark Eldar Pain Frenzy against a crippled ship: the second stands
+        crit_2d6 = dice.roll_2d6(f"Critical hit on {target.name} (Pain Frenzy re-roll)")
         crit_data = _resolve_crit_cascade(crit_2d6, target, game_state)
     if crit_data is None:
         game_state.add_log(f"Critical on {target.name}: rolled {crit_2d6}, "
@@ -1128,6 +1401,16 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
         extra = dice.roll_d3("Hull Breach extra damage")
     elif extra == "D6":
         extra = sum(dice.roll_d6(1, "Bulkhead Collapse extra damage"))
+    if crit_data["crit_type"] == "thorax_armament" and "extremely_ponderous" in target.special_rules:
+        # Proteus (Xenos p.110): a thorax crit falls on the keel weapons on 1-3,
+        # the dorsal ones on 4-6
+        r = dice.roll_d6(1, f"{target.name} thorax critical: 1-3 keel, 4-6 dorsal")[0]
+        side = "keel" if r <= 3 else "dorsal"
+        crit_data = {**crit_data, "crit_type": f"{side}_armament",
+                     "name": f"Thorax ({side.title()}) Armament Wounded"}
+    if crit_data["crit_type"] == "spores_injured" and "extremely_ponderous" in target.special_rules:
+        crit_data = {**crit_data, "crit_type": "spores_injured_1",
+                     "name": "Spore Cysts Injured (-1)"}      # Proteus: only -1 each
     target.critical_damage.append({
         "crit_type": crit_data["crit_type"],
         "description": crit_data["name"],
@@ -1136,10 +1419,10 @@ def roll_critical_hit(target: Ship, dice: DiceRoller, game_state: GameState,
     })
     if summary is not None:
         summary.setdefault("crits", []).append(crit_data["name"])
-    game_state.add_log(f"CRITICAL HIT on {target.name}: {crit_data['name']}")
+    game_state.report(f"  CRITICAL HIT on {target.name}: {crit_data['name']}")
     if isinstance(extra, int) and extra > 0:
         target.hits_remaining = max(0, target.hits_remaining - extra)
-        game_state.add_log(f"  Extra damage: {extra} HP")
+        game_state.report(f"    Extra damage: {extra} HP")
         if target.hits_remaining <= 0:
             return True
     if apply_crit_effects(target, crit_data, game_state):
@@ -1161,8 +1444,19 @@ def apply_crit_effects(target: Ship, crit_data: Dict, game_state: GameState) -> 
         target.leadership = max(1, target.leadership - crit_data["ld_loss"])
     if crit_data["crit_type"] == "infinity_circuit":
         target.leadership = max(1, target.leadership - 1)     # Eldar: -1 Ld per hit
-    if crit_data["crit_type"] == "holofield_destroyed":
+    if crit_data["crit_type"] in ("holofield_destroyed", "field_generators"):
+        # Eldar Field Generators Destroyed (XR, update 62): no holofields nor shields
         target.special_rules = [r for r in target.special_rules if r != "holofield"]
+    from .models import COMMAND_CRITS
+    if crit_data["crit_type"] in COMMAND_CRITS and "commander_slain" not in target.special_rules:
+        # Bridge Smashed and the alien tables' result 9 (update 62): the commander
+        # aboard is killed for scoring and its re-rolls are lost for the rest of
+        # the battle, even if the crit is later repaired
+        target.special_rules = list(target.special_rules) + ["commander_slain"]
+    if crit_data["crit_type"] == "control_circuit":
+        target.leadership = max(1, target.leadership - 1)     # given back when repaired
+    if crit_data["crit_type"] == "shadowfield_destroyed":
+        target.special_rules = [r for r in target.special_rules if r != "shadowfield"]
     if crit_data["crit_type"] == "bridge_smashed":
         if "demiurg_commerce" in target.special_rules:
             # Demiurg: one extra point of damage instead of -3 Ld
@@ -1229,11 +1523,14 @@ def weapon_in_crit_slot(weapon: Dict, crit_type: str) -> bool:
     arcs = weapon.get("arcs") or []
     word = {"dorsal_armament": "dorsal", "port_armament": "port",
             "starboard_armament": "starboard", "prow_armament": "prow",
-            "keel_armament": "keel"}.get(crit_type)
+            "keel_armament": "keel", "thorax_armament": "thorax"}.get(crit_type)
     if word is None:
         return False
     if word in name:
         return True
+    if crit_type == "thorax_armament":
+        # the Proteus's thorax crit lands on its keel or dorsal weapons
+        return "keel" in name or "dorsal" in name
     if any(w in name for w in ("dorsal", "port", "starboard", "prow")):
         return False                         # named for another location
     if crit_type == "port_armament":
@@ -1270,6 +1567,13 @@ def weapon_disabled_by_crit(ship: Ship, weapon: Dict) -> bool:
         return True
     if "station_bays" in crits and wt in ("launch_bay", "torpedo", "mine_launcher"):
         return True
+    if "eldar_mms" in ship.special_rules and sum(
+            1 for c in ship.critical_damage if c.get("crit_type") == "prow_armament") >= 2:
+        # Eldar (XR table, crit 4): a second prow hit disables the port and
+        # starboard weapons as well, until it is repaired
+        if weapon_in_crit_slot(weapon, "port_armament") or \
+                weapon_in_crit_slot(weapon, "starboard_armament"):
+            return True
     return any(weapon_in_crit_slot(weapon, c.get("crit_type", ""))
                for c in ship.critical_damage)
 
@@ -1348,12 +1652,25 @@ def add_fire_crits(target: Ship, n: int, game_state: GameState, write: bool = Tr
         # add the fires to the stored ship's own list (the caller's copy may be
         # stale: copying its whole list back could drop newer crits)
         fresh = game_state.get_ship_by_id(target.id) or target
-        if fresh is not target:
+        if fresh is not target and fresh.critical_damage is not target.critical_damage:
             for _ in range(n):
                 fresh.critical_damage.append({
                     "crit_type": "fire", "description": "Fire!", "repairable": True,
                     "turn_inflicted": game_state.turn_number})
         game_state.update_ship(fresh)
+
+
+def add_thrusters_crits(target: Ship, n: int, game_state: GameState) -> None:
+    """n automatic Thrusters Damaged critical hits with no extra damage (Dark
+    Eldar leech torpedoes, Xenos p.5), even on ships whose table has none."""
+    fresh = game_state.get_ship_by_id(target.id) or target
+    # A fresh list: copies of a ship may share one (models.ship_copy)
+    crits = list(fresh.critical_damage) + [
+        {"crit_type": "thrusters_damaged", "description": "Thrusters Damaged",
+         "repairable": True, "turn_inflicted": game_state.turn_number} for _ in range(n)]
+    fresh.critical_damage = crits
+    target.critical_damage = list(crits)
+    game_state.update_ship(fresh)
 
 
 # Orientation difficulty (from attacker's perspective): lower = easier to target = better column
@@ -1655,6 +1972,10 @@ def resolve_squadron_volley(plan: Dict, targets: List[Ship], dice: DiceRoller,
     return applied
 
 
+@_rec.logged("fire", lambda r, A: (_rec.current_gs(), dict(
+    ship=A["attacker"].id, targets=[s.id for s in A["eligible_ships"]],
+    aspect=A["chosen_orientation"], weapon=_rec.weapon_label(A["attacker"], A["weapon"]),
+    what="battery_vs_squadron", hits=r.hits)))
 def resolve_batteries_vs_squadron(
         attacker: Ship, weapon: Dict, target_type: str,
         chosen_orientation: str, eligible_ships: List["Ship"],
@@ -1716,21 +2037,24 @@ def resolve_batteries_vs_squadron(
 _RAM_SIZE_RANK = {"escort": 1, "cruiser": 2, "battleship": 3, "defense": 4}
 
 
-def ram_ld_dice(rammer_type: str, target_type: str) -> int:
+def ram_ld_dice(rammer_type: str, target_type: str, target=None) -> int:
     """Return number of d6 to roll for the ramming leadership test.
 
     Target larger → 1D6 (easier); same size → 2D6; target smaller → 3D6 (harder).
-    Defences count as the largest type (most immobile).
+    Defences count as the largest type (most immobile). A target behind
+    Dark Eldar shadowfields: +2D6 (Xenos p.5).
     """
     r = _RAM_SIZE_RANK.get(rammer_type, 2)
     t = _RAM_SIZE_RANK.get(target_type, 2)
-    if t > r:
-        return 1
-    if t < r:
-        return 3
-    return 2
+    n = 1 if t > r else (3 if t < r else 2)
+    from .dark_eldar import has_shadowfield
+    if target is not None and has_shadowfield(target):
+        n += 2
+    return n
 
 
+@_rec.logged("ram", lambda r, A: (A["game_state"], dict(
+    ship=A["rammer"].id, target=A["target"].id, result=r)))
 def resolve_ram(rammer: Ship, target: Ship, dice: DiceRoller,
                 game_state: GameState) -> Dict:
     """Resolve ramming damage for both ships.
@@ -1816,12 +2140,12 @@ def replace_with_blast_marker(ship: Ship, game_state: GameState) -> None:
     ship.status = "destroyed"
     ship.hits_remaining = 0
     game_state.update_ship(ship)
-    game_state.add_log(f"{ship.name} destroyed - replaced with blast marker")
+    game_state.report(f"  {ship.name} DESTROYED (replaced with a blast marker)")
     marker_id = f"wreck_{ship.id}"
     if not any(bm["id"] == marker_id for bm in game_state.blast_markers):
         game_state.add_blast_marker(BlastMarker(
             id=marker_id, x=ship.x, y=ship.y, source="destroyed_escort",
-            heading=random.uniform(0, 360)))
+            heading=cosmetic_heading(game_state)))
 
 
 def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) -> str:
@@ -1836,19 +2160,19 @@ def resolve_catastrophic(ship: Ship, dice: DiceRoller, game_state: GameState) ->
     else:
         roll = dice.roll_2d6(f"Catastrophic Damage for {ship.name}")
     result = lookup_catastrophic(roll)
-    game_state.add_log(f"Catastrophic Damage on {ship.name}: {result} (rolled {roll})")
+    game_state.report(f"Catastrophic Damage on {ship.name}: {result} (rolled {roll})")
 
     if result == "drifting_hulk":
         ship.status = "drifting_hulk"
         ship.hits_remaining = 0
         game_state.update_ship(ship)
-        game_state.add_log(f"  {ship.name} is now a DRIFTING HULK")
+        game_state.report(f"  {ship.name} is now a DRIFTING HULK")
 
     elif result == "burning_hulk":
         ship.status = "burning_hulk"
         ship.hits_remaining = 0
         game_state.update_ship(ship)
-        game_state.add_log(f"  {ship.name} is now a BURNING HULK")
+        game_state.report(f"  {ship.name} is now a BURNING HULK")
 
     elif result in ("plasma_drive_overload", "warp_drive_implosion"):
         ship.status = "destroyed"
@@ -1940,7 +2264,9 @@ def _resolve_crit_cascade(roll_2d6: int, ship: Ship,
     # Armament crit types (in table order by roll value)
     ARMAMENT_CRITS = {"dorsal_armament", "starboard_armament",
                       "port_armament", "prow_armament", "keel_armament",
-                      "station_lances", "station_batteries", "station_bays"}
+                      "station_lances", "station_batteries", "station_bays",
+                      # Tyranids: thorax weapons; spore cysts on a ship with none
+                      "thorax_armament", "spores_injured", "spores_ruptured"}
     from .tables import crit_table_for
     table = crit_table_for(ship)
 
@@ -2078,6 +2404,83 @@ def resolve_armageddon_gun(ship: Ship, gs, dice: DiceRoller) -> Dict:
                + (" (blocked)" if blocked else "") + f": {len(hits)} ship(s) hit")
     return {"hits": hits, "blocked": blocked, "path": (x0, y0, x1, y1)}
 
+
+
+def nightmare_targets(ship: Ship, gs) -> List[List[Ship]]:
+    """The units a nightmare field may target: each enemy capital ship and each
+    enemy escort squadron (as a list of its ships, nearest first) within 20cm
+    (to the base, as the star pulse generator)."""
+    from .necrons import FIELD_RANGE
+    seen, out = set(), []
+    for t in sorted(gs.get_ships(), key=lambda t: ship.distance_to(t)):
+        if (t.player == ship.player or t.is_destroyed or t.is_disengaged
+                or t.status != "active" or ship.distance_to(t) > FIELD_RANGE + t.base_radius):
+            continue
+        if t.ship_type == "escort" and t.squadron_id:
+            if t.squadron_id in seen:
+                continue
+            seen.add(t.squadron_id)
+            unit = [t] + [o for o in gs.get_ships() if o.id != t.id and o.player == t.player
+                          and o.squadron_id == t.squadron_id and not o.is_destroyed
+                          and not o.is_disengaged]
+        else:
+            unit = [t]
+        out.append(unit)
+    return out
+
+
+def nightmare_field_error(ship: Ship) -> Optional[str]:
+    from .necrons import field_usable
+    if not field_usable(ship.is_crippled, ship.special_order or ""):
+        return "a nightmare field can't be used while crippled or on special orders other than Lock On"
+    if any(c.get("crit_type") == "monument" for c in ship.critical_damage):
+        return "Monument damaged: no nightmare field until repaired"
+    return None
+
+
+def resolve_nightmare_field(ship: Ship, gs, dice: DiceRoller, target_id: str) -> Dict:
+    """A Necron nightmare field (Xenos p.40): every enemy attack craft and
+    boarding torpedo within 20cm is destroyed on 4+ (each marker, waves
+    included), then the target (an enemy capital ship or escort squadron
+    within 20cm) takes a Leadership test: failed, -1 Ld for the rest of the
+    game and no special orders, Brace included, until after the end of its
+    next turn (`necrons.strike_with_nightmare`). Readings: no line of sight
+    needed (Remastered: an area effect); the test uses the target's own Ld.
+    Returns {"failed": bool, "ordnance_destroyed": n} or {"error": ...}."""
+    import math as _m
+    from .necrons import FIELD_RANGE, field_ordnance_kills, nightmare_field, \
+        strike_with_nightmare
+    from .ordnance import CRAFT_STATS
+    why = nightmare_field_error(ship)
+    if why:
+        return {"error": why}
+    unit = next((u for u in nightmare_targets(ship, gs) if any(t.id == target_id for t in u)),
+                None)
+    if unit is None:
+        return {"error": "the nightmare field's target must be an enemy capital ship or "
+                         "escort squadron within 20cm"}
+    out = {"failed": False, "ordnance_destroyed": 0}
+    boarding = ("torpedo_boarding", "torpedo_boarding_guided")
+    near = [o for o in gs.ordnance if o.get("owner_player") != ship.player
+            and (o.get("ordnance_type") in CRAFT_STATS or o.get("ordnance_type") in boarding)
+            and _m.hypot(o["x"] - ship.x, o["y"] - ship.y) <= FIELD_RANGE]
+    gone = {m["id"] for m in field_ordnance_kills(dice, near, f"{ship.name} nightmare field")}
+    if gone:
+        gs.ordnance = [o for o in gs.ordnance if o["id"] not in gone]
+        out["ordnance_destroyed"] = len(gone)
+        gs.report(f"{ship.name} nightmare field destroys {len(gone)} attack craft / "
+                  f"boarding torpedo marker(s)")
+    target = unit[0]
+    if nightmare_field(dice, target.leadership or 0):
+        out["failed"] = True
+        strike_with_nightmare(gs, unit, own_turn=gs.active_player == target.player)
+        gs.report(f"{ship.name} nightmare field: {target.name}"
+                  + (" and its squadron" if len(unit) > 1 else "")
+                  + " fail the Leadership test: -1 Ld, no special orders until after the "
+                    "end of their next turn")
+    else:
+        gs.report(f"{ship.name} nightmare field: {target.name} passes its Leadership test")
+    return out
 
 
 def resolve_star_pulse(ship: Ship, gs, dice: DiceRoller) -> Dict:

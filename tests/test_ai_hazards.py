@@ -1,5 +1,5 @@
 """AI hazard assessment (src/ai_hazards.py)."""
-from tests.conftest import make_gs, make_ship, make_marker, DiceStub
+from tests.conftest import make_gunship, make_gs, make_ship, make_marker, DiceStub
 from src.ai_hazards import move_hazard_vp, p_sum_at_most
 from src.models import Phenomenon
 
@@ -61,14 +61,17 @@ def test_planner_steers_out_of_a_torpedo_line():
 def test_targeting_prefers_a_kill_and_avoids_overkill():
     from src.ai_hazards import shot_vp
     gun = {"name": "Port", "weapon_type": "battery", "range_cm": 30, "strength": 8, "arcs": ["left"]}
-    a = make_ship(id="a", player=1, x=0.0, y=0.0)
+    # the firer carries the gun (our fleet's later fire is what makes hits on
+    # the fresh ship worth anything short of a cripple, ai_hazards.hits_vp)
+    a = make_ship(id="a", player=1, x=0.0, y=0.0, weapons=[dict(gun)])
     weak = make_ship(id="w", player=2, x=20.0, y=0.0, points_value=180, hits_max=8,
                      hits_remaining=2, shields_max=1)
     fresh = make_ship(id="f", player=2, x=20.0, y=0.0, points_value=180, hits_max=8,
                       hits_remaining=8, shields_max=2)
-    gs = make_gs([a, weak, fresh])
+    gs = make_gs([a, weak, fresh, make_gunship(player=1, x=-150.0, y=0.0)])
     assert shot_vp(a, gun, weak, gs) > shot_vp(a, gun, fresh, gs)
-    assert shot_vp(a, gun, weak, gs, committed=10.0) < shot_vp(a, gun, fresh, gs)   # already dead
+    # already dead (a sure kill already planned): nothing left to gain there
+    assert shot_vp(a, gun, weak, gs, committed=25.0) < shot_vp(a, gun, fresh, gs)
 
 
 def test_commanders_ship_counts_its_exposure_and_braces_earlier():
@@ -81,11 +84,12 @@ def test_commanders_ship_counts_its_exposure_and_braces_earlier():
     foe = make_ship(id="e", player=2, x=40.0, y=0.0, weapons=[gun])
     gs = make_gs([flag, plain, foe])
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
-    near = ai._position_penalty(20.0, 0.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (20.0, 0.0)])
+    # off the foe's port side (its battery bears there; astern it wouldn't)
+    near = ai._position_penalty(40.0, 20.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (40.0, 20.0)])
     far = ai._position_penalty(-60.0, 0.0, gs.get_ship_by_id("c"), [(0.0, 0.0), (-60.0, 0.0)])
-    other = ai._position_penalty(20.0, 0.0, gs.get_ship_by_id("p"), [(0.0, 0.0), (20.0, 0.0)])
+    other = ai._position_penalty(40.0, 20.0, gs.get_ship_by_id("p"), [(0.0, 0.0), (40.0, 20.0)])
     assert near > far and near > other
-    # Priced brace (To do 11 c): 5 hits at 2 shields; bracing halves each ship's
+    # Priced brace (To do 11 c): 4 hits at 2 shields; bracing halves each ship's
     # fire next turn (a foe 20cm off), but the commander's ship is worth double
     # while it has re-rolls to lose, so it braces and the plain ship doesn't
     g6 = {"name": "Guns", "weapon_type": "battery", "range_cm": 30, "strength": 6,
@@ -97,14 +101,18 @@ def test_commanders_ship_counts_its_exposure_and_braces_earlier():
     foe2 = make_ship(id="e2", player=2, x=20.0, y=0.0, points_value=200, hits_max=8)
     gs2 = make_gs([f2, p2, foe2])
     gs2.active_player = 2
-    assert ai_should_brace(gs2, gs2.get_ship_by_id("c2"), 5)
-    assert not ai_should_brace(gs2, gs2.get_ship_by_id("p2"), 5)
+    # both planned no order next turn (To do 33 d: a brace gives that order up)
+    gs2.planned_orders = {"c2": [None, 0.0], "p2": [None, 0.0]}
+    from src.ai_player import brace_value
+    assert ai_should_brace(gs2, gs2.get_ship_by_id("c2"), 4)
+    assert (brace_value(gs2, gs2.get_ship_by_id("c2"), 4)
+            > brace_value(gs2, gs2.get_ship_by_id("p2"), 4))
 
 
 def test_fighters_go_for_the_most_dangerous_ordnance():
     from src.ordnance import ai_craft_target
     s = make_ship(id="s", player=1, x=0.0, y=0.0, points_value=180, hits_max=8)
-    gs = make_gs([s])
+    gs = make_gs([s, make_gunship()])
     f = make_marker(id="f", ordnance_type="fighter", owner_player=1, x=20.0, y=0.0, speed=30.0)
     torp = make_marker(id="t", ordnance_type="torpedo_standard", owner_player=2, x=25.0,
                        y=5.0, heading=180.0, speed=30.0, strength=2)
@@ -123,7 +131,7 @@ def test_ship_shoots_an_incoming_mine_when_nothing_better_is_in_reach():
     s = make_ship(id="s", player=1, x=0.0, y=0.0, heading=0.0, points_value=180, hits_max=8,
                   weapons=[lance])
     far = make_ship(id="e", player=2, x=0.0, y=90.0)
-    gs = make_gs([s, far])
+    gs = make_gs([s, far, make_gunship()])
     gs.add_ordnance(make_marker(id="m", ordnance_type="mine_launcher", owner_player=2, x=15.0,
                                 y=0.0, heading=180.0, speed=10.0, strength=1))
     dice = DiceStub([6, 2, 3])
@@ -134,7 +142,7 @@ def test_ship_shoots_an_incoming_mine_when_nothing_better_is_in_reach():
 
 def _fleet():
     s = make_ship(id="s", player=1, x=0.0, y=0.0, points_value=180, hits_max=8, turrets=1)
-    return make_gs([s])
+    return make_gs([s, make_gunship()])
 
 
 def test_two_fighters_split_between_a_mine_and_a_salvo():
@@ -257,3 +265,19 @@ def test_tau_missiles_reach_40cm():
     end, pts = (me.x, me.y), [(me.x, me.y)]
     assert marker_hits(me, std, end, pts, [me])[0] == 0.0
     assert marker_hits(me, tau, end, pts, [me])[0] > 0.0
+
+
+def test_exact_shields_and_dice_in_the_ai_values():
+    """Audit fixes (owner): no averages pushed through a cut-off."""
+    from src.ai_hazards import d6_past_shields, binomial_past_shields, shot_vp
+    # a D6 of asteroid hits against 2 shields: (1 + 2 + 3 + 4) / 6, not 3.5 - 2
+    assert abs(d6_past_shields(2) - 10 / 6) < 1e-12
+    # 4 lance shots on 4+ against 2 shields: 1x P(3) + 2x P(4) = 4/16 + 2/16
+    assert abs(binomial_past_shields(4, 0.5, 2) - 6 / 16) < 1e-12
+    # a battery averaging below the target's shields still has some value
+    gun = {"name": "Port", "weapon_type": "battery", "range_cm": 30, "strength": 2,
+           "arcs": ["left"]}
+    a = make_ship(id="a", player=1, x=0.0, y=0.0)
+    t = make_ship(id="t", player=2, x=0.0, y=20.0, shields_max=2, points_value=180)
+    gs = make_gs([a, t])
+    assert shot_vp(a, gun, t, gs) > 0

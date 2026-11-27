@@ -24,8 +24,10 @@ class AAPanelMixin:
         if player not in ais:
             from .ai_player import AIPlayer
             gs = self.ctx.gs
-            diff = gs.ai_difficulty if gs.ai_difficulty != "expert" else "hard"
+            diff = gs.difficulty_for(player)
+            diff = "very_easy" if diff == "very_easy" else "easy"   # no per-unit search yet
             ai = AIPlayer(player, self.ctx.tc, gs, self.ctx.dice, diff)
+            ai.contacts_fn = self.ordnance._resolve_moving_ship_contacts     # s.15
             ai.brace_fn = (lambda att, tgt, exp, grp: self.combat._brace_before_attack(
                 att.id, att.name, tgt, exp, None, grp, att))
             ais[player] = ai
@@ -34,8 +36,7 @@ class AAPanelMixin:
     def _aa_choose_first(self, holder: int, phase: str) -> int:
         if self.ctx.is_ai_controlled(holder):
             return holder if self._aa_ai(holder).aa_choose_first(phase) else 3 - holder
-        from tkinter import messagebox
-        first = messagebox.askyesno(
+        first = self.ctx.prompt.yes_no(
             "Initiative", f"You hold the initiative edge. Take the first activation of the "
                           f"{phase} phase? (No: the enemy goes first)")
         return holder if first else 3 - holder
@@ -151,18 +152,17 @@ class AAPanelMixin:
         cfg = self.aa.cfg.activation
         if cfg.order_mode != "fixed_initiative" or not cfg.allow_forcing:
             return
-        from tkinter import messagebox
         requests = {}
         for p in (1, 2):
             if self.ctx.is_ai_controlled(p) or self.ctx.tc.get_fleet_rerolls(p) <= 0:
                 continue
-            if not messagebox.askyesno("Force an activation",
+            if not self.ctx.prompt.yes_no("Force an activation",
                                        f"Player {p}: spend a re-roll to make one ship "
                                        f"(yours or the enemy's) activate first this {ph} phase?"):
                 continue
             ships = [s for s in self.ctx.gs.get_ships() if not s.is_destroyed
                      and not s.is_disengaged]
-            pick = self.ctx.pick_ship(ships, "Ship to activate first")
+            pick = self.ctx.prompt.pick_ship("Ship to activate first", ships)
             if pick is not None:
                 unit = next((u for us in self.aa.scheduler.eligible.values() for u in us
                              if pick.id in u.ship_ids), None)

@@ -131,18 +131,36 @@ CRITICAL_HITS = {
     12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
 }
 
-# Eldar Critical Hits Table (Appendix 3, MMS p.5): all Corsair and Craftworld
-# Eldar vessels
+# Eldar Critical Hits Table (Appendix 3; update 62: XR's, Xenos p.17, in place of
+# MMS p.5): all Corsair and Craftworld Eldar vessels
 ELDAR_CRITICAL_HITS = {
     2:  {"name": "Infinity Circuit Damaged", "extra_damage": 0, "crit_type": "infinity_circuit", "repairable": True},
     3:  {"name": "Keel Armament Damaged", "extra_damage": 0, "crit_type": "keel_armament", "repairable": True},
     4:  {"name": "Prow Armament Damaged", "extra_damage": 0, "crit_type": "prow_armament", "repairable": True},
     5:  {"name": "Mast Lines Severed", "extra_damage": 0, "crit_type": "mast_lines", "repairable": True},
     6:  {"name": "Mainsail Scarred", "extra_damage": 0, "crit_type": "mainsail_scarred", "repairable": True},
-    7:  {"name": "Superstructure Damaged", "extra_damage": 1, "crit_type": "superstructure", "repairable": True},
+    7:  {"name": "Superstructure Damaged", "extra_damage": 1, "crit_type": "eldar_superstructure", "repairable": True},
     8:  {"name": "Mainsail Shredded", "extra_damage": 0, "crit_type": "mainsail_shredded", "repairable": True},
-    9:  {"name": "Holofield Generators Destroyed", "extra_damage": 1, "crit_type": "holofield_destroyed", "repairable": False},
-    10: {"name": "Shields Collapse", "extra_damage": 1, "crit_type": "shields_collapse", "repairable": False},
+    9:  {"name": "Infinity Circuit Smashed", "extra_damage": 1, "crit_type": "infinity_circuit_smashed", "repairable": False, "ld_loss": 3},
+    10: {"name": "Field Generators Destroyed", "extra_damage": 0, "crit_type": "field_generators", "repairable": False},
+    11: {"name": "Hull Breach", "extra_damage": "D3", "crit_type": "hull_breach", "repairable": False},
+    12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
+}
+
+
+# Dark Eldar Critical Hits Table (Appendix 3, Xenos p.6); "ld_loss" for
+# Commanders Slain (never repaired); Control Circuit's -1 is given back when
+# repaired ("ld_repairable")
+DARK_ELDAR_CRITICAL_HITS = {
+    2:  {"name": "Control Circuit Damaged", "extra_damage": 0, "crit_type": "control_circuit", "repairable": True},
+    3:  {"name": "Keel Armament Damaged", "extra_damage": 0, "crit_type": "keel_armament", "repairable": True},
+    4:  {"name": "Prow Armament Damaged", "extra_damage": 0, "crit_type": "prow_armament", "repairable": True},
+    5:  {"name": "Graviton Harness Severed", "extra_damage": 0, "crit_type": "graviton_harness", "repairable": True},
+    6:  {"name": "Bladevanes Scarred", "extra_damage": 0, "crit_type": "bladevanes", "repairable": True},
+    7:  {"name": "Superstructure Damaged", "extra_damage": 0, "crit_type": "de_superstructure", "repairable": True},
+    8:  {"name": "Thrusters Damaged", "extra_damage": 1, "crit_type": "thrusters_damaged", "repairable": True},
+    9:  {"name": "Commanders Slain", "extra_damage": 0, "crit_type": "commanders_slain", "repairable": False, "ld_loss": 1},
+    10: {"name": "Shadowfield Generators Destroyed", "extra_damage": 0, "crit_type": "shadowfield_destroyed", "repairable": False},
     11: {"name": "Hull Breach", "extra_damage": "D3", "crit_type": "hull_breach", "repairable": False},
     12: {"name": "Bulkhead Collapse", "extra_damage": "D6", "crit_type": "bulkhead_collapse", "repairable": False},
 }
@@ -182,6 +200,24 @@ SPACE_STATION_CRITICAL_HITS = {
 }
 
 
+# Tyranid Critical Hits Table (Appendix 3, Xenos p.107). Deep Wound "functions
+# exactly like a Fire critical hit"; Massive Haemorrhage's 2D6cm bio-plasma
+# spray isn't built yet (its D6 damage is)
+TYRANID_CRITICAL_HITS = {
+    2:  {"name": "Spore Cysts Injured", "extra_damage": 0, "crit_type": "spores_injured", "repairable": True},
+    3:  {"name": "Starboard Armament Wounded", "extra_damage": 0, "crit_type": "starboard_armament", "repairable": True},
+    4:  {"name": "Port Armament Wounded", "extra_damage": 0, "crit_type": "port_armament", "repairable": True},
+    5:  {"name": "Prow Armament Wounded", "extra_damage": 0, "crit_type": "prow_armament", "repairable": True},
+    6:  {"name": "Thorax Armament Wounded", "extra_damage": 1, "crit_type": "thorax_armament", "repairable": True},
+    7:  {"name": "Deep Wound!", "extra_damage": 0, "crit_type": "fire", "repairable": True},
+    8:  {"name": "Discharge Vents Wounded", "extra_damage": 1, "crit_type": "discharge_vents", "repairable": True},
+    9:  {"name": "Synapse Link Severed", "extra_damage": 0, "crit_type": "synapse_severed", "repairable": True},
+    10: {"name": "Spore Cysts Ruptured", "extra_damage": 0, "crit_type": "spores_ruptured", "repairable": False},
+    11: {"name": "Severe Wound", "extra_damage": "D3", "crit_type": "severe_wound", "repairable": False},
+    12: {"name": "Massive Haemorrhage", "extra_damage": "D6", "crit_type": "massive_haemorrhage", "repairable": False},
+}
+
+
 def crit_table_for(ship) -> dict:
     """The critical hits table a ship rolls on (Appendix 3 / 5)."""
     if "space_station_crits" in (getattr(ship, "special_rules", None) or []):
@@ -190,6 +226,10 @@ def crit_table_for(ship) -> dict:
         return ELDAR_CRITICAL_HITS
     if "necron" in (getattr(ship, "special_rules", None) or []):
         return NECRON_CRITICAL_HITS
+    if "dark_eldar" in (getattr(ship, "special_rules", None) or []):
+        return DARK_ELDAR_CRITICAL_HITS
+    if "tyranid" in (getattr(ship, "special_rules", None) or []):
+        return TYRANID_CRITICAL_HITS
     return CRITICAL_HITS
 
 

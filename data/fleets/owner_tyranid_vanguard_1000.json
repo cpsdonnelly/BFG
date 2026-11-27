@@ -1,0 +1,607 @@
+{
+  "fleet_name": "Tyranid Vanguard 1000",
+  "faction": "tyranids",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 1000,
+  "fleet_list": "tyranid_vanguard",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_0",
+      "fleet_list": "tyranid_vanguard"
+    },
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_0",
+      "fleet_list": "tyranid_vanguard"
+    },
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_0",
+      "fleet_list": "tyranid_vanguard"
+    },
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_1",
+      "fleet_list": "tyranid_vanguard"
+    },
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_1",
+      "fleet_list": "tyranid_vanguard"
+    },
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_1",
+      "fleet_list": "tyranid_vanguard"
+    },
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_2",
+      "fleet_list": "tyranid_vanguard"
+    },
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery"
+      ],
+      "points_value": 110,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_2",
+      "fleet_list": "tyranid_vanguard"
+    },
+    {
+      "name": "Tyranid Bio-Cruiser (Prowler)",
+      "ship_class": "Tyranid Bio-Cruiser (Prowler)",
+      "faction": "tyranids",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 6,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 1,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        },
+        {
+          "name": "Thorax Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "spore_cloud",
+        "pheromone_sprayers",
+        "turn_distance_minus5"
+      ],
+      "upgrades": [
+        "Prow: Pyro-acid Battery",
+        "Thorax: Pyro-acid Battery",
+        "Biomorph: Extra Discharge Vents"
+      ],
+      "points_value": 120,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "prowlers_2",
+      "fleet_list": "tyranid_vanguard"
+    }
+  ]
+}

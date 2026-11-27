@@ -1,5 +1,11 @@
 # How the BFG:XR AI thinks: current and planned
 
+> Where CLAUDE.md's old sections went (owner: CLAUDE.md kept small): "Owner rulings" and the
+> rules-area notes -> docs/RULINGS.md; "Session status" -> docs/STATUS.md; "AI: how it
+> decides" -> docs/AI_DECIDES.md; "To do" -> docs/TODO.md (open items) and docs/TODO_DONE.md (full history). References below to those
+> CLAUDE.md sections mean those files.
+
+
 This describes the computer opponent as it is built today and as planned from the owner's
 feedback. Each feature is marked **Built** or **Planned (To do N)**; the numbers refer to the
 To do list in `CLAUDE.md`, which has the implementation detail. Code lives mainly in
@@ -61,7 +67,10 @@ hit-and-run off, assault boats, boarding torpedoes and teleports are off for eve
 
 - **Batteries (macrobatteries)** (Built): expected hits from the Gunnery table with the real
   column shifts (range, blast markers or dust in the line of fire, target aspect). Planners use
-  a quick 0.35 hits per firepower point against Armour 5+, scaled to the actual Armour. Ork
+  the same table from where the ships stand (aspect, Armour facing, range-free shifts such as
+  holofields; the range left out as the shot comes after a move), or, where the target isn't
+  known, the table's own average of 0.176 hits a firepower point against 5+ (the old rule
+  of thumb was 0.35, about twice the table). Ork
   random firepower is rolled when the gun fires; Heavy Gunz use their bigger close-range value
   within 15cm.
 - **Lances** (Built): 0.5 hits per lance (4+ whatever the Armour); unaffected by column shifts.
@@ -81,7 +90,8 @@ hit-and-run off, assault boats, boarding torpedoes and teleports are off for eve
 - **Attack craft** (Built): see sections 4 and 5.
 - **Teleport attacks** (Built, basic): in its end phase, if teleports and hit-and-run are on, it
   raids the eligible target worth most per raid. Planned (To do 8 j): positioning for them.
-- **Boarding and ramming** (Planned, To do 8 h): the AI plans neither today.
+- **Boarding and ramming** (Built, To do 8 h, only with those rules on): it moves for base
+  contact and declares a boarding action or a ram when the expected VP is worth it.
 - **Weapons knocked out by critical hits** never fire (Built).
 
 ### Enemy weapons
@@ -141,7 +151,10 @@ before modifiers), just after its minimum move (half speed), or at the end. Thes
 rules: for a 20cm cruiser both are 10cm, for a 25cm cruiser 10cm and 12.5cm. Escorts turn
 anywhere, even at the very start (reaching places no capital ship can); Burn Retros needs no
 movement before turning; only forward movement this phase counts toward the turning distance;
-any angle up to the maximum is legal. Distances run from the minimum move (ending as short as
+any angle up to the maximum is legal. The turning distance is one rule shared with the engine (`movement.turn_distance`: none for
+Burn Retros, low orbit and Dark Eldar, 20cm for Necrons on All Ahead Full, Quest +5cm, Tyranid
+Extra Discharge Vents -5cm); ships with no minimum move also try quarter and half moves.
+Distances run from the minimum move (ending as short as
 legally possible often keeps a ship out of range; under 5cm a ship counts as Defences on the
 Gunnery table, which matters for Burn Retros) to full speed.
 
@@ -214,6 +227,24 @@ targets together. Each ship's guns go where they add most VP on top of what the 
 do, so one ship finishes a 1-hit enemy while the rest move on, and two healthy targets each get
 the ships needed to kill them rather than all piling on one.
 
+### Strategies (Built, first slice; owner: "a list of strategies all ships try out")
+
+Each ship lists the strategies its weapons, speed and state allow:
+
+- flank left or right into the target's rear arc;
+- hold the range band where its guns beat the target's;
+- kite (with a range and speed edge);
+- close in (with boarding or ramming on, or when it fights best under 15cm);
+- screen the flagship or a carrier (escorts);
+- run for the nearest edge (crippled).
+
+Each strategy's first move is searched alongside the usual candidates, and the simulated
+ship keeps following the plan the next turn while the enemy replies. So a move that looks
+poor on its own, such as swinging wide now to be behind the enemy next turn, is valued by
+what it leads to. Every line is judged over the same two turns (normal now looks two turns
+ahead along one line). The search stops after a fixed number of simulated turns rather
+than a time limit, so seeded games replay exactly.
+
 ### Matchup-aware manoeuvre (To do 8; owner ideas, not hard rules; a and f built, the rest planned)
 
 - **a.** Exposure by Armour facing (prerequisite; **Built**): the enemy's batteries are scored
@@ -262,57 +293,113 @@ non-crippled ship that disengages gives 10% ("Enemies Scattered", s.38).
 
 ### Special orders
 
-**Built today**: Burn Retros when the safest half-speed move saves more hazard than half
-the ship's firepower is worth; otherwise Lock On or All Ahead Full by the value of the move
-each allows (the target in arc after the move), against Reload Ordnance valued as next turn's
-launch (a strike or CAP for spent bays, the salvo's expected hits for spent torpedoes), all in
-expected VP; with nothing better a spent ship reloads (it costs no firepower). Each ship's
-order is skipped when its failure would block more valuable later orders. Come to New Heading
-is valued the same way: its two-turn moves (a first leg and turn, then a normal one-turn move)
-at half firepower against the best free move, so a forward-firing ship with a 90-degree turn
-and an enemy close behind turns twice. Brace for Impact is a reaction, priced
-(built): the VP its 4+ saves are expected to keep (this attack and enemies still to fire)
-against half the ship's fire until the end of its next turn, at the command check's odds; with a
-turn limit both by certainty equivalent (ahead it braces more readily). The commander's ship
-braces earlier only because it is worth more.
+**Built** (rebuilt after the owner's audit question, "were you lazy with the other orders
+too?"; several shortcuts were found and fixed):
 
-**Planned (To do 10, owner notes)**:
-
-- Orders come before the move, so **Lock On** is worth it when an enemy **will or can** be in
-  arc after the move: the best straight move with re-rolled misses, against the best move
-  without the order (which may turn).
-- Every order valued the same way, as expected VP over the best no-order move, with its
-  firepower cost: Burn Retros to avoid a hazard, Lock On for more hits, Come to New Heading to
-  turn twice (e.g. into a rear arc), All Ahead Full to close, ram or escape, Reload Ordnance for
-  next turn's launch.
-- **Prioritise**: a failed command check ends all movement-phase orders that turn (s.2; it never
-  stops a brace later, see below), so take the most
-  valuable, most reliable orders first and skip a low-value order whose failure would block
-  more valuable ones. A commander re-roll on a failed check is worth the order plus everything
-  the failure would block.
-- **Command check modifiers** (s.6) in every pass chance: Enemy Contacts +1 Ld when any enemy
-  ship is on special orders, Under Fire -1 with blast markers in contact (Ld 0-10; command checks
-  only, not Leadership tests). Both directions: our ship on orders makes the enemy's checks
-  easier next turn; an enemy on orders makes ours easier, so our orders are cheaper.
+- **One pass chance** for every order and for Brace, taken from the engine's own rule
+  (`movement.command_check_ld`, the same function the real command check uses): Leadership,
+  Under Fire (not Necrons), Enemy Contacts (incl. the Cobra's sensors, nebuloscope pylons,
+  veiled Shrouds), Fleet Experience / Blood Bond, Slaanesh, sub-plots, Grot Riggers, Siren's
+  Summon, Tyranid synapse Ld for Brace, and automatic passes (Dark Eldar Come to New Heading,
+  Orks' All Ahead Full). It is 0 when no order can be tried (a failed check this turn, a
+  scenario forbidding orders, a Tyranid on instinct). Before, five hand-written copies each
+  missed some of these.
+- **Each order's value** is the best move it allows against the best free move, in expected
+  VP, with only the firepower cost the rules give it (s.7): All Ahead Full, Come to New
+  Heading and Burn Retros halve batteries and lances, never torpedoes or launch bays (AAF
+  used to halve everything, Come to New Heading the whole arc score); Lock On costs nothing
+  and is worth what re-rolling the misses adds, 1 - p a die by the weapon's real to-hit
+  (+50% at 4+, +67% at 5+, +83% at 6+; it was a flat half); Reload Ordnance is worth next
+  turn's launch (a strike or CAP for spent bays, the reloaded salvo's real hits after turrets
+  and re-rolls for torpedoes); Burn Retros the hazard it avoids. Come to New Heading's moves
+  are two-leg (a first leg and turn, then a normal move), so a forward-firing ship with an
+  enemy close behind turns twice, and a Dark Eldar ship (no turning distance, an automatic
+  pass) can get behind an enemy.
+- **The choice**: every order's value times its pass chance on one scale, the best taken (Burn
+  Retros used to win whenever it beat its own cost); with nothing better a spent ship still
+  reloads. An order is skipped when its failure would block more valuable later orders (a
+  failed check ends the turn's orders, s.2); a commander re-roll on a failed check is worth
+  the orders the failure would block.
 - A teleport-capable ship on any order but Lock On / Reload Ordnance gives up its end-phase
   raid (s.31); that counts against the order.
-- **Brace for Impact** (rules, s.7): a failed movement-phase check doesn't stop a ship bracing
-  later; a failed brace blocks only that ship until that attacker has finished all its
+- Brace is priced: the VP its 4+ saves are expected to keep (this attack and enemies still to
+  fire) against half the ship's fire until the end of its next turn, at the same pass chance;
+  with a turn limit both by certainty equivalent. The commander's ship braces earlier only
+  because it is worth more.
+
+Planned (owner; built once and reverted, see CLAUDE.md To do 33): a commander re-roll counted in every order's and Brace's pass chance: a
+failed check is re-rolled when the AI would spend one on it, passing at the same chance
+again, less what the AI holds a kept re-roll to be worth. Brace also pays for the order it
+forbids next turn (the AI's own choice from where the ship stands, at its pass chance).
+**Not yet**: re-ordering the checks (it would break the support move order).
+
+**Brace for Impact** (rules, s.7): a failed movement-phase check doesn't stop a ship bracing
+later; a failed brace blocks only that ship until that attacker has finished all its
   attacks; a ship decides separately against each of an attacker's weapons (it may brace
   against the lances after not bracing against the gunnery) but tries only once per attacker
   per turn: a ship that fails against a ship's macrobatteries can't brace when that ship then
   fires its lances (the engine enforces this). When the AI fires, the target is asked before
   each weapon; the player's Fire dialog fires batteries, then lances, then the nova cannon and
-  asks before each kind (Built). Planned (To do 11 c): price Brace by what it really costs until the end of the
-  ship's next turn (guns, lances and ordnance halved, halved again if crippled; no special
-  orders; no firing at all inside an asteroid field, s.39) against the hits it saves over this
-  and every later attack until then; trying now also uses up the one try against this
-  attacker's later weapons, so a failure leaves its lances unbraceable (saves count only for
-  hits past shields). This replaces the fixed quarter-of-hits rule and the commander bias (the
-  commander's ship should still brace earlier, because its loss is worth more, but that comes
-  out of the values).
+  asks before each kind (Built). Its price (above) replaced the fixed quarter-of-hits rule and
+the commander bias. Not yet: trying against the weapon where the saving is worth most (a
+failed try against the batteries leaves the lances unbraceable).
 
 ---
+
+### What a hit is worth (Built, owner: "s.38 scores nothing until a threshold")
+
+A hull hit that doesn't cripple or destroy a ship scores nothing by itself. It is worth what
+it adds to the chance the ship is crippled or destroyed by the end of the game. That chance
+comes from the enemy's fire on it: next turn the guns that can reach it, later turns its
+share of the enemy fleet's guns, torpedoes and bays, to the turn limit (or six turns),
+undiscounted, since VP are scored at the end. Hits that cross a threshold now also count
+the ship's value, its fire removed and its explosion. Every value in hits uses this: gunnery
+targets, bombers and raids, crits' extra damage, fires, explosions, Brace and the enemy's
+fire plan. So damage nothing can follow up is worth little, and a doomed ship gains little
+from protection. Before, every hit counted a flat share of the ship's value.
+
+This is a value, not a lookahead (owner question): no ship is moved and no turn played to
+work it out, so it is the same at every difficulty. The difficulty sets how many turns of
+moves the search plays out (section 10); the search's own leaf scores where those turns end
+with its simpler count (VP banked + one more turn's swing), not with this. Whether the
+weaker levels should use a shorter span is an open question for the owner. Is it better in
+play than the flat value? By the rules' reasoning yes (focus where a threshold can be
+reached, finish what can be finished, waste nothing on the last turn), but unproven: it
+would take about 100 paired games to tell, and the owner has pinned that as not worth it.
+
+### Critical hits and re-rolls, measured (Built)
+
+Owner: no guessed shares where the rules give an answer.
+
+- **A crit's effect** is measured, not guessed. The crit is applied to a copy of the ship by
+  the engine's own rules, and the copy's exchange with our fleet is compared with the
+  original's at each of its next few shooting phases. The exchange counts its fire on our
+  ships and ours on it, with the target attacking or evading, whichever suits it; its speed,
+  turns, shields and guns are read as the engine reads them. Each phase is weighted by the
+  chance the crit is still unrepaired. That chance is exact: the repair dice over each end
+  phase, and a system with several crits works again only when all of them are repaired.
+- So Thrusters Damaged costs the reach the ship needed, Engine Room the turn it needed (to
+  close, or to bring a broadside round), and Shields Collapse the fire that would then get
+  through. Bridge Smashed costs the Brace its lower Leadership loses, plus the commander's
+  VPs. Extra damage is valued as hull hits.
+- **Planned (built, then reverted; To do 33):** lower Leadership also costs the special order the ship would take next turn: the
+  order's worth times the drop in its pass chance.
+- **Planned (built, then reverted):** boarding crits valued as the engine rolls them on the ship's own table (a D6 on
+  the raid table; an escort's 1 damage), with the Haemonculi's Fire and Pain Frenzy's
+  re-roll when a Dark Eldar ship inflicts them. They used to count a flat hit.
+- **Planned (built, then reverted):** raids on Dark Eldar ships worth something for every result: keel armament by
+  the launch bays it silences, Superstructure Damaged by the cheaper of turning with a 1 in
+  3 chance of a hit or holding straight. Silenced torpedoes count their salvo's real hits.
+- **Re-rolls** are worth what passing gains over failing, test by test:
+  - Brace: its own price, given that it passes.
+  - A warp rift: the ship.
+  - An asteroid field: the D6 damage past its shields.
+  - Disengaging: its disengage value.
+  - Target priority: the guns at the target it wants, less at the closest.
+  - An order: that order's value.
+  - A guided salvo: its plan turning now, less held straight.
+- The guns' value comes from exact hit distributions: the Gunnery table's dice for
+  batteries, and each faction's lance rules and saves, die by die.
 
 ## 4. Target priority
 
@@ -339,6 +426,10 @@ The target the salvo adds most VP to after turrets, path hazards and friendly fi
 - **Turning salvos** (Tau missiles, Leadership-guided, boarding) plan a path, four moves deep,
   onto the weakest Armour facing they can reach (e.g. round to an Ork cruiser's 4+ rear), and
   follow it in flight.
+- **The load** (when no once-a-game, guided or short burn load is chosen) by expected VP:
+  standard (Dark Eldar plasma re-rolling misses) by hull hits, boarding torpedoes a raid a
+  hit (off with hit-and-run), leech a Thrusters Damaged a hit (its measured effect, below, over
+  the salvo's exact hit distribution); plasma wins against ordinary targets.
 - **Co-ordinated with bombers** (owner): salvos and bomber waves reaching one ship in the same
   phase gain the turret split (not against Orks).
 
@@ -366,7 +457,7 @@ AI splits only when the guns matter more than the turrets (e.g. under two gunshi
 
 Built since: the risk preference in strike choices, the expert AI valuing its own craft in
 flight (its search moves our torpedoes and bombers and the enemy's moves dodge them). Planned:
-splitting assault boats or waves already in flight. Built (To do 3): torpedo bombers as a strike option (the squadrons that get past interceptors fire 2 each), fired at the ship in salvo reach worth most, and counted in the hazard model as a salvo; mines laid when an enemy is within three turns.
+splitting assault boats or waves already in flight. Built (To do 3): torpedo bombers as a strike option (the squadrons that get past interceptors fire 2 each), fired at the ship in salvo reach worth most, and counted in the hazard model as a salvo; mines laid when they are worth anything: each mine is followed 10cm an ordnance phase at the nearest enemy over its sampled moves for four ordnance phases, attacking with 8D6 (4D6 if a turret hits) on contact (`mine_value`), so a receding enemy that a mine can't catch gets none.
 
 ---
 
@@ -407,21 +498,28 @@ Each ordnance phase the AI plans fighters across all its carriers:
   grid in crowded or hazard-dense fights or small reachable areas, exposure only on the best
   ~20, then the full fleet coordination pass (built: Armour-facing and rear-arc goals,
   hill-climbing, the support move order).
-- **Expert AI movement**: for each ship, up to 12 of the normal AI's candidates at the root
-  (best first), each followed by a
-  minimax search 5 turns deep that tries 6 variations of each side's moves per step and keeps
-  the best 4 (alpha-beta pruning), within 2 seconds per ship.
+- **Searched movement (normal and up)**: for each ship, up to 12 of the normal AI's
+  candidates at the root (best first) plus every strategy's first move (section 3,
+  Strategies), each followed by a minimax search (normal 2 turns, hard 3, expert 5, master
+  10) that tries a few variations of each side's moves per step and keeps the best few lines
+  (alpha-beta pruning), cut by a fixed number of simulated turns per decision (normal 450 up
+  to master 2800), so the same seed always gives the same game.
 
 ---
 
 ## 7. Thinking over several turns
 
-- **Normal AI** (Built): about one turn ahead, through: the enemy's next turn of fire
+- **Normal AI** (Built): its movement search plays out 2 turns (since the strategy
+  planner: every line is followed for the strategies' two turns, the second along one line);
+  its other choices look about one turn ahead, through: the enemy's next turn of fire
   (exposure, disengaging), the threat a kill removes, explosions before our next move, next
   turn's launch when holding bays, and ordnance planners looking two game turns (four ordnance
   phases) ahead with the time discount. Disengaging uses a one-turn horizon.
-- **Expert AI** (Built): simulates 5 turns of both sides moving and shooting, and stops at the
-  game's turn limit.
+- **Hard, expert, master** (Built): simulate 3, 5 and 10 turns of both sides moving and
+  shooting, and stop at the game's turn limit.
+- **Values that reach further than the search**: a hull hit's worth assumes the enemy keeps
+  firing to the turn limit or 6 turns (section 3, "What a hit is worth"); a formula, not
+  simulated turns.
 - **Built since**: the turn-limit risk preference (the expert's chance-of-winning score, and the
   normal AI's disengaging and re-rolls); crit values over up to 3 of the target's shooting
   phases and the turn limit; the risk preference in brace, strike choices and the guns a
@@ -443,7 +541,7 @@ the current AI, whose normal and expert players and weights stay as they are.
 | Values | crippled / destroyed | 25% / 100% | of points (s.38) |
 | Time | phase discount | 0.85 | per ordnance phase of delay |
 | Time | later-turn weight | 0.5 | anything from the next game turn |
-| Guns | battery rule of thumb | 0.35 | hits per firepower point vs 5+ |
+| Guns | battery average (rule-derived, To do 30) | 0.176 | the Gunnery table's hits per firepower point vs 5+ |
 | Guns | lance | 0.5 | hits per lance |
 | Raids | torpedo in a silenced location | 0.3 | hits per point |
 | Raids | weapon brought to bear after a turn | 0.75 | when valuing an armament crit |
@@ -525,18 +623,23 @@ the current AI, whose normal and expert players and weights stay as they are.
 
 ---
 
-## 10. Easy, normal and expert
+## 10. Very easy, easy, normal, hard, expert and master
 
-| | Easy | Normal (and Hard) | Expert |
+Easy plays exactly as normal, without the movement search (owner). The table compares very
+easy with the rest.
+
+| | Very easy | Easy / Normal | Hard / Expert / Master |
 |---|---|---|---|
-| Targets | random among valid targets | marginal expected VP, focus, no overkill | as normal |
-| Special orders | none | Burn Retros / Lock On / Reload (To do 10 to improve) | as normal |
+| Targets | the closest valid target (owner) | marginal expected VP, focus, no overkill | as normal |
+| Re-rolls, Brace | expected VP, as normal | expected VP | as normal |
+| Special orders | Lock On whenever an enemy is in arc and range now (no expected-VP check) | every order by pass-weighted expected VP, one pass chance from the engine's rule | as normal |
 | Ordnance | simple launches (its strike craft, at the nearest target) | full planner: CAP vs strikes, strikes on arrival, lanes, leading, co-ordination | as normal |
 | Squadron volleys, hulks, shooting ordnance, disengaging, explosions, screening | off | on | as normal |
-| Movement | the same 15 candidates, scored on guns and hazards only (no exposure, focus, explosions or screening) | 15 candidates scored greedily, one turn ahead | 5-turn minimax per ship (9 x search), ~75s a game |
+| Movement | the same candidates, scored on guns and hazards only (no exposure, focus, explosions or screening), picked by softmax (`EASY_TEMPERATURE` 2.0), not always the best | the move candidates scored greedily; normal adds a 2-turn search with the strategies | hard 3 turns, expert 5, master 10 or to the game's end (owner) |
 
-Planned (To do 11 i, suggestion): Easy chooses by a softmax on expected value with a temperature,
-so its mistakes look human rather than random; Hard gets the coordination pass or tuned weights.
+Built for movement (To do 11 i): Very easy picks its move by a softmax on its move score, so its
+mistakes look human rather than random; not yet for its targets and orders, which are random /
+fixed rules; Hard gets the coordination pass or tuned weights.
 The expert AI now pays the normal AI's path-hazard cost for each move it chooses between
 (Built, To do 11 b): mines, torpedoes and attack craft in flight, asteroid fields, warp rifts,
 clouds and blast markers, so it no longer drives into an asteroid field it can avoid. Deeper in
@@ -552,22 +655,40 @@ blast markers, table edges and the sunward edge, solar flares / radiation bursts
 what it does to ships, never by where it lies, and trained on varied random set-ups (s.39).
 It replaces only the expert's leaf; the normal AI keeps its heuristics.
 
-Hard currently plays like Normal. The expert AI replaces only movement; its simulation is
+The searching levels replace only movement; its simulation is
 dice-free and leaves out attack craft, hazards and blast markers (only its first move pays for
 hazards), so its strength is long-range manoeuvre. Its other phases are the normal AI's.
 
 ---
 
+## CAP against torpedoes (owner note)
+
+A ship's CAP fighter removes a whole torpedo salvo when it intercepts it, but only one
+squadron of an attack craft wave. So the AI launches its attack craft before its torpedoes,
+values a salvo by the chance the target's CAP is already used up when it arrives (by our craft
+or earlier salvos reaching it in the same phase), and credits a wave with the torpedoes it
+lets through. Which ordnance meets the CAP first is the moving player's choice: craft first
+in front of a big salvo, or a small salvo first to draw the CAP away from a wave of Impalers;
+the AI picks by expected VP.
+
 ## 11. Things the questions didn't cover
 
-- **Deployment** (gap): ships are grouped for set-up (escorts first, squadrons together) but not
-  placed by strategy. Scenarios now set the zones, facings and fixed placements (To do 7), but
-  where to stand inside a zone still isn't chosen for the matchup or the objectives.
-- **Damage control** (gap; To do 11 e): each capital ship rolls a D6 per remaining hit, each 6
-  repairs one system, dice halved in contact with blast markers (s.36, XR p.35). Repairs follow a
-  fixed priority (fires first, then engines, then the rest), not expected VP: a fire costs 1 hit
-  per end phase, a weapon is worth its next turn of fire if it will bear, an engine crit what is lost by not turning; escorts don't repair. The
-  fixed order stays as the fallback.
+- **Deployment** (partly built, To do 28): the AI places its own ships. Ships that help
+  friends in range (Tyranid synapse, Tau tracking systems, Fleet Defence Turrets) go last,
+  where their help is worth most; with two or more of them the fleet deploys in small
+  groups, one round each. Squadrons go in a random line or box, always coherent. Before
+  deploying, the AI forms capital ship squadrons from ships of one size, faction, speed and
+  role (a random draw at present, not yet by expected VP), keeping the squadron rules. In
+  play, helpers move to keep friends in reach when that is worth more than what the spot
+  costs, and move after the friends they help. Where to stand inside a zone still isn't
+  chosen for the matchup or the objectives.
+- **Damage control** (built; To do 11 e): each ship rolls a D6 per remaining hit, each 6
+  repairs one system, dice halved in contact with blast markers (s.36, XR p.35). Repairs go by
+  expected VP (`repair_value`): a fire by its exact burn (`fire_burn_dist` / `fire_value`: the
+  fires still burning each cost a hit an end phase and a damage-control die, so a fire on a
+  damaged or burning ship is worth more; the same value prices a Fire crit we inflict), a
+  weapon by what it threatens at the next shooting phases, the rest by judgement shares. The
+  fixed order breaks ties.
 - **First turn** (gap; To do 11 e): the roll-off winner chooses to move first or second (s.2);
   the AI should choose, alongside deployment.
 - **Shooting order** (suggestion, To do 11 d): against shielded targets fire batteries before
@@ -616,13 +737,13 @@ Order of value (Claude's view, not a ruling): rules completeness > candidate gen
 search with dice > learned evaluation > weight tuning. Weight tuning (owner: last, on hold):
 CMA-ES over the judgement weights only, paired games with common random numbers, an opponent
 pool (avoids tuning to one opponent's habits or to engine bugs), the normal AI (the expert takes
-~75s a game), VP margin as fitness; the 0.35 battery rule of thumb gives way to the exact Gunnery
-table first; redo after any structural change. The same harness is a rules test: an optimiser
+~75s a game), VP margin as fitness; the 0.35 battery rule of thumb has given way to the exact Gunnery
+table (done); redo after any structural change. The same harness is a rules test: an optimiser
 finds degenerate strategies in the rules as well as in the AI.
 
 Possible gaps in this plan worth the owner's view: deployment strategy, damage-control choices,
 blast-marker removal, whether Hard should differ from Normal, and how much the expert AI should
-think (its 2 seconds per ship and its simplified simulation).
+think (its node budget per decision, ~1-8s a ship, and its simplified simulation).
 
 ---
 

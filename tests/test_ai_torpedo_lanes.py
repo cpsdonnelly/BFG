@@ -114,6 +114,7 @@ def test_move_score_counts_loaded_torpedoes_in_arc():
     ahead = ai._arc_score(me, 0.0, 0.0, 0.0, tgt)           # 40cm: within two moves
     abeam = ai._arc_score(me, 0.0, 0.0, 90.0, tgt)
     near = ai._arc_score(me, 15.0, 0.0, 0.0, tgt)           # 25cm: within one move
-    assert (abeam, ahead, near) == (0.0, 3.0, 6.0)
+    from src.ai_player import TORPEDO_FP_EQUIV as k     # firepower points a torpedo
+    assert abeam == 0.0 and abs(ahead - 3.0 * k) < 1e-9 and abs(near - 6.0 * k) < 1e-9
     me.ordnance_loaded_torps = False
     assert ai._arc_score(me, 15.0, 0.0, 0.0, tgt) == 0.0

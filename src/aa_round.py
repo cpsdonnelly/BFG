@@ -18,6 +18,10 @@ from .activation import AAConfig, Bag, Unit, band, edge, fixed_order, units
 # Shooting, Movement, Ordnance B, End
 ROUND_SHOOT_FIRST = ("command", "ordnance_a", "shooting", "movement", "ordnance_b", "end")
 ROUND_MOVE_FIRST = ("command", "ordnance_a", "movement", "shooting", "ordnance_b", "end")
+# Owner (latest, the default): the IGOUGO order with both ordnance phases
+# together after shooting: simpler for the players and no penalty on
+# ordnance-heavy fleets (Dark Eldar)
+ROUND_ORDNANCE_LAST = ("command", "movement", "shooting", "ordnance_a", "ordnance_b", "end")
 ACTIVATION_PHASES = ("shooting", "movement")      # units activate one at a time here
 
 
@@ -25,14 +29,15 @@ ACTIVATION_PHASES = ("shooting", "movement")      # units activate one at a time
 class AARoundConfig:
     """Settings for the open items (owner: make them configurable)."""
     activation: AAConfig = field(default_factory=AAConfig)
-    phase_order: str = "shoot_first"          # or "move_first" (open)
+    phase_order: str = "ordnance_last"        # owner's default; or "shoot_first" / "move_first"
     launch_phase: str = "ordnance_b"          # where new launches happen (open)
     first_turn_moves: int = 1                 # ordnance: 1 move on its first turn...
     later_moves: int = 2                      # ...then 2 (Ciaran's rule)
     brace_in_command_phase: bool = True       # Brace is a command-phase order
 
     def round_phases(self) -> Tuple[str, ...]:
-        return ROUND_MOVE_FIRST if self.phase_order == "move_first" else ROUND_SHOOT_FIRST
+        return {"move_first": ROUND_MOVE_FIRST, "shoot_first": ROUND_SHOOT_FIRST}.get(
+            self.phase_order, ROUND_ORDNANCE_LAST)
 
 
 def ordnance_moves(launched_round: int, this_round: int, cfg: AARoundConfig = None) -> int:

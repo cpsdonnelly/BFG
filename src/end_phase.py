@@ -1,10 +1,11 @@
 """BFG:XR End Phase - Damage control, blast removal, fire damage"""
 import math
-import random
+import random  # noqa: F401 (tests patch it)
 from typing import List, Dict, Optional
 from .models import Ship, BlastMarker, SpecialOrder
 from .game_state import GameState
 from .dice import DiceRoller
+from .rng import cosmetic_heading
 from .geometry import (count_blast_markers_touching, BLAST_MARKER_RADIUS_CM,
                        first_contact_along_segment)
 
@@ -16,17 +17,16 @@ def resolve_fire_damage(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str
     """
     logs = []
     fires = [c for c in ship.critical_damage if c.get("crit_type") == "fire"]
-    if not fires:
+    if not fires or ship.status in ("drifting_hulk", "burning_hulk"):
         return logs
-
-    for fire in fires:
-        ship.hits_remaining -= 1
+    from .combat import apply_damage
+    for _fire in fires:
+        # normal damage: it takes its critical check like any other hit (owner)
+        apply_damage(ship, 1, dice, gs, ignores_shields=True, rolled_to_hit=False)
         logs.append(f"{ship.name}: Fire! deals 1 damage (now {ship.hits_remaining} HP)")
-
         if ship.hits_remaining <= 0:
             logs.append(f"{ship.name} destroyed by fire!")
             break
-
     gs.update_ship(ship)
     return logs
 
@@ -51,6 +51,14 @@ def forge_hit_recovery(ship: Ship, dice: DiceRoller, gs: GameState) -> List[str]
     fresh.hits_remaining += back
     gs.update_ship(fresh)
     return [f"{ship.name}: the forges restore {back} damage ({n} dice)"]
+
+
+def _on_repaired(ship: Ship, crit: dict) -> None:
+    """Effects given back on repair: Dark Eldar Control Circuit Damaged's -1 Ld
+    ("until the damage is repaired")."""
+    if crit.get("crit_type") in ("control_circuit", "infinity_circuit"):
+        # Dark Eldar Control Circuit / Eldar Infinity Circuit Damaged (XR table)
+        ship.leadership = min(10, ship.leadership + 1)
 
 
 def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
@@ -109,6 +117,7 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
             for c in ship.critical_damage:
                 if c.get("description") == choice and c.get("repairable", False):
                     ship.critical_damage.remove(c)
+                    _on_repaired(ship, c)
                     logs.append(f"  Repaired: {c['description']}")
                     break
     else:
@@ -141,6 +150,7 @@ def resolve_damage_control(ship: Ship, dice: DiceRoller, gs: GameState,
                     best = c
             if best:
                 ship.critical_damage.remove(best)
+                _on_repaired(ship, best)
                 logs.append(f"  Repaired: {best['description']}")
 
     gs.update_ship(ship)
@@ -194,6 +204,7 @@ def apply_repair_choices(ship: Ship, choices: List[str], gs: GameState) -> List[
         for c in ship.critical_damage:
             if c.get("description") == choice and c.get("repairable", False):
                 ship.critical_damage.remove(c)
+                _on_repaired(ship, c)
                 logs.append(f"  Repaired: {c['description']}")
                 break
     gs.update_ship(ship)
@@ -272,6 +283,9 @@ def remove_brace_orders(gs: GameState) -> List[str]:
         # Clear per-turn failed brace tracking (regardless of brace status)
         if ship.brace_failed_vs:
             ship.brace_failed_vs = []
+            needs_update = True
+        if ship.tracking_marks:              # Dark Eldar: until the end of the turn
+            ship.tracking_marks = []
             needs_update = True
 
         if ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value:
@@ -419,7 +433,7 @@ def resolve_hulk_drift(gs: GameState, dice: DiceRoller,
             id=f"hulk_drift_{ship.id}_{gs.next_serial()}",
             x=ship.x, y=ship.y,
             source="hulk_drift",
-            heading=random.uniform(0, 360))
+            heading=cosmetic_heading(gs))
         gs.add_blast_marker(bm)
 
         # Check if hulk drifted off table

@@ -191,7 +191,8 @@ def test_eldar_critical_hits_table():
     s = Ship.from_dict(find_ship_class("Shadow Class Cruiser").to_ship_dict("s", 1, ship_id="s"))
     gs.add_ship(s)
     assert _resolve_crit_cascade(3, s, gs)["crit_type"] == "keel_armament"
-    assert _resolve_crit_cascade(9, s, gs)["crit_type"] == "holofield_destroyed"
+    assert _resolve_crit_cascade(9, s, gs)["crit_type"] == "infinity_circuit_smashed"   # XR table
+    assert _resolve_crit_cascade(10, s, gs)["crit_type"] == "field_generators"
     s.critical_damage = [{"crit_type": "keel_armament"}]
     keel = next(w for w in s.weapons if "Keel" in w["name"])
     prow = next(w for w in s.weapons if "Prow" in w["name"])

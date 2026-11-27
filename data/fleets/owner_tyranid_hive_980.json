@@ -1,0 +1,921 @@
+{
+  "fleet_name": "Tyranid Hive Fleet 980",
+  "faction": "tyranids",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 980,
+  "fleet_list": "tyranid_hive",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Charybdis Class Hive Ship",
+      "ship_class": "Charybdis Class Hive Ship",
+      "faction": "tyranids",
+      "ship_type": "battleship",
+      "base_size": "large",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 3,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 12,
+      "leadership": 8,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 2,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Excretion Ducts",
+          "weapon_type": "torpedo",
+          "range_cm": 20,
+          "strength": 8,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 20,
+          "boarding_torpedoes": true,
+          "hull_borer": true
+        },
+        {
+          "name": "Thorax Launch Glands",
+          "weapon_type": "launch_bay",
+          "range_cm": 0,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "antibody"
+          ],
+          "craft_speeds": {
+            "antibody": 15
+          },
+          "craft_speed": 15
+        },
+        {
+          "name": "Port Launch Glands",
+          "weapon_type": "launch_bay",
+          "range_cm": 0,
+          "strength": 3,
+          "arcs": [],
+          "craft_types": [
+            "antibody"
+          ],
+          "craft_speeds": {
+            "antibody": 15
+          },
+          "craft_speed": 15
+        },
+        {
+          "name": "Starboard Launch Glands",
+          "weapon_type": "launch_bay",
+          "range_cm": 0,
+          "strength": 3,
+          "arcs": [],
+          "craft_types": [
+            "antibody"
+          ],
+          "craft_speeds": {
+            "antibody": 15
+          },
+          "craft_speed": 15
+        }
+      ],
+      "special_rules": [
+        "ponderous",
+        "tyranid",
+        "synapse:8:45",
+        "charybdis_ponderous",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Prow: Excretion Ducts",
+        "Thorax: Launch Glands",
+        "Port / Starboard: Launch Glands x3",
+        "Biomorph: Reinforced Carapace"
+      ],
+      "points_value": 290,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Charybdis Class Hive Ship",
+      "ship_class": "Charybdis Class Hive Ship",
+      "faction": "tyranids",
+      "ship_type": "battleship",
+      "base_size": "large",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 3,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 12,
+      "leadership": 8,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Feeder Tendrils",
+          "weapon_type": "feeder_tendrils",
+          "range_cm": 0,
+          "strength": 2,
+          "arcs": [],
+          "contact": true
+        },
+        {
+          "name": "Prow Excretion Ducts",
+          "weapon_type": "torpedo",
+          "range_cm": 20,
+          "strength": 8,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 20,
+          "boarding_torpedoes": true,
+          "hull_borer": true
+        },
+        {
+          "name": "Thorax Launch Glands",
+          "weapon_type": "launch_bay",
+          "range_cm": 0,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "antibody"
+          ],
+          "craft_speeds": {
+            "antibody": 15
+          },
+          "craft_speed": 15
+        },
+        {
+          "name": "Port Launch Glands",
+          "weapon_type": "launch_bay",
+          "range_cm": 0,
+          "strength": 3,
+          "arcs": [],
+          "craft_types": [
+            "antibody"
+          ],
+          "craft_speeds": {
+            "antibody": 15
+          },
+          "craft_speed": 15
+        },
+        {
+          "name": "Starboard Launch Glands",
+          "weapon_type": "launch_bay",
+          "range_cm": 0,
+          "strength": 3,
+          "arcs": [],
+          "craft_types": [
+            "antibody"
+          ],
+          "craft_speeds": {
+            "antibody": 15
+          },
+          "craft_speed": 15
+        }
+      ],
+      "special_rules": [
+        "ponderous",
+        "tyranid",
+        "synapse:8:45",
+        "charybdis_ponderous",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Prow: Excretion Ducts",
+        "Thorax: Launch Glands",
+        "Port / Starboard: Launch Glands x3",
+        "Biomorph: Reinforced Carapace"
+      ],
+      "points_value": 290,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Kraken",
+      "ship_class": "Kraken",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 2,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Excretion Ducts",
+          "weapon_type": "torpedo",
+          "range_cm": 20,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 20,
+          "boarding_torpedoes": true,
+          "hull_borer": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "bonded_exo_plating"
+      ],
+      "upgrades": [
+        "Weapon: Excretion Ducts"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "kraken",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Kraken",
+      "ship_class": "Kraken",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 2,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Excretion Ducts",
+          "weapon_type": "torpedo",
+          "range_cm": 20,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 20,
+          "boarding_torpedoes": true,
+          "hull_borer": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "bonded_exo_plating"
+      ],
+      "upgrades": [
+        "Weapon: Excretion Ducts"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "kraken",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Kraken",
+      "ship_class": "Kraken",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 2,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Excretion Ducts",
+          "weapon_type": "torpedo",
+          "range_cm": 20,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 20,
+          "boarding_torpedoes": true,
+          "hull_borer": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "bonded_exo_plating"
+      ],
+      "upgrades": [
+        "Weapon: Excretion Ducts"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "kraken",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Kraken",
+      "ship_class": "Kraken",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 2,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Excretion Ducts",
+          "weapon_type": "torpedo",
+          "range_cm": 20,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 20,
+          "boarding_torpedoes": true,
+          "hull_borer": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "bonded_exo_plating"
+      ],
+      "upgrades": [
+        "Weapon: Excretion Ducts"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "kraken",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_a",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_a",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_a",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_a",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_a",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_a",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_b",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_b",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_b",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_b",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_b",
+      "fleet_list": "tyranid_hive"
+    },
+    {
+      "name": "Escort Drone",
+      "ship_class": "Escort Drone",
+      "faction": "tyranids",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 15,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 7,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Prow Pyro-Acid Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "pyro_acid": true
+        }
+      ],
+      "special_rules": [
+        "tyranid",
+        "living_barrier",
+        "slow_gestation",
+        "spore_cloud"
+      ],
+      "upgrades": [
+        "Weapon: Pyro-acid Battery"
+      ],
+      "points_value": 20,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "drones_b",
+      "fleet_list": "tyranid_hive"
+    }
+  ]
+}

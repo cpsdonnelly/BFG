@@ -145,8 +145,9 @@ def test_gas_dust_no_damage_with_shields():
 def test_gas_dust_damage_on_6_with_no_shields():
     ship = make_ship(id="s", shields_max=0, hits_max=8)
     gs = make_gs([ship])
-    r = resolve_gas_dust_contact(ship, DiceStub([6]), gs)
-    assert r["damage"] == 1
+    dice = DiceStub([6, 3])            # 6: 1 damage; 3: its critical check, no crit
+    r = resolve_gas_dust_contact(ship, dice, gs)
+    assert r["damage"] == 1 and dice._idx == 2
     assert ship.hits_remaining == 7
 
 
@@ -156,3 +157,23 @@ def test_gas_dust_no_damage_on_non_6_without_shields():
     r = resolve_gas_dust_contact(ship, DiceStub([5]), gs)
     assert r["damage"] == 0
     assert ship.hits_remaining == 8
+
+
+def test_terrain_and_fire_damage_take_critical_checks():
+    """Owner: any damage can cause a critical hit (raids and boarding have
+    their own rules): asteroid impacts, cloud damage and fires roll the check."""
+    from src.end_phase import resolve_fire_damage
+    ship = make_ship(id="s", shields_max=0, hits_max=8)
+    gs = make_gs([ship])
+    dice = DiceStub([6,       # cloud: 1 damage
+                     6,       # its critical check: a crit
+                     5])      # 2D6 on the critical hits table
+    resolve_gas_dust_contact(ship, dice, gs)
+    s = gs.get_ship_by_id("s")
+    assert dice._idx == 3 and s.critical_damage
+    s.critical_damage = [{"crit_type": "fire", "repairable": True}]
+    gs.update_ship(s)
+    s = gs.get_ship_by_id("s")
+    dice = DiceStub([2])              # the fire's critical check: none
+    resolve_fire_damage(s, dice, gs)
+    assert dice._idx == 1 and gs.get_ship_by_id("s").hits_remaining < 7

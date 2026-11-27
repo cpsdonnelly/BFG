@@ -490,3 +490,38 @@ def test_daemon_mine_vp_for_the_attacker():
     gs.scenario_state["daemon_detonated"] = 1       # one of them hit a ship
     vp = calculate_victory_points(gs)
     assert vp[1]["total"] == 20
+
+
+def test_docked_ships_have_the_forges_fields(monkeypatch):
+    """Owner ruling (XR Xenos p.32, the craftworld's forges only): netherfield,
+    one more right shift for gunnery at a docked ship; polarisation field, no
+    blast marker hit and no solar flare effects."""
+    from src.combat import get_column_shifts
+    from src import celestial
+    from src.movement import _blast_marker_damage
+    gs = _cw_gs()
+    sc.setup_scenario(gs, DiceStub([6, 6]))
+    e = gs.get_ship_by_id("e2")
+    foe = next(s for s in gs.get_ships() if s.player != e.player)
+    foe.x, foe.y, foe.heading = e.x + 20.0, e.y, 180.0
+    gs.update_ship(foe)
+    bat = dict(name="b", weapon_type="battery", strength=4, range=45, arcs=["front"])
+    before = get_column_shifts(foe, e, [], [], gs.get_ships(), bat)
+    e.special_rules = list(e.special_rules) + [f"docked:{gs.turn_number + 2}"]
+    gs.update_ship(e)
+    e = gs.get_ship_by_id("e2")
+    assert cw.forge_fields(e)
+    assert get_column_shifts(foe, e, [], [], gs.get_ships(), bat) == before + 1
+    e.shields_max = 0
+    gs.update_ship(e)
+    assert not _blast_marker_damage(gs.get_ship_by_id("e2"), gs, DiceStub([]))
+    hits = e.hits_remaining
+    import src.combat as combat
+    flared = []
+    monkeypatch.setattr(combat, "_place_shield_impacts",
+                        lambda s, *a, **k: flared.append(s.id))
+    monkeypatch.setattr(combat, "apply_damage", lambda s, *a, **k: flared.append("hit:" + s.id))
+    gs.ordnance = []
+    celestial._solar_flare(gs, DiceStub([]))
+    assert gs.get_ship_by_id("e2").hits_remaining == hits
+    assert "e2" not in flared and "hit:e2" not in flared and flared

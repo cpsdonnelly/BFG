@@ -12,7 +12,8 @@ from typing import Dict, List
 # ── Chaos (07_chaos.md) ──────────────────────────────────────────────────────
 
 _CHAOS_UNENFORCED = [
-    "The fleet commander rides the most expensive capital ship: not checked.",
+    "The fleet commander rides the most expensive capital ship: checked "
+    "(fleet_lists.commander_placement_errors).",
     "Ratios (owner ruling, export 15): battleships and grand cruisers one per three "
     "cruisers and/or heavy cruisers, heavy cruisers one per two cruisers; light cruisers are "
     "their own 0-6 section and don't count.",
@@ -208,6 +209,7 @@ _NAVY_KEYS = ["navy_gothic", "navy_armageddon", "navy_bakka", "navy_bastion"]
 
 ORK_LISTS = [
     {"key": "orks_green_tide", "faction": "orks", "name": "Green Tide Fleet (Xenos p.73)",
+     "looted_reserves": True,
      "sections": [
          {"name": "Battleships", "max": 4, "ratio": (2, ["Kroozers"]),
           "class_max": {"Gorbag's Revenge (0-1)": 1, "Slamblasta (0-1)": 1,
@@ -232,9 +234,9 @@ ORK_LISTS = [
          "kustom upgrades are not in the fleet builder yet.",
          "Da Ork Clanz (+50% of the commander's cost) and Snakebite affiliation: not checked.",
          "Escort squadrons of 3-10: not checked. Attack rating 3.",
-         "Reserves are looted cruisers only (from any Imperial Navy, Chaos or Tau fleet "
-         "list); taking a battleship or escort as a reserve isn't stopped here. The Chaos "
-         "god-dedicated fleets give no reserves, so they aren't offered.",
+         "Reserves are looted cruisers (from any Imperial Navy, Chaos or Tau fleet list), made "
+         "looted vessels when the fleet is saved (src/orks.py). The Chaos god-dedicated fleets "
+         "give no reserves, so they aren't offered.",
          "Battleship and battlekroozer ratios count the Kroozers section (\"one per two "
          "kroozers\")."]},
 ]
@@ -418,9 +420,12 @@ RT_LISTS = [
          {"name": "Other Xenos Allies", "max": 4, "ships": {"Stryxis Caravan Vessel": 80}},
      ],
      "reserves": [],
+     # Pirate Captains (booklet_options.pirate_captain_options) only in this list
+     "list_options": ["Pirate Captain"],
      "unenforced": [
-         "Fleet commanders (0-3 Pirate Captains, one per 500pts, one required at 750+pts) "
-         "are not in the fleet builder yet. A Problem with Authority: -1Ld while re-rolling.",
+         "Fleet commanders: one Pirate Captain is built (required over 750pts); 0-3 "
+         "(one per 500pts) isn't checked (the placement is). "
+         "A Problem with Authority: -1Ld while re-rolling.",
          _RT_MOW + " They count as Infamous Pirate Ships (grand galleon, ship of the line) "
          "or Pirate Cruisers (brig, galleon).",
          "The Space Marine Strike Cruiser rolls Leadership on the standard table and takes "
@@ -433,4 +438,185 @@ RT_LISTS = [
          "detachments."]},
 ]
 
-OTHER_LISTS: List[Dict] = CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS
+# ── Dark Eldar (08_dark-eldar.md, Xenos p.13) ─────────────────────────────────
+DE_LISTS = [
+    {"key": "dark_eldar_raiders", "faction": "dark_eldar",
+     "name": "Dark Eldar Raiders (Xenos p.13)",
+     # A Dread Archon always leads (booklet_options.dark_eldar_options)
+     "commander": {"options": ["Dread Archon (+2 Ld)"], "required_at": 0},
+     # "at least three escorts for every capital ship in the fleet"
+     "escorts_per_capital": 3,
+     "sections": [
+         {"name": "Grand Cruisers", "ratio": (3, ["Cruisers"]),
+          "ships": {"Mortalis Class Grand Cruiser": 300}},
+         {"name": "Cruisers",
+          "ships": {"Torture Class Cruiser": 230, "Succubus Class Light Cruiser": 140}},
+         {"name": "Escorts",
+          "ships": {"Corsair Class Frigate": 60, "Subjugation Class Raider": 40}},
+     ],
+     "reserves": [],
+     "unenforced": [
+         "Escort squadrons of two to six vessels: not checked.",
+         "The Tormentor class spire and its webway reserves aren't playable yet.",
+         "Only the Strong May Lead (optional rule) isn't built.",
+         "Attack rating 4. Never gives or takes reserves."]},
+]
+
+# ── Tyranids (13_tyranids.md, Xenos pp.118-120) ───────────────────────────────
+# The bio-cruiser's gene templates are catalog classes (src/tyranids.py); the
+# per-hive-ship limits are checked by tyranids.fleet_errors ("tyranid" key).
+_TYR_BIO = {"Tyranid Bio-Cruiser (Guardian)": 70, "Tyranid Bio-Cruiser (Scylla)": 85,
+            "Tyranid Bio-Cruiser (Prowler)": 90, "Tyranid Bio-Cruiser (Carnivore)": 95}
+_TYR_ESC = {"Kraken": 30, "Vanguard Drone": 30, "Escort Drone": 20}
+_TYR_UNENFORCED = [
+    "Ordnance swarms (hull-borer salvos 15, antibody squadrons 10; up to 10% of the "
+    "points) aren't in the fleet builder yet.",
+    "Escort squadrons of 1-12 in any mix (Kraken count two, at most 4 a squadron), and every "
+    "escort of a squadron armed with the same weapon: not checked.",
+    "Pheromone Rage (attack rating 3, +10pts) isn't offered; attack rating 2.",
+    "Never gives or takes reserves or allies."]
+TYR_LISTS = [
+    {"key": "tyranid_hive", "faction": "tyranids", "tyranid": "hive",
+     "name": "Tyranid Hive Fleet (Xenos p.118)",
+     "sections": [
+         {"name": "Primary hive ships", "class_max": {"Proteus Class Hive Ship": 1},
+          "ships": {"Proteus Class Hive Ship": 600, "Charybdis Class Hive Ship": 165}},
+         {"name": "Bio-cruisers", "ships": dict(_TYR_BIO)},
+         {"name": "Escorts", "ships": dict(_TYR_ESC)},
+     ],
+     "reserves": [], "unenforced": list(_TYR_UNENFORCED)},
+    {"key": "tyranid_vanguard", "faction": "tyranids", "tyranid": "vanguard",
+     "name": "Tyranid Vanguard Fleet (Xenos p.119)",
+     "sections": [
+         {"name": "Bio-cruisers", "ships": {"Tyranid Bio-Cruiser (Prowler)": 90}},
+         {"name": "Escorts", "ships": {"Kraken": 30, "Vanguard Drone": 30}},
+     ],
+     "reserves": [],
+     "unenforced": ["Escort squadrons of 6-12 (Kraken count two, at most 4 a squadron): not "
+                    "checked."] + _TYR_UNENFORCED[2:]},
+    {"key": "tyranid_gestating", "faction": "tyranids", "tyranid": "gestating",
+     "name": "Tyranid Gestating Fleet (Xenos p.120)",
+     "sections": [
+         {"name": "Primary hive ships",
+          "ships": {"Scylla Strain Bio-Cruiser w/ Synapse Node": 100}},
+         {"name": "Bio-cruisers", "ships": {k: v for k, v in _TYR_BIO.items()
+                                            if "Scylla" not in k}},
+         {"name": "Escorts", "ships": dict(_TYR_ESC)},
+     ],
+     "reserves": [], "unenforced": list(_TYR_UNENFORCED)},
+]
+
+# ── Necrons (10_necrons.md, Xenos pp.50-51) ───────────────────────────────────
+_NEC_ESCORTS = {"name": "Escorts", "max": 24,
+                "class_max": {"Jackal Class Raider": 12, "Dirge Class Raider": 12},
+                "ships": {"Jackal Class Raider": 60, "Dirge Class Raider": 40}}
+_NEC_UNENFORCED = [
+    "Escort squadrons of two to six, at most four two-hit escorts a squadron: not checked.",
+    "Planetary defences (tomb complex, pylons, deathseed mines) aren't playable yet.",
+    "Never gives or takes reserves or allies."]
+NEC_LISTS = [
+    {"key": "necron_harvest", "faction": "necrons",
+     "name": "Necron Harvest Fleet (Xenos p.50)",
+     # 1 Monument (required), automatically on the largest capital ship
+     "commander": {"options": ["Monument: Obelisk", "Monument: Monolith",
+                               "Monument: Sepulchre"], "required_at": 0},
+     "list_options": ["Monument:"],
+     "min_capital": 1,
+     "sections": [
+         {"name": "Tombships", "ratio": (1, ["Harvest Ships"]),
+          "ships": {"Cairn Class Tombship": 500}},
+         {"name": "Harvest Ships", "max": 6, "ships": {"Scythe Class Harvest Ship": 275}},
+         {"name": "Light Cruisers", "max": 3, "ships": {"Shroud Class Light Cruiser": 155}},
+         dict(_NEC_ESCORTS),
+     ],
+     "reserves": [],
+     "unenforced": ["The Monument goes on the largest capital ship: not checked."]
+                   + _NEC_UNENFORCED + ["Attack rating 4."]},
+    {"key": "necron_dynasty", "faction": "necrons",
+     "name": "Necron Dynasty Fleet (Xenos p.51)",
+     # 0-1 Necron Lord, required at 750 points ("at least 750")
+     "commander": {"options": ["Necron Lord: Overlord", "Necron Lord: Nemesor"],
+                   "required_at": 750},
+     "list_options": ["Necron Lord:", "Lord's vessel:", "Cryptek", "Shroud refit:"],
+     "min_capital": 1,
+     "sections": [
+         {"name": "Tombships", "ratio": (2, ["Harvest Ships", "Light Cruisers"]),
+          "ships": {"Cairn Class Tombship": 500}},
+         {"name": "Grand Harvest Ships", "ratio": (2, ["Harvest Ships", "Light Cruisers"]),
+          "ships": {"Reaper Class Grand Harvest Ship": 355}},
+         {"name": "Harvest Ships", "max": 3, "ships": {"Scythe Class Harvest Ship": 275}},
+         {"name": "Light Cruisers", "max": 6, "ships": {"Shroud Class Light Cruiser": 155}},
+         dict(_NEC_ESCORTS),
+     ],
+     "reserves": [],
+     "unenforced": _NEC_UNENFORCED + ["Attack rating 3."]},
+]
+
+# ── Eldar (09_eldar.md, MMS v2.0 pp.13, 23) ────────────────────────────────────
+_ELDAR_UNENFORCED = [
+    "Escort squadrons of two to six (Corsair: at most four two-hit escorts a squadron): not "
+    "checked.",
+    "Reserves 2:1 instead of 3:1 with a Hero: not checked (3:1 used).",
+    "Fleet commanders never on a Ghostship: not offered there."]
+ELDAR_LISTS = [
+    {"key": "eldar_corsair", "faction": "eldar",
+     "name": "Corsair Eldar Fleet (MMS p.13)",
+     "commander": {"options": ["Shadow Prince (Ld 9)", "Dragon Prince (Ld 10)"],
+                   "required_at": 751},
+     "commander_upgrade": (2001, ["Dragon Prince (Ld 10)"]),
+     "list_options": ["Shadow Prince", "Dragon Prince", "Corsair Lord:", "Gryphon Knight"],
+     "class_needs_option": {"Void Dragon Class Grand Cruiser": (0, ["Dragon Prince: Hero"])},
+     "sections": [
+         {"name": "Void Dragon", "class_max": {"Void Dragon Class Grand Cruiser": 1},
+          "ships": {"Void Dragon Class Grand Cruiser": 320}},
+         {"name": "Void Stalkers", "per_points": 1000,
+          "ships": {"Void Stalker Class Battleship": 470}},
+         {"name": "Supernovas", "ratio": (2, ["Cruisers"]),
+          "ships": {"Supernova Class Grand Cruiser": 270}},
+         {"name": "Cruisers", "max": 12,
+          "ships": {"Eclipse Class Cruiser": 260, "Shadow Class Cruiser": 230,
+                    "Aurora Class Light Cruiser": 140, "Solaris Class Light Cruiser": 125}},
+         {"name": "Escorts",
+          "ships": {"Hellebore Class Frigate": 75, "Aconite Class Frigate": 60,
+                    "Nightshade Class Destroyer": 50, "Hemlock Class Destroyer": 50}},
+     ],
+     "reserves": ["eldar_craftworld"],
+     "unenforced": _ELDAR_UNENFORCED + ["Attack rating 4."]},
+    {"key": "eldar_craftworld", "faction": "eldar",
+     "name": "Craftworld Eldar Fleet (MMS p.23)",
+     "commander": {"options": ["Admiral (Ld 9)", "High Admiral (Ld 10)"], "required_at": 751},
+     "commander_upgrade": (2001, ["High Admiral (Ld 10)"]),
+     "list_options": ["Admiral (Ld 9)", "High Admiral", "Admiral:", "Seer Council",
+                      "Aspect Warriors", "Farseer (ship"],
+     "class_needs_option": {"Void Dragon Class Grand Cruiser": (0, ["High Admiral (Ld 10)"])},
+     "sections": [
+         {"name": "Void Dragon", "class_max": {"Void Dragon Class Grand Cruiser": 1},
+          "ships": {"Void Dragon Class Grand Cruiser": 320}},
+         {"name": "Wyrmships", "ratio": (1, ["Dragonships"]),
+          "ships": {"Wyrm Class Battleship": 470}},
+         {"name": "Dragonships", "ratio": (2, ["Wraithships"]),
+          "ships": {"Dragonship Class Battle Cruiser": 270}},
+         {"name": "Wraithships", "ships": {"Wraithship Class Attack Cruiser": 180}},
+         {"name": "Ghostships", "max": 3,
+          "ships": {"Ghost Dragon (Ghostship)": 270, "Ghost Wraith (Ghostship)": 180}},
+         {"name": "Escorts", "ships": {"Shadowhunter Class Destroyer": 45}},
+         {"name": "Craftworld specials",
+          "class_max": {"Bahzhakhain (Biel-Tan)": 1, "Wild Serpent (Saim-Hann)": 1,
+                        "Flame of Asuryan (Iyanden)": 1, "Shadow Point (Ulthwé)": 1,
+                        "Sword of Eldanesh (Alaitoc)": 1},
+          "class_min_points": {"Bahzhakhain (Biel-Tan)": 1001, "Wild Serpent (Saim-Hann)": 1001},
+          "ships": {"Bahzhakhain (Biel-Tan)": 575, "Wild Serpent (Saim-Hann)": 485,
+                    "Flame of Asuryan (Iyanden)": 450, "Shadow Point (Ulthwé)": 550,
+                    "Sword of Eldanesh (Alaitoc)": 80}},
+     ],
+     "reserves": ["eldar_corsair"],
+     "unenforced": _ELDAR_UNENFORCED + [
+         "A Dragonship carrying the Admiral not counting towards the Wraithship limit, and the "
+         "specials counting as Dragonships: not checked.",
+         "The Craftworld fleet guidelines (Biel-Tan, Saim-Hann, Ulthwé, Alaitoc, Iyanden) are "
+         "advice, not checked.",
+         "Attack rating 3."]},
+]
+
+OTHER_LISTS: List[Dict] = (CHAOS_LISTS + ORK_LISTS + TAU_LISTS + RT_LISTS + DE_LISTS + TYR_LISTS
+                           + NEC_LISTS + ELDAR_LISTS)

@@ -3,6 +3,7 @@ import math
 from typing import Dict, List, Optional
 from .models import Ship
 from .game_state import GameState
+from . import recorder as _rec
 from .dice import DiceRoller
 
 
@@ -23,7 +24,7 @@ def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = 
     ship.is_disengaged = True
     ship.status = "disengaged"
     gs.update_ship(ship)
-    gs.add_log(f"{ship.name} has moved off the table and DISENGAGED!")
+    gs.report(f"{ship.name} has moved off the table and DISENGAGED!")
 
     if ship.ship_type != "escort" or not ship.squadron_id:
         return
@@ -35,7 +36,7 @@ def process_involuntary_disengage(ship: Ship, gs: GameState, dice: DiceRoller = 
     for s in rest:
         s.must_disengage = True
         gs.update_ship(s)
-    gs.add_log(f"  Squadron {ship.squadron_id} lost {ship.name} off the table: "
+    gs.report(f"  Squadron {ship.squadron_id} lost {ship.name} off the table: "
                f"the rest of the squadron must attempt to disengage")
     if dice is not None:
         squadron_disengage_test(rest, dice, gs, forced=True)
@@ -68,7 +69,7 @@ def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState,
             s.is_disengaged, s.status = True, "disengaged"
             s.must_disengage_tested_turn = gs.turn_number
             gs.update_ship(s)
-        gs.add_log(f"Squadron {ships[0].squadron_id} phases out (Without a Trace)")
+        gs.report(f"Squadron {ships[0].squadron_id} phases out (Without a Trace)")
         return {"success": True, "roll": 0, "needed": 0, "modifiers": ["Without a Trace"],
                 "ships": [s.id for s in ships]}
 
@@ -84,12 +85,12 @@ def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState,
                 s.has_fired = True
             gs.update_ship(s)
         if forced:
-            gs.add_log(f"Squadron {ships[0].squadron_id} fails its forced disengage test "
+            gs.report(f"Squadron {ships[0].squadron_id} fails its forced disengage test "
                        f"(Siren's Summon)")
             return {"success": False, "roll": 0, "needed": 0,
                     "modifiers": ["Siren's Summon: forced test fails"],
                     "ships": [s.id for s in ships]}
-        gs.add_log(f"Squadron {ships[0].squadron_id} can't take a disengage test "
+        gs.report(f"Squadron {ships[0].squadron_id} can't take a disengage test "
                    f"(Siren's Summon)")
         return {"success": False, "roll": 0, "needed": 0, "blocked": True,
                 "modifiers": ["Siren's Summon: no Leadership tests"],
@@ -112,7 +113,7 @@ def squadron_disengage_test(ships: List[Ship], dice: DiceRoller, gs: GameState,
             s.has_fired = True
         gs.update_ship(s)
     names = ", ".join(s.name for s in ships)
-    gs.add_log(f"Squadron {best_ship.squadron_id} ({names}) disengage "
+    gs.report(f"Squadron {best_ship.squadron_id} ({names}) disengage "
                f"{'PASSED' if passed else 'FAILED'} (rolled {roll} vs Ld {ld})")
     return {"success": passed, "roll": roll, "needed": ld,
             "modifiers": best["modifiers"], "ships": [s.id for s in ships]}
@@ -155,7 +156,7 @@ def forced_disengage_tests(gs: GameState, dice: DiceRoller, player: int) -> List
                  and m.player == player and not m.is_destroyed and not m.is_disengaged]
         results.append(squadron_disengage_test(mates, dice, gs, forced=True))
     for s in singles:
-        gs.add_log(f"{s.name} must attempt to disengage"
+        gs.report(f"{s.name} must attempt to disengage"
                    + (" (Demiurg mercenaries)" if mercenary_must_disengage(s, gs)
                       else " (Leadership 1 or less)"))
         results.append(attempt_disengage(s, dice, gs, forced=True))
@@ -267,6 +268,8 @@ def get_disengage_ld_modifiers(ship: Ship, gs: GameState) -> Dict:
     }
 
 
+@_rec.logged("disengage", lambda r, A: (A["gs"], dict(
+    ship=A["ship"].id, forced=A["forced"], passed=r.get("success"))))
 def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState,
                       forced: bool = False) -> Dict:
     """
@@ -291,7 +294,7 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState,
         ship.is_disengaged = True
         ship.status = "disengaged"
         gs.update_ship(ship)
-        gs.add_log(f"{ship.name} phases out (Without a Trace)")
+        gs.report(f"{ship.name} phases out (Without a Trace)")
         return {"success": True, "roll": 0, "needed": 0,
                 "modifiers": ["Without a Trace"], "ships": [ship.id]}
     from .movement import sirens_summon
@@ -300,11 +303,11 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState,
         ship.disengage_failed_this_turn = True
         ship.has_fired = True
         gs.update_ship(ship)
-        gs.add_log(f"{ship.name} fails its forced disengage test (Siren's Summon)")
+        gs.report(f"{ship.name} fails its forced disengage test (Siren's Summon)")
         return {"success": False, "roll": 0, "needed": 0,
                 "modifiers": ["Siren's Summon: forced test fails"], "ships": [ship.id]}
     if sirens_summon(ship, gs):
-        gs.add_log(f"{ship.name} can't take a disengage test (Siren's Summon)")
+        gs.report(f"{ship.name} can't take a disengage test (Siren's Summon)")
         return {"success": False, "roll": 0, "needed": 0, "blocked": True,
                 "modifiers": ["Siren's Summon: no Leadership tests"], "ships": [ship.id]}
 
@@ -327,7 +330,7 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState,
         ship.is_disengaged = True
         ship.status = "disengaged"
         gs.update_ship(ship)
-        gs.add_log(
+        gs.report(
             f"{ship.name} DISENGAGED successfully "
             f"(rolled {roll} vs Ld {ld})")
     else:
@@ -337,10 +340,10 @@ def attempt_disengage(ship: Ship, dice: DiceRoller, gs: GameState,
         ship.has_fired = True  # prevent firing
         if ship.squadron_id and ship.ship_type != "escort":
             # A capital ship that fails falls out of its squadron for good (s.37)
-            gs.add_log(f"{ship.name} falls out of squadron {ship.squadron_id}")
+            gs.report(f"{ship.name} falls out of squadron {ship.squadron_id}")
             ship.squadron_id = ""
         gs.update_ship(ship)
-        gs.add_log(
+        gs.report(
             f"{ship.name} disengage FAILED (rolled {roll} vs Ld {ld}). "
             f"No firing or orders this turn!")
 
@@ -361,16 +364,19 @@ def flee_move_errors(ship, result, gs, order: str = "", aaf_bonus: int = 0,
     best simple move (straight, or one turn of up to its turn angle after the
     turning distance) would. Disengaging instead is done with its own button."""
     from .movement import (get_effective_speed, validate_movement, MoveCommand,
-                           MIN_TURN_DISTANCE)
+                           turn_distance)
     if not getattr(ship, "must_flee", False):
-        return []
+        # Tyranid Instinctive Behaviour restricts a move the same way
+        # (move-dialog checks share this function)
+        from .tyranids import instinct_move_errors
+        return instinct_move_errors(gs, ship, result, order, aaf_bonus, tolerance)
     _, max_spd = get_effective_speed(ship, order, aaf_bonus)
     left = max(0.0, max_spd - (ship.distance_moved_this_turn or 0.0))
     errs = []
     if result.total_distance < left - 0.05:
         errs.append(f"{ship.name} failed a forced disengage test: it must move its full "
                     f"{left:g}cm towards the nearest table edge (or try to disengage).")
-    td = min(MIN_TURN_DISTANCE.get(ship.ship_type, 0), left)
+    td = min(turn_distance(ship, order), left)
     best = None
     cands = [[MoveCommand("forward", left)]]
     for turn in ("turn_left", "turn_right"):

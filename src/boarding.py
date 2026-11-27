@@ -15,6 +15,7 @@ Ships reduced to 0 damage by boarding become drifting hulks (no catastrophic rol
 from typing import List, Dict, Optional
 from .models import Ship
 from .game_state import GameState
+from . import recorder as _rec
 from .dice import DiceRoller
 from .tables import BOARDING_RESULTS
 from .geometry import count_blast_markers_touching
@@ -31,6 +32,7 @@ def troop_rating(ship: Ship, grappled: bool = False, defending: bool = False) ->
         return 0
     base = ship.hits_remaining
     if ("mark:khorne" in ship.special_rules or "warboss" in ship.special_rules
+            or "tyranid" in ship.special_rules             # Tyranids (Xenos p.105)
             or "doubles_troops" in ship.special_rules):     # Abaddon's Bringers of Despair
         base *= 2
     if "kor_vattra" in ship.special_rules or ("frail_crew" in ship.special_rules and defending):
@@ -72,6 +74,7 @@ _CREW_DAMAGE_BONUSES = {
     "chaos_crew": 1,         # Chaos: +1
     "ork_crew": 1,           # Orks: +1
     "mega_armoured_boarders": 2,   # Ork kustom upgrade: crew damage bonus +2
+    "dark_eldar": 1,         # Dark Eldar Pain Frenzy (Xenos p.4)
 }
 
 
@@ -81,26 +84,49 @@ def _crew_damage_bonus(ship: Ship) -> int:
     Defaults to 0. Keyed off ``ship.special_rules`` so factions/upgrades can
     grant varying bonuses (e.g. Space Marine crews add +2).
     """
-    # "Ships may only use the largest applicable bonus" (s.32)
-    return max([_CREW_DAMAGE_BONUSES.get(rule, 0) for rule in ship.special_rules] or [0])
+    # "Ships may only use the largest applicable bonus" (s.32); Eldar (MMS)
+    # +1s from a High Admiral's / Dragon Prince's bodyguard and Aspect Warriors
+    # are their own boarding modifiers, added on top
+    crew = max([_CREW_DAMAGE_BONUSES.get(rule, 0) for rule in ship.special_rules] or [0])
+    return crew + sum(_EXTRA_BOARDING.get(r, 0) for r in ship.special_rules)
 
 
-def _get_ship_modifier(ship: Ship, gs: GameState) -> int:
-    """Return sum of modifiers that apply to the OPPONENT's roll due to this ship's status."""
+_EXTRA_BOARDING = {
+    "eldar_bodyguard": 1,    # High Admiral / Dragon Prince and bodyguard (MMS p.13, p.22)
+    "aspect_warriors": 1,    # Craftworld Aspect Warriors (MMS p.22)
+}
+
+
+def _get_ship_modifier(ship: Ship, gs: GameState, opponent_rules=None) -> int:
+    """Return sum of modifiers that apply to the OPPONENT's roll due to this ship's status.
+    opponent_rules: the opponent's special rules (a Dark Eldar Wych Cult counts
+    every enemy capital ship as crippled for boarding modifiers, Xenos p.5)."""
     mod = 0
-    if ship.is_crippled:
+    rules = opponent_rules or []
+    wych = "wych_cult" in rules and "dark_eldar" in rules and ship.ship_type != "escort"
+    if ship.is_crippled or wych:
         mod += 2
     if ship.special_order not in ("none", ""):
         mod += 1
     blast_markers = gs.get_blast_markers()
     touching = count_blast_markers_touching(ship, blast_markers)
-    if touching > 0:
-        mod += 1
+    if touching > 0 and "tyranid" not in ship.special_rules:
+        mod += 1          # Tyranids never count as touching blast markers here (Xenos p.105)
+    if "ghostship" in ship.special_rules:
+        mod += 1          # Eldar Ghostships: enemy boarding +1 (MMS p.20)
     return mod
 
 
+def _boarding_d6(dice, tyranid: bool, label: str) -> int:
+    """A side's boarding roll: Tyranids roll 2D6 and choose the highest."""
+    if tyranid:
+        return max(dice.roll_d6(2, f"{label} (Tyranid: 2D6, highest)"))
+    return dice.roll_d6(1, label)[0]
+
+
 def _boarding_crit_check(ship: Ship, threshold: Optional[int],
-                          dice: DiceRoller, gs: GameState) -> Optional[Dict]:
+                          dice: DiceRoller, gs: GameState,
+                          inflicted_by=None) -> Optional[Dict]:
     """Roll 1D6 for a boarding crit check. Return the applied crit or None.
 
     Escorts take 1 point of damage instead of rolling on the crit table, so an
@@ -122,16 +148,47 @@ def _boarding_crit_check(ship: Ship, threshold: Optional[int],
         return {"crit_type": "escort_damage", "description": "+1 damage (escort)"}
     if threshold == 0:
         # Auto-crit: use a fresh roll to determine which crit
+        if _haemonculi_fire(ship, inflicted_by, gs):
+            return {"crit_type": "fire", "description": "Fire (Haemonculi)"}
         roll = dice.roll_d6(1, f"Auto boarding crit on {ship.name}")[0]
         # Clamp to 2 (minimum valid crit roll on the raid crit table)
-        roll = max(2, roll)
+        roll = _frenzy_crit_roll(max(2, roll), ship, inflicted_by, dice, gs)
         return _crit_damage_reopens_hulk(ship, _apply_raid_crit(roll, ship, gs, dice), gs)
     roll = dice.roll_d6(1, f"Boarding crit check on {ship.name} (need {threshold}+)")[0]
     gs.add_log(f"  {ship.name} crit check: rolled {roll} (need {threshold}+)")
     if roll >= threshold:
+        if _haemonculi_fire(ship, inflicted_by, gs):
+            return {"crit_type": "fire", "description": "Fire (Haemonculi)"}
         crit_roll = max(2, dice.roll_d6(1, f"Boarding crit type on {ship.name}")[0])
+        crit_roll = _frenzy_crit_roll(crit_roll, ship, inflicted_by, dice, gs)
         return _crit_damage_reopens_hulk(ship, _apply_raid_crit(crit_roll, ship, gs, dice), gs)
     return None
+
+
+def _haemonculi_fire(ship: Ship, inflicted_by, gs) -> bool:
+    """Haemonculi Coven (Xenos p.5): a critical hit a Dark Eldar vessel with
+    Haemonculi inflicts via a boarding action is a Fire instead of a random
+    result (reading: any Haemonculi ship among the boarders). Applied here;
+    True if it was."""
+    if not any("haemonculi" in (s.special_rules or []) and "dark_eldar" in (s.special_rules or [])
+               for s in (inflicted_by or [])):
+        return False
+    from .combat import add_fire_crits
+    gs.add_log(f"  Haemonculi: the boarding critical hit on {ship.name} is a Fire")
+    add_fire_crits(ship, 1, gs)
+    return True
+
+
+def _frenzy_crit_roll(roll: int, ship: Ship, inflicted_by, dice, gs) -> int:
+    """Dark Eldar Pain Frenzy (Xenos p.4): a boarding critical hit they inflict
+    on a crippled ship may be re-rolled (the second stands)."""
+    from .dark_eldar import pain_frenzy_applies, frenzy_raid_reroll
+    rules = [r for s in (inflicted_by or []) for r in (s.special_rules or [])]
+    if not pain_frenzy_applies(rules, ship):
+        return roll
+    if frenzy_raid_reroll(gs, 3 - ship.player, roll, roll, ship):
+        roll = max(2, dice.roll_d6(1, f"Boarding crit on {ship.name} (Pain Frenzy re-roll)")[0])
+    return roll
 
 
 def _crit_damage_reopens_hulk(ship: Ship, crit: Optional[Dict],
@@ -149,6 +206,8 @@ def _crit_damage_reopens_hulk(ship: Ship, crit: Optional[Dict],
     return crit
 
 
+@_rec.logged("board", lambda r, A: (A["gs"], dict(
+    attackers=[s.id for s in A["attackers"]], target=A["target"].id, result=r)))
 def resolve_boarding(attackers: List[Ship], target: Ship,
                      dice: DiceRoller, gs: GameState) -> Dict:
     """Resolve a boarding action between one or more attackers and a target.
@@ -192,17 +251,19 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
 
     # Modifiers: each ship's weaknesses add to the OPPONENT's roll
     # Attacker's modifiers (from target's perspective)
-    a_mod = _get_ship_modifier(target, gs)
+    a_mod = max(_get_ship_modifier(target, gs, a.special_rules) for a in attackers)
     # Defender's modifiers (from attackers' perspective)
-    d_mod = max(_get_ship_modifier(a, gs) for a in attackers)
+    d_mod = max(_get_ship_modifier(a, gs, target.special_rules) for a in attackers)
 
     a_troop_bonus = _troop_advantage_bonus(a_rating, d_rating)
     d_troop_bonus = _troop_advantage_bonus(d_rating, a_rating)
     a_crew = max(_crew_damage_bonus(a) for a in attackers)
     d_crew = _crew_damage_bonus(target)
 
-    a_roll = dice.roll_d6(1, "boarding attacker roll")[0]
-    d_roll = dice.roll_d6(1, "boarding defender roll")[0]
+    a_tyr = any("tyranid" in a.special_rules for a in attackers)
+    d_tyr = "tyranid" in target.special_rules
+    a_roll = _boarding_d6(dice, a_tyr, "boarding attacker roll")
+    d_roll = _boarding_d6(dice, d_tyr, "boarding defender roll")
 
     # Lord Admiral Rath, Inspiring Presence: +1 defending against boarding
     d_rath = 1 if "inspiring_presence" in target.special_rules else 0
@@ -217,8 +278,8 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
     if (a_gk and a_total < d_total) or (d_gk and d_total < a_total):
         gs.add_log(f"  Knights of Titan: {'attackers' if a_gk else target.name} "
                    f"re-roll the boarding action ({a_total} vs {d_total})")
-        a_roll = dice.roll_d6(1, "boarding attacker re-roll")[0]
-        d_roll = dice.roll_d6(1, "boarding defender re-roll")[0]
+        a_roll = _boarding_d6(dice, a_tyr, "boarding attacker re-roll")
+        d_roll = _boarding_d6(dice, d_tyr, "boarding defender re-roll")
         a_total = a_roll + a_mod + a_troop_bonus + a_crew
         d_total = d_roll + d_mod + d_troop_bonus + d_crew + d_rath
 
@@ -256,7 +317,8 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
             attackers[0], crit_row["winner_crit"], dice, gs)
         if attacker_crit:
             summary["attacker_crits"].append(attacker_crit)
-        defender_crit = _boarding_crit_check(target, crit_row["loser_crit"], dice, gs)
+        defender_crit = _boarding_crit_check(target, crit_row["loser_crit"], dice, gs,
+                                             inflicted_by=attackers)
         if defender_crit:
             summary["defender_crits"].append(defender_crit)
 
@@ -273,7 +335,8 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
         if defender_crit:
             summary["defender_crits"].append(defender_crit)
         for attacker in attackers:
-            a_crit = _boarding_crit_check(attacker, crit_row["loser_crit"], dice, gs)
+            a_crit = _boarding_crit_check(attacker, crit_row["loser_crit"], dice, gs,
+                                          inflicted_by=[target])
             if a_crit:
                 summary["attacker_crits"].append(a_crit)
 
@@ -284,13 +347,19 @@ def resolve_boarding(attackers: List[Ship], target: Ship,
         # Still apply crit checks on a draw (both treated as if diff=1 each side)
         draw_row = BOARDING_RESULTS[1]
         for attacker in attackers:
-            a_crit = _boarding_crit_check(attacker, draw_row["winner_crit"], dice, gs)
+            a_crit = _boarding_crit_check(attacker, draw_row["winner_crit"], dice, gs,
+                                          inflicted_by=[target])
             if a_crit:
                 summary["attacker_crits"].append(a_crit)
-        d_crit = _boarding_crit_check(target, draw_row["winner_crit"], dice, gs)
+        d_crit = _boarding_crit_check(target, draw_row["winner_crit"], dice, gs,
+                                      inflicted_by=attackers)
         if d_crit:
             summary["defender_crits"].append(d_crit)
 
+    # Dark Eldar slave-taking (Xenos p.4): +5 VP a hit inflicted in the
+    # boarding action, +100 for a Bridge Smashed on the enemy
+    from .dark_eldar import boarding_slave_vp
+    boarding_slave_vp(gs, attackers, target, summary)
     return summary
 
 

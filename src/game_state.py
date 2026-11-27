@@ -1,10 +1,14 @@
 """BFG:XR Game State - Save/Load/Manage"""
+import contextlib
 import json
 import os
+import threading
 import time
 from dataclasses import dataclass, field, fields
 from typing import List, Dict, Optional, Tuple
 from .models import Ship, OrdnanceMarker, BlastMarker, Phenomenon
+
+_SNAPSHOT_CHECK = os.environ.get("BFG_SNAPSHOT_CHECK") == "1"
 
 
 _COLLECTIONS = ("ships", "ordnance", "blast_markers", "phenomena", "log")
@@ -37,8 +41,22 @@ class GameState:
     points_limit: int = 800
     allow_movement_pass: bool = False  # False = strict: must move all ships; True = can skip
     ai_player: Optional[int] = None    # player number controlled by AI (None = hotseat)
-    ai_difficulty: str = "normal"      # "easy" | "normal" | "hard" | "expert"
+    ai_difficulty: str = "normal"      # "very_easy" | "easy" | "normal" | "hard" | "expert" | "master"
     ai_spectator: bool = False         # True = both players AI (spectator mode)
+    spectator_auto: bool = True        # spectator: roll every die and answer every pop-up
+    # Spectator mode: Player 1's AI difficulty when it differs from
+    # ai_difficulty (Player 2's), for testing one AI against another
+    ai_difficulty_p1: Optional[str] = None
+    # Dark Eldar slave-taking VP (Xenos p.4), {"<player>": VP}; added to the
+    # score by victory_points
+    slave_vp: Dict = field(default_factory=dict)
+    # Tyranid synaptic control / Instinctive Behaviour this turn, per player
+    # (src/tyranids.py)
+    tyranid_state: Dict = field(default_factory=dict)
+    # A human Dark Eldar player's slave-taking choice: hook(player, target,
+    # what, best) -> True / False / None (None: the expected-value choice, best)
+    slave_hook = None
+    impaler_hook = None        # Dark Eldar Impaler: two raids or a critical hit (human)
 
     # Turn limit and scenario settings
     turn_limit: Optional[int] = None           # None = unlimited turns
@@ -67,6 +85,7 @@ class GameState:
     contact_margin_cm: float = 0.2  # wiggle room added to base contact distance checks
     blast_marker_rules: str = "standard"  # s.11: standard | modern | remastered (optional_rules)
     rule_remastered_spillover: bool = False  # s.11 Remastered: one round's markers touch <= 2 ships
+    rule_tracking_marks: bool = True   # Dark Eldar shadowfield tracking marks (owner: can be turned off)
     rule_remastered_escort_vp: bool = False  # Remastered p.121 escort squadron VP (XR default)
     # s.40 celestial effects (src/celestial.py)
     solar_flare_dice: int = 1
@@ -89,6 +108,11 @@ class GameState:
     turn_system: str = "igougo"
     aa_settings: Dict = field(default_factory=dict)
     aa_state: Dict = field(default_factory=dict)
+    # Each ship's special order as its own AI last planned it ({ship id:
+    # [order, gain in VP if it passes]}), written by AIPlayer._plan_orders at
+    # that player's movement / AA command phase and carried over until the
+    # next plan: what a Brace or a Leadership crit costs (s.7, To do 33 (d))
+    planned_orders: Dict = field(default_factory=dict)
     # Booklet scenarios (src/scenarios.py): e.g. Domination's layout, objective
     # markers and points
     scenario_state: Dict = field(default_factory=dict)
@@ -101,6 +125,11 @@ class GameState:
     # Serial for marker / ordnance ids (unique for the game; ids used to end in
     # a random 0-9999 and could collide)
     id_serial: int = 0
+    # Recording (To do 17): the game's seed (its dice, dice.start_game_dice) and
+    # the counter of non-dice random draws (rng.game_random: AI choices,
+    # cosmetic headings)
+    game_seed: int = 0
+    rng_counter: int = 0
 
     # Collections
     ships: List[Dict] = field(default_factory=list)
@@ -111,15 +140,59 @@ class GameState:
     # Turn log
     log: List[str] = field(default_factory=list)
 
+    def difficulty_for(self, player: int) -> str:
+        """The AI difficulty playing `player` (spectator mode may give Player 1
+        its own, `ai_difficulty_p1`)."""
+        if player == 1 and self.ai_spectator and self.ai_difficulty_p1:
+            return self.ai_difficulty_p1
+        return self.ai_difficulty
+
     def next_serial(self) -> int:
         self.id_serial += 1
         return self.id_serial
 
     def add_ship(self, ship: Ship):
+        self.__dict__.pop("_ships_snapshot", None)
         self.ships.append(ship.to_dict())
 
     def get_ships(self) -> List[Ship]:
-        return [Ship.from_dict(s) for s in self.ships]
+        snap = self.__dict__.get("_ships_snapshot")
+        if snap is not None and snap[0] != threading.get_ident():
+            snap = None                      # another thread's scope (the expert search's)
+        if snap is not None and snap[1] is self.ships:
+            return list(snap[2])
+        ships = [Ship.from_dict(s) for s in self.ships]
+        if snap is not None:                 # a scope is open: keep these copies
+            self._ships_snapshot = (snap[0], self.ships, ships)
+            return list(ships)
+        return ships
+
+    @contextlib.contextmanager
+    def ships_snapshot(self):
+        """Read-only scope (the AI's move scoring, To do 16): inside it
+        get_ships() returns the same copies each time instead of rebuilding
+        them, so callers must not change the ships it returns. update_ship /
+        add_ship (or replacing `ships`) drop the snapshot; a direct write to
+        a ship dict inside the scope would not be seen, so the scope is only
+        for code that writes nothing. Nested scopes share the outer one.
+        BFG_SNAPSHOT_CHECK=1 checks on exit that no copy was changed."""
+        if "_ships_snapshot" in self.__dict__:
+            yield                            # nested, or another thread's scope: plain get_ships
+            return
+        me = threading.get_ident()
+        self._ships_snapshot = (me, None, None)
+        try:
+            yield
+        finally:
+            snap = self.__dict__.get("_ships_snapshot")
+            if snap is not None and snap[0] == me:
+                self.__dict__.pop("_ships_snapshot", None)
+            else:
+                snap = None
+            if _SNAPSHOT_CHECK and snap and snap[1] is self.ships and snap[2]:
+                for sh, d in zip(snap[2], self.ships):
+                    if sh.to_dict() != d:
+                        raise AssertionError(f"ship {sh.id} changed inside a ships_snapshot scope")
 
     def get_ship_by_id(self, ship_id: str) -> Optional[Ship]:
         for s in self.ships:
@@ -128,6 +201,7 @@ class GameState:
         return None
 
     def update_ship(self, ship: Ship):
+        self.__dict__.pop("_ships_snapshot", None)
         for i, s in enumerate(self.ships):
             if s["id"] == ship.id:
                 self.ships[i] = ship.to_dict()
@@ -154,6 +228,21 @@ class GameState:
 
     def add_log(self, msg: str):
         self.log.append(f"[T{self.turn_number} {self.current_phase}] {msg}")
+
+    def report(self, msg: str):
+        """A line the players should see (a ship hit, crippled, destroyed or
+        disengaging, owner request): kept in the game log and queued for the
+        on-screen log, which shows it the next time it writes
+        (GameContext.log). Safe off the Tk thread: nothing is drawn here."""
+        self.add_log(msg)
+        pending = self.__dict__.setdefault("_screen_pending", [])
+        pending.append(msg)
+
+    def take_screen_lines(self):
+        """The reported lines not yet shown, oldest first (and forget them)."""
+        pending = self.__dict__.get("_screen_pending") or []
+        self.__dict__["_screen_pending"] = []
+        return pending
 
     def player_ships(self, player: int) -> List[Ship]:
         return [Ship.from_dict(s) for s in self.ships if s["player"] == player]
@@ -189,6 +278,18 @@ class GameState:
             json.dump(self.phenomena, f, indent=2)
         with open(os.path.join(directory, "turn_log.txt"), "w") as f:
             f.write("\n".join(self.log))
+        # The game's dice (To do 17): seed, generator state and the roll record,
+        # so a loaded game rolls on as it would have
+        from .dice import current_source
+        src = current_source()
+        if src.seed is not None and src.seed == self.game_seed:
+            with open(os.path.join(directory, "dice.json"), "w") as f:
+                json.dump(src.state(), f)
+        from .recorder import events          # the decision events (To do 17)
+        evs = events()
+        if evs is not None:
+            with open(os.path.join(directory, "events.json"), "w") as f:
+                json.dump(evs, f)
 
     @classmethod
     def load(cls, directory: str) -> "GameState":
@@ -218,6 +319,16 @@ class GameState:
             with open(log_path) as f:
                 content = f.read().strip()
                 gs.log = content.split("\n") if content else []
+        dice_path = os.path.join(directory, "dice.json")
+        if os.path.exists(dice_path):          # the saved game's dice carry on
+            from .dice import DiceSource, set_source
+            with open(dice_path) as f:
+                set_source(DiceSource.from_state(json.load(f)))
+        events_path = os.path.join(directory, "events.json")
+        if os.path.exists(events_path):        # and its decision events carry on
+            from .recorder import start_recording
+            with open(events_path) as f:
+                start_recording(json.load(f))
         return gs
 
     def restore_from(self, other: "GameState") -> None:
@@ -232,6 +343,21 @@ class GameState:
         """
         for f in fields(self):
             setattr(self, f.name, getattr(other, f.name))
+        self.clear_transient()
+
+    def to_snapshot(self) -> Dict:
+        """Every field of the game (To do 17: complete snapshots), as JSON data
+        (a deep copy: tuples become lists, as in a save)."""
+        return json.loads(json.dumps({f.name: getattr(self, f.name) for f in fields(self)}))
+
+    def restore_snapshot(self, snap: Dict) -> None:
+        """Put back every field a snapshot holds (fields it lacks are left)."""
+        for f in fields(self):
+            if f.name in snap:
+                v = json.loads(json.dumps(snap[f.name]))
+                if f.name == "artefact_token_pos" and v is not None:
+                    v = tuple(v)
+                setattr(self, f.name, v)
         self.clear_transient()
 
     def clear_transient(self) -> None:

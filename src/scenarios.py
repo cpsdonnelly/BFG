@@ -554,7 +554,8 @@ def turn_start(gs, dice=None) -> None:
                     continue
                 want = wants_low_orbit(gs, s) if (ai or hook is None) else bool(hook(s))
                 if want:
-                    enter(gs, s)
+                    face = getattr(gs, "low_orbit_facing_hook", None)
+                    enter(gs, s, None if (ai or face is None) else face(s))
     if entry_edge(gs):
         hook = getattr(gs, "reserve_hook", None)
         players = (1, 2) if getattr(gs, "turn_system", "igougo") == "aa" else (gs.active_player,)
@@ -963,11 +964,11 @@ def setup_scenario(gs, dice=None, layout: Optional[int] = None) -> None:
         # picks at random for the AI, judgement: the three beat each other in
         # a circle); without them, random formations here
         if not (gs.scenario_state or {}).get("setup"):
-            import random
+            from .rng import game_random
             if dice is None:
                 from .dice import DiceRoller
                 dice = DiceRoller(mode="auto")
-            resolve_formations(gs, random.choice(FORMATIONS), random.choice(FORMATIONS), dice)
+            resolve_formations(gs, game_random(gs).choice(FORMATIONS), game_random(gs).choice(FORMATIONS), dice)
     elif mode in ("exterminatus", "planetary_assault", "craftworld_assault"):
         if dice is None:
             from .dice import DiceRoller
@@ -1804,6 +1805,9 @@ def orders_forbidden(gs, ship) -> Optional[str]:
     """Why `ship` may not go on special orders now (Brace included), or None.
     Ambush: no defending ship during the defender's first turn. Rescue: the
     defending flagship during the defender's first turn."""
+    from .necrons import nightmare_blocked
+    if nightmare_blocked(ship):
+        return "Nightmare field: no special orders until after the end of its next turn"
     from .subplots import orders_forbidden as _subplot_forbidden
     why = _subplot_forbidden(gs, ship)
     if why:
@@ -2063,8 +2067,90 @@ def kill_bonus_vp(gs, ship) -> float:
     return sub + _scenario_kill_bonus(gs, ship)
 
 
+# Critical hits that kill the admiral (s.5, booklet update 62): Bridge Smashed,
+# and result 9 on the Dark Eldar, Eldar, Necron and Tyranid tables
+from .models import COMMAND_CRITS as ADMIRAL_KILLING_CRITS  # noqa: E402
+
+
+def admiral_killed_by_crit(ship) -> bool:
+    from .models import commander_dead
+    return commander_dead(ship)
+
+
+def admiral_alive(ship) -> bool:
+    """Kill the Admiral: the fleet's flagship is in play and its admiral alive
+    (Bridge Smashed or an alien table's result 9 kills the admiral)."""
+    return (getattr(ship, "is_flagship", False) and ship.status == "active"
+            and not admiral_killed_by_crit(ship))
+
+
+def admiral_bonus_vp(gs, ship) -> float:
+    """Kill the Admiral (owner): the game is lost with the admiral, so losing
+    the flagship (destroyed, or its bridge smashed) is worth more than losing
+    the entire fleet: a bonus of the whole fleet's points on top of the ship's
+    own value. 0 in other modes or for other ships."""
+    if getattr(gs, "scenario_mode", "") != "kill_admiral" or not admiral_alive(ship):
+        return 0.0
+    return float(sum(s.points_value or 0 for s in gs.player_ships(ship.player))) + 1.0
+
+
+def flagship_durability(ship) -> float:
+    """Judgement, for picking a Kill the Admiral flagship: how much it takes
+    to kill (hits, shields, Armour by its weakest facing, a 4+ save)."""
+    from .models import parse_armor
+    arm = min(parse_armor(a) for a in (ship.armor_prow, ship.armor_side, ship.armor_rear) if a) \
+        if (ship.armor_prow or ship.armor_side) else 5
+    save = any(r.startswith("reactive_hull:") or r in ("bonded_exo_plating", "shadowfield")
+               for r in ship.special_rules)
+    return (ship.hits_remaining + 2 * ship.shields_max) * (arm / 5.0) * (1.5 if save else 1.0)
+
+
+def designate_flagships(gs, pick=None) -> list:
+    """Kill the Admiral (owner): a player whose fleet has no flagship must
+    designate one ship as its flagship, for the scenario only (no commander or
+    re-rolls). pick(player, ships, best) -> the chosen ship (a human's choice);
+    None picks the best by `flagship_durability` (the AI, "Auto": capital
+    ships before escorts, then the hardest to kill). Returns (player, ship)."""
+    if getattr(gs, "scenario_mode", "") != "kill_admiral":
+        return []
+    out = []
+    for p in (1, 2):
+        mine = [s for s in gs.player_ships(p) if s.status == "active" and not s.is_disengaged]
+        if not mine or any(s.is_flagship for s in mine):
+            continue
+        best = max(mine, key=lambda s: (s.ship_type != "escort", flagship_durability(s),
+                                        s.points_value, s.id))
+        ship = (pick(p, mine, best) if pick else None) or best
+        ship = gs.get_ship_by_id(ship.id)
+        ship.is_flagship = True
+        ship.special_rules = list(ship.special_rules) + ["designated_flagship"]
+        gs.update_ship(ship)
+        gs.add_log(f"Kill the Admiral: player {p} designates {ship.name} its flagship")
+        out.append((p, ship))
+    return out
+
+
+def bridge_smashed_chance(ship) -> float:
+    """The chance a critical hit on the ship kills its admiral: Bridge Smashed,
+    or result 9 on an alien table (its table's 2D6 results for them)."""
+    from .tables import crit_table_for
+    ways = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1}
+    table = crit_table_for(ship)
+    return sum(ways[r] for r, e in table.items()
+               if e.get("crit_type") in ADMIRAL_KILLING_CRITS and r in ways) / 36.0
+
+
+def admiral_crit_vp(gs, ship) -> float:
+    """What one critical hit on the ship is worth through its chance of
+    killing the admiral (Bridge Smashed), in Kill the Admiral."""
+    bonus = admiral_bonus_vp(gs, ship)
+    return bonus * bridge_smashed_chance(ship) if bonus else 0.0
+
+
 def _scenario_kill_bonus(gs, ship) -> float:
     mode = getattr(gs, "scenario_mode", "")
+    if mode == "kill_admiral":
+        return admiral_bonus_vp(gs, ship)
     if mode == "convoy_matched" and is_convoy(ship) and ship.player == defender(gs):
         return 100.0        # a convoy ship escaping would give the defender 100
     if mode in ("exterminatus", "planetary_assault", "craftworld_assault"):

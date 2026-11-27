@@ -43,10 +43,8 @@ UNBUILT_FACTION_RULES = {
     # listed in CLAUDE.md To do 14
     # Necrons are playable too (src/necrons.py); the ground defences and Deathseed
     # mines stay unsupported for their own reasons (no movement / profile)
-    "Dark Eldar": "Dark Eldar faction rules (shadowfields, Mimic Engine, Slave-Taking, "
-                  "Kabal Variants...) not built yet",
-    "Tyranids": "Tyranid faction rules (Instinctive Behaviour, synapse, spore clouds, "
-                "weapon configurations...) not built yet",
+    # Dark Eldar are playable too (src/dark_eldar.py; gaps in CLAUDE.md To do 19)
+    # Tyranids are playable too (src/tyranids.py; gaps in CLAUDE.md To do 19)
 }
 
 # Convoy ships whose capacity is in their faction's special rule, not their
@@ -417,7 +415,14 @@ def convert_row(row: dict) -> dict:
         transport = (RULE_TRANSPORT[row["name"]], False)
     if row.get("points") is None and not (transport and row.get("points_raw") == "Free"):
         problems.append(f"points cost '{row.get('points_raw')}' is not a fixed number")
-    if not row["weapons"] and not (transport and ship_type in ("escort", "cruiser")):
+    tyranid_configured = (row["faction"] == "Tyranids"
+                          and "configuration" in (row.get("armament_raw") or ""))
+    # Craftworld ships whose weapons are either / or choices: chosen as options
+    # (booklet_options.eldar_configurations)
+    from .booklet_options import ELDAR_CONFIGS
+    eldar_configured = row["name"] in ELDAR_CONFIGS
+    if not row["weapons"] and not (transport and ship_type in ("escort", "cruiser")) \
+            and not tyranid_configured and not eldar_configured:
         # unarmed convoy ships (Fast Clipper) are playable; their cargo is the point
         problems.append(f"no weapon profile ({row.get('armament_raw')})")
     if row["faction"] in UNBUILT_FACTION_RULES:
@@ -429,6 +434,9 @@ def convert_row(row: dict) -> dict:
         craft_map = dict(_TAU_CRAFT)
     elif row["faction"] == "Eldar":
         craft_map = dict(_ELDAR_CRAFT)
+    elif row["faction"] == "Dark Eldar":
+        craft_map = {"Raptors": "raptor", "Razorwings": "razorwing",
+                     "Slavebringers": "slavebringer", "Voidravens": "voidraven"}
     else:
         craft_map = {}
     if row["faction"] in MR_CRAFT:
@@ -455,6 +463,10 @@ def convert_row(row: dict) -> dict:
             else:
                 keep.append(w)
         rows_w = keep
+    if row["faction"] == "Tyranids" and row["name"] != "Infested Space Station":
+        # Tyranid weapons are built by src/tyranids.py (finish_profile): the
+        # export leaves tendrils, glands and ducts as raw text
+        rows_w = []
     weapons = [d for w in rows_w for d in _convert_weapon(w, craft_map, problems)]
     weapons += necron_extra
     if row["faction"] == "Necrons":
@@ -484,6 +496,10 @@ def convert_row(row: dict) -> dict:
         special_rules.append("ponderous")
     if "towed" in (row.get("hull_type") or "").lower():
         special_rules.append("towed")
+    if ((row.get("armour") or {}).get("front_note") == "D"
+            or "Has a Deflector" in notes):
+        # Tau Deflector (Xenos, Tau rules): 6+ prow Armour, lost to a prow crit
+        special_rules.append("deflector")
     if "Ablative Prow Armour" in notes:
         # Ignores Prow Armament Damaged crits; lost if prow torpedoes are taken
         special_rules.append("ablative_prow_armor")
@@ -532,6 +548,38 @@ def convert_row(row: dict) -> dict:
         from .necrons import parse_reactive_hull
         rh = parse_reactive_hull(row.get("shields_raw"))
         special_rules += ["necron"] + ([f"reactive_hull:{rh}"] if rh else [])
+        notes = (row.get("notes") or "").lower()
+        # Shroud / Reaper notes (Xenos p.43-45)
+        if "negative energy veil" in notes:
+            special_rules.append("negative_energy_veil")
+        if "nebuloscope pylons" in notes:
+            special_rules.append("nebuloscope_pylons")
+    # Tau Tracking Systems (Tau faction rules): "Has tracking systems (standard
+    # 10cm)", "(20cm aura, ...)", "Tracking systems (20cm)"; "no tracking
+    # systems" gives none. tracking_systems_<range> (combat._has_tracking_support,
+    # ordnance.turret_reroll)
+    import re as _re
+    _tn = (row.get("notes") or "")
+    if "tracking systems" in _tn.lower() and "no tracking systems" not in _tn.lower():
+        m = _re.search(r"[Tt]racking systems \((?:standard )?(\d+)cm", _tn)
+        special_rules.append(f"tracking_systems_{m.group(1) if m else 10}")
+    if row["faction"] == "Eldar":
+        if "Ghostship" in row["name"]:
+            special_rules.append("ghostship")           # MMS p.20
+        if "ordnance hits on 4+" in (row.get("notes") or ""):
+            special_rules.append("ordnance_shots_4plus")  # Shadowhunter
+    if row["faction"] == "Dark Eldar":
+        # Dark Eldar (Xenos p.4-6): shadowfields instead of shields, their own
+        # weapons rules (flags below), crit table, movement, ordnance flickerfields
+        special_rules += ["dark_eldar", "shadowfield"]
+        for d in weapons:
+            if d.get("weapon_type") == "battery":
+                d["de_battery"] = True
+            if "Phantom Lance" in d.get("name", ""):
+                d["de_phantom"] = True
+    if row["faction"] == "Tyranids" and row["name"] != "Infested Space Station":
+        from .tyranids import base_rules
+        special_rules += base_rules(row)
     if row["faction"] == "Eldar":
         # MMS v2.0 faction rules (src/eldar.py); Ghostships keep 6+ crits
         special_rules += ["eldar_mms", "fragile"] + (["holofield"] if holo is not None else [])
@@ -550,7 +598,7 @@ def convert_row(row: dict) -> dict:
     if re.search(r"\+5D6cm on All Ahead Full instead of \+3D6cm", notes):
         special_rules.append("aaf_5d6")      # Fast Clipper
 
-    return {
+    kw = {
         "ship_class": row["name"],
         "faction": faction_id,
         "ship_type": ship_type or "cruiser",
@@ -572,6 +620,10 @@ def convert_row(row: dict) -> dict:
         "source": row.get("source") or "",
         "unsupported": sorted(set(problems)),
     }
+    if row["faction"] == "Tyranids" and row["name"] != "Infested Space Station":
+        from .tyranids import finish_profile
+        finish_profile(row, kw)
+    return kw
 
 
 def load_rows(path: str = SHIPS_JSON) -> List[dict]:

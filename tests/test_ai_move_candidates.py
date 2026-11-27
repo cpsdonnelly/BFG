@@ -263,15 +263,15 @@ def test_ram_dead_ahead_only_with_ramming_on():
     assert isinstance(o, _S)
 
 
-def test_easy_moves_are_softmax_choices():
-    """To do 11 i: Easy samples moves by softmax on their value: legal, mostly
+def test_very_easy_moves_are_softmax_choices():
+    """To do 11 i: Very easy samples moves by softmax on their value: legal, mostly
     good, not always the best."""
     import random
     random.seed(4)
     me = _ship("Lunar Class Cruiser", 1, 60.0, 60.0, 0.0)
     foe = _ship("Lunar Class Cruiser", 2, 110.0, 80.0, 180.0)
     ai, gs = _ai([me, foe])
-    ai.difficulty = "easy"
+    ai.difficulty = "very_easy"
     seen = set()
     for _ in range(15):
         cmds = ai._plan_move_toward(me, foe, "", 0)
@@ -415,5 +415,10 @@ def test_coordination_pass_plans_every_ship_and_restores_positions():
     with ai._ships_at({b.id: (90.0, 90.0, 45.0)}):
         assert (gs.get_ship_by_id(b.id).x, gs.get_ship_by_id(b.id).y) == (90.0, 90.0)
     assert (gs.get_ship_by_id(b.id).x, gs.get_ship_by_id(b.id).y) == (60.0, 70.0)
-    ai.run_movement_phase()                       # the whole phase still plays
+    # the whole phase still plays (with real dice: the Lunars may take All
+    # Ahead Full to bring their torpedoes into reach, s.7 halving only guns)
+    from src.dice import DiceRoller
+    dice = DiceRoller(mode="auto")
+    ai.dice = ai.tc.dice = dice
+    ai.run_movement_phase()
     assert all(gs.get_ship_by_id(s).x != 60.0 for s in (a.id, b.id))

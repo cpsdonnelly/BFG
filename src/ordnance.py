@@ -1,10 +1,10 @@
 """BFG:XR Ordnance Phase - Torpedo and attack craft resolution"""
 import math
-import uuid as _uuid
 from typing import List, Dict, Optional, Tuple
 from .models import (Ship, OrdnanceMarker, BlastMarker, OrdnanceType,
                      SpecialOrder, signed_angle_diff)
 from .game_state import GameState
+from . import recorder as _rec
 from .geometry import (BASE_CONTACT_MARGIN_CM, circle_touches_torpedo,
                         TORP_BODY_HALF_W_CM, ATTACK_CRAFT_HALF_SIDE_CM)
 from .dice import DiceRoller
@@ -38,9 +38,12 @@ def move_ordnance(marker: OrdnanceMarker, game_state: GameState, dice=None):
     # Mine fields home on the nearest enemy ship automatically
     if marker.ordnance_type == OrdnanceType.MINE_FIELD.value:
         ships = game_state.get_ships()
+        # a negative energy veil can't be detected by mines (Xenos p.45); a mine
+        # in base contact still attacks it (the contact check, not this one)
         enemies = [s for s in ships
                    if s.player != marker.owner_player
-                   and not s.is_destroyed and not s.is_disengaged]
+                   and not s.is_destroyed and not s.is_disengaged
+                   and "negative_energy_veil" not in s.special_rules]
         if not enemies:
             return
         nearest = min(enemies,
@@ -196,13 +199,27 @@ def assign_ai_craft_targets(game_state: GameState, player: int) -> int:
     # with focus, fleet-wide (ai_hazards.plan_strike_targets)
     from .ai_hazards import plan_strike_targets
     strikes = plan_strike_targets(game_state, player)
+    # Torpedo bombers / Tiger Sharks (s.21) never attack ships: their wave
+    # flies at the ship its salvo is worth most against (re-chosen each phase,
+    # so a destroyed target is replaced), the whole wave together
+    from .ai_hazards import torpedo_bomber_flight_target
+    tb_target = {}
+    for g in _torpedo_bomber_flights(game_state, player):
+        t = torpedo_bomber_flight_target(game_state, g, player)
+        for m in g:
+            tb_target[m.id] = t
+            if m.wave_id:
+                tb_target.update({o["id"]: t for o in game_state.ordnance
+                                  if o.get("wave_id") == m.wave_id})
     n = 0
     for i, o in enumerate(game_state.ordnance):
         if (o["owner_player"] != player or o["ordnance_type"] not in ATTACK_CRAFT_TYPES
                 or o.get("cap_ship_id")):
             continue
         m = OrdnanceMarker.from_dict(o)
-        if m.id in strikes and (m.wave_id or attacks_ships(m.ordnance_type)):
+        if m.id in tb_target:
+            m.craft_target_id = tb_target[m.id]
+        elif m.id in strikes and (m.wave_id or attacks_ships(m.ordnance_type)):
             m.craft_target_id = strikes[m.id]
         elif m.id in plan:
             m.craft_target_id = plan[m.id]
@@ -436,8 +453,13 @@ def torpedo_in_launch_arc(marker: OrdnanceMarker, ship: Ship,
                           game_state: GameState) -> bool:
     """On the turn it is launched, a salvo cannot attack a target that is not
     in its firing arc (s.16): the arc of the launcher's torpedo weapon, seen
-    from the launcher (which hasn't moved since it launched this turn)."""
+    from the launcher (which hasn't moved since it launched this turn).
+    A torpedo bomber / Tiger Shark salvo ("limited_fuel") is placed, not
+    launched: its bombers left the carrier on an earlier turn and its facing
+    is the player's choice, so no arc applies (owner ruling, s.21)."""
     if marker.launched_turn != game_state.turn_number:
+        return True
+    if "limited_fuel" in (marker.special_rules or []):
         return True
     launcher = game_state.get_ship_by_id(marker.launched_by)
     if launcher is None:
@@ -461,15 +483,41 @@ def torpedo_may_attack(marker: OrdnanceMarker, ship: Ship,
     return last is None or game_state.turn_number - last >= 2
 
 
-def turret_dice(dice, ship: Ship, n: int, need: int, label: str) -> List[int]:
-    """Roll a ship's turret dice; a Mechanicus Experimental Ship with the
-    "re-roll missed turret hits" improvement re-rolls the misses."""
-    rolls = dice.roll_d6(n, label)
+def turret_reroll(ship: Ship, game_state: Optional[GameState] = None) -> bool:
+    """The ship re-rolls missed turret dice: a Mechanicus Experimental Ship's
+    improvement, or a Tau vessel within range of tracking systems (Tau faction
+    rules; itself included)."""
     if "turret_reroll" in (ship.special_rules or []):
+        return True
+    from .combat import _has_tracking_support
+    return _has_tracking_support(ship, game_state.get_ships() if game_state is not None else None)
+
+
+def turret_kill_p(ship: Ship, need: int, game_state: Optional[GameState] = None) -> float:
+    """Chance one turret die removes its target: hits on `need`, a miss
+    re-rolled where turret_reroll allows."""
+    p = max(0, 7 - need) / 6.0
+    return 1 - (1 - p) ** 2 if turret_reroll(ship, game_state) else p
+
+
+def turret_dice(dice, ship: Ship, n: int, need: int, label: str,
+                game_state: Optional[GameState] = None) -> List[int]:
+    """Roll a ship's turret dice; a Mechanicus Experimental Ship with the
+    "re-roll missed turret hits" improvement, or a Tau ship within range of
+    tracking systems, re-rolls the misses (`turret_reroll`). Tyranid
+    spore cysts (Xenos p.105): for each blast marker the ship touches one
+    turret attack hits only on a 6 (a separate group: those dice are listed
+    first, a result below 6 among them returned as a miss, 1)."""
+    rolls = dice.roll_d6(n, label)
+    if turret_reroll(ship, game_state):
         misses = [r for r in rolls if r < need]
         if misses:
             again = dice.roll_d6(len(misses), f"{ship.name} re-rolls missed turret hits")
             rolls = [r for r in rolls if r >= need] + list(again)
+    if "tyranid" in (ship.special_rules or []) and game_state is not None:
+        from .geometry import count_blast_markers_touching
+        k = min(len(rolls), count_blast_markers_touching(ship, game_state.get_blast_markers()))
+        rolls = [r if r == 6 else 1 for r in rolls[:k]] + list(rolls[k:])
     return rolls
 
 
@@ -483,6 +531,11 @@ def turret_hit_on(ship: Ship, marker=None) -> int:
         need -= 1
     if marker is not None and is_eldar_ordnance(marker):
         need += 2
+    if marker is not None:
+        # Dark Eldar flickerfields (Xenos p.5): +2 against their torpedoes and
+        # attack craft, not mines, to a maximum of 6+
+        from .dark_eldar import flickerfield_penalty
+        need += flickerfield_penalty(marker)
     return max(2, min(6, need))
 
 
@@ -496,8 +549,8 @@ def turrets_blocked(ship: Ship, kind: str) -> bool:
     """s.28: a ship that uses its turrets against attack craft ("craft") may not
     use them against torpedoes or mines ("torp") in the same phase, and vice
     versa. Ork ships always use their turrets against all ordnance."""
-    if "ork_turrets" in ship.special_rules:
-        return False
+    if "ork_turrets" in ship.special_rules or "tyranid" in ship.special_rules:
+        return False          # Tyranid spore cysts: "always ... against any type of ordnance"
     return bool(ship.turrets_used_vs) and ship.turrets_used_vs != kind
 
 
@@ -595,7 +648,8 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     if turrets > 0:
         need = turret_hit_on(target, marker)
         turret_rolls = turret_dice(dice, target, turrets,
-                                   need, f"{target.name} turrets vs torpedoes ({need}+)")
+                                   need, f"{target.name} turrets vs torpedoes ({need}+)",
+                                   game_state)
         turret_kills = sum(1 for d in turret_rolls if d >= need)
         result["turret_kills"] = turret_kills
         result["remaining_strength"] = max(0, marker.strength - turret_kills)
@@ -609,19 +663,31 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
     # Determine armor facing (Promethean Unguents barrage bombs always hit on 4+)
     promethean = promethean_barrage(marker)
     armor = 4 if promethean else target.armor_vs(marker.x, marker.y)
+    if "mucous_membrane" in target.special_rules and not promethean:
+        armor = min(6, armor + 1)      # Tyranid Mucous Membrane: torpedoes count Armour +1
 
     attack_rolls = dice.roll_d6(
         result["remaining_strength"],
         f"Torpedoes vs {target.name} (need {armor}+)")
     result["hits"] = sum(1 for d in attack_rolls if d >= armor)
     misses = len(attack_rolls) - result["hits"]
-    if misses and is_eldar_ordnance(marker):
-        # Eldar torpedoes must re-roll misses (MMS p.4)
+    if misses and (is_eldar_ordnance(marker) or (
+            "dark_eldar" in (marker.special_rules or [])
+            and marker.ordnance_type == OrdnanceType.TORPEDO_STANDARD.value)):
+        # Eldar torpedoes must re-roll misses (MMS p.4); so must Dark Eldar
+        # plasma torpedoes (their standard torpedoes, Xenos p.5)
         result["hits"] += sum(1 for d in dice.roll_d6(
-            misses, f"Eldar torpedoes re-roll misses (need {armor}+)") if d >= armor)
+            misses, f"Torpedoes re-roll misses (need {armor}+)") if d >= armor)
 
     # Torpedoes that scored hits are spent; the rest pass through and keep moving.
     result["remaining_strength"] = max(0, result["remaining_strength"] - result["hits"])
+    if result["hits"] > 0 and not is_hulk:
+        # Dark Eldar shadowfields (Xenos p.5): a save against each ordnance hit
+        from .dark_eldar import shadowfield_saves
+        saved = shadowfield_saves(dice, target, result["hits"], "torpedoes")
+        if saved:
+            game_state.add_log(f"  {target.name} shadowfield saves {saved} torpedo hit(s)")
+            result["hits"] -= saved
 
     if result["hits"] > 0 and is_boarding_torpedo(marker):
         game_state.add_log(
@@ -642,6 +708,15 @@ def resolve_torpedo_attack(marker: OrdnanceMarker, target: Ship,
         fresh = game_state.get_ship_by_id(target.id) or target
         fresh.turrets_halved_turn = target.turrets_halved_turn = game_state.turn_number
         game_state.update_ship(fresh)
+    elif result["hits"] > 0 and marker.ordnance_type == OrdnanceType.TORPEDO_LEECH.value:
+        # Leech torpedoes: no damage; each hit an automatic Thrusters Damaged
+        # crit, its extra damage not applied (Xenos p.5)
+        game_state.add_log(f"Leech torpedoes hit {target.name} {result['hits']} time(s): "
+                           f"{result['hits']} Thrusters Damaged crit(s), no damage; "
+                           f"{result['remaining_strength']} pass through")
+        if not is_hulk:
+            from .combat import add_thrusters_crits
+            add_thrusters_crits(target, result["hits"], game_state)
     elif result["hits"] > 0 and marker.ordnance_type == OrdnanceType.TORPEDO_MELTA.value:
         # Melta: no damage; each hit is an automatic Fire critical hit, even on
         # ships whose critical hit table has no Fire result. A hulk takes no damage.
@@ -753,7 +828,8 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     if turrets > 0:
         need = turret_hit_on(ship, marker)
         turret_rolls = turret_dice(
-            dice, ship, turrets, need, f"{ship.name} turrets vs mine (any {need}+ reduces to 4D6)")
+            dice, ship, turrets, need, f"{ship.name} turrets vs mine (any {need}+ reduces to 4D6)",
+            game_state)
         mark_turrets_used(ship, "torp", game_state)
         if any(r >= need for r in turret_rolls):
             attack_dice = 4
@@ -771,6 +847,8 @@ def resolve_mine_contact(marker: OrdnanceMarker, ship: Ship,
     attack_rolls = dice.roll_d6(attack_dice,
                                  f"Mine vs {ship.name} ({armor}+)")
     result["hits"] = sum(1 for r in attack_rolls if r >= armor)
+    from .dark_eldar import shadowfield_saves
+    result["hits"] -= shadowfield_saves(dice, ship, result["hits"], "mine")
 
     if result["hits"] > 0:
         from .combat import apply_damage
@@ -813,7 +891,8 @@ def resolve_bomber_interception(bomber_count: int,
     need = turret_hit_on(target, marker)
     rolls = turret_dice(
         dice, target, turrets, need,
-        f"Phase 1 interception: {target.name} vs {bomber_count} attack craft ({need}+)")
+        f"Phase 1 interception: {target.name} vs {bomber_count} attack craft ({need}+)",
+        game_state)
     kills = min(sum(1 for r in rolls if r >= need), bomber_count)
 
     bonus_str = f" +{bonus} massed" if bonus else ""
@@ -887,12 +966,23 @@ def resolve_bomber_attack(marker: OrdnanceMarker, target: Ship,
 
         result["turret_reduction"] = turret_reduction
 
+    if "mucous_membrane" in target.special_rules:
+        # Tyranid Mucous Membrane: bombers make one attack fewer (reading:
+        # Fighta-Bommerz keep their minimum of one)
+        floor = 1 if marker.ordnance_type == OrdnanceType.FIGHTA_BOMMER.value else 0
+        total_attacks = max(floor, total_attacks - 1)
+        game_state.add_log(f"  {target.name}'s mucous membrane: -1 attack")
     result["attacks"] = total_attacks
 
     if total_attacks > 0:
         armor = target.lowest_armor_value
         hit_rolls = dice.roll_d6(total_attacks, f"Bomber hits vs {target.name} ({armor}+)")
         result["hits"] = sum(1 for d in hit_rolls if d >= armor)
+        from .dark_eldar import shadowfield_saves
+        saved = shadowfield_saves(dice, target, result["hits"], "bombers")
+        if saved:
+            game_state.add_log(f"  {target.name} shadowfield saves {saved} bomber hit(s)")
+            result["hits"] -= saved
 
         if result["hits"] > 0:
             from .combat import apply_damage
@@ -1205,7 +1295,7 @@ _PLANET_IMMUNE = _ATTACK_CRAFT | {
 
 def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
                                  phenomena,
-                                 dice: DiceRoller) -> Tuple[bool, str]:
+                                 dice: DiceRoller, start=None) -> Tuple[bool, str]:
     """
     Check if ordnance is destroyed by terrain phenomena.
 
@@ -1222,6 +1312,11 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
         planets = no effect
         gas/dust cloud = D6=6 destroys (owner ruling)
 
+    start: where the marker began this move; with it, terrain anywhere along
+    the move counts (s.39: craft "which move through an asteroid field"),
+    e.g. bombers launched from a carrier parked inside one. Without it only
+    where the marker ends.
+
     Returns (destroyed: bool, reason: str).
     """
     is_torp = marker.ordnance_type in _TORP_LIKE
@@ -1234,13 +1329,21 @@ def check_ordnance_vs_phenomena(marker: OrdnanceMarker,
     # Approximate marker half-size for terrain contact (circular bounding radius)
     marker_r = TORP_BODY_HALF_W_CM if is_torp else ATTACK_CRAFT_HALF_SIDE_CM
 
+    if start is not None:
+        sx, sy = start
+        n = max(1, int(math.hypot(marker.x - sx, marker.y - sy) / 0.5))
+        points = [(sx + (marker.x - sx) * k / n, sy + (marker.y - sy) * k / n)
+                  for k in range(n + 1)]
+    else:
+        points = [(marker.x, marker.y)]
+
     for p in phenomena:
         if "planet" in p.phenomenon_type and p.radius > 0:
-            dist = math.sqrt((marker.x - p.x)**2 + (marker.y - p.y)**2)
-            in_contact = dist <= p.radius + marker_r
+            in_contact = any(math.hypot(x - p.x, y - p.y) <= p.radius + marker_r
+                             for x, y in points)
         else:
-            in_contact = (abs(marker.x - p.x) <= p.width / 2 + marker_r and
-                          abs(marker.y - p.y) <= p.height / 2 + marker_r)
+            in_contact = any(abs(x - p.x) <= p.width / 2 + marker_r and
+                             abs(y - p.y) <= p.height / 2 + marker_r for x, y in points)
 
         if not in_contact:
             continue
@@ -1317,6 +1420,9 @@ def mine_launch_strength(ship: Ship, weapon: Dict) -> int:
     return n
 
 
+@_rec.logged("launch", lambda r, A: (A["gs"], dict(
+    ship=A["ship"].id, weapon=_rec.weapon_label(A["ship"], A["weapon"]), what="mines",
+    markers=[m.id for m in r or []])))
 def lay_mines(ship: Ship, weapon: Dict, gs: GameState) -> List[OrdnanceMarker]:
     """Launch one mine per mine launcher (s.17) at the end of the shooting
     phase, placed on the ship's base; they move 10cm towards the nearest enemy
@@ -1439,6 +1545,8 @@ EXTRA_TORPEDO_TYPES = {
     "vortex": (OrdnanceType.TORPEDO_VORTEX.value, "Vortex torpedoes (1 damage + automatic crit per hit; once per game)"),
     # Ordo Hereticus Inferno Torpedoes: melta torpedoes usable any number of times
     "inferno": (OrdnanceType.TORPEDO_MELTA.value, "Inferno torpedoes (melta: Fire crit per hit, no damage)"),
+    # Dark Eldar (Xenos p.5): every Dark Eldar torpedo launcher also carries them
+    "leech": (OrdnanceType.TORPEDO_LEECH.value, "Leech torpedoes (Thrusters Damaged crit per hit, no damage)"),
 }
 ONCE_PER_GAME_TORPEDOES = ("seeking", "melta", "vortex")
 # Game-start torpedo rolls (ship rule "torpedo_roll:<table>"), rolled per ship
@@ -1568,6 +1676,23 @@ def short_burn_fuel_checks(game_state: GameState, dice: DiceRoller,
 TORPEDO_BOMBER_SALVO = 2          # strength per squadron (s.21)
 
 
+def _torpedo_bomber_flights(game_state: GameState, player: int) -> List[List[OrdnanceMarker]]:
+    """Every torpedo bomber squadron of the player in flight (its launch turn
+    included), grouped by wave, lead first: what flies together."""
+    tbs = [OrdnanceMarker.from_dict(o) for o in game_state.ordnance
+           if o.get("owner_player") == player and not o.get("cap_ship_id")
+           and o.get("ordnance_type") == OrdnanceType.TORPEDO_BOMBER.value]
+    groups, seen = [], set()
+    for m in tbs:
+        if m.id in seen:
+            continue
+        g = (sorted((w for w in tbs if w.wave_id == m.wave_id), key=lambda w: w.wave_order)
+             if m.wave_id else [m])
+        seen |= {w.id for w in g}
+        groups.append(g)
+    return groups
+
+
 def torpedo_bomber_groups(game_state: GameState, player: int) -> List[List[OrdnanceMarker]]:
     """The player's torpedo bomber squadrons that may fire now (s.21: at the
     start of any ordnance phase after the turn they were launched), grouped by
@@ -1590,6 +1715,9 @@ def torpedo_bomber_groups(game_state: GameState, player: int) -> List[List[Ordna
     return groups
 
 
+@_rec.logged("launch", lambda r, A: (A["game_state"], dict(
+    what="torpedo_bombers", craft=list(A["marker_ids"]), heading=A["heading"],
+    markers=[r.id] if r is not None else [])))
 def fire_torpedo_bombers(game_state: GameState, marker_ids: List[str],
                          heading: float) -> Optional[OrdnanceMarker]:
     """Replace torpedo bomber squadrons (one wave, or a lone squadron) with one
@@ -1615,7 +1743,10 @@ def fire_torpedo_bombers(game_state: GameState, marker_ids: List[str],
         speed=40.0 if tiger else float(TORPEDO_SPEED_DEFAULT),
         launched_turn=game_state.turn_number,
         can_turn=tiger, turn_angle=45 if tiger else 0,
-        special_rules=["limited_fuel"] + (["tau_missile"] if tiger else []))
+        special_rules=["limited_fuel"] + (["tau_missile"] if tiger else [])
+        # Dark Eldar Voidravens launch plasma torpedoes (re-roll misses) under
+        # flickerfields (Xenos p.5): the salvo keeps the faction rule
+        + (["dark_eldar"] if "dark_eldar" in lead.special_rules else []))
     ids = {m.id for m in ms}
     game_state.ordnance = [o for o in game_state.ordnance if o["id"] not in ids]
     from .waves import tidy_waves
@@ -1636,6 +1767,10 @@ def remove_spent_salvos(game_state: GameState) -> List[str]:
     return [o["id"] for o in gone]
 
 
+@_rec.logged("launch", lambda r, A: (A["game_state"], dict(
+    ship=A["ship"].id, weapon=_rec.weapon_label(A["ship"], A["weapon"]), what="torpedo",
+    heading=A["heading"], boarding=A["boarding"], torp_kind=A["kind"],
+    markers=[r.id])) if r is not None else None)
 def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
                      heading: Optional[float] = None,
                      boarding: bool = False,
@@ -1675,7 +1810,7 @@ def launch_torpedoes(ship: Ship, weapon: Dict, game_state: GameState,
         launch_heading = (ship.heading + diff) % 360
 
     marker = OrdnanceMarker(
-        id=f"torp_{ship.id}_{game_state.turn_number}_{_uuid.uuid4().hex[:6]}",
+        id=f"torp_{ship.id}_{game_state.turn_number}_{game_state.next_serial():06d}",
         ordnance_type=o_type, owner_player=ship.player,
         launched_by=ship.id, x=ship.x, y=ship.y,
         heading=launch_heading, strength=strength,
@@ -1725,6 +1860,18 @@ CRAFT_STATS = {
     "eldar_fighter": (OrdnanceType.FIGHTER.value, 30, 0),
     "eldar_bomber": (OrdnanceType.BOMBER.value, 20, 0),
     "vampire_assault_boat": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+    # Dark Eldar (Xenos p.5): Raptor fighters 4+ resilient, Razorwing bombers,
+    # Slavebringer assault boats, Voidraven torpedo bombers (plasma salvos);
+    # flickerfields against turrets come with the launcher's dark_eldar rule
+    "raptor": (OrdnanceType.FIGHTER.value, 30, 4),
+    "razorwing": (OrdnanceType.BOMBER.value, 20, 0),
+    "slavebringer": (OrdnanceType.ASSAULT_BOAT.value, 30, 0),
+    # Dark Eldar Impaler assault modules (Xenos p.5): resilient 4+, resolved by
+    # dark_eldar.resolve_impaler (the marker carries the "impaler" rule)
+    "impaler": (OrdnanceType.ASSAULT_BOAT.value, 30, 4),
+    "voidraven": (OrdnanceType.TORPEDO_BOMBER.value, 20, 0),
+    # Tyranid antibodies (Xenos p.106): slow multi-role fighter + assault boat
+    "antibody": (OrdnanceType.GUN_CUTTER.value, 15, 0),
 }
 
 # What each attack craft type can act as. Multi-role craft follow the rules of
@@ -1792,32 +1939,44 @@ def bay_launch_capacity(ship: Ship, bay_weapons: List[Dict],
     return total, log
 
 
-def fleet_craft_slots(game_state: GameState, player: int) -> int:
-    """Attack craft markers the player may still put in play: launch bays
-    remaining in the fleet (random bays count their maximum) minus markers
-    already in play (s.15)."""
+def impaler_bays(bays) -> bool:
+    """Dark Eldar Impaler bays: a launch pool of their own (Xenos p.5: no more
+    Impalers in play than the fleet's Impaler launch capacity)."""
+    return bool(bays) and all(w.get("impaler_bay") for w in bays)
+
+
+def _craft_pool(game_state: GameState, player: int, impaler: bool) -> Tuple[int, int]:
+    """(bays, markers in play) of one launch pool: Impalers or everything else."""
     bays = sum(w.get("strength", 0)
                for s in game_state.player_ships(player)
                if not s.is_destroyed and not s.is_disengaged
-               for w in s.weapons if w.get("weapon_type") == "launch_bay")
+               for w in s.weapons if w.get("weapon_type") == "launch_bay"
+               and bool(w.get("impaler_bay")) == impaler)
     in_play = sum(1 for o in game_state.ordnance
                   if o.get("owner_player") == player
-                  and o.get("ordnance_type") in ATTACK_CRAFT_TYPES)
+                  and o.get("ordnance_type") in ATTACK_CRAFT_TYPES
+                  and ("impaler" in (o.get("special_rules") or [])) == impaler)
+    return bays, in_play
+
+
+def fleet_craft_slots(game_state: GameState, player: int, impaler: bool = False) -> int:
+    """Attack craft markers the player may still put in play: launch bays
+    remaining in the fleet (random bays count their maximum) minus markers
+    already in play (s.15). Impalers have their own pool (`impaler`)."""
+    bays, in_play = _craft_pool(game_state, player, impaler)
     return max(0, bays - in_play)
 
 
-def fleet_craft_excess(game_state: GameState, player: int) -> int:
+def fleet_craft_excess(game_state: GameState, player: int, impaler: Optional[bool] = None) -> int:
     """Attack craft markers in play beyond the fleet's remaining launch bays
     (after critical damage or lost ships). The owner must remove that many the
-    next time a new squadron is launched (s.15)."""
-    bays = sum(w.get("strength", 0)
-               for s in game_state.player_ships(player)
-               if not s.is_destroyed and not s.is_disengaged
-               for w in s.weapons if w.get("weapon_type") == "launch_bay")
-    in_play = sum(1 for o in game_state.ordnance
-                  if o.get("owner_player") == player
-                  and o.get("ordnance_type") in ATTACK_CRAFT_TYPES)
-    return max(0, in_play - bays)
+    next time a new squadron is launched (s.15). Both pools unless one is named."""
+    pools = (False, True) if impaler is None else (impaler,)
+    total = 0
+    for imp in pools:
+        bays, in_play = _craft_pool(game_state, player, imp)
+        total += max(0, in_play - bays)
+    return total
 
 
 def recall_craft(game_state: GameState, player: int, marker_ids: List[str]) -> int:
@@ -1864,6 +2023,9 @@ def craft_type_allowed(craft_type: str, bay_weapons: List[Dict], game_state) -> 
     return roles != {"assault_boat"}
 
 
+@_rec.logged("launch", lambda r, A: (A["game_state"], dict(
+    ship=A["ship"].id, weapon=_rec.weapon_label(A["ship"], A["weapon"]), what="attack_craft",
+    craft=A["craft_type"], count=A["count"], markers=[m.id for m in r or []])))
 def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
                         count: int, game_state: GameState) -> List[OrdnanceMarker]:
     """Create attack craft markers from launch bays. Assault boats aren't
@@ -1898,7 +2060,8 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
             launched_turn=game_state.turn_number,
             resilient_save=resilient,
             special_rules=list(ship.special_rules) + (
-                ["tiger_shark"] if craft_type == "tiger_shark" else []),
+                ["tiger_shark"] if craft_type == "tiger_shark" else [])
+            + (["impaler"] if craft_type == "impaler" else []),
         )
         markers.append(marker)
         game_state.add_ordnance(marker)
@@ -1907,3 +2070,34 @@ def launch_attack_craft(ship: Ship, weapon: Dict, craft_type: str,
     game_state.update_ship(ship)
     game_state.add_log(f"{ship.name} launches {count}x {craft_type}")
     return markers
+
+
+def launch_in_asteroids(gs: GameState, marker_ids, dice: Optional[DiceRoller] = None) -> List[str]:
+    """Torpedoes launched inside an asteroid field: a salvo placed in contact
+    with a field detonates at once (s.39: torpedoes that strike one detonate),
+    before it can reach anything. Attack craft launched there aren't rolled
+    for here: they test as they move out of the field on their first move
+    (`check_ordnance_vs_phenomena(start=)`), a wave once for the whole wave
+    and a lone squadron for itself, as for blast markers (s.25, s.39; owner
+    confirmed). `dice` is unused (kept for the callers). Returns the ids
+    removed."""
+    fields = [p for p in gs.get_phenomena() if p.phenomenon_type == "asteroid_field"]
+    ids = set(marker_ids)
+    if not fields or not ids:
+        return []
+    gone = []
+    for o in gs.ordnance:
+        if o["id"] not in ids:
+            continue
+        m = OrdnanceMarker.from_dict(o)
+        if m.ordnance_type not in _TORP_LIKE or m.ordnance_type == OrdnanceType.MINE_FIELD.value:
+            continue
+        r = TORP_BODY_HALF_W_CM
+        if any(abs(m.x - p.x) <= p.width / 2 + r and abs(m.y - p.y) <= p.height / 2 + r
+               for p in fields):
+            gone.append(m.id)
+            gs.report(f"{m.ordnance_type.replace('_', ' ')} launched inside an asteroid field "
+                      f"detonates")
+    if gone:
+        gs.ordnance = [o for o in gs.ordnance if o["id"] not in set(gone)]
+    return gone

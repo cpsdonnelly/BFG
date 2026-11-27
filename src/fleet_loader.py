@@ -38,7 +38,8 @@ def fleet_to_ships(fleet_data: dict, player: int) -> List[Ship]:
     so that forward-compatible fleet files don't crash the loader.
     """
     ships: List[Ship] = []
-    for raw in fleet_data.get("ships", []):
+    used = set()
+    for i, raw in enumerate(fleet_data.get("ships", [])):
         d: dict = {}
 
         # Map spawn_* → x/y/heading; keep the rest if they are real Ship fields.
@@ -50,6 +51,24 @@ def fleet_to_ships(fleet_data: dict, player: int) -> List[Ship]:
             # Drop unrecognised fleet-file-only keys silently.
 
         d["player"] = player
+        # The fleet builder saves no ids (To do 32: such a fleet crashed the game
+        # at start): a stable one from the player and the ship's place in the
+        # file, so a seeded game and its replay give the ships the same ids
+        if not d.get("id") or d["id"] in used:
+            base = d.get("id") or f"p{player}_s{i + 1}"
+            n, sid = 1, base
+            while sid in used:
+                n += 1
+                sid = f"{base}_{n}"
+            d["id"] = sid
+        used.add(d["id"])
+        # The fleet's list (s.4), kept on each ship as a rule tag so the game
+        # can check where its commander may go (commanders.py, To do 29)
+        main_list = fleet_data.get("fleet_list") or ""
+        if main_list:
+            rules = list(d.get("special_rules") or [])
+            if not any(r.startswith("fleet_list:") for r in rules):
+                d["special_rules"] = rules + [f"fleet_list:{main_list}"]
         ships.append(Ship(**d))
 
     return ships
@@ -188,6 +207,7 @@ def roll_starting_leadership(gs, dice, ai_dice=None) -> List[str]:
         ld = max(0, ld)
         for i in indices:
             gs.ships[i]["leadership"] = ld
+        gs.__dict__.pop("_stamp_memo", None)    # records changed in place
         logs.append(f"{names}: Leadership {ld} (rolled {roll})")
     # "+1 Ld at all times (max 10)": Sensors (Emperor, Oberon) and the grand
     # cruisers' Comms Uplink, added after the roll or a commander's own Ld

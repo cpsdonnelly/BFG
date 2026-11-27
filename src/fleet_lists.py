@@ -637,6 +637,8 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
         mine = by_list.get(fl["key"], [])
         errors += _list_errors(fl, mine, points_limit, rows)
 
+    errors += commander_placement_errors(main_key, rows)          # To do 29
+
     # Mine launcher swap on a light cruiser: only where its list places it in
     # the Cruisers category (update 58, sign-off answer 49)
     for r in rows:
@@ -645,7 +647,10 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
             lk = r.get("list") or main_key
             lk = lk.split(":", 1)[1] if lk.startswith("reserve:") else lk
             sec = section_of(LISTS.get(lk, main), r["entry"].ship_class) or {}
-            if sec.get("name") != "Cruisers":
+            sname = sec.get("name", "")
+            if not (sname == "Cruisers" or (sname.endswith("Cruisers")
+                                            and "Light" not in sname
+                                            and "Battle" not in sname)):
                 errors.append(f"{r['entry'].ship_class}: mine launchers only for up to two "
                               f"cruisers; this list places it under "
                               f"{sec.get('name', 'another category')}.")
@@ -767,11 +772,35 @@ def fleet_list_errors(main_key: Optional[str], rows: List[Dict], fleet_points: i
                     else "needs")
             errors.append(f"{fl['name']}: {what} a fleet commander "
                           f"({' or '.join(cmd['options'])}).")
+        up = fl.get("commander_upgrade")
+        if up and points_limit >= up[0] and not any(
+                u in up[1] for r in mine for u in r.get("upgrades", [])):
+            # Eldar: a fleet over 2000pts needs a Dragon Prince / High Admiral
+            errors.append(f"{fl['name']}: a fleet of more than {up[0] - 1} pts needs "
+                          f"{' or '.join(up[1])}.")
         if cmd.get("per_points") and n_cmd > max(1, -(-points_limit // cmd["per_points"])):
             errors.append(f"{fl['name']}: {n_cmd} commanders, at most one per "
                           f"{cmd['per_points']}pts.")
 
     errors += xenos_cutter_errors(rows)
+    if main.get("min_capital") and sum(1 for r in rows if r["entry"].ship_type != "escort") \
+            < main["min_capital"]:
+        # Necron fleets "must include at least one capital ship"
+        errors.append(f"{main['name']}: needs at least {main['min_capital']} capital ship(s).")
+    if main.get("escorts_per_capital"):
+        # Dark Eldar Raiders: "at least three escorts for every capital ship"
+        n_cap = sum(1 for r in rows if r["entry"].ship_type != "escort")
+        n_esc = len(rows) - n_cap
+        need = main["escorts_per_capital"] * n_cap
+        if n_esc < need:
+            errors.append(f"{main['name']}: {n_cap} capital ship(s) need at least {need} "
+                          f"escorts ({n_esc} taken).")
+    if main.get("looted_reserves"):
+        from .orks import looted_errors
+        errors += looted_errors(rows)
+    if main.get("tyranid"):
+        from .tyranids import fleet_errors as tyranid_fleet_errors
+        errors += tyranid_fleet_errors(main["tyranid"], rows, points_limit)
     if main.get("demiurg_war_host"):
         errors += _war_host_errors(rows)
     if main.get("chaos_options"):
@@ -817,6 +846,107 @@ def _sm_barge_errors(rows: List[Dict], fleet_points: int) -> List[str]:
                       f"(a third may be the Chapter Flagship).")
     if flag and fleet_points < 1000:
         errors.append("The Chapter Flagship needs a fleet worth at least 1000pts.")
+    return errors
+
+
+# Where the fleet commander may go (To do 29, placement check; the booklet's
+# wording): Chaos "on the most expensive capital ship" (07_chaos.md; Abaddon
+# rides the Planet Killer if present); Mechanicus "must ride the Ark
+# Mechanicus if it is present"; Banisher "assigned to a battleship or battle
+# barge if one is present"; Necron Harvest "automatically assigned to the
+# largest capital ship" (reading: the most starting hits); Wolf-Pack "the most
+# expensive capital ship(s) available (excluding xenos ships)". "Most
+# expensive" reads the ship's own cost in its list, its options left out
+# (reading). The Space Marine battle barge rule is _sm_barge_errors.
+_PLACEMENT = {"chaos": "dearest", "admech_explorator": "ark", "inq_banisher": "battleship",
+              "necron_harvest": "largest", "rt_wolf_pack": "dearest_non_xenos"}
+
+
+def commander_placement_errors(main_key: Optional[str], rows: List[Dict]) -> List[str]:
+    fl = LISTS.get(main_key or "")
+    if not fl:
+        return []
+    rule = _PLACEMENT.get(main_key) or (_PLACEMENT.get("chaos") if fl.get("faction") == "chaos"
+                                        else None)
+    if rule is None:
+        return []
+    from .booklet_options import NAMED_COMMANDERS
+    names = set((fl.get("commander") or {}).get("options", []))
+    named = {n for v in NAMED_COMMANDERS.values() for n, *_r in v}
+    cmd = [r for r in rows if (names | named) & set(r.get("upgrades", []))]
+    if not cmd:
+        return []
+    r = cmd[0]
+    caps = [x for x in rows if x["entry"].ship_type in ("cruiser", "battleship")]
+    who = next(iter((names | named) & set(r["upgrades"])))
+    where = r["entry"].ship_class
+
+    def cost(x):
+        return x.get("base_cost", x["entry"].points_cost)
+    if "Abaddon" in who:
+        pk = [x for x in caps if x["entry"].ship_class.startswith("Planet Killer")]
+        if pk and r not in pk:
+            return [f"{who} must ride the Planet Killer ({where} chosen)."]
+        if pk:
+            return []
+    if rule in ("dearest", "dearest_non_xenos"):
+        pool = caps
+        if rule == "dearest_non_xenos":
+            pool = [x for x in caps if "xenos" not in x["entry"].ship_class.lower()
+                    and x["entry"].faction not in ("eldar", "dark_eldar", "orks", "tau_kororvesh")]
+        if pool and cost(r) < max(cost(x) for x in pool):
+            top = max(pool, key=cost)["entry"].ship_class
+            return [f"{who} must ride the most expensive capital ship ({top}), not the {where}."]
+    elif rule == "ark":
+        ark = [x for x in caps if x["entry"].ship_class.startswith("Ark Mechanicus")]
+        if ark and r not in ark:
+            return [f"{who} must ride the Ark Mechanicus ({where} chosen)."]
+    elif rule == "battleship":
+        big = [x for x in rows if x["entry"].ship_type == "battleship"
+               or "battle barge" in x["entry"].ship_class.lower()]
+        if big and r not in big:
+            return [f"{who} must be on a battleship or battle barge ({where} chosen)."]
+    elif rule == "largest":
+        if caps and r["entry"].hits_max < max(x["entry"].hits_max for x in caps):
+            top = max(caps, key=lambda x: x["entry"].hits_max)["entry"].ship_class
+            return [f"{who} is assigned to the largest capital ship ({top}), not the {where}."]
+    return []
+
+
+def escort_squadron_limits(list_key: Optional[str]) -> Dict:
+    """Escort squadron sizes for a fleet list (core s.4: "usually ... no more
+    than six", "no more than four are 2-hit escorts"; s.8 squadrons of two or
+    more): 2-6 with at most four 2-hit escorts. Tyranids (Xenos p.118-120):
+    the Hive and Gestating fleets 1-12, the Vanguard 6-12, in any mix, Kraken
+    counting as two escorts and at most 4 a squadron. Keys: min, max,
+    two_hit_max (None: no limit), kraken_weight, kraken_max, mix (classes may
+    mix in one squadron)."""
+    fl = LISTS.get(list_key or "") or {}
+    if fl.get("faction") == "tyranids":
+        lo = 6 if fl.get("tyranid") == "vanguard" else 1
+        return {"min": lo, "max": 12, "two_hit_max": None, "kraken_weight": 2,
+                "kraken_max": 4, "mix": True}
+    return {"min": 2, "max": 6, "two_hit_max": 4, "kraken_weight": 1, "kraken_max": None,
+            "mix": False}
+
+
+def escort_squadron_errors(list_key: Optional[str], members: List[Dict], sid: str) -> List[str]:
+    """One escort squadron against its list's sizes (escort_squadron_limits)."""
+    lim = escort_squadron_limits(list_key)
+    entries = [m["entry"] for m in members]
+    kraken = sum(1 for e in entries if e.ship_class == "Kraken")
+    size = len(entries) + (lim["kraken_weight"] - 1) * kraken
+    errors = []
+    if size < lim["min"] or size > lim["max"]:
+        what = " (Kraken count two)" if kraken and lim["kraken_weight"] > 1 else ""
+        errors.append(f"Squadron '{sid}': escort squadrons need {lim['min']}-{lim['max']} "
+                      f"ships{what} (has {size}).")
+    two = sum(1 for e in entries if e.hits_max >= 2)
+    if lim["two_hit_max"] is not None and two > lim["two_hit_max"]:
+        errors.append(f"Squadron '{sid}': at most {lim['two_hit_max']} two-hit escorts "
+                      f"(has {two}).")
+    if lim["kraken_max"] is not None and kraken > lim["kraken_max"]:
+        errors.append(f"Squadron '{sid}': at most {lim['kraken_max']} Kraken (has {kraken}).")
     return errors
 
 

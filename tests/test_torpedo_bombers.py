@@ -1,5 +1,5 @@
 """Torpedo bombers (s.21) and Tiger Sharks (owner ruling), To do 3."""
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_gunship, make_ship, make_gs, DiceStub
 from src.ship_catalog import find_ship_class
 from src.models import Ship, OrdnanceMarker
 from src.ordnance import (launch_attack_craft, torpedo_bomber_groups, fire_torpedo_bombers,
@@ -94,3 +94,167 @@ def test_hazard_model_counts_a_salvo_not_bomber_attacks():
     h, why = marker_hits(s, near, (0.0, 0.0), [(0.0, 0.0)], [s])
     assert 0 < h <= 2 and "torpedo bombers" in why
     assert marker_hits(s, far, (0.0, 0.0), [(0.0, 0.0)], [s])[0] == 0.0
+
+
+def _parked_game(friend_too=False, behind=True):
+    """An Emperor's torpedo bomber wave (two squadrons) parked on an enemy
+    Lunar that is behind the carrier (outside any torpedo arc it has); the
+    salvo is placed there in the next ordnance phase."""
+    from src.game_state import GameState
+    from src.turn_controller import TurnController
+    from src.dice import DiceRoller, DiceSource, set_source
+    from src.headless_game import HeadlessGame
+    from src import recorder
+    set_source(DiceSource(3))
+    gs = GameState(game_name="tb", game_seed=3)
+    gs.table_width, gs.table_height, gs.dice_mode = 180.0, 120.0, "auto"
+    gs.ai_spectator = True
+    gs.add_ship(_carrier("Emperor Battleship", "Attack craft: torpedo bombers",
+                         x=90.0, y=60.0, heading=0.0, leadership=8))
+    foe = find_ship_class("Lunar Class Cruiser").to_ship_dict("Lunar Class Cruiser", 2,
+                                                             ship_id="foe")
+    foe.update(x=60.0 if behind else 120.0, y=60.0, heading=90.0, leadership=8)
+    gs.add_ship(Ship.from_dict(foe))
+    if friend_too:
+        fr = find_ship_class("Lunar Class Cruiser").to_ship_dict("Lunar Class Cruiser", 1,
+                                                                ship_id="friend")
+        fr.update(x=60.0, y=60.0, heading=90.0, leadership=8)
+        gs.add_ship(Ship.from_dict(fr))
+    for i in range(2):
+        gs.add_ordnance(OrdnanceMarker(
+            id=f"tb{i}", ordnance_type="torpedo_bomber", owner_player=1, launched_by="cv",
+            x=gs.get_ship_by_id("foe").x, y=60.0, speed=20, launched_turn=1,
+            wave_id="w", wave_order=i))
+    gs.current_phase, gs.active_player, gs.turn_number = "ordnance", 1, 3
+    tc = TurnController(gs, DiceRoller(mode="auto"), save_dir=None)
+    recorder.set_current_gs(gs)
+    return gs, HeadlessGame(tc)
+
+
+def test_placed_salvo_attacks_the_ship_it_is_placed_on_then_carries_on():
+    """Owner ruling (s.21): a salvo placed overlapping a ship's base attacks at
+    once (turrets first), whatever the carrier's arcs, then carries on at its
+    reduced strength; it can't attack that ship again that turn."""
+    from src.dice import DiceSource, set_source
+    from src.ordnance import torpedo_may_attack
+    try:
+        gs, game = _parked_game()
+        salvo = fire_torpedo_bombers(gs, ["tb0", "tb1"], 0.0)
+        foe = gs.get_ship_by_id("foe")
+        assert torpedo_may_attack(salvo, foe, gs)        # no launch arc for a placed salvo
+        game.ordnance._resolve_ordnance_movement()
+        foe = gs.get_ship_by_id("foe")
+        assert any("Torpedoes contact Lunar" in line for line in game.ctx.lines)
+        left = [o for o in gs.ordnance if o["id"] == salvo.id]
+        if left:                                         # the misses carried on
+            assert left[0]["strength"] < 4 and left[0]["x"] > 60.0 + 10
+            assert left[0]["attacked_turns"]["foe"] == gs.turn_number
+            assert not torpedo_may_attack(OrdnanceMarker.from_dict(left[0]), foe, gs)
+    finally:
+        set_source(DiceSource())
+
+
+def test_placed_salvo_attacks_a_friendly_ship_it_is_placed_on():
+    from src.dice import DiceSource, set_source
+    try:
+        gs, game = _parked_game(friend_too=True)
+        fire_torpedo_bombers(gs, ["tb0", "tb1"], 0.0)
+        game.ordnance._resolve_ordnance_movement()
+        assert any("FRIENDLY FIRE" in line for line in game.ctx.lines)
+    finally:
+        set_source(DiceSource())
+
+
+def test_ai_values_a_parked_wave_and_aims_its_carry_on():
+    """The AI fires a wave parked on its target (certain contact) and points the
+    salvo's carry-on away from its own ships; a friend under the wave counts
+    against the shot."""
+    from src.ai_hazards import torpedo_bomber_target, torpedo_bomber_heading, _bomber_salvo_value
+    gs, _g = _parked_game()
+    group = torpedo_bomber_groups(gs, 1)[0]
+    v, e = torpedo_bomber_target(gs, group, 1)
+    assert e.id == "foe" and v > 0
+    # a friend 20cm along heading 0 from the parked wave: the carry-on avoids it
+    fr = make_ship(id="f2", player=1, x=80.0, y=60.0, points_value=200)
+    gs.add_ship(fr)
+    h = torpedo_bomber_heading(gs, group, 1, gs.get_ship_by_id("foe"))
+    assert _bomber_salvo_value(gs, group, 1, h) > _bomber_salvo_value(gs, group, 1, 0.0)
+    gs2, _g2 = _parked_game(friend_too=True)
+    v2, _e = torpedo_bomber_target(gs2, torpedo_bomber_groups(gs2, 1)[0], 1)
+    assert v2 < v
+
+
+def test_ai_torpedo_bombers_retarget_when_their_target_is_gone():
+    """A wave whose target is destroyed flies at the enemy ship its salvo is
+    worth most against (not just the nearest); a live target is kept."""
+    from src.ordnance import assign_ai_craft_targets
+    near = make_ship(id="near", player=2, x=30.0, y=0.0, points_value=15, hits_remaining=1,
+                     hits_max=1, turrets=1)
+    dear = make_ship(id="dear", player=2, x=45.0, y=0.0, points_value=300, turrets=1)
+    dead = make_ship(id="dead", player=2, x=10.0, y=0.0, status="destroyed")
+    # our guns within reach of the dear ship: its hits short of a kill are worth
+    # the chance they finish it (ai_hazards.hits_vp)
+    gs = make_gs([make_ship(id="cv", player=1, x=-50.0), near, dear, dead,
+                  make_gunship(player=1, x=45.0, y=40.0, id="g1"),
+                  make_gunship(player=1, x=55.0, y=40.0, id="g2")])
+    gs.turn_number = 2
+    for i in range(2):
+        gs.add_ordnance(OrdnanceMarker(
+            id=f"tb{i}", ordnance_type="torpedo_bomber", owner_player=1, launched_by="cv",
+            x=0.0, y=0.0, speed=20, launched_turn=1, wave_id="w", wave_order=i,
+            craft_target_id="dead"))
+    assign_ai_craft_targets(gs, 1)
+    assert {o["craft_target_id"] for o in gs.ordnance} == {"dear"}
+    for o in gs.ordnance:
+        o["craft_target_id"] = "near"
+    assign_ai_craft_targets(gs, 1)
+    assert {o["craft_target_id"] for o in gs.ordnance} == {"near"}
+
+
+def test_turning_salvo_retargets_by_value_within_its_turns():
+    """A Tau missile salvo whose target is gone picks the enemy it can actually
+    reach with its 45-degree turns, not just the nearest (one close behind it)."""
+    from src.ai_hazards import salvo_approach
+    behind = make_ship(id="behind", player=2, x=-15.0, y=0.0, points_value=150)
+    ahead = make_ship(id="ahead", player=2, x=50.0, y=5.0, points_value=150)
+    gs = make_gs([make_ship(id="me", player=1, x=-80.0), behind, ahead])
+    gs.turn_number = 3
+    m = OrdnanceMarker(id="m", ordnance_type="torpedo_guided", owner_player=1,
+                       launched_by="me", x=0.0, y=0.0, heading=0.0, strength=6, speed=40,
+                       launched_turn=1, can_turn=True, turn_angle=45, torp_target_id="gone")
+    gs.add_ordnance(m)
+    plan = salvo_approach(m, gs, our_phase=True)
+    assert plan is not None and plan["target"] == "ahead"
+
+
+def test_ai_tiger_shark_salvo_moves_its_full_reach():
+    """Tiger Shark salvos are Tau missiles (20-40cm): the AI fires and moves one
+    far enough to reach a ship 35cm away in the same phase (it used to be left to
+    the 20cm minimum move)."""
+    from src.ai_player import AIPlayer
+    from src.turn_controller import TurnController
+    foe = make_ship(id="e", player=2, x=35.0, y=0.0, points_value=200, turrets=1)
+    gs = make_gs([make_ship(id="cv", player=1, x=-60.0), foe])
+    gs.turn_number = 2
+    gs.add_ordnance(OrdnanceMarker(
+        id="ts", ordnance_type="torpedo_bomber", owner_player=1, launched_by="cv",
+        x=0.0, y=0.0, speed=20, launched_turn=1, special_rules=["tiger_shark"]))
+    ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
+    ai._fire_torpedo_bombers()
+    salvo = OrdnanceMarker.from_dict(gs.ordnance[0])
+    ai._steer_guided_missile(salvo)
+    moved = OrdnanceMarker.from_dict(gs.ordnance[0])
+    assert moved.moved_this_phase and moved.x >= 35.0 - foe.base_radius
+
+
+def test_ai_torpedo_bombers_fire_in_the_enemys_ordnance_phase_too():
+    """s.21: any ordnance phase after their launch turn. A parked wave of the
+    AI player whose turn it isn't fires at the start of the enemy's phase."""
+    from src.dice import DiceSource, set_source
+    try:
+        gs, game = _parked_game()
+        gs.active_player = 2                        # the Lunar's own turn
+        game.ordnance._resolve_ordnance_movement()
+        assert any("Torpedoes contact Lunar" in line for line in game.ctx.lines)
+    finally:
+        set_source(DiceSource())

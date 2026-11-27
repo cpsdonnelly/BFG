@@ -1,13 +1,15 @@
 """Wings of Fury re-rolls by expected value (owner guidance) and armament
 criticals silencing weapons for the AI."""
-from tests.conftest import make_ship, make_gs
+from tests.conftest import make_gunship, make_ship, make_gs
 from src.hit_and_run import best_raid_reroll, raid_result_value, raid_crit_preview
 from src.combat import weapon_disabled_by_crit
 
+# FP12 broadsides: on the real Gunnery table (To do 30) a silenced FP6 battery is
+# worth less than a fresh raid die, so these tests use heavier guns
 PORT = {"name": "Port Weapons Battery", "weapon_type": "battery", "range_cm": 45,
-        "strength": 6, "arcs": ["left"]}
+        "strength": 12, "arcs": ["left"]}
 STBD = {"name": "Starboard Weapons Battery", "weapon_type": "battery", "range_cm": 45,
-        "strength": 6, "arcs": ["right"]}
+        "strength": 12, "arcs": ["right"]}
 PROW = {"name": "Prow Lance", "weapon_type": "lance", "range_cm": 30,
         "strength": 2, "arcs": ["front"]}
 DORSAL = {"name": "Dorsal Lances", "weapon_type": "lance", "range_cm": 60,
@@ -18,7 +20,9 @@ def _setup(friend_xy=(0.0, 20.0), weapons=None):
     target = make_ship(id="t", player=2, points_value=180,
                        weapons=weapons or [dict(PORT), dict(STBD), dict(PROW), dict(DORSAL)])
     friend = make_ship(id="f", player=1, points_value=200, x=friend_xy[0], y=friend_xy[1])
-    return target, make_gs([target, friend])
+    # guns of ours far off: the target's damage short of a kill is worth the
+    # chance they finish it later (ai_hazards.hits_vp)
+    return target, make_gs([target, friend, make_gunship(player=1, x=-150.0, y=-150.0)])
 
 
 def test_escorts_space_marines_reroll_1_and_2_only():
@@ -36,7 +40,9 @@ def test_armament_crit_valued_by_what_bears_on_friends():
     stbd = raid_result_value(3, target, gs, 1)
     assert port > 0 and stbd == 0
     assert best_raid_reroll(3, 3, target, gs, 1) is True      # starboard faces nothing
-    assert best_raid_reroll(4, 4, target, gs, 1) is False     # port bears on the friend
+    # port bears on the friend: kept only if worth more than a fresh die
+    fresh = sum(raid_result_value(r, target, gs, 1) for r in range(1, 7)) / 6.0
+    assert best_raid_reroll(4, 4, target, gs, 1) is (fresh > port)
 
 
 def test_engine_room_kept_and_ablative_prow_rerolled():
@@ -93,7 +99,13 @@ def test_next_shooting_phase_reach_and_repairs():
     target, gs = _setup(friend_xy=(0.0, 50.0))
     gs.active_player = 1                       # raid lands in the raider's turn
     v1 = raid_result_value(4, target, gs, 1)
-    assert v1 > 0 and best_raid_reroll(4, 4, target, gs, 1) is False
+    assert v1 > 0
+    # keep it only if worth more than a fresh die: with every crit's effect
+    # measured (hit_and_run.crit_effect_value), Engine Room (+1 hit and no
+    # turns: this abeam friend stays out of its port guns' reach) lifts the
+    # fresh die above it here
+    fresh = sum(raid_result_value(r, target, gs, 1) for r in range(1, 7)) / 6.0
+    assert best_raid_reroll(4, 4, target, gs, 1) is (fresh > v1)
     # Damage control: 8 hits, one crit -> (5/6)^8 survives one end phase
     assert abs(p_crit_unrepaired(target, gs, 1) - (5 / 6) ** 8) < 1e-9
     # Landing in the target's own turn: two end phases before it shoots again

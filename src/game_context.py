@@ -1,5 +1,5 @@
 """BFG:XR — GameContext: shared state and helper methods for all panels."""
-import tkinter as tk
+from .tk_compat import tk
 from typing import Optional, TYPE_CHECKING
 
 from .models import Ship
@@ -37,6 +37,11 @@ class GameContext:
         # AI thinking, game over). Replaced by GamePanel.
         self.actions_locked = lambda: False
 
+        # The questions asked of a player during play (prompts.Prompter: best
+        # answers, no window; GamePanel puts in TkPrompter for the dialogs)
+        from .prompts import Prompter
+        self.prompt = Prompter()
+
     def is_ai_controlled(self, player: int) -> bool:
         """True if the AI makes this player's decisions (AI-vs-AI included)."""
         return self.gs.ai_spectator or self.gs.ai_player == player
@@ -44,8 +49,12 @@ class GameContext:
     # ── Logging ──────────────────────────────────────────────────────────────
 
     def log(self, text: str):
-        """Append one line to the game log widget."""
+        """Append one line to the game log widget, after any lines the engine
+        reported since (GameState.report: hits, damage, disengaging)."""
+        lines = self.gs.take_screen_lines() if hasattr(self.gs, "take_screen_lines") else []
         self._log_widget.config(state=tk.NORMAL)
+        for line in lines:
+            self._log_widget.insert(tk.END, line + "\n")
         self._log_widget.insert(tk.END, text + "\n")
         self._log_widget.see(tk.END)
         self._log_widget.config(state=tk.DISABLED)
@@ -72,36 +81,43 @@ class GameContext:
     # ── Ship picker ───────────────────────────────────────────────────────────
 
     def pick_ship(self, ships: list, title: str) -> Optional[Ship]:
-        """Show a modal list dialog and return the selected Ship, or None."""
-        if len(ships) == 1:
-            return ships[0]
+        """Show a modal list dialog and return the selected Ship, or None (which
+        ship to act with: window navigation; a decision inside an action asks
+        ctx.prompt.pick_ship, which is recorded)."""
+        return pick_ship_dialog(self.root, ships, title)
 
-        dialog = tk.Toplevel(self.root)
-        dialog.title(title)
-        dialog.geometry("350x400")
-        dialog.transient(self.root)
 
-        tk.Label(dialog, text=title,
-                 font=("Consolas", 10, "bold")).pack(pady=5)
+def pick_ship_dialog(root, ships: list, title: str):
+    """Show a modal list dialog and return the selected Ship, or None."""
+    if len(ships) == 1:
+        return ships[0]
 
-        selected = [None]
-        listbox = tk.Listbox(dialog, font=("Consolas", 9), height=15)
-        listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+    dialog = tk.Toplevel(root)
+    dialog.title(title)
+    dialog.geometry("350x400")
+    dialog.transient(root)
 
-        for s in ships:
-            status = " [CRIPPLED]" if s.is_crippled else ""
-            order = f" ({s.special_order})" if s.special_order != "none" else ""
-            listbox.insert(tk.END, f"{s.name} ({s.ship_class}){status}{order}")
+    tk.Label(dialog, text=title,
+             font=("Consolas", 10, "bold")).pack(pady=5)
 
-        def on_select():
-            sel = listbox.curselection()
-            if sel:
-                selected[0] = ships[sel[0]]
-            dialog.destroy()
+    selected = [None]
+    listbox = tk.Listbox(dialog, font=("Consolas", 9), height=15)
+    listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        listbox.bind("<Double-Button-1>", lambda e: on_select())
-        tk.Button(dialog, text="Select", command=on_select,
-                  font=("Consolas", 10)).pack(pady=5)
+    for s in ships:
+        status = " [CRIPPLED]" if s.is_crippled else ""
+        order = f" ({s.special_order})" if s.special_order != "none" else ""
+        listbox.insert(tk.END, f"{s.name} ({s.ship_class}){status}{order}")
 
-        self.root.wait_window(dialog)
-        return selected[0]
+    def on_select():
+        sel = listbox.curselection()
+        if sel:
+            selected[0] = ships[sel[0]]
+        dialog.destroy()
+
+    listbox.bind("<Double-Button-1>", lambda e: on_select())
+    tk.Button(dialog, text="Select", command=on_select,
+              font=("Consolas", 10)).pack(pady=5)
+
+    root.wait_window(dialog)
+    return selected[0]

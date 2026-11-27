@@ -55,7 +55,15 @@ def check_game_over(gs: GameState) -> Optional[dict]:
             if booklet:
                 return {"winner": winner_at_end(gs, vp_winner), "reason": "no_ships",
                         "detail": f"player {p}'s fleet is gone"}
-            return {"winner": 3 - p, "reason": "no_ships", "detail": ""}
+            # owner (open question 1): victory points and win conditions
+            # matter more than elimination; the generic mode's own condition
+            # (kill the admiral, the objective ship, the artefact) first, else
+            # the most VP (holding the field counts, s.38)
+            ended = check_scenario_end(gs)
+            if ended:
+                return ended
+            return {"winner": vp_winner(gs), "reason": "no_ships",
+                    "detail": f"player {p}'s fleet is gone"}
 
     return check_scenario_end(gs)
 
@@ -70,6 +78,16 @@ def check_scenario_end(gs: GameState) -> Optional[dict]:
             if ship.is_flagship and ship.is_destroyed:
                 return {"winner": 3 - ship.player,
                         "reason": "admiral_killed", "detail": ship.name}
+            # Owner ruling: a flagship that disengages counts as the admiral lost
+            if ship.is_flagship and ship.status == "disengaged":
+                return {"winner": 3 - ship.player, "reason": "admiral_killed",
+                        "detail": f"{ship.name} (disengaged)"}
+            # Owner rulings: a Bridge Smashed (or Dark Eldar Commanders Slain)
+            # critical hit kills the admiral too
+            from .scenarios import admiral_killed_by_crit
+            if ship.is_flagship and admiral_killed_by_crit(ship):
+                return {"winner": 3 - ship.player, "reason": "admiral_killed",
+                        "detail": f"{ship.name} (command crew killed)"}
 
     elif gs.scenario_mode in ("destroy_ship", "protect_ship"):
         if gs.objective_ship_id:

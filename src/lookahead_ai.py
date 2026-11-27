@@ -1,4 +1,4 @@
-"""BFG:XR Expert AI — alpha-beta minimax with 5-turn lookahead.
+"""BFG:XR lookahead AI (normal, hard, expert, master) — alpha-beta minimax, 1 / 3 / 5 / 10 turns ahead.
 
 Uses a lightweight game-state clone (SimState) with deterministic combat
 (expected hit values, no dice) for the search.  Inherits all heuristic
@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .models import Ship, parse_armor, bearing_between, arc_name_for_bearing
 from .game_state import GameState
-from .ai_player import AIPlayer
+from .ai_player import AIPlayer, _scored_on_snapshot
 from .movement import (
     MoveCommand, get_effective_speed, MIN_TURN_DISTANCE,
 )
@@ -45,6 +45,7 @@ class SimShip:
     base_radius: float = 1.6
     p_plasma: float = 0.0       # Catastrophic Damage odds when destroyed (s.34)
     p_warp: float = 0.0
+    turn_dist: float = -1.0     # movement before a turn (movement.turn_distance); -1: by type
 
     @property
     def is_crippled(self) -> bool:
@@ -66,7 +67,7 @@ class SimShip:
             is_destroyed=self.is_destroyed, is_disengaged=self.is_disengaged,
             armor_rear=self.armor_rear, turrets=self.turrets,
             torps_loaded=self.torps_loaded, base_radius=self.base_radius,
-            p_plasma=self.p_plasma, p_warp=self.p_warp,
+            p_plasma=self.p_plasma, p_warp=self.p_warp, turn_dist=self.turn_dist,
         )
 
     @classmethod
@@ -78,6 +79,7 @@ class SimShip:
             torps_loaded=bool(ship.ordnance_loaded_torps) and any(
                 w.get("weapon_type") == "torpedo" for w in ship.weapons),
             base_radius=ship.base_radius, p_plasma=p_plasma, p_warp=p_warp,
+            turn_dist=_turn_distance(ship),
             id=ship.id, player=ship.player, x=ship.x, y=ship.y,
             heading=ship.heading, speed=ship.speed,
             turn_angle=ship.turn_angle, ship_type=ship.ship_type,
@@ -142,6 +144,8 @@ class SimState:
     table_h: float = 120.0
     ordnance: List[SimOrdnance] = field(default_factory=list)
     scenario: Dict = field(default_factory=dict)   # scenarios.sim_scenario
+    # strategies being followed (To do 34): ship id -> [Strategy, turns left]
+    plans: Dict = field(default_factory=dict)
 
     @classmethod
     def from_gs(cls, gs: GameState, ord_player: int = 0) -> "SimState":
@@ -170,6 +174,7 @@ class SimState:
             table_h=self.table_h,
             ordnance=[o.clone() for o in self.ordnance],
             scenario=self.scenario,          # read-only in the search
+            plans={k: list(v) for k, v in self.plans.items()},
         )
 
     def alive(self, player: int) -> List[SimShip]:
@@ -199,9 +204,10 @@ def _armor_facing(target: SimShip, x: float, y: float) -> int:
 def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
                           target: SimShip) -> float:
     """Expected hull hits from one weapon (deterministic, no dice), as the
-    normal AI counts them (ai_hazards): a battery point 0.35 hits against
-    Armour 5+, scaled by the Armour it fires at; a lance 0.5 (4+ whatever the
-    Armour, s.13)."""
+    normal AI counts them: batteries on the Gunnery table (target type, aspect,
+    range shift, the Armour facing; crippled at half; faction shifts such as
+    holofields aren't in the sim yet); a lance 0.5 (4+ whatever the Armour,
+    s.13)."""
     wtype = weapon.get("weapon_type", "")
     if wtype not in ("battery", "lance"):
         return 0.0
@@ -215,9 +221,20 @@ def _expected_weapon_hits(attacker: SimShip, weapon: Dict,
         return 0.0
     strength = weapon.get("strength", 1) or 0
     if wtype == "lance":
-        return strength * (7 - (weapon.get("hits_on") or 4)) / 6.0
-    armor = _armor_facing(target, attacker.x, attacker.y)
-    return strength * 0.35 * _p_hit(armor) / _p_hit(5)
+        from .combat import lance_die_hits      # each faction's lance rules (To do 30)
+        return strength * lance_die_hits(weapon)
+    # The real Gunnery table (To do 30): the sim knows both ships where the
+    # shot is made, so the target's type, its aspect and the range are known
+    from .ai_hazards import table_battery_hits
+    from .tables import get_gunnery_column
+    if attacker.is_crippled:
+        strength = (strength + 1) // 2
+    aspect = {"front": "closing", "rear": "moving_away"}.get(
+        target.get_arc(attacker.x, attacker.y), "abeam")
+    ttype = {"escort": "escort", "defense": "defense"}.get(target.ship_type, "capital")
+    shifts = -1 if dist < 15 else (1 if dist > 30 else 0)
+    need = weapon.get("hits_on") or _armor_facing(target, attacker.x, attacker.y)
+    return table_battery_hits(strength, get_gunnery_column(ttype, aspect), shifts, need)
 
 
 def _torpedo_hits(attacker: SimShip, target: SimShip) -> float:
@@ -334,9 +351,13 @@ def _sim_value(t: SimShip, hits_remaining: float) -> float:
 
 def _apply_hits(state: SimState, t: SimShip, hits: float, shields: bool = True) -> None:
     if shields:
-        absorbed = min(t.shields_remaining, hits)
+        # the hull takes E[max(0, H - shields)], H a Poisson count (past_shields:
+        # a volley averaging below the shields still gets some through)
+        from .ai_hazards import past_shields
+        hull = past_shields(hits, t.shields_remaining)
+        absorbed = min(t.shields_remaining, hits - hull)
         t.shields_remaining -= absorbed
-        hits -= absorbed
+        hits = hull
     was_alive = not t.is_destroyed
     t.hits_remaining = max(0, t.hits_remaining - hits)
     if t.hits_remaining <= 0:
@@ -348,19 +369,27 @@ def _apply_hits(state: SimState, t: SimShip, hits: float, shields: bool = True) 
 def _explode(state: SimState, dead: SimShip) -> None:
     """Expected Catastrophic Damage (s.34): a plasma drive overload (half its
     starting hits) or warp drive implosion (all of them) as 4+ lance shots at
-    every ship within the 3D6cm radius (10.5 on average). No chains."""
-    shots = dead.p_plasma * dead.hits_max / 2 + dead.p_warp * dead.hits_max
-    if shots <= 0:
+    every ship the 3D6cm radius may reach, at its chance of reaching it. No
+    chains."""
+    if dead.p_plasma <= 0 and dead.p_warp <= 0:
         return
+    from .ai_hazards import binomial_past_shields, p_sum_at_most
     for s in state.ships:
         if s is dead or not s.is_alive:
             continue
-        if math.hypot(s.x - dead.x, s.y - dead.y) - s.base_radius <= 10.5:
-            h = max(0.0, shots * 0.5 - s.shields_remaining)
-            s.shields_remaining = max(0, s.shields_remaining - shots * 0.5)
-            s.hits_remaining = max(0, s.hits_remaining - h)
-            if s.hits_remaining <= 0:
-                s.is_destroyed = True
+        # the 3D6cm radius reaching it (P(3D6 >= d)), then the lance shots on 4+
+        # past its shields, exactly (plasma: half the dead ship's starting hits,
+        # warp: all of them)
+        d = math.hypot(s.x - dead.x, s.y - dead.y) - s.base_radius
+        p_in = 1.0 - p_sum_at_most(3, max(0, math.ceil(d) - 1))
+        if p_in <= 0:
+            continue
+        sh = int(s.shields_remaining)
+        h = p_in * (dead.p_plasma * binomial_past_shields(dead.hits_max // 2, 0.5, sh)
+                    + dead.p_warp * binomial_past_shields(dead.hits_max, 0.5, sh))
+        s.hits_remaining = max(0, s.hits_remaining - h)
+        if s.hits_remaining <= 0:
+            s.is_destroyed = True
 
 
 def _apply_expected_combat(state: SimState, shooter_player: int) -> float:
@@ -381,7 +410,8 @@ def _apply_expected_combat(state: SimState, shooter_player: int) -> float:
             torps = _torpedo_hits(attacker, t)
             if guns + torps <= 0:
                 continue
-            after = t.hits_remaining - max(0.0, guns - t.shields_remaining) - torps
+            from .ai_hazards import past_shields
+            after = t.hits_remaining - past_shields(guns, t.shields_remaining) - torps
             gain = _sim_value(t, after) - _sim_value(t, t.hits_remaining)
             key = (gain, guns + torps)
             if best_key is None or key > best_key:
@@ -411,10 +441,25 @@ _TURN_FRACS = ((0.0, 0.6), (0.0, 0.8), (0.0, 1.0),
                (0.5, 1.0), (-0.5, 1.0))  # (turn_mult, speed_frac)
 
 
+def _turn_distance(ship) -> float:
+    from .movement import turn_distance
+    return float(turn_distance(ship))
+
+
+def _sim_turn_dist(ship) -> float:
+    """Turning distance of a sim ship (its own, Dark Eldar none) or a real one."""
+    td = getattr(ship, "turn_dist", None)
+    if td is not None and td >= 0 and not hasattr(ship, "special_rules"):
+        return td
+    if hasattr(ship, "special_rules"):
+        return _turn_distance(ship)
+    return MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+
+
 def _apply_move(ship: SimShip, turn_deg: float, dist: float) -> None:
     """Move ship in place (SimShip). Mirrors _simulate_final_pos logic."""
     r = math.radians
-    min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+    min_td = _sim_turn_dist(ship)
     if abs(turn_deg) < 0.5:
         ship.x += dist * math.cos(r(ship.heading))
         ship.y += dist * math.sin(r(ship.heading))
@@ -446,6 +491,16 @@ def _generate_best_moves(state: SimState, player: int,
         return moves
 
     for ship in state.alive(player):
+        plan = state.plans.get(ship.id)
+        if plan and plan[1] > 0:
+            # a strategy being followed (To do 34): head for its waypoint, from
+            # where the target stands now
+            from .strategies import plan_waypoint, head_for_move
+            wp = plan_waypoint(plan[0], ship, state.ships)
+            if wp is not None:
+                moves[ship.id] = head_for_move(ship, wp[0], wp[1], ship.speed,
+                                               ship.turn_angle, _sim_turn_dist(ship))
+                continue
         nearest = min(enemies, key=lambda e: math.hypot(e.x - ship.x, e.y - ship.y))
         best_score = -math.inf
         best = (0.0, ship.speed * 0.8)
@@ -453,7 +508,7 @@ def _generate_best_moves(state: SimState, player: int,
         for turn_mult, speed_frac in _TURN_FRACS:
             turn_deg = ta * turn_mult
             dist = max(1, int(ship.speed * speed_frac))
-            min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+            min_td = _sim_turn_dist(ship)
             if abs(turn_deg) > 0.5 and min_td > 0 and dist <= min_td:
                 continue
             # Simulate position
@@ -471,7 +526,7 @@ def _generate_best_moves(state: SimState, player: int,
 
 def _sim_pos(ship: SimShip, turn_deg: float, dist: float) -> Tuple[float, float, float]:
     r = math.radians
-    min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+    min_td = _sim_turn_dist(ship)
     if abs(turn_deg) < 0.5:
         h = ship.heading
         return (ship.x + dist * math.cos(r(h)),
@@ -647,7 +702,19 @@ def _simulate_turn(state: SimState,
     if s.ordnance:
         _resolve_ordnance(s, ai_player)
     s.turn += 1
+    for sid in list(s.plans):
+        s.plans[sid][1] -= 1
+        if s.plans[sid][1] <= 0:
+            del s.plans[sid]
+    _NODES.count += 1
     return s
+
+
+class _NodeCount:
+    count = 0
+
+
+_NODES = _NodeCount()
 
 
 # ── Alpha-beta minimax ────────────────────────────────────────────────────────
@@ -659,7 +726,15 @@ def _minimax(state: SimState, depth: int,
              alpha: float, beta: float, maximising: bool,
              ai_player: int, deadline: float,
              ai_ref: "LookaheadAI") -> float:
-    if time.monotonic() > deadline or depth == 0 or state.is_terminal():
+    over_budget = _NODES.count > getattr(ai_ref, "_node_budget", math.inf)
+    if over_budget or time.monotonic() > deadline or depth == 0 or state.is_terminal():
+        st = getattr(ai_ref, "search_stats", None)
+        if st is not None:                   # how deep the search really got
+            reached = ai_ref.DEPTH - depth
+            st["leaves"] += 1
+            st["deepest"] = max(st["deepest"], reached)
+            if depth and not state.is_terminal():
+                st["cut"] += 1               # stopped by the time budget
         return _evaluate(state, ai_player)
 
     active = ai_player if maximising else 3 - ai_player
@@ -676,6 +751,10 @@ def _minimax(state: SimState, depth: int,
         tweaked = {}
         for ship in state.alive(active):
             base_td, base_dist = my_moves.get(ship.id, (0.0, ship.speed * 0.8))
+            plan = state.plans.get(ship.id)
+            if plan and plan[1] > 0:
+                tweaked[ship.id] = (base_td, base_dist)      # it follows its plan
+                continue
             turn_deg = max(-ta, min(ta, base_td + tdelta * ship.turn_angle))
             dist     = max(1, int(base_dist * sfrac)) if sfrac < 1 else base_dist
             tweaked[ship.id] = (turn_deg, dist)
@@ -684,7 +763,7 @@ def _minimax(state: SimState, depth: int,
         candidates.append((score, next_s))
 
     candidates.sort(key=lambda x: -x[0] if maximising else x[0])
-    B = 4  # beam width
+    B = ai_ref.beam(ai_ref.DEPTH - depth) if hasattr(ai_ref, "beam") else 4
 
     if maximising:
         value = -_INF
@@ -708,18 +787,79 @@ def _minimax(state: SimState, depth: int,
 
 # ── LookaheadAI class ─────────────────────────────────────────────────────────
 
-class LookaheadAI(AIPlayer):
-    """Expert difficulty: uses minimax with 5-turn lookahead for movement."""
+# Turns looked ahead by difficulty (owner): very easy and easy none (they never
+# use this search: easy plays the full expected-VP AI, very easy its simpler
+# choices), normal one (our move, the enemy's
+# best reply, both sides' fire, then the leaf), hard three, expert five, master
+# ten or to the end of the game, whichever is shorter. Each turn of search
+# keeps the best few lines (BEAM_FOR, by turns below the root; judgement) and
+# each ship's decision has a time budget (TIME_BUDGET_FOR, seconds; judgement):
+# a search that runs out of time scores the lines it has (search_stats shows
+# how deep it really got).
+DEPTH_FOR = {"very_easy": 0, "easy": 0, "normal": 1, "hard": 3, "expert": 5, "master": 10}
+# Sim turns a ship's decision may play out before the search stops (a
+# deterministic cut, so seeded games replay; judgement, set so each difficulty
+# reaches its depth on the usual fleets): the time budget below is only a guard
+# (measured: about 330 sim turns a second, so each is under its time budget;
+# normal and hard reach their depth within it on the owners' fleets, expert
+# its 5 turns with some lines cut, as before)
+NODE_BUDGET_FOR = {"normal": 450, "hard": 550, "expert": 1100, "master": 2800}
+BEAM_FOR = {"normal": (4,), "hard": (4, 3), "expert": (4, 3, 2), "master": (4, 3, 2, 1)}
+TIME_BUDGET_FOR = {"normal": 2.0, "hard": 2.0, "expert": 4.0, "master": 10.0}
 
-    DEPTH = 5
+
+class LookaheadAI(AIPlayer):
+    """Hard and expert difficulties: minimax over a deterministic sim for
+    movement, DEPTH_FOR[difficulty] turns ahead."""
+
+    DEPTH = DEPTH_FOR["expert"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.DEPTH = DEPTH_FOR.get(self.difficulty, DEPTH_FOR["expert"])
+        self.TIME_BUDGET = TIME_BUDGET_FOR.get(self.difficulty, self.TIME_BUDGET)
+        self.search_stats = {"leaves": 0, "deepest": 0, "cut": 0}
+
+    def beam(self, level: int) -> int:
+        """Lines kept at `level` turns below the root (the last value repeats);
+        the turns a strategy adds beyond the difficulty's own depth keep one
+        line (To do 34)."""
+        if level >= getattr(self, "_base_depth", level + 1):
+            return 1
+        b = BEAM_FOR.get(self.difficulty, (4,))
+        return b[min(level, len(b) - 1)]
+
+    def _turns_left(self) -> int:
+        limit = getattr(self.gs, "turn_limit", None)
+        return max(1, limit - self.gs.turn_number + 1) if limit else 99
+
+    def _depth_now(self) -> int:
+        """Master searches to the end of the game when that is nearer than ten
+        turns (the sim stops at the turn limit anyway, SimState.is_terminal)."""
+        d = DEPTH_FOR.get(self.difficulty, DEPTH_FOR["expert"])
+        limit = getattr(self.gs, "turn_limit", None)
+        if limit:
+            d = max(1, min(d, limit - self.gs.turn_number + 1))
+        return d
     TIME_BUDGET = 2.0  # seconds per ship decision
     ROOT_MOVES = 12    # root candidates searched, best first by the move score
 
+    @_scored_on_snapshot
     def _plan_move_toward(self, ship: Ship, enemy: Ship,
                           order: str, aaf_bonus: int) -> List[MoveCommand]:
         """Override: choose move using minimax search rather than greedy heuristic."""
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
+        from .strategies import PLAN_TURNS
+        base = self._depth_now()
+        self._base_depth = base
+        # every root line is judged over the same horizon, at least a
+        # strategy's turns (To do 34), the extra turns one line each
+        self.DEPTH = max(base, min(PLAN_TURNS, self._turns_left()))
         deadline = time.monotonic() + self.TIME_BUDGET
+        # a deterministic cut (nodes, not seconds) so seeded games replay;
+        # the time budget stays as a guard
+        _NODES.count = 0
+        self._node_budget = NODE_BUDGET_FOR.get(self.difficulty, 4000)
 
         state = SimState.from_gs(self.gs, ord_player=self.player)
         best_cmds = None
@@ -734,13 +874,20 @@ class LookaheadAI(AIPlayer):
         for c in self._move_candidates(ship, enemy, order, aaf_bonus):
             cands.append((self._move_score(ship, enemy, order, *c[:3]), c))
         cands.sort(key=lambda x: -x[0])
-        for _normal, (turn_deg, dist, turn_at, _src) in cands[:self.ROOT_MOVES]:
+        roots = [(c, None) for _n, c in cands[:self.ROOT_MOVES]]
+        # strategies (To do 34): each one's first move, always searched, the
+        # plan followed for its turns after it
+        roots += self._strategy_moves(ship, enemy, order, aaf_bonus)
+        self._last_strategy = None
+        for (turn_deg, dist, turn_at, _src), strat in roots:
             candidate = state.clone()
             sim_ship = next((s for s in candidate.ships if s.id == ship.id), None)
             if sim_ship is None:
                 continue
             fx, fy, fh = self._simulate_final_pos(ship, turn_deg, dist, turn_at)
             sim_ship.x, sim_ship.y, sim_ship.heading = fx, fy, fh
+            if strat is not None and strat.turns > 1:
+                candidate.plans[ship.id] = [strat, strat.turns - 1]
 
             enemy_moves = _generate_best_moves(candidate, 3 - self.player, self)
             next_s = _simulate_turn(candidate, self.player, {}, enemy_moves)
@@ -757,10 +904,19 @@ class LookaheadAI(AIPlayer):
             if score > best_score:
                 best_score = score
                 best_cmds = self._move_cmds(ship, turn_deg, dist, turn_at)
+                self._last_strategy = strat.name if strat is not None else None
 
             if time.monotonic() > deadline:
                 break  # time's up; use best found so far
 
+        import os
+        if os.environ.get("BFG_SEARCH_STATS"):
+            st = self.search_stats
+            print(f"[search] {self.difficulty} {ship.name}: depth {self.DEPTH}, deepest "
+                  f"{st['deepest']}, {st['leaves']} lines, {st['cut']} cut, {_NODES.count} nodes, "
+                  f"strategy {getattr(self, '_last_strategy', None)}, "
+                  f"{time.monotonic() - deadline + self.TIME_BUDGET:.1f}s")
+        self.search_stats = {"leaves": 0, "deepest": 0, "cut": 0}
         return best_cmds or super()._plan_move_toward(ship, enemy, order, aaf_bonus)
 
     def _vp_to_score(self, state: SimState) -> float:
@@ -787,7 +943,7 @@ def _vp_scale_for(state: SimState, gs, player: int) -> float:
 def _cmds_for_move(ship: Ship, turn_deg: float, dist: float,
                    order: str) -> List[MoveCommand]:
     """Convert (turn_deg, dist) to a MoveCommand sequence."""
-    min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+    min_td = _sim_turn_dist(ship)
     cmds: List[MoveCommand] = []
     if abs(turn_deg) < 0.5:
         cmds.append(MoveCommand("forward", dist))

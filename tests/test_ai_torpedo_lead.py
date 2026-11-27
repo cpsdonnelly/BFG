@@ -96,7 +96,7 @@ def test_turning_salvo_steers_ahead_of_its_target():
     ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
     from src.models import OrdnanceMarker
     m = OrdnanceMarker.from_dict(gs.ordnance[0])
-    ai._steer_guided_missile(m, gs.get_ship_by_id("t"))
+    ai._steer_guided_missile(m)
     h = OrdnanceMarker.from_dict(gs.ordnance[0]).heading
     assert 5.0 < h < 45.0              # turned towards +y, ahead of the target
 

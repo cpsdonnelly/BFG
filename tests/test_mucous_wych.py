@@ -1,0 +1,72 @@
+"""Tyranid Mucous Membrane (assault boats -1 to raids, bombers -1 attack,
+torpedoes Armour +1) and the Dark Eldar Wych Cult's boarding modifier
+(enemy capital ships count as crippled)."""
+from tests.conftest import make_ship, make_gs, make_marker, DiceStub
+from src.hit_and_run import _raid_roll_modifier, ASSAULT_BOAT_RAID
+from src.boarding import _get_ship_modifier
+from src.ordnance import resolve_bomber_attack, resolve_torpedo_attack
+
+
+def test_mucous_raids_assault_boats_only():
+    t = make_ship(id="t", special_rules=["tyranid", "mucous_membrane"])
+    assert _raid_roll_modifier([ASSAULT_BOAT_RAID], t) == -2      # Tyranid -1 and mucous -1
+    assert _raid_roll_modifier([], t) == -1                       # a teleport: Tyranid only
+
+
+def test_mucous_bombers_one_attack_fewer():
+    t = make_ship(id="t", player=2, turrets=0, special_rules=["tyranid", "mucous_membrane"])
+    gs = make_gs([t])
+    b = make_marker(id="b", ordnance_type="bomber", owner_player=1, strength=1)
+    dice = DiceStub([4, 6, 6, 6])                  # D6 4 attacks -> 3, three hits rolled
+    res = resolve_bomber_attack(b, gs.get_ship_by_id("t"), dice, gs)
+    assert res["attacks"] == 3                     # D6 4 - 0 turrets - 1 mucous
+
+
+def test_mucous_torpedoes_armour_plus_one():
+    t = make_ship(id="t", player=2, x=50.0, y=50.0, turrets=0,
+                  special_rules=["tyranid", "mucous_membrane"])
+    gs = make_gs([t])
+    m = make_marker(id="m", owner_player=1, x=50.0, y=40.0, heading=90.0, strength=2)
+    dice = DiceStub([5, 6])                         # 5+ armour becomes 6+: one hit
+    res = resolve_torpedo_attack(m, gs.get_ship_by_id("t"), dice, gs)
+    assert res["hits"] == 1
+
+
+def test_wych_cult_counts_capital_ships_as_crippled_for_boarding():
+    cruiser = make_ship(id="c", ship_type="cruiser")
+    escort = make_ship(id="e", ship_type="escort")
+    gs = make_gs([cruiser, escort])
+    wych = ["dark_eldar", "wych_cult"]
+    assert _get_ship_modifier(cruiser, gs, wych) - _get_ship_modifier(cruiser, gs) == 2
+    assert _get_ship_modifier(escort, gs, wych) == _get_ship_modifier(escort, gs)
+
+
+def test_raid_modifiers_cancel():
+    """Owner ruling: modifiers add together, so Space Marines raiding a Chaos
+    Space Marine crewed ship roll a plain D6 (D6 + 1 - 1), as does a Dark
+    Eldar raid on a Space Marine ship."""
+    from src.hit_and_run import _raid_roll_modifier
+    from types import SimpleNamespace
+    csm = SimpleNamespace(special_rules=["csm_crew", "space_marine_crew"])
+    assert _raid_roll_modifier(["space_marine_crew"], csm) == 0
+    assert _raid_roll_modifier(["dark_eldar"], csm) == 0
+    assert _raid_roll_modifier(["dark_eldar"], SimpleNamespace(special_rules=[])) == 1
+
+
+def test_haemonculi_boarding_crit_is_fire():
+    """Haemonculi Coven (Xenos p.5): a critical hit it inflicts via a
+    boarding action is a Fire, not a random result; no crit-type roll."""
+    from src.boarding import _boarding_crit_check
+    from tests.conftest import make_gs, make_ship, DiceStub
+    de = make_ship(id="de", player=2, special_rules=["dark_eldar", "haemonculi"])
+    t = make_ship(id="t", player=1, ship_type="cruiser")
+    gs = make_gs([de, t])
+    target = gs.get_ship_by_id("t")
+    dice = DiceStub([5])                        # the 4+ crit check, then nothing
+    crit = _boarding_crit_check(target, 4, dice, gs, inflicted_by=[de])
+    assert crit["crit_type"] == "fire" and dice._idx == 1
+    assert [c["crit_type"] for c in gs.get_ship_by_id("t").critical_damage] == ["fire"]
+    plain = make_ship(id="p", player=2, special_rules=["dark_eldar"])
+    dice = DiceStub([5, 3])                     # check, then a random crit type
+    _boarding_crit_check(gs.get_ship_by_id("t"), 4, dice, gs, inflicted_by=[plain])
+    assert dice._idx == 2

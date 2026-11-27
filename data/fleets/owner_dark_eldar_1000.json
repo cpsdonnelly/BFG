@@ -1,0 +1,965 @@
+{
+  "fleet_name": "Dark Eldar Raiders 990",
+  "faction": "dark_eldar",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 990,
+  "fleet_list": "dark_eldar_raiders",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Succubus Class Light Cruiser",
+      "ship_class": "Succubus Class Light Cruiser",
+      "faction": "dark_eldar",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 40,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 4,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Prow Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Keel Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "raptor",
+            "razorwing",
+            "slavebringer",
+            "voidraven"
+          ],
+          "craft_speeds": {
+            "raptor": 30,
+            "razorwing": 20,
+            "slavebringer": 30,
+            "voidraven": 20
+          },
+          "craft_speed": 30
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "ld_bonus:2:10",
+        "fleet_commander"
+      ],
+      "upgrades": [
+        "Dread Archon (+2 Ld)",
+        "Dread Archon: 2 re-rolls",
+        "Kabal Variant: Burning Scale (keel launch bays, 2, with Voidravens)"
+      ],
+      "points_value": 270,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 2,
+      "squadron_id": "",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Corsair Class Frigate",
+      "ship_class": "Corsair Class Frigate",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 40,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 2,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Impaler Bay",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "craft_types": [
+            "impaler"
+          ],
+          "craft_speeds": {
+            "impaler": 30
+          },
+          "craft_speed": 30,
+          "impaler_bay": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Impaler bay, 1 module"
+      ],
+      "points_value": 60,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "corsairs",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Corsair Class Frigate",
+      "ship_class": "Corsair Class Frigate",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 40,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 2,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Impaler Bay",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "craft_types": [
+            "impaler"
+          ],
+          "craft_speeds": {
+            "impaler": 30
+          },
+          "craft_speed": 30,
+          "impaler_bay": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Impaler bay, 1 module"
+      ],
+      "points_value": 60,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "corsairs",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Corsair Class Frigate",
+      "ship_class": "Corsair Class Frigate",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 40,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 2,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Impaler Bay",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "craft_types": [
+            "impaler"
+          ],
+          "craft_speeds": {
+            "impaler": 30
+          },
+          "craft_speed": 30,
+          "impaler_bay": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Impaler bay, 1 module"
+      ],
+      "points_value": 60,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "corsairs",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Corsair Class Frigate",
+      "ship_class": "Corsair Class Frigate",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 40,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 2,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Impaler Bay",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "craft_types": [
+            "impaler"
+          ],
+          "craft_speeds": {
+            "impaler": 30
+          },
+          "craft_speed": 30,
+          "impaler_bay": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Impaler bay, 1 module"
+      ],
+      "points_value": 60,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "corsairs",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders_2",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders_2",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Prow Torps",
+          "weapon_type": "torpedo",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "front"
+          ],
+          "torpedo_type": "standard",
+          "torpedo_speed": 30,
+          "boarding_torpedoes": true,
+          "plasma_torpedoes": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield",
+        "torpedo_type:leech"
+      ],
+      "upgrades": [
+        "Kabal Variant: Torpedo salvo S2"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "torp_raiders_2",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Weapons Battery (variant)",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Weapons battery FP3"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "gun_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Weapons Battery (variant)",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Weapons battery FP3"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "gun_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Weapons Battery (variant)",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Weapons battery FP3"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "gun_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Weapons Battery (variant)",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Weapons battery FP3"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "gun_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    },
+    {
+      "name": "Subjugation Class Raider",
+      "ship_class": "Subjugation Class Raider",
+      "faction": "dark_eldar",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 45,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "4+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 0,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Eldar",
+      "weapons": [
+        {
+          "name": "Weapons Battery",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        },
+        {
+          "name": "Weapons Battery (variant)",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "front"
+          ],
+          "de_battery": true
+        }
+      ],
+      "special_rules": [
+        "dark_eldar",
+        "shadowfield"
+      ],
+      "upgrades": [
+        "Kabal Variant: Weapons battery FP3"
+      ],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "gun_raiders",
+      "fleet_list": "dark_eldar_raiders"
+    }
+  ]
+}

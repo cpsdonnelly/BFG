@@ -1,13 +1,10 @@
 """BFG:XR — OrdnancePanel: ordnance launch, movement, and contact resolution."""
-import tkinter as tk
-from tkinter import messagebox
+from .tk_compat import tk, messagebox
 import math
 
 from .models import (Ship, SpecialOrder, OrdnanceMarker, OrdnanceType,
                      signed_angle_diff)
-from .ordnance import (TORPEDO_SPEED_DEFAULT, torpedo_ordnance_type, craft_stats,
-                       torpedo_split_error, torpedo_launch_strength,
-                       bay_launch_capacity, craft_roles)
+from .ordnance import TORPEDO_SPEED_DEFAULT, craft_stats
 from .game_context import GameContext
 from .ordnance_movement import OrdnanceMovementMixin
 
@@ -23,7 +20,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
         launch capacity (s.15). must_remove > 0 when the fleet has more craft in
         play than launch bays left: that many have to go before launching.
         Returns how many were recalled."""
-        from .ordnance import ATTACK_CRAFT_TYPES, recall_craft
+        from .ordnance import ATTACK_CRAFT_TYPES
         gs = self.ctx.gs
         own = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
                if o.get("owner_player") == player
@@ -55,7 +52,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 messagebox.showerror("Recall", f"Pick at least {must_remove} squadron(s).",
                                      parent=dialog)
                 return
-            result[0] = recall_craft(gs, player, ids)
+            from .actions import recall
+            result[0] = recall(gs, player, ids)
             if result[0]:
                 self.ctx.log(f"Player {player} recalled {result[0]} attack craft squadron(s)")
             dialog.destroy()
@@ -84,9 +82,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
         (a wave combines them) facing any direction; it is removed at the end
         of the phase. For each wave the player picks the enemy ship to aim at,
         or holds; "Auto (best)" picks what the AI would."""
-        from .ordnance import torpedo_bomber_groups, fire_torpedo_bombers
+        from .ordnance import torpedo_bomber_groups
         from .ai_hazards import torpedo_bomber_target
-        from .choice_dialog import choose
         gs = self.ctx.gs
         players = [p for p in (1, 2) if not self.ctx.is_ai_controlled(p)]
         groups = [(p, g) for p in players for g in torpedo_bomber_groups(gs, p)]
@@ -101,15 +98,17 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     and not e.is_disengaged]
             opts.append(("Hold (don't fire)", ""))
             best = torpedo_bomber_target(gs, g, p)
-            pick = choose(self.ctx.root, "Torpedo Bombers",
+            pick = self.ctx.prompt.choose("Torpedo Bombers",
                           f"{len(g)} torpedo bomber squadron(s): fire a strength "
                           f"{2 * len(g)} salvo at which ship?", opts,
                           best[1].id if best and best[0] > 0 else "")
             if not pick:
                 continue
             t = gs.get_ship_by_id(pick)
-            heading = math.degrees(math.atan2(t.y - lead.y, t.x - lead.x))
-            fire_torpedo_bombers(gs, [m.id for m in g], heading)
+            from .ai_hazards import torpedo_bomber_heading
+            heading = torpedo_bomber_heading(gs, g, p, t)
+            from .actions import fire_bomber_salvo
+            fire_bomber_salvo(gs, [m.id for m in g], heading)
             self.ctx.log(f"Torpedo bombers fire at {t.name}")
         self.ctx.board.redraw()
 
@@ -191,22 +190,23 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     splits.append((w, v))
 
         def _apply():
+            from .actions import set_craft_target, split_craft
             changed = 0
             for m, var, ids, ms in rows:
                 tid = ids.get(var.get(), "")
                 wanted = {w.id for w in ms}     # a wave's squadrons share its target
-                for i, o in enumerate(gs.ordnance):
-                    if o["id"] in wanted and o.get("craft_target_id", "") != tid:
-                        gs.ordnance[i] = {**o, "craft_target_id": tid}
-                        changed += 1
+                new = [o["id"] for o in gs.ordnance
+                       if o["id"] in wanted and o.get("craft_target_id", "") != tid]
+                if new:
+                    set_craft_target(gs, new, tid)
+                    changed += len(new)
             self.ctx.log(f"Attack craft orders: {changed} squadron(s) given new targets")
-            from .waves import split_from_wave
             by_wave = {}
             for w, v in splits:
                 if v.get():
                     by_wave.setdefault(w.wave_id, []).append(w.id)
             for wid, ids_ in by_wave.items():
-                new = split_from_wave(gs, ids_)
+                new = split_craft(gs, ids_)
                 self.ctx.log(f"  {len(ids_)} squadron(s) split off their wave"
                              + (" as a new wave" if new else ""))
             dialog.destroy()
@@ -220,7 +220,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
         choose speed (20-40cm), optional 45° turn at start, quick buttons."""
         tau_missiles = [OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance
                         if o["ordnance_type"] == OrdnanceType.TORPEDO_GUIDED.value
-                        and o["owner_player"] == self.ctx.gs.active_player
+                        and not self.ctx.is_ai_controlled(o["owner_player"])
                         and not o.get("moved_this_phase", False)]
         if not tau_missiles:
             messagebox.showinfo("No Missiles",
@@ -361,22 +361,10 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 return
             spd = max(20, min(40, spd))
 
-            # Apply turn
-            new_heading = (missile.heading + turn_applied[0]) % 360
-            missile.heading = new_heading
-
-            # Apply movement
-            rad = math.radians(missile.heading)
-            missile.x += spd * math.cos(rad)
-            missile.y += spd * math.sin(rad)
-
-            # Update in game state
-            for j, o_dict in enumerate(self.ctx.gs.ordnance):
-                if o_dict["id"] == missile.id:
-                    updated = missile.to_dict()
-                    updated["moved_this_phase"] = True
-                    self.ctx.gs.ordnance[j] = updated
-                    break
+            from .actions import move_tau_missile
+            moved = move_tau_missile(self.ctx.gs, missile.id, turn_applied[0], spd)
+            if moved is not None:
+                missile.x, missile.y, missile.heading = moved.x, moved.y, moved.heading
 
             turn_desc = f", turned {turn_applied[0]:+.0f}°" if turn_applied[0] != 0 else ""
             self.ctx.log(
@@ -707,6 +695,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "assault_boat": "Assault Boats",
                 "thunderhawk": "Thunderhawks (fighter/bomber/assault, 4+ resilient)",
                 "gun_cutter": "Gun-Cutters (fighter/assault, 4+ resilient)",
+                "antibody": "Antibodies (fighter/assault boat, 15cm)",
                 "fighta_bommer": "Fighta-Bommerz (fighter/bomber, D3+1 attacks)",
                 "torpedo_bomber": "Torpedo Bombers (fire a S2 salvo)",
                 "tiger_shark": "Tiger Sharks (missile salvo, 4+ resilient)",
@@ -740,70 +729,12 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     return
 
 
+            from .actions import combined_torpedo_launch, combined_craft_launch
             if launch_torps:
-                # Detect torpedo type from first contributor's weapon
-                torp_weapon = None
-                for s in contributors:
-                    for w in s.weapons:
-                        if w.get("weapon_type") == "torpedo":
-                            torp_weapon = w
-                            break
-                    if torp_weapon:
-                        break
-                is_guided = bool(torp_weapon) and torp_weapon.get("torpedo_type") == "guided"
-                o_type = (torpedo_ordnance_type(torp_weapon, kind=kind_var.get())
-                          if torp_weapon else OrdnanceType.TORPEDO_STANDARD.value)
-                # Random strengths (e.g. Ork Torps S D6) are rolled just before launching
-                if any(w.get("strength_dice") for c in contributors for w in c.weapons
-                       if w.get("weapon_type") == "torpedo"):
-                    launch_strength = 0
-                    for c in contributors:
-                        for w in c.weapons:
-                            if w.get("weapon_type") == "torpedo" and c.ordnance_loaded_torps:
-                                st, rolled = torpedo_launch_strength(c, w, self.ctx.dice)
-                                if rolled is not None:
-                                    self.ctx.log(f"  {c.name} {w['name']}: rolled "
-                                                 f"{w['strength_dice']} = {rolled}")
-                                launch_strength += st
-                else:
-                    launch_strength = combined_strength
-                # Raid bonuses carried only if every contributing ship has them
-                common_rules = set(contributors[0].special_rules)
-                for _c in contributors[1:]:
-                    common_rules &= set(_c.special_rules)
-                from .ordnance import torpedo_speed_for, torpedo_kind_name
-                speed = (torpedo_speed_for(torp_weapon, o_type)
-                         if torp_weapon else TORPEDO_SPEED_DEFAULT)
-
-                marker = OrdnanceMarker(
-                    id=f"combined_torp_{player}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
-                    ordnance_type=o_type,
-                    owner_player=player,
-                    launched_by=contributors[0].id,
-                    x=launch_x, y=launch_y,
-                    heading=heading,
-                    strength=launch_strength,
-                    speed=speed,
-                    launched_turn=self.ctx.gs.turn_number,
-                    can_turn=is_guided,
-                    turn_angle=45 if is_guided else 0,
-                    launch_exempt_ships=list(exempt_ids),
-                    special_rules=sorted(common_rules),
-                )
-                self.ctx.gs.add_ordnance(marker)
-                self.ctx.log(
-                    f"Combined {torpedo_kind_name(o_type)} launch: {names_str} — "
-                    f"Str {launch_strength} heading {heading:.0f}°")
-
-                # Mark torps expended
-                for s in contributors:
-                    fresh = self.ctx.gs.get_ship_by_id(s.id)
-                    if fresh:
-                        fresh.mark_launched("torps")
-                        self.ctx.gs.update_ship(fresh)
-                        from .ordnance import mark_once_torpedoes_used
-                        mark_once_torpedoes_used(fresh, kind_var.get(), self.ctx.gs)
-
+                combined_torpedo_launch(self.ctx.gs, self.ctx.dice, [c.id for c in contributors],
+                                        heading, kind_var.get(), (launch_x, launch_y),
+                                        list(exempt_ids), combined_strength, names_str,
+                                        log=self.ctx.log)
             else:
                 # Craft launch: excess craft must be removed first (s.15)
                 if not self._excess_craft_removed(player):
@@ -811,70 +742,16 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 current_remaining = max(
                     0, self._get_player_bay_capacity(player)
                        - self._count_active_craft(player))
-                # One squadron per bay of the contributing ships; random bay
-                # strengths are rolled now (s.18)
-                group_cap = 0
-                for c in contributors:
-                    if not c.ordnance_loaded_craft:
-                        continue
-                    cap, roll_log = bay_launch_capacity(
-                        c, [w for w in c.weapons if w.get("weapon_type") == "launch_bay"],
-                        self.ctx.dice)
-                    group_cap += cap
-                    for line in roll_log:
-                        self.ctx.log(line)
-                current_remaining = min(current_remaining, group_cap)
-                total_launched = 0
-                launched_ids = []
-
-                for ct, var in composition_vars.items():
-                    try:
-                        count = int(var.get())
-                    except ValueError:
-                        continue
-                    if count <= 0:
-                        continue
-                    o_type, spd, resil = craft_stats(
-                        ct, [w for c in contributors for w in c.weapons
-                             if w.get("weapon_type") == "launch_bay"])
-                    for i in range(count):
-                        if total_launched >= current_remaining:
-                            break
-                        marker = OrdnanceMarker(
-                            id=f"combined_craft_{player}_{ct}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
-                            ordnance_type=o_type,
-                            owner_player=player,
-                            launched_by=contributors[0].id,
-                            x=launch_x + (i - count / 2) * 1.5,
-                            y=launch_y,
-                            heading=heading,
-                            strength=1,
-                            speed=spd,
-                            launched_turn=self.ctx.gs.turn_number,
-                            resilient_save=resil,
-                            # Launcher raid bonuses go with its craft (s.31)
-                            special_rules=sorted(set.intersection(
-                                *(set(c.special_rules) for c in contributors))),
-                        )
-                        self.ctx.gs.add_ordnance(marker)
-                        launched_ids.append(marker.id)
-                        total_launched += 1
-
-                if total_launched == 0:
-                    messagebox.showwarning("No Craft",
-                        "Set at least one craft type to a non-zero count.")
+                res = combined_craft_launch(
+                    self.ctx.gs, self.ctx.dice, [c.id for c in contributors], heading,
+                    [[ct, var.get()] for ct, var in composition_vars.items()],
+                    (launch_x, launch_y), current_remaining,
+                    bool(combo_wave[0] is not None and combo_wave[0].get()),
+                    combo_wave[1].get() if combo_wave[1] is not None else "close",
+                    names_str, log=self.ctx.log)
+                if res.get("error"):
+                    messagebox.showwarning("No Craft", res["error"])
                     return
-                self._form_launched_wave(launched_ids, combo_wave[0], combo_wave[1])
-
-                self.ctx.log(
-                    f"Combined craft launch: {names_str} — "
-                    f"{total_launched} squadrons heading {heading:.0f}°")
-
-                for s in contributors:
-                    fresh = self.ctx.gs.get_ship_by_id(s.id)
-                    if fresh:
-                        fresh.mark_launched("craft")
-                        self.ctx.gs.update_ship(fresh)
 
             dialog.destroy()
             self.ctx.board.redraw()
@@ -952,7 +829,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
             note.set(f"vs {tgt.name} ({inputs['turrets']} turrets, {inputs['massed']} massed, "
                      f"{cap} CAP, Armour {inputs['armour']}+): {f} fighters + {b} bombers, "
                      f"about {ev:.1f} hits")
-        tk.Button(row, text="Best split", command=_best, bg="#335533", fg="white",
+        tk.Button(row, text="Auto split", command=_best, bg="#335533", fg="white",
                   font=("Consolas", 7)).pack(side=tk.LEFT, padx=3)
         tk.Label(parent, textvariable=note, font=("Consolas", 7), fg="#88aa88",
                  wraplength=400, justify=tk.LEFT).pack(anchor=tk.W, padx=5)
@@ -974,8 +851,9 @@ class OrdnancePanel(OrdnanceMovementMixin):
 
     def _form_launched_wave(self, ids, wave_var, form_var):
         if wave_var is not None and wave_var.get() and len(ids) > 1:
-            from .waves import form_wave, members, wave_label
-            wid = form_wave(self.ctx.gs, ids, form_var.get())
+            from .waves import members, wave_label
+            from .actions import form_craft_wave
+            wid = form_craft_wave(self.ctx.gs, ids, form_var.get())
             ms = members([OrdnanceMarker.from_dict(o) for o in self.ctx.gs.ordnance], wid)
             self.ctx.log(f"  {len(ms)} squadrons form a {form_var.get()} wave: {wave_label(ms)}")
 
@@ -1165,99 +1043,20 @@ class OrdnancePanel(OrdnanceMovementMixin):
                             f"({ship.heading-45:.0f}° to {ship.heading+45:.0f}°)")
                         return
 
-                    # Use the already-halved effective strength as the cap
-                    total = effective_str
-                    rolled_now = None
-                    if w.get("strength_dice"):
-                        total, rolled_now = torpedo_launch_strength(ship, w, self.ctx.dice)
-                        self.ctx.log(f"{ship.name} {w['name']}: rolled "
-                                     f"{w['strength_dice']} = {rolled_now}"
-                                     + (f", Str {total} after halving" if total != rolled_now else ""))
-                    # Enforce split rules (s.16)
-                    if total < 7 or strength is None:
-                        strength = total  # can't split below Str 7
-                    else:
-                        strength = max(1, min(strength, total))
-                    heading2 = None
-                    if strength < total:
-                        try:
-                            heading2 = float(hv2.get())
-                        except ValueError:
-                            heading2 = None
-                    err = torpedo_split_error(total, strength, heading, heading2)
-                    if err is None and heading2 is not None and abs(
-                            signed_angle_diff(heading2, ship.heading)) > 45:
-                        err = (f"Second salvo heading {heading2:.0f}° is outside the "
-                               f"forward arc ({ship.heading-45:.0f}° to "
-                               f"{ship.heading+45:.0f}°)")
-                    if err and rolled_now is not None:
-                        # Strength is already rolled: launch it as one salvo
-                        self.ctx.log(f"  Can't split as asked ({err}) — one salvo")
-                        strength, heading2, err = total, None, None
-                    if err:
-                        messagebox.showerror("Torpedo Split", err)
+                    # One recorded action (actions.launch_torpedo_volley): the
+                    # strength rolled now, the split checked, the salvos placed
+                    from .actions import launch_torpedo_volley, _weapon_index
+                    try:
+                        heading2 = float(hv2.get())
+                    except ValueError:
+                        heading2 = None
+                    res = launch_torpedo_volley(self.ctx.gs, self.ctx.dice, ship.id,
+                                                _weapon_index(ship, w), heading, strength,
+                                                heading2, kv.get(), effective_str,
+                                                log=self.ctx.log)
+                    if res.get("error"):
+                        messagebox.showerror("Torpedo Split", res["error"])
                         return
-
-                    is_g = w.get("torpedo_type") == "guided"
-                    o_type = torpedo_ordnance_type(w, kind=kv.get())
-                    from .ordnance import torpedo_speed_for, torpedo_kind_name
-
-
-                    from .ordnance import compute_torpedo_launch_exempt
-                    exempt = compute_torpedo_launch_exempt(ship, self.ctx.gs)
-
-                    # First (or only) salvo
-                    marker = OrdnanceMarker(
-                        id=f"torp_{ship.id}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
-                        ordnance_type=o_type,
-                        owner_player=ship.player,
-                        launched_by=ship.id,
-                        x=ship.x, y=ship.y,
-                        heading=heading,
-                        strength=strength,
-                        speed=torpedo_speed_for(w, o_type),
-                        launched_turn=self.ctx.gs.turn_number,
-                        can_turn=is_g,
-                        turn_angle=45 if is_g else 0,
-                        launch_exempt_ships=list(exempt),
-                        special_rules=list(ship.special_rules),
-                    )
-                    self.ctx.gs.add_ordnance(marker)
-
-                    name = torpedo_kind_name(o_type)
-                    self.ctx.log(
-                        f"{ship.name} launched {name} Str {strength} "
-                        f"heading {heading:.0f}°")
-
-                    # Second salvo if split
-                    remainder = total - strength
-                    if remainder > 0:
-                        marker2 = OrdnanceMarker(
-                            id=f"torp_{ship.id}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}_b",
-                            ordnance_type=o_type,
-                            owner_player=ship.player,
-                            launched_by=ship.id,
-                            x=ship.x, y=ship.y,
-                            heading=heading2,
-                            strength=remainder,
-                            speed=torpedo_speed_for(w, o_type),
-                            launched_turn=self.ctx.gs.turn_number,
-                            can_turn=is_g,
-                            turn_angle=45 if is_g else 0,
-                            launch_exempt_ships=list(exempt),
-                            special_rules=list(ship.special_rules),
-                        )
-                        self.ctx.gs.add_ordnance(marker2)
-                        self.ctx.log(
-                            f"  Split salvo: second volley Str {remainder} "
-                            f"heading {heading2:.0f}°")
-
-                    ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
-                    if ship_fresh:
-                        ship_fresh.mark_launched("torps")
-                        self.ctx.gs.update_ship(ship_fresh)
-                        from .ordnance import mark_once_torpedoes_used
-                        mark_once_torpedoes_used(ship_fresh, kv.get(), self.ctx.gs)
 
                     dialog.destroy()
                     self.ctx.board.redraw()
@@ -1294,8 +1093,8 @@ class OrdnancePanel(OrdnanceMovementMixin):
                          font=("Consolas", 7), fg="#888888").pack(anchor=tk.W, padx=5)
 
                 def _lay_mines(w=mw, effective_str=mine_str):
-                    from .ordnance import lay_mines
-                    lay_mines(ship, w, self.ctx.gs)
+                    from .actions import lay_ship_mines, _weapon_index
+                    lay_ship_mines(self.ctx.gs, ship.id, _weapon_index(ship, w))
                     self.ctx.log(f"{ship.name} launches {effective_str} mine(s)")
                     dialog.destroy()
                     self.ctx.board.redraw()
@@ -1381,6 +1180,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                 "assault_boat": "Assault Boats",
                 "thunderhawk": "Thunderhawks (fighter/bomber/assault, 4+ resilient)",
                 "gun_cutter": "Gun-Cutters (fighter/assault, 4+ resilient)",
+                "antibody": "Antibodies (fighter/assault boat, 15cm)",
                 "fighta_bommer": "Fighta-Bommerz (fighter/bomber, D3+1 attacks)",
                 "torpedo_bomber": "Torpedo Bombers (fire a S2 salvo)",
                 "tiger_shark": "Tiger Sharks (missile salvo, 4+ resilient)",
@@ -1616,7 +1416,7 @@ class OrdnancePanel(OrdnanceMovementMixin):
                     extra = (f"; plus {lone} lone fighter(s)" if lone else "") + \
                             (f"; plus {capn} on CAP for {cap_protect_var.get()}" if capn else "")
                     split_note.set(plan["note"] + extra)
-                tk.Button(quick_craft, text="Best split", command=_set_best_split,
+                tk.Button(quick_craft, text="Auto split", command=_set_best_split,
                           bg="#335533", fg="white",
                           font=("Consolas", 7)).pack(side=tk.LEFT, padx=2)
                 tk.Label(bay_frame, textvariable=split_note, font=("Consolas", 7),
@@ -1653,136 +1453,23 @@ class OrdnancePanel(OrdnanceMovementMixin):
                         "their mission before more can be launched.")
                     return
 
-                # One squadron per bay; random bay strengths rolled now (s.18)
-                ship_cap, roll_log = bay_launch_capacity(ship, bay_weapons, self.ctx.dice)
-                for line in roll_log:
-                    self.ctx.log(line)
-                allowed = min(ship_cap, current_remaining)
-                total_launched = 0
-                launched_ids = []
-
-                for ct, var in composition_vars.items():
-                    try:
-                        count = int(var.get())
-                    except ValueError:
-                        continue
-                    if count <= 0:
-                        continue
-
-                    o_type, spd, resil = craft_stats(ct, bay_weapons)
-
-                    # CAP only applies to craft that can act as fighters (incl.
-                    # multi-role craft, s.24); bombers (incl. Manta) cannot CAP
-                    can_cap = "fighter" in craft_roles(o_type)
-                    if cap_var.get() and not can_cap:
-                        messagebox.showerror(
-                            "Bombers Cannot CAP",
-                            "Bombers cannot be assigned to Combat Air Patrol.\n"
-                            "Only fighters may perform CAP.")
-                        return
-                    assign_cap = cap_var.get() and can_cap
-                    protect_id = cap_ship_id_map.get(
-                        cap_protect_var.get(), ship.id) if assign_cap else ""
-                    protect_pos = cap_ship_pos_map.get(
-                        protect_id, (ship.x, ship.y)) if assign_cap else (ship.x, ship.y)
-
-                    # CAP range check: fighter must be able to reach protected ship
-                    if assign_cap and protect_id:
-                        px_ship, py_ship = cap_ship_pos_map.get(protect_id, (ship.x, ship.y))
-                        cap_range = spd  # fighter's movement speed is its max range
-                        dist_to_protect = math.sqrt(
-                            (ship.x - px_ship)**2 + (ship.y - py_ship)**2)
-                        if dist_to_protect > cap_range:
-                            messagebox.showerror(
-                                "CAP Out of Range",
-                                f"Protected ship is {dist_to_protect:.1f}cm away.\n"
-                                f"Fighter speed is {cap_range:.0f}cm — cannot reach.")
-                            return
-
-                    for i in range(count):
-                        if total_launched >= allowed:
-                            break  # this ship's bays (or the fleet cap) used up
-                        px = protect_pos[0] + (i - count / 2) * 1.5
-                        py = protect_pos[1]
-                        marker = OrdnanceMarker(
-                            id=f"craft_{ship.id}_{ct}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
-                            ordnance_type=o_type,
-                            owner_player=ship.player,
-                            launched_by=ship.id,
-                            x=px if assign_cap else ship.x + (i - count / 2) * 1.5,
-                            y=py if assign_cap else ship.y,
-                            heading=heading,
-                            strength=1,
-                            speed=spd,
-                            launched_turn=self.ctx.gs.turn_number,
-                            resilient_save=resil,
-                            cap_ship_id=protect_id,
-                            # Launcher raid bonuses go with its craft (s.31)
-                            special_rules=list(ship.special_rules),
-                        )
-                        self.ctx.gs.add_ordnance(marker)
-                        launched_ids.append(marker.id)
-                        total_launched += 1
-
-                # Fighters outside the wave (split planner): lone, and on CAP
-                wave_ids = list(launched_ids)
-                extra_counts = {k: int(v.get()) if v.get().strip().isdigit() else 0
-                                for k, v in extra_vars.items()}
-                if split_types and any(extra_counts.values()):
-                    o_type, spd, resil = craft_stats(split_types[0], bay_weapons)
-                    protect_id = cap_ship_id_map.get(cap_protect_var.get(), ship.id)
-                    ppos = cap_ship_pos_map.get(protect_id, (ship.x, ship.y))
-                    for kind in ("lone", "cap"):
-                        for i in range(extra_counts[kind]):
-                            if total_launched >= allowed:
-                                break
-                            on_cap = kind == "cap"
-                            x0, y0 = ppos if on_cap else (ship.x, ship.y)
-                            marker = OrdnanceMarker(
-                                id=f"craft_{ship.id}_{kind}_{self.ctx.gs.turn_number}_{self.ctx.gs.next_serial()}",
-                                ordnance_type=o_type, owner_player=ship.player,
-                                launched_by=ship.id, x=x0 + (i + 1) * 1.5, y=y0 + 2.0,
-                                heading=heading, strength=1, speed=spd,
-                                launched_turn=self.ctx.gs.turn_number,
-                                resilient_save=resil,
-                                cap_ship_id=protect_id if on_cap else "",
-                                special_rules=list(ship.special_rules))
-                            self.ctx.gs.add_ordnance(marker)
-                            launched_ids.append(marker.id)
-                            total_launched += 1
-                    if extra_counts["lone"] or extra_counts["cap"]:
-                        self.ctx.log(f"  {extra_counts['lone']} lone fighter(s), "
-                                     f"{extra_counts['cap']} on CAP for {cap_protect_var.get()}"
-                                     f" (not in the wave)")
-
-                if total_launched == 0:
-                    messagebox.showwarning("No Craft",
-                        "Set at least one craft type to a non-zero count")
+                # One squadron per bay; random bay strengths rolled now (s.18):
+                # one recorded action (actions.launch_bays)
+                from .actions import launch_bays, _weapon_index
+                res = launch_bays(
+                    self.ctx.gs, self.ctx.dice, ship.id,
+                    [_weapon_index(ship, w) for w in bay_weapons], heading,
+                    [[ct, var.get()] for ct, var in composition_vars.items()],
+                    bool(cap_var.get()), cap_ship_id_map.get(cap_protect_var.get(), ship.id),
+                    cap_protect_var.get(),
+                    {k: v.get() for k, v in extra_vars.items()},
+                    split_types[0] if split_types else None,
+                    bool(wave_var is not None and wave_var.get()), form_var.get(),
+                    current_remaining, log=self.ctx.log)
+                if res.get("error"):
+                    (messagebox.showwarning if res.get("warning") else messagebox.showerror)(
+                        res["title"], res["error"])
                     return
-
-                wanted = sum(int(v.get()) for v in composition_vars.values()
-                             if v.get().strip().isdigit()) + sum(extra_counts.values())
-                if wanted > total_launched:
-                    self.ctx.log(f"  Only {total_launched} of {wanted} squadrons launched "
-                                 f"(this ship's bays: {ship_cap}, fleet slots: "
-                                 f"{current_remaining})")
-
-                ship_fresh = self.ctx.gs.get_ship_by_id(ship.id)
-                if ship_fresh:
-                    ship_fresh.mark_launched("craft")
-                    self.ctx.gs.update_ship(ship_fresh)
-                if not cap_var.get():          # craft on CAP are never a wave (s.26)
-                    self._form_launched_wave(wave_ids, wave_var, form_var)
-
-                if cap_var.get():
-                    protect_name = cap_protect_var.get()
-                    self.ctx.log(
-                        f"{ship.name} launched {total_launched} attack craft "
-                        f"on CAP for {protect_name}")
-                else:
-                    self.ctx.log(
-                        f"{ship.name} launched {total_launched} attack craft "
-                        f"heading {heading:.0f}°")
                 dialog.destroy()
                 self.ctx.board.redraw()
 

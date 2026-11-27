@@ -102,6 +102,25 @@ Ciarán has ruled on these. They override any reading of the rule text alone. `C
   instead of becoming hulks), awaken, and are worth double VP once awake. Necron escorts operate
   normally all game at normal VP. An unsaved hit (or hit-and-run raid) on **any** Necron vessel,
   escorts included, still raises the alert level.
+- **Critical result 9 counts as the commander's death on alien tables** (update 62): Dark Eldar
+  Commanders Slain, Eldar Infinity Circuit Smashed, Necron Monument Damaged and Tyranid Synapse Link
+  Severed (all result 9) are equivalent to Bridge Smashed. On the commander's ship, any of them kills the
+  admiral for scoring ("The opponent scores the commander's VPs, & all commander rerolls are lost"),
+  including in Kill the Admiral, and loses that ship's commander re-rolls for the rest of the battle (for
+  Tyranids, the Hive Mind re-rolls of the hive ship that bought them; for Necrons, permanently, not just
+  until repaired). Necron Command Core Damaged (10) does not count.
+- **Eldar use XR's critical hits table** (update 62), in place of MMS's (Appendix 3). XR's result 10,
+  Field generators destroyed, removes the ship's holofields and its shields (XR says "wave shields";
+  MMS Eldar have shields). Result 9 is Infinity Circuit Smashed (-3 Ld, cannot be repaired).
+- **Halving a capital ship's weapons** (update 61): when special orders, crippling etc. halve a
+  capital ship's firepower, halve each weapon separately and round up, then total (two FP3 batteries on
+  Burn Retros make 2 + 2 = 4). Escort squadrons are the exception (s.8): total first, then halve.
+- **Haven Spire has no Netherfield or Polarization Field** (update 61): MMS doesn't give them, so the
+  booklet's Haven doesn't. Its crit result 8 is then just the 5cm drift. Separately, in Craftworld Assault
+  the craftworld's forges do give docked Eldar ships XR's fields (Xenos p.32): Netherfield, "All gunnery
+  weapons suffer an additional right column-shift against" the docked ship; Polarization Field, it
+  "never risks suffering a hit for being in contact with blast markers and ignores all effects of solar
+  flares".
 - **Light cruisers in "per N cruisers" limits** (update 58): a light cruiser counts as a cruiser when
   the fleet list places it in its Cruisers category (e.g. the Dark Eldar Succubus counts towards the
   Mortalis one-per-three-cruisers limit). A light cruiser listed as a type of cruiser is different from

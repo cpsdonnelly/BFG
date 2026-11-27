@@ -37,8 +37,10 @@ def test_enemy_fire_plan_puts_both_sides_on_a_target_ahead():
     from src.ai_hazards import enemy_fire_plan
     ahead = make_ship(id="t", player=1, x=25.0, y=0.0, shields_max=0, points_value=150)
     plan = enemy_fire_plan(make_gs([_tau(), ahead]), 1)
+    from src.ai_hazards import _gun_hits
     tau = _tau()
-    full = sum((w["strength"] or 0) * (0.5 if w["weapon_type"] == "lance" else 0.35)
+    t = make_ship(id="t", player=1, x=25.0, y=0.0, shields_max=0)
+    full = sum(_gun_hits(tau, w, t)          # every mount, on the Gunnery table (To do 30)
                for w in tau.weapons if w["weapon_type"] in ("battery", "lance"))
     assert abs(plan["t"] - full) < 1e-9
 
@@ -52,10 +54,14 @@ def test_ai_tau_move_score_counts_every_forward_mount():
     gs = make_gs([tau, t])
     dice = DiceStub([])
     ai = AIPlayer(1, TurnController(gs, dice), gs, dice)
-    total = sum(w["strength"] for w in tau.weapons if w["weapon_type"] in ("battery", "lance"))
+    from src.ai_player import FP_HITS, TORPEDO_FP_EQUIV
+    from src.ai_hazards import lance_p
+    total = sum(w["strength"] * (lance_p(w) / FP_HITS if w["weapon_type"] == "lance" else 1.0)
+                for w in tau.weapons if w["weapon_type"] in ("battery", "lance"))
     # its loaded gravitic launcher counts too, the target being within one move
-    total += sum(w["strength"] for w in tau.weapons if w["weapon_type"] == "torpedo")
-    assert ai._arc_score(tau, 0.0, 0.0, 0.0, t) == total
+    total += sum(w["strength"] * TORPEDO_FP_EQUIV for w in tau.weapons
+                 if w["weapon_type"] == "torpedo")
+    assert abs(ai._arc_score(tau, 0.0, 0.0, 0.0, t) - total) < 1e-9
 
 
 def test_turn_allowance_uses_each_ships_turn_angle():

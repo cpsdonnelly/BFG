@@ -1,12 +1,10 @@
 """BFG:XR — MovementDialogMixin: ship and squadron movement dialogs."""
-import tkinter as tk
-from tkinter import messagebox
+from .tk_compat import tk, messagebox
 import math
 
 from .models import SpecialOrder
-from .movement import (MoveCommand, validate_movement, execute_movement,
-                       record_staged_move,
-                       resolve_aaf_speed, MIN_TURN_DISTANCE, get_max_turns,
+from .movement import (MoveCommand, validate_movement,
+                       resolve_aaf_speed, turn_distance, get_max_turns,
                        movement_budget)
 
 
@@ -35,7 +33,7 @@ class _MoveShipDialog:
 
         # Pre-compute movement budget (AAF roll happens here, before UI opens)
         self.order = ship.special_order
-        self.min_turn_dist = MIN_TURN_DISTANCE.get(ship.ship_type, 10)
+        self.min_turn_dist = turn_distance(ship, ship.special_order)
         self.aaf_bonus = 0
         if self.order == SpecialOrder.ALL_AHEAD_FULL.value:
             self.aaf_bonus = resolve_aaf_speed(ship, self.ctx.dice)
@@ -373,11 +371,10 @@ class _MoveShipDialog:
         if flee:
             messagebox.showerror("Must Flee", "\n".join(flee))
             return
-        execute_movement(self.ship, result, self.ctx.gs, self.ctx.dice)
-        self.panel._resolve_post_move_terrain(
-            self.ship.id, self.order == SpecialOrder.ALL_AHEAD_FULL.value)
-
-        record_staged_move(self.ctx.gs, self.ship.id, result, self.commands)
+        from .actions import apply_move
+        apply_move(self.ctx.gs, self.ctx.dice, self.ship, result, self.commands,
+                   self.order == SpecialOrder.ALL_AHEAD_FULL.value,
+                   contacts=self.ctx.ordnance._resolve_moving_ship_contacts, log=self.ctx.log)
         self.ctx.tc.mark_ship_moved(self.ship.id)
         self.ctx.tc.record_action(
             "move_ship", self.ship.id,
@@ -581,7 +578,7 @@ class _MoveSquadronDialog:
         min_spd = self._agg_min()
         max_spd = self._agg_max()
         ta = min(s.turn_angle for s in ships_in)
-        mtd = max(MIN_TURN_DISTANCE.get(s.ship_type, 0) for s in ships_in)
+        mtd = max(turn_distance(s, s.special_order) for s in ships_in)
         orders_str = ", ".join(
             f"{s.name}:{s.special_order}" for s in ships_in
             if s.special_order != "none"
@@ -727,10 +724,11 @@ class _MoveSquadronDialog:
 
         for s in ships_in:
             res = results[s.id]
-            execute_movement(s, res, self.ctx.gs, self.ctx.dice)
-            self.panel._resolve_post_move_terrain(
-                s.id, s.special_order == SpecialOrder.ALL_AHEAD_FULL.value)
-            record_staged_move(self.ctx.gs, s.id, res, self.commands)
+            from .actions import apply_move
+            apply_move(self.ctx.gs, self.ctx.dice, s, res, self.commands,
+                       s.special_order == SpecialOrder.ALL_AHEAD_FULL.value,
+                       contacts=self.ctx.ordnance._resolve_moving_ship_contacts,
+                       log=self.ctx.log)
             self.ctx.tc.mark_ship_moved(s.id)
             self.ctx.log(
                 f"{s.name}: squadron-moved {res.total_distance:.1f}cm "
@@ -768,7 +766,8 @@ class MovementDialogMixin:
         if not self.ctx.gs.rule_boarding:
             return
         ship = self.ctx.gs.get_ship_by_id(ship_id)
-        if not ship or ship.has_boarded or ship.is_grappled:
+        if not ship or ship.has_boarded or ship.is_grappled \
+                or "ghostship" in ship.special_rules:    # MMS p.20
             return
         from .boarding import ships_in_base_contact
         enemies = [s for s in self.ctx.gs.get_ships()
@@ -779,20 +778,17 @@ class MovementDialogMixin:
         if not contacted:
             return
         target_names = ", ".join(e.name for e in contacted)
-        if not messagebox.askyesno(
+        if not self.ctx.prompt.yes_no(
                 "Declare Boarding Action",
                 f"{ship.name} is in base contact with {target_names}.\n"
                 f"Declare a boarding action?\n"
                 f"(Ship cannot fire weapons or launch ordnance this turn)"):
             return
         board_target = (contacted[0] if len(contacted) == 1
-                        else self.ctx.pick_ship(contacted, "Select boarding target"))
+                        else self.ctx.prompt.pick_ship("Select boarding target", contacted))
         if board_target:
-            ship.boarding_target_id = board_target.id
-            ship.has_boarded = True
-            self.ctx.gs.update_ship(ship)
-            from .aa_turn import lock_boarding
-            lock_boarding(self.ctx.gs, ship.id, board_target.id)
+            from .actions import declare_boarding
+            declare_boarding(self.ctx.gs, ship.id, board_target.id)
             self.ctx.log(
                 f"{ship.name} declares boarding action against {board_target.name}!")
 

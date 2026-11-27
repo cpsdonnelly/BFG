@@ -1340,3 +1340,26 @@ def test_convoy_narrative_activation_follows_the_path():
     gs.update_ship(c0)
     cn.record_path(gs, c0, [(60.0, 40.0), (80.0, 80.0), (100.0, 40.0)])
     assert cn.check_activation(gs) == ["m"]
+
+
+def test_navigate_storm_aa_return_at_the_end_of_the_movement_phase():
+    """Sign-off answer 16 (owner): in alternate activation materialising ships
+    return at the end of each round's movement phase, after both sides'
+    movement activations (base contact keeps them out as in IGOUGO)."""
+    from src import navigate_storm as ns
+    gs = _storm_gs()
+    sc.setup_scenario(gs)
+    gs.turn_system = "aa"
+    a1 = gs.get_ship_by_id("a1")
+    a1.special_rules = list(a1.special_rules) + [ns.MATERIALISING]
+    a1.is_disengaged = True
+    a1.x, a1.y = 120.0, 100.0
+    gs.update_ship(a1)
+    ns.turn_start(gs, 1)                       # the round start: still out of play
+    assert gs.get_ship_by_id("a1").is_disengaged
+    ns.aa_movement_start(gs)                   # it comes into play to move
+    assert not gs.get_ship_by_id("a1").is_disengaged
+    assert ns.is_materialising(gs.get_ship_by_id("a1"))
+    ns.aa_movement_end(gs, DiceStub([9]))      # after both sides moved: Ld test
+    a1 = gs.get_ship_by_id("a1")
+    assert not ns.is_materialising(a1) and ns.halved(a1)

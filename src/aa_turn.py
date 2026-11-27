@@ -46,7 +46,10 @@ class AATurn:
         self.tc = tc
         self.gs = tc.gs
         self.cfg = cfg or config_from(self.gs)
-        self.rng = rng or random.Random()
+        if rng is None:                  # the bag's draws are game rolls: recorded (To do 17)
+            from .dice import RecordedRandom
+            rng = RecordedRandom("activation bag")
+        self.rng = rng
         self.choose_first = choose_first
         self.phases = self.cfg.round_phases()
         self.phase_index = 0
@@ -73,9 +76,20 @@ class AATurn:
 
     def _start_round(self) -> None:
         self.tracker.turn_start(self.gs)
+        # Dark Eldar Impalers out of fuel at the start of their owner's turn
+        # (Xenos p.5). In IGOUGO that gives them two ordnance moves; in AA
+        # (owner) the same two: removed at the start of the first round after
+        # their second move (`impaler_moves`; `may_move_ordnance` stops a third)
+        from .dark_eldar import remove_spent_impalers
+        for p in (1, 2):
+            remove_spent_impalers(self.gs, p, keep=lambda o: (
+                self.impaler_moves(o) < 2
+                and self.round - o.get("aa_round_placed", o.get("launched_turn", self.round)) < 2))
         from .scenarios import turn_start as _scenario_turn_start
         _scenario_turn_start(self.gs, self.tc.dice)
         self.command_check_failed = {1: False, 2: False}
+        from .orks import roll_force_fields
+        roll_force_fields(self.gs, self.tc.dice)      # kustom force fields, each round
         keep = self.gs.active_player
         for p in (1, 2):
             # Orders last until the ship's next command phase (the AA notes);
@@ -86,6 +100,13 @@ class AATurn:
                 for sd in self.gs.ships:
                     if sd["player"] == p and sd.get("special_order") == "brace_for_impact":
                         sd["special_order"] = "none"
+        for p in (1, 2):
+            # Tyranids: synaptic control and Instinctive Behaviour in the
+            # command phase, before anything moves
+            self.gs.active_player = p
+            from .tyranids import start_turn as _tyranid_start
+            _tyranid_start(self.gs, self.tc, self.tc.dice, p,
+                           getattr(self.gs, "synapse_hook", None))
         self.gs.active_player = keep
         self.tc.ships_moved.clear()
         self.tc.ships_fired.clear()
@@ -108,6 +129,9 @@ class AATurn:
                 _overcharge_start(self.gs, p)
                 from .craftworld import shooting_start as _cw_shooting
                 _cw_shooting(self.gs, p)
+        if ph == "movement":
+            from .navigate_storm import aa_movement_start
+            aa_movement_start(self.gs)
         if ph in ACTIVATION_PHASES:
             elig = {p: phase_units(self.gs, p, ph, self.cfg) for p in (1, 2)}
             chooser = None
@@ -121,6 +145,9 @@ class AATurn:
 
     def advance(self) -> None:
         """To the next phase; after the end phase, the next round."""
+        if self.phase == "movement":
+            from .navigate_storm import aa_movement_end
+            aa_movement_end(self.gs, self.tc.dice)
         if self.phase_index < len(self.phases) - 1:
             self.phase_index += 1
             self._begin_phase()
@@ -188,8 +215,14 @@ class AATurn:
         counted here by marker id (markers are rebuilt from dicts, so extra
         fields wouldn't survive)."""
         launched = marker.get("aa_round_placed", marker.get("launched_turn", self.round))
+        if "impaler" in (marker.get("special_rules") or []) and self.impaler_moves(marker) >= 2:
+            return False                       # out of fuel after two moves
         used = self.ord_moves.get(marker.get("id"), {}).get(self.round, 0)
         return used < ordnance_moves(launched, self.round, self.cfg)
+
+    def impaler_moves(self, marker: Dict) -> int:
+        """Ordnance moves the marker has made so far (every round)."""
+        return sum(self.ord_moves.get(marker.get("id"), {}).values())
 
     def record_ordnance_move(self, marker: Dict, rnd: int = None) -> None:
         rnd = self.round if rnd is None else rnd

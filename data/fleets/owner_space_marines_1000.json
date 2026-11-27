@@ -1,0 +1,475 @@
+{
+  "fleet_name": "Space Marine Crusade 1000",
+  "faction": "space_marines",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 1000,
+  "fleet_list": "sm_crusade",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Strike Cruiser",
+      "ship_class": "Strike Cruiser",
+      "faction": "space_marines",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 6,
+      "leadership": 10,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Bombardment Cannon",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "hits_on": 4,
+          "crit_on": 4
+        },
+        {
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20
+        }
+      ],
+      "special_rules": [
+        "space_marine_crew",
+        "teleport_assault",
+        "fleet_commander",
+        "chapter_tactic:wings_of_fury"
+      ],
+      "upgrades": [
+        "Master of the Fleet (Ld 10)",
+        "Master of the Fleet: 2 re-rolls",
+        "Chapter tactic: Wings of Fury",
+        "Secondary Shield (+1 Shield)"
+      ],
+      "points_value": 275,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 2,
+      "squadron_id": "",
+      "fleet_list": "sm_crusade"
+    },
+    {
+      "name": "Strike Cruiser",
+      "ship_class": "Strike Cruiser",
+      "faction": "space_marines",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 6,
+      "leadership": 0,
+      "leadership_table": "Astartes",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Bombardment Cannon",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "hits_on": 4,
+          "crit_on": 4
+        },
+        {
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20
+        }
+      ],
+      "special_rules": [
+        "space_marine_crew",
+        "teleport_assault"
+      ],
+      "upgrades": [
+        "Secondary Shield (+1 Shield)"
+      ],
+      "points_value": 160,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "sm_crusade"
+    },
+    {
+      "name": "Strike Cruiser",
+      "ship_class": "Strike Cruiser",
+      "faction": "space_marines",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 6,
+      "leadership": 0,
+      "leadership_table": "Astartes",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Bombardment Cannon",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "hits_on": 4,
+          "crit_on": 4
+        },
+        {
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20
+        }
+      ],
+      "special_rules": [
+        "space_marine_crew",
+        "teleport_assault"
+      ],
+      "upgrades": [
+        "Secondary Shield (+1 Shield)"
+      ],
+      "points_value": 160,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "sm_crusade"
+    },
+    {
+      "name": "Strike Cruiser",
+      "ship_class": "Strike Cruiser",
+      "faction": "space_marines",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 6,
+      "leadership": 0,
+      "leadership_table": "Astartes",
+      "weapons": [
+        {
+          "name": "Prow Bombardment Cannon",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "hits_on": 4,
+          "crit_on": 4
+        },
+        {
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20
+        },
+        {
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20,
+          "name": "Port Launch Bays"
+        },
+        {
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20,
+          "name": "Starboard Launch Bays"
+        }
+      ],
+      "special_rules": [
+        "space_marine_crew",
+        "teleport_assault"
+      ],
+      "upgrades": [
+        "Secondary Shield (+1 Shield)",
+        "Variant: macrobatteries to launch bays"
+      ],
+      "points_value": 180,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "sm_crusade"
+    },
+    {
+      "name": "Strike Cruiser",
+      "ship_class": "Strike Cruiser",
+      "faction": "space_marines",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 25,
+      "turn_angle": 90,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 6,
+      "leadership": 0,
+      "leadership_table": "Astartes",
+      "weapons": [
+        {
+          "name": "Prow Bombardment Cannon",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "hits_on": 4,
+          "crit_on": 4
+        },
+        {
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20
+        },
+        {
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20,
+          "name": "Port Launch Bays"
+        },
+        {
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "thunderhawk"
+          ],
+          "craft_speeds": {
+            "thunderhawk": 20
+          },
+          "craft_speed": 20,
+          "name": "Starboard Launch Bays"
+        }
+      ],
+      "special_rules": [
+        "space_marine_crew",
+        "teleport_assault"
+      ],
+      "upgrades": [
+        "Secondary Shield (+1 Shield)",
+        "Variant: macrobatteries to launch bays"
+      ],
+      "points_value": 180,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "sm_crusade"
+    },
+    {
+      "name": "Nova Frigate",
+      "ship_class": "Nova Frigate",
+      "faction": "space_marines",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 35,
+      "turn_angle": 90,
+      "shields_max": 1,
+      "armor_prow": "5+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Astartes",
+      "weapons": [
+        {
+          "name": "Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Lance",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "space_marine_crew",
+        "teleport_assault"
+      ],
+      "upgrades": [],
+      "points_value": 45,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "sm_crusade"
+    }
+  ]
+}

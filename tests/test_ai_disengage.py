@@ -1,5 +1,5 @@
 """AI voluntary disengagement by expected VP (s.37 / s.38; CLAUDE.md To do 1)."""
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_gunship, make_ship, make_gs, DiceStub
 from src.ai_hazards import disengage_gain, incoming_hits
 
 GUNS = [{"name": "Port Battery", "weapon_type": "battery", "range_cm": 30, "strength": 8,
@@ -56,19 +56,23 @@ def test_both_broadsides_at_different_targets():
               "strength": 8, "arcs": ["right"]}]
     e = make_ship(id="e", player=2, x=0.0, y=0.0, heading=0.0, shields_max=0,
                   weapons=[dict(w) for w in sides])
-    a = make_ship(id="a", player=1, x=0.0, y=20.0, shields_max=0)      # its left
-    b = make_ship(id="b", player=1, x=0.0, y=-20.0, shields_max=0)     # its right
+    a = make_ship(id="a", player=1, x=0.0, y=20.0, shields_max=0, points_value=150)  # its left
+    b = make_ship(id="b", player=1, x=0.0, y=-20.0, shields_max=0, points_value=150)  # its right
     gs = make_gs([e, a, b])
-    assert abs(incoming_hits(a, gs) - 8 * 0.35) < 1e-9
-    assert abs(incoming_hits(b, gs) - 8 * 0.35) < 1e-9
+    # FP8 at a capital ship abeam, the enemy closing to point-blank range with its
+    # 20cm move (a left shift): 4 dice on 5+ (the Gunnery table, To do 30)
+    abeam = 4 / 3
+    assert abs(incoming_hits(a, gs) - abeam) < 1e-9
+    assert abs(incoming_hits(b, gs) - abeam) < 1e-9
     # A lone target only ever faces one broadside
     gs1 = make_gs([e, a])
-    assert abs(incoming_hits(a, gs1) - 8 * 0.35) < 1e-9
+    assert abs(incoming_hits(a, gs1) - abeam) < 1e-9
     # Two of ours on the same side: the broadside goes wholly to one of them
     # (focus fire, owner), the more damaged one when it can finish it
-    c = make_ship(id="c", player=1, x=10.0, y=20.0, shields_max=0, hits_remaining=2)
+    c = make_ship(id="c", player=1, x=10.0, y=20.0, shields_max=0, hits_remaining=2,
+                  points_value=150)
     gs2 = make_gs([e, a, c])
-    assert abs(incoming_hits(c, gs2) - 8 * 0.35) < 1e-9 and incoming_hits(a, gs2) == 0.0
+    assert abs(incoming_hits(c, gs2) - abeam) < 1e-9 and incoming_hits(a, gs2) == 0.0
 
 
 def test_focus_fire_moves_on_once_a_target_is_likely_dead():
@@ -80,7 +84,9 @@ def test_focus_fire_moves_on_once_a_target_is_likely_dead():
                      points_value=180)
     other = make_ship(id="o", player=1, x=20.0, y=-2.0, shields_max=0, points_value=180)
     plan = enemy_fire_plan(make_gs([e, weak, other]), 1)
-    assert plan["w"] == 2.0 and plan["o"] == 4.0     # one mount finishes it, the rest move on
+    # mounts go to the 1-hit ship until its kill is near-certain (2 mounts:
+    # 86% -> 98%), then move on: the third goes to the other ship
+    assert plan["w"] == 4.0 and plan["o"] == 2.0
 
 
 def test_certainty_equivalent_follows_the_game_state():
@@ -162,12 +168,15 @@ def test_brace_follows_the_game_state_risk_preference():
                                    status="destroyed"))
         gs = make_gs(ships)
         gs.active_player = 2
-        if side:
-            gs.turn_limit, gs.turn_number = 4, 4
+        # the last turn in each case (an even game too), so only the risk
+        # preference differs
+        gs.turn_limit, gs.turn_number = 4, 4
         return brace_value(gs, gs.get_ship_by_id("p2"), hits)
 
-    assert value(None, 5) < 0 < value("ahead", 5)
-    assert value("behind", 6) < 0 < value(None, 6)
+    # ahead braces more readily than an even game, behind less (the absolute
+    # thresholds move with the hull-hit scale, ai_hazards.hits_vp)
+    for h in (3, 4, 5):
+        assert value("behind", h) < value(None, h) < value("ahead", h)
 
 
 def test_guns_given_up_by_disengaging_are_a_gamble_too():
@@ -205,7 +214,7 @@ def test_burn_retros_counts_the_teleport_it_gives_up():
                    special_rules=["teleport_assault", "space_marine_crew"], points_value=150)
     foe = make_ship(id="f", player=2, x=12.0, y=0.0, hits_max=8, hits_remaining=6,
                     points_value=180)
-    gs = make_gs([me, foe])
+    gs = make_gs([me, foe, make_gunship(player=1, x=-150.0, y=-150.0, id='g1'), make_gunship(player=2, id='g2')])
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
     assert ai._teleport_given_up(gs.get_ship_by_id("m")) == 0.0
     gs.rule_teleport = gs.rule_hit_and_run = True
@@ -221,7 +230,7 @@ def test_moves_pay_for_ending_in_enemy_teleport_reach():
                    shields_max=1, points_value=180)
     sm = make_ship(id="sm", player=2, x=30.0, y=0.0, hits_max=8, hits_remaining=8, speed=25,
                    special_rules=["teleport_assault", "space_marine_crew"], points_value=150)
-    gs = make_gs([me, sm])
+    gs = make_gs([me, sm, make_gunship(player=1, x=-150.0, y=-150.0, id='g1'), make_gunship(player=2, id='g2')])
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
     ai.difficulty = "normal"
     m, e = gs.get_ship_by_id("m"), gs.get_ship_by_id("sm")
@@ -235,7 +244,7 @@ def test_brace_against_a_teleport_is_priced_by_the_raid():
     from src.ai_player import ai_should_brace_vs_raid
     sm = make_ship(id="sm", player=2, special_rules=["teleport_assault", "space_marine_crew"])
     gunless = make_ship(id="g", player=1, hits_max=8, hits_remaining=8, points_value=200)
-    gs = make_gs([gunless, sm])
+    gs = make_gs([gunless, sm, make_gunship(player=1, x=-150.0, y=-150.0, id='g1'), make_gunship(player=2, id='g2')])
     assert ai_should_brace_vs_raid(gs, gs.get_ship_by_id("g"), gs.get_ship_by_id("sm"))
 
 
@@ -248,7 +257,7 @@ def test_teleporter_values_ending_in_reach_of_an_unshielded_target():
                    special_rules=["teleport_assault", "space_marine_crew"], points_value=150)
     foe = make_ship(id="f", player=2, x=30.0, y=0.0, hits_max=8, hits_remaining=6,
                     shields_max=0, points_value=200)
-    gs = make_gs([sm, foe])
+    gs = make_gs([sm, foe, make_gunship(player=1, x=-150.0, y=-150.0, id='g1'), make_gunship(player=2, id='g2')])
     ai = AIPlayer(1, TurnController(gs, DiceStub([])), gs, DiceStub([]))
     ai.difficulty = "normal"
     s, f = gs.get_ship_by_id("sm"), gs.get_ship_by_id("f")

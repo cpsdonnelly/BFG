@@ -7,7 +7,7 @@ from .geometry import line_touches_trefoil
 
 def check_los(x1: float, y1: float, x2: float, y2: float,
               phenomena: List[Phenomenon],
-              blast_markers: List[BlastMarker] = None) -> dict:
+              blast_markers: List[BlastMarker] = None, skip_ids=()) -> dict:
     """
     Check line of sight between two points.
     Returns dict with:
@@ -28,6 +28,8 @@ def check_los(x1: float, y1: float, x2: float, y2: float,
 
     for p in phenomena:
         ptype = p.phenomenon_type
+        if getattr(p, "id", None) in skip_ids:
+            continue                 # an asteroid field both ships are in (check_los_ships)
 
         # Planets block LoS
         if "planet" in ptype and p.radius > 0:
@@ -82,8 +84,29 @@ def check_los_ships(attacker: Ship, target: Ship,
                     ships: list = None) -> dict:
     """Check LoS between two ships. ships: everything on the table, so hulks
     can block lines of fire to ships behind their base (s.34)."""
+    # Asteroid fields (s.39): "Opposing vessels in an asteroid field may fire
+    # upon each other ... at no more than 10cm range" (half firepower, no close
+    # range shift: combat); "Crippled or braced ships in an asteroid field may
+    # not fire at all". Any other line through a field is blocked
+    from .optional_rules import asteroid_fields_touching, shared_asteroid_field
+    skip = ()
+    if any(p.phenomenon_type == "asteroid_field" for p in phenomena or []):
+        if asteroid_fields_touching(attacker, phenomena) and (
+                attacker.is_crippled or attacker.special_order == "brace_for_impact"):
+            return {"clear": False, "blocked_by": "crippled or braced in an asteroid field",
+                    "blast_markers_crossed": 0, "dust_clouds_crossed": 0, "column_shifts": 0}
+        field = shared_asteroid_field(attacker, target, phenomena)
+        if field is not None:
+            if attacker.distance_to(target) > 10:
+                return {"clear": False,
+                        "blocked_by": f"Asteroid Field ({field.id}): over 10cm inside it",
+                        "blast_markers_crossed": 0, "dust_clouds_crossed": 0, "column_shifts": 0}
+            skip = tuple(p.id for p in asteroid_fields_touching(attacker, phenomena)
+                         if p.id in {q.id for q in asteroid_fields_touching(target, phenomena)})
     result = check_los(attacker.x, attacker.y, target.x, target.y,
-                       phenomena, blast_markers)
+                       phenomena, blast_markers, skip_ids=skip)
+    if skip:
+        result["in_asteroid_field"] = True
     if result["clear"] and ships:
         for s in ships:
             s = Ship.from_dict(s) if isinstance(s, dict) else s

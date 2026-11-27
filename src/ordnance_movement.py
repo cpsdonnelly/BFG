@@ -5,7 +5,6 @@ ship contacts (torpedoes, bombers, assault boats, mines), CAP fighter
 interception, ordnance-vs-ordnance clashes, and terrain effects.
 Split out of ordnance_panel.py, which keeps the launch dialogs.
 """
-from tkinter import messagebox
 import math
 
 from .models import SpecialOrder, OrdnanceMarker, OrdnanceType
@@ -21,10 +20,38 @@ def _ai_salvo_turn(marker, gs, fallback: float) -> float:
     plan = salvo_approach(marker, gs)
     if plan is None:
         return fallback
+    # keep the (possibly new) target for its later moves
+    marker.torp_target_id = plan["target"]
+    for o in gs.ordnance:
+        if o["id"] == marker.id:
+            o["torp_target_id"] = plan["target"]
     return max(-45.0, min(45.0, signed_angle_diff(plan["heading"] % 360, marker.heading)))
 
 class OrdnanceMovementMixin:
     """Ordnance-phase resolution methods shared into OrdnancePanel."""
+
+    def _ai_off_turn_ordnance(self):
+        """The non-active AI player's start of this ordnance phase: torpedo
+        bomber salvos (fired first, so a Tiger Shark salvo moves with the
+        missiles) and its Tau missiles' moves, planned from this phase's side
+        of the turn (`AIPlayer._steer_guided_missile(our_phase=False)`)."""
+        from .ordnance import torpedo_bomber_groups
+        gs = self.ctx.gs
+        for p in (1, 2):
+            if p == gs.active_player or not self.ctx.is_ai_controlled(p):
+                continue
+            def unmoved():
+                return [OrdnanceMarker.from_dict(o) for o in gs.ordnance
+                        if o.get("owner_player") == p and o.get("can_turn")
+                        and o.get("ordnance_type") == OrdnanceType.TORPEDO_GUIDED.value
+                        and not o.get("moved_this_phase")]
+            if not torpedo_bomber_groups(gs, p) and not unmoved():
+                continue
+            from .ai_player import AIPlayer
+            ai = AIPlayer(p, self.ctx.tc, gs, self.ctx.dice, gs.difficulty_for(p))
+            ai._fire_torpedo_bombers()
+            for m in unmoved():
+                ai._steer_guided_missile(m, our_phase=False)
 
     def _get_player_bay_capacity(self, player: int) -> int:
         """Total launch bay strength across all non-destroyed, non-disengaged ships for player."""
@@ -101,6 +128,50 @@ class OrdnanceMovementMixin:
 
         return marker.id in to_remove_set
 
+    def _torps_first_vs_cap(self, ships, mover, skip_ids, touching, to_remove_set):
+        """For each ship with CAP touched this pass by both the mover's attack
+        craft (that attack ships) and its torpedo salvos, the mover chooses
+        the order; torpedoes first: those salvos meet the CAP now (it removes a
+        whole salvo, s.19 / s.26), before the craft do."""
+        from .ordnance import ATTACK_CRAFT_TYPES, attacks_ships, is_torpedo_salvo
+        from .formations import contact_order_values
+        gs = self.ctx.gs
+        live = [OrdnanceMarker.from_dict(o) for o in gs.ordnance]
+        for s in ships:
+            if s.is_destroyed or s.is_disengaged:
+                continue
+            if not any(o.get("cap_ship_id") == s.id and o.get("owner_player") == s.player
+                       for o in gs.ordnance):
+                continue
+            mine = [m for m in live if m.owner_player != s.player and m.id not in skip_ids
+                    and m.id not in to_remove_set and not m.cap_ship_id
+                    and (mover is None or m.owner_player == mover) and touching(m, s)]
+            craft = [m for m in mine if m.ordnance_type in ATTACK_CRAFT_TYPES
+                     and attacks_ships(m.ordnance_type)]
+            torps = [m for m in mine if is_torpedo_salvo(m)]
+            if not craft or not torps:
+                continue
+            owner = torps[0].owner_player
+            groups = {}
+            for m in craft:
+                groups.setdefault(m.wave_id or m.id, []).append(m)
+            vals = contact_order_values(s, list(groups.values()), torps, gs)
+            best = "torpedoes" if vals["torpedoes"] > vals["craft"] + 1e-9 else "craft"
+            if self.ctx.is_ai_controlled(owner):
+                choice = best
+            else:
+                choice = self.ctx.prompt.choose(
+                    "Ordnance order",
+                    f"{s.name} has fighters on CAP. Which of your ordnance reaches it "
+                    f"first? A CAP fighter removes a whole torpedo salvo, but only one "
+                    f"squadron of attack craft.",
+                    [("Attack craft first", "craft"), ("Torpedoes first", "torpedoes")], best)
+            if choice != "torpedoes":
+                continue
+            self.ctx.log(f"  Torpedoes reach {s.name} before the attack craft")
+            for m in sorted(torps, key=lambda t: t.strength):
+                self._check_cap_intercept(m, s, to_remove_set)
+
     def _cap_vs_group(self, group, ship, to_remove_set: set):
         """waves.resolve_cap_vs_group for the ship's own CAP fighters against an
         enemy group touching it; removes the casualties and keeps the survivors'
@@ -149,7 +220,7 @@ class OrdnanceMovementMixin:
                     f"{'PASSED' if check['passed'] else 'FAILED'} "
                     f"(rolled {check['roll']} vs Ld {check['needed']})")
                 return True, check["passed"]
-            if not messagebox.askyesno("Hit-and-Run Raid — Brace?", msg):
+            if not self.ctx.prompt.yes_no("Hit-and-Run Raid — Brace?", msg):
                 return False, False
             check = attempt_brace(target_ship, self.ctx.gs, self.ctx.dice)
             self.ctx.log(
@@ -163,7 +234,6 @@ class OrdnanceMovementMixin:
         """Before ordnance moves, each boarding salvo launched on an earlier turn
         may turn up to 45° (s.16). The owner chooses; the AI points it at the
         nearest enemy."""
-        from tkinter import simpledialog
         from .ordnance import (boarding_torp_may_turn, boarding_torp_suggested_turn,
                                turn_boarding_torp)
         gs = self.ctx.gs
@@ -177,15 +247,14 @@ class OrdnanceMovementMixin:
             if self.ctx.is_ai_controlled(marker.owner_player):
                 deg = _ai_salvo_turn(marker, gs, suggested)
             else:
-                deg = simpledialog.askfloat(
+                deg = self.ctx.prompt.number(
                     "Boarding Torpedoes",
                     f"Player {marker.owner_player}: boarding torpedoes Str "
                     f"{marker.strength} at ({marker.x:.0f}, {marker.y:.0f}), "
                     f"heading {marker.heading:.0f}°.\n"
                     f"Turn before moving: -45 (clockwise) to +45 (anticlockwise).\n"
                     f"Suggested {suggested:+.0f}° points at the nearest enemy.",
-                    initialvalue=round(suggested), minvalue=-45, maxvalue=45,
-                    parent=self.ctx.root)
+                    suggested, -45, 45)
                 if deg is None:
                     deg = 0.0
             if abs(deg) >= 0.5:
@@ -204,17 +273,18 @@ class OrdnanceMovementMixin:
         if self.ctx.is_ai_controlled(player):
             from .ai_rerolls import should_reroll
             if not should_reroll(ship, "guided torpedoes", self.ctx.gs,
-                                 tc.get_fleet_rerolls(player, ship)):
+                                 tc.get_fleet_rerolls(player, ship),
+                                 {"marker": getattr(self, "_guided_marker", None)}):
                 return False
         else:
             from .ai_rerolls import should_reroll
-            from .choice_dialog import choose
             left = tc.get_fleet_rerolls(player, ship)
-            if not choose(self.ctx.root, "Guided Torpedoes - Re-roll?",
+            if not self.ctx.prompt.choose("Guided Torpedoes - Re-roll?",
                           f"{ship.name} rolled {roll} against Leadership {ship.leadership}. "
                           f"Use a fleet commander re-roll ({left} left)?",
                           [("Re-roll", True), ("Don't", False)],
-                          should_reroll(ship, "guided torpedoes", self.ctx.gs, left)):
+                          should_reroll(ship, "guided torpedoes", self.ctx.gs, left,
+                                        {"marker": getattr(self, "_guided_marker", None)})):
                 return False
         return tc.use_fleet_reroll(player, ship)
 
@@ -224,21 +294,19 @@ class OrdnanceMovementMixin:
         uses its best Leadership."""
         if self.ctx.is_ai_controlled(enemy_player):
             return max(candidates, key=lambda s: s.leadership)
-        from tkinter import simpledialog
         names = [f"{i + 1}. {s.name} (Ld {s.leadership})" for i, s in enumerate(candidates)]
-        pick = simpledialog.askinteger(
+        pick = self.ctx.prompt.number(
             "Guided Torpedoes - Take Control?",
             f"Player {enemy_player}: the enemy's guided torpedoes failed their guidance "
             f"test. Choose a ship to try to take control (Leadership test), or Cancel:\n\n"
             + "\n".join(names),
-            minvalue=1, maxvalue=len(candidates), parent=self.ctx.root)
+            None, 1, len(candidates), integer=True)
         return candidates[pick - 1] if pick else None
 
     def _turn_guided_and_seeking(self, ships, mover=None):
         """Seeking torpedoes turn up to 45° at the nearest enemy ship; guided
         torpedoes turn up to 45° for whoever wins the Leadership tests (s.16).
         Neither turns in the ordnance phase of its launch turn."""
-        from tkinter import simpledialog
         from .ordnance import (seeking_turn, guided_control, guided_suggested_turn,
                                turn_boarding_torp)
         gs = self.ctx.gs
@@ -252,6 +320,7 @@ class OrdnanceMovementMixin:
                 deg = seeking_turn(marker, ships)
                 label = "Seeking torpedoes"
             elif marker.ordnance_type == OrdnanceType.TORPEDO_GUIDED_LD.value:
+                self._guided_marker = marker        # the re-roll's value (ai_rerolls)
                 controller, logs = guided_control(marker, gs, self.ctx.dice,
                                                   reroll_fn=self._guided_reroll,
                                                   choose_enemy_fn=self._guided_enemy_choice)
@@ -265,15 +334,14 @@ class OrdnanceMovementMixin:
                            if controller == marker.owner_player else suggested)
                 else:
                     who = "your" if controller == marker.owner_player else "the enemy's"
-                    deg = simpledialog.askfloat(
-                        "Guided Torpedoes",
+                    deg = self.ctx.prompt.number(
+                    "Guided Torpedoes",
                         f"Player {controller}: you control {who} guided torpedoes Str "
                         f"{marker.strength} at ({marker.x:.0f}, {marker.y:.0f}), heading "
                         f"{marker.heading:.0f}°.\nTurn before moving: -45 (clockwise) to "
                         f"+45 (anticlockwise).\nSuggested {suggested:+.0f}° points at the "
                         f"nearest of your enemy's ships.",
-                        initialvalue=round(suggested), minvalue=-45, maxvalue=45,
-                        parent=self.ctx.root)
+                        suggested, -45, 45)
                     if deg is None:
                         deg = 0.0
                 label = "Guided torpedoes"
@@ -324,12 +392,10 @@ class OrdnanceMovementMixin:
             if self.ctx.is_ai_controlled(owner):
                 mode = best
             else:
-                from .choice_dialog import choose
                 from .waves import bomber_squadron_value, raid_squadron_value
                 bv = bomber_squadron_value(target, self.ctx.gs)
                 av = raid_squadron_value(target, self.ctx.gs, owner, ms[0].special_rules)
-                mode = choose(
-                    self.ctx.root, "Multi-role Attack Craft",
+                mode = self.ctx.prompt.choose("Multi-role Attack Craft",
                     f"{len(ms)} {names} squadron(s) attack {target.name} "
                     f"({target.effective_turrets} turrets, Armour {target.lowest_armor_value}+)."
                     f"\n\nExpected VP per squadron: as bombers {bv:.1f}, as assault boats "
@@ -475,6 +541,13 @@ class OrdnanceMovementMixin:
                              f"{'attack craft' if kind == 'craft' else 'torpedoes / mines'} "
                              f"this phase")
         ships = [self.ctx.gs.get_ship_by_id(s.id) or s for s in ships]
+
+        # Owner: the moving player moves markers one at a time, so it chooses
+        # which of its ordnance meets a ship's CAP first. Craft first is the
+        # default (a wave soaks the CAP up for a big salvo); torpedoes first
+        # lets a small salvo draw the CAP off a wave (the AI and "Auto" by
+        # formations.contact_order_values)
+        self._torps_first_vs_cap(ships, mover, skip_ids, touching, to_remove_after)
 
         # Phase 1: attack craft wave interception — turrets (with massed bonus) fire
         # once per ship at every incoming wave of bombers and assault boats before
@@ -791,10 +864,18 @@ class OrdnanceMovementMixin:
         # Degrade Tau missiles from previous turns
         degrade_tau_missiles(self.ctx.gs, self.ctx.dice, self.ctx.gs.turn_number)
 
-        # Check for unmoved Tau missiles - auto-move at minimum speed straight
+        # The AI player whose turn it isn't (IGOUGO; alternate activation runs
+        # both players' AI ordnance phases): at the start of this ordnance phase
+        # its torpedo bombers may fire (s.21: any ordnance phase after their
+        # launch turn) and its Tau missiles make their move (Tau Missiles: each
+        # ordnance phase), as in its own phase
+        if getattr(self, "aa_turn", None) is None:
+            self._ai_off_turn_ordnance()
+
+        # Unmoved Tau missiles (either player's: they move every ordnance
+        # phase) auto-move at minimum speed straight
         for i, o_dict in enumerate(list(self.ctx.gs.ordnance)):
             if (o_dict.get("ordnance_type") == OrdnanceType.TORPEDO_GUIDED.value
-                    and o_dict.get("owner_player") == self.ctx.gs.active_player
                     and not o_dict.get("moved_this_phase", False)):
                 marker = OrdnanceMarker.from_dict(o_dict)
                 rad = math.radians(marker.heading)
@@ -872,7 +953,8 @@ class OrdnanceMovementMixin:
                 # Torpedoes/mines: asteroid/planet/warp rift = auto-destroyed; dust = D6=6.
                 # Attack craft: asteroid = D6=6; warp rift/planet = auto-destroyed.
                 destroyed, terrain_type = check_ordnance_vs_phenomena(
-                    marker, phenomena, self.ctx.dice)
+                    marker, phenomena, self.ctx.dice,
+                    start=self._ord_path_start.get(marker.id))
                 if destroyed:
                     to_remove.add(marker.id)
                     self.ctx.log(

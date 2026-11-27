@@ -1,0 +1,460 @@
+{
+  "fleet_name": "Ork Green Tide 980",
+  "faction": "orks",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 980,
+  "fleet_list": "orks_green_tide",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Dethdeala (0-1)",
+      "ship_class": "Dethdeala (0-1)",
+      "faction": "orks",
+      "ship_type": "battleship",
+      "base_size": "large",
+      "speed": 25,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 4,
+      "hits_max": 12,
+      "leadership": 0,
+      "leadership_table": "Orks",
+      "weapons": [
+        {
+          "name": "Prow Gunz",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 9,
+          "arcs": [
+            "front"
+          ],
+          "strength_dice": "D6+6"
+        },
+        {
+          "name": "Prow Killkannon",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "hits_on": 4,
+          "crit_on": 4
+        },
+        {
+          "name": "Port Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 8,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 8,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Heavy Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ],
+          "strength_close": 10
+        },
+        {
+          "name": "Starboard Heavy Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ],
+          "strength_close": 10
+        },
+        {
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [],
+          "craft_types": [
+            "fighta_bommer",
+            "assault_boat"
+          ],
+          "craft_speeds": {
+            "fighta_bommer": 25,
+            "assault_boat": 30
+          },
+          "craft_speed": 30,
+          "strength_dice": "D3+1"
+        }
+      ],
+      "special_rules": [
+        "ere_we_go",
+        "ork_crew",
+        "ork_turrets",
+        "ponderous",
+        "fleet_commander",
+        "big_mek",
+        "kustom_force_field"
+      ],
+      "upgrades": [
+        "Ork Big Mek",
+        "Boss title: Big Boss",
+        "Kustom: Extra Power Field",
+        "Kustom force field"
+      ],
+      "points_value": 385,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 1,
+      "squadron_id": "",
+      "fleet_list": "orks_green_tide"
+    },
+    {
+      "name": "Basha Lite Kroozer",
+      "ship_class": "Basha Lite Kroozer",
+      "faction": "orks",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "4+",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Orks",
+      "weapons": [
+        {
+          "name": "Prow Gunz",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 5,
+          "arcs": [
+            "front"
+          ],
+          "strength_dice": "D6+2"
+        },
+        {
+          "name": "Prow Heavy Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "strength_close": 6
+        },
+        {
+          "name": "Port Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "ere_we_go",
+        "ork_crew",
+        "ork_turrets",
+        "kustom_force_field"
+      ],
+      "upgrades": [
+        "Kustom force field"
+      ],
+      "points_value": 125,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "orks_green_tide"
+    },
+    {
+      "name": "Basha Lite Kroozer",
+      "ship_class": "Basha Lite Kroozer",
+      "faction": "orks",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "4+",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Orks",
+      "weapons": [
+        {
+          "name": "Prow Gunz",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 5,
+          "arcs": [
+            "front"
+          ],
+          "strength_dice": "D6+2"
+        },
+        {
+          "name": "Prow Heavy Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "strength_close": 6
+        },
+        {
+          "name": "Port Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "ere_we_go",
+        "ork_crew",
+        "ork_turrets",
+        "kustom_force_field"
+      ],
+      "upgrades": [
+        "Kustom force field"
+      ],
+      "points_value": 125,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "orks_green_tide"
+    },
+    {
+      "name": "Basha Lite Kroozer",
+      "ship_class": "Basha Lite Kroozer",
+      "faction": "orks",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "4+",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Orks",
+      "weapons": [
+        {
+          "name": "Prow Gunz",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 5,
+          "arcs": [
+            "front"
+          ],
+          "strength_dice": "D6+2"
+        },
+        {
+          "name": "Prow Heavy Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "front"
+          ],
+          "strength_close": 6
+        },
+        {
+          "name": "Port Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 4,
+          "arcs": [
+            "right"
+          ]
+        }
+      ],
+      "special_rules": [
+        "ere_we_go",
+        "ork_crew",
+        "ork_turrets",
+        "kustom_force_field"
+      ],
+      "upgrades": [
+        "Kustom force field"
+      ],
+      "points_value": 125,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "orks_green_tide"
+    },
+    {
+      "name": "Onslaught Attack Ship",
+      "ship_class": "Onslaught Attack Ship",
+      "faction": "orks",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 1,
+      "armor_prow": "6+",
+      "armor_side": "4+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Orks",
+      "weapons": [
+        {
+          "name": "Gunz",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "strength_dice": null
+        },
+        {
+          "name": "Prow Zzapp Gunz",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "front"
+          ],
+          "hits_on": 5,
+          "zzapp": true
+        }
+      ],
+      "special_rules": [
+        "ere_we_go",
+        "ork_crew",
+        "ork_turrets"
+      ],
+      "upgrades": [
+        "Zzapp gun (gunz to FP2)"
+      ],
+      "points_value": 30,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "orks_green_tide"
+    },
+    {
+      "name": "Dominator Cruiser",
+      "ship_class": "Dominator Cruiser",
+      "faction": "orks",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Orks",
+      "weapons": [
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 12,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 12,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Killkannon",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ],
+          "hits_on": 4,
+          "crit_on": 4
+        }
+      ],
+      "special_rules": [
+        "ere_we_go",
+        "ork_crew",
+        "ork_turrets",
+        "looted"
+      ],
+      "upgrades": [],
+      "points_value": 190,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "reserve:navy_gothic"
+    }
+  ]
+}

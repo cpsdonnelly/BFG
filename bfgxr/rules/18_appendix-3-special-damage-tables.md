@@ -72,23 +72,23 @@ The Fortress-Monastery uses the shared **Star Fort / Fortress-Monastery Critical
 
 **Eldar Critical Hits Table**
 
-*Used by all Corsair and Craftworld Eldar vessels except the Haven Spire, which has its own table (Eldar section). Roll 2D6. Eldar take critical hits on a 5+ (Fragile; Ghostships on 6+). Source: MMS p.5.*
+*Used by all Corsair and Craftworld Eldar vessels except the Haven Spire, which has its own table (Eldar section). Roll 2D6. Eldar take critical hits on a 5+ (Fragile; Ghostships on 6+). Source: Xenos p.17 (XR table, in place of MMS p.5).*
 
 | 2D6 | Extra Damage | Result |
 |---|---|---|
-| 2 | +0 | **Infinity circuit damaged.** The ship's infinity circuit, which aids control and internal communications, is damaged by the hit. The ship's Leadership is reduced by 1 until the damage can be repaired. If there are multiples of this critical hit, Leadership is reduced by 1 for each hit. |
-| 3 | +0 | **Keel armament damaged.** The keel armament is taken offline by the hit and may not fire until it has been repaired. |
-| 4 | +0 | **Prow armament damaged.** The ship's prow is ripped open. Its prow armament may not fire until it has been repaired. A second critical hit to the prow will destroy the ship's port and starboard weaponry if it has any; both are destroyed with the same result and likewise repaired. |
-| 5 | +0 | **Mast lines severed.** The systems that allow the ship to alter the angle of the sails and turn swiftly are broken by the hit. Until the damage is repaired, the ship may make no turns in its movement phase. |
-| 6 | +0 | **Mainsail scarred.** The ship's main solar sail suffers surface damage, reducing the amount of energy it can store. Each of the ship's speeds is reduced by 5cm until the sail is repaired. |
-| 7 | +1 | **Superstructure damaged.** The hit tears into the ship, causing a small breach. Until the damage is repaired, whenever the ship turns in its movement phase it must roll a 3+ to avoid suffering a hit. |
-| 8 | +0 | **Mainsail shredded.** The solar cells of the mainsail are torn to tatters by the hit. The ship only gets one move per movement phase until the damage is repaired. |
-| 9 | +1 | **Holofield generators destroyed.** The holofield generators are smashed beyond repair by the hit. The ship no longer benefits from its holofields. This damage may not be repaired. |
-| 10 | +1 | **Shields collapse.** The shield generators overload and burn out, leaving the ship virtually defenceless. The ship's shield strength is reduced to zero. This damage may not be repaired. |
-| 11 | +D3 | **Hull breach.** A huge gash is torn in the ship's hull, causing carnage among the crew. |
-| 12 | +D6 | **Bulkhead collapse.** Internal pillars buckle and twist; whole compartments crumple with a psychic scream of tortured wraithbone. |
+| 2 | +0 | **Infinity circuit damaged.** The ship's infinity circuit, which aids internal control and communications, is damaged by the hit. The ship's leadership is reduced by 1 until the damage is repaired. This penalty is cumulative for each time this system is damaged. |
+| 3 | +0 | **Keel armament damaged.** The keel armament is taken offline by the hit and may not fire until the damage has been repaired. |
+| 4 | +0 | **Prow armament damaged.** The ship's prow armament is taken offline by the hit and may not fire until the damage has been repaired. A second critical hit to the prow will disable the ship's port and starboard weapons as well (apply to both sides when the second hit occurs, and likewise when it is repaired). |
+| 5 | +0 | **Mast lines severed.** The systems that allow the ship to alter the angle of the sails are damaged by the hit. The ship may make no turns (including solar jibes) until the damage is repaired. |
+| 6 | +0 | **Mainsail scarred.** The ship's main solar sail is damaged, reducing the ship's energy reserves. Each of the ship's speeds is reduced by 5cm until the damage is repaired. |
+| 7 | +1 | **Superstructure damaged.** A small breach occurs. Excess strain on the ship's hull could threaten its structural integrity. Until the damage is repaired, roll a D6 each time the ship turns (other than a solar jibe). On a result of 1-2, the ship suffers one point of damage. |
+| 8 | +0 | **Mainsail shredded.** The ship's main solar cells are severely damaged, cutting its energy reserves in half. The ship may only move once per turn (instead of twice) until the damage is repaired. |
+| 9 | +1 | **Infinity Circuit Smashed.** The fine crystal matrix of the infinity circuit is shattered by the hit. The ship's Leadership is reduced by -3. This damage may not be repaired. |
+| 10 | +0 | **Field generators destroyed.** The ship's energy field generators are smashed to pieces. The ship no longer benefits from its holofields nor shields. This damage may not be repaired. |
+| 11 | +D3 | **Hull breach.** A huge gash is torn in the ship's hull, causing carnage amongst the crew. |
+| 12 | +D6 | **Bulkhead collapse.** Internal pillars buckle and twist, whole compartments crumple with a psychic scream of tortured wraithbone; just pray that some of the ship holds together. |
 
-*XR differs (Xenos p.17): 7 Superstructure damaged: roll a D6 each time the ship turns (other than a solar jibe), suffering 1 damage on a 1-2. 9 Infinity Circuit Smashed (+1): Leadership -3, cannot be repaired. 10 Field generators destroyed (+0): no holofields or wave shields, cannot be repaired. Results 2-6, 8, 11 and 12 match MMS in effect.*
+*MMS differs (MMS p.5): 4: a second prow hit destroys the port and starboard weaponry. 9 Holofield generators destroyed (+1): no holofields, cannot be repaired. 10 Shields collapse (+1): shield strength reduced to zero, cannot be repaired. This booklet uses the XR table; XR's result 10 reads "holofields nor wave shields", and since MMS Eldar ships have shields, it removes their shields.*
 
 ### Necrons
 

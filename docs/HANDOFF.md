@@ -1,74 +1,354 @@
 # Handoff brief for the next Claude session
 
+> Where CLAUDE.md's old sections went (owner: CLAUDE.md kept small): "Owner rulings" and the
+> rules-area notes -> docs/RULINGS.md; "Session status" -> docs/STATUS.md; "AI: how it
+> decides" -> docs/AI_DECIDES.md; "To do" -> docs/TODO.md (open items) and docs/TODO_DONE.md (full history). References below to those
+> CLAUDE.md sections mean those files.
+
+
 ## Status at a glance (latest; the dated sections below are history)
+
+Latest (details in CLAUDE.md "Session status", first block; 1902 tests, the sweep 5579
+cases): owner rulings (raid modifiers cancel; Come to New Heading never halves ordnance;
+Subjugation torpedoes are the Raider's; the AA round's default is Command, Movement,
+Shooting, Ordnance A, Ordnance B, End; shadowfield tracking marks can be turned off);
+Haemonculi boarding crits are Fires; Fire crits valued by their exact burn
+(`ai_hazards.fire_burn_dist`); one turning-distance rule (`movement.turn_distance`, Dark
+Eldar turn at once in every AI planner); torpedo loads by expected VP; and the special
+orders audit (owner: "were you lazy with the other orders too?"): one pass chance from the
+engine's own rule (`movement.command_check_ld`), All Ahead Full / Come to New Heading
+halving guns only, Lock On's exact re-roll gain, every order compared by pass-weighted
+expected VP, Reload's exact salvo hits. The owner's third Dark Eldar fleet
+(`owner_dark_eldar_succubi_990.json`). The Dark Eldar still lose to the Gothic fleet (by
+262-744 in IGOUGO, 189 in AA). Since (owner: "bad and lazy judgement calls"): crit
+effects measured on a copy of the ship (`hit_and_run.crit_effect_value`, exact repair chain
+`p_system_down`), re-roll values computed per test from exact volley distributions
+(`ai_hazards.weapon_hit_pmf` / `volley_hull_pmf` / `hits_vp`), mines followed to contact
+(`ai_hazards.mine_value`), Burn Retros' exact cost; a recursion found and cut
+(`plasma_ordnance_vp`). Since (owner: "do the fix first, then the planner"): the
+hull-hit scale (`ai_hazards.hits_vp`: thresholds and the finishing chance over the rest of
+the game; CLAUDE.md session status), then the planner's first slice (To do 34:
+`src/strategies.py`, strategy roots followed for two turns in the search, a deterministic
+node budget). Games: the hull-hit scale 742-126 and 438-111 (Gothic over Dark Eldar), the
+planner 262-105 (Gothic) and 165-342 (Dark Eldar), all replayed exactly; normal ~136s a
+game now. Owner questions answered this session: search depth vs the value horizon (the
+depth is turns of moves played out; a hit's value is a formula assuming enemy fire to the
+turn limit or 6 turns, the same at every level; CLAUDE.md "AI difficulty"); whether the
+new scale is better than the old flat value (better by the rules' reasoning, not proven in
+play: ~100 paired games, not 3; owner: pinned, not worth it now). Then the owner's four
+must-fixes (CLAUDE.md To do 33) were built, REVERTED (games 4x slower, a replay
+divergence; the change is `docs/patches/must_fixes_todo33.patch`; the findings and the
+one-at-a-time plan are in CLAUDE.md's session status) and all four re-added since, (d) in a cheaper form. As built: a commander re-roll in
+every order's and Brace's pass chance (`ai_rerolls.with_reroll`), Brace paying for the order
+it forbids next turn (`ai_player.next_order_vp`), boarding crits on the target's own table
+(`hit_and_run.boarding_crit_value`), raids on Dark Eldar ships valued for keel armament,
+superstructure strain and Leadership losses' orders. Cost: the test suite takes ~90s (it
+was ~60s): each brace worth trying now values the ship's next order, an AI order plan.
+Open: whether the value horizon should shrink with the difficulty (CLAUDE.md Open
+questions 2, unanswered); the remaining guessed values (To do 33); the planner's follow-ups (To do 34: easy
+AI, squadron headings, plans carried between turns, the move score's firepower units in
+VP). Must-fixes (a)-(d) all re-added (CLAUDE.md session status; (d): the AI's last order plan stored as `GameState.planned_orders`, recorded and replayed, read by Brace and Leadership crits); a squadron's brace costs its one order and every member's fire; the master AI's fresh plan replays (checked); next: team play (To do 22).
+
+Earlier: Since then (see CLAUDE.md "Session status", latest): asteroid fields / high orbit, the
+Impaler and slave-taking rulings, escort values by squadron, critical checks on every point
+of damage; raid modifiers cancel (owner ruling; D6 + 1 - 1 = D6). Next: Eldar.
+
+Necrons (latest): the owner's Dynasty fleet is built and plays (`owner_necrons_1000.json`,
+`owner_necrons_war_1000.json`): Harvest / Dynasty lists, Shroud refits, Lord's vessel
+upgrades, Crypteks, the nightmare field, bloodswarm, the negative energy veil and nebuloscope
+pylons (CLAUDE.md "Necron gaps built"). Next in the owner's order: Eldar (commanders and the
+Corsair / Craftworld fleet lists).
+
+Latest owner UI reports (fixed; details in CLAUDE.md "Session status"): the map editor's
+blank strip and off-screen Done button; spectator "auto-roll every pop-up" (on by default;
+the fleets also deploy themselves); deployment in any order with undo / take back / start
+over and a full-height panel; the on-screen log reports every hit, damage, crit, crippling,
+destruction, hulk and disengage (`GameState.report`). Since (owner): the AI deploys its own
+ships (To do 28), buff ships (synapse, tracking systems, Fleet Defence Turrets) deploy with a
+group each and move to cover friends (`src/buffs.py`); squadron rules in one place
+(`src/squadrons.py`) with organisers for the AI and players (fleet builder: squadron
+selected / leave / auto escort squadrons; deployment: capital squadrons before placing, any
+ship of a squadron next). Details in CLAUDE.md To do 28. Still to do (owner: noted): the AI squadrons
+capital ships by a coin-flip-style draw, not by expected VP (combined fire and one command
+check against lost flexibility); escort squadrons that break the rules are re-formed by the
+AI at game start, in the window possibly after the Ld roll, so the new squadron's ships keep
+their separate Ld instead of one shared roll (valid squadrons are never touched). Formations
+by armament (`src/formations.py`) since; owner answered: a Dark Eldar squadron keeps core
+p.58's four 2-hit escorts (his first fleet now has 4 Corsairs and 7 torpedo Raiders). Then To do 26 (Quick Demo: Cruiser Clash on
+random terrain, fleets saved or random, the mode; `src/demo.py`) and 27 (favourite fleets on
+quitting or at game over, `src/favourites.py`) built as minimal Tk versions. Then the owner's strategy notes:
+CAP against torpedoes (a CAP fighter removes a whole salvo, one squadron of a wave: the AI's
+salvo values count the CAP left, bays launch before torpedoes, waves are credited with the
+torpedoes they unlock, and the moving player chooses craft-first or torpedoes-first contact),
+Dark Eldar raid values with Incubi and Pain Frenzy for assault boats, AA Impalers' two moves,
+the second Mechanicus fleet (four nova Lunars, 990). The owner's second Dark Eldar
+list now costs 1000 (one Raider dropped, a Dracon added); the AA ordnance speed boost from the parent's move is an
+open idea. Details in CLAUDE.md ("AI: how it decides", Dark Eldar notes, To do 13).
 
 Finished (playable for humans and the AI, IGOUGO and alternate activation):
 - Every core rules section the engine plays, all optional rules (boarding, ramming, teleports,
   hit-and-run, s.40 celestial effects, Remastered blast markers / suppression / escort VP).
 - Factions: Imperial Navy, Chaos, Mechanicus, Space Marines (+ Venerable Strike Cruisers),
   Inquisition / Grey Knights, Orks, Tau (+ Demiurg, Kroot partly), Rogue Traders, Eldar (MMS
-  v2.0, 18 of 24 ships), Necrons (the six mobile ships). Fleet lists for the first eight.
-- Fleet commanders, secondary commanders, named commanders, refits / gifts / marks / kustoms,
-  bought torpedo types, mines and torpedo bombers.
-- 31 booklet scenarios: the nine matched-play ones, the introductory, raid and battle
-  scenarios, low orbit with Exterminatus! and Planetary Assault, the campaign set pieces
-  (Pelucidar, Macharia's End, Craftworld Assault) and variants (The Gauntlet, Parol's Bait,
-  Daemon Blockade); sub-plots incl. the faction ones (Decoy aside).
-- Alternate activation (all three order systems), the expected-VP AI (normal, easy, expert
-  search), "Auto (best)" on every player prompt.
-- Game modes: player vs player (hot seat), player vs AI, AI vs AI (spectator).
+  v2.0, all 24 ships), Necrons (the six mobile ships). Fleet lists for the first eight.
+- Fleet / secondary / named commanders, refits, gifts, marks, kustoms, bought torpedo types,
+  mines, torpedo bombers.
+- 31 booklet scenarios and the sub-plots (Decoy aside).
+- Alternate activation (all three order systems), the expected-VP AI (easy, normal, expert),
+  an "Auto" button on every player prompt (owner: labelled only "Auto", never "best").
+- To do 15 (code review rules bugs): done.
+- To do 16 (performance, headless runner): done. 4 v 4 movement phase 0.85s -> 0.28s;
+  `tools/headless_runner.py` (`--no-display` needs no Tk or xvfb; `--replay-check`;
+  ~650 games an hour on 4 cores; seeded games repeat exactly with `PYTHONHASHSEED=0`).
+- To do 17 (recording / replay), mostly done: seeded recorded dice (`dice.DiceSource`, typed
+  dice recorded too), seeded AI / cosmetic randomness (`rng.game_random`), decision events
+  (`recorder`, with call depth and player-vs-flow marking), complete snapshots, saved with the
+  game; AI-vs-AI games replay exactly from the roll record in both turn systems; movement
+  phases replay from the recorded actions (`replay.ReplaySeat`).
+- To do 18 (structure), in progress: questions through `ctx.prompt` (`prompts.py`), the turn
+  flow out of the window (`game_flow.GameFlow`; `headless_game.HeadlessGame` runs it with no
+  window), the action layer for movement (`actions.py`), `tools/refactor_check.sh` (16 seeded
+  games; a pure refactor must not change their final-state hashes).
+- Owner ruling s.11 / s.13 built (latest): a ship's macrobatteries of one gunnery type at one
+  target make one combined roll; blast markers count at once for later attacks; mixing
+  gunnery types may fire together (Fire dialog checkbox, AI by value).
+- Merged into main (PR #2).
 
-Left, in the agreed order (CLAUDE.md "To do" has the order and every item's detail; item
-numbers are IDs, not the order):
-1. To do 15: the rules bugs the code review found (raid crits skip Bridge Smashed's -3 Ld and
-   other effects, the raid preview's crit table, the stale Eldar sunward edge, rolls bypassing
-   the dice roller, and reported ones to check), plus the AI value gaps (random values by
-   their exact mean and over the dice outcomes, crits on 4+ in target values, Brace's hit
-   estimate) and misleading docstrings (zzapp gunz).
-2. To do 16: performance (ship copies are over half an AI movement phase) and a headless
-   multiprocess game runner.
-3. To do 17: recording and replay (seed, every roll, structured events, full snapshots,
-   viewer).
-4. To do 18: code structure (rule dispatch, scenario registry, `ai_player.py` split, one
-   weapon-value helper, central AI weights, rules out of the UI), with To do 30 (exact
-   cached hit distributions replacing the Poisson / 0.35 estimates).
-5. To do 25: fleet building completeness (every upgrade, fleet option and leader; the
-   owner's 1000pt fleets as test cases; gaps listed in To do 25).
-6. To do 26 and 27: demo rework (random-terrain Cruiser Clash, pick both fleets and the
-   mode) and favourite fleets saved on quitting.
-7. To do 24 and 31: the AI list builder with personalities, and the log of its random choices.
-8. To do 28 and 29: AI deployment (squadrons, formations, buff ships last) and commander
-   placement after the Ld roll.
-9. To do 22: team play (two teams of players; a team is one side, its members' ships act in
-   its phases together; owner design, questions in CLAUDE.md To do 22).
-10. To do 19: Dark Eldar, then Tyranids.
-11. To do 14: Eldar and Necron gaps.
-12. To do 4 and 5: daemonships, Ordos, Inquisitors, Veteran Bond-Captains, special movement,
-    fortress weapons.
-13. To do 13: alternate activation's experiments, expert AI per unit.
-14. To do 11, 10 e, 8: the rest of the rules-based AI.
-15. To do 7 and 9: small gaps, the Decoy sub-plot (needs the owner).
-16. To do 21: the replay system as the comparison standard, finished before the port
-    (every event kind covered, a versioned language-neutral record format, a Python replay
-    verifier, a golden set of recorded games for every faction and scenario).
-17. Third last, To do 20: port the engine to a faster language (Rust suggested) in its own
-    branch, Python staying the reference; its first milestone is replaying the golden games,
-    then every one must match exactly.
-18. Second last, To do 23: online play, peer-to-peer lockstep (owner): each client runs the
-    ported engine from the same seed and they exchange only decisions, with a state hash
-    each phase; the Pyodide `web/` client and LAN `network.py` aren't online play.
-19. Last, To do 12 then 1: the ML-trained AI (learned evaluation, weight tuning) on the faster
-    engine; on hold until the owner says so; separate from the current AI.
-(Steps 5-8 placed by Claude, owner to confirm.)
+Needs more work (next first):
+00. Owner's latest task: make the other factions playable. STATUS: Dark Eldar done and
+   playable (details below); Tyranids playable too (slices 1-3, `src/tyranids.py`, the
+   owner's three Tyranid fleets as files; gaps and readings in CLAUDE.md To do 19's Tyranid
+   plan); next the owner fleets' gaps (Tau Protector, Orks, Necrons, Eldar). Open problems: the
+   AI's Dark Eldar play (backs off until it leaves the table), torpedo salvo combining, the
+   contact bonus priced by its gain, AI squadron forming (To do 28). Dark Eldar (0 / 7 ships
+   playable) first, then Tyranids (0 / 9), then the catalog gaps blocking the owner's other
+   fleets (Tau Protector, Orks, Necrons, Eldar; `docs/OWNER_FLEETS.md`). The Dark Eldar
+   plan, in three slices with the hooks to use, is in CLAUDE.md To do 19. Slice 1 (catalog
+   and fleet building) is built: `dark_eldar` / `shadowfield` rules and weapon flags
+   (`de_battery`, `de_phantom`), Kabal Variants (`booklet_options.dark_eldar_options`, a
+   `required_group:` restriction: exactly one), Dread Archon / re-rolls / Dracons / crew
+   upgrades, the craft (Raptor, Razorwing, Slavebringer, Voidraven), plasma torpedoes
+   re-rolling misses and leech torpedoes (Thrusters Damaged crits), the Raiders list
+   (`dark_eldar_raiders`, `escorts_per_capital` 3, Mortalis one per three cruisers,
+   Archon always required) (`tests/test_dark_eldar_catalog.py`). Slice 2 (combat and
+   movement) is built too, `src/dark_eldar.py` + `tests/test_dark_eldar_rules.py`:
+   shadowfields' right shift (`combat.get_column_shifts`), tracking marks
+   (`Ship.tracking_marks`, one per attacking ship / squadron, placed by `apply_damage(...,
+   gunnery=True)`, which every gunnery path now passes: `actions.apply_hits`, the Fire
+   dialog, squadron fire; cleared in `end_phase.remove_brace_orders`), the 2+ (+1 a mark,
+   max 6+) save against lances (`combat._shadowfield`), torpedoes of every kind (before
+   boarding raids), bombers, mines and assault boat raids; ram tests +2D6
+   (`ram_ld_dice(..., target)`), nova cannon +1D6 scatter even on a Hit (reading: aimed at
+   the ship whose base the aim point is on, else the nearest under the template); their
+   gunnery left shift (`de_battery`), phantom lances 1 hit on a 4 / 2 on 5+ (`de_phantom`);
+   flickerfields (`ordnance.turret_hit_on` +2, not mines, max 6+); no minimum speed or
+   turning distance, Come to New Heading passed automatically; Spectral Plating (no blast
+   marker / cloud damage); the crit table (`tables.DARK_ELDAR_CRITICAL_HITS`: Control
+   Circuit -1 Ld given back on repair, `end_phase._on_repaired`; Graviton Harness no turns;
+   Bladevanes -5cm; Commanders Slain -1 Ld; Shadowfield Generators Destroyed removes the
+   rule). Not yet: Superstructure Damaged's D6 per turn (1-2: a hit; Eldar have the same
+   gap), the AI's values ignoring shadowfield saves. Slice 3 built
+   (`tests/test_dark_eldar_special.py`): Impalers (craft "impaler", an assault boat 30cm 4+
+   resilient from an impaler bay; `dark_eldar.resolve_impaler`: D6, 1 nothing, damage if >=
+   Armour, then a crit vs capital ships / two raids vs escorts (judgement for the attacker's
+   choice), Haemonculi make it a Fire, Brace 4+ per effect; removed at the start of the
+   owner's turn, `TurnController.begin_phase`; not yet a launch capacity separate from bays),
+   Pain Frenzy (+1 boarding crew, +1 raids; not yet the re-roll vs crippled ships), Incubi
+   (enemy raids -1; not yet the 2D6 choose), Wych Cult (doubles troops), slave-taking
+   (`take_slaves` in `resolve_raids`: +5 VP instead of a raid, Impalers D6x5, boarding +5 a
+   hit / +100 Bridge Smashed; `GameState.slave_vp`, added as scenario VP; a human is asked
+   via `GameState.slave_hook` (not wired to a dialog yet: humans get the expected-value
+   choice), the AI takes slaves when they beat the raid's expected VP), Insatiable Greed
+   (`victory_points._insatiable_greed`; the AI's `disengage_gain` knows it,
+   `dark_eldar.greed_binds`). Dark Eldar are PLAYABLE now (off `UNBUILT_FACTION_RULES`; the
+   Tormentor Spire still unsupported; the Transport has no cost). The owner's fleet:
+   `data/fleets/owner_dark_eldar_1000.json` (990, valid). Not yet: the Mimic Engine, the
+   Tormentor Spire, Only the Strong May Lead. Slave-taking asks a human (`GameFlow.
+   _slave_hook`, "Take slaves / Attack" with Auto). AI problems found in headless games
+   against the Gothic fleet (the Dark Eldar lose ~20-990): two general AI bugs, fixed: (1)
+   Come to New Heading moves for ships with no turning distance (every escort, Dark Eldar)
+   put both turns back to back, which the engine merges into one illegal turn, and the AI
+   then fell back to a straight move that could leave the table (`_ctnh_moves` now needs
+   movement between the turns, `_plan_move_toward` keeps only legal ones; the Navy's Cobras
+   hit this too); (2) the move picker started its best score at -1, so when every move
+   scored below -1 it took the straight-ahead fallback, often off the table (now -inf). Also
+   no edge-trap penalty for Dark Eldar (no minimum move). Still open (AI play, not rules):
+   the AI backs its fast, fragile Dark Eldar away from the Imperial guns every turn until
+   they are pinned on an edge and leaving scores best, so they rarely fight; a one-turn
+   horizon can't plan "strike and fall back" (it needs the expert / multi-turn planning,
+   To do 14 in the port), and its hit values don't count the shadowfield saves yet.
+   Owner's Dark Eldar checklist (checked, `tests/test_dark_eldar_checks.py`): Ld on the
+   Eldar column (7-10), yes; Dark Eldar gunnery left shift and phantom lances (1 on a 4, 2
+   on 5+), yes; Spectral Plating, yes (no blast marker or cloud damage roll); shadowfields,
+   yes. Fixed from the list: Voidraven salvos lost the Dark Eldar rule (no plasma re-roll,
+   no flickerfields; `fire_torpedo_bombers` keeps it); Impalers shared the fleet's launch
+   bay pool (now their own, `ordnance.fleet_craft_slots(..., impaler=)` / `impaler_bays`);
+   the AI valued an Impaler as one plain raid (`waves.impaler_value`: 5/6 x a crit or two
+   raids + the damage chance); the AI's turret maths ignored Eldar stealth / flickerfields
+   for craft and torpedoes (`ai_hazards.craft_turret_p`, `torpedo_salvo_hits(rules=)`).
+   General AI fixes from the list (every faction): squadrons now take ONE command check
+   (s.8; before, each escort tested its own order, so a squadron could be split and a fail
+   by any member ended the fleet's orders): `AIPlayer._issue_squadron_order` through
+   `TurnController.issue_squadron_order`, a failed check re-rolled for the squadron
+   (`reroll_squadron_order`, recorded and replayed), ships out of formation get no order;
+   a squadron is under fire if any member touches a blast marker (was the leader only);
+   the AI keeps squadrons in coherency (`_coherency_term`: an end more than 15cm from every
+   other member costs `COHERENCY_WEIGHT` 3.0 and more the further, judgement; "squadron"
+   and "squadron contact" move goals so stragglers can rejoin) and members with ordnance
+   gain `CONTACT_WEIGHT` 0.5 for base contact; after launching, members in contiguous base
+   contact combine their strike craft into one wave at the target most of them chose,
+   placed at the member furthest from it (`_combine_squadron_waves`, `actions.place_craft`;
+   s.15). Reload Ordnance: valued per ship (`_reload_value`), now taken once for a squadron,
+   with a commander re-roll by importance (`should_reroll`). Not yet: combining torpedo
+   salvos, the Impaler under the hit-and-run toggle (it is an assault boat, so off with
+   raids; owner question).
+   Owner request, built: a fleet relying on an optional rule that is off is flagged when
+   the game starts (`src/fleet_rule_check.py`, `main._show_setup_dialog._rules_ok`): bays
+   carrying only assault boats / Impalers or bought assault boats, Incubi (hit and run);
+   portals, a Soopa Tellyporta, honour guards (teleport + hit and run); Mega Armoured
+   Boarding Parties, a Wych Cult, a Plague Ark (boarding). Innate faction bonuses (Space
+   Marine teleport assault, crew raid bonuses) aren't flagged. "Yes" turns those rules on
+   and starts, "No" starts anyway, "Cancel" goes back (`tests/test_fleet_rule_check.py`,
+   `tools/gui_checks/fleet_rules_warning_check.py`). Not yet: the same check when a fleet
+   is loaded in the fleet builder (it doesn't know the game's rules yet).
+   Flickerfields on every Dark Eldar torpedo and attack craft, Impalers included, not on
+   mines (owner): the engine already gave Impalers the +2 (the marker carries the
+   launcher's `dark_eldar` rule; `ordnance.turret_hit_on`), now tested; fixed the AI's
+   side of it: its threat model for incoming ordnance counted its turrets at 4+ against
+   every torpedo and craft (`ai_hazards._turret_kills(ship, marker)` now uses
+   `turret_hit_on`, so Eldar stealth and flickerfields count), and an incoming Impaler is
+   valued as one (`marker_hits`: survives the turrets, then 5/6 for its crit plus the hull
+   hit chance; other assault boats now survive turrets by their real hit roll).
+   Owner (all Dark Eldar ordnance but mines has flickerfields: fighters, bombers, torpedo
+   bombers, assault boats, Impalers; Raptors and Impalers are resilient 4+; Impalers out of
+   fuel at the start of the owner's turn): every craft type checked by test (turrets need
+   6+, saves Raptor / Impaler 4+). Fixed: the fuel removal never ran in alternate
+   activation (`dark_eldar.remove_spent_impalers`, now called by `TurnController.
+   begin_phase` and `AATurn._start_round` for both players); the AI only plans an Impaler
+   strike that lands before the fuel runs out (this ordnance phase or the enemy's next;
+   in flight, in the enemy's phase only that one: `_strike_option`,
+   `ai_hazards.plan_strike_targets`).
+   Owner: plasma torpedoes re-roll misses (checked for ship-launched salvos and Voidraven
+   salvos; leech and boarding don't); the AI now counts the re-roll (and Eldar's) in every
+   torpedo value (`ai_hazards.torpedo_p_hit` in `torpedo_salvo_hits`, `marker_hits`,
+   `_salvo_attack_hits` for torpedo bomber salvos, which also use the flickerfield turret
+   chance now). Owner ruling: Impalers count as a special type of assault boat (so they stay
+   off with the hit-and-run toggle; the question is closed).
+   Owner: the base contact bonus is only for squadron mates armed with the same ordnance,
+   and grows with the number in contact: `ai_player.ordnance_kinds` ("torpedo", "impaler",
+   "craft"), `_coherency_term` counts the same-kind mates in the contact chain from the end
+   point, CONTACT_WEIGHT 0.5 each (judgement); the "squadron contact" goal aims beside the
+   nearest same-ordnance mate; `_combine_squadron_waves` merges Impalers only with Impalers
+   and other craft only with other craft. Squadrons by ordnance (the AI forming them) is in
+   To do 28. Not yet: torpedo salvos combined, the bonus priced by what combining gains.
+   Pain Frenzy completed (owner check): against a crippled enemy vessel (a Wych Cult: any
+   enemy capital ship) Dark Eldar may re-roll a hit-and-run raid (`hit_and_run.
+   resolve_raids`, their ordnance too), a boarding critical hit (`boarding._frenzy_crit_roll`,
+   `inflicted_by`) or an Impaler critical hit (`combat.roll_critical_hit(reroll_fn=)`); a
+   human is asked through the raid re-roll prompt (now titled "Raid re-roll (Wings of Fury /
+   Pain Frenzy)"), the AI and Auto by `best_raid_reroll` for D6 results and, for the
+   Impaler's 2D6 crit, when its extra damage is below a fresh roll's average
+   (`dark_eldar.frenzy_crit_reroll`, judgement) (`tests/test_dark_eldar_special.py`).
+   Incubi built (`hit_and_run.resolve_raids`: 2D6 per raid, the better by
+   `raid_result_value`, both against a crippled ship) and Superstructure Damaged
+   (`dark_eldar.superstructure_strain`, called by `actions.apply_move`: a D6 per turn
+   command, 1-2 one damage). Dark Eldar still open: Mimic Engine, Tormentor Spire, Only the
+   Strong May Lead, squadron sizes 2-6.
+   Owner report: the fleet builder's armament / stats were hard to see; now a ship card
+   (`fleet_builder.ship_card` / `weapon_line`, a read-only text box under the catalog) shows
+   the selected catalog ship, or the selected fleet ship with its options applied: points,
+   hits, speed, turns, shields, Armour, turrets, Ld, every weapon (range, FP / S, arcs,
+   craft types, special flags), rules and options. Not yet: a GUI check that clicks rows.
+   Owner: the tester plays with every advanced rule on: `tools/headless_runner.py --rules`
+   now defaults to "all" (the set-up's eight: sunward, flares, bursts, boarding, ramming,
+   teleport, hit and run, sub-plots; `ADVANCED_RULES`), "none" or a list; it now rolls the
+   sub-plots before the first turn as the window does (`_roll_subplots`). The refactor check
+   passes `--rules none` (its saved results were recorded with the rules off).
+   Owner UI report (same session), done: deployment headings default to facing the enemy's
+   zone ("auto"; `deployment.facing_enemy` / `placement_heading`; Auto-Place used 0 degrees,
+   along the table, and took a scenario's 0-degree facing for none), rotate buttons, right-
+   click a placed ship to turn it 45 degrees (`DeploymentState.rotate_placed`), "Undo Last
+   Group" to re-place (`undo_group`); the setup wizard's AI choice is one radio (no AI / AI
+   opponent / spectator; both could be ticked before), with Player 1's own difficulty in
+   spectator mode (`GameState.ai_difficulty_p1`, `difficulty_for`; headless runner
+   `--difficulty1`), and an "All advanced rules on / off" switch (sunward, flares, bursts,
+   boarding, ramming, teleport, hit and run, sub-plots) (`tests/test_deployment_headings.py`).
+0. To do 32 (owner report, playability), DONE: the owner couldn't play from `run.py`. Checked,
+   all software problems (as found): the setup wizard (540x680, needs ~1820px, no scrollbar) hides its Start
+   buttons; the fleet builder (1000 wide, needs ~1320) never draws Load / Save / Validate,
+   so fleet-list restrictions seem not to work and fleets can't be saved; ship options and
+   commanders (nova cannon refit, 45cm guns, admirals, re-rolls) exist only in the ship Edit
+   dialog (double-click), which nothing points to and which is cut off too (680 tall, needs
+   ~1080); with "No fleet list" it shows every list's options (kept: s.4). Windows fixed: scrolling setup and Edit dialogs with their buttons
+   always shown, the builder's buttons first on its top row, "Add with options...", options
+   under headings, the fleet list's rules checked live (`src/tk_scroll.py`,
+   `tools/gui_checks/layout_check.py`). Also fixed: builder-saved fleets crashed the game
+   (no ship ids), Auto-Place broke a 4-escort squadron's coherency, the Mechanicus refits
+   weren't offered. Six of the owner's thirteen fleets are files (`data/fleets/owner_*`,
+   `tools/build_owner_fleets.py`, lists in `docs/OWNER_FLEETS.md`); the other seven wait on
+   catalog gaps (Dark Eldar / Tyranids, Tau Protector, Orks, Necrons, Eldar). Space Marines:
+   all five strike cruisers take the Secondary Shield (owner: no limit); fixed, a variant's
+   lost Tactical Flexibility now goes on the ship's own value (VP), not only the fleet
+   total; every owner fleet's ship values add up to its total. Still open from the report:
+   the AI doesn't deploy its own ships (press Auto-Place; To do 28). Details in CLAUDE.md
+   To do 32.
+1. To do 17 / 18: shooting actions done (the AI's attacks, `actions.fire_weapons` and
+   friends; the Fire dialog's volley as `actions.fire_volley` on `src/fire_volley.py`;
+   shooting phases replay; the Combine Squadron Fire, Fire at Squadron and Fire at Ordnance
+   dialogs are actions too); the ordnance phase as actions, AI and human dialogs, and replayed;
+   the end phase's decisions (teleport, raid brace, repair) as recorded `end_choice` events
+   through one path for the AI, humans and a replay (`GameFlow._end_choice`,
+   `replay.EndChoices`), so every phase replays (Space Marines v Orks with boarding /
+   teleports / rams, `tests/test_headless_game.py`). Next: alternate activation's per-unit
+   phases; then human games replay in full (seats as recorded); then the replay viewer. Found, not changed (changes AI play): AI ships meet ordnance they moved
+   into only after the whole AI movement phase, a human's after each move (s.15).
+1b. Built since: To do 24 / 31 (the AI list builder, `src/list_builder.py`,
+   `tools/random_fleet.py`; 168 random fleets across every list keep their rules), the
+   window-free fleet model (`src/fleet_model.py`), hard = a one-turn lookahead and expert
+   three (owner), the shortcut audit's fixes (CLAUDE.md To do 30).
+2. The rest of To do 18's plan items (tag constants and coverage test, crit-effect tables,
+   one `order_allowed`, `ScenarioDef` registry, `ai_player.py` split, `mount_expected_hits` with
+   To do 30's exact cached distributions (first slice built: `ai_hazards.battery_hits` on the
+   real Gunnery table replaces the 0.35 rule of thumb, `BATTERY_HITS_PER_FP` 0.176 where the
+   target isn't known, `past_shields` for exposure and the expert's sim; see CLAUDE.md To do
+   30; next: exact counts in place of `poisson_at_least`, the wave chain by DP) (owner: exact wherever possible, DP for chains such
+   as waves through CAP and turrets), `ai/weights.py`, rules out of the UI, long functions).
+3. Then the agreed order in CLAUDE.md "To do": 25 (fleet building completeness, the owner's
+   1000pt fleets as tests), 26-27 (demo rework, favourite fleets), 24 + 31 (AI list builder,
+   random-choice log), 28-29 (AI deployment, commander placement), 22 (team play), 19 (Dark
+   Eldar, Tyranids), 14 (Eldar / Necron gaps), 4-5, 13, 11 / 10 e / 8, 7 / 9, 21 (replay as the
+   comparison standard), third last 20 (port, Rust), second last 23 (online play), last 12
+   then 1 (ML AI, on hold until the owner says, kept separate from the current AI).
 
-Owner questions open: CLAUDE.md "Open questions for the owner". Code review, profile and
-plans: `docs/CODE_REVIEW_PLAN.md` (sections 1-7; nothing refactored yet).
+Owner decisions this session worth knowing:
+- Online play (To do 23): peer-to-peer lockstep; online dice default "cheat-proof"
+  (commit-reveal per roll from hash chains), "shared seed" an option; typed dice off by
+  default online; a disconnect pauses (no automatic forfeit), resumable; play by mail with
+  shared seed (default) or a signing dice service.
+- Exact solutions over sampling wherever an exact answer costs about the same (To do 30).
+- Team play design (To do 22); Meteor Storm wrecks roll catastrophic damage after deployment.
 
-Game modes today: hot seat, player vs AI (AI always Player 2), AI vs AI spectator (one
-difficulty for both). Recording today: phase snapshots, a thin actions log and the text log;
-no saved dice, no seed, no replay.
+Owner decisions (latest): steps 5-8 are 25, 24/31, 28/29, then 26/27 (minimal Tk only);
+the long-term window is the browser (Rust to WebAssembly), Tk for development only; Python
+retired once the Rust port replays every golden game; Rust determinism designed in (libm or
+fixed point, no HashMap order, single-threaded state, recorded seeded RNG); deeper AI (11,
+10 e, 8) and the AI file split move into the port, exact hit odds (30) stay now; a small AA
+system comparison now, big runs after the port; team play rulings in To do 22; the Decoy
+with per-player visibility in the engine (CLAUDE.md "To do").
+Owner questions: the last round is answered and built (CLAUDE.md "Owner rulings: answers to
+the open questions, round 2": halving, low orbit facing, the forges' fields, sign-off 2 / 10 /
+16 / 54 / 55 / 63-66), and so is the torpedo bomber salvo placed on a ship (CLAUDE.md "Owner
+ruling: torpedo bomber salvos placed on a ship": it attacks at once, turrets first, then
+carries on reduced; friends too; no launch arc; the AI parks its waves on their target and
+aims the carry-on, `ai_hazards.torpedo_bomber_heading`; a wave whose target is gone re-targets
+by value, `torpedo_bomber_flight_target`; AI waves fire in either player's ordnance phase; Tau
+missiles, Tiger Shark salvos included, move 20-40cm in both phases; turning salvos re-target
+through `approach_plan`, within their real turns). No questions open. Code review and plans: `docs/CODE_REVIEW_PLAN.md`.
 
-Not supported yet: teams of players (To do 22, owner design: two teams, each one side).
+Checking a change: `pytest -q` (1600 pass; `BFG_SWEEP=1` for the full ordnance sweep); `flake8 --select=E9,F src/`; GUI checks under
+`xvfb-run -a /usr/bin/python3.12 tools/gui_checks/<x>.py` (spectators take a difficulty);
+`tools/refactor_check.sh > after.txt` and diff with the last baseline for refactors (the
+baseline changes whenever a rules fix changes play; regenerate it then).
 
 Read this first, then `CLAUDE.md` (the living source: every owner ruling, conventions, module
 notes) and `bfgxr/CLAUDE.md` (rules authority). This file is a snapshot at the end of a long
@@ -113,8 +393,8 @@ session.
 `CLAUDE.md` is the single current source; this file no longer keeps copies of it (they
 drifted). Read there: "Session status", "AI: how it decides (expected VP)" (everything the AI
 does, with the judgement weights to tune; its first part, "Fleet strategy", lists the owner's
-matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-14), "Open questions"
-(none open now) and every owner ruling. `docs/AI_DESIGN.md` describes the whole AI,
+matchup doctrine and what of it is built or planned), "To do" (agreed order, items 1-34), "Open questions"
+(two open) and every owner ruling. `docs/AI_DESIGN.md` describes the whole AI,
 built and planned, in plain language (keep it in step with CLAUDE.md). This file keeps the history: owner guidance in their words,
 design notes, booklet export notes and the session log.
 
@@ -918,7 +1198,8 @@ Eldar gaps still open (CLAUDE.md To do 14): fleet lists (Corsair, Craftworld), K
 Heroes, Void Dragon, Ghostships, Dying Race, bombers' re-roll and fighters' save per wave,
 holofields against non-lance direct attacks, Superstructure Damaged, a second prow crit, the
 AI's lance values ignoring the holofield save, Come to New Heading's extra turn in the AI's
-MMS moves, the move dialog's MMS help, the five either/or ships and the one without a cost.
+MMS moves, the move dialog's MMS help (the either/or ships are built since: weapon
+choices as required options, Ghostship and Shadowhunter rules).
 Necrons then built and made playable (all pushed, 1226 tests): `src/necrons.py`, the catalog
 (reactive hulls, lightning arcs, particle whips, star pulse generators, portals), reactive
 hull saves and braced / hulk Armour 4+, lightning arcs vs closing, particle whip bypass, the

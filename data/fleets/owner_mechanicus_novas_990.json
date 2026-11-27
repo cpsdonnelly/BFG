@@ -1,0 +1,358 @@
+{
+  "fleet_name": "Mechanicus Nova Lunars 990",
+  "faction": "adeptus_mechanicus",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 990,
+  "fleet_list": "admech_explorator",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Mechanicus Lunar Cruiser",
+      "ship_class": "Mechanicus Lunar Cruiser",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 9,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Port Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Dorsal Lance",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Nova Cannon",
+          "weapon_type": "nova_cannon",
+          "range_cm": 150,
+          "strength": 0,
+          "arcs": [
+            "front"
+          ],
+          "min_range_cm": 30
+        }
+      ],
+      "special_rules": [
+        "fleet_commander"
+      ],
+      "upgrades": [
+        "Refit: prow nova cannon for the torpedoes",
+        "Archmagos Explorator (Ld 9)"
+      ],
+      "points_value": 285,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Lunar Cruiser",
+      "ship_class": "Mechanicus Lunar Cruiser",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Port Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Dorsal Lance",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Nova Cannon",
+          "weapon_type": "nova_cannon",
+          "range_cm": 150,
+          "strength": 0,
+          "arcs": [
+            "front"
+          ],
+          "min_range_cm": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [
+        "Refit: prow nova cannon for the torpedoes"
+      ],
+      "points_value": 235,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Lunar Cruiser",
+      "ship_class": "Mechanicus Lunar Cruiser",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Port Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Dorsal Lance",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Nova Cannon",
+          "weapon_type": "nova_cannon",
+          "range_cm": 150,
+          "strength": 0,
+          "arcs": [
+            "front"
+          ],
+          "min_range_cm": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [
+        "Refit: prow nova cannon for the torpedoes"
+      ],
+      "points_value": 235,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "admech_explorator"
+    },
+    {
+      "name": "Mechanicus Lunar Cruiser",
+      "ship_class": "Mechanicus Lunar Cruiser",
+      "faction": "adeptus_mechanicus",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 2,
+      "armor_prow": "6+",
+      "armor_side": "5+",
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 8,
+      "leadership": 0,
+      "leadership_table": "Mechanicus",
+      "weapons": [
+        {
+          "name": "Port Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Lances",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 2,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Port Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "left"
+          ]
+        },
+        {
+          "name": "Starboard Macrobatteries",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 6,
+          "arcs": [
+            "right"
+          ]
+        },
+        {
+          "name": "Dorsal Lance",
+          "weapon_type": "lance",
+          "range_cm": 60,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ]
+        },
+        {
+          "name": "Prow Nova Cannon",
+          "weapon_type": "nova_cannon",
+          "range_cm": 150,
+          "strength": 0,
+          "arcs": [
+            "front"
+          ],
+          "min_range_cm": 30
+        }
+      ],
+      "special_rules": [],
+      "upgrades": [
+        "Refit: prow nova cannon for the torpedoes"
+      ],
+      "points_value": 235,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "admech_explorator"
+    }
+  ]
+}

@@ -1,15 +1,14 @@
 {
-  "fleet_name": "Tau Kor'or'vesh Patrol Fleet",
+  "fleet_name": "Tau Protector 980",
   "faction": "tau_kororvesh",
-  "description": "Tau Kor'or'vesh patrol fleet for the Gothic sector \u2014 685 points (BFG:XR booklet stats)",
-  "total_points": 685,
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 980,
+  "fleet_list": "tau_empire",
+  "detachments": [],
   "ships": [
     {
-      "spawn_x": 60,
-      "spawn_y": 105,
-      "spawn_heading": 270,
-      "id": "tau_custodian",
-      "name": "O'Shi'ur",
+      "name": "Custodian Battleship",
       "ship_class": "Custodian Battleship",
       "faction": "tau_kororvesh",
       "ship_type": "battleship",
@@ -19,10 +18,11 @@
       "shields_max": 3,
       "armor_prow": "6+",
       "armor_side": "5+",
+      "armor_rear": "",
       "turrets": 4,
       "hits_max": 10,
-      "leadership": 0,
-      "leadership_table": "Default",
+      "leadership": 9,
+      "leadership_table": "",
       "weapons": [
         {
           "name": "Port Railguns",
@@ -110,20 +110,25 @@
         }
       ],
       "special_rules": [
-        "ponderous"
+        "ponderous",
+        "deflector",
+        "hooks:warden:3",
+        "tracking_systems_20",
+        "fleet_commander"
       ],
-      "upgrades": [],
-      "points_value": 330,
+      "upgrades": [
+        "Kor'O (Ld 9)",
+        "Commander: 2 extra re-rolls"
+      ],
+      "points_value": 450,
       "is_flagship": true,
-      "admiral_type": "Kor'O",
-      "rerolls_remaining": 2
+      "admiral_type": "",
+      "rerolls_remaining": 3,
+      "squadron_id": "",
+      "fleet_list": "tau_empire"
     },
     {
-      "spawn_x": 45,
-      "spawn_y": 105,
-      "spawn_heading": 270,
-      "id": "tau_emissary1",
-      "name": "Anukla'esavon",
+      "name": "Emissary Light Cruiser",
       "ship_class": "Emissary Light Cruiser",
       "faction": "tau_kororvesh",
       "ship_type": "cruiser",
@@ -131,8 +136,9 @@
       "speed": 20,
       "turn_angle": 90,
       "shields_max": 1,
-      "armor_prow": "5+",
+      "armor_prow": "6+",
       "armor_side": "5+",
+      "armor_rear": "",
       "turrets": 2,
       "hits_max": 4,
       "leadership": 0,
@@ -159,33 +165,53 @@
           ]
         },
         {
-          "name": "Launch Bays",
-          "weapon_type": "launch_bay",
+          "name": "Port Ion Cannon",
+          "weapon_type": "lance",
           "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front"
+          ]
+        },
+        {
+          "name": "Starboard Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Prow Mine Launchers",
+          "weapon_type": "mine_launcher",
           "strength": 2,
-          "arcs": [],
-          "craft_types": [
-            "barracuda"
+          "range_cm": 0,
+          "arcs": [
+            "front"
           ],
-          "craft_speeds": {
-            "barracuda": 25
-          },
-          "craft_speed": 25
+          "mine_speed": 10
         }
       ],
-      "special_rules": [],
-      "upgrades": [],
-      "points_value": 110,
+      "special_rules": [
+        "deflector"
+      ],
+      "upgrades": [
+        "Configuration: ion cannons for the gravitic hooks",
+        "Mine launchers (replace all launch bays)",
+        "Deflector"
+      ],
+      "points_value": 130,
       "is_flagship": false,
       "admiral_type": "",
-      "rerolls_remaining": 0
+      "rerolls_remaining": 0,
+      "squadron_id": "emissaries",
+      "fleet_list": "tau_empire"
     },
     {
-      "spawn_x": 75,
-      "spawn_y": 105,
-      "spawn_heading": 270,
-      "id": "tau_emissary2",
-      "name": "Bork'sha",
+      "name": "Emissary Light Cruiser",
       "ship_class": "Emissary Light Cruiser",
       "faction": "tau_kororvesh",
       "ship_type": "cruiser",
@@ -193,8 +219,9 @@
       "speed": 20,
       "turn_angle": 90,
       "shields_max": 1,
-      "armor_prow": "5+",
+      "armor_prow": "6+",
       "armor_side": "5+",
+      "armor_rear": "",
       "turrets": 2,
       "hits_max": 4,
       "leadership": 0,
@@ -221,33 +248,53 @@
           ]
         },
         {
-          "name": "Launch Bays",
-          "weapon_type": "launch_bay",
+          "name": "Port Ion Cannon",
+          "weapon_type": "lance",
           "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front"
+          ]
+        },
+        {
+          "name": "Starboard Ion Cannon",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Prow Mine Launchers",
+          "weapon_type": "mine_launcher",
           "strength": 2,
-          "arcs": [],
-          "craft_types": [
-            "barracuda"
+          "range_cm": 0,
+          "arcs": [
+            "front"
           ],
-          "craft_speeds": {
-            "barracuda": 25
-          },
-          "craft_speed": 25
+          "mine_speed": 10
         }
       ],
-      "special_rules": [],
-      "upgrades": [],
-      "points_value": 110,
+      "special_rules": [
+        "deflector"
+      ],
+      "upgrades": [
+        "Configuration: ion cannons for the gravitic hooks",
+        "Mine launchers (replace all launch bays)",
+        "Deflector"
+      ],
+      "points_value": 130,
       "is_flagship": false,
       "admiral_type": "",
-      "rerolls_remaining": 0
+      "rerolls_remaining": 0,
+      "squadron_id": "emissaries",
+      "fleet_list": "tau_empire"
     },
     {
-      "spawn_x": 55,
-      "spawn_y": 100,
-      "spawn_heading": 270,
-      "id": "tau_warden1",
-      "name": "Kor'vre Kais",
+      "name": "Warden Gunship",
       "ship_class": "Warden Gunship",
       "faction": "tau_kororvesh",
       "ship_type": "escort",
@@ -257,6 +304,7 @@
       "shields_max": 1,
       "armor_prow": "5+",
       "armor_side": "5+",
+      "armor_rear": "",
       "turrets": 1,
       "hits_max": 1,
       "leadership": 0,
@@ -290,14 +338,12 @@
       "points_value": 30,
       "is_flagship": false,
       "admiral_type": "",
-      "rerolls_remaining": 0
+      "rerolls_remaining": 0,
+      "squadron_id": "wardens",
+      "fleet_list": "tau_empire"
     },
     {
-      "spawn_x": 60,
-      "spawn_y": 100,
-      "spawn_heading": 270,
-      "id": "tau_warden2",
-      "name": "Kor'vre Y'he",
+      "name": "Warden Gunship",
       "ship_class": "Warden Gunship",
       "faction": "tau_kororvesh",
       "ship_type": "escort",
@@ -307,6 +353,7 @@
       "shields_max": 1,
       "armor_prow": "5+",
       "armor_side": "5+",
+      "armor_rear": "",
       "turrets": 1,
       "hits_max": 1,
       "leadership": 0,
@@ -340,14 +387,12 @@
       "points_value": 30,
       "is_flagship": false,
       "admiral_type": "",
-      "rerolls_remaining": 0
+      "rerolls_remaining": 0,
+      "squadron_id": "wardens",
+      "fleet_list": "tau_empire"
     },
     {
-      "spawn_x": 65,
-      "spawn_y": 100,
-      "spawn_heading": 270,
-      "id": "tau_warden3",
-      "name": "Kor'vre Lar'shi",
+      "name": "Warden Gunship",
       "ship_class": "Warden Gunship",
       "faction": "tau_kororvesh",
       "ship_type": "escort",
@@ -357,6 +402,7 @@
       "shields_max": 1,
       "armor_prow": "5+",
       "armor_side": "5+",
+      "armor_rear": "",
       "turrets": 1,
       "hits_max": 1,
       "leadership": 0,
@@ -390,44 +436,97 @@
       "points_value": 30,
       "is_flagship": false,
       "admiral_type": "",
-      "rerolls_remaining": 0
+      "rerolls_remaining": 0,
+      "squadron_id": "wardens",
+      "fleet_list": "tau_empire"
     },
     {
-      "spawn_x": 60,
-      "spawn_y": 98,
-      "spawn_heading": 270,
-      "id": "tau_castellan",
-      "name": "Anukla'esavon",
-      "ship_class": "Castellan Escort",
+      "name": "Protector Cruiser",
+      "ship_class": "Protector Cruiser",
       "faction": "tau_kororvesh",
-      "ship_type": "escort",
+      "ship_type": "cruiser",
       "base_size": "small",
-      "speed": 25,
+      "speed": 20,
       "turn_angle": 90,
-      "shields_max": 1,
-      "armor_prow": "5+",
+      "shields_max": 2,
+      "armor_prow": "6+",
       "armor_side": "5+",
-      "turrets": 2,
-      "hits_max": 1,
+      "armor_rear": "",
+      "turrets": 3,
+      "hits_max": 6,
       "leadership": 0,
       "leadership_table": "Default",
       "weapons": [
         {
-          "name": "Railguns",
+          "name": "Port Railguns",
           "weapon_type": "battery",
           "range_cm": 45,
           "strength": 2,
           "arcs": [
             "left",
-            "front",
-            "right"
+            "front"
           ]
         },
         {
-          "name": "Gravitic Launcher",
+          "name": "Starboard Railguns",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 2,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Prow Railguns",
+          "weapon_type": "battery",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "front"
+          ]
+        },
+        {
+          "name": "Port Ion Cannons",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "left",
+            "front"
+          ]
+        },
+        {
+          "name": "Starboard Ion Cannons",
+          "weapon_type": "lance",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [
+            "right",
+            "front"
+          ]
+        },
+        {
+          "name": "Launch Bays",
+          "weapon_type": "launch_bay",
+          "range_cm": 30,
+          "strength": 1,
+          "arcs": [],
+          "craft_types": [
+            "manta",
+            "barracuda"
+          ],
+          "craft_speeds": {
+            "manta": 20,
+            "barracuda": 25
+          },
+          "craft_speed": 25
+        },
+        {
+          "name": "Prow Gravitic Launcher",
           "weapon_type": "torpedo",
           "range_cm": 40,
-          "strength": 2,
+          "strength": 5,
           "arcs": [
             "front"
           ],
@@ -436,12 +535,16 @@
           "torpedo_speed_min": 20
         }
       ],
-      "special_rules": [],
+      "special_rules": [
+        "deflector"
+      ],
       "upgrades": [],
-      "points_value": 45,
+      "points_value": 180,
       "is_flagship": false,
       "admiral_type": "",
-      "rerolls_remaining": 0
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "tau_empire"
     }
   ]
 }

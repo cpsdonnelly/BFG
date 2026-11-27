@@ -56,9 +56,12 @@ gs.turn_limit = 6
 gs.turn_system = "aa"
 gs.aa_settings = {"order_mode": mode, "phase_order": phase_order}
 from src.fleet_loader import load_fleet_file, fleet_to_ships, roll_starting_leadership
-for p, f in ((1, "data/fleets/imperial_navy_demo.json"), (2, "data/fleets/tau_kororvesh_demo.json")):
+for p, f in ((1, "data/fleets/owner_gothic_1000.json"), (2, "data/fleets/owner_tau_merchant_1000.json")):
     for sh in fleet_to_ships(load_fleet_file("/home/user/BFG/" + f), p):
         gs.add_ship(sh)
+# the 1000pt fleets carry no positions: deployed as Auto-Place does
+from src.deployment import deployment_state, auto_place
+auto_place(gs, deployment_state(gs))
 dice = DiceRoller(mode=gs.dice_mode)
 print('Leadership:', roll_starting_leadership(gs, dice, ai_dice=DiceRoller(mode='auto'))[:3])
 tc = TurnController(gs, dice)

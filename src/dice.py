@@ -11,8 +11,127 @@ except ImportError:
     tk = None
 
 
+class ReplayDivergence(Exception):
+    """A replayed game asked for a roll the record doesn't have next."""
+
+
+class DiceSource:
+    """The game's dice (To do 17): one seeded generator behind every
+    DiceRoller, so a game repeats from its seed, and an optional record of
+    every roll in order (kind, count, values, description, "auto" or
+    "manual" for a player's own dice). In replay the recorded values come
+    back in order whatever the roller's mode, and a roll of another kind
+    or count raises ReplayDivergence."""
+
+    def __init__(self, seed=None, record: bool = False, replay: list = None):
+        self.seed = seed
+        self.rng = random.Random(seed)
+        self.record = [] if record or replay is not None else None
+        self.replay = replay
+        self.pos = 0
+
+    # auto rolls
+    def d6s(self, count: int) -> List[int]:
+        return [self.rng.randint(1, 6) for _ in range(count)]
+
+    def note(self, kind: str, count: int, values, desc: str, src: str = "auto"):
+        if self.record is not None:
+            self.record.append([kind, count, values, desc, src])
+
+    def take(self, kind: str, count: int, desc: str):
+        """The next recorded roll, which must be of this kind and count."""
+        if self.pos >= len(self.replay):
+            raise ReplayDivergence(f"roll {self.pos}: {kind} x{count} ({desc}) past the end of the record")
+        entry = self.replay[self.pos]
+        if entry[0] != kind or entry[1] != count:
+            raise ReplayDivergence(f"roll {self.pos}: wanted {kind} x{count} ({desc}), "
+                                   f"the record has {entry[0]} x{entry[1]} ({entry[3]})")
+        self.pos += 1
+        self.record.append(list(entry))
+        return entry[2]
+
+    @property
+    def replaying(self) -> bool:
+        return self.replay is not None
+
+    def state(self) -> dict:
+        """Saved with the game: the seed, the generator's state and the record."""
+        st = self.rng.getstate()
+        return {"seed": self.seed, "rng": [st[0], list(st[1]), st[2]], "record": self.record}
+
+    @classmethod
+    def from_state(cls, d: dict) -> "DiceSource":
+        src = cls(d.get("seed"))
+        st = d.get("rng")
+        if st:
+            src.rng.setstate((st[0], tuple(st[1]), st[2]))
+        src.record = d.get("record")
+        return src
+
+
+_SOURCE = DiceSource()          # unseeded, unrecorded until a game starts one
+
+
+def current_source() -> DiceSource:
+    return _SOURCE
+
+
+def set_source(source: DiceSource) -> DiceSource:
+    """Make `source` the game's dice (start of a game, a load, a replay)."""
+    global _SOURCE
+    _SOURCE = source
+    return source
+
+
+def start_game_dice(seed: int, record: bool = True) -> DiceSource:
+    """A new game's dice from its seed (GameState.game_seed)."""
+    return set_source(DiceSource(seed, record=record))
+
+
+class RecordedRandom:
+    """The game's dice as a random.Random-like object for code that draws
+    rather than rolls (the alternate activation bag, System 1's dice-off):
+    randrange / random go through the current DiceSource and are recorded
+    ("draw" / "unit"), so they repeat from the seed and replay from the
+    record."""
+
+    def __init__(self, description: str = "draw"):
+        self.description = description
+
+    def randrange(self, n: int) -> int:
+        src = _SOURCE
+        if src.replaying:
+            return src.take("draw", n, self.description)
+        v = src.rng.randrange(n)
+        src.note("draw", n, v, self.description)
+        return v
+
+    def random(self) -> float:
+        src = _SOURCE
+        if src.replaying:
+            return src.take("unit", 1, self.description)
+        v = src.rng.random()
+        src.note("unit", 1, v, self.description)
+        return v
+
+
+def mode_for(gs) -> str:
+    """The dice mode a game's roller uses: its setting, or "auto" when the AI
+    plays both sides and the spectator chose to auto-roll every pop-up."""
+    if getattr(gs, "ai_spectator", False) and getattr(gs, "spectator_auto", True):
+        return "auto"
+    return getattr(gs, "dice_mode", "auto")
+
+
+def spectating_auto(gs) -> bool:
+    """Spectator mode with every pop-up answered automatically."""
+    return bool(getattr(gs, "ai_spectator", False) and getattr(gs, "spectator_auto", True))
+
+
 class DiceRoller:
-    """Handles all dice rolling with configurable input mode."""
+    """Handles all dice rolling with configurable input mode. Every roller
+    draws from the game's DiceSource (current_source), so all of a game's
+    rolls come from one seeded generator and are recorded in order."""
 
     def __init__(self, mode: str = "auto", root=None):
         """
@@ -22,26 +141,33 @@ class DiceRoller:
         self.mode = mode
         self.root = root
         self.log: List[str] = []
+        self._typed = False      # the last manual roll was typed by a player
 
     def roll_d6(self, count: int = 1, description: str = "") -> List[int]:
         """Roll count D6 dice. Returns list of results."""
         if count <= 0:
             return []
-
-        if self.mode == "auto":
-            results = [random.randint(1, 6) for _ in range(count)]
-        elif self.mode == "manual":
-            results = self._manual_input(count, description)
-        else:  # mixed
-            results = self._mixed_input(count, description)
-
+        src = _SOURCE
         desc = description or f"{count}D6"
+        if src.replaying:
+            results = list(src.take("d6", count, desc))
+        elif self.mode == "auto":
+            results = src.d6s(count)
+            src.note("d6", count, results, desc)
+        else:
+            self._typed = False
+            results = (self._manual_input(count, description) if self.mode == "manual"
+                       else self._mixed_input(count, description))
+            src.note("d6", count, results, desc, "manual" if self._typed else "auto")
         self.log.append(f"{desc}: {results} (sum={sum(results)})")
         return results
 
     def roll_2d6(self, description: str = "") -> int:
         """Roll 2D6 and return the sum."""
-        if self.mode == "mixed" and self.root:
+        src = _SOURCE
+        if src.replaying and src.pos < len(src.replay) and src.replay[src.pos][0] == "2d6sum":
+            return src.take("2d6sum", 1, description or "2D6")   # a player typed the sum
+        if self.mode == "mixed" and self.root and not src.replaying:
             return self._mixed_2d6_input(description)
         results = self.roll_d6(2, description)
         return sum(results)
@@ -66,8 +192,17 @@ class DiceRoller:
         """Roll for scatter direction in degrees (0-360)."""
         # In tabletop, the arrow on the scatter die points a direction
         # We simulate with a random angle
-        angle = random.uniform(0, 360)
-        self.log.append(f"  -> Scatter direction: {angle:.0f}°")
+        return self.roll_direction("Scatter direction")
+
+    def roll_direction(self, description: str = "Direction") -> float:
+        """A random direction in degrees (0-360), from the game's dice."""
+        src = _SOURCE
+        if src.replaying:
+            angle = src.take("angle", 1, description)
+        else:
+            angle = src.rng.uniform(0, 360)
+            src.note("angle", 1, angle, description)
+        self.log.append(f"  -> {description}: {angle:.0f}°")
         return angle
 
     def count_successes(self, dice: List[int], threshold: int) -> int:
@@ -82,7 +217,7 @@ class DiceRoller:
         """Get dice results from player input via dialog."""
         if not self.root:
             # Fallback to auto if no GUI
-            return [random.randint(1, 6) for _ in range(count)]
+            return _SOURCE.d6s(count)
 
         prompt = f"Roll {count}D6"
         if description:
@@ -93,13 +228,15 @@ class DiceRoller:
             result_str = simpledialog.askstring("Dice Roll", prompt, parent=self.root)
             if result_str is None:
                 # User cancelled, auto-resolve
-                return [random.randint(1, 6) for _ in range(count)]
+                return _SOURCE.d6s(count)
             try:
                 values = [int(x.strip()) for x in result_str.split()]
                 if len(values) == count and all(1 <= v <= 6 for v in values):
+                    self._typed = True
                     return values
                 elif len(values) == 1 and count == 1:
                     if 1 <= values[0] <= 6:
+                        self._typed = True
                         return values
             except ValueError:
                 pass
@@ -108,7 +245,7 @@ class DiceRoller:
     def _mixed_input(self, count: int, description: str) -> List[int]:
         """Show popup with auto-resolve button or manual entry."""
         if not self.root:
-            return [random.randint(1, 6) for _ in range(count)]
+            return _SOURCE.d6s(count)
 
         result_var = []
 
@@ -138,6 +275,7 @@ class DiceRoller:
                     vals = [int(x.strip()) for x in entry.get().split()]
                     if len(vals) == count and all(1 <= v <= 6 for v in vals):
                         result_var.extend(vals)
+                        self._typed = True
                         dialog.destroy()
                     else:
                         entry.delete(0, tk.END)
@@ -147,7 +285,7 @@ class DiceRoller:
                     entry.insert(0, f"Need {count} values 1-6")
 
             def on_auto():
-                result_var.extend([random.randint(1, 6) for _ in range(count)])
+                result_var.extend(_SOURCE.d6s(count))
                 dialog.destroy()
 
             btn_frame = tk.Frame(dialog)
@@ -173,6 +311,7 @@ class DiceRoller:
                 try:
                     n = max(0, min(int(succ_entry.get()), count))
                     result_var.extend([6] * n + [1] * (count - n))
+                    self._typed = True
                     dialog.destroy()
                 except ValueError:
                     succ_entry.delete(0, tk.END)
@@ -185,15 +324,16 @@ class DiceRoller:
         except Exception:
             # Fallback to auto if dialog fails
             if not result_var:
-                result_var = [random.randint(1, 6) for _ in range(count)]
+                result_var = _SOURCE.d6s(count)
 
         if not result_var:
-            return [random.randint(1, 6) for _ in range(count)]
+            return _SOURCE.d6s(count)
         return list(result_var)
 
     def _mixed_2d6_input(self, description: str) -> int:
         """2D6 dialog with both per-die entry and direct sum entry alongside auto-roll."""
         result_var = [None]
+        typed = [False]
 
         try:
             dialog = tk.Toplevel(self.root)
@@ -222,6 +362,7 @@ class DiceRoller:
                         a, b = int(parts[0]), int(parts[1])
                         if 1 <= a <= 6 and 1 <= b <= 6:
                             result_var[0] = a + b
+                            typed[0] = True
                             dialog.destroy()
                             return
                     dice_entry.delete(0, tk.END)
@@ -249,6 +390,7 @@ class DiceRoller:
                     v = int(sum_entry.get())
                     if 2 <= v <= 12:
                         result_var[0] = v
+                        typed[0] = True
                         dialog.destroy()
                 except ValueError:
                     pass
@@ -259,7 +401,7 @@ class DiceRoller:
 
             # Auto-roll button
             def on_auto():
-                result_var[0] = random.randint(1, 6) + random.randint(1, 6)
+                result_var[0] = sum(_SOURCE.d6s(2))
                 dialog.destroy()
 
             tk.Button(dialog, text="Auto-Roll (RNG)", command=on_auto,
@@ -271,7 +413,8 @@ class DiceRoller:
             pass
 
         if result_var[0] is None:
-            result_var[0] = random.randint(1, 6) + random.randint(1, 6)
+            result_var[0] = sum(_SOURCE.d6s(2))
         v = result_var[0]
+        _SOURCE.note("2d6sum", 1, v, description or "2D6", "manual" if typed[0] else "auto")
         self.log.append(f"{description or '2D6'}: [sum={v}]")
         return v

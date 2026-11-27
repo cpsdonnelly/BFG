@@ -21,9 +21,10 @@ ship deal:
 Everything is pure logic (no Tk), so the expert AI's worker thread may use it.
 """
 import math
+import threading
 from itertools import product
-from dataclasses import replace as _dc_replace  # shallow ship copies for trial positions
-from typing import Dict, List, Sequence, Tuple
+from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from .models import OrdnanceMarker, Ship
 
@@ -47,14 +48,242 @@ def p_sum_at_least(n_dice: int, target: int) -> float:
     return 1.0 - p_sum_at_most(n_dice, target - 1)
 
 
+def binomial_pmf(n: int, p: float) -> List[float]:
+    """P(H = k), k = 0..n, for n dice each hitting with chance p (exact)."""
+    n = max(0, int(n))
+    return [math.comb(n, k) * p ** k * (1 - p) ** (n - k) for k in range(n + 1)]
+
+
+def binomial_past_shields(n: int, p: float, shields: int) -> float:
+    """E[max(0, H - shields)] for H ~ Binomial(n, p): the hits that get past
+    the shields when n dice hit on p each (an explosion's lance shots)."""
+    s = max(0, int(shields or 0))
+    return sum(q * max(0, k - s) for k, q in enumerate(binomial_pmf(n, p)))
+
+
+def d6_past_shields(shields: int) -> float:
+    """E[max(0, D6 - shields)]: a D6 of hits, less the shields (asteroid fields)."""
+    s = max(0, int(shields or 0))
+    return sum(max(0, r - s) for r in range(1, 7)) / 6.0
+
+
 def lance_p(w: dict) -> float:
-    """A lance die's chance to hit: 4+ (Ork Zzapp Gunz 5+, `hits_on`)."""
-    return (7 - (w.get("hits_on") or 4)) / 6.0
+    """A lance die's expected hits by its own rules, where the target isn't
+    known (`combat.lance_die_hits`): 4+ (Ork zzapp gunz 5+), Eldar / Dark
+    Eldar phantom lances and pulsars their own values. With a target,
+    `combat.lance_expected` (saves, bio-plasma range, shield bypass)."""
+    from .combat import lance_die_hits
+    return lance_die_hits(w)
 
 
 def p_hit(armour: int) -> float:
     """One die against Armour N+ (a 6 always hits)."""
     return max(1, 7 - armour) / 6.0
+
+
+# To do 30: battery hits from the real Gunnery table rather than a rule of
+# thumb. BATTERY_HITS_PER_FP is the table's own average for a firepower point
+# against Armour 5+ (firepower 2-12 at a capital ship closing, moving away and
+# abeam, no shifts): where the target or its aspect isn't known (a ship's
+# threat in general, the move score's firepower units). It replaces the old
+# 0.35, which was about twice what the table gives.
+BATTERY_HITS_PER_FP = 0.176
+
+_GUNNERY_CACHE: Dict[tuple, float] = {}
+
+
+def table_battery_hits(fp: int, column: int, shifts: int, armour: int) -> float:
+    """Exact expected hits of `fp` firepower on the Gunnery table: the dice the
+    column (after shifts) gives, each hitting on the Armour. Cached."""
+    key = (fp, column, shifts, armour)
+    v = _GUNNERY_CACHE.get(key)
+    if v is None:
+        from .tables import lookup_gunnery_dice
+        v = lookup_gunnery_dice(fp, column, shifts) * p_hit(armour)
+        _GUNNERY_CACHE[key] = v
+    return v
+
+
+def battery_dice(e: Ship, w: dict, t: Ship, fp: Optional[int] = None,
+                 halve: bool = False) -> List[Tuple[int, float, float]]:
+    """The Gunnery table's dice for ship `e`'s battery `w` at `t` (as
+    `battery_hits` reads it): [(dice, chance each hits, probability)], one per
+    outcome of a random firepower. `halve`: the firepower halved, rounding up
+    (s.7: All Ahead Full, Burn Retros, Come to New Heading, Brace)."""
+    from .combat import (_battery_orientation, gunnery_target_type, get_column_shifts,
+                         dice_distribution, is_dice_value)
+    from .tables import get_gunnery_column, lookup_gunnery_dice
+    if fp is None:
+        text = w.get("strength_dice")
+        outcomes = (dice_distribution(text) if text and is_dice_value(text)
+                    else [(w.get("strength") or 0, 1.0)])
+    else:
+        outcomes = [(fp, 1.0)]
+    ttype = gunnery_target_type(t)
+    column = get_gunnery_column(ttype, _battery_orientation(e, t, w, ttype))
+    d = math.hypot(e.x - t.x, e.y - t.y)
+    proxy = e
+    est = max(1.0, d - (e.effective_speed or 0))
+    if d > 1e-6 and est < d:
+        k = est / d
+        proxy = _dc_replace(e, x=t.x + (e.x - t.x) * k, y=t.y + (e.y - t.y) * k)
+    shifts = get_column_shifts(proxy, t, [], [], [], w)
+    need = w.get("hits_on") or t.armor_vs(e.x, e.y)
+    crippled = fp is None and e.is_crippled
+    out = []
+    for v, q in outcomes:
+        v = e.crippled_value(v) if crippled else v
+        if halve:
+            v = (v + 1) // 2
+        out.append((lookup_gunnery_dice(v, column, shifts), p_hit(need), q))
+    return out
+
+
+def weapon_hit_pmf(e: Ship, w: dict, t: Ship, halve: bool = False) -> Dict[Tuple[int, int], float]:
+    """Exact distribution of one battery / lance mount's hits on `t` next
+    shooting phase: {(hits shields can stop, hits past shields): chance}.
+    Batteries: the Gunnery table's dice (`battery_dice`), binomial. Lances by
+    their own rules die by die (as `combat.resolve_lances`): 4+ (zzapp gunz
+    5+), Dark Eldar phantom lances 1 on the need / 2 above, Eldar phantom 1
+    to 5 / 2 on a 6, pulsars a hit and up to two follow-ups, particle whips'
+    6s and bio-plasma (a 6 beyond 15cm) past the shields; then holofield and
+    shadowfield saves, each hit kept binomially. Random strength over its
+    outcomes; crippled at half (next turn's shot, `lance_strength(now=False)`)."""
+    out: Dict[Tuple[int, int], float] = {}
+    if w.get("weapon_type") == "battery":
+        for n, ph, q in battery_dice(e, w, t, halve=halve):
+            for k, pk in enumerate(binomial_pmf(n, ph)):
+                if pk:
+                    out[(k, 0)] = out.get((k, 0), 0.0) + q * pk
+        return out
+    from .combat import lance_strength, dice_distribution, is_dice_value
+    text = w.get("strength_dice")
+    outcomes = (dice_distribution(text) if text and is_dice_value(text)
+                else [(w.get("strength", 0) or 0, 1.0)])
+    dist = e.distance_to(t)
+    need = w.get("hits_on") or 4
+    if w.get("bio_plasma") and dist > 15:
+        need = 6
+    if need > 6:
+        return {(0, 0): 1.0}
+    p = (7 - need) / 6.0
+    # one die: {(regular, bypass): chance}
+    if w.get("de_phantom"):
+        die = {(0, 0): (need - 1) / 6.0, (1, 0): 1 / 6.0, (2, 0): (6 - need) / 6.0}
+    elif w.get("phantom"):
+        die = {(0, 0): (need - 1) / 6.0, (1, 0): (6 - need) / 6.0, (2, 0): 1 / 6.0}
+    elif w.get("pulsar"):
+        die = {(0, 0): 1 - p, (1, 0): p * (1 - p), (2, 0): p * p * (1 - p), (3, 0): p ** 3}
+    elif w.get("bio_plasma"):
+        die = {(0, 0): 1 - p, (0, 1): p}
+    elif w.get("particle_whip") or w.get("shield_bypass_6"):
+        die = {(0, 0): 1 - p, (1, 0): p - 1 / 6.0, (0, 1): 1 / 6.0}
+    else:
+        die = {(0, 0): 1 - p, (1, 0): p}
+    keep = 1.0
+    if "holofield" in (t.special_rules or []):
+        from .eldar import p_holofield_save
+        keep *= 1.0 - p_holofield_save(dist)
+    from .dark_eldar import shadowfield_need
+    sf = shadowfield_need(t)
+    if sf is not None:
+        keep *= 1.0 - (7 - sf) / 6.0
+    holo_only_regular = "holofield" in (t.special_rules or []) and not w.get("bio_plasma")
+    for v, q in outcomes:
+        n = lance_strength(e, t, w, v, now=False)
+        if halve:
+            n = (n + 1) // 2
+        acc = {(0, 0): 1.0}
+        for _ in range(max(0, n)):
+            acc = _convolve2(acc, die)
+        for (a, b), pa in acc.items():
+            # saves: each hit kept with `keep` (the holofield doesn't save the
+            # whip's bypassing 6s; the shadowfield saves everything)
+            ka = keep
+            kb = keep if not holo_only_regular else (1.0 - (7 - sf) / 6.0 if sf is not None else 1.0)
+            for i, pi in enumerate(binomial_pmf(a, ka)):
+                for jj, pj in enumerate(binomial_pmf(b, kb)):
+                    key = (i, jj)
+                    out[key] = out.get(key, 0.0) + q * pa * pi * pj
+    return out
+
+
+def _convolve2(a: Dict[Tuple[int, int], float], b: Dict[Tuple[int, int], float]):
+    out: Dict[Tuple[int, int], float] = {}
+    for (x1, y1), p1 in a.items():
+        for (x2, y2), p2 in b.items():
+            k = (x1 + x2, y1 + y2)
+            out[k] = out.get(k, 0.0) + p1 * p2
+    return out
+
+
+def volley_hull_pmf(mounts, t: Ship, shields: int) -> List[float]:
+    """P(k hull hits) on `t` from several mounts fired together, exact:
+    [(shooter, weapon, weight)] each by `weapon_hit_pmf` (weight 1 when it
+    bears, 0.75 when a turn would bring it in: a mixture with no hits),
+    convolved; the shields take the first stoppable hits."""
+    acc = {(0, 0): 1.0}
+    for e, w, wt, halve in mounts:
+        pmf = weapon_hit_pmf(e, w, t, halve=halve)
+        if wt < 1.0:
+            pmf = {k: v * wt for k, v in pmf.items()}
+            pmf[(0, 0)] = pmf.get((0, 0), 0.0) + (1.0 - wt)
+        acc = _convolve2(acc, pmf)
+    n = max((a + b for a, b in acc), default=0)
+    out = [0.0] * (n + 1)
+    s = max(0, int(shields or 0))
+    for (a, b), q in acc.items():
+        out[max(0, a - s) + b] += q
+    return out
+
+
+def battery_hits(e: Ship, w: dict, t: Ship, fp: Optional[int] = None) -> float:
+    """Expected hits of ship `e`'s battery `w` on `t` from where both stand,
+    on the real Gunnery table (To do 30): the target's type and aspect, the
+    shifts that don't depend on range (holofields, shadowfields, Eldar / Dark
+    Eldar batteries, targeting matrices, low orbit...), the Armour facing `e`
+    and a random firepower over its outcomes. The range (owner: estimate it,
+    don't leave it out): the shot comes after the firer's move, and closer is
+    never worse on the Gunnery table, so the firer is taken to close as far as
+    its move allows (the reach `_mount_bears` gives it), and the range shifts
+    (under 15cm, over 30cm, Fighting Sunward, Miasma...) are read there.
+    Blast markers aren't counted (they change before the shot)."""
+    from .combat import (_battery_orientation, gunnery_target_type, get_column_shifts,
+                         dice_distribution, is_dice_value)
+    from .tables import get_gunnery_column
+    if fp is None:
+        text = w.get("strength_dice")
+        outcomes = (dice_distribution(text) if text and is_dice_value(text)
+                    else [(w.get("strength") or 0, 1.0)])
+    else:
+        outcomes = [(fp, 1.0)]
+    ttype = gunnery_target_type(t)
+    column = get_gunnery_column(ttype, _battery_orientation(e, t, w, ttype))
+    d = math.hypot(e.x - t.x, e.y - t.y)
+    proxy = e
+    est = max(1.0, d - (e.effective_speed or 0))       # the range after its move
+    if d > 1e-6 and est < d:
+        # the shifts read at that range, on the same bearing
+        k = est / d
+        proxy = _dc_replace(e, x=t.x + (e.x - t.x) * k, y=t.y + (e.y - t.y) * k)
+    shifts = get_column_shifts(proxy, t, [], [], [], w)
+    need = w.get("hits_on") or t.armor_vs(e.x, e.y)
+    crippled = fp is None and e.is_crippled
+    return sum(p * table_battery_hits(e.crippled_value(v) if crippled else v,
+                                      column, shifts, need)
+               for v, p in outcomes)
+
+
+def torpedo_p_hit(armour: int, rules=None, otype: str = "torpedo_standard") -> float:
+    """One torpedo against Armour N+, re-rolling a miss where the launcher's rules
+    say so: Eldar torpedoes (MMS p.4) and Dark Eldar plasma torpedoes, which are
+    standard torpedoes that must re-roll missed attacks (Xenos p.5; not leech or
+    boarding torpedoes), as `ordnance.resolve_torpedo_attack` rolls them."""
+    p = p_hit(armour)
+    rules = rules or []
+    if "eldar_mms" in rules or ("dark_eldar" in rules and otype == "torpedo_standard"):
+        p = 1.0 - (1.0 - p) ** 2
+    return p
 
 
 # ── Values ───────────────────────────────────────────────────────────────────
@@ -70,8 +299,44 @@ def ship_value(ship: Ship, gs) -> float:
     return v
 
 
-def value_per_hit(ship: Ship, gs) -> float:
+def static_value_per_hit(ship: Ship, gs=None) -> float:
+    """The ship's value shared over its starting hits: only a stand-in inside
+    a valuation that is itself computing a hit's worth (value_per_hit's
+    guard), never a hit's value in its own right."""
     return ship_value(ship, gs) / max(1, ship.hits_max)
+
+
+_VPH_GUARD = threading.local()
+
+
+def value_per_hit(ship: Ship, gs) -> float:
+    """VP of one more hull hit on `ship` now (owner: "s.38 scores nothing
+    until a threshold", so not its value shared over its hits): what the hit
+    adds by crossing the cripple / destroy thresholds now, plus what it adds
+    to the chance its enemies cripple or destroy it with their next turn of
+    fire (`hits_vp`, the rule escorts already used). Where several hits'
+    worth matters, `hits_vp` / `damage_vp` count them together (thresholds
+    aren't linear); this is the rate for one. Cached per state; inside its
+    own computation (a kill's value counts the ship's fire on others) the
+    shared value stands in (second order, it would loop)."""
+    if gs is None or getattr(_VPH_GUARD, "on", False):
+        return static_value_per_hit(ship, gs)
+    lam = _future_fire(ship, gs) if ship.ship_type != "escort" else 0.0
+    cache = gs.__dict__.setdefault("_vph_cache", {})
+    key = (ship.id, ship.hits_remaining, ship.is_crippled, ship.points_value,
+           ship.rerolls_remaining, round(lam, 3), gs.turn_number, gs.current_phase,
+           round(ship.x, 1), round(ship.y, 1))
+    v = cache.get(key)
+    if v is None:
+        if len(cache) > 5000:
+            cache.clear()
+        _VPH_GUARD.on = True
+        try:
+            v = hits_vp(ship, gs, 1)
+        finally:
+            _VPH_GUARD.on = False
+        cache[key] = v
+    return v
 
 
 # ── Geometry ─────────────────────────────────────────────────────────────────
@@ -114,10 +379,35 @@ def mine_attack_dice(ship: Ship) -> float:
     return 8.0 - 4.0 * p_any
 
 
-def _turret_kills(ship: Ship) -> float:
-    """Expected torpedoes a ship's turrets shoot down: 4+ each (Orks 5+)."""
-    need = 5 if "ork_turrets" in ship.special_rules else 4
-    return ship.effective_turrets * (7 - need) / 6.0
+def _turret_kills(ship: Ship, marker=None, gs=None) -> float:
+    """Expected torpedoes a ship's turrets shoot down: 4+ each (Orks 5+, Eldar
+    turrets +1), worse against Eldar stealth and Dark Eldar flickerfields (the
+    marker's rules, `ordnance.turret_hit_on`); misses re-rolled by Tau tracking
+    systems in range (`ordnance.turret_kill_p`, with the game state)."""
+    from .ordnance import turret_hit_on, turret_kill_p
+    return ship.effective_turrets * turret_kill_p(ship, turret_hit_on(ship, marker), gs)
+
+
+def _raid_hits(ship: Ship, m: OrdnanceMarker, gs) -> float:
+    """An enemy assault boat squadron (or Impaler) reaching `ship`, in hits:
+    its exact raid value (`waves.raid_squadron_value`: the D6 over the raid
+    table with the crews' modifiers, an Impaler's own choice) over the ship's
+    value a hit. Cached per ship and marker for the phase. Without a game
+    state, half a hit (the old estimate)."""
+    if gs is None:
+        return 0.5
+    cache = gs.__dict__.setdefault("_raid_hits_cache", {})
+    key = (gs.turn_number, gs.current_phase, ship.id, m.id, ship.hits_remaining,
+           len(ship.critical_damage))
+    if key not in cache:
+        if len(cache) > 2000:
+            cache.clear()
+        from .waves import raid_squadron_value
+        vp = raid_squadron_value(ship, gs, m.owner_player, rules=m.special_rules)
+        # as hit-equivalents on the hull-hit scale (one hit's worth now), no
+        # more than it has left
+        cache[key] = min(float(ship.hits_remaining), vp / max(1e-6, value_per_hit(ship, gs)))
+    return cache[key]
 
 
 def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
@@ -142,7 +432,8 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
             return h, f"mine ({h:.1f} hits)"
         return 0.0, ""
     if "torpedo" in otype and otype != "torpedo_bomber":
-        strength = max(0.0, m.strength - _turret_kills(ship))
+        ph = torpedo_p_hit(ship.armor_vs(m.x, m.y), m.special_rules, otype)
+        strength = max(0.0, m.strength - _turret_kills(ship, m))
         if strength <= 0:
             return 0.0, ""
         h = strength * ph * (0.5 if "boarding" in otype else 1.0)   # raids, not hull
@@ -169,7 +460,7 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
         tiger = "tiger_shark" in (m.special_rules or [])
         salvo = 40.0 if tiger else 30.0
         if on_path or math.hypot(end[0] - m.x, end[1] - m.y) <= (m.speed or 20) + salvo + r:
-            h = max(0.0, 2.0 - 0.5 * _turret_kills(ship)) * p_hit(ship.lowest_armor_value)
+            h = max(0.0, 2.0 - 0.5 * _turret_kills(ship, m)) * p_hit(ship.lowest_armor_value)
             h *= 5 / 6 if tiger else 1.0
             return h, f"torpedo bombers ({h:.1f} hits)"
         return 0.0, ""
@@ -181,7 +472,14 @@ def marker_hits(ship: Ship, m: OrdnanceMarker, end: Point, pts: Sequence[Point],
             h = (sum(max(0, k - ship.effective_turrets) for k in range(1, 7)) / 6.0
                  * p_hit(ship.lowest_armor_value))
         elif "assault" in otype or otype == "gun_cutter":
-            h = 0.5 * max(0.0, 1 - 0.5 * ship.effective_turrets / 2)
+            # survives the turrets (each die kills it on its hit roll, worse
+            # against Eldar / Dark Eldar craft), then half a hit a raid; a Dark
+            # Eldar Impaler connects on 2+ for a crit (or two raids) and a hull
+            # hit on a roll equal to or above the Armour (judgement: a crit as 1)
+            from .ordnance import turret_hit_on
+            p_kill = max(0, 7 - turret_hit_on(ship, m)) / 6.0
+            survive = (1.0 - p_kill) ** max(0, ship.effective_turrets)
+            h = survive * _raid_hits(ship, m, gs)
         else:
             return 0.0, ""                       # fighters don't attack ships
         return h, f"{otype} ({h:.1f} hits)"
@@ -301,7 +599,7 @@ def terrain_threat(ship: Ship, end: Point, path: Sequence[Point], gs,
             fail = 1.0 - p_sum_at_most(n_dice, ld)
             if ship.ship_type == "escort":
                 fail *= fail                         # escorts re-roll
-            h = fail * max(0.0, 3.5 - shields)
+            h = fail * d6_past_shields(shields)       # E[max(0, D6 - shields)]
             hits += h
             why.append(f"asteroid field ({fail:.0%} fail)")
         elif t == "warp_rift":
@@ -344,22 +642,25 @@ def lost_ship_vp(ship: Ship, gs) -> float:
 
 def move_hazard_vp(ship: Ship, end: Point, path: Sequence[Point], gs,
                    order: str = "") -> Dict:
-    """Expected VP a move risks: hits x the ship's VP per hit (a cripple and a
-    kill are where those hits matter most), plus a chance of losing the whole
-    ship, plus the value of shields knocked down by blast markers it ends on
-    (each stops roughly one hit of the enemy's fire). Returns {"vp", "why"}."""
+    """Expected VP a move risks (owner: computed): the hits it runs into as
+    hull hits (`hull_hits_vp`: the thresholds they cross and what they add to
+    the chance the enemy's fire finishes the ship later), the chance of losing
+    the whole ship, and blast markers it ends on knocking shields down: the
+    extra enemy fire next turn that gets past them (`_fire_on`'s fire before
+    shields, past the lowered shields less past the full ones), as hull hits.
+    Returns {"vp", "why"}."""
     oh, ow = ordnance_threat(ship, end, path, gs)
     th, lose, tw = terrain_threat(ship, end, path, gs, order)
-    vph = value_per_hit(ship, gs)
     hits = oh + th
-    # Hits that cripple or kill are worth more than the first ones
-    remaining = max(1, ship.hits_remaining)
-    weight = 1.0 + (0.5 if hits >= remaining - ship.hits_max / 2 else 0.0) \
-        + (1.0 if hits >= remaining * 0.75 else 0.0)
-    vp = hits * vph * weight + lose * lost_ship_vp(ship, gs)
+    vp = (hull_hits_vp(ship, gs, 0.0, hits) if hits > 0 else 0.0) + lose * lost_ship_vp(ship, gs)
     if "demiurg_commerce" not in ship.special_rules:
         down = min(ship.effective_shields, blast_markers_at(ship, end, gs))
-        vp += down * 0.5 * vph
+        if down > 0:
+            raw = _raw_fire_on(ship, gs)
+            sh = ship.effective_shields
+            extra = past_shields(raw, sh - down) - past_shields(raw, sh)
+            if extra > 0:
+                vp += hull_hits_vp(ship, gs, hits, extra)
     return {"vp": vp, "why": ow + tw}
 
 
@@ -385,9 +686,6 @@ def poisson_at_least(mean: float, k: int) -> float:
     return max(0.0, 1.0 - cdf)
 
 
-_THREAT_CACHE: Dict = {}
-
-
 def _opponent(player: int) -> int:
     return 2 if player == 1 else 1
 
@@ -398,29 +696,55 @@ def ship_threat_vp(ship: Ship, gs) -> float:
     facing) at the most valuable enemy it bears on, plus its launch bays
     (`bay_threat_vp`: strikes and the denial of the enemy's). Killing it
     removes this, crippling halves it (s.33: half firepower). Cached per
-    position and damage."""
-    key = (id(gs), gs.turn_number, gs.current_phase, ship.id, ship.hits_remaining,
-           round(ship.x, 1), round(ship.y, 1), round(ship.heading))
-    if key in _THREAT_CACHE:
-        return _THREAT_CACHE[key]
-    if len(_THREAT_CACHE) > 5000:
-        _THREAT_CACHE.clear()
+    position and damage. Not re-entered: the hits it would score are valued
+    by what they do to its targets, whose own kills count their fire in
+    turn; inside that the targets' fire isn't valued again (second order;
+    it would loop)."""
+    if getattr(_THREAT_GUARD, "on", False):
+        return 0.0
+    _THREAT_GUARD.on = True
+    try:
+        return _ship_threat_vp(ship, gs)
+    finally:
+        _THREAT_GUARD.on = False
+
+
+_THREAT_GUARD = threading.local()
+
+
+def _ship_threat_vp(ship: Ship, gs) -> float:
     foes = [t for t in gs.get_ships() if t.player != ship.player
             and not t.is_destroyed and not t.is_disengaged
             and t.status not in ("drifting_hulk", "burning_hulk")]
+    # Cached on the game itself (never across games: an id(gs) key let a new
+    # game read an old one's values), by everything the value depends on: the
+    # ship's state and guns and every enemy's position and state
+    cache = gs.__dict__.setdefault("_threat_cache", {})
+    key = (gs.turn_number, gs.current_phase, _bracket_state(ship), ship.is_crippled,
+           round(ship.x, 1), round(ship.y, 1), round(ship.heading),
+           tuple((_bracket_state(t), round(t.x, 1), round(t.y, 1), round(t.heading))
+                 for t in foes))
+    if key in cache:
+        return cache[key]
+    if len(cache) > 5000:
+        cache.clear()
     total = 0.0
     for w in ship.weapons:
         wt = w.get("weapon_type")
         if wt not in ("battery", "lance"):
             continue
-        h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35)
-        if ship.is_crippled:
-            h *= 0.5
-        best = max((value_per_hit(t, gs) for t in foes if _mount_bears(ship, w, t)), default=0.0)
-        total += h * best
+        # each target it bears on at the hits it would score there (To do 30:
+        # batteries on the Gunnery table; crippled halves the firepower)
+        best = 0.0
+        for t in foes:
+            if not _mount_bears(ship, w, t):
+                continue
+            h = _gun_hits(ship, w, t)
+            best = max(best, h * value_per_hit(t, gs))
+        total += best
     # its launch bays too (owner: carrier doctrine; already halved when crippled)
     total += bay_threat_vp(ship, gs)
-    _THREAT_CACHE[key] = total
+    cache[key] = total
     return total
 
 
@@ -509,14 +833,39 @@ def explosion_odds(ship: Ship):
 def death_explosion_vp(ship: Ship, gs, player: int, at=None) -> float:
     """Net expected VP for `player` of `ship` blowing up (at its position, or
     `at`) if it is destroyed: plasma overload (half its starting hits) or warp
-    implosion (all of them) over 3D6cm (explosion_vp)."""
+    implosion (all of them) over 3D6cm (explosion_vp). Not re-entered: the
+    ships a blast finishes may blow up in turn, which isn't valued again
+    (second order; two ships next to each other would loop)."""
     pp, pw = explosion_odds(ship)
     if not pp and not pw:
         return 0.0
-    centre = at or (ship.x, ship.y)
-    return (pp * (explosion_vp(centre, ship.hits_max // 2, gs, player, ship.id)
-                  + plasma_ordnance_vp(centre, gs, player))
-            + pw * explosion_vp(centre, ship.hits_max, gs, player, ship.id))
+    if getattr(_BOOM_GUARD, "on", False):
+        return 0.0
+    cache = gs.__dict__.setdefault("_boom_cache", {})
+    key = (_state_stamp(gs), ship.id, player, at and (round(at[0], 1), round(at[1], 1)))
+    if key in cache:
+        return cache[key]
+    if len(cache) > 5000:
+        cache.clear()
+    cache[key] = _death_explosion_vp(ship, gs, player, at, pp, pw)
+    return cache[key]
+
+
+def _death_explosion_vp(ship, gs, player, at, pp, pw):
+    _BOOM_GUARD.on = True
+    try:
+        centre = at or (ship.x, ship.y)
+        return (pp * (explosion_vp(centre, ship.hits_max // 2, gs, player, ship.id)
+                      + plasma_ordnance_vp(centre, gs, player))
+                + pw * explosion_vp(centre, ship.hits_max, gs, player, ship.id))
+    finally:
+        _BOOM_GUARD.on = False
+
+
+_BOOM_GUARD = threading.local()
+
+
+_PLASMA_GUARD = threading.local()
 
 
 def plasma_ordnance_vp(centre, gs, player: int) -> float:
@@ -524,7 +873,20 @@ def plasma_ordnance_vp(centre, gs, player: int) -> float:
     (Appendix 5, 9-11; To do 11 c): for `player`, the threat of the enemy's
     markers removed (marker_threat_vp) minus what our own removed markers would
     have done (their threat to the enemy), each at the chance the radius
-    (3D6, mean 10.5) reaches it."""
+    (3D6, mean 10.5) reaches it. Not re-entered: a marker's threat may itself
+    value a ship's death (an Impaler's crit, its extra damage, an explosion),
+    so inside that valuation the ordnance an explosion sweeps away isn't
+    valued again (second order; it would loop)."""
+    if getattr(_PLASMA_GUARD, "on", False):
+        return 0.0
+    _PLASMA_GUARD.on = True
+    try:
+        return _plasma_ordnance_vp(centre, gs, player)
+    finally:
+        _PLASMA_GUARD.on = False
+
+
+def _plasma_ordnance_vp(centre, gs, player: int) -> float:
     total = 0.0
     for o in gs.ordnance:
         m = OrdnanceMarker.from_dict(o)
@@ -541,18 +903,389 @@ def plasma_ordnance_vp(centre, gs, player: int) -> float:
     return total
 
 
+def finish_chance(target: Ship, gs, hits_left: int) -> float:
+    """Chance the escort's enemies destroy it later with `hits_left` hits to go:
+    the expected hits their guns can put on it in their next shooting phase
+    (every battery / lance mount that can bear, `_mount_bears` / `mount_hits`,
+    hull saves included), past its shields, as a Poisson count. Cached per
+    phase and escort state (judgement: one turn's fire, undiscounted)."""
+    if hits_left <= 0:
+        return 1.0
+    return poisson_at_least(_fire_on(target, gs), hits_left)
+
+
+def _fire_on(target: Ship, gs) -> float:
+    """Expected hits (past shields, hull saves counted) the target's enemies
+    can put on it in their next shooting phase; cached by both sides' state."""
+    from .geometry import current_shields
+    return past_shields(_raw_fire_on(target, gs), current_shields(target, gs.get_blast_markers()))
+
+
+def _raw_fire_on(target: Ship, gs) -> float:
+    """`_fire_on` before shields: every battery / lance mount of its enemies
+    that can bear next shooting phase (`_mount_bears` / `mount_hits`)."""
+    cache = gs.__dict__.setdefault("_finish_cache", {})
+    foes = [e for e in gs.get_ships() if e.player != target.player and not e.is_destroyed
+            and not e.is_disengaged and e.status == "active"]
+    key = (target.id, target.hits_remaining, round(target.x, 1), round(target.y, 1),
+           len(gs.blast_markers),
+           target.special_order,
+           tuple((e.id, round(e.x, 1), round(e.y, 1), round(e.heading), e.hits_remaining,
+                  e.special_order) for e in foes))
+    lam = cache.get(key)
+    if lam is None:
+        if len(cache) > 4096:
+            cache.clear()
+        lam = 0.0
+        for e in foes:
+            for w in e.weapons:
+                if w.get("weapon_type") in ("battery", "lance") and _mount_bears(e, w, target):
+                    lam += mount_hits(e, w, target)
+        cache[key] = lam
+    return lam
+
+
+def _squadron_score(gs, n: int, destroyed: int, pts: float) -> float:
+    """What an escort squadron of `n` ships with `destroyed` of them gone
+    scores (s.38, `victory_points._score_squadron`): all gone its points,
+    at least half gone (rounding up) a quarter, else nothing; the Remastered
+    option scores only the whole squadron destroyed."""
+    if destroyed >= n:
+        return pts
+    if getattr(gs, "rule_remastered_escort_vp", False):
+        return 0.0
+    return pts / 4.0 if destroyed >= (n + 1) // 2 else 0.0
+
+
+def escort_kill_vp(target: Ship, gs) -> float:
+    """VP of destroying this escort now (owner: escorts are scored by
+    squadron, s.38): the change in the squadron's expected score, i.e. the
+    threshold the loss crosses now plus how much likelier the squadron becomes
+    to be crippled or wiped out by its enemies' next turn of fire (shared
+    between the escorts left, `_fire_on`; judgement: one turn, undiscounted).
+    A lone escort is a squadron of one."""
+    sq = [s for s in gs.get_ships() if s.player == target.player and s.squadron_id
+          and s.squadron_id == target.squadron_id] if target.squadron_id else []
+    if not any(s.id == target.id for s in sq):
+        sq = [target]
+    n = len(sq)
+    pts = sum(ship_value(s, gs) for s in sq)
+    gone = sum(1 for s in sq if s.is_destroyed or s.hits_remaining <= 0)
+    alive = [s for s in sq if not s.is_destroyed and not s.is_disengaged
+             and s.hits_remaining > 0]
+    others = [s for s in alive if s.id != target.id]
+
+    def expected(dead: int, ships) -> float:
+        # the squadron's expected score when each of `ships` may still die
+        # next turn, the fire shared between them (a Poisson-binomial count)
+        k = max(1, len(ships))
+        dist = [1.0]
+        for s in ships:
+            q = poisson_at_least(_fire_on(s, gs) / k, max(1, s.hits_remaining))
+            new = [0.0] * (len(dist) + 1)
+            for i, p in enumerate(dist):
+                new[i] += p * (1 - q)
+                new[i + 1] += p * q
+            dist = new
+        return sum(p * _squadron_score(gs, n, dead + i, pts) for i, p in enumerate(dist))
+
+    return max(0.0, expected(gone + 1, others) - expected(gone, alive))
+
+
+def escort_hits_vp(target: Ship, gs, k: int) -> float:
+    """VP of `k` hull hits on an escort (owner): the hits that destroy it are
+    worth the kill to its squadron's score (`escort_kill_vp`); hits that leave
+    it alive score nothing themselves, so they are worth only what they add to
+    the chance it is finished off later (`finish_chance`): the kill's value x
+    (P(finished from its new hits) - P(from now))."""
+    rem = max(1, target.hits_remaining)
+    v = escort_kill_vp(target, gs)           # scored by squadron (owner)
+    if k <= 0:
+        return 0.0
+    if k >= rem:
+        return v
+    return v * max(0.0, finish_chance(target, gs, rem - k) - finish_chance(target, gs, rem))
+
+
+# Game turns of enemy fire a hit's worth is followed over when there's no turn
+# limit (a game's usual length; judgement); with one, the turns left
+FUTURE_TURNS = 6
+
+
+_NEXT_TURN_GUARD = threading.local()
+
+
+def _future_fire(target: Ship, gs) -> float:
+    """Expected hits past shields the target's enemies put on it over the
+    rest of the game (the turns left to the turn limit, else FUTURE_TURNS):
+    next turn the fire
+    that can reach it (`_fire_on`); later turns its share of the enemy fleet's
+    whole fire (every battery at the Gunnery table's average a point,
+    `BATTERY_HITS_PER_FP`, every lance by its die, crippled ships at half,
+    shared evenly over our ships, past its shields), every turn alike (VP
+    are scored at the end, so a later kill counts the same). Damage that
+    cripples nothing now is worth what it adds to these."""
+    from .geometry import current_shields
+    from .combat import lance_die_hits
+    turns = FUTURE_TURNS
+    limit = getattr(gs, "turn_limit", None)
+    if limit:
+        turns = max(1, min(turns, limit - gs.turn_number + 1))
+    if getattr(_NEXT_TURN_GUARD, "on", False):
+        # valuing the very shots of that next turn (enemy_fire_plan): the
+        # future that may finish the ship starts the turn after them
+        lam = 0.0
+    else:
+        lam = _fire_on(target, gs)
+    if turns <= 1:
+        return lam
+    cache = gs.__dict__.setdefault("_fleet_fire_cache", {})
+    key = (target.player, gs.turn_number, gs.current_phase,
+           tuple((e.id, e.hits_remaining, e.is_crippled, e.status) for e in gs.get_ships()))
+    share = cache.get(key)
+    if share is None:
+        if len(cache) > 200:
+            cache.clear()
+        foes = [e for e in gs.get_ships() if e.player != target.player and not e.is_destroyed
+                and not e.is_disengaged and e.status == "active"]
+        ours = [e for e in gs.get_ships() if e.player == target.player and not e.is_destroyed
+                and not e.is_disengaged and e.status == "active"]
+        tot, ordn = 0.0, 0.0
+        armour = min((s2.lowest_armor_value for s2 in ours), default=5)
+        turrets = min((s2.effective_turrets for s2 in ours), default=0)
+        p_arm = p_hit(armour)
+        for e in foes:
+            for w in e.weapons:
+                st = w.get("strength") or 0
+                if not isinstance(st, (int, float)) or st <= 0:
+                    continue
+                if e.is_crippled:
+                    st = e.crippled_value(st)
+                wt = w.get("weapon_type")
+                if wt == "battery":
+                    tot += st * BATTERY_HITS_PER_FP
+                elif wt == "lance":
+                    tot += st * lance_die_hits(w)
+                elif wt == "torpedo":
+                    # a salvo each time it is loaded (AIR_THREAT_WEIGHT: the
+                    # share of turns ordnance acts, it must Reload), 4+ turret
+                    # shots first
+                    left = max(0.0, st - turrets * 0.5)
+                    ordn += AIR_THREAT_WEIGHT * left * torpedo_p_hit(armour)
+                elif wt == "launch_bay":
+                    # bomber squadrons: D6 attacks less the turrets on the
+                    # lowest Armour (s.20), at the same share of turns
+                    per = sum(max(0, k - turrets) for k in range(1, 7)) / 6.0 * p_arm
+                    ordn += AIR_THREAT_WEIGHT * st * per
+        share = (tot / max(1, len(ours)), ordn / max(1, len(ours)))
+        cache[key] = share
+    # guns past its shields; ordnance ignores shields (s.11 / s.15)
+    later = past_shields(share[0], current_shields(target, gs.get_blast_markers())) + share[1]
+    # VP are scored at the end of the game, so a kill later counts the same:
+    # no discount for the later turns (their fire is already an expectation)
+    return lam + (turns - 1) * later
+
+
+def _future_loss(target: Ship, gs, rem: int, crippled: bool, lam: float) -> float:
+    """VP the enemy is expected to score on `target` with its next turn of
+    fire (`lam` expected hits past shields, `_fire_on`) when it has `rem`
+    hits left: destroyed (its value and any scenario kill bonus) or newly
+    crippled (a quarter), as Poisson counts (exact counts: To do 30)."""
+    if lam <= 0 or rem <= 0:
+        return 0.0
+    from .scenarios import kill_bonus_vp
+    v = ship_value(target, gs)
+    out = poisson_at_least(lam, rem) * (v + kill_bonus_vp(gs, target))
+    to_cripple = rem - target.hits_max // 2
+    if not crippled and to_cripple > 0:
+        out += max(0.0, poisson_at_least(lam, to_cripple) - poisson_at_least(lam, rem)) * 0.25 * v
+    return out
+
+
+def hits_vp(target: Ship, gs, k: int) -> float:
+    """VP of exactly `k` hull hits on `target` now (owner: "s.38 scores
+    nothing until a threshold"): the thresholds they cross now (destroyed:
+    its value, any scenario kill bonus, its next turn of fire and its
+    explosion; newly crippled: a quarter and half its fire), plus what they
+    add to the chance its enemies' fire over the next turns (`_future_fire`)
+    cripples or destroys it (`_future_loss`);
+    Kill the Admiral's bridge chance on each hit short of the kill; escorts by
+    `escort_hits_vp`."""
+    if k <= 0:
+        return 0.0
+    rem = max(1, target.hits_remaining)
+    k = min(k, rem)
+    stamp = _state_stamp(gs)
+    cache = gs.__dict__.setdefault("_hits_vp_cache", {})
+    key = (stamp, target.id, target.hits_remaining, target.is_crippled, round(target.x, 1),
+           round(target.y, 1), round(target.heading or 0), len(target.critical_damage),
+           target.points_value, target.rerolls_remaining, k,
+           getattr(_THREAT_GUARD, "on", False), getattr(_BOOM_GUARD, "on", False),
+           getattr(_VPH_GUARD, "on", False), getattr(_NEXT_TURN_GUARD, "on", False))
+    v = cache.get(key)
+    if v is None:
+        if len(cache) > 20000:
+            cache.clear()
+        v = _hits_vp(target, gs, k)
+        cache[key] = v
+    return v
+
+
+def _state_stamp(gs):
+    """Every ship's place and state, for caches of values that depend on the
+    whole table. Worked out once per set of stored ship records: a change to
+    a ship replaces its record (`GameState.update_ship`), so the records'
+    identities, the phase and the markers say when it must be redone."""
+    ships = _ship_dicts(gs)
+    ids = (gs.turn_number, gs.current_phase, gs.active_player, len(gs.blast_markers),
+           len(gs.ordnance), getattr(gs, "scenario_mode", ""), getattr(gs, "turn_limit", None),
+           id(getattr(gs, "scenario_state", None)), len(getattr(gs, "scenario_state", None) or ()),
+           id(getattr(gs, "subplots", None)), len(getattr(gs, "subplots", None) or ()),
+           tuple(map(id, ships)))
+    memo = gs.__dict__.get("_stamp_memo")
+    if memo is not None and memo[0] == ids:
+        return memo[1]
+    stamp = _compute_stamp(gs)
+    # the memo keeps the records (and the scenario / sub-plot objects) it was
+    # made from: while it holds them their ids can't be reused by new records,
+    # so a matching id tuple really is the same records (an id freed and given
+    # to a new record would return a stale stamp, differently in every
+    # process, and break replays)
+    gs.__dict__["_stamp_memo"] = (ids, stamp, list(ships),
+                                  getattr(gs, "scenario_state", None),
+                                  getattr(gs, "subplots", None))
+    return stamp
+
+
+def table_key(gs):
+    """A key for values that depend on the whole table: every ship
+    (`_state_stamp`), the ordnance and the blast markers where they stand.
+    A function of the game state only, so a cache keyed on it gives the same
+    answer whenever and in whatever order it is asked (seeded games replay)."""
+    return (_state_stamp(gs),
+            tuple((o.get("id"), round(o.get("x") or 0, 1), round(o.get("y") or 0, 1),
+                   o.get("strength")) for o in (gs.ordnance or ())),
+            tuple((round(b.get("x") or 0, 1), round(b.get("y") or 0, 1))
+                  for b in (gs.blast_markers or ())))
+
+
+def ship_key(ship, grid: float = 0.0):
+    """The ship's own state for a cache key; with `grid`, its position rounded
+    to that many cm and its heading to 15 degrees (the value is then worked
+    out at the rounded spot, `placed_at_key`, so it is still exact for it)."""
+    if grid:
+        x, y = round(ship.x / grid) * grid, round(ship.y / grid) * grid
+        h = round((ship.heading or 0) / 15.0) * 15.0
+    else:
+        x, y, h = round(ship.x, 2), round(ship.y, 2), round(ship.heading or 0, 1)
+    return (ship.id, x, y, h, ship.hits_remaining, ship.status, ship.leadership,
+            ship.special_order, ship.ordnance_loaded_torps, ship.ordnance_loaded_craft,
+            tuple(sorted(c.get("crit_type", "") for c in ship.critical_damage)))
+
+
+def placed_at_key(ship, key):
+    """A copy of the ship standing where its `ship_key` (with a grid) says."""
+    from .models import ship_copy
+    return ship_copy(ship, x=key[1], y=key[2], heading=key[3])
+
+
+def _compute_stamp(gs):
+    return (gs.turn_number, gs.current_phase, gs.active_player, len(gs.blast_markers),
+            len(gs.ordnance), getattr(gs, "scenario_mode", ""), getattr(gs, "turn_limit", None),
+            hash(repr(getattr(gs, "scenario_state", None))), hash(repr(getattr(gs, "subplots", None))),
+            tuple((d.get("id"), round(d.get("x") or 0, 1), round(d.get("y") or 0, 1),
+                   round(d.get("heading") or 0), d.get("hits_remaining"), d.get("status"),
+                   len(d.get("critical_damage") or ()), d.get("special_order"),
+                   d.get("leadership"), d.get("points_value"), d.get("rerolls_remaining"),
+                   len(d.get("special_rules") or ()), len(d.get("weapons") or ()))
+                  for d in _ship_dicts(gs)))
+
+
+def _ship_dicts(gs):
+    """The stored ship records, read without copying (for cache keys only)."""
+    ships = getattr(gs, "ships", None)
+    if isinstance(ships, list) and (not ships or isinstance(ships[0], dict)):
+        return ships
+    return [sh.to_dict() for sh in gs.get_ships()]
+
+
+def _hits_vp(target: Ship, gs, k: int) -> float:
+    if target.ship_type == "escort":
+        return escort_hits_vp(target, gs, k)
+    from .scenarios import kill_bonus_vp, cripple_bonus_vp, admiral_crit_vp, admiral_bonus_vp
+    v = ship_value(target, gs)
+    rem = max(1, target.hits_remaining)
+    to_cripple = rem - target.hits_max // 2
+    kill = k >= rem
+    crip = (not target.is_crippled) and to_cripple > 0 and k >= to_cripple
+    out = 0.0
+    if (kill or crip) and not target.damage_crippled:
+        out += cripple_bonus_vp(gs, target)
+    if kill:
+        out += v + kill_bonus_vp(gs, target) + ship_threat_vp(target, gs)
+        out += death_explosion_vp(target, gs, _opponent(target.player))
+        return out
+    if crip:
+        out += 0.25 * v + 0.5 * ship_threat_vp(target, gs)
+    lam = _future_fire(target, gs)
+    out += (_future_loss(target, gs, rem - k, target.is_crippled or crip, lam)
+            - _future_loss(target, gs, rem, target.is_crippled, lam))
+    per_crit = admiral_crit_vp(gs, target)
+    if per_crit:
+        q = per_crit / admiral_bonus_vp(gs, target)
+        out += (1.0 - (1.0 - q / 6.0) ** min(k, rem - 1)) * admiral_bonus_vp(gs, target)
+    return out
+
+
 def damage_vp(target: Ship, gs, mean_hits: float) -> float:
+    """Expected VP of `mean_hits` hull hits (`_damage_vp`), cached per table
+    state and target."""
+    if mean_hits <= 0:
+        return 0.0
+    cache = gs.__dict__.setdefault("_damage_vp_cache", {})
+    key = (_state_stamp(gs), target.id, target.hits_remaining, target.is_crippled,
+           round(target.x, 1), round(target.y, 1), round(target.heading or 0),
+           len(target.critical_damage), target.points_value, target.rerolls_remaining,
+           round(mean_hits, 4), getattr(_THREAT_GUARD, "on", False),
+           getattr(_BOOM_GUARD, "on", False), getattr(_VPH_GUARD, "on", False),
+           getattr(_NEXT_TURN_GUARD, "on", False))
+    v = cache.get(key)
+    if v is None:
+        if len(cache) > 50000:
+            cache.clear()
+        v = _damage_vp(target, gs, mean_hits)
+        cache[key] = v
+    return v
+
+
+def _damage_vp(target: Ship, gs, mean_hits: float) -> float:
     """Expected VP from `mean_hits` hull hits on a target (s.38): its value if
     destroyed, a quarter if crippled, plus a little for each hit (later
     damage, crits). Owner: also the damage it would have done that we prevent,
     destroying it removes its next turn's threat (ship_threat_vp), crippling
     halves it, and a destroyed ship may explode among the ships near it
-    (death_explosion_vp: good for us near enemies, bad near our own ships)."""
+    (death_explosion_vp: good for us near enemies, bad near our own ships).
+    Capital ships: the Poisson count of hull hits, each count valued by
+    `hits_vp` (the thresholds it crosses and what it adds to the chance the
+    next turn's fire finishes the job; no flat share a hit, owner)."""
+    if target.ship_type != "escort":
+        rem = max(1, target.hits_remaining)
+        if mean_hits <= 0:
+            return 0.0
+        total, left = 0.0, 1.0
+        for n in range(1, rem):
+            q = poisson_pmf(mean_hits, n)
+            total += q * hits_vp(target, gs, n)
+            left -= q
+        left -= poisson_pmf(mean_hits, 0)
+        return total + max(0.0, left) * hits_vp(target, gs, rem)
     v = ship_value(target, gs)
     rem = max(1, target.hits_remaining)
     p_kill = poisson_at_least(mean_hits, rem)
     to_cripple = rem - target.hits_max // 2
     p_crip = 0.0 if target.is_crippled or to_cripple <= 0 else poisson_at_least(mean_hits, to_cripple)
+    if target.ship_type == "escort":
+        p_crip = 0.0              # escorts aren't crippled one by one (squadron VP, s.38)
     from .scenarios import kill_bonus_vp
     from .scenarios import cripple_bonus_vp
     crip_bonus = cripple_bonus_vp(gs, target)
@@ -561,8 +1294,25 @@ def damage_vp(target: Ship, gs, mean_hits: float) -> float:
         crip_bonus *= max(p_c, p_kill)
     else:
         crip_bonus = 0.0
-    base = crip_bonus + (p_kill * (v + kill_bonus_vp(gs, target)) + max(0.0, p_crip - p_kill) * v * 0.25
-            + min(mean_hits, rem) * value_per_hit(target, gs) * 0.2)
+    partial = 0.0
+    if rem > 1 and mean_hits > 0:
+        # an escort's hits short of the kill: what they add to finishing it
+        # off later (escort_hits_vp), not a flat share per hit (owner)
+        pk = math.exp(-mean_hits)
+        for k in range(1, rem):
+            pk *= mean_hits / k
+            partial += pk * escort_hits_vp(target, gs, k)
+    v_kill = escort_kill_vp(target, gs) if target.ship_type == "escort" else v
+    base = crip_bonus + (p_kill * (v_kill + kill_bonus_vp(gs, target))
+                         + max(0.0, p_crip - p_kill) * v * 0.25 + partial)
+    from .scenarios import admiral_crit_vp, admiral_bonus_vp
+    per_crit = admiral_crit_vp(gs, target)
+    if per_crit and target.ship_type != "escort":
+        # Kill the Admiral: each hull hit short of the kill crits on a 6, and a
+        # crit may smash the bridge (the admiral dies: the whole bonus)
+        q = per_crit / admiral_bonus_vp(gs, target)
+        p_bridge = 1.0 - math.exp(-min(mean_hits, rem - 1) * q / 6.0) if rem > 1 else 0.0
+        base += (1.0 - p_kill) * p_bridge * admiral_bonus_vp(gs, target)
     if p_kill <= 0 and p_crip <= 0:
         return base
     threat = ship_threat_vp(target, gs)
@@ -582,24 +1332,25 @@ def shot_vp(attacker: Ship, weapon: dict, target: Ship, gs, committed: float = 0
         return 0.0
     shields = current_shields(target, gs.get_blast_markers())
     # `committed` counts all expected hits planned so far; shields take the first
-    before = max(0.0, committed - shields)
-    after = max(0.0, committed + raw - shields)
-    # shields knocked down open the target to the rest of the fleet's fire
-    shield_hits = min(raw, max(0.0, shields - committed))
+    # (E[max(0, H - shields)], H Poisson: a total averaging below the shields
+    # still gets some through, `past_shields`)
+    before = past_shields(committed, shields)
+    after = past_shields(committed + raw, shields)
     alive = 1.0 - poisson_at_least(before, max(1, target.hits_remaining))
     # Bombardment cannons / killkannons crit on 4+ (crit_on): the extra crits
-    # over the usual 6+ per hull hit, each worth CRIT_VP_PER_HIT hits
-    # (judgement), on ships that use a critical hits table
+    # over the usual 6+ per hull hit, each at its value on the target's own
+    # table (hit_and_run.critical_hit_value; it was "a crit ~ a hit")
     crit_on = weapon.get("crit_on", 6)
     crit_extra = 0.0
     if crit_on < 6 and target.ship_type != "escort":
+        from .hit_and_run import critical_hit_value
         crit_extra = ((after - before) * ((7 - crit_on) / 6.0 - 1 / 6.0)
-                      * CRIT_VP_PER_HIT * value_per_hit(target, gs) * alive)
-    return (damage_vp(target, gs, after) - damage_vp(target, gs, before)
-            + shield_hits * value_per_hit(target, gs) * 0.1 * alive + crit_extra)
+                      * critical_hit_value(target, gs, attacker.player) * alive)
+    # (shields knocked down: the fleet's later shots this phase already see
+    # them through `committed`, so no extra share for the hits they stopped)
+    return damage_vp(target, gs, after) - damage_vp(target, gs, before) + crit_extra
 
 
-CRIT_VP_PER_HIT = 1.0   # judgement: a crit ~ a hit (the table averages ~0.6 extra damage + its effect)
 
 
 def intercept_gain(gs, player: int, target: OrdnanceMarker, already: int = 0) -> float:
@@ -646,12 +1397,17 @@ def explosion_vp(centre, strength: int, gs, player: int, exclude_id: str = "") -
         p_in = 1.0 - p_sum_at_most(3, max(0, _m.ceil(d) - 1))
         if p_in <= 0:
             continue
-        hits = max(0.0, strength * 0.5 - current_shields(s, bms))
-        if hits <= 0:
+        # `strength` lance shots on 4+, exactly: the hull hits past the shields
+        # (capped at what it has left) and the chance they finish it
+        sh = current_shields(s, bms)
+        pmf = binomial_pmf(strength, 0.5)
+        # each count of hull hits by its exact value (hits_vp: the thresholds
+        # and the next turn's finishing chance; it was a flat share a hit and
+        # 0.3 of the ship for a kill)
+        v = sum(q * hits_vp(s, gs, min(max(0, k - sh), s.hits_remaining))
+                for k, q in enumerate(pmf) if k > sh)
+        if v <= 0:
             continue
-        v = min(hits, s.hits_remaining) * value_per_hit(s, gs)
-        if hits >= s.hits_remaining:
-            v += ship_value(s, gs) * 0.3
         total += p_in * v * (1 if s.player != player else -1)
     return total
 
@@ -718,21 +1474,53 @@ def _mount_bears(e: Ship, w: dict, t: Ship) -> bool:
 
 def mount_hits(e: Ship, w: dict, t: Ship) -> float:
     """Expected hits of enemy `e`'s battery / lance mount `w` on `t` as it
-    stands (its position and heading): batteries 0.35 a firepower point
-    against Armour 5+, scaled to the Armour facing `e` would hit (`armor_vs`
-    from e's position; To do 8 a: a 6+ prow really is safer than a 5+ side);
-    lances 0.5 a lance whatever the Armour (they hit on 4+)."""
-    st = w.get("strength") or 0
+    stands (its position and heading): batteries on the real Gunnery table
+    (`battery_hits`, To do 30: the aspect, the Armour facing `e` would hit,
+    holofield / shadowfield shifts; To do 8 a: a 6+ prow really is safer than a
+    5+ side); lances by their own rules (`combat.lance_expected`: phantom
+    lances, pulsars, bio-plasma, zzapp gunz, holofield / shadowfield saves). A
+    crippled `e` fires at half strength."""
+    f = hull_save_factor(t)
+    from .necrons import veil_hidden
+    if veil_hidden(t):
+        f *= p_sum_at_most(2, max(0, min(10, e.leadership or 0)))   # its target priority test
     if w.get("weapon_type") == "lance":
-        return st * lance_p(w)
-    return st * 0.35 * p_hit(t.armor_vs(e.x, e.y)) / p_hit(5)
+        # each faction's lance rules, the holofield / shadowfield saves
+        # (combat.lance_expected, next turn's shot: crippling halves it)
+        from .combat import lance_expected
+        return lance_expected(e, w, t, now=False)[0] * f
+    return battery_hits(e, w, t) * f
+
+
+def mount_bypass(e: Ship, w: dict, t: Ship) -> float:
+    """The part of mount_hits that bypasses shields (Tyranid bio-plasma,
+    Necron particle whips' 6s)."""
+    if w.get("weapon_type") != "lance":
+        return 0.0
+    from .combat import lance_expected
+    return lance_expected(e, w, t, now=False)[1] * hull_save_factor(t)
+
+
+def hull_save_factor(t: Ship) -> float:
+    """The share of hits that get past a hull save the ship always has: a
+    Necron reactive hull ("RH 4+": a save on 4+, 2+ when braced) or Tyranid
+    bonded exo-plating (4+). 1 for everyone else. (Brace's own 4+ is priced
+    separately, `ai_player.brace_value`.)"""
+    rules = t.special_rules or []
+    rh = next((int(r.split(":")[1]) for r in rules if r.startswith("reactive_hull:")), None)
+    if rh is not None:
+        need = 2 if t.special_order == "brace_for_impact" else rh
+        return (need - 1) / 6.0
+    if "bonded_exo_plating" in rules:
+        return 0.5
+    return 1.0
 
 
 def enemy_fire_plan(gs, player: int) -> dict:
     """Where the enemy's guns are expected to go in its next turn, assuming it
     focuses fire (owner: optimal play concentrates, it doesn't split): each
     enemy battery / lance mount goes wholly to the ship of `player` it adds the
-    most expected VP against (`_mount_bears`; 0.35 a battery point, 0.5 a
+    most expected VP against (`_mount_bears`; batteries on the Gunnery table, 0.5 a
     lance, scaled to the Armour facing it would hit, mount_hits; that enemy
     ship's first mount on a target loses the target's shields), given the
     hits already planned on it: value per hit up to the
@@ -747,10 +1535,14 @@ def enemy_fire_plan(gs, player: int) -> dict:
     firing = set()                     # (enemy id, target id) pairs already shooting
 
     def value(t, h):
-        rem = max(1, t.hits_remaining)
-        vph = max(1.0, value_per_hit(t, gs))        # points unknown: still worth something
-        return (vph * min(h, rem)
-                + 0.5 * max(ship_value(t, gs), vph * t.hits_max) * _poisson_at_least(h, rem))
+        # h expected hull hits by their value (damage_vp: the thresholds and
+        # the finishing chance after this turn of fire; it was a flat share a
+        # hit and half the ship for a kill)
+        _NEXT_TURN_GUARD.on = True
+        try:
+            return damage_vp(t, gs, h)
+        finally:
+            _NEXT_TURN_GUARD.on = False
     mounts = []
     for e in gs.get_ships():
         if e.player == player or e.is_destroyed or e.is_disengaged:
@@ -759,20 +1551,23 @@ def enemy_fire_plan(gs, player: int) -> dict:
             wt = w.get("weapon_type")
             if wt not in ("battery", "lance"):
                 continue
-            h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35)
+            h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else BATTERY_HITS_PER_FP)
             if h > 0:
                 mounts.append((h, e, w))
     mounts.sort(key=lambda m: -m[0])
     for _h, e, w in mounts:
-        best, best_t, best_dh = 0.0, None, 0.0
+        best, best_t, best_dh = (-1.0, 0.0), None, 0.0
         for t in ours:
             if not _mount_bears(e, w, t):
                 continue
             h = mount_hits(e, w, t)          # on the Armour facing it would hit
-            dh = h if (e.id, t.id) in firing else max(0.0, h - shields[t.id])
+            byp = mount_bypass(e, w, t)
+            dh = h if (e.id, t.id) in firing else past_shields(h - byp, shields[t.id]) + byp
             gain = value(t, planned[t.id] + dh) - value(t, planned[t.id])
-            if gain > best:
-                best, best_t, best_dh = gain, t, dh
+            # a mount that bears fires at something: by VP, ties (nothing to
+            # gain anywhere) by the hull hits it would do
+            if (gain, dh) > best:
+                best, best_t, best_dh = (gain, dh), t, dh
         if best_t is not None:
             if (e.id, best_t.id) not in firing:
                 firing.add((e.id, best_t.id))
@@ -814,6 +1609,24 @@ def game_risk(gs, player: int):
     limit = getattr(gs, "turn_limit", None)
     if not limit:
         return None
+    # cached on the game state alone (table_key, plus what victory points
+    # read beyond the ships): every risk-adjusted value asks it, a Brace
+    # several times, and it sums both fleets' fire
+    key = (table_key(gs), player, repr(getattr(gs, "slave_vp", None)),
+           repr(getattr(gs, "kill_credit", None)),
+           # scenario points change in place (the stamp sees only the dict)
+           repr(getattr(gs, "scenario_state", None)))
+    cache = gs.__dict__.setdefault("_game_risk_cache", {})
+    if key in cache:
+        return cache[key]
+    if len(cache) > 500:
+        cache.clear()
+    val = _game_risk(gs, player, limit)
+    cache[key] = val
+    return val
+
+
+def _game_risk(gs, player: int, limit):
     from .victory_points import calculate_victory_points
     vp = calculate_victory_points(gs)
     enemy = 3 - player
@@ -865,21 +1678,31 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
     turn limit the risk is the certainty equivalent of staying (owner: play
     for the win; certainty_equivalent)."""
     v = ship_value(ship, gs)
+    # VP terms by damage only: a Necron capital ship conserving power counts as
+    # crippled for everything but scoring (`Ship.damage_crippled`, update 59)
+    crippled = ship.damage_crippled
     lam = incoming_hits(ship, gs)
     left = max(1, ship.hits_remaining)
     p_kill = _poisson_at_least(lam, left)
     from .scenarios import kill_bonus_vp, warp_loss_chance
     bonus = kill_bonus_vp(gs, ship)
-    risk = p_kill * (v * (0.75 if ship.is_crippled else 1.0) + bonus)
-    if not ship.is_crippled:
+    risk = p_kill * (v * (0.75 if crippled else 1.0) + bonus)
+    if not crippled:
         to_cripple = left - ship.hits_max // 2
         if to_cripple > 0:
             risk += max(0.0, _poisson_at_least(lam, to_cripple) - p_kill) * 0.25 * v
-    extra = 0.0 if ship.is_crippled else 0.10 * v
+    extra = 0.0 if crippled else 0.10 * v
+    from .dark_eldar import greed_binds
+    if greed_binds(gs, ship):
+        extra = v                          # Insatiable Greed: leaving counts destroyed
     # Warp Storm: a ship that leaves may be lost in the warp at the end (the
     # full value instead of the 10% / 25% it concedes)
     q_warp = warp_loss_chance(gs, ship)
-    extra += q_warp * v * (0.75 if ship.is_crippled else 0.90)
+    extra += q_warp * v * (0.75 if crippled else 0.90)
+    # Kill the Admiral (owner): a flagship that leaves the table loses the
+    # admiral, and the game, as surely as one destroyed
+    from .scenarios import admiral_bonus_vp
+    extra += admiral_bonus_vp(gs, ship)
     p_pass = p_sum_at_most(2, ld) if ld > 1 else 0.0
     if "necron" in ship.special_rules:
         p_pass = 1.0                       # Without a Trace: no test needed
@@ -893,6 +1716,8 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
         p_wipe, v_sq, crippled = esc
         risk = p_wipe * v_sq
         extra = (0.25 if crippled else 0.10) * v_sq
+        if not crippled and greed_binds(gs, ship):
+            extra = v_sq                   # Insatiable Greed
         if getattr(gs, "turn_limit", None):
             fire = fire_outcomes or [(1.0, contribution)]
             dmg = [(p_wipe, -v_sq), (1 - p_wipe, 0.0)]
@@ -907,9 +1732,9 @@ def disengage_gain(ship: Ship, gs, ld: int, contribution: float,
         # untouched), leaving a sure loss: compared by certainty equivalent,
         # so a fleet behind near the end fights on and one ahead leaves.
         p_crip = 0.0
-        if not ship.is_crippled and left - ship.hits_max // 2 > 0:
+        if not crippled and left - ship.hits_max // 2 > 0:
             p_crip = max(0.0, _poisson_at_least(lam, left - ship.hits_max // 2) - p_kill)
-        loss_kill = v * (0.75 if ship.is_crippled else 1.0) + bonus
+        loss_kill = v * (0.75 if crippled else 1.0) + bonus
         dmg = [(p_kill, -loss_kill), (p_crip, -0.25 * v), (1 - p_kill - p_crip, 0.0)]
         # The guns given up are a gamble too (To do 2): staying is both
         # gambles together; trying gives a sure -extra on a pass and the damage
@@ -947,21 +1772,60 @@ def added_vp(target: Ship, gs, committed: float, hits: float, shields: bool = Tr
     then damage_vp's thresholds (destroy, cripple)."""
     from .geometry import current_shields
     sh = current_shields(target, gs.get_blast_markers()) if shields else 0
-    before = max(0.0, committed - sh)
-    after = max(0.0, committed + hits - sh)
+    before = past_shields(committed, sh)               # E[max(0, H - shields)]
+    after = past_shields(committed + hits, sh)
     return damage_vp(target, gs, after) - damage_vp(target, gs, before)
 
 
-def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy) -> float:
+class _OrdnanceRules:
+    """Stand-in marker for turret_hit_on: the launcher's rules (Eldar stealth,
+    Dark Eldar flickerfields) on a torpedo or craft."""
+    def __init__(self, rules, kind="torpedo_standard"):
+        self.special_rules = list(rules or [])
+        self.ordnance_type = kind
+
+
+def craft_turret_p(target: Ship, rules=None, gs=None) -> float:
+    """Chance one of `target`'s turret dice destroys one of our attack craft
+    (4+, Ork 5+, Eldar turrets +1; our Eldar stealth / Dark Eldar flickerfields
+    +2, at most 6+; misses re-rolled by Tau tracking systems in range, with the
+    game state)."""
+    from .ordnance import turret_hit_on, turret_kill_p
+    return turret_kill_p(target, turret_hit_on(target, _OrdnanceRules(rules, "bomber")), gs)
+
+
+def torpedo_salvo_hits(strength: int, target: Ship, gs, from_xy, rules=None,
+                       otype: str = "torpedo_standard") -> float:
     """Expected hits (torpedoes ignore shields) of a torpedo salvo of `strength` reaching
     `target`: its turrets (plus massed turrets) shoot torpedoes down first,
     each success one torpedo (Ork turrets 5+), then each torpedo hits its
     Armour facing the launcher's side."""
+    return sum(k * q for k, q in enumerate(torpedo_salvo_pmf(strength, target, gs, from_xy,
+                                                             rules, otype)))
+
+
+def torpedo_salvo_pmf(strength: int, target: Ship, gs, from_xy, rules=None,
+                      otype: str = "torpedo_standard") -> List[float]:
+    """P(k hits), k = 0..strength, of a torpedo salvo reaching `target`, exact:
+    the turret dice (plus massed turrets) each shoot one torpedo down on their
+    roll, binomially, never more than the salvo; each torpedo left then hits
+    its Armour facing the launcher's side (`torpedo_p_hit`: re-rolls, leech /
+    plasma kinds), binomially."""
     from .ordnance import ordnance_turrets, get_massed_turret_bonus, turret_hit_on
+    from .ordnance import turret_kill_p
+    n = max(0, int(round(strength)))
     shots = ordnance_turrets(target, gs) + get_massed_turret_bonus(target, gs.get_ships())
-    p_turret = max(0, 7 - turret_hit_on(target)) / 6.0
-    left = max(0.0, strength - shots * p_turret)
-    return left * p_hit(target.armor_vs(*from_xy))
+    p_turret = turret_kill_p(target, turret_hit_on(target, _OrdnanceRules(rules)), gs)
+    armour = target.armor_vs(*from_xy)
+    if "mucous_membrane" in target.special_rules:
+        armour = min(6, armour + 1)         # Tyranid Mucous Membrane
+    ph = torpedo_p_hit(armour, rules, otype)
+    out = [0.0] * (n + 1)
+    for kills, qk in enumerate(binomial_pmf(max(0, int(shots)), p_turret)):
+        left = max(0, n - kills)
+        for h, qh in enumerate(binomial_pmf(left, ph)):
+            out[h] += qk * qh
+    return out
 
 
 def strike_group_hits(n_fighters: int, n_bombers: int, target: Ship, gs,
@@ -1032,14 +1896,11 @@ def travel_discount(dist: float, speed: float) -> float:
 
 def hull_hits_vp(target: Ship, gs, committed: float, hits: float) -> float:
     """`hits` more expected ordnance hits on `target` (shields don't stop
-    ordnance, s.11 / s.15), on the same scale as raid values
-    (hit_and_run.raid_result_value: full value per hit) plus the focus bonus of
-    crossing its cripple / destroy thresholds (added_vp). Used to compare
-    bombers with assault boats and to pick strike targets."""
-    rem = max(1, target.hits_remaining)
-    hull = max(0.0, min(committed + hits, rem) - min(committed, rem))
-    vph = max(1.0, value_per_hit(target, gs))
-    return added_vp(target, gs, committed, hits, shields=False) + 0.8 * vph * hull
+    ordnance, s.11 / s.15), after `committed`: what they add to `damage_vp`
+    (the thresholds they cross and the next turn's finishing chance; owner:
+    no flat share a hit, it was 0.8 of the ship's value a hit on top). The
+    scale raids, bombers, crits' extra damage and fires are compared on."""
+    return added_vp(target, gs, committed, hits, shields=False)
 
 
 def plan_strike_targets(gs, player: int) -> dict:
@@ -1085,6 +1946,12 @@ def plan_strike_targets(gs, player: int) -> dict:
                                  max(1.0, route[2] / d), gs.active_player == player)
             if tl is None:
                 continue
+            if any("impaler" in (m.special_rules or []) for m in g):
+                # Impalers are removed at the start of their owner's turn (lack
+                # of fuel, Xenos p.5): in our ordnance phase they have this
+                # one and the enemy's left, in the enemy's only that one
+                if tl["phase"] > (1 if gs.active_player == player else 0):
+                    continue
             c = committed.get(e.id, 0.0)
             # every interception case on the way: the target's reactive CAP,
             # other carriers' launches, fighters already flying (as planned
@@ -1098,7 +1965,7 @@ def plan_strike_targets(gs, player: int) -> dict:
                     v += w * (hull_hits_vp(e, gs, c, h) if h else 0.0)
             if a or mr:
                 inp = wave_plan_inputs(e, gs)
-                p = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                p = craft_turret_p(e, lead.special_rules)
                 n = a + len(mr)
                 through = sum(w * expected_survivors(n, inp["turrets"] + inp["massed"],
                                                      inp["cap"] + ec, p) for w, ec in cases)
@@ -1120,10 +1987,20 @@ def plan_strike_targets(gs, player: int) -> dict:
     return plan
 
 
+def _gun_hits(s: Ship, w: dict, e: Ship) -> float:
+    """One battery / lance mount's expected hits on `e` from where both stand:
+    batteries on the Gunnery table (`battery_hits`), lances 0.5 each (4+);
+    crippled ships at half strength."""
+    if w.get("weapon_type") == "lance":
+        from .combat import lance_expected
+        return lance_expected(s, w, e, now=False)[0]
+    return battery_hits(s, w, e)
+
+
 def fleet_hits_on(gs, player: int) -> Dict[str, float]:
     """Expected hits `player`'s batteries / lances in reach (range + the firing
-    ship's move) could put on each enemy ship next shooting phase (0.35 a
-    battery point scaled by its Armour, 0.5 a lance), before shields."""
+    ship's move) could put on each enemy ship next shooting phase (batteries on the
+    Gunnery table, `_gun_hits`; 0.5 a lance), before shields."""
     import math as _m
     ours = [s for s in gs.get_ships() if s.player == player
             and not s.is_destroyed and not s.is_disengaged]
@@ -1133,14 +2010,13 @@ def fleet_hits_on(gs, player: int) -> Dict[str, float]:
                 or e.status in ("drifting_hulk", "burning_hulk")):
             continue
         hits = 0.0
-        armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
         for s in ours:
             d = _m.hypot(s.x - e.x, s.y - e.y)
             for w in s.weapons:
                 wt = w.get("weapon_type")
                 if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
                     continue
-                hits += (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
+                hits += _gun_hits(s, w, e)
         out[e.id] = hits
     return out
 
@@ -1160,7 +2036,6 @@ def explosion_position_vp(ship: Ship, x: float, y: float, gs, enemy_plan: Dict[s
     import math as _m
     from .geometry import current_shields
     shields = current_shields(ship, gs.get_blast_markers())
-    vph = max(1.0, value_per_hit(ship, gs))
     risk = 0.0
     for o in gs.get_ships():
         if o.id == ship.id or o.is_destroyed or o.is_disengaged:
@@ -1176,9 +2051,13 @@ def explosion_position_vp(ship: Ship, x: float, y: float, gs, enemy_plan: Dict[s
         p_in = 1.0 - p_sum_at_most(3, max(0, _m.ceil(d) - 1))
         if p_in <= 0:
             continue
-        hits = (pp * max(0.0, (o.hits_max // 2) * 0.5 - shields)
-                + pw * max(0.0, o.hits_max * 0.5 - shields))
-        risk += pd * p_in * min(hits, ship.hits_remaining) * vph
+        # plasma: half its starting hits as lance shots, warp: all of them (4+),
+        # exactly, the hull hits past our shields capped at what we have left
+        def hull_vp(n):
+            # each count of hull hits past our shields by its value (hits_vp)
+            return sum(q * hits_vp(ship, gs, min(max(0, k - shields), ship.hits_remaining))
+                       for k, q in enumerate(binomial_pmf(n, 0.5)) if k > shields)
+        risk += pd * p_in * (pp * hull_vp(o.hits_max // 2) + pw * hull_vp(o.hits_max))
     lam_me = enemy_plan.get(ship.id, 0.0)
     pd_me = poisson_at_least(lam_me, max(1, ship.hits_remaining))
     bonus = 0.0
@@ -1191,7 +2070,7 @@ def fleet_focus_targets(gs, player: int) -> list:
     """Enemy ships ranked for the fleet to concentrate on (owner: focus fire,
     easier targets first): for each enemy, the expected hits the fleet's
     batteries / lances could put on it next turn (within range + the firing
-    ship's move; 0.35 a battery point scaled by its Armour, 0.5 a lance), and
+    ship's move; batteries on the Gunnery table, 0.5 a lance), and
     the VP those hits add through its shields and damage thresholds
     (added_vp). Easier (low Armour / shields) and damaged ships rank first.
     Returns [(VP, enemy ship), ...] best first."""
@@ -1204,14 +2083,13 @@ def fleet_focus_targets(gs, player: int) -> list:
                 or e.status in ("drifting_hulk", "burning_hulk")):
             continue
         hits = 0.0
-        armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
         for s in ours:
             d = _m.hypot(s.x - e.x, s.y - e.y)
             for w in s.weapons:
                 wt = w.get("weapon_type")
                 if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
                     continue
-                h = (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
+                h = _gun_hits(s, w, e)
                 hits += h
         if hits > 0:
             ranked.append((added_vp(e, gs, 0.0, hits), e))
@@ -1224,13 +2102,12 @@ def _ship_hits_on(s: Ship, e: Ship) -> float:
     turn (within range + its move), as fleet_focus_targets counts them."""
     import math as _m
     d = _m.hypot(s.x - e.x, s.y - e.y)
-    armour_factor = p_hit(e.lowest_armor_value) / p_hit(5)
     hits = 0.0
     for w in s.weapons:
         wt = w.get("weapon_type")
         if wt not in ("battery", "lance") or d > (w.get("range_cm") or 0) + (s.speed or 0):
             continue
-        hits += (w.get("strength") or 0) * (lance_p(w) if wt == "lance" else 0.35 * armour_factor)
+        hits += _gun_hits(s, w, e)
     return hits
 
 
@@ -1274,7 +2151,8 @@ def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -
     """Expected hits the enemy's guns could put on `ship` if it ended its move
     at (x, y) and the enemy focused on it: every enemy battery / lance mount
     that could bear there (_mount_bears), on the Armour facing it would hit at
-    our end heading (mount_hits, To do 8 a), less its shields once per enemy."""
+    our end heading (mount_hits, To do 8 a), less its shields once per enemy
+    (`past_shields`: a volley averaging below them still gets some through)."""
     from .geometry import current_shields
     moved = _dc_replace(ship, x=x, y=y, heading=heading)
     shields = current_shields(ship, gs.get_blast_markers())
@@ -1282,10 +2160,11 @@ def position_exposure_hits(ship: Ship, x: float, y: float, heading: float, gs) -
     for e in gs.get_ships():
         if e.player == ship.player or e.is_destroyed or e.is_disengaged:
             continue
-        hits = sum(mount_hits(e, w, moved)
-                   for w in e.weapons if w.get("weapon_type") in ("battery", "lance")
-                   and _mount_bears(e, w, moved))
-        total += max(0.0, hits - shields)
+        bearing = [w for w in e.weapons if w.get("weapon_type") in ("battery", "lance")
+                   and _mount_bears(e, w, moved)]
+        hits = sum(mount_hits(e, w, moved) for w in bearing)
+        bypass = sum(mount_bypass(e, w, moved) for w in bearing)   # never stopped by shields
+        total += past_shields(hits - bypass, shields) + bypass   # E[max(0, H - shields)]
     return total
 
 
@@ -1501,7 +2380,7 @@ def enemy_move_samples(ship):
     """Polylines for `ship`'s next movement: (normal, dodge). Normal moves go
     half to full speed, turning up to its turn angle after its turning
     distance; dodges need a special order: Burn Retros (0 to half speed, turn
-    at once) or All Ahead Full (straight, +4D6cm: 14 on average)."""
+    at once) or All Ahead Full (straight, +4D6cm: five bands of the roll, `aaf_p`)."""
     import math as _m
     spd = ship.effective_speed or 0
     start = (ship.x, ship.y)
@@ -1529,8 +2408,90 @@ def enemy_move_samples(ship):
     dodge = [poly(d, turn, 0.0) if d else _Path([start])
              for d in (0.0, spd / 4.0, spd / 2.0) for turn in (-ta, 0.0, ta)
              if d or not turn]
-    dodge.append(poly(spd + 14.0, 0.0, spd + 14.0))
+    # All Ahead Full: straight, +4D6cm, rolled after the order, so the dodge is
+    # its spread, not its average: five bands of the 4D6 total, each at its
+    # mean and with its probability (`aaf_p`; the users combine them into one
+    # outcome, the player doesn't choose the roll)
+    for extra, prob in AAF_BANDS:
+        path = poly(spd + extra, 0.0, spd + extra)
+        path.aaf_p = prob
+        dodge.append(path)
     return normal, dodge
+
+
+MINE_PHASES = 4      # ordnance phases a laid mine is followed (to the end of the next game turn)
+
+
+def mine_value(x: float, y: float, gs, player: int, n: int = 1) -> float:
+    """Expected VP of `n` mines laid at (x, y) by `player` (s.17, owner:
+    computed, not half a hit): each moves exactly 10cm straight at the nearest
+    enemy vessel in every ordnance phase (ours first, then the enemy's after
+    its move, then ours again...), and attacks the ship it contacts at once,
+    also a ship that moves into it: 8D6 against its Armour facing the mine,
+    4D6 if one of its turrets hits (`mine_attack_dice`), shields ignored.
+    The target's moves are `enemy_move_samples`' normal moves at their
+    weights, its second move the same again; followed for MINE_PHASES
+    ordnance phases, each contact at `phase_weight` (later is less likely and
+    less certain); each mine's hits added after the earlier ones
+    (`hull_hits_vp(committed=)`). Not counted: fighters removing it, the
+    nearest enemy changing on the way, a contact beyond the horizon."""
+    enemies = [e for e in gs.get_ships() if e.player != player and not e.is_destroyed
+               and not e.is_disengaged and e.status == "active"]
+    if not enemies or n <= 0:
+        return 0.0
+    t = min(enemies, key=lambda e: (math.hypot(e.x - x, e.y - y), e.id))
+    r = t.base_radius + 1.0                          # contact: base + the marker's half width
+    normal, _dodge = enemy_move_samples(t)
+    tot_w = sum(pth.weight for pth in normal) or 1.0
+    p_contact = [0.0] * MINE_PHASES
+    for pth in normal:
+        w = pth.weight / tot_w
+        mx, my = x, y
+        sx, sy = t.x, t.y
+        ex, ey = pth[-1]
+        dx, dy = ex - sx, ey - sy
+        hit_k = None
+        for k in range(MINE_PHASES):
+            # the mine moves 10cm at the target (ours k even, the enemy's odd)
+            d = math.hypot(sx - mx, sy - my)
+            if d - r <= 10.0:
+                hit_k = k
+                break
+            mx += (sx - mx) / d * 10.0
+            my += (sy - my) / d * 10.0
+            if k % 2 == 0:
+                # the enemy moves before its ordnance phase: into the mine?
+                nx, ny = sx + dx, sy + dy
+                if _seg_dist(mx, my, sx, sy, nx, ny) <= r:
+                    hit_k = k + 1
+                    break
+                sx, sy = nx, ny
+        if hit_k is not None:
+            p_contact[hit_k] += w
+    hits = mine_attack_dice(t) * p_hit(t.armor_vs(x, y))
+    value = 0.0
+    for i in range(n):
+        value += sum(phase_weight(k) * p for k, p in enumerate(p_contact)) \
+            * hull_hits_vp(t, gs, i * hits, hits)
+    return value
+
+
+def _aaf_bands():
+    """(mean extra cm, probability) for 4D6 in five bands: 4-9, 10-12, 13-15,
+    16-18, 19-24."""
+    from itertools import product as _prod
+    counts = {}
+    for r in _prod(range(1, 7), repeat=4):
+        counts[sum(r)] = counts.get(sum(r), 0) + 1
+    out = []
+    for lo, hi in ((4, 9), (10, 12), (13, 15), (16, 18), (19, 24)):
+        n = sum(counts[v] for v in range(lo, hi + 1))
+        mean = sum(v * counts[v] for v in range(lo, hi + 1)) / n
+        out.append((mean, n / 6 ** 4))
+    return out
+
+
+AAF_BANDS = _aaf_bands()
 
 
 def torpedo_path_survival(x1, y1, x2, y2, gs, kind: str = "torpedo",
@@ -1563,7 +2524,6 @@ def _predicted_positions(target, our_phase: bool):
     facing along its course. If it is our ordnance phase it hasn't moved yet:
     [now, after 1 move, after 1 move, after 2 moves]; in the enemy's phase it
     already has: [now, now, after 1, after 1]."""
-    import dataclasses
     import math as _m
     paths = enemy_move_samples(target)[0]
     wsum = sum(p.weight for p in paths) or 1.0
@@ -1571,15 +2531,15 @@ def _predicted_positions(target, our_phase: bool):
     ey = sum(p.weight * p[-1][1] for p in paths) / wsum
     mv = 0.75 * (target.effective_speed or 0)
     h = _m.radians(target.heading)
-    e1 = dataclasses.replace(target, x=ex, y=ey)
-    e2 = dataclasses.replace(target, x=ex + mv * _m.cos(h), y=ey + mv * _m.sin(h))
+    e1 = _dc_replace(target, x=ex, y=ey)
+    e2 = _dc_replace(target, x=ex + mv * _m.cos(h), y=ey + mv * _m.sin(h))
     return [target, e1, e1, e2] if our_phase else [target, target, e1, e1]
 
 
 def approach_plan(x, y, heading, speed, target, gs, player, strength,
                   arc_half=45.0, turn_now=True, max_turn=45.0, p_turn=1.0,
                   our_phase=True, boarding=False, tau=False, friends=(),
-                  committed=0.0, lengths=None):
+                  committed=0.0, lengths=None, max_moves=4):
     """Best path for a salvo at (x, y) that can turn, against `target`: the
     first move's heading (within `arc_half` of `heading`; at launch the arc,
     in flight the 45-degree turn, `turn_now` False when it may not turn this
@@ -1594,8 +2554,9 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
     guided torpedoes test to turn) x 5/6 per later phase for Tau missiles
     (strength lost on 1s) x 1/2 for boarding torpedoes (raids, as marker_hits).
     `lengths`: move lengths to try (Tau missiles choose 20-40cm each move;
-    others move their speed). Returns {"heading", "value", "hits", "armour",
-    "phase"} or None."""
+    others move their speed). `max_moves`: 1 for a torpedo bomber salvo,
+    removed at the end of the phase it is fired in (s.21). Returns {"heading", "length" (the first move's),
+    "value", "hits", "armour", "phase"} or None."""
     import math as _m
     positions = _predicted_positions(target, our_phase)
     rt = target.base_radius + TORP_CONTACT_HALF_W
@@ -1623,11 +2584,13 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
         # Full choice of move lengths on the first two moves; later ones (a
         # guess anyway) at the middle length, to keep the search small
         for ln in (lengths if k <= 1 else (mid_len,)):
+            if k == 0:
+                first_len[0] = ln
             step(px, py, h, k, turns, left, lost, ln)
 
     def step(px, py, h, k, turns, left, lost, ln):
         nonlocal best
-        if k >= 4 or left <= 0:
+        if k >= max_moves or left <= 0:
             return
         rad = _m.radians(h)
         qx, qy = px + ln * _m.cos(rad), py + ln * _m.sin(rad)
@@ -1648,9 +2611,8 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
                 # The target moved onto the waiting salvo (s.15): it meets the
                 # salvo with the side it was moving with, seen from where the
                 # salvo sits as the target's base first touches it
-                import dataclasses
                 th = _m.radians(tgt.heading)
-                tgt = dataclasses.replace(tgt, x=px - rt * _m.cos(th), y=py - rt * _m.sin(th))
+                tgt = _dc_replace(tgt, x=px - rt * _m.cos(th), y=py - rt * _m.sin(th))
                 back = (px, py)
             else:
                 cx, cy = px + (qx - px) * t_hit, py + (qy - py) * t_hit
@@ -1666,13 +2628,13 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
             dev = abs((first[0] - bearing0 + 180) % 360 - 180)
             key = (round(v, 6), -k, -dev)
             if best is None or key > best["_key"]:
-                best = {"heading": first[0] % 360, "value": v, "hits": hits, "armour": arm,
-                        "phase": k, "_key": key}
+                best = {"heading": first[0] % 360, "length": first_len[0], "value": v,
+                        "hits": hits, "armour": arm, "phase": k, "_key": key}
             return
-        if surv <= 0 or k + 1 >= 4:
+        if surv <= 0 or k + 1 >= max_moves:
             return                                   # dies on the way / out of moves
         nxt = positions[k + 1]
-        if _m.hypot(nxt.x - qx, nxt.y - qy) > (3 - k) * max_len + rt:
+        if _m.hypot(nxt.x - qx, nxt.y - qy) > (max_moves - 1 - k) * max_len + rt:
             return                                   # can no longer reach it
         surv_acc[0] *= surv
         steps = APPROACH_TURN_STEPS if k == 0 else (-1.0, 0.0, 1.0)
@@ -1682,6 +2644,7 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
         surv_acc[0] /= surv
 
     surv_acc = [1.0]
+    first_len = [lengths[0]]
     bearing0 = _m.degrees(_m.atan2(target.y - y, target.x - x))
     for h0 in firsts:
         first = [h0]
@@ -1693,20 +2656,38 @@ def approach_plan(x, y, heading, speed, target, gs, player, strength,
 
 def salvo_approach(marker, gs, target=None, our_phase=None):
     """approach_plan for a salvo already in flight (the AI's in-flight turn):
-    its target (marker.torp_target_id, else the nearest enemy ship), a turn of
-    up to 45 degrees now, Tau missiles 20-40cm a move, Leadership-guided
-    salvos at the launcher's Ld odds per later turn. None if no target."""
-    from .ordnance import is_boarding_torpedo
+    a turn of up to 45 degrees now, Tau missiles 20-40cm a move, Leadership-
+    guided salvos at the launcher's Ld odds per later turn. The target: the
+    one given; else its planned target (marker.torp_target_id) while that is
+    in play and the salvo can still reach it; else the enemy ship the salvo is
+    worth most against with the turns it can actually make (each enemy
+    through approach_plan, so one behind it or out of its 45-degree turns
+    scores nothing). The plan carries "target" (its ship id). None if no
+    enemy can be reached."""
+    if target is not None:
+        return _salvo_plan(marker, gs, target, our_phase)
     ships = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
     enemies = [s for s in ships if s.player != marker.owner_player and not s.is_hulk]
-    if target is None:
-        target = next((s for s in enemies if s.id == getattr(marker, "torp_target_id", "")),
-                      None)
-    if target is None and enemies:
-        import math as _m
-        target = min(enemies, key=lambda s: _m.hypot(s.x - marker.x, s.y - marker.y))
-    if target is None:
-        return None
+    kept = next((s for s in enemies if s.id == getattr(marker, "torp_target_id", "")), None)
+    if kept is not None:
+        plan = _salvo_plan(marker, gs, kept, our_phase)
+        if plan is not None and plan["value"] > 0:
+            return plan
+    best = None
+    for e in enemies:
+        if kept is not None and e.id == kept.id:
+            continue
+        plan = _salvo_plan(marker, gs, e, our_phase)
+        if plan is not None and plan["value"] > 0 and (best is None
+                                                       or plan["value"] > best["value"]):
+            best = plan
+    return best
+
+
+def _salvo_plan(marker, gs, target, our_phase=None):
+    """salvo_approach against one target."""
+    from .ordnance import is_boarding_torpedo
+    ships = [s for s in gs.get_ships() if not s.is_destroyed and not s.is_disengaged]
     if our_phase is None:
         our_phase = gs.active_player == marker.owner_player
     boarding = is_boarding_torpedo(marker)
@@ -1720,10 +2701,14 @@ def salvo_approach(marker, gs, target=None, our_phase=None):
     friends = [] if boarding else [
         s for s in ships if s.player == marker.owner_player
         and s.id not in (marker.launch_exempt_ships or [])]
-    return approach_plan(marker.x, marker.y, marker.heading, marker.speed or 30.0, target, gs,
+    plan = approach_plan(marker.x, marker.y, marker.heading, marker.speed or 30.0, target, gs,
                          marker.owner_player, marker.strength, arc_half=45.0,
                          p_turn=p_turn, our_phase=our_phase, boarding=boarding, tau=tau,
-                         friends=friends, lengths=(20.0, 30.0, 40.0) if tau else None)
+                         friends=friends, lengths=(20.0, 30.0, 40.0) if tau else None,
+                         max_moves=1 if "limited_fuel" in (marker.special_rules or []) else 4)
+    if plan is not None:
+        plan["target"] = target.id
+    return plan
 
 
 # ── Strikes valued when they land (To do 2) ─────────────────────────────────
@@ -1745,7 +2730,6 @@ AIRBORNE_INTERCEPT_WEIGHT = 0.75
 def _positions_through(target, our_phase: bool, phases: int):
     """_predicted_positions extended to `phases` ordnance phases: after the
     second move the target keeps going along its course, a mean move per turn."""
-    import dataclasses
     import math as _m
     pos = list(_predicted_positions(target, our_phase))
     mv = 0.75 * (target.effective_speed or 0)
@@ -1754,7 +2738,7 @@ def _positions_through(target, our_phase: bool, phases: int):
         last = pos[-1]
         # it moves before the enemy's ordnance phases: odd ones when it is our phase now
         moves = (len(pos) % 2 == 1) if our_phase else (len(pos) % 2 == 0)
-        pos.append(dataclasses.replace(last, x=last.x + (mv * _m.cos(h) if moves else 0.0),
+        pos.append(_dc_replace(last, x=last.x + (mv * _m.cos(h) if moves else 0.0),
                                        y=last.y + (mv * _m.sin(h) if moves else 0.0)))
     return pos[:phases]
 
@@ -1991,9 +2975,8 @@ def ship_bracket_raw(a: Ship, b: Ship, dist: float, heading_b: float, heading_a:
     from .combat import check_weapon_in_arc, expected_hits, weapon_disabled_by_crit
     # shallow copies (read only: the weapon lists are shared, never changed);
     # deep to_dict / from_dict copies here were ~40% of AI move planning
-    from dataclasses import replace
-    tb = replace(b, x=dist, y=0.0, heading=float(heading_b))
-    ta = replace(a, x=0.0, y=0.0, heading=float(heading_a), special_order="")
+    tb = _dc_replace(b, x=dist, y=0.0, heading=float(heading_b))
+    ta = _dc_replace(a, x=0.0, y=0.0, heading=float(heading_a), special_order="")
     gs = _BareState([ta, tb])
     hits = 0.0
     for w in ta.weapons:
@@ -2016,7 +2999,9 @@ def _bracket_state(s: Ship) -> tuple:
     """What a ship's bracket values depend on (its guns and their state)."""
     return (s.id, s.ship_class, s.hits_remaining, s.hits_max, s.status, s.shields_max,
             tuple(sorted(c.get("crit_type", "") for c in s.critical_damage)),
-            tuple(s.special_rules), len(s.weapons), s.speed)
+            tuple(s.special_rules), s.speed, s.special_order,
+            tuple((w.get("name"), w.get("weapon_type"), w.get("strength"), w.get("range_cm"),
+                   w.get("range"), tuple(w.get("arcs") or ())) for w in s.weapons))
 
 
 _BRACKET_CACHE: Dict[tuple, float] = {}
@@ -2092,26 +3077,135 @@ def best_bracket(table) -> Tuple[float, float]:
     return max(table, key=lambda r: r[1] - r[2])[0]
 
 
-def torpedo_bomber_target(gs, group, player: int):
-    """(VP, ship) for a torpedo bomber wave's salvo this phase (s.21: 2 a
-    squadron; Tiger Sharks a Tau missile salvo, 40cm, 5/6 of it through): the
-    enemy ship within the salvo's move where it does most expected VP (turret
-    kills 4+ each, the facing it hits; ships don't move in the ordnance phase),
-    or None when none is in reach. Shared by the AI and the "Auto (best)"
-    choice."""
+def _salvo_attack_hits(strength: float, ship: Ship, x: float, y: float,
+                       rules=None) -> Tuple[float, float]:
+    """(expected hits, strength left) of a salvo of `strength` attacking `ship`
+    from (x, y): turrets kill first (4+, worse against Eldar / Dark Eldar
+    salvos), then each point hits on the facing it touches (Dark Eldar plasma
+    and Eldar torpedoes re-roll misses); hits and kills are spent, the misses
+    carry on (s.17)."""
+    from .ordnance import turret_hit_on
+    p_t = max(0, 7 - turret_hit_on(ship, _OrdnanceRules(rules))) / 6.0
+    through = max(0.0, strength - p_t * ship.effective_turrets)
+    hits = through * torpedo_p_hit(ship.armor_vs(x, y), rules)
+    return hits, max(0.0, through - hits)
+
+
+def _parked_on(lead, ship: Ship) -> bool:
+    """A torpedo bomber wave whose lead sits on a ship's base: a salvo placed
+    there is in contact and attacks it at once (owner ruling, s.21)."""
+    return math.hypot(ship.x - lead.x, ship.y - lead.y) <= ship.base_radius + TORP_CONTACT_HALF_W
+
+
+def _bomber_salvo_value(gs, group, player: int, heading: float) -> float:
+    """Expected VP for `player` of a torpedo bomber wave's salvo placed at its
+    lead and moving `heading` (s.21): it attacks every ship it touches along
+    its move, the ships it is placed on first (owner ruling: friends too,
+    the fire-through-allies exception covers only ships firing torpedoes),
+    then those along the lane, nearest first, carrying on with what misses
+    (s.17). Enemy hits count for us, ours against us (owner: friendly fire is
+    negative VP)."""
     from .ordnance import TORPEDO_SPEED_DEFAULT
     lead = group[0]
     tiger = "tiger_shark" in lead.special_rules
     reach = 40.0 if tiger else float(TORPEDO_SPEED_DEFAULT)
     strength = 2 * len(group) * (5 / 6 if tiger else 1.0)
+    rad = math.radians(heading)
+    ex, ey = lead.x + reach * math.cos(rad), lead.y + reach * math.sin(rad)
+    touched = []
+    for s in gs.get_ships():
+        if s.is_destroyed or s.is_disengaged:
+            continue
+        if _parked_on(lead, s):
+            touched.append((-1.0, s))
+            continue
+        if _seg_dist(s.x, s.y, lead.x, lead.y, ex, ey) <= s.base_radius + TORP_CONTACT_HALF_W:
+            along = (s.x - lead.x) * math.cos(rad) + (s.y - lead.y) * math.sin(rad)
+            if along > 0:
+                touched.append((along, s))
+    total = 0.0
+    for _, s in sorted(touched, key=lambda t: t[0]):
+        if strength <= 0:
+            break
+        hits, strength = _salvo_attack_hits(strength, s, lead.x, lead.y, lead.special_rules)
+        v = hull_hits_vp(s, gs, 0.0, hits)
+        total += v if s.player != player else -v
+    return total
+
+
+SALVO_HEADINGS = 24          # headings tried for a salvo placed on its target
+
+
+def torpedo_bomber_heading(gs, group, player: int, target: Ship) -> float:
+    """The heading for a torpedo bomber wave's salvo aimed at `target`.
+    Off the target: straight at it (ships don't move in the ordnance phase).
+    Parked on it (the AI flies its waves onto their target so contact is
+    certain next ordnance phase, owner ruling s.21): the placement attack
+    happens whatever the facing, so the heading is the one whose carry-on
+    does most (a second enemy in the lane, never a friend)."""
+    lead = group[0]
+    if not _parked_on(lead, target):
+        return math.degrees(math.atan2(target.y - lead.y, target.x - lead.x))
+    return max((k * 360.0 / SALVO_HEADINGS for k in range(SALVO_HEADINGS)),
+               key=lambda h: _bomber_salvo_value(gs, group, player, h))
+
+
+def torpedo_bomber_flight_target(gs, group, player: int) -> str:
+    """The enemy ship a torpedo bomber wave (or lone squadron) in flight
+    flies at (s.18): the target the strike planner launched it at while
+    that ship is still in play (`_strike_option` chose it with the whole
+    timeline), otherwise a new one by the VP of its salvo there (2 a squadron, Tiger Sharks 5/6 of
+    it through; turret kills 4+ each, the facing it comes from) x
+    `phase_weight` of the ordnance phases before the salvo can be fired
+    with the ship in reach (it flies its speed a phase, then fires from up
+    to a salvo move away; landing on the ship makes contact certain, owner
+    ruling s.21). A ship destroyed, hulked or gone is never kept. Hulks are left
+    out (judgement: a ship in play is worth more). Not counted: interceptors
+    and guns on the way (judgement). "" when no enemy ship is left."""
+    from .ordnance import TORPEDO_SPEED_DEFAULT
+    lead = group[0]
+    tiger = "tiger_shark" in lead.special_rules
+    reach = 40.0 if tiger else float(TORPEDO_SPEED_DEFAULT)
+    speed = min((m.speed or 20) for m in group)
+    strength = 2 * len(group) * (5 / 6 if tiger else 1.0)
+    kept = gs.get_ship_by_id(lead.craft_target_id) if lead.craft_target_id else None
+    if (kept is not None and kept.player != player and not kept.is_destroyed
+            and not kept.is_disengaged and kept.status not in ("drifting_hulk", "burning_hulk")):
+        return kept.id
+    best, best_v = "", -1.0
+    for e in gs.get_ships():
+        if (e.player == player or e.is_destroyed or e.is_disengaged
+                or e.status in ("drifting_hulk", "burning_hulk")):
+            continue
+        gap = math.hypot(e.x - lead.x, e.y - lead.y) - e.base_radius - reach
+        k = 0 if gap <= 0 else int(math.ceil(gap / speed))
+        hits, _left = _salvo_attack_hits(strength, e, lead.x, lead.y, lead.special_rules)
+        v = hull_hits_vp(e, gs, 0.0, hits) * phase_weight(k)
+        if v > best_v:
+            best, best_v = e.id, v
+    return best
+
+
+def torpedo_bomber_target(gs, group, player: int):
+    """(VP, ship) for a torpedo bomber wave's salvo this phase (s.21: 2 a
+    squadron; Tiger Sharks a Tau missile salvo, 40cm, 5/6 of it through): the
+    enemy ship within the salvo's move where the salvo does most expected VP
+    (`_bomber_salvo_value` along `torpedo_bomber_heading`: turret kills 4+
+    each, the facing it hits, the ships it is placed on attacked first,
+    friends against us), or None when none is in reach. Shared by the AI and
+    the "Auto (best)" choice."""
+    from .ordnance import TORPEDO_SPEED_DEFAULT
+    lead = group[0]
+    tiger = "tiger_shark" in lead.special_rules
+    reach = 40.0 if tiger else float(TORPEDO_SPEED_DEFAULT)
     best = None
     for e in gs.get_ships():
         if e.player == player or e.is_destroyed or e.is_disengaged:
             continue
         if math.hypot(e.x - lead.x, e.y - lead.y) > reach + e.base_radius:
             continue
-        hits = max(0.0, strength - 0.5 * e.effective_turrets) * p_hit(e.armor_vs(lead.x, lead.y))
-        v = hull_hits_vp(e, gs, 0.0, hits)
+        v = _bomber_salvo_value(gs, group, player,
+                                torpedo_bomber_heading(gs, group, player, e))
         if best is None or v > best[0]:
             best = (v, e)
     return best
@@ -2119,38 +3213,132 @@ def torpedo_bomber_target(gs, group, player: int):
 
 ARMAMENT_CRITS = ("dorsal_armament", "port_armament", "starboard_armament", "prow_armament")
 
+FIRE_HORIZON = 4            # end phases a fire's burn is followed (judgement)
+
+
+class _FireGuard(threading.local):
+    active = False
+
+
+_FIRE_GUARD = _FireGuard()
+
+
+def _fire_end_phases(gs) -> int:
+    """End phases left for a fire to burn in: FIRE_HORIZON, cut by the game's
+    turn limit (IGOUGO: both players' end phases each game turn; AA: one a
+    round)."""
+    n = FIRE_HORIZON
+    limit = getattr(gs, "turn_limit", None)
+    if limit:
+        per = 1 if getattr(gs, "turn_system", "igougo") == "aa" else 2
+        n = min(n, max(1, (limit - gs.turn_number) * per + 1))
+    return n
+
+
+def fire_burn_dist(ship: Ship, gs, fires: int, repair_first: bool = True) -> dict:
+    """{total burn damage: chance} for `fires` fires on the ship over the end
+    phases left (exact, To do 30): each end phase damage control rolls a D6
+    per remaining hit (halved, rounding up, while a blast marker touches it
+    now: judgement, the first end phase only; +4 at the Craftworld forges; a
+    Big Mek's extra die), each 6 (4+ Necrons / Mad Meks) putting out one fire
+    (fires first: the AI and Auto repair them first, repair_value), then each
+    fire still burning deals a hit (Appendix 3, Fire!; past a reactive hull /
+    bonded exo-plating save, hull_save_factor), which takes a die off the
+    next end phase. `repair_first=False`: this end phase's dice are already
+    spent (repair_value). The ship burning out ends it."""
+    from .geometry import count_blast_markers_touching
+    from .end_phase import _forge
+    if fires <= 0 or ship.status in ("drifting_hulk", "burning_hulk"):
+        return {0: 1.0}
+    rules = ship.special_rules or []
+    need = 4 if ("mad_meks" in rules or "necron" in rules) else 6
+    q = (7 - need) / 6.0
+    save = hull_save_factor(ship)
+    forge = _forge(ship, gs)
+    halve = not forge and count_blast_markers_touching(ship, gs.get_blast_markers()) > 0
+    extra = (4 if forge else 0) + (1 if "big_mek" in rules else 0)
+    h0 = max(0, ship.hits_remaining)
+    states = {(fires, h0): 1.0}
+    for phase in range(_fire_end_phases(gs)):
+        nxt: dict = {}
+        for (f, h), pr in states.items():
+            if f == 0 or h <= 0:
+                nxt[(f, h)] = nxt.get((f, h), 0.0) + pr
+                continue
+            if phase == 0 and not repair_first:
+                left = [(f, 1.0)]
+            else:
+                n = h + extra
+                if halve and phase == 0:
+                    n = (n + 1) // 2
+                left = {}
+                for k, pk in enumerate(binomial_pmf(n, q)):
+                    left[max(0, f - k)] = left.get(max(0, f - k), 0.0) + pk
+                left = list(left.items())
+            for f2, pf in left:
+                for d, pd in enumerate(binomial_pmf(f2, save)):
+                    key = (f2, max(0, h - d))
+                    nxt[key] = nxt.get(key, 0.0) + pr * pf * pd
+        states = nxt
+    out: dict = {}
+    for (f, h), pr in states.items():
+        out[h0 - h] = out.get(h0 - h, 0.0) + pr
+    return out
+
+
+def fire_value(ship: Ship, gs, change: int = 1, repair_first: bool = True) -> float:
+    """Expected VP of `change` more fires on the ship (negative: fires put
+    out), against the fires it already has: the burn damage with them less
+    the burn without, each exact total valued as hull hits (hits_vp: the
+    cripple / destroy thresholds and the finishing chance). More fires already burning, fewer
+    hits left or a blast marker in contact all make one more fire worth
+    more (owner question)."""
+    have = sum(1 for c in ship.critical_damage if c.get("crit_type") == "fire")
+    after = max(0, have + change)
+    if _FIRE_GUARD.active:
+        # valued inside another fire's value (hull hits -> an explosion's
+        # ordnance -> an Impaler's Fire crit...): the flat half a hit a fire,
+        # to break the loop (judgement)
+        return 0.5 * change * value_per_hit(ship, gs)
+    _FIRE_GUARD.active = True
+    try:
+        def worth(n):
+            # each exact burn total by its value (hits_vp; it was valued as a
+            # Poisson mean, whose tail reached thresholds the burn can't)
+            return sum(p * hits_vp(ship, gs, int(round(d)))
+                       for d, p in fire_burn_dist(ship, gs, n, repair_first).items() if d)
+        return worth(after) - worth(have)
+    finally:
+        _FIRE_GUARD.active = False
+
+
 
 def repair_value(ship: Ship, crit: dict, gs) -> float:
     """Expected VP of repairing one critical hit now (damage control, s.36;
-    To do 11 e). Fire: the hit it would cost each end phase it burns
-    (judgement: 1.5 hits at the ship's value a hit). Armament: what those
+    To do 11 e). Fire: the burn it would still do, exactly (fire_value:
+    this end phase and the later ones, against the fires left). Armament: what those
     weapons threaten at the next shooting phases (hit_and_run.
     armament_threat_value, the raid model, from the enemy's side). Shields
-    collapsed: the enemy's expected hits next turn its shields would stop.
-    Engines / thrusters / bridge (judgement): a share of its guns' value
-    (`ai_rerolls.firepower_swing`: 0.3 / 0.2) or of its value (0.1)."""
-    from .ai_rerolls import firepower_swing
+    Every other crit (engines, thrusters, Leadership losses...): its effect
+    measured on the ship (`hit_and_run.crit_effect_value`), as if repaired."""
     ct = crit.get("crit_type", "")
-    vph = value_per_hit(ship, gs)
     if ct == "fire":
-        return 1.5 * vph
+        # the fire put out now: it would burn this end phase and later ones
+        return max(0.0, -fire_value(ship, gs, -1, repair_first=False))
     if ct in ARMAMENT_CRITS:
         # valued as if repaired: the raid model counts a location already
         # knocked out as worth nothing
-        import dataclasses
         from .hit_and_run import armament_threat_value
-        fixed = dataclasses.replace(ship, critical_damage=[
+        fixed = _dc_replace(ship, critical_damage=[
             c for c in ship.critical_damage if c is not crit])
         return armament_threat_value(fixed, ct, gs, 3 - ship.player)
-    if ct == "shields_collapse":
-        return min(ship.shields_max, incoming_hits(ship, gs)) * vph
-    if ct == "engine_room":
-        return 0.3 * firepower_swing(ship, gs)
-    if ct == "thrusters_damaged":
-        return 0.2 * firepower_swing(ship, gs)
-    if ct == "bridge_smashed":
-        return 0.1 * ship_value(ship, gs)
-    return 0.05 * ship_value(ship, gs)
+    # every other crit: its effect measured on the ship (speed, turns,
+    # shields, Leadership...) by hit_and_run.crit_effect_value, from the
+    # enemy's side, with the ship as it would be repaired
+    from .hit_and_run import crit_effect_value
+    fixed = _dc_replace(ship, critical_damage=[
+        c for c in ship.critical_damage if c is not crit])
+    return crit_effect_value(fixed, ct, gs, 3 - ship.player)
 
 
 BOARD_CRITS = {1: (5, 5), 2: (5, 4), 3: (6, 3), 4: (6, 2)}   # s.32 (winner, loser)
@@ -2161,18 +3349,36 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
     To do 8 h): both D6 rolls enumerated with the modifiers resolve_boarding
     uses (troop ratings, crew bonuses, crippled / special orders / blast
     markers); the loser takes the difference in damage (hull_hits_vp: full
-    value a hit, thresholds), each side's crit chance by the result table at a
-    hit's value each (judgement), a draw (grapple) counts nothing. Knights of
-    Titan and Mechanicus re-rolls aren't counted."""
+    value a hit, thresholds), each side's crit chance by the result table,
+    each crit valued as the engine rolls it on the ship's own table
+    (`hit_and_run.boarding_crit_value`: escorts 1 damage, a D6 on the raid
+    critical table, Haemonculi Fires and Pain Frenzy's re-roll for crits a
+    Dark Eldar ship inflicts; owner, To do 33: it was a flat hit), a draw
+    (grapple) counts nothing, Dark Eldar slave VP for the hits each side
+    inflicts. Knights of Titan and Mechanicus re-rolls aren't counted; a
+    crit's extra damage is valued on the ship as it stands, before the
+    boarding damage that comes with it."""
     from .boarding import (troop_rating, _troop_advantage_bonus, _crew_damage_bonus,
                            _get_ship_modifier)
     a_rating = troop_rating(attacker, attacker.is_grappled)
     d_rating = troop_rating(target, target.is_grappled, defending=True)
-    a_bonus = _get_ship_modifier(target, gs) + _troop_advantage_bonus(a_rating, d_rating) \
+    a_bonus = _get_ship_modifier(target, gs, attacker.special_rules) + _troop_advantage_bonus(a_rating, d_rating) \
         + _crew_damage_bonus(attacker)
-    d_bonus = _get_ship_modifier(attacker, gs) + _troop_advantage_bonus(d_rating, a_rating) \
+    d_bonus = _get_ship_modifier(attacker, gs, target.special_rules) + _troop_advantage_bonus(d_rating, a_rating) \
         + _crew_damage_bonus(target)
-    vph_a, vph_t = value_per_hit(attacker, gs), value_per_hit(target, gs)
+    from .hit_and_run import boarding_crit_value
+    # crits: the loser's is inflicted by the winner (Haemonculi, Pain Frenzy);
+    # the winner's own crit check has no inflicter (boarding._boarding_crit_check)
+    crit_t_lose = boarding_crit_value(target, gs, attacker.player, attacker.special_rules)
+    crit_a_win = boarding_crit_value(attacker, gs, target.player)
+    crit_a_lose = boarding_crit_value(attacker, gs, target.player, target.special_rules)
+    crit_t_win = boarding_crit_value(target, gs, attacker.player)
+    # Dark Eldar slave-taking (Xenos p.4): +5 VP to the Dark Eldar player for
+    # each hit its side inflicts in a boarding action (the +100 for Bridge
+    # Smashed can't come from a boarding crit's D6 on the standard table)
+    from .dark_eldar import is_dark_eldar
+    slaves_a = 5.0 if is_dark_eldar(attacker) else 0.0
+    slaves_t = 5.0 if is_dark_eldar(target) else 0.0
 
     def p_at_least(t):
         return 1.0 if t is None or t <= 1 else max(0.0, (7 - t) / 6.0)
@@ -2187,11 +3393,13 @@ def boarding_vp(attacker: Ship, target: Ship, gs) -> float:
             p_win_crit = 0.0 if win is None else p_at_least(win)
             p_lose_crit = 1.0 if lose == 0 else p_at_least(lose)
             if diff > 0:
-                total += hull_hits_vp(target, gs, 0.0, diff) + p_lose_crit * vph_t
-                total -= p_win_crit * vph_a
+                total += hull_hits_vp(target, gs, 0.0, diff) + p_lose_crit * crit_t_lose
+                total -= p_win_crit * crit_a_win
+                total += slaves_a * min(diff, max(0, target.hits_remaining))
             else:
-                total -= hull_hits_vp(attacker, gs, 0.0, -diff) + p_lose_crit * vph_a
-                total += p_win_crit * vph_t
+                total -= hull_hits_vp(attacker, gs, 0.0, -diff) + p_lose_crit * crit_a_lose
+                total += p_win_crit * crit_t_win
+                total -= slaves_t * min(-diff, max(0, attacker.hits_remaining))
     return total / 36.0
 
 

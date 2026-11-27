@@ -4,8 +4,16 @@ Drives movement, shooting, and ordnance phases using pure-logic APIs,
 with no Tkinter dialogs. Caller must set dice.mode = "auto" before use.
 """
 import math
-import random
-from dataclasses import replace as _dc_replace  # shallow ship copies for trial positions
+
+from . import actions
+from .ai_hazards import craft_turret_p, lance_p, BATTERY_HITS_PER_FP as FP_HITS
+# The move score counts guns in firepower points: a battery point is FP_HITS
+# expected hits (the Gunnery table's average, To do 30), a lance lance_p / FP_HITS
+# points, a torpedo TORPEDO_FP_EQUIV (0.35 hits a torpedo against 5+ after
+# turrets, the value the move score has always given a torpedo; judgement)
+TORPEDO_FP_EQUIV = 0.35 / FP_HITS
+from .rng import game_random
+from .models import ship_copy as _dc_replace  # fast shallow ship copies for trial positions (To do 16)
 from typing import List, Optional, Dict
 
 from .models import (Ship, OrdnanceMarker, SpecialOrder,
@@ -14,22 +22,17 @@ from .game_state import GameState
 from .turn_controller import TurnController
 from .dice import DiceRoller
 from .geometry import current_shields
-from .movement import do_command_check
 from .movement import (
-    MoveCommand, validate_movement, execute_movement, record_staged_move,
+    MoveCommand, validate_movement,
     get_effective_speed, get_max_turns,
 )
 from .combat import (
     check_weapon_in_arc, check_weapon_in_range, check_los_clear,
-    resolve_batteries, resolve_lances, apply_damage,
-    squadron_group, fire_at_squadron, weapon_fire_pool, shot_weapon,
-    weapon_disabled_by_crit,
+    squadron_group, weapon_disabled_by_crit,
 )
 from .chapter_tactics import shadow_engines_hidden
 from .ordnance import ship_torpedo_types, SHORT_BURN_SPEED, unused_once_torpedoes
-from .ordnance import (launch_torpedoes, launch_attack_craft,
-                       bay_launch_capacity, fleet_craft_slots,
-                       fleet_craft_excess, recall_craft, ai_craft_to_recall,
+from .ordnance import (fleet_craft_slots, fleet_craft_excess, ai_craft_to_recall, impaler_bays,
                        TORPEDO_SPEED_DEFAULT)
 
 
@@ -39,9 +42,7 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
     plus follow-on fire from enemies that haven't fired yet (the attacker's
     other weapons included)."""
     shields = current_shields(target, gs.get_blast_markers())
-    current_hull = max(0, incoming_hits - shields)
-    shields_left = max(0, shields - incoming_hits)
-    future_hull = 0.0
+    total = float(incoming_hits)      # every expected hit this turn, then past the shields
     phenomena = gs.get_phenomena()
     blast_markers = gs.get_blast_markers()
     for enemy in gs.get_ships():
@@ -63,14 +64,16 @@ def _brace_hull_hits(gs: GameState, target: Ship, incoming_hits: int,
             # the engine's estimate: the Gunnery table for batteries, lances'
             # own roll, hits_on (bombardment cannons / killkannons), random values
             from .combat import expected_hits
-            expected = expected_hits(enemy, weapon, target, gs)
-            future_hull += max(0.0, expected - shields_left)
-            shields_left = max(0.0, shields_left - expected)
-    return current_hull + future_hull
+            total += expected_hits(enemy, weapon, target, gs)
+    # E[max(0, H - shields)], H a Poisson count (shields take the first hits
+    # of the turn, but a total averaging below them still gets some through)
+    from .ai_hazards import past_shields
+    return past_shields(total, shields)
 
 
 def brace_value(gs: GameState, target: Ship, incoming_hits: int,
-                attacker: Ship = None) -> float:
+                attacker: Ship = None, p_pass: float = None,
+                full_plan: bool = False, group=None) -> float:
     """Expected VP (risk-adjusted) of trying Brace for Impact now (s.7; To do
     11 c, priced instead of a fixed share of the hits left). Gain: a 4+ save on
     every hull hit from here to the end of the ship's next turn (hits ~ Poisson,
@@ -82,26 +85,22 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
     its own turn before it has fired. With a turn limit both choices are valued
     by their certainty equivalents (To do 2: ahead, a ship braces more readily,
     as a brace narrows the spread; behind, less). Pass chance: the command
-    check with Under Fire / Enemy Contacts (s.6)."""
-    from .ai_hazards import (p_sum_at_most, ship_value, ship_threat_vp,
+    check, by the engine's rule (movement.command_check_ld)."""
+    from .ai_hazards import (p_sum_at_most, ship_threat_vp,
                              certainty_equivalent, poisson_pmf)
     from .geometry import count_blast_markers_touching
     hull = _brace_hull_hits(gs, target, incoming_hits, attacker)
     if hull <= 0:
         return 0.0
-    v = ship_value(target, gs)
     threat = ship_threat_vp(target, gs)
     rem = max(1, target.hits_remaining)
-    to_cripple = rem - target.hits_max // 2
-    vph = v / max(1, target.hits_max)
+    from .ai_hazards import hits_vp
 
     def loss(k):
-        if k >= rem:
-            return v + (threat * (2.0 if target.is_crippled else 1.0))
-        out = 0.2 * vph * k
-        if not target.is_crippled and to_cripple > 0 and k >= to_cripple:
-            out += 0.25 * v + 0.5 * threat
-        return out
+        # k hull hits on the hull-hit scale (ai_hazards.hits_vp: the
+        # thresholds they cross, its fire lost, its explosion, and what they
+        # add to the chance the enemy finishes it later; it was a flat 0.2 a hit)
+        return hits_vp(target, gs, min(k, rem))
 
     def dist(mean):
         kmax = rem + 1
@@ -110,22 +109,190 @@ def brace_value(gs: GameState, target: Ship, incoming_hits: int,
         pts.append((max(0.0, tail), -loss(kmax)))
         return pts
 
-    ld = target.leadership
-    if count_blast_markers_touching(target, gs.get_blast_markers()) > 0:
-        ld -= 1
-    if any(s.player != target.player and not s.is_destroyed and not s.is_disengaged
-           and s.special_order not in ("none", "") for s in gs.get_ships()):
-        ld += 2 if "improved_sensor_array" in target.special_rules else 1
-    ld = max(0, min(10, ld))
-    p = p_sum_at_most(2, ld) if ld > 1 else 0.0
-    cost = 0.5 * threat
-    if gs.active_player == target.player and not target.has_fired:
-        cost *= 2.0
+    # the engine's own command check rule (movement.command_check_ld: Tyranid
+    # synapse Ld for Brace, Necrons not Under Fire, Siren's Summon, sub-plots,
+    # Enemy Contacts incl. the Cobra's sensors and nebuloscope pylons...)
+    from .movement import command_check_ld
+    from .scenarios import orders_forbidden
+    if orders_forbidden(gs, target):
+        return 0.0
+    need = command_check_ld(target, "brace_for_impact", gs, in_blast=count_blast_markers_touching(
+        target, gs.get_blast_markers()) > 0)
+    p = {"pass": 1.0, "fail": 0.0}.get(need["auto"], p_sum_at_most(2, need["needed"]))
+    reroll_cost = 0.0
+    if p_pass is not None:
+        p = p_pass          # a re-roll's worth: the brace given it passes (ai_rerolls)
+    # s.7: a braced ship halves its gunnery, lances and ordnance strength
+    # (a squadron tests once and braces together, s.8: every member's)
+    members = [m for m in (group or []) if not m.is_destroyed] or [target]
+    if target.id not in {m.id for m in members}:
+        members = [target] + members
+    cost = 0.0
+    for m in members:
+        c = 0.5 * (threat if m.id == target.id else ship_threat_vp(m, gs))
+        if gs.active_player == m.player and not m.has_fired:
+            c *= 2.0
+        cost += c
+    # ... and may take no other special order until the end of its next turn
+    # (s.7; owner, To do 33 d): that order at its pass chance is lost too; a
+    # squadron's one order (s.8) for all its members
+    full = full_plan or master_ai(gs, target.player)
+    cost += (squadron_order_vp(gs, members, full) if len(members) > 1
+             else next_order_vp(gs, target, full=full))
     plain = dist(hull)
+    if p_pass is None and 0.0 < p < 1.0 and getattr(gs, "ld_reroll_hook", None):
+        # a commander re-roll on a failed brace (s.5; owner, To do 33): taken
+        # when the AI would spend one on it (ai_rerolls.should_reroll: the
+        # brace's worth given it passes against the bar), so the brace passes
+        # at 1 - (1 - p)^2 for the re-roll's own worth spent on a failure
+        from .ai_rerolls import rerolls_left, spend_bar
+        left = rerolls_left(gs, target)
+        if left > 0:
+            gain = brace_value(gs, target, incoming_hits, attacker, p_pass=1.0,
+                               full_plan=full_plan, group=group)
+            bar = spend_bar(target, gs, left)
+            if gain >= bar and p * gain > bar:
+                reroll_cost = (1.0 - p) * bar
+                p = 1.0 - (1.0 - p) ** 2
     braced = ([(p * q, d - cost) for q, d in dist(hull / 2.0)]
               + [((1 - p) * q, d) for q, d in plain])
     player = target.player
-    return certainty_equivalent(gs, player, braced) - certainty_equivalent(gs, player, plain)
+    return (certainty_equivalent(gs, player, braced) - certainty_equivalent(gs, player, plain)
+            - reroll_cost)
+
+
+def order_reader(gs: GameState, player: int) -> "AIPlayer":
+    """An AIPlayer reading the game state only (no turn controller, no dice),
+    for valuing orders outside the AI's own turn: no check failed yet."""
+    from .turn_controller import TurnController
+    reader = TurnController.__new__(TurnController)   # reads gs only
+    reader.gs = gs
+    reader.checks_blocked = lambda _s: False          # next turn: no check failed yet
+    return AIPlayer(player, reader, gs, None)
+
+
+def next_order(gs: GameState, ship: Ship, full: bool = False):
+    """(order, gain in VP if it passes) of the special order the ship would
+    take next (To do 33 d). The value its own AI planned at its last movement
+    / AA command phase (`GameState.planned_orders`, carried over between
+    plans; a pure part of the state, so replays and saves keep it). With no
+    plan (the first turn before it has moved, a human's ship) the better of
+    Lock On's re-roll gain on the guns that bear now (`lock_on_estimate`)
+    and, with its ordnance spent, Reload Ordnance (`_reload_value`). `full`
+    (a human's "Auto", and the master AI, owner: it may use the slower,
+    more accurate value) runs the AI's own order choice from where the ship
+    stands now instead, whether or not a plan is stored (a pure function of
+    the state, so replays still match)."""
+    rec = (getattr(gs, "planned_orders", None) or {}).get(ship.id)
+    if rec is not None and not full:
+        return rec[0], float(rec[1] or 0.0)
+    if full:
+        try:
+            ai = order_reader(gs, ship.player)
+            with gs.ships_snapshot():
+                order = ai._pick_special_order(ship)
+                if order:
+                    o, g, _p = ai._order_value(ship, order)
+                    return o, g
+        except Exception:
+            pass
+        return None, 0.0
+    # no plan: the better of Lock On (the guns that bear now) and, for a ship
+    # whose ordnance is spent (torpedo boats, carriers), Reload Ordnance
+    # (`AIPlayer._reload_value`: next turn's strike / CAP / salvo)
+    best = (SpecialOrder.LOCK_ON.value, lock_on_estimate(gs, ship))
+    if AIPlayer._ordnance_spent(ship):
+        try:
+            with gs.ships_snapshot():
+                rv = order_reader(gs, ship.player)._reload_value(ship)
+        except Exception:
+            rv = 0.0
+        if rv > best[1]:
+            best = (SpecialOrder.RELOAD_ORDNANCE.value, rv)
+    return best
+
+
+def master_ai(gs: GameState, player: int) -> bool:
+    """Is `player` played by the master AI (10 turns or to the game's end)?
+    Owner: it uses the slower, more accurate values (a fresh order plan in
+    Brace and Leadership crits, `next_order(full=True)`). Player 1 is human
+    unless in spectator mode."""
+    if player == 1 and not getattr(gs, "ai_spectator", False):
+        return False
+    try:
+        return gs.difficulty_for(player) == "master"
+    except Exception:
+        return False
+
+
+def lock_on_estimate(gs: GameState, ship: Ship) -> float:
+    """VP Lock On would add from where the ship stands: each battery / lance
+    with an enemy ship in arc and range now (the nearest) re-rolls its misses,
+    hits x (1 - p) for a die's to-hit p (batteries on the Armour facing the
+    ship, lances `lance_p`), at the target's value a hit (`value_per_hit`)."""
+    from .ai_hazards import mount_hits, lance_p, value_per_hit
+    enemies = [e for e in gs.get_ships() if e.player != ship.player
+               and not e.is_destroyed and not e.is_disengaged and e.status == "active"]
+    total = 0.0
+    for w in ship.weapons:
+        kind = w.get("weapon_type")
+        if kind not in ("battery", "lance"):
+            continue
+        cands = [e for e in enemies if check_weapon_in_arc(ship, w, e.x, e.y)
+                 and check_weapon_in_range(ship, w, e.x, e.y)]
+        if not cands:
+            continue
+        e = min(cands, key=lambda t: (t.x - ship.x) ** 2 + (t.y - ship.y) ** 2)
+        h = mount_hits(ship, w, e)
+        if kind == "battery":
+            p = min(1.0, max(1.0 / 6.0, (7 - e.armor_vs(ship.x, ship.y)) / 6.0))
+        else:
+            p = min(1.0, lance_p(w))
+        total += h * (1.0 - p) * value_per_hit(e, gs)
+    return total
+
+
+def next_order_vp(gs: GameState, ship: Ship, full: bool = False, ld_ship: Ship = None) -> float:
+    """Expected VP of the order a Brace forbids (s.7): `next_order`'s gain at
+    its pass chance now (`AIPlayer._pass_chance`, from the ship's current
+    Leadership, or `ld_ship`'s). 0 on the game's last turn, for a ship already
+    braced or that must flee."""
+    limit = getattr(gs, "turn_limit", None)
+    if limit and gs.turn_number >= limit:
+        return 0.0
+    if (getattr(ship, "must_flee", False)
+            or ship.special_order == SpecialOrder.BRACE_FOR_IMPACT.value):
+        return 0.0
+    order, g = next_order(gs, ship, full)
+    if not order or g <= 0:
+        return 0.0
+    ai = order_reader(gs, ship.player)
+    return max(0.0, g * ai._pass_chance(ld_ship or ship, order))
+
+
+def squadron_order_vp(gs: GameState, members, full: bool = False) -> float:
+    """Expected VP of the one order a squadron would take (s.8: one command
+    check for every member): of the orders its members planned (`next_order`),
+    the one whose gains summed over the members planning it are largest, at
+    the pass chance of the member with the best Leadership (the squadron's
+    test). 0 on the last turn or for a squadron already braced."""
+    limit = getattr(gs, "turn_limit", None)
+    if limit and gs.turn_number >= limit:
+        return 0.0
+    live = [m for m in members if not getattr(m, "must_flee", False)
+            and m.special_order != SpecialOrder.BRACE_FOR_IMPACT.value]
+    if not live:
+        return 0.0
+    sums = {}
+    for m in live:
+        order, g = next_order(gs, m, full)
+        if order and g > 0:
+            sums[order] = sums.get(order, 0.0) + g
+    if not sums:
+        return 0.0
+    order = max(sums, key=sums.get)
+    leader = max(live, key=lambda m: m.leadership)
+    return max(0.0, sums[order] * order_reader(gs, leader.player)._pass_chance(leader, order))
 
 
 def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
@@ -138,20 +305,56 @@ def ai_should_brace_vs_raid(gs: GameState, target: Ship, attacker: Ship,
     from .waves import raid_squadron_value
     from .ai_hazards import ship_threat_vp
     saving = 0.5 * raids * raid_squadron_value(target, gs, attacker.player,
-                                               attacker.special_rules)
+                                               attacker.special_rules, assault_boat=False)
     cost = 0.5 * ship_threat_vp(target, gs)
     return saving > cost
 
 
 def ai_should_brace(gs: GameState, target: Ship,
-                    incoming_hits: int, attacker: Ship = None) -> bool:
+                    incoming_hits: int, attacker: Ship = None,
+                    full_plan: bool = False, group=None) -> bool:
     """Decide whether an AI-controlled ship should attempt Brace For Impact:
     when its priced value is positive (`brace_value`). incoming_hits: hits
     from the current volley before shields."""
     from .scenarios import orders_forbidden
     if orders_forbidden(gs, target):
         return False
-    return brace_value(gs, target, incoming_hits, attacker) > 0.0
+    return brace_value(gs, target, incoming_hits, attacker, full_plan=full_plan,
+                       group=group) > 0.0
+
+
+def _scored_on_snapshot(fn):
+    """Run a move-scoring method inside gs.ships_snapshot() (To do 16): its
+    many get_ships() calls share one set of copies. Scoring writes nothing."""
+    import functools
+
+    @functools.wraps(fn)
+    def wrapper(self, *a, **k):
+        with self.gs.ships_snapshot():
+            return fn(self, *a, **k)
+    return wrapper
+
+
+def ordnance_kinds(ship) -> set:
+    """The kinds of ordnance a ship launches that can combine with a squadron
+    mate's (s.15, owner: only the same ordnance): "torpedo", "impaler" (Dark
+    Eldar Impaler bays) and "craft" (other launch bays: their craft can share a
+    wave). Mines don't combine."""
+    out = set()
+    for w in ship.weapons:
+        if w.get("weapon_type") == "torpedo":
+            out.add("torpedo")
+        elif w.get("weapon_type") == "launch_bay":
+            out.add("impaler" if w.get("impaler_bay") else "craft")
+    return out
+
+
+def auto_pass(ship, order: str) -> bool:
+    """Orders whose command check is passed automatically
+    (movement.command_check_ld): Orks' All Ahead Full ('Ere We Go), Dark
+    Eldar Come to New Heading (Xenos p.4)."""
+    from .movement import command_check_ld
+    return command_check_ld(ship, order)["auto"] == "pass"
 
 
 class AIPlayer:
@@ -173,6 +376,10 @@ class AIPlayer:
         self.gs = gs
         self.dice = dice
         self.difficulty = difficulty
+        # Resolves the ordnance a ship ran into as it moves (s.15), set by the
+        # game flow (the window's own resolver, as for a human's moves); None:
+        # left for the flow to resolve after the phase
+        self.contacts_fn = None
 
     # ── Movement phase ───────────────────────────────────────────────────────
 
@@ -197,7 +404,7 @@ class AIPlayer:
             self._move_ship(ship)
         self._order_plan = None
         self._planned_ends = {}
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             for ship in my_ships:
                 self._consider_disengage(gs.get_ship_by_id(ship.id))
 
@@ -210,14 +417,14 @@ class AIPlayer:
         # Explosion risk / opportunity for this phase's moves (owner): where the
         # enemy is likely to focus, and what our guns can put on each enemy
         self._enemy_plan, self._our_hits = {}, {}
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             from .ai_hazards import enemy_fire_plan, fleet_hits_on
             self._enemy_plan = enemy_fire_plan(gs, self.player)
             self._our_hits = fleet_hits_on(gs, self.player)
         # Fleet focus (owner): the enemy ship the fleet concentrates on this turn
         self._focus = None
         self._focus_map = {}
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             from .ai_hazards import fleet_focus_targets, fleet_focus_assignment
             ranked = fleet_focus_targets(gs, self.player)
             self._focus = ranked[0][1].id if ranked else None
@@ -236,7 +443,7 @@ class AIPlayer:
                 gs.add_log(f"[AI] focus targets: {names}")
         self._order_plan = None
         self._planned_ends = {}
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             my_ships = self._coordinated_order(my_ships)
             if orders:
                 self._plan_orders(my_ships)
@@ -274,7 +481,7 @@ class AIPlayer:
         reactive Brace is (`brace_value`) against the hits the enemy can bring
         on this ship over the round (`incoming_hits`, the threat model)."""
         from .ai_hazards import incoming_hits
-        if self.difficulty == "easy" or ship.status != "active":
+        if self.difficulty == "very_easy" or ship.status != "active":
             return False
         lam = incoming_hits(ship, self.gs)
         return lam > 0 and brace_value(self.gs, ship, int(round(lam))) > 0.0
@@ -304,7 +511,7 @@ class AIPlayer:
                     gs.add_log(f"[AA] {s.name} is locked in a boarding action: no move")
                     continue
                 self._move_ship(s)
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             for sid in ship_ids:
                 s = gs.get_ship_by_id(sid)
                 if s is not None and "immobile" not in s.special_rules:
@@ -315,7 +522,7 @@ class AIPlayer:
         gs, tc = self.gs, self.tc
         ships = [gs.get_ship_by_id(i) for i in ship_ids]
         ships = [s for s in ships if s is not None]
-        if self.difficulty != "easy" and ships and ships[0].squadron_id and len(ships) > 1:
+        if self.difficulty != "very_easy" and ships and ships[0].squadron_id and len(ships) > 1:
             self._squadron_volleys(only=ships[0].squadron_id)
         for ship in ships:
             ship = gs.get_ship_by_id(ship.id)
@@ -323,11 +530,7 @@ class AIPlayer:
             if ship.is_destroyed or ship.is_disengaged or ship.has_fired or is_locked(ship):
                 continue
             self._fire_ship(ship)
-            ship = gs.get_ship_by_id(ship.id)
-            if not ship.has_fired:
-                ship.has_fired = True
-                gs.update_ship(ship)
-            tc.mark_ship_fired(ship.id)
+            actions.mark_fired(tc, ship.id)
 
     def aa_unit_value(self, phase: str, unit) -> float:
         """How much acting with `unit` now is worth, for choosing which unit to
@@ -344,7 +547,7 @@ class AIPlayer:
                 continue
             for e in self._live_enemies():
                 v = self._arc_score(s, s.x, s.y, s.heading, e, guns_only=True,
-                                    in_range_only=True) * 0.35 * value_per_hit(e, self.gs)
+                                    in_range_only=True) * FP_HITS * value_per_hit(e, self.gs)
                 best = max(best, v)
         return best if phase == "shooting" else -best
 
@@ -435,10 +638,15 @@ class AIPlayer:
         """Move order for fleet coordination (To do 11 a, a first step towards
         the coordination pass): the ships others support move first, so the
         supporters plan against where they end: the commander's ship, then
-        carriers, other capital ships, escorts last (they screen, s.29).
-        Squadrons stay together (a squadron goes at its earliest member's
-        place); otherwise fleet order."""
+        carriers, other capital ships, escorts, then ships that help friends
+        in range (synapse, tracking systems, Fleet Defence Turrets: they plan
+        against where the friends end). Squadrons stay together (a squadron
+        goes at its earliest member's place); otherwise fleet order."""
+        from .buffs import buff_kinds
+
         def rank(s):
+            if buff_kinds(s):
+                return 4
             if s.is_flagship:
                 return 0
             if any(w.get("weapon_type") == "launch_bay" for w in s.weapons):
@@ -504,7 +712,10 @@ class AIPlayer:
         gs, tc = self.gs, self.tc
         order = ""
         aaf_bonus = 0
-        if self.difficulty != "easy" and not tc.command_check_failed:
+        group = self._order_group(ship)
+        if group is not None:
+            return self._issue_squadron_order(ship, group)
+        if self.difficulty != "very_easy" and not tc.checks_blocked(ship):
             chosen = self._choose_special_order(ship)
             if chosen:
                 res = tc.issue_special_order(ship, chosen)
@@ -527,8 +738,11 @@ class AIPlayer:
                                                       if ship.id in seq else [])
                                   for _oo, gg, pp in [plan.get("orders", {}).get(
                                       sid, (None, 0.0, 0.0))])
-                    if left and should_reroll(ship, chosen, gs, left,
-                                              {"blocked_orders_vp": blocked}):
+                    own = plan.get("orders", {}).get(ship.id)
+                    ctx = {"blocked_orders_vp": blocked, "tc": tc}
+                    if own and own[0] == chosen:
+                        ctx["order_vp"] = own[1]
+                    if left and should_reroll(ship, chosen, gs, left, ctx):
                         rr = tc.attempt_reroll_command_check(ship, chosen)
                         gs.add_log(f"[AI] {ship.name}: re-roll for {chosen} "
                                    f"{'passed' if rr.get('success') else 'failed'}")
@@ -538,6 +752,58 @@ class AIPlayer:
                     order = ship.special_order or ""
         else:
             order = ship.special_order or ""
+        return order, aaf_bonus
+
+    def _order_group(self, ship: Ship):
+        """A squadron's members in coherency (s.8), when the ship belongs to a
+        squadron with another member still in play; None for a single ship."""
+        if not ship.squadron_id:
+            return None
+        mates = [s for s in self.gs.player_ships(self.player)
+                 if s.squadron_id == ship.squadron_id
+                 and not s.is_destroyed and not s.is_disengaged]
+        if len(mates) < 2:
+            return None
+        from .squadron import partition_by_coherency
+        return partition_by_coherency(mates)[0]
+
+    def _issue_squadron_order(self, ship: Ship, group):
+        """s.8: a squadron makes a single command check to put every member in
+        coherency on the order; ships out of formation can't benefit from it
+        (they move to rejoin, `_coherency_term`). The first member to move
+        chooses and tests the order for the squadron; the rest move under it."""
+        gs, tc = self.gs, self.tc
+        done = self.__dict__.setdefault("_squadron_orders", {})
+        key = (gs.turn_number, gs.current_phase, ship.squadron_id)
+        ids = {s.id for s in group}
+        if key not in done:
+            done[key] = ""
+            if (self.difficulty != "very_easy" and not tc.checks_blocked(list(group))
+                    and ship.id in ids):
+                chosen = self._choose_special_order(ship)
+                if chosen:
+                    res = tc.issue_squadron_order(list(group), chosen)
+                    if res.get("success"):
+                        gs.add_log(f"[AI] squadron {ship.squadron_id}: {chosen} passed")
+                        done[key] = chosen
+                    else:
+                        gs.add_log(f"[AI] squadron {ship.squadron_id}: {chosen} failed")
+                        from .ai_rerolls import should_reroll
+                        leader = max(group, key=lambda s: s.leadership)
+                        left = tc.get_fleet_rerolls(ship.player, leader)
+                        if left and should_reroll(leader, chosen, gs, left, {"tc": tc}):
+                            rr = tc.reroll_squadron_order(list(group), chosen)
+                            gs.add_log(f"[AI] squadron {ship.squadron_id}: re-roll for "
+                                       f"{chosen} {'passed' if rr.get('success') else 'failed'}")
+                            if rr.get("success"):
+                                done[key] = chosen
+        ship = gs.get_ship_by_id(ship.id)
+        order = ship.special_order or "" if ship.id in ids else ""
+        aaf_bonus = 0
+        if order == SpecialOrder.ALL_AHEAD_FULL.value:
+            self._declare_ram(ship)
+            ship = gs.get_ship_by_id(ship.id)
+            aaf_bonus = self._aaf_bonus(ship)
         return order, aaf_bonus
 
     def _move_ship_planned(self, ship: Ship, order: str, aaf_bonus: int):
@@ -559,7 +825,9 @@ class AIPlayer:
         if ship.must_flee:                 # failed a forced disengage test
             commands = self._plan_flee(ship, order, aaf_bonus)
         else:
-            commands = None
+            # Tyranid Instinctive Behaviour: the move its action prescribes
+            from .tyranids import instinct_commands
+            commands = instinct_commands(gs, ship, order, aaf_bonus)
         if commands is None and enemy is not None:
             # Coordination pass (To do 11 a): plan against where the ships still
             # to move are planned to end, not where they stand
@@ -589,7 +857,7 @@ class AIPlayer:
         from .ai_hazards import ram_vp, p_sum_at_most
         from .combat import ram_ld_dice
         from .movement import aaf_bonus_dice
-        if self.difficulty == "easy" or not getattr(self.gs, "rule_ramming", False):
+        if self.difficulty == "very_easy" or not getattr(self.gs, "rule_ramming", False):
             return None
         reach = (ship.speed or 0) + aaf_bonus_dice(ship)       # every die a 1
         h = math.radians(ship.heading)
@@ -601,7 +869,7 @@ class AIPlayer:
             if along <= 0 or along - e.base_radius > reach or \
                     side > ship.base_radius + e.base_radius:
                 continue
-            n = ram_ld_dice(ship.ship_type, e.ship_type)
+            n = ram_ld_dice(ship.ship_type, e.ship_type, e)
             p = p_sum_at_most(n, ship.leadership) if "goffs" not in ship.special_rules else 1.0
             v = p * ram_vp(ship, e, self.gs)
             if v > 0 and (best is None or v > best[0]):
@@ -616,48 +884,23 @@ class AIPlayer:
         if cand is None:
             return
         target = cand[1]
-        n = ram_ld_dice(ship.ship_type, target.ship_type)
-        if "goffs" in ship.special_rules:
-            passed, total = True, 0
-        else:
-            total = sum(self.dice.roll_d6(n, f"{ship.name} ram Leadership test ({n}D6)"))
-            passed = total <= ship.leadership
-        if passed:
-            ship.ramming_target_id = target.id
-            self.gs.update_ship(ship)
+        n = ram_ld_dice(ship.ship_type, target.ship_type, target)
+        from .actions import declare_ram
+        if declare_ram(self.gs, self.dice, ship.id, target.id):
             self.gs.add_log(f"[AI] {ship.name} declares a ram on {target.name}")
         else:
             self.gs.add_log(f"[AI] {ship.name} ram on {target.name} fails its Leadership "
-                            f"test ({n}D6 = {total})")
+                            f"test ({n}D6)")
 
     def _resolve_ram(self, ship: Optional[Ship], start) -> None:
         """After the move: a declared ram connects if the path touched the
         target's base (combat.resolve_ram); then it is cleared."""
         if ship is None or not ship.ramming_target_id:
             return
-        from .geometry import line_passes_near
-        from .combat import resolve_ram
-        gs = self.gs
-        target = gs.get_ship_by_id(ship.ramming_target_id)
-        if target is not None and not target.is_destroyed and line_passes_near(
-                start[0], start[1], ship.x, ship.y, target.x, target.y,
-                ship.base_radius + target.base_radius):
-            gs.add_log(f"[AI] {ship.name} rams {target.name}!")
-            from .aa_turn import defer_ram
-            if defer_ram(gs, ship.id, target.id):
-                ship = gs.get_ship_by_id(ship.id)
-                ship.ramming_target_id = None
-                gs.update_ship(ship)
-                return
-            resolve_ram(ship, target, self.dice, gs)
-            for sid in (target.id, ship.id):
-                s2 = gs.get_ship_by_id(sid)
-                if s2 is not None:
-                    self._resolve_kill(s2)
-        ship = gs.get_ship_by_id(ship.id)
-        if ship is not None:
-            ship.ramming_target_id = None
-            gs.update_ship(ship)
+        target = self.gs.get_ship_by_id(ship.ramming_target_id)
+        from .actions import resolve_declared_ram
+        if resolve_declared_ram(self.gs, self.dice, ship.id, start) and target is not None:
+            self.gs.add_log(f"[AI] {ship.name} rams {target.name}!")
 
     def _boarding_gain(self, ship: Ship, enemy: Ship) -> float:
         """A boarding action's expected VP (ai_hazards.boarding_vp) less what the
@@ -665,8 +908,9 @@ class AIPlayer:
         worth its guns' value (`ai_rerolls.firepower_swing`)."""
         from .ai_hazards import boarding_vp
         from .ai_rerolls import firepower_swing
-        if "nicassar" in " ".join(ship.special_rules) or "frail_crew" in ship.special_rules:
-            return 0.0                    # Nicassar never initiate boarding
+        if "nicassar" in " ".join(ship.special_rules) or "frail_crew" in ship.special_rules \
+                or "ghostship" in ship.special_rules:
+            return 0.0                    # Nicassar and Eldar Ghostships never initiate boarding
         return boarding_vp(ship, enemy, self.gs) - firepower_swing(ship, self.gs)
 
     def _consider_boarding(self, ship: Optional[Ship]) -> None:
@@ -674,7 +918,7 @@ class AIPlayer:
         in base contact where it is worth most, when its value beats the fire
         given up. Only with the boarding rule on (owner)."""
         gs = self.gs
-        if (ship is None or self.difficulty == "easy" or not getattr(gs, "rule_boarding", False)
+        if (ship is None or self.difficulty == "very_easy" or not getattr(gs, "rule_boarding", False)
                 or ship.has_boarded or ship.is_grappled or ship.is_destroyed):
             return
         from .boarding import ships_in_base_contact
@@ -687,11 +931,8 @@ class AIPlayer:
                 best = (g, e)
         if best is None:
             return
-        ship.boarding_target_id = best[1].id
-        ship.has_boarded = True
-        gs.update_ship(ship)
-        from .aa_turn import lock_boarding
-        lock_boarding(gs, ship.id, best[1].id)
+        from .actions import declare_boarding
+        declare_boarding(gs, ship.id, best[1].id)
         gs.add_log(f"[AI] {ship.name} declares a boarding action against {best[1].name} "
                    f"(worth about {best[0]:.0f} VP)")
 
@@ -706,12 +947,12 @@ class AIPlayer:
         )
 
         def execute(result, cmds) -> bool:
-            execute_movement(ship, result, gs, self.dice)
-            record_staged_move(gs, ship.id, result, cmds)
-            # Asteroid / warp rift / cloud tests the move ran into (s.39)
-            from .terrain_effects import resolve_post_move_terrain
-            resolve_post_move_terrain(gs, ship.id, self.dice,
-                                      order == SpecialOrder.ALL_AHEAD_FULL.value)
+            # The move, the ordnance it ran into (s.15: as each ship moves, as
+            # for a human's move), the asteroid / warp rift / cloud tests (s.39)
+            # and its staged-move count (actions.apply_move, shared with the window)
+            from .actions import apply_move
+            apply_move(gs, self.dice, ship, result, cmds,
+                       order == SpecialOrder.ALL_AHEAD_FULL.value, contacts=self.contacts_fn)
             return True
 
         r = validate_movement(ship, commands, **kwargs)
@@ -742,6 +983,7 @@ class AIPlayer:
 
         return False
 
+    @_scored_on_snapshot
     def _plan_move_toward(self, ship: Ship, enemy: Ship,
                           order: str, aaf_bonus: int) -> List[MoveCommand]:
         """Choose the move worth most against `enemy` (the move score below)
@@ -754,13 +996,21 @@ class AIPlayer:
                 self._last_move_source = src
                 return cmds
         if order == SpecialOrder.COME_TO_NEW_HEADING.value:
-            ctnh = self._ctnh_moves(ship, enemy)
+            # only legal moves: an illegal choice fell back to a straight move
+            # at full speed, which could leave the table
+            from .movement import validate_movement as _vm
+            bms = self.gs.get_blast_markers()
+            ctnh = [t for t in self._ctnh_moves(ship, enemy)
+                    if _vm(ship, t[1], order, aaf_bonus, bms, self.gs.table_width,
+                           self.gs.table_height).valid]
             if ctnh:
                 sc, cmds, src = max(ctnh, key=lambda t: t[0])
                 self._last_move_source = src
                 return cmds
         best_cmds: Optional[List[MoveCommand]] = None
-        best_score = -1.0
+        # -inf, not -1: when every move scores below -1 (a ship cornered and
+        # out-gunned) the fallback below, straight ahead, could leave the table
+        best_score = float("-inf")
         best_src = None
         scored = []
         for cand in self._move_candidates(ship, enemy, order, aaf_bonus):
@@ -770,17 +1020,17 @@ class AIPlayer:
             if score > best_score:
                 best_score, best_src = score, src
                 best_cmds = self._move_cmds(ship, turn_deg, dist, turn_at)
-        if scored and self.difficulty == "easy":
-            # To do 11 i: Easy picks by softmax on the move score (temperature
+        if scored and self.difficulty == "very_easy":
+            # To do 11 i: Very easy picks by softmax on the move score (temperature
             # EASY_TEMPERATURE, judgement), so it errs like a person: usually a
             # good move, sometimes a worse one, never at random
             top = max(sc for sc, _c in scored)
             weights = [math.exp((sc - top) / self.EASY_TEMPERATURE) for sc, _c in scored]
-            pick = random.choices(range(len(scored)), weights=weights)[0]
+            pick = game_random(self.gs).choices(range(len(scored)), weights=weights)[0]
             turn_deg, dist, turn_at, src = scored[pick][1]
             self._last_move_source = src + " (easy)"
             return self._move_cmds(ship, turn_deg, dist, turn_at)
-        if scored and self.difficulty != "easy":
+        if scored and self.difficulty != "very_easy":
             # Refine the best few (To do 11 a, coarse-to-fine)
             valid = self._candidate_validator(ship, order, aaf_bonus)
             scored.sort(key=lambda x: -x[0])
@@ -834,7 +1084,30 @@ class AIPlayer:
         score += self._bombard_approach(ship, fx, fy, enemy)
         score += self._planet_term(ship, fx, fy, enemy, fh)
         score += self._macharia_approach(ship, fx, fy, fh, enemy)
+        score += self._coherency_term(ship, fx, fy, enemy)
+        score += self._massed_turret_term(ship, fx, fy, enemy)
+        score += self._buff_term(ship, fx, fy, enemy)
         return score
+
+    def _buff_term(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
+        """Owner: ships that help friends in range (Tyranid synapse, Tau
+        tracking systems, Fleet Defence Turrets) move to cover as many friends
+        as they can (`buffs.buff_value`: each friend newly in reach x its share
+        of its points), weighed in VP against everything else in the score, so
+        a spot that costs more (an asteroid field, exposure) isn't taken for
+        it. Friends still to move stand at their planned ends (`_ships_at`).
+        In move-score units."""
+        if self.difficulty == "very_easy":
+            return 0.0
+        from .buffs import buff_kinds, buff_value
+        if not buff_kinds(ship):
+            return 0.0
+        vp = buff_value(ship, x, y, self.gs.player_ships(self.player))
+        if not vp:
+            return 0.0
+        from .ai_hazards import value_per_hit
+        unit = FP_HITS * max(1.0, value_per_hit(enemy, self.gs)) if enemy is not None else 1.0
+        return vp / unit
 
     MACHARIA_WEIGHT = 0.5    # judgement: the share of the points on the table the winning shot is worth
 
@@ -846,7 +1119,7 @@ class AIPlayer:
         x the points on the table at the firing position, in proportion to
         the way covered and how well it is aimed. In move-score units."""
         gs = self.gs
-        if gs.scenario_mode != "macharia" or self.difficulty == "easy":
+        if gs.scenario_mode != "macharia" or self.difficulty == "very_easy":
             return 0.0
         from .campaign_scenarios import planet_killer, macharia, OVERCHARGE_RANGE
         pk, pl = planet_killer(gs), macharia(gs)
@@ -854,7 +1127,7 @@ class AIPlayer:
             return 0.0
         from .ai_hazards import value_per_hit
         win = self.MACHARIA_WEIGHT * sum(s.points_value for s in gs.get_ships())
-        unit = 0.35 * max(1.0, value_per_hit(enemy, gs)) if enemy is not None else 1.0
+        unit = FP_HITS * max(1.0, value_per_hit(enemy, gs)) if enemy is not None else 1.0
         rad = math.radians(h)
         dx, dy = pl.x - x, pl.y - y
         along = dx * math.cos(rad) + dy * math.sin(rad) - ship.base_radius
@@ -897,10 +1170,10 @@ class AIPlayer:
         from .planet_scenarios import active as _pa, EXTERMINATUS_RANGE, ASSAULT_RANGE, mode
         from . import low_orbit as lo
         gs = self.gs
-        if not _pa(gs) or self.difficulty == "easy":
+        if not _pa(gs) or self.difficulty == "very_easy":
             return 0.0
         from .ai_hazards import value_per_hit, ship_value
-        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        units = FP_HITS * max(1.0, value_per_hit(enemy, gs))
         goal = self._planet_objective_vp(ship)
         if lo.in_low_orbit(ship):
             pl = lo.planet(gs)
@@ -955,7 +1228,7 @@ class AIPlayer:
         from . import low_orbit as lo
         from .ai_hazards import value_per_hit, ship_value
         gs = self.gs
-        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        units = FP_HITS * max(1.0, value_per_hit(enemy, gs))
         goal = self._planet_objective_vp(ship)
         if y + ship.base_radius > lo.planet_edge_y():
             if lo.lands(ship):
@@ -977,13 +1250,14 @@ class AIPlayer:
         command check's odds, which isn't counted (judgement). Immobile and
         escorts (they turn anywhere) excepted. In move-score units."""
         if ship.ship_type == "escort" or "immobile" in ship.special_rules \
-                or "in_low_orbit" in ship.special_rules:     # no minimum move there
+                or "in_low_orbit" in ship.special_rules \
+                or "dark_eldar" in ship.special_rules:       # no minimum move there
             return 0.0
-        from .movement import MIN_TURN_DISTANCE
+        from .movement import turn_distance
         gs = self.gs
         r = ship.base_radius
         lo = max(1.0, (ship.speed or 0) / 2.0)
-        td = min(lo, MIN_TURN_DISTANCE.get(ship.ship_type, 10))
+        td = min(lo, turn_distance(ship))
         ta = math.radians(ship.turn_angle or 0)
 
         from .low_orbit import bounds_for
@@ -1015,7 +1289,7 @@ class AIPlayer:
         from .ai_rerolls import firepower_outcomes
         from .scenarios import off_table_destroyed
         gs = self.gs
-        units = 0.35 * max(1.0, value_per_hit(enemy, gs))
+        units = FP_HITS * max(1.0, value_per_hit(enemy, gs))
         moved = _dc_replace(ship, x=x, y=y)
         if off_table_destroyed(gs, moved):
             return -2.0 * ship_value(ship, gs) / units
@@ -1073,7 +1347,7 @@ class AIPlayer:
         covered. In move-score units."""
         gs = self.gs
         if (gs.scenario_mode != "planet_strike" or ship.player != gs.scenario_attacker
-                or self.difficulty == "easy"):
+                or self.difficulty == "very_easy"):
             return 0.0
         from .scenarios import strike_planet, bombardment_points
         pl = strike_planet(gs)
@@ -1085,7 +1359,7 @@ class AIPlayer:
         d1 = max(0.0, math.hypot(x - pl.x, y - pl.y) - reach)
         full = 0.5 * bombardment_points(gs, ship) * self.bombard_point_vp()
         progress = 1.0 if d1 <= 0 else max(0.0, d0 - d1) / max(1.0, d0)
-        return full * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return full * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     CONVOY_RUN_WEIGHT = 0.5      # judgement: the share of its points a convoy ship saves by escaping
 
@@ -1118,7 +1392,7 @@ class AIPlayer:
         way covered towards that edge, all of it for leaving there. In
         move-score units."""
         gs = self.gs
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return 0.0
         g = self._exit_value(ship)
         if g <= 0:
@@ -1128,7 +1402,7 @@ class AIPlayer:
             # Navigate the Storm: the exit point on the right edge
             from .navigate_storm import exit_progress
             return g * exit_progress(gs, ship, x, y) / (
-                0.35 * max(1.0, value_per_hit(enemy, gs)))
+                FP_HITS * max(1.0, value_per_hit(enemy, gs)))
         if gs.scenario_mode in ("convoy_narrative", "gauntlet"):
             # the short edge opposite the entry point
             from .convoy_narrative import exit_edge_for
@@ -1139,13 +1413,13 @@ class AIPlayer:
             else:
                 progress = 1.0 if x - ship.base_radius < 0 else \
                     max(0.0, ship.x - x) / max(1.0, ship.x)
-            return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+            return g * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
         h = gs.table_height
         if y + ship.base_radius > h:
             progress = 1.0
         else:
             progress = max(0.0, y - ship.y) / max(1.0, h - ship.y)
-        return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return g * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     BREAKTHROUGH_WEIGHT = 0.5    # judgement: winning Line Breaker ~ half the points on the table
 
@@ -1158,7 +1432,7 @@ class AIPlayer:
         gs = self.gs
         if (gs.scenario_mode not in ("line_breaker", "chance_encounter")
                 or ship.player != gs.scenario_attacker
-                or ship.ship_type == "escort" or self.difficulty == "easy"):
+                or ship.ship_type == "escort" or self.difficulty == "very_easy"):
             return 0.0
         from .scenarios import is_platform, defender, chance_flagship
         if gs.scenario_mode == "chance_encounter":
@@ -1173,7 +1447,7 @@ class AIPlayer:
         from .ai_hazards import value_per_hit
         win = self.BREAKTHROUGH_WEIGHT * sum(s.points_value for s in gs.get_ships())
         progress = 1.0 if y - ship.base_radius < 0 else max(0.0, ship.y - y) / max(1.0, ship.y)
-        return win * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return win * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     def _rescue_escape(self, ship: Ship, x: float, y: float, enemy: Ship) -> float:
         """Rescue (To do 7): the sabotaged flagship can only disengage by
@@ -1182,7 +1456,7 @@ class AIPlayer:
         value, against the 10% conceded) the move gains that much in
         proportion to the way covered towards the edge. In move-score units."""
         gs = self.gs
-        if (gs.scenario_mode != "rescue" or self.difficulty == "easy"
+        if (gs.scenario_mode != "rescue" or self.difficulty == "very_easy"
                 or ship.id != (gs.scenario_state or {}).get("flagship")):
             return 0.0
         from .ai_hazards import disengage_gain, value_per_hit
@@ -1196,7 +1470,7 @@ class AIPlayer:
         if g <= 0:
             return 0.0
         progress = max(0.0, ship.x - x) / max(1.0, ship.x)
-        return g * progress / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return g * progress / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     from .scenarios import OBJECTIVE_POINT_WEIGHT  # noqa: E402 (judgement, shared)
     OBJECTIVE_DENIAL = 0.5         # judgement: contesting an enemy-held marker
@@ -1281,7 +1555,7 @@ class AIPlayer:
         scores at the end of its turn, after it moves: judgement). Ships still
         to move stand at their planned ends (the coordination pass). A small
         pull towards the nearest marker we don't hold, within two moves, gives
-        ships out of reach a direction. In move-score units (VP / 0.35 x the
+        ships out of reach a direction. In move-score units (VP / FP_HITS x the
         target's value a hit)."""
         from .scenarios import objectives, controller, CONTROL_RANGE
         from .ai_hazards import value_per_hit
@@ -1305,7 +1579,7 @@ class AIPlayer:
                 if CONTROL_RANGE < d < reach:
                     pull = max(pull, 0.25 * (1.0 - (d - CONTROL_RANGE) / reach))
         vp = (gain + pull) * self.objective_point_vp()
-        return vp / (0.35 * max(1.0, value_per_hit(enemy, self.gs)))
+        return vp / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
 
     def _disengage_spot(self, ship: Ship, x: float, y: float, h: float, enemy: Ship) -> float:
         """To do 11 a goal 3 / 11 c (disengaging): the test is taken at the end
@@ -1313,7 +1587,7 @@ class AIPlayer:
         where the test is easier (+3 for a celestial phenomenon within 15cm, +1
         per blast marker within 5cm, -1 per enemy and enemy ordnance marker within
         15cm) and the risk of staying is what it is from there: the move gains
-        max(0, disengage_gain) at the end position, in move-score units (0.35
+        max(0, disengage_gain) at the end position, in move-score units (FP_HITS
         hits a point at the target's value a hit). Only for ships that could
         gain by trying from somewhere (checked at the current position with
         the best modifier, +3), and not escorts in a squadron (they test
@@ -1321,7 +1595,7 @@ class AIPlayer:
         from .ai_hazards import disengage_gain, value_per_hit
         from .ai_rerolls import firepower_outcomes
         from .disengage import get_disengage_ld_modifiers, _ftl_blocked
-        if self.difficulty == "easy" or ship.must_flee or ship.status != "active":
+        if self.difficulty == "very_easy" or ship.must_flee or ship.status != "active":
             return 0.0
         if ship.ship_type == "escort" and ship.squadron_id:
             return 0.0
@@ -1345,10 +1619,97 @@ class AIPlayer:
         g = disengage_gain(moved, gs, ld, ev, outs)
         if g <= 0:
             return 0.0
-        return g / (0.35 * max(1.0, value_per_hit(enemy, gs)))
+        return g / (FP_HITS * max(1.0, value_per_hit(enemy, gs)))
 
     COVERAGE_WEIGHT = 0.5    # judgement: a mount busy on another enemy vs the target
-    EASY_TEMPERATURE = 2.0   # judgement: Easy's softmax temperature (move-score units)
+    COHERENCY_WEIGHT = 3.0   # judgement: out of formation (s.8) loses squadron orders,
+                             # combined fire and launches, and must rejoin at once
+    def _coherency_term(self, ship: Ship, fx: float, fy: float,
+                        enemy: Optional[Ship] = None) -> float:
+        """Squadron coherency (s.8): each member within 15cm of another, and a
+        ship out of formation "must move to restore squadron coherency as soon as
+        possible". An end more than 15cm from every other member pays
+        COHERENCY_WEIGHT, more the further it is (judgement). Base contact is
+        priced by armament (owner): a member carrying ordnance gains what its
+        load adds to a combined wave / salvo of the same ordnance with the
+        mates in its contact chain, against the target's turrets
+        (`formations.marginal_gain`, exact turret maths), half while unloaded
+        (a Reload Ordnance away, judgement); gun-only ships gain nothing from
+        contact. Members still to move stand at their planned ends
+        (`_ships_at`). In move-score units."""
+        if not ship.squadron_id:
+            return 0.0
+        mates = [s for s in self.gs.player_ships(self.player)
+                 if s.squadron_id == ship.squadron_id and s.id != ship.id
+                 and not s.is_destroyed and not s.is_disengaged]
+        if not mates:
+            return 0.0
+        from .squadron import COHERENCY_RANGE
+        dists = [(math.hypot(m.x - fx, m.y - fy), m) for m in mates]
+        d, _m = min(dists, key=lambda t: t[0])
+        term = 0.0
+        if d > COHERENCY_RANGE:
+            term -= self.COHERENCY_WEIGHT * (1.0 + (d - COHERENCY_RANGE) / COHERENCY_RANGE)
+        if self.difficulty == "very_easy" or enemy is None:
+            return term
+
+        # Combining ordnance (s.15) needs a chain of base contact, and only the
+        # same ordnance combines (owner: torpedoes with torpedoes, Impalers with
+        # Impalers)
+        from .formations import kinds_of, load, marginal_gain
+        from .ai_hazards import value_per_hit
+        best = 0.0
+        for kind in kinds_of(ship):
+            pool = [m for m in mates if load(m, kind)]
+            chain = [(fx, fy, ship.base_radius)]
+            joined = 0
+            grew = True
+            while grew and pool:
+                grew = False
+                for m in list(pool):
+                    if any(math.hypot(m.x - cx, m.y - cy) <= m.base_radius + cr + 0.5
+                           for cx, cy, cr in chain):
+                        chain.append((m.x, m.y, m.base_radius))
+                        pool.remove(m)
+                        joined += load(m, kind)
+                        grew = True
+            if not joined:
+                continue
+            loaded = (ship.ordnance_loaded_torps if kind == "torpedo"
+                      else ship.ordnance_loaded_craft)
+            best = max(best, marginal_gain(ship, kind, joined, enemy, self.gs)
+                       * (1.0 if loaded else 0.5))
+        if best:
+            term += best / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
+        return term
+
+    def _massed_turret_term(self, ship: Ship, fx: float, fy: float,
+                            enemy: Optional[Ship]) -> float:
+        """Massed turrets (s.29): +1 turret per non-crippled friend in base
+        contact, at most +3, for this ship and (if it isn't crippled) for each
+        friend it touches; worth something only while enemy torpedoes, mines,
+        bombers or assault boats can reach them (`formations.turret_value`;
+        the commander's ship is left to `_screen_bonus`). Any armament gains
+        this, gun escorts too. In move-score units."""
+        if self.difficulty == "very_easy" or enemy is None:
+            return 0.0
+        from .formations import turret_value, attacking_ordnance_near
+        if not attacking_ordnance_near(fx, fy, self.player, self.gs):
+            return 0.0
+        from .ai_hazards import value_per_hit
+        friends = [s for s in self.gs.player_ships(self.player)
+                   if s.id != ship.id and not s.is_destroyed and not s.is_disengaged
+                   and s.status == "active"]
+        touch = [f for f in friends
+                 if math.hypot(f.x - fx, f.y - fy) <= f.base_radius + ship.base_radius + 0.5]
+        if not touch:
+            return 0.0
+        vp = min(3, sum(1 for f in touch if not f.is_crippled)) * turret_value(ship, fx, fy, self.gs)
+        if not ship.is_crippled:
+            vp += sum(turret_value(f, f.x, f.y, self.gs) for f in touch if not f.is_flagship)
+        return vp / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
+
+    EASY_TEMPERATURE = 2.0   # judgement: Very easy's softmax temperature (move-score units)
     KITE_WEIGHT = 0.5        # judgement: the band bonus, a share of the guns that bear
 
     @staticmethod
@@ -1368,7 +1729,7 @@ class AIPlayer:
         KITE_WEIGHT x the guns that bear there. No edge (a brawler such as the
         Slaughter): nothing, so it closes as before. Owner: not a hard rule;
         it adds to the move score's values."""
-        if self.difficulty == "easy" or not self.range_speed_edge(ship, enemy):
+        if self.difficulty == "very_easy" or not self.range_speed_edge(ship, enemy):
             return 0.0
         d = math.hypot(enemy.x - x, enemy.y - y)
         theirs = self._gun_reach(enemy) + (enemy.effective_speed or 0)
@@ -1384,13 +1745,12 @@ class AIPlayer:
         (in arc and range), so a position with an enemy off each beam beats one
         with both off one side; crossing the T comes out of this and the
         Armour-facing exposure (8 a). Mounts knocked out by crits don't count."""
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return 0.0
         others = [e for e in self._live_enemies() if e.id != target.id]
         if not others:
             return 0.0
-        import dataclasses
-        at = dataclasses.replace(ship, x=x, y=y, heading=h)
+        at = _dc_replace(ship, x=x, y=y, heading=h)
         total = 0.0
         for w in ship.weapons:
             if w.get("weapon_type") not in ("battery", "lance"):
@@ -1410,10 +1770,10 @@ class AIPlayer:
                    turn_at: Optional[float]) -> List[MoveCommand]:
         """Commands for a move of `dist` with one turn after `turn_at` cm (by
         default right after the minimum distance before turning)."""
-        from .movement import MIN_TURN_DISTANCE
+        from .movement import turn_distance
         if abs(turn_deg) <= 0.5:
             return [MoveCommand("forward", dist)]
-        t = MIN_TURN_DISTANCE.get(ship.ship_type, 0) if turn_at is None else turn_at
+        t = turn_distance(ship, ship.special_order) if turn_at is None else turn_at
         t = max(0.0, min(dist, t))
         cmds: List[MoveCommand] = []
         if t > 0:
@@ -1426,12 +1786,10 @@ class AIPlayer:
     def _candidate_validator(self, ship: Ship, order: str, aaf_bonus: int):
         """valid(turn_deg, dist, turn_at): the same limits `_move_candidates`
         applies (speed, turn angle, turning distance)."""
-        from .movement import MIN_TURN_DISTANCE
-        from .models import SpecialOrder
+        from .movement import turn_distance
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
         max_t = get_max_turns(order, ship)
-        min_td = 0 if order == SpecialOrder.BURN_RETROS.value else \
-            MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        min_td = turn_distance(ship, order)
         ta = ship.turn_angle if max_t > 0 else 0
 
         def valid(turn_deg, dist, turn_at):
@@ -1444,6 +1802,48 @@ class AIPlayer:
                     return False
             return True
         return valid
+
+    def _strategy_moves(self, ship: Ship, enemy: Ship, order: str, aaf_bonus: int):
+        """[((turn_deg, dist, turn_at, source), Strategy)] (To do 34, owner):
+        this turn's first move towards each strategy's waypoint
+        (`strategies.strategies_for`: flanks, the range band, kiting, closing,
+        screening, the nearest edge), legal by the candidates' own limits.
+        The expert search follows each for its turns (lookahead_ai). Not for
+        Eldar MMS ships (their two-leg moves) or a ship that can't turn."""
+        from .strategies import strategies_for, plan_waypoint
+        from .movement import turn_distance
+        if "eldar_mms" in ship.special_rules:
+            return []
+        min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
+        ta = ship.turn_angle if get_max_turns(order, ship) > 0 else 0
+        if not ta:
+            return []
+        min_td = turn_distance(ship, order)
+        valid = self._candidate_validator(ship, order, aaf_bonus)
+        points = {min_td, max(min_td, min_spd)}
+        if min_td == 0:
+            points.add(0.0)
+        out = []
+        for strat in strategies_for(self, ship, enemy):
+            wp = plan_waypoint(strat, ship, self.gs.get_ships())
+            if wp is None:
+                continue
+            found = []
+
+            def add(turn_deg, dist, turn_at, src, _found=found):
+                if abs(turn_deg) <= 0.5:
+                    turn_deg, turn_at = 0.0, None
+                if valid(turn_deg, dist, turn_at):
+                    _found.append((turn_deg, dist, turn_at, src))
+            self._head_for(ship, wp[0], wp[1], points, min_spd, max_spd, ta, add,
+                           "strategy:" + strat.name)
+            if found:
+                # the turn point ending nearest the waypoint
+                best = min(found, key=lambda c: math.hypot(
+                    *(lambda p: (p[0] - wp[0], p[1] - wp[1]))(
+                        self._simulate_final_pos(ship, c[0], c[1], c[2]))))
+                out.append((best, strat))
+        return out
 
     def _move_candidates(self, ship: Ship, enemy: Ship, order: str, aaf_bonus: int):
         """[(turn_deg, dist, turn_at, source)] (To do 11 a, owner):
@@ -1461,12 +1861,10 @@ class AIPlayer:
             where this ship beats the target most, ai_hazards.bracket_matchup;
             none when it beats the target nowhere).
         Candidates propose, the move score decides (owner: not hard rules)."""
-        from .movement import MIN_TURN_DISTANCE
-        from .models import SpecialOrder
+        from .movement import turn_distance
         min_spd, max_spd = get_effective_speed(ship, order, aaf_bonus)
         max_t = get_max_turns(order, ship)
-        min_td = 0 if order == SpecialOrder.BURN_RETROS.value else \
-            MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        min_td = turn_distance(ship, order)
         ta = ship.turn_angle if max_t > 0 else 0
         out, seen = [], set()
 
@@ -1491,12 +1889,16 @@ class AIPlayer:
                 out.append((turn_deg, dist, turn_at, src))
 
         dists = sorted({min_spd, max_spd * 0.6, max_spd * 0.8, max_spd})
+        if min_spd < max_spd * 0.5:
+            # no minimum move (Dark Eldar, Burn Retros, high / low orbit):
+            # shorter moves too, down to a quarter of the speed
+            dists = sorted(set(dists) | {max_spd * 0.25, max_spd * 0.5})
         dists = [d for d in dists if d >= min_spd]
         turns = [0.0] + ([-ta, -ta * 0.5, ta * 0.5, ta] if ta else [])
         for t in turns:
             for d in dists:
                 add(t, d, None, "grid")
-        if self.difficulty == "easy" or not ta:
+        if self.difficulty == "very_easy" or not ta:
             return out
         # Turn points: after the minimum move, at the end, at the start (escorts,
         # Burn Retros)
@@ -1559,7 +1961,7 @@ class AIPlayer:
                         add(best, d, p, "second target")
         # f: boarding reach (8 h), only with the boarding rule on: the point in
         # base contact with the target on our side of it
-        if getattr(self.gs, "rule_boarding", False) and self.difficulty != "easy":
+        if getattr(self.gs, "rule_boarding", False) and self.difficulty != "very_easy":
             d0 = ship.distance_to(enemy) or 1.0
             k = (enemy.base_radius + ship.base_radius) / d0
             goals.append(((enemy.x - (enemy.x - ship.x) * k, enemy.y - (enemy.y - ship.y) * k),
@@ -1571,6 +1973,25 @@ class AIPlayer:
                          and f.id != ship.id), None)
             if flag is not None:
                 goals.append(((flag.x, flag.y), "support"))
+        # s.8 squadron coherency: towards the nearest other member (where it
+        # stands, or its planned end), and alongside it for base contact
+        if ship.squadron_id:
+            mates = [m for m in self.gs.player_ships(self.player)
+                     if m.squadron_id == ship.squadron_id and m.id != ship.id
+                     and not m.is_destroyed and not m.is_disengaged]
+            if mates:
+                m = min(mates, key=lambda q: ship.distance_to(q))
+                goals.append(((m.x, m.y), "squadron"))
+                # base contact: alongside the nearest mate with the same
+                # ordnance (only the same ordnance combines, owner)
+                kinds = ordnance_kinds(ship)
+                same = [q for q in mates if kinds & ordnance_kinds(q)]
+                m = min(same, key=lambda q: ship.distance_to(q)) if same else m
+                side = ship.base_radius + m.base_radius
+                hr = math.radians(m.heading + 90)
+                for sgn in (1, -1):
+                    goals.append(((m.x + sgn * side * math.cos(hr),
+                                   m.y + sgn * side * math.sin(hr)), "squadron contact"))
         goals += self._safety_goals(ship, max_spd)
         # To do 7: scenario objectives (Domination markers), the three nearest
         from .scenarios import objectives as _scenario_objectives
@@ -1716,7 +2137,7 @@ class AIPlayer:
         guns to bear on it within about two moves (its longest battery / lance
         range + twice its speed), else None (it plans against its nearest
         enemy as before)."""
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return None
         fid = getattr(self, "_focus_map", {}).get(ship.id) or getattr(self, "_focus", None)
         if not fid:
@@ -1735,12 +2156,12 @@ class AIPlayer:
         """ai_hazards.explosion_position_vp in the planner's firepower units:
         keep clear of ships about to blow up; a ship likely to die gains by
         ending next to enemy ships rather than its own (owner)."""
-        if self.difficulty == "easy" or getattr(self, "_enemy_plan", None) is None:
+        if self.difficulty == "very_easy" or getattr(self, "_enemy_plan", None) is None:
             return 0.0
         from .ai_hazards import explosion_position_vp, value_per_hit
         vp = explosion_position_vp(ship, x, y, self.gs, getattr(self, "_enemy_plan", {}),
                                    getattr(self, "_our_hits", {}))
-        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
+        per_fp = FP_HITS * max(1.0, value_per_hit(target, self.gs))
         return vp / per_fp
 
     def _screen_bonus(self, ship: Ship, x: float, y: float, h: float, target: Ship) -> float:
@@ -1752,7 +2173,7 @@ class AIPlayer:
         try to mass turrets; enemy fighters don't count). Worth the turret's half chance to stop one of them (a
         torpedo's or bomber's expected hits on the flagship), in the planner's
         firepower units."""
-        if self.difficulty == "easy" or ship.ship_type != "escort" or ship.is_crippled:
+        if self.difficulty == "very_easy" or ship.ship_type != "escort" or ship.is_crippled:
             return 0.0
         if (ship.turrets or 0) <= 0:
             return 0.0
@@ -1788,7 +2209,7 @@ class AIPlayer:
         if not threats:
             return 0.0
         saved_hits = 0.5 * p_hit(flag.lowest_armor_value) * min(threats, 3)
-        per_fp = 0.35 * max(1.0, value_per_hit(target, gs))
+        per_fp = FP_HITS * max(1.0, value_per_hit(target, gs))
         # value_per_hit already counts the commander's ship double while it has re-rolls
         return saved_hits * max(1.0, value_per_hit(flag, gs)) / per_fp
 
@@ -1796,23 +2217,30 @@ class AIPlayer:
                           target: Ship) -> float:
         """Half the expected hits the enemy could focus on the ship at this end
         position (ai_hazards.position_exposure_hits), in the planner's
-        firepower units (one point of in-arc firepower ~ 0.35 expected hits on
+        firepower units (one point of in-arc firepower ~ FP_HITS expected hits on
         the target). Half, as the enemy has other targets and our own fire
         thins it first."""
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return 0.0
         from .ai_hazards import position_exposure_hits, value_per_hit
         hits = position_exposure_hits(ship, x, y, h, self.gs)
-        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
-        return 0.5 * hits * max(1.0, value_per_hit(ship, self.gs)) / max(1.0, per_fp)
+        per_fp = FP_HITS * max(1.0, value_per_hit(target, self.gs))
+        from .scenarios import admiral_bonus_vp, admiral_crit_vp
+        # Kill the Admiral: every hit on our flagship brings the lost game
+        # nearer (its share of the bonus), and each may crit the bridge
+        admiral = admiral_bonus_vp(self.gs, ship)
+        per_hit = max(1.0, value_per_hit(ship, self.gs))
+        if admiral:
+            per_hit += admiral / max(1, ship.hits_remaining) + admiral_crit_vp(self.gs, ship) / 6.0
+        return 0.5 * hits * per_hit / max(1.0, per_fp)
 
     def _simulate_final_pos(self, ship: Ship, turn_deg: float,
                             total_dist: float, turn_at: Optional[float] = None):
         """Return (x, y, heading) after moving total_dist with one turn of
         turn_deg: after `turn_at` cm of forward movement (To do 11 a turn
         points), by default right after the minimum distance before turning."""
-        from .movement import MIN_TURN_DISTANCE
-        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        from .movement import turn_distance
+        min_td = turn_distance(ship, ship.special_order)
         r = math.radians
         if turn_at is not None and abs(turn_deg) >= 0.5:
             t = max(0.0, min(total_dist, turn_at))
@@ -1843,10 +2271,14 @@ class AIPlayer:
 
     def _arc_score(self, ship: Ship, final_x: float, final_y: float,
                    final_heading: float, target: Ship, guns_only: bool = False,
-                   in_range_only: bool = False) -> float:
+                   in_range_only: bool = False, reroll_gain: bool = False) -> float:
         """Score total in-arc weapon strength from a hypothetical end position
         (loaded torpedoes too: they launch from there). guns_only: batteries
-        and lances only (what Lock On re-rolls)."""
+        and lances only (what Lock On re-rolls, and what All Ahead Full / Come
+        to New Heading / Burn Retros halve). reroll_gain: each gun's extra
+        from re-rolling its misses (Lock On, s.7): a die hitting with p gains
+        1 - p (batteries on the Armour facing the end position, lances their
+        own roll), so +50% at 4+, +67% at 5+, +83% at 6+."""
         dx = target.x - final_x
         dy = target.y - final_y
         dist = math.sqrt(dx * dx + dy * dy)
@@ -1869,8 +2301,8 @@ class AIPlayer:
             if weapon.get("weapon_type") == "torpedo":
                 # Torpedoes launch from where the ship ends its move (s.15), within
                 # the launcher's arc: worth their strength within one torpedo move,
-                # half within two (the lead plan's reach), nothing unloaded. A
-                # torpedo hits about as often as a firepower point does
+                # half within two (the lead plan's reach), nothing unloaded, at
+                # TORPEDO_FP_EQUIV firepower points a torpedo
                 if not ship.ordnance_loaded_torps:
                     continue
                 arcs = weapon.get("arcs", [])
@@ -1878,6 +2310,7 @@ class AIPlayer:
                     continue
                 tspeed = weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
                 strength = weapon.get("strength") or 0
+                strength *= TORPEDO_FP_EQUIV
                 if dist <= tspeed + target.base_radius:
                     score += strength
                 elif dist <= 2 * tspeed + target.base_radius:
@@ -1889,6 +2322,15 @@ class AIPlayer:
             if arcs and arc not in arcs:
                 continue
             strength = weapon.get("strength", 1)
+            if weapon.get("weapon_type") == "lance":
+                strength *= lance_p(weapon) / FP_HITS     # a lance in firepower points
+            if reroll_gain:
+                if weapon.get("weapon_type") == "lance":
+                    p = (7 - int(weapon.get("hits_on") or 4)) / 6.0
+                else:
+                    from .ai_hazards import p_hit
+                    p = p_hit(target.armor_vs(final_x, final_y))
+                strength *= (1.0 - p)
             w_range  = weapon.get("range_cm", 0)
             if w_range == 0 or dist <= w_range:
                 score += strength
@@ -1899,8 +2341,8 @@ class AIPlayer:
     def _simulate_path(self, ship: Ship, turn_deg: float, total_dist: float,
                        turn_at: Optional[float] = None):
         """[(x, y), ...] of a move: start, turn point, end."""
-        from .movement import MIN_TURN_DISTANCE
-        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0) if turn_at is None else turn_at
+        from .movement import turn_distance
+        min_td = turn_distance(ship, ship.special_order) if turn_at is None else turn_at
         pts = [(ship.x, ship.y)]
         if abs(turn_deg) >= 0.5 and 0 < min_td <= total_dist:
             r = math.radians(ship.heading)
@@ -1915,7 +2357,7 @@ class AIPlayer:
         the ship, the hazards along its path in expected VP (ai_hazards:
         mines, torpedoes, attack craft, asteroid fields, warp rifts, dust
         clouds, blast markers), converted at what one point of in-arc
-        firepower is worth against the enemy (about 0.35 expected hits)."""
+        firepower is worth against the enemy (about FP_HITS expected hits)."""
         if ship is not None:
             from .ai_hazards import move_hazard_vp, value_per_hit
             risk = move_hazard_vp(ship, (final_x, final_y), path or [(ship.x, ship.y),
@@ -1968,26 +2410,26 @@ class AIPlayer:
 
     def _flagship_exposure_vp(self, ship: Ship, x: float, y: float) -> float:
         """Owner guidance: keep the commander's ship out of harm. Expected VP of
-        the enemy direct fire that could reach it at (x, y) next turn (weapons in
-        range, arcs ignored: the enemy will turn), half-weighted since not all
-        of it will be aimed there."""
-        from .ai_hazards import value_per_hit
-        hits = 0.0
-        for e in self._live_enemies():
-            d = math.hypot(e.x - x, e.y - y) - e.base_radius - ship.base_radius
-            for w in e.weapons:
-                if w.get("weapon_type") in ("battery", "lance") and d <= (w.get("range_cm") or 0) + e.speed:
-                    hits += (w.get("strength") or 0) * 0.35
-        hits = max(0.0, hits - ship.effective_shields)
+        the enemy direct fire that could reach it at (x, y) next turn: every
+        enemy mount that can bear there within its move and one turn
+        (`_mount_bears`), at its expected hits on the Gunnery table and the
+        Armour it would hit (`mount_hits`; the ship's heading as it is now, the
+        end heading isn't passed here), past the shields; half-weighted since not
+        all of it will be aimed there."""
+        from .ai_hazards import value_per_hit, past_shields, _mount_bears, mount_hits
+        at = _dc_replace(ship, x=x, y=y)
+        hits = sum(mount_hits(e, w, at) for e in self._live_enemies() for w in e.weapons
+                   if w.get("weapon_type") in ("battery", "lance") and _mount_bears(e, w, at))
+        hits = past_shields(hits, ship.effective_shields)
         return hits * value_per_hit(ship, self.gs) * 0.5
 
     def _plan_flee(self, ship: Ship, order: str, aaf_bonus: int) -> List[MoveCommand]:
         """As fast as possible towards the nearest table edge (s.37; Demiurg
         Mercenaries): the candidate move that ends closest to it."""
-        from .movement import MIN_TURN_DISTANCE
+        from .movement import turn_distance
         gs = self.gs
         _, max_spd = get_effective_speed(ship, order, aaf_bonus)
-        td = min(MIN_TURN_DISTANCE.get(ship.ship_type, 0), max_spd)
+        td = min(turn_distance(ship, order), max_spd)
         ta = ship.turn_angle
         cands = [[MoveCommand("forward", max_spd)]]
         for turn in ("turn_left", "turn_right"):
@@ -2025,6 +2467,9 @@ class AIPlayer:
         pass chance p is tried only if p x g beats (1 - p) x the expected gain
         of the later ships' orders (planned at the start of the phase,
         `_order_plan`)."""
+        from .tyranids import order_rule
+        if order_rule(self.gs, ship, "lock_on")[0] == "deny":
+            return None       # Tyranid on Instinctive Behaviour: its order is set already
         order = self._pick_special_order(ship)
         plan = getattr(self, "_order_plan", None)
         if order is None or not plan or ship.id not in plan.get("seq", []):
@@ -2047,49 +2492,110 @@ class AIPlayer:
             o = self._pick_special_order(s)
             if o:
                 orders[s.id] = self._order_value(s, o)
+        # kept on the game state (saves, snapshots and replays carry it) for
+        # Brace / Leadership crits until each ship's next plan (To do 33 d)
+        from .actions import store_order_plan
+        store_order_plan(self.gs, {s.id: [orders.get(s.id, (None,))[0],
+                                          float(orders.get(s.id, (None, 0.0))[1])]
+                                   for s in ships})
         self._order_plan = {"seq": [s.id for s in ships], "orders": orders}
+
+    def _pass_chance(self, ship: Ship, order: str, gain_vp: float = None) -> float:
+        """The chance the ship's command check for `order` passes, from the
+        engine's own rule (movement.command_check_ld: Ld with Fleet Experience
+        / Blood Bond, Under Fire -1 (not Necrons), Mark of Slaanesh -1,
+        sub-plot modifiers, Grot Riggers +1 on Reload, Enemy Contacts +1 (the
+        Cobra's sensors +2, nebuloscope pylons, a veiled Shroud not counted),
+        the Ld 0-10 clamp; automatic passes; Siren's Summon), and 0 when the
+        order can't be tried at all (a failed check earlier this turn, s.2;
+        a scenario forbidding orders; a Tyranid on instinct). With `gain_vp` (the order's worth if it
+        passes) a commander re-roll is counted (owner, To do 33): the
+        effective chance `ai_rerolls.with_reroll` gives, a failure re-rolled
+        when the AI would spend one on an order worth that much, less the
+        re-roll's own worth."""
+        from .ai_hazards import p_sum_at_most
+        from .geometry import count_blast_markers_touching
+        from .movement import command_check_ld
+        from .scenarios import orders_forbidden
+        from .tyranids import order_rule
+        gs = self.gs
+        if orders_forbidden(gs, ship):
+            return 0.0
+        rule = order_rule(gs, ship, order)[0]
+        if rule == "deny":
+            return 0.0
+        if rule == "auto":
+            return 1.0
+        tc = getattr(self, "tc", None)
+        if tc is not None and tc.checks_blocked(ship):
+            return 0.0
+        need = command_check_ld(ship, order, gs, in_blast=count_blast_markers_touching(
+            ship, gs.get_blast_markers()) > 0)
+        if need["auto"] == "pass":
+            return 1.0
+        if need["auto"] == "fail":
+            return 0.0
+        p = p_sum_at_most(2, need["needed"])
+        if gain_vp is None or gain_vp <= 0:
+            return p
+        from .ai_rerolls import with_reroll
+        return with_reroll(ship, gs, p, gain_vp, self._later_orders_vp(ship)) / gain_vp
+
+    def _later_orders_vp(self, ship: Ship) -> float:
+        """The expected VP of the orders planned after this ship's this phase
+        (`_order_plan`), which a failed check would block (s.2)."""
+        plan = getattr(self, "_order_plan", None) or {}
+        seq = plan.get("seq", [])
+        if ship.id not in seq:
+            return 0.0
+        return sum(pp * gg for sid in seq[seq.index(ship.id) + 1:]
+                   for _oo, gg, pp in [plan.get("orders", {}).get(sid, (None, 0.0, 0.0))])
+
+    def _units_vp(self, ship: Ship, units: float) -> float:
+        """Move-score units (firepower points) as VP at the target's value a hit."""
+        from .ai_hazards import value_per_hit
+        target = self._focus_for(ship) or self._nearest_enemy(ship)
+        return units * FP_HITS * value_per_hit(target, self.gs) if target else 0.0
+
+    @staticmethod
+    def _gain_key(ship: Ship, order: str):
+        return (ship.id, order, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1))
 
     def _order_value(self, ship: Ship, order: str):
         """(order, gain in VP, pass chance) (To do 10 b-c, f): Lock On's move
-        gain at 0.35 hits a firepower point at the target's value a hit; Burn
-        Retros the hazard it saves less half the firepower; Reload Ordnance
-        next turn's launch (judgement: half a hit a torpedo / squadron at the
-        nearest enemy's value a hit). Pass chance: the command check (Ld,
-        Enemy Contacts +1, Under Fire -1, s.6)."""
-        from .ai_hazards import p_sum_at_most, value_per_hit
-        from .geometry import count_blast_markers_touching
-        ld = ship.leadership
-        if any(e.player != ship.player and e.special_order not in ("none", "")
-               and not e.is_destroyed for e in self.gs.get_ships()):
-            ld += 1
-        if count_blast_markers_touching(ship, self.gs.get_blast_markers()) > 0:
-            ld -= 1
-        p = p_sum_at_most(2, max(0, min(10, ld)))
-        target = self._focus_for(ship) or self._nearest_enemy(ship)
-        vph = value_per_hit(target, self.gs) if target else 0.0
-        if order == SpecialOrder.LOCK_ON.value:
-            g = max(0.0, self._lock_on_gain(ship)) / max(p, 1e-9) * 0.35 * vph
-        elif order == SpecialOrder.ALL_AHEAD_FULL.value:
-            g = max(0.0, self._aaf_gain(ship)) / max(p, 1e-9) * 0.35 * vph
-        elif order == SpecialOrder.COME_TO_NEW_HEADING.value:
-            g = max(0.0, self._ctnh_gain(ship)) / max(p, 1e-9) * 0.35 * vph
+        gain at FP_HITS a firepower point at the target's value a hit; Burn
+        Retros the hazard it saves less its halved guns; Reload Ordnance
+        next turn's launch (`_reload_value`). Pass chance: `_pass_chance` (the
+        engine's own command check rule)."""
+        gains = {SpecialOrder.LOCK_ON.value: self._lock_on_gain,
+                 SpecialOrder.ALL_AHEAD_FULL.value: self._aaf_gain,
+                 SpecialOrder.COME_TO_NEW_HEADING.value: self._ctnh_gain}
+        if order in gains:
+            gains[order](ship)        # computes (or reuses) the raw move gain
+            raw = getattr(self, "_raw_gain", {}).get(self._gain_key(ship, order), 0.0)
+            g = self._units_vp(ship, max(0.0, raw))
         elif order == SpecialOrder.BURN_RETROS.value:
             g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
         elif order == SpecialOrder.RELOAD_ORDNANCE.value:
             g = self._reload_value(ship)
         else:
             g = 0.0
+        # the pass chance with a commander re-roll counted for an order worth g
+        p = self._pass_chance(ship, order, g)
         return order, g, p
 
     def _pick_special_order(self, ship: Ship) -> Optional[str]:
-        """Pick the most tactically useful special order for this ship."""
-        # Burn Retros when it avoids more hazard than it costs (expected VP)
-        if self._burn_retros_worth_it(ship):
-            return SpecialOrder.BURN_RETROS.value
-
-        # Lock On (To do 10 a): worth it when an enemy WILL be in arc after
-        # the move, valued against the best move that may turn
-        if self.difficulty == "easy":
+        """The order worth most expected VP (To do 10 b): every order's gain
+        over the best move without one, times its pass chance
+        (`_pass_chance`), all on one scale: Burn Retros the hazard it saves
+        less its halved guns; Lock On / All Ahead Full / Come to New Heading
+        their move gains (move-score units, already pass-weighted) at FP_HITS a
+        point at the target's value a hit; Reload Ordnance next turn's launch.
+        With nothing worth more, a spent ship still reloads (it costs no
+        firepower). Very easy: the old simple rules."""
+        if self.difficulty == "very_easy":
+            if self._burn_retros_worth_it(ship):
+                return SpecialOrder.BURN_RETROS.value
             enemies = self._live_enemies()
             for enemy in enemies:
                 for weapon in ship.weapons:
@@ -2098,29 +2604,32 @@ class AIPlayer:
                     if (check_weapon_in_arc(ship, weapon, enemy.x, enemy.y) and
                             check_weapon_in_range(ship, weapon, enemy.x, enemy.y)):
                         return SpecialOrder.LOCK_ON.value
-        else:
-            # Lock On / All Ahead Full against Reload Ordnance, all in expected VP
-            # (To do 10 b): the gun gains at 0.35 hits a point at the target's
-            # value a hit, the reload at next turn's launch (_reload_value)
-            lock, aaf = self._lock_on_gain(ship), self._aaf_gain(ship)
-            ctnh = self._ctnh_gain(ship)
-            if max(lock, aaf, ctnh) > 0:
-                from .ai_hazards import value_per_hit
-                target = self._focus_for(ship) or self._nearest_enemy(ship)
-                vph = value_per_hit(target, self.gs) if target else 0.0
-                gun_vp = max(lock, aaf, ctnh) * 0.35 * vph
-                if not (self._ordnance_spent(ship) and self._reload_value(ship) > gun_vp):
-                    if lock >= aaf and lock >= ctnh:
-                        return SpecialOrder.LOCK_ON.value
-                    return (SpecialOrder.ALL_AHEAD_FULL.value if aaf >= ctnh
-                            else SpecialOrder.COME_TO_NEW_HEADING.value)
+            if self._ordnance_spent(ship):
+                return SpecialOrder.RELOAD_ORDNANCE.value
+            return None
 
-        # Reload if ordnance spent (it costs no firepower, so nothing better
-        # to do means reload)
-        if self._ordnance_spent(ship):
-            return SpecialOrder.RELOAD_ORDNANCE.value
-
-        return None
+        from .ai_hazards import value_per_hit
+        SO = SpecialOrder
+        target = self._focus_for(ship) or self._nearest_enemy(ship)
+        vph = value_per_hit(target, self.gs) if target else 0.0
+        vals = {}
+        if self._burn_retros_worth_it(ship):
+            g = getattr(self, "_retros_saved", {}).get(ship.id, 0.0)
+            vals[SO.BURN_RETROS.value] = self._pass_chance(ship, SO.BURN_RETROS.value, g) * g
+        for order, gain in ((SO.LOCK_ON.value, self._lock_on_gain(ship)),
+                            (SO.ALL_AHEAD_FULL.value, self._aaf_gain(ship)),
+                            (SO.COME_TO_NEW_HEADING.value, self._ctnh_gain(ship))):
+            if gain > 0:
+                vals[order] = gain * FP_HITS * vph
+        spent = self._ordnance_spent(ship)
+        if spent:
+            g = self._reload_value(ship)
+            vals[SO.RELOAD_ORDNANCE.value] = self._pass_chance(
+                ship, SO.RELOAD_ORDNANCE.value, g) * g
+        best = max(vals, key=vals.get, default=None)
+        if best is not None and vals[best] > 0:
+            return best
+        return SO.RELOAD_ORDNANCE.value if spent else None
 
     @staticmethod
     def _ordnance_spent(ship: Ship) -> bool:
@@ -2136,11 +2645,11 @@ class AIPlayer:
         each spent launcher. Bays: the strike planner's strike a turn on
         (`_strike_option(next_turn=True)`) or the CAP enemy strikes would call
         for, whichever is more; torpedoes: the salvo's expected hits on the
-        nearest enemy it could reach (two torpedo moves and its move) on the
-        Armour it shows, at its value a hit, discounted to next turn
-        (`phase_weight(2)`); mines half a hit a launcher at the nearest enemy
-        within 60cm (judgement); the Armageddon Gun its value from here."""
-        from .ai_hazards import p_hit, value_per_hit, phase_weight
+        nearest enemy it could reach (two torpedo moves and its move) after
+        its turrets, on the Armour it shows (torpedo_salvo_hits), at its value a hit, discounted to next turn
+        (`phase_weight(2)`); mines by `ai_hazards.mine_value` from where it
+        stands, discounted the same; the Armageddon Gun its value from here."""
+        from .ai_hazards import value_per_hit, phase_weight
         enemies = self._live_enemies()
         if not enemies:
             return 0.0
@@ -2152,7 +2661,7 @@ class AIPlayer:
                 craft_types = [ct for w in bays for ct in w.get("craft_types", [])
                                if craft_type_allowed(ct, [w], self.gs)]
                 count = min(bay_launch_capacity(ship, bays, None)[0],
-                            fleet_craft_slots(self.gs, self.player))
+                            fleet_craft_slots(self.gs, self.player, impaler_bays(bays)))
                 if craft_types and count > 0:
                     try:
                         nxt = self._strike_option(ship, craft_types, count, enemies,
@@ -2179,15 +2688,19 @@ class AIPlayer:
                 if not reach or st <= 0:
                     continue
                 e = min(reach, key=ship.distance_to)
-                v += st * p_hit(e.armor_vs(ship.x, ship.y)) * value_per_hit(e, self.gs) \
-                    * phase_weight(2)
+                # the salvo's hits as torpedo targeting counts them (turrets,
+                # plasma / Eldar re-rolls, Mucous Membrane)
+                from .ai_hazards import torpedo_salvo_hits
+                hits = torpedo_salvo_hits(int(round(st)), e, self.gs, (ship.x, ship.y),
+                                          list(ship.special_rules or []))
+                v += hits * value_per_hit(e, self.gs) * phase_weight(2)
         if not ship.ordnance_loaded_mines:
-            near = [e for e in enemies if ship.distance_to(e) <= 60.0 + e.base_radius]
-            if near:
-                e = min(near, key=ship.distance_to)
-                n = sum(w.get("strength", 1) or 1 for w in ship.weapons
-                        if w.get("weapon_type") == "mine_launcher")
-                v += 0.5 * n * value_per_hit(e, self.gs)
+            # next turn's mines laid from where it stands (ai_hazards.mine_value)
+            from .ai_hazards import mine_value
+            n = sum(w.get("strength", 1) or 1 for w in ship.weapons
+                    if w.get("weapon_type") == "mine_launcher")
+            if n:
+                v += mine_value(ship.x, ship.y, self.gs, self.player, n) * phase_weight(2)
         if "armageddon_spent" in ship.special_rules:
             try:
                 v += max(0.0, self._armageddon_value(ship))
@@ -2198,12 +2711,11 @@ class AIPlayer:
             v += 0.5 * self.MACHARIA_WEIGHT * sum(s.points_value for s in self.gs.get_ships())
         return v
 
-    LOCK_ON_GAIN = 0.5      # re-rolled misses: lances exactly +50%, batteries about that
-
     def _lock_on_gain(self, ship: Ship) -> float:
         """Lock On's value in move-score units (To do 10 a): the best straight
         move under Lock On (it may not turn; s.7), its guns that bear on the
-        target counted LOCK_ON_GAIN more (missed dice re-rolled), minus the
+        target counted by what re-rolling their misses adds (1 - p a die:
+        `_arc_score(reroll_gain=True)`), minus the
         best move without the order (which may turn to bring guns to bear),
         at the command check's pass chance (a failed check moves normally, so
         it costs nothing here; what it blocks for later ships is To do 10 c).
@@ -2218,17 +2730,17 @@ class AIPlayer:
             cache[key] = self._lock_on_gain_uncached(ship)
         return cache[key]
 
+    @_scored_on_snapshot
     def _aaf_gain(self, ship: Ship) -> float:
         """All Ahead Full's value in move-score units (To do 10 b): the best
         straight move at full speed plus the expected bonus (4D6, 14cm; Orks
-        3D6 and their automatic pass), with everything it brings to bear
-        halved (s.7: half firepower), minus the best move without an order,
+        3D6 and their automatic pass), with the batteries and lances it brings to
+        bear halved (s.7; torpedoes and bays keep their strength), minus the best move without an order,
         at the pass chance. Its uses (closing, escaping hazards and guns,
         reaching torpedo range) come out of the move score. Not yet: ramming
         and disengaging plans (8 h)."""
-        from .ai_hazards import p_sum_at_most
         from .movement import aaf_bonus_dice
-        if self.difficulty == "easy" or not ship.speed:
+        if self.difficulty == "very_easy" or not ship.speed:
             return 0.0
         key = ("aaf", ship.id, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1),
                ship.hits_remaining, self.gs.turn_number, len(self.gs.ordnance))
@@ -2246,9 +2758,10 @@ class AIPlayer:
         try:
             free = max((self._move_score(ship, enemy, "", *c[:3])
                         for c in self._move_candidates(ship, enemy, "", 0)), default=None)
+            # s.7: All Ahead Full halves weapons batteries and lances only
             fast = max((self._move_score(ship, enemy, aaf_o, *c[:3])
                         - 0.5 * self._arc_score(ship, *self._simulate_final_pos(ship, *c[:3]),
-                                                enemy, in_range_only=True)
+                                                enemy, guns_only=True, in_range_only=True)
                         for c in self._move_candidates(ship, enemy, aaf_o, bonus)), default=None)
         finally:
             self._move_nearest = prev
@@ -2258,15 +2771,8 @@ class AIPlayer:
         ram = self._ram_candidate(ship)
         if ram is not None:
             from .ai_hazards import value_per_hit
-            fast += ram[0] / (0.35 * max(1.0, value_per_hit(enemy, self.gs)))
-        if "ere_we_go" in ship.special_rules:
-            p = 1.0
-        else:
-            ld = ship.leadership + (1 if any(
-                e.player != ship.player and e.special_order not in ("none", "")
-                and not e.is_destroyed for e in self.gs.get_ships()) else 0)
-            p = p_sum_at_most(2, min(10, ld))
-        cache[key] = p * (fast - free)
+            fast += ram[0] / (FP_HITS * max(1.0, value_per_hit(enemy, self.gs)))
+        cache[key] = self._weighted_gain(ship, aaf_o, fast - free)
         return cache[key]
 
     def _ctnh_moves(self, ship: Ship, enemy: Ship):
@@ -2277,12 +2783,12 @@ class AIPlayer:
         the end of the first leg, with the speed left). [(score, commands,
         source)], scored by the move score from the first leg's end (judgement:
         hazards on the first leg aren't counted)."""
-        from .movement import MIN_TURN_DISTANCE, get_effective_speed as _ges
+        from .movement import turn_distance, get_effective_speed as _ges
         o = SpecialOrder.COME_TO_NEW_HEADING.value
         if get_max_turns(o, ship) < 2 or not ship.turn_angle:
             return []
         min_spd, max_spd = _ges(ship, o, 0)
-        m = float(MIN_TURN_DISTANCE.get(ship.ship_type, 0))
+        m = float(turn_distance(ship, o))
         if max_spd < m + 1:
             return []
         ta = ship.turn_angle
@@ -2299,8 +2805,11 @@ class AIPlayer:
                 td, dist, tat = c[:3]
                 if m + dist < min_spd - 1e-9:
                     continue
-                if abs(td) > 0.5 and (tat is None or tat < m - 1e-9):
-                    continue                      # the second turn needs m again
+                if abs(td) > 0.5 and (tat is None or tat < max(m, 0.5) - 1e-9):
+                    # the second turn needs m again; with no turning distance
+                    # (escorts, Dark Eldar) some forward movement between the
+                    # turns, or the two merge into one turn past the limit
+                    continue
                 sc = self._move_score(leg, enemy, "", td, dist, tat)
                 cmds = first + self._move_cmds(leg, td, dist, tat)
                 out.append((sc, cmds, "come to new heading (" + c[3] + ")",
@@ -2312,8 +2821,9 @@ class AIPlayer:
         spot then a move up to the speed for the new heading, no minimum. A
         grid of first turns and lengths, second turns and lengths (no turns on
         Lock On / All Ahead Full, AAF's bonus on the first leg; Come to New
-        Heading's extra turn not used yet), each scored by the move score from
-        the end of the first leg (its own path hazards not counted, judgement).
+        Heading's extra turn not used yet), each scored by the move score where
+        the second leg ends (both moves are made in the movement phase; its own
+        path hazards not counted, judgement).
         Only legal moves (`movement.validate_movement`). [(score, commands,
         source)]."""
         from . import eldar
@@ -2345,8 +2855,13 @@ class AIPlayer:
                     for d2 in sorted({0.0, cap2 / 2, cap2}):
                         if one_move and d2:
                             continue
+                        # MMS: both moves are made in the movement phase, so the
+                        # ship ends (and fires, and may leave the table) where the
+                        # second one ends
                         leg = Ship.from_dict(ship.to_dict())
-                        leg.x, leg.y, leg.heading = x1, y1, h2
+                        leg.x = x1 + d2 * math.cos(r(h2))
+                        leg.y = y1 + d2 * math.sin(r(h2))
+                        leg.heading = h2
                         cmds = []
                         if t1:
                             cmds.append(MoveCommand("turn_left" if t1 > 0 else "turn_right",
@@ -2360,17 +2875,17 @@ class AIPlayer:
                             cmds.append(MoveCommand("forward", d2))
                         if not cmds or not validate_movement(ship, cmds, **kw).valid:
                             continue
-                        sc = self._move_score(leg, enemy, order, 0.0, max(d2, 0.01), None)
+                        sc = self._move_score(leg, enemy, order, 0.0, max(d1 + d2, 0.01), None)
                         out.append((sc, cmds, "eldar mms"))
         return out
 
+    @_scored_on_snapshot
     def _ctnh_gain(self, ship: Ship) -> float:
         """Come to New Heading's value in move-score units: the best two-turn
         move, with what it brings to bear in range halved (s.7: half
         firepower), minus the best move without an order, at the pass chance.
         Ponderous ships can't (s.7)."""
-        from .ai_hazards import p_sum_at_most
-        if self.difficulty == "easy" or not ship.speed:
+        if self.difficulty == "very_easy" or not ship.speed:
             return 0.0
         key = ("ctnh", ship.id, round(ship.x, 2), round(ship.y, 2), round(ship.heading, 1),
                ship.hits_remaining, self.gs.turn_number, len(self.gs.ordnance))
@@ -2389,17 +2904,18 @@ class AIPlayer:
             best = None
             for sc, cmds, _src in self._ctnh_moves(ship, enemy):
                 fx, fy, fh = self._cmds_end(ship, cmds)
-                v = sc - 0.5 * self._arc_score(ship, fx, fy, fh, enemy, in_range_only=True)
+                # s.7: Come to New Heading halves weapons batteries and lances
+                # only; torpedoes and attack craft launch at full strength
+                v = sc - 0.5 * self._arc_score(ship, fx, fy, fh, enemy, guns_only=True,
+                                               in_range_only=True)
                 best = v if best is None else max(best, v)
         finally:
             self._move_nearest = prev
         if free is None or best is None:
             cache[key] = 0.0
             return 0.0
-        ld = ship.leadership + (1 if any(
-            e.player != ship.player and e.special_order not in ("none", "")
-            and not e.is_destroyed for e in self.gs.get_ships()) else 0)
-        cache[key] = p_sum_at_most(2, min(10, ld)) * (best - free)
+        cache[key] = self._weighted_gain(ship, SpecialOrder.COME_TO_NEW_HEADING.value,
+                                         best - free)
         return cache[key]
 
     @staticmethod
@@ -2416,8 +2932,8 @@ class AIPlayer:
                 h = (h - c.value) % 360
         return x, y, h
 
+    @_scored_on_snapshot
     def _lock_on_gain_uncached(self, ship: Ship) -> float:
-        from .ai_hazards import p_sum_at_most
         if not any(w.get("weapon_type") in ("battery", "lance") for w in ship.weapons):
             return 0.0
         enemy = self._focus_for(ship) or self._nearest_enemy(ship)
@@ -2430,31 +2946,36 @@ class AIPlayer:
                         for c in self._move_candidates(ship, enemy, "", 0)), default=None)
             lock = SpecialOrder.LOCK_ON.value
             locked = max((self._move_score(ship, enemy, lock, *c[:3])
-                          + self.LOCK_ON_GAIN * self._arc_score(
+                          + self._arc_score(
                               ship, *self._simulate_final_pos(ship, *c[:3]), enemy,
-                              guns_only=True, in_range_only=True)
+                              guns_only=True, in_range_only=True, reroll_gain=True)
                           for c in self._move_candidates(ship, enemy, lock, 0)), default=None)
         finally:
             self._move_nearest = prev
         if free is None or locked is None:
             return 0.0
-        ld = ship.leadership
-        if any(s.player != ship.player and s.special_order not in ("none", "")
-               and not s.is_destroyed for s in self.gs.get_ships()):
-            ld += 1                                   # Enemy Contacts (s.6)
-        return p_sum_at_most(2, min(10, ld)) * (locked - free)
+        return self._weighted_gain(ship, lock, locked - free)
+
+    def _weighted_gain(self, ship: Ship, order: str, units: float) -> float:
+        """A move gain (move-score units) weighted by the order's pass chance,
+        a commander re-roll counted at the gain's worth in VP; the raw gain
+        is kept for `_order_value`."""
+        self.__dict__.setdefault("_raw_gain", {})[self._gain_key(ship, order)] = units
+        if units <= 0:
+            return self._pass_chance(ship, order) * units
+        return self._pass_chance(ship, order, self._units_vp(ship, units)) * units
 
     def _safest_move_vp(self, ship: Ship, order: str) -> float:
         """The least hazard (ai_hazards.move_hazard_vp, along the path) of the
         moves this order allows: straight or one turn of the ship's turn angle,
         at its minimum, middle and maximum speed."""
         from .ai_hazards import move_hazard_vp
-        from .movement import MIN_TURN_DISTANCE
+        from .movement import turn_distance
         min_spd, max_spd = get_effective_speed(ship, order, 0)
         turns = [0.0]
         if get_max_turns(order, ship) > 0:
             turns += [-ship.turn_angle, ship.turn_angle]
-        min_td = MIN_TURN_DISTANCE.get(ship.ship_type, 0)
+        min_td = turn_distance(ship, order)
         best = None
         for turn in turns:
             for dist in sorted({min_spd, (min_spd + max_spd) / 2.0, max_spd}):
@@ -2485,22 +3006,26 @@ class AIPlayer:
         for e in self._live_enemies():
             if ship.distance_to(e) <= reach + e.base_radius and \
                     e.hits_remaining <= ship.hits_remaining:
-                best = max(best, raid_squadron_value(e, gs, self.player, ship.special_rules))
+                best = max(best, raid_squadron_value(e, gs, self.player, ship.special_rules,
+                                                     assault_boat=False))
         return 0.5 * best
 
     def _burn_retros_worth_it(self, ship: Ship) -> bool:
         """Burn Retros (s.7: half speed) when the safest normal move risks more
         expected VP from hazards (asteroids, warp rifts, mines, torpedoes, blast
         markers...) than the safest half-speed move, by more than the order
-        costs: special orders halve the ship's firepower this turn, worth half
-        what its guns can take off the best target (ai_rerolls.firepower_swing).
+        costs: Burn Retros halves its batteries and lances this turn (s.7),
+        worth what its guns at full strength take off the best target less
+        what they take at half (`ai_rerolls.firepower_outcomes`, exact).
         Eldar may not use Burn Retros (MMS p.3)."""
-        if self.difficulty == "easy" or "eldar_mms" in ship.special_rules:
+        if self.difficulty == "very_easy" or "eldar_mms" in ship.special_rules:
             return False
-        from .ai_rerolls import firepower_swing
+        from .ai_rerolls import firepower_swing, firepower_outcomes
+        halved = max(0.0, firepower_swing(ship, self.gs)
+                     - firepower_outcomes(ship, self.gs, halve=True)[0])
         hold = self._bombard_hold_value(ship)
         if hold > 0:
-            cost = 0.5 * firepower_swing(ship, self.gs) + self._teleport_given_up(ship)
+            cost = halved + self._teleport_given_up(ship)
             self.__dict__.setdefault("_retros_saved", {})[ship.id] = max(0.0, hold - cost)
             if hold > cost:
                 self.gs.add_log(f"[AI] {ship.name}: Burn Retros to hold over the planet "
@@ -2511,7 +3036,7 @@ class AIPlayer:
         saved = normal - retros
         if saved <= 0:
             return False
-        cost = 0.5 * firepower_swing(ship, self.gs) + self._teleport_given_up(ship)
+        cost = halved + self._teleport_given_up(ship)
         self.__dict__.setdefault("_retros_saved", {})[ship.id] = max(0.0, saved - cost)
         if saved > cost:
             self.gs.add_log(f"[AI] {ship.name}: Burn Retros avoids about {saved:.0f} VP of "
@@ -2526,7 +3051,7 @@ class AIPlayer:
         tc = self.tc
         self._committed = {}                # expected hits planned per target this phase
         self._volley_fired = set()          # (ship id, weapon index) used in a squadron volley
-        if self.difficulty != "easy":
+        if self.difficulty != "very_easy":
             self._squadron_volleys()
         from .scenarios import on_standby
         for ship in gs.player_ships(self.player):
@@ -2537,11 +3062,7 @@ class AIPlayer:
             if on_standby(gs, ship):             # Surprise Attack: on standby
                 continue
             self._fire_ship(ship)
-            ship = gs.get_ship_by_id(ship.id)
-            if not ship.has_fired:
-                ship.has_fired = True
-                gs.update_ship(ship)
-            tc.mark_ship_fired(ship.id)
+            actions.mark_fired(tc, ship.id)
 
     def _fire_ship(self, ship: Ship):
         gs = self.gs
@@ -2556,15 +3077,23 @@ class AIPlayer:
         siege_done = self._fire_siege_cannons(ship, enemies, lock_on, blast_markers,
                                               phenomena, all_ships)
 
-        # Batteries before lances (To do 11 d): the blast markers that hits on
-        # shields leave shift later batteries right but never lances (s.11)
+        # Batteries before lances (To do 11 d; owner): lance hits on shields
+        # place blast markers too, which would shift gunnery fired after them
+        # (s.11), while battery markers never affect lances
         order = sorted(enumerate(ship.weapons),
                        key=lambda iw: {"battery": 0, "lance": 2}.get(
                            iw[1].get("weapon_type", ""), 1))
+        battery_plans = []                  # (w_idx, weapon, target), fired as groups
+        flushed = False
         for w_idx, weapon in order:
             wtype = weapon.get("weapon_type", "")
-            if wtype in ("torpedo", "launch_bay", "mine_launcher") or w_idx in siege_done:
-                continue
+            if wtype != "battery" and not flushed:
+                flushed = True
+                self._fire_battery_groups(ship, battery_plans, lock_on, phenomena)
+                ship = gs.get_ship_by_id(ship.id)
+            if wtype in ("torpedo", "launch_bay", "mine_launcher", "feeder_tendrils",
+                         "massive_claws") or w_idx in siege_done:
+                continue                        # Tyranid contact weapons attack on contact
             if weapon_disabled_by_crit(ship, weapon):
                 continue                        # armament critical hit
             if (ship.id, w_idx) in getattr(self, "_volley_fired", set()):
@@ -2574,38 +3103,39 @@ class AIPlayer:
                 self._fire_nova_cannon(ship, enemies, weapon)
                 continue
             if wtype == "star_pulse":
-                from .combat import resolve_star_pulse
                 from .necrons import field_usable, FIELD_RANGE
                 if field_usable(ship.is_crippled, ship.special_order or "") and any(
                         "necron" not in t.special_rules and ship.distance_to(t)
                         <= FIELD_RANGE + t.base_radius for t in enemies):
-                    for sid in resolve_star_pulse(ship, gs, self.dice).get("hits", {}):
-                        t = gs.get_ship_by_id(sid)
-                        if t is not None:
-                            self._resolve_kill(t)
+                    actions.fire_area_weapon(gs, self.dice, ship.id, "star_pulse")
+                    ship = gs.get_ship_by_id(ship.id)
+                continue
+            if wtype == "nightmare_field":
+                pick = self._nightmare_target(ship)
+                if pick is not None:
+                    actions.fire_nightmare_field(gs, self.dice, ship.id, pick)
                     ship = gs.get_ship_by_id(ship.id)
                 continue
             if wtype == "armageddon_gun":
                 if self._armageddon_value(ship) > 0:
-                    from .combat import resolve_armageddon_gun
-                    for sid in resolve_armageddon_gun(ship, gs, self.dice).get("hits", {}):
-                        t = gs.get_ship_by_id(sid)
-                        if t is not None:
-                            self._resolve_kill(t)
+                    actions.fire_area_weapon(gs, self.dice, ship.id, "armageddon_gun")
                     ship = gs.get_ship_by_id(ship.id)
                 continue
 
             # Shoot an incoming mine / salvo / wave instead, when that's worth more
-            ordshot = self._ordnance_shot(ship, weapon, w_idx) if self.difficulty != "easy" else None
+            ordshot = self._ordnance_shot(ship, weapon, w_idx) if self.difficulty != "very_easy" else None
             if ordshot:
-                from .combat import fire_at_ordnance
+                from .tyranids import may_fire_at_ordnance
+                if not may_fire_at_ordnance(gs, ship, ordshot["marker"]):
+                    ordshot = None              # Tyranids: highlighted ordnance only
+            if ordshot:
                 m = ordshot["marker"]
-                res = fire_at_ordnance(ship, weapon, m.id, gs, self.dice, ordshot["avail"])
+                res = actions.fire_at_marker(gs, self.dice, ship.id, w_idx, m.id, ordshot["avail"])
                 gs.add_log(f"[AI] {ship.name} → {m.ordnance_type}: {weapon['name']} "
                            f"{res['dice']} dice, {'destroyed' if res['hits'] else 'missed'}")
                 continue
 
-            hulk = self._hulk_shot(ship, weapon) if self.difficulty != "easy" else None
+            hulk = self._hulk_shot(ship, weapon) if self.difficulty != "very_easy" else None
             if hulk is not None:
                 enemies = [hulk]                 # worth more than any ship shot (below)
             else:
@@ -2613,47 +3143,75 @@ class AIPlayer:
             target = self._pick_target(ship, weapon, enemies)
             if not target:
                 continue
-            self._offer_brace(ship, target, [weapon])
-
-            if wtype in ("battery", "lance"):
-                # Firepower fixed when fired: random values rolled, Heavy Gunz by range
-                pool, _mode, _err = weapon_fire_pool(
-                    ship, weapon, w_idx, ship.distance_to(target), self.dice, gs)
-                if weapon.get("strength_dice"):
-                    gs.add_log(f"[AI] {ship.name} {weapon['name']}: rolled "
-                               f"{weapon['strength_dice']} = {pool}")
-                weapon = shot_weapon(weapon, pool)
-
-            # A ship in a squadron can't be picked out: fire at the squadron (s.8)
-            group = squadron_group(target, gs.get_ships())
-            if len(group) > 1 and wtype in ("battery", "lance"):
-                crit_on = weapon.get("crit_on", 6)
-                sr, applied = fire_at_squadron(
-                    ship, weapon, target, group, self.dice,
-                    lambda m, n, _c=crit_on, _a=ship.id: self._apply_hits_to(m, n, _c, _a),
-                    lock_on, blast_markers, phenomena, all_ships)
-                gs.add_log(f"[AI] {ship.name} → squadron {target.squadron_id}: "
-                           f"{weapon['name']} {sr.hits} hit(s)")
-                continue
-
             if wtype == "battery":
-                sr = resolve_batteries(ship, target, weapon, self.dice,
-                                       blast_markers, lock_on=lock_on,
-                                       phenomena=phenomena, all_ships=all_ships)
-                if weapon.get("kustom_kannon"):
-                    from .combat import spend_kustom_kannon
-                    spend_kustom_kannon(ship, weapon, gs)
-                    ship.ordnance_loaded_torps = False   # keep the loop's copy in step
-            elif wtype == "lance":
-                sr = resolve_lances(ship, target, weapon, self.dice,
-                                    lock_on=lock_on)
-            else:
+                # s.13 (owner): a ship's batteries of one type at one target
+                # make one roll, so they are planned first and fired together
+                battery_plans.append((w_idx, weapon, target))
                 continue
-            gs.add_log(f"[AI] {ship.name} → {target.name}: "
-                       f"{weapon['name']} {sr.hits} hit(s)")
-            if sr.hits > 0:
-                self._apply_hits_to(target, sr.hits, weapon.get("crit_on", 6), ship.id,
-                                    bypass_hits=sr.bypass_hits)
+            if wtype != "lance":
+                continue
+            self._offer_brace(ship, target, [weapon])
+            # Firepower fixed when fired, one attack at the target or its squadron
+            actions.fire_weapons(gs, self.dice, ship.id, target.id, [w_idx], lock_on,
+                                 tag="[AI] ")
+        if not flushed:
+            self._fire_battery_groups(ship, battery_plans, lock_on, phenomena)
+
+    def _fire_battery_groups(self, ship: Ship, plans, lock_on: bool, phenomena) -> None:
+        """Fire the ship's planned batteries (owner ruling, s.11 / s.13): those
+        of one gunnery type at one target as ONE roll on their total firepower
+        (`combat.resolve_battery_group`); each attack sees the blast markers in
+        play now (markers come into effect at once), except that different
+        gunnery types at the same target may fire simultaneously (s.13's Mixing
+        Different Gunnery Weapons: all to-hit rolls on the markers from before,
+        but all committed). The AI fires them together when the first type
+        alone isn't expected to destroy the target (committing costs little;
+        judgement), else in sequence. A group whose target is already gone
+        picks new targets."""
+        from .combat import gunnery_kind, expected_hits
+        from .geometry import current_shields
+        gs = self.gs
+        if not plans:
+            return
+        start_markers = gs.get_blast_markers()
+        groups = {}
+        for w_idx, weapon, target in plans:
+            groups.setdefault((target.id, gunnery_kind(weapon)), []).append((w_idx, weapon))
+        kinds_at = {}
+        for (tid, kind) in groups:
+            kinds_at.setdefault(tid, []).append(kind)
+        simultaneous = {}
+        for tid, kinds in kinds_at.items():
+            if len(kinds) < 2:
+                continue
+            t = gs.get_ship_by_id(tid)
+            first = groups[(tid, kinds[0])]
+            exp = sum(expected_hits(ship, w, t, gs) for _i, w in first) if t else 0.0
+            simultaneous[tid] = t is not None and exp < t.hits_remaining + current_shields(
+                t, gs.get_blast_markers())
+        replanned = set()
+        queue = list(groups.items())
+        while queue:
+            (tid, kind), members = queue.pop(0)
+            target = gs.get_ship_by_id(tid)
+            ship = gs.get_ship_by_id(ship.id)
+            if target is None or target.is_destroyed or target.is_disengaged:
+                fresh = {}
+                for w_idx, weapon in members:
+                    if w_idx in replanned:
+                        continue
+                    replanned.add(w_idx)
+                    t2 = self._pick_target(ship, weapon, self._live_enemies())
+                    if t2 is not None:
+                        fresh.setdefault((t2.id, kind), []).append((w_idx, weapon))
+                queue.extend(fresh.items())
+                continue
+            weapons = [w for _i, w in members]
+            self._offer_brace(ship, target, weapons)
+            actions.fire_weapons(
+                gs, self.dice, ship.id, target.id, [i for i, _w in members], lock_on,
+                marker_ids=([b.id for b in start_markers] if simultaneous.get(tid) else None),
+                tag="[AI] ")
 
     def _squadron_volleys(self, only: Optional[str] = None):
         """Shooting by Squadrons for the AI (s.8, combat.plan_squadron_volley):
@@ -2664,7 +3222,7 @@ class AIPlayer:
         nearest valid target for every contributing battery (so no target
         priority test is needed). Lances, torpedoes and the rest still fire
         ship by ship afterwards."""
-        from .combat import plan_squadron_volley, resolve_squadron_volley
+        from .combat import plan_squadron_volley
         from .ai_hazards import added_vp, p_hit
         gs = self.gs
         squads = {}
@@ -2673,8 +3231,12 @@ class AIPlayer:
                     and not s.has_fired and not s.disengage_failed_this_turn
                     and (only is None or s.squadron_id == only)):
                 squads.setdefault(s.squadron_id, []).append(s)
-        bms, phen, all_ships = gs.get_blast_markers(), gs.get_phenomena(), gs.get_ships()
         for members in squads.values():
+            # s.11: blast markers come into effect at once, so each volley sees
+            # those the earlier volleys placed (and the ships as they now are)
+            bms, phen, all_ships = gs.get_blast_markers(), gs.get_phenomena(), gs.get_ships()
+            members = [m for m in (gs.get_ship_by_id(x.id) for x in members)
+                       if m is not None and not m.is_destroyed and not m.is_disengaged]
             if len(members) < 2:
                 continue
             batteries = [(m, i, w) for m in members for i, w in enumerate(m.weapons)
@@ -2714,16 +3276,14 @@ class AIPlayer:
             lead = contrib[0][0]
             self._offer_brace(lead, target, expected=hits)
             lock_on = all(m.special_order == SpecialOrder.LOCK_ON.value for m, _i, _w in contrib)
-            applied = resolve_squadron_volley(
-                plan, group, self.dice,
-                lambda t, n, _a=lead.id: self._apply_hits_to(t, n, 6, _a),
-                lock_on=lock_on, game_state=gs)
+            # bms: the markers in play as this volley is planned
+            actions.fire_squadron_volley(
+                gs, self.dice, lead.id, [(m.id, i) for m, i, _w in contrib], target.id,
+                "best" if len(group) > 1 else None, lock_on,
+                marker_ids=[b.id for b in bms], tag="[AI] ")
             self._committed[target.id] = self._committed.get(target.id, 0.0) + hits
             for m, i, _w in contrib:
                 self._volley_fired.add((m.id, i))
-            gs.add_log(f"[AI] squadron {lead.squadron_id} combined batteries at "
-                       f"{target.name}: {sum(a['dice'] for a in plan['attacks'])} dice, "
-                       f"{sum(applied.values())} hit(s)")
 
     def _aaf_bonus(self, ship) -> int:
         """All Ahead Full speed bonus: a squadron rolls once this turn, members
@@ -2775,7 +3335,6 @@ class AIPlayer:
         can reach the same (non-squadron) target together. Returns the weapon
         indices used."""
         from .chapter_tactics import siege_ship
-        from .combat import resolve_siege_cannons
         if not siege_ship(ship):
             return set()
         bcs = [(i, w) for i, w in enumerate(ship.weapons) if w.get("hits_on")
@@ -2794,37 +3353,17 @@ class AIPlayer:
         if not macro or not bc_ok:
             return set()
         self._offer_brace(ship, target, [w for _i, w in macro + bc_ok])
-        shots = {}
-        for i, w in macro + bc_ok:
-            pool, _m, _e = weapon_fire_pool(ship, w, i, ship.distance_to(target), self.dice)
-            shots[i] = shot_weapon(w, pool)
-        m_res, b_res = resolve_siege_cannons(
-            ship, target, [shots[i] for i, _ in macro], [shots[i] for i, _ in bc_ok],
-            self.dice, blast_markers, lock_on, phenomena, all_ships)
-        self.gs.add_log(f"[AI] {ship.name} → {target.name}: Siege Cannons "
-                        f"{m_res.hits}+{b_res.hits} hit(s)")
-        if m_res.hits:
-            self._apply_hits_to(target, m_res.hits, 6, ship.id)
-        if b_res.hits:
-            self._apply_hits_to(target, b_res.hits, 4, ship.id)
+        actions.fire_siege_cannons(self.gs, self.dice, ship.id, target.id,
+                                   [i for i, _ in macro], [i for i, _ in bc_ok], lock_on,
+                                   tag="[AI] ")
         return {i for i, _ in macro + bc_ok}
 
     def _apply_hits_to(self, target: Ship, hits: int, crit_on: int = 6,
                        attacker_key: str = "", bypass_hits: int = 0):
         """Apply hits from AI fire, then resolve the ship's destruction if it died.
         Returns (unused hits, destroyed) for squadron hit allocation."""
-        t = self.gs.get_ship_by_id(target.id)
-        hulk = t is not None and t.status in ("drifting_hulk", "burning_hulk")
-        if not t or (t.is_destroyed and not hulk):
-            return hits, True             # hulks take hits: they re-roll catastrophic damage
-        braced = t.special_order == SpecialOrder.BRACE_FOR_IMPACT.value
-        src = self.gs.get_ship_by_id(attacker_key) if attacker_key else None
-        dmg = apply_damage(t, hits, self.dice, self.gs, target_braced=braced,
-                           crit_on=crit_on, attacker_key=attacker_key,
-                           origin=(src.x, src.y) if src else None, bypass_hits=bypass_hits)
-        self._log_damage(t, dmg)
-        self._resolve_kill(t)
-        return dmg["unused_hits"], dmg["destroyed"]
+        return actions.apply_hits(self.gs, self.dice, target.id, hits, crit_on, attacker_key,
+                                  bypass_hits=bypass_hits, log=self.gs.add_log, tag="[AI] ")
 
     def _resolve_kill(self, target: Ship):
         """A ship the AI reduced to 0 rolls catastrophic damage (or becomes a
@@ -2835,6 +3374,24 @@ class AIPlayer:
             resolve_catastrophic(t, self.dice, self.gs)
 
     NOVA_FRIEND_CLEARANCE = 12.0    # cm from the aim point (judgement: scatter + template)
+
+    def _nightmare_target(self, ship):
+        """The unit a nightmare field is worth most against: the chance it
+        fails its Leadership test x its points (judgement: losing orders and
+        Brace for a turn and a point of Ld scale with what the unit is worth).
+        Using the field costs nothing, so it is always used when there is a
+        target; None when none (or it can't be used)."""
+        from .combat import nightmare_targets, nightmare_field_error
+        if nightmare_field_error(ship):
+            return None
+        best, best_v = None, -1.0
+        for unit in nightmare_targets(ship, self.gs):
+            ld = unit[0].leadership or 0
+            p_fail = sum(1 for a in range(1, 7) for b in range(1, 7) if a + b > ld) / 36.0
+            v = p_fail * sum(t.points_value or 0 for t in unit)
+            if v > best_v:
+                best, best_v = unit[0].id, v
+        return best
 
     def _armageddon_value(self, ship: Ship) -> float:
         """Expected VP of firing the Armageddon Gun now: along its track, 3.5
@@ -2867,7 +3424,6 @@ class AIPlayer:
         range, shields still stop them) add the most VP given this phase's
         other fire (`added_vp`, To do 9); never at a target with one of our
         ships within `NOVA_FRIEND_CLEARANCE` of it (a scatter could land on it)."""
-        from .combat import resolve_nova_cannon
         from .ai_hazards import nova_expected_hits, added_vp
         gs = self.gs
         if not enemies:
@@ -2892,20 +3448,7 @@ class AIPlayer:
             return
         target = best[1]
         self._offer_brace(ship, target)          # before the scatter roll (s.7)
-        nc = resolve_nova_cannon(ship, target.x, target.y, self.dice, gs)
-        if "error" in nc:
-            return
-        gs.add_log(f"[AI] {ship.name} nova cannon at ({target.x:.0f},{target.y:.0f})")
-        for sid, hd in nc.get("ship_hits", {}).items():
-            t = gs.get_ship_by_id(sid)
-            if t:
-                dmg = apply_damage(t, hd["hits"], self.dice, gs,
-                                   target_braced=t.special_order
-                                   == SpecialOrder.BRACE_FOR_IMPACT.value,
-                                   attacker_key=ship.id,
-                                   origin=(nc["template_x"], nc["template_y"]))
-                self._log_damage(t, dmg)
-                self._resolve_kill(t)
+        actions.fire_nova_cannon(gs, self.dice, ship.id, target.x, target.y, tag="[AI] ")
 
     def _ordnance_shot(self, ship: Ship, weapon: Dict, w_idx: int) -> Optional[Dict]:
         """Is shooting enemy ordnance with this weapon worth more than its best
@@ -2939,7 +3482,7 @@ class AIPlayer:
         if ship.is_crippled:
             avail = ship.crippled_value(avail)
         n = ordnance_fire_dice(ship, weapon, m.x, m.y, gs, avail)
-        need = weapon.get("hits_on") or 6
+        need = weapon.get("hits_on") or (4 if "ordnance_shots_4plus" in ship.special_rules else 6)
         p = 1.0 - (1.0 - max(0, 7 - need) / 6.0) ** n
         value = p * threat * (0.33 if covered else 1.0)
         ships = self._valid_targets(ship, weapon, self._live_enemies())
@@ -3015,11 +3558,15 @@ class AIPlayer:
             if shadow_engines_hidden(ship, e, enemies):
                 continue
             valid.append(e)
+        valid = self._veil_filter(ship, valid)
         if not valid:
             return None
 
-        if self.difficulty == "easy":
-            return self._enforce_target_priority(ship, weapon, random.choice(valid), valid)
+        if self.difficulty == "very_easy":
+            # owner: very easy shoots the closest valid target (no target
+            # priority test needed)
+            return self._enforce_target_priority(
+                ship, weapon, min(valid, key=lambda e: ship.distance_to(e)), valid)
         # normal / hard / expert: the most expected VP for this weapon, counting the
         # fire already committed to each target this phase (owner guidance:
         # finish and cripple ships, no overkill, don't spread too thin)
@@ -3035,6 +3582,27 @@ class AIPlayer:
         self._committed = committed
         return best
 
+    def _veil_filter(self, ship: Ship, valid: List[Ship]) -> List[Ship]:
+        """Negative energy veils (Xenos p.45): a conserving Shroud can't be fired
+        on without a passed target priority test. The test is taken only when
+        every target is veiled (judgement: otherwise not worth spending it)."""
+        from .necrons import veil_hidden
+        if not any(veil_hidden(e) for e in valid):
+            return valid
+        gs = self.gs
+        att = gs.get_ship_by_id(ship.id) or ship
+        if att.target_priority_turn != gs.turn_number and all(veil_hidden(e) for e in valid):
+            from .ai_rerolls import should_reroll
+
+            def _want(a):
+                left = self.tc.get_fleet_rerolls(a.player, a)
+                return bool(left and should_reroll(a, "target priority", gs, left))
+            actions.target_priority_test(gs, self.dice, self.tc, att.id, _want, tag="[AI] ")
+            att = gs.get_ship_by_id(ship.id) or att
+        if att.target_priority_turn == gs.turn_number and att.target_priority_passed:
+            return valid
+        return [e for e in valid if not veil_hidden(e)]
+
     def _enforce_target_priority(self, ship: Ship, weapon: Dict, wanted: Ship,
                                  valid: List[Ship]) -> Ship:
         """Target priority (s.13): a weapon fires at the nearest enemy in its arc
@@ -3042,7 +3610,16 @@ class AIPlayer:
         the result stands). A closer hulk may be fired on without a test (s.34).
         Same rule as the player's Fire dialog (`_check_target_priority`)."""
         gs = self.gs
+        if "tyranid" in ship.special_rules:
+            # Tyranids (Xenos p.105): the closest enemy ship in range and arc or a
+            # highlighted target; no target priority test needed or allowed
+            from .tyranids import highlighted
+            if highlighted(gs, ship, wanted) or not valid:
+                return wanted
+            return min(valid, key=lambda v: (ship.distance_to(v), v.id))
+        from .necrons import veil_hidden
         visible = sorted((e for e in self._live_enemies() if e.status == "active"
+                          and not veil_hidden(e)
                           and check_los_clear(ship, e, gs.get_phenomena(),
                                               gs.get_blast_markers(), gs.ships).get("clear", True)),
                          key=ship.distance_to)
@@ -3061,20 +3638,13 @@ class AIPlayer:
             return wanted
         att = gs.get_ship_by_id(ship.id) or ship
         if att.target_priority_turn != gs.turn_number:
-            check = do_command_check(att, "target_priority", self.dice, gs=gs)
-            if not check["passed"]:
-                from .ai_rerolls import should_reroll
-                left = self.tc.get_fleet_rerolls(att.player, att)
-                if left and should_reroll(att, "target priority", gs, left) \
-                        and self.tc.use_fleet_reroll(att.player, att):
-                    check = do_command_check(att, "target_priority", self.dice, gs=gs)
+            from .ai_rerolls import should_reroll
+
+            def _want(a):
+                left = self.tc.get_fleet_rerolls(a.player, a)
+                return bool(left and should_reroll(a, "target priority", gs, left))
+            actions.target_priority_test(gs, self.dice, self.tc, att.id, _want, tag="[AI] ")
             att = gs.get_ship_by_id(ship.id) or att
-            att.target_priority_turn = gs.turn_number
-            att.target_priority_passed = check["passed"]
-            gs.update_ship(att)
-            gs.add_log(f"[AI] {att.name}: target priority "
-                       f"{'passed' if check['passed'] else 'FAILED'} "
-                       f"(rolled {check['roll']} vs Ld {check['needed']})")
         return wanted if att.target_priority_passed else next(v for v in valid if v.id == cv.id)
 
     def _log_damage(self, target: Ship, dmg: Dict):
@@ -3092,6 +3662,11 @@ class AIPlayer:
     def run_ordnance_phase(self):
         gs = self.gs
 
+        # Torpedo bombers launched on an earlier turn fire their salvos at the
+        # start of the phase (s.21), so a Tiger Shark salvo moves with the
+        # missiles below
+        self._fire_torpedo_bombers()
+
         # Steer this player's guided missiles. Everything else moves when the
         # ordnance phase is resolved (OrdnanceMovementMixin).
         for o_dict in list(gs.ordnance):
@@ -3099,13 +3674,7 @@ class AIPlayer:
             if marker.owner_player != self.player or marker.moved_this_phase:
                 continue
             if marker.can_turn:
-                target = next((s for s in self._live_enemies()
-                               if s.id == marker.torp_target_id), None) \
-                    or self._nearest_enemy_to(marker.x, marker.y)
-                self._steer_guided_missile(marker, target)
-
-        # Torpedo bombers launched on an earlier turn fire their salvos (s.21)
-        self._fire_torpedo_bombers()
+                self._steer_guided_missile(marker)
 
         # Launch new ordnance. Targets are chosen by expected VP from the enemy's
         # actual state (after this turn's shooting) plus what this phase's
@@ -3119,15 +3688,105 @@ class AIPlayer:
             return                    # AA: launches happen in the other ordnance phase
         enemies = self._live_enemies()
         self._fleet_defence = (self._plan_fleet_defence(enemies)
-                               if enemies and self.difficulty != "easy" else None)
+                               if enemies and self.difficulty != "very_easy" else None)
         from .scenarios import on_standby
-        for ship in gs.player_ships(self.player):
-            if ship.is_destroyed or ship.is_disengaged or ship.has_boarded or ship.aa_locked:
-                continue                          # boarding: no launches (s.32)
-            if on_standby(gs, ship):
-                continue                          # Surprise Attack: on standby
-            self._launch_ship_ordnance(ship)
+        # Attack craft first, fleet-wide, then torpedoes and mines (owner): a
+        # ship's CAP fighter removes a whole torpedo salvo (s.19, s.26), but only
+        # one squadron of a wave, so craft reaching the target in the same phase
+        # strip its CAP first (the engine resolves craft before torpedoes, and
+        # the salvo's value counts the CAP left, `_torp_cap_factor`)
+        for only in ("bays", "rest"):
+            for ship in gs.player_ships(self.player):
+                if ship.is_destroyed or ship.is_disengaged or ship.has_boarded or ship.aa_locked:
+                    continue                      # boarding: no launches (s.32)
+                if on_standby(gs, ship):
+                    continue                      # Surprise Attack: on standby
+                self._launch_ship_ordnance(ship, only)
         self._fleet_defence = None
+        if self.difficulty != "very_easy":
+            self._combine_squadron_waves()
+
+    def _combine_squadron_waves(self):
+        """Combining ordnance in squadrons (s.15): members of one squadron in
+        contiguous base contact may combine their attack craft into one wave,
+        measured from the member furthest from the target. The AI combines the
+        strike craft (not CAP) its squadron members launched this phase, at the
+        target most of them were given (judgement): one wave faces the turrets
+        once, so more of it gets through (Impalers, bombers, assault boats).
+        Torpedo salvos at one planned target are combined into one too.""" 
+        from .ordnance import ATTACK_CRAFT_TYPES
+        gs = self.gs
+        ships = [s for s in gs.player_ships(self.player)
+                 if s.squadron_id and not s.is_destroyed and not s.is_disengaged]
+        by_sq = {}
+        for s in ships:
+            by_sq.setdefault(s.squadron_id, []).append(s)
+        for members in by_sq.values():
+            if len(members) < 2:
+                continue
+            # contiguous base contact components
+            left = list(members)
+            while left:
+                comp, frontier = [left.pop(0)], None
+                frontier = list(comp)
+                while frontier:
+                    a = frontier.pop()
+                    for b in list(left):
+                        if a.distance_to(b) <= a.base_radius + b.base_radius + 0.5:
+                            left.remove(b)
+                            comp.append(b)
+                            frontier.append(b)
+                ids = {s.id for s in comp}
+                markers = [o for o in gs.ordnance
+                           if o.get("launched_by") in ids and o.get("owner_player") == self.player
+                           and o.get("ordnance_type") in ATTACK_CRAFT_TYPES
+                           and o.get("launched_turn") == gs.turn_number
+                           and not o.get("cap_ship_id") and not o.get("moved_this_phase")]
+                # only the same ordnance combines (owner): Impalers with
+                # Impalers, other attack craft with other attack craft
+                for kind in ("impaler", "craft"):
+                    group = [o for o in markers
+                             if ("impaler" in (o.get("special_rules") or [])) == (kind == "impaler")]
+                    if len({o["launched_by"] for o in group}) < 2:
+                        continue
+                    targets = [o.get("craft_target_id") for o in group if o.get("craft_target_id")]
+                    target = max(set(targets), key=targets.count) if targets else None
+                    ids_m = [o["id"] for o in group]
+                    actions.form_craft_wave(gs, ids_m, "close")
+                    if target:
+                        actions.set_craft_target(gs, ids_m, target)
+                        t = gs.get_ship_by_id(target)
+                        if t is not None:
+                            # measured from the member furthest from the target
+                            launchers = [s for s in comp if s.id in {o["launched_by"] for o in group}]
+                            far = max(launchers, key=lambda s: s.distance_to(t))
+                            actions.place_craft(gs, ids_m, far.x, far.y)
+                    gs.add_log(f"[AI] squadron {comp[0].squadron_id}: {len(ids_m)} "
+                               f"{'Impalers' if kind == 'impaler' else 'attack craft'} "
+                               f"combined into one wave")
+                # Torpedoes (s.15): salvos of one type at one planned target
+                # become one salvo, so the target's turrets fire at it once
+                # (formations.combine_gain: never worse, often better)
+                torps = [o for o in gs.ordnance
+                         if o.get("launched_by") in ids and o.get("owner_player") == self.player
+                         and str(o.get("ordnance_type", "")).startswith("torpedo")
+                         and o.get("ordnance_type") != "torpedo_bomber"
+                         and o.get("launched_turn") == gs.turn_number
+                         and not o.get("moved_this_phase") and o.get("torp_target_id")]
+                by_key = {}
+                for o in torps:
+                    by_key.setdefault((o["ordnance_type"], o["torp_target_id"]), []).append(o)
+                for (_ot, tid), group in by_key.items():
+                    if len({o["launched_by"] for o in group}) < 2:
+                        continue
+                    t = gs.get_ship_by_id(tid)
+                    if t is None:
+                        continue
+                    far = max(group, key=lambda o: math.hypot(o["x"] - t.x, o["y"] - t.y))
+                    actions.combine_salvos(gs, far["id"], [o["id"] for o in group])
+                    gs.add_log(f"[AI] squadron {comp[0].squadron_id}: "
+                               f"{sum(o.get('strength', 0) for o in group)} torpedoes "
+                               f"combined into one salvo")
 
     def _fire_torpedo_bombers(self):
         """At the start of the ordnance phase, each torpedo bomber wave (or
@@ -3135,69 +3794,112 @@ class AIPlayer:
         within this phase's salvo move where it does most expected VP, aimed
         straight at it (ships don't move in the ordnance phase); it holds when
         none is in reach (the salvo is removed at the end of the phase)."""
-        from .ordnance import torpedo_bomber_groups, fire_torpedo_bombers
-        from .ai_hazards import torpedo_bomber_target
+        from .ordnance import torpedo_bomber_groups
+        from .ai_hazards import torpedo_bomber_target, torpedo_bomber_heading
         for group in torpedo_bomber_groups(self.gs, self.player):
-            lead = group[0]
             best = torpedo_bomber_target(self.gs, group, self.player)
             if best is None or best[0] <= 0:
                 continue
             e = best[1]
-            heading = math.degrees(math.atan2(e.y - lead.y, e.x - lead.x))
-            salvo = fire_torpedo_bombers(self.gs, [m.id for m in group], heading)
+            heading = torpedo_bomber_heading(self.gs, group, self.player, e)
+            salvo = actions.fire_bomber_salvo(self.gs, [m.id for m in group], heading, e.id)
             if salvo is not None:
-                for o in self.gs.ordnance:
-                    if o["id"] == salvo.id:
-                        o["torp_target_id"] = e.id
                 self.gs.add_log(f"[AI] torpedo bombers fire at {e.name}")
 
-    def _steer_guided_missile(self, marker: OrdnanceMarker,
-                              target: Optional[Ship]) -> None:
+    def _steer_guided_missile(self, marker: OrdnanceMarker, our_phase: bool = True) -> None:
+        """A Tau missile salvo's move (Tau Missiles: one turn of up to 45
+        degrees at the start of its move, then 20-40cm, every ordnance phase):
+        the approach planner's heading and first move length against its
+        planned target while it can still reach it, else the enemy ship it is
+        worth most against with the turns it can make (`salvo_approach`, owner:
+        turning salvos don't manoeuvre like craft); with no plan, towards where
+        the nearest enemy can end its next move, at full length."""
         gs = self.gs
-        if target is not None:
-            from .ai_hazards import salvo_approach
-            plan = salvo_approach(marker, gs, target=target, our_phase=True)
-            if plan is not None:
-                # Owner: come in on the weakest facing it can reach
-                marker.heading = plan["heading"] % 360
-                target = None
-        if target is not None:
-            # Owner: turning salvos lead too (less than straight ones, since they
-            # steer again): out of reach this phase, head for the middle of where
-            # the target can end its next move (ai_hazards.enemy_move_samples)
-            tx, ty = target.x, target.y
-            if math.hypot(tx - marker.x, ty - marker.y) > (marker.speed or 0) + target.base_radius:
-                from .ai_hazards import enemy_move_samples
-                paths = enemy_move_samples(target)[0]
-                wsum = sum(p.weight for p in paths) or 1.0
-                tx = sum(p.weight * p[-1][0] for p in paths) / wsum
-                ty = sum(p.weight * p[-1][1] for p in paths) / wsum
-            dx = tx - marker.x
-            dy = ty - marker.y
-            desired = math.degrees(math.atan2(dy, dx)) % 360
-            diff = signed_angle_diff(desired, marker.heading)
-            max_t = getattr(marker, "turn_angle", 45)
-            marker.heading = (marker.heading + max(-max_t, min(max_t, diff))) % 360
+        from .ai_hazards import salvo_approach
+        max_t = getattr(marker, "turn_angle", 45) or 45
+        plan = salvo_approach(marker, gs, our_phase=our_phase)
+        if plan is not None:
+            # Owner: come in on the weakest facing it can reach
+            desired, length = plan["heading"] % 360, plan.get("length") or marker.speed
+            for o in gs.ordnance:
+                if o["id"] == marker.id:
+                    o["torp_target_id"] = plan["target"]
+        else:
+            target = self._nearest_enemy_to(marker.x, marker.y)
+            if target is None:
+                desired, length = marker.heading, marker.speed
+            else:
+                # Owner: turning salvos lead too (less than straight ones, since
+                # they steer again): out of reach this phase, head for the middle
+                # of where the target can end its next move
+                tx, ty = target.x, target.y
+                if math.hypot(tx - marker.x, ty - marker.y) > (marker.speed or 0) + target.base_radius:
+                    from .ai_hazards import enemy_move_samples
+                    paths = enemy_move_samples(target)[0]
+                    wsum = sum(p.weight for p in paths) or 1.0
+                    tx = sum(p.weight * p[-1][0] for p in paths) / wsum
+                    ty = sum(p.weight * p[-1][1] for p in paths) / wsum
+                desired = math.degrees(math.atan2(ty - marker.y, tx - marker.x)) % 360
+                length = marker.speed
+        turn = max(-max_t, min(max_t, signed_angle_diff(desired, marker.heading)))
+        length = max(20.0, min(40.0, float(length or 40.0)))
+        actions.move_tau_missile(gs, marker.id, turn, length)
 
-        rad = math.radians(marker.heading)
-        marker.x += marker.speed * math.cos(rad)
-        marker.y += marker.speed * math.sin(rad)
-        marker.moved_this_phase = True
+    def _torpedo_kind_by_value(self, ship: Ship, weapon: dict, target: Ship) -> str:
+        """The torpedo load worth most expected VP against `target` among the
+        launcher's standard kinds (ordnance.torpedo_kind_options): standard
+        torpedoes (Dark Eldar plasma re-roll their misses) by their hull hits
+        (hull_hits_vp); boarding torpedoes one hit-and-run raid a hit
+        (waves.raid_squadron_value, not an assault boat; off with the
+        hit-and-run toggle); leech torpedoes one Thrusters Damaged a hit and no
+        damage (its crit value without the extra damage). Hits after the
+        target's turrets, on the Armour facing the launcher. "" = standard."""
+        from .ordnance import torpedo_kind_options
+        from .ai_hazards import torpedo_salvo_hits, hull_hits_vp
+        gs = self.gs
+        keys = {k for k, _ in torpedo_kind_options(ship, weapon, gs.rule_hit_and_run)}
+        if not keys & {"boarding", "leech"}:
+            return ""
+        n = int(weapon.get("strength") or 0)
+        if ship.is_crippled:
+            n = (n + 1) // 2
+        if n <= 0:
+            return ""
+        rules = list(ship.special_rules or [])
+        xy = (ship.x, ship.y)
+        vals = {"": hull_hits_vp(target, gs, 0.0,
+                                 torpedo_salvo_hits(n, target, gs, xy, rules))}
+        if "boarding" in keys:
+            from .waves import raid_squadron_value
+            hits = torpedo_salvo_hits(n, target, gs, xy, rules, "torpedo_boarding")
+            vals["boarding"] = hits * raid_squadron_value(target, gs, ship.player, rules,
+                                                          assault_boat=False)
+        if "leech" in keys:
+            # each hit an automatic Thrusters Damaged, no damage (Xenos p.6):
+            # the effect measured on the target (hit_and_run.crit_effect_value,
+            # its speed lost until every thruster hit is repaired), over the
+            # salvo's exact hit distribution
+            from .ai_hazards import torpedo_salvo_pmf
+            from .hit_and_run import crit_effect_value
+            pmf = torpedo_salvo_pmf(n, target, gs, xy, rules, "torpedo_leech")
+            vals["leech"] = sum(q * crit_effect_value(target, "thrusters_damaged", gs,
+                                                      ship.player, count=k)
+                                for k, q in enumerate(pmf) if k and q > 1e-4)
+        return max(vals, key=lambda k: (vals[k], k == ""))
 
-        for i, o in enumerate(gs.ordnance):
-            if o["id"] == marker.id:
-                gs.ordnance[i] = marker.to_dict()
-                break
-
-    def _launch_ship_ordnance(self, ship: Ship):
+    def _launch_ship_ordnance(self, ship: Ship, only: Optional[str] = None):
+        """Launch the ship's ordnance; only "bays" (launch bays) or "rest"
+        (torpedoes, mines...) when given."""
         gs = self.gs
         enemies = self._live_enemies()
         if not enemies:
             return
 
         bays_held = False
-        for weapon in ship.weapons:
+        for w_i, weapon in enumerate(ship.weapons):
             wtype = weapon.get("weapon_type", "")
+            if only is not None and (wtype == "launch_bay") != (only == "bays"):
+                continue
 
             if wtype == "torpedo" and ship.ordnance_loaded_torps:
                 # Pick target whose predicted next position is best covered
@@ -3223,13 +3925,14 @@ class AIPlayer:
                                 "torpedo_speed", TORPEDO_SPEED_DEFAULT)):
                         kind = "short_burn"
                         aim_weapon = {**weapon, "torpedo_speed": SHORT_BURN_SPEED}
+                    if not kind:
+                        # plasma / standard, boarding or leech torpedoes by
+                        # expected VP (owner: the AI must know its torpedo types)
+                        kind = self._torpedo_kind_by_value(ship, weapon, target)
                     aim = self._torpedo_aim_heading(ship, aim_weapon, target)
-                    m = launch_torpedoes(ship, weapon, gs, heading=aim, dice=self.dice,
-                                         kind=kind)
+                    # its in-flight turns follow the plan (torp_target_id)
+                    m = actions.launch_salvo(gs, self.dice, ship.id, w_i, aim, kind, target.id)
                     if m is not None:
-                        for o in gs.ordnance:     # its in-flight turns follow the plan
-                            if o["id"] == m.id:
-                                o["torp_target_id"] = target.id
                         tsp = aim_weapon.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or 30
                         tph = 0 if ship.distance_to(target) <= tsp + target.base_radius else 1
                         self.__dict__.setdefault("_ord_arrivals", {}).setdefault(target.id, {}).setdefault(
@@ -3239,17 +3942,17 @@ class AIPlayer:
             elif wtype == "mine_launcher" and ship.ordnance_loaded_mines:
                 # Mines (s.17) home 10cm on the nearest enemy vessel in every
                 # ordnance phase and stay active until destroyed: lay them when
-                # an enemy is within three turns' reach (20cm a turn), where
-                # they can still find it
-                from .ordnance import lay_mines
-                if any(ship.distance_to(e) <= 60.0 + e.base_radius for e in enemies):
-                    lay_mines(ship, weapon, gs)
+                # they can reach an enemy within the horizon (mine_value > 0)
+                from .ai_hazards import mine_value
+                if mine_value(ship.x, ship.y, gs, self.player, weapon.get("strength", 1) or 1) > 0.0:
+                    actions.lay_ship_mines(gs, ship.id, w_i)
                     ship = gs.get_ship_by_id(ship.id)
 
             elif wtype == "launch_bay" and ship.ordnance_loaded_craft and not bays_held:
                 # All of the ship's bays launch together: launching any craft
                 # means reloading before launching again (s.15)
                 bays = [w for w in ship.weapons if w.get("weapon_type") == "launch_bay"]
+                bay_idx = {id(w): i for i, w in enumerate(ship.weapons)}
                 from .ordnance import craft_type_allowed
                 # no assault boats while hit-and-run raids are off (owner)
                 craft_types = [ct for w in bays for ct in w.get("craft_types", [])
@@ -3259,12 +3962,12 @@ class AIPlayer:
                 enemy_ord = [OrdnanceMarker.from_dict(o) for o in gs.ordnance
                              if o["owner_player"] != self.player]
                 multi_role = ("thunderhawk", "fighta_bommer", "gun_cutter")
-                if enemy_ord and self.difficulty != "easy":
+                if enemy_ord and self.difficulty != "very_easy":
                     wanted = multi_role + ("fury_fighter", "barracuda", "fighter")
                 else:
                     wanted = multi_role + ("starhawk_bomber", "manta", "bomber")
                 preferred = next((ct for ct in wanted if ct in craft_types), craft_types[0])
-                if not enemy_ord and self.difficulty != "easy":
+                if not enemy_ord and self.difficulty != "very_easy":
                     held = self._hold_bays(ship, bays, craft_types, enemies)
                     if held:
                         gs.add_log(f"[AI] {ship.name} keeps its bays loaded ({held})")
@@ -3273,17 +3976,16 @@ class AIPlayer:
                 # Craft in play beyond the fleet's bays must go first (s.15)
                 excess = fleet_craft_excess(gs, self.player)
                 if excess:
-                    recall_craft(gs, self.player, ai_craft_to_recall(gs, self.player, excess))
-                count, roll_log = bay_launch_capacity(ship, bays, self.dice)
-                for line in roll_log:
-                    gs.add_log(f"[AI] {line}")
-                count = min(count, fleet_craft_slots(gs, self.player))
+                    actions.recall(gs, self.player, ai_craft_to_recall(gs, self.player, excess))
+                count = actions.roll_bays(gs, self.dice, ship.id, [bay_idx[id(w)] for w in bays],
+                                          tag="[AI] ")
+                count = min(count, fleet_craft_slots(gs, self.player, impaler_bays(bays)))
                 alloc = (self._bay_allocation(ship, craft_types, count, enemies)
-                         if count > 0 and self.difficulty != "easy" else None)
+                         if count > 0 and self.difficulty != "very_easy" else None)
                 plan = None
                 if alloc is not None:
                     plan = alloc["strike"]
-                    self._launch_defence(ship, bays, alloc)
+                    self._launch_defence(ship, bays, alloc, bay_idx)
                     count = sum(n for _ct, n in plan) if plan else 0
                 else:
                     plan = self._wave_split(ship, craft_types, count, enemies,
@@ -3297,30 +3999,24 @@ class AIPlayer:
                     for ct, n in plan:
                         if n > 0:
                             bay = next(w for w in bays if ct in w.get("craft_types", []))
-                            launched += launch_attack_craft(gs.get_ship_by_id(ship.id),
-                                                            bay, ct, n, gs)
+                            launched += actions.launch_craft(gs, ship.id, bay_idx[id(bay)], ct, n)
                     if len(launched) > 1:
-                        from .waves import form_wave
                         for group in self._wave_groups(launched, plan):
-                            form_wave(gs, [m.id for m in group], "close")
+                            actions.form_craft_wave(gs, [m.id for m in group], "close")
                     # Fly at the chosen target; later launches this phase see its hits
                     tgt = getattr(self, "_strike_target", None)
                     if tgt:
-                        ids = {m.id for m in launched}
-                        for o in gs.ordnance:
-                            if o["id"] in ids:
-                                o["craft_target_id"] = tgt[0]
+                        actions.set_craft_target(gs, [m.id for m in launched], tgt[0])
                         oc = getattr(self, "_ord_committed", {})
                         oc[tgt[0]] = oc.get(tgt[0], 0.0) + tgt[1]
                         self._ord_committed = oc
                         self._strike_target = None
                 elif count > 0:
-                    launched = launch_attack_craft(ship, next(w for w in bays if preferred in
-                                                              w.get("craft_types", [])),
-                                                   preferred, count, gs)
+                    bay = next(w for w in bays if preferred in w.get("craft_types", []))
+                    launched = actions.launch_craft(gs, ship.id, bay_idx[id(bay)], preferred,
+                                                    count)
                     if len(launched) > 1:            # the AI flies them as one wave (s.25)
-                        from .waves import form_wave
-                        form_wave(gs, [m.id for m in launched], "close")
+                        actions.form_craft_wave(gs, [m.id for m in launched], "close")
                 ship = gs.get_ship_by_id(ship.id)
 
     def _wave_groups(self, launched, plan):
@@ -3382,6 +4078,72 @@ class AIPlayer:
         return turret_split_gain(target, self.gs, strength, fighters, bombers, f_save, b_save,
                                  torps[0][2])
 
+    def _cap_strip_bonus(self, target: Ship, phase: int, squadrons: int,
+                         committed: float = 0.0) -> float:
+        """VP a wave of `squadrons` reaching `target` in `phase` adds by
+        spending its CAP for our loaded torpedoes that can reach it in that
+        phase this turn (launched after the bays, `run_ordnance_phase`): each
+        salvo's expected VP (`torpedo_salvo_hits`) x how much likelier it gets
+        through with the wave there (`_torp_cap_factor` with and without)."""
+        if not any(o.get("cap_ship_id") == target.id for o in self.gs.ordnance):
+            return 0.0
+        from .ai_hazards import torpedo_salvo_hits, hull_hits_vp
+        arrivals = self.__dict__.setdefault("_ord_arrivals", {})
+        before = self._torp_cap_factor(target, phase)
+        entry = arrivals.setdefault(target.id, {})
+        entry.setdefault("craft", []).append((phase, 0, squadrons, 0, 0))
+        try:
+            after = self._torp_cap_factor(target, phase)
+        finally:
+            entry["craft"].pop()
+        if after <= before:
+            return 0.0
+        total = 0.0
+        for sh in self.gs.player_ships(self.player):
+            if sh.is_destroyed or sh.is_disengaged or not sh.ordnance_loaded_torps:
+                continue
+            for w in sh.weapons:
+                if w.get("weapon_type") != "torpedo":
+                    continue
+                speed = w.get("torpedo_speed", TORPEDO_SPEED_DEFAULT) or TORPEDO_SPEED_DEFAULT
+                reach = 0 if sh.distance_to(target) <= speed + target.base_radius else 1
+                if reach != phase or not check_weapon_in_arc(sh, w, target.x, target.y):
+                    continue
+                hits = torpedo_salvo_hits(w.get("strength") or 0, target, self.gs,
+                                          (sh.x, sh.y), rules=sh.special_rules)
+                total += hull_hits_vp(target, self.gs, committed, hits)
+        return total * (after - before)
+
+    def _torp_cap_factor(self, target: Ship, phase: int) -> float:
+        """The chance a salvo reaching `target` in `phase` meets no CAP (owner):
+        a CAP fighter intercepting a salvo removes all of it (s.19, s.26:
+        both markers removed, a resilient fighter staying on a save), so the
+        salvo only gets through once the CAP is spent. Each of our attack
+        craft squadrons due there in that phase (planned this phase or
+        flying, `_craft_due`; the engine resolves craft before torpedoes) and
+        each salvo of ours planned there earlier uses up one CAP squadron,
+        unless that fighter makes its resilient save (exact binomial). The
+        enemy launching more CAP before it arrives isn't counted."""
+        caps = [o for o in self.gs.ordnance
+                if o.get("cap_ship_id") == target.id and o.get("owner_player") == target.player]
+        if not caps:
+            return 1.0
+        from .ordnance import craft_roles
+        caps = [o for o in caps if "fighter" in craft_roles(o["ordnance_type"])]
+        if not caps:
+            return 1.0
+        save = max((o.get("resilient_save") or 0) for o in caps)
+        q = 1.0 - (max(0, 7 - save) / 6.0 if save else 0.0)   # a strip that sticks
+        due = [d for d in self._craft_due(target) if d[0] == phase]
+        n = sum(d[1] + d[2] for d in due)
+        n += sum(1 for t in getattr(self, "_ord_arrivals", {}).get(target.id, {}).get("torps", [])
+                 if t[0] == phase)
+        need = len(caps)
+        if n < need:
+            return 0.0
+        from math import comb
+        return sum(comb(n, k) * q ** k * (1 - q) ** (n - k) for k in range(need, n + 1))
+
     def _craft_due(self, target: Ship):
         """Attack craft due at `target`, as [(phase, fighters, bombers)]: planned
         this phase (_ord_arrivals) and our craft already flying at it (arrival
@@ -3422,7 +4184,7 @@ class AIPlayer:
         from .ordnance import craft_stats, bay_launch_capacity
         from .ai_hazards import p_sum_at_most
         count = min(bay_launch_capacity(ship, bays, None)[0],
-                    fleet_craft_slots(self.gs, self.player))
+                    fleet_craft_slots(self.gs, self.player, impaler_bays(bays)))
         if count <= 0:
             return ""
         # Out of the strike planner's reach (3 moves of the fastest craft): hold.
@@ -3451,7 +4213,7 @@ class AIPlayer:
         """[(type, n), ...] for one strike wave (_strike_option) when there are
         2+ squadrons and no enemy ordnance to defend against, else None (then
         the AI keeps launching fighters; used when _bay_allocation can't plan)."""
-        if count < 2 or self.difficulty == "easy" or defending or not enemies:
+        if count < 2 or self.difficulty == "very_easy" or defending or not enemies:
             return None
         opt = self._strike_option(ship, craft_types, count, enemies)
         if opt is None:
@@ -3589,7 +4351,7 @@ class AIPlayer:
                 def wave(inp, f=0, b=0):
                     from .waves import wave_split_value
                     t = inp["turrets"]
-                    pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                    pp = craft_turret_p(target, ship.special_rules)
                     ev = wave_split_value(f, b, t, t + inp["massed"], inp["cap"],
                                           inp["armour"], pp, f_save, b_save, inp["cap_save"])
                     return hull_hits_vp(target, self.gs, c, ev), ev
@@ -3613,6 +4375,13 @@ class AIPlayer:
                         v += sv
                         ev += syn
                         vals = [(w, a + sv) for w, a in vals]
+                    # Owner: the wave also strips the target's CAP for our
+                    # torpedoes reaching it in the same phase (a CAP fighter
+                    # takes a whole salvo, one squadron of a wave)
+                    strip = self._cap_strip_bonus(target, tl_s["phase"], f + b, c)
+                    if strip:
+                        v += strip
+                        vals = [(w, a + strip) for w, a in vals]
                     rv = risk_value(vals, disc, tl_s)
                     if best_split is None or rv > best_split[0] + 1e-9:
                         best_split = (rv, f, b, ev, tl_s["phase"], 1)
@@ -3635,7 +4404,7 @@ class AIPlayer:
 
                 def bombers(inp):
                     t = inp["turrets"]
-                    pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                    pp = craft_turret_p(target, ship.special_rules)
                     _f, _b, ev = best_wave_split(count, t, t + inp["massed"], inp["cap"],
                                                  inp["armour"], pp, 0, stats[bomber][2] or 0,
                                                  inp["cap_save"])
@@ -3647,13 +4416,20 @@ class AIPlayer:
                     options.append((risk_value(vals, disc, _tl), [(bomber, count)],
                                     f"{count} bombers", target, ev))
             got = timeline(stats[boat][1] or 20) if boat else None
+            if got and boat == "impaler" and got[0]["phase"] > 1:
+                # Impalers are removed at the start of our next turn (lack of
+                # fuel, Xenos p.5): only a strike landing in this ordnance phase
+                # or the enemy's next one counts
+                got = None
             if got:
                 tl, disc, caps = got
-                raid = raid_squadron_value(target, self.gs, self.player, ship.special_rules,
-                                           end_phases=tl["end_phases"])
+                raid = raid_squadron_value(
+                    target, self.gs, self.player,
+                    list(ship.special_rules) + (["impaler"] if boat == "impaler" else []),
+                    end_phases=tl["end_phases"])
 
                 def boats(inp):
-                    pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                    pp = craft_turret_p(target, ship.special_rules)
                     through = expected_survivors(count, inp["turrets"] + inp["massed"],
                                                  inp["cap"], pp, stats[boat][2] or 0,
                                                  inp["cap_save"])
@@ -3673,7 +4449,7 @@ class AIPlayer:
                 tiger = tb == "tiger_shark"
 
                 def tbs(inp):
-                    pp = (7 - (5 if inp.get("ork") else 4)) / 6.0
+                    pp = craft_turret_p(target, ship.special_rules)
                     through = expected_survivors(count, 0, inp["cap"], pp, stats[tb][2] or 0,
                                                  inp["cap_save"])
                     strength = 2 * through * (5 / 6 if tiger else 1.0)
@@ -3845,7 +4621,7 @@ class AIPlayer:
         planner's firepower units. Nothing unless teleports and hit-and-run
         raids are on (owner)."""
         gs = self.gs
-        if self.difficulty == "easy" or not (getattr(gs, "rule_teleport", False)
+        if self.difficulty == "very_easy" or not (getattr(gs, "rule_teleport", False)
                                              and getattr(gs, "rule_hit_and_run", False)):
             return 0.0
         if ship.ship_type == "escort" and ship.hits_max < 3:
@@ -3865,28 +4641,28 @@ class AIPlayer:
             shields = current_shields(ship, gs.get_blast_markers())
             down = 1.0 if blast_markers_at(ship, (x, y), gs) >= shields else \
                 self.TELEPORT_SHIELDS_DOWN
-            vp += down * raid_squadron_value(ship, gs, e.player, e.special_rules)
+            vp += down * raid_squadron_value(ship, gs, e.player, e.special_rules,
+                                             assault_boat=False)
         if vp <= 0:
             return 0.0
-        return vp / (0.35 * max(1.0, value_per_hit(target, gs)))
+        return vp / (FP_HITS * max(1.0, value_per_hit(target, gs)))
 
     def _boarding_reach(self, ship: Ship, x: float, y: float, target: Ship) -> float:
         """To do 8 h: an end position in base contact with an enemy gains the
         boarding action's net value (`_boarding_gain`), in the planner's
         firepower units. Only with the boarding rule on (owner)."""
-        if self.difficulty == "easy" or not getattr(self.gs, "rule_boarding", False):
+        if self.difficulty == "very_easy" or not getattr(self.gs, "rule_boarding", False):
             return 0.0
         from .geometry import BASE_CONTACT_MARGIN_CM
         from .ai_hazards import value_per_hit
-        import dataclasses
-        at = dataclasses.replace(ship, x=x, y=y)
+        at = _dc_replace(ship, x=x, y=y)
         best = 0.0
         for e in self._live_enemies():
             if math.hypot(e.x - x, e.y - y) <= e.base_radius + ship.base_radius + BASE_CONTACT_MARGIN_CM:
                 best = max(best, self._boarding_gain(at, e))
         if best <= 0:
             return 0.0
-        return best / (0.35 * max(1.0, value_per_hit(target, self.gs)))
+        return best / (FP_HITS * max(1.0, value_per_hit(target, self.gs)))
 
     def _teleport_reach(self, ship: Ship, x: float, y: float, target: Ship,
                         order: str = "") -> float:
@@ -3899,7 +4675,7 @@ class AIPlayer:
         0.1 (judgement), in the planner's firepower units. Nothing unless
         teleports and hit-and-run raids are on (owner)."""
         gs = self.gs
-        if self.difficulty == "easy" or not (getattr(gs, "rule_teleport", False)
+        if self.difficulty == "very_easy" or not (getattr(gs, "rule_teleport", False)
                                              and getattr(gs, "rule_hit_and_run", False)):
             return 0.0
         if "teleport_assault" not in ship.special_rules or ship.is_crippled:
@@ -3922,10 +4698,11 @@ class AIPlayer:
                 continue
             sh = current_shields(e, gs.get_blast_markers())
             p = 1.0 if sh <= 0 else (0.6 if ours.get(e.id, 0.0) >= sh else 0.1)
-            best = max(best, p * raid_squadron_value(e, gs, self.player, ship.special_rules))
+            best = max(best, p * raid_squadron_value(e, gs, self.player, ship.special_rules,
+                                                     assault_boat=False))
         if best <= 0:
             return 0.0
-        return best / (0.35 * max(1.0, value_per_hit(target, gs)))
+        return best / (FP_HITS * max(1.0, value_per_hit(target, gs)))
 
     def _carrier_exposure(self, ship: Ship, x: float, y: float, target: Ship) -> float:
         """Owner: when the enemy has more launch capacity, protect our carriers.
@@ -3936,7 +4713,7 @@ class AIPlayer:
         counted for carriers only and weighted by the share of our launch
         capacity this ship carries, doubled when the enemy out-carriers us; in
         the planner's firepower units."""
-        if self.difficulty == "easy":
+        if self.difficulty == "very_easy":
             return 0.0
         from .ai_hazards import air_balance, value_per_hit, _bays
         from .ordnance import craft_roles, craft_stats, bay_launch_capacity
@@ -3972,7 +4749,7 @@ class AIPlayer:
             n = bay_launch_capacity(e, bays, None)[0]
             vp += n * bomber_squadron_value(moved, self.gs) / (1 + others)
         vp *= self._anticipated_weight() * (1 + share) * doctrine
-        per_fp = 0.35 * max(1.0, value_per_hit(target, self.gs))
+        per_fp = FP_HITS * max(1.0, value_per_hit(target, self.gs))
         return vp / per_fp
 
     def _anticipated_strike_slots(self, friends, cap_left=None):
@@ -4114,21 +4891,16 @@ class AIPlayer:
                 plan["assigned"].setdefault(ship.id, []).append(t)
         return plan
 
-    def _launch_defence(self, ship: Ship, bays, alloc):
+    def _launch_defence(self, ship: Ship, bays, alloc, bay_idx):
         """Launch _bay_allocation's CAP and free fighters (not in the wave)."""
         gs = self.gs
         fk = alloc["fighter"]
         bay = next(w for w in bays if fk in w.get("craft_types", []))
         for sid, n in alloc["cap"]:
-            guard = gs.get_ship_by_id(sid)
-            launched = launch_attack_craft(gs.get_ship_by_id(ship.id), bay, fk, n, gs)
-            ids = {m.id for m in launched}
-            for o in gs.ordnance:
-                if o["id"] in ids and guard:
-                    o["cap_ship_id"] = sid
-                    o["x"], o["y"] = guard.x, guard.y
+            actions.launch_craft(gs, ship.id, bay_idx[id(bay)], fk, n,
+                                 cap_ship_id=sid if gs.get_ship_by_id(sid) else None)
         if alloc["free"]:
-            launch_attack_craft(gs.get_ship_by_id(ship.id), bay, fk, alloc["free"], gs)
+            actions.launch_craft(gs, ship.id, bay_idx[id(bay)], fk, alloc["free"])
 
     # ── Auto repair (for end phase) ──────────────────────────────────────────
 
@@ -4265,7 +5037,7 @@ class AIPlayer:
                     value -= loss
                     lost += loss
                 else:
-                    hits = torpedo_salvo_hits(left, o, gs, (ship.x, ship.y))
+                    hits = torpedo_salvo_hits(left, o, gs, (ship.x, ship.y), rules=ship.special_rules)
                     value += added_vp(o, gs, committed.get(o.id, 0.0), hits, shields=False)
                     if o.id == target.id:
                         on_target, met = hits, True
@@ -4367,7 +5139,7 @@ class AIPlayer:
                     base_v -= loss
                     lost += loss
                 else:
-                    hh = torpedo_salvo_hits(left, o, gs, from_xy)
+                    hh = torpedo_salvo_hits(left, o, gs, from_xy, rules=ship.special_rules)
                     if o.id == target.id:
                         hit_now, target_hits_now = True, hh
                     # other enemies in the lane soak up strength; their VP is
@@ -4382,7 +5154,7 @@ class AIPlayer:
                 lft, v = left, 0.0
                 w1 = phase_weight(1)           # the enemy's turn: one phase later
                 if lft > 0 and path_touches(path, p1[0], p1[1], rt):
-                    hh = torpedo_salvo_hits(lft, target, gs, from_xy)   # it runs into the salvo
+                    hh = torpedo_salvo_hits(lft, target, gs, from_xy, rules=ship.special_rules)   # it runs into the salvo
                     v = w1 * added_vp(target, gs, committed.get(target.id, 0.0), hh,
                                       shields=False)
                     lft -= hh
@@ -4402,7 +5174,7 @@ class AIPlayer:
                         hh = lft * p_hit(o.armor_vs(*from_xy))
                         v -= added_vp(o, gs, 0.0, hh, shields=False)
                     else:
-                        hh = torpedo_salvo_hits(lft, o, gs, from_xy)
+                        hh = torpedo_salvo_hits(lft, o, gs, from_xy, rules=ship.special_rules)
                         v += w1 * added_vp(o, gs, committed.get(o.id, 0.0), hh, shields=False)
                         hit = True
                     lft -= hh
@@ -4428,13 +5200,20 @@ class AIPlayer:
                     k2 = 3                     # the enemy's next turn
                 else:
                     return 0.0, v
-                hh = torpedo_salvo_hits(lft, target, gs, from_xy)
+                hh = torpedo_salvo_hits(lft, target, gs, from_xy, rules=ship.special_rules)
                 # phase_weight includes LATER_TURN_WEIGHT from the next turn on
                 v += phase_weight(k2) * added_vp(target, gs, committed.get(target.id, 0.0),
                                                  hh, shields=False)
                 return LATER_TURN_WEIGHT, v
             outs_n = [outcome(p) for p in normal]
-            outs_d = [outcome(p) for p in dodge]
+            # an All Ahead Full dodge is one choice whose distance is rolled
+            # after it: its bands (aaf_p) make one expected outcome
+            outs_d = [outcome(p) for p in dodge if not getattr(p, "aaf_p", 0)]
+            aaf = [(p.aaf_p, outcome(p)) for p in dodge if getattr(p, "aaf_p", 0)]
+            if aaf:
+                tot = sum(q for q, _o in aaf) or 1.0
+                outs_d.append((sum(q * o[0] for q, o in aaf) / tot,
+                               sum(q * o[1] for q, o in aaf) / tot))
             wts = [getattr(p, "weight", 1.0) for p in normal]
             wsum = sum(wts) or 1.0
             mean_v = sum(w * v for w, (_h, v) in zip(wts, outs_n)) / wsum
@@ -4458,7 +5237,7 @@ class AIPlayer:
             p_h *= torpedo_path_survival(ship.x, ship.y, p2[0], p2[1], gs) * at_t
             if best is None or value > best["value"] + 1e-9:
                 best = {"heading": h, "value": value, "p_hit": p_h, "lost": lost,
-                        "hits": torpedo_salvo_hits(strength, target, gs, from_xy)}
+                        "hits": torpedo_salvo_hits(strength, target, gs, from_xy, rules=ship.special_rules)}
         if best is None or best["p_hit"] <= 0:
             return None
         return best
@@ -4498,7 +5277,7 @@ class AIPlayer:
             dist = math.sqrt((ship.x - e.x) ** 2 + (ship.y - e.y) ** 2)
             if dist <= torp_range:
                 candidates.append(e)
-        if candidates and self.difficulty != "easy":
+        if candidates and self.difficulty != "very_easy":
             # Owner: focus by expected VP; easy targets (low Armour / turrets /
             # shields, damaged ships) score most. Counts what the guns have done
             # (ships' actual state) and what this phase's ordnance is planned to do
@@ -4539,7 +5318,7 @@ class AIPlayer:
                         # Turning salvo: best approach, weaker facings included
                         return (plan["value"] + split_bonus(e, plan["phase"], plan["hits"]),
                                 plan["hits"])
-                hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y))
+                hits = torpedo_salvo_hits(strength, e, self.gs, (ship.x, ship.y), rules=ship.special_rules)
                 # Planets / asteroid fields on the way destroy the salvo; blast
                 # markers and dust clouds on a 6 (owner: hazards on the path)
                 # Salvos that can turn may go round obstacles within 45 degrees:
@@ -4573,7 +5352,15 @@ class AIPlayer:
                 return ((added_vp(e, self.gs, committed.get(e.id, 0.0), hits, shields=False)
                          * (1.0 if both else 0.6) - friendly * surv)
                         * travel_discount(ship.distance_to(e), speed), hits)
+            raw_score = score
+
+            def score(e):                         # noqa: F811 (the CAP left on e)
+                v, h = raw_score(e)
+                f = self._torp_cap_factor(e, phase_of(e))
+                return (v * f if v > 0 else v), h * f
             best = max(candidates, key=lambda e: score(e)[0])
+            if score(best)[0] <= 0 and self._torp_cap_factor(best, phase_of(best)) == 0:
+                return None                     # its CAP would take the whole salvo
             if score(best)[0] < 0:
                 return None                     # friendly fire would cost more than it gains
             committed[best.id] = committed.get(best.id, 0.0) + score(best)[1]

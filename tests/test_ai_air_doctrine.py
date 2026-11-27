@@ -1,7 +1,7 @@
 """Owner: carrier doctrine. With more launch capacity than the enemy, the AI
 should prioritise taking down the enemy's carriers (air supremacy); with less,
 it should protect its carriers and fly more interception."""
-from tests.conftest import make_ship, make_gs, DiceStub
+from tests.conftest import make_gunship, make_ship, make_gs, DiceStub
 from src.ship_catalog import find_ship_class
 from src.models import Ship
 from src.ai_hazards import bay_threat_vp, added_vp, air_balance
@@ -40,12 +40,15 @@ def test_air_supremacy_puts_guns_on_the_enemy_carrier():
     """Two enemies of equal points and toughness, one a carrier: our carrier-heavy
     fleet values hits on the carrier more (damage_vp counts the threat removed)."""
     enemy_cv = _carrier("ecv", 2, 40.0, heading=180.0)
-    twin = _gun_cruiser("eg", 2, 40.0, 20.0, pts=enemy_cv.points_value)
+    # the same spot as the carrier: hits short of a kill are worth the chance our
+    # next turn's fire finishes the job (ai_hazards.hits_vp), the same for both here
+    twin = _gun_cruiser("eg", 2, 40.0, 0.0, pts=enemy_cv.points_value)
     twin = Ship.from_dict({**twin.to_dict(), "hits_max": enemy_cv.hits_max,
                            "hits_remaining": enemy_cv.hits_remaining,
                            "shields_max": enemy_cv.shields_max,
                            "armor_prow": enemy_cv.armor_prow, "armor_side": enemy_cv.armor_side,
-                           "armor_rear": enemy_cv.armor_rear, "weapons": []})
+                           "armor_rear": enemy_cv.armor_rear, "weapons": [],
+                           "heading": enemy_cv.heading, "turrets": enemy_cv.turrets})
     gs = make_gs([_carrier("c0", 1, 0.0), _carrier("c1", 1, 0.0, 10.0), enemy_cv, twin])
     hits = enemy_cv.hits_max          # enough to kill either
     assert added_vp(enemy_cv, gs, 0.0, hits) > added_vp(twin, gs, 0.0, hits)
@@ -56,8 +59,11 @@ def test_out_carriered_the_ai_protects_its_carrier_and_flies_more_cap():
     from src.turn_controller import TurnController
     mine = _carrier("c0", 1, 0.0)
     rivals = [_carrier(f"e{i}", 2, 45.0, 15.0 * i, heading=180.0) for i in range(3)]
-    gs_weak = make_gs([mine] + rivals)             # 4 vs 12 squadrons
-    gs_even = make_gs([mine, rivals[0]])           # 4 vs 4
+    # our gun ships far off (a fleet the enemy's fire is shared over, so the
+    # carrier isn't simply doomed: ai_hazards._future_fire)
+    guns = [make_gunship(player=1, x=-150.0, y=-150.0 + 20 * i, id=f"g{i}") for i in range(4)]
+    gs_weak = make_gs([mine] + rivals + guns)      # 4 vs 12 squadrons
+    gs_even = make_gs([mine, rivals[0]] + guns)    # 4 vs 4
     tgt = rivals[0]
 
     def ai_for(gs):

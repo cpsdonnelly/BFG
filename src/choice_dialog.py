@@ -1,13 +1,12 @@
 """A modal choice prompt with an "Auto (best)" button (owner request: the
 player can let the game pick the expected best option, the one the AI's
 expected-value logic would take). Tk UI: main thread only."""
-import tkinter as tk
+from .tk_compat import tk
 
 
 def choose(root, title: str, text: str, options, best):
     """options: [(label, value), ...]; best: the value the AI logic picks.
     Returns the chosen value (closing the window takes the best one)."""
-    best_label = next((lbl for lbl, v in options if v == best), str(best))
     result = {"v": best}
     win = tk.Toplevel(root)
     win.title(title)
@@ -22,7 +21,7 @@ def choose(root, title: str, text: str, options, best):
 
     for label, value in options:
         tk.Button(row, text=label, command=lambda v=value: pick(v)).pack(side=tk.LEFT, padx=3)
-    tk.Button(win, text=f"Auto (best: {best_label})", bg="#335533", fg="white",
+    tk.Button(win, text="Auto", bg="#335533", fg="white",
               command=lambda: pick(best)).pack(pady=(0, 10))
     win.protocol("WM_DELETE_WINDOW", lambda: pick(best))
     win.grab_set()

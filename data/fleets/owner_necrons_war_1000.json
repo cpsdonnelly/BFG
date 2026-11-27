@@ -1,0 +1,301 @@
+{
+  "fleet_name": "Necron Dynasty 1000 (War)",
+  "faction": "necrons",
+  "description": "",
+  "points_limit": 1000,
+  "total_points": 1000,
+  "fleet_list": "necron_dynasty",
+  "detachments": [],
+  "ships": [
+    {
+      "name": "Cairn Class Tombship",
+      "ship_class": "Cairn Class Tombship",
+      "faction": "necrons",
+      "ship_type": "battleship",
+      "base_size": "large",
+      "speed": 20,
+      "turn_angle": 45,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 4,
+      "hits_max": 12,
+      "leadership": 10,
+      "leadership_table": "",
+      "weapons": [
+        {
+          "name": "Lightning Arc",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 20,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "lightning_arc": true
+        },
+        {
+          "name": "Particle Whip",
+          "weapon_type": "lance",
+          "range_cm": 45,
+          "strength": 6,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "particle_whip": true
+        },
+        {
+          "name": "Star Pulse Generator",
+          "weapon_type": "star_pulse",
+          "range_cm": 20,
+          "strength": 1,
+          "arcs": []
+        },
+        {
+          "name": "Portals",
+          "weapon_type": "portal",
+          "range_cm": 10,
+          "strength": 4,
+          "arcs": []
+        },
+        {
+          "name": "Nightmare Field",
+          "weapon_type": "nightmare_field",
+          "range_cm": 20,
+          "strength": 1,
+          "arcs": []
+        }
+      ],
+      "special_rules": [
+        "ponderous",
+        "necron",
+        "reactive_hull:4",
+        "fleet_commander",
+        "bloodswarm"
+      ],
+      "upgrades": [
+        "Necron Lord: Nemesor",
+        "Lord's vessel: Nightmare Field",
+        "Lord's vessel: Bloodswarm Nanoscarabs"
+      ],
+      "points_value": 610,
+      "is_flagship": true,
+      "admiral_type": "",
+      "rerolls_remaining": 1,
+      "squadron_id": "",
+      "fleet_list": "necron_dynasty"
+    },
+    {
+      "name": "Shroud Class Light Cruiser",
+      "ship_class": "Shroud Class Light Cruiser",
+      "faction": "necrons",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 45,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 6,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Lightning Arc",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 8,
+          "arcs": [
+            "left",
+            "right"
+          ],
+          "lightning_arc": true
+        },
+        {
+          "name": "Portals",
+          "weapon_type": "portal",
+          "range_cm": 10,
+          "strength": 1,
+          "arcs": []
+        },
+        {
+          "name": "Particle Whip",
+          "weapon_type": "lance",
+          "range_cm": 45,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "particle_whip": true
+        }
+      ],
+      "special_rules": [
+        "necron",
+        "reactive_hull:5"
+      ],
+      "upgrades": [
+        "Shroud refit: Khopesh Configuration",
+        "Shroud refit: Cartouche Configuration",
+        "Shroud refit: War Configuration"
+      ],
+      "points_value": 155,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "necron_dynasty"
+    },
+    {
+      "name": "Shroud Class Light Cruiser",
+      "ship_class": "Shroud Class Light Cruiser",
+      "faction": "necrons",
+      "ship_type": "cruiser",
+      "base_size": "small",
+      "speed": 30,
+      "turn_angle": 45,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 2,
+      "hits_max": 6,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Lightning Arc",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 8,
+          "arcs": [
+            "left",
+            "right"
+          ],
+          "lightning_arc": true
+        },
+        {
+          "name": "Portals",
+          "weapon_type": "portal",
+          "range_cm": 10,
+          "strength": 1,
+          "arcs": []
+        },
+        {
+          "name": "Particle Whip",
+          "weapon_type": "lance",
+          "range_cm": 45,
+          "strength": 2,
+          "arcs": [
+            "left",
+            "front",
+            "right"
+          ],
+          "particle_whip": true
+        }
+      ],
+      "special_rules": [
+        "necron",
+        "reactive_hull:5"
+      ],
+      "upgrades": [
+        "Shroud refit: Khopesh Configuration",
+        "Shroud refit: Cartouche Configuration",
+        "Shroud refit: War Configuration"
+      ],
+      "points_value": 155,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "",
+      "fleet_list": "necron_dynasty"
+    },
+    {
+      "name": "Dirge Class Raider",
+      "ship_class": "Dirge Class Raider",
+      "faction": "necrons",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 50,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Lightning Arc",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "front"
+          ],
+          "lightning_arc": true
+        }
+      ],
+      "special_rules": [
+        "necron",
+        "reactive_hull:6"
+      ],
+      "upgrades": [],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "dirges",
+      "fleet_list": "necron_dynasty"
+    },
+    {
+      "name": "Dirge Class Raider",
+      "ship_class": "Dirge Class Raider",
+      "faction": "necrons",
+      "ship_type": "escort",
+      "base_size": "small",
+      "speed": 50,
+      "turn_angle": 90,
+      "shields_max": 0,
+      "armor_prow": "6+",
+      "armor_side": "6+",
+      "armor_rear": "",
+      "turrets": 1,
+      "hits_max": 1,
+      "leadership": 0,
+      "leadership_table": "Default",
+      "weapons": [
+        {
+          "name": "Lightning Arc",
+          "weapon_type": "battery",
+          "range_cm": 30,
+          "strength": 3,
+          "arcs": [
+            "front"
+          ],
+          "lightning_arc": true
+        }
+      ],
+      "special_rules": [
+        "necron",
+        "reactive_hull:6"
+      ],
+      "upgrades": [],
+      "points_value": 40,
+      "is_flagship": false,
+      "admiral_type": "",
+      "rerolls_remaining": 0,
+      "squadron_id": "dirges",
+      "fleet_list": "necron_dynasty"
+    }
+  ]
+}

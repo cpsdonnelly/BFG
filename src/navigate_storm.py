@@ -249,17 +249,35 @@ def turn_start(gs, player: int) -> None:
     movement phase)."""
     if not active(gs) or player != gs.scenario_attacker:
         return
+    if getattr(gs, "turn_system", "igougo") == "aa":
+        return              # alternate activation: aa_movement_start / aa_movement_end
+    _into_play(gs, player)
+
+
+def _into_play(gs, player: int) -> None:
     for sd in gs.ships:
         if sd["player"] == player and MATERIALISING in sd.get("special_rules", []) \
                 and sd.get("status") == "active":
             sd["is_disengaged"] = False
-    if getattr(gs, "turn_system", "igougo") == "aa":
-        # Alternate activation (reading): the round has no attacker's
-        # movement phase before the shooting, so they come back at once
-        end_of_movement(gs, player, None, aa=True)
 
 
-def end_of_movement(gs, player: int, dice, aa: bool = False) -> None:
+def aa_movement_start(gs) -> None:
+    """Alternate activation (sign-off answer 16, owner): materialising ships
+    come into play to move at the start of the round's movement phase."""
+    if active(gs):
+        _into_play(gs, gs.scenario_attacker)
+
+
+def aa_movement_end(gs, dice) -> None:
+    """Alternate activation (sign-off answer 16, owner): they return to normal
+    at the end of each round's movement phase, after both sides' movement
+    activations, as at the end of the attacker's movement phase in IGOUGO
+    (base contact included)."""
+    if active(gs):
+        end_of_movement(gs, gs.scenario_attacker, dice)
+
+
+def end_of_movement(gs, player: int, dice) -> None:
     """At the end of the attacker's movement phase each materialising ship
     not in base contact with an enemy vessel returns to normal and tests
     Leadership: a failure halves its armament until the end of the turn. One
@@ -279,7 +297,7 @@ def end_of_movement(gs, player: int, dice, aa: bool = False) -> None:
             continue
         touching = any(math.hypot(ship.x - e.x, ship.y - e.y)
                        <= ship.base_radius + e.base_radius + 0.01 for e in enemies)
-        if touching and not aa:
+        if touching:
             ship.is_disengaged = True
             gs.update_ship(ship)
             continue
